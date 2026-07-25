@@ -1,0 +1,23 @@
+{
+  "package": "phantom-world-goal-005-core-profile-persistence-envelope",
+  "taskId": "005-core-profile-persistence-envelope",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/005-core-profile-persistence-envelope/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "f5b66c4edf1ddf18e044ef8c692d70ecea616485",
+  "roadmapSha256": "52C6F680582DEB91E45E4112FEDE2E70A4A64807DB76B3970D2BF24FB6455346",
+  "expectedSchemaScripts": 118,
+  "expectedSchemaStatements": 207,
+  "productionDatabaseChangesExecuted": false,
+  "goal006Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "SCHEMA.md",
+    "ARCHITECTURE.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

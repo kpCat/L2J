@@ -16,6 +16,29 @@ Goal 005: `NOT_STARTED`
 
 ADR: `Proposed`
 
+## Independent Task 004B closure
+
+Task 004B независимо принята как окончательная safety closure для Task
+004/004A. Immutable handoff:
+
+```text
+Commit: f5b66c4edf1ddf18e044ef8c692d70ecea616485
+Parent: d36e10e24787edce3fe4f4d933fca4d0ac884d50
+Push/remote: exact
+Final verifier 1: 66/66
+Final verifier 2: 66/66
+Outputs identical SHA-256:
+39A1D87DB35AE8B2DDE28EB11776A69E2F7359AC6539A900BB78D114BDBB7BC9
+Independent review: ACCEPT
+Follow-up: stabilize test-only ThreadPool baseline in Goal 005
+```
+
+Review record:
+`docs/phantoms/reviews/004b-retained-identity-ownership-fix-review.md`.
+Task 004 technical feasibility и Task 004B приняты; Task 004A считается
+принятой после Task 004B. Revert не требуется, ADR 0001 принят, Goal 005
+разрешён.
+
 ## Summary
 
 Исправлены только три retained-identity findings Task 004A:

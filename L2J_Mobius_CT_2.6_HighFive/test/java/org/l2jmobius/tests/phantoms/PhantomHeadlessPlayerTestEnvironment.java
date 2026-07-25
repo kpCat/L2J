@@ -31,9 +31,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.commons.config.ThreadConfig;
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.config.ConfigLoader;
 import org.l2jmobius.gameserver.data.sql.ClanHallTable;
@@ -201,6 +205,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		_primary = createFixture("PhT004A" + stableSuffix(context.seed()), PRIMARY_ITEM_BASELINE);
 		_observer = createFixture("PhT004B" + stableSuffix(context.seed()), OBSERVER_ITEM_BASELINE);
 
+		stabilizeInfrastructureThreads();
 		_environmentThreadIds = liveNonDaemonThreadIds();
 		context.record("headless.database", PhantomTestDatabaseGuard.TARGET_DATABASE);
 		context.record("headless.schemaAggregateSha256", bootstrap.schemaSnapshot().aggregateSha256());
@@ -434,6 +439,81 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		return ids;
 	}
 
+	private static void stabilizeInfrastructureThreads() throws Exception
+	{
+		final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+		final CountDownLatch warmups = new CountDownLatch(2);
+		ThreadPool.execute(warmups::countDown);
+		final ScheduledFuture<?> scheduled = ThreadPool.schedule(warmups::countDown, 0);
+		PhantomAssertions.assertTrue(scheduled != null, "Could not submit bounded scheduled ThreadPool warm-up work.");
+
+		final int priorityWorkerCount = Math.max(1, Math.min(ThreadConfig.HIGH_PRIORITY_SCHEDULED_THREAD_POOL_SIZE, 64));
+		final CountDownLatch priorityStarted = new CountDownLatch(priorityWorkerCount);
+		final CountDownLatch priorityRelease = new CountDownLatch(1);
+		final List<ScheduledFuture<?>> priorityWarmups = new ArrayList<>(priorityWorkerCount);
+		for (int index = 0; index < priorityWorkerCount; index++)
+		{
+			final ScheduledFuture<?> future = ThreadPool.schedulePriorityTaskAtFixedRate(() ->
+			{
+				priorityStarted.countDown();
+				try
+				{
+					priorityRelease.await();
+				}
+				catch (InterruptedException e)
+				{
+					Thread.currentThread().interrupt();
+				}
+			}, 0, TimeUnit.MINUTES.toMillis(1));
+			PhantomAssertions.assertTrue(future != null, "Could not submit bounded high-priority ThreadPool warm-up work.");
+			priorityWarmups.add(future);
+		}
+		try
+		{
+			PhantomAssertions.assertTrue(awaitBeforeDeadline(warmups, deadline), "Instant/scheduled ThreadPool warm-up did not finish within the two-second stabilization budget.");
+			PhantomAssertions.assertTrue(awaitBeforeDeadline(priorityStarted, deadline), "High-priority ThreadPool warm-up did not finish within the two-second stabilization budget.");
+		}
+		finally
+		{
+			priorityRelease.countDown();
+			priorityWarmups.forEach(future -> future.cancel(false));
+		}
+
+		Set<InfrastructureThreadIdentity> previous = Set.of();
+		int stableSamples = 0;
+		while (System.nanoTime() < deadline)
+		{
+			final Set<InfrastructureThreadIdentity> current = liveInfrastructureThreadIdentities();
+			stableSamples = current.equals(previous) ? stableSamples + 1 : 1;
+			if (stableSamples >= 4)
+			{
+				return;
+			}
+			previous = current;
+			Thread.sleep(25);
+		}
+		throw new AssertionError("Shared infrastructure thread names/IDs did not remain stable for four consecutive samples.");
+	}
+
+	private static boolean awaitBeforeDeadline(CountDownLatch latch, long deadline) throws InterruptedException
+	{
+		final long remaining = deadline - System.nanoTime();
+		return (remaining > 0) && latch.await(remaining, TimeUnit.NANOSECONDS);
+	}
+
+	private static Set<InfrastructureThreadIdentity> liveInfrastructureThreadIdentities()
+	{
+		final Set<InfrastructureThreadIdentity> identities = new HashSet<>();
+		for (Thread thread : Thread.getAllStackTraces().keySet())
+		{
+			if (thread.isAlive() && !thread.isDaemon() && (thread.getName().startsWith("L2jMobius ") || thread.getName().startsWith("L2JMobiusPool")))
+			{
+				identities.add(new InfrastructureThreadIdentity(thread.threadId(), thread.getName()));
+			}
+		}
+		return identities;
+	}
+
 	private void cleanupOwnedFixtures() throws Exception
 	{
 		final List<Integer> objectIds = new ArrayList<>();
@@ -512,5 +592,9 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			}
 		}
 		return false;
+	}
+
+	private record InfrastructureThreadIdentity(long id, String name)
+	{
 	}
 }

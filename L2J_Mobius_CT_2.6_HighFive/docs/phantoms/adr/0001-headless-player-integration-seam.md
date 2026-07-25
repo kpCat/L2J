@@ -2,7 +2,28 @@
 
 ## Status
 
-`Proposed`
+`Accepted`
+
+## Independent acceptance
+
+ADR принят после независимой проверки Task 004B.
+
+```text
+Accepted commit: f5b66c4edf1ddf18e044ef8c692d70ecea616485
+Parent: d36e10e24787edce3fe4f4d933fca4d0ac884d50
+Task 004 technical feasibility: ACCEPT
+Task 004A: ACCEPT after Task 004B
+Task 004B: ACCEPT
+```
+
+Retained-identity correction является обязательной частью принятого seam:
+любой существующий `REAL_LOGIN` или `PHANTOM` owner защищается независимо от
+feature flag, lease release требует exact object ID и полных object-ID cleanup
+postconditions.
+
+Оставшееся явное ограничение: recovery orchestration для удержанного
+`REAL_LOGIN` lease принадлежит Goal 006. Goal 005 не вводит автоматический
+retry loop.
 
 ## Context
 
@@ -170,7 +191,7 @@ migration is part of the spike.
 
 ## Supersession condition
 
-Accept/supersede this ADR only after Task 004 passes. If Task 004 demonstrates
-that the seam requires a large `Player` fork, broad handler rewrites, a fake
-network stack, per-phantom threads or production DB access, this ADR is rejected
-and the master plan must be formally revised.
+Task 004/004A/004B удовлетворили acceptance condition без большого `Player`
+fork, broad handler rewrites, fake network stack, per-phantom threads или
+production DB access. Будущий evidence, нарушающий эти инварианты, требует
+отдельного superseding ADR и формального пересмотра master plan.

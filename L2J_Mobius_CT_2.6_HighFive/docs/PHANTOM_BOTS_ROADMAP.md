@@ -12,35 +12,35 @@
 
 ```text
 Последний принятый production baseline:
-1ca74a3d96e8fa51612ef3e5145c7398abf60f6d
+f5b66c4edf1ddf18e044ef8c692d70ecea616485
 
 Текущий branch HEAD под ревью:
-5b22b1ee9bab556cd5a14c2212dfa3f4119c4566
+Goal 005 implementation — commit SHA во внешнем final handoff
 
 Task 004 technical feasibility:
-FEASIBLE_WITH_SEAM — подтверждено
+ACCEPT
 
-Task 004 commit verdict:
-FIX_REQUIRED
+Task 004A:
+ACCEPT after Task 004B
 
-Причина:
-нужно закрыть гонку CharacterSelect/onDisconnection, fail-closed lease release,
-disabled-mode compatibility и retryable cleanup до Task 005.
-
-Следующий обязательный шаг:
-Task 004A — real-login lease and cleanup hardening
-
-Task 005:
-NOT_STARTED / BLOCKED до независимого ACCEPT Task 004A
+Task 004B:
+ACCEPT
 
 ADR 0001:
-Proposed
+Accepted
+
+Task 005:
+IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
+Goal 006:
+NOT_STARTED / BLOCKED до независимого ACCEPT Goal 005
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
 материализован без TCP, fake `GameClient`, Player subclass/fork и production DB.
-Это техническое доказательство сохраняется. Коммит Task 004 пока не становится
-принятым baseline из-за ограниченных, но критичных integration findings.
+Task 004A и Task 004B закрыли найденные lifecycle/retained-identity findings;
+seam и ADR 0001 приняты. Goal 005 реализует только core profile/persistence
+envelope и ожидает независимого review; Goal 006 не начат.
 
 ---
 
@@ -241,7 +241,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 Основной порядок не содержит циклов:
 
 ```text
-001 → 002 → 003 → 004 → 004A → 005 → 006
+001 → 002 → 003 → 004 → 004A → 004B → 005 → 006
 
 006 → 007 → 008
 006 → 009
@@ -288,7 +288,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004 требует Task 004A; Task 005 заблокирована.
+**Текущий статус:** Task 004/004A/004B приняты; Goal 005 реализована и ожидает независимого review; Goal 006 заблокирована.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -317,27 +317,33 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 **Gate:** disabled path allocates/changes nothing.  
 **Follow-up risk:** `LOW` — малый локальный scope.
 
-## Goal 004 — Canonical headless Player feasibility — `FIX_REQUIRED`
+## Goal 004 — Canonical headless Player feasibility — `ACCEPT`
 
 **Назначение:** доказать canonical Player без TCP.  
 **Технический результат:** seam, zero-network effects, create/load/materialize/
 cleanup/reload доказаны.  
 **Зависимости:** 003.  
 **Не включает:** final production lifecycle, profiles, AI.  
-**Gate:** завершается только после 004A: race-free real login, fail-closed lease
-release и retryable cleanup.  
-**Follow-up risk:** `VERY_HIGH` — session/identity/cleanup; фактически возникла 004A.
+**Gate:** закрыт Task 004A и Task 004B: race-free real login, fail-closed exact
+object-ID lease release и retryable cleanup.
+**Follow-up risk:** `VERY_HIGH` — session/identity/cleanup; фактически возникли 004A и 004B.
 
 ### Goal 004A — обязательная closure-задача, не новый основной GOAL
 
-Закрывает только findings независимого ревью Task 004. После `ACCEPT` технический
-verdict Task 004 становится `FEASIBLE_WITH_SEAM`, а ADR 0001 может быть принят.
+Закрыла findings независимого ревью Task 004 по login/disconnect ordering и
+retryable cleanup; принята после retained-identity correction Task 004B.
 
-## Goal 005 — Core Phantom profile и persistence envelope
+### Goal 004B — обязательная retained-identity closure-задача
+
+Закрыла bypass удержанного `REAL_LOGIN` owner, wrong-character lease release и
+exact-instance cleanup postconditions. Task 004B принята; revert не требуется;
+ADR 0001 переведён в `Accepted`.
+
+## Goal 005 — Core Phantom profile и persistence envelope — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** сохранить устойчивую идентичность Phantom независимо от Player
 materialization.  
-**Зависимости:** 004A ACCEPT.  
+**Зависимости:** 004B ACCEPT.
 **Архитектурный результат:**
 
 - stable `phantomProfileId` и optional canonical `characterObjectId` link;
@@ -360,7 +366,7 @@ Utility AI, population или materialization.
 
 **Назначение:** превратить spike в production-owned, disabled-by-default
 materialization service.  
-**Зависимости:** 004A, 005.  
+**Зависимости:** 004B, 005.
 **Архитектурный результат:**
 
 - identity claim/handoff;
@@ -945,32 +951,35 @@ Current stage:
 I. Canonical actor, persistence and lifecycle
 
 Current accepted baseline:
-1ca74a3d96e8fa51612ef3e5145c7398abf60f6d
+f5b66c4edf1ddf18e044ef8c692d70ecea616485
 
 Current branch HEAD under review:
-5b22b1ee9bab556cd5a14c2212dfa3f4119c4566
+Goal 005 implementation — commit SHA во внешнем final handoff
 
 Completed:
 - 001 / 001A
 - 002 / 002A
 - 003
-- Task 004 technical feasibility evidence
+- 004
+- 004A after 004B
+- 004B
+- ADR 0001 Accepted
 
-Required closure:
-- 004A real-login lease and cleanup hardening
+In progress / required closure:
+- Goal 005 independent review
 
 Next:
-1. Independent review 004A
-2. Goal 005 core profile/persistence envelope
-3. Goal 006 production materialization lifecycle
+1. Independent review Goal 005
+2. Goal 006 production materialization lifecycle
+3. Goal 007 shared scheduler after Goal 006
 
 Stage gate:
-- not complete until 004A, 005 and 006 ACCEPT
+- not complete until Goal 005 and Goal 006 ACCEPT
 
 New risks:
-- CharacterSelect/onDisconnection race
-- fail-open identity release after cleanup failure
-- disabled-mode login compatibility
+- schema/versioning and concurrent profile updates
+- retained REAL_LOGIN lease recovery remains Goal 006 ownership
+- Goal 005 test-only ThreadPool baseline stabilization requires regression proof
 
 Roadmap changes:
 - future-dependent fields removed from Goal 005
@@ -983,7 +992,7 @@ Roadmap changes:
 - operations moved before scale soak
 
 Overall:
-- technical direction confirmed; bounded safety closure required
+- canonical seam accepted; Goal 005 implemented pending independent review
 ```
 
 ---

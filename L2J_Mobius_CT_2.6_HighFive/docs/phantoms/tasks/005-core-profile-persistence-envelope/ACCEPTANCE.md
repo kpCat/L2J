@@ -1,0 +1,28 @@
+# ACCEPTANCE — Goal 005
+
+- [ ] Baseline f5b66c4; one ordinary High Five commit.
+- [ ] Task 004B closure and ADR 0001 Accepted.
+- [ ] Roadmap only approved progress/dependency edits.
+- [ ] Goal 006 not started.
+- [ ] One SQL file, exactly two idempotent CREATE statements.
+- [ ] No destructive SQL/DML; InnoDB/utf8mb4.
+- [ ] Unique optional character link; no FK to characters.
+- [ ] Component FK cascade and VARBINARY(4096).
+- [ ] Re-provision twice with identical 118/207/fingerprint.
+- [ ] Immutable snapshots and defensive payload copies.
+- [ ] Repository schema validation and connection-per-operation.
+- [ ] No singleton/cache/thread/startup wiring.
+- [ ] Optimistic core/component update/delete.
+- [ ] Exactly one concurrent winner.
+- [ ] Deterministic component list.
+- [ ] No future personality/goal/schedule/activity model.
+- [ ] Test-only bounded ThreadPool baseline stabilization.
+- [ ] Three consecutive headless target passes.
+- [ ] Profile suite >=15 explicit cases.
+- [ ] Restart/cascade/final-zero evidence.
+- [ ] All prior suites, ant verify and ant jar PASS.
+- [ ] Production JAR has zero test entries.
+- [ ] Verifier pre/final ×2 identical.
+- [ ] Production DB zero access.
+- [ ] UTF-8/mojibake/escaped Cyrillic PASS.
+- [ ] Manual gate pending independent review.
