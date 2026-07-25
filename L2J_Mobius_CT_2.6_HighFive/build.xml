@@ -113,6 +113,26 @@
 		</java>
 	</target>
 
+	<target name="phantom-headless-player-test" depends="compile-tests" description="Run the bounded canonical headless Player feasibility suite.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="240000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="headless-player" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-headless-player-performance-smoke" depends="compile-tests" description="Run one and ten sequential canonical headless Player lifecycle measurements.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="240000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="headless-player-performance" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
 	<target name="prepare-phantom-test-db" depends="compile-tests" description="Destructively recreate only the allowlisted Phantom test database.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestDatabaseProvisioner" classpathref="test.classpath" fork="true" failonerror="true">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
@@ -229,19 +249,23 @@
 		<echo message="Historical verify-task-002a.ps1 is unchanged; Task 003 verifier checks its preservation and cumulative safety contract." />
 	</target>
 
-	<target name="phantom-static-verify-003" description="Run the read-only Task 003 static verifier.">
+	<target name="phantom-static-verify-003" depends="phantom-static-verify-004" description="Preserve the historical Task 003 target through the cumulative Task 004 verifier.">
+		<echo message="Historical verify-task-003.ps1 is unchanged; Task 004 verifier checks its preservation and cumulative safety contract." />
+	</target>
+
+	<target name="phantom-static-verify-004" description="Run the read-only Task 004 static verifier.">
 		<exec executable="powershell" dir="${basedir}" failonerror="true">
 			<arg value="-NoProfile" />
 			<arg value="-ExecutionPolicy" />
 			<arg value="Bypass" />
 			<arg value="-File" />
-			<arg value="${basedir}/tools/phantoms/verify-task-003.ps1" />
+			<arg value="${basedir}/tools/phantoms/verify-task-004.ps1" />
 		</exec>
 	</target>
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->
-	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003" description="Run all Task 003 and prior verification gates." />
+	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004" description="Run all Task 004 and prior verification gates." />
 
 	<target name="jar" depends="compile" description="Create the jar files.">
 		<tstamp>

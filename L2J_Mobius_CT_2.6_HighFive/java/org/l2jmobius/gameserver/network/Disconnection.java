@@ -131,6 +131,13 @@ public class Disconnection
 		{
 			LOGGER.warning(getClass().getSimpleName() + ": Problem with storeAndDelete: " + e.getMessage());
 		}
+		finally
+		{
+			if (_client != null)
+			{
+				_client.releasePlayerIdentityLease();
+			}
+		}
 	}
 	
 	/**
@@ -156,6 +163,10 @@ public class Disconnection
 	{
 		if (_player == null)
 		{
+			if (_client != null)
+			{
+				_client.releasePlayerIdentityLease();
+			}
 			return;
 		}
 		
@@ -167,9 +178,19 @@ public class Disconnection
 		{
 			ThreadPool.schedule(() ->
 			{
-				if (_player.isOnline())
+				try
 				{
-					storeAndDelete();
+					if (_player.isOnline())
+					{
+						storeAndDelete();
+					}
+				}
+				finally
+				{
+					if (_client != null)
+					{
+						_client.releasePlayerIdentityLease();
+					}
 				}
 			}, AttackStanceTaskManager.COMBAT_TIME);
 		}

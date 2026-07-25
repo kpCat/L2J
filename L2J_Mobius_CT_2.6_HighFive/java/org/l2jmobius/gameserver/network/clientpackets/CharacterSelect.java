@@ -51,6 +51,8 @@ import org.l2jmobius.gameserver.network.serverpackets.LeaveWorld;
 import org.l2jmobius.gameserver.network.serverpackets.NpcHtmlMessage;
 import org.l2jmobius.gameserver.network.serverpackets.SSQInfo;
 import org.l2jmobius.gameserver.network.serverpackets.ServerClose;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 
 /**
  * @version $Revision: 1.5.2.1.2.5 $ $Date: 2005/03/27 15:29:30 $
@@ -116,6 +118,13 @@ public class CharacterSelect extends ClientPacket
 					final Player player = World.getInstance().getPlayer(info.getObjectId());
 					if (player != null)
 					{
+						if (PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(info.getObjectId()) == OwnerKind.PHANTOM)
+						{
+							// Route the collision through the real-login reservation hook.
+							client.load(_charSlot);
+							return;
+						}
+
 						if (OfflinePlayConfig.RESTORE_AUTO_PLAY_OFFLINERS && player.isAutoPlaying())
 						{
 							OfflinePlayTable.getInstance().removeOfflinePlay(player);
@@ -189,42 +198,55 @@ public class CharacterSelect extends ClientPacket
 					{
 						return; // handled in GameClient
 					}
-					
-					CharInfoTable.getInstance().addName(cha);
-					
-					// Prevent instant disappear of invisible GMs on login.
-					if (cha.isGM() && GeneralConfig.GM_STARTUP_INVISIBLE && AdminData.getInstance().hasAccess("admin_invisible", cha.getAccessLevel()))
+
+					boolean selectionOwnsLoadedPlayer = true;
+					try
 					{
-						cha.setInvisible(true);
-					}
-					
-					// Restore player location.
-					final PlayerVariables vars = cha.getVariables();
-					final String restore = vars.getString(PlayerVariables.RESTORE_LOCATION, "");
-					if (!restore.isEmpty())
-					{
-						final String[] split = restore.split(";");
-						cha.setXYZ(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
-						vars.remove(PlayerVariables.RESTORE_LOCATION);
-					}
-					
-					cha.setClient(client);
-					client.setPlayer(cha);
-					cha.setOnlineStatus(true, true);
-					
-					if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_SELECT, Containers.Players()))
-					{
-						final TerminateReturn terminate = EventDispatcher.getInstance().notifyEvent(new OnPlayerSelect(cha, cha.getObjectId(), cha.getName(), client), Containers.Players(), TerminateReturn.class);
-						if ((terminate != null) && terminate.terminate())
+						CharInfoTable.getInstance().addName(cha);
+
+						// Prevent instant disappear of invisible GMs on login.
+						if (cha.isGM() && GeneralConfig.GM_STARTUP_INVISIBLE && AdminData.getInstance().hasAccess("admin_invisible", cha.getAccessLevel()))
 						{
-							Disconnection.of(cha).storeAndDeleteWith(LeaveWorld.STATIC_PACKET);
-							return;
+							cha.setInvisible(true);
+						}
+
+						// Restore player location.
+						final PlayerVariables vars = cha.getVariables();
+						final String restore = vars.getString(PlayerVariables.RESTORE_LOCATION, "");
+						if (!restore.isEmpty())
+						{
+							final String[] split = restore.split(";");
+							cha.setXYZ(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
+							vars.remove(PlayerVariables.RESTORE_LOCATION);
+						}
+
+						cha.setClient(client);
+						client.setPlayer(cha);
+						cha.setOnlineStatus(true, true);
+
+						if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_SELECT, Containers.Players()))
+						{
+							final TerminateReturn terminate = EventDispatcher.getInstance().notifyEvent(new OnPlayerSelect(cha, cha.getObjectId(), cha.getName(), client), Containers.Players(), TerminateReturn.class);
+							if ((terminate != null) && terminate.terminate())
+							{
+								selectionOwnsLoadedPlayer = false;
+								Disconnection.of(cha).storeAndDeleteWith(LeaveWorld.STATIC_PACKET);
+								return;
+							}
+						}
+
+						client.sendPacket(new SSQInfo());
+						client.setConnectionState(ConnectionState.ENTERING);
+						client.sendPacket(new CharSelected(cha, client.getSessionId().playOkID1));
+						selectionOwnsLoadedPlayer = false;
+					}
+					finally
+					{
+						if (selectionOwnsLoadedPlayer)
+						{
+							Disconnection.of(client, cha).storeAndDelete();
 						}
 					}
-					
-					client.sendPacket(new SSQInfo());
-					client.setConnectionState(ConnectionState.ENTERING);
-					client.sendPacket(new CharSelected(cha, client.getSessionId().playOkID1));
 				}
 			}
 			finally

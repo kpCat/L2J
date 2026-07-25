@@ -289,6 +289,8 @@ import org.l2jmobius.gameserver.model.zone.type.BossZone;
 import org.l2jmobius.gameserver.model.zone.type.WaterZone;
 import org.l2jmobius.gameserver.network.Disconnection;
 import org.l2jmobius.gameserver.network.GameClient;
+import org.l2jmobius.gameserver.network.PlayerOutboundSession;
+import org.l2jmobius.gameserver.network.PlayerOutboundSession.SessionKind;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.network.enums.HtmlActionScope;
@@ -450,6 +452,8 @@ public class Player extends Playable
 	private static final int NEVIT_HOURGLASS_MAINTAIN = 10;
 	
 	private GameClient _client;
+	private volatile PlayerOutboundSession _outboundSession = PlayerOutboundSession.clientBound();
+	private long _outboundSessionToken;
 	private String _ip = "N/A";
 	
 	private final String _accountName;
@@ -4087,12 +4091,77 @@ public class Player extends Playable
 		return _client;
 	}
 	
-	public void setClient(GameClient client)
+	public synchronized void setClient(GameClient client)
 	{
+		if ((client != null) && (_outboundSession.kind() == SessionKind.HEADLESS))
+		{
+			throw new IllegalStateException("Cannot bind a real client while a headless outbound session owns the Player");
+		}
 		_client = client;
 		if ((_client != null) && (_client.getIp() != null))
 		{
 			_ip = _client.getIp();
+		}
+	}
+
+	public synchronized OutboundSessionAttachment attachOutboundSession(PlayerOutboundSession outboundSession)
+	{
+		if (outboundSession == null)
+		{
+			throw new NullPointerException("outboundSession");
+		}
+		if (outboundSession.kind() != SessionKind.HEADLESS)
+		{
+			throw new IllegalArgumentException("Only a headless outbound session may be attached");
+		}
+		if (_client != null)
+		{
+			throw new IllegalStateException("A real client already owns the Player session");
+		}
+		if (_outboundSession.kind() != SessionKind.CLIENT_BOUND)
+		{
+			throw new IllegalStateException("An outbound session is already attached");
+		}
+
+		final long token = ++_outboundSessionToken;
+		_outboundSession = outboundSession;
+		return new OutboundSessionAttachment(this, outboundSession, token);
+	}
+
+	private synchronized void detachOutboundSession(PlayerOutboundSession outboundSession, long token)
+	{
+		if ((_outboundSession == outboundSession) && (_outboundSessionToken == token))
+		{
+			_outboundSession = PlayerOutboundSession.clientBound();
+		}
+	}
+
+	public boolean hasHeadlessOutboundSession()
+	{
+		return _outboundSession.kind() == SessionKind.HEADLESS;
+	}
+
+	public static final class OutboundSessionAttachment implements AutoCloseable
+	{
+		private final Player _player;
+		private final PlayerOutboundSession _outboundSession;
+		private final long _token;
+		private final AtomicBoolean _closed = new AtomicBoolean();
+
+		private OutboundSessionAttachment(Player player, PlayerOutboundSession outboundSession, long token)
+		{
+			_player = player;
+			_outboundSession = outboundSession;
+			_token = token;
+		}
+
+		@Override
+		public void close()
+		{
+			if (_closed.compareAndSet(false, true))
+			{
+				_player.detachOutboundSession(_outboundSession, _token);
+			}
 		}
 	}
 	
@@ -4396,10 +4465,11 @@ public class Player extends Playable
 	@Override
 	public void sendPacket(ServerPacket packet)
 	{
-		if (_client != null)
+		if (packet == null)
 		{
-			_client.sendPacket(packet);
+			throw new NullPointerException("packet");
 		}
+		_outboundSession.send(this, packet);
 	}
 	
 	/**
@@ -7905,7 +7975,11 @@ public class Player extends Playable
 		{
 			return _client.isDetached() ? 2 : 1;
 		}
-		
+		if (_isOnline && (_outboundSession.kind() == SessionKind.HEADLESS))
+		{
+			return 2;
+		}
+
 		return 0;
 	}
 	
@@ -15122,18 +15196,66 @@ public class Player extends Playable
 	 */
 	public void stopAllTasks()
 	{
+		if (_inventoryUpdateTask != null)
+		{
+			_inventoryUpdateTask.cancel(false);
+			_inventoryUpdateTask = null;
+		}
+
+		if (_itemListTask != null)
+		{
+			_itemListTask.cancel(false);
+			_itemListTask = null;
+		}
+
+		if (_skillListTask != null)
+		{
+			_skillListTask.cancel(false);
+			_skillListTask = null;
+		}
+
+		if (_updateAndBroadcastStatusTask != null)
+		{
+			_updateAndBroadcastStatusTask.cancel(false);
+			_updateAndBroadcastStatusTask = null;
+		}
+
+		if (_broadcastCharInfoTask != null)
+		{
+			_broadcastCharInfoTask.cancel(false);
+			_broadcastCharInfoTask = null;
+		}
+
+		if (_broadcastStatusUpdateTask != null)
+		{
+			_broadcastStatusUpdateTask.cancel(false);
+			_broadcastStatusUpdateTask = null;
+		}
+
+		if (_nevitHourglassTask != null)
+		{
+			_nevitHourglassTask.cancel(false);
+			_nevitHourglassTask = null;
+		}
+
+		if (_recoGiveTask != null)
+		{
+			_recoGiveTask.cancel(false);
+			_recoGiveTask = null;
+		}
+
 		if ((_mountFeedTask != null) && !_mountFeedTask.isDone() && !_mountFeedTask.isCancelled())
 		{
 			_mountFeedTask.cancel(false);
 			_mountFeedTask = null;
 		}
-		
+
 		if ((_dismountTask != null) && !_dismountTask.isDone() && !_dismountTask.isCancelled())
 		{
 			_dismountTask.cancel(false);
 			_dismountTask = null;
 		}
-		
+
 		if ((_fameTask != null) && !_fameTask.isDone() && !_fameTask.isCancelled())
 		{
 			_fameTask.cancel(false);

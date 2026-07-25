@@ -40,6 +40,9 @@ import org.l2jmobius.gameserver.data.xml.SecondaryAuthData;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.network.holders.CharacterInfoHolder;
 import org.l2jmobius.gameserver.network.holders.ClientHardwareInfoHolder;
 import org.l2jmobius.gameserver.network.serverpackets.LeaveWorld;
@@ -73,6 +76,7 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 	private boolean _protocolOk;
 	private int _protocolVersion;
 	private int[][] _trace;
+	private Lease _playerIdentityLease;
 	
 	public GameClient(org.l2jmobius.commons.network.Connection<GameClient> connection)
 	{
@@ -507,43 +511,110 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 			return null;
 		}
 		
-		Player player = World.getInstance().getPlayer(objectId);
-		if (player != null)
+		Lease identityLease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(objectId, OwnerKind.REAL_LOGIN);
+		if (identityLease == null)
 		{
-			// exploit prevention, should not happens in normal way
-			if (player.isOnlineInt() == 1)
+			if (PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) == OwnerKind.PHANTOM)
 			{
-				LOGGER.severe("Attempt of double login: " + player.getName() + "(" + objectId + ") " + _accountName);
-			}
-			
-			if (player.getClient() != null)
-			{
-				Disconnection.of(player).storeAndDeleteWith(LeaveWorld.STATIC_PACKET);
+				LOGGER.warning("Character identity is materialized by Phantom: " + objectId);
 			}
 			else
 			{
-				player.storeMe();
-				player.deleteMe();
+				final Player player = World.getInstance().getPlayer(objectId);
+				if (player != null)
+				{
+					// Keep the pre-seam real-real double-login cleanup for a World-visible Player.
+					if (player.isOnlineInt() == 1)
+					{
+						LOGGER.severe("Attempt of double login: " + player.getName() + "(" + objectId + ") " + _accountName);
+					}
+
+					if (player.getClient() != null)
+					{
+						Disconnection.of(player).storeAndDeleteWith(LeaveWorld.STATIC_PACKET);
+					}
+					else
+					{
+						player.storeMe();
+						player.deleteMe();
+					}
+				}
+				else
+				{
+					LOGGER.severe("Attempt of concurrent character login reservation: " + objectId + " " + _accountName);
+				}
 			}
-			
 			return null;
 		}
-		
-		player = Player.load(objectId);
-		if (player != null)
+
+		try
 		{
-			// prevent some values for each login
-			player.setRunning(); // running is default
-			player.standUp(); // standing is default
-			player.refreshOverloaded();
-			player.refreshExpertisePenalty();
+			Player player = World.getInstance().getPlayer(objectId);
+			if (player != null)
+			{
+				// Preserve the existing World-visible real-real double-login cleanup.
+				if (player.isOnlineInt() == 1)
+				{
+					LOGGER.severe("Attempt of double login: " + player.getName() + "(" + objectId + ") " + _accountName);
+				}
+
+				if (player.getClient() != null)
+				{
+					Disconnection.of(player).storeAndDeleteWith(LeaveWorld.STATIC_PACKET);
+				}
+				else
+				{
+					player.storeMe();
+					player.deleteMe();
+				}
+
+				return null;
+			}
+
+			player = Player.load(objectId);
+			if (player != null)
+			{
+				// prevent some values for each login
+				player.setRunning(); // running is default
+				player.standUp(); // standing is default
+				player.refreshOverloaded();
+				player.refreshExpertisePenalty();
+				attachPlayerIdentityLease(identityLease);
+				identityLease = null;
+			}
+			else
+			{
+				LOGGER.severe("Could not restore in slot: " + characterSlot);
+			}
+
+			return player;
 		}
-		else
+		finally
 		{
-			LOGGER.severe("Could not restore in slot: " + characterSlot);
+			if (identityLease != null)
+			{
+				identityLease.close();
+			}
 		}
-		
-		return player;
+	}
+
+	private synchronized void attachPlayerIdentityLease(Lease identityLease)
+	{
+		if (_playerIdentityLease != null)
+		{
+			throw new IllegalStateException("GameClient already owns a Player identity lease.");
+		}
+		_playerIdentityLease = identityLease;
+	}
+
+	public synchronized void releasePlayerIdentityLease()
+	{
+		final Lease identityLease = _playerIdentityLease;
+		_playerIdentityLease = null;
+		if (identityLease != null)
+		{
+			identityLease.close();
+		}
 	}
 	
 	public void setCharSelection(List<CharacterInfoHolder> characters)

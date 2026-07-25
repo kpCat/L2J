@@ -181,6 +181,8 @@ public final class PhantomTestLauncher
 			case "scenario" -> new PhantomScenarioSmokeSuite();
 			case "performance" -> new PhantomPerformanceSmokeSuite();
 			case "skeleton" -> new PhantomSkeletonSuite();
+			case "headless-player" -> new PhantomHeadlessPlayerSuite();
+			case "headless-player-performance" -> new PhantomHeadlessPlayerPerformanceSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

@@ -338,15 +338,31 @@ Limitations:
 Exact immutable commit SHA, push result and post-commit verifier outputs are
 external final-handoff evidence generated after this report is committed.
 
+## Immutable handoff closure
+
+Независимый review после ordinary commit подтвердил полный Task 003 gate:
+
+```text
+Commit: eb008f2216b3e8381c0181d71ce200bbf4907ac7
+Parent: 84f29a0002b25d2b1ff1a19fa9c92867479fd6a5
+Push: successful
+Remote ref: exact
+Final verifier 1: 72/72
+Final verifier 2: 72/72
+Outputs identical SHA-256:
+447FDBA9B5C2592C40250FF5026B5DB0E71C66520EF8E0F46CF9E3A252894F9D
+Independent review: ACCEPT
+```
+
 ## Manual gate
 
-`PENDING_INDEPENDENT_REVIEW`
+`ACCEPT`
 
 ## Task 004
 
-`NOT_STARTED`
+`ALLOWED`
 
 ## Recommended next step
 
-Провести независимое review Task 003. Task 004 не начинать до принятия этого
-manual gate.
+Выполнить bounded feasibility spike Task 004. Task 005 не начинать до
+независимого принятия результата Task 004.

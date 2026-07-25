@@ -33,7 +33,11 @@ outbound/session seam.
   not an internal API.
 - The implementation remains disabled by default.
 
-Exact class names and production changes are deferred to the Task 004 spike.
+Task 004 implements the proposal as `PlayerOutboundSession`,
+`HeadlessPlayerOutboundSession`, `PhantomIdentityLeaseRegistry`,
+`PhantomActionFacade` and `PhantomPlayerMaterializationSpike`, with bounded
+real-login release hooks in `GameClient`, `CharacterSelect` and
+`Disconnection`.
 
 ## Invariants
 
@@ -88,6 +92,26 @@ Task 004 runs create/load, headless attach, world spawn, inventory/skills,
 one safe canonical action, packet-effect tests, observer broadcast,
 dematerialize, repeated cleanup, restart restore, collision and failure
 injection in `l2jmobiush5_phantom_test` with seed `20260725001`.
+
+## Task 004 implementation verdict
+
+The bounded implementation evidence supports:
+
+```text
+FEASIBLE_WITH_SEAM_PENDING_INDEPENDENT_REVIEW
+```
+
+The real path continues to delegate through `GameClient.sendPacket`. The
+headless path performs zero game-network writes and invokes each
+`ServerPacket.runImpl(Player)` exactly once, including bounded recursive
+effects. Tokenized identity ownership is claimed before load and released last.
+Canonical create/load/materialize/action/dematerialize/reload, both collision
+directions, observer visibility, all eleven failure points, repeated cleanup
+and one/ten sequential measurements pass against the dedicated test DB.
+
+This is a recommendation to accept the seam, not an ADR status transition.
+The ADR remains `Proposed` until independent review. The spike is not wired
+into production startup and does not authorize Task 005.
 
 ## Rollback
 

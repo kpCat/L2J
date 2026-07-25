@@ -1,0 +1,23 @@
+{
+  "package": "phantom-world-task-004-headless-player-feasibility-spike",
+  "taskId": "004-headless-player-feasibility-spike",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/004-headless-player-feasibility-spike/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "1ca74a3d96e8fa51612ef3e5145c7398abf60f6d",
+  "productionDatabase": "l2jmobiush5",
+  "testDatabase": "l2jmobiush5_phantom_test",
+  "deterministicSeed": 20260725001,
+  "adrStatusBefore": "Proposed",
+  "task005Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "ARCHITECTURE.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "FAILURE_MATRIX.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}
