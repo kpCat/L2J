@@ -1,1392 +1,923 @@
 # Phantom Bots Roadmap
 
-**Путь в репозитории:** `docs/PHANTOM_BOTS_ROADMAP.md`  
-**Проект:** Phantom World для L2J Mobius High Five  
-**Ветка разработки:** `feature/phantom-world`  
-**Актуальная дата дорожной карты:** 2026-07-25  
-**Статус документа:** архитектурный ориентир для ревью и постановки следующих GOAL-задач  
-**Текущий принятый baseline перед выполняемой Task 004:** `eb008f2216b3e8381c0181d71ce200bbf4907ac7`
+**Репозиторий:** `kpCat/L2J`  
+**Модуль:** `L2J_Mobius_CT_2.6_HighFive`  
+**Целевая ветка:** `feature/phantom-world`  
+**Путь документа:** `docs/PHANTOM_BOTS_ROADMAP.md`  
+**Версия дорожной карты:** 2  
+**Дата архитектурного аудита:** 2026-07-25  
+**Статус:** обязательный ориентир для постановки GOAL, независимого ревью и контроля прогресса
+
+## 1. Текущее состояние
+
+```text
+Последний принятый production baseline:
+1ca74a3d96e8fa51612ef3e5145c7398abf60f6d
+
+Текущий branch HEAD под ревью:
+5b22b1ee9bab556cd5a14c2212dfa3f4119c4566
+
+Task 004 technical feasibility:
+FEASIBLE_WITH_SEAM — подтверждено
+
+Task 004 commit verdict:
+FIX_REQUIRED
+
+Причина:
+нужно закрыть гонку CharacterSelect/onDisconnection, fail-closed lease release,
+disabled-mode compatibility и retryable cleanup до Task 005.
+
+Следующий обязательный шаг:
+Task 004A — real-login lease and cleanup hardening
+
+Task 005:
+NOT_STARTED / BLOCKED до независимого ACCEPT Task 004A
+
+ADR 0001:
+Proposed
+```
+
+Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
+материализован без TCP, fake `GameClient`, Player subclass/fork и production DB.
+Это техническое доказательство сохраняется. Коммит Task 004 пока не становится
+принятым baseline из-за ограниченных, но критичных integration findings.
 
 ---
 
-## 1. Назначение документа
+## 2. Назначение дорожной карты
 
-Этот документ задаёт единую архитектурную дорожную карту разработки Phantom World: от безопасного headless-игрока до масштабируемой симуляции живых игроков Lineage 2 High Five.
+Дорожная карта задаёт кратчайший безопасный путь от существующего High Five
+сервера к автономной симуляции живых игроков. Она обязана:
 
-Дорожная карта используется для:
+- удерживать архитектурные зависимости в одном направлении;
+- не требовать от ранней GOAL знания контрактов, определяемых позднее;
+- отделять опасные lifecycle/DB/network границы;
+- давать Codex заранее определённые входы, выходы и запреты;
+- сохранять все пользовательские требования без искусственного размножения GOAL;
+- допускать suffix-hotfix (`004A`, `006A`) только после доказанного finding;
+- показывать движение к конечной системе, а не только очередной номер задачи.
 
-- постановки следующих GOAL-задач;
-- проверки соответствия каждой задачи общей архитектуре;
-- контроля scope и недопущения преждевременного смешивания подсистем;
-- оценки прогресса не только по номеру очередной задачи, но и по движению к рабочей системе;
-- принятия решений о необходимости hotfix, пересмотра архитектуры или изменения порядка задач;
-- предотвращения искусственного дробления работы на десятки малополезных микрозадач.
-
-Текущий активный task package всегда является непосредственным контрактом для Codex. Дорожная карта не должна самовольно менять уже выполняемую задачу.
-
-**Task 004 в момент создания этого документа выполняется в Codex. Её постановка, scope и критерии не изменяются этим документом.**
-
----
-
-## 2. Цель разработки
-
-Цель Phantom World — получить не визуально похожих NPC, а программную симуляцию живых игроков Lineage 2 High Five, использующую реальные серверные механики.
-
-Фантомные игроки должны уметь:
-
-- начинать развитие с первого уровня;
-- получать EXP, SP, адену, ресурсы, предметы и экипировку;
-- получать профессии и осваивать классовые возможности;
-- выбирать подходящие зоны и цели;
-- фармить, использовать spoil, manor и поддерживаемые quest-механики;
-- покупать расходники, продавать добычу, торговать и крафтить;
-- вступать в party, clan и другие социальные структуры;
-- учитывать роли, состав группы, риск и ожидаемую выгоду;
-- разумно использовать умения класса;
-- реагировать на настоящих игроков;
-- договариваться, спорить, сотрудничать и конфликтовать;
-- помнить важные события, договорённости и отношения;
-- понимать игровой сленг, объекты мира и причины просьб игрока;
-- продолжать правдоподобную жизнь вне зоны наблюдения;
-- корректно материализовываться при появлении настоящего игрока.
-
-Во время работы сервера запрещена обязательная зависимость от LLM или внешнего AI-сервиса. Runtime-интеллект строится на:
-
-- серверном Java-коде;
-- конфигурации;
-- детерминированных данных;
-- Semantic Pack;
-- read-only знаниях существующего сервера;
-- Utility AI;
-- goal/planning-модели;
-- personality, memory и reputation;
-- bounded scheduler и многоуровневой симуляции.
-
-Допустимые offline-инструменты подготовки данных не должны становиться runtime-зависимостью сервера. Все обязательные runtime-данные должны поставляться вместе с сервером и проходить версионирование и проверку.
+Текущий task package всегда является непосредственным исполняемым контрактом.
+Roadmap не меняет уже выполняемую GOAL задним числом.
 
 ---
 
-## 3. Главные архитектурные принципы
+## 3. Конечная цель
 
-### 3.1. Canonical Player вместо NPC-имитации
+Phantom World должен моделировать не NPC, а полноценных программных игроков,
+которые:
 
-Основным активным актором должен оставаться существующий `Player`.
+- создаются с первого уровня и развиваются;
+- получают EXP, SP, профессии, skills и экипировку;
+- фармят, используют spoil, manor и поддерживаемые quests;
+- покупают supplies, продают loot, торгуют, крафтят и рискуют при enchant;
+- формируют party, clan, alliance и социальные отношения;
+- участвуют в Rift, raids, epics, PvP/PK и войнах;
+- понимают русский L2-сленг и связывают фразы с реальными server IDs;
+- имеют personality, memory, reputation и объяснимые цели;
+- продолжают причинную жизнь в background;
+- правдоподобно materialize/reconcile при приближении игрока;
+- не требуют LLM или внешнего AI-сервиса во время работы GameServer.
 
-Запрещены как финальная архитектура:
+Runtime-интеллект реализуется Java-кодом, конфигурацией, versioned data,
+Semantic Pack, read-only Game Knowledge, Utility AI и bounded simulation.
+
+---
+
+## 4. Неподвижные архитектурные принципы
+
+### 4.1. Canonical actor
+
+Активный Phantom — canonical `Player`.
+
+Запрещены как финальное ядро:
 
 - NPC-based Fake Players;
 - `PhantomPlayer extends Player`;
-- копия или fork класса `Player`;
+- fork/copy `Player`;
 - fake `GameClient`;
 - fake/null-network `Connection`;
-- эмуляция TCP-сессии ради Phantom World.
+- request packets как внутренний Phantom API.
 
-Допустимы только узкие адаптеры и сервисы, сохраняющие канонические:
+### 4.2. Authoritative server data
 
-- inventory;
-- skills;
-- stats;
-- party;
-- clan;
-- quests;
-- trade;
-- world visibility;
-- persistence;
-- class mechanics.
+Drop, spoil, manor, spawn, zones, items, recipes, skills, classes, quests,
+raid/epic и world state остаются authoritative server data.
 
-### 3.2. Сервер — authoritative source of truth
+Semantic Pack не копирует всю игру. Над server data строятся read-only services
+и compact reverse indexes.
 
-Semantic Pack не должен дублировать всю базу игры.
-
-Authoritative source остаются существующие серверные данные:
-
-- NPC templates;
-- drop;
-- spoil;
-- manor;
-- spawn;
-- zones;
-- skills;
-- classes;
-- recipes;
-- items;
-- quests;
-- raid/epic definitions;
-- party, clan и world state.
-
-Поверх них создаётся read-only слой предметных знаний и компактные обратные индексы.
-
-### 3.3. Языковое понимание отделяется от игрового знания
-
-Целевой поток:
+### 4.3. Язык, знания, решение и действие разделены
 
 ```text
-текст настоящего игрока
+текст игрока
 → Semantic Pack
-→ intent / entities / slots / confidence
-→ Game Knowledge query
-→ восстановленная игровая цель и ситуация
+→ intent/entities/slots/confidence
+→ Game Knowledge
+→ grounded goal/situation
 → Utility AI / planner
 → semantic act
-→ реальное действие и/или текстовый ответ
+→ validated server action и/или verbalization
 ```
 
-Semantic Pack отвечает за:
+### 4.4. Explicit goals
 
-- русский язык;
-- сленг;
-- сокращения;
-- aliases;
-- транслит;
-- entity linking;
-- intent;
-- slots;
-- conversation context;
-- confidence.
-
-Game Knowledge отвечает за:
-
-- реальные источники предметов;
-- drop/spoil/manor/quest/craft chains;
-- spawn и зоны;
-- подходящий уровень;
-- классы и роли;
-- party composition;
-- достижимость и ожидаемую выгоду.
-
-### 3.4. Явные цели вместо случайного поведения
-
-Каждый действующий фантом должен иметь структурированную цель.
-
-Минимальная модель цели:
+Действующий Phantom имеет структурированную цель:
 
 ```text
-goal type
-target entity/resource/content
-required amount
-current progress
+type
+subject/target IDs
+required/current amount
 acquisition method
 valid sources
-selected region/zone/anchor
+selected region/anchor
 purpose
 priority
-risk budget
-expense budget
-deadline or constraint
+risk/expense budget
+deadline/constraint
 reason
-completion conditions
-abandon/replan conditions
+completion/replan/abandon conditions
 ```
 
-Пример:
+### 4.5. Typed internal communication
+
+Phantom-to-Phantom взаимодействие использует semantic acts и domain objects,
+например `REQUEST_SPOT_SHARE`, `REQUEST_PARTY_ROLE`, `WARN_PVP`.
+
+Текст генерируется только для наблюдаемого настоящим игроком канала.
+
+### 4.6. Пять уровней simulation detail
 
 ```text
-COLLECT_RESOURCE
-itemId: <material>
-amountRequired: 120
-amountCurrent: 74
-acquisitionMethod: SPOIL
-preferredMobGroup: <mob IDs>
-location: <catacomb room anchor>
-purpose: CRAFT_DARK_CRYSTAL_ROBE
-priority: HIGH
+ACTIVE
+NEARBY / PERCEPTIBLE
+WARM
+BACKGROUND
+SLEEPING
 ```
 
-### 3.5. Внутреннее общение — semantic acts
+`NEARBY / PERCEPTIBLE` обязателен. Interest model учитывает topology, instance,
+room adjacency, doors, local chat, combat perceptibility, targetability,
+party/conflict relation и time-to-contact, а не только расстояние.
 
-Фантомы не должны генерировать текст друг для друга и затем снова разбирать его.
+### 4.7. Единая причинная модель
 
-Внутренний обмен выполняется typed-сообщениями:
+BACKGROUND — это дешёвая агрегация тех же правил, а не бесплатная генерация.
+Учитываются class, skills, gear, HP/MP, supplies, kill speed, drop/spoil method,
+competition, death, travel, inventory, adena sources/sinks и party composition.
 
-```text
-REQUEST_SPOT_SHARE
-CLAIM_MOB_GROUP
-REQUEST_PARTY_ROLE
-OFFER_TRADE
-WARN_PVP
-ASK_RESOURCE_SOURCE
-PROPOSE_FARM_TARGET
-REPORT_DROP
-REQUEST_RAID_MEMBER
-```
+### 4.8. Reconciliation
 
-Текст создаётся только для канала, наблюдаемого настоящим игроком.
+При повышении детализации согласуются position/anchor, route, goal, progress,
+inventory, HP/MP, party, occupied spot и уже наблюдавшиеся события.
 
-### 3.6. Производительность через уровни детализации
+Запрещены дюп, невозможная телепортация и переписывание perceptible history.
 
-Полная серверная симуляция используется только там, где существование фантома может быть обнаружено или повлиять на игрока.
-
-Операционная модель включает пять состояний:
-
-1. `ACTIVE`
-2. `NEARBY / PERCEPTIBLE`
-3. `WARM`
-4. `BACKGROUND`
-5. `SLEEPING`
-
-Они группируются в три макроуровня:
-
-| Макроуровень | Операционные состояния |
-|---|---|
-| Полная активная симуляция | `ACTIVE` |
-| Региональная/событийная симуляция | `NEARBY / PERCEPTIBLE`, `WARM` |
-| Фоновая симуляция | `BACKGROUND`, `SLEEPING` |
-
-#### ACTIVE
-
-Фантом непосредственно наблюдаем или взаимодействует с игроком:
-
-- находится рядом;
-- виден;
-- участвует в том же бою;
-- общается;
-- находится в той же комнате;
-- является целью действия.
-
-Используются полноценные Player-механики, движение, бой, skills и точная world state.
-
-#### NEARBY / PERCEPTIBLE
-
-Фантом может быть не виден, но потенциально обнаружим:
-
-- находится в соседней комнате катакомб;
-- слышим через combat effects;
-- доступен local chat;
-- может быть найден штатным target-механизмом;
-- скоро войдёт в поле зрения;
-- занимает соседний spot;
-- находится на том же маршруте.
-
-Такого фантома нельзя свободно телепортировать, пересоздавать или сводить к чистой статистике.
-
-#### WARM
-
-Фантом находится в значимой области или событии, но пока не обнаружим напрямую:
-
-- решения выполняются реже;
-- движение идёт по anchors/waypoints;
-- бой может быть частично агрегирован;
-- сохраняются цель, ресурсы, риск и прогресс;
-- переход в perceptible/active должен быть быстрым и непротиворечивым.
-
-#### BACKGROUND
-
-Фантом далеко от наблюдения:
-
-- не моделируется каждый удар и шаг;
-- фарм, дорога, расходы и риск считаются агрегированно;
-- учитываются реальные class/equipment/skills/supplies;
-- используются реальные источники drop/spoil/manor;
-- сохраняются economic sources и sinks;
-- перед повышением детализации выполняется reconciliation.
-
-#### SLEEPING
-
-Фантом офлайн, отдыхает или ожидает расписания:
-
-- нет постоянных тиков;
-- пробуждение по времени, событию или потребности популяции.
-
-### 3.7. Interest model не равен простому радиусу
-
-Уровень детализации зависит от:
-
-- instance;
-- geographical region;
-- catacomb/dungeon;
-- room adjacency;
-- doors and passages;
-- local chat reachability;
-- combat-effect perceptibility;
-- штатной обнаружимости;
-- expected time to contact;
-- party/clan/conflict relation;
-- follow/pursuit;
-- shared route;
-- raid/epic gathering;
-- важных world events.
-
-### 3.8. ACTIVE и BACKGROUND — одна причинная модель
-
-Background-симуляция не имеет права бесплатно создавать прогресс.
-
-Она учитывает:
-
-- level;
-- class;
-- skills;
-- equipment;
-- HP/MP;
-- shots и расходники;
-- подходящий farming target;
-- kill speed;
-- competition;
-- drop/spoil/manor/quest constraints;
-- weight и inventory capacity;
-- death;
-- recovery cost;
-- teleport;
-- продажу loot;
-- supplies replenishment;
-- real adena sources/sinks;
-- party composition.
-
-Упрощается детализация вычисления, а не игровые причины результата.
-
-### 3.9. Reconciliation сохраняет историю
-
-При материализации восстанавливаются:
-
-- последняя подтверждённая позиция или anchor;
-- маршрут;
-- цель;
-- прогресс;
-- inventory;
-- HP/MP;
-- party;
-- занятый spot/room;
-- недавние события;
-- приблизительная фаза боя.
-
-Запрещены:
-
-- дюп;
-- невозможная телепортация;
-- противоречие с уже наблюдаемым состоянием;
-- свободное перемещение perceptible-фантома за кулисами.
-
-### 3.10. Disabled-by-default и локальность изменений
-
-Для каждого production-этапа обязательны:
-
-- feature disabled by default;
-- выключенная конфигурация не меняет поведение сервера;
-- отсутствуют фоновые Phantom tasks/threads/objects при disabled;
-- startup/shutdown idempotent;
-- bounded collections;
-- отсутствие hot-path log spam;
-- локальные обратно совместимые изменения;
-- полный cleanup;
-- отсутствие production DB экспериментов;
-- rollback без миграции рабочего сервера, если это feasibility/spike-задача.
-
----
-
-## 4. Правила размера GOAL-задач
-
-Количество около 30 GOAL является ориентиром, а не целью само по себе.
-
-### 4.1. Когда изменения объединяются
-
-Связанные изменения допускается объединять, если:
-
-- они образуют один законченный пользовательский результат;
-- относятся к одному уровню риска;
-- используют общий lifecycle;
-- проверяются одним coherent scenario;
-- раздельная реализация создала бы временно некорректную архитектуру;
-- общий diff остаётся обозримым и обратимым.
-
-### 4.2. Когда задача разделяется
-
-Разделение обязательно, если одновременно затрагиваются разные опасные границы:
-
-- network/session и economy;
-- Player lifecycle и AI;
-- persistence schema и pathfinding;
-- real-login arbitration и массовая population simulation;
-- trade/mail и combat;
-- Semantic Pack и destructive DB migration;
-- geodata и social behavior.
-
-### 4.3. Что не является достаточной причиной для отдельной GOAL
-
-Не создаются самостоятельные GOAL только ради:
-
-- фиксации уже известного факта;
-- документации без кода, если её можно закрыть в следующей содержательной задаче;
-- отдельного verifier для verifier без нового риска;
-- расширения тестовой инфраструктуры, не требуемого текущим production-изменением;
-- формального увеличения номера задач.
-
-### 4.4. Пропорциональность проверок
-
-Глубина проверки зависит от риска:
-
-| Риск | Примеры | Ожидаемая глубина |
-|---|---|---|
-| Низкий | config, immutable model, read-only index | unit, static scope, build |
-| Средний | scheduler, goals, memory, background calculation | unit, scenario, performance |
-| Высокий | Player lifecycle, inventory, economy, trade, login collision | DB integration, failure injection, restart, concurrency |
-| Критический | anti-dup, real-login ownership, mass materialization | negative controls, soak, rollback, independent evidence |
-
----
-
-## 5. Обязательный формат каждой GOAL-задачи
-
-Каждый task package должен явно содержать:
-
-1. цель;
-2. пользовательский результат;
-3. принятый baseline;
-4. обязательный аудит текущего кода;
-5. точный scope;
-6. hard out of scope;
-7. архитектурные инварианты;
-8. concurrency и lifecycle risks;
-9. DB/transaction rules;
-10. performance и memory budgets;
-11. disabled behavior;
-12. обязательные automated tests;
-13. negative controls;
-14. критерии приёмки;
-15. report contract;
-16. commit/push contract;
-17. поведение при blocker;
-18. условие пересмотра дорожной карты.
-
-После Codex выполняется независимое ревью:
-
-- commit и parent;
-- remote ref;
-- полный diff;
-- связи с существующим серверным кодом;
-- hot paths;
-- lifecycle;
-- concurrency;
-- persistence;
-- disabled behavior;
-- scope;
-- фактическая ценность новых tests/tooling;
-- соответствие текущему этапу дорожной карты.
-
----
-
-## 6. Статусы задач
-
-Используются следующие статусы:
-
-```text
-NOT_STARTED
-IN_PROGRESS
-IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
-ACCEPT
-ACCEPT_WITH_FOLLOW_UP
-FIX_REQUIRED
-BLOCKED
-NOT_FEASIBLE_WITHOUT_PLAN_CHANGE
-REVERT_REQUIRED
-```
-
-Codex не присваивает финальный `ACCEPT`. Он передаёт реализацию на независимое ревью.
-
----
-
-## 7. Текущее состояние разработки
-
-### 7.1. Сводка
-
-| Task | Состояние | Результат |
-|---|---|---|
-| 001 | `ACCEPT` | Baseline и полный архитектурный аудит |
-| 001A | `ACCEPT` | Закрытие замечаний и provenance Task 001 |
-| 002 | `ACCEPT` после 002A | JDK-only test infrastructure и изолированная test DB |
-| 002A | `ACCEPT` | Safety/freshness hotfix test infrastructure |
-| 003 | `ACCEPT` | Disabled-by-default Phantom skeleton, config, lifecycle, bounded queue, metrics, trace |
-| 004 | `IN_PROGRESS` | Bounded feasibility spike canonical headless Player |
-
-### 7.2. Выполненные Task 001–003
-
-#### Task 001 — Baseline и аудит
-
-Зафиксированы:
-
-- существующая NPC-based Fake Player архитектура;
-- lifecycle `Player`;
-- `GameClient`;
-- offline play/trade;
-- packet effects;
-- persistence;
-- World;
-- party/clan/trade/quest/mail/siege;
-- cleanup и task risks.
-
-Вердикт:
-
-```text
-FEASIBLE_WITH_SEAM
-```
-
-Принята идея небольшого Player-owned outbound/session seam вместо fake GameClient, Player subclass или fork.
-
-#### Task 002 и 002A — Test infrastructure
-
-Реализованы:
-
-- JDK-only test runner;
-- Ant targets;
-- отдельная `l2jmobiush5_phantom_test`;
-- dedicated DB user;
-- fail-closed pre-Hikari guard;
-- strict SQL provisioning;
-- durable schema fingerprint;
-- DB metadata consistency;
-- cross-process provisioning lock;
-- negative controls;
-- scenario/performance smoke;
-- deterministic seed.
-
-#### Task 003 — Disabled skeleton
-
-Реализованы:
-
-- `PhantomPlayers.ini`;
-- `EnablePhantomSystem=False`;
-- `EnablePhantomDiagnostics=False`;
-- fail-closed config;
-- startup after ThreadPool and before IdManager;
-- shutdown before ThreadPool;
-- one bounded inert queue;
-- fixed metrics;
-- optional bounded sampled trace;
-- отсутствие Player/DB/network/worker/task при disabled.
-
-Accepted commit:
-
-```text
-eb008f2216b3e8381c0181d71ce200bbf4907ac7
-```
-
-### 7.3. Task 004 — IN PROGRESS / выполняется в Codex
-
-**Task 004 нельзя менять, расширять или отменять этим документом.**
-
-Фактическая постановка Task 004:
-
-- bounded feasibility spike canonical headless `Player`;
-- минимальный Player-owned outbound/session seam;
-- сохранение real-client behavior;
-- zero-network headless packet sink;
-- `ServerPacket.runImpl(Player)` exactly once;
-- identity lease с минимальным real-login hook;
-- create/load/materialize/action/dematerialize/reload;
-- inventory, skills и World registration;
-- observer visibility;
-- одна reversible canonical inventory action;
-- action admission closure;
-- failure injection после lifecycle steps;
-- проверка World, online flag, autosave, tasks, identity и item residue;
-- one/ten fixture measurements;
-- работа только с `l2jmobiush5_phantom_test`;
-- запрет fake GameClient/Connection, Player fork/subclass, `EnterWorld.runImpl`, production DB и per-phantom threads.
-
-Допустимые результаты:
-
-```text
-FEASIBLE_WITH_SEAM_PENDING_INDEPENDENT_REVIEW
-```
-
-или честный:
-
-```text
-NOT_FEASIBLE_WITHOUT_PLAN_CHANGE_PENDING_INDEPENDENT_REVIEW
-```
-
-Task 005 не начинается до независимого ревью Task 004.
-
----
-
-# 8. Крупные этапы дорожной карты
-
-## Этап I. Безопасный фундамент и canonical actor
-
-**Назначение:** доказать, что Phantom World может безопасно существовать в текущем сервере без NPC-подмены и fake network stack.
-
-**GOAL:** 001–006  
-**Состояние:** выполняется  
-**Завершено:** 001–003  
-**Сейчас:** 004  
-**Далее:** 005–006
-
-### Task 001 — Baseline и архитектурный аудит — `ACCEPT`
-
-Результат:
-
-- карта server seams;
-- feasibility verdict;
-- минимальная outbound/session architecture;
-- список опасных lifecycle и persistence paths.
-
-### Task 002 — Автоматическая test infrastructure — `ACCEPT`
-
-Результат:
-
-- repeatable isolated tests;
-- test DB;
-- negative controls;
-- deterministic execution.
-
-### Task 003 — Disabled skeleton — `ACCEPT`
-
-Результат:
-
-- безопасная production integration point;
-- disabled defaults;
-- lifecycle owner;
-- bounded metrics/trace.
-
-### Task 004 — Headless Player feasibility spike — `IN_PROGRESS`
-
-Результат должен доказать или опровергнуть:
-
-- canonical Player without TCP;
-- packet effect semantics;
-- identity ownership;
-- materialization/cleanup;
-- restart restoration.
-
-### Task 005 — Phantom domain model и persistence
-
-Предварительный scope после принятия Task 004:
-
-- persistent Phantom profile;
-- lifecycle-independent state;
-- personality seed;
-- schedule;
-- long-term goal state;
-- simulation state;
-- versioned schema;
-- repository/DAO;
-- optimistic versioning;
-- idempotent migrations;
-- round-trip/restart tests.
-
-Не включать:
-
-- Utility AI;
-- combat;
-- Semantic Pack;
-- population scale.
-
-### Task 006 — Production materialization lifecycle
-
-Предварительный scope:
-
-- final materialize/dematerialize service;
-- identity lease integration;
-- bounded admission/cancellation;
-- World registration;
-- cleanup;
-- restart recovery;
-- materialization limits;
-- diagnostics;
-- disabled default.
-
-**Основные риски этапа:**
-
-- real-login collision;
-- leaked Player tasks;
-- online/world divergence;
-- inventory residue;
-- broad EnterWorld reuse;
-- network coupling.
-
-**Критерий завершения этапа:**
-
-- canonical Player materializes without TCP;
-- production lifecycle is idempotent;
-- real login and phantom ownership cannot overlap;
-- restart restores persistent Phantom state;
-- disabled server behavior remains unchanged;
-- no retained World/autosave/task/item residue.
-
----
-
-## Этап II. Планирование, relevance и перемещение
-
-**Назначение:** дать фантомам дешёвый общий runtime, цели и topology-aware движение без per-phantom scheduler.
-
-**GOAL:** 007–011  
-**Зависит от:** завершённого Этапа I
-
-### Task 007 — Interest/relevance model и scheduler budgets
-
-Scope:
-
-- `ACTIVE`;
-- `NEARBY / PERCEPTIBLE`;
-- `WARM`;
-- `BACKGROUND`;
-- `SLEEPING`;
-- topology/event-aware relevance;
-- fairness;
-- bounded shared scheduler;
-- per-state decision frequency;
-- overload degradation;
-- no per-phantom futures;
-- promotion/demotion protocol;
-- visibility/perceptibility invariants.
-
-Не ограничиваться только `distance < N`.
-
-### Task 008 — Goal model, Utility AI и plan executor
-
-Scope:
-
-- explicit goals;
-- considerations;
-- normalized scoring;
-- deterministic ties;
-- action candidates;
-- replanning;
-- timeout;
-- cancellation;
-- explanation/reason;
-- confidence/risk gates;
-- generic class capabilities;
-- no domain-specific giant scripts.
-
-### Task 009 — Geodata и navigation benchmark
-
-Scope:
-
-- factual geodata availability;
-- supported formats;
-- no-geodata mode;
-- direct path baseline;
-- local A* benchmark;
-- path budgets;
-- no external geodata in repository.
-
-### Task 010 — PhantomNavigationService
-
-Scope:
-
-- direct path first;
-- anchor fallback;
-- cached local path;
-- bounded A*;
-- cooldown;
-- target movement threshold;
-- cancellation;
-- stuck detection;
-- overload degradation;
-- metrics.
-
-### Task 011 — Topology, anchors, rooms и party routes
-
-Scope:
-
-- cities;
-- shops;
-- Gatekeepers;
-- farming anchors;
-- catacomb rooms;
-- room adjacency;
-- doors/passages;
-- dungeon topology;
-- party leader route;
-- followers;
-- perceptibility topology;
-- background travel anchors.
-
-**Основные риски этапа:**
-
-- scheduler starvation;
-- pathfinding CPU spikes;
-- false dematerialization near players;
-- impossible reconciliation;
-- topology disconnected from actual server geometry.
-
-**Критерий завершения этапа:**
-
-- thousands of profiles can remain scheduled without thousands of tasks;
-- relevance transitions are deterministic and observable;
-- perceptible phantoms are not treated as pure statistics;
-- navigation respects budgets and graceful no-geodata mode;
-- goals can be planned and cancelled without gameplay-specific hardcode.
-
----
-
-## Этап III. Одиночный игровой цикл и причинный background
-
-**Назначение:** создать работающую жизнь одиночного персонажа: бой, развитие, supplies, фарм и background reconciliation.
-
-**GOAL:** 012–016  
-**Зависит от:** Этапов I–II
-
-### Task 012 — Capability-driven базовый бой
-
-Scope:
-
-- target selection;
-- attack;
-- selected skills;
-- shots;
-- HP/MP;
-- death;
-- resurrection;
-- loot;
-- threat;
-- controlled class/zone matrix;
-- real action facades;
-- no request-packet API.
-
-Архитектура должна быть capability-driven, чтобы новые классы добавлялись через capabilities/considerations, а не отдельный монолитный скрипт.
-
-### Task 013 — Progression, professions, skills и equipment
-
-Scope:
-
-- EXP/SP;
-- levels;
-- profession transitions;
-- skill learning;
-- equipment evaluation;
-- equip/unequip;
-- class capability registry;
-- enchant risk policy;
-- gear progression goals.
-
-Примеры, которые должна поддерживать общая система:
-
-- healer;
-- tank;
-- spoiler;
-- dagger positioning;
-- summoner;
-- escape/teleport capability.
-
-### Task 014 — NPC commerce, supplies, travel и sell loop
-
-Scope:
-
-- grocery;
-- weapons/armor;
-- shots;
-- consumables;
-- budget;
-- sell loot;
-- Gatekeeper;
-- teleport costs;
-- restock;
-- inventory/weight;
-- economic conservation.
-
-### Task 015 — Background farming и reconciliation
-
-Scope:
-
-- aggregated combat/farming;
-- EXP/SP;
-- drop;
-- spoil;
-- consumption;
-- death probability;
-- travel time;
-- competition;
-- active/background equivalence tests;
-- promotion reconciliation;
-- anti-dup;
-- no free resource generation.
-
-### Task 016 — PopulationManager и schedules
-
-Scope:
-
-- profile population;
-- new level-1 characters;
-- login/logout schedules;
-- sleeping/wakeup;
-- online distribution;
-- region distribution;
-- materialization limits;
-- retirement/return;
-- backpressure;
-- no fixed fantasy numbers embedded in code.
-
-**Основные риски этапа:**
-
-- economic inflation;
-- item duplication;
-- active/background divergence;
-- class behavior hardcode;
-- unbounded population state;
-- mass DB writes.
-
-**Критерий завершения этапа:**
-
-- a new Phantom can progress from low level;
-- obtain supplies and equipment;
-- farm with real costs and risk;
-- sleep and resume;
-- transition between background and active without duplication or impossible state.
-
----
-
-## Этап IV. Социальное поведение, память и понимание мира
-
-**Назначение:** превратить автономных персонажей в социальных участников мира, понимающих игровые объекты и причины сообщений.
-
-**GOAL:** 017–020  
-**Зависит от:** работающих goals, classes, party-capable Player lifecycle и read-only server data
-
-### Task 017 — Party/clan coordination kernel и semantic acts
-
-Scope:
-
-- party role model;
-- party vacancies;
-- invitations/acceptance/refusal;
-- leader/follower responsibilities;
-- internal semantic acts;
-- group goals;
-- shared route;
-- assist/protect/heal priorities;
-- initial clan membership hooks;
-- no natural-language generation between phantoms.
-
-### Task 018 — Personality, memory, reputation и relationship modifiers
-
-Scope:
-
-- personality traits;
-- trust;
-- respect;
-- fear;
-- anger;
-- friendship;
-- rivalry;
-- debt;
-- important events;
-- decay/expiry;
-- agreement history;
-- goal and risk modifiers;
-- deterministic memory limits.
-
-### Task 019 — Semantic Pack и Game Knowledge
-
-Scope:
-
-#### Semantic Pack
-
-- Russian intents;
-- slang;
-- abbreviations;
-- aliases;
-- transliteration;
-- entity linking;
-- slots;
-- context;
-- confidence;
-- clarification policy;
-- deterministic corpus.
-
-#### Game Knowledge
-
-Read-only services and compact indexes:
-
-```text
-itemId -> mobs that drop
-itemId -> mobs that spoil
-itemId -> manor sources
-mobId -> spawn areas
-zoneId -> mobs
-level range -> farming zones
-recipeId -> ingredients
-ingredientId -> recipes
-contentId -> recommended roles
-class/role -> party vacancies
-```
-
-Не копировать всю server DB в Semantic Pack.
-
-### Task 020 — Conversation policy, verbalization и action dispatch
-
-Scope:
-
-- dialogue state;
-- semantic act selection;
-- safe action dispatch;
-- confidence gates;
-- clarification;
-- phrase variation;
-- personality-aware verbalization;
-- observer-visible text only;
-- chat channels;
-- no runtime LLM;
-- no text round-trip between phantoms.
-
-**Основные риски этапа:**
-
-- unsafe action from low confidence;
-- stale or duplicated knowledge;
-- memory growth;
-- random phrase-bank answers detached from world state;
-- language logic leaking into gameplay rules.
-
-**Критерий завершения этапа:**
-
-- Phantom understands what the player means;
-- grounds language to real server IDs;
-- queries authoritative game knowledge;
-- relates the request to both sides’ goals;
-- chooses a rational semantic act;
-- executes only confidence-safe actions;
-- answers without runtime external AI.
-
----
-
-## Этап V. Предметная глубина: ресурсы, экономика и конфликты
-
-**Назначение:** реализовать сложные повседневные ситуации Lineage 2 поверх уже готовых generic goals, knowledge и social reasoning.
-
-**GOAL:** 021–026  
-**Зависит от:** Этапов III–IV
-
-### Task 021 — Spoil, manor, quest drop и craft acquisition chains
-
-Scope:
-
-- spoiler capabilities;
-- spoil source selection;
-- manor sources;
-- quest item goals;
-- recipe ingredient chains;
-- craft preparation;
-- method eligibility;
-- progress tracking;
-- source switching;
-- knowledge-driven acquisition.
-
-### Task 022 — Player economy, trade, shops, crafting и anti-dup ledger
-
-Scope:
-
-- direct trade;
-- private stores;
-- buy/sell offers;
-- item reservation;
-- adena reservation;
-- atomic completion;
-- expiration;
-- crafting;
-- significant operation ledger;
-- sources/sinks;
-- crash/restart conservation;
-- anti-dup.
-
-### Task 023 — Party formation, Rift и role vacancies
-
-Scope:
-
-- party destination;
-- Rift requirements;
-- current composition;
-- missing roles;
-- class suitability;
-- supplies/equipment readiness;
-- travel readiness;
-- invite/refuse;
-- full-party detection;
-- group goal.
-
-### Task 024 — Farming spot negotiation и resource conflict
-
-Scope:
-
-- claimed mob groups;
-- occupied rooms;
-- shared spots;
-- alternative sources;
-- remaining amount;
-- trust/agreement history;
-- negotiation;
-- wait/share/move/refuse;
-- local conflict;
-- perceptible-neighbor invariants.
-
-### Task 025 — PvP/PK, threat, alliances и escalation
-
-Scope:
-
-- PvP/PK risk;
-- strength comparison;
-- allies;
-- retreat;
-- warnings;
-- revenge memory;
-- territory conflict;
-- help calls;
-- safe escalation rules;
-- zone rules;
-- character/personality modifiers.
-
-### Task 026 — Raid и epic orchestration
-
-Scope:
-
-- raid/epic content knowledge;
-- party/command-channel composition;
-- role readiness;
-- supplies;
-- gathering;
-- route;
-- timing;
-- failure/retreat;
-- recruitment;
-- realistic win feasibility;
-- no aggregate “free victory”.
-
-**Основные риски этапа:**
-
-- item/adena duplication;
-- deadlocks in trade/reservation;
-- griefing behavior;
-- uncontrolled PK;
-- impossible group composition;
-- false semantic grounding.
-
-**Критерий завершения этапа:**
-
-- Phantom can explain and pursue a concrete resource goal;
-- negotiate a farming conflict;
-- form a suitable Rift/raid party;
-- trade/craft without duplication;
-- escalate or de-escalate conflict according to real state and personality.
-
----
-
-## Этап VI. Кланы, масштаб и эксплуатационная готовность
-
-**Назначение:** довести систему до устойчивого автономного мира, пригодного для длительной работы и управляемого релиза.
-
-**GOAL:** 027–030  
-**Зависит от:** всех предыдущих этапов
-
-### Task 027 — Clan lifecycle, recruitment, alliances и wars
-
-Scope:
-
-- clan goals;
-- recruitment;
-- role distribution;
-- warehouse contributions;
-- alliances;
-- wars;
-- clan reputation;
-- group memory;
-- persistence;
-- safe membership changes.
-
-### Task 028 — Scale, soak и overload degradation
-
-Scope:
-
-- profile counts;
-- active/perceptible/warm/background counts;
-- materialization caps;
-- scheduler fairness;
-- queue growth;
-- tick budget;
-- path budget;
-- DB write rate;
-- memory;
-- long soak;
-- overload degradation;
-- recovery after load spike;
-- no per-phantom tasks.
-
-### Task 029 — Operations, admin controls, observability и replay
-
-Scope:
-
-- enable/disable controls;
-- safe drain;
-- per-state metrics;
-- bounded traces;
-- selected Phantom inspection;
-- reason/explanation visibility;
-- stuck diagnostics;
-- slow operation thresholds;
-- audit of significant economic actions;
-- deterministic scenario replay;
-- no hot-path logging spam.
-
-### Task 030 — End-to-end autonomous world alpha и release gate
-
-Scope:
-
-- fresh server bootstrap;
-- population creation;
-- progression;
-- background/active transitions;
-- farming;
-- spoil/craft/trade;
-- party;
-- Rift;
-- PvP;
-- raid;
-- conversation;
-- restart;
-- failure recovery;
-- soak;
-- disabled regression;
-- operator documentation;
-- rollback plan.
-
-**Основные риски этапа:**
-
-- long-running memory leak;
-- DB write amplification;
-- scheduler unfairness;
-- operational opacity;
-- cross-system recovery failure;
-- acceptable behavior in isolated tests but unstable behavior in a living world.
-
-**Критерий завершения этапа:**
-
-- long-running autonomous Phantom population behaves causally;
-- server remains stable under target scale;
-- operators can inspect, drain, disable and recover the subsystem;
-- restart does not duplicate state;
-- disabled mode remains equivalent to the original server;
-- alpha acceptance scenarios pass.
-
----
-
-# 9. Межэтапные зависимости
-
-```text
-I. Canonical actor and lifecycle
-    ↓
-II. Relevance, goals and navigation
-    ↓
-III. Solo gameplay and background causality
-    ↓
-IV. Social reasoning, memory and language
-    ↓
-V. Domain depth: economy, conflict, Rift, raids
-    ↓
-VI. Clans, scale, operations and release
-```
-
-Некоторые read-only исследования могут идти раньше, но production implementation не должна перескакивать через обязательные gates.
-
-Примеры:
-
-- Semantic corpus можно собирать заранее, но action dispatch нельзя принимать до confidence и goal gates.
-- Drop/spoil indexes можно исследовать до Task 019, но нельзя внедрять их хаотично в combat task.
-- Performance measurements выполняются на каждом этапе, но полный scale gate остаётся Task 028.
-- Personality data model может обсуждаться раньше, но не должна попасть в Task 005, если это расширит риск persistence до неподтверждённой модели.
-
----
-
-# 10. Сквозные инварианты
-
-Эти инварианты действуют для всех этапов.
-
-## 10.1. Lifecycle
-
-- один persistent character имеет не более одного owner;
-- один object ID имеет не более одного world actor;
-- real login и Phantom materialization не пересекаются;
-- admission закрывается до dematerialization;
-- cleanup idempotent;
-- repeated shutdown безопасен;
-- failed transition откатывает только завершённые steps;
-- no retained world/task/autosave/action residue.
-
-## 10.2. Concurrency
-
-- no per-phantom executor;
-- no per-phantom permanent thread;
-- shared bounded queues;
-- explicit ownership;
-- cancellation;
-- timeouts;
-- stable lock order;
-- bounded waits;
-- no blocking hot path on slow DB/network-independent logic.
-
-## 10.3. Persistence и экономика
-
-- production DB не используется для экспериментов;
-- test DB isolated;
-- migrations versioned/idempotent;
-- item/adena conservation;
-- reservation before multi-step transfer;
-- restart recovery;
-- no free background generation;
-- significant operations auditable.
-
-## 10.4. Performance
-
-- fixed or bounded memory in hot structures;
-- no unbounded traces;
-- no full NPC/drop scan per query;
-- compact read-only indexes;
-- materialization caps;
-- overload degradation;
-- no INFO/WARNING per decision/action/path.
-
-## 10.5. Disabled behavior
+### 4.9. Disabled behavior
 
 При `EnablePhantomSystem=False`:
 
-- no Phantom Player;
-- no Phantom DB queries;
-- no Phantom scheduler activity;
-- no Phantom thread/future;
-- no new world object;
-- no packet behavior change for ordinary players;
-- no periodic Phantom log;
-- no modified economy;
-- no background profile processing.
+- не создаются Phantom Player/profile processing/tasks/threads/world objects;
+- нет Phantom DB query и network activity;
+- ordinary player packet/login behavior не меняется;
+- нет periodic Phantom logs;
+- экономика и World остаются исходными.
+
+### 4.10. Runtime resource policy
+
+- no per-phantom executor;
+- no permanent per-phantom thread;
+- shared bounded queues;
+- bounded memory and traces;
+- explicit cancellation and ownership;
+- no high-frequency INFO/WARNING;
+- degradation under overload вместо unbounded backlog.
 
 ---
 
-# 11. Definition of Done для всей системы
+## 5. Оптимальное количество задач
 
-Phantom World считается достигшим первой законченной цели, когда одновременно доказано:
+Дорожная карта сохраняет **30 основных GOAL**. Это оптимальный рабочий вариант
+для текущего объёма требований:
 
-1. canonical Player работает без обязательного TCP;
-2. real login и Phantom ownership безопасно разделены;
-3. profiles persistent и restart-safe;
-4. materialization/dematerialization idempotent;
-5. scheduler масштабируется без per-phantom tasks;
-6. relevance model включает perceptible topology;
-7. background simulation causal и anti-dup;
-8. goals и Utility AI объяснимы;
-9. class capabilities расширяемы;
-10. Semantic Pack понимает русский L2-сленг;
-11. entities связываются с реальными server IDs;
-12. Game Knowledge использует authoritative server data;
-13. party/Rift/raid decisions зависят от реального состава;
-14. trade/craft/economy сохраняют conservation;
-15. personality/memory влияют на решения;
-16. conversation dispatch безопасен по confidence;
-17. long soak не показывает неконтролируемого роста памяти, очередей или DB-нагрузки;
-18. subsystem можно безопасно disable/drain/restart;
-19. original server behavior при disabled не изменён;
-20. end-to-end alpha scenarios проходят.
+- меньшее число заставило бы смешать несовместимые risk boundaries;
+- большее число начало бы дробить законченные вертикальные результаты;
+- suffix-задачи не планируются заранее и появляются только после реального
+  P0/P1 finding или environment blocker;
+- documentation-only closure по возможности включается в следующую
+  содержательную GOAL.
+
+### Правило объединения
+
+Связанные изменения объединяются, если они дают один проверяемый результат,
+имеют общий lifecycle и один уровень риска.
+
+### Правило разделения
+
+Разделение обязательно для сочетаний:
+
+- session/network + economy;
+- Player lifecycle + AI;
+- persistence schema + pathfinding;
+- real-login ownership + mass population;
+- trade/mail + combat;
+- Semantic Pack + destructive migration;
+- geodata + social policy.
+
+### Follow-up risk
+
+Риск подзадач ниже означает вероятность suffix-hotfix после независимого ревью,
+а не разрешение заранее дробить GOAL:
+
+- `LOW` — follow-up маловероятен;
+- `MEDIUM` — возможна узкая корректировка;
+- `HIGH` — вероятен bounded hotfix на edge cases;
+- `VERY_HIGH` — критическая граница; suffix-hotfix реалистичен.
 
 ---
 
-# 12. Формат наглядного прогресса после каждого ревью
+## 6. Явный dependency DAG
 
-После каждого независимого ревью публикуется краткая сводка:
+Основной порядок не содержит циклов:
+
+```text
+001 → 002 → 003 → 004 → 004A → 005 → 006
+
+006 → 007 → 008
+006 → 009
+007 + 009 → 010
+010 → 011
+008 + 009 + 010 + 011 → 012
+012 → 013
+011 + 013 → 014
+007 + 008 + 012 + 013 + 014 → 015
+005 + 006 + 007 + 015 → 016
+008 + 010 + 013 + 016 → 017
+005 + 008 + 017 → 018
+008 + 011 → 019
+017 + 018 + 019 → 020
+011 + 012 + 013 + 015 + 019 → 021
+005 + 006 + 014 + 021 → 022
+010 + 013 + 017 + 020 → 023
+010 + 018 + 020 + 021 + 023 → 024
+012 + 013 + 017 + 018 + 020 + 024 → 025
+009 + 010 + 011 + 013 + 017 + 023 + 025 → 026
+005 + 017 + 018 + 022 + 025 + 026 → 027
+003 + 006 + 007 + 015 + 020 + 022 + 027 → 028
+006 + 007 + 009 + 010 + 015 + 016 + 028 → 029
+001–029 ACCEPT → 030
+```
+
+### Контракты, разрывающие потенциальные циклы
+
+- Goal 007 определяет activity state machine и принимает абстрактные
+  `RelevanceSignal`; topology providers появляются в Goal 010.
+- Goal 008 определяет generic `DomainRef` и capability requirements; реальные
+  class capabilities появляются в Goal 013.
+- Goal 011 создаёт Game Knowledge до combat/background; Goal 019 только
+  связывает язык с уже существующим knowledge API.
+- Goal 015 агрегирует только уже поддержанные acquisition methods; spoil/manor/
+  quest/craft расширяются в Goal 021.
+- Goal 017 создаёт party coordination без natural language; Goal 020 добавляет
+  conversation policy поверх semantic acts.
+- Goal 026 использует party/command channel без обязательного clan lifecycle;
+  clan/alliances/wars появляются в Goal 027.
+
+---
+
+# 7. Этап I — Canonical actor, persistence и lifecycle
+
+**GOAL:** 001–006  
+**Текущий статус:** Task 004 требует Task 004A; Task 005 заблокирована.
+
+## Goal 001 — Baseline и полный аудит — `ACCEPT`
+
+**Назначение:** доказать исходные seams и риски.  
+**Результат:** dependency map, feasibility verdict, scope boundaries.  
+**Зависимости:** нет.  
+**Не включает:** production behavior.  
+**Gate:** доказательный `FEASIBLE_WITH_SEAM` или пересмотр плана.  
+**Follow-up risk:** `LOW` — read-only аудит; 001A уже закрыла provenance.
+
+## Goal 002 — Автоматическая test infrastructure — `ACCEPT`
+
+**Назначение:** isolated deterministic verification.  
+**Результат:** JDK-only runner, Ant, test DB, provisioning, guards.  
+**Зависимости:** 001.  
+**Не включает:** Phantom runtime.  
+**Gate:** production DB unreachable, negative controls и repeatable verify.  
+**Follow-up risk:** `VERY_HIGH` — DB provisioning/locking; фактически потребовала 002A.
+
+## Goal 003 — Disabled skeleton — `ACCEPT`
+
+**Назначение:** безопасная production integration point.  
+**Результат:** config, lifecycle owner, inert bounded queue, metrics/trace.  
+**Зависимости:** 002.  
+**Не включает:** Player, persistence, AI.  
+**Gate:** disabled path allocates/changes nothing.  
+**Follow-up risk:** `LOW` — малый локальный scope.
+
+## Goal 004 — Canonical headless Player feasibility — `FIX_REQUIRED`
+
+**Назначение:** доказать canonical Player без TCP.  
+**Технический результат:** seam, zero-network effects, create/load/materialize/
+cleanup/reload доказаны.  
+**Зависимости:** 003.  
+**Не включает:** final production lifecycle, profiles, AI.  
+**Gate:** завершается только после 004A: race-free real login, fail-closed lease
+release и retryable cleanup.  
+**Follow-up risk:** `VERY_HIGH` — session/identity/cleanup; фактически возникла 004A.
+
+### Goal 004A — обязательная closure-задача, не новый основной GOAL
+
+Закрывает только findings независимого ревью Task 004. После `ACCEPT` технический
+verdict Task 004 становится `FEASIBLE_WITH_SEAM`, а ADR 0001 может быть принят.
+
+## Goal 005 — Core Phantom profile и persistence envelope
+
+**Назначение:** сохранить устойчивую идентичность Phantom независимо от Player
+materialization.  
+**Зависимости:** 004A ACCEPT.  
+**Архитектурный результат:**
+
+- stable `phantomProfileId` и optional canonical `characterObjectId` link;
+- lifecycle-independent core state;
+- schema/version columns;
+- component envelope (`componentType`, `version`, bounded payload or normalized
+  table ownership) для будущих goals/memory/schedule без определения их модели;
+- repository/DAO;
+- optimistic locking;
+- idempotent migrations;
+- round-trip/restart/concurrent-update tests.
+
+**Не включает:** personality traits, schedule model, long-term goal schema,
+Utility AI, population или materialization.  
+**Gate:** unknown future components могут добавляться versioned migration без
+переписывания core identity.  
+**Follow-up risk:** `HIGH` — schema/versioning/concurrent update.
+
+## Goal 006 — Production materialization lifecycle
+
+**Назначение:** превратить spike в production-owned, disabled-by-default
+materialization service.  
+**Зависимости:** 004A, 005.  
+**Архитектурный результат:**
+
+- identity claim/handoff;
+- materialize/dematerialize;
+- bounded action admission/cancellation;
+- World registration;
+- cleanup postconditions/retry;
+- restart recovery только в safe unmaterialized state;
+- materialization cap interface;
+- lifecycle metrics.
+
+**Не включает:** schedules, activity states, AI, navigation, population.  
+**Gate:** restart, collision, failure injection и disabled equivalence.  
+**Follow-up risk:** `VERY_HIGH` — Player/World/login/restart boundary.
+
+### Gate Этапа I
+
+- ADR 0001 accepted;
+- canonical Player без TCP;
+- production lifecycle idempotent;
+- real login и Phantom ownership не пересекаются;
+- profile restart-safe;
+- no World/online/autosave/task/item residue;
+- disabled ordinary server behavior unchanged.
+
+---
+
+# 8. Этап II — Scheduler, goals, navigation и authoritative knowledge
+
+**GOAL:** 007–011  
+**Зависит от:** Этап I.
+
+## Goal 007 — Shared scheduler и activity state machine
+
+**Назначение:** обслуживать profiles без per-phantom tasks.  
+**Зависимости:** 006.  
+**Архитектурный результат:**
+
+- `ACTIVE`, `NEARBY_PERCEPTIBLE`, `WARM`, `BACKGROUND`, `SLEEPING`;
+- bounded shared work queues;
+- fairness and budgets;
+- promotion/demotion state machine;
+- abstract immutable `RelevanceSignal` input;
+- overload degradation;
+- no topology calculation inside scheduler.
+
+**Не включает:** room graph, geodata, goals, combat.  
+**Gate:** deterministic transitions, bounded backlog, thousands of dormant
+profiles without thousands of futures.  
+**Follow-up risk:** `HIGH` — fairness, cancellation and overload edges.
+
+## Goal 008 — Goal model, Utility AI core и plan executor
+
+**Назначение:** дать объяснимое решение без domain-specific giant scripts.  
+**Зависимости:** 005, 007.  
+**Архитектурный результат:**
+
+- immutable/versioned goal contract;
+- generic `DomainRef` IDs, не Game Knowledge implementation;
+- considerations and normalized score;
+- deterministic tie breaking;
+- generic capability requirement keys;
+- action candidate registry;
+- plan steps, timeout, cancellation and replanning;
+- reason/explanation snapshot.
+
+**Не включает:** concrete class catalog, combat actions, Semantic Pack.  
+**Gate:** deterministic scenario corpus и safe cancellation.  
+**Follow-up risk:** `HIGH` — scoring stability/executor state machine.
+
+## Goal 009 — Navigation feasibility и PhantomNavigationService baseline
+
+**Назначение:** объединить benchmark и первый полезный service, не создавая
+proof-only GOAL.  
+**Зависимости:** 006.  
+**Архитектурный результат:**
+
+- factual geodata/no-geodata capability detection;
+- direct-path first;
+- bounded local path request;
+- cache/cooldown/cancellation;
+- stuck/timeout result contract;
+- path budgets and metrics;
+- graceful no-geodata behavior.
+
+**Не включает:** semantic anchors, rooms, party routes.  
+**Gate:** benchmark-backed budgets и deterministic fallback.  
+**Follow-up risk:** `HIGH` — geodata variability and CPU budget.
+
+## Goal 010 — Topology, anchors и perception graph
+
+**Назначение:** реализовать server-world topology и providers для Goal 007.  
+**Зависимости:** 007, 009.  
+**Архитектурный результат:**
+
+- regions, cities, shops, Gatekeepers and farming anchors;
+- catacomb/dungeon rooms, adjacency, doors/passages;
+- route anchors and background travel edges;
+- local-chat/combat/targetability perception channels;
+- `RelevanceSignal` providers;
+- topology validation and versioned data.
+
+**Не включает:** party route policy, Game Knowledge item/drop indexes.  
+**Gate:** perceptible neighbor cannot be demoted to pure statistics.  
+**Follow-up risk:** `HIGH` — map completeness and perceptibility correctness.
+
+## Goal 011 — Authoritative Game Knowledge и reverse indexes
+
+**Назначение:** предоставить read-only предметное знание до combat/background и
+до Semantic Pack.  
+**Зависимости:** 010 и существующие server data loaders.  
+**Архитектурный результат:** compact immutable indexes:
+
+```text
+item -> drop mobs
+item -> spoil mobs
+item -> manor sources
+mob -> spawn/topology areas
+zone/level range -> suitable targets
+recipe -> ingredients
+ingredient -> recipes
+content -> role requirements
+class/role -> capability facts
+```
+
+- stable IDs;
+- source hash/version;
+- startup/lazy single build;
+- no DB query or full scan in hot path;
+- query API independent of language and Utility AI.
+
+**Не включает:** parsing Russian text, action decisions, mutable world economy.  
+**Gate:** source-of-truth parity and bounded lookup benchmark.  
+**Follow-up risk:** `HIGH` — many heterogeneous authoritative data sources.
+
+### Gate Этапа II
+
+- no per-profile scheduler task;
+- activity transitions consume explicit relevance signals;
+- goals are deterministic and cancellable;
+- navigation bounded with no-geodata mode;
+- topology protects perceptible history;
+- knowledge queries are indexed and authoritative.
+
+---
+
+# 9. Этап III — Solo gameplay, progression и causal background
+
+**GOAL:** 012–016  
+**Зависит от:** Этапы I–II.
+
+## Goal 012 — Capability-driven combat kernel
+
+**Назначение:** минимальный реальный бой через server-side facades.  
+**Зависимости:** 008–011.  
+**Архитектурный результат:** target/threat, attack, selected skills, shots,
+HP/MP, loot, death/resurrection для ограниченного archetype matrix; generic
+combat capability interface.  
+**Не включает:** полный class catalog, party combat, spoil/manor, PvP policy.  
+**Gate:** canonical rules, no client packets, action cancellation and combat
+failure cleanup.  
+**Follow-up risk:** `VERY_HIGH` — skills/death/World timing.
+
+## Goal 013 — Progression, professions, skills, equipment и class catalog
+
+**Назначение:** расширить generic capability keys реальными High Five классами.  
+**Зависимости:** 012.  
+**Архитектурный результат:** EXP/SP/level, profession transitions, skill
+learning, equipment scoring/equip, actual class capability catalog including
+healer/tank/spoiler/dagger/summoner/escape.  
+**Не включает:** enchant policy, trade economy, party coordination.  
+**Gate:** representative class matrix and no one-script-per-class architecture.  
+**Follow-up risk:** `HIGH` — broad class rules and progression persistence.
+
+## Goal 014 — NPC commerce, supplies, travel и sell loop
+
+**Назначение:** замкнуть одиночный economic maintenance loop.  
+**Зависимости:** 009–011, 013.  
+**Архитектурный результат:** grocery/equipment NPC purchase, shots/consumables,
+sell loot, inventory/weight budget, Gatekeeper travel and supply replenishment.  
+**Не включает:** player trade, private stores, crafting ledger, enchant.  
+**Gate:** item/adena conservation and restart-safe interruption.  
+**Follow-up risk:** `HIGH` — canonical commerce validation and partial actions.
+
+## Goal 015 — Background farming baseline и reconciliation
+
+**Назначение:** causal cheap simulation для уже поддержанных plans.  
+**Зависимости:** 007, 008, 011–014.  
+**Архитектурный результат:** aggregated normal combat/drop/EXP/SP, supplies,
+death, travel, competition, inventory limits and active/background
+reconciliation for already selected targets.  
+**Не включает:** spoil/manor/quest/craft chains, которые добавляет Goal 021.  
+**Gate:** active/background conservation and anti-dup under repeated transitions.  
+**Follow-up risk:** `VERY_HIGH` — probabilistic causality and reconciliation.
+
+## Goal 016 — PopulationManager и schedules
+
+**Назначение:** создать и обслуживать популяцию profiles.  
+**Зависимости:** 005–007, 015.  
+**Архитектурный результат:** level-1 creation, schedule model, sleeping/wakeup,
+online/region distribution, materialization requests, retirement/return,
+backpressure and configurable population targets.  
+**Не включает:** social personality, clans, conversation.  
+**Gate:** population limits, restart, no hardcoded fantasy counts, bounded DB
+writes.  
+**Follow-up risk:** `HIGH` — mass state and load shaping.
+
+### Gate Этапа III
+
+Новый Phantom может причинно развиваться, покупать supplies, фармить, умирать,
+спать, возобновляться и переходить background/active без дюпа.
+
+---
+
+# 10. Этап IV — Party, memory, Semantic Pack и conversation
+
+**GOAL:** 017–020
+
+## Goal 017 — Party coordination kernel, semantic acts и party routes
+
+**Назначение:** структурированное групповое поведение до natural language.  
+**Зависимости:** 008, 010, 013, 016.  
+**Архитектурный результат:** party roles/vacancies, invite/accept/refuse,
+leader/follower responsibilities, group goals, typed semantic acts, shared party
+route, assist/protect/heal priorities.  
+**Не включает:** clan hooks, Rift-specific composition, text generation.  
+**Gate:** real party lifecycle, cancellation and leader/member recovery.  
+**Follow-up risk:** `HIGH` — party concurrency and route coordination.
+
+## Goal 018 — Personality, memory, reputation и relationship modifiers
+
+**Назначение:** устойчивые индивидуальные решения и отношения.  
+**Зависимости:** 005, 008, 017.  
+**Архитектурный результат:** traits; trust/respect/fear/anger/friendship/rivalry/
+debt; bounded important-event memory; decay/expiry; agreement history; goal,
+risk and conversation modifiers.  
+**Не включает:** language parsing, clan group memory, PvP implementation.  
+**Gate:** bounded persistence, deterministic decay and no unbounded event log.  
+**Follow-up risk:** `MEDIUM` — primarily bounded model/persistence tuning.
+
+## Goal 019 — Semantic Pack и entity grounding
+
+**Назначение:** понять русский L2-язык без runtime LLM.  
+**Зависимости:** 008, 011.  
+**Архитектурный результат:** normalization, slang, abbreviations, aliases,
+transliteration, intents, slots, context, confidence, clarification and entity
+linking only through Game Knowledge IDs; deterministic corpus.  
+**Не включает:** world data duplication, conversation action dispatch,
+personality policy.  
+**Gate:** precision/recall corpus, ambiguity and low-confidence safety.  
+**Follow-up risk:** `HIGH` — Russian slang/entity ambiguity and corpus breadth.
+
+## Goal 020 — Conversation policy, verbalization и action dispatch
+
+**Назначение:** связать understanding с безопасным semantic act/action.  
+**Зависимости:** 017–019.  
+**Архитектурный результат:** dialogue state, semantic act selection,
+confidence gates, clarification, personality-aware verbalization, chat channels,
+action dispatch allowlist and observer-only text.  
+**Не включает:** domain-specific spoil/Rift/PvP policies, runtime LLM, text
+round-trip between Phantoms.  
+**Gate:** low confidence cannot trigger dangerous action; generated response
+matches structured decision.  
+**Follow-up risk:** `HIGH` — action safety and dialogue state.
+
+### Gate Этапа IV
+
+Phantom формирует party, помнит отношения, понимает русский игровой текст,
+связывает entities с server IDs и отвечает/действует только через confidence-safe
+semantic acts.
+
+---
+
+# 11. Этап V — Domain depth: acquisition, economy, conflicts и group content
+
+**GOAL:** 021–027
+
+## Goal 021 — Spoil, manor, quest drop и craft acquisition chains
+
+**Назначение:** предметные способы получения ресурсов.  
+**Зависимости:** 011–015, 019.  
+**Архитектурный результат:** eligibility, source selection, progress, source
+switching and active/background integration for spoil/manor/quest collection;
+recipe ingredient planning and craft preparation.  
+**Не включает:** transactionally executing player crafting/trade — Goal 022.  
+**Gate:** ресурс не появляется без допустимого метода/capability/source.  
+**Follow-up risk:** `HIGH` — multi-source rules and active/background parity.
+
+## Goal 022 — Economy transaction kernel, trade, crafting и enchant
+
+**Назначение:** безопасные multi-party/item/adena operations.  
+**Зависимости:** 005, 006, 014, 021.  
+**Архитектурный результат:** reservation ledger, expiration, lock order,
+direct trade, private stores, buy/sell offers, crafting execution, enchant risk
+policy, significant-operation audit, sources/sinks and crash/restart
+conservation.  
+**Не включает:** combat/PvP policy, clan warehouse.  
+**Gate:** no item/adena duplication across injected failures and restart.  
+**Follow-up risk:** `VERY_HIGH` — transaction/anti-dup/deadlock boundary.
+
+## Goal 023 — Rift и advanced party recruitment
+
+**Назначение:** дополнить базовую Goal 017 content-specific composition.  
+**Зависимости:** 010, 013, 017, 020.  
+**Архитектурный результат:** Rift destination/requirements, real roster,
+missing roles, class/supply/travel readiness, full-party detection and
+invite/refuse policy.  
+**Не включает:** general party kernel, raid/epic orchestration.  
+**Gate:** ответы о недостающей роли следуют из реального состава.  
+**Follow-up risk:** `HIGH` — instance/content and composition edge cases.
+
+## Goal 024 — Farming spot negotiation и resource conflict
+
+**Назначение:** согласование реальных целей в perceptible topology.  
+**Зависимости:** 010, 018, 020, 021, 023.  
+**Архитектурный результат:** claims на mob groups/rooms, alternatives, remaining
+amount, agreement history, share/wait/move/refuse/escalate semantic acts and
+perceptible-history protection.  
+**Не включает:** actual PvP/PK execution.  
+**Gate:** решения объяснимы целями обеих сторон и world facts.  
+**Follow-up risk:** `HIGH` — topology, goals, memory and dialogue convergence.
+
+## Goal 025 — PvP/PK, threat и escalation
+
+**Назначение:** безопасно исполнять конфликтные решения.  
+**Зависимости:** 012, 013, 017, 018, 020, 024.  
+**Архитектурный результат:** strength/risk, party/friend allies, retreat,
+warning, help calls, revenge memory, zone rules, karma/drop consequences and
+bounded escalation.  
+**Не включает:** formal alliances/clan wars — Goal 027.  
+**Gate:** canonical PvP/PK/karma rules and no uncontrolled aggression.  
+**Follow-up risk:** `VERY_HIGH` — gameplay harm, concurrency and consequence rules.
+
+## Goal 026 — Raid и epic orchestration
+
+**Назначение:** правдоподобный large-group content без free victory.  
+**Зависимости:** 009–011, 013, 017, 023, 025.  
+**Архитектурный результат:** content facts, party/command-channel composition,
+readiness, gathering, route, timing, recruitment, retreat and win feasibility.  
+**Не включает:** mandatory clan strategy; Goal 027 extends it.  
+**Gate:** objectively incapable group cannot aggregate a victory.  
+**Follow-up risk:** `VERY_HIGH` — multi-group orchestration and content diversity.
+
+## Goal 027 — Clan lifecycle, alliances и wars
+
+**Назначение:** persistent long-term social organizations.  
+**Зависимости:** 005, 017, 018, 022, 025, 026.  
+**Архитектурный результат:** recruitment, roles, contributions, clan goals,
+warehouse policy, alliances, wars, reputation, group memory and safe membership
+changes.  
+**Не включает:** final scale/operations work.  
+**Gate:** restart-safe membership and canonical clan/war rules.  
+**Follow-up risk:** `VERY_HIGH` — broad persistence/social/economy interactions.
+
+### Gate Этапа V
+
+Phantoms добывают ресурсы допустимыми способами, безопасно торгуют/крафтят,
+договариваются о spots, участвуют в Rift/PvP/raids и формируют clans без дюпа и
+без случайных phrase-bank решений.
+
+---
+
+# 12. Этап VI — Operations, scale и release
+
+**GOAL:** 028–030
+
+## Goal 028 — Operations, admin controls, observability и replay
+
+**Назначение:** получить инструменты до массового soak, а не после него.  
+**Зависимости:** 003, 006, 007, 015, 020, 022, 027.  
+**Архитектурный результат:** enable/disable/drain, per-state metrics, bounded
+selected-Phantom trace, reason view, stuck/slow thresholds, economic audit and
+deterministic replay.  
+**Не включает:** target-scale tuning.  
+**Gate:** operator может понять, остановить и воспроизвести проблему без log
+spam.  
+**Follow-up risk:** `HIGH` — cross-subsystem observability and safe controls.
+
+## Goal 029 — Scale, soak и overload degradation
+
+**Назначение:** доказать целевой масштаб с уже готовой observability.  
+**Зависимости:** 006, 007, 009, 010, 015, 016, 028.  
+**Архитектурный результат:** profile/activity counts, materialization caps,
+fairness, queue/tick/path/DB/memory budgets, long soak, load spike recovery and
+degradation policies.  
+**Не включает:** новые gameplay features.  
+**Gate:** bounded memory/queues/DB rate and recovery under overload.  
+**Follow-up risk:** `VERY_HIGH` — environment-dependent long-running behavior.
+
+## Goal 030 — End-to-end autonomous world alpha и release gate
+
+**Назначение:** принять всю систему как один living-world product.  
+**Зависимости:** 001–029 ACCEPT.  
+**Архитектурный результат:** fresh bootstrap, population, progression,
+activity transitions, farming, spoil/craft/trade, party/Rift/PvP/raid,
+conversation, clans, restart/failure recovery, soak, operator docs and rollback.  
+**Не включает:** новые функции вне roadmap.  
+**Gate:** end-to-end alpha scenarios, disabled regression and release decision.  
+**Follow-up risk:** `VERY_HIGH` — cross-system integration/release stabilization.
+
+---
+
+## 13. Сводная оценка риска suffix-подзач
+
+| Goal | Риск follow-up | Краткое обоснование |
+|---:|---|---|
+| 001 | LOW | read-only audit |
+| 002 | VERY_HIGH | DB provisioning/lock; 002A уже потребовалась |
+| 003 | LOW | inert local skeleton |
+| 004 | VERY_HIGH | session/identity/cleanup; 004A требуется |
+| 005 | HIGH | schema/versioning/concurrent updates |
+| 006 | VERY_HIGH | Player/World/login/restart lifecycle |
+| 007 | HIGH | fairness, transitions, overload |
+| 008 | HIGH | scoring/executor/cancellation |
+| 009 | HIGH | geodata variance and CPU budget |
+| 010 | HIGH | topology/perceptibility correctness |
+| 011 | HIGH | heterogeneous authoritative data sources |
+| 012 | VERY_HIGH | combat/skills/death/World timing |
+| 013 | HIGH | broad class/progression matrix |
+| 014 | HIGH | canonical commerce and partial actions |
+| 015 | VERY_HIGH | probabilistic causality/reconciliation/anti-dup |
+| 016 | HIGH | mass state, schedules and DB shaping |
+| 017 | HIGH | party concurrency and routes |
+| 018 | MEDIUM | bounded model/persistence tuning |
+| 019 | HIGH | Russian slang and entity ambiguity |
+| 020 | HIGH | confidence/action safety |
+| 021 | HIGH | multi-source acquisition parity |
+| 022 | VERY_HIGH | transactions, deadlocks and anti-dup |
+| 023 | HIGH | Rift/instance composition edges |
+| 024 | HIGH | goals/topology/memory/dialogue convergence |
+| 025 | VERY_HIGH | PvP/PK consequences and safety |
+| 026 | VERY_HIGH | large-group orchestration |
+| 027 | VERY_HIGH | clan/persistence/economy/war interactions |
+| 028 | HIGH | cross-system controls and observability |
+| 029 | VERY_HIGH | long soak and overload behavior |
+| 030 | VERY_HIGH | full integration/release stabilization |
+
+Высокий риск не означает предварительное дробление. Перед GOAL задаётся один
+максимально полезный coherent scope; suffix-задача создаётся только по факту
+конкретного finding.
+
+---
+
+## 14. Обязательный контракт task package
+
+Каждая GOAL обязана определить до кода:
+
+1. пользовательский результат;
+2. accepted baseline и dependency gates;
+3. current-code audit;
+4. точные input/output contracts;
+5. exact scope и hard out of scope;
+6. lifecycle/concurrency ownership;
+7. DB/transaction/conservation policy;
+8. memory/performance budgets;
+9. disabled behavior;
+10. failure/rollback model;
+11. proportional automated tests and negative controls;
+12. acceptance criteria;
+13. report/commit/push contract;
+14. stop-rule и roadmap reconsideration condition.
+
+Codex не получает формулировку «выбери архитектуру». Task package заранее
+фиксирует responsibility boundaries и оставляет Codex только локальные имена и
+реализационные детали, подтверждаемые current code.
+
+---
+
+## 15. Сквозные acceptance invariants
+
+### Lifecycle
+
+- one persistent character — one owner;
+- one object ID — one World actor;
+- real login and Phantom do not overlap;
+- admission closes before cleanup;
+- cleanup retryable/idempotent;
+- release occurs only after postconditions;
+- no retained World/online/autosave/task/action residue.
+
+### Concurrency
+
+- shared bounded scheduler;
+- no per-phantom executor/thread;
+- stable lock order;
+- bounded waits/timeouts;
+- stale token cannot release current owner;
+- overload degrades rather than grows without bound.
+
+### Persistence/economy
+
+- production DB never used for experiments;
+- versioned/idempotent migrations;
+- optimistic conflict policy;
+- item/adena conservation;
+- reservation before multi-step transfer;
+- restart reconciliation;
+- no free background generation.
+
+### Language/decision safety
+
+- low confidence cannot trigger dangerous action;
+- language does not own game rules;
+- server IDs and Game Knowledge ground entities;
+- internal Phantom communication remains typed;
+- verbalization follows a structured decision.
+
+### Diagnostics
+
+- bounded counters/traces;
+- no packet/decision/path log spam;
+- selected-entity trace only;
+- slow-operation thresholds;
+- deterministic replay where required.
+
+---
+
+## 16. Definition of Done
+
+Первая законченная система считается достигнутой, когда доказано:
+
+1. canonical Player works without TCP;
+2. real-login ownership is race-safe;
+3. profiles are persistent/restart-safe;
+4. materialization is idempotent/retryable;
+5. scheduler scales without per-profile tasks;
+6. relevance includes perceptible topology;
+7. background simulation is causal/anti-dup;
+8. goals and Utility AI are explainable;
+9. class capabilities are extensible;
+10. Semantic Pack understands Russian L2 slang;
+11. entities map to real server IDs;
+12. Game Knowledge uses authoritative server data;
+13. party/Rift/raid decisions use real composition;
+14. trade/craft/economy conserve items/adena;
+15. personality/memory affect decisions;
+16. conversation dispatch is confidence-safe;
+17. long soak has bounded memory/queues/DB rate;
+18. operators can inspect/drain/disable/recover;
+19. disabled behavior matches original server;
+20. end-to-end alpha scenarios pass.
+
+---
+
+## 17. Progress format after every review
 
 ```text
 Phantom World Progress
 
 Current stage:
 Current accepted baseline:
+Current branch HEAD under review:
 
 Completed:
 - ...
 
-In progress:
+In progress / required closure:
 - ...
 
 Next:
@@ -1394,133 +925,100 @@ Next:
 2. ...
 3. ...
 
-Stage completion:
-- completed goals / total goals
-- stage gate status
+Stage gate:
+- ...
 
 New risks:
 - ...
 
 Roadmap changes:
-- none / description
+- none / exact evidence-backed change
 
-Overall assessment:
+Overall:
 - on track / delayed / architecture reconsideration required
 ```
 
-## Текущая сводка
+### Current progress
 
 ```text
 Current stage:
-I. Безопасный фундамент и canonical actor
+I. Canonical actor, persistence and lifecycle
 
 Current accepted baseline:
-eb008f2216b3e8381c0181d71ce200bbf4907ac7
+1ca74a3d96e8fa51612ef3e5145c7398abf60f6d
+
+Current branch HEAD under review:
+5b22b1ee9bab556cd5a14c2212dfa3f4119c4566
 
 Completed:
-- Task 001 — baseline and audit
-- Task 001A — audit closure
-- Task 002 — test infrastructure
-- Task 002A — safety/freshness closure
-- Task 003 — disabled skeleton
+- 001 / 001A
+- 002 / 002A
+- 003
+- Task 004 technical feasibility evidence
 
-In progress:
-- Task 004 — canonical headless Player feasibility spike in Codex
+Required closure:
+- 004A real-login lease and cleanup hardening
 
 Next:
-1. Independent review Task 004
-2. Task 005 — domain model and persistence
-3. Task 006 — production materialization lifecycle
+1. Independent review 004A
+2. Goal 005 core profile/persistence envelope
+3. Goal 006 production materialization lifecycle
 
-Stage completion:
-- 3 main GOAL accepted from 6
-- Task 004 in progress
-- Stage gate not yet complete
+Stage gate:
+- not complete until 004A, 005 and 006 ACCEPT
 
 New risks:
-- Task 004 may prove that canonical Player requires a wider session/lifecycle seam
-- real-login collision and cleanup remain critical gates
-- no change yet to roadmap estimate
+- CharacterSelect/onDisconnection race
+- fail-open identity release after cleanup failure
+- disabled-mode login compatibility
 
-Overall assessment:
-- on track, pending Task 004 feasibility verdict
+Roadmap changes:
+- future-dependent fields removed from Goal 005
+- abstract contracts break 007/010 and 008/013 cycles
+- navigation benchmark and baseline service merged
+- Game Knowledge moved before combat/background/Semantic Pack
+- party routes moved to Goal 017
+- enchant moved to economic Goal 022
+- Goal 015 limited to already supported acquisition methods
+- operations moved before scale soak
+
+Overall:
+- technical direction confirmed; bounded safety closure required
 ```
 
 ---
 
-# 13. Изменение дорожной карты
+## 18. Изменения относительно версии 1
 
-Дорожная карта меняется только после доказанного архитектурного факта.
+Приняты только правки с явной выгодой выше стоимости:
 
-Основания:
+1. Goal 005 больше не изобретает personality/schedule/goal models из будущего.
+2. Goal 007 принимает abstract relevance signals; Goal 010 реализует topology.
+3. Goal 008 определяет generic capability keys; Goal 013 — реальный class catalog.
+4. Старые navigation audit/service объединены в одну полезную Goal 009.
+5. Game Knowledge выделен в Goal 011 до combat/background/Semantic Pack.
+6. Party routes перенесены из topology в Goal 017.
+7. Enchant перенесён из progression в transactional economy Goal 022.
+8. Goal 015 не использует spoil/manor/quest/craft до Goal 021.
+9. Goal 017 не содержит premature clan hooks; Goal 025 — formal alliances.
+10. Operations/observability выполняются до scale/soak.
+11. Добавлены explicit DAG, per-goal boundaries и follow-up risk matrix.
+12. Обновлён фактический статус Task 004/004A.
 
-- Task 004 возвращает `NOT_FEASIBLE_WITHOUT_PLAN_CHANGE`;
-- production code differs materially from audited assumptions;
-- required subsystem does not exist in High Five;
-- performance evidence disproves the planned model;
-- safety requires a different task order;
-- new user requirement changes the final product.
-
-Не являются основанием:
-
-- желание Codex расширить scope;
-- удобство реализации;
-- наличие похожего кода в другой хронике;
-- стремление быстрее показать визуальную демонстрацию через NPC;
-- формальное желание сохранить ровно 30 задач.
-
-При изменении roadmap фиксируются:
-
-```text
-reason
-affected stages/tasks
-new dependencies
-risk impact
-migration/rollback
-accepted baseline
-user approval
-```
+Количество основных GOAL остаётся 30, пользовательские возможности не урезаны.
 
 ---
 
-# 14. Обязательное использование документа
+## 19. Правило изменения roadmap
 
-После добавления и push этого файла:
+Roadmap меняется только по evidence:
 
-- перед ревью Task 004 сверять результат с Этапом I и текущими invariants;
-- перед каждой следующей GOAL перечитывать этот roadmap;
-- не позволять Codex преждевременно внедрять future-stage scope;
-- при подготовке Task 007 учитывать обязательный `NEARBY / PERCEPTIBLE`;
-- при Task 008 использовать explicit structured goals;
-- при Task 015 требовать causal background/reconciliation;
-- при Task 019 разделять Semantic Pack и Game Knowledge;
-- при Task 020 сохранять semantic acts и confidence gates;
-- при Task 023–026 связывать party, Rift, farming conflicts, PvP и raids с реальным world state;
-- после каждого ревью обновлять краткий progress block;
-- не превращать roadmap в неизменяемый догмат: изменения допустимы только на основании evidence и отдельного решения.
+- P0/P1 независимого ревью;
+- несовместимый current code;
+- доказанный performance blocker;
+- отсутствующий High Five subsystem;
+- новый пользовательский product requirement;
+- необходимость изменить dependency order для safety.
 
----
-
-## 15. Итоговая стратегия
-
-Кратчайший безопасный путь к полноценным фантомным игрокам:
-
-```text
-canonical Player
-→ safe lifecycle and persistence
-→ bounded relevance/scheduler
-→ goals and Utility AI
-→ navigation and topology
-→ causal solo gameplay
-→ background reconciliation
-→ population
-→ party/social memory
-→ Semantic Pack + Game Knowledge
-→ conversation/action dispatch
-→ economy/conflicts/group content
-→ scale/operations/release
-```
-
-Главный критерий качества:
-
-> Фантом должен понимать, зачем он находится в мире, что он пытается получить, какие реальные игровые способы ему доступны, как действия других игроков влияют на его цель и какое действие рационально выполнить — при этом сервер должен тратить полные ресурсы только на тех фантомов, чьё существование может быть непосредственно или косвенно обнаружено настоящим игроком.
+Не являются основанием удобство Codex, желание показать NPC-демо или стремление
+формально удержать номер задачи.
