@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "taskId": "001-baseline-architecture-audit",
+  "auditSeed": 20260725001,
+  "repository": {
+    "remote": "origin",
+    "defaultBranch": "master",
+    "reviewSnapshot": "16d61833b3983a3976583d0e4813e0de9457a52f",
+    "originMasterAtTaskStart": "16d61833b3983a3976583d0e4813e0de9457a52f",
+    "headAtTaskStart": "16d61833b3983a3976583d0e4813e0de9457a52f",
+    "workBranch": "feature/phantom-world"
+  },
+  "environment": {
+    "javaVersion": "java 25.0.4 LTS; Java HotSpot 64-Bit Server VM 25.0.4+7-LTS-189",
+    "antVersion": "Apache Ant 1.10.15 (temporary tool outside repository; ant was absent from PATH)",
+    "os": "Microsoft Windows NT 10.0.19045.0 x64",
+    "geodataPresent": false,
+    "pathfindingConfigured": "enabled"
+  },
+  "databaseContract": {
+    "productionDatabase": "l2jmobiush5",
+    "testDatabase": "l2jmobiush5_phantom_test",
+    "databaseConnectionPerformed": false,
+    "databaseMutationPerformed": false
+  },
+  "build": {
+    "targets": [
+      "adding-core",
+      "adding-datapack",
+      "adding-readme",
+      "checkRequirements",
+      "cleanup",
+      "compile",
+      "init",
+      "jar"
+    ],
+    "jarExitCode": 0,
+    "gameServerJarCopied": true,
+    "loginServerJarCopied": true
+  },
+  "gateVerdict": "FEASIBLE_WITH_SEAM"
+}

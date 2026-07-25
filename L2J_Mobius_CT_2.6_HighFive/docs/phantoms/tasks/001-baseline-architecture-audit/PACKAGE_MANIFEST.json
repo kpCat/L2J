@@ -1,0 +1,17 @@
+{
+  "package": "phantom-world-task-001-baseline-architecture-audit",
+  "taskId": "001-baseline-architecture-audit",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/001-baseline-architecture-audit/TASK.md",
+  "reviewSnapshot": "16d61833b3983a3976583d0e4813e0de9457a52f",
+  "auditSeed": 20260725001,
+  "productionCodeIncluded": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "ARCHITECTURE_CONSTRAINTS.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}
