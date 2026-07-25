@@ -104,6 +104,56 @@ public final class PhantomHarnessUnitSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(2, PhantomTestLauncher.exitCodeFor(new PhantomTestConfigurationException("config")), "Configuration exit code mismatch.");
 			PhantomAssertions.assertEquals(3, PhantomTestLauncher.exitCodeFor(new IllegalStateException("internal")), "Internal exit code mismatch.");
 		});
+		registry.add("lifecycle-partial-before-all-cleanup-failures", context ->
+		{
+			final Path marker = _unitDirectory.resolve("lifecycle-partial.marker");
+			final Path reports = _unitDirectory.resolve("lifecycle-reports");
+			final PhantomTestContext nestedContext = new PhantomTestContext(context.seed(), context.moduleRoot(), reports);
+			final int exitCode = PhantomTestLauncher.runSuite("lifecycle-unit", new PhantomLifecycleFailureControlSuite(marker, true), nestedContext);
+			PhantomAssertions.assertEquals(PhantomTestLauncher.EXIT_INTERNAL_ERROR, exitCode, "Cleanup failure must raise the maximum lifecycle exit code.");
+			PhantomAssertions.assertFalse(Files.exists(marker), "afterAll did not remove the partial beforeAll resource.");
+			final String report = Files.readString(reports.resolve("lifecycle-unit.txt"), StandardCharsets.UTF_8);
+			PhantomAssertions.assertTrue(report.contains("FAIL lifecycle-failure-control.before-all"), "Original beforeAll failure is missing from lifecycle results.");
+			PhantomAssertions.assertTrue(report.contains("FAIL lifecycle-failure-control.after-all"), "Cleanup failure is not a separate lifecycle result.");
+		});
+		registry.add("manifest-aggregate-changes", _ ->
+		{
+			final var original = PhantomTestSchemaManifest.fromScripts(List.of(script("one.sql", "A".repeat(64), "SELECT 1")));
+			final var changed = PhantomTestSchemaManifest.fromScripts(List.of(script("one.sql", "B".repeat(64), "SELECT 1")));
+			PhantomAssertions.assertFalse(original.aggregateSha256().equals(changed.aggregateSha256()), "One script hash change did not change the aggregate.");
+		});
+		registry.add("manifest-canonical-durable-path", context ->
+		{
+			final Path manifest = PhantomTestSchemaManifest.localPath(context.moduleRoot()).normalize();
+			PhantomAssertions.assertTrue(manifest.startsWith(context.moduleRoot().resolve(".phantom-local")), "Canonical manifest is not under .phantom-local.");
+			PhantomAssertions.assertFalse(manifest.toString().contains("phantom-test/reports"), "Canonical manifest is stored under cleaned build reports.");
+		});
+		registry.add("manifest-deterministic", _ ->
+		{
+			final List<StrictSqlScriptRunner.ScriptInfo> firstOrder = List.of(script("zeta.sql", "B".repeat(64), "SELECT 2"), script("Alpha.sql", "A".repeat(64), "SELECT 1"));
+			final List<StrictSqlScriptRunner.ScriptInfo> secondOrder = List.of(firstOrder.get(1), firstOrder.get(0));
+			PhantomAssertions.assertEquals(PhantomTestSchemaManifest.fromScripts(firstOrder), PhantomTestSchemaManifest.fromScripts(secondOrder), "Manifest aggregate depends on input order.");
+		});
+		registry.add("manifest-malformed-count", _ -> assertManifestRejected("schemaVersion=1\nscriptCount=x\nstatementCount=1\naggregateSha256=" + "A".repeat(64) + "\n"));
+		registry.add("manifest-malformed-duplicate", _ -> assertManifestRejected("schemaVersion=1\nscriptCount=1\nstatementCount=1\naggregateSha256=" + "A".repeat(64) + "\nschemaVersion=1\n"));
+		registry.add("manifest-malformed-hash", _ -> assertManifestRejected("schemaVersion=1\nscriptCount=1\nstatementCount=1\naggregateSha256=abc\n"));
+		registry.add("manifest-malformed-version", _ -> assertManifestRejected("schemaVersion=2\nscriptCount=1\nstatementCount=1\naggregateSha256=" + "A".repeat(64) + "\n"));
+		registry.add("manifest-missing", _ -> PhantomAssertions.assertThrows(PhantomTestConfigurationException.class, () -> PhantomTestSchemaManifest.read(_unitDirectory.resolve("missing-manifest.properties")), "Missing schema manifest must be rejected."));
+		registry.add("manifest-read-write-roundtrip", _ ->
+		{
+			final Path manifest = _unitDirectory.resolve("roundtrip-manifest.properties");
+			final var expected = PhantomTestSchemaManifest.fromScripts(List.of(script("one.sql", "A".repeat(64), "SELECT 1")));
+			PhantomTestSchemaManifest.writeAtomic(manifest, expected);
+			PhantomAssertions.assertEquals(expected, PhantomTestSchemaManifest.read(manifest), "Schema manifest atomic roundtrip changed the snapshot.");
+			PhantomTestSchemaManifest.writeAtomic(manifest, expected);
+			PhantomAssertions.assertEquals(expected, PhantomTestSchemaManifest.read(manifest), "Repeated schema manifest write was inconsistent.");
+		});
+		registry.add("manifest-stale-rejected", _ ->
+		{
+			final var current = new PhantomTestSchemaManifest.Snapshot(1, 2, 3, "A".repeat(64));
+			final var stale = new PhantomTestSchemaManifest.Snapshot(1, 2, 3, "B".repeat(64));
+			PhantomAssertions.assertThrows(PhantomTestConfigurationException.class, () -> PhantomTestSchemaManifest.requireExact(current, stale), "Stale schema manifest must be rejected.");
+		});
 		registry.add("registry-explicit-non-empty", _ ->
 		{
 			final PhantomTestRegistry local = new PhantomTestRegistry("local");
@@ -129,9 +179,16 @@ public final class PhantomHarnessUnitSuite implements PhantomTestSuite
 		registry.add("scenario-checksum", context -> PhantomAssertions.assertEquals(PhantomScenarioSmokeSuite.EXPECTED_CHECKSUM, PhantomScenarioSmokeSuite.checksum(context.seed(), 64, 1000), "Scenario checksum mismatch."));
 		registry.add("secret-redaction", _ ->
 		{
-			final String sanitized = PhantomTestLauncher.sanitize("Password=super-secret jdbc:mysql://user:secret@127.0.0.1:3308/db");
-			PhantomAssertions.assertFalse(sanitized.contains("super-secret"), "Named password was not redacted.");
-			PhantomAssertions.assertFalse(sanitized.contains("user:secret@"), "JDBC credentials were not redacted.");
+			final List<String> secrets = List.of("named-secret", "userinfo-secret", "query-user", "query-password", "query-password1", "query-password2", "query-password3", "single-quote-secret", "double-quote-secret");
+			final String message = "Password=named-secret " +
+				"jdbc:mysql://user:userinfo-secret@127.0.0.1:3308/db?user=query-user&password=query-password&password1=query-password1&password2=query-password2&password3=query-password3 " +
+				"CREATE USER 'one'@'localhost' IDENTIFIED BY 'single-quote-secret'; " +
+				"CREATE USER \"two\"@\"localhost\" IDENTIFIED BY \"double-quote-secret\"";
+			final String sanitized = PhantomTestLauncher.sanitize(message);
+			for (String secret : secrets)
+			{
+				PhantomAssertions.assertFalse(sanitized.contains(secret), "Sanitizer leaked secret: " + secret);
+			}
 		});
 		registry.add("seed-different", context ->
 		{
@@ -198,6 +255,20 @@ public final class PhantomHarnessUnitSuite implements PhantomTestSuite
 		registry.add("url-localhost-valid", _ -> PhantomAssertions.assertEquals("localhost", PhantomTestDatabaseGuard.validateJdbcUrl("jdbc:mysql://localhost:3308/l2jmobiush5_phantom_test").host(), "localhost URL rejected."));
 		registry.add("url-missing-port", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1/l2jmobiush5_phantom_test"));
 		registry.add("url-multihost", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308,localhost:3308/l2jmobiush5_phantom_test"));
+		registry.add("url-query-blank-key", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?=false"));
+		registry.add("url-query-blank-value", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?useSSL="));
+		registry.add("url-query-duplicate", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?useSSL=false&useSSL=false"));
+		registry.add("url-query-duplicate-mixed-case", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?useSSL=false&UseSSL=false"));
+		registry.add("url-query-encoded-auth", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?%70assword=secret"));
+		registry.add("url-query-encoded-separator", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?useSSL=false%26password=secret"));
+		registry.add("url-query-password", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?password=secret"));
+		registry.add("url-query-password-mixed-case", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?Password=secret"));
+		registry.add("url-query-password1", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?password1=secret"));
+		registry.add("url-query-password2", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?password2=secret"));
+		registry.add("url-query-password3", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?password3=secret"));
+		registry.add("url-query-unknown", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?connectTimeout=1"));
+		registry.add("url-query-user", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?user=root"));
+		registry.add("url-query-valid-generated", _ -> PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, PhantomTestDatabaseGuard.validateJdbcUrl("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8").database(), "Generated allowlist query was rejected."));
 		registry.add("url-mysql-valid", _ -> PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, PhantomTestDatabaseGuard.validateJdbcUrl("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?useSSL=false").database(), "Valid URL rejected."));
 		registry.add("url-production", _ -> assertUrlRejected("jdbc:mysql://127.0.0.1:3308/l2jmobiush5"));
 		registry.add("url-remote", _ -> assertUrlRejected("jdbc:mysql://192.0.2.1:3308/l2jmobiush5_phantom_test"));
@@ -257,6 +328,18 @@ public final class PhantomHarnessUnitSuite implements PhantomTestSuite
 	private static PropertyOverride property(String key, String value)
 	{
 		return new PropertyOverride(key, value);
+	}
+
+	private void assertManifestRejected(String content) throws IOException
+	{
+		final Path manifest = _unitDirectory.resolve("malformed-" + Integer.toUnsignedString(content.hashCode()) + ".properties");
+		Files.writeString(manifest, content, StandardCharsets.UTF_8);
+		PhantomAssertions.assertThrows(PhantomTestConfigurationException.class, () -> PhantomTestSchemaManifest.read(manifest), "Malformed schema manifest must be rejected.");
+	}
+
+	private static StrictSqlScriptRunner.ScriptInfo script(String relativePath, String hash, String statement)
+	{
+		return new StrictSqlScriptRunner.ScriptInfo(Path.of(relativePath), relativePath, hash, List.of(statement));
 	}
 
 	private static void deleteTree(Path path) throws IOException

@@ -28,7 +28,11 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 public final class PhantomTestDatabaseGuard
 {
@@ -39,6 +43,11 @@ public final class PhantomTestDatabaseGuard
 	public static final int MAX_TEST_POOL_SIZE = 4;
 	public static final String LOCAL_CONFIG_DIRECTORY = ".phantom-local";
 	public static final String LOCAL_CONFIG_FILE = "Database.test.ini";
+	private static final Map<String, String> ALLOWED_QUERY = Map.of(
+		"useSSL", "false",
+		"allowPublicKeyRetrieval", "true",
+		"serverTimezone", "UTC",
+		"characterEncoding", "UTF-8");
 
 	private PhantomTestDatabaseGuard()
 	{
@@ -204,7 +213,71 @@ public final class PhantomTestDatabaseGuard
 			throw new GuardException("Production database is forbidden.");
 		}
 
+		validateQuery(uri.getRawQuery());
 		return new JdbcTarget(transport, host, uri.getPort(), TARGET_DATABASE);
+	}
+
+	private static void validateQuery(String rawQuery) throws GuardException
+	{
+		if (rawQuery == null)
+		{
+			return;
+		}
+		if (rawQuery.isBlank())
+		{
+			throw new GuardException("Test JDBC URL query is empty.");
+		}
+
+		final Set<String> seen = new HashSet<>();
+		for (String pair : rawQuery.split("&", -1))
+		{
+			final int separator = pair.indexOf('=');
+			if ((separator <= 0) || (separator != pair.lastIndexOf('=')) || (separator == (pair.length() - 1)))
+			{
+				throw new GuardException("Test JDBC URL query contains an empty or malformed pair.");
+			}
+
+			final String key = decodeQueryComponent(pair.substring(0, separator));
+			final String value = decodeQueryComponent(pair.substring(separator + 1));
+			if (key.isBlank() || value.isBlank() || !key.equals(key.trim()) || !value.equals(value.trim()) || containsQuerySeparator(key) || containsQuerySeparator(value))
+			{
+				throw new GuardException("Test JDBC URL query contains an ambiguous key or value.");
+			}
+			if (!seen.add(key.toLowerCase(Locale.ROOT)))
+			{
+				throw new GuardException("Test JDBC URL query contains a duplicate property.");
+			}
+			final String expectedValue = ALLOWED_QUERY.get(key);
+			if ((expectedValue == null) || !expectedValue.equals(value))
+			{
+				throw new GuardException("Test JDBC URL query contains a non-canonical property.");
+			}
+		}
+	}
+
+	private static String decodeQueryComponent(String value) throws GuardException
+	{
+		try
+		{
+			return URLDecoder.decode(value, StandardCharsets.UTF_8);
+		}
+		catch (IllegalArgumentException e)
+		{
+			throw new GuardException("Test JDBC URL query encoding is invalid.", e);
+		}
+	}
+
+	private static boolean containsQuerySeparator(String value)
+	{
+		for (int index = 0; index < value.length(); index++)
+		{
+			final char character = value.charAt(index);
+			if ((character == '&') || (character == '=') || (character == '?') || (character == '#') || (character == ';') || Character.isISOControl(character))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static String require(Properties properties, String key) throws GuardException

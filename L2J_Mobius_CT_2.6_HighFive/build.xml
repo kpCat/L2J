@@ -34,6 +34,7 @@
 	<property name="build.test.reports" location="${build.test}/reports" />
 	<property name="phantom.test.seed" value="20260725001" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
+	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
 
 	<path id="classpath">
 		<fileset dir="${libs}">
@@ -136,9 +137,54 @@
 		<fail unless="phantom.guard.negative.expected" message="DB guard negative control expected exit code 2 but received ${phantom.guard.negative.exit}." />
 	</target>
 
+	<target name="phantom-provisioning-lock-control" depends="compile-tests" description="Prove provisioning lock ownership across child JVM processes.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomProvisioningLockControl" classpathref="test.classpath" fork="true" failonerror="true" />
+	</target>
+
+	<target name="phantom-schema-freshness-negative-control" depends="compile-tests" description="Prove stale schema rejection before driver or Hikari initialization.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="false" resultproperty="phantom.freshness.negative.exit">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="schema-freshness-negative" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+		<condition property="phantom.freshness.negative.expected">
+			<equals arg1="${phantom.freshness.negative.exit}" arg2="2" />
+		</condition>
+		<fail unless="phantom.freshness.negative.expected" message="Schema freshness negative control expected exit code 2 but received ${phantom.freshness.negative.exit}." />
+	</target>
+
+	<target name="phantom-lifecycle-negative-control" depends="compile-tests" description="Prove afterAll cleanup after a partial beforeAll failure.">
+		<property name="phantom.lifecycle.marker" location="${build.test.reports}/lifecycle-control.marker" />
+		<delete file="${phantom.lifecycle.marker}" quiet="true" />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="false" resultproperty="phantom.lifecycle.negative.exit">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.lifecycle.marker=${phantom.lifecycle.marker}" />
+			<arg value="lifecycle-control" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+		<condition property="phantom.lifecycle.negative.expected">
+			<equals arg1="${phantom.lifecycle.negative.exit}" arg2="2" />
+		</condition>
+		<fail unless="phantom.lifecycle.negative.expected" message="Lifecycle negative control expected exit code 2 but received ${phantom.lifecycle.negative.exit}." />
+		<available file="${phantom.lifecycle.marker}" type="file" property="phantom.lifecycle.marker.present" />
+		<fail if="phantom.lifecycle.marker.present" message="Lifecycle afterAll left the partial beforeAll resource marker." />
+		<loadfile property="phantom.lifecycle.report" srcFile="${build.test.reports}/lifecycle-control.txt" encoding="UTF-8" />
+		<condition property="phantom.lifecycle.report.expected">
+			<and>
+				<contains string="${phantom.lifecycle.report}" substring="FAIL lifecycle-failure-control.before-all" />
+				<contains string="${phantom.lifecycle.report}" substring="PhantomTestConfigurationException" />
+			</and>
+		</condition>
+		<fail unless="phantom.lifecycle.report.expected" message="Lifecycle report did not preserve the original beforeAll failure." />
+	</target>
+
 	<target name="phantom-db-test" depends="compile-tests" description="Run isolated Phantom database integration tests.">
 		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
 		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
 			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
@@ -166,17 +212,21 @@
 		</java>
 	</target>
 
-	<target name="phantom-static-verify" description="Run the read-only Task 002 static verifier.">
+	<target name="phantom-static-verify" depends="phantom-static-verify-002a" description="Preserve the historical Task 002 target through the cumulative Task 002A verifier.">
+		<echo message="Historical verify-task-002.ps1 is unchanged; Task 002A verifier checks its preservation and the cumulative hotfix contract." />
+	</target>
+
+	<target name="phantom-static-verify-002a" description="Run the read-only Task 002A static verifier.">
 		<exec executable="powershell" dir="${basedir}" failonerror="true">
 			<arg value="-NoProfile" />
 			<arg value="-ExecutionPolicy" />
 			<arg value="Bypass" />
 			<arg value="-File" />
-			<arg value="${basedir}/tools/phantoms/verify-task-002.ps1" />
+			<arg value="${basedir}/tools/phantoms/verify-task-002a.ps1" />
 		</exec>
 	</target>
 
-	<target name="verify" depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify" description="Run all Task 002 verification gates." />
+	<target name="verify" depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" description="Run all Task 002A verification gates." />
 
 	<target name="jar" depends="compile" description="Create the jar files.">
 		<tstamp>

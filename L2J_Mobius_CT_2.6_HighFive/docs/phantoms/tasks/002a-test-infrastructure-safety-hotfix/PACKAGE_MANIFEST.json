@@ -1,0 +1,23 @@
+{
+  "package": "phantom-world-task-002a-test-infrastructure-safety-hotfix",
+  "taskId": "002a-test-infrastructure-safety-hotfix",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/002a-test-infrastructure-safety-hotfix/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "36e5411e01e8e73f8a0fd4d9460e327c28a6798b",
+  "productionDatabase": "l2jmobiush5",
+  "testDatabase": "l2jmobiush5_phantom_test",
+  "testUser": "l2j_phantom_test",
+  "deterministicSeed": 20260725001,
+  "productionCodeIncluded": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "ARCHITECTURE.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

@@ -5,12 +5,14 @@
 `SUCCESS`
 
 Реализация, targeted suites, aggregate `ant verify`, отдельный `ant jar` и
-pre-commit verifier завершены успешно. Обычный commit/push выполняется после
-финального scope/diff audit.
+pre-commit verifier были завершены успешно в исходной реализации.
 
-Manual gate: `PENDING_INDEPENDENT_REVIEW`.
+Независимое ревью исходной реализации: `FIX REQUIRED`.
 
-Task 003: `NOT_STARTED`.
+Task 002A закрывает findings отдельным hotfix commit и имеет manual gate
+`PENDING_INDEPENDENT_REVIEW`.
+
+Task 003: `NOT_STARTED`; до независимого ревью Task 002A остаётся заблокирован.
 
 ## Starting baseline
 
@@ -329,9 +331,11 @@ total time 12 seconds; GameServer/LoginServer JAR скопированы шта�
 - Development verifier run исправил собственные path/scope parsing issues и
   обнаружил отсутствующий на тот момент report.
 - Required pre-commit verifier: PASS, `70/70`, exit `0`.
-- Final run 1: выполняется после ordinary commit.
-- Final run 2: выполняется после того же immutable commit.
-- Final outputs identical: pending SHA-256/byte comparison вне repository.
+- Final run 1: PASS, `70/70`, exit `0`.
+- Final run 2: PASS, `70/70`, exit `0`.
+- Final outputs identical byte-for-byte.
+- SHA-256 обоих outputs:
+  `863B235A99D686D99F8B1DA98762DCBD3A683D0E729F66CB88590954A609CE0C`.
 
 ## Performance measurements
 
@@ -367,11 +371,12 @@ runtime не запускались.
 
 - Branch: `feature/phantom-world`.
 - Parent: `7aa24faf202567add0fa81561242d37453c6055f`.
-- Commit: pending ordinary commit; exact immutable SHA будет указан в final
-  handoff.
+- Original Task 002 commit:
+  `36e5411e01e8e73f8a0fd4d9460e327c28a6798b`.
 - Commit subject: `test(phantoms): add isolated automated test infrastructure`.
-- Push: pending.
-- Remote ref: pending.
+- Push: successful.
+- Remote ref после push:
+  `origin/feature/phantom-world = 36e5411e01e8e73f8a0fd4d9460e327c28a6798b`.
 - Force push: не используется.
 
 ## Git
@@ -383,7 +388,18 @@ Git-команды использовались только потому, чт�
 
 ## Manual gate
 
-`PENDING_INDEPENDENT_REVIEW`
+Исходная реализация Task 002: `FIX REQUIRED`.
+
+Findings:
+
+- foreign provisioning lock deletion;
+- stale schema false green;
+- partial `beforeAll` cleanup gap;
+- JDBC query authentication properties;
+- post-commit report placeholders.
+
+Closure: Task 002A `002a-test-infrastructure-safety-hotfix`,
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 ## Task 003
 
@@ -391,6 +407,5 @@ Git-команды использовались только потому, чт�
 
 ## Recommended next step
 
-Завершить финальные verify/jar/static/scope gates, создать один ordinary commit,
-push и передать commit независимому ревью. Task 003 до отдельного review
-решения не начинать.
+Провести независимое ревью Task 002A. Task 003 до отдельного review-решения не
+начинать.

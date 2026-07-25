@@ -28,19 +28,18 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+
+import org.l2jmobius.tests.phantoms.PhantomTestSchemaManifest.Snapshot;
 
 public final class PhantomTestDatabaseProvisioner
 {
@@ -62,83 +61,89 @@ public final class PhantomTestDatabaseProvisioner
 		final Path localDirectory = moduleRoot.resolve(PhantomTestDatabaseGuard.LOCAL_CONFIG_DIRECTORY);
 		final Path configFile = localDirectory.resolve(PhantomTestDatabaseGuard.LOCAL_CONFIG_FILE);
 		final Path configTemp = localDirectory.resolve(PhantomTestDatabaseGuard.LOCAL_CONFIG_FILE + ".tmp");
+		final Path manifestFile = PhantomTestSchemaManifest.localPath(moduleRoot);
 		final Path lockFile = localDirectory.resolve("test-db.lock");
-		AdminSettings admin = null;
-		PasswordHolder passwordHolder = null;
-		boolean destructiveStarted = false;
-		boolean success = false;
 		int exitCode = 0;
 		try
 		{
 			validateConstants();
-			admin = readAdminSettings();
-			final List<StrictSqlScriptRunner.ScriptInfo> scripts = StrictSqlScriptRunner.inventory(moduleRoot, List.of(moduleRoot.resolve("dist/db_installer/sql/login"), moduleRoot.resolve("dist/db_installer/sql/game"), moduleRoot.resolve("test/resources/phantoms/db/migrations")));
+			final List<StrictSqlScriptRunner.ScriptInfo> scripts = PhantomTestSchemaManifest.inventory(moduleRoot);
+			final Snapshot schemaSnapshot = PhantomTestSchemaManifest.fromScripts(scripts);
 			Files.createDirectories(localDirectory);
-			acquireLock(lockFile);
-			Class.forName(JDBC_DRIVER);
-
-			try (Connection connection = DriverManager.getConnection(admin.url(), admin.user(), admin.password()))
+			try (PhantomProvisioningLock lock = PhantomProvisioningLock.acquire(lockFile))
 			{
-				destructiveStarted = true;
-				dropTarget(connection);
-				passwordHolder = new PasswordHolder(randomPassword());
-				createTarget(connection, passwordHolder);
+				AdminSettings admin = null;
+				boolean destructiveStarted = false;
+				boolean success = false;
+				try
+				{
+					admin = readAdminSettings();
+					Class.forName(JDBC_DRIVER);
+					final PasswordHolder passwordHolder;
+					try (Connection connection = DriverManager.getConnection(admin.url(), admin.user(), admin.password()))
+					{
+						destructiveStarted = true;
+						dropTarget(connection);
+						passwordHolder = new PasswordHolder(randomPassword());
+						createTarget(connection, passwordHolder);
+					}
+
+					final String testUrl = testJdbcUrl();
+					try (Connection connection = DriverManager.getConnection(testUrl, PhantomTestDatabaseGuard.TARGET_USER, passwordHolder.value()))
+					{
+						StrictSqlScriptRunner.execute(connection, scripts);
+						StrictSqlScriptRunner.execute(connection, scripts.stream().filter(script -> script.relativePath().startsWith("test/resources/phantoms/db/migrations/")).toList());
+						verifyCoreTables(connection);
+						verifyGrants(connection);
+						PhantomTestSchemaManifest.writeDatabaseMetadata(connection, schemaSnapshot);
+						PhantomTestSchemaManifest.requireExactDatabaseMetadata(connection, schemaSnapshot);
+					}
+
+					writeManifest(reportsDirectory, scripts, schemaSnapshot);
+					PhantomTestSchemaManifest.writeAtomic(manifestFile, schemaSnapshot);
+					writeConfig(configTemp, configFile, testUrl, passwordHolder.value());
+					PhantomTestDatabaseGuard.validate(moduleRoot, configFile);
+					success = true;
+
+					final long loginCount = scripts.stream().filter(script -> script.relativePath().startsWith("dist/db_installer/sql/login/")).count();
+					final long gameCount = scripts.stream().filter(script -> script.relativePath().startsWith("dist/db_installer/sql/game/")).count();
+					final long migrationCount = scripts.stream().filter(script -> script.relativePath().startsWith("test/resources/phantoms/db/migrations/")).count();
+					System.out.println("Phantom test DB provisioned: host=127.0.0.1 port=3308 database=" + PhantomTestDatabaseGuard.TARGET_DATABASE + " user=" + PhantomTestDatabaseGuard.TARGET_USER + ".");
+					System.out.println("Schema scripts: login=" + loginCount + " game=" + gameCount + " migrations=" + migrationCount + " total=" + scripts.size() + ".");
+					System.out.println("Schema manifest: version=" + schemaSnapshot.schemaVersion() + " scripts=" + schemaSnapshot.scriptCount() + " statements=" + schemaSnapshot.statementCount() + " aggregateSha256=" + schemaSnapshot.aggregateSha256() + ".");
+					System.out.println("Admin credentials supplied through environment: yes");
+					System.out.println("Credentials recorded: no");
+				}
+				catch (Throwable throwable)
+				{
+					if (destructiveStarted && (admin != null))
+					{
+						safeCleanup(admin);
+					}
+					throw throwable;
+				}
+				finally
+				{
+					if (!success)
+					{
+						try
+						{
+							Files.deleteIfExists(configTemp);
+							Files.deleteIfExists(configFile);
+							Files.deleteIfExists(manifestFile);
+						}
+						catch (IOException e)
+						{
+							System.err.println("Local test provisioning artifact cleanup failed.");
+						}
+					}
+				}
 			}
-
-			final String testUrl = testJdbcUrl();
-			try (Connection connection = DriverManager.getConnection(testUrl, PhantomTestDatabaseGuard.TARGET_USER, passwordHolder.value()))
-			{
-				StrictSqlScriptRunner.execute(connection, scripts);
-				StrictSqlScriptRunner.execute(connection, scripts.stream().filter(script -> script.relativePath().startsWith("test/resources/phantoms/db/migrations/")).toList());
-				verifyCoreTables(connection);
-				verifyGrants(connection);
-			}
-
-			writeManifest(reportsDirectory, scripts);
-			writeConfig(configTemp, configFile, testUrl, passwordHolder.value());
-			PhantomTestDatabaseGuard.validate(moduleRoot, configFile);
-			success = true;
-
-			final long loginCount = scripts.stream().filter(script -> script.relativePath().startsWith("dist/db_installer/sql/login/")).count();
-			final long gameCount = scripts.stream().filter(script -> script.relativePath().startsWith("dist/db_installer/sql/game/")).count();
-			final long migrationCount = scripts.stream().filter(script -> script.relativePath().startsWith("test/resources/phantoms/db/migrations/")).count();
-			System.out.println("Phantom test DB provisioned: host=127.0.0.1 port=3308 database=" + PhantomTestDatabaseGuard.TARGET_DATABASE + " user=" + PhantomTestDatabaseGuard.TARGET_USER + ".");
-			System.out.println("Schema scripts: login=" + loginCount + " game=" + gameCount + " migrations=" + migrationCount + " total=" + scripts.size() + ".");
-			System.out.println("Admin credentials supplied through environment: yes");
-			System.out.println("Credentials recorded: no");
 		}
 		catch (Throwable throwable)
 		{
 			System.err.println("Phantom test DB provisioning failed: " + sanitize(throwable.getMessage()));
-			if (destructiveStarted && (admin != null))
-			{
-				safeCleanup(admin);
-			}
 			exitCode = 1;
-		}
-		finally
-		{
-			if (!success)
-			{
-				try
-				{
-					Files.deleteIfExists(configTemp);
-					Files.deleteIfExists(configFile);
-				}
-				catch (IOException e)
-				{
-					System.err.println("Local test config cleanup failed.");
-				}
-			}
-
-			try
-			{
-				Files.deleteIfExists(lockFile);
-			}
-			catch (IOException e)
-			{
-				System.err.println("Provisioning lock cleanup failed.");
-			}
 		}
 
 		if (exitCode != 0)
@@ -198,32 +203,6 @@ public final class PhantomTestDatabaseProvisioner
 		}
 	}
 
-	private static void acquireLock(Path lockFile) throws IOException
-	{
-		if (Files.exists(lockFile))
-		{
-			boolean stale = false;
-			try
-			{
-				final long processId = Long.parseLong(Files.readString(lockFile, StandardCharsets.UTF_8).trim());
-				stale = ProcessHandle.of(processId).map(process -> !process.isAlive()).orElse(true);
-			}
-			catch (RuntimeException | IOException e)
-			{
-				throw new IOException("Existing provisioning lock cannot be proven stale.", e);
-			}
-
-			if (!stale)
-			{
-				throw new IOException("Another Phantom test DB provisioning process is active.");
-			}
-			Files.delete(lockFile);
-		}
-
-		Files.createFile(lockFile);
-		Files.writeString(lockFile, Long.toString(ProcessHandle.current().pid()), StandardCharsets.UTF_8);
-	}
-
 	private static void dropTarget(Connection connection) throws SQLException
 	{
 		try (Statement statement = connection.createStatement())
@@ -251,7 +230,7 @@ public final class PhantomTestDatabaseProvisioner
 
 	private static void verifyCoreTables(Connection connection) throws SQLException
 	{
-		for (String table : List.of("accounts", "characters", "items", "phantom_test_harness"))
+		for (String table : List.of("accounts", "characters", "items", "phantom_test_harness", PhantomTestSchemaManifest.METADATA_TABLE))
 		{
 			try (var statement = connection.prepareStatement("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?"))
 			{
@@ -291,20 +270,18 @@ public final class PhantomTestDatabaseProvisioner
 		}
 	}
 
-	private static void writeManifest(Path reportsDirectory, List<StrictSqlScriptRunner.ScriptInfo> scripts) throws IOException
+	private static void writeManifest(Path reportsDirectory, List<StrictSqlScriptRunner.ScriptInfo> scripts, Snapshot snapshot) throws IOException
 	{
 		Files.createDirectories(reportsDirectory);
-		final List<String> lines = new ArrayList<>();
-		int statements = 0;
+		final StringBuilder content = new StringBuilder();
+		content.append("scripts=").append(snapshot.scriptCount()).append(System.lineSeparator());
+		content.append("statements=").append(snapshot.statementCount()).append(System.lineSeparator());
+		content.append("aggregateSha256=").append(snapshot.aggregateSha256()).append(System.lineSeparator());
 		for (StrictSqlScriptRunner.ScriptInfo script : scripts)
 		{
-			statements += script.statements().size();
-			lines.add(script.relativePath() + " sha256=" + script.sha256() + " statements=" + script.statements().size());
+			content.append(script.relativePath()).append(" sha256=").append(script.sha256()).append(" statements=").append(script.statements().size()).append(System.lineSeparator());
 		}
-		final String aggregate = sha256(String.join("\n", lines) + "\n");
-		final String content = "scripts=" + scripts.size() + System.lineSeparator() + "statements=" + statements + System.lineSeparator() + "aggregateSha256=" + aggregate + System.lineSeparator() + String.join(System.lineSeparator(), lines) + System.lineSeparator();
 		Files.writeString(reportsDirectory.resolve("schema-manifest.txt"), content, StandardCharsets.UTF_8);
-		System.out.println("Schema manifest: scripts=" + scripts.size() + " statements=" + statements + " aggregateSha256=" + aggregate + ".");
 	}
 
 	private static void writeConfig(Path temp, Path target, String testUrl, String password) throws IOException
@@ -342,18 +319,6 @@ public final class PhantomTestDatabaseProvisioner
 		final byte[] bytes = new byte[32];
 		new SecureRandom().nextBytes(bytes);
 		return HexFormat.of().formatHex(bytes);
-	}
-
-	private static String sha256(String value)
-	{
-		try
-		{
-			return HexFormat.of().withUpperCase().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
-		}
-		catch (NoSuchAlgorithmException e)
-		{
-			throw new IllegalStateException("SHA-256 is unavailable.", e);
-		}
 	}
 
 	private static void safeCleanup(AdminSettings admin)

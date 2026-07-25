@@ -37,8 +37,11 @@ public final class PhantomTestLauncher
 	public static final int EXIT_TEST_FAILURE = 1;
 	public static final int EXIT_CONFIGURATION_REJECTED = 2;
 	public static final int EXIT_INTERNAL_ERROR = 3;
-	private static final Pattern NAMED_PASSWORD = Pattern.compile("(?i)(password\\s*[=:]\\s*)([^\\s,;]+)");
-	private static final Pattern JDBC_USER_INFO = Pattern.compile("(jdbc:[a-z]+://)[^/@\\s]+@");
+	private static final Pattern NAMED_PASSWORD = Pattern.compile("(?i)(\\bpassword\\s*[=:]\\s*)([^\\s,;&]+)");
+	private static final Pattern JDBC_USER_INFO = Pattern.compile("(jdbc:[a-z][a-z0-9+.-]*://)[^/@\\s]+@");
+	private static final Pattern JDBC_QUERY_SECRET = Pattern.compile("(?i)([?&](?:user|password(?:[123])?)=)([^&#\\s]*)");
+	private static final Pattern IDENTIFIED_BY_SINGLE_QUOTE = Pattern.compile("(?i)(\\bIDENTIFIED\\s+BY\\s+')([^']*)'");
+	private static final Pattern IDENTIFIED_BY_DOUBLE_QUOTE = Pattern.compile("(?i)(\\bIDENTIFIED\\s+BY\\s+\")([^\"]*)\"");
 
 	private PhantomTestLauncher()
 	{
@@ -76,6 +79,10 @@ public final class PhantomTestLauncher
 		{
 			return runGuardNegative(context);
 		}
+		if ("schema-freshness-negative".equals(mode))
+		{
+			return runSchemaFreshnessNegative(context);
+		}
 
 		final PhantomTestSuite suite = suite(mode);
 		if (suite == null)
@@ -84,6 +91,11 @@ public final class PhantomTestLauncher
 			return EXIT_CONFIGURATION_REJECTED;
 		}
 
+		return runSuite(mode, suite, context);
+	}
+
+	static int runSuite(String mode, PhantomTestSuite suite, PhantomTestContext context)
+	{
 		final PhantomTestRegistry registry = new PhantomTestRegistry(suite.id());
 		try
 		{
@@ -104,11 +116,11 @@ public final class PhantomTestLauncher
 
 		final List<PhantomTestResult> results = new ArrayList<>();
 		int exitCode = EXIT_SUCCESS;
-		boolean beforeCompleted = false;
+		boolean lifecycleStarted = false;
 		try
 		{
+			lifecycleStarted = true;
 			suite.beforeAll(context);
-			beforeCompleted = true;
 			for (PhantomTestRegistry.RegisteredTest test : tests)
 			{
 				final long start = System.nanoTime();
@@ -131,7 +143,7 @@ public final class PhantomTestLauncher
 		}
 		finally
 		{
-			if (beforeCompleted)
+			if (lifecycleStarted)
 			{
 				try
 				{
@@ -168,6 +180,7 @@ public final class PhantomTestLauncher
 			case "db" -> new PhantomTestDatabaseIntegrationSuite();
 			case "scenario" -> new PhantomScenarioSmokeSuite();
 			case "performance" -> new PhantomPerformanceSmokeSuite();
+			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};
 	}
@@ -238,6 +251,79 @@ public final class PhantomTestLauncher
 		}
 	}
 
+	private static int runSchemaFreshnessNegative(PhantomTestContext context)
+	{
+		final Path directory = context.moduleRoot().resolve(".phantom-local/freshness-negative-" + ProcessHandle.current().pid());
+		final Path config = directory.resolve("Database.stale.ini");
+		final Path manifest = directory.resolve("schema-manifest.properties");
+		final Path marker = Path.of(System.getProperty("java.io.tmpdir"), "phantom-freshness-sentinel-" + ProcessHandle.current().pid() + ".marker");
+		System.setProperty("phantom.sentinel.marker", marker.toString());
+		try
+		{
+			Files.createDirectories(directory);
+			Files.deleteIfExists(marker);
+			final String content = """
+				Driver = org.l2jmobius.tests.phantoms.SentinelJdbcDriver
+				URL = jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test?useSSL=false
+				Login = l2j_phantom_test
+				Password = sentinel-not-used
+				MaximumDatabaseConnections = 4
+				TestDatabaseConnections = false
+				BackupDatabase = false
+				""";
+			Files.writeString(config, content, StandardCharsets.UTF_8);
+			final var current = PhantomTestSchemaManifest.current(context.moduleRoot());
+			final String staleHash = current.aggregateSha256().charAt(0) == 'A' ? "B" + current.aggregateSha256().substring(1) : "A" + current.aggregateSha256().substring(1);
+			PhantomTestSchemaManifest.writeAtomic(manifest, new PhantomTestSchemaManifest.Snapshot(current.schemaVersion(), current.scriptCount(), current.statementCount(), staleHash));
+
+			try
+			{
+				PhantomTestDatabaseBootstrap.initialize(context.moduleRoot(), config, manifest);
+				System.err.println("Stale schema manifest unexpectedly reached database initialization.");
+				return EXIT_INTERNAL_ERROR;
+			}
+			catch (PhantomTestConfigurationException expected)
+			{
+				if (!String.valueOf(expected.getMessage()).contains("schema manifest is stale"))
+				{
+					System.err.println("Schema freshness control received an unexpected configuration rejection.");
+					return EXIT_INTERNAL_ERROR;
+				}
+				if (Files.exists(marker))
+				{
+					System.err.println("Sentinel JDBC driver was touched before stale manifest rejection.");
+					return EXIT_INTERNAL_ERROR;
+				}
+				context.record("freshness.driverLoads", 0);
+				context.record("freshness.connectionAttempts", 0);
+				context.record("freshness.sentinelMarker", "absent");
+				final List<PhantomTestResult> results = List.of(PhantomTestResult.passed("schema-freshness-negative.stale-rejected-before-hikari", 0));
+				writeReports("schema-freshness-negative", "schema-freshness-negative", context, results);
+				printSummary("schema-freshness-negative", context.seed(), results);
+				System.out.println("Expected stale manifest rejection exit=2; sentinel marker absent; driverLoads=0; connectionAttempts=0.");
+				return EXIT_CONFIGURATION_REJECTED;
+			}
+		}
+		catch (Exception e)
+		{
+			System.err.println("Schema freshness negative control failed: " + sanitize(e.getMessage()));
+			return EXIT_INTERNAL_ERROR;
+		}
+		finally
+		{
+			try
+			{
+				deleteTree(directory);
+				Files.deleteIfExists(marker);
+			}
+			catch (IOException e)
+			{
+				System.err.println("Schema freshness negative cleanup failed: " + sanitize(e.getMessage()));
+			}
+			System.clearProperty("phantom.sentinel.marker");
+		}
+	}
+
 	static int exitCodeFor(Throwable throwable)
 	{
 		if (throwable instanceof PhantomTestConfigurationException)
@@ -259,7 +345,25 @@ public final class PhantomTestLauncher
 		}
 		String sanitized = NAMED_PASSWORD.matcher(message).replaceAll("$1<redacted>");
 		sanitized = JDBC_USER_INFO.matcher(sanitized).replaceAll("$1<redacted>@");
+		sanitized = JDBC_QUERY_SECRET.matcher(sanitized).replaceAll("$1<redacted>");
+		sanitized = IDENTIFIED_BY_SINGLE_QUOTE.matcher(sanitized).replaceAll("$1<redacted>'");
+		sanitized = IDENTIFIED_BY_DOUBLE_QUOTE.matcher(sanitized).replaceAll("$1<redacted>\"");
 		return sanitized.replace('\r', ' ').replace('\n', ' ');
+	}
+
+	private static void deleteTree(Path path) throws IOException
+	{
+		if (!Files.exists(path))
+		{
+			return;
+		}
+		try (var stream = Files.walk(path))
+		{
+			for (Path entry : stream.sorted((left, right) -> right.compareTo(left)).toList())
+			{
+				Files.deleteIfExists(entry);
+			}
+		}
 	}
 
 	static String escapeXml(String value)

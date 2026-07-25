@@ -30,13 +30,16 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.tests.phantoms.PhantomTestDatabaseBootstrap.BootstrapResult;
 import org.l2jmobius.tests.phantoms.PhantomTestDatabaseGuard.ValidatedSettings;
+import org.l2jmobius.tests.phantoms.PhantomTestSchemaManifest.Snapshot;
 
 public final class PhantomTestDatabaseIntegrationSuite implements PhantomTestSuite
 {
 	private static final String FIXTURE_KEY = "task002-20260725001";
 	private static final Pattern PRODUCTION_SCHEMA_GRANT = Pattern.compile("(?i)\\bON\\s+`?l2jmobiush5`?\\.\\*");
 	private ValidatedSettings _settings;
+	private Snapshot _schemaSnapshot;
 
 	@Override
 	public String id()
@@ -53,11 +56,13 @@ public final class PhantomTestDatabaseIntegrationSuite implements PhantomTestSui
 			throw new PhantomTestConfigurationException("Explicit Phantom test database config path is missing.");
 		}
 		final Path config = Path.of(configProperty);
-		_settings = PhantomTestDatabaseGuard.validate(context.moduleRoot(), config);
-		DatabaseFactory.initFromConfig(_settings.configFile().toString());
+		final BootstrapResult bootstrap = PhantomTestDatabaseBootstrap.initialize(context.moduleRoot(), config);
+		_settings = bootstrap.settings();
+		_schemaSnapshot = bootstrap.schemaSnapshot();
 		cleanupFixture();
 		context.record("database.name", PhantomTestDatabaseGuard.TARGET_DATABASE);
 		context.record("database.user", PhantomTestDatabaseGuard.TARGET_USER);
+		context.record("database.schemaAggregateSha256", _schemaSnapshot.aggregateSha256());
 	}
 
 	@Override
@@ -168,6 +173,30 @@ public final class PhantomTestDatabaseIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(testGrant, "Dedicated test database grant is missing.");
 		});
 		registry.add("harness-table", _ -> PhantomAssertions.assertEquals(1, tableCount("phantom_test_harness"), "Harness-owned migration table is missing."));
+		registry.add("schema-manifest-metadata", _ ->
+		{
+			try (Connection connection = DatabaseFactory.getConnection())
+			{
+				PhantomTestSchemaManifest.requireExactDatabaseMetadata(connection, _schemaSnapshot);
+				connection.setAutoCommit(false);
+				try
+				{
+					try (var statement = connection.prepareStatement("UPDATE " + PhantomTestSchemaManifest.METADATA_TABLE + " SET aggregate_sha256 = ? WHERE manifest_key = ?"))
+					{
+						statement.setString(1, "0".repeat(64));
+						statement.setString(2, PhantomTestSchemaManifest.MANIFEST_KEY);
+						PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Schema metadata mismatch fixture update failed.");
+					}
+					PhantomAssertions.assertThrows(PhantomTestConfigurationException.class, () -> PhantomTestSchemaManifest.requireExactDatabaseMetadata(connection, _schemaSnapshot), "DB schema metadata mismatch must be rejected.");
+				}
+				finally
+				{
+					connection.rollback();
+					connection.setAutoCommit(true);
+				}
+				PhantomTestSchemaManifest.requireExactDatabaseMetadata(connection, _schemaSnapshot);
+			}
+		});
 		registry.add("pool-close-reopen", _ ->
 		{
 			PhantomAssertions.assertTrue(DatabaseFactory.isInitialized(), "Database pool was not initialized.");
