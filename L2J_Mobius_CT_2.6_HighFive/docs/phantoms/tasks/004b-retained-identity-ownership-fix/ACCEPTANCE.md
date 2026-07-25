@@ -1,0 +1,28 @@
+# ACCEPTANCE — Task 004B
+
+- [ ] Baseline d36e10e.
+- [ ] One ordinary commit.
+- [ ] Roadmap SHA unchanged.
+- [ ] Exact scope.
+- [ ] No Goal 005.
+- [ ] Disabled/null legacy path.
+- [ ] Disabled/REAL_LOGIN arbitration true.
+- [ ] Disabled/PHANTOM arbitration true.
+- [ ] Enabled/all arbitration true.
+- [ ] Lease matches exact object ID.
+- [ ] Wrong-character cleanup cannot release lease.
+- [ ] No-player retained lease not released.
+- [ ] World map postconditions use null by ID.
+- [ ] Autosave containsObjectId.
+- [ ] Phantom retry cleanup preserved.
+- [ ] Successful cleanup reaches STORED.
+- [ ] 11/11 old failure matrix.
+- [ ] Task 004A operation retry tests.
+- [ ] All prior suites.
+- [ ] ant verify PASS.
+- [ ] ant jar PASS.
+- [ ] verifier pre/final x2 identical.
+- [ ] production DB zero.
+- [ ] ADR Proposed.
+- [ ] Goal 005 NOT_STARTED.
+- [ ] Push/remote exact.

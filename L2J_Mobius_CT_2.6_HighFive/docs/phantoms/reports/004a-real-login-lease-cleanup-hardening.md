@@ -30,6 +30,27 @@ ADR: `Proposed`
 
 Fake `GameClient`/`Connection` не создавались. Task 005 не начинался.
 
+## Independent Task 004A review
+
+Независимое ревью сохранило принятыми shared `playerLock`, connection-state
+gate, retryable Phantom cleanup, bounded warnings и terminal `STORED`, но
+обнаружило три retained-identity findings. Спецификация Task 004A ошибочно
+разрешала disabled legacy path при существующем `REAL_LOGIN` owner; release не
+был привязан к object ID очищаемого Player; postconditions сравнивали exact
+instance вместо отсутствия любого объекта с тем же object ID.
+
+```text
+Independent review: FIX_REQUIRED
+Root cause: retained REAL_LOGIN owner bypassed while disabled
+Task 004B: REQUIRED
+Revert: NOT_REQUIRED
+Goal 005: BLOCKED
+```
+
+Этот review supersedes только ошибочную truth table и retained-identity
+postconditions ниже. Retryable cleanup Task 004A остаётся обязательным
+регрессионным контрактом.
+
 Effective baseline:
 `441877e75feed482b58c2b0647137739b5b07748`.
 Это единственный ordinary child reviewed Task 004 commit
@@ -74,6 +95,11 @@ Documentation:
 явную truth table. При disabled+none/REAL_LOGIN используется отдельный exact
 legacy `GameClient.load` path без claim/release. Disabled+PHANTOM и весь enabled
 режим проходят существующую registry arbitration.
+
+Независимое ревью уточнило этот исторический implementation result: legacy path
+допустим только для disabled+none. Существующий `REAL_LOGIN` owner должен
+проходить arbitration и оставаться защищённым; исправление принадлежит Task
+004B.
 
 `GameClient.onDisconnection()` удерживает тот же `playerLock`, что
 `CharacterSelect`, при переводе client в `DISCONNECTED` и immediate cleanup.

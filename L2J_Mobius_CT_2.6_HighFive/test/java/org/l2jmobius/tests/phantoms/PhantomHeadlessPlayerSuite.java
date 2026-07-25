@@ -30,6 +30,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.commons.network.WritableBuffer;
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.WorldObject;
+import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.network.GameClient;
 import org.l2jmobius.gameserver.network.PlayerOutboundSession;
@@ -95,6 +97,7 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 		registry.add("actual-item-list-recursion", _ -> testItemListRecursion());
 		registry.add("bounded-recursion-and-recording", _ -> testBoundedRecursionAndRecording());
 		registry.add("identity-token-and-concurrency", _ -> testIdentityTokenAndConcurrency());
+		registry.add("lease-object-id-match-policy", _ -> testLeaseObjectIdMatchPolicy());
 		registry.add("real-login-arbitration-policy", _ -> testRealLoginArbitrationPolicy());
 		registry.add("identity-materialization-collisions", _ -> testIdentityMaterializationCollisions());
 		registry.add("shared-cleanup-policy-read-only", _ -> testSharedCleanupPolicy());
@@ -276,6 +279,8 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 		final int staleObjectId = Integer.MAX_VALUE - 100;
 		final Lease first = registry.tryAcquire(staleObjectId, OwnerKind.PHANTOM);
 		PhantomAssertions.assertTrue(first != null, "Could not acquire first identity lease.");
+		PhantomAssertions.assertTrue(first.matchesObjectId(staleObjectId), "Lease did not match its own object ID.");
+		PhantomAssertions.assertFalse(first.matchesObjectId(staleObjectId - 1), "Lease matched a different object ID.");
 		first.close();
 		final Lease second = registry.tryAcquire(staleObjectId, OwnerKind.REAL_LOGIN);
 		PhantomAssertions.assertTrue(second != null, "Could not acquire replacement identity lease.");
@@ -318,10 +323,33 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(null, registry.getOwnerKind(concurrentObjectId), "Concurrent identity lease was not released.");
 	}
 
+	private void testLeaseObjectIdMatchPolicy()
+	{
+		final PhantomIdentityLeaseRegistry registry = PhantomIdentityLeaseRegistry.getInstance();
+		final int retainedObjectId = Integer.MAX_VALUE - 104;
+		final int cleanupObjectId = retainedObjectId - 1;
+		final Lease retainedLease = registry.tryAcquire(retainedObjectId, OwnerKind.REAL_LOGIN);
+		PhantomAssertions.assertTrue(retainedLease != null, "Could not acquire retained REAL_LOGIN lease.");
+		try
+		{
+			PhantomAssertions.assertFalse(retainedLease.matchesObjectId(cleanupObjectId), "Wrong-character cleanup matched another character's lease.");
+			if (retainedLease.matchesObjectId(cleanupObjectId))
+			{
+				retainedLease.close();
+			}
+			PhantomAssertions.assertEquals(OwnerKind.REAL_LOGIN, registry.getOwnerKind(retainedObjectId), "Cleanup of B released retained lease A.");
+		}
+		finally
+		{
+			retainedLease.close();
+		}
+		PhantomAssertions.assertEquals(null, registry.getOwnerKind(retainedObjectId), "Retained REAL_LOGIN lease was not released by its owner.");
+	}
+
 	private void testRealLoginArbitrationPolicy()
 	{
 		PhantomAssertions.assertFalse(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(false, null), "Disabled mode without an owner must preserve the legacy path.");
-		PhantomAssertions.assertFalse(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(false, OwnerKind.REAL_LOGIN), "Disabled mode with a REAL_LOGIN owner must preserve legacy semantics.");
+		PhantomAssertions.assertTrue(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(false, OwnerKind.REAL_LOGIN), "Disabled mode must protect an existing REAL_LOGIN owner.");
 		PhantomAssertions.assertTrue(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(false, OwnerKind.PHANTOM), "Disabled mode must still protect an existing PHANTOM owner.");
 		PhantomAssertions.assertTrue(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(true, null), "Enabled mode without an owner must arbitrate.");
 		PhantomAssertions.assertTrue(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(true, OwnerKind.REAL_LOGIN), "Enabled mode with a REAL_LOGIN owner must arbitrate.");
@@ -340,6 +368,20 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 		}
 		PhantomAssertions.assertEquals(before, registry.getActiveLeaseCount(), "Disabled legacy policy created a REAL_LOGIN lease.");
 		PhantomAssertions.assertEquals(null, registry.getOwnerKind(objectId), "Disabled legacy policy retained registry ownership.");
+
+		final int retainedObjectId = Integer.MAX_VALUE - 105;
+		final Lease retainedRealLogin = registry.tryAcquire(retainedObjectId, OwnerKind.REAL_LOGIN);
+		PhantomAssertions.assertTrue(retainedRealLogin != null, "Could not acquire retained REAL_LOGIN owner.");
+		try
+		{
+			PhantomAssertions.assertTrue(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(false, registry.getOwnerKind(retainedObjectId)), "Disabled mode bypassed a retained REAL_LOGIN owner.");
+			PhantomAssertions.assertEquals(null, registry.tryAcquire(retainedObjectId, OwnerKind.PHANTOM), "Retained REAL_LOGIN owner did not block a second owner while disabled.");
+			PhantomAssertions.assertEquals(OwnerKind.REAL_LOGIN, registry.getOwnerKind(retainedObjectId), "Retained REAL_LOGIN owner was disturbed by a blocked claim.");
+		}
+		finally
+		{
+			retainedRealLogin.close();
+		}
 	}
 
 	private void testIdentityMaterializationCollisions() throws Exception
@@ -406,6 +448,18 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 			PhantomAssertions.assertFalse(cleanBefore.online() || cleanBefore.worldPlayerPresent() || cleanBefore.worldObjectPresent() || cleanBefore.autosavePresent() || cleanBefore.clientPresent(), "Canonical delete did not establish clean postconditions.");
 			PhantomAssertions.assertTrue(PhantomPlayerCleanupPolicy.isComplete(player), "Canonical deleted state was not accepted as complete.");
 			PhantomAssertions.assertEquals(cleanBefore, cleanupObservation(player), "Cleanup policy mutated the clean Player state.");
+
+			final WorldObject objectIdResidue = new ObjectIdResidue(player.getObjectId());
+			World.getInstance().addObject(objectIdResidue);
+			try
+			{
+				PhantomAssertions.assertFalse(PhantomPlayerCleanupPolicy.isComplete(player), "Another World object with the same object ID was accepted as complete cleanup.");
+			}
+			finally
+			{
+				World.getInstance().removeObject(objectIdResidue);
+			}
+			PhantomAssertions.assertTrue(PhantomPlayerCleanupPolicy.isComplete(player), "Cleanup did not recover after object-ID residue removal.");
 		}
 		finally
 		{
@@ -650,7 +704,7 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 
 	private static CleanupObservation cleanupObservation(Player player)
 	{
-		return new CleanupObservation(player.isOnline(), World.getInstance().getPlayer(player.getObjectId()) == player, World.getInstance().findObject(player.getObjectId()) == player, PlayerAutoSaveTaskManager.getInstance().contains(player), player.getClient() != null);
+		return new CleanupObservation(player.isOnline(), World.getInstance().getPlayer(player.getObjectId()) != null, World.getInstance().findObject(player.getObjectId()) != null, PlayerAutoSaveTaskManager.getInstance().containsObjectId(player.getObjectId()), player.getClient() != null);
 	}
 
 	private static PhantomPlayerMaterializationSpike spike(PhantomHeadlessPlayerFixture fixture, HeadlessPlayerOutboundSession output, PhantomPlayerMaterializationSpike.FailureInjector injector)
@@ -727,6 +781,25 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 		private InjectedFailure(FailurePoint point)
 		{
 			super(point.name());
+		}
+	}
+
+	private static final class ObjectIdResidue extends WorldObject
+	{
+		private ObjectIdResidue(int objectId)
+		{
+			super(objectId);
+		}
+
+		@Override
+		public boolean isAutoAttackable(Creature attacker)
+		{
+			return false;
+		}
+
+		@Override
+		public void sendInfo(Player player)
+		{
 		}
 	}
 

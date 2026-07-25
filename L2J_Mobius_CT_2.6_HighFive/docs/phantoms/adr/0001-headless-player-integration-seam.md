@@ -135,6 +135,32 @@ This remains implementation evidence rather than self-acceptance. ADR status
 stays `Proposed`, Task 004A awaits independent review, and Task 005 remains
 `NOT_STARTED`.
 
+## Task 004B retained-identity hardening recommendation
+
+Independent review of Task 004A found that a retained `REAL_LOGIN` owner could
+be bypassed while Phantom was disabled, a cleanup Player could release a lease
+for another object ID, and cleanup postconditions accepted another World or
+autosave object with the same object ID.
+
+Task 004B hardens the existing seam without changing `Player`, packet effects,
+configuration or persistence:
+
+- exact legacy login remains only for disabled mode with no current owner;
+- every existing `REAL_LOGIN` or `PHANTOM` owner is arbitrated;
+- client lease release validates the cleanup Player object ID internally;
+- World player/object maps and autosave must be empty by object ID;
+- Task 004A retryable cleanup and terminal `STORED` remain unchanged.
+
+The resulting technical recommendation is:
+
+```text
+FEASIBLE_WITH_SEAM_HARDENED_PENDING_INDEPENDENT_REVIEW
+```
+
+This is still implementation evidence rather than self-acceptance. ADR status
+remains `Proposed`, the manual gate remains pending independent review, and Goal
+005 remains `NOT_STARTED`.
+
 ## Rollback
 
 Keep the real-client adapter as the default/only active implementation, remove

@@ -38,11 +38,12 @@ public final class PhantomPlayerCleanupPolicy
 	public static boolean isComplete(Player player)
 	{
 		Objects.requireNonNull(player, "player");
+		final int objectId = player.getObjectId();
 		final World world = World.getInstance();
 		return !player.isOnline() //
-			&& (world.getPlayer(player.getObjectId()) != player) //
-			&& (world.findObject(player.getObjectId()) != player) //
-			&& !PlayerAutoSaveTaskManager.getInstance().contains(player) //
+			&& (world.getPlayer(objectId) == null) //
+			&& (world.findObject(objectId) == null) //
+			&& !PlayerAutoSaveTaskManager.getInstance().containsObjectId(objectId) //
 			&& (player.getClient() == null);
 	}
 }

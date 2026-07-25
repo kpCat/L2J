@@ -136,13 +136,22 @@ public class Disconnection
 
 		if ((_client != null) && _client.hasPlayerIdentityLease())
 		{
-			if ((failure == null) && (_player != null) && PhantomPlayerCleanupPolicy.isComplete(_player))
+			final boolean matchingIdentityLease = (_player != null) && _client.hasPlayerIdentityLeaseFor(_player.getObjectId());
+			if (matchingIdentityLease && (failure == null) && PhantomPlayerCleanupPolicy.isComplete(_player))
 			{
-				_client.releasePlayerIdentityLease();
+				_client.releasePlayerIdentityLeaseFor(_player.getObjectId());
 			}
 			else if (_client.markPlayerIdentityLeaseRetentionReported())
 			{
-				final String reason = failure == null ? "cleanup postconditions are incomplete" : "cleanup operation threw " + failure.getClass().getSimpleName();
+				final String reason;
+				if (!matchingIdentityLease)
+				{
+					reason = _player == null ? "cleanup Player is unavailable" : "cleanup Player object ID does not match the retained lease";
+				}
+				else
+				{
+					reason = failure == null ? "cleanup postconditions are incomplete" : "cleanup operation threw " + failure.getClass().getSimpleName();
+				}
 				LOGGER.warning(getClass().getSimpleName() + ": REAL_LOGIN identity lease retained for object " + (_player == null ? "unknown" : _player.getObjectId()) + "; " + reason);
 			}
 		}
@@ -175,10 +184,6 @@ public class Disconnection
 	{
 		if (_player == null)
 		{
-			if ((_client != null) && !_client.hasPlayerIdentityLease())
-			{
-				_client.releasePlayerIdentityLease();
-			}
 			return;
 		}
 		

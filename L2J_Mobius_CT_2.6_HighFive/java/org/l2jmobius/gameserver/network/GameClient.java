@@ -676,6 +676,11 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 		return _playerIdentityLease != null;
 	}
 
+	public synchronized boolean hasPlayerIdentityLeaseFor(int objectId)
+	{
+		return (_playerIdentityLease != null) && _playerIdentityLease.matchesObjectId(objectId);
+	}
+
 	public synchronized boolean markPlayerIdentityLeaseRetentionReported()
 	{
 		if ((_playerIdentityLease == null) || _playerIdentityLeaseRetentionReported)
@@ -686,15 +691,17 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 		return true;
 	}
 
-	public synchronized void releasePlayerIdentityLease()
+	public synchronized boolean releasePlayerIdentityLeaseFor(int objectId)
 	{
 		final Lease identityLease = _playerIdentityLease;
+		if ((identityLease == null) || !identityLease.matchesObjectId(objectId))
+		{
+			return false;
+		}
 		_playerIdentityLease = null;
 		_playerIdentityLeaseRetentionReported = false;
-		if (identityLease != null)
-		{
-			identityLease.close();
-		}
+		identityLease.close();
+		return true;
 	}
 	
 	public void setCharSelection(List<CharacterInfoHolder> characters)

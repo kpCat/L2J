@@ -1,0 +1,22 @@
+{
+  "package": "phantom-world-task-004b-retained-identity-ownership-fix",
+  "taskId": "004b-retained-identity-ownership-fix",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/004b-retained-identity-ownership-fix/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "d36e10e24787edce3fe4f4d933fca4d0ac884d50",
+  "roadmapSha256": "52C6F680582DEB91E45E4112FEDE2E70A4A64807DB76B3970D2BF24FB6455346",
+  "testDatabase": "l2jmobiush5_phantom_test",
+  "productionDatabaseChanges": false,
+  "goal005Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "ARCHITECTURE.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

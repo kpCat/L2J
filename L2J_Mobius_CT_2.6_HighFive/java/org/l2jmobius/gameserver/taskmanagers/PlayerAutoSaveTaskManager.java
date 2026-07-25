@@ -97,6 +97,18 @@ public class PlayerAutoSaveTaskManager implements Runnable
 	{
 		return PLAYER_TIMES.containsKey(player);
 	}
+
+	public boolean containsObjectId(int objectId)
+	{
+		for (Player player : PLAYER_TIMES.keySet())
+		{
+			if (player.getObjectId() == objectId)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 	
 	public static PlayerAutoSaveTaskManager getInstance()
 	{

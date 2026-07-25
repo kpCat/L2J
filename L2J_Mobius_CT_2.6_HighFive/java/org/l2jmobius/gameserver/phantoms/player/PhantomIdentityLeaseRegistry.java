@@ -63,7 +63,7 @@ public final class PhantomIdentityLeaseRegistry
 
 	public static boolean requiresRealLoginArbitration(boolean phantomSystemEnabled, OwnerKind currentOwner)
 	{
-		return phantomSystemEnabled || (currentOwner == OwnerKind.PHANTOM);
+		return phantomSystemEnabled || (currentOwner != null);
 	}
 
 	public int getActiveLeaseCount()
@@ -100,6 +100,11 @@ public final class PhantomIdentityLeaseRegistry
 		public OwnerKind ownerKind()
 		{
 			return _entry.ownerKind();
+		}
+
+		public boolean matchesObjectId(int objectId)
+		{
+			return _entry.objectId() == objectId;
 		}
 
 		public long token()
