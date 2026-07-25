@@ -180,6 +180,7 @@ public final class PhantomTestLauncher
 			case "db" -> new PhantomTestDatabaseIntegrationSuite();
 			case "scenario" -> new PhantomScenarioSmokeSuite();
 			case "performance" -> new PhantomPerformanceSmokeSuite();
+			case "skeleton" -> new PhantomSkeletonSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

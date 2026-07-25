@@ -59,6 +59,7 @@ import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.loginserverpackets.game.ServerStatus;
 import org.l2jmobius.gameserver.network.serverpackets.ServerClose;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 import org.l2jmobius.gameserver.util.Broadcast;
 
@@ -398,6 +399,18 @@ public class Shutdown extends Thread
 			// ignore
 		}
 		
+		try
+		{
+			if (PhantomSystem.shutdownIfStarted())
+			{
+				LOGGER.info("Phantom World: Skeleton has been shut down(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
+			}
+		}
+		catch (Throwable t)
+		{
+			LOGGER.log(Level.WARNING, "Error shutting down Phantom World skeleton.", t);
+		}
+
 		// stop all thread pools
 		try
 		{

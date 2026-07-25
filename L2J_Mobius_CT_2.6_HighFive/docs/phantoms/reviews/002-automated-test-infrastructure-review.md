@@ -5,8 +5,10 @@
 ```text
 Original Task 002 implementation: FIX REQUIRED
 Revert: NOT_REQUIRED
-Task 002A closure: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
-Task 003: NOT_STARTED
+Task 002A closure: ACCEPT
+Combined Task 002 test infrastructure: ACCEPT
+Task 003: ALLOWED
+Task 004: NOT_STARTED
 ```
 
 ## Accepted Task 002 foundation
@@ -51,5 +53,6 @@ Task 002A ограничен ownership-safe cross-process lock, durable schema
 fingerprint с pre-Hikari и DB-row comparison, lifecycle cleanup, strict JDBC
 query allowlist, secret redaction и provenance документацией.
 
-Revert исходного Task 002 не требуется. Task 003 остаётся заблокирован до
-независимого решения по Task 002A.
+Revert исходного Task 002 не требуется. Task 002A закрыла перечисленные
+findings и получила независимый verdict `ACCEPT`; combined Task 002 test
+infrastructure принята, Task 003 разрешена, Task 004 не начата.

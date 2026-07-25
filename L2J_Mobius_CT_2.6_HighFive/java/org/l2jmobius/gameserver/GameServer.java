@@ -46,6 +46,7 @@ import org.l2jmobius.gameserver.config.custom.CustomMailManagerConfig;
 import org.l2jmobius.gameserver.config.custom.MultilingualSupportConfig;
 import org.l2jmobius.gameserver.config.custom.OfflinePlayConfig;
 import org.l2jmobius.gameserver.config.custom.OfflineTradeConfig;
+import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.config.custom.PremiumSystemConfig;
 import org.l2jmobius.gameserver.config.custom.SellBuffsConfig;
 import org.l2jmobius.gameserver.config.custom.WeddingConfig;
@@ -171,6 +172,7 @@ import org.l2jmobius.gameserver.network.GameClient;
 import org.l2jmobius.gameserver.network.GamePacketHandler;
 import org.l2jmobius.gameserver.network.NpcStringId;
 import org.l2jmobius.gameserver.network.SystemMessageId;
+import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.scripting.ScriptEngine;
 import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 import org.l2jmobius.gameserver.taskmanagers.ItemLifeTimeTaskManager;
@@ -215,6 +217,15 @@ public class GameServer
 		printSection("ThreadPool");
 		ThreadPool.init();
 		
+		if (PhantomPlayersConfig.isEnabled())
+		{
+			printSection("Phantom World");
+			if (!PhantomSystem.startConfigured())
+			{
+				throw new IllegalStateException("Phantom World skeleton failed to start.");
+			}
+		}
+
 		// Start game time task manager early
 		GameTimeTaskManager.getInstance();
 		

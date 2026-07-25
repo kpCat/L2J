@@ -1,0 +1,21 @@
+{
+  "package": "phantom-world-task-003-disabled-skeleton-config-metrics",
+  "taskId": "003-disabled-skeleton-config-metrics",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/003-disabled-skeleton-config-metrics/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "84f29a0002b25d2b1ff1a19fa9c92867479fd6a5",
+  "deterministicSeed": 20260725001,
+  "defaultEnabled": false,
+  "task004Started": false,
+  "productionDatabaseChanges": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "ARCHITECTURE.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

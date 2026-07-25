@@ -301,8 +301,11 @@ Apache Ant 1.10.15 из OS temp; binary в repository не добавлялся.
 ## Pre/final verifier
 
 - Pre-commit Task 002A verifier: `52/52 PASS`, exit `0`.
-- Final run 1 и run 2 выполняются на одном immutable commit.
-- Их stdout сохраняется вне repository и сравнивается byte-for-byte/SHA-256.
+- Final run 1: `52/52 PASS`, exit `0`.
+- Final run 2: `52/52 PASS`, exit `0`.
+- Outputs identical byte-for-byte.
+- SHA-256 обоих outputs:
+  `3DEBD45D104620BE262FC6AE83A0A9244F80D9D409E9FEA504DF0EA815E0249E`.
 - Historical `verify-task-002.ps1` не изменён.
 
 ## Branch/parent/commit/push
@@ -310,17 +313,21 @@ Apache Ant 1.10.15 из OS temp; binary в repository не добавлялся.
 - Branch: `feature/phantom-world`.
 - Parent: `36e5411e01e8e73f8a0fd4d9460e327c28a6798b`.
 - Subject: `test(phantoms): harden test infrastructure safety`.
-- Commit SHA, push result и exact remote ref фиксируются в final handoff,
-  поскольку commit не может содержать собственный self-referential SHA.
-- Amend/rebase/force push не используются.
+- Commit: `84f29a0002b25d2b1ff1a19fa9c92867479fd6a5`.
+- Push: successful.
+- Remote ref: exact,
+  `origin/feature/phantom-world = 84f29a0002b25d2b1ff1a19fa9c92867479fd6a5`.
+- Amend/rebase/force push не использовались.
 
 ## Manual gate
 
-`PENDING_INDEPENDENT_REVIEW`
+`ACCEPT`
+
+Independent review: `ACCEPT`.
 
 ## Task 003
 
-`NOT_STARTED`
+`ALLOWED`
 
 ## Deviations
 
@@ -346,5 +353,5 @@ Apache Ant 1.10.15 из OS temp; binary в repository не добавлялся.
 
 ## Recommended next step
 
-Провести независимое ревью hotfix commit. Task 003 до решения review не
-начинать.
+Выполнить Task 003 в пределах disabled-by-default skeleton. Task 004 не
+начинать до отдельного gate.
