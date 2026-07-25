@@ -61,7 +61,7 @@ Codex запускается именно из рабочего модуля.
 - локальные реквизиты: `root/root`
 - LoginServer и GameServer запускаются
 - клиент подключается, аккаунт и персонаж создаются
-- геодата пока отсутствует, pathfinding отключён
+- геодата отсутствует: baseline Task 001 зафиксировал `PathFinding = 2` в `GeoEngine.ini`, однако без region files полноценный pathfinding фактически недоступен; runtime fallback без геодаты не проверялся, и до gate Task 009 навигационный контур нельзя считать подтверждённым
 - существующая Fake Player-система на базе NPC должна быть изучена и переиспользована там, где это разумно, но не считается автоматически достаточным ядром Phantom World
 
 ---
@@ -121,13 +121,18 @@ Codex запускается именно из рабочего модуля.
 
 ### Минимальный seam
 
-При зависимости `Player` от `GameClient` искать минимальную безопасную точку расширения:
+При зависимости `Player` от `GameClient` не создавать fake/null-network `GameClient`: этот вариант отвергнут.
 
-- headless client adapter
-- packet sink
-- facade действий
+Искать минимальную безопасную точку расширения:
+
+- небольшой outbound/session seam
+- headless packet/output sink без network I/O
+- выполнение обязательных `ServerPacket.runImpl(Player)` effects ровно один раз
+- facade действий; client packet handlers не становятся внутренним Phantom API
 - явный lifecycle
 - точечные headless-проверки
+
+ADR 0001 остаётся `Proposed` до Task 004.
 
 Не создавать fork всего `Player`.
 

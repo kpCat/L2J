@@ -1,0 +1,18 @@
+{
+  "package": "phantom-world-task-001a-review-closure",
+  "taskId": "001a-review-closure",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/001a-review-closure/TASK.md",
+  "branch": "feature/phantom-world",
+  "originalTaskCommit": "e7dcf575dd45a94c83560fd140144635bbf96e37",
+  "expectedStartingCommit": "cdca7a3d96554285eb8c992fa14f65b27f7f36ae",
+  "auditSeed": 20260725001,
+  "productionCodeIncluded": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

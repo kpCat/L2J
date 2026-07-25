@@ -39,6 +39,29 @@ Offline play/trade proves canonical null/detached-client materialization and
 
 ADR 0001 remains `Proposed` until Task 004 passes.
 
+## Git provenance
+
+- Original Codex Task 001 commit:
+  `e7dcf575dd45a94c83560fd140144635bbf96e37`.
+- Parent:
+  `16d61833b3983a3976583d0e4813e0de9457a52f`.
+- After the Codex handoff, the user independently added `Agents.md` through
+  amend; the resulting branch commit is
+  `cdca7a3d96554285eb8c992fa14f65b27f7f36ae`.
+- The amend was a user action, not a Codex action. Both commits have the same
+  parent; the original Codex commit is audit evidence rather than an ancestor
+  of the amended commit.
+
+## Independent review
+
+- Original Task 001 content: `ACCEPT`.
+- Amended branch state: `ACCEPT WITH FOLLOW-UP`.
+- No P0/P1 architectural findings were identified.
+- `FEASIBLE_WITH_SEAM` remains the accepted architecture gate verdict.
+- ADR 0001 remains `Proposed` until Task 004.
+- The documentation follow-ups are implemented by Task 001A and require an
+  independent review before Task 002 may begin.
+
 ## Changed files
 
 - `docs/phantoms/tasks/001-baseline-architecture-audit/*` — supplied task
@@ -142,12 +165,15 @@ No MariaDB client/JDBC/server command was run.
 - Java version: PASS.
 - Ant target inventory via temporary Ant: PASS.
 - `ant jar`: PASS, exit `0`.
-- Pre-commit Task 001 verifier: PASS, 43/43 checks, exit `0`.
-- Final-commit verifier run 1: required after commit.
-- Final-commit verifier run 2: required after commit.
+- Pre-commit Task 001 verifier: PASS, 43/43 checks, exit `0`; this belongs to
+  the Task 001 execution that produced original Codex commit `e7dcf575...`.
+- Final-commit verifier run 1 on `e7dcf575...`: PASS, 43/43 checks, exit `0`.
+- Final-commit verifier run 2 on `e7dcf575...`: PASS, 43/43 checks, exit `0`.
+- The two final verifier outputs were identical.
 - JSON parse/schema checks: covered by verifier.
-- Scope/production/other-chronicle/DB/binary guards: covered by verifier.
-- `git diff --check`: required before/after commit.
+- Scope/production/other-chronicle/DB/binary guards: PASS.
+- JSON and DB safety checks: PASS.
+- `git diff --check`: PASS.
 
 ## Scope verification
 
@@ -166,10 +192,14 @@ artifacts. Generated JARs/build output are ignored and not staged.
 
 ## Verifier runs
 
-- Pre-commit: PASS, deterministic stable-sorted output, 43/43 checks,
-  exit `0`.
-- Final commit run 1: to be recorded after commit.
-- Final commit run 2: to be recorded after commit.
+- Pre-commit for the original Codex Task 001 result: PASS, deterministic
+  stable-sorted output, 43/43 checks, exit `0`.
+- Final commit `e7dcf575...` run 1: PASS, 43/43 checks, exit `0`.
+- Final commit `e7dcf575...` run 2: PASS, 43/43 checks, exit `0`.
+- Final run outputs: identical.
+
+These historical results apply to original Codex commit `e7dcf575...`; they
+were not rerun on or attributed to user-amended commit `cdca7a3d...`.
 
 ## Performance measurements
 
@@ -231,11 +261,15 @@ The exact remote SHA is reported in the final handoff.
 ## Git
 
 - Branch: `feature/phantom-world`
-- Commit SHA: Task 001 audit commit (`HEAD` after commit; exact SHA in final handoff)
+- Original Codex commit SHA:
+  `e7dcf575dd45a94c83560fd140144635bbf96e37`
+- User-amended branch commit SHA:
+  `cdca7a3d96554285eb8c992fa14f65b27f7f36ae`
 - Parent SHA: `16d61833b3983a3976583d0e4813e0de9457a52f`
-- Push result: recorded after push in final handoff
+- Original Codex push result: successful according to the Task 001 handoff.
 
 ## Recommended next step
 
-Independent GitHub review of Task 001. Do not begin Task 002 or Task 004 until
-the manual gate returns `ACCEPT` or an explicit follow-up decision.
+Complete and independently review Task 001A. Only after the Task 001A commit
+receives independent `ACCEPT` may Task 002 be prepared; Task 002 remains
+`NOT_STARTED`.
