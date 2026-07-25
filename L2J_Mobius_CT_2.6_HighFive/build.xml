@@ -116,6 +116,17 @@
 				<attribute name="Main-Class" value="org.l2jmobius.tools.DatabaseInstaller" />
 			</manifest>
 		</jar>
+
+		<!-- Automatically copy freshly built server JARs into the runnable datapack. -->
+		<mkdir dir="${libs}" />
+		<copy file="${build.dist.libs}/LoginServer.jar"
+		      tofile="${libs}/LoginServer.jar"
+		      overwrite="true"
+		      verbose="true" />
+		<copy file="${build.dist.libs}/GameServer.jar"
+		      tofile="${libs}/GameServer.jar"
+		      overwrite="true"
+		      verbose="true" />
 	</target>
 
 	<target name="adding-core" depends="jar" description="Adding the compiled jars to the Zip file.">
