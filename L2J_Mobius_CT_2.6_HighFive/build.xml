@@ -26,12 +26,27 @@
 	<property name="datapack" location="dist" />
 	<property name="libs" location="${datapack}/libs" />
 	<property name="src" location="java" />
+	<property name="test.src" location="test/java" />
+	<property name="test.resources" location="test/resources" />
+	<property name="build.test" location="${build}/phantom-test" />
+	<property name="build.test.bin" location="${build.test}/bin" />
+	<property name="build.test.resources" location="${build.test}/resources" />
+	<property name="build.test.reports" location="${build.test}/reports" />
+	<property name="phantom.test.seed" value="20260725001" />
+	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 
 	<path id="classpath">
 		<fileset dir="${libs}">
 			<include name="*.jar" />
 			<exclude name="**/*-sources.jar" />
 		</fileset>
+	</path>
+
+	<path id="test.classpath">
+		<pathelement location="${build.bin}" />
+		<pathelement location="${build.test.bin}" />
+		<pathelement location="${build.test.resources}" />
+		<path refid="classpath" />
 	</path>
 
 	<pathconvert property="manifest.libs" pathsep=" ">
@@ -64,6 +79,104 @@
 	<target name="compile" depends="init" description="Compile the source.">
 		<javac srcdir="${src}" classpathref="classpath" destdir="${build.bin}" compiler="modern" debug="true" debuglevel="lines,vars,source" includeantruntime="false" source="25" target="25" encoding="UTF-8" />
 	</target>
+
+	<target name="init-test" depends="checkRequirements" description="Create isolated Phantom test output directories.">
+		<delete dir="${build.test}" quiet="true" />
+		<mkdir dir="${build.test.bin}" />
+		<mkdir dir="${build.test.resources}" />
+		<mkdir dir="${build.test.reports}" />
+		<copy todir="${build.test.resources}">
+			<fileset dir="${test.resources}" />
+		</copy>
+	</target>
+
+	<target name="compile-tests" depends="compile,init-test" description="Compile JDK-only Phantom tests separately from production classes.">
+		<javac srcdir="${test.src}" classpathref="test.classpath" destdir="${build.test.bin}" compiler="modern" debug="true" debuglevel="lines,vars,source" includeantruntime="false" source="25" target="25" encoding="UTF-8" />
+	</target>
+
+	<target name="test" depends="compile-tests" description="Run DB-free Phantom unit tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="unit" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
+	<target name="prepare-phantom-test-db" depends="compile-tests" description="Destructively recreate only the allowlisted Phantom test database.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestDatabaseProvisioner" classpathref="test.classpath" fork="true" failonerror="true">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+		</java>
+	</target>
+
+	<target name="phantom-negative-control" depends="compile-tests" description="Prove that an intentional test failure returns exit code 1.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="false" resultproperty="phantom.negative.exit">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="negative" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+		<condition property="phantom.negative.expected">
+			<equals arg1="${phantom.negative.exit}" arg2="1" />
+		</condition>
+		<fail unless="phantom.negative.expected" message="Runner negative control expected exit code 1 but received ${phantom.negative.exit}." />
+	</target>
+
+	<target name="phantom-db-guard-negative-control" depends="compile-tests" description="Prove production DB rejection before driver or Hikari initialization.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="false" resultproperty="phantom.guard.negative.exit">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="guard-negative" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+		<condition property="phantom.guard.negative.expected">
+			<equals arg1="${phantom.guard.negative.exit}" arg2="2" />
+		</condition>
+		<fail unless="phantom.guard.negative.expected" message="DB guard negative control expected exit code 2 but received ${phantom.guard.negative.exit}." />
+	</target>
+
+	<target name="phantom-db-test" depends="compile-tests" description="Run isolated Phantom database integration tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="db" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-scenario-test" depends="compile-tests" description="Run deterministic Phantom infrastructure scenario smoke.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="scenario" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-performance-smoke" depends="compile-tests" description="Run bounded deterministic Phantom harness performance smoke.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="performance" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-static-verify" description="Run the read-only Task 002 static verifier.">
+		<exec executable="powershell" dir="${basedir}" failonerror="true">
+			<arg value="-NoProfile" />
+			<arg value="-ExecutionPolicy" />
+			<arg value="Bypass" />
+			<arg value="-File" />
+			<arg value="${basedir}/tools/phantoms/verify-task-002.ps1" />
+		</exec>
+	</target>
+
+	<target name="verify" depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify" description="Run all Task 002 verification gates." />
 
 	<target name="jar" depends="compile" description="Create the jar files.">
 		<tstamp>

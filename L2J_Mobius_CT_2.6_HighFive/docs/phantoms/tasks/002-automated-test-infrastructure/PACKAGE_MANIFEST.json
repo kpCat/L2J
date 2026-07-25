@@ -1,0 +1,23 @@
+{
+  "package": "phantom-world-task-002-automated-test-infrastructure",
+  "taskId": "002-automated-test-infrastructure",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/002-automated-test-infrastructure/TASK.md",
+  "branch": "feature/phantom-world",
+  "acceptedBaseline": "7aa24faf202567add0fa81561242d37453c6055f",
+  "productionDatabase": "l2jmobiush5",
+  "testDatabase": "l2jmobiush5_phantom_test",
+  "testUser": "l2j_phantom_test",
+  "deterministicSeed": 20260725001,
+  "scenarioChecksum": "A7D53E8FCBF889691310AAC61A45EFD461702FECE26BA292D73309A9FE357C45",
+  "productionCodeIncluded": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "ARCHITECTURE.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

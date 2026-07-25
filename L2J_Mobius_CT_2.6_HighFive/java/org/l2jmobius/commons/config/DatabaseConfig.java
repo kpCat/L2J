@@ -29,7 +29,7 @@ import org.l2jmobius.commons.util.ConfigReader;
 public class DatabaseConfig
 {
 	// File
-	private static final String DATABASE_CONFIG_FILE = "./config/Database.ini";
+	public static final String DEFAULT_DATABASE_CONFIG_FILE = "./config/Database.ini";
 	
 	// Constants
 	public static String DATABASE_DRIVER;
@@ -45,7 +45,27 @@ public class DatabaseConfig
 	
 	public static void load()
 	{
-		final ConfigReader config = new ConfigReader(DATABASE_CONFIG_FILE);
+		load(DEFAULT_DATABASE_CONFIG_FILE, false);
+	}
+
+	public static void load(String configFile)
+	{
+		load(configFile, true);
+	}
+
+	private static void load(String configFile, boolean explicit)
+	{
+		if ((configFile == null) || configFile.isBlank())
+		{
+			throw new IllegalArgumentException("Database configuration path must not be empty.");
+		}
+
+		if (explicit && !new java.io.File(configFile).isFile())
+		{
+			throw new IllegalArgumentException("Database configuration file does not exist: " + configFile);
+		}
+
+		final ConfigReader config = new ConfigReader(configFile);
 		DATABASE_DRIVER = config.getString("Driver", "com.mysql.cj.jdbc.Driver");
 		DATABASE_URL = config.getString("URL", "jdbc:mysql://localhost/l2jmobius");
 		DATABASE_LOGIN = config.getString("Login", "root");

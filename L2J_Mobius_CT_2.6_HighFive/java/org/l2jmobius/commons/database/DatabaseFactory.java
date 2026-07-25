@@ -56,7 +56,7 @@ public class DatabaseFactory
 	 */
 	public static synchronized void init()
 	{
-		if ((DATABASE_POOL != null) && !DATABASE_POOL.isClosed())
+		if (isInitialized())
 		{
 			LOGGER.warning("Database: Connection pool is already initialized.");
 			return;
@@ -67,37 +67,7 @@ public class DatabaseFactory
 		
 		try
 		{
-			final HikariConfig config = new HikariConfig();
-			config.setDriverClassName(DatabaseConfig.DATABASE_DRIVER);
-			config.setJdbcUrl(DatabaseConfig.DATABASE_URL);
-			config.setUsername(DatabaseConfig.DATABASE_LOGIN);
-			config.setPassword(DatabaseConfig.DATABASE_PASSWORD);
-			
-			// Pool Size Configuration.
-			config.setMaximumPoolSize(determineMaxPoolSize(DatabaseConfig.DATABASE_MAX_CONNECTIONS)); // 100
-			config.setMinimumIdle(determineMinimumIdle(DatabaseConfig.DATABASE_MAX_CONNECTIONS)); // e.g., 20
-			
-			// Timeout Settings.
-			config.setConnectionTimeout(60000); // 1 minute.
-			config.setIdleTimeout(300000); // 5 minutes.
-			config.setMaxLifetime(600000); // 10 minutes.
-			
-			// Leak Detection.
-			config.setLeakDetectionThreshold(600000); // 10 minutes.
-			
-			// Pool Name for Identification.
-			config.setPoolName("L2JMobiusPool");
-			
-			// Register MBeans for Monitoring.
-			config.setRegisterMbeans(true);
-			
-			// Additional Optimizations.
-			config.setInitializationFailTimeout(-1);
-			config.setValidationTimeout(5000); // 5 seconds.
-			
-			// Initialize HikariDataSource.
-			DATABASE_POOL = new HikariDataSource(config);
-			
+			initializePool(false);
 			LOGGER.info("Database: HikariCP pool initialized successfully.");
 			
 			if (DatabaseConfig.DATABASE_TEST_CONNECTIONS)
@@ -114,7 +84,73 @@ public class DatabaseFactory
 			LOGGER.log(Level.SEVERE, "Database: Failed to initialize HikariCP pool.", e);
 		}
 	}
-	
+
+	/**
+	 * Initializes the pool from an explicit configuration and propagates any failure.
+	 * Callers are responsible for validating any environment-specific policy before
+	 * invoking this generic production-neutral seam.
+	 * @param configFile explicit database configuration file
+	 */
+	public static synchronized void initFromConfig(String configFile)
+	{
+		if (isInitialized())
+		{
+			throw new IllegalStateException("Database connection pool is already initialized.");
+		}
+
+		DatabaseConfig.load(configFile);
+		try
+		{
+			initializePool(true);
+			try (Connection connection = DATABASE_POOL.getConnection())
+			{
+				if (!connection.isValid(5))
+				{
+					throw new SQLException("Database connection validation failed.");
+				}
+			}
+		}
+		catch (Exception e)
+		{
+			close();
+			throw new IllegalStateException("Database connection pool initialization failed.", e);
+		}
+	}
+
+	private static void initializePool(boolean failFast)
+	{
+		final HikariConfig config = new HikariConfig();
+		config.setDriverClassName(DatabaseConfig.DATABASE_DRIVER);
+		config.setJdbcUrl(DatabaseConfig.DATABASE_URL);
+		config.setUsername(DatabaseConfig.DATABASE_LOGIN);
+		config.setPassword(DatabaseConfig.DATABASE_PASSWORD);
+
+		// Pool Size Configuration.
+		config.setMaximumPoolSize(determineMaxPoolSize(DatabaseConfig.DATABASE_MAX_CONNECTIONS)); // 100
+		config.setMinimumIdle(determineMinimumIdle(DatabaseConfig.DATABASE_MAX_CONNECTIONS)); // e.g., 20
+
+		// Timeout Settings.
+		config.setConnectionTimeout(60000); // 1 minute.
+		config.setIdleTimeout(300000); // 5 minutes.
+		config.setMaxLifetime(600000); // 10 minutes.
+
+		// Leak Detection.
+		config.setLeakDetectionThreshold(600000); // 10 minutes.
+
+		// Pool Name for Identification.
+		config.setPoolName("L2JMobiusPool");
+
+		// Register MBeans for Monitoring.
+		config.setRegisterMbeans(true);
+
+		// Additional Optimizations.
+		config.setInitializationFailTimeout(failFast ? 60000 : -1);
+		config.setValidationTimeout(5000); // 5 seconds.
+
+		// Initialize HikariDataSource.
+		DATABASE_POOL = new HikariDataSource(config);
+	}
+
 	/**
 	 * Determines the appropriate maximum pool size based on configuration and server capacity.
 	 * @param configuredMax The configured maximum pool size from Config.
@@ -258,6 +294,11 @@ public class DatabaseFactory
 	 */
 	public static Connection getConnection()
 	{
+		if (!isInitialized())
+		{
+			throw new IllegalStateException("Database connection pool is not initialized.");
+		}
+
 		try
 		{
 			return DATABASE_POOL.getConnection();
@@ -274,17 +315,29 @@ public class DatabaseFactory
 	 */
 	public static synchronized void close()
 	{
-		if ((DATABASE_POOL != null) && !DATABASE_POOL.isClosed())
+		if (DATABASE_POOL != null)
 		{
 			try
 			{
-				DATABASE_POOL.close();
-				LOGGER.info("Database: HikariCP pool closed successfully.");
+				if (!DATABASE_POOL.isClosed())
+				{
+					DATABASE_POOL.close();
+					LOGGER.info("Database: HikariCP pool closed successfully.");
+				}
 			}
 			catch (Exception e)
 			{
 				LOGGER.log(Level.SEVERE, "Database: There was a problem closing the data source.", e);
 			}
+			finally
+			{
+				DATABASE_POOL = null;
+			}
 		}
+	}
+
+	public static synchronized boolean isInitialized()
+	{
+		return (DATABASE_POOL != null) && !DATABASE_POOL.isClosed();
 	}
 }

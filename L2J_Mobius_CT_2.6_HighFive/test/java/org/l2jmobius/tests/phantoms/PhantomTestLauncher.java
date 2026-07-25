@@ -1,0 +1,340 @@
+/*
+ * Copyright (c) 2013 L2jMobius
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+ * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+package org.l2jmobius.tests.phantoms;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Pattern;
+
+import org.l2jmobius.tests.phantoms.PhantomTestDatabaseGuard.GuardException;
+
+public final class PhantomTestLauncher
+{
+	public static final int EXIT_SUCCESS = 0;
+	public static final int EXIT_TEST_FAILURE = 1;
+	public static final int EXIT_CONFIGURATION_REJECTED = 2;
+	public static final int EXIT_INTERNAL_ERROR = 3;
+	private static final Pattern NAMED_PASSWORD = Pattern.compile("(?i)(password\\s*[=:]\\s*)([^\\s,;]+)");
+	private static final Pattern JDBC_USER_INFO = Pattern.compile("(jdbc:[a-z]+://)[^/@\\s]+@");
+
+	private PhantomTestLauncher()
+	{
+	}
+
+	public static void main(String[] args)
+	{
+		System.exit(run(args));
+	}
+
+	static int run(String[] args)
+	{
+		if (args.length != 2)
+		{
+			System.err.println("Usage: PhantomTestLauncher <mode> <seed>");
+			return EXIT_INTERNAL_ERROR;
+		}
+
+		final String mode = args[0];
+		final long seed;
+		try
+		{
+			seed = Long.parseLong(args[1]);
+		}
+		catch (NumberFormatException e)
+		{
+			System.err.println("Invalid deterministic seed.");
+			return EXIT_CONFIGURATION_REJECTED;
+		}
+
+		final Path moduleRoot = Path.of(System.getProperty("phantom.module.root", ".")).toAbsolutePath().normalize();
+		final Path reportsDirectory = Path.of(System.getProperty("phantom.test.reports", "../build/phantom-test/reports")).toAbsolutePath().normalize();
+		final PhantomTestContext context = new PhantomTestContext(seed, moduleRoot, reportsDirectory);
+		if ("guard-negative".equals(mode))
+		{
+			return runGuardNegative(context);
+		}
+
+		final PhantomTestSuite suite = suite(mode);
+		if (suite == null)
+		{
+			System.err.println("Unknown Phantom test mode: " + mode);
+			return EXIT_CONFIGURATION_REJECTED;
+		}
+
+		final PhantomTestRegistry registry = new PhantomTestRegistry(suite.id());
+		try
+		{
+			suite.register(registry);
+		}
+		catch (Throwable throwable)
+		{
+			System.err.println("Test registration failed: " + sanitize(throwable.getMessage()));
+			return EXIT_INTERNAL_ERROR;
+		}
+
+		final List<PhantomTestRegistry.RegisteredTest> tests = registry.orderedTests();
+		if (tests.isEmpty())
+		{
+			System.err.println("No tests registered for suite " + suite.id() + ".");
+			return EXIT_INTERNAL_ERROR;
+		}
+
+		final List<PhantomTestResult> results = new ArrayList<>();
+		int exitCode = EXIT_SUCCESS;
+		boolean beforeCompleted = false;
+		try
+		{
+			suite.beforeAll(context);
+			beforeCompleted = true;
+			for (PhantomTestRegistry.RegisteredTest test : tests)
+			{
+				final long start = System.nanoTime();
+				try
+				{
+					test.testCase().run(context);
+					results.add(PhantomTestResult.passed(test.identity(), System.nanoTime() - start));
+				}
+				catch (Throwable throwable)
+				{
+					results.add(PhantomTestResult.failed(test.identity(), System.nanoTime() - start, throwable));
+					exitCode = Math.max(exitCode, (throwable instanceof PhantomTestConfigurationException) ? EXIT_CONFIGURATION_REJECTED : EXIT_TEST_FAILURE);
+				}
+			}
+		}
+		catch (Throwable throwable)
+		{
+			results.add(PhantomTestResult.failed(suite.id() + ".before-all", 0, throwable));
+			exitCode = Math.max(exitCode, exitCodeFor(throwable));
+		}
+		finally
+		{
+			if (beforeCompleted)
+			{
+				try
+				{
+					suite.afterAll(context);
+				}
+				catch (Throwable throwable)
+				{
+					results.add(PhantomTestResult.failed(suite.id() + ".after-all", 0, throwable));
+					exitCode = Math.max(exitCode, exitCodeFor(throwable));
+				}
+			}
+		}
+
+		try
+		{
+			writeReports(mode, suite.id(), context, results);
+		}
+		catch (IOException e)
+		{
+			System.err.println("Test report write failed: " + sanitize(e.getMessage()));
+			return EXIT_INTERNAL_ERROR;
+		}
+
+		printSummary(suite.id(), context.seed(), results);
+		return exitCode;
+	}
+
+	private static PhantomTestSuite suite(String mode)
+	{
+		return switch (mode)
+		{
+			case "unit" -> new PhantomHarnessUnitSuite();
+			case "negative" -> new PhantomNegativeControlSuite();
+			case "db" -> new PhantomTestDatabaseIntegrationSuite();
+			case "scenario" -> new PhantomScenarioSmokeSuite();
+			case "performance" -> new PhantomPerformanceSmokeSuite();
+			default -> null;
+		};
+	}
+
+	private static int runGuardNegative(PhantomTestContext context)
+	{
+		final Path directory = context.moduleRoot().resolve(".phantom-local/guard-negative");
+		final Path config = directory.resolve("Database.production.ini");
+		final Path marker = Path.of(System.getProperty("java.io.tmpdir"), "phantom-sentinel-" + ProcessHandle.current().pid() + ".marker");
+		System.setProperty("phantom.sentinel.marker", marker.toString());
+		try
+		{
+			Files.createDirectories(directory);
+			Files.deleteIfExists(marker);
+			final String content = """
+				Driver = org.l2jmobius.tests.phantoms.SentinelJdbcDriver
+				URL = jdbc:mysql://127.0.0.1:3308/l2jmobiush5
+				Login = l2j_phantom_test
+				Password = sentinel-not-used
+				MaximumDatabaseConnections = 4
+				TestDatabaseConnections = false
+				BackupDatabase = false
+				""";
+			Files.writeString(config, content, StandardCharsets.UTF_8);
+
+			try
+			{
+				PhantomTestDatabaseGuard.validate(context.moduleRoot(), config);
+				System.err.println("Production database guard unexpectedly accepted the config.");
+				return EXIT_INTERNAL_ERROR;
+			}
+			catch (GuardException expected)
+			{
+				if (Files.exists(marker))
+				{
+					System.err.println("Sentinel JDBC driver was touched before guard rejection.");
+					return EXIT_INTERNAL_ERROR;
+				}
+
+				context.record("guard.rejectedDatabase", PhantomTestDatabaseGuard.PRODUCTION_DATABASE);
+				context.record("guard.driverLoads", 0);
+				context.record("guard.connectionAttempts", 0);
+				final List<PhantomTestResult> results = List.of(PhantomTestResult.passed("db-guard-negative.production-rejected-before-driver", 0));
+				writeReports("guard-negative", "db-guard-negative", context, results);
+				printSummary("db-guard-negative", context.seed(), results);
+				System.out.println("Expected guard rejection exit=2; driverLoads=0; connectionAttempts=0.");
+				return EXIT_CONFIGURATION_REJECTED;
+			}
+		}
+		catch (IOException e)
+		{
+			System.err.println("Guard negative control failed: " + sanitize(e.getMessage()));
+			return EXIT_INTERNAL_ERROR;
+		}
+		finally
+		{
+			try
+			{
+				Files.deleteIfExists(config);
+				Files.deleteIfExists(directory);
+				Files.deleteIfExists(marker);
+			}
+			catch (IOException e)
+			{
+				System.err.println("Guard negative cleanup failed: " + sanitize(e.getMessage()));
+			}
+			System.clearProperty("phantom.sentinel.marker");
+		}
+	}
+
+	static int exitCodeFor(Throwable throwable)
+	{
+		if (throwable instanceof PhantomTestConfigurationException)
+		{
+			return EXIT_CONFIGURATION_REJECTED;
+		}
+		if (throwable instanceof AssertionError)
+		{
+			return EXIT_TEST_FAILURE;
+		}
+		return EXIT_INTERNAL_ERROR;
+	}
+
+	static String sanitize(String message)
+	{
+		if (message == null)
+		{
+			return "";
+		}
+		String sanitized = NAMED_PASSWORD.matcher(message).replaceAll("$1<redacted>");
+		sanitized = JDBC_USER_INFO.matcher(sanitized).replaceAll("$1<redacted>@");
+		return sanitized.replace('\r', ' ').replace('\n', ' ');
+	}
+
+	static String escapeXml(String value)
+	{
+		return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&apos;");
+	}
+
+	private static void writeReports(String mode, String suiteId, PhantomTestContext context, List<PhantomTestResult> results) throws IOException
+	{
+		Files.createDirectories(context.reportsDirectory());
+		int passed = 0;
+		for (PhantomTestResult result : results)
+		{
+			if (result.passed())
+			{
+				passed++;
+			}
+		}
+		final int failed = results.size() - passed;
+
+		final StringBuilder text = new StringBuilder();
+		text.append("suite=").append(suiteId).append(System.lineSeparator());
+		text.append("seed=").append(context.seed()).append(System.lineSeparator());
+		text.append("total=").append(results.size()).append(System.lineSeparator());
+		text.append("passed=").append(passed).append(System.lineSeparator());
+		text.append("failed=").append(failed).append(System.lineSeparator());
+		for (var measurement : context.measurements().entrySet())
+		{
+			text.append("measurement.").append(measurement.getKey()).append('=').append(measurement.getValue()).append(System.lineSeparator());
+		}
+		for (PhantomTestResult result : results)
+		{
+			text.append(result.passed() ? "PASS " : "FAIL ").append(result.name()).append(" elapsedNanos=").append(result.elapsedNanos());
+			if (!result.passed())
+			{
+				text.append(" type=").append(result.failureType()).append(" message=").append(result.failureMessage()).append(" seed=").append(context.seed());
+			}
+			text.append(System.lineSeparator());
+		}
+		Files.writeString(context.reportsDirectory().resolve(mode + ".txt"), text, StandardCharsets.UTF_8);
+
+		final StringBuilder xml = new StringBuilder();
+		xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		xml.append("<testsuite name=\"").append(escapeXml(suiteId)).append("\" seed=\"").append(context.seed()).append("\" tests=\"").append(results.size()).append("\" passed=\"").append(passed).append("\" failures=\"").append(failed).append("\">\n");
+		xml.append("  <properties>\n");
+		for (var measurement : context.measurements().entrySet())
+		{
+			xml.append("    <property name=\"").append(escapeXml(measurement.getKey())).append("\" value=\"").append(escapeXml(measurement.getValue())).append("\"/>\n");
+		}
+		xml.append("  </properties>\n");
+		for (PhantomTestResult result : results)
+		{
+			xml.append("  <testcase name=\"").append(escapeXml(result.name())).append("\" elapsedNanos=\"").append(result.elapsedNanos()).append("\">");
+			if (!result.passed())
+			{
+				xml.append("<failure type=\"").append(escapeXml(result.failureType())).append("\" message=\"").append(escapeXml(result.failureMessage())).append("\" seed=\"").append(context.seed()).append("\"/>");
+			}
+			xml.append("</testcase>\n");
+		}
+		xml.append("</testsuite>\n");
+		Files.writeString(context.reportsDirectory().resolve(mode + ".xml"), xml, StandardCharsets.UTF_8);
+	}
+
+	private static void printSummary(String suiteId, long seed, List<PhantomTestResult> results)
+	{
+		int failed = 0;
+		for (PhantomTestResult result : results)
+		{
+			final String status = result.passed() ? "PASS" : "FAIL";
+			if (!result.passed())
+			{
+				failed++;
+			}
+			System.out.println("[" + status + "] " + result.name() + (result.passed() ? "" : " - " + result.failureType() + ": " + result.failureMessage() + " seed=" + seed));
+		}
+		System.out.println(String.format(Locale.ROOT, "SUMMARY: suite=%s seed=%d total=%d passed=%d failed=%d", suiteId, seed, results.size(), results.size() - failed, failed));
+	}
+}
