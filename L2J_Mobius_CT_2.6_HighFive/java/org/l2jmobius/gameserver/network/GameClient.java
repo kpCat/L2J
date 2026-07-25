@@ -33,6 +33,7 @@ import org.l2jmobius.gameserver.LoginServerThread;
 import org.l2jmobius.gameserver.LoginServerThread.SessionKey;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.ServerConfig;
+import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.config.custom.WeddingConfig;
 import org.l2jmobius.gameserver.data.sql.CharInfoTable;
 import org.l2jmobius.gameserver.data.sql.ClanTable;
@@ -77,6 +78,7 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 	private int _protocolVersion;
 	private int[][] _trace;
 	private Lease _playerIdentityLease;
+	private boolean _playerIdentityLeaseRetentionReported;
 	
 	public GameClient(org.l2jmobius.commons.network.Connection<GameClient> connection)
 	{
@@ -94,13 +96,26 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 	public void onDisconnection()
 	{
 		LOGGER_ACCOUNTING.finer("Client disconnected: " + this);
-		LoginServerThread.getInstance().sendLogout(_accountName);
-		if ((_player == null) || !_player.isInOfflineMode())
+		_playerLock.lock();
+		try
 		{
-			Disconnection.of(this).onDisconnection();
+			_connectionState = ConnectionState.DISCONNECTED;
+			try
+			{
+				LoginServerThread.getInstance().sendLogout(_accountName);
+			}
+			finally
+			{
+				if ((_player == null) || !_player.isInOfflineMode())
+				{
+					Disconnection.of(this).onDisconnection();
+				}
+			}
 		}
-		
-		_connectionState = ConnectionState.DISCONNECTED;
+		finally
+		{
+			_playerLock.unlock();
+		}
 	}
 	
 	@Override
@@ -510,11 +525,18 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 		{
 			return null;
 		}
-		
-		Lease identityLease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(objectId, OwnerKind.REAL_LOGIN);
+
+		final PhantomIdentityLeaseRegistry identityRegistry = PhantomIdentityLeaseRegistry.getInstance();
+		final OwnerKind currentOwner = identityRegistry.getOwnerKind(objectId);
+		if (!PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(PhantomPlayersConfig.isEnabled(), currentOwner))
+		{
+			return loadWithoutIdentityArbitration(objectId, characterSlot);
+		}
+
+		Lease identityLease = identityRegistry.tryAcquire(objectId, OwnerKind.REAL_LOGIN);
 		if (identityLease == null)
 		{
-			if (PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) == OwnerKind.PHANTOM)
+			if (identityRegistry.getOwnerKind(objectId) == OwnerKind.PHANTOM)
 			{
 				LOGGER.warning("Character identity is materialized by Phantom: " + objectId);
 			}
@@ -598,6 +620,47 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 		}
 	}
 
+	private Player loadWithoutIdentityArbitration(int objectId, int characterSlot)
+	{
+		Player player = World.getInstance().getPlayer(objectId);
+		if (player != null)
+		{
+			// Preserve the legacy real-real double-login cleanup while Phantom is disabled.
+			if (player.isOnlineInt() == 1)
+			{
+				LOGGER.severe("Attempt of double login: " + player.getName() + "(" + objectId + ") " + _accountName);
+			}
+
+			if (player.getClient() != null)
+			{
+				Disconnection.of(player).storeAndDeleteWith(LeaveWorld.STATIC_PACKET);
+			}
+			else
+			{
+				player.storeMe();
+				player.deleteMe();
+			}
+
+			return null;
+		}
+
+		player = Player.load(objectId);
+		if (player != null)
+		{
+			// prevent some values for each login
+			player.setRunning(); // running is default
+			player.standUp(); // standing is default
+			player.refreshOverloaded();
+			player.refreshExpertisePenalty();
+		}
+		else
+		{
+			LOGGER.severe("Could not restore in slot: " + characterSlot);
+		}
+
+		return player;
+	}
+
 	private synchronized void attachPlayerIdentityLease(Lease identityLease)
 	{
 		if (_playerIdentityLease != null)
@@ -605,12 +668,29 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 			throw new IllegalStateException("GameClient already owns a Player identity lease.");
 		}
 		_playerIdentityLease = identityLease;
+		_playerIdentityLeaseRetentionReported = false;
+	}
+
+	public synchronized boolean hasPlayerIdentityLease()
+	{
+		return _playerIdentityLease != null;
+	}
+
+	public synchronized boolean markPlayerIdentityLeaseRetentionReported()
+	{
+		if ((_playerIdentityLease == null) || _playerIdentityLeaseRetentionReported)
+		{
+			return false;
+		}
+		_playerIdentityLeaseRetentionReported = true;
+		return true;
 	}
 
 	public synchronized void releasePlayerIdentityLease()
 	{
 		final Lease identityLease = _playerIdentityLease;
 		_playerIdentityLease = null;
+		_playerIdentityLeaseRetentionReported = false;
 		if (identityLease != null)
 		{
 			identityLease.close();

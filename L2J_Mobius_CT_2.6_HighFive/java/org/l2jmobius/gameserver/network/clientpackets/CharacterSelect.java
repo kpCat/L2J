@@ -104,6 +104,11 @@ public class CharacterSelect extends ClientPacket
 		{
 			try
 			{
+				if (client.getConnectionState() != ConnectionState.AUTHENTICATED)
+				{
+					return;
+				}
+
 				// should always be null
 				// but if not then this is repeated packet and nothing should be done here
 				if (client.getPlayer() == null)

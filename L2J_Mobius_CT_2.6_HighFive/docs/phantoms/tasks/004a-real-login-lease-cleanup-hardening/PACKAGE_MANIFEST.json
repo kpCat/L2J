@@ -1,0 +1,23 @@
+{
+  "package": "phantom-world-task-004a-real-login-lease-cleanup-hardening",
+  "taskId": "004a-real-login-lease-cleanup-hardening",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/004a-real-login-lease-cleanup-hardening/TASK.md",
+  "branch": "feature/phantom-world",
+  "reviewedTask004Commit": "5b22b1ee9bab556cd5a14c2212dfa3f4119c4566",
+  "allowsOneRoadmapOnlyChildAsEffectiveBase": true,
+  "productionDatabase": "l2jmobiush5",
+  "testDatabase": "l2jmobiush5_phantom_test",
+  "deterministicSeed": 20260725001,
+  "task005Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "ARCHITECTURE.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

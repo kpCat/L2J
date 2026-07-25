@@ -61,6 +61,11 @@ public final class PhantomIdentityLeaseRegistry
 		return entry == null ? null : entry.ownerKind();
 	}
 
+	public static boolean requiresRealLoginArbitration(boolean phantomSystemEnabled, OwnerKind currentOwner)
+	{
+		return phantomSystemEnabled || (currentOwner == OwnerKind.PHANTOM);
+	}
+
 	public int getActiveLeaseCount()
 	{
 		return _owners.size();

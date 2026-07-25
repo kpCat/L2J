@@ -92,6 +92,11 @@ public class PlayerAutoSaveTaskManager implements Runnable
 	{
 		PLAYER_TIMES.remove(player);
 	}
+
+	public boolean contains(Player player)
+	{
+		return PLAYER_TIMES.containsKey(player);
+	}
 	
 	public static PlayerAutoSaveTaskManager getInstance()
 	{

@@ -45,11 +45,26 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomActionFacade;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
+import org.l2jmobius.gameserver.phantoms.player.PhantomPlayerCleanupPolicy;
 import org.l2jmobius.gameserver.phantoms.player.PhantomPlayerMaterializationSpike;
 import org.l2jmobius.gameserver.phantoms.player.PhantomPlayerMaterializationSpike.FailurePoint;
+import org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager;
 
 public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 {
+	private static final List<FailurePoint> TASK_004_FAILURE_POINTS = List.of(
+		FailurePoint.AFTER_IDENTITY_CLAIM,
+		FailurePoint.AFTER_PLAYER_LOAD,
+		FailurePoint.AFTER_IDENTITY_ATTACHMENT,
+		FailurePoint.AFTER_HEADLESS_OUTPUT_ATTACHMENT,
+		FailurePoint.AFTER_DOMAIN_INITIALIZATION,
+		FailurePoint.AFTER_ONLINE_ACTIVATION,
+		FailurePoint.AFTER_WORLD_SPAWN,
+		FailurePoint.AFTER_ACTION_ADMISSION,
+		FailurePoint.AFTER_ACTION_MUTATION,
+		FailurePoint.AFTER_STORE_BEFORE_DELETE,
+		FailurePoint.AFTER_DELETE_BEFORE_IDENTITY_RELEASE);
+
 	private final PhantomHeadlessPlayerTestEnvironment _environment = new PhantomHeadlessPlayerTestEnvironment();
 
 	@Override
@@ -80,10 +95,14 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 		registry.add("actual-item-list-recursion", _ -> testItemListRecursion());
 		registry.add("bounded-recursion-and-recording", _ -> testBoundedRecursionAndRecording());
 		registry.add("identity-token-and-concurrency", _ -> testIdentityTokenAndConcurrency());
+		registry.add("real-login-arbitration-policy", _ -> testRealLoginArbitrationPolicy());
 		registry.add("identity-materialization-collisions", _ -> testIdentityMaterializationCollisions());
+		registry.add("shared-cleanup-policy-read-only", _ -> testSharedCleanupPolicy());
 		registry.add("materialize-action-cleanup-reload", _ -> testLifecycleActionAndReload());
 		registry.add("observer-visibility-and-creature-say-snoop", _ -> testObserverVisibilityAndSnoop());
 		registry.add("action-admission-closes-before-cleanup", _ -> testActionCleanupRace());
+		registry.add("cleanup-before-store-retains-and-retries", _ -> testCleanupOperationFailure(FailurePoint.BEFORE_STORE_OPERATION));
+		registry.add("cleanup-before-delete-retains-and-retries", _ -> testCleanupOperationFailure(FailurePoint.BEFORE_DELETE_OPERATION));
 		registry.add("failure-matrix-all-eleven-points", context -> testFailureMatrix(context));
 		registry.add("final-world-autosave-lease-residue", _ ->
 		{
@@ -299,6 +318,30 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(null, registry.getOwnerKind(concurrentObjectId), "Concurrent identity lease was not released.");
 	}
 
+	private void testRealLoginArbitrationPolicy()
+	{
+		PhantomAssertions.assertFalse(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(false, null), "Disabled mode without an owner must preserve the legacy path.");
+		PhantomAssertions.assertFalse(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(false, OwnerKind.REAL_LOGIN), "Disabled mode with a REAL_LOGIN owner must preserve legacy semantics.");
+		PhantomAssertions.assertTrue(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(false, OwnerKind.PHANTOM), "Disabled mode must still protect an existing PHANTOM owner.");
+		PhantomAssertions.assertTrue(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(true, null), "Enabled mode without an owner must arbitrate.");
+		PhantomAssertions.assertTrue(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(true, OwnerKind.REAL_LOGIN), "Enabled mode with a REAL_LOGIN owner must arbitrate.");
+		PhantomAssertions.assertTrue(PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(true, OwnerKind.PHANTOM), "Enabled mode with a PHANTOM owner must arbitrate.");
+
+		final PhantomIdentityLeaseRegistry registry = PhantomIdentityLeaseRegistry.getInstance();
+		final int objectId = Integer.MAX_VALUE - 103;
+		final int before = registry.getActiveLeaseCount();
+		if (PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(false, registry.getOwnerKind(objectId)))
+		{
+			final Lease unexpected = registry.tryAcquire(objectId, OwnerKind.REAL_LOGIN);
+			if (unexpected != null)
+			{
+				unexpected.close();
+			}
+		}
+		PhantomAssertions.assertEquals(before, registry.getActiveLeaseCount(), "Disabled legacy policy created a REAL_LOGIN lease.");
+		PhantomAssertions.assertEquals(null, registry.getOwnerKind(objectId), "Disabled legacy policy retained registry ownership.");
+	}
+
 	private void testIdentityMaterializationCollisions() throws Exception
 	{
 		final PhantomIdentityLeaseRegistry registry = PhantomIdentityLeaseRegistry.getInstance();
@@ -344,6 +387,36 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(null, registry.getOwnerKind(missingObjectId), "Failed Player load retained identity ownership.");
 	}
 
+	private void testSharedCleanupPolicy() throws Exception
+	{
+		final Player player = Player.load(_environment.primary().objectId());
+		PhantomAssertions.assertTrue(player != null, "Could not load cleanup-policy fixture.");
+		try
+		{
+			player.spawnMe();
+			final CleanupObservation activeBefore = cleanupObservation(player);
+			PhantomAssertions.assertTrue(activeBefore.online(), "Cleanup-policy fixture is not online.");
+			PhantomAssertions.assertTrue(activeBefore.worldPlayerPresent() && activeBefore.worldObjectPresent(), "Cleanup-policy fixture is not present in World.");
+			PhantomAssertions.assertTrue(activeBefore.autosavePresent(), "Cleanup-policy fixture is not present in autosave.");
+			PhantomAssertions.assertFalse(PhantomPlayerCleanupPolicy.isComplete(player), "Online/World/autosave state was accepted as complete.");
+			PhantomAssertions.assertEquals(activeBefore, cleanupObservation(player), "Cleanup policy mutated the active Player state.");
+
+			_environment.cleanupLoadedPlayer(player);
+			final CleanupObservation cleanBefore = cleanupObservation(player);
+			PhantomAssertions.assertFalse(cleanBefore.online() || cleanBefore.worldPlayerPresent() || cleanBefore.worldObjectPresent() || cleanBefore.autosavePresent() || cleanBefore.clientPresent(), "Canonical delete did not establish clean postconditions.");
+			PhantomAssertions.assertTrue(PhantomPlayerCleanupPolicy.isComplete(player), "Canonical deleted state was not accepted as complete.");
+			PhantomAssertions.assertEquals(cleanBefore, cleanupObservation(player), "Cleanup policy mutated the clean Player state.");
+		}
+		finally
+		{
+			if (!PhantomPlayerCleanupPolicy.isComplete(player))
+			{
+				_environment.cleanupLoadedPlayer(player);
+			}
+		}
+		_environment.assertClean(_environment.primary(), player);
+	}
+
 	private void testLifecycleActionAndReload() throws Exception
 	{
 		final PhantomHeadlessPlayerFixture fixture = _environment.primary();
@@ -364,7 +437,10 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 		finally
 		{
 			first.cleanup();
+			PhantomAssertions.assertEquals(PhantomPlayerMaterializationSpike.State.STORED, first.snapshot().state(), "Successful cleanup did not end in STORED.");
+			final PhantomPlayerMaterializationSpike.Snapshot stored = first.snapshot();
 			first.cleanup();
+			PhantomAssertions.assertEquals(stored, first.snapshot(), "Repeated successful cleanup was not a no-op.");
 		}
 		_environment.assertClean(fixture, firstPlayer);
 
@@ -486,10 +562,49 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 		_environment.assertClean(_environment.primary(), player);
 	}
 
+	private void testCleanupOperationFailure(FailurePoint failurePoint) throws Exception
+	{
+		final AtomicInteger injected = new AtomicInteger();
+		final PhantomPlayerMaterializationSpike spike = spike(_environment.primary(), new HeadlessPlayerOutboundSession(8, 64, 8), point ->
+		{
+			if ((point == failurePoint) && injected.compareAndSet(0, 1))
+			{
+				throw new InjectedFailure(failurePoint);
+			}
+		});
+		spike.materialize();
+		final Player retainedPlayer = spike.getPlayer();
+		try
+		{
+			PhantomAssertions.assertThrows(InjectedFailure.class, spike::cleanup, "Before-operation cleanup failure did not propagate.");
+			final PhantomPlayerMaterializationSpike.Snapshot failed = spike.snapshot();
+			PhantomAssertions.assertEquals(PhantomPlayerMaterializationSpike.State.FAILED, failed.state(), "Failed cleanup did not enter FAILED.");
+			PhantomAssertions.assertTrue(failed.playerRetained() && failed.identityLeaseRetained() && failed.identityAttached() && failed.outboundAttached(), "Failed cleanup released Phantom ownership.");
+			PhantomAssertions.assertEquals(retainedPlayer, spike.getPlayer(), "Failed cleanup cleared the retained Player.");
+			PhantomAssertions.assertEquals(OwnerKind.PHANTOM, PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(_environment.primary().objectId()), "Failed cleanup released the PHANTOM lease.");
+			PhantomAssertions.assertTrue(retainedPlayer.hasHeadlessOutboundSession(), "Failed cleanup detached headless output.");
+
+			spike.cleanup();
+			PhantomAssertions.assertEquals(PhantomPlayerMaterializationSpike.State.STORED, spike.snapshot().state(), "Cleanup retry did not reach STORED.");
+			final PhantomPlayerMaterializationSpike.Snapshot stored = spike.snapshot();
+			spike.cleanup();
+			PhantomAssertions.assertEquals(stored, spike.snapshot(), "Repeated successful cleanup was not a no-op.");
+			PhantomAssertions.assertEquals(1, injected.get(), "Before-operation failure was not injected exactly once.");
+		}
+		finally
+		{
+			if (spike.snapshot().state() != PhantomPlayerMaterializationSpike.State.STORED)
+			{
+				spike.cleanup();
+			}
+		}
+		_environment.assertClean(_environment.primary(), retainedPlayer);
+	}
+
 	private void testFailureMatrix(PhantomTestContext context) throws Exception
 	{
 		int verified = 0;
-		for (FailurePoint failurePoint : FailurePoint.values())
+		for (FailurePoint failurePoint : TASK_004_FAILURE_POINTS)
 		{
 			final AtomicInteger injected = new AtomicInteger();
 			final PhantomPlayerMaterializationSpike spike = spike(_environment.primary(), new HeadlessPlayerOutboundSession(8, 64, 8), point ->
@@ -530,7 +645,12 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 			verified++;
 		}
 		context.record("headless.failurePointsVerified", verified);
-		PhantomAssertions.assertEquals(FailurePoint.values().length, verified, "Failure matrix did not cover every point.");
+		PhantomAssertions.assertEquals(11, verified, "Task 004 failure matrix did not preserve all eleven points.");
+	}
+
+	private static CleanupObservation cleanupObservation(Player player)
+	{
+		return new CleanupObservation(player.isOnline(), World.getInstance().getPlayer(player.getObjectId()) == player, World.getInstance().findObject(player.getObjectId()) == player, PlayerAutoSaveTaskManager.getInstance().contains(player), player.getClient() != null);
 	}
 
 	private static PhantomPlayerMaterializationSpike spike(PhantomHeadlessPlayerFixture fixture, HeadlessPlayerOutboundSession output, PhantomPlayerMaterializationSpike.FailureInjector injector)
@@ -608,5 +728,9 @@ public final class PhantomHeadlessPlayerSuite implements PhantomTestSuite
 		{
 			super(point.name());
 		}
+	}
+
+	private record CleanupObservation(boolean online, boolean worldPlayerPresent, boolean worldObjectPresent, boolean autosavePresent, boolean clientPresent)
+	{
 	}
 }

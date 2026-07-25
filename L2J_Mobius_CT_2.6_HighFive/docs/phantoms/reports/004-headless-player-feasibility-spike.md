@@ -21,6 +21,30 @@ FEASIBLE_WITH_SEAM_PENDING_INDEPENDENT_REVIEW
 - Task 005: `NOT_STARTED`.
 - ADR remains `Proposed`.
 
+## Independent Task 004 review closure
+
+Независимое ревью подтвердило техническую реализуемость минимального
+outbound/session seam, но потребовало отдельный safety hotfix Task 004A для
+закрытия гонки login/disconnect и fail-open освобождения identity lease.
+
+```text
+Commit: 5b22b1ee9bab556cd5a14c2212dfa3f4119c4566
+Parent: 1ca74a3d96e8fa51612ef3e5145c7398abf60f6d
+Push/remote: exact
+Final verifier 1: 97/97
+Final verifier 2: 97/97
+Verifier SHA-256:
+FA94A404CC98A16BA892DCD93CFC979C8CB0F2D51B0AC4978696404E54B251E9
+Independent feasibility verdict: ACCEPT
+Independent commit verdict: FIX_REQUIRED
+Task 004A: REQUIRED
+```
+
+Review record:
+`docs/phantoms/reviews/004-headless-player-feasibility-spike-review.md`.
+Task 004A закрывает только найденные lifecycle/ownership findings; это не
+отменяет доказанную техническую реализуемость seam и не разрешает Task 005.
+
 ## Approved documentation-only baseline advancement
 
 Во время Task 004 пользователь одобрил новый effective baseline:

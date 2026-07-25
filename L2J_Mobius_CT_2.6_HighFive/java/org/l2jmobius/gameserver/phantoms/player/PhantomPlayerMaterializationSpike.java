@@ -56,7 +56,9 @@ public final class PhantomPlayerMaterializationSpike implements AutoCloseable
 		AFTER_WORLD_SPAWN,
 		AFTER_ACTION_ADMISSION,
 		AFTER_ACTION_MUTATION,
+		BEFORE_STORE_OPERATION,
 		AFTER_STORE_BEFORE_DELETE,
+		BEFORE_DELETE_OPERATION,
 		AFTER_DELETE_BEFORE_IDENTITY_RELEASE
 	}
 
@@ -259,38 +261,20 @@ public final class PhantomPlayerMaterializationSpike implements AutoCloseable
 			return;
 		}
 		_cleanupStarted = true;
-		if (_state != State.FAILED)
-		{
-			_state = State.DEMATERIALIZING;
-		}
+		_state = State.DEMATERIALIZING;
 
-		RuntimeException firstFailure = null;
+		RuntimeException afterStepFailure = null;
 		try
 		{
 			closeActionAdmissionAndDrain();
 
 			final Player cleanupPlayer = _player;
-			if (cleanupPlayer != null)
+			if ((cleanupPlayer != null) && !PhantomPlayerCleanupPolicy.isComplete(cleanupPlayer))
 			{
 				cleanupPlayer.stopAllTasks();
-
-				try
-				{
-					_actionFacade.restoreFixtureBaseline(cleanupPlayer, _fixtureItemBaseline);
-				}
-				catch (RuntimeException e)
-				{
-					firstFailure = remember(firstFailure, e);
-				}
-
-				try
-				{
-					cleanupPlayer.storeMe();
-				}
-				catch (RuntimeException e)
-				{
-					firstFailure = remember(firstFailure, e);
-				}
+				_actionFacade.restoreFixtureBaseline(cleanupPlayer, _fixtureItemBaseline);
+				failAfter(FailurePoint.BEFORE_STORE_OPERATION);
+				cleanupPlayer.storeMe();
 
 				try
 				{
@@ -298,17 +282,11 @@ public final class PhantomPlayerMaterializationSpike implements AutoCloseable
 				}
 				catch (RuntimeException e)
 				{
-					firstFailure = remember(firstFailure, e);
+					afterStepFailure = remember(afterStepFailure, e);
 				}
 
-				try
-				{
-					cleanupPlayer.deleteMe();
-				}
-				catch (RuntimeException e)
-				{
-					firstFailure = remember(firstFailure, e);
-				}
+				failAfter(FailurePoint.BEFORE_DELETE_OPERATION);
+				cleanupPlayer.deleteMe();
 
 				try
 				{
@@ -316,8 +294,13 @@ public final class PhantomPlayerMaterializationSpike implements AutoCloseable
 				}
 				catch (RuntimeException e)
 				{
-					firstFailure = remember(firstFailure, e);
+					afterStepFailure = remember(afterStepFailure, e);
 				}
+			}
+
+			if ((cleanupPlayer != null) && !PhantomPlayerCleanupPolicy.isComplete(cleanupPlayer))
+			{
+				throw new IllegalStateException("Canonical Player cleanup postconditions are incomplete");
 			}
 
 			if (_outboundAttachment != null)
@@ -335,16 +318,26 @@ public final class PhantomPlayerMaterializationSpike implements AutoCloseable
 
 			_player = null;
 			_dematerializedAtNanos = System.nanoTime();
+			_state = State.STORED;
 			_cleanupFinished = true;
+		}
+		catch (RuntimeException | Error e)
+		{
+			_state = State.FAILED;
+			if ((afterStepFailure != null) && (afterStepFailure != e))
+			{
+				e.addSuppressed(afterStepFailure);
+			}
+			throw e;
 		}
 		finally
 		{
 			_cleanupStarted = false;
 		}
 
-		if (firstFailure != null)
+		if (afterStepFailure != null)
 		{
-			throw firstFailure;
+			throw afterStepFailure;
 		}
 	}
 

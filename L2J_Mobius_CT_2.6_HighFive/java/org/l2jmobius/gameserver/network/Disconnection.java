@@ -26,6 +26,7 @@ import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.managers.AntiFeedManager;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.network.serverpackets.ServerPacket;
+import org.l2jmobius.gameserver.phantoms.player.PhantomPlayerCleanupPolicy;
 import org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager;
 
 /**
@@ -109,6 +110,7 @@ public class Disconnection
 	 */
 	public void storeAndDelete()
 	{
+		Exception failure = null;
 		try
 		{
 			if (_player != null)
@@ -129,14 +131,24 @@ public class Disconnection
 		}
 		catch (Exception e)
 		{
-			LOGGER.warning(getClass().getSimpleName() + ": Problem with storeAndDelete: " + e.getMessage());
+			failure = e;
 		}
-		finally
+
+		if ((_client != null) && _client.hasPlayerIdentityLease())
 		{
-			if (_client != null)
+			if ((failure == null) && (_player != null) && PhantomPlayerCleanupPolicy.isComplete(_player))
 			{
 				_client.releasePlayerIdentityLease();
 			}
+			else if (_client.markPlayerIdentityLeaseRetentionReported())
+			{
+				final String reason = failure == null ? "cleanup postconditions are incomplete" : "cleanup operation threw " + failure.getClass().getSimpleName();
+				LOGGER.warning(getClass().getSimpleName() + ": REAL_LOGIN identity lease retained for object " + (_player == null ? "unknown" : _player.getObjectId()) + "; " + reason);
+			}
+		}
+		else if (failure != null)
+		{
+			LOGGER.warning(getClass().getSimpleName() + ": Problem with storeAndDelete: " + failure.getClass().getSimpleName());
 		}
 	}
 	
@@ -163,7 +175,7 @@ public class Disconnection
 	{
 		if (_player == null)
 		{
-			if (_client != null)
+			if ((_client != null) && !_client.hasPlayerIdentityLease())
 			{
 				_client.releasePlayerIdentityLease();
 			}
@@ -176,23 +188,7 @@ public class Disconnection
 		}
 		else
 		{
-			ThreadPool.schedule(() ->
-			{
-				try
-				{
-					if (_player.isOnline())
-					{
-						storeAndDelete();
-					}
-				}
-				finally
-				{
-					if (_client != null)
-					{
-						_client.releasePlayerIdentityLease();
-					}
-				}
-			}, AttackStanceTaskManager.COMBAT_TIME);
+			ThreadPool.schedule(this::storeAndDelete, AttackStanceTaskManager.COMBAT_TIME);
 		}
 	}
 }

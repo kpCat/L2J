@@ -113,6 +113,28 @@ This is a recommendation to accept the seam, not an ADR status transition.
 The ADR remains `Proposed` until independent review. The spike is not wired
 into production startup and does not authorize Task 005.
 
+## Task 004A hardening recommendation
+
+Independent review accepted the technical feasibility of the seam and required
+four bounded ownership/lifecycle corrections. Task 004A implements disabled-mode
+legacy login compatibility, shared CharacterSelect/disconnection locking,
+fail-closed REAL_LOGIN release postconditions and retryable Phantom cleanup.
+
+The resulting technical recommendation is:
+
+```text
+FEASIBLE_WITH_SEAM_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+```
+
+Identity ownership is now released only after the exact `Player` is offline,
+absent from both World registries and autosave, and detached from its client.
+Operation failures retain the Player, outbound attachment and PHANTOM lease;
+retry reaches terminal `STORED` only after all postconditions hold.
+
+This remains implementation evidence rather than self-acceptance. ADR status
+stays `Proposed`, Task 004A awaits independent review, and Task 005 remains
+`NOT_STARTED`.
+
 ## Rollback
 
 Keep the real-client adapter as the default/only active implementation, remove
