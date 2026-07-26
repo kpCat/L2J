@@ -31,6 +31,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
@@ -55,6 +56,7 @@ public final class PhantomSystem
 	private final boolean _productionMaterialization;
 	private PhantomMaterializationService _materializationService;
 	private PhantomDecisionEngine _decisionEngine;
+	private PhantomNavigationService _navigationService;
 	private State _state = State.NEW;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
@@ -113,6 +115,11 @@ public final class PhantomSystem
 			{
 				_scheduler = createScheduler(PhantomActivityMaterializationPort.noop());
 			}
+			_navigationService = new PhantomNavigationService(_metrics);
+			if (!_navigationService.start())
+			{
+				throw new IllegalStateException("Phantom navigation service could not enter the running state.");
+			}
 			if (!_scheduler.start())
 			{
 				throw new IllegalStateException("Phantom scheduler could not enter the running state.");
@@ -128,6 +135,10 @@ public final class PhantomSystem
 			{
 				_decisionEngine.beginStop();
 			}
+			if (_navigationService != null)
+			{
+				_navigationService.beginStop();
+			}
 			if (_materializationService != null)
 			{
 				_materializationService.shutdown();
@@ -139,6 +150,10 @@ public final class PhantomSystem
 			if (_decisionEngine != null)
 			{
 				_decisionEngine.finishStop();
+			}
+			if (_navigationService != null)
+			{
+				_navigationService.finishStop();
 			}
 			_state = State.STOPPED;
 			throw e;
@@ -162,6 +177,10 @@ public final class PhantomSystem
 			{
 				_decisionEngine.beginStop();
 			}
+			if (_navigationService != null)
+			{
+				_navigationService.beginStop();
+			}
 			if (_materializationService != null)
 			{
 				final ShutdownResult result = _materializationService.shutdown();
@@ -178,6 +197,12 @@ public final class PhantomSystem
 			}
 			if ((_decisionEngine != null) && !_decisionEngine.finishStop())
 			{
+				_state = State.FAILED;
+				return false;
+			}
+			if ((_navigationService != null) && !_navigationService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
 				return false;
 			}
@@ -199,8 +224,13 @@ public final class PhantomSystem
 			{
 				return false;
 			}
-			if ((_decisionEngine != null) && !_decisionEngine.finishStop())
+			if ((_decisionEngine != null) && (_decisionEngine.snapshot().state() != PhantomDecisionEngine.State.STOPPED) && !_decisionEngine.finishStop())
 			{
+				return false;
+			}
+			if ((_navigationService != null) && (_navigationService.snapshot().state() != PhantomNavigationService.ServiceState.STOPPED) && !_navigationService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
 				return false;
 			}
 			_metrics.recordLifecycleStop();
@@ -214,7 +244,7 @@ public final class PhantomSystem
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
 	}
 
 	public static synchronized boolean startConfigured()
@@ -318,6 +348,7 @@ public final class PhantomSystem
 		final PhantomPlayersConfig.Settings settings = new PhantomPlayersConfig.Settings(true, false, serviceSnapshot.maximumMaterialized());
 		final PhantomSystem configured = new PhantomSystem(settings, false);
 		configured._scheduler = configured.createScheduler(PhantomActivityMaterializationPort.noop());
+		configured.startNavigationForTesting();
 		if (!configured._scheduler.start())
 		{
 			throw new IllegalStateException("The test Phantom scheduler could not start.");
@@ -349,6 +380,7 @@ public final class PhantomSystem
 		final PhantomPlayersConfig.Settings settings = new PhantomPlayersConfig.Settings(true, false, serviceSnapshot.maximumMaterialized());
 		final PhantomSystem configured = new PhantomSystem(settings, false);
 		configured._scheduler = scheduler;
+		configured.startNavigationForTesting();
 		configured._materializationService = materializationService;
 		configured._metrics.recordLifecycleStart();
 		configured._state = State.RUNNING;
@@ -381,7 +413,16 @@ public final class PhantomSystem
 			workSink);
 	}
 
-	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
+	private void startNavigationForTesting()
+	{
+		_navigationService = new PhantomNavigationService(_metrics);
+		if (!_navigationService.start())
+		{
+			throw new IllegalStateException("The test Phantom navigation service could not start.");
+		}
+	}
+
+	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
 	{
 	}
 

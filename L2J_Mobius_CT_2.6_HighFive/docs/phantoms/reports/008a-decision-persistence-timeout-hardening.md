@@ -249,3 +249,26 @@ Push result: во внешнем final handoff
 
 Result:
 `DECISION_PERSISTENCE_TIMEOUT_HARDENED_PENDING_INDEPENDENT_REVIEW`.
+
+## Immutable independent-review handoff
+
+```text
+Commit: 6ecd8ba155e63a2dedeeafd65c1961fdb57bf261
+Parent: b6c58c37f1ba77e92b61e9499a30d17d09c82086
+Push/remote: exact
+Core: 35/35 ×3
+Persistence: 23/23 ×3
+Performance: 2/2 ×2
+Scheduler: 20/20 ×3
+Materialization: 20/20 ×3
+Shutdown: 5/5 ×3
+Final verifier: 58/58 ×2, byte-identical
+Independent review: ACCEPT
+Goal 008: ACCEPT after Goal 008A
+Goal 008A: ACCEPT
+Goal 009: ALLOWED
+```
+
+Этот блок фиксирует уже опубликованный результат как неизменяемый baseline.
+Следующая задача не изменяет decision persistence implementation и не
+переоткрывает принятый gate.

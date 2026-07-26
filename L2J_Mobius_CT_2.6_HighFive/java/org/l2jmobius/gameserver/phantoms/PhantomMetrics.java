@@ -104,6 +104,34 @@ public final class PhantomMetrics
 	private final AtomicLong _decisionPersistenceFailures = new AtomicLong();
 	private final AtomicLong _decisionStaleResults = new AtomicLong();
 	private final AtomicLong _decisionStopFailures = new AtomicLong();
+	private final AtomicLong _navigationSubmissionsAccepted = new AtomicLong();
+	private final AtomicLong _navigationSubmissionsRejected = new AtomicLong();
+	private final AtomicLong _navigationDirectValidated = new AtomicLong();
+	private final AtomicLong _navigationDirectUnverified = new AtomicLong();
+	private final AtomicLong _navigationQueuedCurrent = new AtomicLong();
+	private final AtomicLong _navigationQueuedPeak = new AtomicLong();
+	private final AtomicLong _navigationWorkersCurrent = new AtomicLong();
+	private final AtomicLong _navigationWorkersPeak = new AtomicLong();
+	private final AtomicLong _navigationCacheHits = new AtomicLong();
+	private final AtomicLong _navigationCacheMisses = new AtomicLong();
+	private final AtomicLong _navigationCacheInvalidated = new AtomicLong();
+	private final AtomicLong _navigationCacheEvicted = new AtomicLong();
+	private final AtomicLong _navigationPathAttempts = new AtomicLong();
+	private final AtomicLong _navigationPathSucceeded = new AtomicLong();
+	private final AtomicLong _navigationPathNoPath = new AtomicLong();
+	private final AtomicLong _navigationPathFailed = new AtomicLong();
+	private final AtomicLong _navigationPathTimedOut = new AtomicLong();
+	private final AtomicLong _navigationPathCancelled = new AtomicLong();
+	private final AtomicLong _navigationQueueWaitExpired = new AtomicLong();
+	private final AtomicLong _navigationCooldownRejected = new AtomicLong();
+	private final AtomicLong _navigationRouteBudgetRejected = new AtomicLong();
+	private final AtomicLong _navigationProgress = new AtomicLong();
+	private final AtomicLong _navigationArrived = new AtomicLong();
+	private final AtomicLong _navigationStuck = new AtomicLong();
+	private final AtomicLong _navigationAttemptTimeout = new AtomicLong();
+	private final AtomicLong _navigationProgressCancelled = new AtomicLong();
+	private final AtomicLong _navigationBeginStopFailures = new AtomicLong();
+	private final AtomicLong _navigationFinishStopFailures = new AtomicLong();
 
 	public void recordLifecycleStart()
 	{
@@ -438,6 +466,148 @@ public final class PhantomMetrics
 		_decisionStopFailures.incrementAndGet();
 	}
 
+	public void recordNavigationSubmissionAccepted()
+	{
+		_navigationSubmissionsAccepted.incrementAndGet();
+	}
+
+	public void recordNavigationSubmissionRejected()
+	{
+		_navigationSubmissionsRejected.incrementAndGet();
+	}
+
+	public void recordNavigationDirectValidated()
+	{
+		_navigationDirectValidated.incrementAndGet();
+	}
+
+	public void recordNavigationDirectUnverified()
+	{
+		_navigationDirectUnverified.incrementAndGet();
+	}
+
+	public void recordNavigationQueued()
+	{
+		final long current = _navigationQueuedCurrent.incrementAndGet();
+		_navigationQueuedPeak.accumulateAndGet(current, Math::max);
+	}
+
+	public void recordNavigationDequeued()
+	{
+		_navigationQueuedCurrent.updateAndGet(current -> Math.max(0, current - 1));
+	}
+
+	public void recordNavigationWorkerStarted()
+	{
+		final long current = _navigationWorkersCurrent.incrementAndGet();
+		_navigationWorkersPeak.accumulateAndGet(current, Math::max);
+	}
+
+	public void recordNavigationWorkerStopped()
+	{
+		_navigationWorkersCurrent.updateAndGet(current -> Math.max(0, current - 1));
+	}
+
+	public void recordNavigationCacheHit()
+	{
+		_navigationCacheHits.incrementAndGet();
+	}
+
+	public void recordNavigationCacheMiss()
+	{
+		_navigationCacheMisses.incrementAndGet();
+	}
+
+	public void recordNavigationCacheInvalidated()
+	{
+		_navigationCacheInvalidated.incrementAndGet();
+	}
+
+	public void recordNavigationCacheEvicted()
+	{
+		_navigationCacheEvicted.incrementAndGet();
+	}
+
+	public void recordNavigationPathAttempt()
+	{
+		_navigationPathAttempts.incrementAndGet();
+	}
+
+	public void recordNavigationPathSucceeded()
+	{
+		_navigationPathSucceeded.incrementAndGet();
+	}
+
+	public void recordNavigationPathNoPath()
+	{
+		_navigationPathNoPath.incrementAndGet();
+	}
+
+	public void recordNavigationPathFailed()
+	{
+		_navigationPathFailed.incrementAndGet();
+	}
+
+	public void recordNavigationPathTimedOut()
+	{
+		_navigationPathTimedOut.incrementAndGet();
+	}
+
+	public void recordNavigationPathCancelled()
+	{
+		_navigationPathCancelled.incrementAndGet();
+	}
+
+	public void recordNavigationQueueWaitExpired()
+	{
+		_navigationQueueWaitExpired.incrementAndGet();
+	}
+
+	public void recordNavigationCooldownRejected()
+	{
+		_navigationCooldownRejected.incrementAndGet();
+	}
+
+	public void recordNavigationRouteBudgetRejected()
+	{
+		_navigationRouteBudgetRejected.incrementAndGet();
+	}
+
+	public void recordNavigationProgress()
+	{
+		_navigationProgress.incrementAndGet();
+	}
+
+	public void recordNavigationArrived()
+	{
+		_navigationArrived.incrementAndGet();
+	}
+
+	public void recordNavigationStuck()
+	{
+		_navigationStuck.incrementAndGet();
+	}
+
+	public void recordNavigationAttemptTimeout()
+	{
+		_navigationAttemptTimeout.incrementAndGet();
+	}
+
+	public void recordNavigationProgressCancelled()
+	{
+		_navigationProgressCancelled.incrementAndGet();
+	}
+
+	public void recordNavigationBeginStopFailure()
+	{
+		_navigationBeginStopFailures.incrementAndGet();
+	}
+
+	public void recordNavigationFinishStopFailure()
+	{
+		_navigationFinishStopFailures.incrementAndGet();
+	}
+
 	public Snapshot snapshot()
 	{
 		return new Snapshot(
@@ -459,7 +629,8 @@ public final class PhantomMetrics
 			_activeCurrent.get(),
 			_activePeak.get(),
 			activitySnapshot(),
-			decisionSnapshot());
+			decisionSnapshot(),
+			navigationSnapshot());
 	}
 
 	private ActivitySnapshot activitySnapshot()
@@ -527,6 +698,39 @@ public final class PhantomMetrics
 			_decisionStopFailures.get());
 	}
 
+	private NavigationSnapshot navigationSnapshot()
+	{
+		return new NavigationSnapshot(
+			_navigationSubmissionsAccepted.get(),
+			_navigationSubmissionsRejected.get(),
+			_navigationDirectValidated.get(),
+			_navigationDirectUnverified.get(),
+			_navigationQueuedCurrent.get(),
+			_navigationQueuedPeak.get(),
+			_navigationWorkersCurrent.get(),
+			_navigationWorkersPeak.get(),
+			_navigationCacheHits.get(),
+			_navigationCacheMisses.get(),
+			_navigationCacheInvalidated.get(),
+			_navigationCacheEvicted.get(),
+			_navigationPathAttempts.get(),
+			_navigationPathSucceeded.get(),
+			_navigationPathNoPath.get(),
+			_navigationPathFailed.get(),
+			_navigationPathTimedOut.get(),
+			_navigationPathCancelled.get(),
+			_navigationQueueWaitExpired.get(),
+			_navigationCooldownRejected.get(),
+			_navigationRouteBudgetRejected.get(),
+			_navigationProgress.get(),
+			_navigationArrived.get(),
+			_navigationStuck.get(),
+			_navigationAttemptTimeout.get(),
+			_navigationProgressCancelled.get(),
+			_navigationBeginStopFailures.get(),
+			_navigationFinishStopFailures.get());
+	}
+
 	private static int stateIndex(PhantomActivityState state)
 	{
 		return switch (state)
@@ -550,7 +754,7 @@ public final class PhantomMetrics
 		};
 	}
 
-	public record Snapshot(long lifecycleStarts, long lifecycleStops, long queueAccepted, long queueRejected, long traceRecorded, long traceDropped, long materializationRequested, long materializationSucceeded, long materializationRejected, long materializationFailuresRetained, long dematerializationSucceeded, long cleanupFailuresRetained, long retainedRecoverySucceeded, long retainedRecoveryRejected, long shutdownFailures, long activeCurrent, long activePeak, ActivitySnapshot activity, DecisionSnapshot decision)
+	public record Snapshot(long lifecycleStarts, long lifecycleStops, long queueAccepted, long queueRejected, long traceRecorded, long traceDropped, long materializationRequested, long materializationSucceeded, long materializationRejected, long materializationFailuresRetained, long dematerializationSucceeded, long cleanupFailuresRetained, long retainedRecoverySucceeded, long retainedRecoveryRejected, long shutdownFailures, long activeCurrent, long activePeak, ActivitySnapshot activity, DecisionSnapshot decision, NavigationSnapshot navigation)
 	{
 		public boolean isZero()
 		{
@@ -572,7 +776,8 @@ public final class PhantomMetrics
 				&& (activeCurrent == 0) //
 				&& (activePeak == 0) //
 				&& activity.isZero() //
-				&& decision.isZero();
+				&& decision.isZero() //
+				&& navigation.isZero();
 		}
 	}
 
@@ -647,6 +852,41 @@ public final class PhantomMetrics
 				&& (persistenceFailures == 0) //
 				&& (staleResults == 0) //
 				&& (stopFailures == 0);
+		}
+	}
+
+	public record NavigationSnapshot(long submissionsAccepted, long submissionsRejected, long directValidated, long directUnverified, long queuedCurrent, long queuedPeak, long workersCurrent, long workersPeak, long cacheHits, long cacheMisses, long cacheInvalidated, long cacheEvicted, long pathAttempts, long pathSucceeded, long pathNoPath, long pathFailed, long pathTimedOut, long pathCancelled, long queueWaitExpired, long cooldownRejected, long routeBudgetRejected, long progress, long arrived, long stuck, long attemptTimeout, long progressCancelled, long beginStopFailures, long finishStopFailures)
+	{
+		public boolean isZero()
+		{
+			return (submissionsAccepted == 0) //
+				&& (submissionsRejected == 0) //
+				&& (directValidated == 0) //
+				&& (directUnverified == 0) //
+				&& (queuedCurrent == 0) //
+				&& (queuedPeak == 0) //
+				&& (workersCurrent == 0) //
+				&& (workersPeak == 0) //
+				&& (cacheHits == 0) //
+				&& (cacheMisses == 0) //
+				&& (cacheInvalidated == 0) //
+				&& (cacheEvicted == 0) //
+				&& (pathAttempts == 0) //
+				&& (pathSucceeded == 0) //
+				&& (pathNoPath == 0) //
+				&& (pathFailed == 0) //
+				&& (pathTimedOut == 0) //
+				&& (pathCancelled == 0) //
+				&& (queueWaitExpired == 0) //
+				&& (cooldownRejected == 0) //
+				&& (routeBudgetRejected == 0) //
+				&& (progress == 0) //
+				&& (arrived == 0) //
+				&& (stuck == 0) //
+				&& (attemptTimeout == 0) //
+				&& (progressCancelled == 0) //
+				&& (beginStopFailures == 0) //
+				&& (finishStopFailures == 0);
 		}
 	}
 }

@@ -33,6 +33,7 @@ import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService.ServiceState;
 
 public final class PhantomSkeletonSuite implements PhantomTestSuite
 {
@@ -133,6 +134,9 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(0, disabled.scheduler().due(), "Disabled scheduler contains due work.");
 			PhantomAssertions.assertEquals(0, disabled.scheduler().capacity(), "Disabled system allocated scheduler capacity.");
 			PhantomAssertions.assertEquals(0, disabled.scheduler().scheduledTaskCount(), "Disabled system reports scheduled work.");
+			PhantomAssertions.assertEquals(ServiceState.STOPPED, disabled.navigation().state(), "Disabled system created a navigation service.");
+			PhantomAssertions.assertEquals(0, disabled.navigation().queueCapacity(), "Disabled system allocated a navigation queue.");
+			PhantomAssertions.assertEquals(0, disabled.navigation().cacheCapacity(), "Disabled system allocated a navigation cache.");
 			PhantomAssertions.assertTrue(disabled.metrics().isZero(), "Disabled system changed metrics.");
 			PhantomAssertions.assertEquals(List.of(), disabled.trace().events(), "Disabled system trace is not empty.");
 			PhantomAssertions.assertEquals(0, disabled.trace().capacity(), "Disabled system allocated trace capacity.");
@@ -156,6 +160,10 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(0, running.scheduler().due(), "Enabled scheduler due set was not empty.");
 			PhantomAssertions.assertEquals(PhantomPlayersConfig.DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES, running.scheduler().capacity(), "Enabled scheduler capacity mismatch.");
 			PhantomAssertions.assertEquals(1, running.scheduler().scheduledTaskCount(), "Enabled scheduler did not own exactly one recurring pulse.");
+			PhantomAssertions.assertEquals(ServiceState.RUNNING, running.navigation().state(), "Enabled navigation service is not running.");
+			PhantomAssertions.assertEquals(0, running.navigation().activeRequests(), "Enabled navigation service created a request.");
+			PhantomAssertions.assertEquals(0, running.navigation().currentWorkers(), "Enabled navigation service submitted a worker.");
+			PhantomAssertions.assertEquals(0, running.navigation().cacheEntries(), "Enabled navigation service populated its cache.");
 			PhantomAssertions.assertFalse(system.start(), "Repeated enabled start was not a no-op.");
 			PhantomAssertions.assertEquals(1L, system.snapshot().metrics().lifecycleStarts(), "Repeated start changed metrics.");
 			PhantomAssertions.assertTrue(system.shutdown(), "Enabled skeleton did not stop.");
@@ -163,6 +171,7 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomSystem.State.STOPPED, stopped.state(), "Enabled skeleton did not reach STOPPED.");
 			PhantomAssertions.assertEquals(1L, stopped.metrics().lifecycleStops(), "Enabled skeleton stop count mismatch.");
 			PhantomAssertions.assertFalse(stopped.scheduler().running(), "Scheduler remained running after stop.");
+			PhantomAssertions.assertEquals(ServiceState.STOPPED, stopped.navigation().state(), "Navigation service remained running after stop.");
 			PhantomAssertions.assertEquals(0, stopped.scheduler().ready(), "Ready queue was not cleared on stop.");
 			PhantomAssertions.assertEquals(0, stopped.scheduler().due(), "Due set was not cleared on stop.");
 			PhantomAssertions.assertFalse(system.shutdown(), "Repeated enabled shutdown was not a no-op.");

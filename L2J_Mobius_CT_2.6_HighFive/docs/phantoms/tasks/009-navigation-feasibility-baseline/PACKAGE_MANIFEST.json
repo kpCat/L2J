@@ -1,0 +1,24 @@
+{
+  "package": "phantom-world-goal-009-navigation-feasibility-baseline",
+  "taskId": "009-navigation-feasibility-baseline",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/009-navigation-feasibility-baseline/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "6ecd8ba155e63a2dedeeafd65c1961fdb57bf261",
+  "schemaChanges": false,
+  "configChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal010Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "ARCHITECTURE.md",
+    "CAPABILITY_AND_RESULTS.md",
+    "QUEUE_CACHE_CANCELLATION.md",
+    "PROGRESS_TRACKING.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

@@ -1,0 +1,37 @@
+# CAPABILITY AND RESULTS — Goal 009
+
+Capabilities:
+
+```text
+NO_GEODATA
+PARTIAL_GEODATA
+GEODATA_DIRECT_ONLY
+GEODATA_PATHFINDING
+```
+
+Success:
+
+```text
+DIRECT_VALIDATED
+DIRECT_UNVERIFIED_NO_GEODATA
+PATH_FOUND
+```
+
+Failure/control:
+
+```text
+NO_GEODATA
+PATHFINDING_DISABLED
+NO_PATH
+ROUTE_BUDGET_EXCEEDED
+QUEUE_BACKPRESSURE
+PROFILE_BUSY
+COOLDOWN
+CANCELLED
+DEADLINE_EXPIRED
+BACKEND_FAILURE
+SERVICE_NOT_RUNNING
+```
+
+A route without geodata is always explicitly unverified. A failed A* request
+never silently falls back to a direct route.

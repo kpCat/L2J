@@ -1,0 +1,25 @@
+# ACCEPTANCE — Goal 009
+
+- [ ] Baseline 6ecd8ba1; one ordinary High Five commit.
+- [ ] Goal 008A closure and roadmap progress.
+- [ ] No config/schema/Goal 010/011.
+- [ ] No GeoEngine/PathFinding/Creature modifications.
+- [ ] Lazy factual capability detection.
+- [ ] Direct path always first.
+- [ ] No-geo direct explicitly unverified.
+- [ ] No direct fallback after failed A*.
+- [ ] Queue 256, workers 2, cache 1024, route 64.
+- [ ] Shared transient workers only.
+- [ ] Cancellation/deadline discard late results.
+- [ ] Exact one active request/profile.
+- [ ] Cache TTL/LRU and segment revalidation.
+- [ ] Cooldown applies only to A*.
+- [ ] Progress/arrival/stuck/timeout contract.
+- [ ] Inert startup and disabled no-service/no-geo init.
+- [ ] Stop retains in-flight worker ownership.
+- [ ] Fixed metrics and no path logging.
+- [ ] Core >=25 ×3, performance ×2 identical.
+- [ ] All cumulative regressions, verify and jar.
+- [ ] Production DB untouched.
+- [ ] Goal 010 not started.
+- [ ] Verifier ×2 identical and remote exact.

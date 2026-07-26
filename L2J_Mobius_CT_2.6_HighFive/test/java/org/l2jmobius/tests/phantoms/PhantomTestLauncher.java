@@ -195,6 +195,8 @@ public final class PhantomTestLauncher
 			case "decision-core" -> new PhantomDecisionCoreSuite();
 			case "decision-persistence" -> new PhantomDecisionPersistenceSuite();
 			case "decision-performance" -> new PhantomDecisionPerformanceSuite();
+			case "navigation-core" -> new PhantomNavigationCoreSuite();
+			case "navigation-performance" -> new PhantomNavigationPerformanceSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

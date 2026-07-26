@@ -239,6 +239,24 @@
 		</java>
 	</target>
 
+	<target name="phantom-navigation-core-test" depends="compile-tests" description="Run deterministic inert bounded navigation core tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="navigation-core" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-navigation-performance-smoke" depends="compile-tests" description="Run deterministic direct and computed-route navigation performance smoke.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="navigation-performance" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
 	<target name="prepare-phantom-test-db" depends="compile-tests" description="Destructively recreate only the allowlisted Phantom test database.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestDatabaseProvisioner" classpathref="test.classpath" fork="true" failonerror="true">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
@@ -405,19 +423,23 @@
 		</exec>
 	</target>
 
-	<target name="phantom-static-verify-008a" description="Run the read-only Goal 008A static verifier.">
+	<target name="phantom-static-verify-008a" depends="phantom-static-verify-009" description="Preserve the historical Goal 008A target through the cumulative Goal 009 verifier.">
+		<echo message="Historical Goal 008A verifier is unchanged; Goal 009 verifier checks its preservation and cumulative safety contract." />
+	</target>
+
+	<target name="phantom-static-verify-009" description="Run the read-only Goal 009 static verifier.">
 		<exec executable="powershell" dir="${basedir}" failonerror="true">
 			<arg value="-NoProfile" />
 			<arg value="-ExecutionPolicy" />
 			<arg value="Bypass" />
 			<arg value="-File" />
-			<arg value="${basedir}/tools/phantoms/verify-task-008a.ps1" />
+			<arg value="${basedir}/tools/phantoms/verify-task-009.ps1" />
 		</exec>
 	</target>
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->
-	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-profile-persistence-test,phantom-production-materialization-test,phantom-production-materialization-performance-smoke,phantom-server-shutdown-handoff-test,phantom-activity-scheduler-test,phantom-activity-scheduler-performance-smoke,phantom-decision-core-test,phantom-decision-persistence-test,phantom-decision-performance-smoke,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004,phantom-static-verify-004a,phantom-static-verify-004b,phantom-static-verify-005,phantom-static-verify-006,phantom-static-verify-006a,phantom-static-verify-006b,phantom-static-verify-007" description="Run Goal 008A and all prior Phantom verification gates." />
+	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-profile-persistence-test,phantom-production-materialization-test,phantom-production-materialization-performance-smoke,phantom-server-shutdown-handoff-test,phantom-activity-scheduler-test,phantom-activity-scheduler-performance-smoke,phantom-decision-core-test,phantom-decision-persistence-test,phantom-decision-performance-smoke,phantom-navigation-core-test,phantom-navigation-performance-smoke,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004,phantom-static-verify-004a,phantom-static-verify-004b,phantom-static-verify-005,phantom-static-verify-006,phantom-static-verify-006a,phantom-static-verify-006b,phantom-static-verify-007" description="Run Goal 009 and all prior Phantom verification gates." />
 
 	<target name="jar" depends="compile" description="Create the jar files.">
 		<tstamp>
