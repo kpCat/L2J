@@ -18,8 +18,26 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
  * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.l2jmobius.gameserver.phantoms.activity;
+package org.l2jmobius.gameserver.phantoms.decision;
 
-public record PhantomActivitySnapshot(long profileId, PhantomActivityState effectiveState, PhantomActivityState requestedState, PhantomActivityTransitionStatus transitionStatus, int activeSignalSources, boolean enqueued, boolean due, boolean processing, boolean boundaryInFlight, long boundaryGeneration, long activityGeneration, long nextDueNanos, long tickSequence, PhantomActivityResultCategory lastResult, long lastTransitionNanos)
+import java.util.Objects;
+import java.util.regex.Pattern;
+
+final class PhantomDecisionKey
 {
+	private static final Pattern KEY_PATTERN = Pattern.compile("^[a-z][a-z0-9_.-]{0,63}$");
+
+	private PhantomDecisionKey()
+	{
+	}
+
+	static String require(String value, String label)
+	{
+		Objects.requireNonNull(value, label + " must not be null.");
+		if (!KEY_PATTERN.matcher(value).matches())
+		{
+			throw new IllegalArgumentException(label + " must match ^[a-z][a-z0-9_.-]{0,63}$.");
+		}
+		return value;
+	}
 }

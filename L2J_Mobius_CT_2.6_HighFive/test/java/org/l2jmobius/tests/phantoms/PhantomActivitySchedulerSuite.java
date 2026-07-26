@@ -26,10 +26,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler.BeginStopResult;
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler.RegistrationStatus;
@@ -46,6 +49,18 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityTransitionStatu
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomConsideration;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionCandidate;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomPlan;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomPlanStep;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomWeightedConsideration;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 import org.l2jmobius.tests.phantoms.PhantomTestContext;
 import org.l2jmobius.tests.phantoms.PhantomTestRegistry;
@@ -79,6 +94,9 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		registry.add("15-retained-dematerialization-new-active-requires-fresh-materialize", _ -> testRetainedDematerializationTruth());
 		registry.add("16-retained-materialization-survives-withdrawal-and-expiry", _ -> testRetainedMaterializationSignalLoss());
 		registry.add("17-stopping-quiesces-boundary-and-work", _ -> testStoppingQuiescence());
+		registry.add("18-cleanup-retry-recomputes-warm-to-sleeping", _ -> testCleanupRetryCurrentSleeping());
+		registry.add("19-cleanup-retry-recomputes-warm-to-active", _ -> testCleanupRetryCurrentActive());
+		registry.add("20-manual-scheduler-drives-one-decision-slice", _ -> testDecisionSinkIntegration());
 	}
 
 	private void testRegistration()
@@ -524,6 +542,94 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		assertStoppedWithoutResidue(work.scheduler());
 	}
 
+	private void testCleanupRetryCurrentSleeping() throws Exception
+	{
+		final Fixture fixture = retainedDematerializationFixture();
+		fixture.port().blockNextRetry();
+		PhantomAssertions.assertEquals(RetryStatus.SCHEDULED, fixture.scheduler().retryTransition(1).status(), "Cleanup retry was not scheduled.");
+		final Thread retryPulse = pulseThread(fixture.scheduler(), "t008-retry-sleeping");
+		retryPulse.start();
+		fixture.port().awaitRetryEntered();
+		fixture.scheduler().withdrawSignal(1, "interest", 3);
+		fixture.port().releaseRetry();
+		join(retryPulse);
+		final PhantomActivitySnapshot snapshot = fixture.scheduler().find(1).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, snapshot.requestedState(), "Blocked cleanup retry retained a stale WARM request after withdrawal.");
+		PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, snapshot.effectiveState(), "Blocked cleanup retry published stale WARM instead of current SLEEPING.");
+		PhantomAssertions.assertEquals(PhantomActivityTransitionStatus.STABLE, snapshot.transitionStatus(), "Current SLEEPING request did not stabilize after cleanup.");
+		stop(fixture.scheduler());
+	}
+
+	private void testCleanupRetryCurrentActive() throws Exception
+	{
+		final Fixture fixture = retainedDematerializationFixture();
+		fixture.port().blockNextRetry();
+		PhantomAssertions.assertEquals(RetryStatus.SCHEDULED, fixture.scheduler().retryTransition(1).status(), "Cleanup retry was not scheduled.");
+		final Thread retryPulse = pulseThread(fixture.scheduler(), "t008-retry-active");
+		retryPulse.start();
+		fixture.port().awaitRetryEntered();
+		fixture.scheduler().submitSignal(1, signal("interest", 3, PhantomActivityState.ACTIVE, 100));
+		fixture.port().releaseRetry();
+		join(retryPulse);
+		final PhantomActivitySnapshot cleaned = fixture.scheduler().find(1).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, cleaned.requestedState(), "Blocked cleanup retry retained stale WARM instead of current ACTIVE.");
+		PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, cleaned.effectiveState(), "Cleanup retry published ACTIVE without fresh materialization.");
+		PhantomAssertions.assertEquals(PhantomActivityTransitionStatus.PROMOTION_PENDING, cleaned.transitionStatus(), "Current ACTIVE request did not retain a fresh promotion opportunity.");
+		fixture.scheduler().pulse();
+		PhantomAssertions.assertEquals(2, fixture.port().materializeCalls, "Current ACTIVE request did not perform a fresh materialization.");
+		PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, fixture.scheduler().find(1).orElseThrow().effectiveState(), "Fresh materialization did not restore ACTIVE.");
+		stop(fixture.scheduler());
+	}
+
+	private static Fixture retainedDematerializationFixture()
+	{
+		final Fixture fixture = fixture(2, 2);
+		fixture.scheduler().register(1);
+		fixture.scheduler().submitSignal(1, signal("interest", 1, PhantomActivityState.ACTIVE, 100));
+		fixture.scheduler().pulse();
+		fixture.port().dematerializeOutcomes.add(Outcome.RETAINED_FAILURE);
+		fixture.scheduler().submitSignal(1, signal("interest", 2, PhantomActivityState.WARM, 100));
+		fixture.scheduler().pulse();
+		fixture.clock().advanceMillis(5);
+		fixture.scheduler().pulse();
+		PhantomAssertions.assertEquals(PhantomActivityTransitionStatus.RETAINED_FAILURE_REQUIRES_EXPLICIT_RETRY, fixture.scheduler().find(1).orElseThrow().transitionStatus(), "Fixture did not reach retained dematerialization.");
+		return fixture;
+	}
+
+	private void testDecisionSinkIntegration()
+	{
+		final SchedulerGoalStore store = new SchedulerGoalStore();
+		final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
+		candidates.register(new PhantomDecisionCandidate("candidate.scheduler", Set.of("goal.scheduler"), Set.of(PhantomActivityState.WARM), List.of(), List.of(new PhantomWeightedConsideration("score.scheduler", 1, _ -> new PhantomConsideration.Evaluation(1000, "score.scheduler"))), 0, context -> new PhantomPlan(1, context.goal().goalId(), "candidate.scheduler", List.of(new PhantomPlanStep(0, "action.scheduler", null, Map.of(), 1000, 1, "reason.scheduler")), 1000, context.logicalNowNanos())));
+		candidates.seal();
+		final AtomicInteger handlerCalls = new AtomicInteger();
+		final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
+		handlers.register("action.scheduler", _ ->
+		{
+			handlerCalls.incrementAndGet();
+			return PhantomStepResult.of(PhantomStepResult.Type.SUCCESS, "step.success");
+		});
+		handlers.seal();
+		final PhantomMetrics metrics = new PhantomMetrics();
+		final PhantomDecisionEngine engine = new PhantomDecisionEngine(store, candidates, handlers, metrics, 2);
+		engine.start();
+		PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(1), "Decision integration profile did not attach.");
+		final PhantomGoal goal = new PhantomGoal(1, "goal.scheduler", PhantomGoalStatus.ACTIVE, null, null, 0, 0, null, List.of(), null, "purpose.scheduler", 500, 0, 0, 0, Map.of(), "reason.scheduler", 0);
+		PhantomAssertions.assertEquals(PhantomDecisionEngine.MutationResult.APPLIED, engine.insertGoal(1, goal), "Decision integration goal did not insert.");
+
+		final ManualClock clock = new ManualClock();
+		final PhantomScheduler scheduler = new PhantomScheduler(2, 10, 2, new PhantomSchedulerPolicy(16, 1000, 5, 2, 8, 1, 2, 3, 4, 50), clock, (pulse, period) -> null, false, metrics, new PhantomDiagnosticTrace(true, 16, 1, metrics), PhantomActivityMaterializationPort.noop(), engine);
+		PhantomAssertions.assertTrue(scheduler.start(), "Decision integration scheduler did not start.");
+		scheduler.register(1);
+		scheduler.submitSignal(1, signal("decision", 1, PhantomActivityState.WARM, 100));
+		scheduler.pulse();
+		PhantomAssertions.assertEquals(1, handlerCalls.get(), "One scheduler work item did not drive exactly one decision handler.");
+		PhantomAssertions.assertEquals("candidate.scheduler", engine.find(1).orElseThrow().selectedCandidateKey(), "Scheduler-driven selection was not deterministic.");
+		stop(scheduler);
+		engine.beginStop();
+		PhantomAssertions.assertTrue(engine.finishStop(), "Decision integration engine did not stop.");
+	}
+
 	private static Fixture fixture(int maximumProfiles, int profilesPerPulse)
 	{
 		final ManualClock clock = new ManualClock();
@@ -635,6 +741,8 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		private int retryCalls;
 		private volatile CountDownLatch materializeEntered;
 		private volatile CountDownLatch releaseMaterialize;
+		private volatile CountDownLatch retryEntered;
+		private volatile CountDownLatch releaseRetry;
 
 		@Override
 		public TransitionOutcome materialize(long profileId)
@@ -679,6 +787,15 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		public TransitionOutcome retryCleanup(long profileId)
 		{
 			retryCalls++;
+			final CountDownLatch entered = retryEntered;
+			final CountDownLatch release = releaseRetry;
+			if (entered != null)
+			{
+				entered.countDown();
+				await(release, "Timed out waiting to release blocked cleanup retry.");
+				retryEntered = null;
+				releaseRetry = null;
+			}
 			final Outcome outcome = retryOutcomes.isEmpty() ? Outcome.SUCCESS : retryOutcomes.remove();
 			if (outcome == Outcome.SUCCESS)
 			{
@@ -714,6 +831,59 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		private void releaseMaterialize()
 		{
 			releaseMaterialize.countDown();
+		}
+
+		private void blockNextRetry()
+		{
+			retryEntered = new CountDownLatch(1);
+			releaseRetry = new CountDownLatch(1);
+		}
+
+		private void awaitRetryEntered()
+		{
+			await(retryEntered, "Blocked cleanup retry did not enter the lifecycle port.");
+		}
+
+		private void releaseRetry()
+		{
+			releaseRetry.countDown();
+		}
+	}
+
+	private static final class SchedulerGoalStore implements PhantomGoalStore
+	{
+		private StoredGoal _goal;
+
+		@Override
+		public boolean profileExists(long profileId)
+		{
+			return profileId == 1;
+		}
+
+		@Override
+		public Optional<StoredGoal> load(long profileId)
+		{
+			return Optional.ofNullable(_goal);
+		}
+
+		@Override
+		public StoredGoal insert(long profileId, PhantomGoal goal)
+		{
+			_goal = new StoredGoal(goal, 0);
+			return _goal;
+		}
+
+		@Override
+		public StoredGoal replace(long profileId, long expectedRowVersion, PhantomGoal goal)
+		{
+			_goal = new StoredGoal(goal, expectedRowVersion + 1);
+			return _goal;
+		}
+
+		@Override
+		public void delete(long profileId, long expectedRowVersion)
+		{
+			_goal = null;
 		}
 	}
 

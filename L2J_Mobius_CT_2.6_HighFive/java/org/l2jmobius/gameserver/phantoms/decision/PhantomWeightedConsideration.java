@@ -18,8 +18,19 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
  * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.l2jmobius.gameserver.phantoms.activity;
+package org.l2jmobius.gameserver.phantoms.decision;
 
-public record PhantomActivitySnapshot(long profileId, PhantomActivityState effectiveState, PhantomActivityState requestedState, PhantomActivityTransitionStatus transitionStatus, int activeSignalSources, boolean enqueued, boolean due, boolean processing, boolean boundaryInFlight, long boundaryGeneration, long activityGeneration, long nextDueNanos, long tickSequence, PhantomActivityResultCategory lastResult, long lastTransitionNanos)
+import java.util.Objects;
+
+public record PhantomWeightedConsideration(String key, int weight, PhantomConsideration consideration)
 {
+	public PhantomWeightedConsideration
+	{
+		key = PhantomDecisionKey.require(key, "Consideration key");
+		if ((weight < 1) || (weight > 1000))
+		{
+			throw new IllegalArgumentException("Consideration weight must be between 1 and 1000.");
+		}
+		Objects.requireNonNull(consideration, "Consideration must not be null.");
+	}
 }

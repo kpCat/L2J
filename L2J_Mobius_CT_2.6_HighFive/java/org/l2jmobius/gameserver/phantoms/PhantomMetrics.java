@@ -79,6 +79,30 @@ public final class PhantomMetrics
 	private final AtomicLong _activityOverloadCurrent = new AtomicLong();
 	private final AtomicLong _activityOverloadPeak = new AtomicLong();
 	private final AtomicLongArray _activityStateCounts = new AtomicLongArray(5);
+	private final AtomicLong _decisionAttachedCurrent = new AtomicLong();
+	private final AtomicLong _decisionAttachedPeak = new AtomicLong();
+	private final AtomicLong _decisionMutationRejected = new AtomicLong();
+	private final AtomicLong _decisionReloadRejected = new AtomicLong();
+	private final AtomicLong _decisionDecisions = new AtomicLong();
+	private final AtomicLong _decisionNoGoal = new AtomicLong();
+	private final AtomicLong _decisionNoCandidate = new AtomicLong();
+	private final AtomicLong _decisionCandidatesEvaluated = new AtomicLong();
+	private final AtomicLong _decisionCandidatesBlocked = new AtomicLong();
+	private final AtomicLong _decisionCandidatesFailed = new AtomicLong();
+	private final AtomicLong _decisionPlansCreated = new AtomicLong();
+	private final AtomicLong _decisionPlansReplanned = new AtomicLong();
+	private final AtomicLong _decisionPlansCompleted = new AtomicLong();
+	private final AtomicLong _decisionPlansFailed = new AtomicLong();
+	private final AtomicLong _decisionPlansCancelled = new AtomicLong();
+	private final AtomicLong _decisionPlansTimedOut = new AtomicLong();
+	private final AtomicLong _decisionStepsAttempted = new AtomicLong();
+	private final AtomicLong _decisionStepsSucceeded = new AtomicLong();
+	private final AtomicLong _decisionStepsRetried = new AtomicLong();
+	private final AtomicLong _decisionStepsFailed = new AtomicLong();
+	private final AtomicLong _decisionStepsCancelled = new AtomicLong();
+	private final AtomicLong _decisionPersistenceConflicts = new AtomicLong();
+	private final AtomicLong _decisionStaleResults = new AtomicLong();
+	private final AtomicLong _decisionStopFailures = new AtomicLong();
 
 	public void recordLifecycleStart()
 	{
@@ -295,6 +319,119 @@ public final class PhantomMetrics
 		_activityOverloadPeak.accumulateAndGet(code, Math::max);
 	}
 
+	public void recordDecisionAttached()
+	{
+		final long current = _decisionAttachedCurrent.incrementAndGet();
+		_decisionAttachedPeak.accumulateAndGet(current, Math::max);
+	}
+
+	public void recordDecisionDetached()
+	{
+		_decisionAttachedCurrent.updateAndGet(current -> Math.max(0, current - 1));
+	}
+
+	public void recordDecisionMutationRejected()
+	{
+		_decisionMutationRejected.incrementAndGet();
+	}
+
+	public void recordDecisionReloadRejected()
+	{
+		_decisionReloadRejected.incrementAndGet();
+	}
+
+	public void recordDecision()
+	{
+		_decisionDecisions.incrementAndGet();
+	}
+
+	public void recordDecisionNoGoal()
+	{
+		_decisionNoGoal.incrementAndGet();
+	}
+
+	public void recordDecisionNoCandidate()
+	{
+		_decisionNoCandidate.incrementAndGet();
+	}
+
+	public void recordDecisionCandidates(int evaluated, int blocked, int failed)
+	{
+		_decisionCandidatesEvaluated.addAndGet(evaluated);
+		_decisionCandidatesBlocked.addAndGet(blocked);
+		_decisionCandidatesFailed.addAndGet(failed);
+	}
+
+	public void recordDecisionPlanCreated()
+	{
+		_decisionPlansCreated.incrementAndGet();
+	}
+
+	public void recordDecisionPlanReplanned()
+	{
+		_decisionPlansReplanned.incrementAndGet();
+	}
+
+	public void recordDecisionPlanCompleted()
+	{
+		_decisionPlansCompleted.incrementAndGet();
+	}
+
+	public void recordDecisionPlanFailed()
+	{
+		_decisionPlansFailed.incrementAndGet();
+	}
+
+	public void recordDecisionPlanCancelled()
+	{
+		_decisionPlansCancelled.incrementAndGet();
+	}
+
+	public void recordDecisionPlanTimedOut()
+	{
+		_decisionPlansTimedOut.incrementAndGet();
+	}
+
+	public void recordDecisionStepAttempted()
+	{
+		_decisionStepsAttempted.incrementAndGet();
+	}
+
+	public void recordDecisionStepSucceeded()
+	{
+		_decisionStepsSucceeded.incrementAndGet();
+	}
+
+	public void recordDecisionStepRetried()
+	{
+		_decisionStepsRetried.incrementAndGet();
+	}
+
+	public void recordDecisionStepFailed()
+	{
+		_decisionStepsFailed.incrementAndGet();
+	}
+
+	public void recordDecisionStepCancelled()
+	{
+		_decisionStepsCancelled.incrementAndGet();
+	}
+
+	public void recordDecisionPersistenceConflict()
+	{
+		_decisionPersistenceConflicts.incrementAndGet();
+	}
+
+	public void recordDecisionStaleResult()
+	{
+		_decisionStaleResults.incrementAndGet();
+	}
+
+	public void recordDecisionStopFailure()
+	{
+		_decisionStopFailures.incrementAndGet();
+	}
+
 	public Snapshot snapshot()
 	{
 		return new Snapshot(
@@ -315,7 +452,8 @@ public final class PhantomMetrics
 			_shutdownFailures.get(),
 			_activeCurrent.get(),
 			_activePeak.get(),
-			activitySnapshot());
+			activitySnapshot(),
+			decisionSnapshot());
 	}
 
 	private ActivitySnapshot activitySnapshot()
@@ -353,6 +491,35 @@ public final class PhantomMetrics
 			List.of(_activityStateCounts.get(0), _activityStateCounts.get(1), _activityStateCounts.get(2), _activityStateCounts.get(3), _activityStateCounts.get(4)));
 	}
 
+	private DecisionSnapshot decisionSnapshot()
+	{
+		return new DecisionSnapshot(
+			_decisionAttachedCurrent.get(),
+			_decisionAttachedPeak.get(),
+			_decisionMutationRejected.get(),
+			_decisionReloadRejected.get(),
+			_decisionDecisions.get(),
+			_decisionNoGoal.get(),
+			_decisionNoCandidate.get(),
+			_decisionCandidatesEvaluated.get(),
+			_decisionCandidatesBlocked.get(),
+			_decisionCandidatesFailed.get(),
+			_decisionPlansCreated.get(),
+			_decisionPlansReplanned.get(),
+			_decisionPlansCompleted.get(),
+			_decisionPlansFailed.get(),
+			_decisionPlansCancelled.get(),
+			_decisionPlansTimedOut.get(),
+			_decisionStepsAttempted.get(),
+			_decisionStepsSucceeded.get(),
+			_decisionStepsRetried.get(),
+			_decisionStepsFailed.get(),
+			_decisionStepsCancelled.get(),
+			_decisionPersistenceConflicts.get(),
+			_decisionStaleResults.get(),
+			_decisionStopFailures.get());
+	}
+
 	private static int stateIndex(PhantomActivityState state)
 	{
 		return switch (state)
@@ -376,7 +543,7 @@ public final class PhantomMetrics
 		};
 	}
 
-	public record Snapshot(long lifecycleStarts, long lifecycleStops, long queueAccepted, long queueRejected, long traceRecorded, long traceDropped, long materializationRequested, long materializationSucceeded, long materializationRejected, long materializationFailuresRetained, long dematerializationSucceeded, long cleanupFailuresRetained, long retainedRecoverySucceeded, long retainedRecoveryRejected, long shutdownFailures, long activeCurrent, long activePeak, ActivitySnapshot activity)
+	public record Snapshot(long lifecycleStarts, long lifecycleStops, long queueAccepted, long queueRejected, long traceRecorded, long traceDropped, long materializationRequested, long materializationSucceeded, long materializationRejected, long materializationFailuresRetained, long dematerializationSucceeded, long cleanupFailuresRetained, long retainedRecoverySucceeded, long retainedRecoveryRejected, long shutdownFailures, long activeCurrent, long activePeak, ActivitySnapshot activity, DecisionSnapshot decision)
 	{
 		public boolean isZero()
 		{
@@ -397,7 +564,8 @@ public final class PhantomMetrics
 				&& (shutdownFailures == 0) //
 				&& (activeCurrent == 0) //
 				&& (activePeak == 0) //
-				&& activity.isZero();
+				&& activity.isZero() //
+				&& decision.isZero();
 		}
 	}
 
@@ -440,6 +608,37 @@ public final class PhantomMetrics
 				&& (overloadCurrent == 0) //
 				&& (overloadPeak == 0) //
 				&& stateCounts.stream().allMatch(value -> value == 0);
+		}
+	}
+
+	public record DecisionSnapshot(long attachedCurrent, long attachedPeak, long mutationRejected, long reloadRejected, long decisions, long noGoal, long noCandidate, long candidatesEvaluated, long candidatesBlocked, long candidatesFailed, long plansCreated, long plansReplanned, long plansCompleted, long plansFailed, long plansCancelled, long plansTimedOut, long stepsAttempted, long stepsSucceeded, long stepsRetried, long stepsFailed, long stepsCancelled, long persistenceConflicts, long staleResults, long stopFailures)
+	{
+		public boolean isZero()
+		{
+			return (attachedCurrent == 0) //
+				&& (attachedPeak == 0) //
+				&& (mutationRejected == 0) //
+				&& (reloadRejected == 0) //
+				&& (decisions == 0) //
+				&& (noGoal == 0) //
+				&& (noCandidate == 0) //
+				&& (candidatesEvaluated == 0) //
+				&& (candidatesBlocked == 0) //
+				&& (candidatesFailed == 0) //
+				&& (plansCreated == 0) //
+				&& (plansReplanned == 0) //
+				&& (plansCompleted == 0) //
+				&& (plansFailed == 0) //
+				&& (plansCancelled == 0) //
+				&& (plansTimedOut == 0) //
+				&& (stepsAttempted == 0) //
+				&& (stepsSucceeded == 0) //
+				&& (stepsRetried == 0) //
+				&& (stepsFailed == 0) //
+				&& (stepsCancelled == 0) //
+				&& (persistenceConflicts == 0) //
+				&& (staleResults == 0) //
+				&& (stopFailures == 0);
 		}
 	}
 }

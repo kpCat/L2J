@@ -880,8 +880,11 @@ public final class PhantomScheduler
 			if ((plan._action == BoundaryAction.RETRY_MATERIALIZATION_CLEANUP) || (plan._action == BoundaryAction.RETRY_DEMATERIALIZATION_CLEANUP))
 			{
 				final PhantomActivityState previous = slot._effectiveState;
-				final boolean freshMaterializationRequired = plan._targetState.requiresMaterialization();
-				slot._effectiveState = freshMaterializationRequired ? PhantomActivityState.SLEEPING : plan._targetState;
+				final PhantomActivityState currentRequestedState = slot._unregisterRequested ? PhantomActivityState.SLEEPING : requestedStateLocked(slot);
+				slot._requestedState = currentRequestedState;
+				final boolean freshMaterializationRequired = currentRequestedState.requiresMaterialization();
+				setEffectiveStateLocked(slot, freshMaterializationRequired ? PhantomActivityState.SLEEPING : currentRequestedState);
+				slot._activityGeneration++;
 				slot._retainedFailureKind = RetainedFailureKind.NONE;
 				slot._transitionStatus = slot._unregisterRequested ? PhantomActivityTransitionStatus.UNREGISTER_PENDING : (freshMaterializationRequired ? PhantomActivityTransitionStatus.PROMOTION_PENDING : PhantomActivityTransitionStatus.STABLE);
 				slot._lastResult = PhantomActivityResultCategory.TRANSITION_SUCCEEDED;
@@ -899,7 +902,7 @@ public final class PhantomScheduler
 				return;
 			}
 			final PhantomActivityState previous = slot._effectiveState;
-			slot._effectiveState = plan._targetState;
+			setEffectiveStateLocked(slot, plan._targetState);
 			slot._retainedFailureKind = RetainedFailureKind.NONE;
 			slot._retryAttempt = 0;
 			slot._retryDueNanos = 0;
@@ -920,6 +923,10 @@ public final class PhantomScheduler
 		}
 		if (outcome.outcome() == Outcome.RETAINED_FAILURE)
 		{
+			if (slot._retainedFailureKind == RetainedFailureKind.NONE)
+			{
+				slot._activityGeneration++;
+			}
 			slot._retainedFailureKind = ((plan._action == BoundaryAction.MATERIALIZE) || (plan._action == BoundaryAction.RETRY_MATERIALIZATION_CLEANUP)) ? RetainedFailureKind.MATERIALIZATION : RetainedFailureKind.DEMATERIALIZATION;
 			slot._transitionStatus = PhantomActivityTransitionStatus.RETAINED_FAILURE_REQUIRES_EXPLICIT_RETRY;
 			slot._lastResult = PhantomActivityResultCategory.TRANSITION_RETAINED_FAILURE;
@@ -949,7 +956,7 @@ public final class PhantomScheduler
 		final long tickSequence = ++slot._tickSequence;
 		final long cadenceMillis = saturatingMultiply(_policy.cadenceMillis(slot._effectiveState), overload.cadenceMultiplier(slot._effectiveState));
 		slot._nextWorkDueNanos = saturatingAdd(logicalNow, millisToNanos(cadenceMillis));
-		return new PhantomActivityWorkItem(slot._profileId, slot._effectiveState, tickSequence, logicalNow, overload);
+		return new PhantomActivityWorkItem(slot._profileId, slot._effectiveState, slot._activityGeneration, tickSequence, logicalNow, overload);
 	}
 
 	private void scheduleNextDueLocked(Slot slot, long logicalNow, PhantomActivityOverloadLevel overload)
@@ -1062,6 +1069,15 @@ public final class PhantomScheduler
 		return requested;
 	}
 
+	private static void setEffectiveStateLocked(Slot slot, PhantomActivityState state)
+	{
+		if (slot._effectiveState != state)
+		{
+			slot._effectiveState = state;
+			slot._activityGeneration++;
+		}
+	}
+
 	private boolean isTerminalNonMaterializedLocked(Slot slot)
 	{
 		return !slot._effectiveState.requiresMaterialization() && (slot._retainedFailureKind == RetainedFailureKind.NONE) && !slot._processing && !slot._boundaryInFlight;
@@ -1109,7 +1125,7 @@ public final class PhantomScheduler
 				activeSources++;
 			}
 		}
-		return new PhantomActivitySnapshot(slot._profileId, slot._effectiveState, slot._requestedState, slot._transitionStatus, activeSources, slot._enqueued, slot._dueEntry != null, slot._processing, slot._boundaryInFlight, slot._boundaryGeneration, slot._dueEntry != null ? slot._dueEntry._dueNanos : 0, slot._tickSequence, slot._lastResult, slot._lastTransitionNanos);
+		return new PhantomActivitySnapshot(slot._profileId, slot._effectiveState, slot._requestedState, slot._transitionStatus, activeSources, slot._enqueued, slot._dueEntry != null, slot._processing, slot._boundaryInFlight, slot._boundaryGeneration, slot._activityGeneration, slot._dueEntry != null ? slot._dueEntry._dueNanos : 0, slot._tickSequence, slot._lastResult, slot._lastTransitionNanos);
 	}
 
 	private long boundedExponentialBackoff(int attempt)
@@ -1204,6 +1220,7 @@ public final class PhantomScheduler
 		private boolean _explicitRetry;
 		private long _generation;
 		private long _boundaryGeneration;
+		private long _activityGeneration = 1;
 		private long _demotionEligibleAtNanos;
 		private long _retryDueNanos;
 		private int _retryAttempt;

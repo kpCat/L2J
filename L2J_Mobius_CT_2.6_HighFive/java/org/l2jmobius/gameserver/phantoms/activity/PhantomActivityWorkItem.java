@@ -22,13 +22,17 @@ package org.l2jmobius.gameserver.phantoms.activity;
 
 import java.util.Objects;
 
-public record PhantomActivityWorkItem(long profileId, PhantomActivityState effectiveState, long tickSequence, long logicalNowNanos, PhantomActivityOverloadLevel overloadLevel)
+public record PhantomActivityWorkItem(long profileId, PhantomActivityState effectiveState, long activityGeneration, long tickSequence, long logicalNowNanos, PhantomActivityOverloadLevel overloadLevel)
 {
 	public PhantomActivityWorkItem
 	{
 		if (profileId <= 0)
 		{
 			throw new IllegalArgumentException("profileId must be positive.");
+		}
+		if ((activityGeneration <= 0) || (tickSequence <= 0) || (logicalNowNanos < 0))
+		{
+			throw new IllegalArgumentException("Activity generation and tick sequence must be positive and logical time must not be negative.");
 		}
 		Objects.requireNonNull(effectiveState, "effectiveState");
 		Objects.requireNonNull(overloadLevel, "overloadLevel");

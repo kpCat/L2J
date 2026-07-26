@@ -27,6 +27,10 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
@@ -50,6 +54,7 @@ public final class PhantomSystem
 	private final PhantomDiagnosticTrace _trace;
 	private final boolean _productionMaterialization;
 	private PhantomMaterializationService _materializationService;
+	private PhantomDecisionEngine _decisionEngine;
 	private State _state = State.NEW;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
@@ -96,7 +101,13 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom materialization service could not enter the running state.");
 				}
-				_scheduler = createScheduler(new PhantomMaterializationServiceActivityPort(_materializationService));
+				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
+				candidateRegistry.seal();
+				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
+				handlerRegistry.seal();
+				_decisionEngine = new PhantomDecisionEngine(new PhantomGoalStateStore(profileRepository), candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
+				_decisionEngine.start();
+				_scheduler = createScheduler(new PhantomMaterializationServiceActivityPort(_materializationService), _decisionEngine);
 			}
 			else
 			{
@@ -109,14 +120,25 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException e)
 		{
+			if (_scheduler != null)
+			{
+				_scheduler.beginStop();
+			}
+			if (_decisionEngine != null)
+			{
+				_decisionEngine.beginStop();
+			}
 			if (_materializationService != null)
 			{
 				_materializationService.shutdown();
 			}
 			if (_scheduler != null)
 			{
-				_scheduler.beginStop();
 				_scheduler.finishStop();
+			}
+			if (_decisionEngine != null)
+			{
+				_decisionEngine.finishStop();
 			}
 			_state = State.STOPPED;
 			throw e;
@@ -136,6 +158,10 @@ public final class PhantomSystem
 		if (_state == State.RUNNING)
 		{
 			_scheduler.beginStop();
+			if (_decisionEngine != null)
+			{
+				_decisionEngine.beginStop();
+			}
 			if (_materializationService != null)
 			{
 				final ShutdownResult result = _materializationService.shutdown();
@@ -146,6 +172,11 @@ public final class PhantomSystem
 				}
 			}
 			if (!_scheduler.finishStop())
+			{
+				_state = State.FAILED;
+				return false;
+			}
+			if ((_decisionEngine != null) && !_decisionEngine.finishStop())
 			{
 				_state = State.FAILED;
 				return false;
@@ -164,7 +195,11 @@ public final class PhantomSystem
 					return false;
 				}
 			}
-			if (!_scheduler.finishStop())
+			if ((_scheduler.snapshot().state() != PhantomScheduler.SchedulerState.STOPPED) && !_scheduler.finishStop())
+			{
+				return false;
+			}
+			if ((_decisionEngine != null) && !_decisionEngine.finishStop())
 			{
 				return false;
 			}
@@ -179,7 +214,7 @@ public final class PhantomSystem
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
 	}
 
 	public static synchronized boolean startConfigured()
@@ -331,6 +366,11 @@ public final class PhantomSystem
 
 	private PhantomScheduler createScheduler(PhantomActivityMaterializationPort materializationPort)
 	{
+		return createScheduler(materializationPort, PhantomActivityWorkSink.noop());
+	}
+
+	private PhantomScheduler createScheduler(PhantomActivityMaterializationPort materializationPort, PhantomActivityWorkSink workSink)
+	{
 		return new PhantomScheduler(
 			_settings.maxScheduledPhantomProfiles(),
 			_settings.schedulerPulseMillis(),
@@ -338,10 +378,10 @@ public final class PhantomSystem
 			_metrics,
 			_trace,
 			materializationPort,
-			PhantomActivityWorkSink.noop());
+			workSink);
 	}
 
-	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
+	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
 	{
 	}
 

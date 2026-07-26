@@ -18,8 +18,26 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
  * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.l2jmobius.gameserver.phantoms.activity;
+package org.l2jmobius.gameserver.phantoms.decision;
 
-public record PhantomActivitySnapshot(long profileId, PhantomActivityState effectiveState, PhantomActivityState requestedState, PhantomActivityTransitionStatus transitionStatus, int activeSignalSources, boolean enqueued, boolean due, boolean processing, boolean boundaryInFlight, long boundaryGeneration, long activityGeneration, long nextDueNanos, long tickSequence, PhantomActivityResultCategory lastResult, long lastTransitionNanos)
+import java.util.Objects;
+
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+
+public record PhantomPlanningContext(long profileId, PhantomGoal goal, PhantomCapabilitySet capabilities, PhantomActivityState activityState, long logicalNowNanos, long decisionSequence)
 {
+	public PhantomPlanningContext
+	{
+		if (profileId <= 0)
+		{
+			throw new IllegalArgumentException("Profile ID must be positive.");
+		}
+		Objects.requireNonNull(goal, "Goal must not be null.");
+		Objects.requireNonNull(capabilities, "Capabilities must not be null.");
+		Objects.requireNonNull(activityState, "Activity state must not be null.");
+		if ((logicalNowNanos < 0) || (decisionSequence <= 0))
+		{
+			throw new IllegalArgumentException("Logical time must not be negative and decision sequence must be positive.");
+		}
+	}
 }

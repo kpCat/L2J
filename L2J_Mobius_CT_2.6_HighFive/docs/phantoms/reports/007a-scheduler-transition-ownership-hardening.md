@@ -8,15 +8,15 @@ Baseline: 9958edd9e133557f4966eed0a4124e68326401b3
 Parent baseline: 82a03342e52ff4b6c023b8ea224da8b1c2f6657f
 Branch: feature/phantom-world
 Subject: fix(phantoms): harden scheduler transition ownership
-Goal 007: FIX_REQUIRED
-Goal 007A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
-Goal 008: NOT_STARTED / BLOCKED
-Goal 009: NOT_STARTED / BLOCKED
+Goal 007: ACCEPT after Goal 007A
+Goal 007A: ACCEPT
+Goal 008: ALLOWED
+Goal 009: NOT_STARTED
 ```
 
 Production, focused regressions, cumulative `ant verify`, финальный `ant jar`
-и два byte-identical verifier run завершены. Commit SHA и push фиксируются во
-внешнем final handoff, чтобы сохранить один ordinary commit.
+и два byte-identical verifier run завершены. Ordinary commit
+`357c047fdba4bc9ea3b4ee21bcedbd5ce6c64018` принят независимым review Goal 007A.
 
 ## Summary
 
@@ -194,7 +194,9 @@ Scale smoke сохранил Goal 007 bounds: `10000` dormant profiles имею�
   abbreviated handoff.
 - Новый тестовый overload `PhantomSystem.configureForTesting(service,
   scheduler)` package-private и не участвует в configured production start.
-- Независимое review Goal 007A ещё не выполнено; задача не self-accept-ит gate.
+- Независимое review Goal 007A завершено с verdict `ACCEPT`; revert не требуется.
+- Bounded follow-up перенесён в Goal 008: cleanup retry обязан использовать
+  current requested state, вычисленный после внешнего cleanup call.
 
 ## Encoding checks
 
@@ -208,14 +210,13 @@ exact diff verification, одного ordinary commit и push.
 
 ```text
 Expected commit parent: 9958edd9e133557f4966eed0a4124e68326401b3
-Commit SHA: во внешнем final handoff
-Push result: во внешнем final handoff
+Commit SHA: 357c047fdba4bc9ea3b4ee21bcedbd5ce6c64018
+Push result: подтверждён exact remote ref
 ```
 
 ## Next step
 
-Только независимое review Goal 007A. Goal 008 и Goal 009 остаются
-`NOT_STARTED / BLOCKED`.
+Goal 008 разрешена. Goal 009 остаётся `NOT_STARTED`.
 
 Result:
-`ACTIVITY_SCHEDULER_HARDENED_PENDING_INDEPENDENT_REVIEW`.
+`ACTIVITY_SCHEDULER_HARDENED_ACCEPTED`.

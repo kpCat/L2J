@@ -18,8 +18,39 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
  * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.l2jmobius.gameserver.phantoms.activity;
+package org.l2jmobius.gameserver.phantoms.decision;
 
-public record PhantomActivitySnapshot(long profileId, PhantomActivityState effectiveState, PhantomActivityState requestedState, PhantomActivityTransitionStatus transitionStatus, int activeSignalSources, boolean enqueued, boolean due, boolean processing, boolean boundaryInFlight, long boundaryGeneration, long activityGeneration, long nextDueNanos, long tickSequence, PhantomActivityResultCategory lastResult, long lastTransitionNanos)
+import java.util.Objects;
+
+public record PhantomStepResult(Type type, long retryDelayMillis, String reasonKey)
 {
+	public PhantomStepResult
+	{
+		Objects.requireNonNull(type, "Step result type must not be null.");
+		if ((retryDelayMillis < 0) || (retryDelayMillis > 3_600_000) || ((type != Type.RETRY) && (retryDelayMillis != 0)))
+		{
+			throw new IllegalArgumentException("Retry delay must be zero except for RETRY and must not exceed 3600000 milliseconds.");
+		}
+		reasonKey = PhantomDecisionKey.require(reasonKey, "Step result reason key");
+	}
+
+	public static PhantomStepResult of(Type type, String reasonKey)
+	{
+		return new PhantomStepResult(type, 0, reasonKey);
+	}
+
+	public static PhantomStepResult retry(long delayMillis, String reasonKey)
+	{
+		return new PhantomStepResult(Type.RETRY, delayMillis, reasonKey);
+	}
+
+	public enum Type
+	{
+		SUCCESS,
+		RETRY,
+		REPLAN,
+		COMPLETE_GOAL,
+		FAIL_GOAL,
+		CANCELLED
+	}
 }

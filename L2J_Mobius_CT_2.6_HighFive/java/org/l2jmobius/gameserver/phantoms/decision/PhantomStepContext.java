@@ -18,8 +18,24 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
  * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.l2jmobius.gameserver.phantoms.activity;
+package org.l2jmobius.gameserver.phantoms.decision;
 
-public record PhantomActivitySnapshot(long profileId, PhantomActivityState effectiveState, PhantomActivityState requestedState, PhantomActivityTransitionStatus transitionStatus, int activeSignalSources, boolean enqueued, boolean due, boolean processing, boolean boundaryInFlight, long boundaryGeneration, long activityGeneration, long nextDueNanos, long tickSequence, PhantomActivityResultCategory lastResult, long lastTransitionNanos)
+import java.util.Objects;
+
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+
+public record PhantomStepContext(long profileId, PhantomGoal goal, PhantomPlan plan, PhantomPlanStep step, PhantomActivityState activityState, long logicalNowNanos, int attempt, PhantomCancellationToken cancellationToken)
 {
+	public PhantomStepContext
+	{
+		if ((profileId <= 0) || (logicalNowNanos < 0) || (attempt < 1))
+		{
+			throw new IllegalArgumentException("Step context identifiers, time and attempt are invalid.");
+		}
+		Objects.requireNonNull(goal, "Goal must not be null.");
+		Objects.requireNonNull(plan, "Plan must not be null.");
+		Objects.requireNonNull(step, "Step must not be null.");
+		Objects.requireNonNull(activityState, "Activity state must not be null.");
+		Objects.requireNonNull(cancellationToken, "Cancellation token must not be null.");
+	}
 }

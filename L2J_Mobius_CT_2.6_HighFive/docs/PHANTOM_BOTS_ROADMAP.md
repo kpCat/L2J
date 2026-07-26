@@ -12,10 +12,10 @@
 
 ```text
 Последний принятый production baseline:
-82a03342e52ff4b6c023b8ea224da8b1c2f6657f
+357c047fdba4bc9ea3b4ee21bcedbd5ce6c64018
 
 Текущий branch HEAD под ревью:
-Goal 007A scheduler transition ownership hardening — commit SHA во внешнем final handoff
+Goal 008 goal/Utility AI/plan core — commit SHA во внешнем final handoff
 
 Task 004 technical feasibility:
 ACCEPT
@@ -45,16 +45,16 @@ Stage I:
 COMPLETE
 
 Goal 007:
-FIX_REQUIRED
+ACCEPT after Goal 007A
 
 Goal 007A:
-IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+ACCEPT
 
 Goal 008:
-NOT_STARTED / BLOCKED
+IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 009:
-NOT_STARTED / BLOCKED
+NOT_STARTED
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
@@ -63,9 +63,8 @@ Task 004A и Task 004B закрыли найденные lifecycle/retained-iden
 seam и ADR 0001 приняты. Goal 005 и её core profile/persistence envelope
 приняты. Архитектурное направление Goal 006, Goal 006A и независимо проверенная
 Goal 006B приняты; Goal 006 overall имеет `ACCEPT`, а Этап I завершён. Goal 007
-получила `FIX_REQUIRED`; Goal 007A закрывает только scheduler ownership findings
-и ожидает независимого review. Goal 008 и Goal 009 не начаты и заблокированы до
-принятия Goal 007A.
+и Goal 007A приняты на baseline `357c047f...`. Goal 008 реализована и ожидает
+независимого review; Goal 009 не начата.
 
 ---
 
@@ -313,7 +312,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `FIX_REQUIRED`; Goal 007A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 008 и Goal 009 — `NOT_STARTED / BLOCKED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 009 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -437,7 +436,7 @@ Stage I закрыты с `ACCEPT`.
 **GOAL:** 007–011  
 **Зависит от:** Этап I.
 
-## Goal 007 — Shared scheduler и activity state machine — `FIX_REQUIRED`
+## Goal 007 — Shared scheduler и activity state machine — `ACCEPT after Goal 007A`
 
 **Назначение:** обслуживать profiles без per-phantom tasks.  
 **Зависимости:** 006.  
@@ -456,10 +455,10 @@ Stage I закрыты с `ACCEPT`.
 profiles without thousands of futures.  
 **Follow-up risk:** `HIGH` — fairness, cancellation and overload edges.
 
-Goal 007A реализует required closure только для transition ownership и stop
-quiescence; статус — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Goal 007A реализовала required closure только для transition ownership и stop
+quiescence; статус — `ACCEPT`.
 
-## Goal 008 — Goal model, Utility AI core и plan executor
+## Goal 008 — Goal model, Utility AI core и plan executor — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** дать объяснимое решение без domain-specific giant scripts.  
 **Зависимости:** 005, 007.  
@@ -992,10 +991,10 @@ Current stage:
 II. Scheduler, goals, navigation and authoritative knowledge
 
 Current accepted baseline:
-82a03342e52ff4b6c023b8ea224da8b1c2f6657f
+357c047fdba4bc9ea3b4ee21bcedbd5ce6c64018
 
 Current branch HEAD under review:
-Goal 007A scheduler transition ownership hardening — commit SHA во внешнем final handoff
+Goal 008 goal/Utility AI/plan core — commit SHA во внешнем final handoff
 
 Completed:
 - 001 / 001A
@@ -1010,21 +1009,22 @@ Completed:
 - Goal 006B
 - Goal 006 overall
 - Stage I COMPLETE
+- Goal 007 after Goal 007A
+- Goal 007A
 
 In progress / required closure:
-- Goal 007 FIX_REQUIRED
-- Goal 007A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 008 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 007A
-2. Goal 008 and Goal 009 only after accepted Goal 007A closure
+1. Independent review Goal 008
+2. Goal 009 remains NOT_STARTED until the Goal 008 gate is accepted
 
 Stage gate:
 - Stage I COMPLETE
 - Stage II not complete
 
 New risks:
-- scheduler ownership hardening awaits independent review
+- goal/Utility AI/plan core awaits independent review
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
@@ -1040,10 +1040,10 @@ Roadmap changes:
 Overall:
 - Goal 006 overall ACCEPT; Goal 006A ACCEPT; Goal 006B ACCEPT;
   Stage I COMPLETE;
-  Goal 007 FIX_REQUIRED;
-  Goal 007A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 008 NOT_STARTED / BLOCKED;
-  Goal 009 NOT_STARTED / BLOCKED
+  Goal 007 ACCEPT after Goal 007A;
+  Goal 007A ACCEPT;
+  Goal 008 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 009 NOT_STARTED
 ```
 
 ---

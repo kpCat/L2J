@@ -192,6 +192,9 @@ public final class PhantomTestLauncher
 			case "server-shutdown-handoff" -> new PhantomServerShutdownHandoffSuite();
 			case "activity-scheduler" -> new PhantomActivitySchedulerSuite();
 			case "activity-scheduler-performance" -> new PhantomActivitySchedulerPerformanceSuite();
+			case "decision-core" -> new PhantomDecisionCoreSuite();
+			case "decision-persistence" -> new PhantomDecisionPersistenceSuite();
+			case "decision-performance" -> new PhantomDecisionPerformanceSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

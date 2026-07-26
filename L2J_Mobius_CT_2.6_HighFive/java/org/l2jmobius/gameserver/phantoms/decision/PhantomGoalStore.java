@@ -18,8 +18,34 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
  * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.l2jmobius.gameserver.phantoms.activity;
+package org.l2jmobius.gameserver.phantoms.decision;
 
-public record PhantomActivitySnapshot(long profileId, PhantomActivityState effectiveState, PhantomActivityState requestedState, PhantomActivityTransitionStatus transitionStatus, int activeSignalSources, boolean enqueued, boolean due, boolean processing, boolean boundaryInFlight, long boundaryGeneration, long activityGeneration, long nextDueNanos, long tickSequence, PhantomActivityResultCategory lastResult, long lastTransitionNanos)
+import java.util.Optional;
+
+public interface PhantomGoalStore
 {
+	boolean profileExists(long profileId);
+
+	Optional<StoredGoal> load(long profileId);
+
+	StoredGoal insert(long profileId, PhantomGoal goal);
+
+	StoredGoal replace(long profileId, long expectedRowVersion, PhantomGoal goal);
+
+	void delete(long profileId, long expectedRowVersion);
+
+	record StoredGoal(PhantomGoal goal, long rowVersion)
+	{
+		public StoredGoal
+		{
+			if (goal == null)
+			{
+				throw new NullPointerException("Stored goal must not be null.");
+			}
+			if (rowVersion < 0)
+			{
+				throw new IllegalArgumentException("Component row version must not be negative.");
+			}
+		}
+	}
 }

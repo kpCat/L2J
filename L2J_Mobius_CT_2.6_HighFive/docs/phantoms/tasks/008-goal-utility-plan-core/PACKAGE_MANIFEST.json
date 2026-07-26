@@ -1,0 +1,24 @@
+{
+  "package": "phantom-world-goal-008-goal-utility-plan-core",
+  "taskId": "008-goal-utility-plan-core",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/008-goal-utility-plan-core/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "357c047fdba4bc9ea3b4ee21bcedbd5ce6c64018",
+  "schemaChanges": false,
+  "configChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal009Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "GOAL_MODEL.md",
+    "UTILITY_SCORING.md",
+    "PLAN_EXECUTION.md",
+    "PERSISTENCE.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}
