@@ -309,10 +309,16 @@ Goal 006: ALLOWED
 - production DB `l2jmobiush5`: без доступа и изменений;
 - provisioning aggregate SHA-256:
   `20ECFDBD9BAEE625126CF53062B6E72433C7BE5604B0844FEEDD28F581BE067E`;
-- принятый verifier SHA-256 из provenance Goal 005:
-  `39A1D87DB35AE8B2DDE28EB11776A69E2F7359AC6539A900BB78D114BDBB7BC9`;
+- verifier SHA-256 Goal 005, восстановленный из локального сохранённого
+  final handoff с двумя byte-identical run `69/69`:
+  `483B6CAD90CEAE55E282E492639DA6253F754424FDD7EB8DB57A41B23B966E97`;
 - independent review: `ACCEPT`;
 - Goal 006: `ALLOWED`.
+
+SHA-256
+`39A1D87DB35AE8B2DDE28EB11776A69E2F7359AC6539A900BB78D114BDBB7BC9`
+относится только к двум verifier run `66/66` Task 004B, как указано выше, и
+не является provenance Goal 005.
 
 Два ограниченных follow-up перенесены в Goal 006: ownership-scoped очистка
 profile test rows с foreign sentinel и value equality/hash для component

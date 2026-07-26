@@ -2,14 +2,17 @@
 
 ## Статус, baseline и gate
 
-Статус: `PRODUCTION_MATERIALIZATION_LIFECYCLE_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Статус Goal 006: `FIX_REQUIRED`.
 
 ```text
 Baseline: 9d0465eb62f9913644fab9f1d60feb2f4fd9a674
 Parent baseline: f5b66c4edf1ddf18e044ef8c692d70ecea616485
 Branch: feature/phantom-world
-Manual gate: PENDING_INDEPENDENT_REVIEW
-Goal 007: NOT_STARTED
+Goal 006 architecture direction: ACCEPT
+Goal 006 commit: FIX_REQUIRED
+Revert: NOT_REQUIRED
+Goal 006A: REQUIRED
+Goal 007: NOT_STARTED / BLOCKED
 ```
 
 Goal 005 закрыта отдельным independent review как `ACCEPT`; commit, parent,
@@ -18,12 +21,17 @@ exact remote, три headless run, profile suite и два финальных ve
 
 - provisioning aggregate:
   `20ECFDBD9BAEE625126CF53062B6E72433C7BE5604B0844FEEDD28F581BE067E`;
-- verifier provenance:
+- verifier Goal 005, два byte-identical run `69/69`, восстановленный из
+  локального сохранённого final handoff:
+  `483B6CAD90CEAE55E282E492639DA6253F754424FDD7EB8DB57A41B23B966E97`;
+- verifier Task 004B, два byte-identical run `66/66`:
   `39A1D87DB35AE8B2DDE28EB11776A69E2F7359AC6539A900BB78D114BDBB7BC9`.
 
-Roadmap изменён только в progress facts: accepted baseline теперь `9d0465eb...`,
-Goal 005 — `ACCEPT`, Goal 006 —
-`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`, Goal 007 — `NOT_STARTED`.
+Независимое ревью приняло архитектурное направление Goal 006, но обнаружило
+четыре обязательных finding: неполный World/autosave identity preflight,
+гонку action admission с `STOPPING`, отсутствие wall-clock bound для caller
+`shutdown` и ошибочную provenance Goal 005. Revert не требуется; закрытие
+выполняется только Goal 006A. Goal 007 не начата и остаётся заблокированной.
 
 ## Config и disabled behavior
 
@@ -284,7 +292,13 @@ handoff после успешного выполнения.
 ## Финальный gate
 
 ```text
-Manual gate: PENDING_INDEPENDENT_REVIEW
-Goal 007: NOT_STARTED
-Result: PRODUCTION_MATERIALIZATION_LIFECYCLE_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 006 architecture direction: ACCEPT
+Goal 006 commit: FIX_REQUIRED
+Revert: NOT_REQUIRED
+Goal 006A: REQUIRED
+Goal 007: NOT_STARTED / BLOCKED
+Result: FIX_REQUIRED
 ```
+
+Полный verdict и findings зафиксированы в
+`docs/phantoms/reviews/006-production-materialization-lifecycle-review.md`.

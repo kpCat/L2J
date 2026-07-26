@@ -28,6 +28,7 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.Player.OutboundSessionAttachment;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
+import org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager;
 
 /**
  * Single canonical per-actor lifecycle used by production materialization and
@@ -64,7 +65,10 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 
 	public enum MaterializationFailure
 	{
-		WORLD_IDENTITY_BUSY,
+		WORLD_PLAYER_IDENTITY_BUSY,
+		WORLD_OBJECT_IDENTITY_BUSY,
+		AUTOSAVE_IDENTITY_BUSY,
+		WORLD_REGISTRATION_MISMATCH,
 		IDENTITY_BUSY,
 		PLAYER_LOAD_FAILED,
 		OBJECT_ID_MISMATCH
@@ -160,10 +164,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 
 		try
 		{
-			if (World.getInstance().getPlayer(_objectId) != null)
-			{
-				throw new MaterializationException(MaterializationFailure.WORLD_IDENTITY_BUSY, "Character is already present in World");
-			}
+			requireIdentityRegistriesFree("before identity claim");
 
 			_identityLease = _identityRegistry.tryAcquire(_objectId, OwnerKind.PHANTOM);
 			if (_identityLease == null)
@@ -173,10 +174,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			_state = State.CLAIMED;
 			failAfter(FailurePoint.AFTER_IDENTITY_CLAIM);
 
-			if (World.getInstance().getPlayer(_objectId) != null)
-			{
-				throw new MaterializationException(MaterializationFailure.WORLD_IDENTITY_BUSY, "Character entered World after identity claim");
-			}
+			requireIdentityRegistriesFree("after identity claim");
 
 			_state = State.LOADING;
 			_player = Player.load(_objectId);
@@ -188,13 +186,14 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			{
 				throw new MaterializationException(MaterializationFailure.OBJECT_ID_MISMATCH, "Loaded Player object ID does not match the claimed character");
 			}
+			requireWorldIdentityFree("during Player load");
+			final PlayerAutoSaveTaskManager autoSaveManager = PlayerAutoSaveTaskManager.getInstance();
+			if (!autoSaveManager.contains(_player) || autoSaveManager.containsOtherObjectId(_objectId, _player))
+			{
+				throw new MaterializationException(MaterializationFailure.AUTOSAVE_IDENTITY_BUSY, "Loaded Player is not the only autosave owner for the claimed character");
+			}
 			_lifecycleSupport.afterPlayerLoad(_player);
 			failAfter(FailurePoint.AFTER_PLAYER_LOAD);
-
-			if (World.getInstance().getPlayer(_objectId) != null)
-			{
-				throw new MaterializationException(MaterializationFailure.WORLD_IDENTITY_BUSY, "Character entered World during Player load");
-			}
 
 			_identityAttached = true;
 			_state = State.MATERIALIZING;
@@ -212,7 +211,13 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			_player.setOnlineStatus(true, true);
 			failAfter(FailurePoint.AFTER_ONLINE_ACTIVATION);
 
+			requireWorldIdentityFree("immediately before World spawn");
 			_player.spawnMe();
+			final World world = World.getInstance();
+			if ((world.getPlayer(_objectId) != _player) || (world.findObject(_objectId) != _player))
+			{
+				throw new MaterializationException(MaterializationFailure.WORLD_REGISTRATION_MISMATCH, "World did not register the exact materialized Player in both identity maps");
+			}
 			failAfter(FailurePoint.AFTER_WORLD_SPAWN);
 
 			synchronized (_actionMonitor)
@@ -292,6 +297,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			final Player cleanupPlayer = _player;
 			if ((cleanupPlayer != null) && !PhantomPlayerCleanupPolicy.isComplete(cleanupPlayer))
 			{
+				requireNoForeignWorldIdentity(cleanupPlayer);
 				cleanupPlayer.stopAllTasks();
 				_lifecycleSupport.beforeStore(cleanupPlayer);
 				failAfter(FailurePoint.BEFORE_STORE_OPERATION);
@@ -307,6 +313,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				}
 
 				failAfter(FailurePoint.BEFORE_DELETE_OPERATION);
+				requireNoForeignWorldIdentity(cleanupPlayer);
 				cleanupPlayer.deleteMe();
 
 				try
@@ -359,6 +366,44 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		if (afterStepFailure != null)
 		{
 			throw afterStepFailure;
+		}
+	}
+
+	private void requireIdentityRegistriesFree(String phase)
+	{
+		requireWorldIdentityFree(phase);
+		if (PlayerAutoSaveTaskManager.getInstance().containsObjectId(_objectId))
+		{
+			throw new MaterializationException(MaterializationFailure.AUTOSAVE_IDENTITY_BUSY, "Autosave already owns the claimed character " + phase);
+		}
+	}
+
+	private void requireWorldIdentityFree(String phase)
+	{
+		final World world = World.getInstance();
+		if (world.getPlayer(_objectId) != null)
+		{
+			throw new MaterializationException(MaterializationFailure.WORLD_PLAYER_IDENTITY_BUSY, "World Player identity is busy " + phase);
+		}
+		if (world.findObject(_objectId) != null)
+		{
+			throw new MaterializationException(MaterializationFailure.WORLD_OBJECT_IDENTITY_BUSY, "World object identity is busy " + phase);
+		}
+	}
+
+	private static void requireNoForeignWorldIdentity(Player cleanupPlayer)
+	{
+		final World world = World.getInstance();
+		final int objectId = cleanupPlayer.getObjectId();
+		final Player worldPlayer = world.getPlayer(objectId);
+		if ((worldPlayer != null) && (worldPlayer != cleanupPlayer))
+		{
+			throw new IllegalStateException("Another World Player owns the cleanup object ID");
+		}
+		final Object worldObject = world.findObject(objectId);
+		if ((worldObject != null) && (worldObject != cleanupPlayer))
+		{
+			throw new IllegalStateException("Another World object owns the cleanup object ID");
 		}
 	}
 

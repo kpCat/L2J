@@ -1,0 +1,21 @@
+{
+  "package": "phantom-world-goal-006a-materialization-boundary-hardening",
+  "taskId": "006a-materialization-boundary-hardening",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/006a-materialization-boundary-hardening/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "ff0b33abad0affc4fe64b4324aee67f256dc96fa",
+  "schemaChanges": false,
+  "configChanges": false,
+  "goal007Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "ARCHITECTURE.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

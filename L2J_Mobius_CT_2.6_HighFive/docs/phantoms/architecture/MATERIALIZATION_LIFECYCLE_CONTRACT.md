@@ -7,6 +7,11 @@ Goal 006 вводит только явный production lifecycle для пре
 профили автоматически и не содержит scheduler activity states, population,
 Utility AI, navigation, combat, economy или conversation. Goal 007 не начат.
 
+Goal 006A не расширяет этот scope. Она закрывает только identity boundary,
+action/`STOPPING` atomicity, wall-clock budget caller `shutdown` и provenance.
+Goal 006 остаётся `FIX_REQUIRED`, а Goal 006A —
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+
 Единственный per-actor lifecycle реализует `PhantomMaterializedPlayer`:
 
 ```text
@@ -54,19 +59,36 @@ profile lookup
 → profile/character reservation
 → permit
 → однократная on-demand retained recovery при необходимости
+→ World.getPlayer / World.findObject / autosave preflight
 → PHANTOM identity claim
+→ повторный World/autosave preflight
 → Player.load с exact object ID
+→ обе World maps пусты, exact Player — единственный autosave owner
 → headless outbound attachment
 → domain initialization
 → online status
+→ повторная проверка обеих World maps
 → World spawn
+→ обе World maps указывают на exact Player
 → открытие action admission
 ```
+
+Preflight отклоняет любой существующий `World.getPlayer(objectId)`, любой
+`World.findObject(objectId)` и любой `containsObjectId(objectId)` в autosave.
+После `Player.load` проверяются exact object ID, пустые World maps,
+`contains(player)` и отсутствие другого Player с тем же ID через узкий
+read-only `containsOtherObjectId`. После spawn обе World maps обязаны указывать
+на тот же exact `Player`; различимые ошибки остаются retryable и fail-closed.
 
 `ActionLease` выдаётся только в `ACTIVE`. Его close уменьшает admitted count
 ровно один раз; double/stale close безопасен. Cleanup сначала закрывает admission,
 затем ограниченно ждёт уже выданные tokens. Произвольный callback executor
 наружу не предоставляется.
+
+Service выполняет проверку `RUNNING`, поиск entry и actor admission внутри
+одного `_stateMonitor`. Поэтому action либо принят до `STOPPING` и будет drained,
+либо переход в `STOPPING` выигрывает и новый action отклоняется. Под этим
+monitor нет DB, Player или World work.
 
 ## Cleanup, retry и shutdown
 
@@ -90,13 +112,20 @@ close admission
 для explicit `retryCleanup`. Успешный повтор достигает `STORED`; повторный
 cleanup после успеха является no-op.
 
-`shutdown` запрещает новые materialization/action admissions, обходит entries в
-стабильном порядке profile ID, делает один основной cleanup pass и не более
-одного немедленного retry pass. Общий budget не превышает 10 секунд.
-Persistent failure возвращает exact failed profile IDs, сохраняет ресурсы и
-оставляет service/System в `FAILED`. Второй явный shutdown может повторить
-cleanup; background retry отсутствует. Configured instance очищается только
-после terminal `STOPPED`.
+`shutdown` под state monitor запрещает новые materialization/action admissions,
+создаёт или переиспользует один transient service-level `DrainAttempt` и
+отправляет один drain command в существующий `ThreadPool`. Caller ждёт latch
+не дольше своего wall-clock budget. Command обходит entries в стабильном
+порядке profile ID, делает один основной cleanup pass и не более одного
+немедленного retry pass.
+
+Caller timeout возвращает `FAILED` с exact retained profile IDs, но не отменяет
+`storeMe`/`deleteMe` и не освобождает maps, permit или identity. Пока tracked
+attempt выполняется, concurrent/second `shutdown` переиспользует его и не
+запускает duplicate cleanup. Успешное позднее завершение может перевести
+service в `STOPPED`; после завершившейся ошибки новый explicit `shutdown` может
+создать retry attempt. Новый executor, raw thread и per-profile future
+отсутствуют. Configured instance очищается только после terminal `STOPPED`.
 
 ## REAL_LOGIN ownership и recovery
 

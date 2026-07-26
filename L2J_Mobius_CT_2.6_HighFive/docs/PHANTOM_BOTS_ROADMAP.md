@@ -15,7 +15,7 @@
 9d0465eb62f9913644fab9f1d60feb2f4fd9a674
 
 Текущий branch HEAD под ревью:
-Goal 006 implementation — commit SHA во внешнем final handoff
+Goal 006A hardening — commit SHA во внешнем final handoff
 
 Task 004 technical feasibility:
 ACCEPT
@@ -33,17 +33,22 @@ Task 005:
 ACCEPT
 
 Goal 006:
+FIX_REQUIRED
+
+Goal 006A:
 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 007:
-NOT_STARTED / BLOCKED до независимого ACCEPT Goal 006
+NOT_STARTED / BLOCKED
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
 материализован без TCP, fake `GameClient`, Player subclass/fork и production DB.
 Task 004A и Task 004B закрыли найденные lifecycle/retained-identity findings;
 seam и ADR 0001 приняты. Goal 005 и её core profile/persistence envelope
-приняты. Goal 006 реализована и ожидает независимого review; Goal 007 не начата.
+приняты. Архитектурное направление Goal 006 принято, но commit получил
+`FIX_REQUIRED`; bounded closure Goal 006A реализована и ожидает независимого
+review. Goal 007 не начата и заблокирована.
 
 ---
 
@@ -291,7 +296,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B и Goal 005 приняты; Goal 006 реализована и ожидает независимого review; Goal 007 заблокирована.
+**Текущий статус:** Task 004/004A/004B и Goal 005 приняты; Goal 006 — `FIX_REQUIRED`; Goal 006A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 007 — `NOT_STARTED / BLOCKED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -365,7 +370,7 @@ Utility AI, population или materialization.
 переписывания core identity.  
 **Follow-up risk:** `HIGH` — schema/versioning/concurrent update.
 
-## Goal 006 — Production materialization lifecycle — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+## Goal 006 — Production materialization lifecycle — `FIX_REQUIRED`
 
 **Назначение:** превратить spike в production-owned, disabled-by-default
 materialization service.  
@@ -384,6 +389,12 @@ materialization service.
 **Не включает:** schedules, activity states, AI, navigation, population.  
 **Gate:** restart, collision, failure injection и disabled equivalence.  
 **Follow-up risk:** `VERY_HIGH` — Player/World/login/restart boundary.
+
+### Goal 006A — обязательная materialization boundary closure-задача — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+
+Закрывает findings Goal 006 по World/autosave identity boundary,
+action/`STOPPING` atomicity, wall-clock budget caller `shutdown` и provenance.
+Goal 007 остаётся `NOT_STARTED / BLOCKED` до независимого review Goal 006A.
 
 ### Gate Этапа I
 
@@ -957,7 +968,7 @@ Current accepted baseline:
 9d0465eb62f9913644fab9f1d60feb2f4fd9a674
 
 Current branch HEAD under review:
-Goal 006 implementation — commit SHA во внешнем final handoff
+Goal 006A hardening — commit SHA во внешнем final handoff
 
 Completed:
 - 001 / 001A
@@ -970,17 +981,18 @@ Completed:
 - Goal 005
 
 In progress / required closure:
-- Goal 006 independent review
+- Goal 006 FIX_REQUIRED
+- Goal 006A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 006
-2. Goal 007 shared scheduler after Goal 006 ACCEPT
+1. Independent review Goal 006A
+2. Goal 007 shared scheduler only after accepted Goal 006 closure
 
 Stage gate:
-- not complete until Goal 006 ACCEPT
+- not complete until Goal 006A independent ACCEPT
 
 New risks:
-- production materialization lifecycle awaits independent review
+- materialization boundary hardening awaits independent review
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
@@ -994,7 +1006,8 @@ Roadmap changes:
 - operations moved before scale soak
 
 Overall:
-- canonical seam accepted; Goal 005 implemented pending independent review
+- Goal 006 FIX_REQUIRED; Goal 006A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 007 NOT_STARTED / BLOCKED
 ```
 
 ---

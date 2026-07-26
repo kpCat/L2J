@@ -39,6 +39,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.WorldObject;
+import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
@@ -141,6 +143,9 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		registry.add("14-stable-shutdown-and-one-immediate-retry", _ -> testShutdownOrderAndRetry());
 		registry.add("15-persistent-shutdown-failure-second-retry-and-restart", _ -> testPersistentShutdownAndRestart());
 		registry.add("16-fixed-metrics-and-bounded-trace", _ -> testMetricsAndTrace());
+		registry.add("17-world-and-autosave-materialization-boundaries", _ -> testMaterializationIdentityBoundaries());
+		registry.add("18-action-admission-atomic-with-stopping", _ -> testActionAdmissionAtomicWithStopping());
+		registry.add("19-shutdown-caller-wall-clock-bound", this::testShutdownCallerWallClock);
 	}
 
 	private void testConfig() throws Exception
@@ -185,6 +190,9 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, result.status(), "Linked profile did not materialize.");
 		final Player player = World.getInstance().getPlayer(_environment.primary().objectId());
 		PhantomAssertions.assertTrue(player != null && player.isOnline(), "Canonical Player is not online in World.");
+		PhantomAssertions.assertEquals(player, World.getInstance().findObject(_environment.primary().objectId()), "Canonical Player is not the exact general World object.");
+		PhantomAssertions.assertTrue(PlayerAutoSaveTaskManager.getInstance().contains(player), "Canonical Player is not the exact autosave owner.");
+		PhantomAssertions.assertFalse(PlayerAutoSaveTaskManager.getInstance().containsOtherObjectId(player.getObjectId(), player), "Another autosave Player owns the canonical object ID.");
 		PhantomAssertions.assertTrue(player.hasHeadlessOutboundSession(), "Canonical Player has no headless output.");
 		PhantomAssertions.assertEquals(_environment.primary().objectId(), result.snapshot().characterObjectId(), "Materialization captured the wrong character.");
 		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().dematerialize(profile.profileId()).status(), "Canonical Player did not dematerialize.");
@@ -537,6 +545,185 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		PhantomAssertions.assertTrue(snapshot.traceDropped() > 0, "Bounded trace did not account for overwritten events.");
 	}
 
+	private void testMaterializationIdentityBoundaries() throws Exception
+	{
+		reset();
+		final PhantomProfile profile = createProfile(_environment.primary().objectId());
+		final ServiceFixture fixture = service(1);
+		final PhantomIdentityLeaseRegistry registry = PhantomIdentityLeaseRegistry.getInstance();
+
+		final Player worldPlayer = Player.load(_environment.primary().objectId());
+		PhantomAssertions.assertTrue(worldPlayer != null, "Could not load World collision Player.");
+		worldPlayer.spawnMe();
+		try
+		{
+			PhantomAssertions.assertEquals(ResultStatus.WORLD_PLAYER_IDENTITY_BUSY, fixture.service().materialize(profile.profileId()).status(), "Existing World Player did not reject materialization distinctly.");
+			PhantomAssertions.assertEquals(worldPlayer, World.getInstance().getPlayer(worldPlayer.getObjectId()), "World Player collision disturbed the Player map.");
+			PhantomAssertions.assertEquals(worldPlayer, World.getInstance().findObject(worldPlayer.getObjectId()), "World Player collision disturbed the object map.");
+			PhantomAssertions.assertTrue(PlayerAutoSaveTaskManager.getInstance().contains(worldPlayer), "World Player collision disturbed autosave.");
+			PhantomAssertions.assertEquals(1, fixture.service().snapshot().availablePermits(), "World Player collision leaked capacity.");
+			PhantomAssertions.assertEquals(null, registry.getOwnerKind(worldPlayer.getObjectId()), "World Player collision leaked PHANTOM ownership.");
+		}
+		finally
+		{
+			_environment.cleanupLoadedPlayer(worldPlayer);
+		}
+
+		final WorldObject worldObject = new ObjectIdResidue(_environment.primary().objectId());
+		World.getInstance().addObject(worldObject);
+		try
+		{
+			PhantomAssertions.assertEquals(ResultStatus.WORLD_OBJECT_IDENTITY_BUSY, fixture.service().materialize(profile.profileId()).status(), "Existing non-Player World object did not reject materialization distinctly.");
+			PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(worldObject.getObjectId()), "Non-Player collision created a split Player map.");
+			PhantomAssertions.assertEquals(worldObject, World.getInstance().findObject(worldObject.getObjectId()), "Non-Player collision disturbed the existing World object.");
+			PhantomAssertions.assertEquals(1, fixture.service().snapshot().availablePermits(), "World object collision leaked capacity.");
+			PhantomAssertions.assertEquals(null, registry.getOwnerKind(worldObject.getObjectId()), "World object collision leaked PHANTOM ownership.");
+		}
+		finally
+		{
+			World.getInstance().removeObject(worldObject);
+		}
+
+		final Player autosavePlayer = Player.load(_environment.primary().objectId());
+		PhantomAssertions.assertTrue(autosavePlayer != null, "Could not load autosave collision Player.");
+		try
+		{
+			PhantomAssertions.assertEquals(ResultStatus.AUTOSAVE_IDENTITY_BUSY, fixture.service().materialize(profile.profileId()).status(), "Existing autosave owner did not reject materialization distinctly.");
+			PhantomAssertions.assertTrue(PlayerAutoSaveTaskManager.getInstance().contains(autosavePlayer), "Autosave collision disturbed the existing Player.");
+			PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(autosavePlayer.getObjectId()), "Autosave collision published a World Player.");
+			PhantomAssertions.assertEquals(null, World.getInstance().findObject(autosavePlayer.getObjectId()), "Autosave collision published a World object.");
+			PhantomAssertions.assertEquals(1, fixture.service().snapshot().availablePermits(), "Autosave collision leaked capacity.");
+			PhantomAssertions.assertEquals(null, registry.getOwnerKind(autosavePlayer.getObjectId()), "Autosave collision leaked PHANTOM ownership.");
+		}
+		finally
+		{
+			_environment.cleanupLoadedPlayer(autosavePlayer);
+		}
+
+		PhantomAssertions.assertEquals(ServiceState.STOPPED, fixture.service().shutdown().state(), "Identity preflight service did not stop.");
+		final AtomicReference<WorldObject> injectedObject = new AtomicReference<>();
+		final ServiceFixture injectedFixture = service(1, point ->
+		{
+			if ((point == FailurePoint.AFTER_PLAYER_LOAD) && (injectedObject.get() == null))
+			{
+				final WorldObject object = new ObjectIdResidue(_environment.primary().objectId());
+				if (injectedObject.compareAndSet(null, object))
+				{
+					World.getInstance().addObject(object);
+				}
+			}
+		}, 5000, 10000);
+		final MaterializeResult injected = injectedFixture.service().materialize(profile.profileId());
+		PhantomAssertions.assertEquals(ResultStatus.WORLD_OBJECT_IDENTITY_BUSY, injected.status(), "World insertion after Player load was not detected before spawn.");
+		final WorldObject residue = injectedObject.get();
+		PhantomAssertions.assertTrue(residue != null, "Pre-spawn World residue was not injected.");
+		PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(residue.getObjectId()), "Pre-spawn collision created a split World Player map.");
+		PhantomAssertions.assertEquals(residue, World.getInstance().findObject(residue.getObjectId()), "Pre-spawn collision disturbed the injected World object.");
+		PhantomAssertions.assertEquals(0, injectedFixture.service().snapshot().availablePermits(), "Pre-spawn collision released capacity before terminal STORED.");
+		PhantomAssertions.assertEquals(OwnerKind.PHANTOM, registry.getOwnerKind(residue.getObjectId()), "Pre-spawn collision released identity before terminal STORED.");
+		World.getInstance().removeObject(residue);
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, injectedFixture.service().retryCleanup(profile.profileId()).status(), "Pre-spawn collision did not clean after residue removal.");
+		PhantomAssertions.assertEquals(1, injectedFixture.service().snapshot().availablePermits(), "Pre-spawn collision cleanup leaked capacity.");
+		PhantomAssertions.assertEquals(0, injectedFixture.service().snapshot().retainedEntries(), "Pre-spawn collision cleanup leaked service maps.");
+		_environment.assertClean(_environment.primary(), null);
+	}
+
+	private void testActionAdmissionAtomicWithStopping() throws Exception
+	{
+		reset();
+		final PhantomProfile profile = createProfile(_environment.primary().objectId());
+		final ServiceFixture fixture = service(1, PhantomMaterializedPlayer.FailureInjector.none(), 2000, 2000);
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().materialize(profile.profileId()).status(), "STOPPING action actor did not materialize.");
+		final Player player = World.getInstance().getPlayer(_environment.primary().objectId());
+		final ActionLease held = fixture.service().tryAcquireAction(profile.profileId()).orElseThrow();
+		final AtomicReference<PhantomMaterializationService.ShutdownResult> shutdown = new AtomicReference<>();
+		final Thread shutdownThread = new Thread(() -> shutdown.set(fixture.service().shutdown()), "t006a-action-stopping");
+		shutdownThread.start();
+		final long stoppingDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+		while ((fixture.service().snapshot().state() != ServiceState.STOPPING) && (System.nanoTime() < stoppingDeadline))
+		{
+			Thread.onSpinWait();
+		}
+		PhantomAssertions.assertEquals(ServiceState.STOPPING, fixture.service().snapshot().state(), "Shutdown did not expose STOPPING while the admitted action was held.");
+		for (int attempt = 0; attempt < 1000; attempt++)
+		{
+			PhantomAssertions.assertTrue(fixture.service().tryAcquireAction(profile.profileId()).isEmpty(), "Action was admitted after STOPPING at attempt " + attempt + ".");
+		}
+		held.close();
+		shutdownThread.join(10000);
+		PhantomAssertions.assertFalse(shutdownThread.isAlive(), "Shutdown did not finish after the pre-STOPPING action was released.");
+		PhantomAssertions.assertEquals(ServiceState.STOPPED, shutdown.get().state(), "Action/STOPPING shutdown did not reach STOPPED.");
+		_environment.assertClean(_environment.primary(), player);
+	}
+
+	private void testShutdownCallerWallClock(PhantomTestContext context) throws Exception
+	{
+		reset();
+		final PhantomProfile profile = createProfile(_environment.primary().objectId());
+		final CountDownLatch storeEntered = new CountDownLatch(1);
+		final CountDownLatch releaseStore = new CountDownLatch(1);
+		final AtomicInteger cleanupInvocations = new AtomicInteger();
+		final ServiceFixture fixture = service(1, point ->
+		{
+			if (point == FailurePoint.BEFORE_STORE_OPERATION)
+			{
+				cleanupInvocations.incrementAndGet();
+				storeEntered.countDown();
+				try
+				{
+					if (!releaseStore.await(5, TimeUnit.SECONDS))
+					{
+						throw new IllegalStateException("Timed out waiting to release blocked store operation");
+					}
+				}
+				catch (InterruptedException e)
+				{
+					Thread.currentThread().interrupt();
+					throw new IllegalStateException("Interrupted while blocking store operation", e);
+				}
+			}
+		}, 5000, 150);
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().materialize(profile.profileId()).status(), "Wall-clock shutdown actor did not materialize.");
+		final Player player = World.getInstance().getPlayer(_environment.primary().objectId());
+
+		try
+		{
+			final long firstStarted = System.nanoTime();
+			final PhantomMaterializationService.ShutdownResult first = fixture.service().shutdown();
+			final long firstElapsed = System.nanoTime() - firstStarted;
+			context.record("productionMaterialization.blockedShutdownElapsedNanos", firstElapsed);
+			PhantomAssertions.assertEquals(ServiceState.FAILED, first.state(), "Blocked shutdown did not return FAILED.");
+			PhantomAssertions.assertEquals(List.of(profile.profileId()), first.failedProfileIds(), "Blocked shutdown did not return exact retained profile IDs.");
+			PhantomAssertions.assertTrue(firstElapsed < TimeUnit.SECONDS.toNanos(1), "Blocked shutdown exceeded the one-second wall-clock gate: " + firstElapsed);
+			PhantomAssertions.assertTrue(storeEntered.await(1, TimeUnit.SECONDS), "Drain command did not reach the blocked store operation.");
+			PhantomAssertions.assertEquals(1, fixture.service().snapshot().retainedEntries(), "Caller timeout released the service entry.");
+			PhantomAssertions.assertEquals(0, fixture.service().snapshot().availablePermits(), "Caller timeout released capacity.");
+			PhantomAssertions.assertEquals(OwnerKind.PHANTOM, PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(_environment.primary().objectId()), "Caller timeout released identity.");
+
+			final long secondStarted = System.nanoTime();
+			final PhantomMaterializationService.ShutdownResult second = fixture.service().shutdown();
+			final long secondElapsed = System.nanoTime() - secondStarted;
+			context.record("productionMaterialization.secondBlockedShutdownElapsedNanos", secondElapsed);
+			PhantomAssertions.assertEquals(ServiceState.FAILED, second.state(), "Second early shutdown did not reuse the failed in-flight attempt.");
+			PhantomAssertions.assertEquals(List.of(profile.profileId()), second.failedProfileIds(), "Second early shutdown lost exact retained profile IDs.");
+			PhantomAssertions.assertTrue(secondElapsed < TimeUnit.SECONDS.toNanos(1), "Second early shutdown exceeded the one-second wall-clock gate: " + secondElapsed);
+			PhantomAssertions.assertEquals(1, cleanupInvocations.get(), "Second early shutdown invoked duplicate cleanup.");
+		}
+		finally
+		{
+			releaseStore.countDown();
+		}
+		final long completionDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+		while ((fixture.service().snapshot().state() != ServiceState.STOPPED) && (System.nanoTime() < completionDeadline))
+		{
+			Thread.sleep(10);
+		}
+		PhantomAssertions.assertEquals(ServiceState.STOPPED, fixture.service().snapshot().state(), "Tracked drain did not complete after the store block was released.");
+		PhantomAssertions.assertEquals(ServiceState.STOPPED, fixture.service().shutdown().state(), "Later explicit shutdown did not observe terminal STOPPED.");
+		PhantomAssertions.assertEquals(1, cleanupInvocations.get(), "Late completion invoked cleanup more than once.");
+		_environment.assertClean(_environment.primary(), player);
+	}
+
 	private PhantomPlayersConfig.Settings settings(String content) throws Exception
 	{
 		final Path path = Files.createTempFile("phantom-task006-config-", ".ini");
@@ -662,5 +849,24 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 	private static final class InjectedFailure extends RuntimeException
 	{
 		private static final long serialVersionUID = 1L;
+	}
+
+	private static final class ObjectIdResidue extends WorldObject
+	{
+		private ObjectIdResidue(int objectId)
+		{
+			super(objectId);
+		}
+
+		@Override
+		public boolean isAutoAttackable(Creature attacker)
+		{
+			return false;
+		}
+
+		@Override
+		public void sendInfo(Player player)
+		{
+		}
 	}
 }

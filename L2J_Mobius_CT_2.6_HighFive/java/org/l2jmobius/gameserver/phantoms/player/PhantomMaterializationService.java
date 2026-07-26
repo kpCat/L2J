@@ -25,9 +25,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
+import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -66,6 +70,10 @@ public final class PhantomMaterializationService
 		CHARACTER_ALREADY_ACTIVE,
 		CAPACITY_REACHED,
 		IDENTITY_BUSY,
+		WORLD_PLAYER_IDENTITY_BUSY,
+		WORLD_OBJECT_IDENTITY_BUSY,
+		AUTOSAVE_IDENTITY_BUSY,
+		WORLD_REGISTRATION_MISMATCH,
 		RETAINED_IDENTITY_NOT_RECOVERABLE,
 		MATERIALIZATION_FAILED_CLEAN,
 		MATERIALIZATION_FAILED_RETAINED,
@@ -89,6 +97,7 @@ public final class PhantomMaterializationService
 	private final long _actionDrainTimeoutMillis;
 	private final long _shutdownTimeoutMillis;
 	private volatile ServiceState _state = ServiceState.NEW;
+	private DrainAttempt _drainAttempt;
 
 	public PhantomMaterializationService(PhantomProfileRepository profileRepository, PhantomIdentityLeaseRegistry identityRegistry, PhantomMetrics metrics, PhantomDiagnosticTrace trace, int maximumMaterialized)
 	{
@@ -246,9 +255,21 @@ public final class PhantomMaterializationService
 				{
 					_metrics.recordMaterializationFailureRetained();
 				}
-				if ((e instanceof MaterializationException materializationFailure) && ((materializationFailure.failure() == PhantomMaterializedPlayer.MaterializationFailure.IDENTITY_BUSY) || (materializationFailure.failure() == PhantomMaterializedPlayer.MaterializationFailure.WORLD_IDENTITY_BUSY)))
+				if (e instanceof MaterializationException materializationFailure)
 				{
-					return rejectMaterialization(ResultStatus.IDENTITY_BUSY, retained ? snapshot(entry) : null);
+					final ResultStatus status = switch (materializationFailure.failure())
+					{
+						case IDENTITY_BUSY -> ResultStatus.IDENTITY_BUSY;
+						case WORLD_PLAYER_IDENTITY_BUSY -> ResultStatus.WORLD_PLAYER_IDENTITY_BUSY;
+						case WORLD_OBJECT_IDENTITY_BUSY -> ResultStatus.WORLD_OBJECT_IDENTITY_BUSY;
+						case AUTOSAVE_IDENTITY_BUSY -> ResultStatus.AUTOSAVE_IDENTITY_BUSY;
+						case WORLD_REGISTRATION_MISMATCH -> ResultStatus.WORLD_REGISTRATION_MISMATCH;
+						default -> null;
+					};
+					if (status != null)
+					{
+						return rejectMaterialization(status, retained ? snapshot(entry) : null);
+					}
 				}
 				_metrics.recordMaterializationRejected();
 				return new MaterializeResult(retained ? ResultStatus.MATERIALIZATION_FAILED_RETAINED : ResultStatus.MATERIALIZATION_FAILED_CLEAN, retained ? snapshot(entry) : null);
@@ -340,12 +361,15 @@ public final class PhantomMaterializationService
 
 	public Optional<ActionLease> tryAcquireAction(long profileId)
 	{
-		if (_state != ServiceState.RUNNING)
+		synchronized (_stateMonitor)
 		{
-			return Optional.empty();
+			if (_state != ServiceState.RUNNING)
+			{
+				return Optional.empty();
+			}
+			final Entry entry = _activeByProfile.get(profileId);
+			return entry == null ? Optional.empty() : Optional.ofNullable(entry._materializedPlayer.tryAcquireAction());
 		}
-		final Entry entry = _activeByProfile.get(profileId);
-		return entry == null ? Optional.empty() : Optional.ofNullable(entry._materializedPlayer.tryAcquireAction());
 	}
 
 	public Optional<MaterializationSnapshot> find(long profileId)
@@ -393,6 +417,8 @@ public final class PhantomMaterializationService
 
 	public ShutdownResult shutdown()
 	{
+		final long callerDeadlineNanos = System.nanoTime() + (Math.min(_shutdownTimeoutMillis, MAXIMUM_SHUTDOWN_TIMEOUT_MILLIS) * 1_000_000L);
+		final DrainAttempt attempt;
 		synchronized (_stateMonitor)
 		{
 			if (_state == ServiceState.STOPPED)
@@ -404,39 +430,116 @@ public final class PhantomMaterializationService
 				_state = ServiceState.STOPPED;
 				return new ShutdownResult(ServiceState.STOPPED, List.of());
 			}
-			if ((_state != ServiceState.RUNNING) && (_state != ServiceState.FAILED))
+			if ((_drainAttempt != null) && !_drainAttempt.isCompleted())
+			{
+				attempt = _drainAttempt;
+			}
+			else if ((_state == ServiceState.RUNNING) || (_state == ServiceState.FAILED))
+			{
+				if (_activeByProfile.isEmpty())
+				{
+					_state = ServiceState.STOPPED;
+					return new ShutdownResult(ServiceState.STOPPED, List.of());
+				}
+				_state = ServiceState.STOPPING;
+				attempt = new DrainAttempt(System.nanoTime() + (Math.min(_shutdownTimeoutMillis, MAXIMUM_SHUTDOWN_TIMEOUT_MILLIS) * 1_000_000L));
+				_drainAttempt = attempt;
+				attempt._future = ThreadPool.schedule(() -> runDrainAttempt(attempt), 0);
+				if (attempt._future == null)
+				{
+					completeDrainAttemptLocked(attempt, ServiceState.FAILED, failedProfileIds());
+				}
+			}
+			else
 			{
 				return new ShutdownResult(_state, failedProfileIds());
 			}
-			_state = ServiceState.STOPPING;
 		}
 
-		final long deadlineNanos = System.nanoTime() + (Math.min(_shutdownTimeoutMillis, MAXIMUM_SHUTDOWN_TIMEOUT_MILLIS) * 1_000_000L);
-		List<Long> failed = shutdownPass(sortedEntries(), deadlineNanos);
-		if (!failed.isEmpty() && (System.nanoTime() < deadlineNanos))
+		boolean completed = attempt.isCompleted();
+		if (!completed)
 		{
-			final List<Entry> retryEntries = new ArrayList<>();
-			for (long profileId : failed)
+			final long remainingNanos = callerDeadlineNanos - System.nanoTime();
+			if (remainingNanos > 0)
 			{
-				final Entry entry = _activeByProfile.get(profileId);
-				if (entry != null)
+				try
 				{
-					retryEntries.add(entry);
+					completed = attempt._completion.await(remainingNanos, TimeUnit.NANOSECONDS);
+				}
+				catch (InterruptedException e)
+				{
+					Thread.currentThread().interrupt();
 				}
 			}
-			failed = shutdownPass(retryEntries, deadlineNanos);
 		}
 
 		synchronized (_stateMonitor)
 		{
-			if (_activeByProfile.isEmpty())
+			if (completed || attempt.isCompleted())
 			{
-				_state = ServiceState.STOPPED;
-				return new ShutdownResult(ServiceState.STOPPED, List.of());
+				return new ShutdownResult(attempt._completedState, attempt._failedProfileIds);
 			}
 			_state = ServiceState.FAILED;
-			_metrics.recordShutdownFailure();
+			recordShutdownFailureLocked(attempt);
 			return new ShutdownResult(ServiceState.FAILED, failedProfileIds());
+		}
+	}
+
+	private void runDrainAttempt(DrainAttempt attempt)
+	{
+		List<Long> failed;
+		try
+		{
+			failed = shutdownPass(sortedEntries(), attempt._deadlineNanos);
+			if (!failed.isEmpty() && (System.nanoTime() < attempt._deadlineNanos))
+			{
+				final List<Entry> retryEntries = new ArrayList<>();
+				for (long profileId : failed)
+				{
+					final Entry entry = _activeByProfile.get(profileId);
+					if (entry != null)
+					{
+						retryEntries.add(entry);
+					}
+				}
+				failed = shutdownPass(retryEntries, attempt._deadlineNanos);
+			}
+		}
+		catch (Throwable throwable)
+		{
+			failed = failedProfileIds();
+		}
+
+		synchronized (_stateMonitor)
+		{
+			final List<Long> retainedProfileIds = failedProfileIds();
+			completeDrainAttemptLocked(attempt, retainedProfileIds.isEmpty() ? ServiceState.STOPPED : ServiceState.FAILED, retainedProfileIds);
+		}
+	}
+
+	private void completeDrainAttemptLocked(DrainAttempt attempt, ServiceState completedState, List<Long> failedProfileIds)
+	{
+		attempt._completedState = completedState;
+		attempt._failedProfileIds = List.copyOf(failedProfileIds);
+		attempt._future = null;
+		_state = completedState;
+		if (completedState == ServiceState.FAILED)
+		{
+			recordShutdownFailureLocked(attempt);
+		}
+		if (_drainAttempt == attempt)
+		{
+			_drainAttempt = null;
+		}
+		attempt._completion.countDown();
+	}
+
+	private void recordShutdownFailureLocked(DrainAttempt attempt)
+	{
+		if (!attempt._failureRecorded)
+		{
+			attempt._failureRecorded = true;
+			_metrics.recordShutdownFailure();
 		}
 	}
 
@@ -552,6 +655,26 @@ public final class PhantomMaterializationService
 			_profileId = profileId;
 			_characterObjectId = characterObjectId;
 			_materializedPlayer = materializedPlayer;
+		}
+	}
+
+	private static final class DrainAttempt
+	{
+		private final CountDownLatch _completion = new CountDownLatch(1);
+		private final long _deadlineNanos;
+		private ScheduledFuture<?> _future;
+		private volatile ServiceState _completedState;
+		private volatile List<Long> _failedProfileIds = List.of();
+		private boolean _failureRecorded;
+
+		private DrainAttempt(long deadlineNanos)
+		{
+			_deadlineNanos = deadlineNanos;
+		}
+
+		private boolean isCompleted()
+		{
+			return _completion.getCount() == 0;
 		}
 	}
 }
