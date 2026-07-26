@@ -24,6 +24,9 @@ import java.util.Objects;
 
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
@@ -36,7 +39,6 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
  */
 public final class PhantomSystem
 {
-	public static final int QUEUE_CAPACITY = 256;
 	public static final int TRACE_CAPACITY = 64;
 	public static final int TRACE_SAMPLE_EVERY = 16;
 
@@ -44,7 +46,7 @@ public final class PhantomSystem
 
 	private final PhantomPlayersConfig.Settings _settings;
 	private final PhantomMetrics _metrics;
-	private final PhantomScheduler _scheduler;
+	private PhantomScheduler _scheduler;
 	private final PhantomDiagnosticTrace _trace;
 	private final boolean _productionMaterialization;
 	private PhantomMaterializationService _materializationService;
@@ -62,7 +64,6 @@ public final class PhantomSystem
 		_metrics = new PhantomMetrics();
 		if (settings.enabled())
 		{
-			_scheduler = new PhantomScheduler(QUEUE_CAPACITY, _metrics);
 			_trace = new PhantomDiagnosticTrace(settings.diagnosticsEnabled(), TRACE_CAPACITY, TRACE_SAMPLE_EVERY, _metrics);
 		}
 		else
@@ -85,10 +86,6 @@ public final class PhantomSystem
 			return false;
 		}
 
-		if (!_scheduler.start())
-		{
-			throw new IllegalStateException("Phantom queue could not enter the running state.");
-		}
 		try
 		{
 			if (_productionMaterialization)
@@ -99,6 +96,15 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom materialization service could not enter the running state.");
 				}
+				_scheduler = createScheduler(new PhantomMaterializationServiceActivityPort(_materializationService));
+			}
+			else
+			{
+				_scheduler = createScheduler(PhantomActivityMaterializationPort.noop());
+			}
+			if (!_scheduler.start())
+			{
+				throw new IllegalStateException("Phantom scheduler could not enter the running state.");
 			}
 		}
 		catch (RuntimeException e)
@@ -107,7 +113,11 @@ public final class PhantomSystem
 			{
 				_materializationService.shutdown();
 			}
-			_scheduler.stop();
+			if (_scheduler != null)
+			{
+				_scheduler.beginStop();
+				_scheduler.finishStop();
+			}
 			_state = State.STOPPED;
 			throw e;
 		}
@@ -125,6 +135,7 @@ public final class PhantomSystem
 
 		if (_state == State.RUNNING)
 		{
+			_scheduler.beginStop();
 			if (_materializationService != null)
 			{
 				final ShutdownResult result = _materializationService.shutdown();
@@ -134,7 +145,7 @@ public final class PhantomSystem
 					return false;
 				}
 			}
-			_scheduler.stop();
+			_scheduler.finishStop();
 			_metrics.recordLifecycleStop();
 			_state = State.STOPPED;
 			return true;
@@ -146,7 +157,7 @@ public final class PhantomSystem
 			{
 				return false;
 			}
-			_scheduler.stop();
+			_scheduler.finishStop();
 			_metrics.recordLifecycleStop();
 			_state = State.STOPPED;
 			return true;
@@ -158,7 +169,7 @@ public final class PhantomSystem
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.Snapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
 	}
 
 	public static synchronized boolean startConfigured()
@@ -241,6 +252,11 @@ public final class PhantomSystem
 		return _configuredInstance == null ? null : _configuredInstance._materializationService;
 	}
 
+	static synchronized PhantomScheduler configuredScheduler()
+	{
+		return _configuredInstance == null ? null : _configuredInstance._scheduler;
+	}
+
 	static synchronized void configureForTesting(PhantomMaterializationService materializationService)
 	{
 		Objects.requireNonNull(materializationService, "materializationService");
@@ -256,6 +272,7 @@ public final class PhantomSystem
 
 		final PhantomPlayersConfig.Settings settings = new PhantomPlayersConfig.Settings(true, false, serviceSnapshot.maximumMaterialized());
 		final PhantomSystem configured = new PhantomSystem(settings, false);
+		configured._scheduler = configured.createScheduler(PhantomActivityMaterializationPort.noop());
 		if (!configured._scheduler.start())
 		{
 			throw new IllegalStateException("The test Phantom scheduler could not start.");
@@ -275,7 +292,19 @@ public final class PhantomSystem
 		STOPPED
 	}
 
-	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.Snapshot scheduler, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
+	private PhantomScheduler createScheduler(PhantomActivityMaterializationPort materializationPort)
+	{
+		return new PhantomScheduler(
+			_settings.maxScheduledPhantomProfiles(),
+			_settings.schedulerPulseMillis(),
+			_settings.schedulerProfilesPerPulse(),
+			_metrics,
+			_trace,
+			materializationPort,
+			PhantomActivityWorkSink.noop());
+	}
+
+	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
 	{
 	}
 

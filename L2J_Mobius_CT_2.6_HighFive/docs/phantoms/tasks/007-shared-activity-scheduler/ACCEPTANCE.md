@@ -1,0 +1,32 @@
+# ACCEPTANCE — Goal 007
+
+- [ ] Baseline 82a03342; one ordinary High Five commit.
+- [ ] Goal 006B review ACCEPT and Stage I complete.
+- [ ] Roadmap progress-only edits; Goal 008/009 not started.
+- [ ] Exactly five activity states.
+- [ ] ACTIVE/NEARBY require real materialization.
+- [ ] Immutable abstract relevance signal.
+- [ ] Source/TTL/sequence bounds.
+- [ ] Explicit register; zero production auto registration.
+- [ ] Bounded slots/ready/due/signals.
+- [ ] One due entry/profile; no stale accumulation.
+- [ ] Queue full leaves signal/state unchanged.
+- [ ] Coalescing keeps one entry.
+- [ ] Promotion/demotion/hysteresis deterministic.
+- [ ] Retained failure explicit retry only.
+- [ ] One recurring scheduler future total.
+- [ ] No per-profile future/thread/executor/timer/Player field.
+- [ ] Fair item and wall-clock pulse budgets.
+- [ ] Typed work sink with no Player/goals/topology.
+- [ ] Overload degrades cadence only, never state.
+- [ ] Scheduler beginStop before materialization drain.
+- [ ] Scheduler finishStop only after service STOPPED.
+- [ ] Goal 006B Shutdown source/order unchanged.
+- [ ] 10,000 dormant scale evidence.
+- [ ] Scheduler suite passes 3×.
+- [ ] Performance summaries deterministic ×2.
+- [ ] All previous regressions, verify and jar pass.
+- [ ] Production DB untouched.
+- [ ] Production JAR has zero test entries.
+- [ ] Verifier final ×2 byte-identical.
+- [ ] Push/remote exact.

@@ -1,0 +1,23 @@
+{
+  "package": "phantom-world-goal-007-shared-activity-scheduler",
+  "taskId": "007-shared-activity-scheduler",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/007-shared-activity-scheduler/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "82a03342e52ff4b6c023b8ea224da8b1c2f6657f",
+  "schemaChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal008Started": false,
+  "goal009Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "ARCHITECTURE.md",
+    "ACTIVITY_STATE_MACHINE.md",
+    "SCHEDULER_POLICY.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

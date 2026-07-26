@@ -12,10 +12,10 @@
 
 ```text
 Последний принятый production baseline:
-9d0465eb62f9913644fab9f1d60feb2f4fd9a674
+82a03342e52ff4b6c023b8ea224da8b1c2f6657f
 
 Текущий branch HEAD под ревью:
-Goal 006B server shutdown handoff — commit SHA во внешнем final handoff
+Goal 007 shared activity scheduler — commit SHA во внешнем final handoff
 
 Task 004 technical feasibility:
 ACCEPT
@@ -33,15 +33,24 @@ Task 005:
 ACCEPT
 
 Goal 006 overall:
-FIX_REQUIRED pending 006B
+ACCEPT
 
 Goal 006A:
 ACCEPT
 
 Goal 006B:
-IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+ACCEPT
+
+Stage I:
+COMPLETE
 
 Goal 007:
+IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
+Goal 008:
+NOT_STARTED / BLOCKED
+
+Goal 009:
 NOT_STARTED / BLOCKED
 ```
 
@@ -49,10 +58,10 @@ Task 004 доказала главный архитектурный тезис: 
 материализован без TCP, fake `GameClient`, Player subclass/fork и production DB.
 Task 004A и Task 004B закрыли найденные lifecycle/retained-identity findings;
 seam и ADR 0001 приняты. Goal 005 и её core profile/persistence envelope
-приняты. Архитектурное направление Goal 006 принято, Goal 006A local hardening
-получила `ACCEPT`, а обязательный Goal 006B server shutdown handoff реализован и
-ожидает независимого review. Goal 006 overall остаётся `FIX_REQUIRED pending
-006B`; Goal 007 не начата и заблокирована.
+приняты. Архитектурное направление Goal 006, Goal 006A и независимо проверенная
+Goal 006B приняты; Goal 006 overall имеет `ACCEPT`, а Этап I завершён. Goal 007
+реализована и ожидает независимого review. Goal 008 и Goal 009 не начаты и
+заблокированы до принятия Goal 007.
 
 ---
 
@@ -300,7 +309,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B и Goal 005 приняты; Goal 006A — `ACCEPT`; Goal 006B — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 006 overall — `FIX_REQUIRED pending 006B`; Goal 007 — `NOT_STARTED / BLOCKED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 008 и Goal 009 — `NOT_STARTED / BLOCKED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -374,7 +383,7 @@ Utility AI, population или materialization.
 переписывания core identity.  
 **Follow-up risk:** `HIGH` — schema/versioning/concurrent update.
 
-## Goal 006 — Production materialization lifecycle — `FIX_REQUIRED`
+## Goal 006 — Production materialization lifecycle — `ACCEPT`
 
 **Назначение:** превратить spike в production-owned, disabled-by-default
 materialization service.  
@@ -399,11 +408,13 @@ materialization service.
 Закрывает findings Goal 006 по World/autosave identity boundary,
 action/`STOPPING` atomicity, wall-clock budget caller `shutdown` и provenance.
 
-### Goal 006B — обязательная server shutdown handoff closure-задача — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+### Goal 006B — обязательная server shutdown handoff closure-задача — `ACCEPT`
 
 Координирует первый Phantom drain до generic disconnect, strict managed-actor
 skip и вторую bounded shutdown/retry попытку перед shared ThreadPool stop.
-Goal 007 остаётся `NOT_STARTED / BLOCKED` до независимого review Goal 006B.
+Независимое review зафиксировано в
+`docs/phantoms/reviews/006b-server-shutdown-handoff-review.md`; Goal 006 и
+Stage I закрыты с `ACCEPT`.
 
 ### Gate Этапа I
 
@@ -422,7 +433,7 @@ Goal 007 остаётся `NOT_STARTED / BLOCKED` до независимого 
 **GOAL:** 007–011  
 **Зависит от:** Этап I.
 
-## Goal 007 — Shared scheduler и activity state machine
+## Goal 007 — Shared scheduler и activity state machine — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** обслуживать profiles без per-phantom tasks.  
 **Зависимости:** 006.  
@@ -971,13 +982,13 @@ Overall:
 
 ```text
 Current stage:
-I. Canonical actor, persistence and lifecycle
+II. Scheduler, goals, navigation and authoritative knowledge
 
 Current accepted baseline:
-9d0465eb62f9913644fab9f1d60feb2f4fd9a674
+82a03342e52ff4b6c023b8ea224da8b1c2f6657f
 
 Current branch HEAD under review:
-Goal 006B server shutdown handoff — commit SHA во внешнем final handoff
+Goal 007 shared activity scheduler — commit SHA во внешнем final handoff
 
 Completed:
 - 001 / 001A
@@ -989,20 +1000,23 @@ Completed:
 - ADR 0001 Accepted
 - Goal 005
 - Goal 006A
+- Goal 006B
+- Goal 006 overall
+- Stage I COMPLETE
 
 In progress / required closure:
-- Goal 006 overall FIX_REQUIRED pending 006B
-- Goal 006B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 007 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 006B
-2. Goal 007 shared scheduler only after accepted Goal 006 closure
+1. Independent review Goal 007
+2. Goal 008 and Goal 009 only after accepted Goal 007 closure
 
 Stage gate:
-- not complete until Goal 006B independent ACCEPT
+- Stage I COMPLETE
+- Stage II not complete
 
 New risks:
-- real server shutdown handoff awaits independent review
+- shared scheduler awaits independent review
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
@@ -1016,9 +1030,11 @@ Roadmap changes:
 - operations moved before scale soak
 
 Overall:
-- Goal 006 overall FIX_REQUIRED pending 006B; Goal 006A ACCEPT;
-  Goal 006B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 007 NOT_STARTED / BLOCKED
+- Goal 006 overall ACCEPT; Goal 006A ACCEPT; Goal 006B ACCEPT;
+  Stage I COMPLETE;
+  Goal 007 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 008 NOT_STARTED / BLOCKED;
+  Goal 009 NOT_STARTED / BLOCKED
 ```
 
 ---

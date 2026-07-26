@@ -8,9 +8,11 @@ Baseline: c2f5599ef59cabb1eeff1f3d467f57219d5a1f5f
 Parent baseline: ff0b33abad0affc4fe64b4324aee67f256dc96fa
 Branch: feature/phantom-world
 Goal 006A local hardening: ACCEPT
-Goal 006 overall: FIX_REQUIRED pending 006B
-Manual gate: PENDING_INDEPENDENT_REVIEW
-Goal 007: NOT_STARTED / BLOCKED
+Goal 006 overall: ACCEPT
+Manual gate: ACCEPT
+Independent review: docs/phantoms/reviews/006b-server-shutdown-handoff-review.md
+Stage I: COMPLETE
+Goal 007: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 ```
 
 Закрыт только реальный GameServer shutdown handoff. Schema, config, identity
@@ -222,8 +224,27 @@ Push result: во внешнем final handoff
 возможности при живом ThreadPool, fail-closed retained ownership и явный
 terminal diagnostic.
 
-Goal 006B не принимает собственный manual gate. Следующий шаг — независимое
-review Goal 006B. Goal 007 остаётся `NOT_STARTED / BLOCKED`.
+Независимое review Goal 006B выполнено при старте Goal 007 и зафиксировало
+immutable verdict `ACCEPT`. Goal 006 overall принят, Stage I завершён. Следующий
+gate — независимое review Goal 007; Goal 008 и Goal 009 не начаты.
 
 Result:
 `SERVER_SHUTDOWN_HANDOFF_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+
+## Независимое закрытие в Goal 007
+
+Проверен неизменный baseline
+`82a03342e52ff4b6c023b8ea224da8b1c2f6657f`: classifier требует одновременно
+headless session, owner `PHANTOM` и ownership точного object ID configured
+materialization service; generic disconnect пропускает только такой actor;
+первый drain выполняется до generic disconnect, второй — до остановки shared
+ThreadPool; незавершённый drain сохраняет configured instance, retained entry,
+permit и identity, а terminal failure остаётся fail-closed.
+
+Verdict:
+
+```text
+Goal 006B: ACCEPT
+Goal 006 overall: ACCEPT
+Stage I: COMPLETE
+```

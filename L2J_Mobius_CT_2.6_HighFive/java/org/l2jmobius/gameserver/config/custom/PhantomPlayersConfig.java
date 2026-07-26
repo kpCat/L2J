@@ -32,6 +32,9 @@ public final class PhantomPlayersConfig
 {
 	public static final String PHANTOM_PLAYERS_CONFIG_FILE = "./config/Custom/PhantomPlayers.ini";
 	public static final int DEFAULT_MAX_MATERIALIZED_PHANTOMS = 32;
+	public static final int DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES = 10000;
+	public static final int DEFAULT_SCHEDULER_PULSE_MILLIS = 100;
+	public static final int DEFAULT_SCHEDULER_PROFILES_PER_PULSE = 128;
 
 	private static volatile Settings _settings = Settings.disabled();
 
@@ -60,12 +63,15 @@ public final class PhantomPlayersConfig
 				return Settings.disabled();
 			}
 			final Integer maximumMaterialized = strictCap(config.getValue("MaxMaterializedPhantoms"));
-			if (maximumMaterialized == null)
+			final Integer maximumScheduled = strictInteger(config.getValue("MaxScheduledPhantomProfiles"), 1, 1_000_000);
+			final Integer pulseMillis = strictInteger(config.getValue("PhantomSchedulerPulseMillis"), 10, 1000);
+			final Integer profilesPerPulse = strictInteger(config.getValue("PhantomSchedulerProfilesPerPulse"), 1, 10000);
+			if ((maximumMaterialized == null) || (maximumScheduled == null) || (pulseMillis == null) || (profilesPerPulse == null) || (maximumScheduled < maximumMaterialized))
 			{
 				return Settings.disabled();
 			}
 			final boolean diagnosticsEnabled = enabled && strictBoolean(config.getValue("EnablePhantomDiagnostics"));
-			return new Settings(true, diagnosticsEnabled, maximumMaterialized);
+			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse);
 		}
 		catch (RuntimeException e)
 		{
@@ -104,6 +110,11 @@ public final class PhantomPlayersConfig
 
 	private static Integer strictCap(String value)
 	{
+		return strictInteger(value, 1, 10000);
+	}
+
+	private static Integer strictInteger(String value, int minimum, int maximum)
+	{
 		if (value == null)
 		{
 			return null;
@@ -116,7 +127,7 @@ public final class PhantomPlayersConfig
 		try
 		{
 			final int parsed = Integer.parseInt(normalized, 10);
-			return ((parsed >= 1) && (parsed <= 10000)) ? parsed : null;
+			return ((parsed >= minimum) && (parsed <= maximum)) ? parsed : null;
 		}
 		catch (NumberFormatException e)
 		{
@@ -124,26 +135,50 @@ public final class PhantomPlayersConfig
 		}
 	}
 
-	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms)
+	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse)
 	{
 		public Settings
 		{
 			diagnosticsEnabled = enabled && diagnosticsEnabled;
 			maxMaterializedPhantoms = enabled ? maxMaterializedPhantoms : 0;
+			maxScheduledPhantomProfiles = enabled ? maxScheduledPhantomProfiles : 0;
+			schedulerPulseMillis = enabled ? schedulerPulseMillis : 0;
+			schedulerProfilesPerPulse = enabled ? schedulerProfilesPerPulse : 0;
 			if (enabled && ((maxMaterializedPhantoms < 1) || (maxMaterializedPhantoms > 10000)))
 			{
 				throw new IllegalArgumentException("Enabled Phantom settings require a materialization cap between 1 and 10000.");
+			}
+			if (enabled && ((maxScheduledPhantomProfiles < 1) || (maxScheduledPhantomProfiles > 1_000_000)))
+			{
+				throw new IllegalArgumentException("Enabled Phantom settings require a scheduled profile cap between 1 and 1000000.");
+			}
+			if (enabled && ((schedulerPulseMillis < 10) || (schedulerPulseMillis > 1000)))
+			{
+				throw new IllegalArgumentException("Enabled Phantom settings require a scheduler pulse between 10 and 1000 milliseconds.");
+			}
+			if (enabled && ((schedulerProfilesPerPulse < 1) || (schedulerProfilesPerPulse > 10000)))
+			{
+				throw new IllegalArgumentException("Enabled Phantom settings require a scheduler profile budget between 1 and 10000.");
+			}
+			if (enabled && (maxScheduledPhantomProfiles < maxMaterializedPhantoms))
+			{
+				throw new IllegalArgumentException("Scheduled Phantom profile capacity must cover materialization capacity.");
 			}
 		}
 
 		public Settings(boolean enabled, boolean diagnosticsEnabled)
 		{
-			this(enabled, diagnosticsEnabled, enabled ? DEFAULT_MAX_MATERIALIZED_PHANTOMS : 0);
+			this(enabled, diagnosticsEnabled, enabled ? DEFAULT_MAX_MATERIALIZED_PHANTOMS : 0, enabled ? DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES : 0, enabled ? DEFAULT_SCHEDULER_PULSE_MILLIS : 0, enabled ? DEFAULT_SCHEDULER_PROFILES_PER_PULSE : 0);
+		}
+
+		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms)
+		{
+			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, enabled ? DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES : 0, enabled ? DEFAULT_SCHEDULER_PULSE_MILLIS : 0, enabled ? DEFAULT_SCHEDULER_PROFILES_PER_PULSE : 0);
 		}
 
 		public static Settings disabled()
 		{
-			return new Settings(false, false, 0);
+			return new Settings(false, false, 0, 0, 0, 0);
 		}
 	}
 }

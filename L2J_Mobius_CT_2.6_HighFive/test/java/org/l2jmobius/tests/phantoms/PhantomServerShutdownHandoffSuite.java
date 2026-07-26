@@ -231,6 +231,8 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			}
 		}, 150);
 		PhantomSystem.configureForTesting(service);
+		final PhantomScheduler scheduler = PhantomSystem.configuredScheduler();
+		PhantomAssertions.assertEquals(PhantomScheduler.RegistrationStatus.REGISTERED, scheduler.register(profile.profileId()).status(), "In-flight handoff scheduler profile was not registered.");
 		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, service.materialize(profile.profileId()).status(), "In-flight handoff actor did not materialize.");
 		final Player managed = org.l2jmobius.gameserver.model.World.getInstance().getPlayer(_environment.primary().objectId());
 
@@ -245,6 +247,9 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			final ConfiguredShutdownSnapshot retained = PhantomSystem.configuredShutdownSnapshot();
 			PhantomAssertions.assertTrue(retained.configured(), "First timeout cleared the configured instance.");
 			PhantomAssertions.assertEquals(1, retained.retainedEntries(), "First timeout did not retain the managed entry.");
+			PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPING, scheduler.snapshot().state(), "Failed first drain did not retain scheduler STOPPING.");
+			PhantomAssertions.assertEquals(1, scheduler.snapshot().registered(), "Failed first drain cleared retained scheduler slots.");
+			PhantomAssertions.assertEquals(0, scheduler.snapshot().scheduledTaskCount(), "Failed first drain retained the recurring scheduler future.");
 			PhantomAssertions.assertTrue(PhantomSystem.isMaterializationManaged(managed), "First timeout lost managed classification.");
 			PhantomAssertions.assertEquals(0, simulatedGenericDisconnections(List.of(managed)), "Generic disconnect selected the in-flight managed actor.");
 		}
@@ -256,6 +261,8 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(PhantomSystem.shutdownIfStarted(), "Second server shutdown did not observe/reuse the released in-flight drain.");
 		PhantomAssertions.assertEquals(1, cleanupInvocations.get(), "Second server shutdown duplicated in-flight cleanup.");
 		PhantomAssertions.assertFalse(PhantomSystem.hasConfiguredInstance(), "Terminal second shutdown retained the configured instance.");
+		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPED, scheduler.snapshot().state(), "Terminal second shutdown did not finish the scheduler.");
+		PhantomAssertions.assertEquals(0, scheduler.snapshot().registered(), "Terminal second shutdown retained scheduler slots.");
 		PhantomAssertions.assertFalse(PhantomSystem.isMaterializationManaged(managed), "Terminal second shutdown retained managed classification.");
 		PhantomAssertions.assertEquals(new ConfiguredShutdownSnapshot(false, null, null, 0), PhantomSystem.configuredShutdownSnapshot(), "Absent configured snapshot is not bounded/empty.");
 		_environment.assertClean(_environment.primary(), managed);
@@ -276,6 +283,8 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			}
 		}, 150);
 		PhantomSystem.configureForTesting(service);
+		final PhantomScheduler scheduler = PhantomSystem.configuredScheduler();
+		PhantomAssertions.assertEquals(PhantomScheduler.RegistrationStatus.REGISTERED, scheduler.register(profile.profileId()).status(), "Persistent-failure scheduler profile was not registered.");
 		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, service.materialize(profile.profileId()).status(), "Persistent-failure actor did not materialize.");
 		final Player managed = org.l2jmobius.gameserver.model.World.getInstance().getPlayer(_environment.primary().objectId());
 
@@ -291,6 +300,8 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomSystem.State.FAILED, retained.systemState(), "Persistent failure lost system FAILED state.");
 			PhantomAssertions.assertEquals(ServiceState.FAILED, retained.serviceState(), "Persistent failure lost service FAILED state.");
 			PhantomAssertions.assertEquals(1, retained.retainedEntries(), "Persistent failure released the service entry.");
+			PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPING, scheduler.snapshot().state(), "Persistent service failure did not retain scheduler STOPPING.");
+			PhantomAssertions.assertEquals(1, scheduler.snapshot().registered(), "Persistent service failure cleared scheduler slots.");
 			PhantomAssertions.assertTrue(PhantomSystem.isMaterializationManaged(managed), "Persistent failure lost fail-closed ownership.");
 			PhantomAssertions.assertEquals(4, cleanupInvocations.get(), "Two server opportunities did not preserve the accepted two-pass service contract.");
 		}
@@ -301,6 +312,8 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 
 		PhantomAssertions.assertTrue(PhantomSystem.shutdownIfStarted(), "Explicit teardown cleanup did not stop the retained configured instance.");
 		PhantomAssertions.assertFalse(PhantomSystem.hasConfiguredInstance(), "Explicit teardown cleanup retained the configured instance.");
+		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPED, scheduler.snapshot().state(), "Successful explicit teardown did not finish the scheduler.");
+		PhantomAssertions.assertEquals(0, scheduler.snapshot().registered(), "Successful explicit teardown retained scheduler slots.");
 		_environment.assertClean(_environment.primary(), managed);
 	}
 

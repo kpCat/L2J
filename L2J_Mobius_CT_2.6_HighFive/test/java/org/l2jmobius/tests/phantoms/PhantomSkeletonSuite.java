@@ -27,12 +27,11 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
-import org.l2jmobius.gameserver.phantoms.PhantomScheduler;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 
 public final class PhantomSkeletonSuite implements PhantomTestSuite
@@ -50,12 +49,20 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 	{
 		_testDirectory = context.moduleRoot().resolve(".phantom-local/skeleton-" + ProcessHandle.current().pid());
 		Files.createDirectories(_testDirectory);
+		ThreadPool.init();
 	}
 
 	@Override
 	public void afterAll(PhantomTestContext context) throws Exception
 	{
-		deleteTree(_testDirectory);
+		try
+		{
+			deleteTree(_testDirectory);
+		}
+		finally
+		{
+			ThreadPool.shutdown();
+		}
 	}
 
 	@Override
@@ -70,7 +77,7 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 		});
 		registry.add("config-diagnostics-fail-closed", _ ->
 		{
-			final var malformed = readConfig("diagnostics-malformed.ini", "EnablePhantomSystem = true\nEnablePhantomDiagnostics = sometimes\nMaxMaterializedPhantoms = 32\n");
+			final var malformed = readConfig("diagnostics-malformed.ini", enabledConfig("EnablePhantomDiagnostics = sometimes\n"));
 			PhantomAssertions.assertTrue(malformed.enabled(), "Valid system flag was not recognized.");
 			PhantomAssertions.assertFalse(malformed.diagnosticsEnabled(), "Malformed diagnostics flag enabled tracing.");
 			final var systemDisabled = readConfig("diagnostics-with-system-disabled.ini", "EnablePhantomSystem = false\nEnablePhantomDiagnostics = true\n");
@@ -98,7 +105,7 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 		});
 		registry.add("config-strict-case-insensitive-booleans", _ ->
 		{
-			final var enabled = readConfig("true.ini", "EnablePhantomSystem = TrUe\nEnablePhantomDiagnostics = TRUE\nMaxMaterializedPhantoms = 32\n");
+			final var enabled = readConfig("true.ini", enabledConfig("EnablePhantomSystem = TrUe\nEnablePhantomDiagnostics = TRUE\n"));
 			PhantomAssertions.assertTrue(enabled.enabled(), "Case-insensitive true was not recognized.");
 			PhantomAssertions.assertTrue(enabled.diagnosticsEnabled(), "Case-insensitive diagnostics true was not recognized.");
 			final var disabled = readConfig("false.ini", "EnablePhantomSystem = FaLsE\nEnablePhantomDiagnostics = FALSE\n");
@@ -121,9 +128,10 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			final var disabled = system.snapshot();
 			PhantomAssertions.assertEquals(PhantomSystem.State.DISABLED, disabled.state(), "Direct disabled system did not enter DISABLED.");
 			PhantomAssertions.assertFalse(disabled.settings().diagnosticsEnabled(), "Disabled settings retained effective diagnostics.");
-			PhantomAssertions.assertFalse(disabled.scheduler().running(), "Disabled queue became active.");
-			PhantomAssertions.assertEquals(0, disabled.scheduler().queued(), "Disabled queue contains work.");
-			PhantomAssertions.assertEquals(0, disabled.scheduler().capacity(), "Disabled system allocated queue capacity.");
+			PhantomAssertions.assertFalse(disabled.scheduler().running(), "Disabled scheduler became active.");
+			PhantomAssertions.assertEquals(0, disabled.scheduler().ready(), "Disabled scheduler contains ready work.");
+			PhantomAssertions.assertEquals(0, disabled.scheduler().due(), "Disabled scheduler contains due work.");
+			PhantomAssertions.assertEquals(0, disabled.scheduler().capacity(), "Disabled system allocated scheduler capacity.");
 			PhantomAssertions.assertEquals(0, disabled.scheduler().scheduledTaskCount(), "Disabled system reports scheduled work.");
 			PhantomAssertions.assertTrue(disabled.metrics().isZero(), "Disabled system changed metrics.");
 			PhantomAssertions.assertEquals(List.of(), disabled.trace().events(), "Disabled system trace is not empty.");
@@ -142,44 +150,33 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomSystem.State.RUNNING, running.state(), "Enabled skeleton did not enter RUNNING.");
 			PhantomAssertions.assertEquals(1L, running.metrics().lifecycleStarts(), "Enabled skeleton start count mismatch.");
 			PhantomAssertions.assertEquals(0L, running.metrics().lifecycleStops(), "Enabled skeleton stop count changed before shutdown.");
-			PhantomAssertions.assertTrue(running.scheduler().running(), "Enabled queue is not running.");
-			PhantomAssertions.assertEquals(0, running.scheduler().queued(), "Enabled queue was not empty.");
-			PhantomAssertions.assertEquals(PhantomSystem.QUEUE_CAPACITY, running.scheduler().capacity(), "Enabled queue capacity mismatch.");
-			PhantomAssertions.assertEquals(0, running.scheduler().scheduledTaskCount(), "Enabled skeleton scheduled work.");
+			PhantomAssertions.assertTrue(running.scheduler().running(), "Enabled scheduler is not running.");
+			PhantomAssertions.assertEquals(0, running.scheduler().registered(), "Enabled scheduler auto-registered profiles.");
+			PhantomAssertions.assertEquals(0, running.scheduler().ready(), "Enabled scheduler ready queue was not empty.");
+			PhantomAssertions.assertEquals(0, running.scheduler().due(), "Enabled scheduler due set was not empty.");
+			PhantomAssertions.assertEquals(PhantomPlayersConfig.DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES, running.scheduler().capacity(), "Enabled scheduler capacity mismatch.");
+			PhantomAssertions.assertEquals(1, running.scheduler().scheduledTaskCount(), "Enabled scheduler did not own exactly one recurring pulse.");
 			PhantomAssertions.assertFalse(system.start(), "Repeated enabled start was not a no-op.");
 			PhantomAssertions.assertEquals(1L, system.snapshot().metrics().lifecycleStarts(), "Repeated start changed metrics.");
 			PhantomAssertions.assertTrue(system.shutdown(), "Enabled skeleton did not stop.");
 			final var stopped = system.snapshot();
 			PhantomAssertions.assertEquals(PhantomSystem.State.STOPPED, stopped.state(), "Enabled skeleton did not reach STOPPED.");
 			PhantomAssertions.assertEquals(1L, stopped.metrics().lifecycleStops(), "Enabled skeleton stop count mismatch.");
-			PhantomAssertions.assertFalse(stopped.scheduler().running(), "Queue remained running after stop.");
-			PhantomAssertions.assertEquals(0, stopped.scheduler().queued(), "Queue was not cleared on stop.");
+			PhantomAssertions.assertFalse(stopped.scheduler().running(), "Scheduler remained running after stop.");
+			PhantomAssertions.assertEquals(0, stopped.scheduler().ready(), "Ready queue was not cleared on stop.");
+			PhantomAssertions.assertEquals(0, stopped.scheduler().due(), "Due set was not cleared on stop.");
 			PhantomAssertions.assertFalse(system.shutdown(), "Repeated enabled shutdown was not a no-op.");
 			PhantomAssertions.assertFalse(system.start(), "STOPPED system restarted.");
 			PhantomAssertions.assertEquals(1L, system.snapshot().metrics().lifecycleStops(), "Repeated stop changed metrics.");
 		});
-		registry.add("queue-bounded-no-consumer", _ ->
+		registry.add("config-scheduler-guards-fail-closed", _ ->
 		{
-			final Set<Long> before = nonDaemonThreadIds();
-			final PhantomMetrics metrics = new PhantomMetrics();
-			final PhantomScheduler scheduler = new PhantomScheduler(2, metrics);
-			final AtomicBoolean executed = new AtomicBoolean();
-			final Runnable work = () -> executed.set(true);
-			PhantomAssertions.assertFalse(scheduler.offer(work), "Queue accepted work before start.");
-			PhantomAssertions.assertTrue(scheduler.start(), "Queue did not enter running state.");
-			PhantomAssertions.assertTrue(scheduler.offer(work), "Queue rejected first bounded entry.");
-			PhantomAssertions.assertTrue(scheduler.offer(work), "Queue rejected second bounded entry.");
-			PhantomAssertions.assertFalse(scheduler.offer(work), "Queue accepted capacity plus one.");
-			PhantomAssertions.assertFalse(executed.get(), "Queue executed a submitted body.");
-			PhantomAssertions.assertEquals(2, scheduler.snapshot().queued(), "Queue size mismatch at capacity.");
-			PhantomAssertions.assertEquals(0, scheduler.snapshot().scheduledTaskCount(), "Queue reports scheduled work.");
-			PhantomAssertions.assertTrue(scheduler.stop(), "Queue did not stop.");
-			PhantomAssertions.assertEquals(0, scheduler.snapshot().queued(), "Queue did not clear on stop.");
-			PhantomAssertions.assertFalse(scheduler.stop(), "Repeated queue stop changed state.");
-			PhantomAssertions.assertEquals(2L, metrics.snapshot().queueAccepted(), "Accepted metric mismatch.");
-			PhantomAssertions.assertEquals(2L, metrics.snapshot().queueRejected(), "Rejected metric mismatch.");
-			PhantomAssertions.assertFalse(executed.get(), "Queue executed work during stop.");
-			assertNoNewNonDaemonThreads(before);
+			final var missing = readConfig("scheduler-missing.ini", "EnablePhantomSystem = true\nEnablePhantomDiagnostics = false\nMaxMaterializedPhantoms = 32\n");
+			PhantomAssertions.assertFalse(missing.enabled(), "Missing scheduler settings did not fail closed.");
+			final var tooSmall = readConfig("scheduler-capacity.ini", enabledConfig("MaxMaterializedPhantoms = 33\nMaxScheduledPhantomProfiles = 32\n"));
+			PhantomAssertions.assertFalse(tooSmall.enabled(), "Scheduled capacity below materialization cap did not fail closed.");
+			final var malformed = readConfig("scheduler-malformed.ini", enabledConfig("PhantomSchedulerPulseMillis = +100\n"));
+			PhantomAssertions.assertFalse(malformed.enabled(), "Signed scheduler pulse did not fail closed.");
 		});
 		registry.add("trace-disabled-no-storage", _ ->
 		{
@@ -217,6 +214,19 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 		final Path config = _testDirectory.resolve(name);
 		Files.writeString(config, content, StandardCharsets.UTF_8);
 		return PhantomPlayersConfig.read(config);
+	}
+
+	private static String enabledConfig(String overrides)
+	{
+		final StringBuilder config = new StringBuilder();
+		config.append("EnablePhantomSystem = true\n");
+		config.append("EnablePhantomDiagnostics = false\n");
+		config.append("MaxMaterializedPhantoms = 32\n");
+		config.append("MaxScheduledPhantomProfiles = 10000\n");
+		config.append("PhantomSchedulerPulseMillis = 100\n");
+		config.append("PhantomSchedulerProfilesPerPulse = 128\n");
+		config.append(overrides);
+		return config.toString();
 	}
 
 	private static Set<Long> nonDaemonThreadIds()

@@ -30,6 +30,8 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 import org.l2jmobius.gameserver.phantoms.PhantomServerShutdownHandoffSuite;
+import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerPerformanceSuite;
+import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerSuite;
 import org.l2jmobius.tests.phantoms.PhantomTestDatabaseGuard.GuardException;
 
 public final class PhantomTestLauncher
@@ -188,6 +190,8 @@ public final class PhantomTestLauncher
 			case "production-materialization" -> new PhantomProductionMaterializationSuite();
 			case "production-materialization-performance" -> new PhantomProductionMaterializationPerformanceSuite();
 			case "server-shutdown-handoff" -> new PhantomServerShutdownHandoffSuite();
+			case "activity-scheduler" -> new PhantomActivitySchedulerSuite();
+			case "activity-scheduler-performance" -> new PhantomActivitySchedulerPerformanceSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

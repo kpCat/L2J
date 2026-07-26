@@ -45,6 +45,8 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -186,16 +188,18 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		reset();
 		final PhantomProfile profile = createProfile(_environment.primary().objectId());
 		final ServiceFixture fixture = service(2);
-		final MaterializeResult result = fixture.service().materialize(profile.profileId());
-		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, result.status(), "Linked profile did not materialize.");
+		final PhantomMaterializationServiceActivityPort activityPort = new PhantomMaterializationServiceActivityPort(fixture.service());
+		PhantomAssertions.assertEquals(Outcome.SUCCESS, activityPort.materialize(profile.profileId()).outcome(), "Activity scheduler bridge did not materialize the linked profile.");
 		final Player player = World.getInstance().getPlayer(_environment.primary().objectId());
 		PhantomAssertions.assertTrue(player != null && player.isOnline(), "Canonical Player is not online in World.");
 		PhantomAssertions.assertEquals(player, World.getInstance().findObject(_environment.primary().objectId()), "Canonical Player is not the exact general World object.");
 		PhantomAssertions.assertTrue(PlayerAutoSaveTaskManager.getInstance().contains(player), "Canonical Player is not the exact autosave owner.");
 		PhantomAssertions.assertFalse(PlayerAutoSaveTaskManager.getInstance().containsOtherObjectId(player.getObjectId(), player), "Another autosave Player owns the canonical object ID.");
 		PhantomAssertions.assertTrue(player.hasHeadlessOutboundSession(), "Canonical Player has no headless output.");
-		PhantomAssertions.assertEquals(_environment.primary().objectId(), result.snapshot().characterObjectId(), "Materialization captured the wrong character.");
-		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().dematerialize(profile.profileId()).status(), "Canonical Player did not dematerialize.");
+		PhantomAssertions.assertTrue(activityPort.isMaterialized(profile.profileId()), "Activity scheduler bridge did not observe canonical materialization.");
+		PhantomAssertions.assertEquals(_environment.primary().objectId(), fixture.service().find(profile.profileId()).orElseThrow().characterObjectId(), "Materialization captured the wrong character.");
+		PhantomAssertions.assertEquals(Outcome.SUCCESS, activityPort.dematerialize(profile.profileId()).outcome(), "Activity scheduler bridge did not dematerialize the canonical Player.");
+		PhantomAssertions.assertFalse(activityPort.isMaterialized(profile.profileId()), "Activity scheduler bridge retained canonical materialization after cleanup.");
 		_environment.assertClean(_environment.primary(), player);
 	}
 
@@ -729,7 +733,7 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		final Path path = Files.createTempFile("phantom-task006-config-", ".ini");
 		try
 		{
-			Files.writeString(path, content, StandardCharsets.UTF_8);
+			Files.writeString(path, content + "MaxScheduledPhantomProfiles = 10000\nPhantomSchedulerPulseMillis = 100\nPhantomSchedulerProfilesPerPulse = 128\n", StandardCharsets.UTF_8);
 			return PhantomPlayersConfig.read(path);
 		}
 		finally
