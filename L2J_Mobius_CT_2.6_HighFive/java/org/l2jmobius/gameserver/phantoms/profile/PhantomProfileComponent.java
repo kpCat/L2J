@@ -21,6 +21,7 @@
 package org.l2jmobius.gameserver.phantoms.profile;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -54,6 +55,34 @@ public record PhantomProfileComponent(long profileId, String componentType, int 
 	public byte[] payload()
 	{
 		return payload.clone();
+	}
+
+	@Override
+	public boolean equals(Object object)
+	{
+		if (this == object)
+		{
+			return true;
+		}
+		if (!(object instanceof PhantomProfileComponent other))
+		{
+			return false;
+		}
+		return (profileId == other.profileId) //
+			&& (componentSchemaVersion == other.componentSchemaVersion) //
+			&& (rowVersion == other.rowVersion) //
+			&& componentType.equals(other.componentType) //
+			&& Arrays.equals(payload, other.payload) //
+			&& createdAt.equals(other.createdAt) //
+			&& updatedAt.equals(other.updatedAt);
+	}
+
+	@Override
+	public int hashCode()
+	{
+		int result = Objects.hash(profileId, componentType, componentSchemaVersion, rowVersion, createdAt, updatedAt);
+		result = (31 * result) + Arrays.hashCode(payload);
+		return result;
 	}
 
 	static void requireValidComponentType(String componentType)

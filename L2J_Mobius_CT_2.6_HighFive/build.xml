@@ -147,6 +147,34 @@
 		</java>
 	</target>
 
+	<target name="phantom-production-materialization-test" depends="compile-tests" description="Run explicit bounded production Phantom materialization lifecycle tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="production-materialization" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-production-materialization-performance-smoke" depends="compile-tests" description="Run one and ten sequential production materialization cycles.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="production-materialization-performance" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
 	<target name="prepare-phantom-test-db" depends="compile-tests" description="Destructively recreate only the allowlisted Phantom test database.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestDatabaseProvisioner" classpathref="test.classpath" fork="true" failonerror="true">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
@@ -279,19 +307,23 @@
 		<echo message="Historical verify-task-004b.ps1 is unchanged; Goal 005 verifier checks its preservation and cumulative safety contract." />
 	</target>
 
-	<target name="phantom-static-verify-005" description="Run the read-only Goal 005 static verifier.">
+	<target name="phantom-static-verify-005" depends="phantom-static-verify-006" description="Preserve the Goal 005 target through the cumulative Goal 006 verifier.">
+		<echo message="Historical verify-task-005.ps1 is unchanged; Goal 006 verifier checks its preservation and cumulative safety contract." />
+	</target>
+
+	<target name="phantom-static-verify-006" description="Run the read-only Goal 006 static verifier.">
 		<exec executable="powershell" dir="${basedir}" failonerror="true">
 			<arg value="-NoProfile" />
 			<arg value="-ExecutionPolicy" />
 			<arg value="Bypass" />
 			<arg value="-File" />
-			<arg value="${basedir}/tools/phantoms/verify-task-005.ps1" />
+			<arg value="${basedir}/tools/phantoms/verify-task-006.ps1" />
 		</exec>
 	</target>
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->
-	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-profile-persistence-test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004,phantom-static-verify-004a,phantom-static-verify-004b,phantom-static-verify-005" description="Run Goal 005 and all prior Phantom verification gates." />
+	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-profile-persistence-test,phantom-production-materialization-test,phantom-production-materialization-performance-smoke,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004,phantom-static-verify-004a,phantom-static-verify-004b,phantom-static-verify-005,phantom-static-verify-006" description="Run Goal 006 and all prior Phantom verification gates." />
 
 	<target name="jar" depends="compile" description="Create the jar files.">
 		<tstamp>

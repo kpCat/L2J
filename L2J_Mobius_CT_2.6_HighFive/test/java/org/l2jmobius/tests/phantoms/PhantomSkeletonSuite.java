@@ -70,7 +70,7 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 		});
 		registry.add("config-diagnostics-fail-closed", _ ->
 		{
-			final var malformed = readConfig("diagnostics-malformed.ini", "EnablePhantomSystem = true\nEnablePhantomDiagnostics = sometimes\n");
+			final var malformed = readConfig("diagnostics-malformed.ini", "EnablePhantomSystem = true\nEnablePhantomDiagnostics = sometimes\nMaxMaterializedPhantoms = 32\n");
 			PhantomAssertions.assertTrue(malformed.enabled(), "Valid system flag was not recognized.");
 			PhantomAssertions.assertFalse(malformed.diagnosticsEnabled(), "Malformed diagnostics flag enabled tracing.");
 			final var systemDisabled = readConfig("diagnostics-with-system-disabled.ini", "EnablePhantomSystem = false\nEnablePhantomDiagnostics = true\n");
@@ -98,7 +98,7 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 		});
 		registry.add("config-strict-case-insensitive-booleans", _ ->
 		{
-			final var enabled = readConfig("true.ini", "EnablePhantomSystem = TrUe\nEnablePhantomDiagnostics = TRUE\n");
+			final var enabled = readConfig("true.ini", "EnablePhantomSystem = TrUe\nEnablePhantomDiagnostics = TRUE\nMaxMaterializedPhantoms = 32\n");
 			PhantomAssertions.assertTrue(enabled.enabled(), "Case-insensitive true was not recognized.");
 			PhantomAssertions.assertTrue(enabled.diagnosticsEnabled(), "Case-insensitive diagnostics true was not recognized.");
 			final var disabled = readConfig("false.ini", "EnablePhantomSystem = FaLsE\nEnablePhantomDiagnostics = FALSE\n");

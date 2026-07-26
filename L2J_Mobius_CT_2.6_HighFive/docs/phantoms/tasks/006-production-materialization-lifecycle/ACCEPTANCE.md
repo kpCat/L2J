@@ -1,0 +1,28 @@
+# ACCEPTANCE — Goal 006
+
+- [ ] Baseline 9d0465eb and one ordinary High Five commit.
+- [ ] Goal 005 closure and roadmap progress only.
+- [ ] No schema change and no Goal 007.
+- [ ] Disabled defaults and strict configurable cap.
+- [ ] Disabled path opens no repository/DB/service.
+- [ ] One shared lifecycle core; spike is thin wrapper.
+- [ ] Production core/service have no fixture item knowledge.
+- [ ] Tokenized action admission; no arbitrary callback.
+- [ ] Unique profile/character maps and bounded fair permits.
+- [ ] No global lock around Player/DB/World operations.
+- [ ] Explicit materialization/dematerialization results.
+- [ ] RETAINED real recovery with World/autosave/DB evidence.
+- [ ] RESERVED owner never recovered; no periodic retry.
+- [ ] Cleanup failure retains maps/permit/identity.
+- [ ] Retry reaches STORED.
+- [ ] Shutdown bounded, exact failures and second retry.
+- [ ] Configured instance retained after failed drain.
+- [ ] Restart active zero, profiles intact, no auto materialization.
+- [ ] Fixed metrics/bounded trace.
+- [ ] Owned-row test cleanup and sentinel.
+- [ ] Component byte-content equality.
+- [ ] Production suite passes three independent runs.
+- [ ] One/ten performance smoke and all prior regressions.
+- [ ] ant verify/jar and verifier final ×2 identical.
+- [ ] Production DB zero access and production JAR test entries zero.
+- [ ] Manual gate pending review; Goal 007 not started.

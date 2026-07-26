@@ -2,12 +2,12 @@
 
 ## Статус и принятый baseline
 
-Статус: `PENDING_INDEPENDENT_REVIEW`.
+Статус: `ACCEPT`.
 
-Работа выполнена поверх принятого baseline
-`f5b66c4edf1ddf18e044ef8c692d70ecea616485` в ветке
-`feature/phantom-world`. Goal 005 не принят исполнителем самостоятельно.
-Goal 006: `NOT_STARTED`.
+Независимое ревью приняло Goal 005 в commit
+`9d0465eb62f9913644fab9f1d60feb2f4fd9a674` поверх parent
+`f5b66c4edf1ddf18e044ef8c692d70ecea616485`. Push и remote ref подтверждены
+как exact. Goal 006: `ALLOWED`.
 
 ## Закрытие Task 004B
 
@@ -293,9 +293,27 @@ suite `18/18`. Один ранний headless run выявил late shared worke
 Branch: feature/phantom-world
 Parent: f5b66c4edf1ddf18e044ef8c692d70ecea616485
 Subject: feat(phantoms): add profile persistence envelope
-Manual gate: PENDING_INDEPENDENT_REVIEW
-Goal 006: NOT_STARTED
+Commit: 9d0465eb62f9913644fab9f1d60feb2f4fd9a674
+Push/remote: exact
+Manual gate: ACCEPT
+Goal 006: ALLOWED
 ```
 
-Exact immutable commit SHA, push result and post-commit verifier outputs are
-external final-handoff evidence generated after this report is committed.
+## Независимое закрытие Goal 005
+
+Зафиксированы следующие факты независимого приёмочного прохода:
+
+- profile persistence suite: `18/18`;
+- три последовательных headless regression run: `18/18`, `18/18`, `18/18`;
+- финальный verifier: `69/69` дважды, outputs byte-identical;
+- production DB `l2jmobiush5`: без доступа и изменений;
+- provisioning aggregate SHA-256:
+  `20ECFDBD9BAEE625126CF53062B6E72433C7BE5604B0844FEEDD28F581BE067E`;
+- принятый verifier SHA-256 из provenance Goal 005:
+  `39A1D87DB35AE8B2DDE28EB11776A69E2F7359AC6539A900BB78D114BDBB7BC9`;
+- independent review: `ACCEPT`;
+- Goal 006: `ALLOWED`.
+
+Два ограниченных follow-up перенесены в Goal 006: ownership-scoped очистка
+profile test rows с foreign sentinel и value equality/hash для component
+payload. Они не блокируют принятый baseline Goal 005.

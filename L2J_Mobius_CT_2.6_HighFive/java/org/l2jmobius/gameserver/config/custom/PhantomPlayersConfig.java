@@ -31,8 +31,9 @@ import org.l2jmobius.commons.util.ConfigReader;
 public final class PhantomPlayersConfig
 {
 	public static final String PHANTOM_PLAYERS_CONFIG_FILE = "./config/Custom/PhantomPlayers.ini";
+	public static final int DEFAULT_MAX_MATERIALIZED_PHANTOMS = 32;
 
-	private static volatile Settings _settings = new Settings(false, false);
+	private static volatile Settings _settings = Settings.disabled();
 
 	private PhantomPlayersConfig()
 	{
@@ -49,17 +50,26 @@ public final class PhantomPlayersConfig
 		{
 			if ((path == null) || !Files.isRegularFile(path))
 			{
-				return new Settings(false, false);
+				return Settings.disabled();
 			}
 
 			final ConfigReader config = new ConfigReader(path.toString());
 			final boolean enabled = strictBoolean(config.getValue("EnablePhantomSystem"));
+			if (!enabled)
+			{
+				return Settings.disabled();
+			}
+			final Integer maximumMaterialized = strictCap(config.getValue("MaxMaterializedPhantoms"));
+			if (maximumMaterialized == null)
+			{
+				return Settings.disabled();
+			}
 			final boolean diagnosticsEnabled = enabled && strictBoolean(config.getValue("EnablePhantomDiagnostics"));
-			return new Settings(enabled, diagnosticsEnabled);
+			return new Settings(true, diagnosticsEnabled, maximumMaterialized);
 		}
 		catch (RuntimeException e)
 		{
-			return new Settings(false, false);
+			return Settings.disabled();
 		}
 	}
 
@@ -92,11 +102,48 @@ public final class PhantomPlayersConfig
 		return false;
 	}
 
-	public record Settings(boolean enabled, boolean diagnosticsEnabled)
+	private static Integer strictCap(String value)
+	{
+		if (value == null)
+		{
+			return null;
+		}
+		final String normalized = value.trim();
+		if (!normalized.matches("[0-9]+"))
+		{
+			return null;
+		}
+		try
+		{
+			final int parsed = Integer.parseInt(normalized, 10);
+			return ((parsed >= 1) && (parsed <= 10000)) ? parsed : null;
+		}
+		catch (NumberFormatException e)
+		{
+			return null;
+		}
+	}
+
+	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms)
 	{
 		public Settings
 		{
 			diagnosticsEnabled = enabled && diagnosticsEnabled;
+			maxMaterializedPhantoms = enabled ? maxMaterializedPhantoms : 0;
+			if (enabled && ((maxMaterializedPhantoms < 1) || (maxMaterializedPhantoms > 10000)))
+			{
+				throw new IllegalArgumentException("Enabled Phantom settings require a materialization cap between 1 and 10000.");
+			}
+		}
+
+		public Settings(boolean enabled, boolean diagnosticsEnabled)
+		{
+			this(enabled, diagnosticsEnabled, enabled ? DEFAULT_MAX_MATERIALIZED_PHANTOMS : 0);
+		}
+
+		public static Settings disabled()
+		{
+			return new Settings(false, false, 0);
 		}
 	}
 }

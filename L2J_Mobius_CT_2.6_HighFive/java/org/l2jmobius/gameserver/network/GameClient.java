@@ -691,6 +691,12 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 		return true;
 	}
 
+	public synchronized boolean retainPlayerIdentityLeaseFor(int objectId)
+	{
+		final Lease identityLease = _playerIdentityLease;
+		return (identityLease != null) && identityLease.matchesObjectId(objectId) && identityLease.markRetained();
+	}
+
 	public synchronized boolean releasePlayerIdentityLeaseFor(int objectId)
 	{
 		final Lease identityLease = _playerIdentityLease;

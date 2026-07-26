@@ -37,6 +37,12 @@ public final class PhantomIdentityLeaseRegistry
 		PHANTOM
 	}
 
+	public enum OwnerState
+	{
+		RESERVED,
+		RETAINED
+	}
+
 	private final ConcurrentHashMap<Integer, Entry> _owners = new ConcurrentHashMap<>();
 	private final AtomicLong _nextToken = new AtomicLong();
 
@@ -58,7 +64,26 @@ public final class PhantomIdentityLeaseRegistry
 	public OwnerKind getOwnerKind(int objectId)
 	{
 		final Entry entry = _owners.get(objectId);
-		return entry == null ? null : entry.ownerKind();
+		return entry == null ? null : entry._ownerKind;
+	}
+
+	public OwnerState getOwnerState(int objectId)
+	{
+		final Entry entry = _owners.get(objectId);
+		return entry == null ? null : entry._state;
+	}
+
+	public OwnerSnapshot getOwnerSnapshot(int objectId)
+	{
+		final Entry entry = _owners.get(objectId);
+		if (entry == null)
+		{
+			return null;
+		}
+		synchronized (entry)
+		{
+			return _owners.get(objectId) == entry ? entry.snapshot() : null;
+		}
 	}
 
 	public static boolean requiresRealLoginArbitration(boolean phantomSystemEnabled, OwnerKind currentOwner)
@@ -71,13 +96,72 @@ public final class PhantomIdentityLeaseRegistry
 		return _owners.size();
 	}
 
-	private void release(Entry entry)
+	public boolean releaseRetained(OwnerSnapshot expected)
 	{
-		_owners.remove(entry.objectId(), entry);
+		Objects.requireNonNull(expected, "expected");
+		final Entry entry = _owners.get(expected.objectId());
+		if (entry == null)
+		{
+			return false;
+		}
+		synchronized (entry)
+		{
+			if ((_owners.get(expected.objectId()) != entry) || !entry.matches(expected) || (entry._ownerKind != OwnerKind.REAL_LOGIN) || (entry._state != OwnerState.RETAINED))
+			{
+				return false;
+			}
+			return _owners.remove(expected.objectId(), entry);
+		}
 	}
 
-	private record Entry(int objectId, OwnerKind ownerKind, long token)
+	private boolean markRetained(Entry entry)
 	{
+		synchronized (entry)
+		{
+			if ((_owners.get(entry._objectId) != entry) || (entry._ownerKind != OwnerKind.REAL_LOGIN) || (entry._state != OwnerState.RESERVED))
+			{
+				return false;
+			}
+			entry._state = OwnerState.RETAINED;
+			return true;
+		}
+	}
+
+	private void release(Entry entry)
+	{
+		synchronized (entry)
+		{
+			_owners.remove(entry._objectId, entry);
+		}
+	}
+
+	public record OwnerSnapshot(int objectId, OwnerKind ownerKind, OwnerState state, long token)
+	{
+	}
+
+	private static final class Entry
+	{
+		private final int _objectId;
+		private final OwnerKind _ownerKind;
+		private final long _token;
+		private volatile OwnerState _state = OwnerState.RESERVED;
+
+		private Entry(int objectId, OwnerKind ownerKind, long token)
+		{
+			_objectId = objectId;
+			_ownerKind = ownerKind;
+			_token = token;
+		}
+
+		private OwnerSnapshot snapshot()
+		{
+			return new OwnerSnapshot(_objectId, _ownerKind, _state, _token);
+		}
+
+		private boolean matches(OwnerSnapshot snapshot)
+		{
+			return (_objectId == snapshot.objectId()) && (_ownerKind == snapshot.ownerKind()) && (_state == snapshot.state()) && (_token == snapshot.token());
+		}
 	}
 
 	public static final class Lease implements AutoCloseable
@@ -94,22 +178,32 @@ public final class PhantomIdentityLeaseRegistry
 
 		public int objectId()
 		{
-			return _entry.objectId();
+			return _entry._objectId;
 		}
 
 		public OwnerKind ownerKind()
 		{
-			return _entry.ownerKind();
+			return _entry._ownerKind;
 		}
 
 		public boolean matchesObjectId(int objectId)
 		{
-			return _entry.objectId() == objectId;
+			return _entry._objectId == objectId;
 		}
 
 		public long token()
 		{
-			return _entry.token();
+			return _entry._token;
+		}
+
+		public OwnerState state()
+		{
+			return _entry._state;
+		}
+
+		public boolean markRetained()
+		{
+			return !_closed.get() && _registry.markRetained(_entry);
 		}
 
 		public boolean isClosed()

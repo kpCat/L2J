@@ -184,6 +184,8 @@ public final class PhantomTestLauncher
 			case "headless-player" -> new PhantomHeadlessPlayerSuite();
 			case "headless-player-performance" -> new PhantomHeadlessPlayerPerformanceSuite();
 			case "profile-persistence" -> new PhantomProfilePersistenceSuite();
+			case "production-materialization" -> new PhantomProductionMaterializationSuite();
+			case "production-materialization-performance" -> new PhantomProductionMaterializationPerformanceSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

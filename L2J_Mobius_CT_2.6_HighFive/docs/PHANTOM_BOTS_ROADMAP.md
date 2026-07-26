@@ -12,10 +12,10 @@
 
 ```text
 Последний принятый production baseline:
-f5b66c4edf1ddf18e044ef8c692d70ecea616485
+9d0465eb62f9913644fab9f1d60feb2f4fd9a674
 
 Текущий branch HEAD под ревью:
-Goal 005 implementation — commit SHA во внешнем final handoff
+Goal 006 implementation — commit SHA во внешнем final handoff
 
 Task 004 technical feasibility:
 ACCEPT
@@ -30,17 +30,20 @@ ADR 0001:
 Accepted
 
 Task 005:
-IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+ACCEPT
 
 Goal 006:
-NOT_STARTED / BLOCKED до независимого ACCEPT Goal 005
+IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
+Goal 007:
+NOT_STARTED / BLOCKED до независимого ACCEPT Goal 006
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
 материализован без TCP, fake `GameClient`, Player subclass/fork и production DB.
 Task 004A и Task 004B закрыли найденные lifecycle/retained-identity findings;
-seam и ADR 0001 приняты. Goal 005 реализует только core profile/persistence
-envelope и ожидает независимого review; Goal 006 не начат.
+seam и ADR 0001 приняты. Goal 005 и её core profile/persistence envelope
+приняты. Goal 006 реализована и ожидает независимого review; Goal 007 не начата.
 
 ---
 
@@ -288,7 +291,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B приняты; Goal 005 реализована и ожидает независимого review; Goal 006 заблокирована.
+**Текущий статус:** Task 004/004A/004B и Goal 005 приняты; Goal 006 реализована и ожидает независимого review; Goal 007 заблокирована.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -339,7 +342,7 @@ retryable cleanup; принята после retained-identity correction Task 0
 exact-instance cleanup postconditions. Task 004B принята; revert не требуется;
 ADR 0001 переведён в `Accepted`.
 
-## Goal 005 — Core Phantom profile и persistence envelope — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+## Goal 005 — Core Phantom profile и persistence envelope — `ACCEPT`
 
 **Назначение:** сохранить устойчивую идентичность Phantom независимо от Player
 materialization.  
@@ -362,7 +365,7 @@ Utility AI, population или materialization.
 переписывания core identity.  
 **Follow-up risk:** `HIGH` — schema/versioning/concurrent update.
 
-## Goal 006 — Production materialization lifecycle
+## Goal 006 — Production materialization lifecycle — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** превратить spike в production-owned, disabled-by-default
 materialization service.  
@@ -951,10 +954,10 @@ Current stage:
 I. Canonical actor, persistence and lifecycle
 
 Current accepted baseline:
-f5b66c4edf1ddf18e044ef8c692d70ecea616485
+9d0465eb62f9913644fab9f1d60feb2f4fd9a674
 
 Current branch HEAD under review:
-Goal 005 implementation — commit SHA во внешнем final handoff
+Goal 006 implementation — commit SHA во внешнем final handoff
 
 Completed:
 - 001 / 001A
@@ -964,22 +967,21 @@ Completed:
 - 004A after 004B
 - 004B
 - ADR 0001 Accepted
+- Goal 005
 
 In progress / required closure:
-- Goal 005 independent review
+- Goal 006 independent review
 
 Next:
-1. Independent review Goal 005
-2. Goal 006 production materialization lifecycle
-3. Goal 007 shared scheduler after Goal 006
+1. Independent review Goal 006
+2. Goal 007 shared scheduler after Goal 006 ACCEPT
 
 Stage gate:
-- not complete until Goal 005 and Goal 006 ACCEPT
+- not complete until Goal 006 ACCEPT
 
 New risks:
-- schema/versioning and concurrent profile updates
-- retained REAL_LOGIN lease recovery remains Goal 006 ownership
-- Goal 005 test-only ThreadPool baseline stabilization requires regression proof
+- production materialization lifecycle awaits independent review
+- Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
 - future-dependent fields removed from Goal 005

@@ -1,0 +1,21 @@
+{
+  "package": "phantom-world-goal-006-production-materialization-lifecycle",
+  "taskId": "006-production-materialization-lifecycle",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/006-production-materialization-lifecycle/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "9d0465eb62f9913644fab9f1d60feb2f4fd9a674",
+  "schemaChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal007Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "ARCHITECTURE.md",
+    "RECOVERY_CONTRACT.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

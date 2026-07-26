@@ -23,9 +23,14 @@ package org.l2jmobius.gameserver.phantoms;
 import java.util.Objects;
 
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
+import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 
 /**
- * Lifecycle owner for the disabled-by-default inert Phantom World skeleton.
+ * Lifecycle owner for the disabled-by-default Phantom World subsystem.
  */
 public final class PhantomSystem
 {
@@ -39,11 +44,19 @@ public final class PhantomSystem
 	private final PhantomMetrics _metrics;
 	private final PhantomScheduler _scheduler;
 	private final PhantomDiagnosticTrace _trace;
+	private final boolean _productionMaterialization;
+	private PhantomMaterializationService _materializationService;
 	private State _state = State.NEW;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
 	{
+		this(settings, false);
+	}
+
+	private PhantomSystem(PhantomPlayersConfig.Settings settings, boolean productionMaterialization)
+	{
 		_settings = Objects.requireNonNull(settings);
+		_productionMaterialization = productionMaterialization;
 		_metrics = new PhantomMetrics();
 		if (settings.enabled())
 		{
@@ -74,6 +87,28 @@ public final class PhantomSystem
 		{
 			throw new IllegalStateException("Phantom queue could not enter the running state.");
 		}
+		try
+		{
+			if (_productionMaterialization)
+			{
+				final PhantomProfileRepository profileRepository = PhantomProfileRepository.open();
+				_materializationService = new PhantomMaterializationService(profileRepository, PhantomIdentityLeaseRegistry.getInstance(), _metrics, _trace, _settings.maxMaterializedPhantoms());
+				if (!_materializationService.start())
+				{
+					throw new IllegalStateException("Phantom materialization service could not enter the running state.");
+				}
+			}
+		}
+		catch (RuntimeException e)
+		{
+			if (_materializationService != null)
+			{
+				_materializationService.shutdown();
+			}
+			_scheduler.stop();
+			_state = State.STOPPED;
+			throw e;
+		}
 		_metrics.recordLifecycleStart();
 		_state = State.RUNNING;
 		return true;
@@ -88,6 +123,27 @@ public final class PhantomSystem
 
 		if (_state == State.RUNNING)
 		{
+			if (_materializationService != null)
+			{
+				final ShutdownResult result = _materializationService.shutdown();
+				if (result.state() != ServiceState.STOPPED)
+				{
+					_state = State.FAILED;
+					return false;
+				}
+			}
+			_scheduler.stop();
+			_metrics.recordLifecycleStop();
+			_state = State.STOPPED;
+			return true;
+		}
+		if ((_state == State.FAILED) && (_materializationService != null))
+		{
+			final ShutdownResult result = _materializationService.shutdown();
+			if (result.state() != ServiceState.STOPPED)
+			{
+				return false;
+			}
 			_scheduler.stop();
 			_metrics.recordLifecycleStop();
 			_state = State.STOPPED;
@@ -110,7 +166,7 @@ public final class PhantomSystem
 			return false;
 		}
 
-		final PhantomSystem candidate = new PhantomSystem(PhantomPlayersConfig.settings());
+		final PhantomSystem candidate = new PhantomSystem(PhantomPlayersConfig.settings(), true);
 		try
 		{
 			if (!candidate.start())
@@ -135,14 +191,12 @@ public final class PhantomSystem
 		}
 
 		final PhantomSystem configured = _configuredInstance;
-		try
-		{
-			return configured.shutdown();
-		}
-		finally
+		final boolean stopped = configured.shutdown();
+		if (configured.snapshot().state() == State.STOPPED)
 		{
 			_configuredInstance = null;
 		}
+		return stopped;
 	}
 
 	public static synchronized boolean hasConfiguredInstance()
@@ -150,11 +204,17 @@ public final class PhantomSystem
 		return _configuredInstance != null;
 	}
 
+	static synchronized PhantomMaterializationService configuredMaterializationService()
+	{
+		return _configuredInstance == null ? null : _configuredInstance._materializationService;
+	}
+
 	public enum State
 	{
 		NEW,
 		DISABLED,
 		RUNNING,
+		FAILED,
 		STOPPED
 	}
 

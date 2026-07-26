@@ -22,11 +22,14 @@ package org.l2jmobius.tests.phantoms;
 
 import java.nio.file.Path;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,7 +49,10 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private static final String SCRIPT_PATH = "dist/db_installer/sql/game/phantom_profiles.sql";
 	private static final int FIRST_CHARACTER_ID = 900000001;
 	private static final int SECOND_CHARACTER_ID = 900000002;
+	private final Set<Long> _ownedProfileIds = ConcurrentHashMap.newKeySet();
+	private final Set<Long> _allOwnedProfileIds = ConcurrentHashMap.newKeySet();
 	private PhantomProfileRepository _repository;
+	private long _foreignSentinelProfileId;
 	private int _replayCount;
 
 	@Override
@@ -77,6 +83,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 		}
 
 		_repository = PhantomProfileRepository.open();
+		_foreignSentinelProfileId = _repository.create(null).profileId();
 		cleanupRows();
 		context.record("profile.database", PhantomTestDatabaseGuard.TARGET_DATABASE);
 		context.record("profile.schemaScripts", bootstrap.schemaSnapshot().scriptCount());
@@ -94,6 +101,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 			{
 				cleanupRows();
 				assertResidueZero();
+				deleteForeignSentinel();
 			}
 		}
 		finally
@@ -147,7 +155,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testCreateUnlinked() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile profile = _repository.create(null);
+		final PhantomProfile profile = createOwned(null);
 		PhantomAssertions.assertTrue(profile.profileId() > 0, "Generated profile ID is not positive.");
 		PhantomAssertions.assertEquals(null, profile.characterObjectId(), "Unlinked profile unexpectedly has a character link.");
 		PhantomAssertions.assertEquals(1, profile.schemaVersion(), "New profile schema version is wrong.");
@@ -160,7 +168,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testCharacterLinkRoundTrip() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile created = _repository.create(null);
+		final PhantomProfile created = createOwned(null);
 		final PhantomProfile linked = _repository.updateCharacterLink(created.profileId(), created.rowVersion(), FIRST_CHARACTER_ID);
 		PhantomAssertions.assertEquals(FIRST_CHARACTER_ID, linked.characterObjectId(), "Character link was not stored.");
 		PhantomAssertions.assertEquals(1L, linked.rowVersion(), "Character link did not increment row version.");
@@ -174,8 +182,8 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testUniqueCharacterLinkConflict() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile first = _repository.create(FIRST_CHARACTER_ID);
-		final PhantomProfile second = _repository.create(SECOND_CHARACTER_ID);
+		final PhantomProfile first = createOwned(FIRST_CHARACTER_ID);
+		final PhantomProfile second = createOwned(SECOND_CHARACTER_ID);
 		final PhantomProfilePersistenceException failure = PhantomAssertions.assertThrows(PhantomProfilePersistenceException.class, () -> _repository.updateCharacterLink(second.profileId(), second.rowVersion(), FIRST_CHARACTER_ID), "Duplicate character link must fail.");
 		PhantomAssertions.assertEquals(Category.CONSTRAINT_VIOLATION, failure.category(), "Unique character conflict has the wrong category.");
 		PhantomAssertions.assertEquals(first, _repository.find(first.profileId()).orElseThrow(), "Unique conflict changed the existing owner.");
@@ -185,7 +193,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testStaleCoreUpdate() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile created = _repository.create(null);
+		final PhantomProfile created = createOwned(null);
 		final PhantomProfile updated = _repository.updateCharacterLink(created.profileId(), created.rowVersion(), FIRST_CHARACTER_ID);
 		PhantomAssertions.assertThrows(ConcurrentModificationException.class, () -> _repository.updateCharacterLink(created.profileId(), created.rowVersion(), SECOND_CHARACTER_ID), "Stale profile update must fail.");
 		PhantomAssertions.assertEquals(updated, _repository.find(created.profileId()).orElseThrow(), "Stale profile update changed the winner.");
@@ -194,7 +202,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testConcurrentCoreUpdate() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile created = _repository.create(null);
+		final PhantomProfile created = createOwned(null);
 		final PhantomProfileRepository leftRepository = PhantomProfileRepository.open();
 		final PhantomProfileRepository rightRepository = PhantomProfileRepository.open();
 		final CountDownLatch ready = new CountDownLatch(2);
@@ -245,7 +253,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testComponentInputValidation() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile profile = _repository.create(null);
+		final PhantomProfile profile = createOwned(null);
 		for (String invalid : new String[]
 		{
 			"", "Test.opaque", "1test", "test opaque", "a".repeat(65)
@@ -262,7 +270,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testPayloadBoundaries() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile profile = _repository.create(null);
+		final PhantomProfile profile = createOwned(null);
 		PhantomAssertions.assertEquals(0, _repository.insertComponent(profile.profileId(), "test.empty", 1, new byte[0]).payload().length, "Empty payload did not round-trip.");
 		PhantomAssertions.assertEquals(4096, _repository.insertComponent(profile.profileId(), "test.max", 1, new byte[4096]).payload().length, "4096-byte payload did not round-trip.");
 		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> _repository.insertComponent(profile.profileId(), "test.too-large", 1, new byte[4097]), "4097-byte payload was accepted.");
@@ -271,7 +279,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testDefensiveCopies() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile profile = _repository.create(null);
+		final PhantomProfile profile = createOwned(null);
 		final byte[] input = new byte[]
 		{
 			1, 2, 3
@@ -292,12 +300,20 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 		{
 			1, 2, 3
 		}, _repository.findComponent(profile.profileId(), "test.opaque").orElseThrow().payload()), "Payload mutation escaped into persistence.");
+		final PhantomProfileComponent separatelyLoaded = _repository.findComponent(profile.profileId(), "test.opaque").orElseThrow();
+		PhantomAssertions.assertEquals(component, separatelyLoaded, "Separately loaded equal component snapshots are not value-equal.");
+		PhantomAssertions.assertEquals(component.hashCode(), separatelyLoaded.hashCode(), "Equal component snapshots have different hash codes.");
+		final PhantomProfileComponent differentPayload = new PhantomProfileComponent(component.profileId(), component.componentType(), component.componentSchemaVersion(), component.rowVersion(), new byte[]
+		{
+			1, 2, 4
+		}, component.createdAt(), component.updatedAt());
+		PhantomAssertions.assertFalse(component.equals(differentPayload), "Different component payloads compare equal.");
 	}
 
 	private void testComponentInsertReadUpdate() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile profile = _repository.create(null);
+		final PhantomProfile profile = createOwned(null);
 		final PhantomProfileComponent inserted = _repository.insertComponent(profile.profileId(), "test.opaque", 1, new byte[]
 		{
 			4
@@ -324,7 +340,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testStaleComponentUpdate() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile profile = _repository.create(null);
+		final PhantomProfile profile = createOwned(null);
 		final PhantomProfileComponent inserted = _repository.insertComponent(profile.profileId(), "test.opaque", 1, new byte[0]);
 		final PhantomProfileComponent updated = _repository.updateComponent(profile.profileId(), "test.opaque", inserted.rowVersion(), 2, new byte[]
 		{
@@ -340,7 +356,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testComponentListOrder() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile profile = _repository.create(null);
+		final PhantomProfile profile = createOwned(null);
 		_repository.insertComponent(profile.profileId(), "test.z", 1, new byte[0]);
 		_repository.insertComponent(profile.profileId(), "test.a-", 1, new byte[0]);
 		_repository.insertComponent(profile.profileId(), "test.a", 1, new byte[0]);
@@ -352,7 +368,7 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testOptimisticComponentDelete() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile profile = _repository.create(null);
+		final PhantomProfile profile = createOwned(null);
 		final PhantomProfileComponent inserted = _repository.insertComponent(profile.profileId(), "test.opaque", 1, new byte[0]);
 		final PhantomProfileComponent updated = _repository.updateComponent(profile.profileId(), "test.opaque", inserted.rowVersion(), 2, new byte[0]);
 		PhantomAssertions.assertThrows(ConcurrentModificationException.class, () -> _repository.deleteComponent(profile.profileId(), "test.opaque", inserted.rowVersion()), "Stale component delete must fail.");
@@ -363,20 +379,20 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testProfileDeleteCascade() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile profile = _repository.create(FIRST_CHARACTER_ID);
+		final PhantomProfile profile = createOwned(FIRST_CHARACTER_ID);
 		_repository.insertComponent(profile.profileId(), "test.opaque", 1, new byte[]
 		{
 			7
 		});
 		_repository.delete(profile.profileId(), profile.rowVersion());
 		PhantomAssertions.assertTrue(_repository.find(profile.profileId()).isEmpty(), "Profile delete left a core row.");
-		PhantomAssertions.assertEquals(0L, scalar("SELECT COUNT(*) FROM phantom_profile_components"), "Profile delete did not cascade component rows.");
+		PhantomAssertions.assertEquals(0L, scalar("SELECT COUNT(*) FROM phantom_profile_components WHERE profile_id = " + profile.profileId()), "Profile delete did not cascade component rows.");
 	}
 
 	private void testRepositoryRestart() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile profile = _repository.create(FIRST_CHARACTER_ID);
+		final PhantomProfile profile = createOwned(FIRST_CHARACTER_ID);
 		final PhantomProfileComponent component = _repository.insertComponent(profile.profileId(), "test.opaque", 17, new byte[]
 		{
 			8, 9
@@ -394,26 +410,64 @@ public final class PhantomProfilePersistenceSuite implements PhantomTestSuite
 	private void testStaleProfileDelete() throws Exception
 	{
 		cleanupRows();
-		final PhantomProfile created = _repository.create(null);
+		final PhantomProfile created = createOwned(null);
 		final PhantomProfile updated = _repository.updateCharacterLink(created.profileId(), created.rowVersion(), FIRST_CHARACTER_ID);
 		PhantomAssertions.assertThrows(ConcurrentModificationException.class, () -> _repository.delete(created.profileId(), created.rowVersion()), "Stale profile delete must fail.");
 		_repository.delete(updated.profileId(), updated.rowVersion());
 		PhantomAssertions.assertTrue(_repository.find(updated.profileId()).isEmpty(), "Current profile delete left a row.");
 	}
 
-	private static void cleanupRows() throws Exception
+	private PhantomProfile createOwned(Integer characterObjectId)
+	{
+		final PhantomProfile profile = _repository.create(characterObjectId);
+		_ownedProfileIds.add(profile.profileId());
+		_allOwnedProfileIds.add(profile.profileId());
+		return profile;
+	}
+
+	private void cleanupRows() throws Exception
 	{
 		try (Connection connection = DatabaseFactory.getConnection();
-			Statement statement = connection.createStatement())
+			PreparedStatement statement = connection.prepareStatement("DELETE FROM phantom_profiles WHERE profile_id = ?"))
 		{
-			statement.executeUpdate("DELETE FROM phantom_profiles");
+			for (long profileId : List.copyOf(_ownedProfileIds))
+			{
+				statement.setLong(1, profileId);
+				statement.executeUpdate();
+				_ownedProfileIds.remove(profileId);
+			}
+		}
+		assertForeignSentinel();
+	}
+
+	private void assertResidueZero() throws Exception
+	{
+		PhantomAssertions.assertTrue(_ownedProfileIds.isEmpty(), "Owned profile ID tracking residue remains.");
+		for (long profileId : _allOwnedProfileIds)
+		{
+			PhantomAssertions.assertEquals(0L, scalar("SELECT COUNT(*) FROM phantom_profiles WHERE profile_id = " + profileId), "Owned profile row residue remains.");
+		}
+		assertForeignSentinel();
+	}
+
+	private void assertForeignSentinel() throws Exception
+	{
+		if (_foreignSentinelProfileId > 0)
+		{
+			PhantomAssertions.assertEquals(1L, scalar("SELECT COUNT(*) FROM phantom_profiles WHERE profile_id = " + _foreignSentinelProfileId), "Foreign sentinel did not survive owned-row cleanup.");
 		}
 	}
 
-	private static void assertResidueZero() throws Exception
+	private void deleteForeignSentinel() throws Exception
 	{
-		PhantomAssertions.assertEquals(0L, scalar("SELECT COUNT(*) FROM phantom_profile_components"), "Owned component row residue remains.");
-		PhantomAssertions.assertEquals(0L, scalar("SELECT COUNT(*) FROM phantom_profiles"), "Owned profile row residue remains.");
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("DELETE FROM phantom_profiles WHERE profile_id = ?"))
+		{
+			statement.setLong(1, _foreignSentinelProfileId);
+			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Foreign sentinel final teardown did not delete exactly one row.");
+		}
+		PhantomAssertions.assertEquals(0L, scalar("SELECT COUNT(*) FROM phantom_profiles WHERE profile_id = " + _foreignSentinelProfileId), "Foreign sentinel remained after explicit final teardown.");
+		_foreignSentinelProfileId = 0;
 	}
 
 	private static long scalar(String sql) throws Exception
