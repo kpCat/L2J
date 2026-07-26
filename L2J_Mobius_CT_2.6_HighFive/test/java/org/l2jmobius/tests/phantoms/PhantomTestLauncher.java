@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
+import org.l2jmobius.gameserver.phantoms.PhantomServerShutdownHandoffSuite;
 import org.l2jmobius.tests.phantoms.PhantomTestDatabaseGuard.GuardException;
 
 public final class PhantomTestLauncher
@@ -186,6 +187,7 @@ public final class PhantomTestLauncher
 			case "profile-persistence" -> new PhantomProfilePersistenceSuite();
 			case "production-materialization" -> new PhantomProductionMaterializationSuite();
 			case "production-materialization-performance" -> new PhantomProductionMaterializationPerformanceSuite();
+			case "server-shutdown-handoff" -> new PhantomServerShutdownHandoffSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

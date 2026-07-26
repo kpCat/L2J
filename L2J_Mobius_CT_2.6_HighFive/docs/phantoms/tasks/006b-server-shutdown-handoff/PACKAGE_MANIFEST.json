@@ -1,0 +1,21 @@
+{
+  "package": "phantom-world-goal-006b-server-shutdown-handoff",
+  "taskId": "006b-server-shutdown-handoff",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/006b-server-shutdown-handoff/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "c2f5599ef59cabb1eeff1f3d467f57219d5a1f5f",
+  "schemaChanges": false,
+  "configChanges": false,
+  "goal007Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "SHUTDOWN_HANDOFF.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

@@ -215,3 +215,19 @@ Next step: independent review Goal 006A
 
 Result:
 `PRODUCTION_MATERIALIZATION_LIFECYCLE_HARDENED_PENDING_INDEPENDENT_REVIEW`.
+
+## Immutable independent-review handoff
+
+```text
+Commit: c2f5599ef59cabb1eeff1f3d467f57219d5a1f5f
+Parent: ff0b33abad0affc4fe64b4324aee67f256dc96fa
+Push/remote: origin/feature/phantom-world exact
+Production tests: 19/19 ×3
+Blocked caller measurements: 150.33–151.73 ms
+Final verifier: 81/81 ×2
+Verifier SHA-256: 8F459EEEB37EBF368DC6FB7E1826CDAA38B3249A469FB906D1F29220D77174C8
+Independent local-hardening review: ACCEPT
+Server integration review: FIX_REQUIRED
+Goal 006B: REQUIRED
+Goal 007: BLOCKED
+```

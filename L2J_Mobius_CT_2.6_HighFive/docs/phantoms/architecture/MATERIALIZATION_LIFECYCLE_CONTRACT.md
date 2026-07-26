@@ -178,3 +178,20 @@ cleanup failures, retained recovery, shutdown failures и active current/peak.
 Динамической per-profile metric map нет. `PhantomDiagnosticTrace` остаётся
 опциональным bounded sampled ring и принимает только короткое внутреннее событие
 с profile/character ID.
+
+## Server shutdown handoff — Goal 006B
+
+Реальный `Shutdown.startShutdownActions()` сначала вызывает bounded
+`PhantomSystem.shutdownIfStarted()`, затем generic disconnect пропускает только
+доказанно managed Phantom Player, после чего непосредственно перед
+`ThreadPool.shutdown()` выполняется вторая bounded shutdown/observation/retry
+попытка.
+
+Managed actor одновременно имеет headless outbound session, `PHANTOM` identity
+owner и exact character ownership в configured materialization service. Exact
+service map сохраняется до terminal `STORED`, поэтому generic `Disconnection` и
+service cleanup не выполняются параллельно.
+
+Persistent failure оставляет configured instance, map, permit и identity
+retained. Финальная диагностика имеет aggregate `SEVERE` status и не сообщает
+успех. Goal 006B не меняет schema, config или retained REAL_LOGIN recovery.

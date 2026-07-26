@@ -15,7 +15,7 @@
 9d0465eb62f9913644fab9f1d60feb2f4fd9a674
 
 Текущий branch HEAD под ревью:
-Goal 006A hardening — commit SHA во внешнем final handoff
+Goal 006B server shutdown handoff — commit SHA во внешнем final handoff
 
 Task 004 technical feasibility:
 ACCEPT
@@ -32,10 +32,13 @@ Accepted
 Task 005:
 ACCEPT
 
-Goal 006:
-FIX_REQUIRED
+Goal 006 overall:
+FIX_REQUIRED pending 006B
 
 Goal 006A:
+ACCEPT
+
+Goal 006B:
 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 007:
@@ -46,9 +49,10 @@ Task 004 доказала главный архитектурный тезис: 
 материализован без TCP, fake `GameClient`, Player subclass/fork и production DB.
 Task 004A и Task 004B закрыли найденные lifecycle/retained-identity findings;
 seam и ADR 0001 приняты. Goal 005 и её core profile/persistence envelope
-приняты. Архитектурное направление Goal 006 принято, но commit получил
-`FIX_REQUIRED`; bounded closure Goal 006A реализована и ожидает независимого
-review. Goal 007 не начата и заблокирована.
+приняты. Архитектурное направление Goal 006 принято, Goal 006A local hardening
+получила `ACCEPT`, а обязательный Goal 006B server shutdown handoff реализован и
+ожидает независимого review. Goal 006 overall остаётся `FIX_REQUIRED pending
+006B`; Goal 007 не начата и заблокирована.
 
 ---
 
@@ -296,7 +300,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B и Goal 005 приняты; Goal 006 — `FIX_REQUIRED`; Goal 006A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 007 — `NOT_STARTED / BLOCKED`.
+**Текущий статус:** Task 004/004A/004B и Goal 005 приняты; Goal 006A — `ACCEPT`; Goal 006B — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 006 overall — `FIX_REQUIRED pending 006B`; Goal 007 — `NOT_STARTED / BLOCKED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -390,11 +394,16 @@ materialization service.
 **Gate:** restart, collision, failure injection и disabled equivalence.  
 **Follow-up risk:** `VERY_HIGH` — Player/World/login/restart boundary.
 
-### Goal 006A — обязательная materialization boundary closure-задача — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+### Goal 006A — обязательная materialization boundary closure-задача — `ACCEPT`
 
 Закрывает findings Goal 006 по World/autosave identity boundary,
 action/`STOPPING` atomicity, wall-clock budget caller `shutdown` и provenance.
-Goal 007 остаётся `NOT_STARTED / BLOCKED` до независимого review Goal 006A.
+
+### Goal 006B — обязательная server shutdown handoff closure-задача — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+
+Координирует первый Phantom drain до generic disconnect, strict managed-actor
+skip и вторую bounded shutdown/retry попытку перед shared ThreadPool stop.
+Goal 007 остаётся `NOT_STARTED / BLOCKED` до независимого review Goal 006B.
 
 ### Gate Этапа I
 
@@ -968,7 +977,7 @@ Current accepted baseline:
 9d0465eb62f9913644fab9f1d60feb2f4fd9a674
 
 Current branch HEAD under review:
-Goal 006A hardening — commit SHA во внешнем final handoff
+Goal 006B server shutdown handoff — commit SHA во внешнем final handoff
 
 Completed:
 - 001 / 001A
@@ -979,20 +988,21 @@ Completed:
 - 004B
 - ADR 0001 Accepted
 - Goal 005
+- Goal 006A
 
 In progress / required closure:
-- Goal 006 FIX_REQUIRED
-- Goal 006A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 006 overall FIX_REQUIRED pending 006B
+- Goal 006B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 006A
+1. Independent review Goal 006B
 2. Goal 007 shared scheduler only after accepted Goal 006 closure
 
 Stage gate:
-- not complete until Goal 006A independent ACCEPT
+- not complete until Goal 006B independent ACCEPT
 
 New risks:
-- materialization boundary hardening awaits independent review
+- real server shutdown handoff awaits independent review
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
@@ -1006,7 +1016,8 @@ Roadmap changes:
 - operations moved before scale soak
 
 Overall:
-- Goal 006 FIX_REQUIRED; Goal 006A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+- Goal 006 overall FIX_REQUIRED pending 006B; Goal 006A ACCEPT;
+  Goal 006B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
   Goal 007 NOT_STARTED / BLOCKED
 ```
 

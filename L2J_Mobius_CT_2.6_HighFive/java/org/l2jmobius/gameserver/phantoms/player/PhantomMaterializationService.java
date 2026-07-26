@@ -378,6 +378,11 @@ public final class PhantomMaterializationService
 		return entry == null ? Optional.empty() : Optional.of(snapshot(entry));
 	}
 
+	public boolean ownsCharacterObjectId(int objectId)
+	{
+		return _activeByCharacter.containsKey(objectId);
+	}
+
 	public List<MaterializationSnapshot> list()
 	{
 		final List<MaterializationSnapshot> snapshots = new ArrayList<>();
@@ -580,6 +585,11 @@ public final class PhantomMaterializationService
 		return new ServiceSnapshot(_state, _maximumMaterialized, _permits.availablePermits(), _activeByProfile.size(), list());
 	}
 
+	public ShutdownSnapshot shutdownSnapshot()
+	{
+		return new ShutdownSnapshot(_state, _activeByProfile.size());
+	}
+
 	private MaterializeResult rejectMaterialization(ResultStatus status)
 	{
 		return rejectMaterialization(status, null);
@@ -638,6 +648,10 @@ public final class PhantomMaterializationService
 		{
 			materializations = List.copyOf(materializations);
 		}
+	}
+
+	public record ShutdownSnapshot(ServiceState state, int retainedEntries)
+	{
 	}
 
 	private static final class Entry

@@ -23,7 +23,9 @@ package org.l2jmobius.gameserver.phantoms;
 import java.util.Objects;
 
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
+import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
@@ -204,9 +206,64 @@ public final class PhantomSystem
 		return _configuredInstance != null;
 	}
 
+	public static synchronized boolean isMaterializationManaged(Player player)
+	{
+		if ((player == null) || !player.hasHeadlessOutboundSession())
+		{
+			return false;
+		}
+		if (PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) != OwnerKind.PHANTOM)
+		{
+			return false;
+		}
+		final PhantomMaterializationService service = configuredMaterializationService();
+		return (service != null) && service.ownsCharacterObjectId(player.getObjectId());
+	}
+
+	public static synchronized ConfiguredShutdownSnapshot configuredShutdownSnapshot()
+	{
+		final PhantomSystem configured = _configuredInstance;
+		if (configured == null)
+		{
+			return ConfiguredShutdownSnapshot.notConfigured();
+		}
+		final PhantomMaterializationService service = configured._materializationService;
+		if (service == null)
+		{
+			return new ConfiguredShutdownSnapshot(true, configured._state, null, 0);
+		}
+		final PhantomMaterializationService.ShutdownSnapshot serviceSnapshot = service.shutdownSnapshot();
+		return new ConfiguredShutdownSnapshot(true, configured._state, serviceSnapshot.state(), serviceSnapshot.retainedEntries());
+	}
+
 	static synchronized PhantomMaterializationService configuredMaterializationService()
 	{
 		return _configuredInstance == null ? null : _configuredInstance._materializationService;
+	}
+
+	static synchronized void configureForTesting(PhantomMaterializationService materializationService)
+	{
+		Objects.requireNonNull(materializationService, "materializationService");
+		if (_configuredInstance != null)
+		{
+			throw new IllegalStateException("A configured PhantomSystem instance already exists.");
+		}
+		final PhantomMaterializationService.ServiceSnapshot serviceSnapshot = materializationService.snapshot();
+		if (serviceSnapshot.state() != ServiceState.RUNNING)
+		{
+			throw new IllegalArgumentException("The test materialization service must be running.");
+		}
+
+		final PhantomPlayersConfig.Settings settings = new PhantomPlayersConfig.Settings(true, false, serviceSnapshot.maximumMaterialized());
+		final PhantomSystem configured = new PhantomSystem(settings, false);
+		if (!configured._scheduler.start())
+		{
+			throw new IllegalStateException("The test Phantom scheduler could not start.");
+		}
+		configured._materializationService = materializationService;
+		configured._metrics.recordLifecycleStart();
+		configured._state = State.RUNNING;
+		_configuredInstance = configured;
 	}
 
 	public enum State
@@ -220,5 +277,13 @@ public final class PhantomSystem
 
 	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.Snapshot scheduler, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
 	{
+	}
+
+	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState serviceState, int retainedEntries)
+	{
+		private static ConfiguredShutdownSnapshot notConfigured()
+		{
+			return new ConfiguredShutdownSnapshot(false, null, null, 0);
+		}
 	}
 }

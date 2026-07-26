@@ -60,6 +60,7 @@ import org.l2jmobius.gameserver.network.loginserverpackets.game.ServerStatus;
 import org.l2jmobius.gameserver.network.serverpackets.ServerClose;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
+import org.l2jmobius.gameserver.phantoms.PhantomSystem.ConfiguredShutdownSnapshot;
 import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 import org.l2jmobius.gameserver.util.Broadcast;
 
@@ -379,6 +380,27 @@ public class Shutdown extends Thread
 		
 		try
 		{
+			if (PhantomSystem.hasConfiguredInstance())
+			{
+				final boolean stopped = PhantomSystem.shutdownIfStarted();
+				final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
+				if (!snapshot.configured())
+				{
+					LOGGER.info("Phantom World: Initial materialization drain completed, stopped=" + stopped + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
+				}
+				else
+				{
+					LOGGER.warning("Phantom World: Initial materialization drain remains incomplete; systemState=" + snapshot.systemState() + ", serviceState=" + snapshot.serviceState() + ", retainedEntries=" + snapshot.retainedEntries() + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
+				}
+			}
+		}
+		catch (Throwable t)
+		{
+			LOGGER.log(Level.WARNING, "Error during initial Phantom World materialization drain.", t);
+		}
+
+		try
+		{
 			disconnectAllCharacters();
 			LOGGER.info("All players disconnected and saved(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
 		}
@@ -401,14 +423,24 @@ public class Shutdown extends Thread
 		
 		try
 		{
-			if (PhantomSystem.shutdownIfStarted())
+			if (PhantomSystem.hasConfiguredInstance())
 			{
-				LOGGER.info("Phantom World: Skeleton has been shut down(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
+				final boolean stopped = PhantomSystem.shutdownIfStarted();
+				final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
+				if (!snapshot.configured())
+				{
+					LOGGER.info("Phantom World: Final materialization drain completed, stopped=" + stopped + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
+				}
+				else
+				{
+					LOGGER.severe("Phantom World: Final materialization drain is incomplete; systemState=" + snapshot.systemState() + ", serviceState=" + snapshot.serviceState() + ", retainedEntries=" + snapshot.retainedEntries() + ". Shared ThreadPool is about to stop with retained Phantom ownership(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
+				}
 			}
 		}
 		catch (Throwable t)
 		{
-			LOGGER.log(Level.WARNING, "Error shutting down Phantom World skeleton.", t);
+			final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
+			LOGGER.log(Level.SEVERE, "Phantom World: Final materialization drain failed; configured=" + snapshot.configured() + ", systemState=" + snapshot.systemState() + ", serviceState=" + snapshot.serviceState() + ", retainedEntries=" + snapshot.retainedEntries() + ". Shared ThreadPool is about to stop with incomplete Phantom drain.", t);
 		}
 
 		// stop all thread pools
@@ -575,6 +607,10 @@ public class Shutdown extends Thread
 	{
 		for (Player player : World.getInstance().getPlayers())
 		{
+			if (PhantomSystem.isMaterializationManaged(player))
+			{
+				continue;
+			}
 			Disconnection.of(player).storeAndDeleteWith(ServerClose.STATIC_PACKET);
 		}
 	}
