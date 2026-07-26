@@ -3,11 +3,14 @@
 ## Status и baseline
 
 ```text
-Status: ACTIVITY_SCHEDULER_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Status: FIX_REQUIRED
 Baseline/parent: 82a03342e52ff4b6c023b8ea224da8b1c2f6657f
+Commit: 9958edd9e133557f4966eed0a4124e68326401b3
 Branch: feature/phantom-world
 Subject: feat(phantoms): add shared activity scheduler
-Manual gate: PENDING_INDEPENDENT_REVIEW
+Independent review: FIX_REQUIRED
+Revert: NOT_REQUIRED
+Goal 007A: REQUIRED
 Goal 008: NOT_STARTED
 Goal 009: NOT_STARTED
 ```
@@ -138,7 +141,7 @@ production materialization suite на `l2jmobiush5_phantom_test`.
 | `ant jar` pre-commit | PASS; 1924 production sources; 13 s |
 | Production `GameServer.jar` test entries | 0 |
 | Static verifier pre | PASS 57/57 |
-| Static verifier final 1/2 | pending |
+| Static verifier final | PASS 57/57 ×2 |
 
 Scale smoke регистрирует 10,000 dormant `SLEEPING` profiles: `ready=0`,
 `due=0`, per-slot `Future/Thread/Executor/Player` отсутствуют. Затем 10,000
@@ -167,6 +170,32 @@ schedules, navigation, Goal 008 или Goal 009. Persistence/schema/migrations �
 Commit SHA, push, post-commit verify/jar и два byte-identical verifier outputs
 фиксируются во внешнем final handoff после commit этого отчёта. Self-accept
 Goal 007 запрещён.
+
+## Результат независимого review
+
+Независимое review commit `9958edd9e133557f4966eed0a4124e68326401b3`
+(parent `82a03342e52ff4b6c023b8ea224da8b1c2f6657f`) подтвердило архитектурное
+направление, но вернуло `FIX_REQUIRED`: in-flight unregister мог orphan-ить
+materialization ownership, retained state могла исчезнуть при
+requested/effective equality, cleanup retry мог опубликовать ложный ACTIVE,
+adapter доверял имени status вместо service ownership, а STOPPING не доказывал
+pulse quiescence.
+
+```text
+Push/remote: origin/feature/phantom-world = 9958edd9e133557f4966eed0a4124e68326401b3
+Scheduler: 12/12 ×3
+Scale: 2/2 ×2
+Scale SHA-256: 67B7FC26B98141661890DFAAE5F307B86BB5C768EA82A2DF6A8D1F1556F7EE30
+Verifier: 57/57 ×2
+Verifier SHA-256 retained handoff: AA5E4956…E05690
+Independent review: FIX_REQUIRED
+Goal 007A: REQUIRED
+Goal 008 / 009: BLOCKED
+```
+
+Полный Goal 007 verifier hash с указанными prefix/suffix в retained artifacts
+не найден; сокращённый handoff записан честно, без восстановления
+несуществующих символов.
 
 ## Encoding и Git
 

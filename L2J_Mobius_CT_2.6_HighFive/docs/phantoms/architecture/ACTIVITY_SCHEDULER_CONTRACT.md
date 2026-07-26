@@ -72,6 +72,37 @@ Production adapter переиспользует только принятый
 `PhantomMaterializationService`: `materialize`, `dematerialize`,
 `retryCleanup`, `find`.
 
+### Ownership перехода
+
+Slot сохраняет bounded-маркеры `processing`, `boundaryInFlight` и
+`boundaryGeneration`. Перед выходом из monitor к lifecycle port scheduler
+фиксирует boundary ownership, а после любого результата снимает его под тем же
+monitor. Физическое удаление slot запрещено, пока активен `processing` или
+`boundaryInFlight`.
+
+`unregister` во время обработки или lifecycle boundary переводит slot в
+`UNREGISTER_PENDING`, очищает живые signal values, запрашивает `SLEEPING` и
+резервирует одну coalesced следующую возможность. Поздний успешный materialize
+сначала получает canonical cleanup; slot удаляется только после
+non-materialized terminal state без retained ownership.
+
+Retained failure проверяется раньше равенства requested/effective, grace и
+обычного transition planning. Signal update, withdrawal и TTL expiry могут
+менять requested state, но не могут снять retained ownership или требование
+explicit retry.
+
+Успешный `retryCleanup` всегда означает отсутствие lifecycle ownership. Для
+requested `WARM`, `BACKGROUND` или `SLEEPING` effective state становится этим
+правдивым non-materialized состоянием. Для requested `ACTIVE` или
+`NEARBY_PERCEPTIBLE` effective state сначала становится `SLEEPING`, после чего
+планируется отдельный fresh materialize. Cleanup success не публикует
+materialized state напрямую.
+
+Production adapter классифицирует retained по фактическому наличию service
+entry через узкий `hasLifecycleOwnership(profileId)`, а не только по имени
+`ResultStatus`. Cleanup считается успешным только при отсутствии service
+ownership.
+
 ## Work, fairness и overload
 
 Typed `PhantomActivityWorkItem` содержит только технический profile/state/due
@@ -109,3 +140,12 @@ scheduler begin-stop
 
 Если service drain не завершён, scheduler остаётся `STOPPING` и сохраняет slots
 для явного повторного shutdown.
+
+Scheduler-wide marker `pulseInFlight` допускает не более одного pulse. После
+`beginStop` новые lifecycle boundary и work-sink вызовы не начинаются.
+Уже начатый внешний вызов может завершиться и быть согласован, но `finishStop`
+возвращает `false` и ничего не очищает, пока активен `pulseInFlight`,
+`processing` или `boundaryInFlight`. После quiescence отдельный явный
+`finishStop` очищает ready/due/slots. `PhantomSystem` переходит в `STOPPED`
+только если `finishStop` вернул `true`; иначе сохраняет configured instance в
+`FAILED` для следующего явного shutdown.

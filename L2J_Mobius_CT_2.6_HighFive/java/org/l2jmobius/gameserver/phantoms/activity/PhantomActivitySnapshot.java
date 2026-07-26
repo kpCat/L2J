@@ -20,6 +20,6 @@
  */
 package org.l2jmobius.gameserver.phantoms.activity;
 
-public record PhantomActivitySnapshot(long profileId, PhantomActivityState effectiveState, PhantomActivityState requestedState, PhantomActivityTransitionStatus transitionStatus, int activeSignalSources, boolean enqueued, boolean due, long nextDueNanos, long tickSequence, PhantomActivityResultCategory lastResult, long lastTransitionNanos)
+public record PhantomActivitySnapshot(long profileId, PhantomActivityState effectiveState, PhantomActivityState requestedState, PhantomActivityTransitionStatus transitionStatus, int activeSignalSources, boolean enqueued, boolean due, boolean processing, boolean boundaryInFlight, long boundaryGeneration, long nextDueNanos, long tickSequence, PhantomActivityResultCategory lastResult, long lastTransitionNanos)
 {
 }

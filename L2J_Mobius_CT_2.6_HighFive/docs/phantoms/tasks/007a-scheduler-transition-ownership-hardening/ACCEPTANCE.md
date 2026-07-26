@@ -1,0 +1,21 @@
+# ACCEPTANCE — Goal 007A
+
+- [ ] Baseline 9958edd9 and one ordinary exact-scope commit.
+- [ ] No config/schema/Goal 008/009.
+- [ ] No slot removal while processing/boundary-in-flight.
+- [ ] In-flight unregister cannot orphan lifecycle ownership.
+- [ ] Retained failure precedes requested/effective equality.
+- [ ] Signal change/expiry cannot clear retained ownership.
+- [ ] Cleanup retry never directly publishes ACTIVE/NEARBY.
+- [ ] Fresh materialization required after cleanup.
+- [ ] Adapter classifies actual service ownership.
+- [ ] Real specific retained-collision test.
+- [ ] Pulse-in-flight guard and STOPPING boundary/work rejection.
+- [ ] finishStop refuses non-quiescent state.
+- [ ] PhantomSystem checks finishStop.
+- [ ] No new executor/raw production thread/per-profile Future.
+- [ ] Scheduler >=17 cases ×3, scale ×2, production ×3.
+- [ ] All cumulative verify/jar gates.
+- [ ] Production DB untouched.
+- [ ] Goal 008/009 not started.
+- [ ] Verifier ×2 identical and remote exact.

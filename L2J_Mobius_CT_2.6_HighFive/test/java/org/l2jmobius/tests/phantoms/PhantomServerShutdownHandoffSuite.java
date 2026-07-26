@@ -37,6 +37,10 @@ import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.Player.OutboundSessionAttachment;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.ConfiguredShutdownSnapshot;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
 import org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
@@ -120,6 +124,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		registry.add("02-two-phase-server-policy-and-source-order", this::testTwoPhasePolicy);
 		registry.add("03-in-flight-drain-reused-before-thread-pool-phase", this::testInFlightDrain);
 		registry.add("04-persistent-failure-retains-configured-ownership", _ -> testPersistentFailure());
+		registry.add("05-in-flight-scheduler-pulse-retains-configured-system", _ -> testInFlightSchedulerPulse());
 	}
 
 	private void testManagedClassifier() throws Exception
@@ -315,6 +320,69 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPED, scheduler.snapshot().state(), "Successful explicit teardown did not finish the scheduler.");
 		PhantomAssertions.assertEquals(0, scheduler.snapshot().registered(), "Successful explicit teardown retained scheduler slots.");
 		_environment.assertClean(_environment.primary(), managed);
+	}
+
+	private void testInFlightSchedulerPulse() throws Exception
+	{
+		reset();
+		final PhantomMaterializationService service = service(1, PhantomMaterializedPlayer.FailureInjector.none(), 150);
+		final CountDownLatch workEntered = new CountDownLatch(1);
+		final CountDownLatch releaseWork = new CountDownLatch(1);
+		final PhantomMetrics metrics = new PhantomMetrics();
+		final PhantomScheduler scheduler = new PhantomScheduler(
+			2,
+			10,
+			2,
+			new PhantomSchedulerPolicy(16, 1000, 5, 2, 8, 1, 2, 3, 4, 50),
+			System::nanoTime,
+			(pulse, period) -> null,
+			false,
+			metrics,
+			new PhantomDiagnosticTrace(false, 0, 0, metrics),
+			PhantomActivityMaterializationPort.noop(),
+			item ->
+			{
+				workEntered.countDown();
+				try
+				{
+					if (!releaseWork.await(2, TimeUnit.SECONDS))
+					{
+						throw new IllegalStateException("Timed out waiting to release the scheduler work sink.");
+					}
+				}
+				catch (InterruptedException e)
+				{
+					Thread.currentThread().interrupt();
+					throw new IllegalStateException("Interrupted while blocking the scheduler work sink.", e);
+				}
+			});
+		PhantomAssertions.assertTrue(scheduler.start(), "In-flight shutdown scheduler did not start.");
+		PhantomAssertions.assertEquals(PhantomScheduler.RegistrationStatus.REGISTERED, scheduler.register(1).status(), "In-flight shutdown profile was not registered.");
+		PhantomAssertions.assertEquals(PhantomScheduler.SignalStatus.ACCEPTED, scheduler.submitSignal(1, new PhantomRelevanceSignal("shutdown.work", 1, PhantomActivityState.WARM, 1000)).status(), "In-flight shutdown work signal was not accepted.");
+		PhantomSystem.configureForTesting(service, scheduler);
+		final Thread pulse = new Thread(scheduler::pulse, "t007a-system-stop-work");
+		pulse.start();
+		PhantomAssertions.assertTrue(workEntered.await(2, TimeUnit.SECONDS), "In-flight shutdown pulse did not enter the work sink.");
+		try
+		{
+			PhantomAssertions.assertFalse(PhantomSystem.shutdownIfStarted(), "PhantomSystem reported STOPPED while its scheduler pulse was in flight.");
+			final ConfiguredShutdownSnapshot retained = PhantomSystem.configuredShutdownSnapshot();
+			PhantomAssertions.assertTrue(retained.configured(), "In-flight scheduler pulse cleared the configured instance.");
+			PhantomAssertions.assertEquals(PhantomSystem.State.FAILED, retained.systemState(), "In-flight scheduler pulse did not retain FAILED system state.");
+			PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPING, scheduler.snapshot().state(), "In-flight scheduler pulse did not retain STOPPING.");
+			PhantomAssertions.assertTrue(scheduler.snapshot().pulseInFlight(), "In-flight scheduler pulse marker was cleared by failed finishStop.");
+			PhantomAssertions.assertEquals(1, scheduler.snapshot().registered(), "Failed finishStop cleared scheduler slots.");
+		}
+		finally
+		{
+			releaseWork.countDown();
+			pulse.join(TimeUnit.SECONDS.toMillis(2));
+		}
+		PhantomAssertions.assertFalse(pulse.isAlive(), "In-flight shutdown pulse did not quiesce.");
+		PhantomAssertions.assertTrue(PhantomSystem.shutdownIfStarted(), "Explicit shutdown after scheduler quiescence did not finish.");
+		PhantomAssertions.assertFalse(PhantomSystem.hasConfiguredInstance(), "Terminal scheduler shutdown retained the configured instance.");
+		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPED, scheduler.snapshot().state(), "Terminal scheduler shutdown did not reach STOPPED.");
+		PhantomAssertions.assertEquals(0, scheduler.snapshot().registered(), "Terminal scheduler shutdown retained slots.");
 	}
 
 	private PhantomMaterializationService service(int capacity, PhantomMaterializedPlayer.FailureInjector failureInjector, long shutdownTimeoutMillis)

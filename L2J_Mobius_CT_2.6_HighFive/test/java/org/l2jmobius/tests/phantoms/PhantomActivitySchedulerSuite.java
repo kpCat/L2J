@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler.BeginStopResult;
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler.RegistrationStatus;
@@ -72,6 +74,11 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		registry.add("10-overload-cadence-only-no-demotion", _ -> testOverload());
 		registry.add("11-unregister-materialized-and-stop-retention", _ -> testUnregisterAndStop());
 		registry.add("12-fixed-metrics-and-bounded-snapshots", this::testMetrics);
+		registry.add("13-in-flight-promotion-unregister-cleans-late-success", _ -> testInFlightUnregisterSuccess());
+		registry.add("14-in-flight-promotion-unregister-retained-explicit-retry", _ -> testInFlightUnregisterRetained());
+		registry.add("15-retained-dematerialization-new-active-requires-fresh-materialize", _ -> testRetainedDematerializationTruth());
+		registry.add("16-retained-materialization-survives-withdrawal-and-expiry", _ -> testRetainedMaterializationSignalLoss());
+		registry.add("17-stopping-quiesces-boundary-and-work", _ -> testStoppingQuiescence());
 	}
 
 	private void testRegistration()
@@ -346,9 +353,175 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(1L, metrics.workDelivered(), "Work delivered metric mismatch.");
 		PhantomAssertions.assertEquals(1L, metrics.promotions(), "Promotion metric mismatch.");
 		PhantomAssertions.assertEquals(List.of(0L, 0L, 1L, 0L, 0L), metrics.stateCounts(), "Fixed state counts mismatch.");
-		context.record("activityScheduler.cases", 12);
+		context.record("activityScheduler.cases", 17);
 		context.record("activityScheduler.recurringFutureManual", fixture.scheduler().snapshot().scheduledTaskCount());
 		stop(fixture.scheduler());
+	}
+
+	private void testInFlightUnregisterSuccess() throws Exception
+	{
+		final Fixture fixture = fixture(2, 2);
+		fixture.scheduler().register(1);
+		fixture.scheduler().submitSignal(1, signal("interest", 1, PhantomActivityState.ACTIVE, 100));
+		fixture.port().blockNextMaterialize();
+		final Thread pulse = pulseThread(fixture.scheduler(), "t007a-unregister-success");
+		pulse.start();
+		fixture.port().awaitMaterializeEntered();
+
+		final PhantomActivitySnapshot inFlight = fixture.scheduler().find(1).orElseThrow();
+		PhantomAssertions.assertTrue(inFlight.processing(), "In-flight promotion did not retain processing ownership.");
+		PhantomAssertions.assertTrue(inFlight.boundaryInFlight(), "In-flight promotion did not expose boundary ownership.");
+		PhantomAssertions.assertEquals(UnregisterStatus.PENDING, fixture.scheduler().unregister(1).status(), "In-flight non-materialized slot was removed by unregister.");
+		final PhantomActivitySnapshot pending = fixture.scheduler().find(1).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomActivityTransitionStatus.UNREGISTER_PENDING, pending.transitionStatus(), "In-flight unregister did not retain pending status.");
+		PhantomAssertions.assertEquals(0, pending.activeSignalSources(), "In-flight unregister retained live signals.");
+
+		fixture.port().releaseMaterialize();
+		join(pulse);
+		PhantomAssertions.assertTrue(fixture.scheduler().find(1).isPresent(), "Late materialization success orphaned lifecycle ownership by removing the slot.");
+		PhantomAssertions.assertEquals(1, fixture.port().materializeCalls, "Blocked promotion call count mismatch.");
+		fixture.scheduler().pulse();
+		fixture.clock().advanceMillis(5);
+		fixture.scheduler().pulse();
+		PhantomAssertions.assertEquals(1, fixture.port().dematerializeCalls, "Late materialization success was not followed by cleanup.");
+		PhantomAssertions.assertFalse(fixture.port().hasLifecycleOwnership(1), "Late materialization cleanup retained lifecycle ownership.");
+		PhantomAssertions.assertTrue(fixture.scheduler().find(1).isEmpty(), "Pending unregister did not remove the slot after terminal cleanup.");
+		stop(fixture.scheduler());
+	}
+
+	private void testInFlightUnregisterRetained() throws Exception
+	{
+		final Fixture fixture = fixture(2, 2);
+		fixture.port().materializeOutcomes.add(Outcome.RETAINED_FAILURE);
+		fixture.scheduler().register(1);
+		fixture.scheduler().submitSignal(1, signal("interest", 1, PhantomActivityState.ACTIVE, 100));
+		fixture.port().blockNextMaterialize();
+		final Thread pulse = pulseThread(fixture.scheduler(), "t007a-unregister-retained");
+		pulse.start();
+		fixture.port().awaitMaterializeEntered();
+		PhantomAssertions.assertEquals(UnregisterStatus.PENDING, fixture.scheduler().unregister(1).status(), "Retained in-flight promotion was removed by unregister.");
+		fixture.port().releaseMaterialize();
+		join(pulse);
+
+		final PhantomActivitySnapshot retained = fixture.scheduler().find(1).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomActivityTransitionStatus.RETAINED_FAILURE_REQUIRES_EXPLICIT_RETRY, retained.transitionStatus(), "Late retained promotion did not require explicit cleanup.");
+		PhantomAssertions.assertTrue(fixture.port().hasLifecycleOwnership(1), "Retained promotion fixture lost lifecycle ownership.");
+		fixture.scheduler().pulse();
+		PhantomAssertions.assertEquals(0, fixture.port().retryCalls, "Retained in-flight promotion retried automatically.");
+		PhantomAssertions.assertEquals(RetryStatus.SCHEDULED, fixture.scheduler().retryTransition(1).status(), "Retained in-flight cleanup retry was not scheduled.");
+		fixture.scheduler().pulse();
+		PhantomAssertions.assertEquals(1, fixture.port().retryCalls, "Explicit retained in-flight cleanup did not run.");
+		PhantomAssertions.assertFalse(fixture.port().hasLifecycleOwnership(1), "Explicit retained in-flight cleanup kept lifecycle ownership.");
+		PhantomAssertions.assertTrue(fixture.scheduler().find(1).isEmpty(), "Retained pending unregister did not remove the terminal slot.");
+		stop(fixture.scheduler());
+	}
+
+	private void testRetainedDematerializationTruth()
+	{
+		final Fixture fixture = fixture(2, 2);
+		fixture.scheduler().register(1);
+		fixture.scheduler().submitSignal(1, signal("interest", 1, PhantomActivityState.ACTIVE, 100));
+		fixture.scheduler().pulse();
+		fixture.port().dematerializeOutcomes.add(Outcome.RETAINED_FAILURE);
+		fixture.scheduler().submitSignal(1, signal("interest", 2, PhantomActivityState.WARM, 100));
+		fixture.scheduler().pulse();
+		fixture.clock().advanceMillis(5);
+		fixture.scheduler().pulse();
+		PhantomAssertions.assertEquals(PhantomActivityTransitionStatus.RETAINED_FAILURE_REQUIRES_EXPLICIT_RETRY, fixture.scheduler().find(1).orElseThrow().transitionStatus(), "Retained dematerialization did not require explicit cleanup.");
+
+		fixture.scheduler().submitSignal(1, signal("interest", 3, PhantomActivityState.ACTIVE, 100));
+		fixture.scheduler().pulse();
+		final PhantomActivitySnapshot equalButRetained = fixture.scheduler().find(1).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, equalButRetained.requestedState(), "New ACTIVE request was not observed.");
+		PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, equalButRetained.effectiveState(), "Retained failure unexpectedly changed effective state before cleanup.");
+		PhantomAssertions.assertEquals(PhantomActivityTransitionStatus.RETAINED_FAILURE_REQUIRES_EXPLICIT_RETRY, equalButRetained.transitionStatus(), "requested==effective erased retained cleanup ownership.");
+		PhantomAssertions.assertEquals(0, fixture.port().retryCalls, "Retained dematerialization retried automatically.");
+
+		PhantomAssertions.assertEquals(RetryStatus.SCHEDULED, fixture.scheduler().retryTransition(1).status(), "Explicit retained dematerialization cleanup was not scheduled.");
+		fixture.scheduler().pulse();
+		final PhantomActivitySnapshot cleaned = fixture.scheduler().find(1).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, cleaned.effectiveState(), "Cleanup retry falsely published ACTIVE without a canonical actor.");
+		PhantomAssertions.assertEquals(1, fixture.port().materializeCalls, "Cleanup retry performed an implicit materialization.");
+		PhantomAssertions.assertFalse(fixture.port().hasLifecycleOwnership(1), "Successful cleanup retry retained lifecycle ownership.");
+
+		fixture.scheduler().pulse();
+		PhantomAssertions.assertEquals(2, fixture.port().materializeCalls, "Fresh ACTIVE opportunity did not call materialize.");
+		PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, fixture.scheduler().find(1).orElseThrow().effectiveState(), "Fresh materialization did not restore ACTIVE.");
+		stop(fixture.scheduler());
+	}
+
+	private void testRetainedMaterializationSignalLoss()
+	{
+		final Fixture withdrawal = fixture(2, 2);
+		withdrawal.port().materializeOutcomes.add(Outcome.RETAINED_FAILURE);
+		withdrawal.scheduler().register(1);
+		withdrawal.scheduler().submitSignal(1, signal("interest", 1, PhantomActivityState.ACTIVE, 100));
+		withdrawal.scheduler().pulse();
+		withdrawal.scheduler().withdrawSignal(1, "interest", 2);
+		withdrawal.scheduler().pulse();
+		final PhantomActivitySnapshot withdrawn = withdrawal.scheduler().find(1).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, withdrawn.requestedState(), "Signal withdrawal did not request SLEEPING.");
+		PhantomAssertions.assertEquals(PhantomActivityTransitionStatus.RETAINED_FAILURE_REQUIRES_EXPLICIT_RETRY, withdrawn.transitionStatus(), "Signal withdrawal erased retained materialization ownership.");
+		withdrawal.scheduler().retryTransition(1);
+		withdrawal.scheduler().pulse();
+		PhantomAssertions.assertFalse(withdrawal.port().hasLifecycleOwnership(1), "Withdrawal cleanup retry retained lifecycle ownership.");
+		PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, withdrawal.scheduler().find(1).orElseThrow().effectiveState(), "Withdrawal cleanup did not leave stable SLEEPING truth.");
+		stop(withdrawal.scheduler());
+
+		final Fixture expiry = fixture(2, 2);
+		expiry.port().materializeOutcomes.add(Outcome.RETAINED_FAILURE);
+		expiry.scheduler().register(1);
+		expiry.scheduler().submitSignal(1, signal("interest", 1, PhantomActivityState.ACTIVE, 10));
+		expiry.scheduler().pulse();
+		expiry.clock().advanceMillis(10);
+		expiry.scheduler().pulse();
+		final PhantomActivitySnapshot expired = expiry.scheduler().find(1).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, expired.requestedState(), "TTL expiry did not request SLEEPING.");
+		PhantomAssertions.assertEquals(PhantomActivityTransitionStatus.RETAINED_FAILURE_REQUIRES_EXPLICIT_RETRY, expired.transitionStatus(), "TTL expiry erased retained materialization ownership.");
+		expiry.scheduler().retryTransition(1);
+		expiry.scheduler().pulse();
+		PhantomAssertions.assertFalse(expiry.port().hasLifecycleOwnership(1), "Expiry cleanup retry retained lifecycle ownership.");
+		PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, expiry.scheduler().find(1).orElseThrow().effectiveState(), "Expiry cleanup did not leave stable SLEEPING truth.");
+		stop(expiry.scheduler());
+	}
+
+	private void testStoppingQuiescence() throws Exception
+	{
+		final Fixture boundary = fixture(2, 2);
+		boundary.scheduler().register(1);
+		boundary.scheduler().submitSignal(1, signal("interest", 1, PhantomActivityState.ACTIVE, 100));
+		boundary.port().blockNextMaterialize();
+		final Thread boundaryPulse = pulseThread(boundary.scheduler(), "t007a-stop-boundary");
+		boundaryPulse.start();
+		boundary.port().awaitMaterializeEntered();
+		PhantomAssertions.assertEquals(BeginStopResult.STARTED, boundary.scheduler().beginStop(), "Boundary race did not enter STOPPING.");
+		PhantomAssertions.assertTrue(boundary.scheduler().snapshot().pulseInFlight(), "Boundary race lost the in-flight pulse marker.");
+		PhantomAssertions.assertFalse(boundary.scheduler().finishStop(), "finishStop cleared a blocked boundary pulse.");
+		PhantomAssertions.assertEquals(1, boundary.scheduler().snapshot().registered(), "Failed finishStop cleared boundary snapshots.");
+		boundary.port().releaseMaterialize();
+		join(boundaryPulse);
+		PhantomAssertions.assertEquals(0, boundary.work().size(), "STOPPING started work after the boundary returned.");
+		PhantomAssertions.assertFalse(boundary.scheduler().snapshot().pulseInFlight(), "Completed boundary pulse retained its in-flight marker.");
+		PhantomAssertions.assertTrue(boundary.scheduler().finishStop(), "Quiescent boundary scheduler did not finish stop.");
+		assertStoppedWithoutResidue(boundary.scheduler());
+
+		final Fixture work = fixture(2, 2);
+		work.scheduler().register(1);
+		work.scheduler().submitSignal(1, signal("work", 1, PhantomActivityState.WARM, 100));
+		work.blockNextWork();
+		final Thread workPulse = pulseThread(work.scheduler(), "t007a-stop-work");
+		workPulse.start();
+		work.awaitWorkEntered();
+		PhantomAssertions.assertEquals(BeginStopResult.STARTED, work.scheduler().beginStop(), "Work race did not enter STOPPING.");
+		work.scheduler().pulse();
+		PhantomAssertions.assertEquals(1L, work.scheduler().snapshot().pulseSequence(), "Overlapping/STOPPING pulse started new work.");
+		PhantomAssertions.assertFalse(work.scheduler().finishStop(), "finishStop cleared a blocked work pulse.");
+		PhantomAssertions.assertEquals(1, work.scheduler().snapshot().registered(), "Failed finishStop cleared work snapshots.");
+		work.releaseWork();
+		join(workPulse);
+		PhantomAssertions.assertEquals(1, work.work().size(), "Blocked work did not complete exactly once.");
+		PhantomAssertions.assertTrue(work.scheduler().finishStop(), "Quiescent work scheduler did not finish stop.");
+		assertStoppedWithoutResidue(work.scheduler());
 	}
 
 	private static Fixture fixture(int maximumProfiles, int profilesPerPulse)
@@ -377,6 +550,10 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 					holder[0].failNextWork = false;
 					throw new IllegalStateException("Injected sink failure.");
 				}
+				if (holder[0] != null)
+				{
+					holder[0].awaitBlockedWork();
+				}
 				work.add(item);
 			});
 		final Fixture fixture = new Fixture(scheduler, clock, port, metrics, work);
@@ -393,7 +570,41 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 	private static void stop(PhantomScheduler scheduler)
 	{
 		scheduler.beginStop();
-		scheduler.finishStop();
+		PhantomAssertions.assertTrue(scheduler.finishStop(), "Scheduler did not finish a quiescent stop.");
+	}
+
+	private static Thread pulseThread(PhantomScheduler scheduler, String name)
+	{
+		return new Thread(scheduler::pulse, name);
+	}
+
+	private static void join(Thread thread) throws InterruptedException
+	{
+		thread.join(TimeUnit.SECONDS.toMillis(2));
+		PhantomAssertions.assertFalse(thread.isAlive(), "Scheduler pulse thread did not finish.");
+	}
+
+	private static void await(CountDownLatch latch, String message)
+	{
+		try
+		{
+			PhantomAssertions.assertTrue(latch.await(2, TimeUnit.SECONDS), message);
+		}
+		catch (InterruptedException e)
+		{
+			Thread.currentThread().interrupt();
+			throw new AssertionError(message, e);
+		}
+	}
+
+	private static void assertStoppedWithoutResidue(PhantomScheduler scheduler)
+	{
+		final PhantomScheduler.SchedulerSnapshot snapshot = scheduler.snapshot();
+		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPED, snapshot.state(), "Scheduler did not reach STOPPED.");
+		PhantomAssertions.assertEquals(0, snapshot.registered(), "Stopped scheduler retained slots.");
+		PhantomAssertions.assertEquals(0, snapshot.ready(), "Stopped scheduler retained ready entries.");
+		PhantomAssertions.assertEquals(0, snapshot.due(), "Stopped scheduler retained due entries.");
+		PhantomAssertions.assertFalse(snapshot.pulseInFlight(), "Stopped scheduler retained an in-flight pulse.");
 	}
 
 	private static final class ManualClock implements PhantomScheduler.MonotonicClock
@@ -418,18 +629,35 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		private final Queue<Outcome> dematerializeOutcomes = new ArrayDeque<>();
 		private final Queue<Outcome> retryOutcomes = new ArrayDeque<>();
 		private final Map<Long, Boolean> materialized = new HashMap<>();
+		private final Map<Long, Boolean> lifecycleOwned = new HashMap<>();
 		private int materializeCalls;
 		private int dematerializeCalls;
 		private int retryCalls;
+		private volatile CountDownLatch materializeEntered;
+		private volatile CountDownLatch releaseMaterialize;
 
 		@Override
 		public TransitionOutcome materialize(long profileId)
 		{
 			materializeCalls++;
+			final CountDownLatch entered = materializeEntered;
+			final CountDownLatch release = releaseMaterialize;
+			if (entered != null)
+			{
+				entered.countDown();
+				await(release, "Timed out waiting to release blocked materialization.");
+				materializeEntered = null;
+				releaseMaterialize = null;
+			}
 			final Outcome outcome = materializeOutcomes.isEmpty() ? Outcome.SUCCESS : materializeOutcomes.remove();
 			if (outcome == Outcome.SUCCESS)
 			{
+				lifecycleOwned.put(profileId, true);
 				materialized.put(profileId, true);
+			}
+			else if (outcome == Outcome.RETAINED_FAILURE)
+			{
+				lifecycleOwned.put(profileId, true);
 			}
 			return new TransitionOutcome(outcome);
 		}
@@ -441,6 +669,7 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 			final Outcome outcome = dematerializeOutcomes.isEmpty() ? Outcome.SUCCESS : dematerializeOutcomes.remove();
 			if (outcome == Outcome.SUCCESS)
 			{
+				lifecycleOwned.remove(profileId);
 				materialized.remove(profileId);
 			}
 			return new TransitionOutcome(outcome);
@@ -453,6 +682,7 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 			final Outcome outcome = retryOutcomes.isEmpty() ? Outcome.SUCCESS : retryOutcomes.remove();
 			if (outcome == Outcome.SUCCESS)
 			{
+				lifecycleOwned.remove(profileId);
 				materialized.remove(profileId);
 			}
 			return new TransitionOutcome(outcome);
@@ -462,6 +692,28 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		public boolean isMaterialized(long profileId)
 		{
 			return materialized.getOrDefault(profileId, false);
+		}
+
+		@Override
+		public boolean hasLifecycleOwnership(long profileId)
+		{
+			return lifecycleOwned.getOrDefault(profileId, false);
+		}
+
+		private void blockNextMaterialize()
+		{
+			materializeEntered = new CountDownLatch(1);
+			releaseMaterialize = new CountDownLatch(1);
+		}
+
+		private void awaitMaterializeEntered()
+		{
+			await(materializeEntered, "Blocked materialization did not enter the lifecycle port.");
+		}
+
+		private void releaseMaterialize()
+		{
+			releaseMaterialize.countDown();
 		}
 	}
 
@@ -473,6 +725,8 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		private final PhantomMetrics _metrics;
 		private final List<PhantomActivityWorkItem> _work;
 		private boolean failNextWork;
+		private volatile CountDownLatch _workEntered;
+		private volatile CountDownLatch _releaseWork;
 
 		private Fixture(PhantomScheduler scheduler, ManualClock clock, FakeMaterializationPort port, PhantomMetrics metrics, List<PhantomActivityWorkItem> work)
 		{
@@ -506,6 +760,35 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		private List<PhantomActivityWorkItem> work()
 		{
 			return _work;
+		}
+
+		private void blockNextWork()
+		{
+			_workEntered = new CountDownLatch(1);
+			_releaseWork = new CountDownLatch(1);
+		}
+
+		private void awaitWorkEntered()
+		{
+			await(_workEntered, "Blocked work did not enter the sink.");
+		}
+
+		private void releaseWork()
+		{
+			_releaseWork.countDown();
+		}
+
+		private void awaitBlockedWork()
+		{
+			final CountDownLatch entered = _workEntered;
+			final CountDownLatch release = _releaseWork;
+			if (entered != null)
+			{
+				entered.countDown();
+				await(release, "Timed out waiting to release blocked work.");
+				_workEntered = null;
+				_releaseWork = null;
+			}
 		}
 	}
 }

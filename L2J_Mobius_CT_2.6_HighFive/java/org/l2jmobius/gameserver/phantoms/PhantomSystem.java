@@ -145,19 +145,29 @@ public final class PhantomSystem
 					return false;
 				}
 			}
-			_scheduler.finishStop();
+			if (!_scheduler.finishStop())
+			{
+				_state = State.FAILED;
+				return false;
+			}
 			_metrics.recordLifecycleStop();
 			_state = State.STOPPED;
 			return true;
 		}
-		if ((_state == State.FAILED) && (_materializationService != null))
+		if (_state == State.FAILED)
 		{
-			final ShutdownResult result = _materializationService.shutdown();
-			if (result.state() != ServiceState.STOPPED)
+			if (_materializationService != null)
+			{
+				final ShutdownResult result = _materializationService.shutdown();
+				if (result.state() != ServiceState.STOPPED)
+				{
+					return false;
+				}
+			}
+			if (!_scheduler.finishStop())
 			{
 				return false;
 			}
-			_scheduler.finishStop();
 			_metrics.recordLifecycleStop();
 			_state = State.STOPPED;
 			return true;
@@ -277,6 +287,33 @@ public final class PhantomSystem
 		{
 			throw new IllegalStateException("The test Phantom scheduler could not start.");
 		}
+		configured._materializationService = materializationService;
+		configured._metrics.recordLifecycleStart();
+		configured._state = State.RUNNING;
+		_configuredInstance = configured;
+	}
+
+	static synchronized void configureForTesting(PhantomMaterializationService materializationService, PhantomScheduler scheduler)
+	{
+		Objects.requireNonNull(materializationService, "materializationService");
+		Objects.requireNonNull(scheduler, "scheduler");
+		if (_configuredInstance != null)
+		{
+			throw new IllegalStateException("A configured PhantomSystem instance already exists.");
+		}
+		final PhantomMaterializationService.ServiceSnapshot serviceSnapshot = materializationService.snapshot();
+		if (serviceSnapshot.state() != ServiceState.RUNNING)
+		{
+			throw new IllegalArgumentException("The test materialization service must be running.");
+		}
+		if (scheduler.snapshot().state() != PhantomScheduler.SchedulerState.RUNNING)
+		{
+			throw new IllegalArgumentException("The test Phantom scheduler must be running.");
+		}
+
+		final PhantomPlayersConfig.Settings settings = new PhantomPlayersConfig.Settings(true, false, serviceSnapshot.maximumMaterialized());
+		final PhantomSystem configured = new PhantomSystem(settings, false);
+		configured._scheduler = scheduler;
 		configured._materializationService = materializationService;
 		configured._metrics.recordLifecycleStart();
 		configured._state = State.RUNNING;

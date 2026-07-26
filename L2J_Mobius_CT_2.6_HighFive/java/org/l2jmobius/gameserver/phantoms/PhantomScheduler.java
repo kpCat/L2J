@@ -155,6 +155,7 @@ public final class PhantomScheduler
 	private ScheduledFuture<?> _pulseFuture;
 	private long _fairnessSequence;
 	private long _pulseSequence;
+	private boolean _pulseInFlight;
 	private PhantomActivityOverloadLevel _overloadLevel = PhantomActivityOverloadLevel.NORMAL;
 	private PhantomActivityOverloadLevel _peakOverloadLevel = PhantomActivityOverloadLevel.NORMAL;
 
@@ -265,7 +266,7 @@ public final class PhantomScheduler
 			{
 				return new UnregisterResult(UnregisterStatus.NOT_REGISTERED, null);
 			}
-			if (!slot._effectiveState.requiresMaterialization())
+			if (isTerminalNonMaterializedLocked(slot))
 			{
 				removeSlotLocked(slot);
 				return new UnregisterResult(UnregisterStatus.UNREGISTERED, null);
@@ -480,6 +481,10 @@ public final class PhantomScheduler
 			{
 				return false;
 			}
+			if (_pulseInFlight || hasInFlightSlotLocked())
+			{
+				return false;
+			}
 			_readyQueue.clear();
 			_dueEntries.clear();
 			for (Slot slot : _slots.values())
@@ -497,7 +502,7 @@ public final class PhantomScheduler
 	{
 		synchronized (_monitor)
 		{
-			return new SchedulerSnapshot(_state, _slots.size(), _readyQueue.size(), _dueEntries.size(), _maximumProfiles, _pulseFuture != null ? 1 : 0, _pulseSequence, _overloadLevel, _peakOverloadLevel);
+			return new SchedulerSnapshot(_state, _slots.size(), _readyQueue.size(), _dueEntries.size(), _maximumProfiles, _pulseFuture != null ? 1 : 0, _pulseSequence, _pulseInFlight, _overloadLevel, _peakOverloadLevel);
 		}
 	}
 
@@ -510,59 +515,84 @@ public final class PhantomScheduler
 	{
 		final long logicalNow = _clock.nanoTime();
 		final long wallDeadline = saturatingAdd(logicalNow, millisToNanos(_policy.pulseWallBudgetMillis()));
-		final PhantomActivityOverloadLevel pulseOverload;
-		synchronized (_monitor)
+		boolean pulseClaimed = false;
+		try
 		{
-			if (_state != SchedulerState.RUNNING)
-			{
-				return;
-			}
-			_pulseSequence++;
-			_metrics.recordActivityPulseStarted();
-			moveDueProfilesLocked(logicalNow);
-			pulseOverload = updateOverloadLocked();
-		}
-
-		int processed = 0;
-		final Set<Long> processedProfiles = new HashSet<>();
-		while (processed < _profilesPerPulse)
-		{
-			if ((processed > 0) && (_clock.nanoTime() >= wallDeadline))
-			{
-				_metrics.recordActivityPulseOverrun();
-				break;
-			}
-			final Slot slot;
+			final PhantomActivityOverloadLevel pulseOverload;
 			synchronized (_monitor)
 			{
-				slot = pollReadySlotLocked(processedProfiles);
-				if (slot == null)
+				if ((_state != SchedulerState.RUNNING) || _pulseInFlight)
 				{
+					return;
+				}
+				_pulseInFlight = true;
+				pulseClaimed = true;
+				_pulseSequence++;
+				_metrics.recordActivityPulseStarted();
+				moveDueProfilesLocked(logicalNow);
+				pulseOverload = updateOverloadLocked();
+			}
+
+			int processed = 0;
+			final Set<Long> processedProfiles = new HashSet<>();
+			while (processed < _profilesPerPulse)
+			{
+				if ((processed > 0) && (_clock.nanoTime() >= wallDeadline))
+				{
+					_metrics.recordActivityPulseOverrun();
 					break;
 				}
-				slot._processing = true;
+				final Slot slot;
+				synchronized (_monitor)
+				{
+					if (_state != SchedulerState.RUNNING)
+					{
+						break;
+					}
+					slot = pollReadySlotLocked(processedProfiles);
+					if (slot == null)
+					{
+						break;
+					}
+					slot._processing = true;
+				}
+				processedProfiles.add(slot._profileId);
+				try
+				{
+					processSlot(slot, logicalNow, pulseOverload);
+				}
+				catch (Throwable throwable)
+				{
+					synchronized (_monitor)
+					{
+						slot._boundaryInFlight = false;
+						slot._boundaryGeneration = 0;
+						if (_slots.get(slot._profileId) == slot)
+						{
+							slot._lastResult = PhantomActivityResultCategory.WORK_FAILED;
+							slot._processing = false;
+							if (_state == SchedulerState.RUNNING)
+							{
+								scheduleNextDueLocked(slot, logicalNow, pulseOverload);
+							}
+						}
+					}
+					_metrics.recordActivityWorkFailure();
+				}
+				processed++;
 			}
-			processedProfiles.add(slot._profileId);
-			try
-			{
-				processSlot(slot, logicalNow, pulseOverload);
-			}
-			catch (Throwable throwable)
+		}
+		finally
+		{
+			if (pulseClaimed)
 			{
 				synchronized (_monitor)
 				{
-					if (_slots.get(slot._profileId) == slot)
-					{
-						slot._lastResult = PhantomActivityResultCategory.WORK_FAILED;
-						slot._processing = false;
-						scheduleNextDueLocked(slot, logicalNow, pulseOverload);
-					}
+					_pulseInFlight = false;
 				}
-				_metrics.recordActivityWorkFailure();
+				_metrics.recordActivityPulseCompleted();
 			}
-			processed++;
 		}
-		_metrics.recordActivityPulseCompleted();
 	}
 
 	private Slot pollReadySlotLocked(Set<Long> processedProfiles)
@@ -671,6 +701,11 @@ public final class PhantomScheduler
 			final PhantomActivityState requested = slot._unregisterRequested ? PhantomActivityState.SLEEPING : requestedStateLocked(slot);
 			slot._requestedState = requested;
 			plan = transitionPlanLocked(slot, requested, logicalNow);
+			if ((plan != null) && (plan._action != BoundaryAction.NONE))
+			{
+				slot._boundaryInFlight = true;
+				slot._boundaryGeneration = plan._generation;
+			}
 		}
 
 		if (plan != null)
@@ -678,6 +713,8 @@ public final class PhantomScheduler
 			final TransitionOutcome outcome = executeBoundary(plan);
 			synchronized (_monitor)
 			{
+				slot._boundaryInFlight = false;
+				slot._boundaryGeneration = 0;
 				if (_slots.get(slot._profileId) != slot)
 				{
 					return;
@@ -727,29 +764,20 @@ public final class PhantomScheduler
 				return;
 			}
 			slot._processing = false;
-			if (slot._unregisterRequested && !slot._effectiveState.requiresMaterialization() && (slot._retainedFailureKind == RetainedFailureKind.NONE))
+			if (slot._unregisterRequested && isTerminalNonMaterializedLocked(slot))
 			{
 				removeSlotLocked(slot);
 				return;
 			}
-			scheduleNextDueLocked(slot, logicalNow, overload);
+			if (_state == SchedulerState.RUNNING)
+			{
+				scheduleNextDueLocked(slot, logicalNow, overload);
+			}
 		}
 	}
 
 	private TransitionPlan transitionPlanLocked(Slot slot, PhantomActivityState requested, long logicalNow)
 	{
-		if (requested == slot._effectiveState)
-		{
-			slot._demotionEligibleAtNanos = 0;
-			slot._retryDueNanos = 0;
-			slot._retryAttempt = 0;
-			slot._blockedTarget = null;
-			slot._retainedFailureKind = RetainedFailureKind.NONE;
-			slot._explicitRetry = false;
-			slot._transitionStatus = slot._unregisterRequested ? PhantomActivityTransitionStatus.UNREGISTER_PENDING : PhantomActivityTransitionStatus.STABLE;
-			return null;
-		}
-
 		if (slot._retainedFailureKind != RetainedFailureKind.NONE)
 		{
 			if (!slot._explicitRetry)
@@ -760,6 +788,17 @@ public final class PhantomScheduler
 			final BoundaryAction retryAction = slot._retainedFailureKind == RetainedFailureKind.MATERIALIZATION ? BoundaryAction.RETRY_MATERIALIZATION_CLEANUP : BoundaryAction.RETRY_DEMATERIALIZATION_CLEANUP;
 			slot._explicitRetry = false;
 			return new TransitionPlan(slot._profileId, slot._generation, requested, retryAction);
+		}
+
+		if (requested == slot._effectiveState)
+		{
+			slot._demotionEligibleAtNanos = 0;
+			slot._retryDueNanos = 0;
+			slot._retryAttempt = 0;
+			slot._blockedTarget = null;
+			slot._explicitRetry = false;
+			slot._transitionStatus = slot._unregisterRequested ? PhantomActivityTransitionStatus.UNREGISTER_PENDING : PhantomActivityTransitionStatus.STABLE;
+			return null;
 		}
 
 		if ((slot._transitionStatus == PhantomActivityTransitionStatus.TRANSIENTLY_BLOCKED) && (slot._blockedTarget == requested) && (logicalNow < slot._retryDueNanos))
@@ -817,7 +856,11 @@ public final class PhantomScheduler
 				case NONE -> TransitionOutcome.success();
 				case MATERIALIZE -> _materializationPort.materialize(plan._profileTargetId);
 				case DEMATERIALIZE -> _materializationPort.dematerialize(plan._profileTargetId);
-				case RETRY_MATERIALIZATION_CLEANUP, RETRY_DEMATERIALIZATION_CLEANUP -> _materializationPort.retryCleanup(plan._profileTargetId);
+				case RETRY_MATERIALIZATION_CLEANUP, RETRY_DEMATERIALIZATION_CLEANUP ->
+				{
+					final TransitionOutcome outcome = _materializationPort.retryCleanup(plan._profileTargetId);
+					yield ((outcome != null) && (outcome.outcome() == Outcome.SUCCESS) && _materializationPort.hasLifecycleOwnership(plan._profileTargetId)) ? TransitionOutcome.retainedFailure() : outcome;
+				}
 			};
 		}
 		catch (Throwable throwable)
@@ -834,13 +877,25 @@ public final class PhantomScheduler
 		}
 		if (outcome.outcome() == Outcome.SUCCESS)
 		{
-			if (plan._action == BoundaryAction.RETRY_MATERIALIZATION_CLEANUP)
+			if ((plan._action == BoundaryAction.RETRY_MATERIALIZATION_CLEANUP) || (plan._action == BoundaryAction.RETRY_DEMATERIALIZATION_CLEANUP))
 			{
+				final PhantomActivityState previous = slot._effectiveState;
+				final boolean freshMaterializationRequired = plan._targetState.requiresMaterialization();
+				slot._effectiveState = freshMaterializationRequired ? PhantomActivityState.SLEEPING : plan._targetState;
 				slot._retainedFailureKind = RetainedFailureKind.NONE;
-				slot._transitionStatus = PhantomActivityTransitionStatus.TRANSIENTLY_BLOCKED;
+				slot._transitionStatus = slot._unregisterRequested ? PhantomActivityTransitionStatus.UNREGISTER_PENDING : (freshMaterializationRequired ? PhantomActivityTransitionStatus.PROMOTION_PENDING : PhantomActivityTransitionStatus.STABLE);
 				slot._lastResult = PhantomActivityResultCategory.TRANSITION_SUCCEEDED;
+				slot._retryAttempt = 0;
 				slot._blockedTarget = null;
-				slot._retryDueNanos = logicalNow;
+				slot._retryDueNanos = 0;
+				slot._demotionEligibleAtNanos = 0;
+				slot._lastTransitionNanos = logicalNow;
+				slot._nextWorkDueNanos = slot._effectiveState == PhantomActivityState.SLEEPING ? 0 : logicalNow;
+				_metrics.recordActivityTransition(previous, slot._effectiveState);
+				if (freshMaterializationRequired || (slot._generation != plan._generation))
+				{
+					ensureNextOpportunityLocked(slot, logicalNow);
+				}
 				return;
 			}
 			final PhantomActivityState previous = slot._effectiveState;
@@ -883,7 +938,7 @@ public final class PhantomScheduler
 
 	private PhantomActivityWorkItem prepareWorkLocked(Slot slot, long logicalNow, PhantomActivityOverloadLevel overload)
 	{
-		if (slot._unregisterRequested || (slot._effectiveState == PhantomActivityState.SLEEPING))
+		if ((_state != SchedulerState.RUNNING) || slot._unregisterRequested || (slot._effectiveState == PhantomActivityState.SLEEPING))
 		{
 			return null;
 		}
@@ -950,6 +1005,14 @@ public final class PhantomScheduler
 		}
 	}
 
+	private void ensureNextOpportunityLocked(Slot slot, long logicalNow)
+	{
+		if (!reserveReadyLocked(slot))
+		{
+			scheduleDueLocked(slot, logicalNow);
+		}
+	}
+
 	private boolean reserveReadyLocked(Slot slot)
 	{
 		if (slot._enqueued)
@@ -999,8 +1062,29 @@ public final class PhantomScheduler
 		return requested;
 	}
 
+	private boolean isTerminalNonMaterializedLocked(Slot slot)
+	{
+		return !slot._effectiveState.requiresMaterialization() && (slot._retainedFailureKind == RetainedFailureKind.NONE) && !slot._processing && !slot._boundaryInFlight;
+	}
+
+	private boolean hasInFlightSlotLocked()
+	{
+		for (Slot slot : _slots.values())
+		{
+			if (slot._processing || slot._boundaryInFlight)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private void removeSlotLocked(Slot slot)
 	{
+		if (slot._processing || slot._boundaryInFlight)
+		{
+			return;
+		}
 		if (!_slots.remove(slot._profileId, slot))
 		{
 			return;
@@ -1025,7 +1109,7 @@ public final class PhantomScheduler
 				activeSources++;
 			}
 		}
-		return new PhantomActivitySnapshot(slot._profileId, slot._effectiveState, slot._requestedState, slot._transitionStatus, activeSources, slot._enqueued, slot._dueEntry != null, slot._dueEntry != null ? slot._dueEntry._dueNanos : 0, slot._tickSequence, slot._lastResult, slot._lastTransitionNanos);
+		return new PhantomActivitySnapshot(slot._profileId, slot._effectiveState, slot._requestedState, slot._transitionStatus, activeSources, slot._enqueued, slot._dueEntry != null, slot._processing, slot._boundaryInFlight, slot._boundaryGeneration, slot._dueEntry != null ? slot._dueEntry._dueNanos : 0, slot._tickSequence, slot._lastResult, slot._lastTransitionNanos);
 	}
 
 	private long boundedExponentialBackoff(int attempt)
@@ -1085,11 +1169,11 @@ public final class PhantomScheduler
 	{
 	}
 
-	public record SchedulerSnapshot(SchedulerState state, int registered, int ready, int due, int capacity, int scheduledTaskCount, long pulseSequence, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel)
+	public record SchedulerSnapshot(SchedulerState state, int registered, int ready, int due, int capacity, int scheduledTaskCount, long pulseSequence, boolean pulseInFlight, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel)
 	{
 		public static SchedulerSnapshot inactive()
 		{
-			return new SchedulerSnapshot(SchedulerState.STOPPED, 0, 0, 0, 0, 0, 0, PhantomActivityOverloadLevel.NORMAL, PhantomActivityOverloadLevel.NORMAL);
+			return new SchedulerSnapshot(SchedulerState.STOPPED, 0, 0, 0, 0, 0, 0, false, PhantomActivityOverloadLevel.NORMAL, PhantomActivityOverloadLevel.NORMAL);
 		}
 
 		public boolean running()
@@ -1115,9 +1199,11 @@ public final class PhantomScheduler
 		private PhantomActivityState _blockedTarget;
 		private boolean _enqueued;
 		private boolean _processing;
+		private boolean _boundaryInFlight;
 		private boolean _unregisterRequested;
 		private boolean _explicitRetry;
 		private long _generation;
+		private long _boundaryGeneration;
 		private long _demotionEligibleAtNanos;
 		private long _retryDueNanos;
 		private int _retryAttempt;

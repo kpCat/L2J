@@ -50,7 +50,7 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 		{
 			return TransitionOutcome.success();
 		}
-		return result.status() == ResultStatus.MATERIALIZATION_FAILED_RETAINED ? TransitionOutcome.retainedFailure() : TransitionOutcome.transientBlock();
+		return hasLifecycleOwnership(profileId) ? TransitionOutcome.retainedFailure() : TransitionOutcome.transientBlock();
 	}
 
 	@Override
@@ -67,16 +67,23 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 
 	private TransitionOutcome mapCleanup(long profileId, PhantomMaterializationService.DematerializeResult result)
 	{
-		if ((result.status() == ResultStatus.SUCCESS) || ((result.status() == ResultStatus.NOT_ACTIVE) && !isMaterialized(profileId)))
+		final boolean lifecycleOwned = hasLifecycleOwnership(profileId);
+		if (!lifecycleOwned && ((result.status() == ResultStatus.SUCCESS) || (result.status() == ResultStatus.NOT_ACTIVE)))
 		{
 			return TransitionOutcome.success();
 		}
-		return result.status() == ResultStatus.CLEANUP_FAILED_RETAINED ? TransitionOutcome.retainedFailure() : TransitionOutcome.transientBlock();
+		return lifecycleOwned ? TransitionOutcome.retainedFailure() : TransitionOutcome.transientBlock();
 	}
 
 	@Override
 	public boolean isMaterialized(long profileId)
 	{
 		return _service.find(profileId).map(snapshot -> snapshot.state() == State.ACTIVE).orElse(false);
+	}
+
+	@Override
+	public boolean hasLifecycleOwnership(long profileId)
+	{
+		return _service.find(profileId).isPresent();
 	}
 }

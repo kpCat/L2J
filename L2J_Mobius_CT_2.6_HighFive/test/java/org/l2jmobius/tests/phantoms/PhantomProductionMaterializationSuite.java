@@ -44,9 +44,14 @@ import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.PhantomScheduler;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityTransitionStatus;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -148,6 +153,7 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		registry.add("17-world-and-autosave-materialization-boundaries", _ -> testMaterializationIdentityBoundaries());
 		registry.add("18-action-admission-atomic-with-stopping", _ -> testActionAdmissionAtomicWithStopping());
 		registry.add("19-shutdown-caller-wall-clock-bound", this::testShutdownCallerWallClock);
+		registry.add("20-real-retained-collision-scheduler-ownership", _ -> testSchedulerRetainedCollisionOwnership());
 	}
 
 	private void testConfig() throws Exception
@@ -632,6 +638,68 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		_environment.assertClean(_environment.primary(), null);
 	}
 
+	private void testSchedulerRetainedCollisionOwnership() throws Exception
+	{
+		reset();
+		final PhantomProfile profile = createProfile(_environment.primary().objectId());
+		final AtomicReference<WorldObject> injectedObject = new AtomicReference<>();
+		final ServiceFixture fixture = service(1, point ->
+		{
+			if ((point == FailurePoint.AFTER_PLAYER_LOAD) && (injectedObject.get() == null))
+			{
+				final WorldObject object = new ObjectIdResidue(_environment.primary().objectId());
+				if (injectedObject.compareAndSet(null, object))
+				{
+					World.getInstance().addObject(object);
+				}
+			}
+		}, 5000, 10000);
+		final PhantomMaterializationServiceActivityPort activityPort = new PhantomMaterializationServiceActivityPort(fixture.service());
+		final PhantomScheduler scheduler = new PhantomScheduler(1, 1000, 1, fixture.metrics(), fixture.trace(), activityPort, PhantomActivityWorkSink.noop());
+		try
+		{
+			PhantomAssertions.assertEquals(Outcome.RETAINED_FAILURE, activityPort.materialize(profile.profileId()).outcome(), "Specific pre-spawn collision was not classified by actual service ownership.");
+			final WorldObject residue = injectedObject.get();
+			PhantomAssertions.assertTrue(residue != null, "Scheduler retained-collision residue was not injected.");
+			PhantomAssertions.assertTrue(activityPort.hasLifecycleOwnership(profile.profileId()), "Specific collision did not retain the service entry.");
+			PhantomAssertions.assertFalse(activityPort.isMaterialized(profile.profileId()), "Specific collision falsely exposed an ACTIVE canonical actor.");
+
+			PhantomAssertions.assertTrue(scheduler.start(), "Real-adapter scheduler did not start.");
+			PhantomAssertions.assertEquals(PhantomScheduler.RegistrationStatus.REGISTERED, scheduler.register(profile.profileId()).status(), "Real-adapter profile was not registered.");
+			PhantomAssertions.assertEquals(PhantomScheduler.SignalStatus.ACCEPTED, scheduler.submitSignal(profile.profileId(), new PhantomRelevanceSignal("retained.collision", 1, PhantomActivityState.ACTIVE, 60000)).status(), "Real-adapter ACTIVE signal was not accepted.");
+			invokeSchedulerPulse(scheduler);
+			final var retained = scheduler.find(profile.profileId()).orElseThrow();
+			PhantomAssertions.assertEquals(PhantomActivityTransitionStatus.RETAINED_FAILURE_REQUIRES_EXPLICIT_RETRY, retained.transitionStatus(), "Scheduler did not retain explicit-retry ownership for the real collision.");
+			PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, retained.effectiveState(), "Real retained collision falsely published ACTIVE.");
+			final long materializationRequests = fixture.metrics().snapshot().materializationRequested();
+			invokeSchedulerPulse(scheduler);
+			PhantomAssertions.assertEquals(materializationRequests, fixture.metrics().snapshot().materializationRequested(), "Real retained collision entered an automatic materialize loop.");
+
+			World.getInstance().removeObject(residue);
+			PhantomAssertions.assertEquals(PhantomScheduler.RetryStatus.SCHEDULED, scheduler.retryTransition(profile.profileId()).status(), "Real retained collision cleanup was not explicitly scheduled.");
+			invokeSchedulerPulse(scheduler);
+			final var cleaned = scheduler.find(profile.profileId()).orElseThrow();
+			PhantomAssertions.assertFalse(activityPort.hasLifecycleOwnership(profile.profileId()), "Real collision cleanup retained service ownership.");
+			PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, cleaned.effectiveState(), "Real collision cleanup falsely published ACTIVE.");
+
+			invokeSchedulerPulse(scheduler);
+			PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, scheduler.find(profile.profileId()).orElseThrow().effectiveState(), "Fresh materialization did not restore ACTIVE after real collision cleanup.");
+			PhantomAssertions.assertTrue(activityPort.isMaterialized(profile.profileId()), "Fresh materialization did not create the canonical ACTIVE actor.");
+		}
+		finally
+		{
+			final WorldObject residue = injectedObject.get();
+			if ((residue != null) && (World.getInstance().findObject(residue.getObjectId()) == residue))
+			{
+				World.getInstance().removeObject(residue);
+			}
+			scheduler.beginStop();
+			fixture.service().retryCleanup(profile.profileId());
+			scheduler.finishStop();
+		}
+		_environment.assertClean(_environment.primary(), null);
+	}
+
 	private void testActionAdmissionAtomicWithStopping() throws Exception
 	{
 		reset();
@@ -740,6 +808,13 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		{
 			Files.deleteIfExists(path);
 		}
+	}
+
+	private static void invokeSchedulerPulse(PhantomScheduler scheduler) throws Exception
+	{
+		final var pulse = PhantomScheduler.class.getDeclaredMethod("pulse");
+		pulse.setAccessible(true);
+		pulse.invoke(scheduler);
 	}
 
 	private Thread materializeContender(PhantomMaterializationService service, long profileId, CountDownLatch ready, CountDownLatch start, List<ResultStatus> results, AtomicReference<Throwable> failure, String name)

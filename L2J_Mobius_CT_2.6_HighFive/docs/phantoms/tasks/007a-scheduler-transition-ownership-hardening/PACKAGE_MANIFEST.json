@@ -1,0 +1,23 @@
+{
+  "package": "phantom-world-goal-007a-scheduler-transition-ownership-hardening",
+  "taskId": "007a-scheduler-transition-ownership-hardening",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/007a-scheduler-transition-ownership-hardening/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "9958edd9e133557f4966eed0a4124e68326401b3",
+  "schemaChanges": false,
+  "configChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal008Started": false,
+  "goal009Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "TRANSITION_OWNERSHIP.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

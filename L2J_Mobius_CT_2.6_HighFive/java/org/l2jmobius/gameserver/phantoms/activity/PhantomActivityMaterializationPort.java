@@ -34,6 +34,8 @@ public interface PhantomActivityMaterializationPort
 
 	boolean isMaterialized(long profileId);
 
+	boolean hasLifecycleOwnership(long profileId);
+
 	enum Outcome
 	{
 		SUCCESS,
@@ -83,6 +85,12 @@ public interface PhantomActivityMaterializationPort
 
 			@Override
 			public boolean isMaterialized(long profileId)
+			{
+				return false;
+			}
+
+			@Override
+			public boolean hasLifecycleOwnership(long profileId)
 			{
 				return false;
 			}
