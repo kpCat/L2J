@@ -101,6 +101,7 @@ public final class PhantomMetrics
 	private final AtomicLong _decisionStepsFailed = new AtomicLong();
 	private final AtomicLong _decisionStepsCancelled = new AtomicLong();
 	private final AtomicLong _decisionPersistenceConflicts = new AtomicLong();
+	private final AtomicLong _decisionPersistenceFailures = new AtomicLong();
 	private final AtomicLong _decisionStaleResults = new AtomicLong();
 	private final AtomicLong _decisionStopFailures = new AtomicLong();
 
@@ -422,6 +423,11 @@ public final class PhantomMetrics
 		_decisionPersistenceConflicts.incrementAndGet();
 	}
 
+	public void recordDecisionPersistenceFailure()
+	{
+		_decisionPersistenceFailures.incrementAndGet();
+	}
+
 	public void recordDecisionStaleResult()
 	{
 		_decisionStaleResults.incrementAndGet();
@@ -516,6 +522,7 @@ public final class PhantomMetrics
 			_decisionStepsFailed.get(),
 			_decisionStepsCancelled.get(),
 			_decisionPersistenceConflicts.get(),
+			_decisionPersistenceFailures.get(),
 			_decisionStaleResults.get(),
 			_decisionStopFailures.get());
 	}
@@ -611,7 +618,7 @@ public final class PhantomMetrics
 		}
 	}
 
-	public record DecisionSnapshot(long attachedCurrent, long attachedPeak, long mutationRejected, long reloadRejected, long decisions, long noGoal, long noCandidate, long candidatesEvaluated, long candidatesBlocked, long candidatesFailed, long plansCreated, long plansReplanned, long plansCompleted, long plansFailed, long plansCancelled, long plansTimedOut, long stepsAttempted, long stepsSucceeded, long stepsRetried, long stepsFailed, long stepsCancelled, long persistenceConflicts, long staleResults, long stopFailures)
+	public record DecisionSnapshot(long attachedCurrent, long attachedPeak, long mutationRejected, long reloadRejected, long decisions, long noGoal, long noCandidate, long candidatesEvaluated, long candidatesBlocked, long candidatesFailed, long plansCreated, long plansReplanned, long plansCompleted, long plansFailed, long plansCancelled, long plansTimedOut, long stepsAttempted, long stepsSucceeded, long stepsRetried, long stepsFailed, long stepsCancelled, long persistenceConflicts, long persistenceFailures, long staleResults, long stopFailures)
 	{
 		public boolean isZero()
 		{
@@ -637,6 +644,7 @@ public final class PhantomMetrics
 				&& (stepsFailed == 0) //
 				&& (stepsCancelled == 0) //
 				&& (persistenceConflicts == 0) //
+				&& (persistenceFailures == 0) //
 				&& (staleResults == 0) //
 				&& (stopFailures == 0);
 		}

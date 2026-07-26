@@ -1,0 +1,22 @@
+{
+  "package": "phantom-world-goal-008a-decision-persistence-timeout-hardening",
+  "taskId": "008a-decision-persistence-timeout-hardening",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/008a-decision-persistence-timeout-hardening/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "b6c58c37f1ba77e92b61e9499a30d17d09c82086",
+  "schemaChanges": false,
+  "configChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal009Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "PERSISTENCE_OWNERSHIP.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

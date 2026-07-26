@@ -1,0 +1,21 @@
+# ACCEPTANCE — Goal 008A
+
+- [ ] Baseline b6c58c37 and one ordinary exact-scope commit.
+- [ ] No config/schema/Goal 009.
+- [ ] No goal-store call under global engine monitor.
+- [ ] Bounded pending attach and one persistence claim/runtime.
+- [ ] Work/mutation/reload exclusion during persistence.
+- [ ] Detach/stop retain unresolved persistence.
+- [ ] Terminal persistence two-phase and generation-safe.
+- [ ] Conflict and generic failure distinct reload-required states.
+- [ ] No automatic persistence retry.
+- [ ] beginStop/cancellation responsive during blocked store.
+- [ ] Step timeout works from logical time zero.
+- [ ] Total timeout remains correct.
+- [ ] Final SUCCESS plan semantics explicitly tested.
+- [ ] Snapshot evidence resets at ownership boundaries.
+- [ ] Core >=35 ×3, persistence >=20 ×3, performance ×2.
+- [ ] All cumulative regressions, verify and jar.
+- [ ] Production DB untouched.
+- [ ] Goal 009 not started.
+- [ ] Verifier ×2 identical and remote exact.

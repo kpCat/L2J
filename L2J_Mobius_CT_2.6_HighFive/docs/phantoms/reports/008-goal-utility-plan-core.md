@@ -3,15 +3,17 @@
 ## Status
 
 ```text
-Status: SUCCESS
-Manual gate: PENDING_INDEPENDENT_REVIEW
+Status: FIX_REQUIRED
+Manual gate: INDEPENDENT_REVIEW_COMPLETED
 Accepted baseline: 357c047fdba4bc9ea3b4ee21bcedbd5ce6c64018
+Reviewed commit: b6c58c37f1ba77e92b61e9499a30d17d09c82086
 Branch: feature/phantom-world
 Subject: feat(phantoms): add goal utility plan core
 Goal 007: ACCEPT after Goal 007A
 Goal 007A: ACCEPT
-Goal 008: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
-Goal 009: NOT_STARTED
+Goal 008: FIX_REQUIRED
+Goal 008A: REQUIRED
+Goal 009: BLOCKED
 ```
 
 ## Summary
@@ -34,6 +36,11 @@ Goal 009: NOT_STARTED
 Goal 007A закрыта verdict `ACCEPT`. Bounded scheduler follow-up исправляет
 только stale target после внешнего cleanup retry: current requested state
 пересчитывается под scheduler monitor.
+
+Независимое review подтвердило архитектурное направление Goal 008, но вынесло
+commit verdict `FIX_REQUIRED`: persistence ownership/liveness, logical-zero
+timeout и stale snapshot evidence должны быть закрыты bounded Goal 008A.
+Revert не требуется; Goal 009 заблокирована до отдельного hardening gate.
 
 ## Changed files
 
@@ -179,8 +186,21 @@ launcher, так как `ant` отсутствует в `PATH`.
 | отдельный `ant jar` | PASS; `14 s` |
 | Production `GameServer.jar` decision entries | `45` |
 | Production `GameServer.jar` test entries | `0` |
-| Goal 008 verifier | PASS `68/68 ×2`, byte-identical |
-| Verifier output SHA-256 | `B8AB1B2861F2B79730DFBA9C66F13FA656C772CA13974B60762F95AAA5DB55C0` |
+| Goal 008 implementation-stage verifier | PASS `68/68 ×2`, byte-identical |
+| Implementation-stage verifier output SHA-256 | `B8AB1B2861F2B79730DFBA9C66F13FA656C772CA13974B60762F95AAA5DB55C0` |
+
+Независимое review отдельно воспроизвело reviewed baseline evidence:
+
+| Independent review gate | Result |
+|---|---:|
+| Reviewed commit / parent | `b6c58c37f1ba77e92b61e9499a30d17d09c82086` / `357c047fdba4bc9ea3b4ee21bcedbd5ce6c64018` |
+| Remote | `origin/feature/phantom-world = b6c58c37f1ba77e92b61e9499a30d17d09c82086` |
+| Decision core | PASS `30/30 ×3` |
+| Decision persistence | PASS `14/14` |
+| Decision performance | PASS `2/2 ×2` |
+| Scheduler regressions/integration | PASS `20/20 ×3` |
+| External final verifier | PASS `68/68 ×2`, byte-identical |
+| External final verifier SHA-256 | `B2968457F0F59C0CEFDCF4566F4CA1C9FF456CB05FC886E1C111915BF67689C0` |
 
 `ant test` и `ant verify` вывели ожидаемые внутренние negative-control results:
 lifecycle `0/2`, runner negative `0/1`, guard/freshness exit `2`. Все
@@ -228,8 +248,9 @@ reads после attach. В engine/runtime fields отсутствуют `Thread
 - Goal 008 не создаёт concrete goals/actions/capabilities и поэтому production
   остаётся намеренно inert.
 - Navigation, combat, Game Knowledge, population и Goal 009 не начаты.
-- Manual gate Goal 008 не self-accept-ится и остаётся
-  `PENDING_INDEPENDENT_REVIEW`.
+- Independent review Goal 008 завершено с verdict `FIX_REQUIRED`.
+- Архитектурное направление принято, revert не требуется, но Goal 008A
+  обязательна до продолжения roadmap.
 
 ## Encoding checks
 
@@ -243,13 +264,15 @@ ordinary commit и push.
 
 ```text
 Expected commit parent: 357c047fdba4bc9ea3b4ee21bcedbd5ce6c64018
-Commit SHA: во внешнем final handoff для сохранения одного ordinary commit
-Push result: во внешнем final handoff
+Goal 008 commit SHA: b6c58c37f1ba77e92b61e9499a30d17d09c82086
+Goal 008 parent SHA: 357c047fdba4bc9ea3b4ee21bcedbd5ce6c64018
+Push result: origin/feature/phantom-world exact match confirmed by review
 ```
 
 ## Next step
 
-Только независимое review Goal 008. Goal 009 остаётся `NOT_STARTED`.
+Только bounded Goal 008A по зафиксированным findings. Goal 009 остаётся
+`BLOCKED`.
 
 Result:
-`GOAL_UTILITY_PLAN_CORE_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+`GOAL_UTILITY_PLAN_CORE_FIX_REQUIRED`.

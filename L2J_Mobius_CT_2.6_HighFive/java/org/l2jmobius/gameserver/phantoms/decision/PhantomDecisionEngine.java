@@ -24,10 +24,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
@@ -43,6 +45,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector.Selecti
 public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 {
 	public static final int MAX_EXPLANATIONS = 8;
+	private static final long STEP_START_UNSET = -1;
 	private final Object _monitor = new Object();
 	private final PhantomGoalStore _store;
 	private final PhantomCandidateRegistry _candidateRegistry;
@@ -51,6 +54,8 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	private final PhantomUtilitySelector _selector = new PhantomUtilitySelector();
 	private final int _maximumAttachedProfiles;
 	private final Map<Long, RuntimeSlot> _slots = new HashMap<>();
+	private final Set<Long> _pendingAttaches = new HashSet<>();
+	private long _persistenceOperationSequence;
 	private volatile State _state = State.NEW;
 
 	public PhantomDecisionEngine(PhantomGoalStore store, PhantomCandidateRegistry candidateRegistry, PhantomStepHandlerRegistry handlerRegistry, PhantomMetrics metrics, int maximumAttachedProfiles)
@@ -100,19 +105,57 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 			{
 				return AttachResult.NOT_RUNNING;
 			}
+			if (_slots.containsKey(profileId) || _pendingAttaches.contains(profileId))
+			{
+				return AttachResult.ALREADY_ATTACHED;
+			}
+			if ((_slots.size() + _pendingAttaches.size()) >= _maximumAttachedProfiles)
+			{
+				return AttachResult.CAPACITY_REJECTED;
+			}
+			_pendingAttaches.add(profileId);
+		}
+
+		boolean profileExists = false;
+		Optional<StoredGoal> stored = Optional.empty();
+		boolean persistenceFailed = false;
+		try
+		{
+			profileExists = _store.profileExists(profileId);
+			if (profileExists)
+			{
+				stored = Objects.requireNonNull(_store.load(profileId), "Goal store load result must not be null.");
+			}
+		}
+		catch (RuntimeException e)
+		{
+			persistenceFailed = true;
+		}
+
+		synchronized (_monitor)
+		{
+			_pendingAttaches.remove(profileId);
+			if (_state != State.RUNNING)
+			{
+				return AttachResult.CANCELLED_BY_STOP;
+			}
 			if (_slots.containsKey(profileId))
 			{
 				return AttachResult.ALREADY_ATTACHED;
+			}
+			if (persistenceFailed)
+			{
+				_metrics.recordDecisionPersistenceFailure();
+				return AttachResult.PERSISTENCE_FAILED;
+			}
+			if (!profileExists)
+			{
+				return AttachResult.PROFILE_NOT_FOUND;
 			}
 			if (_slots.size() >= _maximumAttachedProfiles)
 			{
 				return AttachResult.CAPACITY_REJECTED;
 			}
-			if (!_store.profileExists(profileId))
-			{
-				return AttachResult.PROFILE_NOT_FOUND;
-			}
-			final Optional<StoredGoal> stored = _store.load(profileId);
 			final RuntimeSlot slot = new RuntimeSlot(profileId, capabilities);
 			applyStoredGoalLocked(slot, stored);
 			_slots.put(profileId, slot);
@@ -133,7 +176,8 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 			slot._generation++;
 			slot._detachPending = true;
 			cancelPlanLocked(slot, "runtime.detached");
-			if (slot._inFlight)
+			resetDecisionEvidenceLocked(slot);
+			if (slot._inFlight || slot._persistenceInFlight)
 			{
 				return DetachResult.PENDING;
 			}
@@ -145,41 +189,44 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	public MutationResult insertGoal(long profileId, PhantomGoal goal)
 	{
 		Objects.requireNonNull(goal, "Goal must not be null.");
+		final PersistenceClaim claim;
 		synchronized (_monitor)
 		{
 			final RuntimeSlot slot = mutableSlotLocked(profileId);
 			if (slot == null)
 			{
 				return MutationResult.REJECTED;
+			}
+			if (slot._persistenceInFlight)
+			{
+				_metrics.recordDecisionMutationRejected();
+				return MutationResult.BUSY;
 			}
 			if (slot._goal != null)
 			{
 				_metrics.recordDecisionMutationRejected();
 				return MutationResult.GOAL_ALREADY_PRESENT;
 			}
-			try
-			{
-				final StoredGoal stored = _store.insert(profileId, goal);
-				replaceRuntimeGoalLocked(slot, stored);
-				return MutationResult.APPLIED;
-			}
-			catch (ConcurrentModificationException e)
-			{
-				enterPersistenceConflictLocked(slot);
-				return MutationResult.PERSISTENCE_CONFLICT;
-			}
+			claim = claimPersistenceLocked(slot, PersistenceOperationKind.INSERT, goal);
 		}
+		return reconcileMutation(claim, executeInsert(claim));
 	}
 
 	public MutationResult setGoal(long profileId, PhantomGoal goal)
 	{
 		Objects.requireNonNull(goal, "Goal must not be null.");
+		final PersistenceClaim claim;
 		synchronized (_monitor)
 		{
 			final RuntimeSlot slot = mutableSlotLocked(profileId);
 			if (slot == null)
 			{
 				return MutationResult.REJECTED;
+			}
+			if (slot._persistenceInFlight)
+			{
+				_metrics.recordDecisionMutationRejected();
+				return MutationResult.BUSY;
 			}
 			if (slot._goal == null)
 			{
@@ -191,22 +238,14 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 				_metrics.recordDecisionMutationRejected();
 				return MutationResult.REVISION_REJECTED;
 			}
-			try
-			{
-				final StoredGoal stored = _store.replace(profileId, slot._componentRowVersion, goal);
-				replaceRuntimeGoalLocked(slot, stored);
-				return MutationResult.APPLIED;
-			}
-			catch (ConcurrentModificationException e)
-			{
-				enterPersistenceConflictLocked(slot);
-				return MutationResult.PERSISTENCE_CONFLICT;
-			}
+			claim = claimPersistenceLocked(slot, PersistenceOperationKind.REPLACE, goal);
 		}
+		return reconcileMutation(claim, executeReplace(claim));
 	}
 
 	public MutationResult clearGoal(long profileId)
 	{
+		final PersistenceClaim claim;
 		synchronized (_monitor)
 		{
 			final RuntimeSlot slot = mutableSlotLocked(profileId);
@@ -214,32 +253,24 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 			{
 				return MutationResult.REJECTED;
 			}
+			if (slot._persistenceInFlight)
+			{
+				_metrics.recordDecisionMutationRejected();
+				return MutationResult.BUSY;
+			}
 			if (slot._goal == null)
 			{
 				_metrics.recordDecisionMutationRejected();
 				return MutationResult.GOAL_NOT_PRESENT;
 			}
-			try
-			{
-				_store.delete(profileId, slot._componentRowVersion);
-				slot._generation++;
-				cancelPlanLocked(slot, "goal.cleared");
-				slot._goal = null;
-				slot._componentRowVersion = -1;
-				slot._runtimeState = RuntimeState.NO_GOAL;
-				slot._reasonKey = "goal.absent";
-				return MutationResult.APPLIED;
-			}
-			catch (ConcurrentModificationException e)
-			{
-				enterPersistenceConflictLocked(slot);
-				return MutationResult.PERSISTENCE_CONFLICT;
-			}
+			claim = claimPersistenceLocked(slot, PersistenceOperationKind.CLEAR, null);
 		}
+		return reconcileMutation(claim, executeDelete(claim));
 	}
 
 	public ReloadResult reload(long profileId)
 	{
+		final PersistenceClaim claim;
 		synchronized (_monitor)
 		{
 			if (_state != State.RUNNING)
@@ -248,14 +279,19 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 				return ReloadResult.NOT_RUNNING;
 			}
 			final RuntimeSlot slot = _slots.get(profileId);
-			if ((slot == null) || slot._detachPending || slot._inFlight)
+			if ((slot == null) || slot._detachPending)
 			{
 				_metrics.recordDecisionReloadRejected();
 				return ReloadResult.REJECTED;
 			}
-			applyStoredGoalLocked(slot, _store.load(profileId));
-			return ReloadResult.RELOADED;
+			if (slot._inFlight || slot._persistenceInFlight)
+			{
+				_metrics.recordDecisionReloadRejected();
+				return ReloadResult.BUSY;
+			}
+			claim = claimPersistenceLocked(slot, PersistenceOperationKind.RELOAD, null);
 		}
+		return reconcileReload(claim, executeLoad(claim));
 	}
 
 	@Override
@@ -315,9 +351,14 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		{
 			result = PhantomStepResult.of(PhantomStepResult.Type.REPLAN, "handler.failed");
 		}
+		final PersistenceClaim terminalClaim;
 		synchronized (_monitor)
 		{
-			applyHandlerResultLocked(handlerClaim, result, workItem.logicalNowNanos());
+			terminalClaim = applyHandlerResultLocked(handlerClaim, result, workItem.logicalNowNanos());
+		}
+		if (terminalClaim != null)
+		{
+			reconcileTerminal(terminalClaim, executeReplace(terminalClaim));
 		}
 	}
 
@@ -361,6 +402,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 			{
 				slot._generation++;
 				cancelPlanLocked(slot, "runtime.stopping");
+				resetDecisionEvidenceLocked(slot);
 			}
 			return BeginStopResult.STARTED;
 		}
@@ -379,9 +421,14 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 				_metrics.recordDecisionStopFailure();
 				return false;
 			}
+			if (!_pendingAttaches.isEmpty())
+			{
+				_metrics.recordDecisionStopFailure();
+				return false;
+			}
 			for (RuntimeSlot slot : _slots.values())
 			{
-				if (slot._inFlight)
+				if (slot._inFlight || slot._persistenceInFlight)
 				{
 					_metrics.recordDecisionStopFailure();
 					return false;
@@ -401,7 +448,15 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	{
 		synchronized (_monitor)
 		{
-			return new EngineSnapshot(_state, _slots.size(), _maximumAttachedProfiles, _candidateRegistry.snapshot().size(), _handlerRegistry.snapshot().size(), _slots.values().stream().filter(slot -> slot._inFlight).count());
+			return new EngineSnapshot(
+				_state,
+				_slots.size(),
+				_pendingAttaches.size(),
+				_maximumAttachedProfiles,
+				_candidateRegistry.snapshot().size(),
+				_handlerRegistry.snapshot().size(),
+				_slots.values().stream().filter(slot -> slot._inFlight).count(),
+				_slots.values().stream().filter(slot -> slot._persistenceInFlight).count());
 		}
 	}
 
@@ -416,6 +471,10 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		{
 			return null;
 		}
+		if (slot._persistenceInFlight)
+		{
+			return null;
+		}
 		if (workItem.activityGeneration() < slot._activityGeneration)
 		{
 			return null;
@@ -425,7 +484,8 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 			slot._activityGeneration = workItem.activityGeneration();
 			slot._generation++;
 			cancelPlanLocked(slot, "activity.generation_changed");
-			if ((slot._goal != null) && (slot._goal.status() == PhantomGoalStatus.ACTIVE) && (slot._runtimeState != RuntimeState.PERSISTENCE_CONFLICT_REQUIRES_EXPLICIT_RELOAD))
+			resetDecisionEvidenceLocked(slot);
+			if ((slot._goal != null) && (slot._goal.status() == PhantomGoalStatus.ACTIVE) && !requiresExplicitReload(slot._runtimeState))
 			{
 				slot._runtimeState = RuntimeState.NEEDS_REPLAN;
 			}
@@ -440,7 +500,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 			slot._runtimeState = RuntimeState.NO_GOAL;
 			return null;
 		}
-		if ((slot._goal.status() != PhantomGoalStatus.ACTIVE) || (slot._runtimeState == RuntimeState.PERSISTENCE_CONFLICT_REQUIRES_EXPLICIT_RELOAD))
+		if ((slot._goal.status() != PhantomGoalStatus.ACTIVE) || requiresExplicitReload(slot._runtimeState))
 		{
 			return null;
 		}
@@ -480,7 +540,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 			slot._plan = planned;
 			slot._currentStep = 0;
 			slot._attempt = 0;
-			slot._stepStartedNanos = 0;
+			slot._stepStartedNanos = STEP_START_UNSET;
 			slot._retryDueNanos = 0;
 			slot._runtimeState = RuntimeState.EXECUTING;
 			_metrics.recordDecisionPlanCreated();
@@ -493,12 +553,12 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 			return null;
 		}
 		final PhantomPlanStep step = plan.steps().get(slot._currentStep);
-		if ((slot._stepStartedNanos > 0) && timedOut(workItem.logicalNowNanos(), slot._stepStartedNanos, step.timeoutMillis()))
+		if ((slot._stepStartedNanos != STEP_START_UNSET) && timedOut(workItem.logicalNowNanos(), slot._stepStartedNanos, step.timeoutMillis()))
 		{
 			timeoutPlanLocked(slot, "plan.step_timeout");
 			return null;
 		}
-		if (slot._stepStartedNanos == 0)
+		if (slot._stepStartedNanos == STEP_START_UNSET)
 		{
 			slot._stepStartedNanos = workItem.logicalNowNanos();
 		}
@@ -518,16 +578,17 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		return new HandlerClaim(slot, generation, slot._goal, plan, handler, context);
 	}
 
-	private void applyHandlerResultLocked(HandlerClaim claim, PhantomStepResult result, long logicalNowNanos)
+	private PersistenceClaim applyHandlerResultLocked(HandlerClaim claim, PhantomStepResult result, long logicalNowNanos)
 	{
 		final RuntimeSlot slot = claim._slot;
 		if (!isCurrentLocked(slot, claim._generation, claim._goal) || (slot._plan != claim._plan))
 		{
 			finishStaleLocked(slot);
-			return;
+			return null;
 		}
 		slot._lastResult = result.type();
 		slot._reasonKey = result.reasonKey();
+		PersistenceClaim terminalClaim = null;
 		switch (result.type())
 		{
 			case SUCCESS ->
@@ -535,7 +596,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 				_metrics.recordDecisionStepSucceeded();
 				slot._currentStep++;
 				slot._attempt = 0;
-				slot._stepStartedNanos = 0;
+				slot._stepStartedNanos = STEP_START_UNSET;
 				slot._retryDueNanos = 0;
 				if (slot._currentStep >= slot._plan.steps().size())
 				{
@@ -563,8 +624,8 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 				_metrics.recordDecisionStepFailed();
 				replanLocked(slot, result.reasonKey());
 			}
-			case COMPLETE_GOAL -> persistTerminalLocked(slot, PhantomGoalStatus.COMPLETED, true);
-			case FAIL_GOAL -> persistTerminalLocked(slot, PhantomGoalStatus.FAILED, false);
+			case COMPLETE_GOAL -> terminalClaim = claimTerminalPersistenceLocked(slot, PhantomGoalStatus.COMPLETED);
+			case FAIL_GOAL -> terminalClaim = claimTerminalPersistenceLocked(slot, PhantomGoalStatus.FAILED);
 			case CANCELLED ->
 			{
 				_metrics.recordDecisionStepCancelled();
@@ -572,39 +633,12 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 				slot._runtimeState = RuntimeState.NEEDS_REPLAN;
 			}
 		}
-		slot._inFlight = false;
-		finishDetachIfPendingLocked(slot);
-	}
-
-	private void persistTerminalLocked(RuntimeSlot slot, PhantomGoalStatus status, boolean completed)
-	{
-		try
+		if (terminalClaim == null)
 		{
-			final PhantomGoal terminal = slot._goal.withStatus(status);
-			final StoredGoal stored = _store.replace(slot._profileId, slot._componentRowVersion, terminal);
-			slot._goal = stored.goal();
-			slot._componentRowVersion = stored.rowVersion();
-			slot._plan = null;
-			slot._runtimeState = RuntimeState.TERMINAL;
-			if (completed)
-			{
-				_metrics.recordDecisionStepSucceeded();
-				_metrics.recordDecisionPlanCompleted();
-			}
-			else
-			{
-				_metrics.recordDecisionStepFailed();
-				_metrics.recordDecisionPlanFailed();
-			}
+			slot._inFlight = false;
+			finishDetachIfPendingLocked(slot);
 		}
-		catch (ConcurrentModificationException e)
-		{
-			enterPersistenceConflictLocked(slot);
-		}
-		catch (RuntimeException e)
-		{
-			enterPersistenceConflictLocked(slot);
-		}
+		return terminalClaim;
 	}
 
 	private void timeoutPlanLocked(RuntimeSlot slot, String reasonKey)
@@ -612,7 +646,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		slot._plan = null;
 		slot._currentStep = 0;
 		slot._attempt = 0;
-		slot._stepStartedNanos = 0;
+		slot._stepStartedNanos = STEP_START_UNSET;
 		slot._retryDueNanos = 0;
 		slot._runtimeState = RuntimeState.NEEDS_REPLAN;
 		slot._reasonKey = reasonKey;
@@ -626,7 +660,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		slot._plan = null;
 		slot._currentStep = 0;
 		slot._attempt = 0;
-		slot._stepStartedNanos = 0;
+		slot._stepStartedNanos = STEP_START_UNSET;
 		slot._retryDueNanos = 0;
 		slot._runtimeState = RuntimeState.NEEDS_REPLAN;
 		slot._reasonKey = reasonKey;
@@ -642,7 +676,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		slot._plan = null;
 		slot._currentStep = 0;
 		slot._attempt = 0;
-		slot._stepStartedNanos = 0;
+		slot._stepStartedNanos = STEP_START_UNSET;
 		slot._retryDueNanos = 0;
 		slot._reasonKey = reasonKey;
 	}
@@ -651,6 +685,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	{
 		slot._generation++;
 		cancelPlanLocked(slot, "goal.replaced");
+		resetDecisionEvidenceLocked(slot);
 		slot._goal = stored.goal();
 		slot._componentRowVersion = stored.rowVersion();
 		slot._runtimeState = stored.goal().status() == PhantomGoalStatus.ACTIVE ? RuntimeState.NEEDS_REPLAN : RuntimeState.TERMINAL;
@@ -660,6 +695,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	{
 		slot._generation++;
 		cancelPlanLocked(slot, "goal.reloaded");
+		resetDecisionEvidenceLocked(slot);
 		if (stored.isPresent())
 		{
 			slot._goal = stored.get().goal();
@@ -675,6 +711,255 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		}
 	}
 
+	private PersistenceClaim claimPersistenceLocked(RuntimeSlot slot, PersistenceOperationKind kind, PhantomGoal replacementGoal)
+	{
+		if (slot._persistenceInFlight)
+		{
+			throw new IllegalStateException("Runtime already owns a persistence operation.");
+		}
+		if (_persistenceOperationSequence == Long.MAX_VALUE)
+		{
+			throw new IllegalStateException("Decision persistence operation sequence exhausted.");
+		}
+		final long operationId = ++_persistenceOperationSequence;
+		final PersistenceClaim claim = new PersistenceClaim(slot, operationId, kind, slot._goal, slot._componentRowVersion, replacementGoal);
+		slot._persistenceInFlight = true;
+		slot._persistenceOperationId = operationId;
+		slot._persistenceOperationKind = kind;
+		slot._generation++;
+		cancelPlanLocked(slot, "persistence.in_flight");
+		resetDecisionEvidenceLocked(slot);
+		return claim;
+	}
+
+	private PersistenceClaim claimTerminalPersistenceLocked(RuntimeSlot slot, PhantomGoalStatus terminalStatus)
+	{
+		if (slot._persistenceInFlight)
+		{
+			throw new IllegalStateException("Terminal result raced an existing persistence operation.");
+		}
+		if (_persistenceOperationSequence == Long.MAX_VALUE)
+		{
+			throw new IllegalStateException("Decision persistence operation sequence exhausted.");
+		}
+		final PersistenceOperationKind kind = terminalStatus == PhantomGoalStatus.COMPLETED ? PersistenceOperationKind.TERMINAL_COMPLETE : PersistenceOperationKind.TERMINAL_FAIL;
+		final long operationId = ++_persistenceOperationSequence;
+		final PersistenceClaim claim = new PersistenceClaim(slot, operationId, kind, slot._goal, slot._componentRowVersion, slot._goal.withStatus(terminalStatus));
+		slot._persistenceInFlight = true;
+		slot._persistenceOperationId = operationId;
+		slot._persistenceOperationKind = kind;
+		return claim;
+	}
+
+	private StoreExecution executeInsert(PersistenceClaim claim)
+	{
+		try
+		{
+			return new StoreExecution(Objects.requireNonNull(_store.insert(claim._slot._profileId, claim._replacementGoal), "Goal store insert result must not be null."), PersistenceFailure.NONE);
+		}
+		catch (ConcurrentModificationException e)
+		{
+			return new StoreExecution(null, PersistenceFailure.CONFLICT);
+		}
+		catch (RuntimeException e)
+		{
+			return new StoreExecution(null, PersistenceFailure.FAILURE);
+		}
+	}
+
+	private StoreExecution executeReplace(PersistenceClaim claim)
+	{
+		try
+		{
+			return new StoreExecution(Objects.requireNonNull(_store.replace(claim._slot._profileId, claim._expectedComponentRowVersion, claim._replacementGoal), "Goal store replace result must not be null."), PersistenceFailure.NONE);
+		}
+		catch (ConcurrentModificationException e)
+		{
+			return new StoreExecution(null, PersistenceFailure.CONFLICT);
+		}
+		catch (RuntimeException e)
+		{
+			return new StoreExecution(null, PersistenceFailure.FAILURE);
+		}
+	}
+
+	private StoreExecution executeDelete(PersistenceClaim claim)
+	{
+		try
+		{
+			_store.delete(claim._slot._profileId, claim._expectedComponentRowVersion);
+			return new StoreExecution(null, PersistenceFailure.NONE);
+		}
+		catch (ConcurrentModificationException e)
+		{
+			return new StoreExecution(null, PersistenceFailure.CONFLICT);
+		}
+		catch (RuntimeException e)
+		{
+			return new StoreExecution(null, PersistenceFailure.FAILURE);
+		}
+	}
+
+	private LoadExecution executeLoad(PersistenceClaim claim)
+	{
+		try
+		{
+			return new LoadExecution(Objects.requireNonNull(_store.load(claim._slot._profileId), "Goal store load result must not be null."), PersistenceFailure.NONE);
+		}
+		catch (ConcurrentModificationException e)
+		{
+			return new LoadExecution(Optional.empty(), PersistenceFailure.CONFLICT);
+		}
+		catch (RuntimeException e)
+		{
+			return new LoadExecution(Optional.empty(), PersistenceFailure.FAILURE);
+		}
+	}
+
+	private MutationResult reconcileMutation(PersistenceClaim claim, StoreExecution execution)
+	{
+		synchronized (_monitor)
+		{
+			final RuntimeSlot slot = claim._slot;
+			if (!isPersistenceClaimCurrentLocked(claim))
+			{
+				return MutationResult.REJECTED;
+			}
+			final MutationResult result;
+			if (execution._failure == PersistenceFailure.CONFLICT)
+			{
+				enterPersistenceConflictLocked(slot);
+				result = MutationResult.PERSISTENCE_CONFLICT;
+			}
+			else if (execution._failure == PersistenceFailure.FAILURE)
+			{
+				enterPersistenceFailureLocked(slot);
+				result = MutationResult.PERSISTENCE_FAILED;
+			}
+			else
+			{
+				switch (claim._kind)
+				{
+					case INSERT, REPLACE -> replaceRuntimeGoalLocked(slot, execution._storedGoal);
+					case CLEAR ->
+					{
+						slot._generation++;
+						cancelPlanLocked(slot, "goal.cleared");
+						resetDecisionEvidenceLocked(slot);
+						slot._goal = null;
+						slot._componentRowVersion = -1;
+						slot._runtimeState = RuntimeState.NO_GOAL;
+						slot._reasonKey = "goal.absent";
+					}
+					default -> throw new IllegalStateException("Unexpected explicit mutation persistence kind.");
+				}
+				result = MutationResult.APPLIED;
+			}
+			clearPersistenceClaimLocked(slot, claim);
+			finishDetachIfPendingLocked(slot);
+			return result;
+		}
+	}
+
+	private ReloadResult reconcileReload(PersistenceClaim claim, LoadExecution execution)
+	{
+		synchronized (_monitor)
+		{
+			final RuntimeSlot slot = claim._slot;
+			if (!isPersistenceClaimCurrentLocked(claim))
+			{
+				return ReloadResult.REJECTED;
+			}
+			final ReloadResult result;
+			if (execution._failure == PersistenceFailure.CONFLICT)
+			{
+				enterPersistenceConflictLocked(slot);
+				result = ReloadResult.PERSISTENCE_CONFLICT;
+			}
+			else if (execution._failure == PersistenceFailure.FAILURE)
+			{
+				enterPersistenceFailureLocked(slot);
+				result = ReloadResult.PERSISTENCE_FAILED;
+			}
+			else
+			{
+				applyStoredGoalLocked(slot, execution._storedGoal);
+				result = ReloadResult.RELOADED;
+			}
+			clearPersistenceClaimLocked(slot, claim);
+			finishDetachIfPendingLocked(slot);
+			return result;
+		}
+	}
+
+	private void reconcileTerminal(PersistenceClaim claim, StoreExecution execution)
+	{
+		synchronized (_monitor)
+		{
+			final RuntimeSlot slot = claim._slot;
+			if (!isPersistenceClaimCurrentLocked(claim))
+			{
+				return;
+			}
+			if (execution._failure == PersistenceFailure.CONFLICT)
+			{
+				enterPersistenceConflictLocked(slot);
+			}
+			else if (execution._failure == PersistenceFailure.FAILURE)
+			{
+				enterPersistenceFailureLocked(slot);
+			}
+			else
+			{
+				slot._generation++;
+				slot._goal = execution._storedGoal.goal();
+				slot._componentRowVersion = execution._storedGoal.rowVersion();
+				slot._plan = null;
+				slot._currentStep = 0;
+				slot._attempt = 0;
+				slot._stepStartedNanos = STEP_START_UNSET;
+				slot._retryDueNanos = 0;
+				slot._runtimeState = RuntimeState.TERMINAL;
+				resetDecisionEvidenceLocked(slot);
+				if (claim._kind == PersistenceOperationKind.TERMINAL_COMPLETE)
+				{
+					_metrics.recordDecisionStepSucceeded();
+					_metrics.recordDecisionPlanCompleted();
+				}
+				else
+				{
+					_metrics.recordDecisionStepFailed();
+					_metrics.recordDecisionPlanFailed();
+				}
+			}
+			clearPersistenceClaimLocked(slot, claim);
+			slot._inFlight = false;
+			finishDetachIfPendingLocked(slot);
+		}
+	}
+
+	private boolean isPersistenceClaimCurrentLocked(PersistenceClaim claim)
+	{
+		final RuntimeSlot slot = claim._slot;
+		return (_slots.get(slot._profileId) == slot) //
+			&& slot._persistenceInFlight //
+			&& (slot._persistenceOperationId == claim._operationId) //
+			&& (slot._persistenceOperationKind == claim._kind) //
+			&& (slot._goal == claim._expectedGoal) //
+			&& (slot._componentRowVersion == claim._expectedComponentRowVersion);
+	}
+
+	private void clearPersistenceClaimLocked(RuntimeSlot slot, PersistenceClaim claim)
+	{
+		if ((slot._persistenceOperationId != claim._operationId) || (slot._persistenceOperationKind != claim._kind))
+		{
+			throw new IllegalStateException("Cannot release a stale decision persistence claim.");
+		}
+		slot._persistenceInFlight = false;
+		slot._persistenceOperationId = 0;
+		slot._persistenceOperationKind = null;
+	}
+
 	private RuntimeSlot mutableSlotLocked(long profileId)
 	{
 		if (_state != State.RUNNING)
@@ -683,7 +968,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 			return null;
 		}
 		final RuntimeSlot slot = _slots.get(profileId);
-		if ((slot == null) || slot._detachPending || (slot._runtimeState == RuntimeState.PERSISTENCE_CONFLICT_REQUIRES_EXPLICIT_RELOAD))
+		if ((slot == null) || slot._detachPending || requiresExplicitReload(slot._runtimeState))
 		{
 			_metrics.recordDecisionMutationRejected();
 			return null;
@@ -695,8 +980,31 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	{
 		slot._generation++;
 		cancelPlanLocked(slot, "persistence.conflict");
+		resetDecisionEvidenceLocked(slot);
 		slot._runtimeState = RuntimeState.PERSISTENCE_CONFLICT_REQUIRES_EXPLICIT_RELOAD;
 		_metrics.recordDecisionPersistenceConflict();
+	}
+
+	private void enterPersistenceFailureLocked(RuntimeSlot slot)
+	{
+		slot._generation++;
+		cancelPlanLocked(slot, "persistence.failure");
+		resetDecisionEvidenceLocked(slot);
+		slot._runtimeState = RuntimeState.PERSISTENCE_FAILURE_REQUIRES_EXPLICIT_RELOAD;
+		_metrics.recordDecisionPersistenceFailure();
+	}
+
+	private static boolean requiresExplicitReload(RuntimeState runtimeState)
+	{
+		return (runtimeState == RuntimeState.PERSISTENCE_CONFLICT_REQUIRES_EXPLICIT_RELOAD) || (runtimeState == RuntimeState.PERSISTENCE_FAILURE_REQUIRES_EXPLICIT_RELOAD);
+	}
+
+	private static void resetDecisionEvidenceLocked(RuntimeSlot slot)
+	{
+		slot._selectedCandidateKey = null;
+		slot._selectedScore = -1;
+		slot._lastResult = null;
+		slot._explanations = List.of();
 	}
 
 	private boolean isGenerationCurrent(RuntimeSlot slot, long generation)
@@ -721,7 +1029,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 
 	private void finishDetachIfPendingLocked(RuntimeSlot slot)
 	{
-		if (slot._detachPending && !slot._inFlight)
+		if (slot._detachPending && !slot._inFlight && !slot._persistenceInFlight)
 		{
 			removeSlotLocked(slot);
 		}
@@ -754,6 +1062,9 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 			slot._reasonKey,
 			slot._explanations,
 			slot._inFlight,
+			slot._persistenceInFlight,
+			slot._persistenceOperationId,
+			slot._persistenceOperationKind,
 			slot._generation,
 			slot._activityGeneration,
 			slot._componentRowVersion);
@@ -810,7 +1121,8 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		EXECUTING,
 		WAITING_RETRY,
 		TERMINAL,
-		PERSISTENCE_CONFLICT_REQUIRES_EXPLICIT_RELOAD
+		PERSISTENCE_CONFLICT_REQUIRES_EXPLICIT_RELOAD,
+		PERSISTENCE_FAILURE_REQUIRES_EXPLICIT_RELOAD
 	}
 
 	public enum AttachResult
@@ -820,7 +1132,9 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		INVALID_PROFILE_ID,
 		PROFILE_NOT_FOUND,
 		CAPACITY_REJECTED,
-		NOT_RUNNING
+		NOT_RUNNING,
+		CANCELLED_BY_STOP,
+		PERSISTENCE_FAILED
 	}
 
 	public enum DetachResult
@@ -837,14 +1151,19 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		GOAL_ALREADY_PRESENT,
 		GOAL_NOT_PRESENT,
 		REVISION_REJECTED,
-		PERSISTENCE_CONFLICT
+		BUSY,
+		PERSISTENCE_CONFLICT,
+		PERSISTENCE_FAILED
 	}
 
 	public enum ReloadResult
 	{
 		RELOADED,
 		REJECTED,
-		NOT_RUNNING
+		BUSY,
+		NOT_RUNNING,
+		PERSISTENCE_CONFLICT,
+		PERSISTENCE_FAILED
 	}
 
 	public enum BeginStopResult
@@ -854,7 +1173,17 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		ALREADY_STOPPED
 	}
 
-	public record RuntimeSnapshot(long profileId, long goalId, String goalType, long goalRevision, PhantomGoalStatus goalStatus, RuntimeState runtimeState, long decisionSequence, String selectedCandidateKey, int selectedScore, long planId, int currentStep, int attempt, PhantomStepResult.Type lastResult, String reasonKey, List<CandidateEvaluation> topCandidateEvaluations, boolean inFlight, long generation, long activityGeneration, long componentRowVersion)
+	public enum PersistenceOperationKind
+	{
+		INSERT,
+		REPLACE,
+		CLEAR,
+		RELOAD,
+		TERMINAL_COMPLETE,
+		TERMINAL_FAIL
+	}
+
+	public record RuntimeSnapshot(long profileId, long goalId, String goalType, long goalRevision, PhantomGoalStatus goalStatus, RuntimeState runtimeState, long decisionSequence, String selectedCandidateKey, int selectedScore, long planId, int currentStep, int attempt, PhantomStepResult.Type lastResult, String reasonKey, List<CandidateEvaluation> topCandidateEvaluations, boolean inFlight, boolean persistenceInFlight, long persistenceOperationId, PersistenceOperationKind persistenceOperationKind, long generation, long activityGeneration, long componentRowVersion)
 	{
 		public RuntimeSnapshot
 		{
@@ -862,11 +1191,11 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		}
 	}
 
-	public record EngineSnapshot(State state, int attached, int capacity, int registeredCandidates, int registeredHandlers, long inFlight)
+	public record EngineSnapshot(State state, int attached, int pendingAttaches, int capacity, int registeredCandidates, int registeredHandlers, long inFlight, long persistenceInFlight)
 	{
 		public static EngineSnapshot inactive()
 		{
-			return new EngineSnapshot(State.STOPPED, 0, 0, 0, 0, 0);
+			return new EngineSnapshot(State.STOPPED, 0, 0, 0, 0, 0, 0, 0);
 		}
 	}
 
@@ -883,7 +1212,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		private PhantomPlan _plan;
 		private int _currentStep;
 		private int _attempt;
-		private long _stepStartedNanos;
+		private long _stepStartedNanos = STEP_START_UNSET;
 		private long _retryDueNanos;
 		private String _selectedCandidateKey;
 		private int _selectedScore = -1;
@@ -891,6 +1220,9 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		private String _reasonKey = "goal.absent";
 		private List<CandidateEvaluation> _explanations = List.of();
 		private boolean _inFlight;
+		private boolean _persistenceInFlight;
+		private long _persistenceOperationId;
+		private PersistenceOperationKind _persistenceOperationKind;
 		private boolean _detachPending;
 
 		private RuntimeSlot(long profileId, PhantomCapabilitySet capabilities)
@@ -905,6 +1237,25 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	}
 
 	private record HandlerClaim(RuntimeSlot _slot, long _generation, PhantomGoal _goal, PhantomPlan _plan, PhantomStepHandler _handler, PhantomStepContext _context)
+	{
+	}
+
+	private enum PersistenceFailure
+	{
+		NONE,
+		CONFLICT,
+		FAILURE
+	}
+
+	private record PersistenceClaim(RuntimeSlot _slot, long _operationId, PersistenceOperationKind _kind, PhantomGoal _expectedGoal, long _expectedComponentRowVersion, PhantomGoal _replacementGoal)
+	{
+	}
+
+	private record StoreExecution(StoredGoal _storedGoal, PersistenceFailure _failure)
+	{
+	}
+
+	private record LoadExecution(Optional<StoredGoal> _storedGoal, PersistenceFailure _failure)
 	{
 	}
 }

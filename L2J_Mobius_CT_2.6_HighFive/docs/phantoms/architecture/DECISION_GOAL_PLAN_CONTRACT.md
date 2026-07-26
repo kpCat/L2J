@@ -2,10 +2,11 @@
 
 ## Статус и граница
 
-Контракт введён Goal 008. Он определяет только domain-neutral goal, Utility AI,
-typed plan и bounded executor. Пакет `phantoms/decision` не знает `Player`,
-`GameClient`, packets, combat, navigation, Game Knowledge, population, LLM или
-конкретные игровые capability/action keys.
+Контракт введён Goal 008 и усилен Goal 008A. Он определяет только
+domain-neutral goal, Utility AI, typed plan и bounded executor. Пакет
+`phantoms/decision` не знает `Player`, `GameClient`, packets, combat,
+navigation, Game Knowledge, population, LLM или конкретные игровые
+capability/action keys.
 
 Production Goal 008 запускает decision engine с нулём attached profiles и двумя
 пустыми sealed registries. Scheduler profiles, goals и materialization
@@ -48,12 +49,32 @@ Decoder отклоняет truncation, trailing bytes, неизвестные ve
 - insert/replace/delete используют component API;
 - replace/delete требуют expected component row version;
 - ordinary scheduler tick не читает БД;
-- persistence conflict не retry-ится автоматически и переводит runtime в
-  `PERSISTENCE_CONFLICT_REQUIRES_EXPLICIT_RELOAD`.
+- ни один `GoalStore`/JDBC вызов не выполняется под global decision-engine
+  monitor;
+- attach сначала резервирует bounded pending slot, затем читает store вне
+  monitor и только после этого публикует runtime, если reservation всё ещё
+  принадлежит тому же attach;
+- на runtime допускается ровно один immutable persistence claim с уникальным
+  operation token (operation ID);
+- mutation, reload и terminal write выполняются в две фазы:
+  claim под monitor → store вне monitor → exact reconcile под monitor;
+- concurrent persistence request отклоняется как `BUSY`;
+- optimistic conflict не retry-ится автоматически и переводит runtime в
+  `PERSISTENCE_CONFLICT_REQUIRES_EXPLICIT_RELOAD`;
+- store exception не маскируется под conflict и переводит runtime в
+  `PERSISTENCE_FAILURE_REQUIRES_EXPLICIT_RELOAD`.
 
 Persisted state содержит только goal. Plan, handler, token, candidate
 explanations и executor progress не сериализуются. После restart ACTIVE goal
 получает `NEEDS_REPLAN` без plan.
+
+У engine нет hidden retry worker, background future или дополнительного
+executor. Detach и stop отменяют token/generation, но сохраняют runtime slot до
+возврата owned persistence claim. Поэтому поздний JDBC result не может
+прикрепиться к повторно созданному runtime с тем же profile ID. `beginStop()`,
+cancellation-token reads и операции над другими profiles не ждут blocked
+store. `finishStop()` возвращает `false`, пока остаются pending attach,
+persistence claim или handler in flight.
 
 ## Sealed registries и Utility AI
 
@@ -113,6 +134,12 @@ delay и maximum attempts. Exhaustion/timeout/REPLAN удаляют plan и тр
 нового решения на следующем work item. Terminal handler result сначала
 optimistic-persist-ит terminal goal status.
 
+Значение logical time `0` является допустимым временем старта step. Unset
+представлен отдельным sentinel `-1`; timeout не использует `0` как признак
+отсутствия значения. Замена/очистка/reload goal, activity-generation change и
+stop очищают stale snapshot evidence: selected candidate/score, explanations и
+last result.
+
 `PhantomActivityWorkItem.activityGeneration` меняется только при effective
 activity или lifecycle ownership change. Обычная замена signal с тем же
 effective/lifecycle truth не отменяет plan.
@@ -142,14 +169,21 @@ scheduler.beginStop
 Незавершённый scheduler/engine сохраняет `PhantomSystem` в `FAILED` для
 следующего explicit shutdown.
 
+Goal 008A не меняет порядок Goal 006 lifecycle. Усиление относится только к
+decision-engine quiescence: begin-stop остаётся responsive, а retained runtime
+освобождается только после возврата внешней persistence operation и exact
+reconcile.
+
 ## Fixed metrics и snapshots
 
 Метрики агрегированы и не используют dynamic candidate/goal labels:
 attached current/peak; mutation/reload rejects; decisions/no-goal/no-candidate;
 candidate evaluated/blocked/failed; plan outcomes; step outcomes; conflicts;
-stale results и stop failures.
+persistence failures; stale results и stop failures.
 
 Runtime snapshot bounded: goal identity/revision/status, runtime state,
 decision sequence, selected candidate/score, plan/step/attempt, last result,
 reason key, top-eight evaluations, in-flight marker, generations и component
-row version. История, exception/stack trace и chat text не сохраняются.
+row version, persistence in-flight marker и operation kind. Engine snapshot
+отдельно показывает bounded pending attaches и persistence in flight. История,
+exception/stack trace и chat text не сохраняются.

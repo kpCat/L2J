@@ -102,6 +102,11 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 		registry.add("28-persistence-conflict-requires-reload", _ -> testPersistenceConflict());
 		registry.add("29-terminal-result-persists-goal-only", _ -> testTerminalPersistence());
 		registry.add("30-ordinary-work-performs-no-store-read", _ -> testNoReadsOnTicks());
+		registry.add("31-logical-zero-step-timeout", _ -> testLogicalZeroStepTimeout());
+		registry.add("32-final-success-plan-is-nonterminal-goal", _ -> testFinalSuccessNonTerminalGoal());
+		registry.add("33-goal-boundaries-reset-snapshot-evidence", _ -> testGoalReplacementResetsEvidence());
+		registry.add("34-activity-generation-resets-snapshot-evidence", _ -> testActivityGenerationResetsEvidence());
+		registry.add("35-stop-resets-snapshot-evidence", _ -> testStopResetsEvidence());
 	}
 
 	private void testDomainRef()
@@ -442,6 +447,85 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 		fixture.stop();
 	}
 
+	private void testLogicalZeroStepTimeout()
+	{
+		final AtomicInteger calls = new AtomicInteger();
+		final EngineFixture fixture = startedFixture(_ ->
+		{
+			calls.incrementAndGet();
+			return PhantomStepResult.retry(0, "step.retry");
+		}, 1, 1000, 5);
+		fixture.engine.accept(work(1, 1, 1, 0));
+		fixture.engine.accept(work(1, 1, 2, 6_000_000));
+		final PhantomDecisionEngine.RuntimeSnapshot snapshot = fixture.engine.find(1).orElseThrow();
+		PhantomAssertions.assertEquals(1, calls.get(), "Logical-zero step timeout invoked a retry handler after timeout.");
+		PhantomAssertions.assertEquals(RuntimeState.NEEDS_REPLAN, snapshot.runtimeState(), "Logical-zero step timeout did not request replan.");
+		PhantomAssertions.assertEquals("plan.step_timeout", snapshot.reasonKey(), "Logical-zero timeout was not classified as a step timeout.");
+		fixture.stop();
+	}
+
+	private void testFinalSuccessNonTerminalGoal()
+	{
+		final EngineFixture fixture = startedFixture(_ -> PhantomStepResult.of(PhantomStepResult.Type.SUCCESS, "step.success"), 1);
+		fixture.engine.accept(work(1, 1, 1, 0));
+		final PhantomDecisionEngine.RuntimeSnapshot snapshot = fixture.engine.find(1).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomGoalStatus.ACTIVE, snapshot.goalStatus(), "Final ordinary SUCCESS terminally changed the goal.");
+		PhantomAssertions.assertEquals(RuntimeState.NEEDS_REPLAN, snapshot.runtimeState(), "Final ordinary SUCCESS did not complete only the plan.");
+		PhantomAssertions.assertEquals(0L, snapshot.planId(), "Final ordinary SUCCESS retained a completed plan.");
+		fixture.stop();
+	}
+
+	private void testGoalReplacementResetsEvidence()
+	{
+		final EngineFixture fixture = startedFixture(_ -> PhantomStepResult.of(PhantomStepResult.Type.SUCCESS, "step.success"), 2);
+		fixture.engine.accept(work(1, 1, 1, 0));
+		PhantomAssertions.assertEquals("candidate.test", fixture.engine.find(1).orElseThrow().selectedCandidateKey(), "Fixture did not publish decision evidence.");
+		PhantomAssertions.assertEquals(MutationResult.APPLIED, fixture.engine.setGoal(1, goal(1)), "Goal replacement failed.");
+		assertEvidenceReset(fixture.engine.find(1).orElseThrow(), "Goal replacement");
+		fixture.engine.accept(work(1, 1, 2, 1));
+		PhantomAssertions.assertEquals("candidate.test", fixture.engine.find(1).orElseThrow().selectedCandidateKey(), "Replacement goal did not publish fresh evidence.");
+		PhantomAssertions.assertEquals(PhantomDecisionEngine.ReloadResult.RELOADED, fixture.engine.reload(1), "Explicit reload failed.");
+		assertEvidenceReset(fixture.engine.find(1).orElseThrow(), "Goal reload");
+		fixture.engine.accept(work(1, 1, 3, 2));
+		PhantomAssertions.assertEquals("candidate.test", fixture.engine.find(1).orElseThrow().selectedCandidateKey(), "Reloaded goal did not publish fresh evidence.");
+		PhantomAssertions.assertEquals(MutationResult.APPLIED, fixture.engine.clearGoal(1), "Goal clear failed.");
+		assertEvidenceReset(fixture.engine.find(1).orElseThrow(), "Goal clear");
+		fixture.stop();
+	}
+
+	private void testActivityGenerationResetsEvidence() throws Exception
+	{
+		final BlockingHandler blocking = new BlockingHandler();
+		final EngineFixture fixture = startedFixture(blocking, 1);
+		final Thread worker = new Thread(() -> fixture.engine.accept(work(1, 1, 1, 0)), "t008a-evidence-activity");
+		worker.start();
+		blocking.awaitEntered();
+		PhantomAssertions.assertEquals("candidate.test", fixture.engine.find(1).orElseThrow().selectedCandidateKey(), "Fixture did not publish in-flight decision evidence.");
+		fixture.engine.accept(work(1, 2, 2, 1));
+		assertEvidenceReset(fixture.engine.find(1).orElseThrow(), "Activity generation change");
+		blocking.release();
+		join(worker);
+		fixture.stop();
+	}
+
+	private void testStopResetsEvidence()
+	{
+		final EngineFixture fixture = startedFixture(_ -> PhantomStepResult.of(PhantomStepResult.Type.SUCCESS, "step.success"), 2);
+		fixture.engine.accept(work(1, 1, 1, 0));
+		PhantomAssertions.assertEquals("candidate.test", fixture.engine.find(1).orElseThrow().selectedCandidateKey(), "Fixture did not publish decision evidence.");
+		fixture.engine.beginStop();
+		assertEvidenceReset(fixture.engine.find(1).orElseThrow(), "Stop cancellation");
+		PhantomAssertions.assertTrue(fixture.engine.finishStop(), "Evidence fixture did not stop.");
+	}
+
+	private static void assertEvidenceReset(PhantomDecisionEngine.RuntimeSnapshot snapshot, String boundary)
+	{
+		PhantomAssertions.assertEquals(null, snapshot.selectedCandidateKey(), boundary + " retained selected candidate evidence.");
+		PhantomAssertions.assertEquals(-1, snapshot.selectedScore(), boundary + " retained selected score evidence.");
+		PhantomAssertions.assertTrue(snapshot.topCandidateEvaluations().isEmpty(), boundary + " retained candidate explanations.");
+		PhantomAssertions.assertEquals(null, snapshot.lastResult(), boundary + " retained the previous step result.");
+	}
+
 	private static PhantomGoal goal(long revision)
 	{
 		return new PhantomGoal(1, "goal.test", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("subject", "A"), new PhantomDomainRef("target", "B"), 10, 2, "method.test", List.of(new PhantomDomainRef("source", "B"), new PhantomDomainRef("source", "A")), new PhantomDomainRef("anchor", "C"), "purpose.test", 500, 20, 30, 0, Map.of("constraint.z", 2L, "constraint.a", 1L), "reason.test", revision);
@@ -499,10 +583,23 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 
 	private static EngineFixture fixture(PhantomStepHandler handler, int steps, long planTimeoutMillis)
 	{
+		return fixture(handler, steps, planTimeoutMillis, 1000);
+	}
+
+	private static EngineFixture fixture(PhantomStepHandler handler, int steps, long planTimeoutMillis, long stepTimeoutMillis)
+	{
 		final InMemoryGoalStore store = new InMemoryGoalStore();
 		store.profiles.add(1L);
 		final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
-		candidates.register(candidate("candidate.test", 1000, context -> plan("candidate.test", context.goal().goalId(), context.logicalNowNanos(), steps, planTimeoutMillis)));
+		candidates.register(candidate("candidate.test", 1000, context ->
+		{
+			final List<PhantomPlanStep> planSteps = new ArrayList<>();
+			for (int index = 0; index < steps; index++)
+			{
+				planSteps.add(new PhantomPlanStep(index, "action.test", null, Map.of("argument.test", 1L), stepTimeoutMillis, 2, "reason.test"));
+			}
+			return new PhantomPlan(1, context.goal().goalId(), "candidate.test", planSteps, planTimeoutMillis, context.logicalNowNanos());
+		}));
 		candidates.seal();
 		final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
 		handlers.register("action.test", handler);
@@ -519,7 +616,12 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 
 	private static EngineFixture startedFixture(PhantomStepHandler handler, int steps, long planTimeoutMillis)
 	{
-		final EngineFixture fixture = fixture(handler, steps, planTimeoutMillis);
+		return startedFixture(handler, steps, planTimeoutMillis, 1000);
+	}
+
+	private static EngineFixture startedFixture(PhantomStepHandler handler, int steps, long planTimeoutMillis, long stepTimeoutMillis)
+	{
+		final EngineFixture fixture = fixture(handler, steps, planTimeoutMillis, stepTimeoutMillis);
 		PhantomAssertions.assertEquals(AttachResult.ATTACHED, fixture.engine.attach(1), "Fixture profile did not attach.");
 		PhantomAssertions.assertEquals(MutationResult.APPLIED, fixture.engine.insertGoal(1, goal(0)), "Fixture goal did not insert.");
 		return fixture;
