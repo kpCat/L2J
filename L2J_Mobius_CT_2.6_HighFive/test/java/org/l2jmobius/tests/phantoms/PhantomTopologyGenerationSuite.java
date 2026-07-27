@@ -602,17 +602,33 @@ public final class PhantomTopologyGenerationSuite implements PhantomTestSuite
 	{
 		final Object provider = field(service, "_perceptionProvider");
 		@SuppressWarnings("unchecked")
-		final Map<Object, Long> sequences = (Map<Object, Long>) field(provider, "_sequences");
-		PhantomAssertions.assertFalse(sequences.isEmpty(), "Sequence fixture did not create a provider source.");
-		sequences.replaceAll((_, _) -> Long.MAX_VALUE);
+		final Map<Long, Object> ledgers = (Map<Long, Object>) field(provider, "_signalLedgers");
+		PhantomAssertions.assertFalse(ledgers.isEmpty(), "Sequence fixture did not create a provider ledger.");
+		for (Object ledger : ledgers.values())
+		{
+			for (String fieldName : List.of("_localChatSequence", "_combatSequence", "_targetabilitySequence"))
+			{
+				final Field sequence = ledger.getClass().getDeclaredField(fieldName);
+				sequence.setAccessible(true);
+				sequence.setLong(ledger, Long.MAX_VALUE);
+			}
+		}
 	}
 
 	private static void assertSequencesNonNegative(PhantomTopologyService service) throws Exception
 	{
 		final Object provider = field(service, "_perceptionProvider");
 		@SuppressWarnings("unchecked")
-		final Map<Object, Long> sequences = (Map<Object, Long>) field(provider, "_sequences");
-		PhantomAssertions.assertTrue(sequences.values().stream().allMatch(sequence -> sequence >= 0), "Provider source sequence wrapped negative.");
+		final Map<Long, Object> ledgers = (Map<Long, Object>) field(provider, "_signalLedgers");
+		for (Object ledger : ledgers.values())
+		{
+			for (String fieldName : List.of("_localChatSequence", "_combatSequence", "_targetabilitySequence"))
+			{
+				final Field sequence = ledger.getClass().getDeclaredField(fieldName);
+				sequence.setAccessible(true);
+				PhantomAssertions.assertTrue(sequence.getLong(ledger) >= 0, "Provider source sequence wrapped negative.");
+			}
+		}
 	}
 
 	private static String simpleTopology(String activeNode, int datasetVersion)

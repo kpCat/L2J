@@ -121,7 +121,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		final Fixture fixture = fixture(policyWith(2, 1024));
 		fixture.service.registerProfile(1);
 		fixture.service.registerProfile(2);
-		PhantomAssertions.assertEquals(RegistrationResult.CAPACITY_REACHED, fixture.service.registerProfile(3), "Topology profile capacity was not enforced.");
+		PhantomAssertions.assertEquals(RegistrationResult.SIGNAL_LEDGER_CAPACITY, fixture.service.registerProfile(3), "Topology signal ledger capacity was not enforced before registry publication.");
 		stop(fixture);
 	}
 

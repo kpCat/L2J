@@ -54,6 +54,9 @@ public final class PhantomTopologyMetrics
 	private final AtomicLong _signalCleanupFailures = new AtomicLong();
 	private final AtomicLong _signalCleanupRetries = new AtomicLong();
 	private final AtomicLong _signalSequenceExhausted = new AtomicLong();
+	private final AtomicLong _signalLedgersCurrent = new AtomicLong();
+	private final AtomicLong _signalLedgersPeak = new AtomicLong();
+	private final AtomicLong _signalLedgerCapacity = new AtomicLong();
 	private final AtomicLong _stopFailures = new AtomicLong();
 
 	public void recordLoad()
@@ -185,6 +188,36 @@ public final class PhantomTopologyMetrics
 		_signalSequenceExhausted.incrementAndGet();
 	}
 
+	void configureSignalLedgerCapacity(int capacity)
+	{
+		if (capacity < 1)
+		{
+			throw new IllegalArgumentException("Topology signal ledger capacity must be positive.");
+		}
+		final long existing = _signalLedgerCapacity.get();
+		if ((existing != 0) && (existing != capacity))
+		{
+			throw new IllegalStateException("Topology signal ledger capacity is already configured.");
+		}
+		_signalLedgerCapacity.set(capacity);
+	}
+
+	void recordSignalLedgerReserved()
+	{
+		final long current = _signalLedgersCurrent.incrementAndGet();
+		_signalLedgersPeak.accumulateAndGet(current, Math::max);
+	}
+
+	void recordSignalLedgerReleased()
+	{
+		_signalLedgersCurrent.updateAndGet(value -> Math.max(0, value - 1));
+	}
+
+	void clearSignalLedgers()
+	{
+		_signalLedgersCurrent.set(0);
+	}
+
 	public void recordStopFailure()
 	{
 		_stopFailures.incrementAndGet();
@@ -192,10 +225,10 @@ public final class PhantomTopologyMetrics
 
 	public Snapshot snapshot()
 	{
-		return new Snapshot(_loads.get(), _reloads.get(), _reloadFailures.get(), _validationFailures.get(), _spatialQueries.get(), _nearestQueries.get(), _edgeQueries.get(), _doorChecks.get(), _profilesRegistered.get(), _profilesCurrent.get(), _profilesPeak.get(), _profileUpdatesRejected.get(), _eventsAccepted.get(), _eventsRejected.get(), _eventsInFlight.get(), _eventsPeak.get(), _recipientsConsidered.get(), _recipientsDelivered.get(), _recipientsBackpressured.get(), _recipientsUnregistered.get(), _localChatSignals.get(), _combatSignals.get(), _targetabilitySignals.get(), _reloadSignalInvalidationFailures.get(), _signalCleanupFailures.get(), _signalCleanupRetries.get(), _signalSequenceExhausted.get(), _stopFailures.get());
+		return new Snapshot(_loads.get(), _reloads.get(), _reloadFailures.get(), _validationFailures.get(), _spatialQueries.get(), _nearestQueries.get(), _edgeQueries.get(), _doorChecks.get(), _profilesRegistered.get(), _profilesCurrent.get(), _profilesPeak.get(), _profileUpdatesRejected.get(), _eventsAccepted.get(), _eventsRejected.get(), _eventsInFlight.get(), _eventsPeak.get(), _recipientsConsidered.get(), _recipientsDelivered.get(), _recipientsBackpressured.get(), _recipientsUnregistered.get(), _localChatSignals.get(), _combatSignals.get(), _targetabilitySignals.get(), _reloadSignalInvalidationFailures.get(), _signalCleanupFailures.get(), _signalCleanupRetries.get(), _signalSequenceExhausted.get(), _signalLedgersCurrent.get(), _signalLedgersPeak.get(), _signalLedgerCapacity.get(), _stopFailures.get());
 	}
 
-	public record Snapshot(long loads, long reloads, long reloadFailures, long validationFailures, long spatialQueries, long nearestQueries, long edgeQueries, long doorChecks, long profilesRegistered, long profilesCurrent, long profilesPeak, long profileUpdatesRejected, long eventsAccepted, long eventsRejected, long eventsInFlight, long eventsPeak, long recipientsConsidered, long recipientsDelivered, long recipientsBackpressured, long recipientsUnregistered, long localChatSignals, long combatSignals, long targetabilitySignals, long reloadSignalInvalidationFailures, long signalCleanupFailures, long signalCleanupRetries, long signalSequenceExhausted, long stopFailures)
+	public record Snapshot(long loads, long reloads, long reloadFailures, long validationFailures, long spatialQueries, long nearestQueries, long edgeQueries, long doorChecks, long profilesRegistered, long profilesCurrent, long profilesPeak, long profileUpdatesRejected, long eventsAccepted, long eventsRejected, long eventsInFlight, long eventsPeak, long recipientsConsidered, long recipientsDelivered, long recipientsBackpressured, long recipientsUnregistered, long localChatSignals, long combatSignals, long targetabilitySignals, long reloadSignalInvalidationFailures, long signalCleanupFailures, long signalCleanupRetries, long signalSequenceExhausted, long signalLedgersCurrent, long signalLedgersPeak, long signalLedgerCapacity, long stopFailures)
 	{
 	}
 }

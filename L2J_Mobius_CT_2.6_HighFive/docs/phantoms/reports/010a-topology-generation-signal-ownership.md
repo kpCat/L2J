@@ -4,12 +4,13 @@
 
 ```text
 Status: SUCCESS
-Manual gate: PENDING_INDEPENDENT_REVIEW
+Manual gate: ACCEPT_WITH_010B_BOUNDARY
 Base: e80a641eebaefb59f1bef6bc398084375d2ecd8d
 Branch: feature/phantom-world
 Subject: fix(phantoms): harden topology generation ownership
 Goal 010: FIX_REQUIRED
-Goal 010A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 010A: ACCEPT_WITH_010B_BOUNDARY
+Goal 010B: REQUIRED
 Goal 011: BLOCKED
 Goal 012: NOT_STARTED
 ```
@@ -188,10 +189,40 @@ Push result: во внешнем final handoff
 Git-команды разрешены `TASK.md` для baseline/scope guard, единственного
 ordinary commit и push. Amend, rebase, merge и force push не используются.
 
+## Independent review и immutable handoff
+
+```text
+Commit: f7eb90ecf3badfc615e6ee700d392a5cbb815811
+Parent: e80a641eebaefb59f1bef6bc398084375d2ecd8d
+Push/remote: exact
+Core: 38/38 ×3
+Perception: 28/28 ×3
+Generation: 17/17 ×3
+Corpus: 6/6 ×2
+Performance: 1/1 ×2
+Navigation: 50/50 ×3
+Shutdown: 7/7 ×3
+Verifier: 82/82 ×2, byte-identical
+Verifier SHA-256:
+5751E0AEED65FB392D36CC66716DC985CE747F4801FDB2A99AA085CA5B72A802
+Independent review:
+- generation/signal ordering ACCEPT
+- bounded signal ledger FIX_REQUIRED
+Goal 010B: REQUIRED
+Goal 011: BLOCKED
+```
+
+Generation/reload/unregister ordering Goal 010A принято без revert. Отдельные
+findings lifetime capacity, never-owned inactive allocation и ambiguous
+STALE/submit truth переданы bounded Goal 010B.
+
 ## Recommended next step
 
-Только независимое review Goal 010A. Goal 011 остаётся `BLOCKED`, Goal 012 —
-`NOT_STARTED`.
+Только Goal 010B и её независимый review. Goal 011 остаётся `BLOCKED`, Goal 012
+— `NOT_STARTED`.
 
-Result:
+Historical implementation result:
 `TOPOLOGY_GENERATION_SIGNAL_OWNERSHIP_HARDENED_PENDING_INDEPENDENT_REVIEW`.
+
+Current review result:
+`TOPOLOGY_GENERATION_SIGNAL_ORDERING_ACCEPT_WITH_010B_BOUNDARY`.

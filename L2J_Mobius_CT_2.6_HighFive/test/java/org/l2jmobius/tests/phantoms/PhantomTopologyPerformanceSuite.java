@@ -115,6 +115,9 @@ public final class PhantomTopologyPerformanceSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(EDGE_COUNT, snapshot.edges().size(), "Topology performance edge count changed.");
 		PhantomAssertions.assertEquals(ANCHOR_COUNT, snapshot.anchors().size(), "Topology performance anchor count changed.");
 		PhantomAssertions.assertEquals(PROFILE_COUNT, service.snapshot().registeredProfiles(), "Topology performance profile count changed.");
+		PhantomAssertions.assertEquals(PROFILE_COUNT, service.snapshot().signalLedgersCurrent(), "Topology performance signal ledger count changed.");
+		PhantomAssertions.assertEquals((long) PROFILE_COUNT, service.snapshot().signalLedgersPeak(), "Topology performance signal ledger peak changed.");
+		PhantomAssertions.assertEquals(PROFILE_COUNT, service.snapshot().signalLedgerCapacity(), "Topology performance signal ledger capacity changed.");
 		service.beginStop();
 		PhantomAssertions.assertTrue(service.finishStop(), "Topology performance provider did not stop.");
 		final long elapsedMillis = (System.nanoTime() - started) / 1_000_000;

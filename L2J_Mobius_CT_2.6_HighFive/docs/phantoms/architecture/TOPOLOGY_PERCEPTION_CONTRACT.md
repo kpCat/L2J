@@ -222,3 +222,44 @@ cleanup не допускается. Source sequence использует overfl
 
 Новых executor, thread, Future, background cleanup task или per-profile worker
 Goal 010A не добавляет.
+
+## Goal 010B: bounded signal ledger
+
+Provider владеет одним bounded `profileId → signal ledger` map. Capacity равен
+`maximumRegisteredProfiles` и одновременно учитывает:
+
+- текущие topology registrations;
+- retained sequence tombstones;
+- failed-cleanup tombstones;
+- cleanup operations in flight.
+
+Ledger содержит только три fixed source slots: local chat, combat и
+targetability. Каждый slot хранит monotonic sequence и одно из состояний
+`NEVER_SUBMITTED`, `POSSIBLY_ACTIVE`, `INACTIVE_CONFIRMED`,
+`OWNERSHIP_UNCERTAIN`. Отдельных sequence map, pending-cleanup set, event history
+или per-profile task нет.
+
+Новая registration резервирует ledger до registry publication. Retained
+identity переиспользует прежние sequences; при исчерпании общей capacity
+возвращается `SIGNAL_LEDGER_CAPACITY` без registry mutation. Inactive
+targetability для never-owned ID возвращает unregistered outcome без ledger
+allocation и scheduler call.
+
+`ACCEPTED`/`COALESCED` submit переводит source в `POSSIBLY_ACTIVE`.
+`BACKPRESSURE` и `NOT_REGISTERED` потребляют sequence, но не меняют локальную
+истину. `STALE`, `REJECTED` и `NOT_RUNNING` submit являются явным
+`SIGNAL_FAILURE`; неоднозначное ownership становится
+`OWNERSHIP_UNCERTAIN`.
+
+Withdrawal подтверждает inactive только при `ACCEPTED`, `COALESCED` или
+`NOT_REGISTERED`. `STALE` безопасен исключительно тогда, когда ledger уже
+локально фиксирует `INACTIVE_CONFIRMED`; иначе cleanup fail-closed.
+`BACKPRESSURE`, `REJECTED`, `NOT_RUNNING` и sequence exhaustion не очищают
+возможное ownership.
+
+После unregister успешные `ACCEPTED`/`COALESCED` withdrawals сохраняют ledger
+для monotonic re-registration. Ledger освобождается только когда все три
+withdrawals одного final cleanup pass вернули scheduler `NOT_REGISTERED` и
+profile отсутствует в topology registry, либо при final `STOPPED`. Reload
+использует только существующие registered ledgers, не создаёт новые и не
+публикует candidate при uncertain/failed invalidation.

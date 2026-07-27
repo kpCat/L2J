@@ -425,7 +425,8 @@ public final class PhantomTopologyService
 				lastFailureCategory = _lastFailureCategory;
 			}
 			final PhantomPerceptionProvider.Snapshot perception = _perceptionProvider.snapshot();
-			return new ServiceSnapshot(state, topology == null ? "none" : topology.datasetId(), topology == null ? 0 : topology.datasetVersion(), topology == null ? "none" : topology.canonicalHash(), topology == null ? 0 : topology.generation(), topology == null ? 0 : topology.nodes().size(), topology == null ? 0 : topology.anchors().size(), topology == null ? 0 : topology.edges().size(), perception.registeredProfiles(), perception.eventsInFlight(), perception.cleanupInFlight(), perception.pendingCleanups(), lastFailureCategory, _metrics.snapshot());
+			final PhantomTopologyMetrics.Snapshot metrics = _metrics.snapshot();
+			return new ServiceSnapshot(state, topology == null ? "none" : topology.datasetId(), topology == null ? 0 : topology.datasetVersion(), topology == null ? "none" : topology.canonicalHash(), topology == null ? 0 : topology.generation(), topology == null ? 0 : topology.nodes().size(), topology == null ? 0 : topology.anchors().size(), topology == null ? 0 : topology.edges().size(), perception.registeredProfiles(), perception.eventsInFlight(), perception.cleanupInFlight(), perception.pendingCleanups(), perception.signalLedgers(), metrics.signalLedgersPeak(), perception.signalLedgerCapacity(), lastFailureCategory, metrics);
 		}
 	}
 
@@ -437,11 +438,11 @@ public final class PhantomTopologyService
 		}
 	}
 
-	public record ServiceSnapshot(State state, String datasetId, int datasetVersion, String canonicalHash, long generation, int nodes, int anchors, int edges, int registeredProfiles, int eventsInFlight, int cleanupInFlight, int pendingSignalCleanups, String lastFailureCategory, PhantomTopologyMetrics.Snapshot metrics)
+	public record ServiceSnapshot(State state, String datasetId, int datasetVersion, String canonicalHash, long generation, int nodes, int anchors, int edges, int registeredProfiles, int eventsInFlight, int cleanupInFlight, int pendingSignalCleanups, int signalLedgersCurrent, long signalLedgersPeak, int signalLedgerCapacity, String lastFailureCategory, PhantomTopologyMetrics.Snapshot metrics)
 	{
 		public static ServiceSnapshot inactive()
 		{
-			return new ServiceSnapshot(State.STOPPED, "none", 0, "none", 0, 0, 0, 0, 0, 0, 0, 0, "none", new PhantomTopologyMetrics().snapshot());
+			return new ServiceSnapshot(State.STOPPED, "none", 0, "none", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "none", new PhantomTopologyMetrics().snapshot());
 		}
 	}
 

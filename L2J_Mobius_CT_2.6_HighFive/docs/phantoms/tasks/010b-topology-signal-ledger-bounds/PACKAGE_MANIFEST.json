@@ -1,0 +1,26 @@
+{
+  "package": "phantom-world-goal-010b-topology-signal-ledger-bounds",
+  "taskId": "010b-topology-signal-ledger-bounds",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/010b-topology-signal-ledger-bounds/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "f7eb90ecf3badfc615e6ee700d392a5cbb815811",
+  "schemaChanges": false,
+  "configChanges": false,
+  "topologyDataChanges": false,
+  "schedulerImplementationChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal011Started": false,
+  "goal012Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "LEDGER_CONTRACT.md",
+    "DELIVERY_TRUTH.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

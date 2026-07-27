@@ -39,6 +39,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyGenerationCoord
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.ProfileTopologySnapshot;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrationResult;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RemovalResult;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologySignalLedger.SourceState;
 
 /**
  * Synchronous one-hop perception provider with exact generation and signal
@@ -77,6 +78,14 @@ public final class PhantomPerceptionProvider
 	}
 
 	record UnregisterAttempt(RemovalResult removal, CleanupStatus cleanup)
+	{
+	}
+
+	private record SignalOperation(SignalDelivery delivery, boolean signalFailure, boolean schedulerAbsent)
+	{
+	}
+
+	private record CleanupPass(boolean complete, boolean allNotRegistered)
 	{
 	}
 
@@ -139,13 +148,11 @@ public final class PhantomPerceptionProvider
 	private final Supplier<View> _viewSupplier;
 	private final PhantomRelevanceSignalPort _signalPort;
 	private final PhantomTopologyMetrics _metrics;
-	private final Map<SequenceKey, Long> _sequences = new HashMap<>();
-	private final Set<Long> _pendingCleanup = new HashSet<>();
+	private final Map<Long, PhantomTopologySignalLedger> _signalLedgers = new HashMap<>();
 	private final Set<Long> _activeEventTokens = new HashSet<>();
 	private State _state = State.NEW;
 	private long _eventGeneration;
 	private long _nextEventToken;
-	private int _cleanupInFlight;
 
 	PhantomPerceptionProvider(PhantomTopologyPolicy policy, PhantomTopologyProfileRegistry registry, PhantomTopologyGenerationCoordinator generationCoordinator, Supplier<View> viewSupplier, PhantomRelevanceSignalPort signalPort, PhantomTopologyMetrics metrics)
 	{
@@ -155,6 +162,7 @@ public final class PhantomPerceptionProvider
 		_viewSupplier = Objects.requireNonNull(viewSupplier, "viewSupplier");
 		_signalPort = Objects.requireNonNull(signalPort, "signalPort");
 		_metrics = Objects.requireNonNull(metrics, "metrics");
+		_metrics.configureSignalLedgerCapacity(policy.maximumRegisteredProfiles());
 	}
 
 	boolean start(long generation)
@@ -174,18 +182,53 @@ public final class PhantomPerceptionProvider
 	{
 		synchronized (_deliveryGate)
 		{
+			if (profileId <= 0)
+			{
+				return RegistrationResult.INVALID_PROFILE_ID;
+			}
+			final PhantomTopologySignalLedger ledger;
+			final boolean created;
 			synchronized (_monitor)
 			{
 				if (_state != State.RUNNING)
 				{
 					return RegistrationResult.NOT_RUNNING;
 				}
-				if (_pendingCleanup.contains(profileId))
+				final PhantomTopologySignalLedger existing = _signalLedgers.get(profileId);
+				if ((existing != null) && (existing.cleanupPending() || existing.cleanupInFlight()))
 				{
 					return RegistrationResult.CLEANUP_PENDING;
 				}
+				if (existing != null)
+				{
+					ledger = existing;
+					created = false;
+				}
+				else
+				{
+					if (_signalLedgers.size() >= _policy.maximumRegisteredProfiles())
+					{
+						return RegistrationResult.SIGNAL_LEDGER_CAPACITY;
+					}
+					ledger = new PhantomTopologySignalLedger(profileId);
+					_signalLedgers.put(profileId, ledger);
+					_metrics.recordSignalLedgerReserved();
+					created = true;
+				}
 			}
-			return _registry.register(profileId, generation);
+			final RegistrationResult registration = _registry.register(profileId, generation);
+			if (created && (registration != RegistrationResult.REGISTERED))
+			{
+				synchronized (_monitor)
+				{
+					if ((_signalLedgers.get(profileId) == ledger) && ledger.isEmptyReservation())
+					{
+						_signalLedgers.remove(profileId);
+						_metrics.recordSignalLedgerReleased();
+					}
+				}
+			}
+			return registration;
 		}
 	}
 
@@ -205,18 +248,10 @@ public final class PhantomPerceptionProvider
 			{
 				return new UnregisterAttempt(removal, CleanupStatus.NOT_REQUIRED);
 			}
-			final CleanupStatus cleanup = cleanupSources(profileId);
-			synchronized (_monitor)
+			final CleanupStatus cleanup = cleanupSources(profileId, true);
+			if (cleanup != CleanupStatus.COMPLETE)
 			{
-				if (cleanup == CleanupStatus.COMPLETE)
-				{
-					_pendingCleanup.remove(profileId);
-				}
-				else
-				{
-					_pendingCleanup.add(profileId);
-					_metrics.recordSignalCleanupFailure();
-				}
+				_metrics.recordSignalCleanupFailure();
 			}
 			return new UnregisterAttempt(removal, cleanup);
 		}
@@ -232,23 +267,17 @@ public final class PhantomPerceptionProvider
 				{
 					return CleanupStatus.NOT_RUNNING;
 				}
-				if (!_pendingCleanup.contains(profileId))
+				final PhantomTopologySignalLedger ledger = _signalLedgers.get(profileId);
+				if ((ledger == null) || !ledger.cleanupPending())
 				{
 					return CleanupStatus.NOT_REQUIRED;
 				}
 				_metrics.recordSignalCleanupRetry();
 			}
-			final CleanupStatus cleanup = cleanupSources(profileId);
-			synchronized (_monitor)
+			final CleanupStatus cleanup = cleanupSources(profileId, true);
+			if (cleanup != CleanupStatus.COMPLETE)
 			{
-				if (cleanup == CleanupStatus.COMPLETE)
-				{
-					_pendingCleanup.remove(profileId);
-				}
-				else
-				{
-					_metrics.recordSignalCleanupFailure();
-				}
+				_metrics.recordSignalCleanupFailure();
 			}
 			return cleanup;
 		}
@@ -264,22 +293,11 @@ public final class PhantomPerceptionProvider
 				{
 					return CleanupStatus.NOT_RUNNING;
 				}
-				_cleanupInFlight++;
 			}
 			boolean complete = true;
-			try
+			for (Long profileId : profileIds.stream().sorted().toList())
 			{
-				for (Long profileId : profileIds.stream().sorted().toList())
-				{
-					complete &= withdrawOwnedSources(profileId);
-				}
-			}
-			finally
-			{
-				synchronized (_monitor)
-				{
-					_cleanupInFlight--;
-				}
+				complete &= cleanupSources(profileId, false) == CleanupStatus.COMPLETE;
 			}
 			return complete ? CleanupStatus.COMPLETE : CleanupStatus.FAILED;
 		}
@@ -346,7 +364,7 @@ public final class PhantomPerceptionProvider
 			{
 				return new EventResult(EventStatus.NOT_RUNNING, 0, 0, 0, 0);
 			}
-			final SignalDelivery delivery;
+			final SignalOperation operation;
 			if (event.active())
 			{
 				if (_registry.find(event.targetProfileId(), view.generation()).isEmpty())
@@ -354,14 +372,14 @@ public final class PhantomPerceptionProvider
 					_metrics.recordRecipientUnregistered();
 					return new EventResult(EventStatus.ACCEPTED, 1, 0, 0, 1);
 				}
-				delivery = deliver(token, event.targetProfileId(), TARGETABILITY_SOURCE, PhantomActivityState.ACTIVE, event.ttlMillis(), view.generation(), true);
+				operation = deliver(token, event.targetProfileId(), TARGETABILITY_SOURCE, PhantomActivityState.ACTIVE, event.ttlMillis(), view.generation(), true);
 			}
 			else
 			{
-				delivery = withdrawEvent(token, event.targetProfileId(), TARGETABILITY_SOURCE);
+				operation = withdrawEvent(token, event.targetProfileId(), TARGETABILITY_SOURCE);
 			}
 			_metrics.recordTargetabilitySignal();
-			return resultForSingle(delivery);
+			return resultForSingle(operation);
 		}
 		finally
 		{
@@ -419,7 +437,8 @@ public final class PhantomPerceptionProvider
 		{
 			considered++;
 			_metrics.recordRecipientConsidered();
-			final SignalDelivery delivery = deliver(token, recipient.getKey(), sourceKey, recipient.getValue(), ttlMillis, view.generation(), true);
+			final SignalOperation operation = deliver(token, recipient.getKey(), sourceKey, recipient.getValue(), ttlMillis, view.generation(), true);
+			final SignalDelivery delivery = operation.delivery();
 			if ((delivery == SignalDelivery.ACCEPTED) || (delivery == SignalDelivery.COALESCED))
 			{
 				delivered++;
@@ -435,7 +454,7 @@ public final class PhantomPerceptionProvider
 				unregistered++;
 				_metrics.recordRecipientUnregistered();
 			}
-			else if (delivery == SignalDelivery.SEQUENCE_EXHAUSTED)
+			else if (operation.signalFailure())
 			{
 				signalFailure = true;
 			}
@@ -451,7 +470,7 @@ public final class PhantomPerceptionProvider
 		return new EventResult(signalFailure ? EventStatus.SIGNAL_FAILURE : EventStatus.ACCEPTED, considered, delivered, backpressured, unregistered);
 	}
 
-	private SignalDelivery deliver(EventToken token, long profileId, String sourceKey, PhantomActivityState requiredState, long ttlMillis, long topologyGeneration, boolean registrationRequired)
+	private SignalOperation deliver(EventToken token, long profileId, String sourceKey, PhantomActivityState requiredState, long ttlMillis, long topologyGeneration, boolean registrationRequired)
 	{
 		if (requiredState.code() > PhantomActivityState.NEARBY_PERCEPTIBLE.code())
 		{
@@ -461,98 +480,211 @@ public final class PhantomPerceptionProvider
 		{
 			if (!isCurrent(token))
 			{
-				return SignalDelivery.NOT_RUNNING;
+				return failedOperation(SignalDelivery.NOT_RUNNING);
 			}
 			if (registrationRequired && _registry.find(profileId, topologyGeneration).isEmpty())
 			{
-				return SignalDelivery.NOT_REGISTERED;
+				return new SignalOperation(SignalDelivery.NOT_REGISTERED, false, true);
 			}
-			final Long sequence = allocateSequence(profileId, sourceKey);
+			final PhantomTopologySignalLedger ledger = signalLedger(profileId);
+			if (ledger == null)
+			{
+				return failedOperation(SignalDelivery.REJECTED);
+			}
+			final Long sequence = allocateSequence(ledger, sourceKey);
 			if (sequence == null)
 			{
-				return SignalDelivery.SEQUENCE_EXHAUSTED;
+				return failedOperation(SignalDelivery.SEQUENCE_EXHAUSTED);
 			}
-			return _signalPort.submit(profileId, new PhantomRelevanceSignal(sourceKey, sequence, requiredState, ttlMillis));
+			final SignalDelivery delivery = _signalPort.submit(profileId, new PhantomRelevanceSignal(sourceKey, sequence, requiredState, ttlMillis));
+			applySubmitResult(ledger, sourceKey, delivery);
+			return new SignalOperation(delivery, isImpossibleSubmit(delivery), false);
 		}
 	}
 
-	private SignalDelivery withdrawEvent(EventToken token, long profileId, String sourceKey)
+	private SignalOperation withdrawEvent(EventToken token, long profileId, String sourceKey)
 	{
 		synchronized (_deliveryGate)
 		{
 			if (!isCurrent(token))
 			{
-				return SignalDelivery.NOT_RUNNING;
+				return failedOperation(SignalDelivery.NOT_RUNNING);
 			}
-			final Long sequence = allocateSequence(profileId, sourceKey);
-			if (sequence == null)
+			final PhantomTopologySignalLedger ledger = signalLedger(profileId);
+			if (ledger == null)
 			{
-				return SignalDelivery.SEQUENCE_EXHAUSTED;
+				return new SignalOperation(SignalDelivery.NOT_REGISTERED, false, true);
 			}
-			return _signalPort.withdraw(profileId, sourceKey, sequence);
+			return withdrawSource(ledger, sourceKey);
 		}
 	}
 
-	private CleanupStatus cleanupSources(long profileId)
+	private CleanupStatus cleanupSources(long profileId, boolean releaseEligible)
 	{
+		final PhantomTopologySignalLedger ledger;
 		synchronized (_monitor)
 		{
 			if (_state != State.RUNNING)
 			{
 				return CleanupStatus.NOT_RUNNING;
 			}
-			_cleanupInFlight++;
+			ledger = _signalLedgers.get(profileId);
+			if ((ledger == null) || ledger.cleanupInFlight())
+			{
+				return CleanupStatus.FAILED;
+			}
+			ledger.cleanupInFlight(true);
 		}
+
 		try
 		{
-			return withdrawOwnedSources(profileId) ? CleanupStatus.COMPLETE : CleanupStatus.FAILED;
+			final CleanupPass pass = withdrawOwnedSources(ledger);
+			final boolean profileRegistered = releaseEligible && _registry.find(profileId).isPresent();
+			synchronized (_monitor)
+			{
+				if (_signalLedgers.get(profileId) != ledger)
+				{
+					return CleanupStatus.FAILED;
+				}
+				if (!pass.complete())
+				{
+					if (releaseEligible)
+					{
+						ledger.cleanupPending(true);
+					}
+					return CleanupStatus.FAILED;
+				}
+				ledger.cleanupPending(false);
+				if (releaseEligible && pass.allNotRegistered() && !profileRegistered)
+				{
+					_signalLedgers.remove(profileId);
+					_metrics.recordSignalLedgerReleased();
+				}
+				return CleanupStatus.COMPLETE;
+			}
 		}
 		finally
 		{
 			synchronized (_monitor)
 			{
-				_cleanupInFlight--;
+				if (_signalLedgers.get(profileId) == ledger)
+				{
+					ledger.cleanupInFlight(false);
+				}
 			}
 		}
 	}
 
-	private boolean withdrawOwnedSources(long profileId)
+	private CleanupPass withdrawOwnedSources(PhantomTopologySignalLedger ledger)
 	{
 		boolean complete = true;
+		boolean allNotRegistered = true;
 		for (String sourceKey : OWNED_SOURCES)
 		{
-			final Long sequence = allocateSequence(profileId, sourceKey);
+			final SignalOperation operation = withdrawSource(ledger, sourceKey);
+			complete &= isSuccessfulWithdrawal(operation);
+			allNotRegistered &= operation.schedulerAbsent();
+		}
+		return new CleanupPass(complete, allNotRegistered);
+	}
+
+	private SignalOperation withdrawSource(PhantomTopologySignalLedger ledger, String sourceKey)
+	{
+		final SourceState previousState;
+		final Long sequence;
+		synchronized (_monitor)
+		{
+			if (_signalLedgers.get(ledger.profileId()) != ledger)
+			{
+				return failedOperation(SignalDelivery.REJECTED);
+			}
+			previousState = ledger.sourceState(sourceKey);
+			sequence = ledger.allocateSequence(sourceKey);
 			if (sequence == null)
 			{
-				complete = false;
-				continue;
+				_metrics.recordSignalSequenceExhausted();
+				return failedOperation(SignalDelivery.SEQUENCE_EXHAUSTED);
 			}
-			final SignalDelivery delivery = _signalPort.withdraw(profileId, sourceKey, sequence);
-			complete &= isSuccessfulWithdrawal(delivery);
 		}
-		return complete;
+		final SignalDelivery delivery = _signalPort.withdraw(ledger.profileId(), sourceKey, sequence);
+		synchronized (_monitor)
+		{
+			if (_signalLedgers.get(ledger.profileId()) != ledger)
+			{
+				return failedOperation(SignalDelivery.REJECTED);
+			}
+			if ((delivery == SignalDelivery.ACCEPTED) || (delivery == SignalDelivery.COALESCED) || (delivery == SignalDelivery.NOT_REGISTERED))
+			{
+				ledger.sourceState(sourceKey, SourceState.INACTIVE_CONFIRMED);
+			}
+			else if ((delivery == SignalDelivery.STALE) && (previousState != SourceState.INACTIVE_CONFIRMED))
+			{
+				ledger.sourceState(sourceKey, SourceState.OWNERSHIP_UNCERTAIN);
+			}
+		}
+		final boolean staleSafe = (delivery == SignalDelivery.STALE) && (previousState == SourceState.INACTIVE_CONFIRMED);
+		final boolean signalFailure = ((delivery == SignalDelivery.STALE) && !staleSafe) || (delivery == SignalDelivery.REJECTED) || (delivery == SignalDelivery.NOT_RUNNING) || (delivery == SignalDelivery.SEQUENCE_EXHAUSTED);
+		return new SignalOperation(delivery, signalFailure, delivery == SignalDelivery.NOT_REGISTERED);
 	}
 
-	private static boolean isSuccessfulWithdrawal(SignalDelivery delivery)
+	private static boolean isSuccessfulWithdrawal(SignalOperation operation)
 	{
-		return (delivery == SignalDelivery.ACCEPTED) || (delivery == SignalDelivery.COALESCED) || (delivery == SignalDelivery.STALE) || (delivery == SignalDelivery.NOT_REGISTERED);
+		final SignalDelivery delivery = operation.delivery();
+		return (delivery == SignalDelivery.ACCEPTED) || (delivery == SignalDelivery.COALESCED) || (delivery == SignalDelivery.NOT_REGISTERED) || ((delivery == SignalDelivery.STALE) && !operation.signalFailure());
 	}
 
-	private Long allocateSequence(long profileId, String sourceKey)
+	private PhantomTopologySignalLedger signalLedger(long profileId)
 	{
 		synchronized (_monitor)
 		{
-			final SequenceKey key = new SequenceKey(profileId, sourceKey);
-			final long current = _sequences.getOrDefault(key, 0L);
-			if (current == Long.MAX_VALUE)
+			return _signalLedgers.get(profileId);
+		}
+	}
+
+	private Long allocateSequence(PhantomTopologySignalLedger ledger, String sourceKey)
+	{
+		synchronized (_monitor)
+		{
+			if (_signalLedgers.get(ledger.profileId()) != ledger)
 			{
-				_metrics.recordSignalSequenceExhausted();
 				return null;
 			}
-			final long next = Math.addExact(current, 1L);
-			_sequences.put(key, next);
-			return next;
+			final Long sequence = ledger.allocateSequence(sourceKey);
+			if (sequence == null)
+			{
+				_metrics.recordSignalSequenceExhausted();
+			}
+			return sequence;
 		}
+	}
+
+	private void applySubmitResult(PhantomTopologySignalLedger ledger, String sourceKey, SignalDelivery delivery)
+	{
+		synchronized (_monitor)
+		{
+			if (_signalLedgers.get(ledger.profileId()) != ledger)
+			{
+				return;
+			}
+			if ((delivery == SignalDelivery.ACCEPTED) || (delivery == SignalDelivery.COALESCED))
+			{
+				ledger.sourceState(sourceKey, SourceState.POSSIBLY_ACTIVE);
+			}
+			else if ((delivery == SignalDelivery.STALE) || (delivery == SignalDelivery.REJECTED) || (delivery == SignalDelivery.NOT_RUNNING))
+			{
+				ledger.sourceState(sourceKey, SourceState.OWNERSHIP_UNCERTAIN);
+			}
+		}
+	}
+
+	private static boolean isImpossibleSubmit(SignalDelivery delivery)
+	{
+		return (delivery == SignalDelivery.STALE) || (delivery == SignalDelivery.REJECTED) || (delivery == SignalDelivery.NOT_RUNNING) || (delivery == SignalDelivery.SEQUENCE_EXHAUSTED);
+	}
+
+	private static SignalOperation failedOperation(SignalDelivery delivery)
+	{
+		return new SignalOperation(delivery, true, false);
 	}
 
 	private EventToken claim()
@@ -608,8 +740,9 @@ public final class PhantomPerceptionProvider
 		}
 	}
 
-	private EventResult resultForSingle(SignalDelivery delivery)
+	private EventResult resultForSingle(SignalOperation operation)
 	{
+		final SignalDelivery delivery = operation.delivery();
 		_metrics.recordRecipientConsidered();
 		if ((delivery == SignalDelivery.ACCEPTED) || (delivery == SignalDelivery.COALESCED))
 		{
@@ -626,7 +759,7 @@ public final class PhantomPerceptionProvider
 			_metrics.recordRecipientUnregistered();
 			return new EventResult(EventStatus.ACCEPTED, 1, 0, 0, 1);
 		}
-		if (delivery == SignalDelivery.SEQUENCE_EXHAUSTED)
+		if (operation.signalFailure())
 		{
 			return new EventResult(EventStatus.SIGNAL_FAILURE, 1, 0, 0, 0);
 		}
@@ -668,7 +801,7 @@ public final class PhantomPerceptionProvider
 				_metrics.recordStopFailure();
 				return false;
 			}
-			if (!_activeEventTokens.isEmpty() || (_cleanupInFlight != 0))
+			if (!_activeEventTokens.isEmpty() || (_signalLedgers.values().stream().anyMatch(PhantomTopologySignalLedger::cleanupInFlight)))
 			{
 				_metrics.recordStopFailure();
 				return false;
@@ -678,8 +811,8 @@ public final class PhantomPerceptionProvider
 				_metrics.recordStopFailure();
 				return false;
 			}
-			_sequences.clear();
-			_pendingCleanup.clear();
+			_signalLedgers.clear();
+			_metrics.clearSignalLedgers();
 			_state = State.STOPPED;
 			return true;
 		}
@@ -689,15 +822,17 @@ public final class PhantomPerceptionProvider
 	{
 		synchronized (_monitor)
 		{
-			return new Snapshot(_state, _registry.size(), _activeEventTokens.size(), _cleanupInFlight, _pendingCleanup.size(), _eventGeneration);
+			final int cleanupInFlight = (int) _signalLedgers.values().stream().filter(PhantomTopologySignalLedger::cleanupInFlight).count();
+			final int pendingCleanups = (int) _signalLedgers.values().stream().filter(PhantomTopologySignalLedger::cleanupPending).count();
+			return new Snapshot(_state, _registry.size(), _activeEventTokens.size(), cleanupInFlight, pendingCleanups, _signalLedgers.size(), _policy.maximumRegisteredProfiles(), _eventGeneration);
 		}
 	}
 
-	public record Snapshot(State state, int registeredProfiles, int eventsInFlight, int cleanupInFlight, int pendingCleanups, long eventGeneration)
+	public record Snapshot(State state, int registeredProfiles, int eventsInFlight, int cleanupInFlight, int pendingCleanups, int signalLedgers, int signalLedgerCapacity, long eventGeneration)
 	{
 		public static Snapshot inactive()
 		{
-			return new Snapshot(State.STOPPED, 0, 0, 0, 0, 0);
+			return new Snapshot(State.STOPPED, 0, 0, 0, 0, 0, 0, 0);
 		}
 	}
 
@@ -705,7 +840,4 @@ public final class PhantomPerceptionProvider
 	{
 	}
 
-	private record SequenceKey(long profileId, String sourceKey)
-	{
-	}
 }

@@ -15,7 +15,7 @@
 0780c77ae605d8b2c36a4ff0345092506fb9f9c5
 
 Текущий branch HEAD под ревью:
-Goal 010A topology generation/signal ownership hardening — commit SHA во внешнем final handoff
+Goal 010B topology signal-ledger bounds — commit SHA во внешнем final handoff
 
 Task 004 technical feasibility:
 ACCEPT
@@ -60,7 +60,9 @@ Goal 009A: ACCEPT
 
 Goal 010: FIX_REQUIRED
 
-Goal 010A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 010A: ACCEPT_WITH_010B_BOUNDARY
+
+Goal 010B: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 011: BLOCKED
 
@@ -76,9 +78,10 @@ Goal 006B приняты; Goal 006 overall имеет `ACCEPT`, а Этап I з
 и Goal 007A приняты. Независимое review Goal 008 потребовало bounded Goal 008A;
 hardening принят на baseline `6ecd8ba1...`. Архитектурное направление Goal 009
 принято после independently accepted Goal 009A на baseline `0780c77a...`.
-Независимое review Goal 010 потребовало bounded Goal 010A. Goal 010A
-реализована и ожидает независимого review; Goal 011 заблокирована, Goal 012 не
-начата.
+Независимое review Goal 010 потребовало bounded Goal 010A. Generation/signal
+ordering Goal 010A принято, но независимое review выявило отдельную bounded
+границу lifetime signal ownership. Goal 010B реализована и ожидает независимого
+review; Goal 011 заблокирована, Goal 012 не начата.
 
 ---
 
@@ -326,7 +329,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `FIX_REQUIRED`; Goal 010A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 011 — `BLOCKED`; Goal 012 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `FIX_REQUIRED`; Goal 010A — `ACCEPT_WITH_010B_BOUNDARY`; Goal 010B — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 011 — `BLOCKED`; Goal 012 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -531,10 +534,18 @@ dispatch/stop ordering и aggregate shutdown diagnostic; independent review —
 **Gate:** perceptible neighbor cannot be demoted to pure statistics.  
 **Follow-up risk:** `HIGH` — map completeness and perceptibility correctness.
 
-Goal 010A устраняет только findings ownership: exact topology generation для
-profile update и perception delivery, полная пересборка memberships с
-инвалидацией provider-owned sources до swap, а также явный retryable cleanup
-при unregister. До независимого принятия Goal 010A следующий Goal не начинается.
+Goal 010A устранила findings generation/signal ordering: exact topology
+generation для profile update и perception delivery, полная пересборка
+memberships с инвалидацией provider-owned sources до swap, а также явный
+retryable cleanup при unregister. Независимое review приняло это направление,
+но потребовало Goal 010B для bounded lifetime signal ownership.
+
+Goal 010B заменяет исторические sequence identities и отдельные cleanup
+tombstones одним capped per-profile ledger с тремя fixed sources. Active,
+retained и failed-cleanup identities используют общий
+`maximumRegisteredProfiles`; release разрешён только после all-three scheduler
+`NOT_REGISTERED` evidence либо final stop. Реализация ожидает независимого
+review, поэтому следующий Goal не начинается.
 
 ## Goal 011 — Authoritative Game Knowledge и reverse indexes — `BLOCKED`
 
@@ -1014,10 +1025,10 @@ Current stage:
 II. Scheduler, goals, navigation and authoritative knowledge
 
 Current accepted baseline:
-0780c77ae605d8b2c36a4ff0345092506fb9f9c5
+f7eb90ecf3badfc615e6ee700d392a5cbb815811
 
 Current branch HEAD under review:
-Goal 010A topology generation/signal ownership hardening — commit SHA во внешнем final handoff
+Goal 010B topology signal-ledger bounds — commit SHA во внешнем final handoff
 
 Completed:
 - 001 / 001A
@@ -1041,10 +1052,11 @@ Completed:
 
 In progress / required closure:
 - Goal 010 FIX_REQUIRED
-- Goal 010A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 010A ACCEPT_WITH_010B_BOUNDARY
+- Goal 010B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 010A
+1. Independent review Goal 010B
 2. Goal 011 remains BLOCKED
 3. Goal 012 remains NOT_STARTED
 
@@ -1076,7 +1088,8 @@ Overall:
   Goal 009 ACCEPT after Goal 009A;
   Goal 009A ACCEPT;
   Goal 010 FIX_REQUIRED;
-  Goal 010A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 010A ACCEPT_WITH_010B_BOUNDARY;
+  Goal 010B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
   Goal 011 BLOCKED;
   Goal 012 NOT_STARTED
 ```
