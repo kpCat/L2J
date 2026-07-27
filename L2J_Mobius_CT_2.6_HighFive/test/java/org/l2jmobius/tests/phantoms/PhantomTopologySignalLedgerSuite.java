@@ -259,17 +259,23 @@ public final class PhantomTopologySignalLedgerSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(UnregisterResult.UNREGISTERED_WITH_SIGNAL_FAILURE, fixture.service.unregisterProfile(1), "STALE possibly-active cleanup was treated as success.");
 			PhantomAssertions.assertEquals(1, fixture.service.snapshot().pendingSignalCleanups(), "STALE ownership uncertainty was not retained.");
 			PhantomAssertions.assertEquals("OWNERSHIP_UNCERTAIN", sourceState(fixture.service, 1, "_targetabilityState"), "STALE possibly-active source did not fail closed.");
+			PhantomAssertions.assertEquals(CleanupRetryResult.SIGNAL_FAILURE, fixture.service.retryProfileSignalCleanup(1), "STALE uncertain cleanup retry was treated as success.");
+			PhantomAssertions.assertEquals(1, fixture.service.snapshot().pendingSignalCleanups(), "STALE uncertain retry cleared pending ownership.");
+			PhantomAssertions.assertEquals("OWNERSHIP_UNCERTAIN", sourceState(fixture.service, 1, "_targetabilityState"), "STALE uncertain retry changed fail-closed ownership.");
 		}
 	}
 
-	private void testStaleConfirmedInactive()
+	private void testStaleConfirmedInactive() throws Exception
 	{
 		try (Fixture fixture = fixture(1))
 		{
 			fixture.service.registerProfile(1);
-			fixture.service.unregisterProfile(1);
-			fixture.service.registerProfile(1);
 			fixture.port._withdrawStatus = SignalDelivery.STALE;
+			PhantomAssertions.assertEquals(UnregisterResult.UNREGISTERED_AND_WITHDRAWN, fixture.service.unregisterProfile(1), "STALE never-submitted cleanup was not accepted.");
+			PhantomAssertions.assertEquals("INACTIVE_CONFIRMED", sourceState(fixture.service, 1, "_localChatState"), "STALE never-submitted source did not become inactive.");
+			PhantomAssertions.assertEquals("INACTIVE_CONFIRMED", sourceState(fixture.service, 1, "_combatState"), "STALE never-submitted source did not become inactive.");
+			PhantomAssertions.assertEquals("INACTIVE_CONFIRMED", sourceState(fixture.service, 1, "_targetabilityState"), "STALE never-submitted source did not become inactive.");
+			fixture.service.registerProfile(1);
 			PhantomAssertions.assertEquals(UnregisterResult.UNREGISTERED_AND_WITHDRAWN, fixture.service.unregisterProfile(1), "STALE locally inactive cleanup was not accepted.");
 			PhantomAssertions.assertEquals(0, fixture.service.snapshot().pendingSignalCleanups(), "Safe STALE cleanup remained pending.");
 			PhantomAssertions.assertEquals(1, fixture.service.snapshot().signalLedgersCurrent(), "STALE cleanup incorrectly proved scheduler profile absence.");

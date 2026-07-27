@@ -22,6 +22,9 @@ package org.l2jmobius.gameserver.phantoms.topology;
 
 /**
  * Fixed per-profile ownership for the three topology scheduler sources.
+ * NEVER_SUBMITTED is local proof only because these source keys are exclusively
+ * emitted by one provider and the ledger spans its unregister/re-register
+ * lifetime.
  */
 final class PhantomTopologySignalLedger
 {

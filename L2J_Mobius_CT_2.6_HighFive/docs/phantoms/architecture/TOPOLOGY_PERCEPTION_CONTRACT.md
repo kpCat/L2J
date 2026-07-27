@@ -263,3 +263,22 @@ withdrawals одного final cleanup pass вернули scheduler `NOT_REGIST
 profile отсутствует в topology registry, либо при final `STOPPED`. Reload
 использует только существующие registered ledgers, не создаёт новые и не
 публикует candidate при uncertain/failed invalidation.
+
+## Goal 010C: reconciliation отсутствующего scheduler source
+
+Три reserved source key эмитирует исключительно `PhantomPerceptionProvider`.
+Ledger создаётся до topology registration и переживает unregister/re-register
+в пределах lifetime одного topology service. Поэтому `NEVER_SUBMITTED`
+локально доказывает, что этот provider ещё не выполнил успешный
+`ACCEPTED`/`COALESCED` submit данного source.
+
+Если реальный scheduler возвращает `STALE` для отсутствующего source, withdrawal
+считается безопасным только при предыдущем локальном состоянии
+`NEVER_SUBMITTED` или `INACTIVE_CONFIRMED`. Оба состояния переходят в
+`INACTIVE_CONFIRMED`. Для `POSSIBLY_ACTIVE` и `OWNERSHIP_UNCERTAIN` тот же
+`STALE` остаётся ownership failure и сохраняет fail-closed cleanup.
+
+Безопасный `STALE` не является доказательством отсутствия scheduler profile,
+не участвует в all-three `NOT_REGISTERED` evidence и не освобождает ledger.
+Этот инвариант относится только к эксклюзивно принадлежащим topology provider
+source keys и не обобщается на произвольных signal providers.

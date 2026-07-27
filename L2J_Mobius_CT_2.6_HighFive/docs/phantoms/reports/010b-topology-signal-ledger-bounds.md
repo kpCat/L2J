@@ -274,3 +274,31 @@ Push result: во внешнем final handoff
 Только independent review Goal 010B с проверкой bounded capacity, fixed source
 truth, all-three absence proof и frozen-scope evidence. Goal 011/012 до
 принятия gate не начинать.
+
+## Independent review и immutable handoff
+
+```text
+Commit: 030184205c6bf2101cb6256086c0b85c0e26dcd4
+Parent: f7eb90ecf3badfc615e6ee700d392a5cbb815811
+Push/remote: exact
+Signal ledger: 20/20 ×3
+Generation: 17/17 ×3
+Perception: 28/28 ×3
+Core: 38/38 ×3
+Corpus: 6/6 ×2
+Performance: 1/1 ×2
+Navigation and shutdown regressions: PASS
+Final verifier: 85/85 ×2, byte-identical
+External verifier SHA: abbreviated handoff only
+ADA98158...25CCA
+Independent review:
+- bounded ledger architecture ACCEPT
+- absent-source real scheduler reconciliation FIX_REQUIRED
+Goal 010C: REQUIRED
+Goal 011: BLOCKED
+```
+
+Отсутствующий полный SHA внешнего verifier не восстанавливался предположением.
+Bounded ledger architecture, capacity и all-three `NOT_REGISTERED` release
+приняты без revert. Узкое real-scheduler absent-source finding закрывается
+только Goal 010C; до её независимого review Goal 011 остаётся заблокированной.

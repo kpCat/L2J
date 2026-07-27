@@ -199,6 +199,7 @@ public final class PhantomTestLauncher
 			case "navigation-performance" -> new PhantomNavigationPerformanceSuite();
 			case "topology-core" -> new PhantomTopologyCoreSuite();
 			case "topology-perception" -> new PhantomTopologyPerceptionSuite();
+			case "topology-scheduler-signal-integration" -> new PhantomTopologySchedulerSignalIntegrationSuite();
 			case "topology-signal-ledger" -> new PhantomTopologySignalLedgerSuite();
 			case "topology-generation" -> new PhantomTopologyGenerationSuite();
 			case "topology-corpus" -> new PhantomTopologyProductionCorpusSuite();

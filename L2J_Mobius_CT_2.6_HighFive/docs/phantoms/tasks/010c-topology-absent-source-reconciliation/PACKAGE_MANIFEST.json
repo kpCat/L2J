@@ -1,0 +1,25 @@
+{
+  "package": "phantom-world-goal-010c-topology-absent-source-reconciliation",
+  "taskId": "010c-topology-absent-source-reconciliation",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/010c-topology-absent-source-reconciliation/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "030184205c6bf2101cb6256086c0b85c0e26dcd4",
+  "schemaChanges": false,
+  "configChanges": false,
+  "topologyDataChanges": false,
+  "schedulerImplementationChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal011Started": false,
+  "goal012Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "RECONCILIATION_RULE.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

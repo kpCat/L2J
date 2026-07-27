@@ -607,6 +607,7 @@ public final class PhantomPerceptionProvider
 			}
 		}
 		final SignalDelivery delivery = _signalPort.withdraw(ledger.profileId(), sourceKey, sequence);
+		final boolean staleSafe = (delivery == SignalDelivery.STALE) && ((previousState == SourceState.NEVER_SUBMITTED) || (previousState == SourceState.INACTIVE_CONFIRMED));
 		synchronized (_monitor)
 		{
 			if (_signalLedgers.get(ledger.profileId()) != ledger)
@@ -617,12 +618,11 @@ public final class PhantomPerceptionProvider
 			{
 				ledger.sourceState(sourceKey, SourceState.INACTIVE_CONFIRMED);
 			}
-			else if ((delivery == SignalDelivery.STALE) && (previousState != SourceState.INACTIVE_CONFIRMED))
+			else if (delivery == SignalDelivery.STALE)
 			{
-				ledger.sourceState(sourceKey, SourceState.OWNERSHIP_UNCERTAIN);
+				ledger.sourceState(sourceKey, staleSafe ? SourceState.INACTIVE_CONFIRMED : SourceState.OWNERSHIP_UNCERTAIN);
 			}
 		}
-		final boolean staleSafe = (delivery == SignalDelivery.STALE) && (previousState == SourceState.INACTIVE_CONFIRMED);
 		final boolean signalFailure = ((delivery == SignalDelivery.STALE) && !staleSafe) || (delivery == SignalDelivery.REJECTED) || (delivery == SignalDelivery.NOT_RUNNING) || (delivery == SignalDelivery.SEQUENCE_EXHAUSTED);
 		return new SignalOperation(delivery, signalFailure, delivery == SignalDelivery.NOT_REGISTERED);
 	}
