@@ -4,15 +4,15 @@
 
 ```text
 Status: SUCCESS
-Manual gate: PENDING_INDEPENDENT_REVIEW
+Manual gate: ACCEPT
 Required baseline: b6e893f6bb8abf26908e441ee79b92d6f910eb91
 Expected parent: b6e893f6bb8abf26908e441ee79b92d6f910eb91
 Branch: feature/phantom-world
 Subject: fix(phantoms): harden navigation route ownership
 Goal 009 architecture direction: ACCEPT
-Goal 009 commit: FIX_REQUIRED
-Goal 009A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
-Goal 010: NOT_STARTED / BLOCKED
+Goal 009 commit: ACCEPT after Goal 009A
+Goal 009A: ACCEPT
+Goal 010: ALLOWED
 Goal 011: NOT_STARTED
 ```
 
@@ -258,10 +258,27 @@ Commit SHA: во внешнем final handoff для сохранения одн
 Push result: во внешнем final handoff
 ```
 
+## Immutable independent handoff
+
+```text
+Commit: 0780c77ae605d8b2c36a4ff0345092506fb9f9c5
+Parent: b6e893f6bb8abf26908e441ee79b92d6f910eb91
+Push/remote: exact
+Navigation core: 50/50 ×3
+Navigation performance: 1/1 ×2
+Shutdown handoff: 7/7 ×3
+Final verifier: 56/56 ×2, byte-identical
+Independent review: ACCEPT
+Goal 010: ALLOWED
+```
+
+Полный post-push verifier hash во внешнем handoff не сохранился и здесь не
+восстанавливается предположением.
+
 ## Next step
 
-Только независимое review Goal 009A. Goal 010 остаётся
-`NOT_STARTED / BLOCKED`, Goal 011 — `NOT_STARTED`.
+Goal 009A закрыта независимым review. Разрешена только bounded Goal 010;
+Goal 011 остаётся `NOT_STARTED`.
 
 Result:
 `NAVIGATION_ROUTE_OWNERSHIP_HARDENED_PENDING_INDEPENDENT_REVIEW`.

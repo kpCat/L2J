@@ -20,8 +20,10 @@
  */
 package org.l2jmobius.gameserver.phantoms;
 
+import java.io.File;
 import java.util.Objects;
 
+import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort;
@@ -38,6 +40,11 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomSchedulerRelevanceSignalPort;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
 
 /**
  * Lifecycle owner for the disabled-by-default Phantom World subsystem.
@@ -57,6 +64,7 @@ public final class PhantomSystem
 	private PhantomMaterializationService _materializationService;
 	private PhantomDecisionEngine _decisionEngine;
 	private PhantomNavigationService _navigationService;
+	private PhantomTopologyService _topologyService;
 	private State _state = State.NEW;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
@@ -120,6 +128,21 @@ public final class PhantomSystem
 			{
 				throw new IllegalStateException("Phantom navigation service could not enter the running state.");
 			}
+			if (_productionMaterialization)
+			{
+				final PhantomTopologyPolicy topologyPolicy = PhantomTopologyPolicy.productionDefaults().withMaximumRegisteredProfiles(_settings.maxScheduledPhantomProfiles());
+				final L2jTopologyValidationBackend topologyBackend = new L2jTopologyValidationBackend();
+				final File topologyDirectory = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/topology");
+				_topologyService = new PhantomTopologyService(new PhantomTopologyLoader(topologyDirectory.toPath(), topologyBackend, topologyPolicy), topologyBackend, topologyPolicy, new PhantomSchedulerRelevanceSignalPort(_scheduler));
+			}
+			else
+			{
+				_topologyService = PhantomTopologyService.inertForTesting(new PhantomSchedulerRelevanceSignalPort(_scheduler), _settings.maxScheduledPhantomProfiles());
+			}
+			if (!_topologyService.start())
+			{
+				throw new IllegalStateException("Phantom topology service could not enter the running state.");
+			}
 			if (!_scheduler.start())
 			{
 				throw new IllegalStateException("Phantom scheduler could not enter the running state.");
@@ -130,6 +153,10 @@ public final class PhantomSystem
 			if (_scheduler != null)
 			{
 				_scheduler.beginStop();
+			}
+			if (_topologyService != null)
+			{
+				_topologyService.beginStop();
 			}
 			if (_decisionEngine != null)
 			{
@@ -146,6 +173,10 @@ public final class PhantomSystem
 			if (_scheduler != null)
 			{
 				_scheduler.finishStop();
+			}
+			if (_topologyService != null)
+			{
+				_topologyService.finishStop();
 			}
 			if (_decisionEngine != null)
 			{
@@ -173,6 +204,10 @@ public final class PhantomSystem
 		if (_state == State.RUNNING)
 		{
 			_scheduler.beginStop();
+			if (_topologyService != null)
+			{
+				_topologyService.beginStop();
+			}
 			if (_decisionEngine != null)
 			{
 				_decisionEngine.beginStop();
@@ -192,6 +227,12 @@ public final class PhantomSystem
 			}
 			if (!_scheduler.finishStop())
 			{
+				_state = State.FAILED;
+				return false;
+			}
+			if ((_topologyService != null) && !_topologyService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
 				return false;
 			}
@@ -224,6 +265,11 @@ public final class PhantomSystem
 			{
 				return false;
 			}
+			if ((_topologyService != null) && (_topologyService.snapshot().state() != PhantomTopologyService.State.STOPPED) && !_topologyService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				return false;
+			}
 			if ((_decisionEngine != null) && (_decisionEngine.snapshot().state() != PhantomDecisionEngine.State.STOPPED) && !_decisionEngine.finishStop())
 			{
 				return false;
@@ -244,7 +290,7 @@ public final class PhantomSystem
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
 	}
 
 	public static synchronized boolean startConfigured()
@@ -333,7 +379,19 @@ public final class PhantomSystem
 			navigationQueuedRequests = navigationSnapshot.queuedRequests();
 			navigationWorkers = navigationSnapshot.currentWorkers();
 		}
-		return new ConfiguredShutdownSnapshot(true, configured._state, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers);
+		PhantomTopologyService.State topologyState = null;
+		int topologyRegisteredProfiles = 0;
+		int topologyEventsInFlight = 0;
+		long topologyGeneration = 0;
+		if (configured._topologyService != null)
+		{
+			final PhantomTopologyService.ServiceSnapshot topologySnapshot = configured._topologyService.snapshot();
+			topologyState = topologySnapshot.state();
+			topologyRegisteredProfiles = topologySnapshot.registeredProfiles();
+			topologyEventsInFlight = topologySnapshot.eventsInFlight();
+			topologyGeneration = topologySnapshot.generation();
+		}
+		return new ConfiguredShutdownSnapshot(true, configured._state, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers, topologyState, topologyRegisteredProfiles, topologyEventsInFlight, topologyGeneration);
 	}
 
 	static synchronized PhantomMaterializationService configuredMaterializationService()
@@ -363,6 +421,7 @@ public final class PhantomSystem
 		final PhantomSystem configured = new PhantomSystem(settings, false);
 		configured._scheduler = configured.createScheduler(PhantomActivityMaterializationPort.noop());
 		configured.startNavigationForTesting();
+		configured.startTopologyForTesting();
 		if (!configured._scheduler.start())
 		{
 			throw new IllegalStateException("The test Phantom scheduler could not start.");
@@ -411,6 +470,7 @@ public final class PhantomSystem
 			}
 			configured._navigationService = navigationService;
 		}
+		configured.startTopologyForTesting();
 		configured._materializationService = materializationService;
 		configured._metrics.recordLifecycleStart();
 		configured._state = State.RUNNING;
@@ -452,15 +512,24 @@ public final class PhantomSystem
 		}
 	}
 
-	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
+	private void startTopologyForTesting()
+	{
+		_topologyService = PhantomTopologyService.inertForTesting(new PhantomSchedulerRelevanceSignalPort(_scheduler), _settings.maxScheduledPhantomProfiles());
+		if (!_topologyService.start())
+		{
+			throw new IllegalStateException("The test Phantom topology service could not start.");
+		}
+	}
+
+	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
 	{
 	}
 
-	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers)
+	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration)
 	{
 		private static ConfiguredShutdownSnapshot notConfigured()
 		{
-			return new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0);
+			return new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0);
 		}
 	}
 }

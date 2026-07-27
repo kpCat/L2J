@@ -1,0 +1,24 @@
+# ACCEPTANCE — Goal 010
+
+- [ ] Baseline 0780c77a and one ordinary exact-scope commit.
+- [ ] Goal 009A closure and roadmap progress.
+- [ ] No config/schema/Goal 011/012.
+- [ ] No server-loader/navigation/decision/lifecycle modification.
+- [ ] Versioned XML and deterministic canonical hash.
+- [ ] Semantic roles are curated, never name-inferred.
+- [ ] Factual map-region/NPC/spawn/door validation.
+- [ ] Representative production city/farming/room-door corpus.
+- [ ] Immutable bounded spatial/adjacency indexes.
+- [ ] Live door state not cached.
+- [ ] Explicit profile registration only.
+- [ ] Local chat/combat/targetability providers.
+- [ ] Perceptible recipient minimum NEARBY_PERCEPTIBLE.
+- [ ] Providers never materialize/navigate directly.
+- [ ] Event token and STOPPING/finish quiescence.
+- [ ] Topology aggregate shutdown diagnostics.
+- [ ] No new executor/raw thread/per-profile Future.
+- [ ] Core/perception/corpus × repeated and performance ×2.
+- [ ] All cumulative regressions, verify and jar.
+- [ ] Production DB untouched.
+- [ ] Goal 011/012 not started.
+- [ ] Verifier ×2 identical and remote exact.

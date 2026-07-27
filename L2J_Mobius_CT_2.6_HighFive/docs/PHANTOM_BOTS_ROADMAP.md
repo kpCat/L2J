@@ -12,10 +12,10 @@
 
 ```text
 Последний принятый production baseline:
-6ecd8ba155e63a2dedeeafd65c1961fdb57bf261
+0780c77ae605d8b2c36a4ff0345092506fb9f9c5
 
 Текущий branch HEAD под ревью:
-Goal 009A navigation route ownership hardening — commit SHA во внешнем final handoff
+Goal 010 topology, anchors and perception graph — commit SHA во внешнем final handoff
 
 Task 004 technical feasibility:
 ACCEPT
@@ -54,11 +54,11 @@ Goal 008: ACCEPT after Goal 008A
 
 Goal 008A: ACCEPT
 
-Goal 009: FIX_REQUIRED
+Goal 009: ACCEPT after Goal 009A
 
-Goal 009A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 009A: ACCEPT
 
-Goal 010: NOT_STARTED / BLOCKED
+Goal 010: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 011: NOT_STARTED
 ```
@@ -71,9 +71,8 @@ seam и ADR 0001 приняты. Goal 005 и её core profile/persistence envel
 Goal 006B приняты; Goal 006 overall имеет `ACCEPT`, а Этап I завершён. Goal 007
 и Goal 007A приняты. Независимое review Goal 008 потребовало bounded Goal 008A;
 hardening принят на baseline `6ecd8ba1...`. Архитектурное направление Goal 009
-принято, но commit получил `FIX_REQUIRED`; bounded Goal 009A реализована и
-ожидает независимого review. Goal 010 не начата и заблокирована до gate Goal
-009A, Goal 011 не начата.
+принято после independently accepted Goal 009A на baseline `0780c77a...`.
+Goal 010 реализована и ожидает независимого review; Goal 011 не начата.
 
 ---
 
@@ -321,7 +320,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `FIX_REQUIRED`; Goal 009A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 010 — `NOT_STARTED / BLOCKED`; Goal 011 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 011 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -486,7 +485,7 @@ quiescence; статус — `ACCEPT`.
 **Gate:** deterministic scenario corpus и safe cancellation.  
 **Follow-up risk:** `HIGH` — scoring stability/executor state machine.
 
-## Goal 009 — Navigation feasibility и PhantomNavigationService baseline — `FIX_REQUIRED`
+## Goal 009 — Navigation feasibility и PhantomNavigationService baseline — `ACCEPT after Goal 009A`
 
 **Назначение:** объединить benchmark и первый полезный service, не создавая
 proof-only GOAL.  
@@ -505,11 +504,11 @@ proof-only GOAL.
 **Gate:** benchmark-backed budgets и deterministic fallback.  
 **Follow-up risk:** `HIGH` — geodata variability and CPU budget.
 
-Goal 009A закрывает только обязательные findings по route truth, backend
-preflight, dispatch/stop ordering и aggregate shutdown diagnostic; статус —
-`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Goal 009A закрыла обязательные findings по route truth, backend preflight,
+dispatch/stop ordering и aggregate shutdown diagnostic; independent review —
+`ACCEPT`.
 
-## Goal 010 — Topology, anchors и perception graph — `NOT_STARTED / BLOCKED`
+## Goal 010 — Topology, anchors и perception graph — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** реализовать server-world topology и providers для Goal 007.  
 **Зависимости:** 007, 009.  
@@ -1004,10 +1003,10 @@ Current stage:
 II. Scheduler, goals, navigation and authoritative knowledge
 
 Current accepted baseline:
-6ecd8ba155e63a2dedeeafd65c1961fdb57bf261
+0780c77ae605d8b2c36a4ff0345092506fb9f9c5
 
 Current branch HEAD under review:
-Goal 009A navigation route ownership hardening — commit SHA во внешнем final handoff
+Goal 010 topology, anchors and perception graph — commit SHA во внешнем final handoff
 
 Completed:
 - 001 / 001A
@@ -1026,15 +1025,16 @@ Completed:
 - Goal 007A
 - Goal 008 after Goal 008A
 - Goal 008A
+- Goal 009 after Goal 009A
+- Goal 009A
 
 In progress / required closure:
-- Goal 009 FIX_REQUIRED
-- Goal 009A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 010 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 009A
-2. Goal 010 remains NOT_STARTED / BLOCKED
-3. Goal 011 remains NOT_STARTED
+1. Independent review Goal 010
+2. Goal 011 remains NOT_STARTED
+3. Goal 012 remains NOT_STARTED
 
 Stage gate:
 - Stage I COMPLETE
@@ -1061,9 +1061,9 @@ Overall:
   Goal 007A ACCEPT;
   Goal 008 ACCEPT after Goal 008A;
   Goal 008A ACCEPT;
-  Goal 009 FIX_REQUIRED;
-  Goal 009A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 010 NOT_STARTED / BLOCKED;
+  Goal 009 ACCEPT after Goal 009A;
+  Goal 009A ACCEPT;
+  Goal 010 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
   Goal 011 NOT_STARTED
 ```
 

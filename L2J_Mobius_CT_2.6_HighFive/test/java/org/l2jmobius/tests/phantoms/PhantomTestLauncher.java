@@ -197,6 +197,10 @@ public final class PhantomTestLauncher
 			case "decision-performance" -> new PhantomDecisionPerformanceSuite();
 			case "navigation-core" -> new PhantomNavigationCoreSuite();
 			case "navigation-performance" -> new PhantomNavigationPerformanceSuite();
+			case "topology-core" -> new PhantomTopologyCoreSuite();
+			case "topology-perception" -> new PhantomTopologyPerceptionSuite();
+			case "topology-corpus" -> new PhantomTopologyProductionCorpusSuite();
+			case "topology-performance" -> new PhantomTopologyPerformanceSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

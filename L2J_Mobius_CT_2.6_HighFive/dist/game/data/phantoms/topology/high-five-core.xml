@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="1">
+	<node id="giran.region" kind="WORLD_REGION" instanceId="0" form="CUBOID" minX="73000" maxX="93000" minY="138000" maxY="158000" minZ="-5000" maxZ="0" tags="city-cluster">
+		<source path="data/mapregion/giran_castle_town.xml" />
+	</node>
+	<node id="giran.city" kind="CITY" instanceId="0" parentId="giran.region" form="CUBOID" minX="79000" maxX="85000" minY="145000" maxY="152000" minZ="-4000" maxZ="-3000" tags="city-cluster">
+		<source path="data/mapregion/giran_castle_town.xml" />
+	</node>
+	<node id="giran.shop.30081" kind="SHOP_AREA" instanceId="0" parentId="giran.city" form="CUBOID" minX="80400" maxX="80650" minY="147800" maxY="148100" minZ="-3600" maxZ="-3400" tags="merchant">
+		<source path="data/stats/npcs/30000-30099.xml" />
+		<source path="data/spawns/Others/22_22.xml" />
+	</node>
+	<node id="giran.route.north" kind="ROUTE_AREA" instanceId="0" parentId="giran.region" form="CUBOID" minX="82000" maxX="90000" minY="138500" maxY="146500" minZ="-5000" maxZ="0" tags="route">
+		<source path="data/mapregion/giran_castle_town.xml" />
+	</node>
+	<node id="giran.farming.22859" kind="FARMING_AREA" instanceId="0" form="POINT_RADIUS" x="87439" y="121072" z="-3061" radius="500" tags="outdoor-farming">
+		<source path="data/stats/npcs/22800-22899.xml" />
+		<source path="data/spawns/Others/22_21.xml" />
+	</node>
+	<node id="ssq.necropolis.past" kind="DUNGEON" instanceId="0" form="CUBOID" minX="-90200" maxX="-88000" minY="217500" maxY="221000" minZ="-7800" maxZ="-7300" tags="instance-template">
+		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />
+	</node>
+	<node id="ssq.necropolis.past.room.first" kind="ROOM" instanceId="0" parentId="ssq.necropolis.past" form="CUBOID" minX="-90000" maxX="-88700" minY="217700" maxY="218285" minZ="-7600" maxZ="-7400" tags="room">
+		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />
+	</node>
+	<node id="ssq.necropolis.past.corridor.first" kind="CORRIDOR" instanceId="0" parentId="ssq.necropolis.past" form="CUBOID" minX="-89400" maxX="-88600" minY="218340" maxY="219200" minZ="-7600" maxZ="-7400" tags="corridor">
+		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />
+	</node>
+
+	<anchor id="giran.city.center" role="CITY_CENTER" nodeId="giran.city" x="82480" y="149087" z="-3350" instanceId="0" mapRegionLocId="918" tolerance="0" tags="city-cluster">
+		<source path="data/mapregion/giran_castle_town.xml" />
+	</anchor>
+	<anchor id="giran.gatekeeper.30080" role="GATEKEEPER" nodeId="giran.city" x="83396" y="147904" z="-3404" instanceId="0" npcId="30080" mapRegionLocId="918" tolerance="0" tags="teleporter">
+		<source path="data/stats/npcs/30000-30099.xml" />
+		<source path="data/spawns/Others/22_22.xml" />
+		<source path="data/teleporters/town/30080.xml" />
+	</anchor>
+	<anchor id="giran.shop.30081" role="SHOP" nodeId="giran.shop.30081" x="80518" y="147922" z="-3506" instanceId="0" npcId="30081" mapRegionLocId="918" tolerance="0" tags="merchant">
+		<source path="data/stats/npcs/30000-30099.xml" />
+		<source path="data/spawns/Others/22_22.xml" />
+	</anchor>
+	<anchor id="giran.route.north" role="ROUTE" nodeId="giran.route.north" x="85000" y="143000" z="-3400" instanceId="0" tolerance="0" tags="route">
+		<source path="data/mapregion/giran_castle_town.xml" />
+	</anchor>
+	<anchor id="giran.farming.22859" role="FARMING" nodeId="giran.farming.22859" x="87439" y="121072" z="-3061" instanceId="0" npcId="22859" tolerance="0" tags="monster-spawn">
+		<source path="data/stats/npcs/22800-22899.xml" />
+		<source path="data/spawns/Others/22_21.xml" />
+	</anchor>
+	<anchor id="ssq.necropolis.past.room.first.center" role="ROOM_CENTER" nodeId="ssq.necropolis.past.room.first" x="-89300" y="217920" z="-7490" instanceId="0" tolerance="0" tags="room">
+		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />
+	</anchor>
+	<anchor id="ssq.necropolis.past.door.17240102.north" role="DOOR_SIDE" nodeId="ssq.necropolis.past.room.first" x="-89048" y="218260" z="-7490" instanceId="0" tolerance="0" tags="door-side">
+		<source path="data/Doors.xml" />
+		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />
+	</anchor>
+	<anchor id="ssq.necropolis.past.door.17240102.south" role="DOOR_SIDE" nodeId="ssq.necropolis.past.corridor.first" x="-89048" y="218370" z="-7490" instanceId="0" tolerance="0" tags="door-side">
+		<source path="data/Doors.xml" />
+		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />
+	</anchor>
+
+	<edge id="giran.city.shop.walk" fromNodeId="giran.city" toNodeId="giran.shop.30081" mode="WALK" bidirectional="true" baseCost="1" baseTravelMillis="5000" backgroundEligible="false" channels="LOCAL_CHAT,COMBAT,TARGETABILITY" fromAnchorId="giran.city.center" toAnchorId="giran.shop.30081">
+		<source path="data/mapregion/giran_castle_town.xml" />
+		<source path="data/spawns/Others/22_22.xml" />
+	</edge>
+	<edge id="giran.city.farming.background" fromNodeId="giran.route.north" toNodeId="giran.farming.22859" mode="BACKGROUND" bidirectional="true" baseCost="20" baseTravelMillis="900000" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="giran.route.north" toAnchorId="giran.farming.22859">
+		<source path="data/mapregion/giran_castle_town.xml" />
+		<source path="data/spawns/Others/22_21.xml" />
+	</edge>
+	<edge id="ssq.necropolis.past.door.17240102" fromNodeId="ssq.necropolis.past.room.first" toNodeId="ssq.necropolis.past.corridor.first" mode="DOOR" bidirectional="true" baseCost="1" baseTravelMillis="1000" backgroundEligible="false" channels="LOCAL_CHAT,COMBAT,TARGETABILITY" doorId="17240102" fromAnchorId="ssq.necropolis.past.door.17240102.north" toAnchorId="ssq.necropolis.past.door.17240102.south">
+		<source path="data/Doors.xml" />
+		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />
+		<source path="data/scripts/instances/SSQDisciplesNecropolisPast/SSQDisciplesNecropolisPast.java" />
+	</edge>
+</topology>

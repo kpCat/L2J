@@ -61,6 +61,7 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailurePoint;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 import org.l2jmobius.tests.phantoms.PhantomHeadlessPlayerTestEnvironment;
 import org.l2jmobius.tests.phantoms.PhantomTestContext;
@@ -266,6 +267,9 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPING, scheduler.snapshot().state(), "Failed first drain did not retain scheduler STOPPING.");
 			PhantomAssertions.assertEquals(1, scheduler.snapshot().registered(), "Failed first drain cleared retained scheduler slots.");
 			PhantomAssertions.assertEquals(0, scheduler.snapshot().scheduledTaskCount(), "Failed first drain retained the recurring scheduler future.");
+			PhantomAssertions.assertEquals(PhantomTopologyService.State.STOPPING, retained.topologyState(), "Failed first drain did not retain topology STOPPING.");
+			PhantomAssertions.assertEquals(0, retained.topologyRegisteredProfiles(), "Inert shutdown topology discovered profiles.");
+			PhantomAssertions.assertEquals(0, retained.topologyEventsInFlight(), "Inert shutdown topology created events.");
 			PhantomAssertions.assertTrue(PhantomSystem.isMaterializationManaged(managed), "First timeout lost managed classification.");
 			PhantomAssertions.assertEquals(0, simulatedGenericDisconnections(List.of(managed)), "Generic disconnect selected the in-flight managed actor.");
 		}
@@ -280,7 +284,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPED, scheduler.snapshot().state(), "Terminal second shutdown did not finish the scheduler.");
 		PhantomAssertions.assertEquals(0, scheduler.snapshot().registered(), "Terminal second shutdown retained scheduler slots.");
 		PhantomAssertions.assertFalse(PhantomSystem.isMaterializationManaged(managed), "Terminal second shutdown retained managed classification.");
-		PhantomAssertions.assertEquals(new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0), PhantomSystem.configuredShutdownSnapshot(), "Absent configured snapshot is not bounded/empty.");
+		PhantomAssertions.assertEquals(new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0), PhantomSystem.configuredShutdownSnapshot(), "Absent configured snapshot is not bounded/empty.");
 		_environment.assertClean(_environment.primary(), managed);
 	}
 
@@ -318,6 +322,9 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(1, retained.retainedMaterializationEntries(), "Persistent failure released the service entry.");
 			PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPING, scheduler.snapshot().state(), "Persistent service failure did not retain scheduler STOPPING.");
 			PhantomAssertions.assertEquals(1, scheduler.snapshot().registered(), "Persistent service failure cleared scheduler slots.");
+			PhantomAssertions.assertEquals(PhantomTopologyService.State.STOPPING, retained.topologyState(), "Persistent service failure lost topology STOPPING.");
+			PhantomAssertions.assertEquals(0, retained.topologyRegisteredProfiles(), "Persistent service failure topology discovered profiles.");
+			PhantomAssertions.assertEquals(0, retained.topologyEventsInFlight(), "Persistent service failure topology created events.");
 			PhantomAssertions.assertTrue(PhantomSystem.isMaterializationManaged(managed), "Persistent failure lost fail-closed ownership.");
 			PhantomAssertions.assertEquals(4, cleanupInvocations.get(), "Two server opportunities did not preserve the accepted two-pass service contract.");
 		}
@@ -486,6 +493,9 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(1, snapshot.navigationActiveRequests(), "Navigation-only blocker lost active request ownership.");
 			PhantomAssertions.assertEquals(0, snapshot.navigationQueuedRequests(), "Navigation-only blocker retained queued work.");
 			PhantomAssertions.assertEquals(1, snapshot.navigationWorkers(), "Navigation-only blocker lost worker ownership.");
+			PhantomAssertions.assertEquals(PhantomTopologyService.State.STOPPED, snapshot.topologyState(), "Navigation-only blocker did not finish quiescent topology first.");
+			PhantomAssertions.assertEquals(0, snapshot.topologyRegisteredProfiles(), "Navigation-only blocker topology discovered profiles.");
+			PhantomAssertions.assertEquals(0, snapshot.topologyEventsInFlight(), "Navigation-only blocker topology retained events.");
 		}
 		finally
 		{
@@ -511,7 +521,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		final String finalDiagnostic = source.substring(secondShutdown, threadPool);
 		PhantomAssertions.assertTrue(finalDiagnostic.contains("LOGGER.severe"), "Final persistent Phantom failure is not severe.");
 		PhantomAssertions.assertTrue(finalDiagnostic.contains("Final subsystem drain is incomplete"), "Final diagnostic still reports a materialization-only failure.");
-		for (String field : List.of("systemState", "materializationServiceState", "retainedMaterializationEntries", "navigationState", "navigationActiveRequests", "navigationQueuedRequests", "navigationWorkers"))
+		for (String field : List.of("systemState", "materializationServiceState", "retainedMaterializationEntries", "navigationState", "navigationActiveRequests", "navigationQueuedRequests", "navigationWorkers", "topologyState", "topologyRegisteredProfiles", "topologyEventsInFlight", "topologyGeneration"))
 		{
 			PhantomAssertions.assertTrue(finalDiagnostic.contains(field), "Final Phantom diagnostic omits " + field + ".");
 		}

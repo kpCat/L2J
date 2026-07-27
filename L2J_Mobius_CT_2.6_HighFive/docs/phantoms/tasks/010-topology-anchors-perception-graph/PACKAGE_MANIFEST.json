@@ -1,0 +1,25 @@
+{
+  "package": "phantom-world-goal-010-topology-anchors-perception-graph",
+  "taskId": "010-topology-anchors-perception-graph",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/010-topology-anchors-perception-graph/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "0780c77ae605d8b2c36a4ff0345092506fb9f9c5",
+  "schemaChanges": false,
+  "configChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal011Started": false,
+  "goal012Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "DATA_MODEL.md",
+    "SERVER_FACT_VALIDATION.md",
+    "PERCEPTION_CONTRACT.md",
+    "PRODUCTION_CORPUS.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}
