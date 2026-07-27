@@ -284,7 +284,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPED, scheduler.snapshot().state(), "Terminal second shutdown did not finish the scheduler.");
 		PhantomAssertions.assertEquals(0, scheduler.snapshot().registered(), "Terminal second shutdown retained scheduler slots.");
 		PhantomAssertions.assertFalse(PhantomSystem.isMaterializationManaged(managed), "Terminal second shutdown retained managed classification.");
-		PhantomAssertions.assertEquals(new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0), PhantomSystem.configuredShutdownSnapshot(), "Absent configured snapshot is not bounded/empty.");
+		PhantomAssertions.assertEquals(new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0, null), PhantomSystem.configuredShutdownSnapshot(), "Absent configured snapshot is not bounded/empty.");
 		_environment.assertClean(_environment.primary(), managed);
 	}
 

@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<knowledge schemaVersion="1" datasetId="high-five-core" datasetVersion="1">
+	<classCapability classId="88" capabilityKey="combat.melee_damage" rank="850">
+		<skill id="345" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Duelist.xml" />
+	</classCapability>
+	<classCapability classId="89" capabilityKey="combat.crowd_control" rank="850">
+		<skill id="361" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Dreadnought.xml" />
+	</classCapability>
+	<classCapability classId="90" capabilityKey="combat.tank" rank="900">
+		<skill id="368" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/PhoenixKnight.xml" />
+	</classCapability>
+	<classCapability classId="91" capabilityKey="combat.tank" rank="900">
+		<skill id="368" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/HellKnight.xml" />
+	</classCapability>
+	<classCapability classId="92" capabilityKey="combat.ranged_physical_damage" rank="850">
+		<skill id="343" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Sagittarius.xml" />
+	</classCapability>
+	<classCapability classId="93" capabilityKey="combat.melee_damage" rank="850">
+		<skill id="344" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Adventurer.xml" />
+	</classCapability>
+	<classCapability classId="94" capabilityKey="combat.ranged_magic_damage" rank="900">
+		<skill id="1339" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Archmage.xml" />
+	</classCapability>
+	<classCapability classId="95" capabilityKey="combat.debuff" rank="900">
+		<skill id="1336" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Soultaker.xml" />
+	</classCapability>
+	<classCapability classId="96" capabilityKey="combat.summon" rank="900">
+		<skill id="1406" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/ArcanaLord.xml" />
+	</classCapability>
+	<classCapability classId="97" capabilityKey="combat.heal" rank="950">
+		<skill id="1335" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Cardinal.xml" />
+	</classCapability>
+	<classCapability classId="97" capabilityKey="combat.resurrection" rank="950">
+		<skill id="1016" level="9" />
+		<source path="data/stats/players/skillTrees/2ndClass/Bishop.xml" />
+	</classCapability>
+	<classCapability classId="98" capabilityKey="combat.buff" rank="900">
+		<skill id="1356" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Hierophant.xml" />
+	</classCapability>
+	<classCapability classId="99" capabilityKey="combat.tank" rank="900">
+		<skill id="368" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Eva'sTemplar.xml" />
+	</classCapability>
+	<classCapability classId="100" capabilityKey="combat.buff" rank="850">
+		<skill id="349" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Swordmuse.xml" />
+	</classCapability>
+	<classCapability classId="101" capabilityKey="combat.melee_damage" rank="850">
+		<skill id="344" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/WindRider.xml" />
+	</classCapability>
+	<classCapability classId="102" capabilityKey="combat.ranged_physical_damage" rank="850">
+		<skill id="343" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/MoonlightSentinel.xml" />
+	</classCapability>
+	<classCapability classId="103" capabilityKey="combat.ranged_magic_damage" rank="900">
+		<skill id="1340" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/MysticMuse.xml" />
+	</classCapability>
+	<classCapability classId="104" capabilityKey="combat.summon" rank="900">
+		<skill id="1347" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/ElementalMaster.xml" />
+	</classCapability>
+	<classCapability classId="105" capabilityKey="combat.heal" rank="900">
+		<skill id="1355" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Eva'sSaint.xml" />
+	</classCapability>
+	<classCapability classId="106" capabilityKey="combat.tank" rank="900">
+		<skill id="368" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/ShillienTemplar.xml" />
+	</classCapability>
+	<classCapability classId="107" capabilityKey="combat.buff" rank="850">
+		<skill id="365" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/SpectralDancer.xml" />
+	</classCapability>
+	<classCapability classId="108" capabilityKey="combat.melee_damage" rank="850">
+		<skill id="344" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/GhostHunter.xml" />
+	</classCapability>
+	<classCapability classId="109" capabilityKey="combat.ranged_physical_damage" rank="850">
+		<skill id="343" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/GhostSentinel.xml" />
+	</classCapability>
+	<classCapability classId="110" capabilityKey="combat.ranged_magic_damage" rank="900">
+		<skill id="1341" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/StormScreamer.xml" />
+	</classCapability>
+	<classCapability classId="111" capabilityKey="combat.summon" rank="900">
+		<skill id="1348" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/SpectralMaster.xml" />
+	</classCapability>
+	<classCapability classId="112" capabilityKey="combat.buff" rank="900">
+		<skill id="1357" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/ShillienSaint.xml" />
+	</classCapability>
+	<classCapability classId="113" capabilityKey="combat.melee_damage" rank="900">
+		<skill id="362" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Titan.xml" />
+	</classCapability>
+	<classCapability classId="114" capabilityKey="combat.melee_damage" rank="900">
+		<skill id="346" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/GrandKhavatari.xml" />
+	</classCapability>
+	<classCapability classId="115" capabilityKey="combat.debuff" rank="900">
+		<skill id="1367" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Dominator.xml" />
+	</classCapability>
+	<classCapability classId="116" capabilityKey="combat.buff" rank="900">
+		<skill id="1363" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Doomcryer.xml" />
+	</classCapability>
+	<classCapability classId="117" capabilityKey="profession.spoil" rank="950">
+		<skill id="348" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/FortuneSeeker.xml" />
+	</classCapability>
+	<classCapability classId="118" capabilityKey="profession.craft" rank="950">
+		<skill id="172" level="10" />
+		<source path="data/stats/players/skillTrees/3rdClass/Maestro.xml" />
+	</classCapability>
+	<classCapability classId="131" capabilityKey="combat.melee_damage" rank="850">
+		<skill id="793" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Doombringer.xml" />
+	</classCapability>
+	<classCapability classId="132" capabilityKey="combat.ranged_magic_damage" rank="850">
+		<skill id="1516" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/MaleSoulHound.xml" />
+	</classCapability>
+	<classCapability classId="133" capabilityKey="combat.ranged_magic_damage" rank="850">
+		<skill id="1516" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/FemaleSoulHound.xml" />
+	</classCapability>
+	<classCapability classId="134" capabilityKey="combat.ranged_physical_damage" rank="800">
+		<skill id="939" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Trickster.xml" />
+	</classCapability>
+	<classCapability classId="136" capabilityKey="combat.buff" rank="800">
+		<skill id="1515" level="1" />
+		<source path="data/stats/players/skillTrees/3rdClass/Judicator.xml" />
+	</classCapability>
+
+	<contentRequirement contentId="rift.high-five-core" contentKind="RIFT" recommendedMinParty="5" recommendedMaxParty="9">
+		<requirement capabilityKey="combat.tank" minimumCount="1" minimumRank="800" required="true" />
+		<requirement capabilityKey="combat.heal" minimumCount="1" minimumRank="850" required="true" />
+		<requirement capabilityKey="combat.buff" minimumCount="1" minimumRank="800" required="false" />
+		<requirement capabilityKey="combat.melee_damage" minimumCount="1" minimumRank="800" required="false" />
+		<source path="data/DimensionalRift.xml" />
+	</contentRequirement>
+	<contentRequirement contentId="raid.25001" contentKind="RAID" npcId="25001" recommendedMinParty="5" recommendedMaxParty="9">
+		<requirement capabilityKey="combat.tank" minimumCount="1" minimumRank="800" required="true" />
+		<requirement capabilityKey="combat.heal" minimumCount="1" minimumRank="850" required="true" />
+		<requirement capabilityKey="combat.ranged_physical_damage" minimumCount="1" minimumRank="800" required="false" />
+		<source path="data/stats/npcs/25000-25099.xml" />
+	</contentRequirement>
+	<contentRequirement contentId="epic.29001" contentKind="EPIC" npcId="29001" recommendedMinParty="9" recommendedMaxParty="45">
+		<requirement capabilityKey="combat.tank" minimumCount="1" minimumRank="850" required="true" />
+		<requirement capabilityKey="combat.heal" minimumCount="1" minimumRank="900" required="true" />
+		<requirement capabilityKey="combat.resurrection" minimumCount="1" minimumRank="900" required="true" />
+		<requirement capabilityKey="combat.buff" minimumCount="1" minimumRank="850" required="false" />
+		<requirement capabilityKey="combat.debuff" minimumCount="1" minimumRank="850" required="false" />
+		<source path="data/stats/npcs/29000-29099.xml" />
+	</contentRequirement>
+</knowledge>

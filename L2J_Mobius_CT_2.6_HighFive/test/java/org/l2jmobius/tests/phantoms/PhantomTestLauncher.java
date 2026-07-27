@@ -204,6 +204,10 @@ public final class PhantomTestLauncher
 			case "topology-generation" -> new PhantomTopologyGenerationSuite();
 			case "topology-corpus" -> new PhantomTopologyProductionCorpusSuite();
 			case "topology-performance" -> new PhantomTopologyPerformanceSuite();
+			case "knowledge-core" -> new PhantomGameKnowledgeCoreSuite();
+			case "knowledge-parity" -> new PhantomGameKnowledgeParitySuite();
+			case "knowledge-content" -> new PhantomGameKnowledgeContentSuite();
+			case "knowledge-performance" -> new PhantomGameKnowledgePerformanceSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

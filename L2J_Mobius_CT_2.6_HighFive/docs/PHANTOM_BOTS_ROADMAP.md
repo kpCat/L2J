@@ -12,10 +12,10 @@
 
 ```text
 Последний принятый production baseline:
-0780c77ae605d8b2c36a4ff0345092506fb9f9c5
+7575ce4c66bdf5c51a27b20bed57c4ed8721b1e2
 
 Текущий branch HEAD под ревью:
-Goal 010C topology absent-source reconciliation — commit SHA во внешнем final handoff
+Goal 011 authoritative Game Knowledge — commit SHA во внешнем final handoff
 
 Task 004 technical feasibility:
 ACCEPT
@@ -58,17 +58,19 @@ Goal 009: ACCEPT after Goal 009A
 
 Goal 009A: ACCEPT
 
-Goal 010: FIX_REQUIRED
+Goal 010: ACCEPT after Goal 010A/010B/010C
 
 Goal 010A: ACCEPT
 
 Goal 010B: ACCEPT_WITH_010C_INTEGRATION_BOUNDARY
 
-Goal 010C: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 010C: ACCEPT
 
-Goal 011: NOT_STARTED / BLOCKED
+Goal 011: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 012: NOT_STARTED
+
+Goal 013: NOT_STARTED
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
@@ -83,8 +85,8 @@ hardening принят на baseline `6ecd8ba1...`. Архитектурное �
 Независимое review Goal 010 потребовало bounded Goal 010A. Generation/signal
 ordering Goal 010A принято, а bounded ledger architecture Goal 010B принята с
 узкой integration boundary Goal 010C для отсутствующих real-scheduler sources.
-Goal 010C реализована и ожидает независимого review; Goal 011 заблокирована,
-Goal 012 не начата.
+Goal 010C независимо принята, поэтому Goal 010 закрыта с `ACCEPT`. Goal 011
+реализована и ожидает независимого review; Goal 012 и Goal 013 не начаты.
 
 ---
 
@@ -332,7 +334,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `FIX_REQUIRED`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 011 — `NOT_STARTED / BLOCKED`; Goal 012 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 012 — `NOT_STARTED`; Goal 013 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -520,7 +522,7 @@ Goal 009A закрыла обязательные findings по route truth, bac
 dispatch/stop ordering и aggregate shutdown diagnostic; independent review —
 `ACCEPT`.
 
-## Goal 010 — Topology, anchors и perception graph — `FIX_REQUIRED`
+## Goal 010 — Topology, anchors и perception graph — `ACCEPT after Goal 010A/010B/010C`
 
 **Назначение:** реализовать server-world topology и providers для Goal 007.  
 **Зависимости:** 007, 009.  
@@ -547,10 +549,10 @@ Goal 010B заменяет исторические sequence identities и от�
 tombstones одним capped per-profile ledger с тремя fixed sources. Active,
 retained и failed-cleanup identities используют общий
 `maximumRegisteredProfiles`; release разрешён только после all-three scheduler
-`NOT_REGISTERED` evidence либо final stop. Реализация ожидает независимого
-review, поэтому следующий Goal не начинается.
+`NOT_REGISTERED` evidence либо final stop. Goal 010C независимо принята,
+поэтому Goal 010 закрыта с `ACCEPT`.
 
-## Goal 011 — Authoritative Game Knowledge и reverse indexes — `BLOCKED`
+## Goal 011 — Authoritative Game Knowledge и reverse indexes — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** предоставить read-only предметное знание до combat/background и
 до Semantic Pack.  
@@ -607,7 +609,7 @@ combat capability interface.
 failure cleanup.  
 **Follow-up risk:** `VERY_HIGH` — skills/death/World timing.
 
-## Goal 013 — Progression, professions, skills, equipment и class catalog
+## Goal 013 — Progression, professions, skills, equipment и class catalog — `NOT_STARTED`
 
 **Назначение:** расширить generic capability keys реальными High Five классами.  
 **Зависимости:** 012.  
@@ -1028,10 +1030,10 @@ Current stage:
 II. Scheduler, goals, navigation and authoritative knowledge
 
 Current accepted baseline:
-030184205c6bf2101cb6256086c0b85c0e26dcd4
+7575ce4c66bdf5c51a27b20bed57c4ed8721b1e2
 
 Current branch HEAD under review:
-Goal 010C topology absent-source reconciliation — commit SHA во внешнем final handoff
+Goal 011 authoritative Game Knowledge — commit SHA во внешнем final handoff
 
 Completed:
 - 001 / 001A
@@ -1052,17 +1054,18 @@ Completed:
 - Goal 008A
 - Goal 009 after Goal 009A
 - Goal 009A
+- Goal 010 after Goal 010A/010B/010C
+- Goal 010A
+- Goal 010B
+- Goal 010C
 
 In progress / required closure:
-- Goal 010 FIX_REQUIRED
-- Goal 010A ACCEPT
-- Goal 010B ACCEPT_WITH_010C_INTEGRATION_BOUNDARY
-- Goal 010C IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 011 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 010C
-2. Goal 011 remains BLOCKED
-3. Goal 012 remains NOT_STARTED
+1. Independent review Goal 011
+2. Goal 012 remains NOT_STARTED
+3. Goal 013 remains NOT_STARTED
 
 Stage gate:
 - Stage I COMPLETE
@@ -1091,12 +1094,13 @@ Overall:
   Goal 008A ACCEPT;
   Goal 009 ACCEPT after Goal 009A;
   Goal 009A ACCEPT;
-  Goal 010 FIX_REQUIRED;
+  Goal 010 ACCEPT after Goal 010A/010B/010C;
   Goal 010A ACCEPT;
   Goal 010B ACCEPT_WITH_010C_INTEGRATION_BOUNDARY;
-  Goal 010C IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 011 NOT_STARTED / BLOCKED;
-  Goal 012 NOT_STARTED
+  Goal 010C ACCEPT;
+  Goal 011 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 012 NOT_STARTED;
+  Goal 013 NOT_STARTED
 ```
 
 ---

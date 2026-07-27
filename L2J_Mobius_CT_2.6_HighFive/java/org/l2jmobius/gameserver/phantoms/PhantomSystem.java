@@ -33,6 +33,12 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
+import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -65,6 +71,7 @@ public final class PhantomSystem
 	private PhantomDecisionEngine _decisionEngine;
 	private PhantomNavigationService _navigationService;
 	private PhantomTopologyService _topologyService;
+	private PhantomGameKnowledgeService _gameKnowledgeService;
 	private State _state = State.NEW;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
@@ -143,6 +150,22 @@ public final class PhantomSystem
 			{
 				throw new IllegalStateException("Phantom topology service could not enter the running state.");
 			}
+			if (_productionMaterialization)
+			{
+				final PhantomGameKnowledgePolicy knowledgePolicy = PhantomGameKnowledgePolicy.productionDefaults();
+				final L2jGameKnowledgeBackend knowledgeBackend = new L2jGameKnowledgeBackend();
+				final File knowledgeDirectory = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/knowledge");
+				final File seedsFile = new File(ServerConfig.DATAPACK_ROOT, "data/Seeds.xml");
+				_gameKnowledgeService = new PhantomGameKnowledgeService(new PhantomGameKnowledgeBuilder(knowledgeBackend, new PhantomStaticManorParser(seedsFile.toPath(), knowledgePolicy), new PhantomCuratedKnowledgeParser(knowledgeDirectory.toPath(), knowledgeBackend, knowledgePolicy), _topologyService.query(), knowledgePolicy));
+			}
+			else
+			{
+				_gameKnowledgeService = PhantomGameKnowledgeService.inertForTesting(_topologyService.query().snapshot().canonicalHash());
+			}
+			if (!_gameKnowledgeService.start())
+			{
+				throw new IllegalStateException("Phantom Game Knowledge service could not enter the running state.");
+			}
 			if (!_scheduler.start())
 			{
 				throw new IllegalStateException("Phantom scheduler could not enter the running state.");
@@ -153,6 +176,10 @@ public final class PhantomSystem
 			if (_scheduler != null)
 			{
 				_scheduler.beginStop();
+			}
+			if (_gameKnowledgeService != null)
+			{
+				_gameKnowledgeService.beginStop();
 			}
 			if (_topologyService != null)
 			{
@@ -173,6 +200,10 @@ public final class PhantomSystem
 			if (_scheduler != null)
 			{
 				_scheduler.finishStop();
+			}
+			if (_gameKnowledgeService != null)
+			{
+				_gameKnowledgeService.finishStop();
 			}
 			if (_topologyService != null)
 			{
@@ -204,6 +235,10 @@ public final class PhantomSystem
 		if (_state == State.RUNNING)
 		{
 			_scheduler.beginStop();
+			if (_gameKnowledgeService != null)
+			{
+				_gameKnowledgeService.beginStop();
+			}
 			if (_topologyService != null)
 			{
 				_topologyService.beginStop();
@@ -227,6 +262,12 @@ public final class PhantomSystem
 			}
 			if (!_scheduler.finishStop())
 			{
+				_state = State.FAILED;
+				return false;
+			}
+			if ((_gameKnowledgeService != null) && !_gameKnowledgeService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
 				return false;
 			}
@@ -265,6 +306,11 @@ public final class PhantomSystem
 			{
 				return false;
 			}
+			if ((_gameKnowledgeService != null) && (_gameKnowledgeService.snapshot().state() != PhantomGameKnowledgeService.State.STOPPED) && !_gameKnowledgeService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				return false;
+			}
 			if ((_topologyService != null) && (_topologyService.snapshot().state() != PhantomTopologyService.State.STOPPED) && !_topologyService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
@@ -290,7 +336,7 @@ public final class PhantomSystem
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
 	}
 
 	public static synchronized boolean startConfigured()
@@ -391,7 +437,8 @@ public final class PhantomSystem
 			topologyEventsInFlight = topologySnapshot.eventsInFlight();
 			topologyGeneration = topologySnapshot.generation();
 		}
-		return new ConfiguredShutdownSnapshot(true, configured._state, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers, topologyState, topologyRegisteredProfiles, topologyEventsInFlight, topologyGeneration);
+		final PhantomGameKnowledgeService.State knowledgeState = configured._gameKnowledgeService == null ? null : configured._gameKnowledgeService.snapshot().state();
+		return new ConfiguredShutdownSnapshot(true, configured._state, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers, topologyState, topologyRegisteredProfiles, topologyEventsInFlight, topologyGeneration, knowledgeState);
 	}
 
 	static synchronized PhantomMaterializationService configuredMaterializationService()
@@ -422,6 +469,7 @@ public final class PhantomSystem
 		configured._scheduler = configured.createScheduler(PhantomActivityMaterializationPort.noop());
 		configured.startNavigationForTesting();
 		configured.startTopologyForTesting();
+		configured.startKnowledgeForTesting();
 		if (!configured._scheduler.start())
 		{
 			throw new IllegalStateException("The test Phantom scheduler could not start.");
@@ -471,6 +519,7 @@ public final class PhantomSystem
 			configured._navigationService = navigationService;
 		}
 		configured.startTopologyForTesting();
+		configured.startKnowledgeForTesting();
 		configured._materializationService = materializationService;
 		configured._metrics.recordLifecycleStart();
 		configured._state = State.RUNNING;
@@ -521,15 +570,24 @@ public final class PhantomSystem
 		}
 	}
 
-	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
+	private void startKnowledgeForTesting()
+	{
+		_gameKnowledgeService = PhantomGameKnowledgeService.inertForTesting(_topologyService.query().snapshot().canonicalHash());
+		if (!_gameKnowledgeService.start())
+		{
+			throw new IllegalStateException("The test Phantom Game Knowledge service could not start.");
+		}
+	}
+
+	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
 	{
 	}
 
-	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration)
+	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration, PhantomGameKnowledgeService.State knowledgeState)
 	{
 		private static ConfiguredShutdownSnapshot notConfigured()
 		{
-			return new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0);
+			return new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0, null);
 		}
 	}
 }

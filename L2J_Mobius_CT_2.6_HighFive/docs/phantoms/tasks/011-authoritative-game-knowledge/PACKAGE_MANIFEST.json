@@ -1,0 +1,25 @@
+{
+  "package": "phantom-world-goal-011-authoritative-game-knowledge",
+  "taskId": "011-authoritative-game-knowledge",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/011-authoritative-game-knowledge/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "7575ce4c66bdf5c51a27b20bed57c4ed8721b1e2",
+  "schemaChanges": false,
+  "configChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal012Started": false,
+  "goal013Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "SOURCE_OF_TRUTH.md",
+    "DATA_MODEL.md",
+    "QUERY_API.md",
+    "CURATED_SEMANTICS.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

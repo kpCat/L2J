@@ -1,0 +1,21 @@
+# ACCEPTANCE — Goal 011
+
+- [ ] Baseline 7575ce4c and one ordinary exact-scope commit.
+- [ ] Goal 010C closure and roadmap progress.
+- [ ] No config/schema/Goal 012/013.
+- [ ] Immutable authority-tagged facts; no mutable server object exposure.
+- [ ] Complete loader parity for items, grouped/ungrouped drops, spoil, spawns and recipes.
+- [ ] Static Seeds.xml parser; no CastleManorManager/DB/task.
+- [ ] Raw drop semantics, not effective runtime probability.
+- [ ] Complete bounded reverse indexes and deterministic SHA-256 components.
+- [ ] Paged query API <=256; no hot-path loader/file/DB/full scan.
+- [ ] Evidence-backed class capability corpus and terminal-class coverage.
+- [ ] Evidence-backed Rift/RaidBoss/GrandBoss recommendations.
+- [ ] One startup build after topology and before scheduler.
+- [ ] Disabled path performs no build/source scan.
+- [ ] Zero automatic queries/actions and no per-profile knowledge state.
+- [ ] Core ×3, parity ×2, content ×3, performance ×2.
+- [ ] All cumulative regressions, verify and jar.
+- [ ] Production DB untouched.
+- [ ] Goal 012/013 not started.
+- [ ] Verifier ×2 identical and remote exact.

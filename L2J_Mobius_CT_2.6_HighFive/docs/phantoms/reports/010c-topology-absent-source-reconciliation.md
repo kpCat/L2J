@@ -177,3 +177,20 @@ Goal 012 — `NOT_STARTED`.
 
 Result:
 `TOPOLOGY_ABSENT_SOURCE_RECONCILED_PENDING_INDEPENDENT_REVIEW`.
+
+## Immutable independent-review handoff
+
+```text
+Commit: 7575ce4c66bdf5c51a27b20bed57c4ed8721b1e2
+Parent: 030184205c6bf2101cb6256086c0b85c0e26dcd4
+Push/remote: exact
+Real scheduler integration: 5/5 ×3
+Signal ledger: 20/20 ×3
+Generation: 17/17 ×3
+Final verifier: 67/67 ×2, byte-identical
+Verifier SHA-256:
+03F88A544D1C2D744B6E493AE3140521C97CBEAD21B0FDC7C17F0AE07CB41BE9
+Independent review: ACCEPT
+Goal 010: ACCEPT after Goal 010A/010B/010C
+Goal 011: ALLOWED
+```
