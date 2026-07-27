@@ -101,6 +101,8 @@ public final class PhantomNavigationPerformanceSuite implements PhantomTestSuite
 			+ " pathResults=" + (navigation.pathSucceeded() + navigation.cacheHits()) //
 			+ " cacheHits=" + navigation.cacheHits() //
 			+ " cacheMisses=" + navigation.cacheMisses() //
+			+ " directBackendCalls=" + directBackend._directCalls //
+			+ " computedBackendDirectCalls=" + pathBackend._directCalls //
 			+ " backendPathCalls=" + pathBackend._pathCalls //
 			+ " peakQueue=" + serviceSnapshot.peakQueuedRequests() //
 			+ " peakWorkers=" + serviceSnapshot.peakWorkers() //
@@ -150,6 +152,7 @@ public final class PhantomNavigationPerformanceSuite implements PhantomTestSuite
 	private static final class PerformanceBackend implements PhantomNavigationBackend
 	{
 		private final boolean _direct;
+		private int _directCalls;
 		private int _pathCalls;
 		private int _maximumWaypoints;
 
@@ -167,6 +170,7 @@ public final class PhantomNavigationPerformanceSuite implements PhantomTestSuite
 		@Override
 		public boolean canMoveDirect(PhantomNavigationPoint origin, PhantomNavigationPoint destination)
 		{
+			_directCalls++;
 			return _direct || !origin.equals(ORIGIN) || !destination.equals(DESTINATION);
 		}
 

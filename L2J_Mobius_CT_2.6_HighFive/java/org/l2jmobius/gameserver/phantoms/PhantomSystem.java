@@ -313,13 +313,27 @@ public final class PhantomSystem
 		{
 			return ConfiguredShutdownSnapshot.notConfigured();
 		}
-		final PhantomMaterializationService service = configured._materializationService;
-		if (service == null)
+		ServiceState materializationServiceState = null;
+		int retainedMaterializationEntries = 0;
+		if (configured._materializationService != null)
 		{
-			return new ConfiguredShutdownSnapshot(true, configured._state, null, 0);
+			final PhantomMaterializationService.ShutdownSnapshot materializationSnapshot = configured._materializationService.shutdownSnapshot();
+			materializationServiceState = materializationSnapshot.state();
+			retainedMaterializationEntries = materializationSnapshot.retainedEntries();
 		}
-		final PhantomMaterializationService.ShutdownSnapshot serviceSnapshot = service.shutdownSnapshot();
-		return new ConfiguredShutdownSnapshot(true, configured._state, serviceSnapshot.state(), serviceSnapshot.retainedEntries());
+		PhantomNavigationService.ServiceState navigationState = null;
+		int navigationActiveRequests = 0;
+		int navigationQueuedRequests = 0;
+		int navigationWorkers = 0;
+		if (configured._navigationService != null)
+		{
+			final PhantomNavigationService.ServiceSnapshot navigationSnapshot = configured._navigationService.snapshot();
+			navigationState = navigationSnapshot.state();
+			navigationActiveRequests = navigationSnapshot.activeRequests();
+			navigationQueuedRequests = navigationSnapshot.queuedRequests();
+			navigationWorkers = navigationSnapshot.currentWorkers();
+		}
+		return new ConfiguredShutdownSnapshot(true, configured._state, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers);
 	}
 
 	static synchronized PhantomMaterializationService configuredMaterializationService()
@@ -361,6 +375,11 @@ public final class PhantomSystem
 
 	static synchronized void configureForTesting(PhantomMaterializationService materializationService, PhantomScheduler scheduler)
 	{
+		configureForTesting(materializationService, scheduler, null);
+	}
+
+	static synchronized void configureForTesting(PhantomMaterializationService materializationService, PhantomScheduler scheduler, PhantomNavigationService navigationService)
+	{
 		Objects.requireNonNull(materializationService, "materializationService");
 		Objects.requireNonNull(scheduler, "scheduler");
 		if (_configuredInstance != null)
@@ -380,7 +399,18 @@ public final class PhantomSystem
 		final PhantomPlayersConfig.Settings settings = new PhantomPlayersConfig.Settings(true, false, serviceSnapshot.maximumMaterialized());
 		final PhantomSystem configured = new PhantomSystem(settings, false);
 		configured._scheduler = scheduler;
-		configured.startNavigationForTesting();
+		if (navigationService == null)
+		{
+			configured.startNavigationForTesting();
+		}
+		else
+		{
+			if (navigationService.snapshot().state() != PhantomNavigationService.ServiceState.RUNNING)
+			{
+				throw new IllegalArgumentException("The test Phantom navigation service must be running.");
+			}
+			configured._navigationService = navigationService;
+		}
 		configured._materializationService = materializationService;
 		configured._metrics.recordLifecycleStart();
 		configured._state = State.RUNNING;
@@ -426,11 +456,11 @@ public final class PhantomSystem
 	{
 	}
 
-	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState serviceState, int retainedEntries)
+	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers)
 	{
 		private static ConfiguredShutdownSnapshot notConfigured()
 		{
-			return new ConfiguredShutdownSnapshot(false, null, null, 0);
+			return new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0);
 		}
 	}
 }

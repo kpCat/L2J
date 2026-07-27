@@ -125,6 +125,8 @@ public final class PhantomMetrics
 	private final AtomicLong _navigationQueueWaitExpired = new AtomicLong();
 	private final AtomicLong _navigationCooldownRejected = new AtomicLong();
 	private final AtomicLong _navigationRouteBudgetRejected = new AtomicLong();
+	private final AtomicLong _navigationComputedRouteObstructed = new AtomicLong();
+	private final AtomicLong _navigationCacheRouteObstructed = new AtomicLong();
 	private final AtomicLong _navigationProgress = new AtomicLong();
 	private final AtomicLong _navigationArrived = new AtomicLong();
 	private final AtomicLong _navigationStuck = new AtomicLong();
@@ -573,6 +575,16 @@ public final class PhantomMetrics
 		_navigationRouteBudgetRejected.incrementAndGet();
 	}
 
+	public void recordNavigationComputedRouteObstructed()
+	{
+		_navigationComputedRouteObstructed.incrementAndGet();
+	}
+
+	public void recordNavigationCacheRouteObstructed()
+	{
+		_navigationCacheRouteObstructed.incrementAndGet();
+	}
+
 	public void recordNavigationProgress()
 	{
 		_navigationProgress.incrementAndGet();
@@ -722,6 +734,8 @@ public final class PhantomMetrics
 			_navigationQueueWaitExpired.get(),
 			_navigationCooldownRejected.get(),
 			_navigationRouteBudgetRejected.get(),
+			_navigationComputedRouteObstructed.get(),
+			_navigationCacheRouteObstructed.get(),
 			_navigationProgress.get(),
 			_navigationArrived.get(),
 			_navigationStuck.get(),
@@ -855,7 +869,7 @@ public final class PhantomMetrics
 		}
 	}
 
-	public record NavigationSnapshot(long submissionsAccepted, long submissionsRejected, long directValidated, long directUnverified, long queuedCurrent, long queuedPeak, long workersCurrent, long workersPeak, long cacheHits, long cacheMisses, long cacheInvalidated, long cacheEvicted, long pathAttempts, long pathSucceeded, long pathNoPath, long pathFailed, long pathTimedOut, long pathCancelled, long queueWaitExpired, long cooldownRejected, long routeBudgetRejected, long progress, long arrived, long stuck, long attemptTimeout, long progressCancelled, long beginStopFailures, long finishStopFailures)
+	public record NavigationSnapshot(long submissionsAccepted, long submissionsRejected, long directValidated, long directUnverified, long queuedCurrent, long queuedPeak, long workersCurrent, long workersPeak, long cacheHits, long cacheMisses, long cacheInvalidated, long cacheEvicted, long pathAttempts, long pathSucceeded, long pathNoPath, long pathFailed, long pathTimedOut, long pathCancelled, long queueWaitExpired, long cooldownRejected, long routeBudgetRejected, long computedRouteObstructed, long cacheRouteObstructed, long progress, long arrived, long stuck, long attemptTimeout, long progressCancelled, long beginStopFailures, long finishStopFailures)
 	{
 		public boolean isZero()
 		{
@@ -880,6 +894,8 @@ public final class PhantomMetrics
 				&& (queueWaitExpired == 0) //
 				&& (cooldownRejected == 0) //
 				&& (routeBudgetRejected == 0) //
+				&& (computedRouteObstructed == 0) //
+				&& (cacheRouteObstructed == 0) //
 				&& (progress == 0) //
 				&& (arrived == 0) //
 				&& (stuck == 0) //

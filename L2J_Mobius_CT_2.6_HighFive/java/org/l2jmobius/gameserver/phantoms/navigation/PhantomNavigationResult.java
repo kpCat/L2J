@@ -32,6 +32,7 @@ public record PhantomNavigationResult(Status status, long profileId, long reques
 		NO_GEODATA,
 		PATHFINDING_DISABLED,
 		NO_PATH,
+		ROUTE_OBSTRUCTED,
 		ROUTE_BUDGET_EXCEEDED,
 		QUEUE_BACKPRESSURE,
 		PROFILE_BUSY,

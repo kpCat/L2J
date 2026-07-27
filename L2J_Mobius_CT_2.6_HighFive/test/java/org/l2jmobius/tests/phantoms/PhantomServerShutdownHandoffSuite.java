@@ -32,6 +32,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -41,6 +42,14 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterialization
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend.CapabilitySnapshot;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
@@ -125,6 +134,8 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		registry.add("03-in-flight-drain-reused-before-thread-pool-phase", this::testInFlightDrain);
 		registry.add("04-persistent-failure-retains-configured-ownership", _ -> testPersistentFailure());
 		registry.add("05-in-flight-scheduler-pulse-retains-configured-system", _ -> testInFlightSchedulerPulse());
+		registry.add("06-navigation-only-blocker-snapshot", _ -> testNavigationOnlyBlockerSnapshot());
+		registry.add("07-final-diagnostic-includes-navigation-state", this::testFinalDiagnosticNavigationState);
 	}
 
 	private void testManagedClassifier() throws Exception
@@ -251,7 +262,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(storeEntered.await(1, TimeUnit.SECONDS), "Tracked drain did not enter the blocked store operation.");
 			final ConfiguredShutdownSnapshot retained = PhantomSystem.configuredShutdownSnapshot();
 			PhantomAssertions.assertTrue(retained.configured(), "First timeout cleared the configured instance.");
-			PhantomAssertions.assertEquals(1, retained.retainedEntries(), "First timeout did not retain the managed entry.");
+			PhantomAssertions.assertEquals(1, retained.retainedMaterializationEntries(), "First timeout did not retain the managed entry.");
 			PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPING, scheduler.snapshot().state(), "Failed first drain did not retain scheduler STOPPING.");
 			PhantomAssertions.assertEquals(1, scheduler.snapshot().registered(), "Failed first drain cleared retained scheduler slots.");
 			PhantomAssertions.assertEquals(0, scheduler.snapshot().scheduledTaskCount(), "Failed first drain retained the recurring scheduler future.");
@@ -269,7 +280,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPED, scheduler.snapshot().state(), "Terminal second shutdown did not finish the scheduler.");
 		PhantomAssertions.assertEquals(0, scheduler.snapshot().registered(), "Terminal second shutdown retained scheduler slots.");
 		PhantomAssertions.assertFalse(PhantomSystem.isMaterializationManaged(managed), "Terminal second shutdown retained managed classification.");
-		PhantomAssertions.assertEquals(new ConfiguredShutdownSnapshot(false, null, null, 0), PhantomSystem.configuredShutdownSnapshot(), "Absent configured snapshot is not bounded/empty.");
+		PhantomAssertions.assertEquals(new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0), PhantomSystem.configuredShutdownSnapshot(), "Absent configured snapshot is not bounded/empty.");
 		_environment.assertClean(_environment.primary(), managed);
 	}
 
@@ -303,8 +314,8 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			final ConfiguredShutdownSnapshot retained = PhantomSystem.configuredShutdownSnapshot();
 			PhantomAssertions.assertTrue(retained.configured(), "Persistent failure cleared the configured instance.");
 			PhantomAssertions.assertEquals(PhantomSystem.State.FAILED, retained.systemState(), "Persistent failure lost system FAILED state.");
-			PhantomAssertions.assertEquals(ServiceState.FAILED, retained.serviceState(), "Persistent failure lost service FAILED state.");
-			PhantomAssertions.assertEquals(1, retained.retainedEntries(), "Persistent failure released the service entry.");
+			PhantomAssertions.assertEquals(ServiceState.FAILED, retained.materializationServiceState(), "Persistent failure lost service FAILED state.");
+			PhantomAssertions.assertEquals(1, retained.retainedMaterializationEntries(), "Persistent failure released the service entry.");
 			PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPING, scheduler.snapshot().state(), "Persistent service failure did not retain scheduler STOPPING.");
 			PhantomAssertions.assertEquals(1, scheduler.snapshot().registered(), "Persistent service failure cleared scheduler slots.");
 			PhantomAssertions.assertTrue(PhantomSystem.isMaterializationManaged(managed), "Persistent failure lost fail-closed ownership.");
@@ -383,6 +394,128 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		PhantomAssertions.assertFalse(PhantomSystem.hasConfiguredInstance(), "Terminal scheduler shutdown retained the configured instance.");
 		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPED, scheduler.snapshot().state(), "Terminal scheduler shutdown did not reach STOPPED.");
 		PhantomAssertions.assertEquals(0, scheduler.snapshot().registered(), "Terminal scheduler shutdown retained slots.");
+	}
+
+	private void testNavigationOnlyBlockerSnapshot() throws Exception
+	{
+		reset();
+		final PhantomMaterializationService materializationService = service(1, PhantomMaterializedPlayer.FailureInjector.none(), 150);
+		final PhantomMetrics metrics = new PhantomMetrics();
+		final PhantomScheduler scheduler = new PhantomScheduler(
+			2,
+			10,
+			2,
+			new PhantomSchedulerPolicy(16, 1000, 5, 2, 8, 1, 2, 3, 4, 50),
+			System::nanoTime,
+			(pulse, period) -> null,
+			false,
+			metrics,
+			new PhantomDiagnosticTrace(false, 0, 0, metrics),
+			PhantomActivityMaterializationPort.noop(),
+			item ->
+			{
+			});
+		PhantomAssertions.assertTrue(scheduler.start(), "Navigation-only shutdown scheduler did not start.");
+
+		final PhantomNavigationPoint origin = new PhantomNavigationPoint(10_000, 10_000, 0, 0);
+		final PhantomNavigationPoint midpoint = new PhantomNavigationPoint(10_250, 10_100, 0, 0);
+		final PhantomNavigationPoint destination = new PhantomNavigationPoint(10_500, 10_000, 0, 0);
+		final CountDownLatch pathEntered = new CountDownLatch(1);
+		final CountDownLatch releasePath = new CountDownLatch(1);
+		final AtomicInteger directCalls = new AtomicInteger();
+		final AtomicReference<Thread> workerThread = new AtomicReference<>();
+		final PhantomNavigationBackend backend = new PhantomNavigationBackend()
+		{
+			@Override
+			public CapabilitySnapshot capability(PhantomNavigationPoint requestOrigin, PhantomNavigationPoint requestDestination)
+			{
+				return new CapabilitySnapshot(PhantomNavigationCapability.GEODATA_PATHFINDING, 1);
+			}
+
+			@Override
+			public boolean canMoveDirect(PhantomNavigationPoint requestOrigin, PhantomNavigationPoint requestDestination)
+			{
+				return directCalls.getAndIncrement() > 0;
+			}
+
+			@Override
+			public List<PhantomNavigationPoint> findPath(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellationToken)
+			{
+				pathEntered.countDown();
+				try
+				{
+					if (!releasePath.await(2, TimeUnit.SECONDS))
+					{
+						throw new IllegalStateException("Timed out waiting to release navigation shutdown path.");
+					}
+				}
+				catch (InterruptedException e)
+				{
+					Thread.currentThread().interrupt();
+					throw new IllegalStateException(e);
+				}
+				return List.of(origin, midpoint, destination);
+			}
+		};
+		final PhantomNavigationService navigationService = new PhantomNavigationService(
+			new PhantomNavigationPolicy(4, 1, 32, 4, 5000, 1000, 12_000, 64, 100_000, 1000, 3000, 20, 50, 120_000),
+			backend,
+			worker ->
+			{
+				final Thread thread = new Thread(worker, "phantom-navigation-shutdown-worker");
+				workerThread.set(thread);
+				thread.start();
+				return true;
+			},
+			() -> 0,
+			metrics);
+		PhantomAssertions.assertTrue(navigationService.start(), "Navigation-only shutdown service did not start.");
+		final var submission = navigationService.submit(new PhantomNavigationRequest(1, origin, destination, 0, 100, 100_000));
+		PhantomAssertions.assertTrue(pathEntered.await(1, TimeUnit.SECONDS), "Navigation-only shutdown request did not enter pathfinding.");
+		PhantomSystem.configureForTesting(materializationService, scheduler, navigationService);
+
+		try
+		{
+			PhantomAssertions.assertFalse(PhantomSystem.shutdownIfStarted(), "Navigation-only blocker was reported as stopped.");
+			final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
+			PhantomAssertions.assertTrue(snapshot.configured(), "Navigation-only blocker cleared configured ownership.");
+			PhantomAssertions.assertEquals(PhantomSystem.State.FAILED, snapshot.systemState(), "Navigation-only blocker lost FAILED system state.");
+			PhantomAssertions.assertEquals(ServiceState.STOPPED, snapshot.materializationServiceState(), "Navigation-only blocker left materialization incomplete.");
+			PhantomAssertions.assertEquals(0, snapshot.retainedMaterializationEntries(), "Navigation-only blocker retained materialization entries.");
+			PhantomAssertions.assertEquals(PhantomNavigationService.ServiceState.STOPPING, snapshot.navigationState(), "Navigation-only blocker lost navigation STOPPING state.");
+			PhantomAssertions.assertEquals(1, snapshot.navigationActiveRequests(), "Navigation-only blocker lost active request ownership.");
+			PhantomAssertions.assertEquals(0, snapshot.navigationQueuedRequests(), "Navigation-only blocker retained queued work.");
+			PhantomAssertions.assertEquals(1, snapshot.navigationWorkers(), "Navigation-only blocker lost worker ownership.");
+		}
+		finally
+		{
+			releasePath.countDown();
+			final Thread worker = workerThread.get();
+			if (worker != null)
+			{
+				worker.join(TimeUnit.SECONDS.toMillis(2));
+			}
+		}
+		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.CANCELLED, navigationService.consume(submission.requestId()).orElseThrow().status(), "Navigation shutdown published a late route.");
+		PhantomAssertions.assertTrue(PhantomSystem.shutdownIfStarted(), "Navigation-only blocker did not finish after worker return.");
+		PhantomAssertions.assertFalse(PhantomSystem.hasConfiguredInstance(), "Navigation-only blocker retained configured ownership after quiescence.");
+	}
+
+	private void testFinalDiagnosticNavigationState(PhantomTestContext context) throws Exception
+	{
+		final String source = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/Shutdown.java"), StandardCharsets.UTF_8);
+		final String shutdownCall = "PhantomSystem.shutdownIfStarted()";
+		final int firstShutdown = source.indexOf(shutdownCall);
+		final int secondShutdown = source.indexOf(shutdownCall, firstShutdown + shutdownCall.length());
+		final int threadPool = source.indexOf("ThreadPool.shutdown();", secondShutdown + shutdownCall.length());
+		final String finalDiagnostic = source.substring(secondShutdown, threadPool);
+		PhantomAssertions.assertTrue(finalDiagnostic.contains("LOGGER.severe"), "Final persistent Phantom failure is not severe.");
+		PhantomAssertions.assertTrue(finalDiagnostic.contains("Final subsystem drain is incomplete"), "Final diagnostic still reports a materialization-only failure.");
+		for (String field : List.of("systemState", "materializationServiceState", "retainedMaterializationEntries", "navigationState", "navigationActiveRequests", "navigationQueuedRequests", "navigationWorkers"))
+		{
+			PhantomAssertions.assertTrue(finalDiagnostic.contains(field), "Final Phantom diagnostic omits " + field + ".");
+		}
+		PhantomAssertions.assertFalse(finalDiagnostic.contains("Final materialization drain completed"), "Final diagnostic can misreport navigation failure as materialization success.");
 	}
 
 	private PhantomMaterializationService service(int capacity, PhantomMaterializedPlayer.FailureInjector failureInjector, long shutdownTimeoutMillis)

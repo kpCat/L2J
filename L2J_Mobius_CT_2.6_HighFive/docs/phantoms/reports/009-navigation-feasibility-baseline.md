@@ -307,3 +307,27 @@ Push result: во внешнем final handoff
 
 Result:
 `NAVIGATION_SERVICE_BASELINE_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+
+## Immutable independent review handoff
+
+```text
+Commit: b6e893f6bb8abf26908e441ee79b92d6f910eb91
+Parent: 6ecd8ba155e63a2dedeeafd65c1961fdb57bf261
+Push/remote: exact
+Navigation core: 38/38 ×3
+Navigation performance: 1/1 ×2
+Performance SHA-256:
+D8B8BC902073847DF5C5E3AE28DE380540E43108C4B7420D778FE1659B71E377
+Final verifier: 61/61 ×2
+Verifier SHA-256:
+E935FD5EA010BB968435FB7C3C8625AAC314F4D910B31B72D91A9CDDB28EDB96
+Independent review: FIX_REQUIRED
+Goal 009A: REQUIRED
+Goal 010: BLOCKED
+```
+
+Независимое review приняло архитектурное направление Goal 009 и не потребовало
+revert, но заблокировало Goal 010 до bounded Goal 009A: input preflight должен
+предшествовать backend, computed segments — проходить door/fence-aware
+validation, dispatch — быть атомарно упорядочен со `STOPPING`, а server shutdown
+diagnostic — показывать aggregate navigation ownership.

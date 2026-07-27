@@ -85,6 +85,7 @@ public final class PhantomNavigationService
 	}
 
 	private final Object _monitor = new Object();
+	private final Object _dispatchGate = new Object();
 	private final PhantomNavigationPolicy _policy;
 	private final PhantomNavigationBackend _backend;
 	private final Dispatcher _dispatcher;
@@ -97,6 +98,7 @@ public final class PhantomNavigationService
 	private final LinkedHashMap<Long, PhantomNavigationResult> _completed = new LinkedHashMap<>();
 	private final LinkedHashMap<CacheKey, CacheEntry> _cache = new LinkedHashMap<>(16, 0.75f, true);
 	private final LinkedHashMap<Long, Long> _cooldowns = new LinkedHashMap<>(16, 0.75f, true);
+	private final List<WorkerClaim> _workerClaims = new ArrayList<>(2);
 	private ServiceState _state = ServiceState.NEW;
 	private long _requestSequence;
 	private int _workers;
@@ -249,31 +251,41 @@ public final class PhantomNavigationService
 
 	public BeginStopResult beginStop()
 	{
-		synchronized (_monitor)
+		synchronized (_dispatchGate)
 		{
-			if (_state == ServiceState.STOPPED)
+			synchronized (_monitor)
 			{
-				return BeginStopResult.ALREADY_STOPPED;
+				if (_state == ServiceState.STOPPED)
+				{
+					return BeginStopResult.ALREADY_STOPPED;
+				}
+				if (_state == ServiceState.STOPPING)
+				{
+					return BeginStopResult.ALREADY_STOPPING;
+				}
+				_state = ServiceState.STOPPING;
+				RequestEntry queued;
+				while ((queued = _queue.poll()) != null)
+				{
+					_metrics.recordNavigationDequeued();
+					queued._cancellation.cancel();
+					completeLocked(queued, result(queued, Status.CANCELLED, null, false, _clock.getAsLong()), true);
+					_metrics.recordNavigationPathCancelled();
+				}
+				for (RequestEntry active : List.copyOf(_activeByRequest.values()))
+				{
+					active._cancellation.cancel();
+				}
+				for (WorkerClaim claim : List.copyOf(_workerClaims))
+				{
+					if (!claim._accepted)
+					{
+						releaseWorkerClaimLocked(claim);
+					}
+				}
+				_progressTracker.cancelAll();
+				return BeginStopResult.STARTED;
 			}
-			if (_state == ServiceState.STOPPING)
-			{
-				return BeginStopResult.ALREADY_STOPPING;
-			}
-			_state = ServiceState.STOPPING;
-			RequestEntry queued;
-			while ((queued = _queue.poll()) != null)
-			{
-				_metrics.recordNavigationDequeued();
-				queued._cancellation.cancel();
-				completeLocked(queued, result(queued, Status.CANCELLED, null, false, _clock.getAsLong()), true);
-				_metrics.recordNavigationPathCancelled();
-			}
-			for (RequestEntry active : List.copyOf(_activeByRequest.values()))
-			{
-				active._cancellation.cancel();
-			}
-			_progressTracker.cancelAll();
-			return BeginStopResult.STARTED;
 		}
 	}
 
@@ -290,7 +302,7 @@ public final class PhantomNavigationService
 				_metrics.recordNavigationFinishStopFailure();
 				return false;
 			}
-			if ((_workers != 0) || !_activeByRequest.isEmpty() || !_queue.isEmpty())
+			if ((_workers != 0) || !_workerClaims.isEmpty() || !_activeByRequest.isEmpty() || !_queue.isEmpty())
 			{
 				_metrics.recordNavigationFinishStopFailure();
 				return false;
@@ -305,9 +317,36 @@ public final class PhantomNavigationService
 
 	private Submission processDirect(RequestEntry entry)
 	{
+		final long cancellationGeneration = entry._initialCancellationGeneration;
+		synchronized (_monitor)
+		{
+			if (!isCurrentLocked(entry))
+			{
+				return completedOrCancelledLocked(entry);
+			}
+			if ((_state != ServiceState.RUNNING) || entry._cancellation.changedSince(cancellationGeneration))
+			{
+				return completeSubmissionLocked(entry, Status.CANCELLED, null, false, true);
+			}
+		}
+		final long preflightLogicalNow = _clock.getAsLong();
+		if (entry._cancellation.changedSince(cancellationGeneration))
+		{
+			return completeSubmission(entry, Status.CANCELLED, null, false);
+		}
+		if (deadlineExpired(entry._request, preflightLogicalNow))
+		{
+			return completeSubmission(entry, Status.DEADLINE_EXPIRED, null, false);
+		}
+		final double directDistance = entry._request.origin().distanceTo(entry._request.destination());
+		if (!Double.isFinite(directDistance) || (directDistance > routeDistanceBudget(entry._request)))
+		{
+			_metrics.recordNavigationRouteBudgetRejected();
+			return completeSubmission(entry, Status.ROUTE_BUDGET_EXCEEDED, null, false);
+		}
+
 		final CapabilitySnapshot capability;
 		final boolean direct;
-		final long cancellationGeneration = entry._cancellation.generation();
 		try
 		{
 			capability = Objects.requireNonNull(_backend.capability(entry._request.origin(), entry._request.destination()), "Backend capability must not be null.");
@@ -373,7 +412,7 @@ public final class PhantomNavigationService
 				return completeSubmission(entry, Status.BACKEND_FAILURE, null, false);
 		}
 
-		if ((entry._request.origin().distanceTo(entry._request.destination()) > _policy.maximumLocalStraightDistance()) || (entry._request.maximumRouteDistance() > _policy.maximumRouteDistance()))
+		if (entry._request.origin().distanceTo(entry._request.destination()) > _policy.maximumLocalStraightDistance())
 		{
 			_metrics.recordNavigationRouteBudgetRejected();
 			return completeSubmission(entry, Status.ROUTE_BUDGET_EXCEEDED, null, false);
@@ -394,7 +433,7 @@ public final class PhantomNavigationService
 			return completeSubmission(entry, Status.DEADLINE_EXPIRED, null, false);
 		}
 
-		boolean workerClaimed = false;
+		WorkerClaim workerClaim = null;
 		synchronized (_monitor)
 		{
 			if (!isCurrentLocked(entry))
@@ -428,27 +467,16 @@ public final class PhantomNavigationService
 			_peakQueue = Math.max(_peakQueue, _queue.size());
 			if (_workers < _policy.maximumConcurrentPathfinders())
 			{
-				_workers++;
-				_peakWorkers = Math.max(_peakWorkers, _workers);
-				_metrics.recordNavigationWorkerStarted();
-				workerClaimed = true;
+				workerClaim = claimWorkerLocked();
 			}
 		}
 
-		if (workerClaimed)
+		if (workerClaim != null)
 		{
-			final boolean dispatched;
-			try
+			final Submission dispatchResult = dispatchClaimedWorker(entry, workerClaim);
+			if (dispatchResult != null)
 			{
-				dispatched = _dispatcher.dispatch(this::drainQueue);
-			}
-			catch (RuntimeException e)
-			{
-				return dispatcherFailed(entry);
-			}
-			if (!dispatched)
-			{
-				return dispatcherFailed(entry);
+				return dispatchResult;
 			}
 		}
 		synchronized (_monitor)
@@ -483,23 +511,10 @@ public final class PhantomNavigationService
 			}
 		}
 
-		PhantomNavigationPoint previous = entry._request.origin();
-		for (PhantomNavigationPoint waypoint : cached._route.waypoints())
+		final Status validationStatus = validateSegments(entry, cached._route.waypoints(), entry._initialCancellationGeneration, true);
+		if (validationStatus != Status.PATH_FOUND)
 		{
-			if (entry._cancellation.changedSince(entry._initialCancellationGeneration) || deadlineExpired(entry._request, _clock.getAsLong()))
-			{
-				return null;
-			}
-			boolean valid = false;
-			try
-			{
-				valid = _backend.canMoveDirect(previous, waypoint);
-			}
-			catch (Throwable throwable)
-			{
-				valid = false;
-			}
-			if (!valid)
+			if ((validationStatus != Status.CANCELLED) && (validationStatus != Status.DEADLINE_EXPIRED))
 			{
 				synchronized (_monitor)
 				{
@@ -510,9 +525,8 @@ public final class PhantomNavigationService
 					_metrics.recordNavigationCacheInvalidated();
 					_metrics.recordNavigationCacheMiss();
 				}
-				return null;
 			}
-			previous = waypoint;
+			return null;
 		}
 		synchronized (_monitor)
 		{
@@ -526,34 +540,66 @@ public final class PhantomNavigationService
 		}
 	}
 
-	private Submission dispatcherFailed(RequestEntry entry)
+	private Submission dispatchClaimedWorker(RequestEntry entry, WorkerClaim claim)
 	{
-		synchronized (_monitor)
+		synchronized (_dispatchGate)
 		{
-			if (_workers > 0)
+			synchronized (_monitor)
 			{
-				_workers--;
-				_metrics.recordNavigationWorkerStopped();
+				if (!claim._owned)
+				{
+					return currentSubmissionLocked(entry);
+				}
+				if ((_state != ServiceState.RUNNING) || _queue.isEmpty())
+				{
+					releaseWorkerClaimLocked(claim);
+					return currentSubmissionLocked(entry);
+				}
 			}
-			if (_queue.remove(entry))
+
+			boolean dispatched = false;
+			try
 			{
-				_metrics.recordNavigationDequeued();
-				return completeSubmissionLocked(entry, Status.BACKEND_FAILURE, null, false, true);
+				dispatched = _dispatcher.dispatch(() -> drainQueue(claim));
 			}
-			final PhantomNavigationResult completed = _completed.get(entry._requestId);
-			if (completed != null)
+			catch (Throwable throwable)
 			{
-				return new Submission(SubmissionStatus.COMPLETED, entry._requestId, entry._capability.mode(), completed);
+				dispatched = false;
 			}
-			return new Submission(SubmissionStatus.ACCEPTED, entry._requestId, entry._capability.mode(), null);
+
+			synchronized (_monitor)
+			{
+				if (dispatched)
+				{
+					if (claim._owned)
+					{
+						claim._accepted = true;
+					}
+					return null;
+				}
+				releaseWorkerClaimLocked(claim);
+				if (isCurrentLocked(entry) && (entry._state == RequestState.QUEUED) && !hasAcceptedWorkerLocked() && _queue.remove(entry))
+				{
+					_metrics.recordNavigationDequeued();
+					return completeSubmissionLocked(entry, Status.BACKEND_FAILURE, null, false, true);
+				}
+				return currentSubmissionLocked(entry);
+			}
 		}
 	}
 
-	private void drainQueue()
+	private void drainQueue(WorkerClaim claim)
 	{
-		boolean workerOwned = true;
 		try
 		{
+			synchronized (_monitor)
+			{
+				if (!claim._owned)
+				{
+					return;
+				}
+				claim._accepted = true;
+			}
 			while (true)
 			{
 				final RequestEntry entry;
@@ -563,9 +609,7 @@ public final class PhantomNavigationService
 					entry = _queue.poll();
 					if (entry == null)
 					{
-						_workers--;
-						_metrics.recordNavigationWorkerStopped();
-						workerOwned = false;
+						releaseWorkerClaimLocked(claim);
 						return;
 					}
 					_metrics.recordNavigationDequeued();
@@ -606,7 +650,7 @@ public final class PhantomNavigationService
 				{
 					try
 					{
-						validated = validateBackendPath(entry, backendPath);
+						validated = validateBackendPath(entry, backendPath, cancellationGeneration);
 					}
 					catch (Throwable throwable)
 					{
@@ -648,10 +692,14 @@ public final class PhantomNavigationService
 						{
 							_metrics.recordNavigationPathNoPath();
 						}
-						else
+						else if (validated._status == Status.ROUTE_BUDGET_EXCEEDED)
 						{
 							_metrics.recordNavigationPathFailed();
 							_metrics.recordNavigationRouteBudgetRejected();
+						}
+						else
+						{
+							_metrics.recordNavigationPathFailed();
 						}
 						continue;
 					}
@@ -665,37 +713,40 @@ public final class PhantomNavigationService
 		{
 			synchronized (_monitor)
 			{
-				if (workerOwned && (_workers > 0))
-				{
-					_workers--;
-					_metrics.recordNavigationWorkerStopped();
-				}
+				releaseWorkerClaimLocked(claim);
 			}
 		}
 	}
 
-	private ValidatedPath validateBackendPath(RequestEntry entry, List<PhantomNavigationPoint> backendPath)
+	private ValidatedPath validateBackendPath(RequestEntry entry, List<PhantomNavigationPoint> backendPath, long cancellationGeneration)
 	{
 		if ((backendPath == null) || (backendPath.size() < 2))
 		{
 			return new ValidatedPath(Status.NO_PATH, null);
 		}
-		final List<PhantomNavigationPoint> waypoints = new ArrayList<>(backendPath.size() + 1);
-		for (PhantomNavigationPoint point : backendPath)
+		if (backendPath.size() > (_policy.maximumWaypoints() + 1))
 		{
+			return new ValidatedPath(Status.ROUTE_BUDGET_EXCEEDED, null);
+		}
+		final List<PhantomNavigationPoint> waypoints = new ArrayList<>(backendPath.size() + 1);
+		PhantomNavigationPoint previousCandidate = entry._request.origin();
+		for (int index = 0; index < backendPath.size(); index++)
+		{
+			final PhantomNavigationPoint point = backendPath.get(index);
 			if ((point == null) || (point.instanceId() != entry._request.origin().instanceId()))
 			{
 				return new ValidatedPath(Status.BACKEND_FAILURE, null);
 			}
-			if (waypoints.isEmpty() && point.equals(entry._request.origin()))
+			if ((index == 0) && point.equals(entry._request.origin()))
 			{
 				continue;
 			}
-			if (!waypoints.isEmpty() && waypoints.getLast().equals(point))
+			if (previousCandidate.equals(point))
 			{
 				return new ValidatedPath(Status.BACKEND_FAILURE, null);
 			}
 			waypoints.add(point);
+			previousCandidate = point;
 		}
 		if (waypoints.isEmpty() || !waypoints.getLast().equals(entry._request.destination()))
 		{
@@ -717,6 +768,11 @@ public final class PhantomNavigationService
 			}
 			previous = point;
 		}
+		final Status validationStatus = validateSegments(entry, waypoints, cancellationGeneration, false);
+		if (validationStatus != Status.PATH_FOUND)
+		{
+			return new ValidatedPath(validationStatus, null);
+		}
 		try
 		{
 			return new ValidatedPath(
@@ -727,6 +783,101 @@ public final class PhantomNavigationService
 		{
 			return new ValidatedPath(Status.BACKEND_FAILURE, null);
 		}
+	}
+
+	private Status validateSegments(RequestEntry entry, List<PhantomNavigationPoint> waypoints, long cancellationGeneration, boolean cacheRevalidation)
+	{
+		PhantomNavigationPoint previous = entry._request.origin();
+		for (PhantomNavigationPoint waypoint : waypoints)
+		{
+			if (entry._cancellation.changedSince(cancellationGeneration))
+			{
+				return Status.CANCELLED;
+			}
+			if (deadlineExpired(entry._request, _clock.getAsLong()))
+			{
+				return Status.DEADLINE_EXPIRED;
+			}
+			final boolean valid;
+			try
+			{
+				valid = _backend.canMoveDirect(previous, waypoint);
+			}
+			catch (Throwable throwable)
+			{
+				return Status.BACKEND_FAILURE;
+			}
+			if (!valid)
+			{
+				if (cacheRevalidation)
+				{
+					_metrics.recordNavigationCacheRouteObstructed();
+				}
+				else
+				{
+					_metrics.recordNavigationComputedRouteObstructed();
+				}
+				return Status.ROUTE_OBSTRUCTED;
+			}
+			previous = waypoint;
+		}
+		if (entry._cancellation.changedSince(cancellationGeneration))
+		{
+			return Status.CANCELLED;
+		}
+		return deadlineExpired(entry._request, _clock.getAsLong()) ? Status.DEADLINE_EXPIRED : Status.PATH_FOUND;
+	}
+
+	private WorkerClaim claimWorkerLocked()
+	{
+		final WorkerClaim claim = new WorkerClaim();
+		_workerClaims.add(claim);
+		_workers++;
+		_peakWorkers = Math.max(_peakWorkers, _workers);
+		_metrics.recordNavigationWorkerStarted();
+		return claim;
+	}
+
+	private void releaseWorkerClaimLocked(WorkerClaim claim)
+	{
+		if (!claim._owned)
+		{
+			return;
+		}
+		claim._owned = false;
+		_workerClaims.remove(claim);
+		if (_workers <= 0)
+		{
+			throw new IllegalStateException("Navigation worker ownership became inconsistent.");
+		}
+		_workers--;
+		_metrics.recordNavigationWorkerStopped();
+	}
+
+	private boolean hasAcceptedWorkerLocked()
+	{
+		for (WorkerClaim claim : _workerClaims)
+		{
+			if (claim._owned && claim._accepted)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private Submission currentSubmissionLocked(RequestEntry entry)
+	{
+		final PhantomNavigationResult completed = _completed.get(entry._requestId);
+		if (completed != null)
+		{
+			return new Submission(SubmissionStatus.COMPLETED, entry._requestId, entry._capability == null ? PhantomNavigationCapability.UNKNOWN : entry._capability.mode(), completed);
+		}
+		if (isCurrentLocked(entry))
+		{
+			return new Submission(SubmissionStatus.ACCEPTED, entry._requestId, entry._capability == null ? PhantomNavigationCapability.UNKNOWN : entry._capability.mode(), null);
+		}
+		return completedOrCancelledLocked(entry);
 	}
 
 	private void putCacheLocked(RequestEntry entry, PhantomNavigationRoute route, long logicalNow)
@@ -759,8 +910,26 @@ public final class PhantomNavigationService
 
 	private Submission completeSubmissionLocked(RequestEntry entry, Status status, PhantomNavigationRoute route, boolean fromCache, boolean retain)
 	{
+		if (!isCurrentLocked(entry))
+		{
+			return completedOrCancelledLocked(entry);
+		}
 		markSubmissionAcceptedLocked(entry);
-		final PhantomNavigationResult result = result(entry, status, route, fromCache, _clock.getAsLong());
+		final long completedLogicalNanos = _clock.getAsLong();
+		final boolean successful = (status == Status.DIRECT_VALIDATED) || (status == Status.DIRECT_UNVERIFIED_NO_GEODATA) || (status == Status.PATH_FOUND);
+		if (successful && ((_state != ServiceState.RUNNING) || entry._cancellation.changedSince(entry._initialCancellationGeneration)))
+		{
+			status = Status.CANCELLED;
+			route = null;
+			fromCache = false;
+		}
+		else if (successful && deadlineExpired(entry._request, completedLogicalNanos))
+		{
+			status = Status.DEADLINE_EXPIRED;
+			route = null;
+			fromCache = false;
+		}
+		final PhantomNavigationResult result = result(entry, status, route, fromCache, completedLogicalNanos);
 		completeLocked(entry, result, retain);
 		return new Submission(SubmissionStatus.COMPLETED, entry._requestId, entry._capability == null ? PhantomNavigationCapability.UNKNOWN : entry._capability.mode(), result);
 	}
@@ -903,6 +1072,12 @@ public final class PhantomNavigationService
 			_route = route;
 			_createdLogicalNanos = createdLogicalNanos;
 		}
+	}
+
+	private static final class WorkerClaim
+	{
+		private boolean _owned = true;
+		private boolean _accepted;
 	}
 
 	private record ValidatedPath(Status _status, PhantomNavigationRoute _route)

@@ -2,10 +2,11 @@
 
 ## Статус и граница
 
-Goal 009 вводит inert bounded `PhantomNavigationService`. Сервис рассчитывает и
-наблюдает маршрут, но не владеет `Player`, `Creature`, AI intention, packet,
-движением или телепортацией. Goal 010, topology, anchors и rooms не входят в
-этот контракт.
+Goal 009 вводит inert bounded `PhantomNavigationService`, а Goal 009A закрывает
+его route truth, backend preflight, dispatch/stop ordering и shutdown
+observability findings. Сервис рассчитывает и наблюдает маршрут, но не владеет
+`Player`, `Creature`, AI intention, packet, движением или телепортацией.
+Goal 010, topology, anchors и rooms не входят в этот контракт.
 
 ## Factual capability
 
@@ -26,9 +27,15 @@ GEODATA_DIRECT_ONLY
 GEODATA_PATHFINDING
 ```
 
-## Direct path first
+## Input preflight и direct path first
 
-Каждый принятый запрос сначала выполняет одну direct-проверку.
+После резервирования request ownership, но до первого backend-вызова сервис
+повторно проверяет lifecycle/cancellation, deadline и точную прямую 3D-дистанцию.
+Просроченный запрос завершается `DEADLINE_EXPIRED`, а non-finite или заведомо
+невозможный бюджет — `ROUTE_BUDGET_EXCEEDED`; capability/direct/A* в обоих
+случаях не вызываются.
+
+Остальные принятые запросы выполняют ровно одну начальную direct-проверку.
 
 - При geo на обеих точках успешный результат — `DIRECT_VALIDATED`.
 - Без полного geo успешный результат —
@@ -38,6 +45,32 @@ GEODATA_PATHFINDING
 - Только `GEODATA_PATHFINDING` может перейти к local A*.
 
 После неуспешного или заблокированного `PathFinding` прямой fallback запрещён.
+Ограничение `maximumLocalStraightDistance` применяется только после неуспешного
+direct и перед A*, поэтому не отклоняет доступный прямой маршрут.
+
+## Computed route truth
+
+Результат legacy A* считается недоверенным candidate path. Сервис копирует
+Phantom-owned точки, удаляет не более одной точной начальной origin, отклоняет
+null, другой instance и adjacent duplicates, при необходимости добавляет точный
+destination, затем проверяет waypoint count и полный route-distance budget.
+
+До `PATH_FOUND` каждый вычисленный segment последовательно проходит
+door/fence-aware `canMoveDirect`, включая автоматически добавленный exact
+destination. Между segment-проверками повторно проверяются cancellation
+generation и deadline. Приоритет позднего состояния до публикации:
+
+```text
+CANCELLED
+DEADLINE_EXPIRED
+BACKEND_FAILURE
+ROUTE_OBSTRUCTED
+```
+
+`ROUTE_OBSTRUCTED` — отдельный terminal unsuccessful A* result. Он не содержит
+route, не публикуется и не попадает в cache; после фактической A* попытки
+устанавливается cooldown. Fixed aggregate metrics различают obstruction
+первичной computed route и cache revalidation без profile/coordinate labels.
 
 ## Bounded ownership
 
@@ -60,16 +93,24 @@ request deadline: 1000 ms
 service-level drain task на существующем `ThreadPool`, не постоянной и не
 per-profile задачей. Backend выполняется вне service monitor.
 
+Узкий dispatch gate атомарно упорядочивает worker claim/dispatch и `STOPPING`.
+Dispatcher вызывается не более одного раза на claim. Если dispatch отклонён,
+выбросил исключение или stop победил до dispatch, exact worker claim и request
+ownership синхронно освобождаются. Уже принятый worker сохраняет ownership до
+возврата, даже если фактически стартует после `beginStop`; отрицательный
+`workers` и stranded claim запрещены.
+
 Cancellation кооперативна: уже выполняющийся legacy A* не прерывается, worker
 и request ownership сохраняются до возврата. После возврата cancellation token
 и deadline проверяются до cache/publish, поэтому поздний маршрут отбрасывается.
 
 ## Cache и cooldown
 
-Только вычисленный bounded local route может быть cacheable. Cache использует
-access-order LRU, TTL и capability snapshot в ключе. На hit каждый сегмент
-повторно проверяется через door/fence-aware direct API; dynamic obstacle
-инвалидирует запись.
+Только полностью нормализованный и segment-validated bounded local route может
+быть cacheable. Cache использует access-order LRU, TTL и capability snapshot в
+ключе. На hit каждый segment повторно проверяется тем же bounded
+door/fence-aware helper; dynamic obstacle, cancellation, deadline или backend
+failure инвалидируют запись и не публикуют частичный route.
 
 Cooldown применяется после A* timeout/failure/no-path и проверяется только
 после новой direct-проверки. Поэтому новый прямой маршрут cooldown не блокирует.
@@ -112,3 +153,20 @@ scheduler.beginStop
 Disabled startup не создаёт service, queue, cache, worker или geo singleton.
 Если legacy A* ещё выполняется, `finishStop` возвращает `false`, а повторный
 server-level shutdown завершает stop после возврата worker.
+
+Server-level aggregate shutdown snapshot и initial/final diagnostics содержат:
+
+```text
+systemState
+materializationServiceState
+retainedMaterializationEntries
+navigationState
+navigationActiveRequests
+navigationQueuedRequests
+navigationWorkers
+```
+
+Они не раскрывают profile IDs, coordinates или routes. Если materialization уже
+остановлена, но navigation ещё удерживает request/worker, final diagnostic
+остаётся subsystem-wide `SEVERE`; success до удаления configured instance
+запрещён.

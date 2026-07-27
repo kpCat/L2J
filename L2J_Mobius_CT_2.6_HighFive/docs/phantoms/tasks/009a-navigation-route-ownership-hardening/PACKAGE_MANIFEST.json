@@ -1,0 +1,24 @@
+{
+  "package": "phantom-world-goal-009a-navigation-route-ownership-hardening",
+  "taskId": "009a-navigation-route-ownership-hardening",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/009a-navigation-route-ownership-hardening/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "b6e893f6bb8abf26908e441ee79b92d6f910eb91",
+  "schemaChanges": false,
+  "configChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal010Started": false,
+  "goal011Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "ROUTE_VALIDATION.md",
+    "DISPATCH_SHUTDOWN.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

@@ -386,17 +386,17 @@ public class Shutdown extends Thread
 				final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
 				if (!snapshot.configured())
 				{
-					LOGGER.info("Phantom World: Initial materialization drain completed, stopped=" + stopped + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
+					LOGGER.info("Phantom World: Initial subsystem drain completed, stopped=" + stopped + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
 				}
 				else
 				{
-					LOGGER.warning("Phantom World: Initial materialization drain remains incomplete; systemState=" + snapshot.systemState() + ", serviceState=" + snapshot.serviceState() + ", retainedEntries=" + snapshot.retainedEntries() + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
+					LOGGER.warning("Phantom World: Initial subsystem drain remains incomplete; systemState=" + snapshot.systemState() + ", materializationServiceState=" + snapshot.materializationServiceState() + ", retainedMaterializationEntries=" + snapshot.retainedMaterializationEntries() + ", navigationState=" + snapshot.navigationState() + ", navigationActiveRequests=" + snapshot.navigationActiveRequests() + ", navigationQueuedRequests=" + snapshot.navigationQueuedRequests() + ", navigationWorkers=" + snapshot.navigationWorkers() + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
 				}
 			}
 		}
 		catch (Throwable t)
 		{
-			LOGGER.log(Level.WARNING, "Error during initial Phantom World materialization drain.", t);
+			LOGGER.log(Level.WARNING, "Error during initial Phantom World subsystem drain.", t);
 		}
 
 		try
@@ -429,18 +429,18 @@ public class Shutdown extends Thread
 				final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
 				if (!snapshot.configured())
 				{
-					LOGGER.info("Phantom World: Final materialization drain completed, stopped=" + stopped + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
+					LOGGER.info("Phantom World: Final subsystem drain completed, stopped=" + stopped + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
 				}
 				else
 				{
-					LOGGER.severe("Phantom World: Final materialization drain is incomplete; systemState=" + snapshot.systemState() + ", serviceState=" + snapshot.serviceState() + ", retainedEntries=" + snapshot.retainedEntries() + ". Shared ThreadPool is about to stop with retained Phantom ownership(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
+					LOGGER.severe("Phantom World: Final subsystem drain is incomplete; systemState=" + snapshot.systemState() + ", materializationServiceState=" + snapshot.materializationServiceState() + ", retainedMaterializationEntries=" + snapshot.retainedMaterializationEntries() + ", navigationState=" + snapshot.navigationState() + ", navigationActiveRequests=" + snapshot.navigationActiveRequests() + ", navigationQueuedRequests=" + snapshot.navigationQueuedRequests() + ", navigationWorkers=" + snapshot.navigationWorkers() + ". Shared ThreadPool is about to stop with retained Phantom ownership(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
 				}
 			}
 		}
 		catch (Throwable t)
 		{
 			final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
-			LOGGER.log(Level.SEVERE, "Phantom World: Final materialization drain failed; configured=" + snapshot.configured() + ", systemState=" + snapshot.systemState() + ", serviceState=" + snapshot.serviceState() + ", retainedEntries=" + snapshot.retainedEntries() + ". Shared ThreadPool is about to stop with incomplete Phantom drain.", t);
+			LOGGER.log(Level.SEVERE, "Phantom World: Final subsystem drain failed; configured=" + snapshot.configured() + ", systemState=" + snapshot.systemState() + ", materializationServiceState=" + snapshot.materializationServiceState() + ", retainedMaterializationEntries=" + snapshot.retainedMaterializationEntries() + ", navigationState=" + snapshot.navigationState() + ", navigationActiveRequests=" + snapshot.navigationActiveRequests() + ", navigationQueuedRequests=" + snapshot.navigationQueuedRequests() + ", navigationWorkers=" + snapshot.navigationWorkers() + ". Shared ThreadPool is about to stop with incomplete Phantom drain.", t);
 		}
 
 		// stop all thread pools

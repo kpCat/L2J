@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
@@ -51,6 +52,7 @@ import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService.Sub
 public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 {
 	private static final PhantomNavigationPoint ORIGIN = point(10_000, 10_000);
+	private static final PhantomNavigationPoint MIDPOINT = point(10_250, 10_100);
 	private static final PhantomNavigationPoint DESTINATION = point(10_500, 10_000);
 
 	@Override
@@ -100,6 +102,18 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 		registry.add("33-attempt-timeout-precedes-stuck", _ -> testAttemptTimeout());
 		registry.add("34-stale-time-and-request", _ -> testStaleProgress());
 		registry.add("35-metrics-fixed-aggregate-snapshot", _ -> testMetrics());
+		registry.add("36-expired-preflight-skips-backend", _ -> testExpiredPreflight());
+		registry.add("37-route-budget-preflight-skips-backend", _ -> testRouteBudgetPreflight());
+		registry.add("38-computed-intermediate-obstruction", _ -> testComputedIntermediateObstruction());
+		registry.add("39-appended-destination-obstruction", _ -> testAppendedDestinationObstruction());
+		registry.add("40-valid-appended-destination", _ -> testValidAppendedDestination());
+		registry.add("41-cancellation-during-segment-validation", _ -> testCancellationDuringSegmentValidation());
+		registry.add("42-deadline-during-segment-validation", _ -> testDeadlineDuringSegmentValidation());
+		registry.add("43-segment-validation-backend-failure", _ -> testSegmentValidationBackendFailure());
+		registry.add("44-obstruction-cooldown-direct-bypass", _ -> testObstructionCooldownDirectBypass());
+		registry.add("45-accepted-dispatch-orders-before-stop", _ -> testAcceptedDispatchStopOrdering());
+		registry.add("46-rejected-dispatch-orders-before-stop", _ -> testRejectedDispatchStopOrdering());
+		registry.add("47-inline-dispatcher-exact-worker-release", _ -> testInlineDispatcher());
 	}
 
 	private void testPointContract()
@@ -198,6 +212,7 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(Mode.COMPUTED, result.route().mode(), "Computed route mode changed.");
 		PhantomAssertions.assertEquals(DESTINATION, result.route().waypoints().getLast(), "Exact destination was not appended.");
 		PhantomAssertions.assertEquals(2, result.route().waypoints().size(), "Route retained mutable backend points.");
+		PhantomAssertions.assertEquals(2, fixture.backend._segmentDirectCalls, "Computed route segments were not validated exactly once.");
 		stop(fixture);
 	}
 
@@ -281,6 +296,7 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(1, fixture.service.snapshot().activeRequests(), "Rejected request retained profile ownership.");
 		fixture.dispatcher.runAll();
 		PhantomAssertions.assertEquals(Status.PATH_FOUND, fixture.service.consume(first.requestId()).orElseThrow().status(), "Accepted queued request changed.");
+		fixture.backend.segmentAnswers(false);
 		final var retry = fixture.service.submit(request(2, ORIGIN, DESTINATION, 0, 100));
 		PhantomAssertions.assertEquals(SubmissionStatus.ACCEPTED, retry.status(), "Rejected profile ownership was stranded.");
 		fixture.dispatcher.runAll();
@@ -420,7 +436,6 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 		final var first = fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 100));
 		fixture.dispatcher.runAll();
 		fixture.service.consume(first.requestId()).orElseThrow();
-		fixture.backend.answers(false, true);
 		final var second = fixture.service.submit(request(2, ORIGIN, DESTINATION, 0, 100));
 		PhantomAssertions.assertEquals(Status.PATH_FOUND, second.immediateResult().status(), "Revalidated cache did not complete synchronously.");
 		PhantomAssertions.assertTrue(second.immediateResult().fromCache(), "Cache hit was not marked.");
@@ -434,11 +449,12 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 		final var first = fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 100));
 		fixture.dispatcher.runAll();
 		fixture.service.consume(first.requestId()).orElseThrow();
-		fixture.backend.answers(false, false);
+		fixture.backend.segmentAnswers(false);
 		final var second = fixture.service.submit(request(2, ORIGIN, DESTINATION, 0, 100));
 		PhantomAssertions.assertEquals(SubmissionStatus.ACCEPTED, second.status(), "Invalidated cache incorrectly returned a route.");
 		fixture.dispatcher.runAll();
 		PhantomAssertions.assertEquals(2, fixture.backend._pathCalls, "Dynamic obstacle did not force A*.");
+		PhantomAssertions.assertEquals(1L, fixture.metrics.snapshot().navigation().cacheRouteObstructed(), "Cache obstruction metric changed.");
 		stop(fixture);
 	}
 
@@ -545,6 +561,214 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(1L, navigation.directValidated(), "Direct counter changed.");
 		PhantomAssertions.assertEquals(0L, navigation.queuedCurrent(), "Direct request affected queue gauge.");
 		stop(fixture);
+	}
+
+	private void testExpiredPreflight()
+	{
+		final Fixture fixture = pathFixture();
+		fixture.clock._now = 10;
+		final var result = fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 10)).immediateResult();
+		PhantomAssertions.assertEquals(Status.DEADLINE_EXPIRED, result.status(), "Expired input did not fail preflight.");
+		assertNoBackendCalls(fixture.backend, "Expired preflight");
+		stop(fixture);
+	}
+
+	private void testRouteBudgetPreflight()
+	{
+		final Fixture fixture = pathFixture();
+		final var result = fixture.service.submit(requestWithBudget(1, ORIGIN, DESTINATION, 0, 100, 100)).immediateResult();
+		PhantomAssertions.assertEquals(Status.ROUTE_BUDGET_EXCEEDED, result.status(), "Impossible route budget did not fail preflight.");
+		assertNoBackendCalls(fixture.backend, "Route-budget preflight");
+		stop(fixture);
+	}
+
+	private void testComputedIntermediateObstruction()
+	{
+		final Fixture fixture = pathFixture();
+		fixture.backend._path = List.of(ORIGIN, MIDPOINT, DESTINATION);
+		fixture.backend.segmentAnswers(true, false);
+		final var submission = fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 100));
+		fixture.dispatcher.runAll();
+		final var result = fixture.service.consume(submission.requestId()).orElseThrow();
+		PhantomAssertions.assertEquals(Status.ROUTE_OBSTRUCTED, result.status(), "Blocked computed segment was published.");
+		PhantomAssertions.assertEquals(null, result.route(), "Obstructed computed route exposed waypoints.");
+		PhantomAssertions.assertEquals(0, fixture.service.snapshot().cacheEntries(), "Obstructed computed route entered cache.");
+		PhantomAssertions.assertEquals(1L, fixture.metrics.snapshot().navigation().computedRouteObstructed(), "Computed obstruction metric changed.");
+		stop(fixture);
+	}
+
+	private void testAppendedDestinationObstruction()
+	{
+		final Fixture fixture = pathFixture();
+		fixture.backend._path = List.of(ORIGIN, MIDPOINT);
+		fixture.backend.segmentAnswers(true, false);
+		final var submission = fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 100));
+		fixture.dispatcher.runAll();
+		final var result = fixture.service.consume(submission.requestId()).orElseThrow();
+		PhantomAssertions.assertEquals(Status.ROUTE_OBSTRUCTED, result.status(), "Blocked appended destination was published.");
+		PhantomAssertions.assertEquals(2, fixture.backend._segmentDirectCalls, "Appended destination segment was not checked.");
+		PhantomAssertions.assertEquals(0, fixture.service.snapshot().cacheEntries(), "Blocked appended destination entered cache.");
+		stop(fixture);
+	}
+
+	private void testValidAppendedDestination()
+	{
+		final Fixture fixture = pathFixture();
+		fixture.backend._path = List.of(ORIGIN, MIDPOINT);
+		final var submission = fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 100));
+		fixture.dispatcher.runAll();
+		final var result = fixture.service.consume(submission.requestId()).orElseThrow();
+		PhantomAssertions.assertEquals(Status.PATH_FOUND, result.status(), "Validated appended destination was rejected.");
+		PhantomAssertions.assertEquals(List.of(MIDPOINT, DESTINATION), result.route().waypoints(), "Appended destination route changed.");
+		PhantomAssertions.assertEquals(2, fixture.backend._segmentDirectCalls, "Valid appended destination was not segment-validated.");
+		stop(fixture);
+	}
+
+	private void testCancellationDuringSegmentValidation()
+	{
+		final Fixture fixture = pathFixture();
+		fixture.backend._path = List.of(ORIGIN, MIDPOINT, DESTINATION);
+		final long[] requestId = new long[1];
+		fixture.backend._duringSegment = call ->
+		{
+			if (call == 1)
+			{
+				fixture.service.cancel(1, requestId[0]);
+			}
+		};
+		final var submission = fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 100));
+		requestId[0] = submission.requestId();
+		fixture.dispatcher.runAll();
+		PhantomAssertions.assertEquals(Status.CANCELLED, fixture.service.consume(submission.requestId()).orElseThrow().status(), "Cancellation during segment validation lost precedence.");
+		PhantomAssertions.assertEquals(1, fixture.backend._segmentDirectCalls, "Segment validation continued after cancellation.");
+		PhantomAssertions.assertEquals(0, fixture.service.snapshot().cacheEntries(), "Cancelled validation entered cache.");
+		stop(fixture);
+	}
+
+	private void testDeadlineDuringSegmentValidation()
+	{
+		final Fixture fixture = pathFixture();
+		fixture.backend._path = List.of(ORIGIN, MIDPOINT, DESTINATION);
+		fixture.backend._duringSegment = call ->
+		{
+			if (call == 1)
+			{
+				fixture.clock._now = 10;
+			}
+		};
+		final var submission = fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 10));
+		fixture.dispatcher.runAll();
+		PhantomAssertions.assertEquals(Status.DEADLINE_EXPIRED, fixture.service.consume(submission.requestId()).orElseThrow().status(), "Deadline during segment validation lost precedence.");
+		PhantomAssertions.assertEquals(1, fixture.backend._segmentDirectCalls, "Segment validation continued after deadline.");
+		PhantomAssertions.assertEquals(0, fixture.service.snapshot().cacheEntries(), "Late validation entered cache.");
+		stop(fixture);
+	}
+
+	private void testSegmentValidationBackendFailure()
+	{
+		final Fixture fixture = pathFixture();
+		fixture.backend._path = List.of(ORIGIN, MIDPOINT, DESTINATION);
+		fixture.backend._segmentFailure = new IllegalStateException("expected segment failure");
+		final var submission = fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 100));
+		fixture.dispatcher.runAll();
+		PhantomAssertions.assertEquals(Status.BACKEND_FAILURE, fixture.service.consume(submission.requestId()).orElseThrow().status(), "Segment backend exception escaped or changed type.");
+		PhantomAssertions.assertEquals(0, fixture.service.snapshot().cacheEntries(), "Failed segment validation entered cache.");
+		stop(fixture);
+	}
+
+	private void testObstructionCooldownDirectBypass()
+	{
+		final Fixture fixture = pathFixture();
+		fixture.backend._path = List.of(ORIGIN, MIDPOINT, DESTINATION);
+		fixture.backend.segmentAnswers(false);
+		final var obstructed = fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 100));
+		fixture.dispatcher.runAll();
+		PhantomAssertions.assertEquals(Status.ROUTE_OBSTRUCTED, fixture.service.consume(obstructed.requestId()).orElseThrow().status(), "Obstruction result changed.");
+		PhantomAssertions.assertEquals(Status.COOLDOWN, fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 100)).immediateResult().status(), "Obstruction did not establish A* cooldown.");
+		fixture.backend._directDefault = true;
+		PhantomAssertions.assertEquals(Status.DIRECT_VALIDATED, fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 100)).immediateResult().status(), "Obstruction cooldown blocked a later direct route.");
+		stop(fixture);
+	}
+
+	private void testAcceptedDispatchStopOrdering() throws Exception
+	{
+		testDispatchStopOrdering(true);
+	}
+
+	private void testRejectedDispatchStopOrdering() throws Exception
+	{
+		testDispatchStopOrdering(false);
+	}
+
+	private void testDispatchStopOrdering(boolean accepted) throws Exception
+	{
+		final ManualClock clock = new ManualClock();
+		final BlockingDispatcher dispatcher = new BlockingDispatcher(accepted);
+		final FakeBackend backend = new FakeBackend(PhantomNavigationCapability.GEODATA_PATHFINDING);
+		backend._path = List.of(ORIGIN, MIDPOINT, DESTINATION);
+		final PhantomNavigationService service = new PhantomNavigationService(policy(4, 1, 32, 4), backend, dispatcher, clock, new PhantomMetrics());
+		PhantomAssertions.assertTrue(service.start(), "Dispatch-race service did not start.");
+		final AtomicReference<PhantomNavigationService.Submission> submission = new AtomicReference<>();
+		final AtomicReference<PhantomNavigationService.BeginStopResult> stopResult = new AtomicReference<>();
+		final Thread submitter = new Thread(() -> submission.set(service.submit(request(1, ORIGIN, DESTINATION, 0, 100))), "phantom-navigation-dispatch-submit");
+		final CountDownLatch stopStarted = new CountDownLatch(1);
+		final Thread stopper = new Thread(() ->
+		{
+			stopStarted.countDown();
+			stopResult.set(service.beginStop());
+		}, "phantom-navigation-dispatch-stop");
+		submitter.start();
+		PhantomAssertions.assertTrue(dispatcher._entered.await(1, TimeUnit.SECONDS), "Dispatcher race did not enter dispatch.");
+		stopper.start();
+		PhantomAssertions.assertTrue(stopStarted.await(1, TimeUnit.SECONDS), "Stop race thread did not start.");
+		stopper.join(100);
+		PhantomAssertions.assertTrue(stopper.isAlive(), "beginStop overtook the in-progress dispatch decision.");
+		dispatcher._release.countDown();
+		submitter.join(TimeUnit.SECONDS.toMillis(2));
+		stopper.join(TimeUnit.SECONDS.toMillis(2));
+		PhantomAssertions.assertFalse(submitter.isAlive() || stopper.isAlive(), "Dispatch/stop race threads did not terminate.");
+		PhantomAssertions.assertEquals(PhantomNavigationService.BeginStopResult.STARTED, stopResult.get(), "Dispatch race did not enter STOPPING.");
+		PhantomAssertions.assertEquals(1, dispatcher._calls.get(), "Dispatch was invoked more than once.");
+		if (accepted)
+		{
+			PhantomAssertions.assertEquals(1, service.snapshot().currentWorkers(), "Accepted dispatch lost worker ownership before execution.");
+			dispatcher.runAccepted();
+		}
+		else
+		{
+			PhantomAssertions.assertEquals(Status.BACKEND_FAILURE, submission.get().immediateResult().status(), "Rejected dispatch did not return BACKEND_FAILURE.");
+		}
+		PhantomAssertions.assertEquals(0, service.snapshot().currentWorkers(), "Dispatch race stranded worker ownership.");
+		PhantomAssertions.assertEquals(0, service.snapshot().activeRequests(), "Dispatch race stranded request ownership.");
+		PhantomAssertions.assertTrue(service.finishStop(), "Dispatch race did not reach STOPPED.");
+	}
+
+	private void testInlineDispatcher() throws Exception
+	{
+		final FakeBackend backend = new FakeBackend(PhantomNavigationCapability.GEODATA_PATHFINDING);
+		backend._path = List.of(ORIGIN, MIDPOINT, DESTINATION);
+		final PhantomNavigationService service = new PhantomNavigationService(policy(4, 1, 32, 4), backend, worker ->
+		{
+			worker.run();
+			return true;
+		}, () -> 0, new PhantomMetrics());
+		PhantomAssertions.assertTrue(service.start(), "Inline-dispatch service did not start.");
+		final AtomicReference<PhantomNavigationService.Submission> submission = new AtomicReference<>();
+		final Thread submitter = new Thread(() -> submission.set(service.submit(request(1, ORIGIN, DESTINATION, 0, 100))), "phantom-navigation-inline-submit");
+		submitter.start();
+		submitter.join(TimeUnit.SECONDS.toMillis(2));
+		PhantomAssertions.assertFalse(submitter.isAlive(), "Inline dispatcher deadlocked.");
+		PhantomAssertions.assertEquals(Status.PATH_FOUND, submission.get().immediateResult().status(), "Inline dispatcher changed computed result.");
+		PhantomAssertions.assertEquals(0, service.snapshot().currentWorkers(), "Inline dispatcher double-counted worker ownership.");
+		service.beginStop();
+		PhantomAssertions.assertTrue(service.finishStop(), "Inline-dispatch service did not stop.");
+	}
+
+	private static void assertNoBackendCalls(FakeBackend backend, String context)
+	{
+		PhantomAssertions.assertEquals(0, backend._capabilityCalls, context + " invoked capability.");
+		PhantomAssertions.assertEquals(0, backend._directCalls, context + " invoked direct validation.");
+		PhantomAssertions.assertEquals(0, backend._pathCalls, context + " invoked pathfinding.");
 	}
 
 	private static Fixture pathFixture()
@@ -658,16 +882,68 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 		}
 	}
 
+	private static final class BlockingDispatcher implements PhantomNavigationService.Dispatcher
+	{
+		private final boolean _accept;
+		private final CountDownLatch _entered = new CountDownLatch(1);
+		private final CountDownLatch _release = new CountDownLatch(1);
+		private final AtomicInteger _calls = new AtomicInteger();
+		private Runnable _acceptedWorker;
+
+		private BlockingDispatcher(boolean accept)
+		{
+			_accept = accept;
+		}
+
+		@Override
+		public boolean dispatch(Runnable worker)
+		{
+			_calls.incrementAndGet();
+			_entered.countDown();
+			try
+			{
+				if (!_release.await(2, TimeUnit.SECONDS))
+				{
+					throw new IllegalStateException("Timed out waiting to release dispatch.");
+				}
+			}
+			catch (InterruptedException e)
+			{
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException(e);
+			}
+			if (_accept)
+			{
+				_acceptedWorker = worker;
+			}
+			return _accept;
+		}
+
+		private void runAccepted()
+		{
+			PhantomAssertions.assertTrue(_acceptedWorker != null, "Accepted dispatcher did not retain its worker.");
+			_acceptedWorker.run();
+		}
+	}
+
 	private static final class FakeBackend implements PhantomNavigationBackend
 	{
 		private final CapabilitySnapshot _capability;
-		private final Deque<Boolean> _directAnswers = new ArrayDeque<>();
+		private final Deque<Boolean> _segmentAnswers = new ArrayDeque<>();
 		private boolean _directDefault;
 		private int _directCalls;
+		private int _capabilityCalls;
+		private int _initialDirectCalls;
+		private int _segmentDirectCalls;
 		private int _pathCalls;
 		private List<PhantomNavigationPoint> _path;
 		private RuntimeException _pathFailure;
+		private RuntimeException _segmentFailure;
+		private boolean _initialDirectPending;
 		private Consumer<PhantomNavigationCancellationToken> _duringPath = _ ->
+		{
+		};
+		private Consumer<Integer> _duringSegment = _ ->
 		{
 		};
 
@@ -676,17 +952,19 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 			_capability = PhantomNavigationCoreSuite.capability(capability);
 		}
 
-		private void answers(boolean... answers)
+		private void segmentAnswers(boolean... answers)
 		{
 			for (boolean answer : answers)
 			{
-				_directAnswers.addLast(answer);
+				_segmentAnswers.addLast(answer);
 			}
 		}
 
 		@Override
 		public CapabilitySnapshot capability(PhantomNavigationPoint origin, PhantomNavigationPoint destination)
 		{
+			_capabilityCalls++;
+			_initialDirectPending = true;
 			return _capability;
 		}
 
@@ -694,7 +972,19 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 		public boolean canMoveDirect(PhantomNavigationPoint origin, PhantomNavigationPoint destination)
 		{
 			_directCalls++;
-			return _directAnswers.isEmpty() ? _directDefault : _directAnswers.removeFirst();
+			if (_initialDirectPending)
+			{
+				_initialDirectPending = false;
+				_initialDirectCalls++;
+				return _directDefault;
+			}
+			_segmentDirectCalls++;
+			_duringSegment.accept(_segmentDirectCalls);
+			if (_segmentFailure != null)
+			{
+				throw _segmentFailure;
+			}
+			return _segmentAnswers.isEmpty() || _segmentAnswers.removeFirst();
 		}
 
 		@Override
