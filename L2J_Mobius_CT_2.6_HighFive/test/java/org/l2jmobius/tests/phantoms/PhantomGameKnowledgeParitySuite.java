@@ -20,28 +20,53 @@
  */
 package org.l2jmobius.tests.phantoms;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntFunction;
 
+import org.l2jmobius.gameserver.data.SpawnTable;
+import org.l2jmobius.gameserver.data.holders.RecipeHolder;
 import org.l2jmobius.gameserver.data.xml.DoorData;
+import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
+import org.l2jmobius.gameserver.data.xml.NpcData;
+import org.l2jmobius.gameserver.data.xml.RecipeData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
+import org.l2jmobius.gameserver.model.Location;
+import org.l2jmobius.gameserver.model.actor.holders.npc.DropGroupHolder;
+import org.l2jmobius.gameserver.model.actor.holders.npc.DropHolder;
+import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
+import org.l2jmobius.gameserver.model.item.Armor;
+import org.l2jmobius.gameserver.model.item.ItemTemplate;
+import org.l2jmobius.gameserver.model.item.Weapon;
+import org.l2jmobius.gameserver.model.item.recipe.RecipeList;
+import org.l2jmobius.gameserver.model.spawns.Spawn;
 import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBackend;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBackend.BackendData;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeAuthority;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ChanceModel;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropSourceKind;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.IngredientFact;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ItemCategory;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ItemFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ManorFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcFact;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.RecipeFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
@@ -50,6 +75,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeSnapshot;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeValidationException;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
@@ -113,57 +139,167 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 	{
 		registry.add("01-all-items-exactly-once", _ -> testItems());
 		registry.add("02-all-npcs-exactly-once", _ -> testNpcs());
-		registry.add("03-all-drop-spoil-facts-exact", _ -> testDrops());
-		registry.add("04-zaken-adena-authoritative-range", _ -> testZakenAdenaRange());
-		registry.add("05-all-authoritative-drop-count-ranges-valid", _ -> testDropCountRanges());
-		registry.add("06-drop-spoil-references-and-reverse-indexes", _ -> testDropIndexes());
-		registry.add("07-all-spawns-represented", _ -> testSpawns());
-		registry.add("08-all-recipes-and-ingredients-exact", _ -> testRecipes());
-		registry.add("09-static-seeds-parser-parity", _ -> testManor());
-		registry.add("10-no-mutable-manager-or-db-source", this::testForbiddenSources);
-		registry.add("11-accepted-topology-hash-and-mapping", _ -> testTopology());
-		registry.add("12-component-counts-within-policy", _ -> testBounds());
-		registry.add("13-canonical-hashes-repeat-build", _ -> testRepeatBuild());
-		registry.add("14-query-source-seam-stable", _ -> testNoQuerySourceAccess());
+		registry.add("03-runtime-grouped-item-order", _ -> testGroupedItemOrder());
+		registry.add("04-runtime-group-order", _ -> testGroupOrder());
+		registry.add("05-runtime-ungrouped-death-order", _ -> testUngroupedDeathOrder());
+		registry.add("06-runtime-spoil-order", _ -> testSpoilOrder());
+		registry.add("07-all-drop-spoil-facts-direct-loader-exact", _ -> testDrops());
+		registry.add("08-zaken-known-order-regression", _ -> testZakenOrder());
+		registry.add("09-zaken-adena-authoritative-range", _ -> testZakenAdenaRange());
+		registry.add("10-all-authoritative-drop-count-ranges-valid", _ -> testDropCountRanges());
+		registry.add("11-drop-spoil-references-and-reverse-indexes", _ -> testDropIndexes());
+		registry.add("12-all-spawns-direct-loader-exact", _ -> testSpawns());
+		registry.add("13-all-recipes-and-ingredients-direct-loader-exact", _ -> testRecipes());
+		registry.add("14-recipe-loader-count-and-identity-unique", _ -> testRecipeIdentity());
+		registry.add("15-duplicate-recipe-item-fails-closed", _ -> testRecipeAmbiguity());
+		registry.add("16-static-seeds-parser-parity", _ -> testManor());
+		registry.add("17-no-mutable-manager-or-db-source", this::testForbiddenSources);
+		registry.add("18-accepted-topology-hash-and-mapping", _ -> testTopology());
+		registry.add("19-component-counts-within-policy", _ -> testBounds());
+		registry.add("20-service-component-hashes-exact", _ -> testServiceHashes());
+		registry.add("21-query-source-seam-stable", _ -> testNoQuerySourceAccess());
 	}
 
 	private void testItems()
 	{
-		PhantomAssertions.assertEquals(_fixture.loaded().items(), _fixture.snapshot().items(), "Loaded item parity changed.");
-		PhantomAssertions.assertEquals(_fixture.loaded().items().size(), _fixture.snapshot().itemById().size(), "Loaded item direct index is incomplete.");
+		int expectedCount = 0;
+		for (ItemTemplate template : ItemData.getInstance().getAllItems())
+		{
+			if (template == null)
+			{
+				continue;
+			}
+			expectedCount++;
+			final ItemCategory category = template instanceof Weapon ? ItemCategory.WEAPON : template instanceof Armor ? ItemCategory.ARMOR : ItemCategory.ETC;
+			final ItemFact expected = new ItemFact(template.getId(), category, template.getCrystalType().name(), template.getReferencePrice(), template.isStackable(), PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT);
+			PhantomAssertions.assertEquals(expected, _fixture.snapshot().itemById().get(template.getId()), "Direct ItemData parity changed.");
+		}
+		PhantomAssertions.assertEquals(expectedCount, _fixture.snapshot().items().size(), "Direct ItemData count parity changed.");
+		PhantomAssertions.assertEquals(expectedCount, _fixture.snapshot().itemById().size(), "Loaded item direct index is incomplete.");
 	}
 
 	private void testNpcs()
 	{
-		PhantomAssertions.assertEquals(_fixture.loaded().npcs(), _fixture.snapshot().npcs(), "Loaded NPC parity changed.");
-		PhantomAssertions.assertEquals(_fixture.loaded().npcs().size(), _fixture.snapshot().npcById().size(), "Loaded NPC direct index is incomplete.");
+		final List<NpcTemplate> templates = templates();
+		for (NpcTemplate template : templates)
+		{
+			final NpcKind kind = template.isType("GrandBoss") ? NpcKind.GRAND_BOSS : template.isType("RaidBoss") ? NpcKind.RAID_BOSS : template.isType("Monster") ? NpcKind.MONSTER : NpcKind.OTHER_ATTACKABLE;
+			final NpcFact expected = new NpcFact(template.getId(), Byte.toUnsignedInt(template.getLevel()), kind, template.isAttackable(), template.isTargetable(), template.canBeSown(), template.getExp(), template.getSP(), PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT);
+			PhantomAssertions.assertEquals(expected, _fixture.snapshot().npcById().get(template.getId()), "Direct NpcData parity changed.");
+		}
+		PhantomAssertions.assertEquals(templates.size(), _fixture.snapshot().npcs().size(), "Direct NpcData count parity changed.");
+		PhantomAssertions.assertEquals(templates.size(), _fixture.snapshot().npcById().size(), "Loaded NPC direct index is incomplete.");
+	}
+
+	private void testGroupedItemOrder()
+	{
+		final NpcTemplate template = NpcData.getInstance().getTemplate(29181);
+		final List<DropHolder> source = template.getDropGroups().getFirst().getDropList();
+		final List<DropFact> facts = _fixture.snapshot().dropFactsByNpc().get(29181).stream().filter(fact -> fact.groupOrdinal() == 0).toList();
+		PhantomAssertions.assertEquals(source.stream().map(DropHolder::getItemId).toList(), facts.stream().map(DropFact::itemId).toList(), "Knowledge reordered the first Zaken runtime drop group.");
+		PhantomAssertions.assertEquals(source.stream().mapToInt(DropHolder::getItemId).min().orElseThrow() == source.getFirst().getItemId(), false, "Known Zaken group no longer demonstrates runtime order distinct from item-ID order.");
+	}
+
+	private void testGroupOrder()
+	{
+		final NpcTemplate template = NpcData.getInstance().getTemplate(29181);
+		final List<Double> expected = template.getDropGroups().stream().map(DropGroupHolder::getChance).toList();
+		final List<Double> actual = _fixture.snapshot().dropFactsByNpc().get(29181).stream().filter(fact -> fact.groupOrdinal() >= 0).collect(java.util.stream.Collectors.groupingBy(DropFact::groupOrdinal, java.util.TreeMap::new, java.util.stream.Collectors.mapping(DropFact::rawGroupChance, java.util.stream.Collectors.toList()))).values().stream().map(List::getFirst).toList();
+		PhantomAssertions.assertEquals(expected, actual, "Knowledge reordered runtime drop groups.");
+	}
+
+	private void testUngroupedDeathOrder()
+	{
+		final NpcTemplate template = templates().stream().filter(value -> (value.getDropList() != null) && (value.getDropList().size() > 1)).findFirst().orElseThrow();
+		assertUngroupedOrder(template.getId(), template.getDropList(), DropSourceKind.DEATH_DROP);
+	}
+
+	private void testSpoilOrder()
+	{
+		final NpcTemplate template = templates().stream().filter(value -> (value.getSpoilList() != null) && (value.getSpoilList().size() > 1)).findFirst().orElseThrow();
+		assertUngroupedOrder(template.getId(), template.getSpoilList(), DropSourceKind.SPOIL);
+	}
+
+	private void assertUngroupedOrder(int npcId, List<DropHolder> source, DropSourceKind sourceKind)
+	{
+		final List<DropFact> facts = (sourceKind == DropSourceKind.DEATH_DROP ? _fixture.snapshot().dropFactsByNpc() : _fixture.snapshot().spoilFactsByNpc()).get(npcId).stream().filter(fact -> fact.groupOrdinal() == -1).toList();
+		PhantomAssertions.assertEquals(source.stream().map(DropHolder::getItemId).toList(), facts.stream().map(DropFact::itemId).toList(), "Knowledge reordered a runtime ungrouped drop/spoil list.");
+		PhantomAssertions.assertEquals(source.size(), facts.size(), "Knowledge changed an ungrouped drop/spoil list cardinality.");
 	}
 
 	private void testDrops()
 	{
-		PhantomAssertions.assertEquals(_fixture.loaded().drops(), _fixture.snapshot().dropSpoilFacts(), "Loaded grouped/ungrouped drop and spoil parity changed.");
-		final long sourceDeath = _fixture.loaded().drops().stream().filter(fact -> fact.sourceKind() == DropSourceKind.DEATH_DROP).count();
-		final long sourceSpoil = _fixture.loaded().drops().stream().filter(fact -> fact.sourceKind() == DropSourceKind.SPOIL).count();
-		PhantomAssertions.assertEquals(sourceDeath, (long) _fixture.snapshot().counts().deathDrops(), "Death-drop count changed.");
-		PhantomAssertions.assertEquals(sourceSpoil, (long) _fixture.snapshot().counts().spoils(), "Spoil count changed.");
+		long expectedDeath = 0;
+		long expectedSpoil = 0;
+		for (NpcTemplate template : templates())
+		{
+			final Map<String, DropFact> actual = new HashMap<>();
+			_fixture.snapshot().dropFactsByNpc().getOrDefault(template.getId(), List.of()).forEach(fact -> actual.put(fact.stableKey(), fact));
+			_fixture.snapshot().spoilFactsByNpc().getOrDefault(template.getId(), List.of()).forEach(fact -> actual.put(fact.stableKey(), fact));
+			int expectedForNpc = 0;
+			final List<DropGroupHolder> groups = template.getDropGroups() == null ? List.of() : template.getDropGroups();
+			for (int groupOrdinal = 0; groupOrdinal < groups.size(); groupOrdinal++)
+			{
+				final DropGroupHolder group = groups.get(groupOrdinal);
+				final List<DropHolder> holders = group.getDropList();
+				for (int itemOrdinal = 0; itemOrdinal < holders.size(); itemOrdinal++)
+				{
+					assertDirectDrop(template.getId(), holders.get(itemOrdinal), DropSourceKind.DEATH_DROP, ChanceModel.GROUP_CUMULATIVE, groupOrdinal, itemOrdinal, group.getChance(), actual);
+					expectedDeath++;
+					expectedForNpc++;
+				}
+			}
+			final List<DropHolder> death = template.getDropList() == null ? List.of() : template.getDropList();
+			for (int itemOrdinal = 0; itemOrdinal < death.size(); itemOrdinal++)
+			{
+				assertDirectDrop(template.getId(), death.get(itemOrdinal), DropSourceKind.DEATH_DROP, ChanceModel.UNGROUPED_INDEPENDENT, -1, itemOrdinal, 0d, actual);
+				expectedDeath++;
+				expectedForNpc++;
+			}
+			final List<DropHolder> spoil = template.getSpoilList() == null ? List.of() : template.getSpoilList();
+			for (int itemOrdinal = 0; itemOrdinal < spoil.size(); itemOrdinal++)
+			{
+				assertDirectDrop(template.getId(), spoil.get(itemOrdinal), DropSourceKind.SPOIL, ChanceModel.UNGROUPED_INDEPENDENT, -1, itemOrdinal, 0d, actual);
+				expectedSpoil++;
+				expectedForNpc++;
+			}
+			PhantomAssertions.assertEquals(expectedForNpc, actual.size(), "Knowledge has extra direct-loader drop/spoil facts for an NPC.");
+		}
+		PhantomAssertions.assertEquals(expectedDeath, (long) _fixture.snapshot().counts().deathDrops(), "Direct-loader death-drop count changed.");
+		PhantomAssertions.assertEquals(expectedSpoil, (long) _fixture.snapshot().counts().spoils(), "Direct-loader spoil count changed.");
+	}
+
+	private void assertDirectDrop(int npcId, DropHolder holder, DropSourceKind sourceKind, ChanceModel chanceModel, int groupOrdinal, int itemOrdinal, double groupChance, Map<String, DropFact> actual)
+	{
+		final DropFact expected = new DropFact(npcId, holder.getItemId(), sourceKind, chanceModel, groupOrdinal, itemOrdinal, groupChance, holder.getChance(), holder.getMin(), holder.getMax(), PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT);
+		PhantomAssertions.assertEquals(expected, actual.get(expected.stableKey()), "Direct NpcData drop/spoil parity changed.");
+	}
+
+	private void testZakenOrder()
+	{
+		final List<DropHolder> firstGroup = NpcData.getInstance().getTemplate(29181).getDropGroups().getFirst().getDropList();
+		PhantomAssertions.assertEquals(13144, firstGroup.getFirst().getItemId(), "Zaken runtime first-group head changed.");
+		PhantomAssertions.assertEquals(13143, firstGroup.getLast().getItemId(), "Zaken runtime chance-sorted first-group tail changed.");
+		final List<DropFact> actual = _fixture.snapshot().dropFactsByNpc().get(29181).stream().filter(fact -> fact.groupOrdinal() == 0).toList();
+		PhantomAssertions.assertEquals(List.of(13144, 13143), List.of(actual.getFirst().itemId(), actual.getLast().itemId()), "Zaken runtime order was canonicalized by item ID.");
 	}
 
 	private void testZakenAdenaRange()
 	{
-		final List<DropFact> facts = _fixture.loaded().drops().stream().filter(fact -> (fact.npcId() == 29181) && (fact.itemId() == 57) && (fact.sourceKind() == DropSourceKind.DEATH_DROP)).toList();
+		final List<DropFact> facts = _fixture.snapshot().dropSpoilFacts().stream().filter(fact -> (fact.npcId() == 29181) && (fact.itemId() == 57) && (fact.sourceKind() == DropSourceKind.DEATH_DROP)).toList();
 		PhantomAssertions.assertEquals(1, facts.size(), "Zaken Adena authoritative drop identity is not unique.");
 		final DropFact fact = facts.getFirst();
 		PhantomAssertions.assertEquals(9_000_000L, fact.minimumCount(), "Zaken Adena authoritative minimum changed.");
 		PhantomAssertions.assertEquals(11_000_000L, fact.maximumCount(), "Zaken Adena authoritative maximum changed.");
 		PhantomAssertions.assertEquals(100.0, fact.rawGroupChance(), "Zaken Adena raw group chance changed.");
 		PhantomAssertions.assertEquals(100.0, fact.rawItemChance(), "Zaken Adena raw item chance changed.");
-		final DropFact snapshotFact = _fixture.snapshot().dropSpoilFacts().stream().filter(candidate -> candidate.stableKey().equals(fact.stableKey())).findFirst().orElseThrow();
-		PhantomAssertions.assertEquals(fact, snapshotFact, "Zaken Adena raw source was normalized, reordered or excluded.");
+		final DropHolder source = NpcData.getInstance().getTemplate(29181).getDropGroups().get(fact.groupOrdinal()).getDropList().get(fact.itemOrdinal());
+		PhantomAssertions.assertEquals(source.getItemId(), fact.itemId(), "Zaken Adena runtime ordinal changed.");
 	}
 
 	private void testDropCountRanges()
 	{
-		for (DropFact fact : _fixture.loaded().drops())
+		for (DropFact fact : _fixture.snapshot().dropSpoilFacts())
 		{
 			PhantomAssertions.assertTrue(fact.minimumCount() >= 0, "Authoritative raw drop/spoil minimum is negative.");
 			PhantomAssertions.assertTrue(fact.maximumCount() >= fact.minimumCount(), "Authoritative raw drop/spoil maximum is below minimum.");
@@ -182,12 +318,39 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 
 	private void testSpawns()
 	{
-		PhantomAssertions.assertEquals(_fixture.loaded().spawns().size(), _fixture.snapshot().spawnFacts().size(), "Loaded spawn count changed.");
+		final ArrayList<DirectSpawn> direct = new ArrayList<>();
+		for (Map.Entry<Integer, Set<Spawn>> entry : SpawnTable.getInstance().getSpawnTable().entrySet())
+		{
+			for (Spawn spawn : entry.getValue())
+			{
+				final Location location = spawn.getSpawnLocation();
+				final int loadedX = location == null ? spawn.getX() : location.getX();
+				final int loadedY = location == null ? spawn.getY() : location.getY();
+				final int loadedZ = location == null ? spawn.getZ() : location.getZ();
+				final boolean exact = (spawn.getSpawnTerritory() == null) && (spawn.getLocationId() == 0) && ((loadedX != 0) || (loadedY != 0));
+				final SpawnPointKind pointKind = exact ? SpawnPointKind.EXACT : SpawnPointKind.TERRITORY_OR_UNRESOLVED;
+				final int x = exact ? loadedX : 0;
+				final int y = exact ? loadedY : 0;
+				final int z = exact ? loadedZ : 0;
+				final Integer mapRegion = exact ? MapRegionData.getInstance().getMapRegionLocId(x, y) : null;
+				direct.add(new DirectSpawn(entry.getKey(), spawn.getInstanceId(), x, y, z, spawn.getAmount(), spawn.getLocationId(), pointKind, mapRegion));
+			}
+		}
+		direct.sort(DirectSpawn.ORDER);
+		PhantomAssertions.assertEquals(direct.size(), _fixture.snapshot().spawnFacts().size(), "Direct SpawnTable count changed.");
 		final Map<String, SpawnFact> actual = new HashMap<>();
 		_fixture.snapshot().spawnFacts().forEach(fact -> actual.put(fact.stableKey(), fact));
-		for (SpawnFact expected : _fixture.loaded().spawns())
+		int currentNpcId = -1;
+		int ordinal = 0;
+		for (DirectSpawn expected : direct)
 		{
-			final SpawnFact fact = actual.get(expected.stableKey());
+			if (expected.npcId() != currentNpcId)
+			{
+				currentNpcId = expected.npcId();
+				ordinal = 0;
+			}
+			final String key = String.format("%010d:%010d", expected.npcId(), ordinal++);
+			final SpawnFact fact = actual.get(key);
 			PhantomAssertions.assertTrue(fact != null, "Loaded spawn is missing.");
 			PhantomAssertions.assertEquals(expected.npcId(), fact.npcId(), "Loaded spawn NPC changed.");
 			PhantomAssertions.assertEquals(expected.instanceId(), fact.instanceId(), "Loaded spawn instance changed.");
@@ -195,7 +358,9 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(expected.y(), fact.y(), "Loaded spawn Y changed.");
 			PhantomAssertions.assertEquals(expected.z(), fact.z(), "Loaded spawn Z changed.");
 			PhantomAssertions.assertEquals(expected.amount(), fact.amount(), "Loaded spawn amount changed.");
+			PhantomAssertions.assertEquals(expected.locationId(), fact.locationId(), "Loaded spawn location id changed.");
 			PhantomAssertions.assertEquals(expected.pointKind(), fact.pointKind(), "Loaded spawn point semantics changed.");
+			PhantomAssertions.assertEquals(expected.mapRegionLocId(), fact.mapRegionLocId(), "Loaded spawn map region changed.");
 			if (fact.pointKind() == SpawnPointKind.TERRITORY_OR_UNRESOLVED)
 			{
 				PhantomAssertions.assertEquals(0, fact.x(), "Unresolved spawn retained a runtime-random X coordinate.");
@@ -207,9 +372,82 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 
 	private void testRecipes()
 	{
-		PhantomAssertions.assertEquals(_fixture.loaded().recipes(), _fixture.snapshot().recipes(), "Loaded recipe/ingredient parity changed.");
+		final Set<Integer> listIds = new HashSet<>();
+		final List<RecipeList> recipes = directRecipes();
+		for (RecipeList recipe : recipes)
+		{
+			PhantomAssertions.assertTrue(listIds.add(recipe.getId()), "Direct RecipeData exposes a duplicate recipe list id.");
+			final ArrayList<IngredientFact> ingredients = new ArrayList<>();
+			for (RecipeHolder holder : recipe.getRecipes())
+			{
+				ingredients.add(new IngredientFact(holder.getItemId(), holder.getQuantity()));
+			}
+			ingredients.sort(Comparator.comparingInt(IngredientFact::itemId).thenComparingLong(IngredientFact::count));
+			final RecipeFact expected = new RecipeFact(recipe.getId(), recipe.getRecipeId(), recipe.getItemId(), recipe.getCount(), recipe.getRareItemId(), recipe.getRareCount(), recipe.getRarity(), recipe.getLevel(), recipe.getSuccessRate(), recipe.isDwarvenRecipe(), ingredients, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT);
+			PhantomAssertions.assertEquals(expected, _fixture.snapshot().recipeByListId().get(recipe.getId()), "Direct RecipeData recipe/ingredient parity changed.");
+		}
+		PhantomAssertions.assertEquals(recipes.size(), _fixture.snapshot().recipes().size(), "RecipeData cardinality changed.");
 		final long indexed = _fixture.snapshot().recipesByIngredient().values().stream().flatMap(List::stream).map(RecipeFact::recipeListId).distinct().count();
-		PhantomAssertions.assertEquals((long) _fixture.loaded().recipes().size(), indexed, "Recipe ingredient reverse graph lost a recipe.");
+		PhantomAssertions.assertEquals((long) recipes.size(), indexed, "Recipe ingredient reverse graph lost a recipe.");
+	}
+
+	private void testRecipeIdentity()
+	{
+		final int[] recipeItemIds = RecipeData.getInstance().getAllItemIds();
+		final Set<Integer> uniqueListIds = new HashSet<>();
+		for (int recipeItemId : recipeItemIds)
+		{
+			final RecipeList recipe = RecipeData.getInstance().getRecipeByItemId(recipeItemId);
+			PhantomAssertions.assertTrue((recipe != null) && (recipe.getRecipeId() == recipeItemId), "RecipeData item lookup lost an exposed recipe-item identity.");
+		}
+		for (RecipeList recipe : directRecipes())
+		{
+			PhantomAssertions.assertTrue(uniqueListIds.add(recipe.getId()), "RecipeData list identity is ambiguous.");
+		}
+		PhantomAssertions.assertEquals(recipeItemIds.length, _fixture.snapshot().counts().recipes(), "Knowledge silently omitted a loaded recipe.");
+	}
+
+	private void testRecipeAmbiguity() throws Exception
+	{
+		final int recipeItemId = RecipeData.getInstance().getAllItemIds()[0];
+		final RecipeList recipe = RecipeData.getInstance().getRecipeByItemId(recipeItemId);
+		final Method method = L2jGameKnowledgeBackend.class.getDeclaredMethod("copyRecipes", int[].class, IntFunction.class, PhantomGameKnowledgePolicy.class);
+		method.setAccessible(true);
+		try
+		{
+			method.invoke(null, new int[]
+			{
+				recipeItemId,
+				recipeItemId
+			}, (IntFunction<RecipeList>) _ -> recipe, _fixture.policy());
+			throw new AssertionError("Duplicate recipe-item ambiguity was accepted.");
+		}
+		catch (InvocationTargetException exception)
+		{
+			PhantomAssertions.assertTrue(exception.getCause() instanceof PhantomGameKnowledgeValidationException, "Recipe ambiguity did not fail through deterministic validation.");
+			PhantomAssertions.assertEquals("ambiguity", ((PhantomGameKnowledgeValidationException) exception.getCause()).category(), "Recipe ambiguity failure category changed.");
+		}
+	}
+
+	private List<RecipeList> directRecipes()
+	{
+		final RecipeData data = RecipeData.getInstance();
+		final int[] sourceItemIds = data.getAllItemIds();
+		final ArrayList<RecipeList> recipes = new ArrayList<>(sourceItemIds.length);
+		for (int listId = 1; (listId <= _fixture.policy().maximumRecipes()) && (recipes.size() < sourceItemIds.length); listId++)
+		{
+			final RecipeList recipe = data.getRecipeList(listId);
+			if (recipe != null)
+			{
+				recipes.add(recipe);
+			}
+		}
+		PhantomAssertions.assertEquals(sourceItemIds.length, recipes.size(), "Public RecipeData list lookup cannot reconstruct every loaded recipe within policy.");
+		final int[] expected = sourceItemIds.clone();
+		Arrays.sort(expected);
+		final int[] actual = recipes.stream().mapToInt(RecipeList::getRecipeId).sorted().toArray();
+		PhantomAssertions.assertTrue(Arrays.equals(expected, actual), "RecipeData list identities changed the exposed recipe-item multiset.");
+		return List.copyOf(recipes);
 	}
 
 	private void testManor()
@@ -254,17 +492,19 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(counts.recipes() <= _fixture.policy().maximumRecipes(), "Recipe corpus exceeds policy.");
 	}
 
-	private void testRepeatBuild()
+	private void testServiceHashes()
 	{
-		final PhantomGameKnowledgeSnapshot repeated = _fixture.newBuilder().build();
-		PhantomAssertions.assertEquals(_fixture.snapshot().itemsHash(), repeated.itemsHash(), "Repeated item component hash changed.");
-		PhantomAssertions.assertEquals(_fixture.snapshot().npcDropSpoilHash(), repeated.npcDropSpoilHash(), "Repeated NPC/drop/spoil component hash changed.");
-		PhantomAssertions.assertEquals(_fixture.snapshot().spawnHash(), repeated.spawnHash(), "Repeated spawn component hash changed.");
-		PhantomAssertions.assertEquals(_fixture.snapshot().recipeHash(), repeated.recipeHash(), "Repeated recipe component hash changed.");
-		PhantomAssertions.assertEquals(_fixture.snapshot().manorHash(), repeated.manorHash(), "Repeated manor component hash changed.");
-		PhantomAssertions.assertEquals(_fixture.snapshot().classCapabilityHash(), repeated.classCapabilityHash(), "Repeated class component hash changed.");
-		PhantomAssertions.assertEquals(_fixture.snapshot().contentRequirementHash(), repeated.contentRequirementHash(), "Repeated content component hash changed.");
-		PhantomAssertions.assertEquals(_fixture.snapshot().combinedHash(), repeated.combinedHash(), "Repeated combined knowledge hash changed.");
+		final PhantomGameKnowledgeSnapshot snapshot = _fixture.snapshot();
+		final PhantomGameKnowledgeSnapshot.Hashes hashes = _fixture.serviceSnapshot().hashes();
+		PhantomAssertions.assertEquals(snapshot.itemsHash(), hashes.itemsHash(), "Service item component hash changed.");
+		PhantomAssertions.assertEquals(snapshot.npcDropSpoilHash(), hashes.npcDropSpoilHash(), "Service NPC/drop/spoil component hash changed.");
+		PhantomAssertions.assertEquals(snapshot.spawnHash(), hashes.spawnHash(), "Service spawn component hash changed.");
+		PhantomAssertions.assertEquals(snapshot.recipeHash(), hashes.recipeHash(), "Service recipe component hash changed.");
+		PhantomAssertions.assertEquals(snapshot.manorHash(), hashes.manorHash(), "Service manor component hash changed.");
+		PhantomAssertions.assertEquals(snapshot.classCapabilityHash(), hashes.classCapabilityHash(), "Service class component hash changed.");
+		PhantomAssertions.assertEquals(snapshot.contentRequirementHash(), hashes.contentRequirementHash(), "Service content component hash changed.");
+		PhantomAssertions.assertEquals(snapshot.topologyHash(), hashes.topologyHash(), "Service topology component hash changed.");
+		PhantomAssertions.assertEquals(snapshot.combinedHash(), hashes.combinedHash(), "Service combined knowledge hash changed.");
 	}
 
 	private void testNoQuerySourceAccess()
@@ -281,25 +521,31 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(sourceChecks, _fixture.backend().sourceChecks(), "Query path touched datapack source evidence.");
 	}
 
+	private static List<NpcTemplate> templates()
+	{
+		return NpcData.getInstance().getTemplates(_ -> true).stream().sorted(Comparator.comparingInt(NpcTemplate::getId)).toList();
+	}
+
+	private record DirectSpawn(int npcId, int instanceId, int x, int y, int z, int amount, int locationId, SpawnPointKind pointKind, Integer mapRegionLocId)
+	{
+		private static final Comparator<DirectSpawn> ORDER = Comparator.comparingInt(DirectSpawn::npcId).thenComparingInt(DirectSpawn::instanceId).thenComparingInt(DirectSpawn::x).thenComparingInt(DirectSpawn::y).thenComparingInt(DirectSpawn::z).thenComparingInt(DirectSpawn::amount).thenComparingInt(DirectSpawn::locationId).thenComparing(DirectSpawn::pointKind);
+	}
+
 	static final class ProductionFixture
 	{
 		private final PhantomHeadlessPlayerTestEnvironment _environment;
 		private final CountingBackend _backend;
 		private final PhantomGameKnowledgePolicy _policy;
 		private final PhantomTopologySnapshot _topology;
-		private final PhantomTopologyQuery _topologyQuery;
 		private final PhantomGameKnowledgeService _service;
-		private final BackendData _loaded;
 
-		private ProductionFixture(PhantomHeadlessPlayerTestEnvironment environment, CountingBackend backend, PhantomGameKnowledgePolicy policy, PhantomTopologySnapshot topology, PhantomTopologyQuery topologyQuery, PhantomGameKnowledgeService service, BackendData loaded)
+		private ProductionFixture(PhantomHeadlessPlayerTestEnvironment environment, CountingBackend backend, PhantomGameKnowledgePolicy policy, PhantomTopologySnapshot topology, PhantomGameKnowledgeService service)
 		{
 			_environment = environment;
 			_backend = backend;
 			_policy = policy;
 			_topology = topology;
-			_topologyQuery = topologyQuery;
 			_service = service;
-			_loaded = loaded;
 		}
 
 		static ProductionFixture start(PhantomTestContext context) throws Exception
@@ -319,8 +565,7 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 				final PhantomGameKnowledgeBuilder builder = builder(backend, policy, topologyQuery);
 				final PhantomGameKnowledgeService service = new PhantomGameKnowledgeService(builder);
 				PhantomAssertions.assertTrue(service.start(), "Production Game Knowledge service did not start.");
-				final BackendData loaded = backend.load(policy);
-				return new ProductionFixture(environment, backend, policy, topology, topologyQuery, service, loaded);
+				return new ProductionFixture(environment, backend, policy, topology, service);
 			}
 			catch (Throwable throwable)
 			{
@@ -334,11 +579,6 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 			return new PhantomGameKnowledgeBuilder(backend, new PhantomStaticManorParser(Path.of("data/Seeds.xml"), policy), new PhantomCuratedKnowledgeParser(Path.of("data/phantoms/knowledge"), backend, policy), topology, policy);
 		}
 
-		PhantomGameKnowledgeBuilder newBuilder()
-		{
-			return builder(_backend, _policy, _topologyQuery);
-		}
-
 		PhantomGameKnowledgeSnapshot snapshot()
 		{
 			return _service.query().snapshot();
@@ -347,11 +587,6 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 		PhantomGameKnowledgeQuery query()
 		{
 			return _service.query();
-		}
-
-		BackendData loaded()
-		{
-			return _loaded;
 		}
 
 		CountingBackend backend()

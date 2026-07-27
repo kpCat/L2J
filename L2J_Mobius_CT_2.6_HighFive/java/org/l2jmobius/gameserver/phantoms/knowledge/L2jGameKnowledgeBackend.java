@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntFunction;
 
 import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.data.SpawnTable;
@@ -70,7 +71,6 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Spa
  */
 public final class L2jGameKnowledgeBackend implements PhantomGameKnowledgeBackend
 {
-	private static final Comparator<DropHolder> DROP_HOLDER_ORDER = Comparator.comparingInt(DropHolder::getItemId).thenComparingLong(DropHolder::getMin).thenComparingLong(DropHolder::getMax).thenComparingLong(holder -> Double.doubleToRawLongBits(holder.getChance()));
 	private static final Comparator<SkillEvidence> SKILL_ORDER = Comparator.comparingInt(SkillEvidence::skillId).thenComparingInt(SkillEvidence::skillLevel);
 
 	@Override
@@ -127,21 +127,15 @@ public final class L2jGameKnowledgeBackend implements PhantomGameKnowledgeBacken
 		final ArrayList<DropFact> result = new ArrayList<>();
 		for (NpcTemplate template : templates)
 		{
-			final ArrayList<RawGroup> groups = new ArrayList<>();
 			final List<DropGroupHolder> dropGroups = template.getDropGroups();
-			for (DropGroupHolder group : dropGroups == null ? List.<DropGroupHolder>of() : dropGroups)
-			{
-				final ArrayList<DropHolder> holders = new ArrayList<>(group.getDropList());
-				holders.sort(DROP_HOLDER_ORDER);
-				groups.add(new RawGroup(group.getChance(), List.copyOf(holders)));
-			}
-			groups.sort(RawGroup.ORDER);
+			final List<DropGroupHolder> groups = dropGroups == null ? List.of() : dropGroups;
 			for (int groupOrdinal = 0; groupOrdinal < groups.size(); groupOrdinal++)
 			{
-				final RawGroup group = groups.get(groupOrdinal);
-				for (int itemOrdinal = 0; itemOrdinal < group._holders.size(); itemOrdinal++)
+				final DropGroupHolder group = groups.get(groupOrdinal);
+				final List<DropHolder> holders = group.getDropList();
+				for (int itemOrdinal = 0; itemOrdinal < holders.size(); itemOrdinal++)
 				{
-					addDrop(result, template.getId(), group._holders.get(itemOrdinal), DropSourceKind.DEATH_DROP, ChanceModel.GROUP_CUMULATIVE, groupOrdinal, itemOrdinal, group._chance, policy);
+					addDrop(result, template.getId(), holders.get(itemOrdinal), DropSourceKind.DEATH_DROP, ChanceModel.GROUP_CUMULATIVE, groupOrdinal, itemOrdinal, group.getChance(), policy);
 				}
 			}
 			copyUngrouped(result, template.getId(), template.getDropList(), DropSourceKind.DEATH_DROP, policy);
@@ -157,11 +151,9 @@ public final class L2jGameKnowledgeBackend implements PhantomGameKnowledgeBacken
 		{
 			return;
 		}
-		final ArrayList<DropHolder> holders = new ArrayList<>(source);
-		holders.sort(DROP_HOLDER_ORDER);
-		for (int ordinal = 0; ordinal < holders.size(); ordinal++)
+		for (int ordinal = 0; ordinal < source.size(); ordinal++)
 		{
-			addDrop(result, npcId, holders.get(ordinal), sourceKind, ChanceModel.UNGROUPED_INDEPENDENT, -1, ordinal, 0d, policy);
+			addDrop(result, npcId, source.get(ordinal), sourceKind, ChanceModel.UNGROUPED_INDEPENDENT, -1, ordinal, 0d, policy);
 		}
 	}
 
@@ -218,24 +210,88 @@ public final class L2jGameKnowledgeBackend implements PhantomGameKnowledgeBacken
 	{
 		final RecipeData data = RecipeData.getInstance();
 		final int[] recipeItemIds = data.getAllItemIds();
+		final HashSet<Integer> uniqueItemIds = new HashSet<>();
+		if (Arrays.stream(recipeItemIds).anyMatch(itemId -> !uniqueItemIds.add(itemId)))
+		{
+			return copyRecipesByListId(data, recipeItemIds, policy);
+		}
+		return copyRecipes(recipeItemIds, data::getRecipeByItemId, policy);
+	}
+
+	private static List<RecipeFact> copyRecipes(int[] sourceRecipeItemIds, IntFunction<RecipeList> lookup, PhantomGameKnowledgePolicy policy)
+	{
+		final int[] recipeItemIds = sourceRecipeItemIds.clone();
 		Arrays.sort(recipeItemIds);
-		final ArrayList<RecipeFact> result = new ArrayList<>();
+		final HashSet<Integer> itemIds = new HashSet<>();
 		final HashSet<Integer> listIds = new HashSet<>();
-		int ingredientCount = 0;
+		final ArrayList<RecipeList> resolved = new ArrayList<>();
 		for (int recipeItemId : recipeItemIds)
 		{
-			final RecipeList recipe = data.getRecipeByItemId(recipeItemId);
+			if (!itemIds.add(recipeItemId))
+			{
+				throw failure("ambiguity", "RecipeData exposes an ambiguous recipe item id.");
+			}
+			final RecipeList recipe = lookup.apply(recipeItemId);
 			if (recipe == null)
 			{
 				throw failure("reference", "RecipeData item lookup lost a loaded recipe.");
 			}
+			if (recipe.getRecipeId() != recipeItemId)
+			{
+				throw failure("ambiguity", "RecipeData item lookup resolved a different recipe item id.");
+			}
 			if (!listIds.add(recipe.getId()))
 			{
-				continue;
+				throw failure("ambiguity", "RecipeData exposes an ambiguous recipe list id.");
 			}
-			if (result.size() >= policy.maximumRecipes())
+			resolved.add(recipe);
+		}
+		if (resolved.size() != recipeItemIds.length)
+		{
+			throw failure("ambiguity", "RecipeData recipe lookup is not one-to-one.");
+		}
+		return copyRecipeFacts(resolved, policy);
+	}
+
+	private static List<RecipeFact> copyRecipesByListId(RecipeData data, int[] sourceRecipeItemIds, PhantomGameKnowledgePolicy policy)
+	{
+		final ArrayList<RecipeList> resolved = new ArrayList<>(sourceRecipeItemIds.length);
+		for (int listId = 1; (listId <= policy.maximumRecipes()) && (resolved.size() < sourceRecipeItemIds.length); listId++)
+		{
+			final RecipeList recipe = data.getRecipeList(listId);
+			if (recipe != null)
 			{
-				throw failure("count", "Loaded recipe count exceeds policy.");
+				resolved.add(recipe);
+			}
+		}
+		if (resolved.size() != sourceRecipeItemIds.length)
+		{
+			throw failure("ambiguity", "RecipeData duplicate item identities cannot be resolved by unique list identity within policy.");
+		}
+		final int[] resolvedItemIds = resolved.stream().mapToInt(RecipeList::getRecipeId).sorted().toArray();
+		final int[] expectedItemIds = sourceRecipeItemIds.clone();
+		Arrays.sort(expectedItemIds);
+		if (!Arrays.equals(expectedItemIds, resolvedItemIds))
+		{
+			throw failure("ambiguity", "RecipeData list identity does not preserve the loaded recipe-item multiset.");
+		}
+		return copyRecipeFacts(resolved, policy);
+	}
+
+	private static List<RecipeFact> copyRecipeFacts(List<RecipeList> resolved, PhantomGameKnowledgePolicy policy)
+	{
+		if (resolved.size() > policy.maximumRecipes())
+		{
+			throw failure("count", "Loaded recipe count exceeds policy.");
+		}
+		final ArrayList<RecipeFact> result = new ArrayList<>(resolved.size());
+		final HashSet<Integer> listIds = new HashSet<>();
+		int ingredientCount = 0;
+		for (RecipeList recipe : resolved)
+		{
+			if (!listIds.add(recipe.getId()))
+			{
+				throw failure("ambiguity", "RecipeData exposes an ambiguous recipe list id.");
 			}
 			final ArrayList<IngredientFact> ingredients = new ArrayList<>();
 			for (RecipeHolder holder : recipe.getRecipes())
@@ -312,28 +368,6 @@ public final class L2jGameKnowledgeBackend implements PhantomGameKnowledgeBacken
 	private static PhantomGameKnowledgeValidationException failure(String category, String message)
 	{
 		return new PhantomGameKnowledgeValidationException(category, message);
-	}
-
-	private record RawGroup(double _chance, List<DropHolder> _holders)
-	{
-		private static final Comparator<RawGroup> ORDER = (left, right) ->
-		{
-			int comparison = Long.compare(Double.doubleToRawLongBits(left._chance), Double.doubleToRawLongBits(right._chance));
-			if (comparison != 0)
-			{
-				return comparison;
-			}
-			final int count = Math.min(left._holders.size(), right._holders.size());
-			for (int index = 0; index < count; index++)
-			{
-				comparison = DROP_HOLDER_ORDER.compare(left._holders.get(index), right._holders.get(index));
-				if (comparison != 0)
-				{
-					return comparison;
-				}
-			}
-			return Integer.compare(left._holders.size(), right._holders.size());
-		};
 	}
 
 	private record RawSpawn(int _npcId, int _instanceId, int _x, int _y, int _z, int _amount, int _locationId, SpawnPointKind _pointKind, Integer _mapRegionLocId)

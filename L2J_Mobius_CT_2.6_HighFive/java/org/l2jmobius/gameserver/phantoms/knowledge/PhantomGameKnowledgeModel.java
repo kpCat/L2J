@@ -193,6 +193,29 @@ public final class PhantomGameKnowledgeModel
 		}
 	}
 
+	public record SpawnAreaSummary(int npcId, int instanceId, String topologyNodeId, Integer mapRegionLocId, int spawnCount, long totalConfiguredAmount, PhantomGameKnowledgeAuthority authority)
+	{
+		public SpawnAreaSummary
+		{
+			if ((npcId <= 0) || (instanceId < 0) || (spawnCount < 1) || (totalConfiguredAmount < 0))
+			{
+				throw new IllegalArgumentException("Invalid spawn area summary.");
+			}
+			Objects.requireNonNull(authority, "authority");
+		}
+
+		public static SpawnAreaSummary from(SpawnAreaFact fact)
+		{
+			Objects.requireNonNull(fact, "fact");
+			return new SpawnAreaSummary(fact.npcId(), fact.instanceId(), fact.topologyNodeId(), fact.mapRegionLocId(), fact.spawnCount(), fact.totalConfiguredAmount(), fact.authority());
+		}
+
+		public String stableKey()
+		{
+			return key(npcId) + ':' + key(instanceId) + ':' + Objects.toString(topologyNodeId, "") + ':' + Objects.toString(mapRegionLocId, "");
+		}
+	}
+
 	public record IngredientFact(int itemId, long count)
 	{
 		public IngredientFact
@@ -373,12 +396,16 @@ public final class PhantomGameKnowledgeModel
 		}
 	}
 
-	public record TargetFact(NpcFact npc, List<SpawnAreaFact> spawnAreas)
+	public record TargetFact(NpcFact npc, int totalSpawnAreaCount, List<SpawnAreaSummary> representativeAreas, boolean hasMoreSpawnAreas)
 	{
 		public TargetFact
 		{
 			Objects.requireNonNull(npc, "npc");
-			spawnAreas = List.copyOf(spawnAreas);
+			representativeAreas = List.copyOf(representativeAreas);
+			if ((totalSpawnAreaCount < representativeAreas.size()) || (representativeAreas.size() > 64) || (hasMoreSpawnAreas != (totalSpawnAreaCount > representativeAreas.size())))
+			{
+				throw new IllegalArgumentException("Invalid bounded target spawn-area summary.");
+			}
 		}
 
 		public String stableKey(Integer preferredLevel)

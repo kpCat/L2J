@@ -1,0 +1,27 @@
+{
+  "package": "phantom-world-goal-011a-knowledge-parity-query-truth",
+  "taskId": "011a-knowledge-parity-query-truth",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/011a-knowledge-parity-query-truth/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "dc4659fea3e76a78841dfee0429bc4ab1ed2b185",
+  "schemaChanges": false,
+  "configChanges": false,
+  "datapackChanges": false,
+  "curatedKnowledgeChanges": false,
+  "phantomSystemChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal012Started": false,
+  "goal013Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "DROP_ORDER_CONTRACT.md",
+    "QUERY_TRUTH.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

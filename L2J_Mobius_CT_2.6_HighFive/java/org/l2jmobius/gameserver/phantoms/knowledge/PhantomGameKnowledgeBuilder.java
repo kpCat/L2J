@@ -179,7 +179,7 @@ public final class PhantomGameKnowledgeBuilder
 				throw failure("topology-reference", "Mapped spawn refers to a missing topology node.");
 			}
 		}
-		final HashSet<Integer> recipeItems = new HashSet<>();
+		final HashSet<Integer> recipeLists = new HashSet<>();
 		for (RecipeFact fact : loaded.recipes())
 		{
 			requireReference(items, fact.recipeItemId(), "recipe item");
@@ -188,9 +188,9 @@ public final class PhantomGameKnowledgeBuilder
 			{
 				throw failure("reference", "Recipe rare product reference is missing.");
 			}
-			if (!recipeItems.add(fact.recipeItemId()))
+			if (!recipeLists.add(fact.recipeListId()))
 			{
-				throw failure("duplicate", "Duplicate recipe item identity.");
+				throw failure("duplicate", "Duplicate recipe list identity.");
 			}
 			for (IngredientFact ingredient : fact.ingredients())
 			{

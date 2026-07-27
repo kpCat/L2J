@@ -184,6 +184,7 @@ public final class PhantomGameKnowledgePerformanceSuite implements PhantomTestSu
 	{
 		PhantomAssertions.assertEquals(256, _snapshot.policy().maximumQueryPageSize(), "Production query page bound changed.");
 		PhantomAssertions.assertEquals(64, _snapshot.combinedHash().length(), "Combined canonical hash is not SHA-256.");
+		PhantomAssertions.assertTrue(List.of(_fixture.serviceSnapshot().hashes().itemsHash(), _fixture.serviceSnapshot().hashes().npcDropSpoilHash(), _fixture.serviceSnapshot().hashes().spawnHash(), _fixture.serviceSnapshot().hashes().recipeHash(), _fixture.serviceSnapshot().hashes().manorHash(), _fixture.serviceSnapshot().hashes().classCapabilityHash(), _fixture.serviceSnapshot().hashes().contentRequirementHash(), _fixture.serviceSnapshot().hashes().topologyHash(), _fixture.serviceSnapshot().hashes().combinedHash()).stream().allMatch(hash -> hash.length() == 64), "Service component hash diagnostics are incomplete.");
 		PhantomAssertions.assertEquals(PhantomGameKnowledgeService.State.RUNNING, _fixture.serviceSnapshot().state(), "Performance service is not a single running generation.");
 		PhantomAssertions.assertEquals(1L, _fixture.serviceSnapshot().metrics().buildsStarted(), "Performance service performed more than one build.");
 		PhantomAssertions.assertEquals(1L, _fixture.serviceSnapshot().metrics().buildsCompleted(), "Performance service did not publish exactly one build.");
@@ -208,13 +209,20 @@ public final class PhantomGameKnowledgePerformanceSuite implements PhantomTestSu
 			classFacts=%d
 			classCapabilities=%d
 			contentRequirements=%d
+			itemsHash=%s
+			npcDropSpoilHash=%s
+			spawnHash=%s
+			recipeHash=%s
+			manorHash=%s
+			classCapabilityHash=%s
+			contentRequirementHash=%s
 			topologyHash=%s
 			combinedHash=%s
 			itemSourceLookups=%d
 			recipeReverseLookups=%d
 			classCapabilityLookups=%d
 			boundedTargetLookups=%d
-			""".formatted(_snapshot.schemaVersion(), _snapshot.datasetId(), _snapshot.datasetVersion(), _snapshot.generation(), _snapshot.counts().items(), _snapshot.counts().npcs(), _snapshot.counts().deathDrops(), _snapshot.counts().spoils(), _snapshot.counts().spawnFacts(), _snapshot.counts().spawnAreas(), _snapshot.counts().recipes(), _snapshot.counts().recipeIngredients(), _snapshot.counts().manorFacts(), _snapshot.counts().classFacts(), _snapshot.counts().classCapabilities(), _snapshot.counts().contentRequirements(), _snapshot.topologyHash(), _snapshot.combinedHash(), ITERATIONS, ITERATIONS, ITERATIONS, ITERATIONS);
+			""".formatted(_snapshot.schemaVersion(), _snapshot.datasetId(), _snapshot.datasetVersion(), _snapshot.generation(), _snapshot.counts().items(), _snapshot.counts().npcs(), _snapshot.counts().deathDrops(), _snapshot.counts().spoils(), _snapshot.counts().spawnFacts(), _snapshot.counts().spawnAreas(), _snapshot.counts().recipes(), _snapshot.counts().recipeIngredients(), _snapshot.counts().manorFacts(), _snapshot.counts().classFacts(), _snapshot.counts().classCapabilities(), _snapshot.counts().contentRequirements(), _snapshot.itemsHash(), _snapshot.npcDropSpoilHash(), _snapshot.spawnHash(), _snapshot.recipeHash(), _snapshot.manorHash(), _snapshot.classCapabilityHash(), _snapshot.contentRequirementHash(), _snapshot.topologyHash(), _snapshot.combinedHash(), ITERATIONS, ITERATIONS, ITERATIONS, ITERATIONS);
 		Files.createDirectories(context.reportsDirectory());
 		Files.writeString(context.reportsDirectory().resolve("knowledge-performance-summary.txt"), summary, StandardCharsets.UTF_8);
 	}

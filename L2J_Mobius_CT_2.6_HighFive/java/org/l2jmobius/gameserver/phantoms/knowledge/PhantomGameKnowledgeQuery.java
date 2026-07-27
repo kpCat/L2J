@@ -41,6 +41,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Npc
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.RecipeFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnAreaFact;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnAreaSummary;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetQuery;
@@ -89,10 +90,11 @@ public final class PhantomGameKnowledgeQuery
 		return page(_snapshot.manorFactsByItem().getOrDefault(itemId, List.of()), page, ManorFact::stableKey);
 	}
 
-	public KnowledgePage<SpawnAreaFact> spawnAreas(int npcId, PageRequest page)
+	public KnowledgePage<SpawnAreaSummary> spawnAreas(int npcId, PageRequest page)
 	{
 		_metrics.recordQuery(QueryCategory.SPAWN_AREA);
-		return page(_snapshot.spawnAreasByNpc().getOrDefault(npcId, List.of()), page, SpawnAreaFact::stableKey);
+		final KnowledgePage<SpawnAreaFact> facts = page(_snapshot.spawnAreasByNpc().getOrDefault(npcId, List.of()), page, SpawnAreaFact::stableKey);
+		return new KnowledgePage<>(facts.values().stream().map(SpawnAreaSummary::from).toList(), facts.nextCursor(), facts.hasMore());
 	}
 
 	public KnowledgePage<SpawnFact> spawnFacts(int npcId, PageRequest page)
@@ -163,10 +165,16 @@ public final class PhantomGameKnowledgeQuery
 			throw new IllegalArgumentException("Target query exceeds knowledge policy.");
 		}
 		_metrics.recordQuery(QueryCategory.TARGET);
-		final Set<Integer> topologyIds = ids(query.topologyNodeId() == null ? null : _snapshot.npcsByTopologyNode().get(query.topologyNodeId()));
-		final Set<Integer> mapIds = ids(query.mapRegionLocId() == null ? null : _snapshot.npcsByMapRegion().get(query.mapRegionLocId()));
-		final Set<Integer> dropIds = sourceNpcIds(query.dropsItemId() == null ? null : _snapshot.dropSourcesByItem().get(query.dropsItemId()));
-		final Set<Integer> spoilIds = sourceNpcIds(query.spoilsItemId() == null ? null : _snapshot.spoilSourcesByItem().get(query.spoilsItemId()));
+		final Set<Integer> topologyIds = ids(query.topologyNodeId() != null, query.topologyNodeId() == null ? null : _snapshot.npcsByTopologyNode().get(query.topologyNodeId()));
+		final Set<Integer> mapIds = ids(query.mapRegionLocId() != null, query.mapRegionLocId() == null ? null : _snapshot.npcsByMapRegion().get(query.mapRegionLocId()));
+		final Set<Integer> dropIds = sourceNpcIds(query.dropsItemId() != null, query.dropsItemId() == null ? null : _snapshot.dropSourcesByItem().get(query.dropsItemId()));
+		final Set<Integer> spoilIds = sourceNpcIds(query.spoilsItemId() != null, query.spoilsItemId() == null ? null : _snapshot.spoilSourcesByItem().get(query.spoilsItemId()));
+		if (isRequestedEmpty(topologyIds) || isRequestedEmpty(mapIds) || isRequestedEmpty(dropIds) || isRequestedEmpty(spoilIds))
+		{
+			final KnowledgePage<TargetFact> empty = page(List.of(), query.page(), fact -> fact.stableKey(query.preferredLevel()));
+			_metrics.recordTargetCandidates(0, 0);
+			return empty;
+		}
 		final ArrayList<TargetFact> candidates = new ArrayList<>();
 		int considered = 0;
 		for (int level = query.minimumLevel(); level <= query.maximumLevel(); level++)
@@ -178,7 +186,10 @@ public final class PhantomGameKnowledgeQuery
 				{
 					continue;
 				}
-				candidates.add(new TargetFact(npc, _snapshot.spawnAreasByNpc().getOrDefault(npc.npcId(), List.of())));
+				final List<SpawnAreaFact> areas = _snapshot.spawnAreasByNpc().getOrDefault(npc.npcId(), List.of());
+				final int summaryCount = Math.min(areas.size(), Math.min(64, _snapshot.policy().maximumTopologyNodeResults()));
+				final List<SpawnAreaSummary> summaries = areas.subList(0, summaryCount).stream().map(SpawnAreaSummary::from).toList();
+				candidates.add(new TargetFact(npc, areas.size(), summaries, areas.size() > summaryCount));
 			}
 		}
 		candidates.sort(Comparator.comparingInt((TargetFact fact) -> query.preferredLevel() == null ? 0 : Math.abs(fact.npc().level() - query.preferredLevel())).thenComparingInt(fact -> fact.npc().level()).thenComparingInt(fact -> fact.npc().npcId()));
@@ -187,28 +198,33 @@ public final class PhantomGameKnowledgeQuery
 		return result;
 	}
 
-	private static Set<Integer> ids(List<NpcFact> values)
+	private static boolean isRequestedEmpty(Set<Integer> values)
 	{
-		if (values == null)
+		return (values != null) && values.isEmpty();
+	}
+
+	private static Set<Integer> ids(boolean requested, List<NpcFact> values)
+	{
+		if (!requested)
 		{
 			return null;
 		}
 		final HashSet<Integer> result = new HashSet<>();
-		for (NpcFact value : values)
+		for (NpcFact value : values == null ? List.<NpcFact>of() : values)
 		{
 			result.add(value.npcId());
 		}
 		return Set.copyOf(result);
 	}
 
-	private static Set<Integer> sourceNpcIds(List<DropFact> values)
+	private static Set<Integer> sourceNpcIds(boolean requested, List<DropFact> values)
 	{
-		if (values == null)
+		if (!requested)
 		{
 			return null;
 		}
 		final HashSet<Integer> result = new HashSet<>();
-		for (DropFact value : values)
+		for (DropFact value : values == null ? List.<DropFact>of() : values)
 		{
 			result.add(value.npcId());
 		}

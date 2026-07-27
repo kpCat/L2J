@@ -15,7 +15,8 @@
 7575ce4c66bdf5c51a27b20bed57c4ed8721b1e2
 
 Текущий branch HEAD под ревью:
-Goal 011 authoritative Game Knowledge — commit SHA во внешнем final handoff
+Goal 011A knowledge parity/query truth hardening — commit SHA во внешнем final
+handoff
 
 Task 004 technical feasibility:
 ACCEPT
@@ -66,9 +67,11 @@ Goal 010B: ACCEPT_WITH_010C_INTEGRATION_BOUNDARY
 
 Goal 010C: ACCEPT
 
-Goal 011: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 011: FIX_REQUIRED
 
-Goal 012: NOT_STARTED
+Goal 011A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
+Goal 012: BLOCKED
 
 Goal 013: NOT_STARTED
 ```
@@ -85,8 +88,9 @@ hardening принят на baseline `6ecd8ba1...`. Архитектурное �
 Независимое review Goal 010 потребовало bounded Goal 010A. Generation/signal
 ordering Goal 010A принято, а bounded ledger architecture Goal 010B принята с
 узкой integration boundary Goal 010C для отсутствующих real-scheduler sources.
-Goal 010C независимо принята, поэтому Goal 010 закрыта с `ACCEPT`. Goal 011
-реализована и ожидает независимого review; Goal 012 и Goal 013 не начаты.
+Goal 010C независимо принята, поэтому Goal 010 закрыта с `ACCEPT`. Review Goal
+011 потребовал bounded Goal 011A; исправление реализовано и ожидает независимого
+review. Goal 012 заблокирована до gate Goal 011A, Goal 013 не начата.
 
 ---
 
@@ -334,7 +338,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 012 — `NOT_STARTED`; Goal 013 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `FIX_REQUIRED`; Goal 011A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 012 — `BLOCKED`; Goal 013 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -552,7 +556,7 @@ retained и failed-cleanup identities используют общий
 `NOT_REGISTERED` evidence либо final stop. Goal 010C независимо принята,
 поэтому Goal 010 закрыта с `ACCEPT`.
 
-## Goal 011 — Authoritative Game Knowledge и reverse indexes — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+## Goal 011 — Authoritative Game Knowledge и reverse indexes — `FIX_REQUIRED after independent review; Goal 011A pending review`
 
 **Назначение:** предоставить read-only предметное знание до combat/background и
 до Semantic Pack.  
@@ -1033,7 +1037,8 @@ Current accepted baseline:
 7575ce4c66bdf5c51a27b20bed57c4ed8721b1e2
 
 Current branch HEAD under review:
-Goal 011 authoritative Game Knowledge — commit SHA во внешнем final handoff
+Goal 011A knowledge parity/query truth hardening — commit SHA во внешнем final
+handoff
 
 Completed:
 - 001 / 001A
@@ -1060,11 +1065,12 @@ Completed:
 - Goal 010C
 
 In progress / required closure:
-- Goal 011 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 011 FIX_REQUIRED
+- Goal 011A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 011
-2. Goal 012 remains NOT_STARTED
+1. Independent review Goal 011A
+2. Goal 012 remains BLOCKED
 3. Goal 013 remains NOT_STARTED
 
 Stage gate:
@@ -1098,8 +1104,9 @@ Overall:
   Goal 010A ACCEPT;
   Goal 010B ACCEPT_WITH_010C_INTEGRATION_BOUNDARY;
   Goal 010C ACCEPT;
-  Goal 011 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 012 NOT_STARTED;
+  Goal 011 FIX_REQUIRED;
+  Goal 011A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 012 BLOCKED;
   Goal 013 NOT_STARTED
 ```
 

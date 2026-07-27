@@ -168,15 +168,15 @@ public final class PhantomGameKnowledgeService
 		synchronized (_monitor)
 		{
 			final PhantomGameKnowledgeSnapshot snapshot = _snapshot;
-			return new ServiceSnapshot(_state, _stopping, snapshot == null ? 0 : snapshot.schemaVersion(), snapshot == null ? "none" : snapshot.datasetId(), snapshot == null ? 0 : snapshot.datasetVersion(), snapshot == null ? 0 : snapshot.generation(), snapshot == null ? "none" : snapshot.combinedHash(), snapshot == null ? ZERO_COUNTS : snapshot.counts(), _lastFailureCategory, _buildDurationMillis, _metrics.snapshot());
+			return new ServiceSnapshot(_state, _stopping, snapshot == null ? 0 : snapshot.schemaVersion(), snapshot == null ? "none" : snapshot.datasetId(), snapshot == null ? 0 : snapshot.datasetVersion(), snapshot == null ? 0 : snapshot.generation(), snapshot == null ? "none" : snapshot.combinedHash(), snapshot == null ? PhantomGameKnowledgeSnapshot.Hashes.none() : snapshot.hashes(), snapshot == null ? ZERO_COUNTS : snapshot.counts(), _lastFailureCategory, _buildDurationMillis, _metrics.snapshot());
 		}
 	}
 
-	public record ServiceSnapshot(State state, boolean stopping, int schemaVersion, String datasetId, int datasetVersion, long generation, String combinedHash, PhantomGameKnowledgeSnapshot.Counts counts, String lastFailureCategory, long buildDurationMillis, PhantomGameKnowledgeMetrics.Snapshot metrics)
+	public record ServiceSnapshot(State state, boolean stopping, int schemaVersion, String datasetId, int datasetVersion, long generation, String combinedHash, PhantomGameKnowledgeSnapshot.Hashes hashes, PhantomGameKnowledgeSnapshot.Counts counts, String lastFailureCategory, long buildDurationMillis, PhantomGameKnowledgeMetrics.Snapshot metrics)
 	{
 		public static ServiceSnapshot inactive()
 		{
-			return new ServiceSnapshot(State.STOPPED, true, 0, "none", 0, 0, "none", ZERO_COUNTS, "none", 0, new PhantomGameKnowledgeMetrics().snapshot());
+			return new ServiceSnapshot(State.STOPPED, true, 0, "none", 0, 0, "none", PhantomGameKnowledgeSnapshot.Hashes.none(), ZERO_COUNTS, "none", 0, new PhantomGameKnowledgeMetrics().snapshot());
 		}
 	}
 }

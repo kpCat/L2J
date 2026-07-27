@@ -140,6 +140,7 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService.State.STOPPED, disabled.gameKnowledge().state(), "Disabled system constructed Game Knowledge.");
 			PhantomAssertions.assertEquals(0L, disabled.gameKnowledge().metrics().buildsStarted(), "Disabled system scanned Game Knowledge sources.");
 			PhantomAssertions.assertEquals(0, disabled.gameKnowledge().counts().items(), "Disabled system retained Game Knowledge facts.");
+			PhantomAssertions.assertEquals("none", disabled.gameKnowledge().hashes().combinedHash(), "Disabled system exposed a Game Knowledge generation hash.");
 			PhantomAssertions.assertTrue(disabled.metrics().isZero(), "Disabled system changed metrics.");
 			PhantomAssertions.assertEquals(List.of(), disabled.trace().events(), "Disabled system trace is not empty.");
 			PhantomAssertions.assertEquals(0, disabled.trace().capacity(), "Disabled system allocated trace capacity.");
@@ -171,6 +172,7 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(1L, running.gameKnowledge().metrics().buildsStarted(), "Enabled inert Game Knowledge did not build exactly once.");
 			PhantomAssertions.assertEquals(1L, running.gameKnowledge().metrics().buildsCompleted(), "Enabled inert Game Knowledge did not publish exactly once.");
 			PhantomAssertions.assertEquals(0, running.gameKnowledge().counts().items(), "Enabled inert Game Knowledge loaded production facts.");
+			PhantomAssertions.assertEquals(running.gameKnowledge().combinedHash(), running.gameKnowledge().hashes().combinedHash(), "Enabled inert Game Knowledge component diagnostics are inconsistent.");
 			PhantomAssertions.assertEquals(0L, java.util.Arrays.stream(running.gameKnowledge().metrics().queriesByCategory()).sum(), "Enabled Game Knowledge issued an automatic query.");
 			PhantomAssertions.assertFalse(system.start(), "Repeated enabled start was not a no-op.");
 			PhantomAssertions.assertEquals(1L, system.snapshot().metrics().lifecycleStarts(), "Repeated start changed metrics.");
@@ -181,6 +183,7 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertFalse(stopped.scheduler().running(), "Scheduler remained running after stop.");
 			PhantomAssertions.assertEquals(ServiceState.STOPPED, stopped.navigation().state(), "Navigation service remained running after stop.");
 			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService.State.STOPPED, stopped.gameKnowledge().state(), "Game Knowledge remained running after stop.");
+			PhantomAssertions.assertEquals("none", stopped.gameKnowledge().hashes().combinedHash(), "Stopped Game Knowledge retained component diagnostics.");
 			PhantomAssertions.assertEquals(0, stopped.scheduler().ready(), "Ready queue was not cleared on stop.");
 			PhantomAssertions.assertEquals(0, stopped.scheduler().due(), "Due set was not cleared on stop.");
 			PhantomAssertions.assertFalse(system.shutdown(), "Repeated enabled shutdown was not a no-op.");

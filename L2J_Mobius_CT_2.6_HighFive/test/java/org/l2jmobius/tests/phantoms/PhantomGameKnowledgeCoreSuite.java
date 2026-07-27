@@ -56,8 +56,10 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Npc
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.RecipeFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SkillEvidence;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnAreaSummary;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnPointKind;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
@@ -92,7 +94,7 @@ public final class PhantomGameKnowledgeCoreSuite implements PhantomTestSuite
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
 		_fixture = build(context, "primary", false, false, false, 25d);
-		context.record("knowledge.core.cases", 42);
+		context.record("knowledge.core.cases", 50);
 		context.record("knowledge.core.combinedHash", _fixture.snapshot().combinedHash());
 	}
 
@@ -159,6 +161,14 @@ public final class PhantomGameKnowledgeCoreSuite implements PhantomTestSuite
 		registry.add("40-inert-and-stop-lifecycle", _ -> testLifecycle());
 		registry.add("41-query-has-no-source-seam", _ -> testNoSourceAfterBuild());
 		registry.add("42-no-mutable-server-fields", _ -> testNoMutableServerFields());
+		registry.add("43-runtime-drop-ordinals-preserved", _ -> testRuntimeDropOrdinals());
+		registry.add("44-drop-ordinal-affects-hash", this::testDropOrdinalHash);
+		registry.add("45-service-component-hashes", _ -> testServiceHashes());
+		registry.add("46-inactive-component-hashes-none", _ -> testInactiveHashes());
+		registry.add("47-spawn-area-summary-has-no-points", _ -> testSpawnAreaSummary());
+		registry.add("48-target-area-summary-contract", _ -> testTargetAreaSummary());
+		registry.add("49-target-summary-type-is-lightweight", _ -> testTargetSummaryType());
+		registry.add("50-drop-group-ordinal-affects-hash", this::testDropGroupOrdinalHash);
 	}
 
 	private void testPolicy()
@@ -393,6 +403,7 @@ public final class PhantomGameKnowledgeCoreSuite implements PhantomTestSuite
 		PhantomAssertions.assertThrows(PhantomGameKnowledgeValidationException.class, service::start, "Failed startup did not propagate validation failure.");
 		PhantomAssertions.assertEquals(PhantomGameKnowledgeService.State.FAILED, service.snapshot().state(), "Failed startup published a running service.");
 		PhantomAssertions.assertEquals("none", service.snapshot().combinedHash(), "Failed startup published a partial snapshot.");
+		PhantomAssertions.assertEquals("none", service.snapshot().hashes().itemsHash(), "Failed startup published a component hash.");
 	}
 
 	private void testLifecycle()
@@ -433,12 +444,75 @@ public final class PhantomGameKnowledgeCoreSuite implements PhantomTestSuite
 		}
 	}
 
+	private void testRuntimeDropOrdinals()
+	{
+		final List<DropFact> grouped = _fixture.snapshot().dropSpoilFacts().stream().filter(fact -> (fact.npcId() == 102) && (fact.groupOrdinal() == 0) && (fact.chanceModel() == ChanceModel.GROUP_CUMULATIVE)).toList();
+		PhantomAssertions.assertEquals(List.of(1, 2), grouped.stream().map(DropFact::itemId).toList(), "Grouped runtime item order changed.");
+		PhantomAssertions.assertEquals(List.of(0, 1), grouped.stream().map(DropFact::itemOrdinal).toList(), "Grouped runtime item ordinals changed.");
+	}
+
+	private void testDropOrdinalHash(PhantomTestContext context) throws Exception
+	{
+		final SyntheticFixture changed = build(context, "ordinal", false, false, false, 25d, true, 0);
+		PhantomAssertions.assertFalse(_fixture.snapshot().npcDropSpoilHash().equals(changed.snapshot().npcDropSpoilHash()), "Authoritative drop ordinal change was lost from hashing.");
+	}
+
+	private void testDropGroupOrdinalHash(PhantomTestContext context) throws Exception
+	{
+		final SyntheticFixture changed = build(context, "group-ordinal", false, false, false, 25d, false, 0, true);
+		PhantomAssertions.assertFalse(_fixture.snapshot().npcDropSpoilHash().equals(changed.snapshot().npcDropSpoilHash()), "Authoritative drop group ordinal change was lost from hashing.");
+	}
+
+	private void testServiceHashes()
+	{
+		final PhantomGameKnowledgeSnapshot.Hashes hashes = _fixture.service().snapshot().hashes();
+		PhantomAssertions.assertEquals(_fixture.snapshot().itemsHash(), hashes.itemsHash(), "Service item hash differs from its generation.");
+		PhantomAssertions.assertEquals(_fixture.snapshot().topologyHash(), hashes.topologyHash(), "Service topology hash differs from its generation.");
+		PhantomAssertions.assertEquals(_fixture.snapshot().combinedHash(), hashes.combinedHash(), "Service combined hash differs from its generation.");
+	}
+
+	private void testInactiveHashes()
+	{
+		final PhantomGameKnowledgeSnapshot.Hashes hashes = PhantomGameKnowledgeService.ServiceSnapshot.inactive().hashes();
+		PhantomAssertions.assertTrue(List.of(hashes.itemsHash(), hashes.npcDropSpoilHash(), hashes.spawnHash(), hashes.recipeHash(), hashes.manorHash(), hashes.classCapabilityHash(), hashes.contentRequirementHash(), hashes.topologyHash(), hashes.combinedHash()).stream().allMatch("none"::equals), "Inactive component hashes are not fixed none values.");
+	}
+
+	private void testSpawnAreaSummary()
+	{
+		final SpawnAreaSummary summary = _fixture.query().spawnAreas(102, PageRequest.first(1)).values().getFirst();
+		PhantomAssertions.assertEquals(102, summary.npcId(), "Spawn-area summary changed NPC identity.");
+		PhantomAssertions.assertFalse(List.of(SpawnAreaSummary.class.getRecordComponents()).stream().anyMatch(component -> component.getName().equals("representativePoints")), "Public spawn-area summary exposes nested exact points.");
+	}
+
+	private void testTargetAreaSummary()
+	{
+		final TargetFact target = _fixture.query().suitableTargets(target(20, 20, null, Set.of(), null, null, PageRequest.first(1))).values().getFirst();
+		PhantomAssertions.assertTrue(target.representativeAreas().size() <= 64, "Target fact exceeded the nested spawn-area cap.");
+		PhantomAssertions.assertEquals(target.totalSpawnAreaCount() > target.representativeAreas().size(), target.hasMoreSpawnAreas(), "Target fact lost bounded spawn-area continuation truth.");
+	}
+
+	private void testTargetSummaryType()
+	{
+		final TargetFact target = _fixture.query().suitableTargets(target(20, 20, null, Set.of(), null, null, PageRequest.first(1))).values().getFirst();
+		PhantomAssertions.assertTrue(target.representativeAreas().stream().allMatch(SpawnAreaSummary.class::isInstance), "Target fact embeds internal spawn-area facts.");
+	}
+
 	private static TargetQuery target(int minimumLevel, int maximumLevel, Integer preferredLevel, Set<NpcKind> kinds, Integer drop, Integer spoil, PageRequest page)
 	{
 		return new TargetQuery(minimumLevel, maximumLevel, preferredLevel, null, null, kinds, true, true, null, drop, spoil, page);
 	}
 
 	private SyntheticFixture build(PhantomTestContext context, String suffix, boolean reverse, boolean duplicateItem, boolean missingReference, double groupedChance) throws Exception
+	{
+		return build(context, suffix, reverse, duplicateItem, missingReference, groupedChance, false, 0);
+	}
+
+	private SyntheticFixture build(PhantomTestContext context, String suffix, boolean reverse, boolean duplicateItem, boolean missingReference, double groupedChance, boolean swapGroupedOrdinals, int extraSpawnAreas) throws Exception
+	{
+		return build(context, suffix, reverse, duplicateItem, missingReference, groupedChance, swapGroupedOrdinals, extraSpawnAreas, false);
+	}
+
+	private SyntheticFixture build(PhantomTestContext context, String suffix, boolean reverse, boolean duplicateItem, boolean missingReference, double groupedChance, boolean swapGroupedOrdinals, int extraSpawnAreas, boolean swapGroupOrdinals) throws Exception
 	{
 		final Path root = context.reportsDirectory().resolve("knowledge-core-" + ProcessHandle.current().pid() + "-" + suffix);
 		Files.createDirectories(root.resolve("curated"));
@@ -452,15 +526,15 @@ public final class PhantomGameKnowledgeCoreSuite implements PhantomTestSuite
 			</list>
 			""", StandardCharsets.UTF_8);
 		Files.writeString(root.resolve("curated/knowledge.xml"), curatedXml(), StandardCharsets.UTF_8);
-		final SyntheticBackend backend = new SyntheticBackend(reverse, duplicateItem, missingReference, groupedChance);
+		final SyntheticBackend backend = new SyntheticBackend(reverse, duplicateItem, missingReference, groupedChance, swapGroupedOrdinals, extraSpawnAreas, swapGroupOrdinals);
 		final PhantomTopologyQuery topology = topology();
 		final PhantomGameKnowledgeBuilder builder = new PhantomGameKnowledgeBuilder(backend, new PhantomStaticManorParser(root.resolve("Seeds.xml"), POLICY), new PhantomCuratedKnowledgeParser(root.resolve("curated"), backend, POLICY), topology, POLICY);
 		final PhantomGameKnowledgeService service = new PhantomGameKnowledgeService(builder);
 		service.start();
-		return new SyntheticFixture(service.query().snapshot(), service.query(), backend);
+		return new SyntheticFixture(service.query().snapshot(), service.query(), service, backend);
 	}
 
-	private static String curatedXml()
+	static String curatedXml()
 	{
 		final StringBuilder result = new StringBuilder("""
 			<?xml version="1.0" encoding="UTF-8"?>
@@ -491,15 +565,16 @@ public final class PhantomGameKnowledgeCoreSuite implements PhantomTestSuite
 		return result.toString();
 	}
 
-	private static PhantomTopologyQuery topology()
+	static PhantomTopologyQuery topology()
 	{
 		final TopologyBackend backend = new TopologyBackend();
 		final PhantomTopologyNode node = new PhantomTopologyNode("synthetic.area", PhantomTopologyNodeKind.FARMING_AREA, 0, PhantomTopologyArea.cuboid(0, 0, 1000, 0, 1000, -100, 100), null, List.of(), List.of());
-		final PhantomTopologySnapshot snapshot = PhantomTopologySnapshot.create(1, "synthetic", 1, 1, List.of(node), List.of(), List.of(), backend, PhantomTopologyPolicy.productionDefaults());
+		final PhantomTopologyNode empty = new PhantomTopologyNode("synthetic.empty", PhantomTopologyNodeKind.FARMING_AREA, 0, PhantomTopologyArea.cuboid(0, 3000, 4000, 3000, 4000, -100, 100), null, List.of(), List.of());
+		final PhantomTopologySnapshot snapshot = PhantomTopologySnapshot.create(1, "synthetic", 1, 1, List.of(node, empty), List.of(), List.of(), backend, PhantomTopologyPolicy.productionDefaults());
 		return new PhantomTopologyQuery(snapshot, backend, new PhantomTopologyMetrics());
 	}
 
-	record SyntheticFixture(PhantomGameKnowledgeSnapshot snapshot, PhantomGameKnowledgeQuery query, SyntheticBackend backend)
+	record SyntheticFixture(PhantomGameKnowledgeSnapshot snapshot, PhantomGameKnowledgeQuery query, PhantomGameKnowledgeService service, SyntheticBackend backend)
 	{
 	}
 
@@ -509,15 +584,31 @@ public final class PhantomGameKnowledgeCoreSuite implements PhantomTestSuite
 		private final boolean _duplicateItem;
 		private final boolean _missingReference;
 		private final double _groupedChance;
+		private final boolean _swapGroupedOrdinals;
+		private final int _extraSpawnAreas;
+		private final boolean _swapGroupOrdinals;
 		private int _loads;
 		private int _sourceChecks;
 
 		SyntheticBackend(boolean reverse, boolean duplicateItem, boolean missingReference, double groupedChance)
 		{
+			this(reverse, duplicateItem, missingReference, groupedChance, false, 0);
+		}
+
+		SyntheticBackend(boolean reverse, boolean duplicateItem, boolean missingReference, double groupedChance, boolean swapGroupedOrdinals, int extraSpawnAreas)
+		{
+			this(reverse, duplicateItem, missingReference, groupedChance, swapGroupedOrdinals, extraSpawnAreas, false);
+		}
+
+		SyntheticBackend(boolean reverse, boolean duplicateItem, boolean missingReference, double groupedChance, boolean swapGroupedOrdinals, int extraSpawnAreas, boolean swapGroupOrdinals)
+		{
 			_reverse = reverse;
 			_duplicateItem = duplicateItem;
 			_missingReference = missingReference;
 			_groupedChance = groupedChance;
+			_swapGroupedOrdinals = swapGroupedOrdinals;
+			_extraSpawnAreas = extraSpawnAreas;
+			_swapGroupOrdinals = swapGroupOrdinals;
 		}
 
 		@Override
@@ -544,8 +635,11 @@ public final class PhantomGameKnowledgeCoreSuite implements PhantomTestSuite
 				new NpcFact(103, 21, NpcKind.MONSTER, true, true, false, 11, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
 				new NpcFact(104, 22, NpcKind.MONSTER, true, true, false, 12, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT)));
 			final ArrayList<DropFact> drops = new ArrayList<>(List.of(
-				new DropFact(102, 1, DropSourceKind.DEATH_DROP, ChanceModel.GROUP_CUMULATIVE, 0, 0, 50d, _groupedChance, 1, 2, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
+				new DropFact(102, 1, DropSourceKind.DEATH_DROP, ChanceModel.GROUP_CUMULATIVE, _swapGroupOrdinals ? 1 : 0, _swapGroupedOrdinals ? 1 : 0, 50d, _groupedChance, 1, 2, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
+				new DropFact(102, 2, DropSourceKind.DEATH_DROP, ChanceModel.GROUP_CUMULATIVE, _swapGroupOrdinals ? 1 : 0, _swapGroupedOrdinals ? 0 : 1, 50d, 15d, 1, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
+				new DropFact(102, 5, DropSourceKind.DEATH_DROP, ChanceModel.GROUP_CUMULATIVE, _swapGroupOrdinals ? 0 : 1, 0, 25d, 100d, 1, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
 				new DropFact(103, 1, DropSourceKind.DEATH_DROP, ChanceModel.UNGROUPED_INDEPENDENT, -1, 0, 0d, 10d, 1, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
+				new DropFact(100, 4, DropSourceKind.DEATH_DROP, ChanceModel.UNGROUPED_INDEPENDENT, -1, 0, 0d, 10d, 1, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
 				new DropFact(102, 3, DropSourceKind.SPOIL, ChanceModel.UNGROUPED_INDEPENDENT, -1, 0, 0d, 5d, 1, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT)));
 			final ArrayList<SpawnFact> spawns = new ArrayList<>(List.of(
 				new SpawnFact(100, 0, 0, 2000, 2000, 0, 1, 1, SpawnPointKind.EXACT, null, 6, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
@@ -553,6 +647,10 @@ public final class PhantomGameKnowledgeCoreSuite implements PhantomTestSuite
 				new SpawnFact(102, 0, 0, 100, 100, 0, 2, 2, SpawnPointKind.EXACT, null, 5, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
 				new SpawnFact(103, 0, 0, 150, 150, 0, 1, 3, SpawnPointKind.EXACT, null, 5, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
 				new SpawnFact(104, 0, 0, World.WORLD_X_MAX + 1, 100, 0, 1, 4, SpawnPointKind.EXACT, null, 5, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT)));
+			for (int index = 1; index <= _extraSpawnAreas; index++)
+			{
+				spawns.add(new SpawnFact(102, index, index, 100, 100, 0, 1, 1000 + index, SpawnPointKind.EXACT, null, 5, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
+			}
 			final ArrayList<RecipeFact> recipes = new ArrayList<>(List.of(new RecipeFact(10, 6, 7, 1, 8, 1, 20, 1, 100, true, List.of(new IngredientFact(9, 2), new IngredientFact(10, 3)), PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT)));
 			final ArrayList<ClassIntrinsicFact> classes = new ArrayList<>(List.of(
 				new ClassIntrinsicFact(0, "HUMAN", 0, false, false, null, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),

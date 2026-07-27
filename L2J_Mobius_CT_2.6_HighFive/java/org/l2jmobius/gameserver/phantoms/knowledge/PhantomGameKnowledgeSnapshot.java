@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.CapabilityRequirement;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ClassCapabilityFact;
@@ -55,6 +56,7 @@ public final class PhantomGameKnowledgeSnapshot
 	public static final long GENERATION = 1;
 
 	private static final Comparator<DropFact> DROP_ORDER = Comparator.comparingInt(DropFact::itemId).thenComparingInt(DropFact::npcId).thenComparing(DropFact::sourceKind).thenComparingInt(DropFact::groupOrdinal).thenComparingInt(DropFact::itemOrdinal);
+	private static final Comparator<DropFact> NPC_DROP_ORDER = Comparator.comparing(DropFact::sourceKind).thenComparingInt(DropFact::groupOrdinal).thenComparingInt(DropFact::itemOrdinal).thenComparingInt(DropFact::itemId);
 	private static final Comparator<RecipeFact> RECIPE_ORDER = Comparator.comparingInt(RecipeFact::recipeListId);
 	private static final Comparator<ClassCapabilityFact> CAPABILITY_ORDER = Comparator.comparing(ClassCapabilityFact::stableKey);
 
@@ -100,6 +102,7 @@ public final class PhantomGameKnowledgeSnapshot
 	private final String _classCapabilityHash;
 	private final String _contentRequirementHash;
 	private final String _combinedHash;
+	private final Hashes _hashes;
 	private final Counts _counts;
 
 	PhantomGameKnowledgeSnapshot(String datasetId, int datasetVersion, String topologyHash, PhantomGameKnowledgePolicy policy, List<ItemFact> items, List<NpcFact> npcs, List<DropFact> dropSpoilFacts, List<SpawnFact> spawnFacts, List<SpawnAreaFact> spawnAreas, List<RecipeFact> recipes, List<ManorFact> manorFacts, List<ClassIntrinsicFact> classFacts, List<ClassCapabilityFact> classCapabilities, List<ContentRequirementFact> contentRequirements)
@@ -124,8 +127,8 @@ public final class PhantomGameKnowledgeSnapshot
 		_dropSourcesByItem = group(_dropSpoilFacts.stream().filter(fact -> fact.sourceKind() == DropSourceKind.DEATH_DROP).toList(), DropFact::itemId, DROP_ORDER);
 		_spoilSourcesByItem = group(_dropSpoilFacts.stream().filter(fact -> fact.sourceKind() == DropSourceKind.SPOIL).toList(), DropFact::itemId, DROP_ORDER);
 		_manorFactsByItem = buildManorIndex(_manorFacts);
-		_dropFactsByNpc = group(_dropSpoilFacts.stream().filter(fact -> fact.sourceKind() == DropSourceKind.DEATH_DROP).toList(), DropFact::npcId, DROP_ORDER);
-		_spoilFactsByNpc = group(_dropSpoilFacts.stream().filter(fact -> fact.sourceKind() == DropSourceKind.SPOIL).toList(), DropFact::npcId, DROP_ORDER);
+		_dropFactsByNpc = group(_dropSpoilFacts.stream().filter(fact -> fact.sourceKind() == DropSourceKind.DEATH_DROP).toList(), DropFact::npcId, NPC_DROP_ORDER);
+		_spoilFactsByNpc = group(_dropSpoilFacts.stream().filter(fact -> fact.sourceKind() == DropSourceKind.SPOIL).toList(), DropFact::npcId, NPC_DROP_ORDER);
 		_spawnFactsByNpc = group(_spawnFacts, SpawnFact::npcId, Comparator.comparingInt(SpawnFact::spawnOrdinal));
 		_spawnAreasByNpc = group(_spawnAreas, SpawnAreaFact::npcId, Comparator.comparing(SpawnAreaFact::stableKey));
 		_npcsByTopologyNode = buildNpcAreaIndex(_spawnAreas, _npcById, true);
@@ -148,6 +151,7 @@ public final class PhantomGameKnowledgeSnapshot
 		_classCapabilityHash = hashClasses(_classFacts, _classCapabilities);
 		_contentRequirementHash = hashContents(_contentRequirements);
 		_combinedHash = hashCombined();
+		_hashes = new Hashes(_itemsHash, _npcDropSpoilHash, _spawnHash, _recipeHash, _manorHash, _classCapabilityHash, _contentRequirementHash, _topologyHash, _combinedHash);
 		_counts = new Counts(_items.size(), _npcs.size(), countDrops(DropSourceKind.DEATH_DROP), countDrops(DropSourceKind.SPOIL), _spawnFacts.size(), _spawnAreas.size(), _recipes.size(), _recipes.stream().mapToInt(recipe -> recipe.ingredients().size()).sum(), _manorFacts.size(), _classFacts.size(), _classCapabilities.size(), _contentRequirements.size());
 	}
 
@@ -639,9 +643,35 @@ public final class PhantomGameKnowledgeSnapshot
 		return _combinedHash;
 	}
 
+	public Hashes hashes()
+	{
+		return _hashes;
+	}
+
 	public Counts counts()
 	{
 		return _counts;
+	}
+
+	public record Hashes(String itemsHash, String npcDropSpoilHash, String spawnHash, String recipeHash, String manorHash, String classCapabilityHash, String contentRequirementHash, String topologyHash, String combinedHash)
+	{
+		public Hashes
+		{
+			Objects.requireNonNull(itemsHash, "itemsHash");
+			Objects.requireNonNull(npcDropSpoilHash, "npcDropSpoilHash");
+			Objects.requireNonNull(spawnHash, "spawnHash");
+			Objects.requireNonNull(recipeHash, "recipeHash");
+			Objects.requireNonNull(manorHash, "manorHash");
+			Objects.requireNonNull(classCapabilityHash, "classCapabilityHash");
+			Objects.requireNonNull(contentRequirementHash, "contentRequirementHash");
+			Objects.requireNonNull(topologyHash, "topologyHash");
+			Objects.requireNonNull(combinedHash, "combinedHash");
+		}
+
+		public static Hashes none()
+		{
+			return new Hashes("none", "none", "none", "none", "none", "none", "none", "none", "none");
+		}
 	}
 
 	public record Counts(int items, int npcs, int deathDrops, int spoils, int spawnFacts, int spawnAreas, int recipes, int recipeIngredients, int manorFacts, int classFacts, int classCapabilities, int contentRequirements)
