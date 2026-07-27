@@ -50,6 +50,10 @@ public final class PhantomTopologyMetrics
 	private final AtomicLong _localChatSignals = new AtomicLong();
 	private final AtomicLong _combatSignals = new AtomicLong();
 	private final AtomicLong _targetabilitySignals = new AtomicLong();
+	private final AtomicLong _reloadSignalInvalidationFailures = new AtomicLong();
+	private final AtomicLong _signalCleanupFailures = new AtomicLong();
+	private final AtomicLong _signalCleanupRetries = new AtomicLong();
+	private final AtomicLong _signalSequenceExhausted = new AtomicLong();
 	private final AtomicLong _stopFailures = new AtomicLong();
 
 	public void recordLoad()
@@ -161,6 +165,26 @@ public final class PhantomTopologyMetrics
 		_targetabilitySignals.incrementAndGet();
 	}
 
+	public void recordReloadSignalInvalidationFailure()
+	{
+		_reloadSignalInvalidationFailures.incrementAndGet();
+	}
+
+	public void recordSignalCleanupFailure()
+	{
+		_signalCleanupFailures.incrementAndGet();
+	}
+
+	public void recordSignalCleanupRetry()
+	{
+		_signalCleanupRetries.incrementAndGet();
+	}
+
+	public void recordSignalSequenceExhausted()
+	{
+		_signalSequenceExhausted.incrementAndGet();
+	}
+
 	public void recordStopFailure()
 	{
 		_stopFailures.incrementAndGet();
@@ -168,10 +192,10 @@ public final class PhantomTopologyMetrics
 
 	public Snapshot snapshot()
 	{
-		return new Snapshot(_loads.get(), _reloads.get(), _reloadFailures.get(), _validationFailures.get(), _spatialQueries.get(), _nearestQueries.get(), _edgeQueries.get(), _doorChecks.get(), _profilesRegistered.get(), _profilesCurrent.get(), _profilesPeak.get(), _profileUpdatesRejected.get(), _eventsAccepted.get(), _eventsRejected.get(), _eventsInFlight.get(), _eventsPeak.get(), _recipientsConsidered.get(), _recipientsDelivered.get(), _recipientsBackpressured.get(), _recipientsUnregistered.get(), _localChatSignals.get(), _combatSignals.get(), _targetabilitySignals.get(), _stopFailures.get());
+		return new Snapshot(_loads.get(), _reloads.get(), _reloadFailures.get(), _validationFailures.get(), _spatialQueries.get(), _nearestQueries.get(), _edgeQueries.get(), _doorChecks.get(), _profilesRegistered.get(), _profilesCurrent.get(), _profilesPeak.get(), _profileUpdatesRejected.get(), _eventsAccepted.get(), _eventsRejected.get(), _eventsInFlight.get(), _eventsPeak.get(), _recipientsConsidered.get(), _recipientsDelivered.get(), _recipientsBackpressured.get(), _recipientsUnregistered.get(), _localChatSignals.get(), _combatSignals.get(), _targetabilitySignals.get(), _reloadSignalInvalidationFailures.get(), _signalCleanupFailures.get(), _signalCleanupRetries.get(), _signalSequenceExhausted.get(), _stopFailures.get());
 	}
 
-	public record Snapshot(long loads, long reloads, long reloadFailures, long validationFailures, long spatialQueries, long nearestQueries, long edgeQueries, long doorChecks, long profilesRegistered, long profilesCurrent, long profilesPeak, long profileUpdatesRejected, long eventsAccepted, long eventsRejected, long eventsInFlight, long eventsPeak, long recipientsConsidered, long recipientsDelivered, long recipientsBackpressured, long recipientsUnregistered, long localChatSignals, long combatSignals, long targetabilitySignals, long stopFailures)
+	public record Snapshot(long loads, long reloads, long reloadFailures, long validationFailures, long spatialQueries, long nearestQueries, long edgeQueries, long doorChecks, long profilesRegistered, long profilesCurrent, long profilesPeak, long profileUpdatesRejected, long eventsAccepted, long eventsRejected, long eventsInFlight, long eventsPeak, long recipientsConsidered, long recipientsDelivered, long recipientsBackpressured, long recipientsUnregistered, long localChatSignals, long combatSignals, long targetabilitySignals, long reloadSignalInvalidationFailures, long signalCleanupFailures, long signalCleanupRetries, long signalSequenceExhausted, long stopFailures)
 	{
 	}
 }

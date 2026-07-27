@@ -4,15 +4,16 @@
 
 ```text
 Status: SUCCESS
-Manual gate: PENDING_INDEPENDENT_REVIEW
+Manual gate: FIX_REQUIRED_BY_INDEPENDENT_REVIEW
 Accepted baseline: 0780c77ae605d8b2c36a4ff0345092506fb9f9c5
 Expected parent: 0780c77ae605d8b2c36a4ff0345092506fb9f9c5
 Branch: feature/phantom-world
 Subject: feat(phantoms): add topology perception graph
 Goal 009: ACCEPT after Goal 009A
 Goal 009A: ACCEPT
-Goal 010: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
-Goal 011: NOT_STARTED
+Goal 010: FIX_REQUIRED
+Goal 010A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 011: BLOCKED
 Goal 012: NOT_STARTED
 ```
 
@@ -397,3 +398,39 @@ Push result: во внешнем final handoff
 
 Result:
 `TOPOLOGY_PERCEPTION_GRAPH_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+
+## Независимое review и обязательное закрытие
+
+Предыдущий result выше зафиксирован исторически и заменён verdict независимого
+review:
+
+```text
+Goal 010 architecture direction: ACCEPT
+Goal 010 commit: FIX_REQUIRED
+Revert: NOT_REQUIRED
+Goal 010A: REQUIRED
+Goal 011: BLOCKED
+Goal 012: NOT_STARTED
+```
+
+Immutable handoff Goal 010:
+
+```text
+Commit: e80a641eebaefb59f1bef6bc398084375d2ecd8d
+Parent: 0780c77ae605d8b2c36a4ff0345092506fb9f9c5
+Push/remote: exact
+Topology core: 38/38 ×3
+Perception: 28/28 ×3
+Corpus: 6/6 ×2
+Performance: 1/1 ×2
+Final verifier: 82/82 ×2, byte-identical
+Production topology SHA-256:
+f8046ed902f024a9181f39b3247d8a6697279db4921ec0a69231c1e9b47cae7f
+Independent review: FIX_REQUIRED
+Goal 010A: REQUIRED
+Goal 011: BLOCKED
+```
+
+Полный SHA вывода внешнего verifier Goal 010 в handoff отсутствовал и не
+восстанавливался предположением. Bounded findings закрываются отдельным Goal
+010A; независимое принятие этого hardening остаётся обязательным manual gate.

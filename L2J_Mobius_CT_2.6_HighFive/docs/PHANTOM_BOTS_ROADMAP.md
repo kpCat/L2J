@@ -15,7 +15,7 @@
 0780c77ae605d8b2c36a4ff0345092506fb9f9c5
 
 Текущий branch HEAD под ревью:
-Goal 010 topology, anchors and perception graph — commit SHA во внешнем final handoff
+Goal 010A topology generation/signal ownership hardening — commit SHA во внешнем final handoff
 
 Task 004 technical feasibility:
 ACCEPT
@@ -58,9 +58,13 @@ Goal 009: ACCEPT after Goal 009A
 
 Goal 009A: ACCEPT
 
-Goal 010: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 010: FIX_REQUIRED
 
-Goal 011: NOT_STARTED
+Goal 010A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
+Goal 011: BLOCKED
+
+Goal 012: NOT_STARTED
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
@@ -72,7 +76,9 @@ Goal 006B приняты; Goal 006 overall имеет `ACCEPT`, а Этап I з
 и Goal 007A приняты. Независимое review Goal 008 потребовало bounded Goal 008A;
 hardening принят на baseline `6ecd8ba1...`. Архитектурное направление Goal 009
 принято после independently accepted Goal 009A на baseline `0780c77a...`.
-Goal 010 реализована и ожидает независимого review; Goal 011 не начата.
+Независимое review Goal 010 потребовало bounded Goal 010A. Goal 010A
+реализована и ожидает независимого review; Goal 011 заблокирована, Goal 012 не
+начата.
 
 ---
 
@@ -320,7 +326,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 011 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `FIX_REQUIRED`; Goal 010A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 011 — `BLOCKED`; Goal 012 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -508,7 +514,7 @@ Goal 009A закрыла обязательные findings по route truth, bac
 dispatch/stop ordering и aggregate shutdown diagnostic; independent review —
 `ACCEPT`.
 
-## Goal 010 — Topology, anchors и perception graph — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+## Goal 010 — Topology, anchors и perception graph — `FIX_REQUIRED`
 
 **Назначение:** реализовать server-world topology и providers для Goal 007.  
 **Зависимости:** 007, 009.  
@@ -525,7 +531,12 @@ dispatch/stop ordering и aggregate shutdown diagnostic; independent review —
 **Gate:** perceptible neighbor cannot be demoted to pure statistics.  
 **Follow-up risk:** `HIGH` — map completeness and perceptibility correctness.
 
-## Goal 011 — Authoritative Game Knowledge и reverse indexes — `NOT_STARTED`
+Goal 010A устраняет только findings ownership: exact topology generation для
+profile update и perception delivery, полная пересборка memberships с
+инвалидацией provider-owned sources до swap, а также явный retryable cleanup
+при unregister. До независимого принятия Goal 010A следующий Goal не начинается.
+
+## Goal 011 — Authoritative Game Knowledge и reverse indexes — `BLOCKED`
 
 **Назначение:** предоставить read-only предметное знание до combat/background и
 до Semantic Pack.  
@@ -570,7 +581,7 @@ class/role -> capability facts
 **GOAL:** 012–016  
 **Зависит от:** Этапы I–II.
 
-## Goal 012 — Capability-driven combat kernel
+## Goal 012 — Capability-driven combat kernel — `NOT_STARTED`
 
 **Назначение:** минимальный реальный бой через server-side facades.  
 **Зависимости:** 008–011.  
@@ -1006,7 +1017,7 @@ Current accepted baseline:
 0780c77ae605d8b2c36a4ff0345092506fb9f9c5
 
 Current branch HEAD under review:
-Goal 010 topology, anchors and perception graph — commit SHA во внешнем final handoff
+Goal 010A topology generation/signal ownership hardening — commit SHA во внешнем final handoff
 
 Completed:
 - 001 / 001A
@@ -1029,11 +1040,12 @@ Completed:
 - Goal 009A
 
 In progress / required closure:
-- Goal 010 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 010 FIX_REQUIRED
+- Goal 010A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 010
-2. Goal 011 remains NOT_STARTED
+1. Independent review Goal 010A
+2. Goal 011 remains BLOCKED
 3. Goal 012 remains NOT_STARTED
 
 Stage gate:
@@ -1063,8 +1075,10 @@ Overall:
   Goal 008A ACCEPT;
   Goal 009 ACCEPT after Goal 009A;
   Goal 009A ACCEPT;
-  Goal 010 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 011 NOT_STARTED
+  Goal 010 FIX_REQUIRED;
+  Goal 010A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 011 BLOCKED;
+  Goal 012 NOT_STARTED
 ```
 
 ---

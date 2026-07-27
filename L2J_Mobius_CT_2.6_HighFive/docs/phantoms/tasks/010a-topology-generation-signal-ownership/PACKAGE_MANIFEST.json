@@ -1,0 +1,25 @@
+{
+  "package": "phantom-world-goal-010a-topology-generation-signal-ownership",
+  "taskId": "010a-topology-generation-signal-ownership",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/010a-topology-generation-signal-ownership/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "e80a641eebaefb59f1bef6bc398084375d2ecd8d",
+  "schemaChanges": false,
+  "configChanges": false,
+  "topologyDataChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "goal011Started": false,
+  "goal012Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "GENERATION_OWNERSHIP.md",
+    "SIGNAL_OWNERSHIP.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

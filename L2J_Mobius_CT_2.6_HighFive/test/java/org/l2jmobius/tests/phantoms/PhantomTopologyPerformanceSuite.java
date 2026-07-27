@@ -42,6 +42,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologySnapshot;
 
 public final class PhantomTopologyPerformanceSuite implements PhantomTestSuite
@@ -90,21 +91,20 @@ public final class PhantomTopologyPerformanceSuite implements PhantomTestSuite
 		final PhantomTopologySnapshot snapshot = PhantomTopologySnapshot.create(1, "performance", 1, 1, nodes, anchors, edges, backend, policy);
 		final PhantomTopologyMetrics metrics = new PhantomTopologyMetrics();
 		final PhantomTopologyQuery query = new PhantomTopologyQuery(snapshot, backend, metrics);
-		final PhantomTopologyProfileRegistry profileRegistry = new PhantomTopologyProfileRegistry(PROFILE_COUNT, () -> query, metrics);
 		final CountingSignalPort signalPort = new CountingSignalPort();
-		final PhantomPerceptionProvider provider = new PhantomPerceptionProvider(policy, profileRegistry, () -> query, signalPort, metrics);
-		PhantomAssertions.assertTrue(provider.start(), "Topology performance provider did not start.");
+		final PhantomTopologyService service = PhantomTopologyService.fromSnapshotForTesting(snapshot, backend, policy, signalPort);
+		PhantomAssertions.assertTrue(service.start(), "Topology performance provider did not start.");
 		for (int index = 0; index < PROFILE_COUNT; index++)
 		{
 			final long profileId = index + 1L;
-			PhantomAssertions.assertEquals(PhantomTopologyProfileRegistry.RegistrationResult.REGISTERED, profileRegistry.register(profileId), "Topology performance profile registration failed.");
-			PhantomAssertions.assertEquals(PhantomTopologyProfileRegistry.UpdateResult.UPDATED, profileRegistry.update(profileId, point(index), 1), "Topology performance profile update failed.");
+			PhantomAssertions.assertEquals(PhantomTopologyProfileRegistry.RegistrationResult.REGISTERED, service.registerProfile(profileId), "Topology performance profile registration failed.");
+			PhantomAssertions.assertEquals(PhantomTopologyProfileRegistry.UpdateResult.UPDATED, service.updateProfile(profileId, point(index), 1), "Topology performance profile update failed.");
 		}
 		for (int index = 0; index < EVENT_COUNT; index++)
 		{
 			final PhantomTopologyPoint source = point(index % NODE_COUNT);
-			provider.localChat(new LocalChatEvent("local." + index, source, nodeId(index % NODE_COUNT), index, 100_000, 5000));
-			provider.combat(new CombatEvent("combat." + index, source, nodeId(index % NODE_COUNT), List.of((index % PROFILE_COUNT) + 1L), index, 100_000, 3000));
+			service.localChat(new LocalChatEvent("local." + index, source, nodeId(index % NODE_COUNT), index, 100_000, 5000));
+			service.combat(new CombatEvent("combat." + index, source, nodeId(index % NODE_COUNT), List.of((index % PROFILE_COUNT) + 1L), index, 100_000, 3000));
 		}
 		final List<PhantomTopologyAnchor> nearest = query.nearestAnchors(point(0), PhantomTopologyAnchorRole.ROUTE, 16, 100_000);
 		PhantomAssertions.assertEquals(16, nearest.size(), "Topology performance nearest-anchor shape changed.");
@@ -114,9 +114,9 @@ public final class PhantomTopologyPerformanceSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(NODE_COUNT, snapshot.nodes().size(), "Topology performance node count changed.");
 		PhantomAssertions.assertEquals(EDGE_COUNT, snapshot.edges().size(), "Topology performance edge count changed.");
 		PhantomAssertions.assertEquals(ANCHOR_COUNT, snapshot.anchors().size(), "Topology performance anchor count changed.");
-		PhantomAssertions.assertEquals(PROFILE_COUNT, profileRegistry.size(), "Topology performance profile count changed.");
-		provider.beginStop();
-		PhantomAssertions.assertTrue(provider.finishStop(), "Topology performance provider did not stop.");
+		PhantomAssertions.assertEquals(PROFILE_COUNT, service.snapshot().registeredProfiles(), "Topology performance profile count changed.");
+		service.beginStop();
+		PhantomAssertions.assertTrue(service.finishStop(), "Topology performance provider did not stop.");
 		final long elapsedMillis = (System.nanoTime() - started) / 1_000_000;
 		context.record("topology.performance.datasetHash", snapshot.canonicalHash());
 		context.record("topology.performance.nodes", NODE_COUNT);

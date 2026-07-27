@@ -21,7 +21,6 @@
 package org.l2jmobius.gameserver.phantoms.topology;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -36,16 +35,21 @@ import java.util.function.Supplier;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort.SignalDelivery;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyGenerationCoordinator.View;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.ProfileTopologySnapshot;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrationResult;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RemovalResult;
 
 /**
- * Synchronous one-hop perception provider with exact event-token stop ownership.
+ * Synchronous one-hop perception provider with exact generation and signal
+ * delivery ownership.
  */
 public final class PhantomPerceptionProvider
 {
 	public static final String LOCAL_CHAT_SOURCE = "topology.local_chat";
 	public static final String COMBAT_SOURCE = "topology.combat";
 	public static final String TARGETABILITY_SOURCE = "topology.targetability";
+	public static final List<String> OWNED_SOURCES = List.of(LOCAL_CHAT_SOURCE, COMBAT_SOURCE, TARGETABILITY_SOURCE);
 
 	public enum State
 	{
@@ -59,8 +63,21 @@ public final class PhantomPerceptionProvider
 	{
 		ACCEPTED,
 		INVALID,
+		SIGNAL_FAILURE,
 		NOT_RUNNING,
 		BACKPRESSURE
+	}
+
+	enum CleanupStatus
+	{
+		COMPLETE,
+		FAILED,
+		NOT_REQUIRED,
+		NOT_RUNNING
+	}
+
+	record UnregisterAttempt(RemovalResult removal, CleanupStatus cleanup)
+	{
 	}
 
 	public record LocalChatEvent(String eventId, PhantomTopologyPoint sourcePoint, String sourceNodeId, long logicalTime, int radius, long ttlMillis)
@@ -118,33 +135,153 @@ public final class PhantomPerceptionProvider
 	private final Object _deliveryGate = new Object();
 	private final PhantomTopologyPolicy _policy;
 	private final PhantomTopologyProfileRegistry _registry;
-	private final Supplier<PhantomTopologyQuery> _querySupplier;
+	private final PhantomTopologyGenerationCoordinator _generationCoordinator;
+	private final Supplier<View> _viewSupplier;
 	private final PhantomRelevanceSignalPort _signalPort;
 	private final PhantomTopologyMetrics _metrics;
 	private final Map<SequenceKey, Long> _sequences = new HashMap<>();
+	private final Set<Long> _pendingCleanup = new HashSet<>();
+	private final Set<Long> _activeEventTokens = new HashSet<>();
 	private State _state = State.NEW;
 	private long _eventGeneration;
-	private int _eventsInFlight;
+	private long _nextEventToken;
+	private int _cleanupInFlight;
 
-	public PhantomPerceptionProvider(PhantomTopologyPolicy policy, PhantomTopologyProfileRegistry registry, Supplier<PhantomTopologyQuery> querySupplier, PhantomRelevanceSignalPort signalPort, PhantomTopologyMetrics metrics)
+	PhantomPerceptionProvider(PhantomTopologyPolicy policy, PhantomTopologyProfileRegistry registry, PhantomTopologyGenerationCoordinator generationCoordinator, Supplier<View> viewSupplier, PhantomRelevanceSignalPort signalPort, PhantomTopologyMetrics metrics)
 	{
 		_policy = Objects.requireNonNull(policy, "policy");
 		_registry = Objects.requireNonNull(registry, "registry");
-		_querySupplier = Objects.requireNonNull(querySupplier, "querySupplier");
+		_generationCoordinator = Objects.requireNonNull(generationCoordinator, "generationCoordinator");
+		_viewSupplier = Objects.requireNonNull(viewSupplier, "viewSupplier");
 		_signalPort = Objects.requireNonNull(signalPort, "signalPort");
 		_metrics = Objects.requireNonNull(metrics, "metrics");
 	}
 
-	public boolean start()
+	boolean start(long generation)
 	{
 		synchronized (_monitor)
 		{
-			if ((_state != State.NEW) || !_registry.start())
+			if ((_state != State.NEW) || !_registry.start(generation))
 			{
 				return false;
 			}
 			_state = State.RUNNING;
 			return true;
+		}
+	}
+
+	RegistrationResult registerProfile(long profileId, long generation)
+	{
+		synchronized (_deliveryGate)
+		{
+			synchronized (_monitor)
+			{
+				if (_state != State.RUNNING)
+				{
+					return RegistrationResult.NOT_RUNNING;
+				}
+				if (_pendingCleanup.contains(profileId))
+				{
+					return RegistrationResult.CLEANUP_PENDING;
+				}
+			}
+			return _registry.register(profileId, generation);
+		}
+	}
+
+	UnregisterAttempt unregisterProfile(long profileId, long generation)
+	{
+		synchronized (_deliveryGate)
+		{
+			synchronized (_monitor)
+			{
+				if (_state != State.RUNNING)
+				{
+					return new UnregisterAttempt(RemovalResult.NOT_RUNNING, CleanupStatus.NOT_RUNNING);
+				}
+			}
+			final RemovalResult removal = _registry.remove(profileId, generation);
+			if (removal != RemovalResult.UNREGISTERED)
+			{
+				return new UnregisterAttempt(removal, CleanupStatus.NOT_REQUIRED);
+			}
+			final CleanupStatus cleanup = cleanupSources(profileId);
+			synchronized (_monitor)
+			{
+				if (cleanup == CleanupStatus.COMPLETE)
+				{
+					_pendingCleanup.remove(profileId);
+				}
+				else
+				{
+					_pendingCleanup.add(profileId);
+					_metrics.recordSignalCleanupFailure();
+				}
+			}
+			return new UnregisterAttempt(removal, cleanup);
+		}
+	}
+
+	CleanupStatus retryProfileSignalCleanup(long profileId)
+	{
+		synchronized (_deliveryGate)
+		{
+			synchronized (_monitor)
+			{
+				if (_state != State.RUNNING)
+				{
+					return CleanupStatus.NOT_RUNNING;
+				}
+				if (!_pendingCleanup.contains(profileId))
+				{
+					return CleanupStatus.NOT_REQUIRED;
+				}
+				_metrics.recordSignalCleanupRetry();
+			}
+			final CleanupStatus cleanup = cleanupSources(profileId);
+			synchronized (_monitor)
+			{
+				if (cleanup == CleanupStatus.COMPLETE)
+				{
+					_pendingCleanup.remove(profileId);
+				}
+				else
+				{
+					_metrics.recordSignalCleanupFailure();
+				}
+			}
+			return cleanup;
+		}
+	}
+
+	CleanupStatus invalidateForReload(List<Long> profileIds)
+	{
+		synchronized (_deliveryGate)
+		{
+			synchronized (_monitor)
+			{
+				if (_state != State.RUNNING)
+				{
+					return CleanupStatus.NOT_RUNNING;
+				}
+				_cleanupInFlight++;
+			}
+			boolean complete = true;
+			try
+			{
+				for (Long profileId : profileIds.stream().sorted().toList())
+				{
+					complete &= withdrawOwnedSources(profileId);
+				}
+			}
+			finally
+			{
+				synchronized (_monitor)
+				{
+					_cleanupInFlight--;
+				}
+			}
+			return complete ? CleanupStatus.COMPLETE : CleanupStatus.FAILED;
 		}
 	}
 
@@ -156,13 +293,18 @@ public final class PhantomPerceptionProvider
 		{
 			return rejectedStatus();
 		}
-		try
+		try (PhantomTopologyGenerationCoordinator.Lease ignored = _generationCoordinator.read())
 		{
-			return fanout(token, event.sourcePoint(), event.sourceNodeId(), event.radius(), event.ttlMillis(), PhantomPerceptionChannel.LOCAL_CHAT, LOCAL_CHAT_SOURCE, Set.of());
+			final View view = _viewSupplier.get();
+			if ((view == null) || !isCurrent(token))
+			{
+				return new EventResult(EventStatus.NOT_RUNNING, 0, 0, 0, 0);
+			}
+			return fanout(token, view, event.sourcePoint(), event.sourceNodeId(), event.radius(), event.ttlMillis(), PhantomPerceptionChannel.LOCAL_CHAT, LOCAL_CHAT_SOURCE, Set.of());
 		}
 		finally
 		{
-			release();
+			release(token);
 		}
 	}
 
@@ -174,13 +316,18 @@ public final class PhantomPerceptionProvider
 		{
 			return rejectedStatus();
 		}
-		try
+		try (PhantomTopologyGenerationCoordinator.Lease ignored = _generationCoordinator.read())
 		{
-			return fanout(token, event.sourcePoint(), event.sourceNodeId(), event.radius(), event.ttlMillis(), PhantomPerceptionChannel.COMBAT, COMBAT_SOURCE, Set.copyOf(event.participantProfileIds()));
+			final View view = _viewSupplier.get();
+			if ((view == null) || !isCurrent(token))
+			{
+				return new EventResult(EventStatus.NOT_RUNNING, 0, 0, 0, 0);
+			}
+			return fanout(token, view, event.sourcePoint(), event.sourceNodeId(), event.radius(), event.ttlMillis(), PhantomPerceptionChannel.COMBAT, COMBAT_SOURCE, Set.copyOf(event.participantProfileIds()));
 		}
 		finally
 		{
-			release();
+			release(token);
 		}
 	}
 
@@ -192,31 +339,44 @@ public final class PhantomPerceptionProvider
 		{
 			return rejectedStatus();
 		}
-		try
+		try (PhantomTopologyGenerationCoordinator.Lease ignored = _generationCoordinator.read())
 		{
-			if (_registry.find(event.targetProfileId()).isEmpty())
+			final View view = _viewSupplier.get();
+			if ((view == null) || !isCurrent(token))
 			{
-				_metrics.recordRecipientUnregistered();
-				return new EventResult(EventStatus.ACCEPTED, 1, 0, 0, 1);
+				return new EventResult(EventStatus.NOT_RUNNING, 0, 0, 0, 0);
 			}
-			final SignalDelivery delivery = event.active() ? deliver(token, event.targetProfileId(), TARGETABILITY_SOURCE, PhantomActivityState.ACTIVE, event.ttlMillis()) : withdraw(token, event.targetProfileId(), TARGETABILITY_SOURCE);
+			final SignalDelivery delivery;
+			if (event.active())
+			{
+				if (_registry.find(event.targetProfileId(), view.generation()).isEmpty())
+				{
+					_metrics.recordRecipientUnregistered();
+					return new EventResult(EventStatus.ACCEPTED, 1, 0, 0, 1);
+				}
+				delivery = deliver(token, event.targetProfileId(), TARGETABILITY_SOURCE, PhantomActivityState.ACTIVE, event.ttlMillis(), view.generation(), true);
+			}
+			else
+			{
+				delivery = withdrawEvent(token, event.targetProfileId(), TARGETABILITY_SOURCE);
+			}
 			_metrics.recordTargetabilitySignal();
 			return resultForSingle(delivery);
 		}
 		finally
 		{
-			release();
+			release(token);
 		}
 	}
 
-	private EventResult fanout(EventToken token, PhantomTopologyPoint sourcePoint, String sourceNodeId, int radius, long ttlMillis, PhantomPerceptionChannel channel, String sourceKey, Set<Long> participants)
+	private EventResult fanout(EventToken token, View view, PhantomTopologyPoint sourcePoint, String sourceNodeId, int radius, long ttlMillis, PhantomPerceptionChannel channel, String sourceKey, Set<Long> participants)
 	{
-		final PhantomTopologyQuery query = _querySupplier.get();
+		final PhantomTopologyQuery query = view.query();
 		final Optional<PhantomTopologyNode> eventNode = sourceNodeId == null ? query.mostSpecificNode(sourcePoint) : query.findNode(sourceNodeId).filter(node -> node.area().contains(sourcePoint));
 		final LinkedHashMap<Long, PhantomActivityState> recipients = new LinkedHashMap<>();
 		participants.stream().sorted().forEach(profileId ->
 		{
-			if ((recipients.size() < _policy.maximumRecipientsPerEvent()) && _registry.find(profileId).isPresent())
+			if ((recipients.size() < _policy.maximumRecipientsPerEvent()) && _registry.find(profileId, view.generation()).isPresent())
 			{
 				recipients.put(profileId, PhantomActivityState.ACTIVE);
 			}
@@ -238,7 +398,7 @@ public final class PhantomPerceptionProvider
 				}
 			}
 			final long radiusSquared = (long) radius * radius;
-			for (ProfileTopologySnapshot profile : _registry.listForNodes(perceptibleNodes, _policy.maximumRecipientsPerEvent()))
+			for (ProfileTopologySnapshot profile : _registry.listForNodes(perceptibleNodes, _policy.maximumRecipientsPerEvent(), view.generation()))
 			{
 				if ((recipients.size() >= _policy.maximumRecipientsPerEvent()) && !recipients.containsKey(profile.profileId()))
 				{
@@ -254,11 +414,12 @@ public final class PhantomPerceptionProvider
 		int delivered = 0;
 		int backpressured = 0;
 		int unregistered = 0;
+		boolean signalFailure = false;
 		for (Map.Entry<Long, PhantomActivityState> recipient : recipients.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList())
 		{
 			considered++;
 			_metrics.recordRecipientConsidered();
-			final SignalDelivery delivery = deliver(token, recipient.getKey(), sourceKey, recipient.getValue(), ttlMillis);
+			final SignalDelivery delivery = deliver(token, recipient.getKey(), sourceKey, recipient.getValue(), ttlMillis, view.generation(), true);
 			if ((delivery == SignalDelivery.ACCEPTED) || (delivery == SignalDelivery.COALESCED))
 			{
 				delivered++;
@@ -274,6 +435,10 @@ public final class PhantomPerceptionProvider
 				unregistered++;
 				_metrics.recordRecipientUnregistered();
 			}
+			else if (delivery == SignalDelivery.SEQUENCE_EXHAUSTED)
+			{
+				signalFailure = true;
+			}
 			if (channel == PhantomPerceptionChannel.LOCAL_CHAT)
 			{
 				_metrics.recordLocalChatSignal();
@@ -283,10 +448,10 @@ public final class PhantomPerceptionProvider
 				_metrics.recordCombatSignal();
 			}
 		}
-		return new EventResult(EventStatus.ACCEPTED, considered, delivered, backpressured, unregistered);
+		return new EventResult(signalFailure ? EventStatus.SIGNAL_FAILURE : EventStatus.ACCEPTED, considered, delivered, backpressured, unregistered);
 	}
 
-	private SignalDelivery deliver(EventToken token, long profileId, String sourceKey, PhantomActivityState requiredState, long ttlMillis)
+	private SignalDelivery deliver(EventToken token, long profileId, String sourceKey, PhantomActivityState requiredState, long ttlMillis, long topologyGeneration, boolean registrationRequired)
 	{
 		if (requiredState.code() > PhantomActivityState.NEARBY_PERCEPTIBLE.code())
 		{
@@ -294,35 +459,99 @@ public final class PhantomPerceptionProvider
 		}
 		synchronized (_deliveryGate)
 		{
-			final long sequence;
-			synchronized (_monitor)
+			if (!isCurrent(token))
 			{
-				if ((_state != State.RUNNING) || (token._generation != _eventGeneration))
-				{
-					return SignalDelivery.NOT_RUNNING;
-				}
-				final SequenceKey key = new SequenceKey(profileId, sourceKey);
-				sequence = _sequences.merge(key, 1L, Long::sum);
+				return SignalDelivery.NOT_RUNNING;
+			}
+			if (registrationRequired && _registry.find(profileId, topologyGeneration).isEmpty())
+			{
+				return SignalDelivery.NOT_REGISTERED;
+			}
+			final Long sequence = allocateSequence(profileId, sourceKey);
+			if (sequence == null)
+			{
+				return SignalDelivery.SEQUENCE_EXHAUSTED;
 			}
 			return _signalPort.submit(profileId, new PhantomRelevanceSignal(sourceKey, sequence, requiredState, ttlMillis));
 		}
 	}
 
-	private SignalDelivery withdraw(EventToken token, long profileId, String sourceKey)
+	private SignalDelivery withdrawEvent(EventToken token, long profileId, String sourceKey)
 	{
 		synchronized (_deliveryGate)
 		{
-			final long sequence;
-			synchronized (_monitor)
+			if (!isCurrent(token))
 			{
-				if ((_state != State.RUNNING) || (token._generation != _eventGeneration))
-				{
-					return SignalDelivery.NOT_RUNNING;
-				}
-				final SequenceKey key = new SequenceKey(profileId, sourceKey);
-				sequence = _sequences.merge(key, 1L, Long::sum);
+				return SignalDelivery.NOT_RUNNING;
+			}
+			final Long sequence = allocateSequence(profileId, sourceKey);
+			if (sequence == null)
+			{
+				return SignalDelivery.SEQUENCE_EXHAUSTED;
 			}
 			return _signalPort.withdraw(profileId, sourceKey, sequence);
+		}
+	}
+
+	private CleanupStatus cleanupSources(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			if (_state != State.RUNNING)
+			{
+				return CleanupStatus.NOT_RUNNING;
+			}
+			_cleanupInFlight++;
+		}
+		try
+		{
+			return withdrawOwnedSources(profileId) ? CleanupStatus.COMPLETE : CleanupStatus.FAILED;
+		}
+		finally
+		{
+			synchronized (_monitor)
+			{
+				_cleanupInFlight--;
+			}
+		}
+	}
+
+	private boolean withdrawOwnedSources(long profileId)
+	{
+		boolean complete = true;
+		for (String sourceKey : OWNED_SOURCES)
+		{
+			final Long sequence = allocateSequence(profileId, sourceKey);
+			if (sequence == null)
+			{
+				complete = false;
+				continue;
+			}
+			final SignalDelivery delivery = _signalPort.withdraw(profileId, sourceKey, sequence);
+			complete &= isSuccessfulWithdrawal(delivery);
+		}
+		return complete;
+	}
+
+	private static boolean isSuccessfulWithdrawal(SignalDelivery delivery)
+	{
+		return (delivery == SignalDelivery.ACCEPTED) || (delivery == SignalDelivery.COALESCED) || (delivery == SignalDelivery.STALE) || (delivery == SignalDelivery.NOT_REGISTERED);
+	}
+
+	private Long allocateSequence(long profileId, String sourceKey)
+	{
+		synchronized (_monitor)
+		{
+			final SequenceKey key = new SequenceKey(profileId, sourceKey);
+			final long current = _sequences.getOrDefault(key, 0L);
+			if (current == Long.MAX_VALUE)
+			{
+				_metrics.recordSignalSequenceExhausted();
+				return null;
+			}
+			final long next = Math.addExact(current, 1L);
+			_sequences.put(key, next);
+			return next;
 		}
 	}
 
@@ -335,14 +564,28 @@ public final class PhantomPerceptionProvider
 				_metrics.recordEventRejected();
 				return null;
 			}
-			if (_eventsInFlight >= _policy.maximumConcurrentEvents())
+			if (_activeEventTokens.size() >= _policy.maximumConcurrentEvents())
 			{
 				_metrics.recordEventRejected();
 				return null;
 			}
-			_eventsInFlight++;
+			if (_nextEventToken == Long.MAX_VALUE)
+			{
+				_metrics.recordEventRejected();
+				return null;
+			}
+			final EventToken token = new EventToken(++_nextEventToken, _eventGeneration);
+			_activeEventTokens.add(token.id());
 			_metrics.recordEventAccepted();
-			return new EventToken(_eventGeneration);
+			return token;
+		}
+	}
+
+	private boolean isCurrent(EventToken token)
+	{
+		synchronized (_monitor)
+		{
+			return (_state == State.RUNNING) && (token.eventGeneration() == _eventGeneration) && _activeEventTokens.contains(token.id());
 		}
 	}
 
@@ -354,12 +597,14 @@ public final class PhantomPerceptionProvider
 		}
 	}
 
-	private void release()
+	private void release(EventToken token)
 	{
 		synchronized (_monitor)
 		{
-			_eventsInFlight--;
-			_metrics.recordEventFinished();
+			if (_activeEventTokens.remove(token.id()))
+			{
+				_metrics.recordEventFinished();
+			}
 		}
 	}
 
@@ -381,10 +626,14 @@ public final class PhantomPerceptionProvider
 			_metrics.recordRecipientUnregistered();
 			return new EventResult(EventStatus.ACCEPTED, 1, 0, 0, 1);
 		}
+		if (delivery == SignalDelivery.SEQUENCE_EXHAUSTED)
+		{
+			return new EventResult(EventStatus.SIGNAL_FAILURE, 1, 0, 0, 0);
+		}
 		return new EventResult(EventStatus.ACCEPTED, 1, 0, 0, 0);
 	}
 
-	public boolean beginStop()
+	boolean beginStop()
 	{
 		synchronized (_deliveryGate)
 		{
@@ -406,7 +655,7 @@ public final class PhantomPerceptionProvider
 		}
 	}
 
-	public boolean finishStop()
+	boolean finishStop()
 	{
 		synchronized (_monitor)
 		{
@@ -419,7 +668,7 @@ public final class PhantomPerceptionProvider
 				_metrics.recordStopFailure();
 				return false;
 			}
-			if (_eventsInFlight != 0)
+			if (!_activeEventTokens.isEmpty() || (_cleanupInFlight != 0))
 			{
 				_metrics.recordStopFailure();
 				return false;
@@ -430,32 +679,33 @@ public final class PhantomPerceptionProvider
 				return false;
 			}
 			_sequences.clear();
+			_pendingCleanup.clear();
 			_state = State.STOPPED;
 			return true;
 		}
 	}
 
-	public Snapshot snapshot()
+	Snapshot snapshot()
 	{
 		synchronized (_monitor)
 		{
-			return new Snapshot(_state, _registry.size(), _eventsInFlight, _eventGeneration);
+			return new Snapshot(_state, _registry.size(), _activeEventTokens.size(), _cleanupInFlight, _pendingCleanup.size(), _eventGeneration);
 		}
 	}
 
-	public record Snapshot(State state, int registeredProfiles, int eventsInFlight, long eventGeneration)
+	public record Snapshot(State state, int registeredProfiles, int eventsInFlight, int cleanupInFlight, int pendingCleanups, long eventGeneration)
 	{
 		public static Snapshot inactive()
 		{
-			return new Snapshot(State.STOPPED, 0, 0, 0);
+			return new Snapshot(State.STOPPED, 0, 0, 0, 0, 0);
 		}
 	}
 
-	private record EventToken(long _generation)
+	private record EventToken(long id, long eventGeneration)
 	{
 	}
 
-	private record SequenceKey(long _profileId, String _sourceKey)
+	private record SequenceKey(long profileId, String sourceKey)
 	{
 	}
 }

@@ -20,23 +20,54 @@
  */
 package org.l2jmobius.gameserver.phantoms.topology;
 
-import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public interface PhantomRelevanceSignalPort
+/**
+ * Fair generation ownership shared by every topology read and swap operation.
+ */
+final class PhantomTopologyGenerationCoordinator
 {
-	enum SignalDelivery
+	record View(PhantomTopologyQuery query, long generation)
 	{
-		ACCEPTED,
-		COALESCED,
-		STALE,
-		REJECTED,
-		BACKPRESSURE,
-		NOT_REGISTERED,
-		NOT_RUNNING,
-		SEQUENCE_EXHAUSTED
 	}
 
-	SignalDelivery submit(long profileId, PhantomRelevanceSignal signal);
+	private final ReentrantReadWriteLock _lock = new ReentrantReadWriteLock(true);
 
-	SignalDelivery withdraw(long profileId, String sourceKey, long sequence);
+	Lease read()
+	{
+		return acquire(_lock.readLock());
+	}
+
+	Lease write()
+	{
+		return acquire(_lock.writeLock());
+	}
+
+	private static Lease acquire(Lock lock)
+	{
+		lock.lock();
+		return new Lease(lock);
+	}
+
+	static final class Lease implements AutoCloseable
+	{
+		private final Lock _lock;
+		private boolean _closed;
+
+		private Lease(Lock lock)
+		{
+			_lock = lock;
+		}
+
+		@Override
+		public void close()
+		{
+			if (!_closed)
+			{
+				_closed = true;
+				_lock.unlock();
+			}
+		}
+	}
 }

@@ -358,7 +358,7 @@ public final class PhantomTopologyCoreSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(service.start(), "Topology service did not start.");
 			final String original = service.query().snapshot().canonicalHash();
 			Files.writeString(xml, "<topology schemaVersion=\"2\" datasetId=\"test\" datasetVersion=\"1\" />");
-			PhantomAssertions.assertEquals(PhantomTopologyService.ReloadResult.REJECTED, service.reload(), "Invalid topology reload was not rejected.");
+			PhantomAssertions.assertEquals(PhantomTopologyService.ReloadResult.REJECTED_VALIDATION, service.reload(), "Invalid topology reload was not rejected.");
 			PhantomAssertions.assertEquals(original, service.query().snapshot().canonicalHash(), "Invalid reload replaced active topology snapshot.");
 			service.beginStop();
 			PhantomAssertions.assertTrue(service.finishStop(), "Topology service did not stop after reload test.");

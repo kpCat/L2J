@@ -43,12 +43,10 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort.Sig
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdge;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdgeMode;
-import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyMetrics;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
-import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrationResult;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.UpdateResult;
-import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologySnapshot;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyValidationBackend.DoorState;
 
@@ -96,34 +94,34 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	private void testStartsEmpty()
 	{
 		final Fixture fixture = fixture();
-		PhantomAssertions.assertEquals(PhantomPerceptionProvider.State.RUNNING, fixture.provider.snapshot().state(), "Perception provider did not start.");
-		PhantomAssertions.assertEquals(0, fixture.provider.snapshot().registeredProfiles(), "Provider discovered profiles automatically.");
-		PhantomAssertions.assertEquals(0, fixture.provider.snapshot().eventsInFlight(), "Provider created an automatic event.");
+		PhantomAssertions.assertEquals(PhantomTopologyService.State.RUNNING, fixture.service.snapshot().state(), "Perception provider did not start.");
+		PhantomAssertions.assertEquals(0, fixture.service.snapshot().registeredProfiles(), "Provider discovered profiles automatically.");
+		PhantomAssertions.assertEquals(0, fixture.service.snapshot().eventsInFlight(), "Provider created an automatic event.");
 		stop(fixture);
 	}
 
 	private void testRegistration()
 	{
 		final Fixture fixture = fixture();
-		PhantomAssertions.assertEquals(RegistrationResult.REGISTERED, fixture.registry.register(1), "Explicit topology profile registration failed.");
-		PhantomAssertions.assertEquals(1, fixture.registry.size(), "Registered topology profile count changed.");
+		PhantomAssertions.assertEquals(RegistrationResult.REGISTERED, fixture.service.registerProfile(1), "Explicit topology profile registration failed.");
+		PhantomAssertions.assertEquals(1, fixture.service.snapshot().registeredProfiles(), "Registered topology profile count changed.");
 		stop(fixture);
 	}
 
 	private void testDuplicateRegistration()
 	{
 		final Fixture fixture = fixture();
-		fixture.registry.register(1);
-		PhantomAssertions.assertEquals(RegistrationResult.ALREADY_REGISTERED, fixture.registry.register(1), "Duplicate topology profile was not isolated.");
+		fixture.service.registerProfile(1);
+		PhantomAssertions.assertEquals(RegistrationResult.ALREADY_REGISTERED, fixture.service.registerProfile(1), "Duplicate topology profile was not isolated.");
 		stop(fixture);
 	}
 
 	private void testCapacity()
 	{
 		final Fixture fixture = fixture(policyWith(2, 1024));
-		fixture.registry.register(1);
-		fixture.registry.register(2);
-		PhantomAssertions.assertEquals(RegistrationResult.CAPACITY_REACHED, fixture.registry.register(3), "Topology profile capacity was not enforced.");
+		fixture.service.registerProfile(1);
+		fixture.service.registerProfile(2);
+		PhantomAssertions.assertEquals(RegistrationResult.CAPACITY_REACHED, fixture.service.registerProfile(3), "Topology profile capacity was not enforced.");
 		stop(fixture);
 	}
 
@@ -131,7 +129,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
-		final var profile = fixture.registry.find(1).orElseThrow();
+		final var profile = fixture.service.findProfile(1).orElseThrow();
 		PhantomAssertions.assertEquals("dungeon.left", profile.nodeId(), "Topology profile did not resolve its node.");
 		PhantomAssertions.assertEquals(1L, profile.sequence(), "Topology profile sequence changed.");
 		stop(fixture);
@@ -141,17 +139,17 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
-		PhantomAssertions.assertEquals(UpdateResult.STALE, fixture.registry.update(1, PhantomTopologyCoreSuite.RIGHT_POINT, 1), "Stale topology position update was accepted.");
-		PhantomAssertions.assertEquals("dungeon.left", fixture.registry.find(1).orElseThrow().nodeId(), "Stale update changed topology membership.");
+		PhantomAssertions.assertEquals(UpdateResult.STALE, fixture.service.updateProfile(1, PhantomTopologyCoreSuite.RIGHT_POINT, 1), "Stale topology position update was accepted.");
+		PhantomAssertions.assertEquals("dungeon.left", fixture.service.findProfile(1).orElseThrow().nodeId(), "Stale update changed topology membership.");
 		stop(fixture);
 	}
 
 	private void testUnresolved()
 	{
 		final Fixture fixture = fixture();
-		fixture.registry.register(1);
-		PhantomAssertions.assertEquals(UpdateResult.UPDATED, fixture.registry.update(1, PhantomTopologyCoreSuite.point(1500, 1500), 1), "Unresolved position update was rejected.");
-		PhantomAssertions.assertFalse(fixture.registry.find(1).orElseThrow().resolved(), "Unresolved topology position was hidden.");
+		fixture.service.registerProfile(1);
+		PhantomAssertions.assertEquals(UpdateResult.UPDATED, fixture.service.updateProfile(1, PhantomTopologyCoreSuite.point(1500, 1500), 1), "Unresolved position update was rejected.");
+		PhantomAssertions.assertFalse(fixture.service.findProfile(1).orElseThrow().resolved(), "Unresolved topology position was hidden.");
 		stop(fixture);
 	}
 
@@ -159,7 +157,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
-		PhantomAssertions.assertEquals("dungeon.left", fixture.registry.find(1).orElseThrow().nodeId(), "Profile registry did not select deepest/smallest/ID node.");
+		PhantomAssertions.assertEquals("dungeon.left", fixture.service.findProfile(1).orElseThrow().nodeId(), "Profile registry did not select deepest/smallest/ID node.");
 		stop(fixture);
 	}
 
@@ -167,8 +165,8 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
-		PhantomAssertions.assertEquals(PhantomTopologyProfileRegistry.UnregisterResult.UNREGISTERED, fixture.registry.unregister(1), "Explicit topology unregister failed.");
-		PhantomAssertions.assertTrue(fixture.registry.find(1).isEmpty(), "Unregistered topology profile remained visible.");
+		PhantomAssertions.assertEquals(PhantomTopologyService.UnregisterResult.UNREGISTERED_AND_WITHDRAWN, fixture.service.unregisterProfile(1), "Explicit topology unregister failed.");
+		PhantomAssertions.assertTrue(fixture.service.findProfile(1).isEmpty(), "Unregistered topology profile remained visible.");
 		stop(fixture);
 	}
 
@@ -176,7 +174,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.point(320, 500));
-		final var result = fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
+		final var result = fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
 		PhantomAssertions.assertEquals(1, result.delivered(), "Same-node local chat was not delivered.");
 		assertLastState(fixture, 1, PhantomActivityState.NEARBY_PERCEPTIBLE);
 		stop(fixture);
@@ -186,7 +184,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.RIGHT_POINT);
-		final var result = fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
+		final var result = fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
 		PhantomAssertions.assertEquals(1, result.delivered(), "Allowed one-hop neighbor did not receive local chat relevance.");
 		assertLastState(fixture, 1, PhantomActivityState.NEARBY_PERCEPTIBLE);
 		stop(fixture);
@@ -197,7 +195,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		final Fixture fixture = fixture();
 		fixture.backend._doorStates.put(500, DoorState.CLOSED);
 		register(fixture, 1, PhantomTopologyCoreSuite.RIGHT_POINT);
-		final var result = fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
+		final var result = fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
 		PhantomAssertions.assertEquals(0, result.considered(), "Closed door permitted neighbor perception.");
 		stop(fixture);
 	}
@@ -206,7 +204,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.RIGHT_POINT);
-		final var result = fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 100));
+		final var result = fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 100));
 		PhantomAssertions.assertEquals(0, result.considered(), "Out-of-radius topology neighbor was considered.");
 		stop(fixture);
 	}
@@ -219,7 +217,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		final PhantomTopologySnapshot snapshot = PhantomTopologyCoreSuite.create(PhantomTopologyCoreSuite.baseNodes(), anchors, List.of(combatOnly), backend);
 		final Fixture fixture = fixture(PhantomTopologyCoreSuite.POLICY, backend, snapshot);
 		register(fixture, 1, PhantomTopologyCoreSuite.RIGHT_POINT);
-		PhantomAssertions.assertEquals(0, fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000)).considered(), "Missing LOCAL_CHAT channel permitted perception.");
+		PhantomAssertions.assertEquals(0, fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000)).considered(), "Missing LOCAL_CHAT channel permitted perception.");
 		stop(fixture);
 	}
 
@@ -227,7 +225,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
-		fixture.provider.combat(combat(List.of(1L)));
+		fixture.service.combat(combat(List.of(1L)));
 		assertLastState(fixture, 1, PhantomActivityState.ACTIVE);
 		stop(fixture);
 	}
@@ -236,7 +234,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.RIGHT_POINT);
-		fixture.provider.combat(combat(List.of()));
+		fixture.service.combat(combat(List.of()));
 		assertLastState(fixture, 1, PhantomActivityState.NEARBY_PERCEPTIBLE);
 		stop(fixture);
 	}
@@ -245,7 +243,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.RIGHT_POINT);
-		fixture.provider.combat(combat(List.of(1L)));
+		fixture.service.combat(combat(List.of(1L)));
 		PhantomAssertions.assertEquals(1, fixture.port.signals().size(), "Combat participant received duplicate relevance signals.");
 		assertLastState(fixture, 1, PhantomActivityState.ACTIVE);
 		stop(fixture);
@@ -256,7 +254,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
 		register(fixture, 2, PhantomTopologyCoreSuite.RIGHT_POINT);
-		fixture.provider.targetability(new TargetabilityEvent("target.active", 1, 2, true, 1, 2000));
+		fixture.service.targetability(new TargetabilityEvent("target.active", 1, 2, true, 1, 2000));
 		assertLastState(fixture, 2, PhantomActivityState.ACTIVE);
 		stop(fixture);
 	}
@@ -266,8 +264,8 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
 		register(fixture, 2, PhantomTopologyCoreSuite.RIGHT_POINT);
-		fixture.provider.targetability(new TargetabilityEvent("target.active", 1, 2, true, 1, 2000));
-		fixture.provider.targetability(new TargetabilityEvent("target.inactive", 1, 2, false, 2, 2000));
+		fixture.service.targetability(new TargetabilityEvent("target.active", 1, 2, true, 1, 2000));
+		fixture.service.targetability(new TargetabilityEvent("target.inactive", 1, 2, false, 2, 2000));
 		final Delivery last = fixture.port.deliveries().getLast();
 		PhantomAssertions.assertTrue(last.withdraw(), "Inactive targetability did not withdraw its fixed source.");
 		PhantomAssertions.assertEquals(PhantomPerceptionProvider.TARGETABILITY_SOURCE, last.sourceKey(), "Targetability withdraw source changed.");
@@ -278,8 +276,8 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
-		fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
-		fixture.provider.localChat(new LocalChatEvent("chat.second", PhantomTopologyCoreSuite.LEFT_POINT, null, 2, 1000, 5000));
+		fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
+		fixture.service.localChat(new LocalChatEvent("chat.second", PhantomTopologyCoreSuite.LEFT_POINT, null, 2, 1000, 5000));
 		final List<Long> sequences = fixture.port.signals().stream().map(signal -> signal.signal().sequence()).toList();
 		PhantomAssertions.assertEquals(List.of(1L, 2L), sequences, "Provider-owned profile/source sequence is not monotonic.");
 		stop(fixture);
@@ -291,7 +289,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
 		register(fixture, 2, PhantomTopologyCoreSuite.LEFT_POINT);
 		fixture.port._statusByProfile.put(1L, SignalDelivery.BACKPRESSURE);
-		final var result = fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
+		final var result = fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
 		PhantomAssertions.assertEquals(1, result.backpressured(), "Backpressured topology recipient was not counted.");
 		PhantomAssertions.assertEquals(1, result.delivered(), "Backpressure aborted remaining topology recipients.");
 		stop(fixture);
@@ -303,7 +301,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
 		register(fixture, 2, PhantomTopologyCoreSuite.LEFT_POINT);
 		fixture.port._statusByProfile.put(1L, SignalDelivery.NOT_REGISTERED);
-		final var result = fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
+		final var result = fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
 		PhantomAssertions.assertEquals(1, result.unregistered(), "Scheduler NOT_REGISTERED result was not isolated.");
 		PhantomAssertions.assertEquals(1, result.delivered(), "Scheduler NOT_REGISTERED aborted event fanout.");
 		stop(fixture);
@@ -315,7 +313,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
 		register(fixture, 2, PhantomTopologyCoreSuite.LEFT_POINT);
 		register(fixture, 3, PhantomTopologyCoreSuite.LEFT_POINT);
-		final var result = fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
+		final var result = fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
 		PhantomAssertions.assertEquals(2, result.considered(), "Topology event recipient cap was not enforced.");
 		stop(fixture);
 	}
@@ -331,8 +329,8 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		final Fixture fixture = fixture();
 		register(fixture, 1, PhantomTopologyCoreSuite.LEFT_POINT);
 		register(fixture, 2, PhantomTopologyCoreSuite.RIGHT_POINT);
-		fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
-		fixture.provider.combat(combat(List.of()));
+		fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
+		fixture.service.combat(combat(List.of()));
 		for (SubmittedSignal signal : fixture.port.signals())
 		{
 			PhantomAssertions.assertTrue(signal.signal().requiredState().code() <= PhantomActivityState.NEARBY_PERCEPTIBLE.code(), "Perceptible recipient received a state below NEARBY_PERCEPTIBLE.");
@@ -367,7 +365,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		{
 			try
 			{
-				fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
+				fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000));
 			}
 			catch (Throwable throwable)
 			{
@@ -376,23 +374,29 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		});
 		eventThread.start();
 		PhantomAssertions.assertTrue(enteredDoorCheck.await(5, TimeUnit.SECONDS), "Perception event did not enter live door check.");
-		PhantomAssertions.assertTrue(fixture.provider.beginStop(), "Perception beginStop failed during in-flight event.");
-		PhantomAssertions.assertFalse(fixture.provider.finishStop(), "Perception finishStop cleared an in-flight event token.");
+		final AtomicReference<Boolean> beginStopResult = new AtomicReference<>();
+		final Thread stopThread = Thread.ofPlatform().name("topology-stop-owner-test").unstarted(() -> beginStopResult.set(fixture.service.beginStop()));
+		stopThread.start();
+		stopThread.join(100);
+		PhantomAssertions.assertTrue(stopThread.isAlive(), "Topology beginStop bypassed in-flight generation ownership.");
 		releaseDoorCheck.countDown();
 		eventThread.join(5000);
+		stopThread.join(5000);
 		PhantomAssertions.assertFalse(eventThread.isAlive(), "Perception event thread remained blocked.");
+		PhantomAssertions.assertFalse(stopThread.isAlive(), "Topology stop thread remained blocked.");
 		PhantomAssertions.assertEquals(null, failure.get(), "Perception event failed during stop race.");
-		PhantomAssertions.assertTrue(fixture.provider.finishStop(), "Perception provider did not finish after exact event release.");
-		PhantomAssertions.assertEquals(0, fixture.port.deliveries().size(), "Scheduler delivery began after topology STOPPING.");
+		PhantomAssertions.assertEquals(Boolean.TRUE, beginStopResult.get(), "Topology beginStop failed after event delivery released generation ownership.");
+		PhantomAssertions.assertTrue(fixture.service.finishStop(), "Perception provider did not finish after exact event release.");
+		PhantomAssertions.assertEquals(1, fixture.port.deliveries().size(), "Owned event did not finish before topology STOPPING became observable.");
 	}
 
 	private void testStopped()
 	{
 		final Fixture fixture = fixture();
-		fixture.provider.beginStop();
-		PhantomAssertions.assertTrue(fixture.provider.finishStop(), "Perception provider did not stop.");
-		PhantomAssertions.assertEquals(RegistrationResult.NOT_RUNNING, fixture.registry.register(1), "Stopped profile registry accepted registration.");
-		PhantomAssertions.assertEquals(EventStatus.NOT_RUNNING, fixture.provider.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000)).status(), "Stopped provider accepted an event.");
+		fixture.service.beginStop();
+		PhantomAssertions.assertTrue(fixture.service.finishStop(), "Perception provider did not stop.");
+		PhantomAssertions.assertEquals(RegistrationResult.NOT_RUNNING, fixture.service.registerProfile(1), "Stopped profile registry accepted registration.");
+		PhantomAssertions.assertEquals(EventStatus.NOT_RUNNING, fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000)).status(), "Stopped provider accepted an event.");
 	}
 
 	private void testNoDirectSubsystemReference()
@@ -417,13 +421,10 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 
 	private static Fixture fixture(PhantomTopologyPolicy policy, PhantomTopologyCoreSuite.TestBackend backend, PhantomTopologySnapshot snapshot)
 	{
-		final PhantomTopologyMetrics metrics = new PhantomTopologyMetrics();
-		final PhantomTopologyQuery query = new PhantomTopologyQuery(snapshot, backend, metrics);
 		final RecordingSignalPort port = new RecordingSignalPort();
-		final PhantomTopologyProfileRegistry registry = new PhantomTopologyProfileRegistry(policy.maximumRegisteredProfiles(), () -> query, metrics);
-		final PhantomPerceptionProvider provider = new PhantomPerceptionProvider(policy, registry, () -> query, port, metrics);
-		PhantomAssertions.assertTrue(provider.start(), "Perception fixture did not start.");
-		return new Fixture(backend, registry, provider, port);
+		final PhantomTopologyService service = PhantomTopologyService.fromSnapshotForTesting(snapshot, backend, policy, port);
+		PhantomAssertions.assertTrue(service.start(), "Perception fixture did not start.");
+		return new Fixture(backend, service, port);
 	}
 
 	private static PhantomTopologyPolicy policyWith(int profiles, int recipients)
@@ -434,8 +435,8 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 
 	private static void register(Fixture fixture, long profileId, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint point)
 	{
-		PhantomAssertions.assertEquals(RegistrationResult.REGISTERED, fixture.registry.register(profileId), "Topology test profile registration failed.");
-		PhantomAssertions.assertEquals(UpdateResult.UPDATED, fixture.registry.update(profileId, point, 1), "Topology test profile position failed.");
+		PhantomAssertions.assertEquals(RegistrationResult.REGISTERED, fixture.service.registerProfile(profileId), "Topology test profile registration failed.");
+		PhantomAssertions.assertEquals(UpdateResult.UPDATED, fixture.service.updateProfile(profileId, point, 1), "Topology test profile position failed.");
 	}
 
 	private static LocalChatEvent chat(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint point, int radius)
@@ -456,11 +457,11 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 
 	private static void stop(Fixture fixture)
 	{
-		fixture.provider.beginStop();
-		PhantomAssertions.assertTrue(fixture.provider.finishStop(), "Perception fixture did not stop.");
+		fixture.service.beginStop();
+		PhantomAssertions.assertTrue(fixture.service.finishStop(), "Perception fixture did not stop.");
 	}
 
-	private record Fixture(PhantomTopologyCoreSuite.TestBackend backend, PhantomTopologyProfileRegistry registry, PhantomPerceptionProvider provider, RecordingSignalPort port)
+	private record Fixture(PhantomTopologyCoreSuite.TestBackend backend, PhantomTopologyService service, RecordingSignalPort port)
 	{
 	}
 

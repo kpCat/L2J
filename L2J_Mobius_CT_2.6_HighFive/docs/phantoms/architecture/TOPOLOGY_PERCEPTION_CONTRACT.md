@@ -179,3 +179,46 @@ Goal 010 не добавляет:
 - packet/chat/combat listeners;
 - party route policy;
 - Goal 011/012 behavior.
+
+## Goal 010A: generation и signal ownership
+
+`PhantomTopologyService` владеет единственным fair read/write coordinator.
+Порядок захвата фиксирован: generation lease → короткий service/registry
+monitor → scheduler port. Service monitor не удерживается при ожидании
+generation lock.
+
+Profile update удерживает read ownership одной exact generation от получения
+query до atomic membership commit. Commit допускается только при совпадении
+registry generation; recipient lookup также принимает и проверяет exact
+generation.
+
+Успешный reload:
+
+1. строит и валидирует candidate вне write ownership;
+2. под write ownership повторно разрешает точки всех сохранённых profiles;
+3. сохраняет их position sequences и явно сохраняет unresolved результат;
+4. withdraw-ит `topology.local_chat`, `topology.combat` и
+   `topology.targetability` для всех сохранённых profiles;
+5. только после успешной invalidation устанавливает candidate memberships и
+   публикует snapshot/query новой generation.
+
+`BACKPRESSURE`, `REJECTED`, `NOT_RUNNING` или исчерпание signal sequence во
+время reload invalidation отклоняют reload. Старые snapshot, canonical hash,
+generation и memberships остаются активными; частично выполненные withdrawals
+не откатываются.
+
+Каждое perception event удерживает read ownership до завершения всех scheduler
+deliveries. Список recipients и финальная проверка непосредственно перед
+`submit` требуют ту же exact generation. Unregister сериализован с delivery:
+сначала удаляется membership, затем newer monotonic sequences withdraw-ят все
+три provider-owned sources. После финальных withdrawals новый submit для
+профиля невозможен.
+
+Inactive targetability всегда выполняет withdraw, даже если target уже удалён
+из topology registry. Cleanup failure возвращается явно, сохраняется как
+pending и завершается только явным retry; повторная регистрация до успешного
+cleanup не допускается. Source sequence использует overflow-safe allocation и
+не может перейти в отрицательное значение.
+
+Новых executor, thread, Future, background cleanup task или per-profile worker
+Goal 010A не добавляет.
