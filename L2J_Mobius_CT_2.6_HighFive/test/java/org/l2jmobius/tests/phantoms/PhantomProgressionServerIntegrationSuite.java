@@ -220,6 +220,7 @@ public final class PhantomProgressionServerIntegrationSuite implements PhantomTe
 			PhantomAssertions.assertTrue(_player.getInventory().addItem(ItemProcessType.REWARD, required.getId(), required.getCount() + 5, _player, this) != null, "Could not configure required learning item.");
 			before.put(required.getId(), _player.getInventory().getInventoryItemCount(required.getId(), -1));
 		}
+		_player.storeMe();
 		_learnSpBefore = _player.getSp();
 		_learnItemsBefore = Map.copyOf(before);
 		final LearnSkillRequest request = new LearnSkillRequest(_profile.profileId(), trainer.getObjectId(), AcquireKind.CLASS, _learn.getSkillId(), _learn.getSkillLevel(), () -> false);

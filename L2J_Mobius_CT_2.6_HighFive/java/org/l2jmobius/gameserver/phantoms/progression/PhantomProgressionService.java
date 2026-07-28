@@ -283,6 +283,17 @@ public final class PhantomProgressionService
 		try
 		{
 			final OperationResult result = action.apply(ownership);
+			if (result.status() == OperationStatus.DURABLE_COMMIT_RUNTIME_RECONCILIATION_FAILED)
+			{
+				synchronized (this)
+				{
+					if (_state == State.RUNNING)
+					{
+						_state = State.FAILED;
+						_failureCategory = result.status().name();
+					}
+				}
+			}
 			recordOperationResult(learn, result);
 			return result;
 		}
@@ -332,7 +343,7 @@ public final class PhantomProgressionService
 			{
 				_metrics.recordCancellation();
 			}
-			if ((result.status() == OperationStatus.BACKEND_FAILURE) || (result.status() == OperationStatus.RECONCILIATION_FAILED) || (result.status() == OperationStatus.BLOCKED_CANONICAL_SKILL_LEARNING) || (result.status() == OperationStatus.BLOCKED_CANONICAL_EQUIP_FACADE))
+			if ((result.status() == OperationStatus.BACKEND_FAILURE) || (result.status() == OperationStatus.RECONCILIATION_FAILED) || (result.status() == OperationStatus.DURABLE_SKILL_STATE_CONFLICT) || (result.status() == OperationStatus.DURABLE_SP_STATE_CONFLICT) || (result.status() == OperationStatus.DURABLE_ITEM_STATE_CONFLICT) || (result.status() == OperationStatus.DURABLE_SCHEMA_OR_ROW_MISSING) || (result.status() == OperationStatus.DURABLE_COMMIT_RUNTIME_RECONCILIATION_FAILED) || (result.status() == OperationStatus.BLOCKED_CANONICAL_SKILL_LEARNING) || (result.status() == OperationStatus.BLOCKED_CANONICAL_EQUIP_FACADE))
 			{
 				_metrics.recordOperationFailure(learn);
 			}

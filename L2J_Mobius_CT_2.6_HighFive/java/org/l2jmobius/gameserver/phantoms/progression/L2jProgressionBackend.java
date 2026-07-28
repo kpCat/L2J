@@ -10,7 +10,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -52,7 +51,6 @@ import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.Weapon;
 import org.l2jmobius.gameserver.model.item.enums.BodyPart;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
-import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.holders.ItemHolder;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ArmorType;
@@ -119,12 +117,19 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 	private final PhantomMaterializationService _materialization;
 	private final Path _datapackRoot;
 	private final Supplier<PhantomGameKnowledgeQuery> _knowledgeQuery;
+	private final PhantomClassSkillLearningTransaction _skillLearningTransaction;
 
 	public L2jProgressionBackend(PhantomMaterializationService materialization, Path datapackRoot, Supplier<PhantomGameKnowledgeQuery> knowledgeQuery)
+	{
+		this(materialization, datapackRoot, knowledgeQuery, new PhantomClassSkillLearningTransaction());
+	}
+
+	public L2jProgressionBackend(PhantomMaterializationService materialization, Path datapackRoot, Supplier<PhantomGameKnowledgeQuery> knowledgeQuery, PhantomClassSkillLearningTransaction skillLearningTransaction)
 	{
 		_materialization = materialization;
 		_datapackRoot = Objects.requireNonNull(datapackRoot, "datapackRoot");
 		_knowledgeQuery = Objects.requireNonNull(knowledgeQuery, "knowledgeQuery");
+		_skillLearningTransaction = Objects.requireNonNull(skillLearningTransaction, "skillLearningTransaction");
 	}
 
 	@Override
@@ -613,7 +618,7 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 		{
 			return Optional.empty();
 		}
-		return _materialization.tryAcquireAction(profileId).map(lease -> new L2jActorLease(profileId, lease));
+		return _materialization.tryAcquireAction(profileId).map(lease -> new L2jActorLease(profileId, lease, _skillLearningTransaction));
 	}
 
 	private static IllegalStateException failure(String category, String message)
@@ -643,13 +648,15 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 		private final long _profileId;
 		private final ActionLease _lease;
 		private final Player _player;
+		private final PhantomClassSkillLearningTransaction _skillLearningTransaction;
 		private boolean _closed;
 
-		L2jActorLease(long profileId, ActionLease lease)
+		L2jActorLease(long profileId, ActionLease lease, PhantomClassSkillLearningTransaction skillLearningTransaction)
 		{
 			_profileId = profileId;
 			_lease = lease;
 			_player = lease.player();
+			_skillLearningTransaction = skillLearningTransaction;
 		}
 
 		@Override
@@ -816,113 +823,98 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 			{
 				return OperationResult.rejected(OperationStatus.CANCELLED);
 			}
-			if (_player.isAlikeDead() || _player.isTransformed() || _player.isMounted() || _player.isInCombat() || _player.isCastingNow() || _player.isCastingSimultaneouslyNow())
+			synchronized (_player)
 			{
-				return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED);
-			}
-			final Npc trainer = _player.getLastFolkNPC();
-			if (trainer == null)
-			{
-				return OperationResult.rejected(OperationStatus.TRAINER_REQUIRED);
-			}
-			if ((trainer.getObjectId() != request.trainerObjectId()) || !(trainer instanceof Folk) || !trainer.canInteract(_player))
-			{
-				return OperationResult.rejected(OperationStatus.TRAINER_MISMATCH);
-			}
-			if (!trainer.getTemplate().canTeach(_player.getLearningClass()))
-			{
-				return OperationResult.rejected(OperationStatus.TRAINER_CANNOT_TEACH);
-			}
-			final Skill skill = SkillData.getInstance().getSkill(request.skillId(), request.skillLevel());
-			if (skill == null)
-			{
-				return OperationResult.rejected(OperationStatus.SKILL_NOT_FOUND);
-			}
-			final int knownLevel = _player.getSkillLevel(request.skillId());
-			if (knownLevel >= request.skillLevel())
-			{
-				return new OperationResult(OperationStatus.IDEMPOTENT, _player.getSp(), _player.getSp(), Map.of(), Map.of(), knownLevel, false);
-			}
-			if ((request.skillLevel() > 1) && (knownLevel != (request.skillLevel() - 1)))
-			{
-				return OperationResult.rejected(OperationStatus.PREVIOUS_SKILL_MISSING);
-			}
-			final SkillLearn learn = SkillTreeData.getInstance().getSkillLearn(AcquireSkillType.CLASS, request.skillId(), request.skillLevel(), _player);
-			if (learn == null)
-			{
-				return OperationResult.rejected(OperationStatus.SKILL_LEARN_NOT_FOUND);
-			}
-			if (_player.getLevel() < learn.getGetLevel())
-			{
-				return OperationResult.rejected(OperationStatus.LEVEL_TOO_LOW);
-			}
-			final int spCost = learn.getCalculatedLevelUpSp(_player.getPlayerClass(), _player.getLearningClass());
-			if (_player.getSp() < spCost)
-			{
-				return OperationResult.rejected(OperationStatus.SP_TOO_LOW);
-			}
-			for (SkillHolder prerequisite : learn.getPreReqSkills())
-			{
-				if (_player.getSkillLevel(prerequisite.getSkillId()) < prerequisite.getSkillLevel())
+				if (request.planOwnershipToken().isCancelled() || !ownershipCurrent.getAsBoolean())
 				{
-					return OperationResult.rejected(OperationStatus.PREREQUISITE_MISSING);
+					return OperationResult.rejected(OperationStatus.CANCELLED);
 				}
-			}
-			final SkillLearningItemPlan itemPlan = SkillLearningItemPlan.from(learn.getRequiredItems().stream().map(required -> new RequiredItem(required.getId(), required.getCount())).toList());
-			final LinkedHashMap<Integer, Long> beforeItems = new LinkedHashMap<>();
-			for (RequiredItem required : itemPlan.aggregatedItems())
-			{
-				final long count = _player.getInventory().getInventoryItemCount(required.itemId(), -1);
-				beforeItems.put(required.itemId(), count);
-				if (count < required.count())
+				if (_player.isAlikeDead() || _player.isTransformed() || _player.isMounted() || _player.isInCombat() || _player.isCastingNow() || _player.isCastingSimultaneouslyNow())
 				{
-					return OperationResult.rejected(OperationStatus.REQUIRED_ITEM_MISSING);
+					return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED);
 				}
-			}
-			if (request.planOwnershipToken().isCancelled() || !ownershipCurrent.getAsBoolean())
-			{
-				return OperationResult.rejected(OperationStatus.CANCELLED);
-			}
-			// Player exposes no atomic mutation for multiple distinct item IDs.
-			// Fail closed before any side effect instead of risking prefix loss.
-			if (!itemPlan.canonicalAtomicMutationSupported())
-			{
-				return OperationResult.rejected(OperationStatus.BLOCKED_CANONICAL_SKILL_LEARNING);
-			}
-			final long spBefore = _player.getSp();
-			if (!itemPlan.aggregatedItems().isEmpty())
-			{
-				final RequiredItem required = itemPlan.aggregatedItems().getFirst();
-				if (!_player.destroyItemByItemId(ItemProcessType.FEE, required.itemId(), required.count(), trainer, false))
+				final Npc trainer = _player.getLastFolkNPC();
+				if (trainer == null)
+				{
+					return OperationResult.rejected(OperationStatus.TRAINER_REQUIRED);
+				}
+				if ((trainer.getObjectId() != request.trainerObjectId()) || !(trainer instanceof Folk) || !trainer.canInteract(_player))
+				{
+					return OperationResult.rejected(OperationStatus.TRAINER_MISMATCH);
+				}
+				if (!trainer.getTemplate().canTeach(_player.getLearningClass()))
+				{
+					return OperationResult.rejected(OperationStatus.TRAINER_CANNOT_TEACH);
+				}
+				final Skill skill = SkillData.getInstance().getSkill(request.skillId(), request.skillLevel());
+				if (skill == null)
+				{
+					return OperationResult.rejected(OperationStatus.SKILL_NOT_FOUND);
+				}
+				final int knownLevel = _player.getSkillLevel(request.skillId());
+				if (knownLevel >= request.skillLevel())
+				{
+					return _skillLearningTransaction.execute(_player, skill, trainer, knownLevel, 0, null, null);
+				}
+				if ((request.skillLevel() > 1) && (knownLevel != (request.skillLevel() - 1)))
+				{
+					return OperationResult.rejected(OperationStatus.PREVIOUS_SKILL_MISSING);
+				}
+				final SkillLearn learn = SkillTreeData.getInstance().getSkillLearn(AcquireSkillType.CLASS, request.skillId(), request.skillLevel(), _player);
+				if (learn == null)
+				{
+					return OperationResult.rejected(OperationStatus.SKILL_LEARN_NOT_FOUND);
+				}
+				if (_player.getLevel() < learn.getGetLevel())
+				{
+					return OperationResult.rejected(OperationStatus.LEVEL_TOO_LOW);
+				}
+				final int spCost = learn.getCalculatedLevelUpSp(_player.getPlayerClass(), _player.getLearningClass());
+				if (_player.getSp() < spCost)
+				{
+					return OperationResult.rejected(OperationStatus.SP_TOO_LOW);
+				}
+				for (SkillHolder prerequisite : learn.getPreReqSkills())
+				{
+					if (_player.getSkillLevel(prerequisite.getSkillId()) < prerequisite.getSkillLevel())
+					{
+						return OperationResult.rejected(OperationStatus.PREREQUISITE_MISSING);
+					}
+				}
+				final SkillLearningItemPlan itemPlan = SkillLearningItemPlan.from(learn.getRequiredItems().stream().map(required -> new RequiredItem(required.getId(), required.getCount())).toList());
+				if (!itemPlan.canonicalAtomicMutationSupported())
 				{
 					return OperationResult.rejected(OperationStatus.BLOCKED_CANONICAL_SKILL_LEARNING);
 				}
-			}
-			if (spCost > 0)
-			{
-				_player.setSp(spBefore - spCost);
-			}
-			_player.addSkill(skill, true);
-			_player.updateShortcuts(skill.getId(), skill.getLevel());
-			final LinkedHashMap<Integer, Long> afterItems = new LinkedHashMap<>();
-			beforeItems.keySet().forEach(itemId -> afterItems.put(itemId, _player.getInventory().getInventoryItemCount(itemId, -1)));
-			final long spAfter = _player.getSp();
-			if ((_player.getSkillLevel(skill.getId()) < skill.getLevel()) || (spAfter != (spBefore - spCost)))
-			{
-				return new OperationResult(OperationStatus.RECONCILIATION_FAILED, spBefore, spAfter, beforeItems, afterItems, _player.getSkillLevel(skill.getId()), false);
-			}
-			for (RequiredItem required : itemPlan.aggregatedItems())
-			{
-				if ((beforeItems.get(required.itemId()) - afterItems.get(required.itemId())) != required.count())
+				Item exactItem = null;
+				RequiredItem requiredItem = null;
+				if (!itemPlan.aggregatedItems().isEmpty())
 				{
-					return new OperationResult(OperationStatus.RECONCILIATION_FAILED, spBefore, spAfter, beforeItems, afterItems, _player.getSkillLevel(skill.getId()), false);
+					requiredItem = itemPlan.aggregatedItems().getFirst();
+					final RequiredItem exactRequiredItem = requiredItem;
+					final List<Item> candidates = _player.getInventory().getAllItemsByItemId(exactRequiredItem.itemId(), false);
+					final long available = candidates.stream().filter(item -> (item.getOwnerId() == _player.getObjectId()) && (item.getItemLocation() == ItemLocation.INVENTORY)).mapToLong(Item::getCount).sum();
+					if (available < exactRequiredItem.count())
+					{
+						return OperationResult.rejected(OperationStatus.REQUIRED_ITEM_MISSING);
+					}
+					exactItem = candidates.stream().filter(item -> (item.getOwnerId() == _player.getObjectId()) && (item.getItemLocation() == ItemLocation.INVENTORY) && (item.getCount() >= exactRequiredItem.count())).min(Comparator.comparingInt(Item::getObjectId)).orElse(null);
+					if (exactItem == null)
+					{
+						return OperationResult.rejected(OperationStatus.BLOCKED_CANONICAL_SKILL_LEARNING);
+					}
 				}
+				if (request.planOwnershipToken().isCancelled() || !ownershipCurrent.getAsBoolean())
+				{
+					return OperationResult.rejected(OperationStatus.CANCELLED);
+				}
+				final OperationResult result = _skillLearningTransaction.execute(_player, skill, trainer, knownLevel, spCost, exactItem, requiredItem);
+				if ((result.status() == OperationStatus.SUCCESS) && EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_SKILL_LEARN, trainer))
+				{
+					EventDispatcher.getInstance().notifyEventAsync(new OnPlayerSkillLearn(trainer, _player, skill, AcquireSkillType.CLASS), trainer);
+				}
+				return result;
 			}
-			if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_SKILL_LEARN, trainer))
-			{
-				EventDispatcher.getInstance().notifyEventAsync(new OnPlayerSkillLearn(trainer, _player, skill, AcquireSkillType.CLASS), trainer);
-			}
-			return new OperationResult(OperationStatus.SUCCESS, spBefore, spAfter, beforeItems, afterItems, _player.getSkillLevel(skill.getId()), false);
 		}
 
 		@Override

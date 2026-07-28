@@ -57,13 +57,48 @@ Progression snapshot под exact materialization `ActionLease` копирует
 
 Servitor, pet и cubic не получают fabricated Player CP. Body-bearing controlled actor содержит только фактически существующие body resources HP/MP; cubic использует typed absent body. CP potion supplies, продавцы, ограничения, валюта и стоимость будут извлекаться Goal 014 из authoritative item/NPC/buylist/multisell data. Goal 015 reconciliation не должна бесплатно сбрасывать или восстанавливать CP. PvP порядок CP → HP, regeneration, potion reuse/economy и Olympiad restrictions относятся к Goal 025.
 
-## CLASS skill transaction
+## CLASS skill transaction (historical Goal 013/013A behavior)
+
+Этот подраздел фиксирует поведение до corrective Goal 013B и заменён durable
+контрактом ниже.
 
 `progression.learn_skill` сериализует одну operation на профиль и повторно проверяет token после actor acquisition. Exact real trainer должен быть текущим `lastFolkNPC`, взаимодействовать с actor и уметь обучать active learning class.
 
 Проверяются exact `Skill`, `SkillLearn`, previous level, level, calculated SP, prerequisites и aggregated required items. Текущий canonical inventory API не предоставляет доказанную атомарную multi-distinct-item mutation. Поэтому более одного distinct required item отклоняется до side effects; один aggregated item списывается ровно один раз. После последней ownership check exact SP расходуется, `Player.addSkill(..., true)` сохраняет навык, shortcuts обновляются, а `OnPlayerSkillLearn` dispatch-ится только после успешной reconciliation. Повтор exact level идемпотентен.
 
 Packet handler, packet construction, bypass, компенсационная выдача items и batch/free learning не используются.
+
+## Durable CLASS skill transaction — Goal 013B
+
+Единственная production-граница записи — `PhantomClassSkillLearningTransaction`.
+Она получает exact character object ID, active class index/class ID, previous и
+target skill level, runtime SP baseline и, при наличии, один exact required item
+object. Несколько distinct item IDs и стоимость, распределённая по нескольким
+объектам, отклоняются до mutation.
+
+Под Java-lock exact `Player` и exact item object одна MariaDB transaction
+последовательно блокирует `characters` либо exact row
+`character_subclasses(charId, class_index)`, затем
+`character_skills(charId, skill_id, class_index)` и optional
+`items(object_id)`. Все проверки owner, item ID, `INVENTORY`, count, SP,
+active class и previous skill level являются guarded preconditions.
+
+Item count, main/subclass SP и skill row изменяются на одном connection с
+`setAutoCommit(false)`. Первый уровень использует guarded `INSERT`, upgrade —
+guarded `UPDATE` exact previous level; `REPLACE` не используется. Каждый write
+обязан затронуть ровно одну строку. Любая ошибка до commit вызывает rollback и
+fresh read baseline; runtime остаётся неизменным.
+
+Только после commit exact canonical inventory object приводится к committed
+count, runtime SP устанавливается в committed value, а skill добавляется через
+`Player.addSkill(skill, false)`. Затем проверяются fresh runtime state и fresh
+MariaDB connection. Только после обеих postconditions возвращается `SUCCESS` и
+может быть отправлен `OnPlayerSkillLearn`.
+
+Post-commit расхождение не компенсируется и не маскируется как обычный reject:
+возвращается `DURABLE_COMMIT_RUNTIME_RECONCILIATION_FAILED`, progression service
+переходит в fail-stop, а committed DB остаётся authority для reload. Idempotent
+retry допустим только при точном согласии runtime и durable skill/SP state.
 
 ## Equipment facts и candidate access
 

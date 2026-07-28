@@ -219,6 +219,7 @@ public final class PhantomTestLauncher
 			case "capability-runtime" -> new PhantomCapabilityRuntimeSuite();
 			case "progression-operations" -> new PhantomProgressionOperationSuite();
 			case "progression-server-integration" -> new PhantomProgressionServerIntegrationSuite();
+			case "progression-durability" -> new PhantomProgressionDurabilitySuite();
 			case "progression-performance" -> new PhantomProgressionPerformanceSuite();
 			case "progression-extensibility" -> new PhantomProgressionExtensibilitySuite();
 			case "progression-production-composition" -> new PhantomProgressionProductionCompositionSuite();

@@ -77,15 +77,19 @@ Goal 012: ACCEPT after Goal 012A
 
 Goal 012A: ACCEPT
 
-Goal 013: FIX_REQUIRED, bounded correction Goal 013A
+Goal 013: FIX_REQUIRED after first review
 
-Goal 013A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 013A: FIX_REQUIRED after durability review
 
-Goal 014: NOT_STARTED, blocked by independent acceptance of Goal 013A
+Goal 013B: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
+Goal 014: NOT_STARTED / BLOCKED
 
 Goal 015: NOT_STARTED
 
 Goal 017: NOT_STARTED
+
+Goal 025: NOT_STARTED
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
@@ -104,9 +108,11 @@ Goal 010C независимо принята, поэтому Goal 010 закр�
 011 потребовал bounded Goal 011A; исправление независимо принято, Goal 011
 закрыта, а Stage II завершён. Архитектурное направление Goal 012 принято, а
 Goal 012A независимо закрыла обязательные action-ownership findings. Goal 012
-принята после Goal 012A. Goal 013 получила `FIX_REQUIRED`; bounded correction
-Goal 013A реализована и ожидает независимого review. Goal 014 заблокирована до
-independent acceptance Goal 013A; Goal 015 и Goal 017 не начаты.
+принята после Goal 012A. Goal 013 получила `FIX_REQUIRED`; review Goal 013A
+подтвердило её extensibility-результаты, но потребовало bounded correction Goal
+013B для durable CLASS learning. Goal 013B реализована и ожидает независимого
+review. Goal 014 заблокирована до independent acceptance Goal 013B; Goal 015 и
+Goal 017 не начаты.
 
 ---
 
@@ -354,7 +360,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013 — `FIX_REQUIRED`; Goal 013A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 014 — `NOT_STARTED`, blocked by independent acceptance of Goal 013A; Goal 015/017 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013 — `FIX_REQUIRED after first review`; Goal 013A — `FIX_REQUIRED after durability review`; Goal 013B — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 014 — `NOT_STARTED / BLOCKED`; Goal 015/017/025 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -648,7 +654,7 @@ healer/tank/spoiler/dagger/summoner/escape.
 **Gate:** representative class matrix and no one-script-per-class architecture.  
 **Follow-up risk:** `HIGH` — broad class rules and progression persistence.
 
-### Goal 013A — Progression capability extensibility hardening — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+### Goal 013A — Progression capability extensibility hardening — `FIX_REQUIRED after durability review`
 
 **Назначение:** bounded closure доказанных variant/resource/summon/equipment,
 production-composition, skill-learning atomicity и Player CP snapshot findings.
@@ -658,13 +664,29 @@ production-composition, skill-learning atomicity и Player CP snapshot findings.
 authoritative action resources; typed controlled-actor facts; complete bounded
 equipment paging; exact main/subclass truth; separate canonical Player CP.
 **Не включает:** tactical doctrine, commerce, reconciliation, party или PvP.
-**Gate:** independent review exact child commit. Goal 013 не считается accepted
-до принятия Goal 013A.
+**Gate:** independent review сохранило extensibility-результаты, но потребовало
+bounded corrective Goal 013B. Goal 013 не считается accepted до принятия Goal
+013B.
+
+### Goal 013B — Durable CLASS skill learning transaction — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+
+**Назначение:** закрыть единственный критический finding Goal 013A: memory-first
+skill learning, допускавший `SUCCESS` без durable `character_skills` row.
+**Зависимости:** exact Goal 013A commit `06929a297...`; accepted pre-013 baseline
+`8dba87e9...`.
+**Архитектурный результат:** один MariaDB transaction для exact item object,
+main/subclass SP и exact class-indexed skill row; runtime reconciliation только
+после commit; fresh DB/runtime postconditions; fail-stop после post-commit
+invariant failure.
+**Не включает:** profession/subclass mutation, commerce, combat/CP,
+materialization, scheduler, profile schema, config или future Goal.
+**Gate:** independent review exact child commit. Goal 013 и Goal 014 остаются
+заблокированными до принятия Goal 013B.
 
 ## Goal 014 — NPC commerce, supplies, travel и sell loop — `NOT_STARTED`
 
 **Назначение:** замкнуть одиночный economic maintenance loop.  
-**Зависимости:** 009–011, 013 и independent acceptance 013A.
+**Зависимости:** 009–011, 013 и independent acceptance 013B.
 **Архитектурный результат:** grocery/equipment NPC purchase, shots/consumables,
 sell loot, inventory/weight budget, Gatekeeper travel and supply replenishment.  
 CP potion supplies, vendors, restrictions, currency и cost извлекаются только
@@ -1115,10 +1137,12 @@ Completed:
 - Goal 012A
 
 In progress / required closure:
-- Goal 013 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 013 FIX_REQUIRED
+- Goal 013A FIX_REQUIRED after independent review
+- Goal 013B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 013
+1. Independent review Goal 013B
 2. Goal 014 remains NOT_STARTED
 3. Goal 015 remains NOT_STARTED
 
@@ -1127,7 +1151,7 @@ Stage gate:
 - Stage II COMPLETE
 
 New risks:
-- Goal 013 class/progression capability catalog awaits independent review
+- Goal 013 durable CLASS transaction awaits independent review
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
@@ -1158,7 +1182,9 @@ Overall:
   Stage II COMPLETE;
   Goal 012 ACCEPT after Goal 012A;
   Goal 012A ACCEPT;
-  Goal 013 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 013 FIX_REQUIRED;
+  Goal 013A FIX_REQUIRED after independent review;
+  Goal 013B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
   Goal 014 NOT_STARTED;
   Goal 015 NOT_STARTED
 ```
