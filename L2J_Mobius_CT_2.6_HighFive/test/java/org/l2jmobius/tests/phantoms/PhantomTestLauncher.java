@@ -214,6 +214,12 @@ public final class PhantomTestLauncher
 			case "combat-action-ownership" -> new PhantomCombatActionOwnershipSuite();
 			case "combat-server-integration" -> new PhantomCombatServerIntegrationSuite();
 			case "combat-performance" -> new PhantomCombatPerformanceSuite();
+			case "progression-parity" -> new PhantomProgressionParitySuite();
+			case "progression-catalog" -> new PhantomProgressionCatalogSuite();
+			case "capability-runtime" -> new PhantomCapabilityRuntimeSuite();
+			case "progression-operations" -> new PhantomProgressionOperationSuite();
+			case "progression-server-integration" -> new PhantomProgressionServerIntegrationSuite();
+			case "progression-performance" -> new PhantomProgressionPerformanceSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

@@ -1,0 +1,33 @@
+{
+  "package": "phantom-world-goal-013-class-progression-capability-catalog",
+  "taskId": "013-class-progression-capability-catalog",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/013-class-progression-capability-catalog/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "8dba87e9c1d5828376b80c1ea16c4578726d4947",
+  "schemaChanges": false,
+  "configChanges": false,
+  "serverCoreChanges": false,
+  "datapackCoreChanges": false,
+  "gitignoreChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "directProfessionMutation": false,
+  "syntheticProductionExp": false,
+  "productionCandidatesAdded": false,
+  "goal014Started": false,
+  "goal015Started": false,
+  "rawResearchIncluded": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "SOURCE_OF_TRUTH.md",
+    "CLASS_CATALOG_CONTRACT.md",
+    "SKILL_EQUIPMENT_OPERATIONS.md",
+    "SUMMON_PET_AUDIT.md",
+    "RESEARCH_NORMALIZATION.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

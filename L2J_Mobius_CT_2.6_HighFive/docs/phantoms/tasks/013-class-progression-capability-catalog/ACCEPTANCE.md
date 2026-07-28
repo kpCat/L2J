@@ -1,0 +1,24 @@
+# ACCEPTANCE — Goal 013
+
+- [ ] Base 8dba87e9; one ordinary exact-scope commit.
+- [ ] Goal 012/012A accepted and closed.
+- [ ] .gitignore unchanged.
+- [ ] No server core/datapack/config/schema/Goal 014/015 changes.
+- [ ] Complete immutable PlayerClass/skill/equipment/summon/pet catalog.
+- [ ] Independent loader parity and deterministic hashes.
+- [ ] Male/Female Soul Hound and Inspector/Judicator truth.
+- [ ] Intrinsic/Learned/Ready capability separation.
+- [ ] Target scope and no name inference.
+- [ ] Canonical EXP/SP/level observation, no synthetic production grants.
+- [ ] No production setPlayerClass or quest fabrication.
+- [ ] CANONICAL_QUEST_REQUIRED boundary.
+- [ ] One exact CLASS skill learn with SP/item conservation.
+- [ ] One exact owned-item canonical equip.
+- [ ] Subclass/Noble/certification read-only facts.
+- [ ] Current-server summon/pet facts and contradictions.
+- [ ] DR-01…DR-05 normalized docs, no raw research copy.
+- [ ] No workers/tasks/candidates at startup.
+- [ ] Focused suites repeated, all regressions, verify/jar.
+- [ ] Production DB untouched.
+- [ ] Goal 014/015 not started.
+- [ ] Verifier ×2 identical and remote exact.

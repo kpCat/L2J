@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<progression schemaVersion="1" datasetId="high-five-progression" datasetVersion="1">
+	<capabilitySemantics capabilityKey="combat.melee_damage" targetScope="SINGLE_TARGET" />
+	<capabilitySemantics capabilityKey="combat.ranged_physical_damage" targetScope="SINGLE_TARGET" equipmentFamilies="BOW;CROSSBOW" />
+	<capabilitySemantics capabilityKey="combat.ranged_magic_damage" targetScope="SINGLE_TARGET" />
+	<capabilitySemantics capabilityKey="combat.aoe_damage" targetScope="AREA" />
+	<capabilitySemantics capabilityKey="combat.heal" targetScope="SINGLE_TARGET" />
+	<capabilitySemantics capabilityKey="combat.recharge" targetScope="SINGLE_TARGET" />
+	<capabilitySemantics capabilityKey="combat.resurrection" targetScope="SINGLE_TARGET" />
+	<capabilitySemantics capabilityKey="combat.buff" targetScope="PARTY" />
+	<capabilitySemantics capabilityKey="combat.song" targetScope="PARTY" />
+	<capabilitySemantics capabilityKey="combat.dance" targetScope="PARTY" />
+	<capabilitySemantics capabilityKey="combat.debuff" targetScope="SINGLE_TARGET" />
+	<capabilitySemantics capabilityKey="combat.crowd_control" targetScope="SINGLE_TARGET" />
+	<capabilitySemantics capabilityKey="combat.tank" targetScope="SELF" />
+	<capabilitySemantics capabilityKey="combat.summon" targetScope="SERVITOR" />
+	<capabilitySemantics capabilityKey="combat.stealth" targetScope="SELF" />
+	<capabilitySemantics capabilityKey="combat.detection" targetScope="AREA" />
+	<capabilitySemantics capabilityKey="combat.mobility" targetScope="SELF" />
+	<capabilitySemantics capabilityKey="combat.escape" targetScope="SELF" />
+	<capabilitySemantics capabilityKey="profession.spoil" targetScope="NPC" />
+	<capabilitySemantics capabilityKey="profession.sweep" targetScope="NPC" />
+	<capabilitySemantics capabilityKey="profession.craft" targetScope="SELF" />
+	<capabilitySemantics capabilityKey="logistics.summon_friend" targetScope="PARTY" />
+
+	<capabilityRule classId="89" capabilityKey="combat.aoe_damage" rank="850" skillId="361" skillLevel="1" source="data/stats/players/skillTrees/3rdClass/Dreadnought.xml" />
+	<capabilityRule classId="105" capabilityKey="combat.recharge" rank="900" skillId="1013" skillLevel="32" source="data/stats/players/skillTrees/2ndClass/ElvenElder.xml" />
+	<capabilityRule classId="112" capabilityKey="combat.recharge" rank="900" skillId="1013" skillLevel="32" source="data/stats/players/skillTrees/2ndClass/ShillienElder.xml" />
+	<capabilityRule classId="100" capabilityKey="combat.song" rank="850" skillId="349" skillLevel="1" source="data/stats/players/skillTrees/3rdClass/Swordmuse.xml" />
+	<capabilityRule classId="107" capabilityKey="combat.dance" rank="850" skillId="365" skillLevel="1" source="data/stats/players/skillTrees/3rdClass/SpectralDancer.xml" />
+	<capabilityRule classId="93" capabilityKey="combat.stealth" rank="800" skillId="221" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/TreasureHunter.xml" />
+	<capabilityRule classId="101" capabilityKey="combat.stealth" rank="800" skillId="221" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/PlainsWalker.xml" />
+	<capabilityRule classId="108" capabilityKey="combat.stealth" rank="800" skillId="221" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/AbyssWalker.xml" />
+	<capabilityRule classId="92" capabilityKey="combat.detection" rank="800" skillId="933" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/Hawkeye.xml" />
+	<capabilityRule classId="102" capabilityKey="combat.detection" rank="800" skillId="933" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/SilverRanger.xml" />
+	<capabilityRule classId="109" capabilityKey="combat.detection" rank="800" skillId="933" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/PhantomRanger.xml" />
+	<capabilityRule classId="93" capabilityKey="combat.mobility" rank="800" skillId="4" skillLevel="2" source="data/stats/players/skillTrees/2ndClass/TreasureHunter.xml" />
+	<capabilityRule classId="93" capabilityKey="combat.escape" rank="750" skillId="4" skillLevel="2" source="data/stats/players/skillTrees/2ndClass/TreasureHunter.xml" />
+	<capabilityRule classId="117" capabilityKey="profession.sweep" rank="950" skillId="42" skillLevel="1" source="data/stats/players/skillTrees/StartingClass/DwarvenFighter.xml" />
+	<capabilityRule classId="96" capabilityKey="logistics.summon_friend" rank="850" skillId="1403" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/Warlock.xml" />
+	<capabilityRule classId="104" capabilityKey="logistics.summon_friend" rank="850" skillId="1403" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/ElementalSummoner.xml" />
+	<capabilityRule classId="111" capabilityKey="logistics.summon_friend" rank="850" skillId="1403" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/PhantomSummoner.xml" />
+</progression>

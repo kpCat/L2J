@@ -52,6 +52,10 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionStepHandlers;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomSchedulerRelevanceSignalPort;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
@@ -78,6 +82,7 @@ public final class PhantomSystem
 	private PhantomNavigationService _navigationService;
 	private PhantomTopologyService _topologyService;
 	private PhantomGameKnowledgeService _gameKnowledgeService;
+	private PhantomProgressionService _progressionService;
 	private PhantomCombatService _combatService;
 	private State _state = State.NEW;
 
@@ -127,10 +132,12 @@ public final class PhantomSystem
 				}
 				final PhantomCombatPolicy combatPolicy = PhantomCombatPolicy.productionDefaults(_settings.maxScheduledPhantomProfiles());
 				final L2jCombatBackend combatBackend = new L2jCombatBackend(_materializationService, () -> _gameKnowledgeService == null ? null : _gameKnowledgeService.query());
-				_combatService = new PhantomCombatService(combatBackend, PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _gameKnowledgeService == null ? null : _gameKnowledgeService.query()), combatPolicy);
+				_progressionService = new PhantomProgressionService(new L2jProgressionBackend(_materializationService, ServerConfig.DATAPACK_ROOT.toPath(), () -> _gameKnowledgeService == null ? null : _gameKnowledgeService.query()), PhantomProgressionPolicy.productionDefaults());
+				_combatService = new PhantomCombatService(combatBackend, PhantomCombatCapabilityResolver.fromProgression(() -> _progressionService.findCatalog().orElse(null)), combatPolicy);
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
 				candidateRegistry.seal();
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
+				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
 				new PhantomCombatStepHandlers(_combatService, combatPolicy).register(handlerRegistry);
 				handlerRegistry.seal();
 				_decisionEngine = new PhantomDecisionEngine(new PhantomGoalStateStore(profileRepository), candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
@@ -179,6 +186,10 @@ public final class PhantomSystem
 			{
 				throw new IllegalStateException("Phantom Game Knowledge service could not enter the running state.");
 			}
+			if (_progressionService != null)
+			{
+				_progressionService.start();
+			}
 			_combatService.start();
 			if (!_scheduler.start())
 			{
@@ -199,6 +210,10 @@ public final class PhantomSystem
 			{
 				_combatService.beginStop();
 			}
+			if (_progressionService != null)
+			{
+				_progressionService.beginStop();
+			}
 			if (_gameKnowledgeService != null)
 			{
 				_gameKnowledgeService.beginStop();
@@ -212,7 +227,8 @@ public final class PhantomSystem
 				_navigationService.beginStop();
 			}
 			final boolean combatStopped = (_combatService == null) || _combatService.finishStop();
-			if (combatStopped && (_materializationService != null))
+			final boolean progressionStopped = (_progressionService == null) || _progressionService.finishStop();
+			if (combatStopped && progressionStopped && (_materializationService != null))
 			{
 				_materializationService.shutdown();
 			}
@@ -262,6 +278,10 @@ public final class PhantomSystem
 			{
 				_combatService.beginStop();
 			}
+			if (_progressionService != null)
+			{
+				_progressionService.beginStop();
+			}
 			if (_gameKnowledgeService != null)
 			{
 				_gameKnowledgeService.beginStop();
@@ -275,6 +295,12 @@ public final class PhantomSystem
 				_navigationService.beginStop();
 			}
 			if ((_combatService != null) && !_combatService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				_state = State.FAILED;
+				return false;
+			}
+			if ((_progressionService != null) && !_progressionService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
@@ -332,6 +358,11 @@ public final class PhantomSystem
 				_metrics.recordShutdownFailure();
 				return false;
 			}
+			if ((_progressionService != null) && (_progressionService.snapshot().state() != PhantomProgressionService.State.STOPPED) && !_progressionService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				return false;
+			}
 			if (_materializationService != null)
 			{
 				final ShutdownResult result = _materializationService.shutdown();
@@ -374,7 +405,7 @@ public final class PhantomSystem
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
 	}
 
 	public static synchronized boolean startConfigured()
@@ -492,7 +523,19 @@ public final class PhantomSystem
 			combatWorkers = combatSnapshot.currentWorkers();
 			combatActorLeases = combatSnapshot.actorLeases();
 		}
-		return new ConfiguredShutdownSnapshot(true, configured._state, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers, topologyState, topologyRegisteredProfiles, topologyEventsInFlight, topologyGeneration, knowledgeState, combatState, combatActiveSessions, combatTerminalSessions, combatQueuedSessions, combatWorkers, combatActorLeases);
+		PhantomProgressionService.State progressionState = null;
+		String progressionCatalogHash = "none";
+		int progressionOperations = 0;
+		int progressionActorLeases = 0;
+		if (configured._progressionService != null)
+		{
+			final PhantomProgressionService.ServiceSnapshot progressionSnapshot = configured._progressionService.snapshot();
+			progressionState = progressionSnapshot.state();
+			progressionCatalogHash = progressionSnapshot.combinedHash();
+			progressionOperations = progressionSnapshot.currentOperations();
+			progressionActorLeases = progressionSnapshot.currentActorLeases();
+		}
+		return new ConfiguredShutdownSnapshot(true, configured._state, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers, topologyState, topologyRegisteredProfiles, topologyEventsInFlight, topologyGeneration, knowledgeState, progressionState, progressionCatalogHash, progressionOperations, progressionActorLeases, combatState, combatActiveSessions, combatTerminalSessions, combatQueuedSessions, combatWorkers, combatActorLeases);
 	}
 
 	static synchronized PhantomMaterializationService configuredMaterializationService()
@@ -641,15 +684,20 @@ public final class PhantomSystem
 		_combatService.start();
 	}
 
-	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomCombatService.ServiceSnapshot combat, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
+	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomProgressionService.ServiceSnapshot progression, PhantomCombatService.ServiceSnapshot combat, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
 	{
 	}
 
-	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration, PhantomGameKnowledgeService.State knowledgeState, PhantomCombatService.ServiceState combatState, int combatActiveSessions, int combatTerminalSessions, int combatQueuedSessions, int combatWorkers, int combatActorLeases)
+	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration, PhantomGameKnowledgeService.State knowledgeState, PhantomProgressionService.State progressionState, String progressionCatalogHash, int progressionOperations, int progressionActorLeases, PhantomCombatService.ServiceState combatState, int combatActiveSessions, int combatTerminalSessions, int combatQueuedSessions, int combatWorkers, int combatActorLeases)
 	{
+		public ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration, PhantomGameKnowledgeService.State knowledgeState, PhantomCombatService.ServiceState combatState, int combatActiveSessions, int combatTerminalSessions, int combatQueuedSessions, int combatWorkers, int combatActorLeases)
+		{
+			this(configured, systemState, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers, topologyState, topologyRegisteredProfiles, topologyEventsInFlight, topologyGeneration, knowledgeState, null, "none", 0, 0, combatState, combatActiveSessions, combatTerminalSessions, combatQueuedSessions, combatWorkers, combatActorLeases);
+		}
+
 		private static ConfiguredShutdownSnapshot notConfigured()
 		{
-			return new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, 0, 0, 0, 0, 0);
+			return new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, "none", 0, 0, null, 0, 0, 0, 0, 0);
 		}
 	}
 }

@@ -12,10 +12,10 @@
 
 ```text
 Последний принятый production baseline:
-003604b4f7bda2a8d224d0adcf6349c088154e10
+8dba87e9c1d5828376b80c1ea16c4578726d4947
 
 Текущий branch HEAD под ревью:
-Goal 012 capability-driven combat kernel — commit SHA во внешнем final
+Goal 013 class progression capability catalog — commit SHA во внешнем final
 handoff
 
 Task 004 technical feasibility:
@@ -73,13 +73,15 @@ Goal 011A: ACCEPT
 
 Stage II: COMPLETE
 
-Goal 012: FIX_REQUIRED
+Goal 012: ACCEPT after Goal 012A
 
-Goal 012A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 012A: ACCEPT
 
-Goal 013: NOT_STARTED / BLOCKED
+Goal 013: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 014: NOT_STARTED
+
+Goal 015: NOT_STARTED
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
@@ -96,10 +98,10 @@ ordering Goal 010A принято, а bounded ledger architecture Goal 010B пр
 узкой integration boundary Goal 010C для отсутствующих real-scheduler sources.
 Goal 010C независимо принята, поэтому Goal 010 закрыта с `ACCEPT`. Review Goal
 011 потребовал bounded Goal 011A; исправление независимо принято, Goal 011
-закрыта, а Stage II завершён. Архитектурное направление Goal 012 принято, но
-independent review выявило обязательные action-ownership findings. Goal 012A
-реализует их bounded closure и ожидает независимого review. Goal 013 не начата
-и заблокирована до этого gate; Goal 014 не начата.
+закрыта, а Stage II завершён. Архитектурное направление Goal 012 принято, а
+Goal 012A независимо закрыла обязательные action-ownership findings. Goal 012
+принята после Goal 012A. Goal 013 реализована и ожидает независимого review;
+Goal 014 и Goal 015 не начаты.
 
 ---
 
@@ -347,7 +349,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 013/014 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 014/015 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -610,7 +612,7 @@ class/role -> capability facts
 **GOAL:** 012–016  
 **Зависит от:** Этапы I–II.
 
-## Goal 012 — Capability-driven combat kernel — `FIX_REQUIRED`
+## Goal 012 — Capability-driven combat kernel — `ACCEPT after Goal 012A`
 
 **Назначение:** минимальный реальный бой через server-side facades.  
 **Зависимости:** 008–011.  
@@ -622,16 +624,15 @@ combat capability interface.
 failure cleanup.  
 **Follow-up risk:** `VERY_HIGH` — skills/death/World timing.
 
-### Goal 012A — Combat action ownership truth — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+### Goal 012A — Combat action ownership truth — `ACCEPT`
 
 **Назначение:** bounded closure findings Goal 012 по shared worker dispatch,
 canonical action cleanup, causal loot truth, selected-skill safety и
 plan-owned respawn.
 **Зависимости:** 012.
-**Gate:** independent review exact child commit; до принятия Goal 013
-заблокирована.
+**Gate:** independent review exact child commit принят; Goal 013 разрешена.
 
-## Goal 013 — Progression, professions, skills, equipment и class catalog — `NOT_STARTED / BLOCKED`
+## Goal 013 — Progression, professions, skills, equipment и class catalog — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** расширить generic capability keys реальными High Five классами.  
 **Зависимости:** 012.  
@@ -1052,10 +1053,10 @@ Current stage:
 III. Solo gameplay, progression and causal background
 
 Current accepted baseline:
-003604b4f7bda2a8d224d0adcf6349c088154e10
+8dba87e9c1d5828376b80c1ea16c4578726d4947
 
 Current branch HEAD under review:
-Goal 012 capability-driven combat kernel — commit SHA во внешнем final
+Goal 013 class progression capability catalog — commit SHA во внешнем final
 handoff
 
 Completed:
@@ -1084,22 +1085,23 @@ Completed:
 - Goal 011 after Goal 011A
 - Goal 011A
 - Stage II COMPLETE
+- Goal 012 after Goal 012A
+- Goal 012A
 
 In progress / required closure:
-- Goal 012 FIX_REQUIRED
-- Goal 012A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 013 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 012A
-2. Goal 013 remains NOT_STARTED / BLOCKED
-3. Goal 014 remains NOT_STARTED
+1. Independent review Goal 013
+2. Goal 014 remains NOT_STARTED
+3. Goal 015 remains NOT_STARTED
 
 Stage gate:
 - Stage I COMPLETE
 - Stage II COMPLETE
 
 New risks:
-- Goal 012A action ownership and canonical World timing await independent review
+- Goal 013 class/progression capability catalog awaits independent review
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
@@ -1128,10 +1130,11 @@ Overall:
   Goal 011 ACCEPT after Goal 011A;
   Goal 011A ACCEPT;
   Stage II COMPLETE;
-  Goal 012 FIX_REQUIRED;
-  Goal 012A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 013 NOT_STARTED / BLOCKED;
-  Goal 014 NOT_STARTED
+  Goal 012 ACCEPT after Goal 012A;
+  Goal 012A ACCEPT;
+  Goal 013 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 014 NOT_STARTED;
+  Goal 015 NOT_STARTED
 ```
 
 ---

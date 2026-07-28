@@ -15,6 +15,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSki
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ClassCapabilityFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
 
 public final class PhantomCombatCapabilityResolver
 {
@@ -56,6 +57,20 @@ public final class PhantomCombatCapabilityResolver
 				return List.of();
 			}
 			return query.classCapabilities(classId, PageRequest.first(256)).values().stream().map(PhantomCombatCapabilityResolver::copy).toList();
+		});
+	}
+
+	public static PhantomCombatCapabilityResolver fromProgression(Supplier<PhantomProgressionCatalog> catalogSupplier)
+	{
+		Objects.requireNonNull(catalogSupplier, "catalogSupplier");
+		return new PhantomCombatCapabilityResolver(classId ->
+		{
+			final PhantomProgressionCatalog catalog = catalogSupplier.get();
+			if (catalog == null)
+			{
+				return List.of();
+			}
+			return catalog.capabilities(classId).stream().map(fact -> new CapabilityEvidence(fact.capabilityKey(), fact.rank(), fact.evidenceSkills().stream().map(skill -> new SelectedSkill(skill.skillId(), skill.skillLevel())).sorted(SKILL_ORDER).toList())).toList();
 		});
 	}
 
