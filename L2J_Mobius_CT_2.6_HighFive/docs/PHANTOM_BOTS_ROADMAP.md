@@ -12,10 +12,10 @@
 
 ```text
 Последний принятый production baseline:
-7575ce4c66bdf5c51a27b20bed57c4ed8721b1e2
+003604b4f7bda2a8d224d0adcf6349c088154e10
 
 Текущий branch HEAD под ревью:
-Goal 011A knowledge parity/query truth hardening — commit SHA во внешнем final
+Goal 012 capability-driven combat kernel — commit SHA во внешнем final
 handoff
 
 Task 004 technical feasibility:
@@ -67,13 +67,17 @@ Goal 010B: ACCEPT_WITH_010C_INTEGRATION_BOUNDARY
 
 Goal 010C: ACCEPT
 
-Goal 011: FIX_REQUIRED
+Goal 011: ACCEPT after Goal 011A
 
-Goal 011A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 011A: ACCEPT
 
-Goal 012: BLOCKED
+Stage II: COMPLETE
+
+Goal 012: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 013: NOT_STARTED
+
+Goal 014: NOT_STARTED
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
@@ -89,8 +93,9 @@ hardening принят на baseline `6ecd8ba1...`. Архитектурное �
 ordering Goal 010A принято, а bounded ledger architecture Goal 010B принята с
 узкой integration boundary Goal 010C для отсутствующих real-scheduler sources.
 Goal 010C независимо принята, поэтому Goal 010 закрыта с `ACCEPT`. Review Goal
-011 потребовал bounded Goal 011A; исправление реализовано и ожидает независимого
-review. Goal 012 заблокирована до gate Goal 011A, Goal 013 не начата.
+011 потребовал bounded Goal 011A; исправление независимо принято, Goal 011
+закрыта, а Stage II завершён. Goal 012 реализована в bounded scope и ожидает
+независимого review. Goal 013 и Goal 014 не начаты.
 
 ---
 
@@ -338,7 +343,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `FIX_REQUIRED`; Goal 011A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 012 — `BLOCKED`; Goal 013 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 013/014 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -556,7 +561,7 @@ retained и failed-cleanup identities используют общий
 `NOT_REGISTERED` evidence либо final stop. Goal 010C независимо принята,
 поэтому Goal 010 закрыта с `ACCEPT`.
 
-## Goal 011 — Authoritative Game Knowledge и reverse indexes — `FIX_REQUIRED after independent review; Goal 011A pending review`
+## Goal 011 — Authoritative Game Knowledge и reverse indexes — `ACCEPT after Goal 011A`
 
 **Назначение:** предоставить read-only предметное знание до combat/background и
 до Semantic Pack.  
@@ -601,7 +606,7 @@ class/role -> capability facts
 **GOAL:** 012–016  
 **Зависит от:** Этапы I–II.
 
-## Goal 012 — Capability-driven combat kernel — `NOT_STARTED`
+## Goal 012 — Capability-driven combat kernel — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** минимальный реальный бой через server-side facades.  
 **Зависимости:** 008–011.  
@@ -1031,13 +1036,13 @@ Overall:
 
 ```text
 Current stage:
-II. Scheduler, goals, navigation and authoritative knowledge
+III. Solo gameplay, progression and causal background
 
 Current accepted baseline:
-7575ce4c66bdf5c51a27b20bed57c4ed8721b1e2
+003604b4f7bda2a8d224d0adcf6349c088154e10
 
 Current branch HEAD under review:
-Goal 011A knowledge parity/query truth hardening — commit SHA во внешнем final
+Goal 012 capability-driven combat kernel — commit SHA во внешнем final
 handoff
 
 Completed:
@@ -1063,22 +1068,24 @@ Completed:
 - Goal 010A
 - Goal 010B
 - Goal 010C
+- Goal 011 after Goal 011A
+- Goal 011A
+- Stage II COMPLETE
 
 In progress / required closure:
-- Goal 011 FIX_REQUIRED
-- Goal 011A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 012 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 011A
-2. Goal 012 remains BLOCKED
-3. Goal 013 remains NOT_STARTED
+1. Independent review Goal 012
+2. Goal 013 remains NOT_STARTED
+3. Goal 014 remains NOT_STARTED
 
 Stage gate:
 - Stage I COMPLETE
-- Stage II not complete
+- Stage II COMPLETE
 
 New risks:
-- goal/Utility AI/plan core awaits independent review
+- capability-driven combat ownership and canonical World timing await independent review
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
@@ -1104,10 +1111,12 @@ Overall:
   Goal 010A ACCEPT;
   Goal 010B ACCEPT_WITH_010C_INTEGRATION_BOUNDARY;
   Goal 010C ACCEPT;
-  Goal 011 FIX_REQUIRED;
-  Goal 011A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 012 BLOCKED;
-  Goal 013 NOT_STARTED
+  Goal 011 ACCEPT after Goal 011A;
+  Goal 011A ACCEPT;
+  Stage II COMPLETE;
+  Goal 012 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 013 NOT_STARTED;
+  Goal 014 NOT_STARTED
 ```
 
 ---

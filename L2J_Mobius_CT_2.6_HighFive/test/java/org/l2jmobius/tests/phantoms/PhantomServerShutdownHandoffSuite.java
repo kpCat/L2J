@@ -284,7 +284,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPED, scheduler.snapshot().state(), "Terminal second shutdown did not finish the scheduler.");
 		PhantomAssertions.assertEquals(0, scheduler.snapshot().registered(), "Terminal second shutdown retained scheduler slots.");
 		PhantomAssertions.assertFalse(PhantomSystem.isMaterializationManaged(managed), "Terminal second shutdown retained managed classification.");
-		PhantomAssertions.assertEquals(new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0, null), PhantomSystem.configuredShutdownSnapshot(), "Absent configured snapshot is not bounded/empty.");
+		PhantomAssertions.assertEquals(new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, 0, 0, 0, 0, 0), PhantomSystem.configuredShutdownSnapshot(), "Absent configured snapshot is not bounded/empty.");
 		_environment.assertClean(_environment.primary(), managed);
 	}
 
@@ -521,7 +521,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		final String finalDiagnostic = source.substring(secondShutdown, threadPool);
 		PhantomAssertions.assertTrue(finalDiagnostic.contains("LOGGER.severe"), "Final persistent Phantom failure is not severe.");
 		PhantomAssertions.assertTrue(finalDiagnostic.contains("Final subsystem drain is incomplete"), "Final diagnostic still reports a materialization-only failure.");
-		for (String field : List.of("systemState", "materializationServiceState", "retainedMaterializationEntries", "navigationState", "navigationActiveRequests", "navigationQueuedRequests", "navigationWorkers", "topologyState", "topologyRegisteredProfiles", "topologyEventsInFlight", "topologyGeneration"))
+		for (String field : List.of("systemState", "materializationServiceState", "retainedMaterializationEntries", "combatState", "combatActiveSessions", "combatTerminalSessions", "combatQueuedSessions", "combatWorkers", "combatActorLeases", "navigationState", "navigationActiveRequests", "navigationQueuedRequests", "navigationWorkers", "topologyState", "topologyRegisteredProfiles", "topologyEventsInFlight", "topologyGeneration"))
 		{
 			PhantomAssertions.assertTrue(finalDiagnostic.contains(field), "Final Phantom diagnostic omits " + field + ".");
 		}

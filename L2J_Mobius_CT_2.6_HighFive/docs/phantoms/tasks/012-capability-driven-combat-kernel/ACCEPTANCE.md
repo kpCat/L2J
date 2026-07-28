@@ -1,0 +1,24 @@
+# ACCEPTANCE — Goal 012
+
+- [ ] Baseline 003604b4; one ordinary exact-scope commit.
+- [ ] Goal 011/011A closure and Stage II COMPLETE.
+- [ ] No datapack/geodata/config/schema/Goal 013/014.
+- [ ] User geodata remains untracked and untouched.
+- [ ] No Player/Creature/AI/Skill/Item/Inventory/World core changes.
+- [ ] One session/profile and one shared transient worker.
+- [ ] Exact materialization ActionLease for full session.
+- [ ] Plan-scoped cancellation covers all terminal boundaries.
+- [ ] Only normal monsters; no PvP/raid/epic.
+- [ ] Generic capability matrix, no class switch.
+- [ ] Canonical ATTACK/CAST/PICK_UP.
+- [ ] Canonical shot consumption, no fabricated charge.
+- [ ] No direct damage/HP/MP/EXP/inventory mutation.
+- [ ] Bounded threat, loot and terminal retention.
+- [ ] Player death and restricted town respawn.
+- [ ] Zero production candidates/sessions/workers at startup.
+- [ ] Combat stops before materialization drain.
+- [ ] Core/ownership/real integration/performance repeated.
+- [ ] All cumulative regressions, verify and jar.
+- [ ] Production DB untouched.
+- [ ] Goal 013/014 not started.
+- [ ] Verifier ×2 identical and remote exact.

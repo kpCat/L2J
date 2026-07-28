@@ -3,12 +3,14 @@
 ## Status
 
 ```text
-Status: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Status: ACCEPT
 Baseline/parent: dc4659fea3e76a78841dfee0429bc4ab1ed2b185
 Branch: feature/phantom-world
 Subject: fix(phantoms): harden game knowledge parity and queries
-Manual gate: PENDING_INDEPENDENT_REVIEW
-Goal 012: BLOCKED
+Manual gate: ACCEPT
+Goal 011: ACCEPT after Goal 011A
+Stage II: COMPLETE
+Goal 012: ALLOWED
 Goal 013: NOT_STARTED
 ```
 
@@ -260,10 +262,35 @@ Push: ordinary origin/feature/phantom-world; exact result in final handoff
 
 ## Next step
 
-Независимо проверить Goal 011A. До принятия:
+Goal 011A независимо принят; Stage II завершён. Разрешено выполнение Goal 012:
 
 ```text
-Goal 011A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
-Goal 012: BLOCKED
+Goal 011A: ACCEPT
+Goal 012: ALLOWED
 Goal 013: NOT_STARTED
 ```
+
+## Независимое закрытие Goal 011A
+
+```text
+Commit: 003604b4f7bda2a8d224d0adcf6349c088154e10
+Parent: dc4659fea3e76a78841dfee0429bc4ab1ed2b185
+Push/remote: exact
+Core: 50/50 ×3
+Parity: 21/21 ×2
+Query truth: 13/13 ×3
+Content: 18/18 ×3
+Performance: 8/8 ×2
+Performance SHA-256:
+5567CA820C858419E5AFF418B4F893479916523FBEFB1F2E765434C1D77582B5
+Final verifier: 63/63 ×2, byte-identical
+Verifier SHA-256:
+6E7DF9745D070D83B48306C148EC58E08953C1894BC6B75842D9F46E962FBAA4
+Independent review: ACCEPT
+Goal 011: ACCEPT after Goal 011A
+Stage II: COMPLETE
+Goal 012: ALLOWED
+```
+
+Revert не требуется. Итог независимого ревью зафиксирован в
+`docs/phantoms/reviews/011a-knowledge-parity-query-truth-review.md`.

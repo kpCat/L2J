@@ -141,6 +141,10 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(0L, disabled.gameKnowledge().metrics().buildsStarted(), "Disabled system scanned Game Knowledge sources.");
 			PhantomAssertions.assertEquals(0, disabled.gameKnowledge().counts().items(), "Disabled system retained Game Knowledge facts.");
 			PhantomAssertions.assertEquals("none", disabled.gameKnowledge().hashes().combinedHash(), "Disabled system exposed a Game Knowledge generation hash.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ServiceState.STOPPED, disabled.combat().state(), "Disabled system constructed a combat service.");
+			PhantomAssertions.assertEquals(0, disabled.combat().activeSessions(), "Disabled system retained a combat session.");
+			PhantomAssertions.assertEquals(0, disabled.combat().currentWorkers(), "Disabled system created a combat worker.");
+			PhantomAssertions.assertEquals(0, disabled.combat().actorLeases(), "Disabled system retained a combat actor lease.");
 			PhantomAssertions.assertTrue(disabled.metrics().isZero(), "Disabled system changed metrics.");
 			PhantomAssertions.assertEquals(List.of(), disabled.trace().events(), "Disabled system trace is not empty.");
 			PhantomAssertions.assertEquals(0, disabled.trace().capacity(), "Disabled system allocated trace capacity.");
@@ -174,6 +178,11 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(0, running.gameKnowledge().counts().items(), "Enabled inert Game Knowledge loaded production facts.");
 			PhantomAssertions.assertEquals(running.gameKnowledge().combinedHash(), running.gameKnowledge().hashes().combinedHash(), "Enabled inert Game Knowledge component diagnostics are inconsistent.");
 			PhantomAssertions.assertEquals(0L, java.util.Arrays.stream(running.gameKnowledge().metrics().queriesByCategory()).sum(), "Enabled Game Knowledge issued an automatic query.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ServiceState.RUNNING, running.combat().state(), "Enabled inert combat service is not running.");
+			PhantomAssertions.assertEquals(0, running.combat().activeSessions(), "Enabled inert combat service started a session.");
+			PhantomAssertions.assertEquals(0, running.combat().terminalSessions(), "Enabled inert combat service retained a terminal slot.");
+			PhantomAssertions.assertEquals(0, running.combat().currentWorkers(), "Enabled inert combat service created a worker.");
+			PhantomAssertions.assertEquals(0, running.combat().actorLeases(), "Enabled inert combat service acquired an actor.");
 			PhantomAssertions.assertFalse(system.start(), "Repeated enabled start was not a no-op.");
 			PhantomAssertions.assertEquals(1L, system.snapshot().metrics().lifecycleStarts(), "Repeated start changed metrics.");
 			PhantomAssertions.assertTrue(system.shutdown(), "Enabled skeleton did not stop.");
@@ -184,6 +193,10 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(ServiceState.STOPPED, stopped.navigation().state(), "Navigation service remained running after stop.");
 			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService.State.STOPPED, stopped.gameKnowledge().state(), "Game Knowledge remained running after stop.");
 			PhantomAssertions.assertEquals("none", stopped.gameKnowledge().hashes().combinedHash(), "Stopped Game Knowledge retained component diagnostics.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ServiceState.STOPPED, stopped.combat().state(), "Combat service remained running after stop.");
+			PhantomAssertions.assertEquals(0, stopped.combat().activeSessions(), "Stopped combat service retained a session.");
+			PhantomAssertions.assertEquals(0, stopped.combat().currentWorkers(), "Stopped combat service retained a worker.");
+			PhantomAssertions.assertEquals(0, stopped.combat().actorLeases(), "Stopped combat service retained an actor lease.");
 			PhantomAssertions.assertEquals(0, stopped.scheduler().ready(), "Ready queue was not cleared on stop.");
 			PhantomAssertions.assertEquals(0, stopped.scheduler().due(), "Due set was not cleared on stop.");
 			PhantomAssertions.assertFalse(system.shutdown(), "Repeated enabled shutdown was not a no-op.");

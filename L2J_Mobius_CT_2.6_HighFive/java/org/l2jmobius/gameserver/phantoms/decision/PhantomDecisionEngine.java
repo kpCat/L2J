@@ -573,7 +573,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		slot._attempt++;
 		_metrics.recordDecisionStepAttempted();
 		final long generation = slot._generation;
-		final PhantomCancellationToken token = () -> !isGenerationCurrent(slot, generation);
+		final PhantomCancellationToken token = () -> !isPlanCurrent(slot, generation, plan);
 		final PhantomStepContext context = new PhantomStepContext(slot._profileId, slot._goal, plan, step, workItem.effectiveState(), workItem.logicalNowNanos(), slot._attempt, token);
 		return new HandlerClaim(slot, generation, slot._goal, plan, handler, context);
 	}
@@ -748,6 +748,11 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		slot._persistenceInFlight = true;
 		slot._persistenceOperationId = operationId;
 		slot._persistenceOperationKind = kind;
+		slot._plan = null;
+		slot._currentStep = 0;
+		slot._attempt = 0;
+		slot._stepStartedNanos = STEP_START_UNSET;
+		slot._retryDueNanos = 0;
 		return claim;
 	}
 
@@ -1007,11 +1012,11 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		slot._explanations = List.of();
 	}
 
-	private boolean isGenerationCurrent(RuntimeSlot slot, long generation)
+	private boolean isPlanCurrent(RuntimeSlot slot, long generation, PhantomPlan plan)
 	{
 		synchronized (_monitor)
 		{
-			return isCurrentLocked(slot, generation, slot._goal);
+			return isCurrentLocked(slot, generation, slot._goal) && (slot._plan == plan);
 		}
 	}
 

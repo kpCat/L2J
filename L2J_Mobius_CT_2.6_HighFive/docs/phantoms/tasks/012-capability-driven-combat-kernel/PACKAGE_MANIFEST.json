@@ -1,0 +1,28 @@
+{
+  "package": "phantom-world-goal-012-capability-driven-combat-kernel",
+  "taskId": "012-capability-driven-combat-kernel",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/012-capability-driven-combat-kernel/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "003604b4f7bda2a8d224d0adcf6349c088154e10",
+  "schemaChanges": false,
+  "configChanges": false,
+  "datapackChanges": false,
+  "geodataChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "productionCombatCandidateAdded": false,
+  "goal013Started": false,
+  "goal014Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "ARCHITECTURE.md",
+    "CANONICAL_FACADES.md",
+    "SESSION_LIFECYCLE.md",
+    "PLAN_OWNERSHIP.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}
