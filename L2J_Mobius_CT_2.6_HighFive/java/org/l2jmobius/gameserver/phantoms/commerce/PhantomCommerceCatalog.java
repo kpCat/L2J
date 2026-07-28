@@ -56,8 +56,10 @@ public final class PhantomCommerceCatalog
 	private final List<TeleportRoute> _teleportRoutes;
 	private final List<SupplyFact> _supplies;
 	private final Map<Integer, List<BuyOffer>> _buyByItem;
+	private final Map<BuyIdentity, BuyOffer> _buyByIdentity;
 	private final Map<Integer, List<MultisellOffer>> _multisellByProduct;
 	private final Map<Integer, List<TeleportRoute>> _teleportByNpc;
+	private final Map<TeleportIdentity, TeleportRoute> _teleportByIdentity;
 	private final Map<Integer, SupplyFact> _supplyByItem;
 	private final CatalogHashes _hashes;
 
@@ -68,6 +70,17 @@ public final class PhantomCommerceCatalog
 		_teleportRoutes = sortedCopy(teleportRoutes, TELEPORT_ORDER);
 		_supplies = sortedCopy(supplies, SUPPLY_ORDER);
 		_buyByItem = index(_buyOffers, BuyOffer::itemId);
+		final Map<BuyIdentity, BuyOffer> buyByIdentity = new HashMap<>();
+		for (BuyOffer offer : _buyOffers)
+		{
+			final BuyIdentity identity = new BuyIdentity(offer.listId(), offer.itemId());
+			final BuyOffer previous = buyByIdentity.putIfAbsent(identity, offer);
+			if ((previous != null) && !sameBuyFact(previous, offer))
+			{
+				throw new IllegalArgumentException("Duplicate buy offer identity " + offer.listId() + ":" + offer.itemId() + ".");
+			}
+		}
+		_buyByIdentity = Map.copyOf(buyByIdentity);
 		final Map<Integer, List<MultisellOffer>> multisellByProduct = new HashMap<>();
 		for (MultisellOffer offer : _multisellOffers)
 		{
@@ -78,6 +91,17 @@ public final class PhantomCommerceCatalog
 		}
 		_multisellByProduct = immutableIndex(multisellByProduct);
 		_teleportByNpc = index(_teleportRoutes, TeleportRoute::npcId);
+		final Map<TeleportIdentity, TeleportRoute> teleportByIdentity = new HashMap<>();
+		for (TeleportRoute route : _teleportRoutes)
+		{
+			final TeleportIdentity identity = new TeleportIdentity(route.npcId(), route.listName(), route.ordinal());
+			final TeleportRoute previous = teleportByIdentity.putIfAbsent(identity, route);
+			if ((previous != null) && !sameTeleportFact(previous, route))
+			{
+				throw new IllegalArgumentException("Duplicate teleport route identity " + route.npcId() + ":" + route.listName() + ":" + route.ordinal() + ".");
+			}
+		}
+		_teleportByIdentity = Map.copyOf(teleportByIdentity);
 		final Map<Integer, SupplyFact> supplyByItem = new TreeMap<>();
 		for (SupplyFact supply : _supplies)
 		{
@@ -99,6 +123,11 @@ public final class PhantomCommerceCatalog
 		return page(_buyByItem.getOrDefault(itemId, List.of()), offset, limit);
 	}
 
+	public BuyOffer findBuyOffer(int listId, int itemId)
+	{
+		return _buyByIdentity.get(new BuyIdentity(listId, itemId));
+	}
+
 	public CatalogPage<MultisellOffer> findMultisellOffers(int productItemId, int offset, int limit)
 	{
 		return page(_multisellByProduct.getOrDefault(productItemId, List.of()), offset, limit);
@@ -107,6 +136,11 @@ public final class PhantomCommerceCatalog
 	public CatalogPage<TeleportRoute> findTeleportRoutes(int npcId, int offset, int limit)
 	{
 		return page(_teleportByNpc.getOrDefault(npcId, List.of()), offset, limit);
+	}
+
+	public TeleportRoute findTeleportRoute(int npcId, String listName, int ordinal)
+	{
+		return _teleportByIdentity.get(new TeleportIdentity(npcId, Objects.requireNonNull(listName), ordinal));
 	}
 
 	public SupplyFact findSupply(int itemId)
@@ -143,6 +177,20 @@ public final class PhantomCommerceCatalog
 	{
 		Objects.requireNonNull(source, "Catalog source must not be null.");
 		return source.stream().map(value -> Objects.requireNonNull(value, "Catalog fact must not be null.")).sorted(comparator).toList();
+	}
+
+	private static boolean sameBuyFact(BuyOffer first, BuyOffer second)
+	{
+		return (first.price() == second.price()) && (first.limitedStock() == second.limitedStock()) && first.npcIds().equals(second.npcIds());
+	}
+
+	private static boolean sameTeleportFact(TeleportRoute first, TeleportRoute second)
+	{
+		return (first.type() == second.type()) //
+			&& first.destination().equals(second.destination()) //
+			&& (first.feeItemId() == second.feeItemId()) //
+			&& (first.feeCount() == second.feeCount()) //
+			&& first.castleIds().equals(second.castleIds());
 	}
 
 	private static <T> Map<Integer, List<T>> index(List<T> source, java.util.function.ToIntFunction<T> key)
@@ -316,6 +364,14 @@ public final class PhantomCommerceCatalog
 			supply = requireHash(supply);
 			combined = requireHash(combined);
 		}
+	}
+
+	private record BuyIdentity(int listId, int itemId)
+	{
+	}
+
+	private record TeleportIdentity(int npcId, String listName, int ordinal)
+	{
 	}
 
 	private static Set<Integer> immutablePositiveSet(Set<Integer> source, String label)

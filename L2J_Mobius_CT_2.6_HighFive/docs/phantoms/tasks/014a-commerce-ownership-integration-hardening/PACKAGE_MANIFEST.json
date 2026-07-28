@@ -1,0 +1,31 @@
+{
+  "package": "phantom-world-goal-014a-commerce-ownership-integration-hardening",
+  "taskId": "014a-commerce-ownership-integration-hardening",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/014a-commerce-ownership-integration-hardening/TASK.md",
+  "branch": "feature/phantom-world",
+  "requiredParent": "696689987276137f6a7f3661329171c9ee65e6f9",
+  "commitSubject": "fix(phantoms): harden commerce ownership and integration",
+  "successToken": "GOAL_014A_COMMERCE_OWNERSHIP_INTEGRATION_HARDENED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 14001401,
+  "maximumInitialReadEntries": 12,
+  "maximumAdditionalFiles": 3,
+  "maximumFullVerifyRuns": 2,
+  "obsoleteRootFilesMustBeAbsent": [
+    "CODEX_EXECUTION_BUDGET_BLOCK.md",
+    "MANIFEST.json",
+    "PHANTOM_CODEX_EFFICIENCY_STANDARD.md"
+  ],
+  "schemaChanges": false,
+  "configChanges": false,
+  "serverCoreChanges": false,
+  "otherChronicleChanges": false,
+  "productionDatabaseUseAllowed": false,
+  "goal015Started": false,
+  "payloadSha256": {
+    "docs/phantoms/tasks/014a-commerce-ownership-integration-hardening/ACCEPTANCE.md": "2B44157BD4A159CBC8F0B260A42DB873A74CF7BCF1196853289DA97E519BA0E9",
+    "docs/phantoms/tasks/014a-commerce-ownership-integration-hardening/CODEX_LAUNCHER.txt": "91B843032285D6B3036CDABE8A3D44E361FCE93522DC5F83CCCC31BA34B916F8",
+    "docs/phantoms/tasks/014a-commerce-ownership-integration-hardening/TASK.md": "BA4DC573EF3A6B23794685C3A2387D1B6F851DF8D28DB8F3BBD82BC48C41D2FB"
+  },
+  "manifestSelfHashExcluded": true
+}

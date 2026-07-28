@@ -44,12 +44,15 @@ function Is-AllowedPath([string] $path)
 		-or $local.StartsWith("test/java/org/l2jmobius/tests/phantoms/PhantomCommerce", [StringComparison]::Ordinal) `
 		-or $local -eq "test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java" `
 		-or $local -eq "tools/phantoms/verify-task-014.ps1" `
+		-or $local -eq "tools/phantoms/verify-task-014a.ps1" `
 		-or $local -eq "docs/PHANTOM_BOTS_ROADMAP.md" `
 		-or $local -eq "docs/phantoms/PHANTOM_CODEX_EFFICIENCY_STANDARD.md" `
 		-or $local -eq "docs/phantoms/architecture/COMMERCE_SUPPLY_TRAVEL_CONTRACT.md" `
 		-or $local -eq "docs/phantoms/reviews/013b-durable-class-skill-learning-review.md" `
 		-or $local -eq "docs/phantoms/reports/014-npc-commerce-supply-travel-loop.md" `
-		-or $local.StartsWith("docs/phantoms/tasks/014-npc-commerce-supply-travel-loop/", [StringComparison]::Ordinal)
+		-or $local -eq "docs/phantoms/reports/014a-commerce-ownership-integration-hardening.md" `
+		-or $local.StartsWith("docs/phantoms/tasks/014-npc-commerce-supply-travel-loop/", [StringComparison]::Ordinal) `
+		-or $local.StartsWith("docs/phantoms/tasks/014a-commerce-ownership-integration-hardening/", [StringComparison]::Ordinal)
 }
 
 $branch = (& git -C $repositoryRoot branch --show-current).Trim()
@@ -72,11 +75,6 @@ if ($head -ne $requiredParent)
 	$changedPaths = @(& git -c core.autocrlf=false -C $repositoryRoot diff --name-only "$requiredParent..$head")
 }
 $statusLines = @(& git -C $repositoryRoot status --porcelain=v1 --untracked-files=all -- $moduleRoot)
-$preExistingUntracked = @(
-	"$moduleRelative/CODEX_EXECUTION_BUDGET_BLOCK.md",
-	"$moduleRelative/MANIFEST.json",
-	"$moduleRelative/PHANTOM_CODEX_EFFICIENCY_STANDARD.md"
-)
 foreach ($line in $statusLines)
 {
 	if ($line.Length -ge 4)
@@ -86,10 +84,7 @@ foreach ($line in $statusLines)
 		{
 			$path = $path.Substring(1, $path.Length - 2)
 		}
-		if ($preExistingUntracked -notcontains $path)
-		{
-			$changedPaths += $path
-		}
+		$changedPaths += $path
 	}
 }
 $changedPaths = @($changedPaths | Where-Object { $_ } | Sort-Object -Unique)

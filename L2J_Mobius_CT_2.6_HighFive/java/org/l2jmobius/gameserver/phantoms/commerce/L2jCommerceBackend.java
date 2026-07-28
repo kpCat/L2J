@@ -32,6 +32,7 @@ import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.config.custom.MerchantZeroSellPriceConfig;
 import org.l2jmobius.gameserver.data.xml.BuyListData;
 import org.l2jmobius.gameserver.data.xml.TeleporterData;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.managers.CastleManager;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Npc;
@@ -131,7 +132,7 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 			}
 			final Product product = list.getProductByItemId(intent.itemId());
 			final BuyOffer offer = findBuyOffer(intent);
-			if ((product == null) || (offer == null))
+			if ((product == null) || (offer == null) || !offer.npcIds().contains(intent.npcTemplateId()))
 			{
 				return Quote.rejected(Reason.OFFER_NOT_FOUND);
 			}
@@ -279,7 +280,8 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 			}
 			final OperationRequest request = new OperationRequest(OperationKind.TELEPORT, npc.getId(), npc.getObjectId(), 0, 0, 0, 0, 0, location.getFeeId(), fee, intent.ordinal(), intent.listName(), location.getX(), location.getY(), location.getZ());
 			final ConservationFacts before = snapshot(request);
-			final ConservationFacts after = new ConservationFacts(Math.subtractExact(before.primaryCount(), fee), before.secondaryCount(), before.objectCount(), location.getInstanceId(), location.getX(), location.getY(), location.getZ());
+			final int destinationZ = teleportDestinationZ(location);
+			final ConservationFacts after = new ConservationFacts(Math.subtractExact(before.primaryCount(), fee), before.secondaryCount(), before.objectCount(), location.getInstanceId(), location.getX(), location.getY(), destinationZ);
 			return Quote.accepted(request, before, after, actorFacts(0, 0));
 		}
 
@@ -394,17 +396,25 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 				return false;
 			}
 			_player.teleToLocation(location);
+			_player.onTeleported();
+			// Headless actors have no client re-entry, so keep runtime coordinates equal to durable server coordinates.
+			_player.setXYZ(location.getX(), location.getY(), teleportDestinationZ(location));
 			return true;
+		}
+
+		private int teleportDestinationZ(TeleportLocation location)
+		{
+			return _player.isFlying() ? location.getZ() : GeoEngine.getInstance().getHeight(location.getX(), location.getY(), location.getZ());
 		}
 
 		private BuyOffer findBuyOffer(OperationIntent intent)
 		{
-			return _catalog.findBuyOffers(intent.itemId(), 0, PhantomCommerceCatalog.MAX_PAGE_SIZE).values().stream().filter(offer -> (offer.listId() == intent.listId()) && offer.npcIds().contains(intent.npcTemplateId())).findFirst().orElse(null);
+			return _catalog.findBuyOffer(intent.listId(), intent.itemId());
 		}
 
 		private TeleportRoute findTeleportRoute(OperationIntent intent)
 		{
-			return _catalog.findTeleportRoutes(intent.npcTemplateId(), 0, PhantomCommerceCatalog.MAX_PAGE_SIZE).values().stream().filter(route -> route.listName().equals(intent.listName()) && (route.ordinal() == intent.ordinal())).findFirst().orElse(null);
+			return _catalog.findTeleportRoute(intent.npcTemplateId(), intent.listName(), intent.ordinal());
 		}
 
 		private Product buyProduct(OperationRequest request, Merchant merchant)
@@ -423,8 +433,8 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 			{
 				return null;
 			}
-			final BuyOffer offer = _catalog.findBuyOffers(request.itemId(), 0, PhantomCommerceCatalog.MAX_PAGE_SIZE).values().stream().filter(value -> (value.listId() == request.listId()) && value.npcIds().contains(request.npcTemplateId())).findFirst().orElse(null);
-			return (offer != null) && (offer.price() == product.getPrice()) ? product : null;
+			final BuyOffer offer = _catalog.findBuyOffer(request.listId(), request.itemId());
+			return (offer != null) && offer.npcIds().contains(request.npcTemplateId()) && (offer.price() == product.getPrice()) ? product : null;
 		}
 
 		private static boolean buyAmountMatches(OperationRequest request, Merchant merchant, Product product)

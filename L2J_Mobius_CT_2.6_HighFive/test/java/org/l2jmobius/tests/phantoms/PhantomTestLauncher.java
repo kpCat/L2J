@@ -229,6 +229,7 @@ public final class PhantomTestLauncher
 			case "commerce-receipt" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.RECEIPT);
 			case "commerce-decision" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.DECISION);
 			case "commerce-server-integration" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.SERVER_INTEGRATION);
+			case "commerce-hardening" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.HARDENING);
 			case "commerce-performance" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;

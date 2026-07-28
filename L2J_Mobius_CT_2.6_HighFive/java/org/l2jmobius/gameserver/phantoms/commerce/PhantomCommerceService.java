@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.ConservationFacts;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.OperationKind;
@@ -32,6 +33,10 @@ import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.Operati
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.Reconciliation;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore.VersionedReceipt;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal;
 
 /**
  * No-worker lifecycle and conservative receipt coordinator.
@@ -42,6 +47,7 @@ public final class PhantomCommerceService
 
 	private final PhantomCommerceCatalogLoader.LoadResult _catalogResult;
 	private final ReceiptPersistence _receiptStore;
+	private final PhantomGoalStore _goalStore;
 	private final Backend _backend;
 	private final Object[] _profileLocks = new Object[LOCK_STRIPES];
 	private final LongAdder _successes = new LongAdder();
@@ -50,11 +56,18 @@ public final class PhantomCommerceService
 	private final LongAdder _replans = new LongAdder();
 	private final LongAdder _inconsistent = new LongAdder();
 	private StateSnapshot _state = StateSnapshot.NEW;
+	private int _currentOperations;
+	private int _peakOperations;
+	private int _currentActorLeases;
+	private int _peakActorLeases;
+	private int _currentPersistenceClaims;
+	private int _peakPersistenceClaims;
 
-	public PhantomCommerceService(PhantomCommerceCatalogLoader.LoadResult catalogResult, ReceiptPersistence receiptStore, Backend backend)
+	public PhantomCommerceService(PhantomCommerceCatalogLoader.LoadResult catalogResult, ReceiptPersistence receiptStore, PhantomGoalStore goalStore, Backend backend)
 	{
 		_catalogResult = Objects.requireNonNull(catalogResult);
 		_receiptStore = Objects.requireNonNull(receiptStore);
+		_goalStore = Objects.requireNonNull(goalStore);
 		_backend = Objects.requireNonNull(backend);
 		for (int index = 0; index < _profileLocks.length; index++)
 		{
@@ -88,6 +101,10 @@ public final class PhantomCommerceService
 		{
 			return false;
 		}
+		if ((_currentOperations != 0) || (_currentActorLeases != 0) || (_currentPersistenceClaims != 0))
+		{
+			return false;
+		}
 		_state = StateSnapshot.STOPPED;
 		return true;
 	}
@@ -106,73 +123,98 @@ public final class PhantomCommerceService
 	{
 		Objects.requireNonNull(intent);
 		Objects.requireNonNull(cancelled);
-		if (state() != StateSnapshot.RUNNING)
+		if (!beginOperation())
 		{
 			return record(OperationResult.replan(Reason.SERVICE_NOT_RUNNING));
 		}
-		if (cancelled.getAsBoolean())
+		try
 		{
-			return OperationResult.cancelled();
-		}
-		synchronized (_profileLocks[Math.floorMod(Long.hashCode(profileId), LOCK_STRIPES)])
-		{
-			if (state() != StateSnapshot.RUNNING)
+			if (cancelled.getAsBoolean())
 			{
-				return record(OperationResult.replan(Reason.SERVICE_NOT_RUNNING));
+				return OperationResult.cancelled();
 			}
-			try (ActorLease actor = _backend.tryAcquire(profileId).orElse(null))
+			synchronized (_profileLocks[Math.floorMod(Long.hashCode(profileId), LOCK_STRIPES)])
 			{
-				if (actor == null)
+				try
 				{
-					return record(OperationResult.retry(Reason.ACTOR_NOT_MATERIALIZED));
-				}
-				final Optional<VersionedReceipt> stored = _receiptStore.find(profileId);
-				if (stored.isPresent())
-				{
-					final VersionedReceipt versioned = stored.get();
-					final PhantomCommerceReceipt receipt = versioned.receipt();
-					if (matches(receipt, goalId, goalRevision, intent))
+					final ActorLease acquired = _backend.tryAcquire(profileId).orElse(null);
+					if (acquired == null)
 					{
-						return record(reconcile(actor, versioned, cancelled));
+						return record(OperationResult.retry(Reason.ACTOR_NOT_MATERIALIZED));
 					}
-					if (!receipt.state().terminal())
+					beginActorLease();
+					try (ActorLease actor = acquired)
 					{
-						return record(OperationResult.retry(Reason.OPERATION_BUSY));
-					}
-					if (receipt.state() == State.INCONSISTENT)
-					{
-						return record(OperationResult.inconsistent(Reason.PROFILE_FAIL_STOP));
-					}
-				}
+						final Optional<VersionedReceipt> stored = findReceipt(profileId);
+						if (stored.isPresent())
+						{
+							final VersionedReceipt versioned = stored.get();
+							final PhantomCommerceReceipt receipt = versioned.receipt();
+							if (receipt.state() == State.INCONSISTENT)
+							{
+								return record(OperationResult.inconsistent(Reason.PROFILE_FAIL_STOP));
+							}
+							if (matches(receipt, goalId, goalRevision, intent))
+							{
+								if (receipt.state() == State.ABORTED)
+								{
+									return OperationResult.cancelled();
+								}
+								return record(reconcile(actor, versioned, cancelled));
+							}
+							if (!receipt.state().terminal())
+							{
+								return record(OperationResult.retry(Reason.OPERATION_BUSY));
+							}
+						}
 
-				if (cancelled.getAsBoolean())
-				{
-					return OperationResult.cancelled();
+						if (cancelled.getAsBoolean())
+						{
+							return OperationResult.cancelled();
+						}
+						final Quote quote = actor.quote(intent);
+						if (!quote.accepted())
+						{
+							return record(OperationResult.replan(quote.reason()));
+						}
+						final Reason authority = goalAuthority(profileId, goalId, goalRevision, stored.map(VersionedReceipt::receipt).orElse(null));
+						if (authority != Reason.ACCEPTED)
+						{
+							return record(OperationResult.replan(authority));
+						}
+						final PhantomCommerceReceipt prepared = PhantomCommerceReceipt.prepared(profileId, goalId, goalRevision, quote.request(), quote.before(), quote.expectedAfter());
+						final long expectedVersion = stored.map(VersionedReceipt::rowVersion).orElse(PhantomCommerceReceiptStore.ABSENT_ROW_VERSION);
+						if (cancelled.getAsBoolean())
+						{
+							return OperationResult.cancelled();
+						}
+						VersionedReceipt durable = saveReceipt(expectedVersion, prepared);
+						if (cancelled.getAsBoolean())
+						{
+							durable = saveReceipt(durable.rowVersion(), durable.receipt().withState(State.ABORTED));
+							return OperationResult.cancelled();
+						}
+						durable = saveReceipt(durable.rowVersion(), durable.receipt().withState(State.COMMITTING));
+						return record(applyFromBefore(actor, durable, cancelled));
+					}
+					finally
+					{
+						endActorLease();
+					}
 				}
-				final Quote quote = actor.quote(intent);
-				if (!quote.accepted())
+				catch (ConcurrentModificationException e)
 				{
-					return record(OperationResult.replan(quote.reason()));
+					return record(OperationResult.retry(Reason.RECEIPT_RACE));
 				}
-				final PhantomCommerceReceipt prepared = PhantomCommerceReceipt.prepared(profileId, goalId, goalRevision, quote.request(), quote.before(), quote.expectedAfter());
-				final long expectedVersion = stored.map(VersionedReceipt::rowVersion).orElse(PhantomCommerceReceiptStore.ABSENT_ROW_VERSION);
-				VersionedReceipt durable = _receiptStore.save(expectedVersion, prepared);
-				if (cancelled.getAsBoolean())
+				catch (RuntimeException e)
 				{
-					durable = _receiptStore.save(durable.rowVersion(), durable.receipt().withState(State.ABORTED));
-					return OperationResult.cancelled();
+					return record(OperationResult.retry(Reason.BACKEND_FAILURE));
 				}
-				durable = _receiptStore.save(durable.rowVersion(), durable.receipt().withState(State.COMMITTING));
-				return record(applyFromBefore(actor, durable, cancelled));
 			}
-			catch (ConcurrentModificationException e)
-			{
-				return record(OperationResult.retry(Reason.RECEIPT_RACE));
-			}
-			catch (RuntimeException e)
-			{
-				return record(OperationResult.retry(Reason.BACKEND_FAILURE));
-			}
+		}
+		finally
+		{
+			endOperation();
 		}
 	}
 
@@ -189,7 +231,7 @@ public final class PhantomCommerceService
 				{
 					return markInconsistent(versioned, Reason.INVALID_RECEIPT_STATE);
 				}
-				_receiptStore.save(versioned.rowVersion(), receipt.withState(State.COMMITTED));
+				saveReceipt(versioned.rowVersion(), receipt.withState(State.COMMITTED));
 			}
 			return OperationResult.idempotent();
 		}
@@ -211,14 +253,14 @@ public final class PhantomCommerceService
 		}
 		if (receipt.state() == State.PREPARED)
 		{
-			versioned = _receiptStore.save(versioned.rowVersion(), receipt.withState(State.COMMITTING));
+			versioned = saveReceipt(versioned.rowVersion(), receipt.withState(State.COMMITTING));
 			return applyFromBefore(actor, versioned, cancelled);
 		}
 		if (receipt.resumeCount() != 0)
 		{
 			return markInconsistent(versioned, Reason.RESUME_EXHAUSTED);
 		}
-		versioned = _receiptStore.save(versioned.rowVersion(), receipt.resumed());
+		versioned = saveReceipt(versioned.rowVersion(), receipt.resumed());
 		return applyFromBefore(actor, versioned, cancelled);
 	}
 
@@ -240,7 +282,7 @@ public final class PhantomCommerceService
 		final Reconciliation afterFirst = receipt.reconcile(actor.snapshot(receipt.request()));
 		if (afterFirst == Reconciliation.EXACT_AFTER)
 		{
-			_receiptStore.save(versioned.rowVersion(), receipt.withState(State.COMMITTED));
+			saveReceipt(versioned.rowVersion(), receipt.withState(State.COMMITTED));
 			return OperationResult.success();
 		}
 		if (afterFirst != Reconciliation.FIRST_EFFECT_ONLY)
@@ -260,7 +302,7 @@ public final class PhantomCommerceService
 		final Reconciliation after = receipt.reconcile(actor.snapshot(receipt.request()));
 		if (after == Reconciliation.EXACT_AFTER)
 		{
-			_receiptStore.save(versioned.rowVersion(), receipt.withState(State.COMMITTED));
+			saveReceipt(versioned.rowVersion(), receipt.withState(State.COMMITTED));
 			return OperationResult.success();
 		}
 		if ((receipt.request().kind() == OperationKind.TELEPORT) && (after == Reconciliation.FIRST_EFFECT_ONLY))
@@ -275,9 +317,62 @@ public final class PhantomCommerceService
 		final PhantomCommerceReceipt receipt = versioned.receipt();
 		if ((receipt.state() == State.PREPARED) || (receipt.state() == State.COMMITTING) || (receipt.state() == State.COMMITTED))
 		{
-			_receiptStore.save(versioned.rowVersion(), receipt.withState(State.INCONSISTENT));
+			saveReceipt(versioned.rowVersion(), receipt.withState(State.INCONSISTENT));
 		}
 		return OperationResult.inconsistent(reason);
+	}
+
+	private Reason goalAuthority(long profileId, long goalId, long goalRevision, PhantomCommerceReceipt previous)
+	{
+		final Optional<StoredGoal> stored = persistenceClaim(() -> _goalStore.load(profileId));
+		if (stored.isEmpty())
+		{
+			return Reason.STALE_GOAL;
+		}
+		final PhantomGoal current = stored.get().goal();
+		if ((current.status() != PhantomGoalStatus.ACTIVE) || (current.goalId() != goalId))
+		{
+			return Reason.STALE_GOAL;
+		}
+		if (current.revision() != goalRevision)
+		{
+			return Reason.STALE_GOAL_REVISION;
+		}
+		if ((previous != null) && (previous.goalId() == goalId))
+		{
+			if (goalRevision < previous.goalRevision())
+			{
+				return Reason.STALE_GOAL_REVISION;
+			}
+			if (goalRevision == previous.goalRevision())
+			{
+				return Reason.GOAL_REVISION_CONFLICT;
+			}
+		}
+		return Reason.ACCEPTED;
+	}
+
+	private Optional<VersionedReceipt> findReceipt(long profileId)
+	{
+		return persistenceClaim(() -> _receiptStore.find(profileId));
+	}
+
+	private VersionedReceipt saveReceipt(long expectedRowVersion, PhantomCommerceReceipt receipt)
+	{
+		return persistenceClaim(() -> _receiptStore.save(expectedRowVersion, receipt));
+	}
+
+	private <T> T persistenceClaim(Supplier<T> operation)
+	{
+		beginPersistenceClaim();
+		try
+		{
+			return operation.get();
+		}
+		finally
+		{
+			endPersistenceClaim();
+		}
 	}
 
 	private static boolean matches(PhantomCommerceReceipt receipt, long goalId, long goalRevision, OperationIntent intent)
@@ -296,9 +391,54 @@ public final class PhantomCommerceService
 			&& request.listName().equals(intent.listName());
 	}
 
-	private synchronized StateSnapshot state()
+	private synchronized boolean beginOperation()
 	{
-		return _state;
+		if (_state != StateSnapshot.RUNNING)
+		{
+			return false;
+		}
+		_currentOperations++;
+		_peakOperations = Math.max(_peakOperations, _currentOperations);
+		return true;
+	}
+
+	private synchronized void endOperation()
+	{
+		if (_currentOperations <= 0)
+		{
+			throw new IllegalStateException("Commerce operation counter underflow.");
+		}
+		_currentOperations--;
+	}
+
+	private synchronized void beginActorLease()
+	{
+		_currentActorLeases++;
+		_peakActorLeases = Math.max(_peakActorLeases, _currentActorLeases);
+	}
+
+	private synchronized void endActorLease()
+	{
+		if (_currentActorLeases <= 0)
+		{
+			throw new IllegalStateException("Commerce actor lease counter underflow.");
+		}
+		_currentActorLeases--;
+	}
+
+	private synchronized void beginPersistenceClaim()
+	{
+		_currentPersistenceClaims++;
+		_peakPersistenceClaims = Math.max(_peakPersistenceClaims, _currentPersistenceClaims);
+	}
+
+	private synchronized void endPersistenceClaim()
+	{
+		if (_currentPersistenceClaims <= 0)
+		{
+			throw new IllegalStateException("Commerce persistence claim counter underflow.");
+		}
+		_currentPersistenceClaims--;
 	}
 
 	private OperationResult record(OperationResult result)
@@ -319,7 +459,7 @@ public final class PhantomCommerceService
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _successes.sum(), _idempotent.sum(), _retries.sum(), _replans.sum(), _inconsistent.sum(), 0);
+		return new Snapshot(_state, _successes.sum(), _idempotent.sum(), _retries.sum(), _replans.sum(), _inconsistent.sum(), _currentOperations, _peakOperations, _currentActorLeases, _peakActorLeases, _currentPersistenceClaims, _peakPersistenceClaims, 0);
 	}
 
 	public interface Backend
@@ -433,7 +573,10 @@ public final class PhantomCommerceService
 		TELEPORT_NOT_FOUND,
 		TELEPORT_TYPE_UNSUPPORTED,
 		TELEPORT_RESTRICTED,
-		TELEPORT_FEE_UNAVAILABLE
+		TELEPORT_FEE_UNAVAILABLE,
+		GOAL_REVISION_CONFLICT,
+		STALE_GOAL_REVISION,
+		STALE_GOAL
 	}
 
 	public enum OperationStatus
@@ -493,7 +636,7 @@ public final class PhantomCommerceService
 		STOPPED
 	}
 
-	public record Snapshot(StateSnapshot state, long successes, long idempotent, long retries, long replans, long inconsistent, int workers)
+	public record Snapshot(StateSnapshot state, long successes, long idempotent, long retries, long replans, long inconsistent, int currentOperations, int peakOperations, int currentActorLeases, int peakActorLeases, int currentPersistenceClaims, int peakPersistenceClaims, int workers)
 	{
 	}
 }

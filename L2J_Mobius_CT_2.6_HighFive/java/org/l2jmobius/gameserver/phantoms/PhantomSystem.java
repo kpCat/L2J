@@ -142,7 +142,8 @@ public final class PhantomSystem
 				_progressionService = new PhantomProgressionService(new L2jProgressionBackend(_materializationService, ServerConfig.DATAPACK_ROOT.toPath(), () -> _gameKnowledgeService == null ? null : _gameKnowledgeService.query()), PhantomProgressionPolicy.productionDefaults());
 				_combatService = new PhantomCombatService(combatBackend, PhantomCombatCapabilityResolver.fromProgression(() -> _progressionService.findCatalog().orElse(null)), combatPolicy);
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
-				_commerceService = new PhantomCommerceService(commerceCatalog, new PhantomCommerceReceiptStore(profileRepository), new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
+				final PhantomGoalStateStore goalStateStore = new PhantomGoalStateStore(profileRepository);
+				_commerceService = new PhantomCommerceService(commerceCatalog, new PhantomCommerceReceiptStore(profileRepository), goalStateStore, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
 				final PhantomCommerceDecision commerceDecision = new PhantomCommerceDecision(_commerceService);
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
 				commerceDecision.registerCandidates(candidateRegistry);
@@ -156,7 +157,7 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom commerce service could not enter the running state.");
 				}
-				_decisionEngine = new PhantomDecisionEngine(new PhantomGoalStateStore(profileRepository), candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
+				_decisionEngine = new PhantomDecisionEngine(goalStateStore, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
 				_decisionEngine.start();
 				_scheduler = createScheduler(new PhantomMaterializationServiceActivityPort(_materializationService), _decisionEngine);
 			}
