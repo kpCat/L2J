@@ -5,7 +5,9 @@ package org.l2jmobius.gameserver.phantoms.progression;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionBackend.ActorLease;
@@ -30,16 +32,15 @@ public final class PhantomProgressionCapabilityEvaluator
 		for (CapabilityRule rule : catalog.capabilities(actor.activeClassId()))
 		{
 			final boolean intrinsic = true;
-			final SkillRef learnedEvidence = rule.evidenceSkills().stream().filter(actor::knows).findFirst().orElse(null);
-			final boolean learned = learnedEvidence != null;
-			final ReadinessReason reason = readiness(catalog, actor, lease, rule, learnedEvidence, targetObjectId);
-			result.add(new CapabilityEvaluation(rule.capabilityKey(), rule.rank(), rule.targetScope(), intrinsic, learned, reason == ReadinessReason.READY, reason, rule.evidenceSkills()));
+			final boolean learned = actor.knows(rule.actionSkill());
+			final ReadinessReason reason = readiness(catalog, actor, lease, rule, learned, targetObjectId);
+			result.add(new CapabilityEvaluation(rule.capabilityKey(), rule.variantKey(), rule.rank(), rule.actionSkill(), rule.targetScope(), intrinsic, learned, reason == ReadinessReason.READY, reason, rule.evidenceSkills()));
 		}
 		result.sort(Comparator.comparing(CapabilityEvaluation::stableKey));
 		return List.copyOf(result);
 	}
 
-	private static ReadinessReason readiness(PhantomProgressionCatalog catalog, ActorProgressionSnapshot actor, ActorLease lease, CapabilityRule rule, SkillRef learnedEvidence, Integer targetObjectId)
+	private static ReadinessReason readiness(PhantomProgressionCatalog catalog, ActorProgressionSnapshot actor, ActorLease lease, CapabilityRule rule, boolean learned, Integer targetObjectId)
 	{
 		if (actor.dead())
 		{
@@ -53,7 +54,7 @@ public final class PhantomProgressionCapabilityEvaluator
 		{
 			return ReadinessReason.MOUNTED;
 		}
-		if (learnedEvidence == null)
+		if (!learned)
 		{
 			return ReadinessReason.SKILL_NOT_LEARNED;
 		}
@@ -65,12 +66,17 @@ public final class PhantomProgressionCapabilityEvaluator
 		{
 			return ReadinessReason.WEAPON_OR_EQUIPMENT_MISMATCH;
 		}
-		for (RequiredItem item : rule.requiredItems())
+		for (RequiredItem item : requiredItems(catalog, rule))
 		{
 			if (actor.resourceItemCounts().getOrDefault(item.itemId(), 0L) < item.count())
 			{
 				return ReadinessReason.REQUIRED_ITEM_MISSING;
 			}
+		}
+		final var skill = catalog.skill(rule.actionSkill());
+		if ((skill != null) && (actor.charges() < skill.chargeConsumeCount()))
+		{
+			return ReadinessReason.INSUFFICIENT_CHARGES_OR_SOULS;
 		}
 		if (rule.servitorRequired() && actor.controlledActors().stream().noneMatch(fact -> fact.actorKind() == ActorKind.SERVITOR))
 		{
@@ -80,7 +86,7 @@ public final class PhantomProgressionCapabilityEvaluator
 		{
 			return ReadinessReason.SUMMON_REQUIRED;
 		}
-		final SkillReadinessProbe probe = lease.canonicalSkillReadiness(learnedEvidence, targetObjectId);
+		final SkillReadinessProbe probe = lease.canonicalSkillReadiness(rule.actionSkill(), targetObjectId);
 		if (!probe.dynamicConditionSatisfied())
 		{
 			return ReadinessReason.DYNAMIC_CONDITION_FAILED;
@@ -94,6 +100,21 @@ public final class PhantomProgressionCapabilityEvaluator
 			return ReadinessReason.SKILL_DISABLED_OR_REUSE;
 		}
 		return ReadinessReason.READY;
+	}
+
+	private static List<RequiredItem> requiredItems(PhantomProgressionCatalog catalog, CapabilityRule rule)
+	{
+		final Map<Integer, Long> merged = new HashMap<>();
+		for (RequiredItem item : rule.requiredItems())
+		{
+			merged.merge(item.itemId(), item.count(), Math::max);
+		}
+		final var skill = catalog.skill(rule.actionSkill());
+		if ((skill != null) && (skill.itemConsumeId() > 0) && (skill.itemConsumeCount() > 0))
+		{
+			merged.merge(skill.itemConsumeId(), (long) skill.itemConsumeCount(), Math::max);
+		}
+		return merged.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(entry -> new RequiredItem(entry.getKey(), entry.getValue())).toList();
 	}
 
 	private static boolean hasRequiredEquipment(PhantomProgressionCatalog catalog, ActorProgressionSnapshot actor, Set<String> families)

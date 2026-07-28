@@ -13,6 +13,7 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalogBu
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.EquipItemRequest;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationResult;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OwnedEquipmentFilter;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
@@ -85,7 +86,7 @@ public final class PhantomProgressionPerformanceSuite implements PhantomTestSuit
 		final PhantomProgressionCapabilityEvaluator evaluator = new PhantomProgressionCapabilityEvaluator();
 		try (var lease = runtimeBackend.lease())
 		{
-			final var actor = lease.snapshot(runtimeCatalog.combinedHash(), runtimeCatalog.referencedResourceItemIds(), runtimeCatalog.certificationSkillIds(), 64);
+			final var actor = lease.snapshot(runtimeCatalog.combinedHash(), runtimeCatalog.referencedResourceItemIds(), runtimeCatalog.certificationSkillIds());
 			for (int i = 0; i < CAPABILITY_EVALUATIONS; i++)
 			{
 				evaluator.evaluate(runtimeCatalog, actor, lease, 99);
@@ -98,9 +99,14 @@ public final class PhantomProgressionPerformanceSuite implements PhantomTestSuit
 		{
 			PhantomAssertions.assertEquals(OperationStatus.IDEMPOTENT, operations.equipOwnedItem(new EquipItemRequest(1, 1000, () -> false)).status(), "Performance operation result changed.");
 		}
+		for (int i = 0; i < EQUIPMENT_QUERIES; i++)
+		{
+			final OwnedEquipmentFilter filter = (i & 1) == 0 ? OwnedEquipmentFilter.all() : new OwnedEquipmentFilter(null, "SWORD", true);
+			final var page = operations.equipmentCandidates(1, filter, PageRequest.first(64));
+			_maximumCandidatesObserved = Math.max(_maximumCandidatesObserved, page.values().size());
+		}
 		_operationsAfter = operations.snapshot().currentOperations();
 		_leasesAfter = operations.snapshot().currentActorLeases();
-		_maximumCandidatesObserved = Math.max(_maximumCandidatesObserved, operations.equipmentCandidates(1).size());
 		operations.beginStop();
 		PhantomAssertions.assertTrue(operations.finishStop(), "Performance operation service did not stop.");
 		_elapsedMillis = (System.nanoTime() - started) / 1_000_000;

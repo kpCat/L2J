@@ -86,7 +86,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		{
 			final SkillUseHolder currentSkill = _player.getCurrentSkill();
 			final WorldObject target = _player.getTarget();
-			return new ActorSnapshot(_player.getObjectId(), _player.getActiveClass(), _player.getInstanceId(), _player.getCurrentHp(), _player.getMaxHp(), _player.getCurrentMp(), _player.getMaxMp(), _player.isDead(), _player.isAlikeDead(), _player.isAttackingNow(), _player.isCastingNow(), _player.isMoving(), target == null ? 0 : target.getObjectId(), _player.hasAI() ? _player.getAI().getIntention().name() : Intention.IDLE.name(), currentSkill == null ? 0 : currentSkill.getSkillId(), currentSkill == null ? 0 : currentSkill.getSkillLevel());
+			return new ActorSnapshot(_player.getObjectId(), _player.getActiveClass(), _player.getInstanceId(), _player.getCurrentHp(), _player.getMaxHp(), _player.getCurrentMp(), _player.getMaxMp(), _player.getCurrentCp(), _player.getMaxCp(), _player.isDead(), _player.isAlikeDead(), _player.isAttackingNow(), _player.isCastingNow(), _player.isMoving(), target == null ? 0 : target.getObjectId(), _player.hasAI() ? _player.getAI().getIntention().name() : Intention.IDLE.name(), currentSkill == null ? 0 : currentSkill.getSkillId(), currentSkill == null ? 0 : currentSkill.getSkillLevel());
 		}
 
 		@Override

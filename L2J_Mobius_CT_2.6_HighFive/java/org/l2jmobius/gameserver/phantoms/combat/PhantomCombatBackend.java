@@ -42,11 +42,11 @@ public interface PhantomCombatBackend
 		INELIGIBLE
 	}
 
-	record ActorSnapshot(int objectId, int classId, int instanceId, double currentHp, double maximumHp, double currentMp, double maximumMp, boolean dead, boolean alikeDead, boolean attacking, boolean casting, boolean moving, int currentTargetObjectId, String intention, int currentSkillId, int currentSkillLevel)
+	record ActorSnapshot(int objectId, int classId, int instanceId, double currentHp, double maximumHp, double currentMp, double maximumMp, double currentCp, double maximumCp, boolean dead, boolean alikeDead, boolean attacking, boolean casting, boolean moving, int currentTargetObjectId, String intention, int currentSkillId, int currentSkillLevel)
 	{
 		public ActorSnapshot
 		{
-			if ((objectId <= 0) || (classId < 0) || (instanceId < 0) || !finite(currentHp, maximumHp, currentMp, maximumMp) || (maximumHp <= 0) || (maximumMp < 0) || (currentTargetObjectId < 0) || (currentSkillId < 0) || (currentSkillLevel < 0) || (intention == null))
+			if ((objectId <= 0) || (classId < 0) || (instanceId < 0) || !finite(currentHp, maximumHp, currentMp, maximumMp, currentCp, maximumCp) || (maximumHp <= 0) || (maximumMp < 0) || (maximumCp < 0) || (currentCp < 0) || (currentTargetObjectId < 0) || (currentSkillId < 0) || (currentSkillLevel < 0) || (intention == null))
 			{
 				throw new IllegalArgumentException("Invalid combat actor snapshot.");
 			}

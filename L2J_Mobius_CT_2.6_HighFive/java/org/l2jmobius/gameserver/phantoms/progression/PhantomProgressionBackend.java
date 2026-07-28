@@ -15,6 +15,10 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Equ
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.EquipItemRequest;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.LearnSkillRequest;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationResult;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OwnedEquipmentFact;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OwnedEquipmentFilter;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Page;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.PetFact;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillFact;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillLearnFact;
@@ -35,7 +39,9 @@ public interface PhantomProgressionBackend
 
 	interface ActorLease extends AutoCloseable
 	{
-		ActorProgressionSnapshot snapshot(String catalogHash, Set<Integer> referencedResourceItemIds, Set<Integer> certificationSkillIds, int maximumOwnedEquipmentCandidates);
+		ActorProgressionSnapshot snapshot(String catalogHash, Set<Integer> referencedResourceItemIds, Set<Integer> certificationSkillIds);
+
+		Page<OwnedEquipmentFact> ownedEquipment(OwnedEquipmentFilter filter, PageRequest page);
 
 		SkillReadinessProbe canonicalSkillReadiness(SkillRef skill, Integer targetObjectId);
 
@@ -49,7 +55,7 @@ public interface PhantomProgressionBackend
 		void close();
 	}
 
-	record BackendData(List<ClassFact> classes, List<SkillLearnFact> skillLearns, List<SkillFact> skills, List<EquipmentFact> equipment, List<SummonActorFact> summons, List<PetFact> pets, List<CapabilityRule> capabilityRules)
+	record BackendData(List<ClassFact> classes, List<SkillLearnFact> skillLearns, List<SkillFact> skills, List<EquipmentFact> equipment, List<SummonActorFact> summons, List<PetFact> pets, List<CapabilityRule> capabilityRules, Set<Integer> knownItemIds)
 	{
 		public BackendData
 		{
@@ -60,6 +66,7 @@ public interface PhantomProgressionBackend
 			summons = List.copyOf(summons);
 			pets = List.copyOf(pets);
 			capabilityRules = List.copyOf(capabilityRules);
+			knownItemIds = Set.copyOf(knownItemIds);
 		}
 	}
 }

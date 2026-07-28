@@ -220,6 +220,8 @@ public final class PhantomTestLauncher
 			case "progression-operations" -> new PhantomProgressionOperationSuite();
 			case "progression-server-integration" -> new PhantomProgressionServerIntegrationSuite();
 			case "progression-performance" -> new PhantomProgressionPerformanceSuite();
+			case "progression-extensibility" -> new PhantomProgressionExtensibilitySuite();
+			case "progression-production-composition" -> new PhantomProgressionProductionCompositionSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

@@ -25,6 +25,9 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Lea
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationResult;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OwnedEquipmentFact;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OwnedEquipmentFilter;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Page;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.PetFact;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.RequiredItem;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillFact;
@@ -111,11 +114,11 @@ final class PhantomProgressionSyntheticBackend implements PhantomProgressionBack
 			new SkillLearnFact(0, AcquireKind.CLASS, 4, 1, 1, 30, List.of(), List.of(), true, false, true, false, Authority.SERVER_LOADER_FACT, "classSkillTree.xml"),
 			new SkillLearnFact(0, AcquireKind.CLASS, 5, 1, 1, 40, List.of(new RequiredItem(57, 10)), List.of(), true, false, true, false, Authority.SERVER_LOADER_FACT, "classSkillTree.xml"),
 			new SkillLearnFact(-1, AcquireKind.NOBLE, 6, 1, 76, 0, List.of(), List.of(), true, false, false, false, Authority.SERVER_LOADER_FACT, "nobleSkillTree.xml"));
-		final List<SkillFact> skills = java.util.stream.IntStream.rangeClosed(1, 6).mapToObj(id -> new SkillFact(id, 1, true, false, false, id == 1, id != 1, "ONE", id == 1, false, false, false, false, false, false, 0, 0, id, 0, 100, ConditionPresence.NONE, false, false, false, false, false, Authority.SERVER_LOADER_FACT, List.of("skills.xml"))).toList();
+		final List<SkillFact> skills = java.util.stream.IntStream.rangeClosed(1, 6).mapToObj(id -> new SkillFact(id, 1, true, false, false, id == 1, id != 1, "ONE", id == 1, false, false, false, false, false, false, 0, 0, 0, 0, id, 0, 100, ConditionPresence.NONE, false, false, false, false, false, Authority.SERVER_LOADER_FACT, List.of("skills.xml"))).toList();
 		final List<EquipmentFact> equipment = List.of(
 			new EquipmentFact(100, "LR_HAND", "SWORD", "SWORD", "", "NONE", "EQUIP", false, 10, ConditionPresence.NONE, Authority.SERVER_LOADER_FACT, "items.xml"),
 			new EquipmentFact(101, "LR_HAND", "BOW", "BOW", "", "NONE", "EQUIP", false, 20, ConditionPresence.NONE, Authority.SERVER_LOADER_FACT, "items.xml"));
-		final List<SummonActorFact> summons = List.of(new SummonActorFact(List.of(0), 4, 1, 1000, ActorKind.SERVITOR, 60000, 0.1, 0, 57, 1, 60000, 0, Set.of(), 1, 1, false, false, false, false, false, false, true, true, true, true, Authority.STATIC_DATAPACK_FACT, List.of("summon.xml")));
+		final List<SummonActorFact> summons = List.of(new SummonActorFact(List.of(0), 4, 1, 1000, ActorKind.SERVITOR, 60000, 0.1, 0, 57, 1, 60000, 0, Set.of(), 1, 1, false, false, false, List.of(new SkillRef(6, 1)), List.of(), List.of(), List.of(), List.of(), List.of(), true, true, true, true, Authority.STATIC_DATAPACK_FACT, List.of("summon.xml")));
 		final List<PetFact> pets = List.of(new PetFact(1001, 200, Set.of(201), 1, 85, 1000, 50, false, false, true, true, List.of(), Authority.SERVER_LOADER_FACT, "pet.xml"));
 		final List<CapabilityRule> capabilities = List.of(
 			rule("melee_damage", 1, TargetScope.SELF, Set.of(), List.of(), false, false, 1),
@@ -124,26 +127,35 @@ final class PhantomProgressionSyntheticBackend implements PhantomProgressionBack
 			rule("summon", 4, TargetScope.SERVITOR, Set.of(), List.of(), false, true, 4),
 			rule("resource", 5, TargetScope.SELF, Set.of(), List.of(new RequiredItem(57, 10)), false, false, 5),
 			rule("unlearned", 6, TargetScope.SELF, Set.of(), List.of(), false, false, 6));
-		return new BackendData(classes, learns, skills, equipment, summons, pets, capabilities);
+		return new BackendData(classes, learns, skills, equipment, summons, pets, capabilities, Set.of(57, 100, 101, 200, 201));
 	}
 
 	private static CapabilityRule rule(String key, int rank, TargetScope scope, Set<String> equipment, List<RequiredItem> items, boolean target, boolean servitor, int skill)
 	{
-		return new CapabilityRule(key, rank, List.of(0), List.of(new SkillRef(skill, 1)), scope, equipment, items, target, servitor, servitor, Authority.CURATED_CAPABILITY_RULE, List.of("capabilities.xml"));
+		final SkillRef actionSkill = new SkillRef(skill, 1);
+		return new CapabilityRule(key, "variant-" + skill, rank, List.of(0), actionSkill, List.of(actionSkill), scope, equipment, items, target, servitor, servitor, Authority.CURATED_CAPABILITY_RULE, List.of("capabilities.xml"));
 	}
 
 	static ActorProgressionSnapshot actor(boolean dead, boolean transformed, boolean mounted, Map<Integer, Integer> learned, List<ControlledActorFact> actors, Map<Integer, Long> resources)
 	{
-		return new ActorProgressionSnapshot(1, 2, 0, 0, 0, 0, 1, 0, 100, false, false, false, List.of(), learned, List.of(new EquippedItemFact(1000, 100, 7)), List.of(new OwnedEquipmentFact(1000, 100, "LR_HAND", "SWORD", "NONE", 0, true, true, List.of(), 100)), resources, actors, transformed, mounted, false, false, dead, false, 3, Set.of(), "A".repeat(64));
+		return new ActorProgressionSnapshot(1, 2, 0, 0, 0, 0, 1, 0, 100, false, false, false, List.of(), learned, List.of(new EquippedItemFact(1000, 100, 7)), resources, 0, 0, actors, transformed, mounted, false, false, dead, false, 3, Set.of(), "A".repeat(64));
 	}
 
 	private final class Lease implements ActorLease
 	{
 		@Override
-		public ActorProgressionSnapshot snapshot(String catalogHash, Set<Integer> referencedResourceItemIds, Set<Integer> certificationSkillIds, int maximumOwnedEquipmentCandidates)
+		public ActorProgressionSnapshot snapshot(String catalogHash, Set<Integer> referencedResourceItemIds, Set<Integer> certificationSkillIds)
 		{
 			final ActorProgressionSnapshot value = _actor;
-			return new ActorProgressionSnapshot(value.profileId(), value.actorObjectId(), value.baseClassId(), value.activeClassId(), value.classIndex(), value.activeClassTier(), value.level(), value.exp(), value.sp(), value.noble(), value.hero(), value.subclassActive(), value.subclasses(), value.learnedSkills(), value.equippedItems(), value.ownedEquipment(), value.resourceItemCounts(), value.controlledActors(), value.transformed(), value.mounted(), value.inCombat(), value.casting(), value.dead(), value.subclassQuestSatisfied(), value.maximumSubclasses(), value.certificationSkillIds(), catalogHash);
+			return new ActorProgressionSnapshot(value.profileId(), value.actorObjectId(), value.baseClassId(), value.activeClassId(), value.classIndex(), value.activeClassTier(), value.level(), value.exp(), value.sp(), value.noble(), value.hero(), value.subclassActive(), value.subclasses(), value.learnedSkills(), value.equippedItems(), value.resourceItemCounts(), value.charges(), value.souls(), value.controlledActors(), value.transformed(), value.mounted(), value.inCombat(), value.casting(), value.dead(), value.subclassQuestSatisfied(), value.maximumSubclasses(), value.certificationSkillIds(), catalogHash);
+		}
+
+		@Override
+		public Page<OwnedEquipmentFact> ownedEquipment(OwnedEquipmentFilter filter, PageRequest page)
+		{
+			final OwnedEquipmentFact fact = new OwnedEquipmentFact(1000, 100, "LR_HAND", "SWORD", "NONE", 0, true, true, List.of());
+			final boolean matches = ((filter.bodyPart() == null) || filter.bodyPart().equals(fact.bodyPart())) && ((filter.family() == null) || filter.family().equals(fact.family())) && ((filter.canonicalCompatibility() == null) || (filter.canonicalCompatibility() == fact.canonicalCompatibility())) && ((page.afterKey() == null) || (fact.stableKey().compareTo(page.afterKey()) > 0));
+			return new Page<>(matches ? List.of(fact) : List.of(), null, false);
 		}
 
 		@Override

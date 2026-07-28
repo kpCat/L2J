@@ -118,7 +118,7 @@ public final class PhantomCapabilityRuntimeSuite implements PhantomTestSuite
 	{
 		try (var lease = _backend.lease())
 		{
-			return _evaluator.evaluate(_catalog, lease.snapshot(_catalog.combinedHash(), _catalog.referencedResourceItemIds(), _catalog.certificationSkillIds(), 64), lease, target);
+			return _evaluator.evaluate(_catalog, lease.snapshot(_catalog.combinedHash(), _catalog.referencedResourceItemIds(), _catalog.certificationSkillIds()), lease, target);
 		}
 	}
 }

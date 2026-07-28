@@ -20,6 +20,7 @@
  */
 package org.l2jmobius.gameserver.phantoms.progression;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -109,6 +110,7 @@ public final class PhantomProgressionModel
 		WEAPON_OR_EQUIPMENT_MISMATCH,
 		DYNAMIC_CONDITION_FAILED,
 		INSUFFICIENT_MP_OR_HP,
+		INSUFFICIENT_CHARGES_OR_SOULS,
 		SKILL_DISABLED_OR_REUSE,
 		TRANSFORMED,
 		MOUNTED,
@@ -200,6 +202,26 @@ public final class PhantomProgressionModel
 		}
 	}
 
+	public record SkillLearningItemPlan(List<RequiredItem> aggregatedItems, boolean canonicalAtomicMutationSupported)
+	{
+		public SkillLearningItemPlan
+		{
+			aggregatedItems = List.copyOf(aggregatedItems);
+			if (canonicalAtomicMutationSupported != (aggregatedItems.size() <= 1))
+			{
+				throw new IllegalArgumentException("Skill-learning item atomicity disposition is inconsistent.");
+			}
+		}
+
+		public static SkillLearningItemPlan from(List<RequiredItem> requiredItems)
+		{
+			final Map<Integer, Long> aggregated = new LinkedHashMap<>();
+			requiredItems.stream().sorted(java.util.Comparator.comparingInt(RequiredItem::itemId)).forEach(item -> aggregated.merge(item.itemId(), item.count(), Math::addExact));
+			final List<RequiredItem> values = aggregated.entrySet().stream().map(entry -> new RequiredItem(entry.getKey(), entry.getValue())).toList();
+			return new SkillLearningItemPlan(values, values.size() <= 1);
+		}
+	}
+
 	public record ClassFact(int classId, String enumKey, String race, Integer enumParentClassId, Integer skillTreeParentClassId, int rootClassId, int tier, boolean mage, boolean summoner, boolean terminal, List<Integer> nextClassIds, Authority authority, List<String> sourcePaths)
 	{
 		public ClassFact
@@ -242,11 +264,11 @@ public final class PhantomProgressionModel
 		}
 	}
 
-	public record SkillFact(int skillId, int skillLevel, boolean active, boolean passive, boolean toggle, boolean physical, boolean magic, String targetType, boolean damage, boolean negative, boolean heal, boolean resurrection, boolean buff, boolean debuff, boolean control, int itemConsumeId, int itemConsumeCount, int mpConsume, int hpConsume, int reuseDelay, ConditionPresence conditionPresence, boolean blockedInOlympiad, boolean pvpOnly, boolean suicideAttack, boolean removedOnActionExceptMove, boolean transformation, Authority authority, List<String> sourcePaths)
+	public record SkillFact(int skillId, int skillLevel, boolean active, boolean passive, boolean toggle, boolean physical, boolean magic, String targetType, boolean damage, boolean negative, boolean heal, boolean resurrection, boolean buff, boolean debuff, boolean control, int itemConsumeId, int itemConsumeCount, int chargeConsumeCount, int maximumSoulConsumeCount, int mpConsume, int hpConsume, int reuseDelay, ConditionPresence conditionPresence, boolean blockedInOlympiad, boolean pvpOnly, boolean suicideAttack, boolean removedOnActionExceptMove, boolean transformation, Authority authority, List<String> sourcePaths)
 	{
 		public SkillFact
 		{
-			if ((skillId <= 0) || (skillLevel <= 0) || (targetType == null) || targetType.isBlank() || (itemConsumeId < 0) || (itemConsumeCount < 0) || (mpConsume < 0) || (hpConsume < 0) || (reuseDelay < 0) || (authority != Authority.SERVER_LOADER_FACT))
+			if ((skillId <= 0) || (skillLevel <= 0) || (targetType == null) || targetType.isBlank() || (itemConsumeId < 0) || (itemConsumeCount < 0) || (chargeConsumeCount < 0) || (maximumSoulConsumeCount < 0) || (mpConsume < 0) || (hpConsume < 0) || (reuseDelay < 0) || (authority != Authority.SERVER_LOADER_FACT))
 			{
 				throw new IllegalArgumentException("Invalid skill fact.");
 			}
@@ -318,7 +340,7 @@ public final class PhantomProgressionModel
 		}
 	}
 
-	public record SummonActorFact(List<Integer> ownerClassIds, int skillId, int skillLevel, int actorIdentity, ActorKind actorKind, int lifetimeMillis, double expMultiplier, int summonItemId, int upkeepItemId, int upkeepItemCount, int upkeepIntervalMillis, int controlItemId, Set<Integer> foodItemIds, int soulshotsPerHit, int spiritshotsPerHit, boolean mountable, boolean inventorySupported, boolean pickupSupported, boolean healCapability, boolean rechargeCapability, boolean buffCapability, boolean followSupported, boolean holdSupported, boolean moveSupported, boolean attackSupported, Authority authority, List<String> sourcePaths)
+	public record SummonActorFact(List<Integer> ownerClassIds, int skillId, int skillLevel, int actorIdentity, ActorKind actorKind, int lifetimeMillis, double expMultiplier, int summonItemId, int upkeepItemId, int upkeepItemCount, int upkeepIntervalMillis, int controlItemId, Set<Integer> foodItemIds, int soulshotsPerHit, int spiritshotsPerHit, boolean mountable, boolean inventorySupported, boolean pickupSupported, List<SkillRef> actorSkills, List<SkillRef> healSkills, List<SkillRef> rechargeSkills, List<SkillRef> buffSkills, List<SkillRef> damageSkills, List<SkillRef> controlSkills, boolean followSupported, boolean holdSupported, boolean moveSupported, boolean attackSupported, Authority authority, List<String> sourcePaths)
 	{
 		public SummonActorFact
 		{
@@ -329,8 +351,33 @@ public final class PhantomProgressionModel
 			ownerClassIds = List.copyOf(ownerClassIds);
 			Objects.requireNonNull(actorKind, "actorKind");
 			foodItemIds = Set.copyOf(foodItemIds);
+			actorSkills = List.copyOf(actorSkills);
+			healSkills = List.copyOf(healSkills);
+			rechargeSkills = List.copyOf(rechargeSkills);
+			buffSkills = List.copyOf(buffSkills);
+			damageSkills = List.copyOf(damageSkills);
+			controlSkills = List.copyOf(controlSkills);
+			if ((actorKind == ActorKind.CUBIC) && (followSupported || holdSupported || moveSupported || attackSupported))
+			{
+				throw new IllegalArgumentException("Cubic cannot expose body commands.");
+			}
 			Objects.requireNonNull(authority, "authority");
 			sourcePaths = List.copyOf(sourcePaths);
+		}
+
+		public boolean healCapability()
+		{
+			return !healSkills.isEmpty();
+		}
+
+		public boolean rechargeCapability()
+		{
+			return !rechargeSkills.isEmpty();
+		}
+
+		public boolean buffCapability()
+		{
+			return !buffSkills.isEmpty();
 		}
 
 		public SkillRef skill()
@@ -344,11 +391,11 @@ public final class PhantomProgressionModel
 		}
 	}
 
-	public record CapabilityRule(String capabilityKey, int rank, List<Integer> classIds, List<SkillRef> evidenceSkills, TargetScope targetScope, Set<String> requiredEquipmentFamilies, List<RequiredItem> requiredItems, boolean targetRequired, boolean summonRequired, boolean servitorRequired, Authority authority, List<String> sourcePaths)
+	public record CapabilityRule(String capabilityKey, String variantKey, int rank, List<Integer> classIds, SkillRef actionSkill, List<SkillRef> evidenceSkills, TargetScope targetScope, Set<String> requiredEquipmentFamilies, List<RequiredItem> requiredItems, boolean targetRequired, boolean summonRequired, boolean servitorRequired, Authority authority, List<String> sourcePaths)
 	{
 		public CapabilityRule
 		{
-			if ((capabilityKey == null) || capabilityKey.isBlank() || (rank < 1) || (rank > 1000) || classIds.isEmpty() || evidenceSkills.isEmpty() || (authority != Authority.CURATED_CAPABILITY_RULE))
+			if ((capabilityKey == null) || capabilityKey.isBlank() || (variantKey == null) || !variantKey.matches("[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*") || (rank < 1) || (rank > 1000) || classIds.isEmpty() || (actionSkill == null) || evidenceSkills.isEmpty() || !evidenceSkills.contains(actionSkill) || (authority != Authority.CURATED_CAPABILITY_RULE))
 			{
 				throw new IllegalArgumentException("Invalid capability rule.");
 			}
@@ -362,7 +409,7 @@ public final class PhantomProgressionModel
 
 		public String stableKey()
 		{
-			return capabilityKey + ':' + key(classIds.getFirst()) + ':' + key(rank);
+			return key(classIds.getFirst()) + ':' + capabilityKey + ':' + variantKey;
 		}
 	}
 
@@ -420,7 +467,7 @@ public final class PhantomProgressionModel
 		}
 	}
 
-	public record OwnedEquipmentFact(int objectId, int itemId, String bodyPart, String family, String grade, int enchant, boolean equipped, boolean canonicalCompatibility, List<String> compatibilityReasons, long deterministicPreferenceScore)
+	public record OwnedEquipmentFact(int objectId, int itemId, String bodyPart, String family, String grade, int enchant, boolean equipped, boolean canonicalCompatibility, List<String> compatibilityReasons)
 	{
 		public OwnedEquipmentFact
 		{
@@ -433,34 +480,67 @@ public final class PhantomProgressionModel
 
 		public String stableKey()
 		{
-			return String.format("%020d", Long.MAX_VALUE - deterministicPreferenceScore) + ':' + key(itemId) + ':' + key(objectId);
+			return key(objectId);
 		}
 	}
 
-	public record ControlledActorFact(int objectId, int actorIdentity, ActorKind actorKind, int referenceSkillId)
+	public record OwnedEquipmentFilter(String bodyPart, String family, Boolean canonicalCompatibility)
+	{
+		public OwnedEquipmentFilter
+		{
+			bodyPart = normalize(bodyPart);
+			family = normalize(family);
+		}
+
+		public static OwnedEquipmentFilter all()
+		{
+			return new OwnedEquipmentFilter(null, null, null);
+		}
+
+		private static String normalize(String value)
+		{
+			return (value == null) || value.isBlank() ? null : value;
+		}
+	}
+
+	public record ControlledActorBody(int objectId, int instanceId, int x, int y, int z, double currentHp, double maximumHp, double currentMp, double maximumMp, Integer targetObjectId, boolean dead)
+	{
+		public ControlledActorBody
+		{
+			if ((objectId <= 0) || (instanceId < 0) || !Double.isFinite(currentHp) || !Double.isFinite(maximumHp) || !Double.isFinite(currentMp) || !Double.isFinite(maximumMp) || (currentHp < 0) || (maximumHp < currentHp) || (currentMp < 0) || (maximumMp < currentMp) || ((targetObjectId != null) && (targetObjectId <= 0)))
+			{
+				throw new IllegalArgumentException("Invalid controlled actor body.");
+			}
+		}
+	}
+
+	public record ControlledActorFact(int actorIdentity, ActorKind actorKind, int referenceSkillId, ControlledActorBody body)
 	{
 		public ControlledActorFact
 		{
-			if ((objectId < 0) || (actorIdentity < 0) || (referenceSkillId < 0))
+			if ((actorIdentity < 0) || (referenceSkillId < 0))
 			{
 				throw new IllegalArgumentException("Invalid active controlled actor.");
 			}
 			Objects.requireNonNull(actorKind, "actorKind");
+			if ((actorKind == ActorKind.CUBIC) != (body == null))
+			{
+				throw new IllegalArgumentException("Only cubic lacks a controlled actor body.");
+			}
 		}
 	}
 
-	public record ActorProgressionSnapshot(long profileId, int actorObjectId, int baseClassId, int activeClassId, int classIndex, int activeClassTier, int level, long exp, long sp, boolean noble, boolean hero, boolean subclassActive, List<SubclassFact> subclasses, Map<Integer, Integer> learnedSkills, List<EquippedItemFact> equippedItems, List<OwnedEquipmentFact> ownedEquipment, Map<Integer, Long> resourceItemCounts, List<ControlledActorFact> controlledActors, boolean transformed, boolean mounted, boolean inCombat, boolean casting, boolean dead, boolean subclassQuestSatisfied, int maximumSubclasses, Set<Integer> certificationSkillIds, String catalogCombinedHash)
+	public record ActorProgressionSnapshot(long profileId, int actorObjectId, int baseClassId, int activeClassId, int classIndex, int activeClassTier, int level, long exp, long sp, boolean noble, boolean hero, boolean subclassActive, List<SubclassFact> subclasses, Map<Integer, Integer> learnedSkills, List<EquippedItemFact> equippedItems, Map<Integer, Long> resourceItemCounts, int charges, int souls, List<ControlledActorFact> controlledActors, boolean transformed, boolean mounted, boolean inCombat, boolean casting, boolean dead, boolean subclassQuestSatisfied, int maximumSubclasses, Set<Integer> certificationSkillIds, String catalogCombinedHash)
 	{
 		public ActorProgressionSnapshot
 		{
-			if ((profileId <= 0) || (actorObjectId <= 0) || (baseClassId < 0) || (activeClassId < 0) || (classIndex < 0) || (activeClassTier < 0) || (level < 1) || (exp < 0) || (sp < 0) || (maximumSubclasses < 0) || (catalogCombinedHash == null) || catalogCombinedHash.isBlank())
+			if ((profileId <= 0) || (actorObjectId <= 0) || (baseClassId < 0) || (activeClassId < 0) || (classIndex < 0) || (activeClassTier < 0) || (level < 1) || (exp < 0) || (sp < 0) || (charges < 0) || (souls < 0) || (maximumSubclasses < 0) || (catalogCombinedHash == null) || catalogCombinedHash.isBlank())
 			{
 				throw new IllegalArgumentException("Invalid actor progression snapshot.");
 			}
 			subclasses = List.copyOf(subclasses);
 			learnedSkills = Map.copyOf(learnedSkills);
 			equippedItems = List.copyOf(equippedItems);
-			ownedEquipment = List.copyOf(ownedEquipment);
 			resourceItemCounts = Map.copyOf(resourceItemCounts);
 			controlledActors = List.copyOf(controlledActors);
 			certificationSkillIds = Set.copyOf(certificationSkillIds);
@@ -484,11 +564,11 @@ public final class PhantomProgressionModel
 		}
 	}
 
-	public record CapabilityEvaluation(String capabilityKey, int rank, TargetScope targetScope, boolean intrinsic, boolean learned, boolean readyNow, ReadinessReason reason, List<SkillRef> evidenceSkills)
+	public record CapabilityEvaluation(String capabilityKey, String variantKey, int rank, SkillRef actionSkill, TargetScope targetScope, boolean intrinsic, boolean learned, boolean readyNow, ReadinessReason reason, List<SkillRef> evidenceSkills)
 	{
 		public CapabilityEvaluation
 		{
-			if ((capabilityKey == null) || capabilityKey.isBlank() || (rank < 1) || (rank > 1000))
+			if ((capabilityKey == null) || capabilityKey.isBlank() || (variantKey == null) || variantKey.isBlank() || (rank < 1) || (rank > 1000) || (actionSkill == null))
 			{
 				throw new IllegalArgumentException("Invalid capability evaluation.");
 			}
@@ -503,7 +583,7 @@ public final class PhantomProgressionModel
 
 		public String stableKey()
 		{
-			return capabilityKey + ':' + key(rank);
+			return capabilityKey + ':' + variantKey;
 		}
 	}
 

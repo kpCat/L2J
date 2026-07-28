@@ -81,7 +81,7 @@ public final class PhantomProgressionCatalog
 		_summonsBySkill = group(_summons, fact -> new SkillRef(fact.skillId(), fact.skillLevel()));
 		_summonsByNpc = group(_summons, SummonActorFact::actorIdentity);
 		_petsByNpc = uniqueIndex(_pets, PetFact::npcId, "pet");
-		_referencedResourceItemIds = collectResourceItems(_skillLearns, _capabilityRules, _summons, _pets);
+		_referencedResourceItemIds = collectResourceItems(_skillLearns, _skills, _capabilityRules, _summons, _pets);
 		_certificationSkillIds = collectCertificationSkills(_skillLearns);
 		_counts = new Counts(_classes.size(), _skillLearns.size(), _skills.size(), _equipment.size(), _summons.size(), _pets.size(), _capabilityRules.size());
 	}
@@ -320,10 +320,11 @@ public final class PhantomProgressionCatalog
 		return Map.copyOf(immutable);
 	}
 
-	private static Set<Integer> collectResourceItems(List<SkillLearnFact> skillLearns, List<CapabilityRule> capabilityRules, List<SummonActorFact> summons, List<PetFact> pets)
+	private static Set<Integer> collectResourceItems(List<SkillLearnFact> skillLearns, List<SkillFact> skills, List<CapabilityRule> capabilityRules, List<SummonActorFact> summons, List<PetFact> pets)
 	{
 		final Set<Integer> result = new HashSet<>();
 		skillLearns.forEach(fact -> fact.requiredItems().forEach(item -> result.add(item.itemId())));
+		skills.forEach(fact -> addPositive(result, fact.itemConsumeId()));
 		capabilityRules.forEach(fact -> fact.requiredItems().forEach(item -> result.add(item.itemId())));
 		for (SummonActorFact fact : summons)
 		{

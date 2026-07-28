@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
@@ -76,6 +75,7 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Aut
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CapabilityRule;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ClassFact;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ConditionPresence;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ControlledActorBody;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ControlledActorFact;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.EquipmentFact;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.EquipItemRequest;
@@ -84,11 +84,14 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Lea
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationResult;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OwnedEquipmentFact;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OwnedEquipmentFilter;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Page;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.PetFact;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.PetSkillFact;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.RequiredItem;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillFact;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillLearnFact;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillLearningItemPlan;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillReadinessProbe;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SubclassEligibility;
@@ -135,7 +138,8 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 		final List<SummonActorFact> summons = copySummons(skillLearns, pets, sources, policy);
 		final List<SkillFact> skills = copySkills(skillLearns, summons, pets, capabilityRules, sources, policy);
 		final List<EquipmentFact> equipment = copyEquipment(policy);
-		return new BackendData(classes, skillLearns, skills, equipment, summons, pets, capabilityRules);
+		final Set<Integer> knownItemIds = Arrays.stream(ItemData.getInstance().getAllItems()).filter(Objects::nonNull).map(ItemTemplate::getId).collect(java.util.stream.Collectors.toUnmodifiableSet());
+		return new BackendData(classes, skillLearns, skills, equipment, summons, pets, capabilityRules, knownItemIds);
 	}
 
 	private static List<ClassFact> copyClasses(SourceData sources, PhantomProgressionPolicy policy)
@@ -327,7 +331,10 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 					throw failure("reference", "Accepted Game Knowledge capability lacks progression semantics.");
 				}
 				final List<SkillRef> evidence = fact.evidenceSkills().stream().map(value -> new SkillRef(value.skillId(), value.skillLevel())).sorted(SKILL_ORDER).toList();
-				addCapability(result, fact.classId(), fact.capabilityKey(), fact.rank(), evidence, semantics, fact.sourceRefs(), classIds, skillsByClass, policy);
+				for (SkillRef actionSkill : evidence)
+				{
+					addCapability(result, fact.classId(), fact.capabilityKey(), knowledgeVariantKey(actionSkill), fact.rank(), actionSkill, List.of(actionSkill), semantics, fact.sourceRefs(), classIds, skillsByClass, policy);
+				}
 			}
 		}
 		for (CapabilitySeed seed : sources.capabilitySeeds())
@@ -337,21 +344,26 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 			{
 				throw failure("reference", "Curated capability rule lacks semantics.");
 			}
-			addCapability(result, seed.classId(), seed.capabilityKey(), seed.rank(), List.of(seed.skill()), semantics, List.of(seed.sourcePath()), classIds, skillsByClass, policy);
+			addCapability(result, seed.classId(), seed.capabilityKey(), seed.variantKey(), seed.rank(), seed.skill(), List.of(seed.skill()), semantics, List.of(seed.sourcePath()), classIds, skillsByClass, policy);
 		}
-		result.sort(Comparator.comparing(CapabilityRule::capabilityKey).thenComparingInt(value -> value.classIds().getFirst()).thenComparingInt(CapabilityRule::rank));
+		result.sort(Comparator.comparingInt((CapabilityRule value) -> value.classIds().getFirst()).thenComparing(CapabilityRule::capabilityKey).thenComparing(CapabilityRule::variantKey));
 		final HashSet<String> identities = new HashSet<>();
 		for (CapabilityRule rule : result)
 		{
-			if (!identities.add(rule.classIds().getFirst() + ":" + rule.capabilityKey()))
+			if (!identities.add(rule.stableKey()))
 			{
-				throw failure("duplicate", "Duplicate class capability rule.");
+				throw failure("duplicate", "Duplicate class capability variant.");
 			}
 		}
 		return List.copyOf(result);
 	}
 
-	private static void addCapability(List<CapabilityRule> result, int classId, String key, int rank, List<SkillRef> evidence, CapabilitySemantics semantics, List<String> sources, Set<Integer> classIds, Map<Integer, Set<SkillRef>> skillsByClass, PhantomProgressionPolicy policy)
+	public static String knowledgeVariantKey(SkillRef skill)
+	{
+		return "knowledge-s" + skill.skillId() + "-l" + skill.skillLevel();
+	}
+
+	private static void addCapability(List<CapabilityRule> result, int classId, String key, String variantKey, int rank, SkillRef actionSkill, List<SkillRef> evidence, CapabilitySemantics semantics, List<String> sources, Set<Integer> classIds, Map<Integer, Set<SkillRef>> skillsByClass, PhantomProgressionPolicy policy)
 	{
 		if (result.size() >= policy.maximumCapabilityRules())
 		{
@@ -367,7 +379,7 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 			default -> true;
 		};
 		final boolean servitorRequired = (semantics.targetScope() == PhantomProgressionModel.TargetScope.SERVITOR) && !"combat.summon".equals(key);
-		result.add(new CapabilityRule(key, rank, List.of(classId), evidence, semantics.targetScope(), semantics.equipmentFamilies(), List.of(), targetRequired, servitorRequired, servitorRequired, Authority.CURATED_CAPABILITY_RULE, sources));
+		result.add(new CapabilityRule(key, variantKey, rank, List.of(classId), actionSkill, evidence, semantics.targetScope(), semantics.equipmentFamilies(), List.of(), targetRequired, servitorRequired, servitorRequired, Authority.CURATED_CAPABILITY_RULE, sources));
 	}
 
 	private static Map<Integer, Set<SkillRef>> skillsByClass(List<SkillLearnFact> learns)
@@ -407,7 +419,9 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 			final List<Integer> ownerClasses = classesBySkill.getOrDefault(new SkillRef(raw.skillId(), raw.skillLevel()), Set.of()).stream().sorted().toList();
 			final ActorKind kind = raw.actorKind() == ActorKind.CUBIC ? ActorKind.CUBIC : template.getRace() == Race.SIEGE_WEAPON ? ActorKind.SIEGE_SUMMON : ownerClasses.isEmpty() ? ActorKind.QUEST_SUMMON : ActorKind.SERVITOR;
 			final int interval = (raw.upkeepItemId() == 0) ? 0 : (raw.upkeepIntervalMillis() > 0 ? raw.upkeepIntervalMillis() : (template.getRace() == Race.SIEGE_WEAPON ? 60_000 : 240_000));
-			result.add(new SummonActorFact(ownerClasses, raw.skillId(), raw.skillLevel(), raw.actorIdentity(), kind, raw.lifetimeMillis(), raw.expMultiplier(), skill.getItemConsumeId(), raw.upkeepItemId(), raw.upkeepItemCount(), interval, 0, Set.of(), template == null ? 0 : template.getSoulShot(), template == null ? 0 : template.getSpiritShot(), false, false, false, false, false, false, true, true, true, true, Authority.STATIC_DATAPACK_FACT, List.of(raw.sourcePath(), raw.actorKind() == ActorKind.CUBIC ? "dist/game/data/scripts/handlers/skill/effects/SummonCubic.java" : "dist/game/data/scripts/handlers/skill/effects/Summon.java")));
+			final MechanicSkills mechanics = mechanicSkills(template == null ? List.of() : template.getSkills().values());
+			final boolean bodyCommands = kind != ActorKind.CUBIC;
+			result.add(new SummonActorFact(ownerClasses, raw.skillId(), raw.skillLevel(), raw.actorIdentity(), kind, raw.lifetimeMillis(), raw.expMultiplier(), skill.getItemConsumeId(), raw.upkeepItemId(), raw.upkeepItemCount(), interval, 0, Set.of(), template == null ? 0 : template.getSoulShot(), template == null ? 0 : template.getSpiritShot(), false, false, false, mechanics.all(), mechanics.heal(), mechanics.recharge(), mechanics.buff(), mechanics.damage(), mechanics.control(), bodyCommands, bodyCommands, bodyCommands, bodyCommands, Authority.STATIC_DATAPACK_FACT, List.of(raw.sourcePath(), raw.actorKind() == ActorKind.CUBIC ? "dist/game/data/scripts/handlers/skill/effects/SummonCubic.java" : "dist/game/data/scripts/handlers/skill/effects/Summon.java")));
 		}
 		for (PetFact pet : pets)
 		{
@@ -420,22 +434,19 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 			}
 			final ItemTemplate control = ItemData.getInstance().getTemplate(pet.controlItemId());
 			final SkillRef summonSkill = Arrays.stream(control.getSkills()).map(holder -> new SkillRef(holder.getSkillId(), Math.max(1, holder.getSkillLevel()))).filter(ref -> requireSkill(ref.skillId(), ref.skillLevel()).hasEffectType(EffectType.SUMMON_PET)).findFirst().orElseThrow(() -> failure("reference", "Pet control item has no SummonPet skill."));
-			boolean heal = false;
-			boolean recharge = false;
-			boolean buff = false;
+			final ArrayList<Skill> petSkills = new ArrayList<>();
 			for (PetSkillFact petSkill : pet.skills())
 			{
 				final Skill loaded = SkillData.getInstance().getSkill(petSkill.skillId(), Math.max(1, petSkill.skillLevel()));
 				if (loaded != null)
 				{
-					heal |= hasAny(loaded, HEAL_EFFECTS);
-					recharge |= loaded.hasEffectType(EffectType.MANAHEAL_BY_LEVEL, EffectType.MANAHEAL_PERCENT);
-					buff |= loaded.hasEffectType(EffectType.BUFF);
+					petSkills.add(loaded);
 				}
 			}
+			final MechanicSkills mechanics = mechanicSkills(petSkills);
 			final boolean baby = CategoryData.getInstance().isInCategory(CategoryType.BABY_PET_GROUP, pet.npcId()) || CategoryData.getInstance().isInCategory(CategoryType.UPGRADE_BABY_PET_GROUP, pet.npcId());
 			final NpcTemplate template = NpcData.getInstance().getTemplate(pet.npcId());
-			result.add(new SummonActorFact(List.of(), summonSkill.skillId(), summonSkill.skillLevel(), pet.npcId(), baby ? ActorKind.BABY_PET : ActorKind.PET, 0, 0, 0, 0, 0, 0, pet.controlItemId(), pet.foodItemIds(), template.getSoulShot(), template.getSpiritShot(), pet.mountable(), true, true, heal, recharge, buff, true, true, true, true, Authority.SERVER_LOADER_FACT, List.of(pet.sourcePath(), itemSource(pet.controlItemId()), "dist/game/data/scripts/handlers/skill/effects/SummonPet.java")));
+			result.add(new SummonActorFact(List.of(), summonSkill.skillId(), summonSkill.skillLevel(), pet.npcId(), baby ? ActorKind.BABY_PET : ActorKind.PET, 0, 0, 0, 0, 0, 0, pet.controlItemId(), pet.foodItemIds(), template.getSoulShot(), template.getSpiritShot(), pet.mountable(), true, true, mechanics.all(), mechanics.heal(), mechanics.recharge(), mechanics.buff(), mechanics.damage(), mechanics.control(), true, true, true, true, Authority.SERVER_LOADER_FACT, List.of(pet.sourcePath(), itemSource(pet.controlItemId()), "dist/game/data/scripts/handlers/skill/effects/SummonPet.java")));
 		}
 		if (result.size() > policy.maximumSummonFacts())
 		{
@@ -445,11 +456,62 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 		return List.copyOf(result);
 	}
 
+	private static MechanicSkills mechanicSkills(Collection<Skill> skills)
+	{
+		final ArrayList<SkillRef> all = new ArrayList<>();
+		final ArrayList<SkillRef> heal = new ArrayList<>();
+		final ArrayList<SkillRef> recharge = new ArrayList<>();
+		final ArrayList<SkillRef> buff = new ArrayList<>();
+		final ArrayList<SkillRef> damage = new ArrayList<>();
+		final ArrayList<SkillRef> control = new ArrayList<>();
+		for (Skill skill : skills)
+		{
+			if (skill == null)
+			{
+				continue;
+			}
+			final SkillRef reference = new SkillRef(skill.getId(), skill.getLevel());
+			all.add(reference);
+			if (hasAny(skill, HEAL_EFFECTS))
+			{
+				heal.add(reference);
+			}
+			if (skill.hasEffectType(EffectType.MANAHEAL_BY_LEVEL, EffectType.MANAHEAL_PERCENT))
+			{
+				recharge.add(reference);
+			}
+			if (skill.hasEffectType(EffectType.BUFF))
+			{
+				buff.add(reference);
+			}
+			if (skill.isDamage())
+			{
+				damage.add(reference);
+			}
+			if (hasAny(skill, CONTROL_EFFECTS))
+			{
+				control.add(reference);
+			}
+		}
+		all.sort(SKILL_ORDER);
+		heal.sort(SKILL_ORDER);
+		recharge.sort(SKILL_ORDER);
+		buff.sort(SKILL_ORDER);
+		damage.sort(SKILL_ORDER);
+		control.sort(SKILL_ORDER);
+		return new MechanicSkills(List.copyOf(all), List.copyOf(heal), List.copyOf(recharge), List.copyOf(buff), List.copyOf(damage), List.copyOf(control));
+	}
+
+	private record MechanicSkills(List<SkillRef> all, List<SkillRef> heal, List<SkillRef> recharge, List<SkillRef> buff, List<SkillRef> damage, List<SkillRef> control)
+	{
+	}
+
 	private static List<SkillFact> copySkills(List<SkillLearnFact> learns, List<SummonActorFact> summons, List<PetFact> pets, List<CapabilityRule> capabilities, SourceData sources, PhantomProgressionPolicy policy)
 	{
 		final HashSet<SkillRef> referenced = new HashSet<>();
 		learns.forEach(value -> referenced.add(value.skill()));
 		summons.forEach(value -> referenced.add(value.skill()));
+		summons.forEach(value -> referenced.addAll(value.actorSkills()));
 		capabilities.forEach(value -> referenced.addAll(value.evidenceSkills()));
 		for (PetFact pet : pets)
 		{
@@ -471,7 +533,7 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 			{
 				throw failure("reference", "Referenced Skill has no exact datapack source.");
 			}
-			result.add(new SkillFact(skill.getId(), skill.getLevel(), skill.isActive(), skill.isPassive(), skill.isToggle(), skill.isPhysical(), skill.isMagic(), skill.getTargetType().name(), skill.isDamage(), skill.hasNegativeEffect(), hasAny(skill, HEAL_EFFECTS), hasAny(skill, RESURRECTION_EFFECTS), skill.hasEffectType(EffectType.BUFF), skill.isDebuff() || skill.hasEffectType(EffectType.DEBUFF), hasAny(skill, CONTROL_EFFECTS), skill.getItemConsumeId(), skill.getItemConsumeCount(), skill.getMpConsume() + skill.getMpInitialConsume(), skill.getHpConsume(), skill.getReuseDelay(), ConditionPresence.DYNAMIC_SERVER_CONDITION, skill.isBlockedInOlympiad(), skill.isPvPOnly(), skill.isSuicideAttack(), skill.isRemovedOnAnyActionExceptMove(), skill.isTransformation(), Authority.SERVER_LOADER_FACT, List.of(source)));
+			result.add(new SkillFact(skill.getId(), skill.getLevel(), skill.isActive(), skill.isPassive(), skill.isToggle(), skill.isPhysical(), skill.isMagic(), skill.getTargetType().name(), skill.isDamage(), skill.hasNegativeEffect(), hasAny(skill, HEAL_EFFECTS), hasAny(skill, RESURRECTION_EFFECTS), skill.hasEffectType(EffectType.BUFF), skill.isDebuff() || skill.hasEffectType(EffectType.DEBUFF), hasAny(skill, CONTROL_EFFECTS), skill.getItemConsumeId(), skill.getItemConsumeCount(), skill.getChargeConsumeCount(), skill.getMaxSoulConsumeCount(), skill.getMpConsume() + skill.getMpInitialConsume(), skill.getHpConsume(), skill.getReuseDelay(), ConditionPresence.DYNAMIC_SERVER_CONDITION, skill.isBlockedInOlympiad(), skill.isPvPOnly(), skill.isSuicideAttack(), skill.isRemovedOnAnyActionExceptMove(), skill.isTransformation(), Authority.SERVER_LOADER_FACT, List.of(source)));
 		}
 		return List.copyOf(result);
 	}
@@ -591,7 +653,7 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 		}
 
 		@Override
-		public ActorProgressionSnapshot snapshot(String catalogHash, Set<Integer> referencedResourceItemIds, Set<Integer> certificationSkillIds, int maximumOwnedEquipmentCandidates)
+		public ActorProgressionSnapshot snapshot(String catalogHash, Set<Integer> referencedResourceItemIds, Set<Integer> certificationSkillIds)
 		{
 			requireOpen();
 			final Map<Integer, Integer> learnedSkills = _player.getSkills().values().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(Skill::getId, Skill::getLevel, Math::max));
@@ -606,7 +668,6 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 					equipped.add(new EquippedItemFact(item.getObjectId(), item.getId(), slot));
 				}
 			}
-			final List<OwnedEquipmentFact> owned = ownedEquipment(maximumOwnedEquipmentCandidates);
 			final HashMap<Integer, Long> resources = new HashMap<>();
 			for (Integer itemId : referencedResourceItemIds)
 			{
@@ -618,9 +679,11 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 			{
 				final ActorKind kind = summon instanceof BabyPet ? ActorKind.BABY_PET : summon instanceof Pet ? ActorKind.PET : summon.getTemplate().getRace() == Race.SIEGE_WEAPON ? ActorKind.SIEGE_SUMMON : ActorKind.SERVITOR;
 				final int referenceSkill = summon instanceof Servitor servitor ? servitor.getReferenceSkill() : 0;
-				controlled.add(new ControlledActorFact(summon.getObjectId(), summon.getId(), kind, referenceSkill));
+				final WorldObject target = summon.getTarget();
+				final ControlledActorBody body = new ControlledActorBody(summon.getObjectId(), summon.getInstanceId(), summon.getX(), summon.getY(), summon.getZ(), summon.getCurrentHp(), summon.getMaxHp(), summon.getCurrentMp(), summon.getMaxMp(), target == null ? null : target.getObjectId(), summon.isDead());
+				controlled.add(new ControlledActorFact(summon.getId(), kind, referenceSkill, body));
 			}
-			_player.getCubics().values().stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.actor.instance.Cubic::getId)).forEach(cubic -> controlled.add(new ControlledActorFact(0, cubic.getId(), ActorKind.CUBIC, 0)));
+			_player.getCubics().values().stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.actor.instance.Cubic::getId)).forEach(cubic -> controlled.add(new ControlledActorFact(cubic.getId(), ActorKind.CUBIC, 0, null)));
 			final HashSet<Integer> certifications = new HashSet<>();
 			for (Integer skillId : certificationSkillIds)
 			{
@@ -629,13 +692,20 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 					certifications.add(skillId);
 				}
 			}
-			return new ActorProgressionSnapshot(_profileId, _player.getObjectId(), _player.getBaseClass(), _player.getPlayerClass().getId(), _player.getClassIndex(), _player.getPlayerClass().level(), _player.getLevel(), _player.getExp(), _player.getSp(), _player.isNoble(), _player.isHero(), _player.isSubClassActive(), subclasses, learnedSkills, equipped, owned, resources, controlled, _player.isTransformed(), _player.isMounted(), _player.isInCombat(), _player.isCastingNow() || _player.isCastingSimultaneouslyNow(), _player.isAlikeDead(), subclassQuestSatisfied(), PlayerConfig.MAX_SUBCLASS, certifications, catalogHash);
+			return new ActorProgressionSnapshot(_profileId, _player.getObjectId(), _player.getBaseClass(), _player.getPlayerClass().getId(), _player.getClassIndex(), _player.getPlayerClass().level(), _player.getLevel(), _player.getExp(), _player.getSp(), _player.isNoble(), _player.isHero(), _player.isSubClassActive(), subclasses, learnedSkills, equipped, resources, _player.getCharges(), _player.getChargedSouls(), controlled, _player.isTransformed(), _player.isMounted(), _player.isInCombat(), _player.isCastingNow() || _player.isCastingSimultaneouslyNow(), _player.isAlikeDead(), subclassQuestSatisfied(), PlayerConfig.MAX_SUBCLASS, certifications, catalogHash);
 		}
 
-		private List<OwnedEquipmentFact> ownedEquipment(int maximum)
+		@Override
+		public Page<OwnedEquipmentFact> ownedEquipment(OwnedEquipmentFilter filter, org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.PageRequest page)
 		{
-			final Comparator<OwnedEquipmentFact> order = Comparator.comparing(OwnedEquipmentFact::stableKey);
-			final PriorityQueue<OwnedEquipmentFact> bounded = new PriorityQueue<>(maximum, order.reversed());
+			requireOpen();
+			Objects.requireNonNull(filter, "filter");
+			Objects.requireNonNull(page, "page");
+			if (page.limit() > 64)
+			{
+				throw new IllegalArgumentException("Owned equipment page limit exceeds 64.");
+			}
+			final ArrayList<OwnedEquipmentFact> matching = new ArrayList<>();
 			for (Item item : _player.getInventory().getItems())
 			{
 				if (!item.isEquipable() || ((item.getItemLocation() != ItemLocation.INVENTORY) && (item.getItemLocation() != ItemLocation.PAPERDOLL)))
@@ -649,19 +719,25 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 				{
 					reasons.add("DYNAMIC_SERVER_CONDITION");
 				}
-				final long score = (compatible ? 1_000_000L : 0) + (template.getCrystalType().getLevel() * 10_000L) + (item.getEnchantLevel() * 100L) + Math.max(0, 99 - (item.getId() % 100));
-				final OwnedEquipmentFact fact = new OwnedEquipmentFact(item.getObjectId(), item.getId(), template.getBodyPart().name(), equipmentFamily(template), template.getCrystalType().name(), item.getEnchantLevel(), item.isEquipped(), compatible, reasons, score);
-				if (bounded.size() < maximum)
+				final OwnedEquipmentFact fact = new OwnedEquipmentFact(item.getObjectId(), item.getId(), template.getBodyPart().name(), equipmentFamily(template), template.getCrystalType().name(), item.getEnchantLevel(), item.isEquipped(), compatible, reasons);
+				if (((filter.bodyPart() == null) || filter.bodyPart().equals(fact.bodyPart())) && ((filter.family() == null) || filter.family().equals(fact.family())) && ((filter.canonicalCompatibility() == null) || (filter.canonicalCompatibility() == fact.canonicalCompatibility())))
 				{
-					bounded.add(fact);
-				}
-				else if (order.compare(fact, bounded.peek()) < 0)
-				{
-					bounded.poll();
-					bounded.add(fact);
+					matching.add(fact);
 				}
 			}
-			return bounded.stream().sorted(order).toList();
+			matching.sort(Comparator.comparing(OwnedEquipmentFact::stableKey));
+			int first = 0;
+			if (page.afterKey() != null)
+			{
+				while ((first < matching.size()) && (matching.get(first).stableKey().compareTo(page.afterKey()) <= 0))
+				{
+					first++;
+				}
+			}
+			final int last = Math.min(matching.size(), first + page.limit());
+			final boolean hasMore = last < matching.size();
+			final List<OwnedEquipmentFact> values = matching.subList(first, last);
+			return new Page<>(values, hasMore && !values.isEmpty() ? values.getLast().stableKey() : null, hasMore);
 		}
 
 		private boolean subclassQuestSatisfied()
@@ -792,12 +868,13 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 					return OperationResult.rejected(OperationStatus.PREREQUISITE_MISSING);
 				}
 			}
+			final SkillLearningItemPlan itemPlan = SkillLearningItemPlan.from(learn.getRequiredItems().stream().map(required -> new RequiredItem(required.getId(), required.getCount())).toList());
 			final LinkedHashMap<Integer, Long> beforeItems = new LinkedHashMap<>();
-			for (ItemHolder required : learn.getRequiredItems().stream().sorted(Comparator.comparingInt(ItemHolder::getId)).toList())
+			for (RequiredItem required : itemPlan.aggregatedItems())
 			{
-				final long count = _player.getInventory().getInventoryItemCount(required.getId(), -1);
-				beforeItems.put(required.getId(), count);
-				if (count < required.getCount())
+				final long count = _player.getInventory().getInventoryItemCount(required.itemId(), -1);
+				beforeItems.put(required.itemId(), count);
+				if (count < required.count())
 				{
 					return OperationResult.rejected(OperationStatus.REQUIRED_ITEM_MISSING);
 				}
@@ -806,10 +883,17 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 			{
 				return OperationResult.rejected(OperationStatus.CANCELLED);
 			}
-			final long spBefore = _player.getSp();
-			for (ItemHolder required : learn.getRequiredItems().stream().sorted(Comparator.comparingInt(ItemHolder::getId)).toList())
+			// Player exposes no atomic mutation for multiple distinct item IDs.
+			// Fail closed before any side effect instead of risking prefix loss.
+			if (!itemPlan.canonicalAtomicMutationSupported())
 			{
-				if (!_player.destroyItemByItemId(ItemProcessType.FEE, required.getId(), required.getCount(), trainer, false))
+				return OperationResult.rejected(OperationStatus.BLOCKED_CANONICAL_SKILL_LEARNING);
+			}
+			final long spBefore = _player.getSp();
+			if (!itemPlan.aggregatedItems().isEmpty())
+			{
+				final RequiredItem required = itemPlan.aggregatedItems().getFirst();
+				if (!_player.destroyItemByItemId(ItemProcessType.FEE, required.itemId(), required.count(), trainer, false))
 				{
 					return OperationResult.rejected(OperationStatus.BLOCKED_CANONICAL_SKILL_LEARNING);
 				}
@@ -820,10 +904,6 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 			}
 			_player.addSkill(skill, true);
 			_player.updateShortcuts(skill.getId(), skill.getLevel());
-			if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_SKILL_LEARN, trainer))
-			{
-				EventDispatcher.getInstance().notifyEventAsync(new OnPlayerSkillLearn(trainer, _player, skill, AcquireSkillType.CLASS), trainer);
-			}
 			final LinkedHashMap<Integer, Long> afterItems = new LinkedHashMap<>();
 			beforeItems.keySet().forEach(itemId -> afterItems.put(itemId, _player.getInventory().getInventoryItemCount(itemId, -1)));
 			final long spAfter = _player.getSp();
@@ -831,12 +911,16 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 			{
 				return new OperationResult(OperationStatus.RECONCILIATION_FAILED, spBefore, spAfter, beforeItems, afterItems, _player.getSkillLevel(skill.getId()), false);
 			}
-			for (ItemHolder required : learn.getRequiredItems())
+			for (RequiredItem required : itemPlan.aggregatedItems())
 			{
-				if ((beforeItems.get(required.getId()) - afterItems.get(required.getId())) != required.getCount())
+				if ((beforeItems.get(required.itemId()) - afterItems.get(required.itemId())) != required.count())
 				{
 					return new OperationResult(OperationStatus.RECONCILIATION_FAILED, spBefore, spAfter, beforeItems, afterItems, _player.getSkillLevel(skill.getId()), false);
 				}
+			}
+			if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_SKILL_LEARN, trainer))
+			{
+				EventDispatcher.getInstance().notifyEventAsync(new OnPlayerSkillLearn(trainer, _player, skill, AcquireSkillType.CLASS), trainer);
 			}
 			return new OperationResult(OperationStatus.SUCCESS, spBefore, spAfter, beforeItems, afterItems, _player.getSkillLevel(skill.getId()), false);
 		}

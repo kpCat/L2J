@@ -224,7 +224,7 @@ public final class PhantomCombatPerformanceSuite implements PhantomTestSuite
 		@Override
 		public ActorSnapshot actorSnapshot()
 		{
-			return new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
+			return new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 50, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
 		}
 
 		@Override

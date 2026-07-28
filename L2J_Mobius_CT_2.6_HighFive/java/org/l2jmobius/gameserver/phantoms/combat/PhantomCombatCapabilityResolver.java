@@ -25,19 +25,24 @@ public final class PhantomCombatCapabilityResolver
 		List<CapabilityEvidence> capabilities(int classId);
 	}
 
-	public record CapabilityEvidence(String capabilityKey, int rank, List<SelectedSkill> skills)
+	public record CapabilityEvidence(String capabilityKey, String variantKey, int rank, List<SelectedSkill> skills)
 	{
 		public CapabilityEvidence
 		{
-			if ((capabilityKey == null) || capabilityKey.isBlank() || (rank < 1) || (skills == null))
+			if ((capabilityKey == null) || capabilityKey.isBlank() || (variantKey == null) || variantKey.isBlank() || (rank < 1) || (skills == null))
 			{
 				throw new IllegalArgumentException("Invalid capability evidence.");
 			}
 			skills = List.copyOf(skills);
 		}
+
+		public CapabilityEvidence(String capabilityKey, int rank, List<SelectedSkill> skills)
+		{
+			this(capabilityKey, "legacy", rank, skills);
+		}
 	}
 
-	private static final Comparator<CapabilityEvidence> CAPABILITY_ORDER = Comparator.comparingInt(CapabilityEvidence::rank).reversed().thenComparing(CapabilityEvidence::capabilityKey);
+	private static final Comparator<CapabilityEvidence> CAPABILITY_ORDER = Comparator.comparing(CapabilityEvidence::capabilityKey).thenComparing(CapabilityEvidence::variantKey);
 	private static final Comparator<SelectedSkill> SKILL_ORDER = Comparator.comparingInt(SelectedSkill::skillId).thenComparingInt(SelectedSkill::skillLevel);
 	private final CapabilitySource _source;
 
@@ -56,7 +61,7 @@ public final class PhantomCombatCapabilityResolver
 			{
 				return List.of();
 			}
-			return query.classCapabilities(classId, PageRequest.first(256)).values().stream().map(PhantomCombatCapabilityResolver::copy).toList();
+			return query.classCapabilities(classId, PageRequest.first(256)).values().stream().flatMap(fact -> copy(fact).stream()).toList();
 		});
 	}
 
@@ -70,13 +75,13 @@ public final class PhantomCombatCapabilityResolver
 			{
 				return List.of();
 			}
-			return catalog.capabilities(classId).stream().map(fact -> new CapabilityEvidence(fact.capabilityKey(), fact.rank(), fact.evidenceSkills().stream().map(skill -> new SelectedSkill(skill.skillId(), skill.skillLevel())).sorted(SKILL_ORDER).toList())).toList();
+			return catalog.capabilities(classId).stream().map(fact -> new CapabilityEvidence(fact.capabilityKey(), fact.variantKey(), fact.rank(), List.of(new SelectedSkill(fact.actionSkill().skillId(), fact.actionSkill().skillLevel())))).toList();
 		});
 	}
 
-	private static CapabilityEvidence copy(ClassCapabilityFact fact)
+	private static List<CapabilityEvidence> copy(ClassCapabilityFact fact)
 	{
-		return new CapabilityEvidence(fact.capabilityKey(), fact.rank(), fact.evidenceSkills().stream().map(skill -> new SelectedSkill(skill.skillId(), skill.skillLevel())).sorted(SKILL_ORDER).toList());
+		return fact.evidenceSkills().stream().map(skill -> new CapabilityEvidence(fact.capabilityKey(), "knowledge-s" + skill.skillId() + "-l" + skill.skillLevel(), fact.rank(), List.of(new SelectedSkill(skill.skillId(), skill.skillLevel())))).toList();
 	}
 
 	public Optional<PhantomCombatLoadout> resolve(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int maximumSkills)
@@ -91,20 +96,13 @@ public final class PhantomCombatCapabilityResolver
 
 		final List<CapabilityEvidence> capabilities = new ArrayList<>(_source.capabilities(actor.classId()));
 		capabilities.sort(CAPABILITY_ORDER);
-		for (CapabilityEvidence capability : capabilities)
+		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).sorted(SKILL_ORDER).distinct().filter(skill -> lease.supportsSkill(skill, mode)).limit(maximumSkills).toList();
+		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
+		if (matching.isEmpty() || ((mode == PhantomCombatMode.RANGED_MAGIC) && selected.isEmpty()))
 		{
-			if (!mode.capabilityKey().equals(capability.capabilityKey()))
-			{
-				continue;
-			}
-
-			final List<SelectedSkill> selected = capability.skills().stream().sorted(SKILL_ORDER).filter(skill -> lease.supportsSkill(skill, mode)).limit(maximumSkills).toList();
-			if ((mode == PhantomCombatMode.RANGED_MAGIC) && selected.isEmpty())
-			{
-				return Optional.empty();
-			}
-			return Optional.of(new PhantomCombatLoadout(mode, capability.capabilityKey(), capability.rank(), selected, mode != PhantomCombatMode.RANGED_MAGIC));
+			return Optional.empty();
 		}
-		return Optional.empty();
+		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElseThrow();
+		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, mode != PhantomCombatMode.RANGED_MAGIC));
 	}
 }

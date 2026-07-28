@@ -53,7 +53,7 @@ public final class PhantomProgressionCatalogBuilder
 		final List<PetFact> pets = sorted(data.pets(), PetFact::stableKey);
 		final List<CapabilityRule> capabilities = sorted(data.capabilityRules(), CapabilityRule::stableKey);
 		validateClassGraph(classes);
-		validateReferences(classes, learns, skills, equipment, summons, pets, capabilities);
+		validateReferences(classes, learns, skills, summons, pets, capabilities, data.knownItemIds());
 
 		final String classHash = hash(classes);
 		final String learnHash = hash(learns);
@@ -97,11 +97,10 @@ public final class PhantomProgressionCatalogBuilder
 		}
 	}
 
-	private static void validateReferences(List<ClassFact> classes, List<SkillLearnFact> learns, List<SkillFact> skills, List<EquipmentFact> equipment, List<SummonActorFact> summons, List<PetFact> pets, List<CapabilityRule> capabilities)
+	private static void validateReferences(List<ClassFact> classes, List<SkillLearnFact> learns, List<SkillFact> skills, List<SummonActorFact> summons, List<PetFact> pets, List<CapabilityRule> capabilities, Set<Integer> knownItemIds)
 	{
 		final Set<Integer> classIds = classes.stream().map(ClassFact::classId).collect(java.util.stream.Collectors.toUnmodifiableSet());
 		final Set<String> skillIds = skills.stream().map(SkillFact::stableKey).collect(java.util.stream.Collectors.toUnmodifiableSet());
-		final Set<Integer> equipmentIds = equipment.stream().map(EquipmentFact::itemId).collect(java.util.stream.Collectors.toUnmodifiableSet());
 		for (SkillLearnFact fact : learns)
 		{
 			if ((fact.classId() >= 0) && !classIds.contains(fact.classId()))
@@ -112,13 +111,11 @@ public final class PhantomProgressionCatalogBuilder
 			{
 				throw new IllegalStateException("Skill learn references unknown skill " + fact.skill().stableKey() + '.');
 			}
-			fact.requiredItems().forEach(item ->
-			{
-				if (!equipmentIds.contains(item.itemId()) && (item.itemId() <= 0))
-				{
-					throw new IllegalStateException("Invalid required item.");
-				}
-			});
+			fact.requiredItems().forEach(item -> requireItem(knownItemIds, item.itemId(), "skill learn"));
+		}
+		for (SkillFact fact : skills)
+		{
+			requireItem(knownItemIds, fact.itemConsumeId(), "skill consumption");
 		}
 		for (SummonActorFact fact : summons)
 		{
@@ -130,6 +127,17 @@ public final class PhantomProgressionCatalogBuilder
 			{
 				throw new IllegalStateException("Summon references unknown owner class.");
 			}
+			fact.actorSkills().forEach(skill ->
+			{
+				if (!skillIds.contains(skill.stableKey()))
+				{
+					throw new IllegalStateException("Controlled actor references unknown skill " + skill.stableKey() + '.');
+				}
+			});
+			requireItem(knownItemIds, fact.summonItemId(), "summon consumption");
+			requireItem(knownItemIds, fact.upkeepItemId(), "summon upkeep");
+			requireItem(knownItemIds, fact.controlItemId(), "controlled actor control item");
+			fact.foodItemIds().forEach(itemId -> requireItem(knownItemIds, itemId, "controlled actor food"));
 		}
 		for (PetFact fact : pets)
 		{
@@ -140,6 +148,8 @@ public final class PhantomProgressionCatalogBuilder
 					throw new IllegalStateException("Pet references unknown skill.");
 				}
 			}
+			requireItem(knownItemIds, fact.controlItemId(), "pet control item");
+			fact.foodItemIds().forEach(itemId -> requireItem(knownItemIds, itemId, "pet food"));
 		}
 		for (CapabilityRule fact : capabilities)
 		{
@@ -154,6 +164,15 @@ public final class PhantomProgressionCatalogBuilder
 					throw new IllegalStateException("Capability references unknown skill " + skill.stableKey() + '.');
 				}
 			}
+			fact.requiredItems().forEach(item -> requireItem(knownItemIds, item.itemId(), "capability resource"));
+		}
+	}
+
+	private static void requireItem(Set<Integer> knownItemIds, int itemId, String relation)
+	{
+		if ((itemId > 0) && !knownItemIds.contains(itemId))
+		{
+			throw new IllegalStateException("Unknown item " + itemId + " referenced by " + relation + '.');
 		}
 	}
 

@@ -103,6 +103,13 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		registry.add("45-cancel-waits-for-in-flight-pulse", _ -> testCancelWaitsForPulse());
 		registry.add("46-dispatch-failure-reconciles-reserved-start", _ -> testDispatchFailureReservedStart());
 		registry.add("47-cancel-waits-for-in-flight-start", _ -> testCancelWaitsForStart());
+		registry.add("48-resolver-skips-unsupported-first-variant", _ -> testResolverVariants());
+		registry.add("49-disabled-backend-remains-inert", _ -> PhantomAssertions.assertTrue(PhantomCombatBackend.inert().tryAcquireActor(1) == null, "Disabled combat backend created actor state."));
+		registry.add("50-canonical-transient-cp-is-not-normalized", _ ->
+		{
+			final ActorSnapshot snapshot = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 150, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
+			PhantomAssertions.assertTrue(Double.compare(snapshot.currentCp(), 150) == 0, "Snapshot normalized exact canonical CP.");
+		});
 	}
 
 	private static void testModeMapping()
@@ -174,6 +181,18 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		fixture.lease.supportedSkills.addAll(List.of(1, 3, 5, 7, 9));
 		fixture.start(1, PhantomCombatMode.RANGED_PHYSICAL);
 		PhantomAssertions.assertEquals(4, fixture.service.find(1).orElseThrow().selectedSkills(), "Loadout exceeded four selected skills.");
+		fixture.stop();
+	}
+
+	private static void testResolverVariants()
+	{
+		final Fixture fixture = fixture(1);
+		fixture.capabilities = List.of(
+			new CapabilityEvidence(PhantomCombatMode.RANGED_MAGIC.capabilityKey(), "high-rank-unsupported", 1000, List.of(new SelectedSkill(20, 1))),
+			new CapabilityEvidence(PhantomCombatMode.RANGED_MAGIC.capabilityKey(), "lower-rank-supported", 100, List.of(new SelectedSkill(21, 1))));
+		fixture.lease.supportedSkills.add(21);
+		PhantomAssertions.assertEquals(StartStatus.ACCEPTED, fixture.start(1, PhantomCombatMode.RANGED_MAGIC).status(), "Resolver stopped at the first unsupported variant or treated rank as final suitability.");
+		PhantomAssertions.assertEquals(1, fixture.service.find(1).orElseThrow().selectedSkills(), "Resolver did not retain the supported sibling variant.");
 		fixture.stop();
 	}
 
@@ -725,7 +744,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 
 	private static ActorSnapshot actor(double hp, boolean dead)
 	{
-		return new ActorSnapshot(10, 88, 0, hp, 100, 100, 100, dead, dead, false, false, false, 0, "IDLE", 0, 0);
+		return new ActorSnapshot(10, 88, 0, hp, 100, 100, 100, 50, 100, dead, dead, false, false, false, 0, "IDLE", 0, 0);
 	}
 
 	private static TargetSnapshot target(boolean dead, boolean valid)

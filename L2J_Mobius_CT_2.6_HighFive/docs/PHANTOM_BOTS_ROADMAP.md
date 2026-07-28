@@ -77,11 +77,15 @@ Goal 012: ACCEPT after Goal 012A
 
 Goal 012A: ACCEPT
 
-Goal 013: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 013: FIX_REQUIRED, bounded correction Goal 013A
 
-Goal 014: NOT_STARTED
+Goal 013A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
+Goal 014: NOT_STARTED, blocked by independent acceptance of Goal 013A
 
 Goal 015: NOT_STARTED
+
+Goal 017: NOT_STARTED
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
@@ -100,8 +104,9 @@ Goal 010C независимо принята, поэтому Goal 010 закр�
 011 потребовал bounded Goal 011A; исправление независимо принято, Goal 011
 закрыта, а Stage II завершён. Архитектурное направление Goal 012 принято, а
 Goal 012A независимо закрыла обязательные action-ownership findings. Goal 012
-принята после Goal 012A. Goal 013 реализована и ожидает независимого review;
-Goal 014 и Goal 015 не начаты.
+принята после Goal 012A. Goal 013 получила `FIX_REQUIRED`; bounded correction
+Goal 013A реализована и ожидает независимого review. Goal 014 заблокирована до
+independent acceptance Goal 013A; Goal 015 и Goal 017 не начаты.
 
 ---
 
@@ -349,7 +354,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 014/015 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013 — `FIX_REQUIRED`; Goal 013A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 014 — `NOT_STARTED`, blocked by independent acceptance of Goal 013A; Goal 015/017 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -632,7 +637,7 @@ plan-owned respawn.
 **Зависимости:** 012.
 **Gate:** independent review exact child commit принят; Goal 013 разрешена.
 
-## Goal 013 — Progression, professions, skills, equipment и class catalog — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+## Goal 013 — Progression, professions, skills, equipment и class catalog — `FIX_REQUIRED`
 
 **Назначение:** расширить generic capability keys реальными High Five классами.  
 **Зависимости:** 012.  
@@ -643,23 +648,41 @@ healer/tank/spoiler/dagger/summoner/escape.
 **Gate:** representative class matrix and no one-script-per-class architecture.  
 **Follow-up risk:** `HIGH` — broad class rules and progression persistence.
 
-## Goal 014 — NPC commerce, supplies, travel и sell loop
+### Goal 013A — Progression capability extensibility hardening — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+
+**Назначение:** bounded closure доказанных variant/resource/summon/equipment,
+production-composition, skill-learning atomicity и Player CP snapshot findings.
+**Зависимости:** exact Goal 013 commit `ca50ea28...`; accepted pre-013 baseline
+`8dba87e9...`.
+**Архитектурный результат:** independently addressable capability variants;
+authoritative action resources; typed controlled-actor facts; complete bounded
+equipment paging; exact main/subclass truth; separate canonical Player CP.
+**Не включает:** tactical doctrine, commerce, reconciliation, party или PvP.
+**Gate:** independent review exact child commit. Goal 013 не считается accepted
+до принятия Goal 013A.
+
+## Goal 014 — NPC commerce, supplies, travel и sell loop — `NOT_STARTED`
 
 **Назначение:** замкнуть одиночный economic maintenance loop.  
-**Зависимости:** 009–011, 013.  
+**Зависимости:** 009–011, 013 и independent acceptance 013A.
 **Архитектурный результат:** grocery/equipment NPC purchase, shots/consumables,
 sell loot, inventory/weight budget, Gatekeeper travel and supply replenishment.  
+CP potion supplies, vendors, restrictions, currency и cost извлекаются только
+из current authoritative item/NPC/buylist/multisell data. Ancient Adena не
+предполагается.
 **Не включает:** player trade, private stores, crafting ledger, enchant.  
 **Gate:** item/adena conservation and restart-safe interruption.  
 **Follow-up risk:** `HIGH` — canonical commerce validation and partial actions.
 
-## Goal 015 — Background farming baseline и reconciliation
+## Goal 015 — Background farming baseline и reconciliation — `NOT_STARTED`
 
 **Назначение:** causal cheap simulation для уже поддержанных plans.  
 **Зависимости:** 007, 008, 011–014.  
 **Архитектурный результат:** aggregated normal combat/drop/EXP/SP, supplies,
 death, travel, competition, inventory limits and active/background
 reconciliation for already selected targets.  
+Materialization/background transition не должен бесплатно сбрасывать или
+восстанавливать canonical Player CP.
 **Не включает:** spoil/manor/quest/craft chains, которые добавляет Goal 021.  
 **Gate:** active/background conservation and anti-dup under repeated transitions.  
 **Follow-up risk:** `VERY_HIGH` — probabilistic causality and reconciliation.
@@ -687,7 +710,7 @@ writes.
 
 **GOAL:** 017–020
 
-## Goal 017 — Party coordination kernel, semantic acts и party routes
+## Goal 017 — Party coordination kernel, semantic acts и party routes — `NOT_STARTED`
 
 **Назначение:** структурированное групповое поведение до natural language.  
 **Зависимости:** 008, 010, 013, 016.  
@@ -798,6 +821,9 @@ perceptible-history protection.
 **Архитектурный результат:** strength/risk, party/friend allies, retreat,
 warning, help calls, revenge memory, zone rules, karma/drop consequences and
 bounded escalation.  
+Doctrine учитывает current/max CP, canonical PvP damage order CP → HP, natural
+CP regeneration, stock/reuse CP potions, economic consumption и Olympiad
+restrictions.
 **Не включает:** formal alliances/clan wars — Goal 027.  
 **Gate:** canonical PvP/PK/karma rules and no uncontrolled aggression.  
 **Follow-up risk:** `VERY_HIGH` — gameplay harm, concurrency and consequence rules.

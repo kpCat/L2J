@@ -579,12 +579,12 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 
 	private static ActorSnapshot liveActor()
 	{
-		return new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
+		return new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 50, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
 	}
 
 	private static ActorSnapshot deadActor()
 	{
-		return new ActorSnapshot(10, 88, 0, 0, 100, 100, 100, true, true, false, false, false, 0, "DEAD", 0, 0);
+		return new ActorSnapshot(10, 88, 0, 0, 100, 100, 100, 0, 100, true, true, false, false, false, 0, "DEAD", 0, 0);
 	}
 
 	private static TargetSnapshot liveTarget()

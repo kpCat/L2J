@@ -4,7 +4,6 @@
 package org.l2jmobius.gameserver.phantoms.progression;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +19,9 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Lea
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationResult;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OwnedEquipmentFact;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OwnedEquipmentFilter;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Page;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ProfessionStatus;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ProfessionTarget;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SnapshotStatus;
@@ -106,7 +108,7 @@ public final class PhantomProgressionService
 		}
 		try (claim)
 		{
-			final ActorProgressionSnapshot actor = claim.lease().snapshot(claim.catalog().combinedHash(), claim.catalog().referencedResourceItemIds(), claim.catalog().certificationSkillIds(), _policy.maximumOwnedEquipmentCandidates());
+			final ActorProgressionSnapshot actor = claim.lease().snapshot(claim.catalog().combinedHash(), claim.catalog().referencedResourceItemIds(), claim.catalog().certificationSkillIds());
 			final Integer previous;
 			synchronized (this)
 			{
@@ -136,7 +138,7 @@ public final class PhantomProgressionService
 		}
 		try (claim)
 		{
-			final ActorProgressionSnapshot actor = claim.lease().snapshot(claim.catalog().combinedHash(), claim.catalog().referencedResourceItemIds(), claim.catalog().certificationSkillIds(), _policy.maximumOwnedEquipmentCandidates());
+			final ActorProgressionSnapshot actor = claim.lease().snapshot(claim.catalog().combinedHash(), claim.catalog().referencedResourceItemIds(), claim.catalog().certificationSkillIds());
 			final List<CapabilityEvaluation> result = _evaluator.evaluate(claim.catalog(), actor, claim.lease(), targetObjectId);
 			_metrics.recordQuery(result.isEmpty());
 			_metrics.recordCapabilityEvaluations(result.size());
@@ -149,17 +151,29 @@ public final class PhantomProgressionService
 		}
 	}
 
-	public List<OwnedEquipmentFact> equipmentCandidates(long profileId)
+	public Page<OwnedEquipmentFact> equipmentCandidates(long profileId, OwnedEquipmentFilter filter, PageRequest page)
 	{
-		final Observation observation = observeActor(profileId);
-		if (observation.result().status() != SnapshotStatus.FOUND)
+		if (page.limit() > _policy.maximumOwnedEquipmentPageSize())
+		{
+			throw new IllegalArgumentException("Owned equipment page exceeds progression policy.");
+		}
+		final LeaseClaim claim = claimActor(profileId);
+		if (claim == null)
 		{
 			_metrics.recordQuery(true);
-			return List.of();
+			return new Page<>(List.of(), null, false);
 		}
-		final List<OwnedEquipmentFact> result = observation.result().snapshot().ownedEquipment().stream().sorted(Comparator.comparing(OwnedEquipmentFact::stableKey)).limit(_policy.maximumOwnedEquipmentCandidates()).toList();
-		_metrics.recordQuery(result.isEmpty());
-		return result;
+		try (claim)
+		{
+			final Page<OwnedEquipmentFact> result = claim.lease().ownedEquipment(filter, page);
+			_metrics.recordQuery(result.values().isEmpty());
+			return result;
+		}
+		catch (RuntimeException e)
+		{
+			_metrics.recordQuery(true);
+			return new Page<>(List.of(), null, false);
+		}
 	}
 
 	public List<ProfessionTarget> professionTargets(long profileId)

@@ -53,6 +53,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatActorLease;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
@@ -198,7 +199,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		registry.add("16-player-death-releases-ownership", _ -> testPlayerDeath());
 		registry.add("17-restricted-normal-town-respawn", _ -> testNormalTownRespawn());
 		registry.add("18-production-combat-has-no-packet-route", _ -> testNoPacketRoute());
-		registry.add("19-dematerialization-waits-for-combat-lease", _ -> testDematerializationDrain());
+		registry.add("19-canonical-player-cp-snapshot", _ -> testCanonicalCpSnapshot());
+		registry.add("20-dematerialization-waits-for-combat-lease", _ -> testDematerializationDrain());
 	}
 
 	private void testExactActorLease()
@@ -208,6 +210,33 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertEquals(_player, lease.player(), "Materialization lease did not retain the exact actor.");
 			PhantomAssertions.assertEquals(_player, World.getInstance().getPlayer(_player.getObjectId()), "Materialization actor is not the exact World Player.");
 		}
+	}
+
+	private void testCanonicalCpSnapshot()
+	{
+		resetActor(true);
+		final double firstCp = Math.max(1, Math.floor(_player.getMaxCp() / 3));
+		final double secondCp = Math.min(_player.getMaxCp(), firstCp + 7);
+		final double hp = _player.getCurrentHp();
+		final double mp = _player.getCurrentMp();
+		_player.setCurrentCp(firstCp);
+		final ActorSnapshot first;
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			first = lease.actorSnapshot();
+		}
+		PhantomAssertions.assertTrue(Double.compare(first.currentCp(), _player.getCurrentCp()) == 0, "Combat snapshot current CP differs from canonical Player.");
+		PhantomAssertions.assertTrue(Double.compare(first.maximumCp(), _player.getMaxCp()) == 0, "Combat snapshot maximum CP differs from canonical Player.");
+		PhantomAssertions.assertTrue(Double.compare(first.currentHp(), hp) == 0 && Double.compare(first.currentMp(), mp) == 0, "HP, MP and CP were mixed in the combat snapshot.");
+		PhantomAssertions.assertTrue(Double.compare(_player.getCurrentCp(), firstCp) == 0, "Combat snapshot mutated canonical Player CP.");
+		_player.setCurrentCp(secondCp);
+		final ActorSnapshot second;
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			second = lease.actorSnapshot();
+		}
+		PhantomAssertions.assertTrue(Double.compare(second.currentCp(), secondCp) == 0, "Next combat snapshot did not observe changed canonical CP.");
+		PhantomAssertions.assertTrue(Double.compare(first.currentCp(), firstCp) == 0, "Immutable combat snapshot changed after canonical CP mutation.");
 	}
 
 	private void testCanonicalAttack() throws Exception
@@ -691,6 +720,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		_player.getStat().setLevel((byte) 85);
 		_player.setCurrentHp(_player.getMaxHp());
 		_player.setCurrentMp(_player.getMaxMp());
+		_player.setCurrentCp(_player.getMaxCp());
 	}
 
 	private Item ensureWeapon()

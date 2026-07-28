@@ -6,23 +6,30 @@ package org.l2jmobius.tests.phantoms;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
 import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
+import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.instance.BabyPet;
+import org.l2jmobius.gameserver.model.actor.instance.Cubic;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
+import org.l2jmobius.gameserver.model.actor.instance.Servitor;
 import org.l2jmobius.gameserver.model.actor.instance.Trainer;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.holders.ItemHolder;
 import org.l2jmobius.gameserver.model.item.instance.Item;
+import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.enums.AcquireSkillType;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
@@ -35,11 +42,16 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.AcquireKind;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ActorKind;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ActorProgressionSnapshot;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.EquipmentFact;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.EquipItemRequest;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.LearnSkillRequest;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationResult;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OwnedEquipmentFact;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OwnedEquipmentFilter;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ProfessionStatus;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SnapshotStatus;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
@@ -74,6 +86,17 @@ public final class PhantomProgressionServerIntegrationSuite implements PhantomTe
 	private OperationResult _equipResult;
 	private ActorProgressionSnapshot _finalObservation;
 	private boolean _professionObserved;
+	private final List<Item> _pagingEquipment = new ArrayList<>();
+	private int _pagingEquipmentCount;
+	private boolean _pagingAllReached;
+	private boolean _pagingFilterExact;
+	private boolean _pagingLowerGradeReached;
+	private boolean _mainSubclassMainExact;
+	private boolean _ordinarySkillsIsolated;
+	private boolean _certificationSeparated;
+	private boolean _servitorBodyExact;
+	private boolean _babyPetBodyExact;
+	private boolean _cubicBodyAbsent;
 	private boolean _closed;
 
 	@Override
@@ -105,8 +128,11 @@ public final class PhantomProgressionServerIntegrationSuite implements PhantomTe
 			exerciseCanonicalReward();
 			exerciseCanonicalLearning();
 			exerciseCanonicalEquip();
+			exerciseEquipmentPaging();
+			exerciseControlledActors();
+			exerciseSubclassSwitch();
 			exerciseProfessionObservation();
-			context.record("progressionIntegration.cases", 18);
+			context.record("progressionIntegration.cases", 28);
 			context.record("progressionIntegration.catalogHash", _progression.catalog().combinedHash());
 			context.record("progressionIntegration.learnSkill", _learn.getSkillId() + ":" + _learn.getSkillLevel());
 			context.record("progressionIntegration.rewardExp", _expAfter - _expBefore);
@@ -146,6 +172,16 @@ public final class PhantomProgressionServerIntegrationSuite implements PhantomTe
 		registry.add("16-real-profession-change-observed", _ -> PhantomAssertions.assertTrue(_professionObserved, "Real Player class change was not observed."));
 		registry.add("17-no-operation-leak", _ -> PhantomAssertions.assertEquals(0, _progression.snapshot().currentOperations(), "Progression operation slot leaked."));
 		registry.add("18-no-actor-lease-leak", _ -> PhantomAssertions.assertEquals(0, _progression.snapshot().currentActorLeases(), "Progression actor lease leaked."));
+		registry.add("19-over-64-equipment-objects-owned", _ -> PhantomAssertions.assertTrue(_pagingEquipmentCount > 64, "Real Player did not own more than 64 equipment objects."));
+		registry.add("20-equipment-paging-reaches-each-object-once", _ -> PhantomAssertions.assertTrue(_pagingAllReached, "Real owned equipment paging lost or duplicated objects."));
+		registry.add("21-equipment-family-filter-is-exact", _ -> PhantomAssertions.assertTrue(_pagingFilterExact, "Real owned equipment filter changed membership."));
+		registry.add("22-lower-grade-equipment-remains-reachable", _ -> PhantomAssertions.assertTrue(_pagingLowerGradeReached, "Real lower-grade equipment was hidden by paging."));
+		registry.add("23-main-subclass-main-is-exact", _ -> PhantomAssertions.assertTrue(_mainSubclassMainExact, "Canonical main to subclass to main snapshots were not exact."));
+		registry.add("24-ordinary-skills-do-not-contaminate-subclass", _ -> PhantomAssertions.assertTrue(_ordinarySkillsIsolated, "Main-class ordinary skill contaminated the subclass snapshot."));
+		registry.add("25-certification-is-represented-separately", _ -> PhantomAssertions.assertTrue(_certificationSeparated, "Certification skill was treated as ordinary wrong-class evidence."));
+		registry.add("26-real-servitor-body-is-exact", _ -> PhantomAssertions.assertTrue(_servitorBodyExact, "Real Servitor body snapshot was absent or inexact."));
+		registry.add("27-real-baby-pet-body-is-exact", _ -> PhantomAssertions.assertTrue(_babyPetBodyExact, "Real BabyPet body snapshot was absent or inexact."));
+		registry.add("28-real-cubic-has-no-body", _ -> PhantomAssertions.assertTrue(_cubicBodyAbsent, "Real Cubic received a fabricated body."));
 	}
 
 	private void exerciseCanonicalReward() throws Exception
@@ -217,6 +253,148 @@ public final class PhantomProgressionServerIntegrationSuite implements PhantomTe
 		final var observation = _progression.observeActor(_profile.profileId()).result();
 		PhantomAssertions.assertEquals(SnapshotStatus.FOUND, observation.status(), "Final actor observation failed.");
 		_finalObservation = observation.snapshot();
+	}
+
+	private void exerciseEquipmentPaging()
+	{
+		final ArrayList<EquipmentFact> candidates = new ArrayList<>();
+		String cursor = null;
+		do
+		{
+			final var page = _progression.catalog().equipment(new PageRequest(cursor, 256));
+			candidates.addAll(page.values().stream().filter(fact -> !fact.stackable()).toList());
+			cursor = page.nextCursor();
+		}
+		while (cursor != null);
+		final EquipmentFact lower = candidates.stream().filter(fact -> fact.crystalGrade().equals("NONE")).findFirst().orElseThrow();
+		final ArrayList<EquipmentFact> selected = new ArrayList<>();
+		selected.add(lower);
+		for (EquipmentFact candidate : candidates)
+		{
+			if ((selected.size() >= 70) || selected.stream().anyMatch(value -> value.itemId() == candidate.itemId()))
+			{
+				continue;
+			}
+			selected.add(candidate);
+		}
+		PhantomAssertions.assertEquals(70, selected.size(), "Could not select 70 real equipment templates.");
+		final Map<Integer, EquipmentFact> byObjectId = new java.util.LinkedHashMap<>();
+		for (EquipmentFact fact : selected)
+		{
+			final Item item = _player.getInventory().addItem(ItemProcessType.REWARD, fact.itemId(), 1, _player, this);
+			PhantomAssertions.assertTrue(item != null, "Could not create real paged equipment fixture.");
+			_pagingEquipment.add(item);
+			byObjectId.put(item.getObjectId(), fact);
+		}
+		_pagingEquipmentCount = byObjectId.size();
+		final Set<Integer> reached = queryOwnedEquipment(OwnedEquipmentFilter.all());
+		_pagingAllReached = reached.containsAll(byObjectId.keySet()) && (reached.stream().filter(byObjectId::containsKey).count() == byObjectId.size());
+		final Item lowerItem = _pagingEquipment.getFirst();
+		_pagingLowerGradeReached = reached.contains(lowerItem.getObjectId()) && byObjectId.get(lowerItem.getObjectId()).crystalGrade().equals("NONE");
+		final String family = lower.family();
+		final Set<Integer> filtered = queryOwnedEquipment(new OwnedEquipmentFilter(null, family, null));
+		final Set<Integer> expectedFiltered = byObjectId.entrySet().stream().filter(entry -> entry.getValue().family().equals(family)).map(Map.Entry::getKey).collect(java.util.stream.Collectors.toUnmodifiableSet());
+		final Set<Integer> actualFiltered = filtered.stream().filter(byObjectId::containsKey).collect(java.util.stream.Collectors.toUnmodifiableSet());
+		_pagingFilterExact = expectedFiltered.equals(actualFiltered);
+		for (Item item : List.copyOf(_pagingEquipment))
+		{
+			if (_player.getInventory().getItemByObjectId(item.getObjectId()) != null)
+			{
+				PhantomAssertions.assertTrue(_player.getInventory().destroyItem(ItemProcessType.DESTROY, item, _player, this) != null, "Could not clean paged equipment fixture.");
+			}
+		}
+		_pagingEquipment.clear();
+	}
+
+	private Set<Integer> queryOwnedEquipment(OwnedEquipmentFilter filter)
+	{
+		final HashSet<Integer> result = new HashSet<>();
+		String cursor = null;
+		do
+		{
+			final var page = _progression.equipmentCandidates(_profile.profileId(), filter, new PageRequest(cursor, 23));
+			for (OwnedEquipmentFact fact : page.values())
+			{
+				PhantomAssertions.assertTrue(result.add(fact.objectId()), "Owned equipment paging repeated a real object.");
+			}
+			cursor = page.nextCursor();
+		}
+		while (cursor != null);
+		return Set.copyOf(result);
+	}
+
+	private void exerciseControlledActors()
+	{
+		final List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SummonActorFact> facts = allSummonFacts();
+		final var servitorFact = facts.stream().filter(fact -> fact.actorKind() == ActorKind.SERVITOR).findFirst().orElseThrow();
+		final Servitor servitor = new Servitor(NpcData.getInstance().getTemplate(servitorFact.actorIdentity()), _player);
+		servitor.setReferenceSkill(servitorFact.skillId());
+		servitor.fullRestore();
+		servitor.setXYZ(_player.getX() + 5, _player.getY(), _player.getZ());
+		_player.setPet(servitor);
+		final var servitorSnapshot = _progression.observeActor(_profile.profileId()).result().snapshot().controlledActors().getFirst();
+		_servitorBodyExact = (servitorSnapshot.actorKind() == ActorKind.SERVITOR) && (servitorSnapshot.actorIdentity() == servitor.getId()) && (servitorSnapshot.referenceSkillId() == servitorFact.skillId()) && (servitorSnapshot.body() != null) && (servitorSnapshot.body().objectId() == servitor.getObjectId()) && (Double.compare(servitorSnapshot.body().currentHp(), servitor.getCurrentHp()) == 0) && (Double.compare(servitorSnapshot.body().currentMp(), servitor.getCurrentMp()) == 0);
+		_player.setPet(null);
+		servitor.deleteMe();
+
+		final var babyFact = facts.stream().filter(fact -> fact.actorKind() == ActorKind.BABY_PET).findFirst().orElseThrow();
+		final Item control = _player.getInventory().addItem(ItemProcessType.REWARD, babyFact.controlItemId(), 1, _player, this);
+		PhantomAssertions.assertTrue(control != null, "Could not create real BabyPet control item.");
+		final BabyPet baby = new BabyPet(NpcData.getInstance().getTemplate(babyFact.actorIdentity()), _player, control);
+		baby.fullRestore();
+		baby.setXYZ(_player.getX() + 6, _player.getY(), _player.getZ());
+		_player.setPet(baby);
+		final var babySnapshot = _progression.observeActor(_profile.profileId()).result().snapshot().controlledActors().getFirst();
+		_babyPetBodyExact = (babySnapshot.actorKind() == ActorKind.BABY_PET) && (babySnapshot.actorIdentity() == baby.getId()) && (babySnapshot.body() != null) && (babySnapshot.body().objectId() == baby.getObjectId());
+		_player.setPet(null);
+		baby.deleteMe();
+		PhantomAssertions.assertTrue(_player.getInventory().destroyItem(ItemProcessType.DESTROY, control, _player, this) != null, "Could not clean BabyPet control item.");
+
+		_player.addCubic(Cubic.STORM_CUBIC, 1, 1, 10, 100, 1, 600, false);
+		final var cubic = _progression.observeActor(_profile.profileId()).result().snapshot().controlledActors().stream().filter(fact -> fact.actorKind() == ActorKind.CUBIC).findFirst().orElseThrow();
+		_cubicBodyAbsent = (cubic.actorIdentity() == Cubic.STORM_CUBIC) && (cubic.body() == null);
+		_player.stopCubics();
+	}
+
+	private List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SummonActorFact> allSummonFacts()
+	{
+		final ArrayList<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SummonActorFact> result = new ArrayList<>();
+		String cursor = null;
+		do
+		{
+			final var page = _progression.catalog().summons(new PageRequest(cursor, 256));
+			result.addAll(page.values());
+			cursor = page.nextCursor();
+		}
+		while (cursor != null);
+		return List.copyOf(result);
+	}
+
+	private void exerciseSubclassSwitch()
+	{
+		final int baseClassId = _player.getBaseClass();
+		final int subclassId = 94;
+		final Skill certification = SkillData.getInstance().getSkill(631, 1);
+		PhantomAssertions.assertTrue(certification != null, "Certification skill fixture is unavailable.");
+		_player.addSkill(certification, true);
+		ActorProgressionSnapshot main = _progression.observeActor(_profile.profileId()).result().snapshot();
+		final Set<Integer> subclassTreeSkills = _progression.catalog().classSkillLearns(subclassId).stream().map(value -> value.skillId()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+		Integer mainExclusive = main.learnedSkills().keySet().stream().filter(skillId -> (skillId != certification.getId()) && !subclassTreeSkills.contains(skillId)).findFirst().orElse(null);
+		if (mainExclusive == null)
+		{
+			final var learn = _progression.catalog().classSkillLearns(baseClassId).stream().filter(value -> !subclassTreeSkills.contains(value.skillId())).findFirst().orElseThrow();
+			_player.addSkill(SkillData.getInstance().getSkill(learn.skillId(), learn.skillLevel()), true);
+			mainExclusive = learn.skillId();
+			main = _progression.observeActor(_profile.profileId()).result().snapshot();
+		}
+		PhantomAssertions.assertTrue(_player.addSubClass(subclassId, 1), "Canonical Player.addSubClass failed in test DB.");
+		_player.setActiveClass(1);
+		final ActorProgressionSnapshot subclass = _progression.observeActor(_profile.profileId()).result().snapshot();
+		_player.setActiveClass(0);
+		final ActorProgressionSnapshot restoredMain = _progression.observeActor(_profile.profileId()).result().snapshot();
+		_mainSubclassMainExact = (main.activeClassId() == baseClassId) && (main.classIndex() == 0) && (subclass.activeClassId() == subclassId) && (subclass.classIndex() == 1) && (restoredMain.activeClassId() == baseClassId) && (restoredMain.classIndex() == 0);
+		_ordinarySkillsIsolated = !subclass.learnedSkills().containsKey(mainExclusive) && restoredMain.learnedSkills().containsKey(mainExclusive);
+		_certificationSeparated = main.certificationSkillIds().contains(certification.getId()) && !subclass.learnedSkills().containsKey(certification.getId()) && !subclass.certificationSkillIds().contains(certification.getId()) && restoredMain.certificationSkillIds().contains(certification.getId());
 	}
 
 	private void exerciseProfessionObservation()

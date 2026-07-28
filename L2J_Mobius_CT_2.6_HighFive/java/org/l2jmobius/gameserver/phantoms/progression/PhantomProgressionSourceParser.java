@@ -292,14 +292,14 @@ public final class PhantomProgressionSourceParser
 						break;
 					}
 					case "capabilityRule":
-						rules.add(new CapabilitySeed(integer(child, "classId"), capabilityKey(child), integer(child, "rank"), new SkillRef(integer(child, "skillId"), integer(child, "skillLevel")), required(child, "source")));
+						rules.add(new CapabilitySeed(integer(child, "classId"), capabilityKey(child), variantKey(child), integer(child, "rank"), new SkillRef(integer(child, "skillId"), integer(child, "skillLevel")), required(child, "source")));
 						break;
 					default:
 						throw failure("schema", "Unknown progression capability element.");
 				}
 			}
 		}
-		rules.sort(Comparator.comparingInt(CapabilitySeed::classId).thenComparing(CapabilitySeed::capabilityKey).thenComparingInt(CapabilitySeed::rank));
+		rules.sort(Comparator.comparingInt(CapabilitySeed::classId).thenComparing(CapabilitySeed::capabilityKey).thenComparing(CapabilitySeed::variantKey));
 		return new CapabilityData(Map.copyOf(semantics), List.copyOf(rules));
 	}
 
@@ -485,6 +485,16 @@ public final class PhantomProgressionSourceParser
 		return value;
 	}
 
+	private static String variantKey(Element element)
+	{
+		final String value = required(element, "variantKey");
+		if (!value.matches("[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*"))
+		{
+			throw failure("schema", "Invalid capability variant key.");
+		}
+		return value;
+	}
+
 	private static int integer(Element element, String name)
 	{
 		return parseInteger(required(element, name), name);
@@ -544,7 +554,7 @@ public final class PhantomProgressionSourceParser
 		}
 	}
 
-	public record CapabilitySeed(int classId, String capabilityKey, int rank, SkillRef skill, String sourcePath)
+	public record CapabilitySeed(int classId, String capabilityKey, String variantKey, int rank, SkillRef skill, String sourcePath)
 	{
 	}
 
