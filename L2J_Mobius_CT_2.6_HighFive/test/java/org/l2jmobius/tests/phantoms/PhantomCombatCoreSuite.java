@@ -20,6 +20,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
@@ -34,9 +35,15 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatResult;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.CancelStatus;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.DispatchHandle;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.DispatchResult;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.DispatchState;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ServiceState;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatThreatTable;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomRespawnRequest;
 
 public final class PhantomCombatCoreSuite implements PhantomTestSuite
 {
@@ -399,10 +406,10 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		final Fixture fixture = fixture(1);
 		fixture.service.startSession(new PhantomCombatRequest(1, 100, PhantomCombatMode.MELEE_PHYSICAL, false, true, 30_000, fixture.token));
 		fixture.lease.target = target(true, true);
-		fixture.lease.loot = List.of(new LootCandidate(500));
+		fixture.lease.loot = List.of(new LootCandidate(500, 57, 1, 0));
 		fixture.dispatcher.runNext();
 		fixture.dispatcher.runNext();
-		fixture.lease.loot = List.of();
+		fixture.lease.lootObservation = LootObservation.ACQUIRED_BY_ACTOR;
 		fixture.dispatcher.runNext();
 		assertTerminal(fixture, PhantomCombatResult.VICTORY_LOOTED);
 	}
@@ -412,7 +419,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		final Fixture fixture = fixture(1);
 		fixture.service.startSession(new PhantomCombatRequest(1, 100, PhantomCombatMode.MELEE_PHYSICAL, false, true, 30_000, fixture.token));
 		fixture.lease.target = target(true, true);
-		fixture.lease.loot = List.of(new LootCandidate(500));
+		fixture.lease.loot = List.of(new LootCandidate(500, 57, 1, 0));
 		fixture.lease.pickupOutcome = ActionOutcome.REJECTED;
 		fixture.dispatcher.runNext();
 		fixture.dispatcher.runNext();
@@ -425,12 +432,12 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		final Fixture fixture = fixture(1);
 		fixture.service.startSession(new PhantomCombatRequest(1, 100, PhantomCombatMode.MELEE_PHYSICAL, false, true, 30_000, fixture.token));
 		fixture.lease.target = target(true, true);
-		fixture.lease.loot = List.of(new LootCandidate(500));
+		fixture.lease.loot = List.of(new LootCandidate(500, 57, 1, 0));
 		fixture.dispatcher.runNext();
 		fixture.dispatcher.runNext();
 		fixture.dispatcher.runNext();
 		PhantomAssertions.assertEquals(PhantomCombatPhase.LOOTING, fixture.service.find(1).orElseThrow().phase(), "In-flight canonical pickup was completed before World removal.");
-		fixture.lease.loot = List.of();
+		fixture.lease.lootObservation = LootObservation.ACQUIRED_BY_ACTOR;
 		fixture.dispatcher.runNext();
 		assertTerminal(fixture, PhantomCombatResult.VICTORY_LOOTED);
 	}
@@ -470,8 +477,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		fixture.start(1, PhantomCombatMode.MELEE_PHYSICAL);
 		fixture.service.beginStop();
 		PhantomAssertions.assertEquals(1, fixture.lease.closeCount, "Stop did not release the combat lease.");
-		PhantomAssertions.assertFalse(fixture.service.finishStop(), "Stop ignored the already scheduled shared worker.");
-		fixture.dispatcher.runNext();
+		PhantomAssertions.assertEquals(0, fixture.service.snapshot().currentWorkers(), "Stop did not cancel the scheduled shared worker.");
 		PhantomAssertions.assertTrue(fixture.service.finishStop(), "Quiescent combat service did not stop.");
 	}
 
@@ -490,7 +496,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 	{
 		final Fixture fixture = fixture(1);
 		fixture.lease.respawnOutcome = RespawnOutcome.COMPLETED;
-		PhantomAssertions.assertEquals(RespawnOutcome.COMPLETED, fixture.service.respawnTown(1), "Respawn outcome was not propagated.");
+		PhantomAssertions.assertEquals(RespawnOutcome.COMPLETED, fixture.service.respawnTown(new PhantomRespawnRequest(1, fixture.token)), "Respawn outcome was not propagated.");
 		PhantomAssertions.assertEquals(1, fixture.lease.closeCount, "Respawn action lease leaked.");
 		fixture.service.beginStop();
 		PhantomAssertions.assertTrue(fixture.service.finishStop(), "Idle respawn fixture did not stop.");
@@ -529,7 +535,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			}
 		}, "Task012-combat-pulse");
 		final AtomicBoolean cancelReturned = new AtomicBoolean();
-		final AtomicReference<Boolean> cancelResult = new AtomicReference<>();
+		final AtomicReference<CancelStatus> cancelResult = new AtomicReference<>();
 		final AtomicReference<Throwable> cancelFailure = new AtomicReference<>();
 		final CountDownLatch cancelEntered = new CountDownLatch(1);
 		final Thread cancel = new Thread(() ->
@@ -578,7 +584,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		{
 			throw new AssertionError("Cancellation failed.", cancelFailure.get());
 		}
-		PhantomAssertions.assertEquals(Boolean.TRUE, cancelResult.get(), "Exact in-flight cancellation was not accepted.");
+		PhantomAssertions.assertEquals(CancelStatus.CANCELLED_CLEAN, cancelResult.get(), "Exact in-flight cancellation was not accepted.");
 		PhantomAssertions.assertEquals(1, fixture.lease.closeCount, "In-flight cancellation did not release the actor lease exactly once.");
 		PhantomAssertions.assertEquals(0, fixture.service.snapshot().actorLeases(), "In-flight cancellation retained actor ownership.");
 		PhantomAssertions.assertTrue(fixture.service.consumeTerminal(1).isPresent(), "Cancelled terminal session was not consumable.");
@@ -654,7 +660,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			}
 		}, "Task012-combat-in-flight-start");
 		final AtomicBoolean cancelReturned = new AtomicBoolean();
-		final AtomicReference<Boolean> cancelResult = new AtomicReference<>();
+		final AtomicReference<CancelStatus> cancelResult = new AtomicReference<>();
 		final Thread cancel = new Thread(() ->
 		{
 			cancelResult.set(fixture.service.cancel(1));
@@ -686,7 +692,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			throw new AssertionError("In-flight start failed unexpectedly.", startFailure.get());
 		}
 		PhantomAssertions.assertEquals(StartStatus.CANCELLED, startResult.get().status(), "Cancelled reserved start was published.");
-		PhantomAssertions.assertEquals(Boolean.TRUE, cancelResult.get(), "Reserved start cancellation was not accepted.");
+		PhantomAssertions.assertEquals(CancelStatus.CANCELLED_CLEAN, cancelResult.get(), "Reserved start cancellation was not accepted.");
 		PhantomAssertions.assertEquals(1, fixture.lease.closeCount, "Cancelled reserved start did not release its acquired lease.");
 		PhantomAssertions.assertTrue(fixture.service.find(1).isEmpty(), "Cancelled reserved start retained a terminal slot.");
 		PhantomAssertions.assertEquals(0, fixture.service.snapshot().actorLeases(), "Cancelled reserved start retained actor ownership.");
@@ -776,11 +782,12 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 	private static final class ManualDispatcher implements PhantomCombatService.Dispatcher
 	{
 		private Runnable next;
+		private ManualHandle handle;
 		private int dispatches;
 		private boolean reject;
 
 		@Override
-		public void dispatch(Runnable runnable, long delayMillis)
+		public DispatchResult dispatch(Runnable runnable, long delayMillis)
 		{
 			if (reject)
 			{
@@ -789,7 +796,9 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(250L, delayMillis, "Combat worker delay changed.");
 			PhantomAssertions.assertTrue(next == null, "More than one worker was scheduled.");
 			next = runnable;
+			handle = new ManualHandle(this);
 			dispatches++;
+			return DispatchResult.accepted(handle);
 		}
 
 		private void runNext()
@@ -797,7 +806,52 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			final Runnable runnable = next;
 			PhantomAssertions.assertTrue(runnable != null, "No combat worker was scheduled.");
 			next = null;
-			runnable.run();
+			final ManualHandle exactHandle = handle;
+			handle = null;
+			exactHandle.run(runnable);
+		}
+	}
+
+	private static final class ManualHandle implements DispatchHandle
+	{
+		private final ManualDispatcher _owner;
+		private DispatchState _state = DispatchState.SCHEDULED;
+
+		private ManualHandle(ManualDispatcher owner)
+		{
+			_owner = owner;
+		}
+
+		private void run(Runnable runnable)
+		{
+			_state = DispatchState.RUNNING;
+			try
+			{
+				runnable.run();
+			}
+			finally
+			{
+				_state = DispatchState.FINISHED;
+			}
+		}
+
+		@Override
+		public boolean cancelIfNotStarted()
+		{
+			if ((_state != DispatchState.SCHEDULED) || (_owner.handle != this))
+			{
+				return false;
+			}
+			_owner.next = null;
+			_owner.handle = null;
+			_state = DispatchState.CANCELLED;
+			return true;
+		}
+
+		@Override
+		public DispatchState state()
+		{
+			return _state;
 		}
 	}
 
@@ -838,6 +892,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		private final Set<Integer> supportedSkills = new HashSet<>();
 		private List<ThreatObservation> attackers = List.of();
 		private List<LootCandidate> loot = List.of();
+		private LootObservation lootObservation = LootObservation.PENDING;
 		private ShotOutcome shotOutcome = ShotOutcome.UNAVAILABLE;
 		private ActionOutcome attackOutcome = ActionOutcome.ISSUED;
 		private ActionOutcome castOutcome = ActionOutcome.ISSUED;
@@ -898,6 +953,12 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		}
 
 		@Override
+		public LootObservation observeLoot(LootCandidate candidate)
+		{
+			return lootObservation;
+		}
+
+		@Override
 		public ShotOutcome activateShot(PhantomCombatMode mode)
 		{
 			return shotOutcome;
@@ -911,7 +972,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		}
 
 		@Override
-		public ActionOutcome cast(int targetObjectId, SelectedSkill skill)
+		public ActionOutcome cast(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
 		{
 			castCount++;
 			return castOutcome;
@@ -924,7 +985,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		}
 
 		@Override
-		public void cancelOwnedAction(int targetObjectId, SelectedSkill selectedSkill)
+		public void cancelOwnedAction(PhantomOwnedAction action)
 		{
 		}
 

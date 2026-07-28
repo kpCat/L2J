@@ -73,9 +73,11 @@ Goal 011A: ACCEPT
 
 Stage II: COMPLETE
 
-Goal 012: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 012: FIX_REQUIRED
 
-Goal 013: NOT_STARTED
+Goal 012A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
+Goal 013: NOT_STARTED / BLOCKED
 
 Goal 014: NOT_STARTED
 ```
@@ -94,8 +96,10 @@ ordering Goal 010A принято, а bounded ledger architecture Goal 010B пр
 узкой integration boundary Goal 010C для отсутствующих real-scheduler sources.
 Goal 010C независимо принята, поэтому Goal 010 закрыта с `ACCEPT`. Review Goal
 011 потребовал bounded Goal 011A; исправление независимо принято, Goal 011
-закрыта, а Stage II завершён. Goal 012 реализована в bounded scope и ожидает
-независимого review. Goal 013 и Goal 014 не начаты.
+закрыта, а Stage II завершён. Архитектурное направление Goal 012 принято, но
+independent review выявило обязательные action-ownership findings. Goal 012A
+реализует их bounded closure и ожидает независимого review. Goal 013 не начата
+и заблокирована до этого gate; Goal 014 не начата.
 
 ---
 
@@ -606,7 +610,7 @@ class/role -> capability facts
 **GOAL:** 012–016  
 **Зависит от:** Этапы I–II.
 
-## Goal 012 — Capability-driven combat kernel — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+## Goal 012 — Capability-driven combat kernel — `FIX_REQUIRED`
 
 **Назначение:** минимальный реальный бой через server-side facades.  
 **Зависимости:** 008–011.  
@@ -618,7 +622,16 @@ combat capability interface.
 failure cleanup.  
 **Follow-up risk:** `VERY_HIGH` — skills/death/World timing.
 
-## Goal 013 — Progression, professions, skills, equipment и class catalog — `NOT_STARTED`
+### Goal 012A — Combat action ownership truth — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+
+**Назначение:** bounded closure findings Goal 012 по shared worker dispatch,
+canonical action cleanup, causal loot truth, selected-skill safety и
+plan-owned respawn.
+**Зависимости:** 012.
+**Gate:** independent review exact child commit; до принятия Goal 013
+заблокирована.
+
+## Goal 013 — Progression, professions, skills, equipment и class catalog — `NOT_STARTED / BLOCKED`
 
 **Назначение:** расширить generic capability keys реальными High Five классами.  
 **Зависимости:** 012.  
@@ -1073,11 +1086,12 @@ Completed:
 - Stage II COMPLETE
 
 In progress / required closure:
-- Goal 012 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 012 FIX_REQUIRED
+- Goal 012A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 012
-2. Goal 013 remains NOT_STARTED
+1. Independent review Goal 012A
+2. Goal 013 remains NOT_STARTED / BLOCKED
 3. Goal 014 remains NOT_STARTED
 
 Stage gate:
@@ -1085,7 +1099,7 @@ Stage gate:
 - Stage II COMPLETE
 
 New risks:
-- capability-driven combat ownership and canonical World timing await independent review
+- Goal 012A action ownership and canonical World timing await independent review
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
@@ -1114,8 +1128,9 @@ Overall:
   Goal 011 ACCEPT after Goal 011A;
   Goal 011A ACCEPT;
   Stage II COMPLETE;
-  Goal 012 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 013 NOT_STARTED;
+  Goal 012 FIX_REQUIRED;
+  Goal 012A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 013 NOT_STARTED / BLOCKED;
   Goal 014 NOT_STARTED
 ```
 

@@ -13,13 +13,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.LongSupplier;
 
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
@@ -51,6 +54,33 @@ public final class PhantomCombatService
 		BACKEND_FAILURE
 	}
 
+	public enum CancelStatus
+	{
+		CANCELLED_CLEAN,
+		CLEANUP_PENDING,
+		CLEANUP_FAILED,
+		NOT_FOUND,
+		ALREADY_TERMINAL,
+		NOT_RUNNING
+	}
+
+	public enum CleanupState
+	{
+		NONE,
+		PENDING,
+		IN_PROGRESS,
+		FAILED_RETRYABLE,
+		COMPLETE
+	}
+
+	public enum DispatchState
+	{
+		SCHEDULED,
+		RUNNING,
+		FINISHED,
+		CANCELLED
+	}
+
 	public record StartResult(StartStatus status, PhantomCombatSessionSnapshot session)
 	{
 		public boolean accepted()
@@ -70,9 +100,40 @@ public final class PhantomCombatService
 	@FunctionalInterface
 	public interface Dispatcher
 	{
-		void dispatch(Runnable runnable, long delayMillis);
+		DispatchResult dispatch(Runnable runnable, long delayMillis);
 	}
 
+	public interface DispatchHandle
+	{
+		boolean cancelIfNotStarted();
+
+		DispatchState state();
+	}
+
+	public record DispatchResult(boolean accepted, DispatchHandle handle)
+	{
+		public DispatchResult
+		{
+			if (accepted && (handle == null))
+			{
+				throw new IllegalArgumentException("Accepted dispatch requires a handle.");
+			}
+		}
+
+		public static DispatchResult accepted(DispatchHandle handle)
+		{
+			return new DispatchResult(true, handle);
+		}
+
+		public static DispatchResult rejected()
+		{
+			return new DispatchResult(false, null);
+		}
+	}
+
+	private static final int MAXIMUM_AUTOMATIC_CLEANUP_ATTEMPTS = 3;
+	private static final long CLEANUP_WAIT_MILLIS = 5000;
+	private final Object _dispatchGate = new Object();
 	private final Object _monitor = new Object();
 	private final PhantomCombatBackend _backend;
 	private final PhantomCombatCapabilityResolver _capabilityResolver;
@@ -85,14 +146,18 @@ public final class PhantomCombatService
 	private final Set<Long> _queued = new HashSet<>();
 	private ServiceState _state = ServiceState.NEW;
 	private long _nextGeneration;
-	private boolean _workerClaimed;
+	private long _nextWorkerGeneration;
+	private long _nextRespawnGeneration;
+	private WorkerClaim _workerClaim;
+	private final Map<Long, RespawnOperation> _respawnOperations = new HashMap<>();
 	private int _actorLeases;
 	private int _startOperations;
 	private boolean _stopFailureRecorded;
+	private boolean _stopRequested;
 
 	public PhantomCombatService(PhantomCombatBackend backend, PhantomCombatCapabilityResolver capabilityResolver, PhantomCombatPolicy policy)
 	{
-		this(backend, capabilityResolver, policy, new PhantomCombatMetrics(), System::nanoTime, (runnable, delay) -> ThreadPool.schedule(runnable, delay));
+		this(backend, capabilityResolver, policy, new PhantomCombatMetrics(), System::nanoTime, scheduledDispatcher(ThreadPool::schedule));
 	}
 
 	public PhantomCombatService(PhantomCombatBackend backend, PhantomCombatCapabilityResolver capabilityResolver, PhantomCombatPolicy policy, PhantomCombatMetrics metrics, LongSupplier clock, Dispatcher dispatcher)
@@ -103,6 +168,36 @@ public final class PhantomCombatService
 		_metrics = Objects.requireNonNull(metrics, "metrics");
 		_clock = Objects.requireNonNull(clock, "clock");
 		_dispatcher = Objects.requireNonNull(dispatcher, "dispatcher");
+	}
+
+	public static Dispatcher scheduledDispatcher(BiFunction<Runnable, Long, ScheduledFuture<?>> scheduler)
+	{
+		Objects.requireNonNull(scheduler, "scheduler");
+		return (runnable, delayMillis) ->
+		{
+			final ScheduledDispatchHandle handle = new ScheduledDispatchHandle();
+			final ScheduledFuture<?> future = scheduler.apply(() ->
+			{
+				if (!handle.start())
+				{
+					return;
+				}
+				try
+				{
+					runnable.run();
+				}
+				finally
+				{
+					handle.finish();
+				}
+			}, delayMillis);
+			if (future == null)
+			{
+				return DispatchResult.rejected();
+			}
+			handle.publish(future);
+			return DispatchResult.accepted(handle);
+		};
 	}
 
 	public void start()
@@ -129,6 +224,11 @@ public final class PhantomCombatService
 			{
 				_metrics.sessionRejected();
 				return new StartResult(StartStatus.REJECTED_STATE, null);
+			}
+			if (_respawnOperations.containsKey(request.profileId()))
+			{
+				_metrics.sessionRejected();
+				return new StartResult(StartStatus.REJECTED_EXISTING, null);
 			}
 			final PhantomCombatSession existing = _sessions.get(request.profileId());
 			if (existing != null)
@@ -193,7 +293,7 @@ public final class PhantomCombatService
 				}
 			}
 		}
-		catch (RuntimeException e)
+		catch (Throwable throwable)
 		{
 			failure = StartStatus.BACKEND_FAILURE;
 		}
@@ -271,7 +371,7 @@ public final class PhantomCombatService
 		synchronized (_monitor)
 		{
 			final PhantomCombatSession session = _sessions.get(profileId);
-			if ((session == null) || !session._result.terminal() || session._cleanupPending || session._startInProgress)
+			if ((session == null) || !session._result.terminal() || (session._cleanupState != CleanupState.COMPLETE) || session._startInProgress)
 			{
 				return Optional.empty();
 			}
@@ -281,51 +381,68 @@ public final class PhantomCombatService
 		}
 	}
 
-	public boolean cancel(long profileId)
+	public CancelStatus cancel(long profileId)
 	{
 		final PhantomCombatSession session;
-		final Cleanup cleanup;
-		final boolean accepted;
 		synchronized (_monitor)
 		{
+			if ((_state != ServiceState.RUNNING) && (_state != ServiceState.FAILED))
+			{
+				return CancelStatus.NOT_RUNNING;
+			}
 			session = _sessions.get(profileId);
 			if (session == null)
 			{
-				return false;
+				return CancelStatus.NOT_FOUND;
 			}
 			if (session._result.terminal())
 			{
-				cleanup = null;
-				accepted = false;
+				if (session._cleanupState == CleanupState.COMPLETE)
+				{
+					return CancelStatus.ALREADY_TERMINAL;
+				}
 			}
 			else
 			{
-				cleanup = terminalLocked(session, PhantomCombatResult.CANCELLED);
-				accepted = true;
+				terminalLocked(session, PhantomCombatResult.CANCELLED);
 			}
 		}
-		cleanup(cleanup);
-		awaitCleanup(session);
-		return accepted;
+		attemptCleanup(session, false);
+		return awaitCleanup(session);
 	}
 
-	public RespawnOutcome respawnTown(long profileId)
+	public RespawnOutcome respawnTown(PhantomRespawnRequest request)
 	{
+		Objects.requireNonNull(request, "request");
 		_metrics.respawnRequested();
+		final RespawnOperation operation;
 		synchronized (_monitor)
 		{
-			if (_state != ServiceState.RUNNING)
+			if ((_state != ServiceState.RUNNING) || request.planOwnershipToken().isCancelled())
 			{
 				_metrics.respawnRejected();
-				return RespawnOutcome.REJECTED;
+				return request.planOwnershipToken().isCancelled() ? RespawnOutcome.CANCELLED : RespawnOutcome.REJECTED;
 			}
+			final PhantomCombatSession session = _sessions.get(request.profileId());
+			if ((session != null) && (!session._result.terminal() || (session._cleanupState != CleanupState.COMPLETE)))
+			{
+				_metrics.respawnRejected();
+				return RespawnOutcome.RETRY;
+			}
+			if (_respawnOperations.containsKey(request.profileId()))
+			{
+				_metrics.respawnRejected();
+				return RespawnOutcome.RETRY;
+			}
+			operation = new RespawnOperation(request.profileId(), ++_nextRespawnGeneration, request.planOwnershipToken());
+			_respawnOperations.put(request.profileId(), operation);
 			_startOperations++;
 		}
 		PhantomCombatActorLease lease = null;
 		boolean countedLease = false;
 		try
 		{
-			lease = _backend.tryAcquireActor(profileId);
+			lease = _backend.tryAcquireActor(request.profileId());
 			if (lease == null)
 			{
 				_metrics.leaseRejected();
@@ -338,6 +455,17 @@ public final class PhantomCombatService
 				_actorLeases++;
 			}
 			countedLease = true;
+			synchronized (_monitor)
+			{
+				operation._actorAcquired = true;
+				final PhantomCombatSession session = _sessions.get(request.profileId());
+				if ((_respawnOperations.get(request.profileId()) != operation) || !operation.matches(request) || operation.cancelled() || ((_state != ServiceState.RUNNING) && !((_state == ServiceState.STOPPING) && _stopRequested)) || ((session != null) && (!session._result.terminal() || (session._cleanupState != CleanupState.COMPLETE))))
+				{
+					_metrics.respawnRejected();
+					return operation.cancelled() ? RespawnOutcome.CANCELLED : RespawnOutcome.RETRY;
+				}
+				operation._sideEffectStarted = true;
+			}
 			_metrics.respawnAccepted();
 			final RespawnOutcome outcome = lease.respawnTown();
 			if (outcome == RespawnOutcome.COMPLETED)
@@ -350,7 +478,7 @@ public final class PhantomCombatService
 			}
 			return outcome;
 		}
-		catch (RuntimeException e)
+		catch (Throwable throwable)
 		{
 			_metrics.respawnRejected();
 			return RespawnOutcome.REJECTED;
@@ -375,45 +503,52 @@ public final class PhantomCombatService
 					}
 				}
 			}
+			synchronized (_monitor)
+			{
+				_respawnOperations.remove(request.profileId(), operation);
+			}
 			finishStartOperation();
 		}
 	}
 
 	public void beginStop()
 	{
-		final List<Cleanup> cleanups = new ArrayList<>();
-		synchronized (_monitor)
+		final List<PhantomCombatSession> cleanups = new ArrayList<>();
+		synchronized (_dispatchGate)
 		{
-			if ((_state == ServiceState.STOPPED) || (_state == ServiceState.STOPPING))
+			synchronized (_monitor)
 			{
-				return;
-			}
-			_state = ServiceState.STOPPING;
-			for (PhantomCombatSession session : _sessions.values())
-			{
-				if (!session._result.terminal())
+				if (_state == ServiceState.STOPPED)
 				{
-					cleanups.add(terminalLocked(session, PhantomCombatResult.CANCELLED));
+					return;
 				}
-			}
-			int removed = 0;
-			for (PhantomCombatSession session : _sessions.values())
-			{
-				if (session._metricsCounted)
+				_stopRequested = true;
+				if (_state != ServiceState.FAILED)
 				{
-					session._metricsCounted = false;
-					removed++;
+					_state = ServiceState.STOPPING;
 				}
-			}
-			_sessions.clear();
-			_queue.clear();
-			_queued.clear();
-			for (int index = 0; index < removed; index++)
-			{
-				_metrics.sessionRemoved();
+				final WorkerClaim claim = _workerClaim;
+				if ((claim != null) && !claim._running && (claim._handle != null) && claim._handle.cancelIfNotStarted())
+				{
+					releaseWorkerClaimLocked(claim);
+				}
+				_queue.clear();
+				_queued.clear();
+				for (PhantomCombatSession session : _sessions.values())
+				{
+					if (!session._result.terminal())
+					{
+						terminalLocked(session, PhantomCombatResult.CANCELLED);
+					}
+					if ((session._cleanupState == CleanupState.PENDING) || (session._cleanupState == CleanupState.FAILED_RETRYABLE))
+					{
+						cleanups.add(session);
+					}
+				}
+				removeCompletedStopSessionsLocked();
 			}
 		}
-		cleanups.forEach(this::cleanup);
+		cleanups.forEach(session -> attemptCleanup(session, false));
 	}
 
 	public boolean finishStop()
@@ -424,9 +559,10 @@ public final class PhantomCombatService
 			{
 				return true;
 			}
-			if ((_state != ServiceState.STOPPING) || _workerClaimed || (_actorLeases != 0) || (_startOperations != 0) || !_sessions.isEmpty() || !_queue.isEmpty())
+			removeCompletedStopSessionsLocked();
+			if (!_stopRequested || (_workerClaim != null) || (_actorLeases != 0) || (_startOperations != 0) || !_respawnOperations.isEmpty() || !_sessions.isEmpty() || !_queue.isEmpty())
 			{
-				if ((_state == ServiceState.STOPPING) && !_stopFailureRecorded)
+				if (_stopRequested && !_stopFailureRecorded)
 				{
 					_stopFailureRecorded = true;
 					_metrics.stopFailure();
@@ -435,6 +571,21 @@ public final class PhantomCombatService
 			}
 			_state = ServiceState.STOPPED;
 			return true;
+		}
+	}
+
+	public boolean retryFailedCleanup()
+	{
+		final List<PhantomCombatSession> retries;
+		synchronized (_monitor)
+		{
+			retries = _sessions.values().stream().filter(session -> session._cleanupState == CleanupState.FAILED_RETRYABLE).toList();
+		}
+		retries.forEach(session -> attemptCleanup(session, true));
+		synchronized (_monitor)
+		{
+			removeCompletedStopSessionsLocked();
+			return retries.stream().allMatch(session -> session._cleanupState == CleanupState.COMPLETE);
 		}
 	}
 
@@ -455,7 +606,7 @@ public final class PhantomCombatService
 					active++;
 				}
 			}
-			return new ServiceSnapshot(_state, active, terminal, _queue.size(), _workerClaimed ? 1 : 0, _actorLeases, _policy.maximumSessions());
+			return new ServiceSnapshot(_state, active, terminal, _queue.size(), _workerClaim == null ? 0 : 1, _actorLeases, _policy.maximumSessions());
 		}
 	}
 
@@ -466,76 +617,149 @@ public final class PhantomCombatService
 
 	private void ensureWorker()
 	{
-		synchronized (_monitor)
-		{
-			if ((_state != ServiceState.RUNNING) || _workerClaimed || _queue.isEmpty())
-			{
-				return;
-			}
-			_workerClaimed = true;
-		}
-		try
-		{
-			_dispatcher.dispatch(this::pulse, _policy.pulseIntervalMillis());
-			_metrics.workerDispatched();
-		}
-		catch (RuntimeException e)
+		WorkerClaim claim = null;
+		boolean rejected = false;
+		synchronized (_dispatchGate)
 		{
 			synchronized (_monitor)
 			{
-				_workerClaimed = false;
+				if ((_state != ServiceState.RUNNING) || (_workerClaim != null) || _queue.isEmpty())
+				{
+					return;
+				}
+				claim = new WorkerClaim(++_nextWorkerGeneration);
+				_workerClaim = claim;
 			}
-			_metrics.dispatchFailed();
+			DispatchResult result = null;
+			try
+			{
+				final WorkerClaim exactClaim = claim;
+				result = _dispatcher.dispatch(() -> pulse(exactClaim), _policy.pulseIntervalMillis());
+			}
+			catch (Throwable throwable)
+			{
+				result = null;
+			}
+			synchronized (_monitor)
+			{
+				if ((result != null) && result.accepted())
+				{
+					if (_workerClaim == claim)
+					{
+						claim._handle = result.handle();
+					}
+					_metrics.workerDispatched();
+				}
+				else
+				{
+					releaseWorkerClaimLocked(claim);
+					rejected = true;
+					_metrics.dispatchFailed();
+				}
+			}
+		}
+		if (rejected)
+		{
 			failAllActive();
 		}
 	}
 
-	private void pulse()
+	private void pulse(WorkerClaim claim)
 	{
-		final List<PhantomCombatSession> due = new ArrayList<>(_policy.maximumSessionsPerPulse());
-		synchronized (_monitor)
+		boolean ownsClaim = false;
+		try
 		{
-			if (_state == ServiceState.RUNNING)
+			synchronized (_dispatchGate)
 			{
-				while ((due.size() < _policy.maximumSessionsPerPulse()) && !_queue.isEmpty())
+				synchronized (_monitor)
 				{
-					final long profileId = _queue.removeFirst();
-					_queued.remove(profileId);
-					final PhantomCombatSession session = _sessions.get(profileId);
-					if ((session != null) && !session._result.terminal())
+					if (_workerClaim != claim)
 					{
-						due.add(session);
+						return;
+					}
+					claim._running = true;
+					ownsClaim = true;
+					if (_state != ServiceState.RUNNING)
+					{
+						return;
 					}
 				}
 			}
-		}
 
-		for (PhantomCombatSession session : due)
-		{
-			_metrics.pulse();
-			process(session);
-		}
+			final List<PhantomCombatSession> due = new ArrayList<>(_policy.maximumSessionsPerPulse());
+			synchronized (_monitor)
+			{
+				if (_state == ServiceState.RUNNING)
+				{
+					while ((due.size() < _policy.maximumSessionsPerPulse()) && !_queue.isEmpty())
+					{
+						final long profileId = _queue.removeFirst();
+						_queued.remove(profileId);
+						final PhantomCombatSession session = _sessions.get(profileId);
+						if ((session != null) && (!session._result.terminal() || cleanupRetryDue(session)))
+						{
+							due.add(session);
+						}
+					}
+				}
+			}
 
-		synchronized (_monitor)
-		{
-			_workerClaimed = false;
+			for (PhantomCombatSession session : due)
+			{
+				_metrics.pulse();
+				try
+				{
+					process(session);
+				}
+				catch (Throwable throwable)
+				{
+					handleProcessThrowable(session);
+				}
+			}
 		}
-		ensureWorker();
+		finally
+		{
+			if (ownsClaim)
+			{
+				synchronized (_monitor)
+				{
+					releaseWorkerClaimLocked(claim);
+				}
+			}
+			ensureWorker();
+		}
 	}
 
 	private void process(PhantomCombatSession session)
 	{
+		boolean cleanup = false;
 		synchronized (_monitor)
 		{
-			if ((_state != ServiceState.RUNNING) || (_sessions.get(session._request.profileId()) != session) || session._result.terminal())
+			if ((_state != ServiceState.RUNNING) || (_sessions.get(session._request.profileId()) != session))
 			{
 				return;
 			}
-			session._processing = true;
+			if (session._result.terminal())
+			{
+				cleanup = cleanupRetryDue(session);
+			}
+			else
+			{
+				session._processing = true;
+			}
+		}
+		if (cleanup)
+		{
+			attemptCleanup(session, false);
+			return;
 		}
 
 		try
 		{
+			if (session._result.terminal())
+			{
+				return;
+			}
 			final long now = now();
 			if (session._request.planOwnershipToken().isCancelled())
 			{
@@ -596,7 +820,7 @@ public final class PhantomCombatService
 			issueAction(session, actor);
 			requeue(session);
 		}
-		catch (RuntimeException e)
+		catch (Throwable throwable)
 		{
 			finish(session, PhantomCombatResult.BACKEND_FAILURE);
 		}
@@ -625,10 +849,10 @@ public final class PhantomCombatService
 		final ActionOutcome outcome;
 		if (selected != null)
 		{
-			outcome = session._actorLease.cast(session._request.targetObjectId(), selected);
+			outcome = session._actorLease.cast(session._request.targetObjectId(), selected, session._request.mode());
 			if (outcome == ActionOutcome.ISSUED)
 			{
-				session._ownedSkill = selected;
+				session._ownedAction = session._ownedAction.withSelectedSkill(selected);
 				_metrics.castIssued();
 			}
 			else
@@ -654,69 +878,91 @@ public final class PhantomCombatService
 		final ActionOutcome outcome = session._actorLease.attack(session._request.targetObjectId());
 		if (outcome == ActionOutcome.ISSUED)
 		{
-			session._ownedSkill = null;
+			session._ownedAction = session._ownedAction.withSelectedSkill(null);
 			_metrics.attackIssued();
 		}
 	}
 
 	private void processLoot(PhantomCombatSession session, long now)
 	{
+		if (session._lootAttempt != null)
+		{
+			final LootObservation observation = session._actorLease.observeLoot(session._lootAttempt);
+			if (observation == LootObservation.PENDING)
+			{
+				if (elapsed(now, session._lootStartedLogicalNanos) >= TimeUnit.MILLISECONDS.toNanos(_policy.lootTimeoutMillis()))
+				{
+					session._lootLostWithoutAcquisition++;
+					session._lootAttempt = null;
+					finish(session, lootResult(session, true));
+				}
+				else
+				{
+					requeue(session);
+				}
+				return;
+			}
+			if (observation == LootObservation.ACQUIRED_BY_ACTOR)
+			{
+				session._lootAcquiredByActor++;
+			}
+			else
+			{
+				session._lootLostWithoutAcquisition++;
+			}
+			session._lootAttempt = null;
+			session._ownedAction = session._ownedAction.withPickupObjectId(0);
+		}
+
+		if (elapsed(now, session._lootStartedLogicalNanos) >= TimeUnit.MILLISECONDS.toNanos(_policy.lootTimeoutMillis()))
+		{
+			finish(session, lootResult(session, true));
+			return;
+		}
 		final List<LootCandidate> candidates = session._actorLease.lootCandidates(_policy.maximumLootCandidates(), _policy.maximumLootDistance());
 		if (candidates.size() > _policy.maximumLootCandidates())
 		{
 			throw new IllegalStateException("Combat backend exceeded the loot candidate bound.");
 		}
 		_metrics.lootCandidates(candidates.size());
-		final List<LootCandidate> ordered = candidates.stream().sorted(Comparator.comparingInt(LootCandidate::objectId)).toList();
-		if ((session._lastLootObjectId > 0) && ordered.stream().noneMatch(candidate -> candidate.objectId() == session._lastLootObjectId))
-		{
-			session._lootPickupsObserved++;
-			session._lastLootObjectId = 0;
-		}
-		if (elapsed(now, session._lootStartedLogicalNanos) >= TimeUnit.MILLISECONDS.toNanos(_policy.lootTimeoutMillis()))
-		{
-			finish(session, session._lootPickupsObserved > 0 ? PhantomCombatResult.VICTORY_LOOT_PARTIAL : PhantomCombatResult.VICTORY_LOOT_BLOCKED);
-			return;
-		}
+		final List<LootCandidate> ordered = candidates.stream().sorted(Comparator.comparingInt(LootCandidate::worldObjectId)).toList();
 		for (LootCandidate candidate : ordered)
 		{
-			if (session._rememberedLootIds.contains(candidate.objectId()))
+			if (session._rememberedLootIds.contains(candidate.worldObjectId()))
 			{
 				continue;
 			}
 			if (session._rememberedLootIds.size() >= _policy.maximumRememberedLootIds())
 			{
-				finish(session, session._lootPickupsObserved > 0 ? PhantomCombatResult.VICTORY_LOOT_PARTIAL : PhantomCombatResult.VICTORY_LOOT_BLOCKED);
+				finish(session, lootResult(session, false));
 				return;
 			}
-			session._rememberedLootIds.add(candidate.objectId());
-			final ActionOutcome outcome = session._actorLease.pickUp(candidate.objectId());
+			session._rememberedLootIds.add(candidate.worldObjectId());
+			final ActionOutcome outcome = session._actorLease.pickUp(candidate.worldObjectId());
 			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
 			{
-				session._lastLootObjectId = candidate.objectId();
+				session._lootAttempt = candidate;
+				session._ownedAction = session._ownedAction.withPickupObjectId(candidate.worldObjectId());
 				session._lootPickupsIssued++;
 				_metrics.lootPickup();
 			}
+			else
+			{
+				session._lootLostWithoutAcquisition++;
+			}
 			requeue(session);
 			return;
 		}
-		if (session._lastLootObjectId > 0)
+		finish(session, lootResult(session, false));
+	}
+
+	private static PhantomCombatResult lootResult(PhantomCombatSession session, boolean timedOut)
+	{
+		if (session._lootAcquiredByActor > 0)
 		{
-			requeue(session);
-			return;
+			return ((session._lootLostWithoutAcquisition > 0) || (timedOut && (session._lootAttempt != null))) ? PhantomCombatResult.VICTORY_LOOT_PARTIAL : PhantomCombatResult.VICTORY_LOOTED;
 		}
-		if (session._lootPickupsObserved > 0)
-		{
-			finish(session, PhantomCombatResult.VICTORY_LOOTED);
-		}
-		else if (session._rememberedLootIds.isEmpty())
-		{
-			finish(session, PhantomCombatResult.VICTORY);
-		}
-		else
-		{
-			finish(session, PhantomCombatResult.VICTORY_LOOT_BLOCKED);
-		}
+		return session._rememberedLootIds.isEmpty() ? PhantomCombatResult.VICTORY : PhantomCombatResult.VICTORY_LOOT_BLOCKED;
 	}
 
 	private List<ThreatObservation> boundedAttackers(List<ThreatObservation> observations)
@@ -753,106 +999,187 @@ public final class PhantomCombatService
 
 	private void finish(PhantomCombatSession session, PhantomCombatResult result)
 	{
-		final Cleanup cleanup;
+		boolean cleanupNow;
 		synchronized (_monitor)
 		{
 			if ((_sessions.get(session._request.profileId()) != session) || session._result.terminal())
 			{
 				return;
 			}
-			cleanup = terminalLocked(session, result);
+			terminalLocked(session, result);
+			cleanupNow = !session._processing;
 		}
-		cleanup(cleanup);
+		if (cleanupNow)
+		{
+			attemptCleanup(session, false);
+		}
 	}
 
-	private Cleanup terminalLocked(PhantomCombatSession session, PhantomCombatResult result)
+	private void terminalLocked(PhantomCombatSession session, PhantomCombatResult result)
 	{
 		session._phase = PhantomCombatPhase.TERMINAL;
 		session._result = result;
 		_queued.remove(session._request.profileId());
 		_queue.remove(session._request.profileId());
-		final PhantomCombatActorLease lease = session._actorLease;
-		session._actorLease = null;
-		session._cleanupPending = lease != null;
+		session._cleanupState = session._actorLease == null ? CleanupState.COMPLETE : CleanupState.PENDING;
 		_metrics.terminal(result);
-		if ((lease != null) && session._processing)
-		{
-			session._deferredCleanupLease = lease;
-			return null;
-		}
-		return new Cleanup(session, lease, session._request.targetObjectId(), session._ownedSkill);
 	}
 
-	private void cleanup(Cleanup cleanup)
+	private void attemptCleanup(PhantomCombatSession session, boolean explicitRetry)
 	{
-		if ((cleanup == null) || (cleanup.lease() == null))
+		final PhantomCombatActorLease lease;
+		final PhantomOwnedAction action;
+		synchronized (_monitor)
 		{
-			return;
+			if ((_sessions.get(session._request.profileId()) != session) || session._processing || session._startInProgress || (session._cleanupState == CleanupState.NONE) || (session._cleanupState == CleanupState.COMPLETE) || (session._cleanupState == CleanupState.IN_PROGRESS))
+			{
+				return;
+			}
+			if (!explicitRetry && (session._cleanupAttempts >= MAXIMUM_AUTOMATIC_CLEANUP_ATTEMPTS))
+			{
+				_state = ServiceState.FAILED;
+				return;
+			}
+			lease = session._actorLease;
+			action = session._ownedAction;
+			if (lease == null)
+			{
+				session._cleanupState = CleanupState.COMPLETE;
+				_monitor.notifyAll();
+				return;
+			}
+			session._cleanupState = CleanupState.IN_PROGRESS;
+			session._cleanupAttempts++;
 		}
+		Throwable failure = null;
 		try
 		{
-			cleanup.lease().cancelOwnedAction(cleanup.targetObjectId(), cleanup.selectedSkill());
+			lease.cancelOwnedAction(action);
+			lease.close();
 		}
-		catch (RuntimeException e)
+		catch (Throwable throwable)
 		{
-			// Lease release remains mandatory even if canonical action cleanup fails.
+			failure = throwable;
 		}
-		finally
+		boolean dispatchRetry = false;
+		boolean failRemaining = false;
+		synchronized (_monitor)
 		{
-			try
+			if ((_sessions.get(session._request.profileId()) != session) || (session._actorLease != lease) || (session._cleanupState != CleanupState.IN_PROGRESS))
 			{
-				cleanup.lease().close();
+				return;
 			}
-			finally
+			if (failure == null)
 			{
-				synchronized (_monitor)
-				{
-					_actorLeases--;
-				}
+				session._actorLease = null;
+				session._cleanupState = CleanupState.COMPLETE;
+				_actorLeases--;
 				_metrics.leaseReleased();
-				synchronized (_monitor)
+				if (_stopRequested)
 				{
-					cleanup.session()._cleanupPending = false;
-					_monitor.notifyAll();
+					removeCompletedStopSessionsLocked();
 				}
 			}
+			else
+			{
+				session._cleanupState = CleanupState.FAILED_RETRYABLE;
+				session._cleanupFailures++;
+				_metrics.cleanupFailure();
+				if (!explicitRetry && (session._cleanupAttempts >= MAXIMUM_AUTOMATIC_CLEANUP_ATTEMPTS))
+				{
+					_state = ServiceState.FAILED;
+					failRemaining = true;
+				}
+				else if (!explicitRetry && (_state == ServiceState.RUNNING))
+				{
+					enqueue(session);
+					dispatchRetry = true;
+				}
+			}
+			_monitor.notifyAll();
+		}
+		if (failRemaining)
+		{
+			failAllActive();
+		}
+		else if (dispatchRetry)
+		{
+			ensureWorker();
 		}
 	}
 
 	private void finishProcessing(PhantomCombatSession session)
 	{
-		final Cleanup cleanup;
+		boolean cleanupNow = false;
+		boolean dispatchCleanup = false;
 		synchronized (_monitor)
 		{
 			session._processing = false;
-			final PhantomCombatActorLease lease = session._deferredCleanupLease;
-			session._deferredCleanupLease = null;
-			cleanup = lease == null ? null : new Cleanup(session, lease, session._request.targetObjectId(), session._ownedSkill);
+			if (session._cleanupState == CleanupState.PENDING)
+			{
+				cleanupNow = true;
+			}
+			else if (session._cleanupState == CleanupState.FAILED_RETRYABLE)
+			{
+				if (_state == ServiceState.RUNNING)
+				{
+					enqueue(session);
+					dispatchCleanup = true;
+				}
+			}
 			_monitor.notifyAll();
 		}
-		cleanup(cleanup);
+		if (cleanupNow)
+		{
+			attemptCleanup(session, false);
+		}
+		else if (dispatchCleanup)
+		{
+			ensureWorker();
+		}
 	}
 
-	private void awaitCleanup(PhantomCombatSession session)
+	private CancelStatus awaitCleanup(PhantomCombatSession session)
 	{
+		final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(CLEANUP_WAIT_MILLIS);
 		boolean interrupted = false;
 		synchronized (_monitor)
 		{
-			while (session._cleanupPending || session._startInProgress)
+			while (session._processing || session._startInProgress || (session._cleanupState == CleanupState.IN_PROGRESS))
 			{
 				try
 				{
-					_monitor.wait();
+					final long remaining = deadline - System.nanoTime();
+					if (remaining <= 0)
+					{
+						break;
+					}
+					final long millis = TimeUnit.NANOSECONDS.toMillis(remaining);
+					final int nanos = (int) (remaining - TimeUnit.MILLISECONDS.toNanos(millis));
+					_monitor.wait(millis, nanos);
 				}
 				catch (InterruptedException e)
 				{
 					interrupted = true;
+					break;
 				}
 			}
 		}
 		if (interrupted)
 		{
 			Thread.currentThread().interrupt();
+		}
+		synchronized (_monitor)
+		{
+			if (session._cleanupState == CleanupState.COMPLETE)
+			{
+				return CancelStatus.CANCELLED_CLEAN;
+			}
+			if ((session._cleanupAttempts >= MAXIMUM_AUTOMATIC_CLEANUP_ATTEMPTS) && (session._cleanupState == CleanupState.FAILED_RETRYABLE))
+			{
+				return CancelStatus.CLEANUP_FAILED;
+			}
+			return CancelStatus.CLEANUP_PENDING;
 		}
 	}
 
@@ -900,18 +1227,70 @@ public final class PhantomCombatService
 
 	private void failAllActive()
 	{
-		final List<Cleanup> cleanups = new ArrayList<>();
+		final List<PhantomCombatSession> cleanups = new ArrayList<>();
 		synchronized (_monitor)
 		{
 			for (PhantomCombatSession session : _sessions.values())
 			{
 				if (!session._result.terminal())
 				{
-					cleanups.add(terminalLocked(session, PhantomCombatResult.BACKEND_FAILURE));
+					terminalLocked(session, PhantomCombatResult.BACKEND_FAILURE);
+					if (!session._processing)
+					{
+						cleanups.add(session);
+					}
 				}
 			}
 		}
-		cleanups.forEach(this::cleanup);
+		cleanups.forEach(session -> attemptCleanup(session, false));
+	}
+
+	private void handleProcessThrowable(PhantomCombatSession session)
+	{
+		try
+		{
+			finish(session, PhantomCombatResult.BACKEND_FAILURE);
+		}
+		catch (Throwable ignored)
+		{
+			synchronized (_monitor)
+			{
+				if ((_sessions.get(session._request.profileId()) == session) && !session._result.terminal())
+				{
+					terminalLocked(session, PhantomCombatResult.BACKEND_FAILURE);
+				}
+			}
+		}
+	}
+
+	private boolean cleanupRetryDue(PhantomCombatSession session)
+	{
+		return !session._processing && ((session._cleanupState == CleanupState.PENDING) || ((session._cleanupState == CleanupState.FAILED_RETRYABLE) && (session._cleanupAttempts < MAXIMUM_AUTOMATIC_CLEANUP_ATTEMPTS)));
+	}
+
+	private void releaseWorkerClaimLocked(WorkerClaim claim)
+	{
+		if (_workerClaim == claim)
+		{
+			_workerClaim = null;
+			_monitor.notifyAll();
+		}
+	}
+
+	private void removeCompletedStopSessionsLocked()
+	{
+		if (!_stopRequested)
+		{
+			return;
+		}
+		for (PhantomCombatSession session : List.copyOf(_sessions.values()))
+		{
+			if (session._result.terminal() && (session._cleanupState == CleanupState.COMPLETE) && !session._startInProgress && !session._processing)
+			{
+				_sessions.remove(session._request.profileId(), session);
+				removeSessionMetricLocked(session);
+			}
+		}
 	}
 
 	private long now()
@@ -933,7 +1312,87 @@ public final class PhantomCombatService
 		return (int) Math.max(0, Math.min(100, Math.floor((current * 100d) / maximum)));
 	}
 
-	private record Cleanup(PhantomCombatSession session, PhantomCombatActorLease lease, int targetObjectId, SelectedSkill selectedSkill)
+	private static final class WorkerClaim
 	{
+		private final long _generation;
+		private DispatchHandle _handle;
+		private boolean _running;
+
+		private WorkerClaim(long generation)
+		{
+			_generation = generation;
+		}
+	}
+
+	private static final class ScheduledDispatchHandle implements DispatchHandle
+	{
+		private ScheduledFuture<?> _future;
+		private DispatchState _state = DispatchState.SCHEDULED;
+
+		private synchronized void publish(ScheduledFuture<?> future)
+		{
+			_future = Objects.requireNonNull(future, "future");
+		}
+
+		private synchronized boolean start()
+		{
+			if (_state != DispatchState.SCHEDULED)
+			{
+				return false;
+			}
+			_state = DispatchState.RUNNING;
+			return true;
+		}
+
+		private synchronized void finish()
+		{
+			if (_state == DispatchState.RUNNING)
+			{
+				_state = DispatchState.FINISHED;
+			}
+		}
+
+		@Override
+		public synchronized boolean cancelIfNotStarted()
+		{
+			if ((_state != DispatchState.SCHEDULED) || (_future == null) || !_future.cancel(false))
+			{
+				return false;
+			}
+			_state = DispatchState.CANCELLED;
+			return true;
+		}
+
+		@Override
+		public synchronized DispatchState state()
+		{
+			return _state;
+		}
+	}
+
+	private static final class RespawnOperation
+	{
+		private final long _profileId;
+		private final long _generation;
+		private final org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken _token;
+		private boolean _actorAcquired;
+		private boolean _sideEffectStarted;
+
+		private RespawnOperation(long profileId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken token)
+		{
+			_profileId = profileId;
+			_generation = generation;
+			_token = token;
+		}
+
+		private boolean matches(PhantomRespawnRequest request)
+		{
+			return (_profileId == request.profileId()) && (_token == request.planOwnershipToken());
+		}
+
+		private boolean cancelled()
+		{
+			return _token.isCancelled();
+		}
 	}
 }

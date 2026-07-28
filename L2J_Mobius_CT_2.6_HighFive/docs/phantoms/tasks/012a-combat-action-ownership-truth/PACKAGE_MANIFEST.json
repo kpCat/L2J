@@ -1,0 +1,31 @@
+{
+  "package": "phantom-world-goal-012a-combat-action-ownership-truth",
+  "taskId": "012a-combat-action-ownership-truth",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/012a-combat-action-ownership-truth/TASK.md",
+  "branch": "feature/phantom-world",
+  "baseCommit": "8143cb7f89d348854fc469a0955b22405f23e9b6",
+  "schemaChanges": false,
+  "configChanges": false,
+  "datapackChanges": false,
+  "geodataChanges": false,
+  "serverCoreChanges": false,
+  "threadPoolChanges": false,
+  "productionDatabaseChangesExecuted": false,
+  "productionCombatCandidateAdded": false,
+  "goal013Started": false,
+  "goal014Started": false,
+  "files": [
+    "TASK.md",
+    "CONTEXT.md",
+    "REVIEW_FINDINGS.md",
+    "WORKER_OWNERSHIP.md",
+    "ACTION_CLEANUP.md",
+    "LOOT_TRUTH.md",
+    "SKILL_RESPAWN_SAFETY.md",
+    "TEST_CASES.md",
+    "ACCEPTANCE.md",
+    "CODEX_LAUNCHER.txt",
+    "PACKAGE_MANIFEST.json"
+  ]
+}

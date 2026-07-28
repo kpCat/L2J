@@ -6,7 +6,8 @@ package org.l2jmobius.gameserver.phantoms.combat;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.CleanupState;
 
 public final class PhantomCombatSession
 {
@@ -22,14 +23,16 @@ public final class PhantomCombatSession
 	long _lastPulseLogicalNanos;
 	long _lootStartedLogicalNanos;
 	int _nextSkill;
-	int _lastLootObjectId;
 	int _lootPickupsIssued;
-	int _lootPickupsObserved;
-	SelectedSkill _ownedSkill;
-	PhantomCombatActorLease _deferredCleanupLease;
+	int _lootAcquiredByActor;
+	int _lootLostWithoutAcquisition;
+	LootCandidate _lootAttempt;
+	PhantomOwnedAction _ownedAction;
 	boolean _startInProgress = true;
 	boolean _processing;
-	boolean _cleanupPending;
+	CleanupState _cleanupState = CleanupState.NONE;
+	int _cleanupAttempts;
+	int _cleanupFailures;
 	boolean _metricsCounted;
 
 	PhantomCombatSession(PhantomCombatRequest request, long generation, long startedLogicalNanos, int maximumThreatEntries)
@@ -39,6 +42,7 @@ public final class PhantomCombatSession
 		_startedLogicalNanos = startedLogicalNanos;
 		_lastPulseLogicalNanos = startedLogicalNanos;
 		_threatTable = new PhantomCombatThreatTable(maximumThreatEntries);
+		_ownedAction = new PhantomOwnedAction(generation, request.targetObjectId(), null, 0);
 	}
 
 	PhantomCombatSessionSnapshot snapshot()

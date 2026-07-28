@@ -33,11 +33,11 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillUseHolder;
-import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
@@ -116,11 +116,11 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		public boolean supportsSkill(SelectedSkill selected, PhantomCombatMode mode)
 		{
 			final Skill skill = _player.getKnownSkill(selected.skillId());
-			if ((skill == null) || (skill.getLevel() != selected.skillLevel()) || skill.isPassive() || skill.isToggle() || (_player.isTransformed()) || (skill.getTargetType() != TargetType.ONE))
+			if ((skill == null) || (skill.getLevel() != selected.skillLevel()))
 			{
 				return false;
 			}
-			return mode.magic() ? skill.isMagic() : skill.isPhysical();
+			return PhantomCombatSkillSafety.supports(skill, mode, _player.isTransformed());
 		}
 
 		@Override
@@ -163,7 +163,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 					{
 						continue;
 					}
-					candidates.put(item.getObjectId(), new LootCandidate(item.getObjectId()));
+					candidates.put(item.getObjectId(), new LootCandidate(item.getObjectId(), item.getId(), item.getCount(), _player.getInventory().getInventoryItemCount(item.getId(), -1)));
 					if (candidates.size() > limit)
 					{
 						candidates.pollLastEntry();
@@ -171,6 +171,31 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				}
 			}
 			return List.copyOf(candidates.values());
+		}
+
+		@Override
+		public LootObservation observeLoot(LootCandidate candidate)
+		{
+			final Item exactInventoryItem = _player.getInventory().getItemByObjectId(candidate.worldObjectId());
+			if ((exactInventoryItem != null) && (exactInventoryItem.getOwnerId() == _player.getObjectId()) && ((exactInventoryItem.getItemLocation() == ItemLocation.INVENTORY) || (exactInventoryItem.getItemLocation() == ItemLocation.PAPERDOLL)))
+			{
+				return LootObservation.ACQUIRED_BY_ACTOR;
+			}
+
+			final long inventoryCount = _player.getInventory().getInventoryItemCount(candidate.itemId(), -1);
+			final WorldObject object = World.getInstance().findObject(candidate.worldObjectId());
+			if (object instanceof Item item)
+			{
+				if (item.isSpawned() && (item.getItemLocation() == ItemLocation.VOID))
+				{
+					return eligibleLoot(item, MAXIMUM_LOOT_DISTANCE) ? LootObservation.PENDING : LootObservation.INELIGIBLE;
+				}
+			}
+			if ((inventoryCount >= candidate.actorInventoryCountBefore()) && ((inventoryCount - candidate.actorInventoryCountBefore()) >= candidate.groundCount()))
+			{
+				return LootObservation.ACQUIRED_BY_ACTOR;
+			}
+			return LootObservation.LOST_WITHOUT_ACQUISITION;
 		}
 
 		@Override
@@ -244,7 +269,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
-		public ActionOutcome cast(int targetObjectId, SelectedSkill selected)
+		public ActionOutcome cast(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode)
 		{
 			final WorldObject object = World.getInstance().findObject(targetObjectId);
 			if (!(object instanceof Monster target))
@@ -252,7 +277,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.REJECTED;
 			}
 			final TargetSnapshot snapshot = targetSnapshot(target);
-			if (!snapshot.validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE) || !supportsSkill(selected, selectedMode(selected)))
+			if (!snapshot.validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE) || !supportsSkill(selected, mode))
 			{
 				return ActionOutcome.REJECTED;
 			}
@@ -271,12 +296,6 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			return ActionOutcome.ISSUED;
 		}
 
-		private PhantomCombatMode selectedMode(SelectedSkill selected)
-		{
-			final Skill skill = _player.getKnownSkill(selected.skillId());
-			return (skill != null) && skill.isMagic() ? PhantomCombatMode.RANGED_MAGIC : PhantomCombatMode.RANGED_PHYSICAL;
-		}
-
 		@Override
 		public ActionOutcome pickUp(int objectId)
 		{
@@ -285,38 +304,47 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.REJECTED;
 			}
+			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.PICK_UP) && (_player.getTarget() == item))
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			_player.setTarget(item);
 			_player.getAI().setIntention(Intention.PICK_UP, item);
 			return ActionOutcome.ISSUED;
 		}
 
 		@Override
-		public void cancelOwnedAction(int targetObjectId, SelectedSkill selectedSkill)
+		public void cancelOwnedAction(PhantomOwnedAction action)
 		{
 			if (!_player.hasAI())
 			{
 				return;
 			}
+			boolean cancelledOwnedAction = false;
 			final WorldObject selectedTarget = _player.getTarget();
-			final boolean ownsTarget = (selectedTarget != null) && (selectedTarget.getObjectId() == targetObjectId);
-			if ((_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() != null) && (_player.getAI().getAttackTarget().getObjectId() == targetObjectId))
+			final int selectedTargetObjectId = selectedTarget == null ? 0 : selectedTarget.getObjectId();
+			if ((_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() != null) && (_player.getAI().getAttackTarget().getObjectId() == action.combatTargetObjectId()))
 			{
 				_player.abortAttack();
 				_player.getAI().setIntention(Intention.IDLE);
-				if (ownsTarget)
-				{
-					_player.setTarget(null);
-				}
-				return;
+				cancelledOwnedAction = true;
 			}
 			final SkillUseHolder current = _player.getCurrentSkill();
-			if ((_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() != null) && (_player.getAI().getCastTarget().getObjectId() == targetObjectId) && (selectedSkill != null) && (current != null) && (current.getSkillId() == selectedSkill.skillId()) && (current.getSkillLevel() == selectedSkill.skillLevel()))
+			final SelectedSkill selectedSkill = action.selectedSkill();
+			if ((_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() != null) && (_player.getAI().getCastTarget().getObjectId() == action.combatTargetObjectId()) && (selectedSkill != null) && (current != null) && (current.getSkillId() == selectedSkill.skillId()) && (current.getSkillLevel() == selectedSkill.skillLevel()))
 			{
 				_player.abortCast();
 				_player.getAI().setIntention(Intention.IDLE);
-				if (ownsTarget)
-				{
-					_player.setTarget(null);
-				}
+				cancelledOwnedAction = true;
+			}
+			if ((_player.getAI().getIntention() == Intention.PICK_UP) && (action.pickupObjectId() > 0) && (selectedTargetObjectId == action.pickupObjectId()))
+			{
+				_player.getAI().setIntention(Intention.IDLE);
+				cancelledOwnedAction = true;
+			}
+			if (cancelledOwnedAction || ((_player.getAI().getIntention() == Intention.IDLE) && (selectedTargetObjectId == action.combatTargetObjectId())))
+			{
+				_player.setTarget(null);
 			}
 		}
 

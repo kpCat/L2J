@@ -131,3 +131,51 @@ Goal 012 регистрирует handlers `combat.start`, `combat.await`, `comb
 
 Goal 013 и Goal 014 не начаты. Полный class/equipment catalog, progression,
 party/PvP/raid/spoil и economy остаются за пределами этого контракта.
+
+## Goal 012A — истина владения действием
+
+### Shared worker
+
+Постановка worker считается принятой только после получения явного accepted
+dispatch handle. `null`, rejected result, `false` и `Throwable` означают
+непринятую постановку и не оставляют session в состоянии «worker запущен».
+Проверка lifecycle, постановка и переход в `STOPPING` сериализованы одним
+dispatch gate. `beginStop()` отменяет scheduled-but-not-started handle, а
+top-level `finally` освобождает worker claim при любом `Throwable`. Stale
+callback не может обработать session нового поколения.
+
+### Canonical action cleanup
+
+Session хранит exact descriptor только для принадлежащих ей действий
+`ATTACK`, `CAST` и `PICK_UP`: generation, combat target, selected skill и
+pickup object ID. Cleanup отменяет лишь совпадающее canonical действие и не
+трогает foreign action.
+
+Action lease закрывается только после подтверждённого cleanup. Ошибка cleanup
+оставляет bounded retryable ownership в состояниях `PENDING`, `RETRYABLE` или
+`FAILED`; максимум три попытки выполняются тем же shared worker. До состояния
+`COMPLETE` session нельзя consume, а `finishStop()` не может объявить успешную
+остановку.
+
+### Loot truth
+
+Loot считается acquired только по положительному evidence владения actor:
+тот же inventory object либо положительный прирост количества точного item ID
+после исчезновения ground object. Исчезновение, pickup другим игроком, despawn,
+потеря дальности или eligibility сами по себе не являются успехом.
+
+### Skill и mode safety
+
+Selected skill обязан быть active, negative, `TargetType.ONE`, не PvP-only,
+не suicide и не special skill. Перед canonical cast повторно проверяются
+точный selected skill и точный mode текущей session; mode не выводится заново
+из mutable actor state.
+
+### Respawn ownership
+
+Respawn request несёт exact plan cancellation token. Respawn запрещён при
+active либо cleanup-pending combat session. После получения actor и перед
+canonical side effect повторно сверяются lifecycle, exact operation/token и
+отсутствие session. Операция, принятая до `STOPPING`, либо завершается внутри
+stop barrier, либо отменяется до side effect; после `finishStop()` respawn
+side effect невозможен.

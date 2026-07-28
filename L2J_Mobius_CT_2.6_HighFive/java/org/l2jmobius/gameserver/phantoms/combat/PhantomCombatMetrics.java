@@ -44,6 +44,7 @@ public final class PhantomCombatMetrics
 	private final LongAdder _respawnAccepted = new LongAdder();
 	private final LongAdder _respawnRejected = new LongAdder();
 	private final LongAdder _respawnCompleted = new LongAdder();
+	private final LongAdder _cleanupFailures = new LongAdder();
 	private final LongAdder _stopFailures = new LongAdder();
 
 	void sessionRequested()
@@ -200,6 +201,11 @@ public final class PhantomCombatMetrics
 		_respawnCompleted.increment();
 	}
 
+	void cleanupFailure()
+	{
+		_cleanupFailures.increment();
+	}
+
 	void stopFailure()
 	{
 		_stopFailures.increment();
@@ -207,10 +213,10 @@ public final class PhantomCombatMetrics
 
 	public Snapshot snapshot()
 	{
-		return new Snapshot(_sessionsRequested.sum(), _sessionsAccepted.sum(), _sessionsRejected.sum(), _currentSessions.get(), _peakSessions.get(), _leasesAcquired.sum(), _leasesRejected.sum(), _leasesReleased.sum(), _currentLeases.get(), _targetsAccepted.sum(), _targetsRejected.sum(), _targetsLost.sum(), _pulses.sum(), _workerDispatches.sum(), _dispatchFailures.sum(), _threatObservations.sum(), _threatEvictions.sum(), _normalAttacks.sum(), _skillCastsIssued.sum(), _skillCastsRejected.sum(), _shotsActivated.sum(), _shotsUnavailable.sum(), _shotsFailed.sum(), _playerDeaths.sum(), _targetDeaths.sum(), _lootCandidates.sum(), _lootPickups.sum(), _lootSuccess.sum(), _lootBlocked.sum(), _cancellations.sum(), _timeouts.sum(), _backendFailures.sum(), _respawnRequested.sum(), _respawnAccepted.sum(), _respawnRejected.sum(), _respawnCompleted.sum(), _stopFailures.sum());
+		return new Snapshot(_sessionsRequested.sum(), _sessionsAccepted.sum(), _sessionsRejected.sum(), _currentSessions.get(), _peakSessions.get(), _leasesAcquired.sum(), _leasesRejected.sum(), _leasesReleased.sum(), _currentLeases.get(), _targetsAccepted.sum(), _targetsRejected.sum(), _targetsLost.sum(), _pulses.sum(), _workerDispatches.sum(), _dispatchFailures.sum(), _threatObservations.sum(), _threatEvictions.sum(), _normalAttacks.sum(), _skillCastsIssued.sum(), _skillCastsRejected.sum(), _shotsActivated.sum(), _shotsUnavailable.sum(), _shotsFailed.sum(), _playerDeaths.sum(), _targetDeaths.sum(), _lootCandidates.sum(), _lootPickups.sum(), _lootSuccess.sum(), _lootBlocked.sum(), _cancellations.sum(), _timeouts.sum(), _backendFailures.sum(), _respawnRequested.sum(), _respawnAccepted.sum(), _respawnRejected.sum(), _respawnCompleted.sum(), _cleanupFailures.sum(), _stopFailures.sum());
 	}
 
-	public record Snapshot(long sessionsRequested, long sessionsAccepted, long sessionsRejected, int currentSessions, int peakSessions, long leasesAcquired, long leasesRejected, long leasesReleased, int currentLeases, long targetsAccepted, long targetsRejected, long targetsLost, long pulses, long workerDispatches, long dispatchFailures, long threatObservations, long threatEvictions, long normalAttacks, long skillCastsIssued, long skillCastsRejected, long shotsActivated, long shotsUnavailable, long shotsFailed, long playerDeaths, long targetDeaths, long lootCandidates, long lootPickups, long lootSuccess, long lootBlocked, long cancellations, long timeouts, long backendFailures, long respawnRequested, long respawnAccepted, long respawnRejected, long respawnCompleted, long stopFailures)
+	public record Snapshot(long sessionsRequested, long sessionsAccepted, long sessionsRejected, int currentSessions, int peakSessions, long leasesAcquired, long leasesRejected, long leasesReleased, int currentLeases, long targetsAccepted, long targetsRejected, long targetsLost, long pulses, long workerDispatches, long dispatchFailures, long threatObservations, long threatEvictions, long normalAttacks, long skillCastsIssued, long skillCastsRejected, long shotsActivated, long shotsUnavailable, long shotsFailed, long playerDeaths, long targetDeaths, long lootCandidates, long lootPickups, long lootSuccess, long lootBlocked, long cancellations, long timeouts, long backendFailures, long respawnRequested, long respawnAccepted, long respawnRejected, long respawnCompleted, long cleanupFailures, long stopFailures)
 	{
 	}
 }

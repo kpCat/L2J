@@ -323,6 +323,10 @@ public final class PhantomSystem
 		}
 		if (_state == State.FAILED)
 		{
+			if (_combatService != null)
+			{
+				_combatService.retryFailedCleanup();
+			}
 			if ((_combatService != null) && (_combatService.snapshot().state() != PhantomCombatService.ServiceState.STOPPED) && !_combatService.finishStop())
 			{
 				_metrics.recordShutdownFailure();

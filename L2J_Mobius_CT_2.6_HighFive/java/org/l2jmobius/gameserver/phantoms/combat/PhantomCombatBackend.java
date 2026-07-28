@@ -30,7 +30,16 @@ public interface PhantomCombatBackend
 	{
 		COMPLETED,
 		RETRY,
-		REJECTED
+		REJECTED,
+		CANCELLED
+	}
+
+	enum LootObservation
+	{
+		PENDING,
+		ACQUIRED_BY_ACTOR,
+		LOST_WITHOUT_ACQUISITION,
+		INELIGIBLE
 	}
 
 	record ActorSnapshot(int objectId, int classId, int instanceId, double currentHp, double maximumHp, double currentMp, double maximumMp, boolean dead, boolean alikeDead, boolean attacking, boolean casting, boolean moving, int currentTargetObjectId, String intention, int currentSkillId, int currentSkillLevel)
@@ -71,11 +80,11 @@ public interface PhantomCombatBackend
 		}
 	}
 
-	record LootCandidate(int objectId)
+	record LootCandidate(int worldObjectId, int itemId, long groundCount, long actorInventoryCountBefore)
 	{
 		public LootCandidate
 		{
-			if (objectId <= 0)
+			if ((worldObjectId <= 0) || (itemId <= 0) || (groundCount <= 0) || (actorInventoryCountBefore < 0))
 			{
 				throw new IllegalArgumentException("Invalid loot candidate.");
 			}

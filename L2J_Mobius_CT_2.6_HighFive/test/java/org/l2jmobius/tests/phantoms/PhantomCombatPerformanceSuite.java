@@ -11,6 +11,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
@@ -23,7 +24,12 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.CancelStatus;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.DispatchHandle;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.DispatchResult;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.DispatchState;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatThreatTable;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
 
 public final class PhantomCombatPerformanceSuite implements PhantomTestSuite
 {
@@ -79,7 +85,7 @@ public final class PhantomCombatPerformanceSuite implements PhantomTestSuite
 		for (int index = 0; index < CANCELLATIONS; index++)
 		{
 			PhantomAssertions.assertTrue(service.startSession(request(cancelled)).accepted(), "Performance cancellation session did not start.");
-			PhantomAssertions.assertTrue(service.cancel(1), "Performance cancellation was rejected.");
+			PhantomAssertions.assertEquals(CancelStatus.CANCELLED_CLEAN, service.cancel(1), "Performance cancellation was rejected.");
 			PhantomAssertions.assertTrue(service.consumeTerminal(1).isPresent(), "Performance cancellation terminal was not consumed.");
 		}
 		if (dispatcher.next != null)
@@ -101,6 +107,8 @@ public final class PhantomCombatPerformanceSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(threat.size() <= policy.maximumThreatEntries(), "Threat capacity was exceeded.");
 		PhantomAssertions.assertEquals(0, snapshot.actorLeases(), "Performance run leaked actor leases.");
 		PhantomAssertions.assertEquals(0, snapshot.terminalSessions(), "Performance run retained consumed terminal slots.");
+		PhantomAssertions.assertEquals(0L, service.metrics().dispatchFailures(), "Performance run observed a dispatch ownership failure.");
+		PhantomAssertions.assertEquals(0L, service.metrics().cleanupFailures(), "Performance run observed an action cleanup failure.");
 
 		service.beginStop();
 		if (dispatcher.next != null)
@@ -116,7 +124,9 @@ public final class PhantomCombatPerformanceSuite implements PhantomTestSuite
 		context.record("combat.maximumWorkers", 1);
 		context.record("combat.actorLeasesAfterRun", 0);
 		context.record("combat.terminalSlotsAfterConsume", 0);
-		System.out.println("COMBAT_PERFORMANCE sessionsCompleted=10000 pulses=100000 threatOperations=100000 cancellations=10000 maximumWorkers=1 actorLeasesAfterRun=0 terminalSlotsAfterConsume=0");
+		context.record("combat.dispatchFailures", 0);
+		context.record("combat.cleanupFailures", 0);
+		System.out.println("COMBAT_PERFORMANCE sessionsCompleted=10000 pulses=100000 threatOperations=100000 cancellations=10000 maximumWorkers=1 actorLeasesAfterRun=0 terminalSlotsAfterConsume=0 dispatchFailures=0 cleanupFailures=0");
 	}
 
 	private static PhantomCombatRequest request(AtomicBoolean cancelled)
@@ -127,12 +137,15 @@ public final class PhantomCombatPerformanceSuite implements PhantomTestSuite
 	private static final class ManualDispatcher implements PhantomCombatService.Dispatcher
 	{
 		private Runnable next;
+		private ManualHandle handle;
 
 		@Override
-		public void dispatch(Runnable runnable, long delayMillis)
+		public DispatchResult dispatch(Runnable runnable, long delayMillis)
 		{
 			PhantomAssertions.assertTrue(next == null, "Performance run scheduled more than one worker.");
 			next = runnable;
+			handle = new ManualHandle(this);
+			return DispatchResult.accepted(handle);
 		}
 
 		private void runNext()
@@ -140,7 +153,52 @@ public final class PhantomCombatPerformanceSuite implements PhantomTestSuite
 			final Runnable runnable = next;
 			PhantomAssertions.assertTrue(runnable != null, "Performance worker was absent.");
 			next = null;
-			runnable.run();
+			final ManualHandle exactHandle = handle;
+			handle = null;
+			exactHandle.run(runnable);
+		}
+	}
+
+	private static final class ManualHandle implements DispatchHandle
+	{
+		private final ManualDispatcher _owner;
+		private DispatchState _state = DispatchState.SCHEDULED;
+
+		private ManualHandle(ManualDispatcher owner)
+		{
+			_owner = owner;
+		}
+
+		private void run(Runnable runnable)
+		{
+			_state = DispatchState.RUNNING;
+			try
+			{
+				runnable.run();
+			}
+			finally
+			{
+				_state = DispatchState.FINISHED;
+			}
+		}
+
+		@Override
+		public boolean cancelIfNotStarted()
+		{
+			if ((_state != DispatchState.SCHEDULED) || (_owner.handle != this))
+			{
+				return false;
+			}
+			_owner.next = null;
+			_owner.handle = null;
+			_state = DispatchState.CANCELLED;
+			return true;
+		}
+
+		@Override
+		public DispatchState state()
+		{
+			return _state;
 		}
 	}
 
@@ -194,6 +252,12 @@ public final class PhantomCombatPerformanceSuite implements PhantomTestSuite
 		}
 
 		@Override
+		public LootObservation observeLoot(LootCandidate candidate)
+		{
+			return LootObservation.LOST_WITHOUT_ACQUISITION;
+		}
+
+		@Override
 		public ShotOutcome activateShot(PhantomCombatMode mode)
 		{
 			return ShotOutcome.UNAVAILABLE;
@@ -206,7 +270,7 @@ public final class PhantomCombatPerformanceSuite implements PhantomTestSuite
 		}
 
 		@Override
-		public ActionOutcome cast(int targetObjectId, SelectedSkill skill)
+		public ActionOutcome cast(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
 		{
 			return ActionOutcome.REJECTED;
 		}
@@ -218,7 +282,7 @@ public final class PhantomCombatPerformanceSuite implements PhantomTestSuite
 		}
 
 		@Override
-		public void cancelOwnedAction(int targetObjectId, SelectedSkill selectedSkill)
+		public void cancelOwnedAction(PhantomOwnedAction action)
 		{
 		}
 

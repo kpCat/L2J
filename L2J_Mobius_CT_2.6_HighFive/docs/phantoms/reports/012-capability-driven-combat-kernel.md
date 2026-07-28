@@ -247,3 +247,28 @@ knowledge semantics, config/schema/datapack и другие хроники не 
 jar и Task 012 verifier. После ordinary commit повторяются verify/jar и два
 byte-identical запуска verifier; точные SHA-256, commit SHA и remote equality
 передаются во внешнем final handoff.
+
+## Immutable handoff и независимое ревью
+
+```text
+Commit: 8143cb7f89d348854fc469a0955b22405f23e9b6
+Parent: 003604b4f7bda2a8d224d0adcf6349c088154e10
+Push/remote: exact
+Combat core: 47/47 ×3
+Ownership: 17/17 ×3
+Real integration: 12/12 ×2
+Performance: 1/1 ×2
+Final verifier: 112/112 ×2, byte-identical
+Verifier SHA-256:
+9EC6EF14E662BF6BEAF33356F985A99F7AFCF321A3E75548B2974C4ABD22BB1E
+Independent review:
+- architecture ACCEPT
+- action ownership/causal truth FIX_REQUIRED
+Goal 012A: REQUIRED
+Goal 013: BLOCKED
+```
+
+Архитектурное направление Goal 012 принято без revert. Обязательные findings
+по worker dispatch ownership, canonical action cleanup, causal loot truth,
+selected-skill safety и plan-owned respawn закрываются только bounded задачей
+Goal 012A. До её независимого принятия Goal 013 заблокирована.

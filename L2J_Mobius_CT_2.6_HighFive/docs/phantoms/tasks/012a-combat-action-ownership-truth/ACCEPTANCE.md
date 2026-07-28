@@ -1,0 +1,24 @@
+# ACCEPTANCE — Goal 012A
+
+- [ ] Base 8143cb7f; one ordinary exact-scope commit.
+- [ ] No datapack/geodata/config/schema/Goal 013/014.
+- [ ] Server core, ThreadPool, materialization, decision and knowledge frozen.
+- [ ] Explicit dispatch result/handle; null future is rejection.
+- [ ] Dispatch and STOPPING share one ordering gate.
+- [ ] Scheduled-not-started worker can be cancelled exactly.
+- [ ] Top-level worker finally and Throwable isolation.
+- [ ] Cleanup failure retains actor lease and is retryable.
+- [ ] Terminal consume/finishStop wait for cleanup COMPLETE.
+- [ ] ATTACK/CAST/PICK_UP exact ownership cleanup.
+- [ ] Foreign/newer actions remain untouched.
+- [ ] Loot success requires positive actor acquisition evidence.
+- [ ] Disappearance alone never counts as loot.
+- [ ] Offensive one-target skill gate and exact mode revalidation.
+- [ ] Positive/PvP/suicide/special skills rejected.
+- [ ] Plan-owned respawn with active-session/cleanup/STOPPING gates.
+- [ ] Core/ownership/action-ownership ×3.
+- [ ] Real integration ×2 and performance ×2.
+- [ ] All cumulative regressions, verify and jar.
+- [ ] Production DB untouched.
+- [ ] Goal 013 blocked; Goal 014 not started.
+- [ ] Verifier ×2 identical and remote exact.

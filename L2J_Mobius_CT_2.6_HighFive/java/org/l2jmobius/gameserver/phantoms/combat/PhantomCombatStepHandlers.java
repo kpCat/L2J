@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.CancelStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartResult;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
@@ -132,8 +133,17 @@ public final class PhantomCombatStepHandlers
 		{
 			return PhantomStepResult.of(Type.REPLAN, "combat.cancel.invalid");
 		}
-		_service.cancel(context.profileId());
-		return PhantomStepResult.of(Type.SUCCESS, "combat.cancel.complete");
+		if (context.cancellationToken().isCancelled())
+		{
+			return PhantomStepResult.of(Type.CANCELLED, "combat.cancel.cancelled");
+		}
+		final CancelStatus result = _service.cancel(context.profileId());
+		return switch (result)
+		{
+			case CANCELLED_CLEAN, NOT_FOUND, ALREADY_TERMINAL -> PhantomStepResult.of(Type.SUCCESS, "combat.cancel.complete");
+			case CLEANUP_PENDING -> PhantomStepResult.retry(retryDelay(context), "combat.cancel.cleanup");
+			case CLEANUP_FAILED, NOT_RUNNING -> PhantomStepResult.of(Type.REPLAN, "combat.cancel.failed");
+		};
 	}
 
 	private PhantomStepResult respawnTown(PhantomStepContext context)
@@ -142,12 +152,13 @@ public final class PhantomCombatStepHandlers
 		{
 			return PhantomStepResult.of(Type.REPLAN, "combat.respawn.invalid");
 		}
-		final RespawnOutcome result = _service.respawnTown(context.profileId());
+		final RespawnOutcome result = _service.respawnTown(new PhantomRespawnRequest(context.profileId(), context.cancellationToken()));
 		return switch (result)
 		{
 			case COMPLETED -> PhantomStepResult.of(Type.SUCCESS, "combat.respawn.complete");
 			case RETRY -> PhantomStepResult.retry(retryDelay(context), "combat.respawn.retry");
 			case REJECTED -> PhantomStepResult.of(Type.REPLAN, "combat.respawn.rejected");
+			case CANCELLED -> PhantomStepResult.of(Type.CANCELLED, "combat.respawn.cancelled");
 		};
 	}
 

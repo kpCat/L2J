@@ -37,6 +37,7 @@ import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
+import org.l2jmobius.gameserver.managers.ItemManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.GrandBoss;
@@ -52,13 +53,18 @@ import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatActorLease;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatResult;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomRespawnRequest;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.CancelStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSessionSnapshot;
@@ -182,10 +188,17 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		registry.add("06-canonical-ground-item-pickup", _ -> testCanonicalLoot());
 		registry.add("07-player-raid-grandboss-rejected", _ -> testForbiddenTargets());
 		registry.add("08-cancel-only-owned-action", _ -> testOwnedCancellation());
-		registry.add("09-player-death-releases-ownership", _ -> testPlayerDeath());
-		registry.add("10-restricted-normal-town-respawn", _ -> testNormalTownRespawn());
-		registry.add("11-dematerialization-waits-for-combat-lease", _ -> testDematerializationDrain());
-		registry.add("12-production-combat-has-no-packet-route", _ -> testNoPacketRoute());
+		registry.add("09-other-player-pickup-is-not-acquisition", _ -> testOtherPlayerPickupEvidence());
+		registry.add("10-despawn-is-not-acquisition", _ -> testDespawnEvidence());
+		registry.add("11-range-loss-is-not-acquisition", _ -> testRangeLossEvidence());
+		registry.add("12-cancel-during-exact-pickup", _ -> testPickupCleanup(false));
+		registry.add("13-stop-during-exact-pickup", _ -> testPickupCleanup(true));
+		registry.add("14-foreign-cast-and-pickup-survive", _ -> testForeignCastAndPickup());
+		registry.add("15-positive-one-target-skill-rejected", _ -> testPositiveSkillRejected());
+		registry.add("16-player-death-releases-ownership", _ -> testPlayerDeath());
+		registry.add("17-restricted-normal-town-respawn", _ -> testNormalTownRespawn());
+		registry.add("18-production-combat-has-no-packet-route", _ -> testNoPacketRoute());
+		registry.add("19-dematerialization-waits-for-combat-lease", _ -> testDematerializationDrain());
 	}
 
 	private void testExactActorLease()
@@ -206,6 +219,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		await(() -> target.isDead() || target.isAlikeDead(), "Canonical PlayerAI attack did not kill the deterministic target.");
 		final PhantomCombatSessionSnapshot terminal = awaitTerminal();
 		PhantomAssertions.assertEquals(PhantomCombatResult.VICTORY, terminal.result(), "Canonical target death did not produce victory.");
+		PhantomAssertions.assertTrue(_player.getTarget() == null, "Victory cleanup retained the exact dead combat target.");
 		consumeTerminal();
 	}
 
@@ -221,6 +235,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final Monster target = spawnNormalMonster(targetMaximumHp());
 		final double initialHp = target.getCurrentHp();
 		final double initialMp = _player.getCurrentMp();
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			PhantomAssertions.assertTrue(lease.supportsSkill(new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill(MAGIC_SKILL_ID, 1), PhantomCombatMode.RANGED_MAGIC), "Real hostile one-target skill was rejected.");
+		}
 		final PhantomCombatService.StartResult started = _combat.startSession(request(target, PhantomCombatMode.RANGED_MAGIC, false, false));
 		PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Supported magic loadout was not accepted.");
 		await(() -> _player.isCastingNow() || (_player.getCurrentSkill() != null) || (target.getCurrentHp() < initialHp) || (_player.getCurrentMp() < initialMp), "Canonical CAST produced no observable cast state or effect.");
@@ -244,7 +262,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(_player.isChargedShot(ShotType.SOULSHOTS), "Canonical soulshot handler did not charge the weapon.");
 			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.attack(target.getObjectId()), "Canonical shot-backed attack was not issued.");
 			await(() -> !_player.isChargedShot(ShotType.SOULSHOTS), "Canonical attack did not discharge the soulshot.");
-			lease.cancelOwnedAction(target.getObjectId(), null);
+			lease.cancelOwnedAction(new PhantomOwnedAction(1, target.getObjectId(), null, 0));
 		}
 		destroyInventoryItem(shots);
 		PhantomAssertions.assertTrue(weapon.isEquipped(), "Shot test unexpectedly unequipped its weapon.");
@@ -340,7 +358,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		await(() -> _player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == owned), "Combat did not establish the owned attack.");
 		_player.setTarget(foreign);
 		_player.getAI().setIntention(Intention.ATTACK, foreign);
-		PhantomAssertions.assertTrue(_combat.cancel(_profile.profileId()), "Combat cancellation was not accepted.");
+		PhantomAssertions.assertEquals(CancelStatus.CANCELLED_CLEAN, _combat.cancel(_profile.profileId()), "Combat cancellation was not accepted.");
 		PhantomAssertions.assertEquals(Intention.ATTACK, _player.getAI().getIntention(), "Combat cancellation stopped a foreign action.");
 		PhantomAssertions.assertEquals(foreign, _player.getAI().getAttackTarget(), "Combat cancellation replaced a foreign target.");
 		consumeTerminal();
@@ -360,7 +378,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private void testNormalTownRespawn() throws Exception
 	{
 		PhantomAssertions.assertTrue(_player.isDead(), "Respawn case did not inherit the canonical dead actor.");
-		PhantomAssertions.assertEquals(RespawnOutcome.COMPLETED, _combat.respawnTown(_profile.profileId()), "Restricted normal-town respawn was not accepted.");
+		PhantomAssertions.assertEquals(RespawnOutcome.COMPLETED, _combat.respawnTown(new PhantomRespawnRequest(_profile.profileId(), () -> false)), "Restricted normal-town respawn was not accepted.");
 		await(() -> !_player.isDead() && !_player.isPendingRevive(), "Canonical normal-town teleport did not revive the actor.");
 		PhantomAssertions.assertEquals(0, _player.getInstanceId(), "Normal-town respawn retained an instance.");
 		PhantomAssertions.assertTrue(_player.isSpawned() && !_player.isTeleporting(), "Headless normal-town respawn did not complete canonical teleport lifecycle.");
@@ -389,7 +407,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		dematerialize.start();
 		Thread.sleep(200);
 		PhantomAssertions.assertTrue(dematerialize.isAlive(), "Dematerialization passed an active combat ActionLease.");
-		PhantomAssertions.assertTrue(_combat.cancel(_profile.profileId()), "Could not cancel combat for materialization drain.");
+		PhantomAssertions.assertEquals(CancelStatus.CANCELLED_CLEAN, _combat.cancel(_profile.profileId()), "Could not cancel combat for materialization drain.");
 		dematerialize.join(WAIT_MILLIS);
 		PhantomAssertions.assertFalse(dematerialize.isAlive(), "Dematerialization did not complete after combat lease release.");
 		if (failure.get() != null)
@@ -425,6 +443,166 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertFalse(source.contains("RequestRestartPoint"), "Combat production code simulates restart packet handling.");
 	}
 
+	private void testOtherPlayerPickupEvidence()
+	{
+		resetActor(true);
+		final Player observer = ensureObserver();
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		PhantomAssertions.assertTrue(target.doDie(_player), "Could not kill other-player pickup fixture.");
+		final Item dropped = target.dropItem(_player, ADENA_ITEM_ID, 1);
+		PhantomAssertions.assertTrue(dropped != null, "Could not create other-player ground item.");
+		final long observerBefore = observer.getInventory().getInventoryItemCount(ADENA_ITEM_ID, -1);
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			final LootCandidate candidate = exactCandidate(lease, dropped);
+			dropped.getDropProtection().unprotect();
+			dropped.setOwnerId(0);
+			observer.doPickupItem(dropped);
+			PhantomAssertions.assertEquals(observerBefore + 1, observer.getInventory().getInventoryItemCount(ADENA_ITEM_ID, -1), "Other test player did not acquire the item.");
+			PhantomAssertions.assertEquals(LootObservation.LOST_WITHOUT_ACQUISITION, lease.observeLoot(candidate), "Other-player pickup was attributed to the phantom.");
+		}
+		finally
+		{
+			destroyInventoryCount(observer, ADENA_ITEM_ID, observer.getInventory().getInventoryItemCount(ADENA_ITEM_ID, -1) - observerBefore);
+			destroyGroundItem(dropped);
+		}
+	}
+
+	private void testDespawnEvidence()
+	{
+		resetActor(true);
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		PhantomAssertions.assertTrue(target.doDie(_player), "Could not kill despawn fixture.");
+		final Item dropped = target.dropItem(_player, ADENA_ITEM_ID, 1);
+		PhantomAssertions.assertTrue(dropped != null, "Could not create despawn ground item.");
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			final LootCandidate candidate = exactCandidate(lease, dropped);
+			dropped.decayMe();
+			PhantomAssertions.assertEquals(LootObservation.LOST_WITHOUT_ACQUISITION, lease.observeLoot(candidate), "Despawn was attributed to the phantom.");
+		}
+		finally
+		{
+			destroyGroundItem(dropped);
+		}
+	}
+
+	private void testRangeLossEvidence()
+	{
+		resetActor(true);
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		PhantomAssertions.assertTrue(target.doDie(_player), "Could not kill range-loss fixture.");
+		final Item dropped = target.dropItem(_player, ADENA_ITEM_ID, 1);
+		PhantomAssertions.assertTrue(dropped != null, "Could not create range-loss ground item.");
+		final int x = _player.getX();
+		final int y = _player.getY();
+		final int z = _player.getZ();
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			final LootCandidate candidate = exactCandidate(lease, dropped);
+			_player.setXYZ(x + 1000, y, z);
+			PhantomAssertions.assertEquals(LootObservation.INELIGIBLE, lease.observeLoot(candidate), "Out-of-radius item was attributed to the phantom.");
+		}
+		finally
+		{
+			_player.setXYZ(x, y, z);
+			destroyGroundItem(dropped);
+		}
+	}
+
+	private void testPickupCleanup(boolean stop)
+	{
+		resetActor(true);
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		PhantomAssertions.assertTrue(target.doDie(_player), "Could not kill exact PICK_UP target.");
+		final Item dropped = target.dropItem(_player, ADENA_ITEM_ID, 1);
+		PhantomAssertions.assertTrue(dropped != null, "Could not create exact PICK_UP item.");
+		dropped.setXYZ(_player.getX() + 200, _player.getY(), _player.getZ());
+		try
+		{
+			try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				exactCandidate(lease, dropped);
+				PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.pickUp(dropped.getObjectId()), "Canonical PICK_UP was not issued.");
+				PhantomAssertions.assertEquals(Intention.PICK_UP, _player.getAI().getIntention(), "Canonical PICK_UP intention was not established.");
+				PhantomAssertions.assertEquals(dropped, _player.getTarget(), "Canonical PICK_UP did not own the exact item.");
+				lease.cancelOwnedAction(new PhantomOwnedAction(stop ? 2 : 1, target.getObjectId(), null, dropped.getObjectId()));
+			}
+			PhantomAssertions.assertEquals(Intention.IDLE, _player.getAI().getIntention(), "Exact PICK_UP intention survived cleanup.");
+			PhantomAssertions.assertTrue(_player.getTarget() == null, "Exact PICK_UP target survived cleanup.");
+		}
+		finally
+		{
+			destroyGroundItem(dropped);
+		}
+	}
+
+	private void testForeignCastAndPickup()
+	{
+		resetActor(true);
+		_player.setPlayerClass(MAGIC_CLASS_ID);
+		_player.getStat().setLevel((byte) 85);
+		final Skill skill = SkillData.getInstance().getSkill(MAGIC_SKILL_ID, 1);
+		PhantomAssertions.assertTrue(skill != null, "Foreign CAST skill is unavailable.");
+		_player.addSkill(skill, false);
+		_player.enableSkill(skill);
+		_player.setCurrentMp(_player.getMaxMp());
+		final Monster owned = spawnNormalMonster(targetMaximumHp());
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			final org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill staleSelected = new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill(MAGIC_SKILL_ID + 1, 1);
+			_player.abortCast();
+			_player.setTarget(owned);
+			_player.getAI().setIntention(Intention.CAST, skill, owned);
+			PhantomAssertions.assertEquals(Intention.CAST, _player.getAI().getIntention(), "Foreign CAST intention was not established.");
+			lease.cancelOwnedAction(new PhantomOwnedAction(1, owned.getObjectId(), staleSelected, 0));
+			PhantomAssertions.assertEquals(Intention.CAST, _player.getAI().getIntention(), "Stale cleanup stopped a foreign CAST.");
+			PhantomAssertions.assertEquals(owned, _player.getAI().getCastTarget(), "Stale cleanup replaced a foreign CAST target.");
+			PhantomAssertions.assertEquals(owned, _player.getTarget(), "Stale cleanup cleared the selected target of a foreign CAST.");
+		}
+		finally
+		{
+			_player.abortCast();
+			_player.getAI().setIntention(Intention.IDLE);
+			_player.setTarget(null);
+		}
+
+		final Monster dropTarget = spawnNormalMonster(targetMaximumHp());
+		PhantomAssertions.assertTrue(dropTarget.doDie(_player), "Could not kill foreign PICK_UP fixture.");
+		final Item ownedItem = dropTarget.dropItem(_player, ADENA_ITEM_ID, 1);
+		final Item foreignItem = ItemManager.createItem(ItemProcessType.LOOT, ADENA_ITEM_ID, 1, _player, this);
+		PhantomAssertions.assertTrue((ownedItem != null) && (foreignItem != null), "Could not create foreign PICK_UP items.");
+		foreignItem.dropMe(_player, _player.getX() + 100, _player.getY(), _player.getZ());
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.pickUp(ownedItem.getObjectId()), "Owned PICK_UP was not issued.");
+			_player.setTarget(foreignItem);
+			_player.getAI().setIntention(Intention.PICK_UP, foreignItem);
+			lease.cancelOwnedAction(new PhantomOwnedAction(2, dropTarget.getObjectId(), null, ownedItem.getObjectId()));
+			PhantomAssertions.assertEquals(Intention.PICK_UP, _player.getAI().getIntention(), "Stale cleanup stopped a foreign PICK_UP.");
+			PhantomAssertions.assertEquals(foreignItem, _player.getTarget(), "Stale cleanup replaced a foreign PICK_UP target.");
+		}
+		finally
+		{
+			_player.getAI().setIntention(Intention.IDLE);
+			_player.setTarget(null);
+			destroyGroundItem(ownedItem);
+			destroyGroundItem(foreignItem);
+		}
+	}
+
+	private void testPositiveSkillRejected()
+	{
+		resetActor(true);
+		final Skill positive = SkillData.getInstance().getSkill(1040, 1);
+		PhantomAssertions.assertTrue(positive != null, "Known positive one-target skill is unavailable.");
+		_player.addSkill(positive, false);
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			PhantomAssertions.assertFalse(lease.supportsSkill(new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill(1040, 1), PhantomCombatMode.RANGED_MAGIC), "Known positive one-target skill was accepted.");
+		}
+	}
+
 	private PhantomCombatRequest request(Monster target, PhantomCombatMode mode, boolean shots, boolean loot)
 	{
 		return new PhantomCombatRequest(_profile.profileId(), target.getObjectId(), mode, shots, loot, 30_000, () -> false);
@@ -444,6 +622,46 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private void consumeTerminal()
 	{
 		_combat.consumeTerminal(_profile.profileId());
+	}
+
+	private Player ensureObserver()
+	{
+		if (_observer == null)
+		{
+			_observer = Player.load(_environment.observer().objectId());
+			PhantomAssertions.assertTrue(_observer != null, "Could not load the test-owned observer.");
+			_observer.setXYZInvisible(_player.getX() + 30, _player.getY(), _player.getZ());
+			_observer.spawnMe();
+		}
+		return _observer;
+	}
+
+	private static LootCandidate exactCandidate(PhantomCombatActorLease lease, Item item)
+	{
+		return lease.lootCandidates(32, 300).stream().filter(candidate -> candidate.worldObjectId() == item.getObjectId()).findFirst().orElseThrow(() -> new AssertionError("Exact real ground item was not observed."));
+	}
+
+	private static void destroyInventoryCount(Player owner, int itemId, long count)
+	{
+		if (count <= 0)
+		{
+			return;
+		}
+		final Item item = owner.getInventory().getItemByItemId(itemId);
+		PhantomAssertions.assertTrue((item != null) && (owner.getInventory().destroyItem(ItemProcessType.DESTROY, item, count, owner, PhantomCombatServerIntegrationSuite.class) != null), "Could not restore test-owned inventory baseline.");
+	}
+
+	private static void destroyGroundItem(Item item)
+	{
+		if ((item != null) && (World.getInstance().findObject(item.getObjectId()) != null))
+		{
+			item.resetOwnerTimer();
+			if (item.isSpawned())
+			{
+				item.decayMe();
+			}
+			ItemManager.destroyItem(ItemProcessType.DESTROY, item, null, PhantomCombatServerIntegrationSuite.class);
+		}
 	}
 
 	private void resetActor(boolean revive)
@@ -634,4 +852,5 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			throw new RuntimeException(failure);
 		}
 	}
+
 }

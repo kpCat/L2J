@@ -211,6 +211,7 @@ public final class PhantomTestLauncher
 			case "knowledge-performance" -> new PhantomGameKnowledgePerformanceSuite();
 			case "combat-core" -> new PhantomCombatCoreSuite();
 			case "combat-ownership" -> new PhantomCombatOwnershipSuite();
+			case "combat-action-ownership" -> new PhantomCombatActionOwnershipSuite();
 			case "combat-server-integration" -> new PhantomCombatServerIntegrationSuite();
 			case "combat-performance" -> new PhantomCombatPerformanceSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
