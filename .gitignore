@@ -10,3 +10,5 @@ L2J_Mobius_CT_2.6_HighFive/dist/libs/GameServer.jar
 L2J_Mobius_CT_2.6_HighFive/dist/libs/LoginServer.jar
 
 L2J_Mobius_CT_2.6_HighFive/dist/login/log/
+
+*.l2j
