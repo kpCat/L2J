@@ -223,6 +223,13 @@ public final class PhantomTestLauncher
 			case "progression-performance" -> new PhantomProgressionPerformanceSuite();
 			case "progression-extensibility" -> new PhantomProgressionExtensibilitySuite();
 			case "progression-production-composition" -> new PhantomProgressionProductionCompositionSuite();
+			case "commerce-catalog" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.CATALOG);
+			case "commerce-supply" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.SUPPLY);
+			case "commerce-quote" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.QUOTE);
+			case "commerce-receipt" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.RECEIPT);
+			case "commerce-decision" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.DECISION);
+			case "commerce-server-integration" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.SERVER_INTEGRATION);
+			case "commerce-performance" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

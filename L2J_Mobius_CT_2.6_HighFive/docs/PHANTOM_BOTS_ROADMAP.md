@@ -15,8 +15,8 @@
 8dba87e9c1d5828376b80c1ea16c4578726d4947
 
 Текущий branch HEAD под ревью:
-Goal 013 class progression capability catalog — commit SHA во внешнем final
-handoff
+Goal 014 NPC commerce, supplies, travel и sell loop —
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 Task 004 technical feasibility:
 ACCEPT
@@ -668,7 +668,7 @@ equipment paging; exact main/subclass truth; separate canonical Player CP.
 bounded corrective Goal 013B. Goal 013 не считается accepted до принятия Goal
 013B.
 
-### Goal 013B — Durable CLASS skill learning transaction — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+### Goal 013B — Durable CLASS skill learning transaction — `ACCEPT_WITH_ACTIVATION_GATE`
 
 **Назначение:** закрыть единственный критический finding Goal 013A: memory-first
 skill learning, допускавший `SUCCESS` без durable `character_skills` row.
@@ -680,20 +680,24 @@ main/subclass SP и exact class-indexed skill row; runtime reconciliation тол
 invariant failure.
 **Не включает:** profession/subclass mutation, commerce, combat/CP,
 materialization, scheduler, profile schema, config или future Goal.
-**Gate:** independent review exact child commit. Goal 013 и Goal 014 остаются
-заблокированными до принятия Goal 013B.
+**Gate:** Goal 013B принят с activation gate: production candidates не вызывают
+`progression.learn_skill`; перед будущей автономной mutation требуется отдельное
+доказательство общей координации SP/item writers.
 
-## Goal 014 — NPC commerce, supplies, travel и sell loop — `NOT_STARTED`
+## Goal 014 — NPC commerce, supplies, travel и sell loop — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** замкнуть одиночный economic maintenance loop.  
 **Зависимости:** 009–011, 013 и independent acceptance 013B.
-**Архитектурный результат:** grocery/equipment NPC purchase, shots/consumables,
-sell loot, inventory/weight budget, Gatekeeper travel and supply replenishment.  
+**Архитектурный результат:** immutable authoritative buylist/multisell-query/
+teleporter/supply catalog; exact unlimited NPC buy, exact owned-object sell и
+NORMAL Gatekeeper teleport через durable `commerce.operation` receipt с
+консервативным restart/idempotency reconciliation.
 CP potion supplies, vendors, restrictions, currency и cost извлекаются только
 из current authoritative item/NPC/buylist/multisell data. Ancient Adena не
 предполагается.
 **Не включает:** player trade, private stores, crafting ledger, enchant.  
-**Gate:** item/adena conservation and restart-safe interruption.  
+**Gate:** independent review item/adena/position conservation, exact current
+data parity и restart-safe interruption.
 **Follow-up risk:** `HIGH` — canonical commerce validation and partial actions.
 
 ## Goal 015 — Background farming baseline и reconciliation — `NOT_STARTED`

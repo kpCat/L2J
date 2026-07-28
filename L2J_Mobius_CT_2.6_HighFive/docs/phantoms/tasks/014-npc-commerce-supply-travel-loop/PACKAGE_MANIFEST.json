@@ -1,0 +1,31 @@
+{
+  "package": "phantom-world-goal-014-npc-commerce-supply-travel-loop",
+  "taskId": "014-npc-commerce-supply-travel-loop",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/014-npc-commerce-supply-travel-loop/TASK.md",
+  "efficiencyStandard": "docs/phantoms/PHANTOM_CODEX_EFFICIENCY_STANDARD.md",
+  "branch": "feature/phantom-world",
+  "requiredParent": "e9b98a243a68a710425a062155b9197ee6692b17",
+  "commitSubject": "feat(phantoms): add npc commerce supply and travel loop",
+  "successToken": "GOAL_014_NPC_COMMERCE_SUPPLY_TRAVEL_LOOP_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 140014,
+  "initialReadSetLimit": 12,
+  "additionalReadSetLimit": 5,
+  "prePatchSearchLimit": 6,
+  "maximumFullVerifyRuns": 2,
+  "schemaChanges": false,
+  "configChanges": false,
+  "serverCoreChanges": false,
+  "multisellExecution": false,
+  "otherChronicleChanges": false,
+  "gitignoreChanges": false,
+  "geodataIncluded": false,
+  "productionDatabaseUseAllowed": false,
+  "payloadSha256": {
+    "docs/phantoms/PHANTOM_CODEX_EFFICIENCY_STANDARD.md": "0C503D043AE38FE4D1EBF8982490B9A314B9B9071FDF4ECDADAF98ACD7CD301F",
+    "docs/phantoms/tasks/014-npc-commerce-supply-travel-loop/ACCEPTANCE.md": "77399ADD14F2704262ADD788A604DFCF0EC339ADDF6B993A76D10EDDB23C76B2",
+    "docs/phantoms/tasks/014-npc-commerce-supply-travel-loop/CODEX_LAUNCHER.txt": "FA075781285D9C1CF8653FAD036CFD528A09B40776FFD0546580516408992670",
+    "docs/phantoms/tasks/014-npc-commerce-supply-travel-loop/TASK.md": "64905BF0DC2643E716964AFB934660F91F83B9291C7DAD7D332689A4F159E75C"
+  },
+  "manifestSelfHashExcluded": true
+}
