@@ -3,9 +3,10 @@ param()
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-$requiredParent = "e9b98a243a68a710425a062155b9197ee6692b17"
+$goal014Commit = "696689987276137f6a7f3661329171c9ee65e6f9"
+$goal014Parent = "e9b98a243a68a710425a062155b9197ee6692b17"
 $requiredBranch = "feature/phantom-world"
-$requiredSubject = "feat(phantoms): add npc commerce supply and travel loop"
+$goal014Subject = "feat(phantoms): add npc commerce supply and travel loop"
 $moduleRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $repositoryRoot = (Resolve-Path ((& git -C $moduleRoot rev-parse --show-toplevel).Trim())).Path
 $repositoryPrefix = $repositoryRoot.TrimEnd("\", "/") + "\"
@@ -49,6 +50,7 @@ function Is-AllowedPath([string] $path)
 		-or $local -eq "docs/phantoms/PHANTOM_CODEX_EFFICIENCY_STANDARD.md" `
 		-or $local -eq "docs/phantoms/architecture/COMMERCE_SUPPLY_TRAVEL_CONTRACT.md" `
 		-or $local -eq "docs/phantoms/reviews/013b-durable-class-skill-learning-review.md" `
+		-or $local -eq "docs/phantoms/reviews/014-npc-commerce-supply-travel-loop-review.md" `
 		-or $local -eq "docs/phantoms/reports/014-npc-commerce-supply-travel-loop.md" `
 		-or $local -eq "docs/phantoms/reports/014a-commerce-ownership-integration-hardening.md" `
 		-or $local.StartsWith("docs/phantoms/tasks/014-npc-commerce-supply-travel-loop/", [StringComparison]::Ordinal) `
@@ -59,21 +61,19 @@ $branch = (& git -C $repositoryRoot branch --show-current).Trim()
 Assert-True ($branch -eq $requiredBranch) "Wrong branch: $branch"
 
 $head = (& git -C $repositoryRoot rev-parse HEAD).Trim()
-$graphMode = "working-parent"
-if ($head -ne $requiredParent)
+$goal014Parents = @(((& git -C $repositoryRoot show -s --format=%P $goal014Commit).Trim() -split " ") | Where-Object { $_ })
+Assert-True ($goal014Parents.Count -eq 1) "Goal 014 commit is a merge commit."
+Assert-True ($goal014Parents[0] -eq $goal014Parent) "Goal 014 commit parent is not exact."
+Assert-True ((& git -C $repositoryRoot show -s --format=%s $goal014Commit).Trim() -eq $goal014Subject) "Goal 014 commit subject is not exact."
+& git -C $repositoryRoot merge-base --is-ancestor $goal014Commit $head
+Assert-True ($LASTEXITCODE -eq 0) "Goal 014 commit is not an ancestor of HEAD."
+$graphMode = "historical-head"
+if ($head -ne $goal014Commit)
 {
-	$parent = (& git -C $repositoryRoot rev-parse "$head^").Trim()
-	$subject = (& git -C $repositoryRoot show -s --format=%s $head).Trim()
-	Assert-True ($parent -eq $requiredParent) "HEAD is not a direct child of the required parent."
-	Assert-True ($subject -eq $requiredSubject) "Goal 014 commit subject is not exact."
-	$graphMode = "committed-child"
+	$graphMode = "cumulative-descendant"
 }
 
-$changedPaths = @(& git -c core.autocrlf=false -C $repositoryRoot diff --name-only $requiredParent)
-if ($head -ne $requiredParent)
-{
-	$changedPaths = @(& git -c core.autocrlf=false -C $repositoryRoot diff --name-only "$requiredParent..$head")
-}
+$changedPaths = @(& git -c core.autocrlf=false -C $repositoryRoot diff --name-only "$goal014Parent..$head")
 $statusLines = @(& git -C $repositoryRoot status --porcelain=v1 --untracked-files=all -- $moduleRoot)
 foreach ($line in $statusLines)
 {
@@ -164,7 +164,8 @@ foreach ($path in $changedPaths)
 Write-Output "TASK014_VERIFIER_OK"
 Write-Output "branch=$branch"
 Write-Output "graph=$graphMode"
-Write-Output "requiredParent=$requiredParent"
+Write-Output "goal014Commit=$goal014Commit"
+Write-Output "goal014Parent=$goal014Parent"
 Write-Output "scopePaths=$($changedPaths.Count)"
 Write-Output "focusedRoutes=7"
 Write-Output "receiptOrdering=COMMITTING_BEFORE_FIRST_EFFECT"

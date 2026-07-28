@@ -188,6 +188,11 @@ public final class PhantomCommerceService
 						{
 							return OperationResult.cancelled();
 						}
+						final Reason currentAuthority = goalAuthority(profileId, goalId, goalRevision, stored.map(VersionedReceipt::receipt).orElse(null));
+						if (currentAuthority != Reason.ACCEPTED)
+						{
+							return record(OperationResult.replan(currentAuthority));
+						}
 						VersionedReceipt durable = saveReceipt(expectedVersion, prepared);
 						if (cancelled.getAsBoolean())
 						{

@@ -15,7 +15,7 @@
 8dba87e9c1d5828376b80c1ea16c4578726d4947
 
 Текущий branch HEAD под ревью:
-Goal 014 NPC commerce, supplies, travel и sell loop —
+Goal 014A commerce ownership and integration hardening —
 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 Task 004 technical feasibility:
@@ -83,7 +83,9 @@ Goal 013A: FIX_REQUIRED after durability review
 
 Goal 013B: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
-Goal 014: NOT_STARTED / BLOCKED
+Goal 014: FIX_REQUIRED after first review
+
+Goal 014A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 015: NOT_STARTED
 
@@ -111,8 +113,9 @@ Goal 012A независимо закрыла обязательные action-ow
 принята после Goal 012A. Goal 013 получила `FIX_REQUIRED`; review Goal 013A
 подтвердило её extensibility-результаты, но потребовало bounded correction Goal
 013B для durable CLASS learning. Goal 013B реализована и ожидает независимого
-review. Goal 014 заблокирована до independent acceptance Goal 013B; Goal 015 и
-Goal 017 не начаты.
+review. Goal 014 получила `FIX_REQUIRED after first review`; bounded Goal 014A
+реализована и ожидает независимого review. Goal 015, Goal 017 и Goal 025 не
+начаты.
 
 ---
 
@@ -360,7 +363,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013 — `FIX_REQUIRED after first review`; Goal 013A — `FIX_REQUIRED after durability review`; Goal 013B — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 014 — `NOT_STARTED / BLOCKED`; Goal 015/017/025 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013 — `FIX_REQUIRED after first review`; Goal 013A — `FIX_REQUIRED after durability review`; Goal 013B — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 014 — `FIX_REQUIRED after first review`; Goal 014A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 015/017/025 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -684,7 +687,7 @@ materialization, scheduler, profile schema, config или future Goal.
 `progression.learn_skill`; перед будущей автономной mutation требуется отдельное
 доказательство общей координации SP/item writers.
 
-## Goal 014 — NPC commerce, supplies, travel и sell loop — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+## Goal 014 — NPC commerce, supplies, travel и sell loop — `FIX_REQUIRED after first review`
 
 **Назначение:** замкнуть одиночный economic maintenance loop.  
 **Зависимости:** 009–011, 013 и independent acceptance 013B.
@@ -699,6 +702,7 @@ CP potion supplies, vendors, restrictions, currency и cost извлекаютс
 **Gate:** independent review item/adena/position conservation, exact current
 data parity и restart-safe interruption.
 **Follow-up risk:** `HIGH` — canonical commerce validation and partial actions.
+**Correction:** Goal 014A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 ## Goal 015 — Background farming baseline и reconciliation — `NOT_STARTED`
 
@@ -1144,11 +1148,13 @@ In progress / required closure:
 - Goal 013 FIX_REQUIRED
 - Goal 013A FIX_REQUIRED after independent review
 - Goal 013B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+- Goal 014 FIX_REQUIRED after first review
+- Goal 014A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Next:
-1. Independent review Goal 013B
-2. Goal 014 remains NOT_STARTED
-3. Goal 015 remains NOT_STARTED
+1. Independent review Goal 014A
+2. Goal 015 remains NOT_STARTED
+3. Goal 017 and Goal 025 remain NOT_STARTED
 
 Stage gate:
 - Stage I COMPLETE
@@ -1156,6 +1162,7 @@ Stage gate:
 
 New risks:
 - Goal 013 durable CLASS transaction awaits independent review
+- Goal 014A commerce hardening awaits independent review
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
@@ -1189,8 +1196,9 @@ Overall:
   Goal 013 FIX_REQUIRED;
   Goal 013A FIX_REQUIRED after independent review;
   Goal 013B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 014 NOT_STARTED;
-  Goal 015 NOT_STARTED
+  Goal 014 FIX_REQUIRED after first review;
+  Goal 014A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 015/017/025 NOT_STARTED
 ```
 
 ---

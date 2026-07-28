@@ -523,6 +523,19 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(PhantomCommerceService.Reason.STALE_GOAL, staleGoalResult.reason(), "Stale different goal was not rejected.");
 		PhantomAssertions.assertEquals(7L, staleGoalStore.value.receipt().goalId(), "Stale different goal replaced a committed receipt.");
 
+		final FakeStore authorityRaceStore = new FakeStore();
+		final FakeActor authorityRaceActor = new FakeActor(OperationKind.BUY, before(OperationKind.BUY));
+		final PhantomGoal authorityRaceInitial = goal(7, 0, "acquire.item", new PhantomDomainRef("commerce.buy", "1:2:3:4:5"));
+		final PhantomGoal authorityRaceReplacement = goal(7, 1, "acquire.item", new PhantomDomainRef("commerce.buy", "1:2:3:4:5"));
+		final PhantomCommerceService authorityRace = service(authorityRaceStore, authorityRaceActor, new FakeGoalStore(1, authorityRaceInitial, authorityRaceReplacement));
+		authorityRace.start();
+		final var authorityRaceResult = authorityRace.execute(1, 7, 0, intent(OperationKind.BUY), () -> false);
+		PhantomAssertions.assertEquals(OperationStatus.REPLAN, authorityRaceResult.status(), "Authority change before PREPARED did not replan.");
+		PhantomAssertions.assertEquals(PhantomCommerceService.Reason.STALE_GOAL_REVISION, authorityRaceResult.reason(), "Authority change before PREPARED was not typed as stale revision.");
+		PhantomAssertions.assertTrue(authorityRaceStore.value == null, "Authority race persisted a receipt.");
+		PhantomAssertions.assertEquals(0, authorityRaceActor.firstCalls.get(), "Authority race invoked applyFirst.");
+		PhantomAssertions.assertEquals(0, authorityRaceActor.secondCalls.get(), "Authority race invoked applySecond.");
+
 		final FakeStore rolloverStore = new FakeStore();
 		rolloverStore.save(-1, terminalReceipt(1, 7, 0, State.COMMITTED));
 		final PhantomCommerceService rollover = service(rolloverStore, new FakeActor(OperationKind.BUY, before(OperationKind.BUY)), new FakeGoalStore(1, goal(9, 0, "acquire.item", new PhantomDomainRef("commerce.buy", "1:2:3:4:5"))));
@@ -1271,11 +1284,19 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 	private static final class FakeGoalStore implements PhantomGoalStore
 	{
 		private final long profileId;
+		private final PhantomGoal goalOnSecondLoad;
 		private StoredGoal value;
+		private int loads;
 
 		private FakeGoalStore(long profileId, PhantomGoal goal)
 		{
+			this(profileId, goal, null);
+		}
+
+		private FakeGoalStore(long profileId, PhantomGoal goal, PhantomGoal goalOnSecondLoad)
+		{
 			this.profileId = profileId;
+			this.goalOnSecondLoad = goalOnSecondLoad;
 			value = new StoredGoal(goal, 0);
 		}
 
@@ -1288,7 +1309,16 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		@Override
 		public Optional<StoredGoal> load(long requestedProfileId)
 		{
-			return requestedProfileId == profileId ? Optional.ofNullable(value) : Optional.empty();
+			if (requestedProfileId != profileId)
+			{
+				return Optional.empty();
+			}
+			loads++;
+			if ((loads == 2) && (goalOnSecondLoad != null))
+			{
+				value = new StoredGoal(goalOnSecondLoad, value.rowVersion() + 1);
+			}
+			return Optional.ofNullable(value);
 		}
 
 		@Override
