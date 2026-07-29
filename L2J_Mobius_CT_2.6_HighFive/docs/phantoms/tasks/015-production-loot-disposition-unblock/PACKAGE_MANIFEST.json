@@ -1,0 +1,27 @@
+{
+  "package": "phantom-world-goal-015-production-loot-disposition-unblock",
+  "taskId": "015-production-loot-disposition-unblock",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/015-production-loot-disposition-unblock/TASK.md",
+  "branch": "feature/phantom-world",
+  "requiredParent": "32be3bbc320bc3a054aab8c5d39001910f35e4b8",
+  "commitSubject": "fix(phantoms): support ground-loss production drops",
+  "successToken": "GOAL_015_PRODUCTION_LOOT_DISPOSITION_UNBLOCKED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 15001502,
+  "maximumInitialReadEntries": 12,
+  "maximumAdditionalExactFiles": 4,
+  "schemaChanges": false,
+  "configChanges": false,
+  "topologyOrDatapackChanges": false,
+  "serverCoreChanges": false,
+  "otherChronicleChanges": false,
+  "productionDatabaseUseAllowed": false,
+  "goal016Started": false,
+  "artificialSuffixGoalAllowed": false,
+  "payloadSha256": {
+    "docs/phantoms/tasks/015-production-loot-disposition-unblock/ACCEPTANCE.md": "10B09C6E753D3342496ED615C97BBFC3568D406E358CCF89D5EE1E716E502C80",
+    "docs/phantoms/tasks/015-production-loot-disposition-unblock/CODEX_LAUNCHER.txt": "5C4B3921018327093038CBDA14CCFDAB84D5472088C0973E8531C2BAC20DD032",
+    "docs/phantoms/tasks/015-production-loot-disposition-unblock/TASK.md": "6F6C390C10976ED7C4727E6A1A51242AA0AD867877E06B4770C80E10873737E4"
+  },
+  "manifestSelfHashExcluded": true
+}

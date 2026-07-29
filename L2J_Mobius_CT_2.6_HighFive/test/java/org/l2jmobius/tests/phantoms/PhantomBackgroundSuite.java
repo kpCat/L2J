@@ -20,14 +20,19 @@
  */
 package org.l2jmobius.tests.phantoms;
 
-import java.nio.file.Path;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,6 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.data.xml.DoorData;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
 import org.l2jmobius.gameserver.data.xml.ItemData;
@@ -50,9 +56,11 @@ import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
 import org.l2jmobius.gameserver.managers.IdManager;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.enums.player.MountType;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.holders.npc.DropHolder;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
+import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
@@ -70,6 +78,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Batch
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchResult;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DeathPolicy;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Drop;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DropDisposition;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.ExperienceTable;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.LevelForExperience;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.RewardPolicy;
@@ -163,7 +172,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		AUTHORITATIVE_SHOTS("background-authoritative-shots", true),
 		PRODUCTION_AUDIT("background-production-audit", true),
 		RECOVERY_TELEPORT("background-recovery-teleport", true),
-		REAL_LOGIN("background-real-login", true);
+		REAL_LOGIN("background-real-login", true),
+		PRODUCTION_LOOT_UNBLOCK("background-production-loot-unblock", true);
 
 		private final String _id;
 		private final boolean _database;
@@ -176,6 +186,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	}
 
 	private static final long SEED = 15001501L;
+	private static final long PRODUCTION_LOOT_UNBLOCK_SEED = 15001502L;
 	private static final int TARGET_NPC_ID = 100;
 	private static final String ANCHOR_ID = "test.anchor";
 	private static final int PRODUCTION_TARGET_NPC_ID = 22859;
@@ -183,6 +194,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private static final int NO_GRADE_WEAPON_ITEM_ID = 6;
 	private static final int NO_GRADE_SOULSHOT_ITEM_ID = 1835;
 	private static final int NO_GRADE_SPIRITSHOT_ITEM_ID = 2509;
+	private static final List<Integer> PRODUCTION_GROUND_LOSS_ITEM_IDS = List.of(8600, 8601, 8602, 8603, 8604, 8605, 8606, 8607, 8608, 8609, 8610, 8611, 8612, 8613, 8614, 10655, 10656, 10657, 13028);
 	private static final Hashes HASHES = new Hashes("knowledge-v1", "topology-v1", "progression-v1", "commerce-v1");
 
 	private final Mode _mode;
@@ -204,7 +216,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(SEED, context.seed(), "Goal 015 seed changed.");
+		final long expectedSeed = _mode == Mode.PRODUCTION_LOOT_UNBLOCK ? PRODUCTION_LOOT_UNBLOCK_SEED : SEED;
+		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Goal 015 mode seed changed.");
 		if (_mode._database)
 		{
 			_environment = new PhantomHeadlessPlayerTestEnvironment();
@@ -217,7 +230,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			}
-			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT))
+			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK))
 			{
 				_production = ProductionAuthorityFixture.start();
 				context.record("background.productionKnowledgeHash", _production.knowledge().snapshot().combinedHash());
@@ -266,6 +279,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			case PRODUCTION_AUDIT -> registerProductionAudit(registry);
 			case RECOVERY_TELEPORT -> registerRecoveryTeleport(registry);
 			case REAL_LOGIN -> registerRealLogin(registry);
+			case PRODUCTION_LOOT_UNBLOCK -> registerProductionLootUnblock(registry);
 		}
 	}
 
@@ -347,7 +361,14 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private void registerProductionAudit(PhantomTestRegistry registry)
 	{
-		registry.add("01-current-corpus-supported-pair-audit", _ -> testProductionCorpusAudit());
+		registry.add("01-current-corpus-supported-pair-audit", this::testProductionCorpusAudit);
+	}
+
+	private void registerProductionLootUnblock(PhantomTestRegistry registry)
+	{
+		registry.add("01-shipped-loot-policy-authority-and-drift", _ -> testProductionLootPolicy());
+		registry.add("02-canonical-ground-loss-model", _ -> testGroundLossModelSemantics());
+		registry.add("03-real-player-atomic-batch-and-conservation", this::testProductionLootBatch);
 	}
 
 	private void registerRecoveryTeleport(PhantomTestRegistry registry)
@@ -729,7 +750,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		}
 	}
 
-	private void testProductionCorpusAudit()
+	private void testProductionCorpusAudit(PhantomTestContext context)
 	{
 		final var knowledge = _production.knowledge().snapshot();
 		final List<String> audited = new ArrayList<>();
@@ -740,20 +761,441 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final var npc = knowledge.npcById().get(npcId);
 			final boolean normal = (npc != null) && (npc.kind() == NpcKind.MONSTER) && npc.attackable() && npc.targetable() && (NpcData.getInstance().getTemplate(npcId) != null);
 			final boolean spawned = knowledge.spawnAreasByNpc().getOrDefault(npcId, List.of()).stream().anyMatch(area -> (area.instanceId() == 0) && (area.totalConfiguredAmount() > 0) && anchor.nodeId().equals(area.topologyNodeId()));
-			final List<Integer> unsupportedDrops = knowledge.dropFactsByNpc().getOrDefault(npcId, List.of()).stream().filter(fact ->
+			final List<Integer> acquired = new ArrayList<>();
+			final List<Integer> leaveOnGround = new ArrayList<>();
+			final List<Integer> autoAcquiredUnsupported = new ArrayList<>();
+			boolean templatesResolved = true;
+			for (DropFact fact : knowledge.dropFactsByNpc().getOrDefault(npcId, List.of()))
 			{
 				final var item = ItemData.getInstance().getTemplate(fact.itemId());
-				return (item == null) || item.hasExImmediateEffect() || (item.getTime() != -1);
-			}).map(DropFact::itemId).distinct().sorted().toList();
-			final String evidence = npcId + "@" + anchor.id() + ":normal=" + normal + ":spawned=" + spawned + ":unsupportedDrops=" + unsupportedDrops;
+				if (item == null)
+				{
+					templatesResolved = false;
+					continue;
+				}
+				final boolean immediateOrLimited = item.hasExImmediateEffect() || (item.getTime() != -1);
+				if (!immediateOrLimited)
+				{
+					acquired.add(fact.itemId());
+				}
+				else if (currentAutoLoot(item))
+				{
+					autoAcquiredUnsupported.add(fact.itemId());
+				}
+				else
+				{
+					leaveOnGround.add(fact.itemId());
+				}
+			}
+			final List<Integer> exactAcquired = acquired.stream().distinct().sorted().toList();
+			final List<Integer> exactGround = leaveOnGround.stream().distinct().sorted().toList();
+			final List<Integer> exactAutoAcquired = autoAcquiredUnsupported.stream().distinct().sorted().toList();
+			final boolean pairSupported = normal && spawned && templatesResolved && exactAutoAcquired.isEmpty();
+			final String evidence = npcId + "@" + anchor.id() + ":normal=" + normal + ":spawned=" + spawned + ":acquire=" + exactAcquired + ":leaveOnGround=" + exactGround + ":autoAcquiredUnsupported=" + exactAutoAcquired + ":supported=" + pairSupported;
 			audited.add(evidence);
-			if (normal && spawned && unsupportedDrops.isEmpty())
+			if (pairSupported)
 			{
 				supported.add(npcId + "@" + anchor.id());
 			}
 		}
-		PhantomAssertions.assertEquals(List.of("22859@giran.farming.22859:normal=true:spawned=true:unsupportedDrops=[8600, 8601, 8602, 8603, 8604, 8605, 8606, 8607, 8608, 8609, 8610, 8611, 8612, 8613, 8614, 10655, 10656, 10657, 13028]"), audited, "Deterministic current production farm corpus changed.");
-		PhantomAssertions.assertEquals(List.of(), supported, "A supported production farm pair now exists and must run the real canonical batch before Goal 015 can pass.");
+		PhantomAssertions.assertEquals(1, audited.size(), "Deterministic FARMING anchor audit cardinality changed.");
+		PhantomAssertions.assertTrue(audited.getFirst().contains(":leaveOnGround=" + PRODUCTION_GROUND_LOSS_ITEM_IDS + ":"), "Shipped production ground-loss corpus changed.");
+		PhantomAssertions.assertTrue(audited.getFirst().contains(":autoAcquiredUnsupported=[]:supported=true"), "Shipped production pair is no longer fail-closed supported.");
+		PhantomAssertions.assertEquals(List.of(PRODUCTION_TARGET_NPC_ID + "@" + PRODUCTION_FARM_ANCHOR_ID), supported, "Exact supported production farm pair changed.");
+		context.record("background.productionLootAudit", String.join("|", audited));
+	}
+
+	private void testProductionLootPolicy() throws Exception
+	{
+		final Map<String, String> shipped = shippedAutoLootConfig();
+		PhantomAssertions.assertEquals("False", shipped.get("AutoLootHerbs"), "Shipped AutoLootHerbs changed.");
+		PhantomAssertions.assertEquals("False", shipped.get("AutoLoot"), "Shipped AutoLoot changed.");
+		PhantomAssertions.assertEquals("True", shipped.get("AutoLootSlotLimit"), "Shipped AutoLootSlotLimit changed.");
+		PhantomAssertions.assertEquals("0", shipped.get("AutoLootItemIds"), "Shipped AutoLootItemIds changed.");
+		PhantomAssertions.assertFalse(PlayerConfig.AUTO_LOOT_HERBS, "Loaded AutoLootHerbs differs from shipped Player.ini.");
+		PhantomAssertions.assertFalse(PlayerConfig.AUTO_LOOT, "Loaded AutoLoot differs from shipped Player.ini.");
+		PhantomAssertions.assertTrue(PlayerConfig.AUTO_LOOT_SLOT_LIMIT, "Loaded AutoLootSlotLimit differs from shipped Player.ini.");
+		PhantomAssertions.assertEquals(Set.of(), PlayerConfig.AUTO_LOOT_ITEM_IDS, "Loaded AutoLootItemIds differs from shipped Player.ini.");
+
+		try (ProductionPlayerFixture fixture = openProductionPlayerFixture())
+		{
+			final L2jPhantomBackgroundAuthority authority = _production.authority();
+			final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parse(fixture.goal());
+			final Hashes baselineHashes = authority.hashes();
+			PhantomAssertions.assertEquals(baselineHashes, authority.hashes(), "Current loot-policy authority hash is not deterministic.");
+			final PhantomBackgroundState captured = authority.capture(PRODUCTION_LOOT_UNBLOCK_SEED, fixture.player(), fixture.goal(), null);
+			final PhantomBackgroundState oldReady = captured.withState(State.READY);
+			final PhantomBackgroundAuthority.FarmInput input = authority.farmInput(oldReady, spec);
+			final List<Drop> acquired = input.target().drops().stream().filter(drop -> drop.disposition() == DropDisposition.ACQUIRE).toList();
+			final List<Drop> ground = input.target().drops().stream().filter(drop -> drop.disposition() == DropDisposition.LEAVE_ON_GROUND).toList();
+			PhantomAssertions.assertTrue(!acquired.isEmpty(), "Ordinary production drops were not classified ACQUIRE.");
+			PhantomAssertions.assertEquals(PRODUCTION_GROUND_LOSS_ITEM_IDS, ground.stream().map(Drop::itemId).distinct().sorted().toList(), "Immediate/time-limited production drops were not classified LEAVE_ON_GROUND.");
+			final int immediateId = ground.stream().map(Drop::itemId).filter(itemId -> ItemData.getInstance().getTemplate(itemId).hasExImmediateEffect()).findFirst().orElseThrow();
+			final ItemTemplate timeLimitedItem = firstTimeLimitedOrdinaryItem();
+			PhantomAssertions.assertEquals(DropDisposition.LEAVE_ON_GROUND, productionDropDisposition(timeLimitedItem), "Time-limited ordinary item was not classified LEAVE_ON_GROUND.");
+
+			fixture.player().setFlying(true);
+			try
+			{
+				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> authority.capture(PRODUCTION_LOOT_UNBLOCK_SEED, fixture.player(), fixture.goal(), null), "Flying Player was admitted to production background farming.");
+			}
+			finally
+			{
+				fixture.player().setFlying(false);
+			}
+			final Field mountType = Player.class.getDeclaredField("_mountType");
+			mountType.setAccessible(true);
+			final Object originalMountType = mountType.get(fixture.player());
+			mountType.set(fixture.player(), MountType.STRIDER);
+			try
+			{
+				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> authority.capture(PRODUCTION_LOOT_UNBLOCK_SEED, fixture.player(), fixture.goal(), null), "Mounted Player was admitted to production background farming.");
+			}
+			finally
+			{
+				mountType.set(fixture.player(), originalMountType);
+			}
+
+			final boolean originalAutoLoot = PlayerConfig.AUTO_LOOT;
+			final boolean originalAutoLootHerbs = PlayerConfig.AUTO_LOOT_HERBS;
+			final boolean originalAutoLootSlotLimit = PlayerConfig.AUTO_LOOT_SLOT_LIMIT;
+			final Set<Integer> originalAutoLootItemIds = PlayerConfig.AUTO_LOOT_ITEM_IDS;
+			try
+			{
+				PlayerConfig.AUTO_LOOT_SLOT_LIMIT = !originalAutoLootSlotLimit;
+				final Hashes drifted = authority.hashes();
+				PhantomAssertions.assertFalse(baselineHashes.equals(drifted), "LOOT_POLICY_V1 did not fingerprint AutoLootSlotLimit drift.");
+				PhantomAssertions.assertThrows(IllegalStateException.class, () -> authority.farmInput(oldReady, spec), "Old READY authority state did not fail closed on loot-policy drift.");
+			}
+			finally
+			{
+				PlayerConfig.AUTO_LOOT = originalAutoLoot;
+				PlayerConfig.AUTO_LOOT_HERBS = originalAutoLootHerbs;
+				PlayerConfig.AUTO_LOOT_SLOT_LIMIT = originalAutoLootSlotLimit;
+				PlayerConfig.AUTO_LOOT_ITEM_IDS = originalAutoLootItemIds;
+			}
+			PhantomAssertions.assertEquals(baselineHashes, authority.hashes(), "Loot-policy config restoration did not restore the authority hash.");
+
+			try
+			{
+				PlayerConfig.AUTO_LOOT_HERBS = true;
+				PhantomAssertions.assertFalse(baselineHashes.equals(authority.hashes()), "LOOT_POLICY_V1 did not fingerprint AutoLootHerbs drift.");
+				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> authority.capture(PRODUCTION_LOOT_UNBLOCK_SEED, fixture.player(), fixture.goal(), captured), "Auto-looted immediate drop did not reject the target before baseline.");
+			}
+			finally
+			{
+				PlayerConfig.AUTO_LOOT_HERBS = originalAutoLootHerbs;
+			}
+			try
+			{
+				PlayerConfig.AUTO_LOOT = true;
+				PhantomAssertions.assertFalse(baselineHashes.equals(authority.hashes()), "LOOT_POLICY_V1 did not fingerprint AutoLoot drift.");
+				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> productionDropDisposition(timeLimitedItem), "Auto-looted time-limited drop did not fail closed.");
+			}
+			finally
+			{
+				PlayerConfig.AUTO_LOOT = originalAutoLoot;
+			}
+			try
+			{
+				PlayerConfig.AUTO_LOOT_ITEM_IDS = Set.of(immediateId, timeLimitedItem.getId());
+				PhantomAssertions.assertFalse(baselineHashes.equals(authority.hashes()), "LOOT_POLICY_V1 did not fingerprint AutoLootItemIds drift.");
+				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> authority.capture(PRODUCTION_LOOT_UNBLOCK_SEED, fixture.player(), fixture.goal(), captured), "Specific auto-loot item IDs did not reject the target before baseline.");
+				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> productionDropDisposition(timeLimitedItem), "Specific time-limited auto-loot item ID did not fail closed.");
+			}
+			finally
+			{
+				PlayerConfig.AUTO_LOOT_ITEM_IDS = originalAutoLootItemIds;
+			}
+			PhantomAssertions.assertEquals(baselineHashes, authority.hashes(), "Static loot-policy values were not fully restored.");
+		}
+	}
+
+	private void testGroundLossModelSemantics()
+	{
+		final PhantomBackgroundModel model = new PhantomBackgroundModel();
+		final Drop immediateGround = new Drop(8600, -1, 0, 100, 100, 1, 1, 1, null, 1, 100, false, 1_000_000, DropDisposition.LEAVE_ON_GROUND);
+		final Drop timeLimitedGround = new Drop(10655, -1, 1, 100, 100, 1, 1, 1, null, 1, 100, false, 1_000_000, DropDisposition.LEAVE_ON_GROUND);
+		final InventoryFacts full = new InventoryFacts(List.of(), List.of(), "ground-loss", 100, 100, 100, 100);
+		final PhantomBackgroundState fullState = state(1, 101, State.READY, 100, 100, full);
+		final BatchRequest groundOnlyRequest = request(fullState, target(1, 0, 0, List.of(immediateGround, timeLimitedGround)));
+		final BatchResult groundOnly = model.evaluate(groundOnlyRequest);
+		PhantomAssertions.assertTrue(groundOnly.encounters() > 0, "Ground-only encounter was blocked by full inventory.");
+		PhantomAssertions.assertEquals(Map.of(), groundOnly.inventoryDelta().itemDeltas(), "Ground loss entered Player inventory deltas.");
+		PhantomAssertions.assertEquals(0L, groundOnly.inventoryDelta().addedWeight(), "Ground loss consumed Player weight.");
+		PhantomAssertions.assertEquals(0, groundOnly.inventoryDelta().addedSlots(), "Ground loss consumed Player slots.");
+		PhantomAssertions.assertEquals(0, groundOnly.inventoryDelta().newNonStackableObjects(), "Ground loss reserved Player item objects.");
+		PhantomAssertions.assertTrue(groundOnly.groundLosses().keySet().containsAll(List.of(8600, 10655)), "Immediate/time-limited ground-loss evidence is incomplete.");
+		PhantomAssertions.assertEquals(groundOnly, model.evaluate(groundOnlyRequest), "Ground-loss RNG replay changed.");
+
+		final List<Drop> mixedDrops = List.of(
+			new Drop(8600, 0, 0, 100, 50, 1, 1, 1, null, 1, 100, true, 0, DropDisposition.LEAVE_ON_GROUND),
+			new Drop(57, 0, 1, 100, 50, 1, 1, 1, null, 1, 100, true, 0, DropDisposition.ACQUIRE),
+			new Drop(10655, 1, 0, 100, 99, 1, 1, 1, null, 1, 100, true, 0, DropDisposition.LEAVE_ON_GROUND),
+			new Drop(4037, 2, 0, 100, 99, 1, 1, 1, null, 1, 100, true, 0, DropDisposition.ACQUIRE),
+			new Drop(13028, -1, 0, 100, 99, 1, 1, 1, null, 1, 100, true, 0, DropDisposition.LEAVE_ON_GROUND),
+			new Drop(10, -1, 1, 100, 99, 1, 1, 1, null, 1, 100, true, 0, DropDisposition.ACQUIRE));
+		final List<Drop> allAcquiredDrops = mixedDrops.stream().map(drop -> new Drop(drop.itemId(), drop.groupOrdinal(), drop.itemOrdinal(), drop.rawGroupChance(), drop.rawItemChance(), drop.minimumCount(), drop.maximumCount(), drop.chanceMultiplier(), drop.configuredChanceMultiplier(), drop.amountMultiplier(), drop.levelGapChance(), drop.stackable(), drop.itemWeight(), DropDisposition.ACQUIRE)).toList();
+		boolean observedGroupedGroundSuppression = false;
+		boolean observedGroupedGroundOccurrence = false;
+		boolean observedUngroupedGroundOccurrence = false;
+		for (long seed = 1; seed <= 1_000; seed++)
+		{
+			final PhantomBackgroundState base = state(1, 101, State.READY, 1, 1, inventory());
+			final PhantomBackgroundState seeded = base.after(base.progress(), base.vitals(), base.position(), base.inventory(), base.autoGetSkills(), new Clock(seed, 0, 0), base.receipt());
+			final BatchResult groupedOnly = model.evaluate(request(seeded, singleEncounterTarget(mixedDrops.subList(0, 2))));
+			if (groupedOnly.groundLosses().containsKey(8600))
+			{
+				PhantomAssertions.assertFalse(groupedOnly.inventoryDelta().itemDeltas().containsKey(57), "Selected ignored group award did not suppress its later alternative.");
+				observedGroupedGroundSuppression = true;
+			}
+			final Target mixedTarget = singleEncounterTarget(mixedDrops);
+			final Target acquiredTarget = singleEncounterTarget(allAcquiredDrops);
+			final BatchResult mixed = model.evaluate(request(seeded, mixedTarget));
+			final BatchResult acquired = model.evaluate(request(seeded, acquiredTarget));
+			final Map<Integer, Long> combinedAwards = new LinkedHashMap<>(mixed.inventoryDelta().itemDeltas());
+			mixed.groundLosses().forEach((itemId, count) -> combinedAwards.merge(itemId, count, Math::addExact));
+			PhantomAssertions.assertEquals(acquired.inventoryDelta().itemDeltas(), combinedAwards, "Disposition changed canonical grouped/ungrouped occurrence awards at seed " + seed);
+			PhantomAssertions.assertEquals(acquired.nextRngState(), mixed.nextRngState(), "Disposition changed canonical RNG advancement at seed " + seed);
+			observedGroupedGroundOccurrence |= mixed.groundLosses().containsKey(10655);
+			observedUngroupedGroundOccurrence |= mixed.groundLosses().containsKey(13028);
+			if (observedGroupedGroundSuppression && observedGroupedGroundOccurrence && observedUngroupedGroundOccurrence)
+			{
+				break;
+			}
+		}
+		PhantomAssertions.assertTrue(observedGroupedGroundSuppression, "Grouped ignored award suppression was not exercised.");
+		PhantomAssertions.assertTrue(observedGroupedGroundOccurrence, "Grouped occurrence budget did not include a ground-loss award.");
+		PhantomAssertions.assertTrue(observedUngroupedGroundOccurrence, "Ungrouped occurrence budget did not include a ground-loss award.");
+	}
+
+	private void testProductionLootBatch(PhantomTestContext context) throws Exception
+	{
+		ProductionPlayerFixture playerFixture = null;
+		PhantomProfile profile = null;
+		PhantomBackgroundService background = null;
+		PhantomMaterializationService materialization = null;
+		final AtomicInteger reservedObjectIds = new AtomicInteger();
+		try
+		{
+			playerFixture = openProductionPlayerFixture();
+			final int objectId = playerFixture.player().getObjectId();
+			profile = _repository.create(objectId);
+			final PhantomGoal goal = playerFixture.goal();
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_repository);
+			goals.insert(profile.profileId(), goal);
+			final PhantomBackgroundTransaction.ObjectIdAllocator ids = new PhantomBackgroundTransaction.ObjectIdAllocator()
+			{
+				@Override
+				public int reserve()
+				{
+					reservedObjectIds.incrementAndGet();
+					return IdManager.getInstance().getNextId();
+				}
+
+				@Override
+				public void release(int objectId)
+				{
+					IdManager.getInstance().releaseId(objectId);
+				}
+			};
+			final PhantomBackgroundTransaction transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, ids, PhantomBackgroundTransaction.FaultInjector.none());
+			final AtomicReference<PhantomMaterializationService> materializationRef = new AtomicReference<>();
+			background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), materializationRef::get);
+			PhantomAssertions.assertTrue(background.start(), "Production background service did not start.");
+			final PhantomMetrics metrics = new PhantomMetrics();
+			materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, point ->
+			{
+			}, exactAnchorLifecycle(background, playerFixture.farm().anchor()), 5_000, 10_000);
+			PhantomAssertions.assertTrue(materialization.start(), "Production materialization service did not start.");
+			materializationRef.set(materialization);
+
+			final PhantomBackgroundState initialCapture = _production.authority().capture(profile.profileId(), playerFixture.player(), goal, null);
+			playerFixture.player().storeMe();
+			final PhantomBackgroundState zeroResidual = initialCapture.after(initialCapture.progress(), initialCapture.vitals(), initialCapture.position(), initialCapture.inventory(), initialCapture.autoGetSkills(), new Clock(context.seed(), 0, 0), initialCapture.receipt()).withState(State.READY);
+			final PhantomBackgroundAuthority.FarmInput zeroResidualInput = _production.authority().farmInput(zeroResidual, PhantomBackgroundGoalSpec.parse(goal));
+			final long residualEncounterMillis = largestSuccessfulResidual(zeroResidual, zeroResidualInput);
+			final PhantomBackgroundState seededPrevious = initialCapture.after(initialCapture.progress(), initialCapture.vitals(), initialCapture.position(), initialCapture.inventory(), initialCapture.autoGetSkills(), new Clock(context.seed(), 0, residualEncounterMillis), initialCapture.receipt());
+			final PhantomBackgroundState seededCapture = _production.authority().capture(profile.profileId(), playerFixture.player(), goal, seededPrevious);
+			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(seededCapture, goal).status(), "Seeded real production baseline capture failed.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(profile.profileId(), objectId).status(), "Seeded real production baseline did not enter MATERIALIZED.");
+			background.beforeStore(profile.profileId(), playerFixture.player());
+			playerFixture.player().storeMe();
+			background.afterStore(profile.profileId(), playerFixture.player());
+			playerFixture.releaseRuntime();
+			final PhantomBackgroundState ready = transaction.load(profile.profileId()).state();
+			PhantomAssertions.assertEquals(State.READY, ready.state(), "Real production baseline did not dematerialize to READY.");
+			PhantomAssertions.assertEquals(PRODUCTION_LOOT_UNBLOCK_SEED, context.seed(), "Production batch used the wrong deterministic seed.");
+			PhantomAssertions.assertEquals(PRODUCTION_LOOT_UNBLOCK_SEED, ready.clock().rngState(), "Captured production baseline did not use seed 15001502.");
+
+			final PhantomBackgroundAuthority.FarmInput input = _production.authority().farmInput(ready, PhantomBackgroundGoalSpec.parse(goal));
+			final PhantomBackgroundModel model = new PhantomBackgroundModel();
+			final BatchResult expected = model.evaluate(new BatchRequest(ready, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false));
+			PhantomAssertions.assertTrue(expected.mutated(), "Seeded production model produced no successful encounter: reason=" + expected.reason() + ", mp=" + ready.vitals().currentMp() + ", skillMp=" + ready.loadout().skillMpPerEncounter());
+			PhantomAssertions.assertEquals(1, expected.encounters(), "Focused production batch did not execute exactly one real encounter.");
+			PhantomAssertions.assertFalse(expected.dead(), "Supported real production capability did not survive one encounter.");
+			PhantomAssertions.assertTrue(!expected.groundLosses().isEmpty(), "Seeded production batch did not exercise ground-loss evidence.");
+			final PhantomBackgroundOperationKey operationKey = new PhantomBackgroundOperationKey(profile.profileId(), objectId, goal.goalId(), goal.revision(), 1, 1, ActionKind.FARM, PRODUCTION_TARGET_NPC_ID, PRODUCTION_FARM_ANCHOR_ID, PhantomBackgroundState.MODEL_VERSION, _production.authority().hashes());
+			final PhantomBackgroundService.OperationResult committed = background.farm(profile.profileId(), goal, 1, 1, PhantomActivityState.BACKGROUND, 1);
+			PhantomAssertions.assertEquals(OperationStatus.SUCCESS, committed.status(), "Real production background batch did not commit.");
+			PhantomAssertions.assertEquals(expected.encounters(), committed.encounters(), "Committed production encounter count differs from the production model.");
+			final PhantomBackgroundState after = transaction.load(profile.profileId()).state();
+			PhantomAssertions.assertEquals(expected.progress(), after.progress(), "Canonical production EXP/SP differs from the model.");
+			PhantomAssertions.assertEquals(Math.round(expected.vitals().currentHp()), (long) after.vitals().currentHp(), "Canonical production HP differs from the model.");
+			PhantomAssertions.assertEquals(Math.round(expected.vitals().currentMp()), (long) after.vitals().currentMp(), "Canonical production MP differs from the model.");
+			PhantomAssertions.assertEquals(expected.nextRngState(), after.clock().rngState(), "Committed production RNG state differs from the model.");
+			PhantomAssertions.assertEquals(operationKey.digest(), after.receipt().operationKey(), "Committed production receipt identity differs.");
+			PhantomAssertions.assertTrue(!after.receipt().expectedAfterHash().isBlank(), "Committed production receipt lacks canonical after-hash.");
+			final Map<Integer, Long> beforeCounts = trackedInventoryCounts(ready);
+			final Map<Integer, Long> afterCounts = trackedInventoryCounts(after);
+			for (Map.Entry<Integer, Long> delta : expected.inventoryDelta().itemDeltas().entrySet())
+			{
+				PhantomAssertions.assertEquals(Math.addExact(beforeCounts.getOrDefault(delta.getKey(), 0L), delta.getValue()), afterCounts.getOrDefault(delta.getKey(), 0L), "Exact acquired production item delta differs for " + delta.getKey());
+			}
+			PhantomAssertions.assertEquals(expected.inventoryDelta().addedSlots(), reservedObjectIds.get(), "Ground losses changed object-ID reservation count.");
+			for (int itemId : PRODUCTION_GROUND_LOSS_ITEM_IDS)
+			{
+				PhantomAssertions.assertEquals(0L, scalarLong("SELECT COUNT(*) FROM items WHERE owner_id = ? AND item_id = " + itemId, objectId), "Ground-loss item entered canonical Player inventory: " + itemId);
+			}
+
+			final PhantomBackgroundStateCodec codec = new PhantomBackgroundStateCodec();
+			final byte[] beforeDuplicate = codec.encode(after);
+			final int reservationsBeforeDuplicate = reservedObjectIds.get();
+			final List<AutoGetSkill> expectedAutoSkills = _production.authority().autoGetSkills(ready.identity(), expected.progress().level());
+			final PhantomBackgroundTransaction.Command duplicateCommand = new PhantomBackgroundTransaction.Command(ready, goal, operationKey, expected.progress(), expected.vitals(), ready.position(), new Clock(expected.nextRngState(), 0, 0), expected.inventoryDelta().itemDeltas(), expectedAutoSkills);
+			final Result duplicate = transaction.execute(duplicateCommand);
+			PhantomAssertions.assertEquals(Status.IDEMPOTENT, duplicate.status(), "Exact production duplicate was not idempotent.");
+			PhantomAssertions.assertTrue(java.util.Arrays.equals(beforeDuplicate, codec.encode(transaction.load(profile.profileId()).state())), "Production duplicate rerolled or regranted durable loot.");
+			PhantomAssertions.assertEquals(reservationsBeforeDuplicate, reservedObjectIds.get(), "Production duplicate reserved another object ID.");
+
+			final Player committedProbe = Player.load(objectId);
+			PhantomAssertions.assertTrue(committedProbe != null, "Committed production Player did not reload for the conservation preflight.");
+			try
+			{
+				final PhantomTopologyAnchor anchor = playerFixture.farm().anchor();
+				committedProbe.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z());
+				assertProductionRuntimeMatches(committedProbe, transaction.load(profile.profileId()).state());
+			}
+			finally
+			{
+				_environment.cleanupLoadedPlayer(committedProbe);
+			}
+			final PhantomMaterializationService.MaterializeResult materialized = materialization.materialize(profile.profileId());
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialized.status(), "Committed production state did not materialize.");
+			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+			{
+				final Player reloaded = action.player();
+				PhantomAssertions.assertTrue(_production.authority().matchesRuntime(reloaded, transaction.load(profile.profileId()).state()), "Reloaded real Player differs from committed production state.");
+				for (int itemId : PRODUCTION_GROUND_LOSS_ITEM_IDS)
+				{
+					PhantomAssertions.assertTrue(reloaded.getInventory().getItemByItemId(itemId) == null, "Ground-loss item materialized into Player inventory: " + itemId);
+				}
+			}
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(profile.profileId()).status(), "Production conservation dematerialization failed.");
+			final PhantomBackgroundState reloadedReady = new PhantomBackgroundTransaction().load(profile.profileId()).state();
+			PhantomAssertions.assertTrue(java.util.Arrays.equals(beforeDuplicate, codec.encode(reloadedReady)), "Materialization/dematerialization changed the committed production state.");
+			context.record("background.productionEncounters", committed.encounters());
+			context.record("background.productionAcquiredDeltas", expected.inventoryDelta().itemDeltas());
+			context.record("background.productionGroundLosses", expected.groundLosses());
+			context.record("background.productionReservedObjectIds", reservedObjectIds.get());
+			context.record("background.productionResidualEncounterMillis", residualEncounterMillis);
+		}
+		finally
+		{
+			if ((materialization != null) && (profile != null) && materialization.find(profile.profileId()).isPresent())
+			{
+				materialization.dematerialize(profile.profileId());
+			}
+			if (materialization != null)
+			{
+				materialization.shutdown();
+			}
+			if (background != null)
+			{
+				background.beginStop();
+				background.finishStop();
+			}
+			if (profile != null)
+			{
+				deleteProfile(profile);
+			}
+			if (playerFixture != null)
+			{
+				playerFixture.close();
+			}
+		}
+	}
+
+	private void assertProductionRuntimeMatches(Player player, PhantomBackgroundState state)
+	{
+		PhantomAssertions.assertTrue(player.getObjectId() == state.identity().characterObjectId(), "Reloaded production Player object ID differs.");
+		PhantomAssertions.assertTrue(player.getClassIndex() == state.identity().classIndex(), "Reloaded production Player class index differs.");
+		PhantomAssertions.assertTrue(player.getActiveClass() == state.identity().activeClassId(), "Reloaded production Player active class differs.");
+		PhantomAssertions.assertTrue(player.getRace().ordinal() == state.identity().raceOrdinal(), "Reloaded production Player race differs.");
+		PhantomAssertions.assertTrue(player.getLevel() == state.progress().level(), "Reloaded production Player level differs.");
+		PhantomAssertions.assertTrue(player.getExp() == state.progress().experience(), "Reloaded production Player EXP differs.");
+		PhantomAssertions.assertTrue(player.getSp() == state.progress().skillPoints(), "Reloaded production Player SP differs.");
+		PhantomAssertions.assertTrue(player.getExpBeforeDeath() == state.progress().experienceBeforeDeath(), "Reloaded production Player pre-death EXP differs.");
+		assertProductionDouble(state.vitals().currentHp(), player.getCurrentHp(), "HP");
+		assertProductionDouble(state.vitals().maximumHp(), player.getMaxHp(), "maximum HP");
+		assertProductionDouble(state.vitals().currentMp(), player.getCurrentMp(), "MP");
+		assertProductionDouble(state.vitals().maximumMp(), player.getMaxMp(), "maximum MP");
+		assertProductionDouble(state.vitals().currentCp(), player.getCurrentCp(), "CP");
+		assertProductionDouble(state.vitals().maximumCp(), player.getMaxCp(), "maximum CP");
+		PhantomAssertions.assertTrue(player.getInstanceId() == state.position().instanceId(), "Reloaded production Player instance differs.");
+		PhantomAssertions.assertTrue(player.getX() == state.position().x(), "Reloaded production Player X differs: expected=" + state.position().x() + ", actual=" + player.getX());
+		PhantomAssertions.assertTrue(player.getY() == state.position().y(), "Reloaded production Player Y differs: expected=" + state.position().y() + ", actual=" + player.getY());
+		PhantomAssertions.assertTrue(player.getZ() == state.position().z(), "Reloaded production Player Z differs: expected=" + state.position().z() + ", actual=" + player.getZ());
+		PhantomAssertions.assertTrue(player.getHeading() == state.position().heading(), "Reloaded production Player heading differs: expected=" + state.position().heading() + ", actual=" + player.getHeading());
+		PhantomAssertions.assertTrue(_production.authority().matchesRuntime(player, state), "Exact production authority rejected a field-by-field matching reload.");
+	}
+
+	private static PhantomMaterializationLifecyclePort exactAnchorLifecycle(PhantomMaterializationLifecyclePort delegate, PhantomTopologyAnchor anchor)
+	{
+		return new PhantomMaterializationLifecyclePort()
+		{
+			@Override
+			public void beforeMaterialize(long profileId, int characterObjectId)
+			{
+				delegate.beforeMaterialize(profileId, characterObjectId);
+			}
+
+			@Override
+			public void afterPlayerLoad(long profileId, Player player)
+			{
+				player.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z());
+				delegate.afterPlayerLoad(profileId, player);
+			}
+
+			@Override
+			public void materializeSucceeded(long profileId, int characterObjectId)
+			{
+				delegate.materializeSucceeded(profileId, characterObjectId);
+			}
+
+			@Override
+			public void materializeAborted(long profileId, int characterObjectId)
+			{
+				delegate.materializeAborted(profileId, characterObjectId);
+			}
+
+			@Override
+			public void beforeStore(long profileId, Player player)
+			{
+				delegate.beforeStore(profileId, player);
+			}
+
+			@Override
+			public void afterStore(long profileId, Player player)
+			{
+				delegate.afterStore(profileId, player);
+			}
+		};
+	}
+
+	private static void assertProductionDouble(double expected, double actual, String field)
+	{
+		PhantomAssertions.assertTrue(Math.abs(expected - actual) <= 0.000_001, "Reloaded production Player " + field + " differs: expected=" + expected + ", actual=" + actual);
 	}
 
 	private void testRecoveryCancellation() throws Exception
@@ -1405,9 +1847,11 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(loaderDrop.getMin(), fact.minimumCount(), "Production minimum count changed at " + index);
 				PhantomAssertions.assertEquals(loaderDrop.getMax(), fact.maximumCount(), "Production maximum count changed at " + index);
 			}
-			PhantomAssertions.assertTrue(facts.stream().anyMatch(fact -> ItemData.getInstance().getTemplate(fact.itemId()).hasExImmediateEffect()), "Real fail-closed target no longer contains the excluded immediate-effect evidence.");
-			final Player configuredPlayer = player;
-			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> _production.authority().capture(15001501, configuredPlayer, goal, null), "Excluded immediate-effect drop was admitted into the persisted baseline.");
+			PhantomAssertions.assertTrue(facts.stream().anyMatch(fact -> ItemData.getInstance().getTemplate(fact.itemId()).hasExImmediateEffect()), "Real target no longer contains immediate-effect ground-loss evidence.");
+			final PhantomBackgroundState captured = _production.authority().capture(15001501, player, goal, null);
+			final PhantomBackgroundAuthority.FarmInput input = _production.authority().farmInput(captured, PhantomBackgroundGoalSpec.parse(goal));
+			PhantomAssertions.assertEquals(PRODUCTION_GROUND_LOSS_ITEM_IDS, input.target().drops().stream().filter(drop -> drop.disposition() == DropDisposition.LEAVE_ON_GROUND).map(Drop::itemId).distinct().sorted().toList(), "Production authority ground-loss classification changed.");
+			PhantomAssertions.assertTrue(input.target().drops().stream().anyMatch(drop -> drop.disposition() == DropDisposition.ACQUIRE), "Production authority omitted every ordinary acquired drop.");
 
 			final Set<String> operationKeys = new HashSet<>();
 			for (int identity = 1; identity <= 300; identity++)
@@ -1427,8 +1871,151 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		}
 	}
 
+	private ProductionPlayerFixture openProductionPlayerFixture() throws Exception
+	{
+		final ProductionFarmSelection farm = productionFarmSelection();
+		final CapabilitySelection selection = productionCapability();
+		final int objectId = _environment.primary().objectId();
+		final Canonical original = canonical(objectId);
+		final int originalBaseClass = (int) scalarLong("SELECT base_class FROM characters WHERE charId = ?", objectId);
+		Player player = null;
+		try
+		{
+			try (Connection connection = DatabaseFactory.getConnection();
+				PreparedStatement statement = connection.prepareStatement("UPDATE characters SET classid=?,base_class=?,race=?,level=85,exp=?,x=?,y=?,z=?,heading=0,online=0 WHERE charId=?"))
+			{
+				statement.setInt(1, selection.playerClass().getId());
+				statement.setInt(2, selection.playerClass().getId());
+				statement.setInt(3, selection.playerClass().getRace().ordinal());
+				statement.setLong(4, ExperienceData.getInstance().getExpForLevel(85));
+				statement.setInt(5, farm.anchor().point().x());
+				statement.setInt(6, farm.anchor().point().y());
+				statement.setInt(7, farm.anchor().point().z());
+				statement.setInt(8, objectId);
+				PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Could not configure the production loot Player.");
+			}
+			final Identity identity = new Identity(PRODUCTION_LOOT_UNBLOCK_SEED, objectId, 0, selection.playerClass().getId(), selection.playerClass().getRace().ordinal());
+			ensureAutoGetSkills(identity, exactAutoGetSkills(identity, 85));
+			ensureAutoGetSkills(identity, List.of(new AutoGetSkill(selection.rule().actionSkill().skillId(), selection.rule().actionSkill().skillLevel())));
+			player = Player.load(objectId);
+			PhantomAssertions.assertTrue(player != null, "Production loot real Player could not be loaded.");
+			player.setXYZInvisible(farm.anchor().point().x(), farm.anchor().point().y(), farm.anchor().point().z());
+			player.setCurrentHp(player.getMaxHp());
+			player.setCurrentMp(player.getMaxMp());
+			player.setCurrentCp(player.getMaxCp());
+			PhantomAssertions.assertTrue((player.getKnownSkill(selection.rule().actionSkill().skillId()) != null) && (player.getKnownSkill(selection.rule().actionSkill().skillId()).getLevel() >= selection.rule().actionSkill().skillLevel()), "Production loot capability is not ready on the real Player.");
+			return new ProductionPlayerFixture(player, farm, goal(farm.npcId(), farm.anchor().id()), original, originalBaseClass);
+		}
+		catch (Throwable failure)
+		{
+			_environment.cleanupLoadedPlayer(player);
+			restoreCharacter(objectId, original, originalBaseClass);
+			restorePrimaryInventoryAndSkills(objectId);
+			throw failure;
+		}
+	}
+
+	private static Map<String, String> shippedAutoLootConfig() throws Exception
+	{
+		final Set<String> keys = Set.of("AutoLootHerbs", "AutoLoot", "AutoLootSlotLimit", "AutoLootItemIds");
+		final Map<String, String> values = new LinkedHashMap<>();
+		final Path playerConfig = Path.of(System.getProperty("phantom.module.root")).resolve("dist/game/config/Player.ini");
+		for (String line : Files.readAllLines(playerConfig, StandardCharsets.UTF_8))
+		{
+			final int separator = line.indexOf('=');
+			if (separator < 0)
+			{
+				continue;
+			}
+			final String key = line.substring(0, separator).trim();
+			if (keys.contains(key))
+			{
+				values.put(key, line.substring(separator + 1).trim());
+			}
+		}
+		return Map.copyOf(values);
+	}
+
+	private static boolean currentAutoLoot(ItemTemplate item)
+	{
+		return PlayerConfig.AUTO_LOOT_ITEM_IDS.contains(item.getId()) || (!item.hasExImmediateEffect() && PlayerConfig.AUTO_LOOT) || (item.hasExImmediateEffect() && PlayerConfig.AUTO_LOOT_HERBS);
+	}
+
+	private static ItemTemplate firstTimeLimitedOrdinaryItem()
+	{
+		for (int itemId = 1; itemId <= 50_000; itemId++)
+		{
+			final ItemTemplate item = ItemData.getInstance().getTemplate(itemId);
+			if ((item != null) && !item.hasExImmediateEffect() && (item.getTime() != -1))
+			{
+				return item;
+			}
+		}
+		throw new AssertionError("Current ItemData has no time-limited ordinary item fixture.");
+	}
+
+	private static DropDisposition productionDropDisposition(ItemTemplate item) throws Exception
+	{
+		final Method method = L2jPhantomBackgroundAuthority.class.getDeclaredMethod("dropDisposition", ItemTemplate.class);
+		method.setAccessible(true);
+		try
+		{
+			return (DropDisposition) method.invoke(null, item);
+		}
+		catch (InvocationTargetException exception)
+		{
+			if (exception.getCause() instanceof RuntimeException runtime)
+			{
+				throw runtime;
+			}
+			throw exception;
+		}
+	}
+
+	private static Target singleEncounterTarget(List<Drop> drops)
+	{
+		return new Target(TARGET_NPC_ID, 1, true, 1, 1, 1_000_000, 1, 1, 1, 500, 500, 0, 0, drops, 1);
+	}
+
+	private static long largestSuccessfulResidual(PhantomBackgroundState state, PhantomBackgroundAuthority.FarmInput input)
+	{
+		final PhantomBackgroundModel model = new PhantomBackgroundModel();
+		long low = 0;
+		long high = PhantomBackgroundModel.MAX_ELAPSED_MILLIS - 1;
+		long result = -1;
+		while (low <= high)
+		{
+			final long middle = (low + high) >>> 1;
+			final Clock clock = new Clock(state.clock().rngState(), state.clock().residualTravelMillis(), middle);
+			final PhantomBackgroundState candidate = state.after(state.progress(), state.vitals(), state.position(), state.inventory(), state.autoGetSkills(), clock, state.receipt());
+			final BatchResult batch = model.evaluate(new BatchRequest(candidate, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false));
+			if (batch.mutated())
+			{
+				result = middle;
+				low = middle + 1;
+			}
+			else
+			{
+				high = middle - 1;
+			}
+		}
+		if (result < 0)
+		{
+			throw new AssertionError("Production model has no residual budget admitting one encounter.");
+		}
+		return result;
+	}
+
+	private static Map<Integer, Long> trackedInventoryCounts(PhantomBackgroundState state)
+	{
+		final Map<Integer, Long> counts = new LinkedHashMap<>();
+		state.inventory().objects().stream().filter(item -> item.location() == ItemLocation.INVENTORY).forEach(item -> counts.merge(item.itemId(), item.count(), Math::addExact));
+		return Map.copyOf(counts);
+	}
+
 	private CapabilitySelection productionCapability()
 	{
+		final List<CapabilitySelection> selections = new ArrayList<>();
 		for (PlayerClass playerClass : PlayerClass.values())
 		{
 			final CapabilityRule rule = _production.progression().capabilities(playerClass.getId()).stream().filter(candidate -> supportedCapability(candidate.capabilityKey()) && candidate.requiredEquipmentFamilies().isEmpty() && candidate.requiredItems().isEmpty() && !candidate.summonRequired() && !candidate.servitorRequired()).filter(candidate ->
@@ -1438,10 +2025,10 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			}).sorted(Comparator.comparingInt(CapabilityRule::rank).reversed().thenComparing(CapabilityRule::stableKey)).findFirst().orElse(null);
 			if (rule != null)
 			{
-				return new CapabilitySelection(playerClass, rule);
+				selections.add(new CapabilitySelection(playerClass, rule));
 			}
 		}
-		throw new AssertionError("Production progression has no supported background combat capability.");
+		return selections.stream().sorted(Comparator.comparingInt((CapabilitySelection selection) -> selection.playerClass().getId()).reversed().thenComparing(selection -> selection.rule().stableKey())).findFirst().orElseThrow(() -> new AssertionError("Production progression has no supported background combat capability."));
 	}
 
 	private ShotCapabilitySelection productionShotCapability()
@@ -2018,6 +2605,61 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				statement.setInt(2, _environment.primary().skillId());
 				statement.executeUpdate();
 			}
+		}
+	}
+
+	private final class ProductionPlayerFixture implements AutoCloseable
+	{
+		private Player _player;
+		private final ProductionFarmSelection _farm;
+		private final PhantomGoal _goal;
+		private final Canonical _original;
+		private final int _originalBaseClass;
+
+		private ProductionPlayerFixture(Player player, ProductionFarmSelection farm, PhantomGoal goal, Canonical original, int originalBaseClass)
+		{
+			_player = player;
+			_farm = farm;
+			_goal = goal;
+			_original = original;
+			_originalBaseClass = originalBaseClass;
+		}
+
+		private Player player()
+		{
+			if (_player == null)
+			{
+				throw new IllegalStateException("Production Player runtime has been released.");
+			}
+			return _player;
+		}
+
+		private ProductionFarmSelection farm()
+		{
+			return _farm;
+		}
+
+		private PhantomGoal goal()
+		{
+			return _goal;
+		}
+
+		private void releaseRuntime()
+		{
+			if (_player != null)
+			{
+				_environment.cleanupLoadedPlayer(_player);
+				_player = null;
+			}
+		}
+
+		@Override
+		public void close() throws Exception
+		{
+			final int objectId = _player == null ? _environment.primary().objectId() : _player.getObjectId();
+			releaseRuntime();
+			restoreCharacter(objectId, _original, _originalBaseClass);
+			restorePrimaryInventoryAndSkills(objectId);
 		}
 	}
 

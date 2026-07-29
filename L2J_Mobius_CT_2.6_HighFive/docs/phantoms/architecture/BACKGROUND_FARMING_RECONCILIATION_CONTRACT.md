@@ -2,9 +2,10 @@
 
 ## Статус и границы
 
-Goal 015 bounded completion имеет статус `BLOCKED`: технические reconciliation
-gates закрыты, но текущий production corpus не содержит допустимой exact
-anchor/NPC пары для одного успешного normal-solo farm.
+Goal 015 production loot disposition unblock имеет статус
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Технические reconciliation gates
+сохранены, а exact pair `22859@giran.farming.22859` поддержана при shipped
+AutoLoot policy.
 Контракт обслуживает только persisted ACTIVE goal `farm.background` с точными
 NPC ID и topology anchor ID. Он не выбирает цель, не создаёт goal и не включает
 party, spoil, manor, quest, craft, raid, instance, PvP или
@@ -116,6 +117,20 @@ ungrouped occurrence budgets раздельны. Level-gap roll, chance roll и 
 count roll потребляют один persisted RNG stream. Fractional expected-value items
 не создаются.
 
+Каждый drop имеет disposition `ACQUIRE` или `LEAVE_ON_GROUND`. Оба disposition
+остаются в полном ordered corpus и одинаково участвуют в group selection,
+chance/count RNG и occurrence budgets. Только `ACQUIRE` входит в inventory
+capacity, MariaDB item delta и object-ID reservation. `LEAVE_ON_GROUND`
+публикуется как bounded immutable `groundLosses` evidence и затем теряется:
+никаких Player inventory/effect/timer/variable/deferred grant или materialization
+reconciliation для него нет.
+
+Immediate-effect и time-limited item допускается как `LEAVE_ON_GROUND` только
+если текущие `AutoLootHerbs`, `AutoLoot` и `AutoLootItemIds` не приобретают его.
+Иначе вся target отклоняется до mutation. `LOOT_POLICY_V1` с этими значениями,
+`AutoLootSlotLimit` и отсортированными item IDs входит в composite knowledge
+authority hash; config drift делает старый READY state stale.
+
 ## Каноническая MariaDB-транзакция
 
 Единственный writer — `PhantomBackgroundTransaction`. Connection использует
@@ -163,12 +178,17 @@ Lethal encounter сохраняет resulting MP/resources/drops, `expBeforeDeat
 использует текущие `doRevive()` и to-town semantics, снова dematerialize/verify
 и возвращает typed `FAIL_GOAL`; убитый farm goal молча не возобновляется.
 
-## Ограничение текущего production corpus
+## Production corpus
 
 Полный deterministic audit текущего production corpus нашёл одну exact topology
-farm fixture: `giran.farming.22859`, NPC `22859`. Она не поддерживается:
-authoritative drop corpus содержит excluded immediate/timed items
-`8600–8614`, `10655–10657` и `13028`. Поэтому этот goal доказан как fail-closed
-до mutation, а список успешных production farming-пар пуст. Добавление или
-изменение topology/datapack находится вне scope; loaders/data/config в Goal 015
-не изменялись.
+farm fixture: `giran.farming.22859`, NPC `22859`. При shipped policy
+`AutoLootHerbs=False`, `AutoLoot=False`, `AutoLootItemIds=0` её ordinary drops
+имеют `ACQUIRE`, а immediate/time-limited IDs `8600–8614`, `10655–10657` и
+`13028` — `LEAVE_ON_GROUND`. Supported production pair count равен `1`.
+
+Seed `15001502` доказывает реальный успешный batch через canonical `Player`,
+production authority/model и одну atomic MariaDB transaction: EXP/SP, HP/MP,
+acquired item/resource deltas, receipt, RNG и hash совпадают; ground-loss rows
+и object IDs отсутствуют; exact duplicate идемпотентен; materialization,
+dematerialization и reload сохраняют committed state. Topology, datapack,
+geodata, loaders, schema и config не изменялись.

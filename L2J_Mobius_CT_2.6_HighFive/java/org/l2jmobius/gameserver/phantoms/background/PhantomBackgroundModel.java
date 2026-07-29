@@ -48,6 +48,7 @@ public final class PhantomBackgroundModel
 	public static final long MAX_ELAPSED_MILLIS = 60_000;
 	public static final int MAX_CHANGED_ITEM_OBJECTS = 16;
 	public static final int MAX_NEW_NON_STACKABLE_OBJECTS = 8;
+	public static final int MAX_GROUND_LOSS_ITEM_IDS = 96;
 	private static final long MIN_ENCOUNTER_MILLIS = 500;
 	private static final long MAX_ENCOUNTER_MILLIS = 20_000;
 
@@ -72,6 +73,7 @@ public final class PhantomBackgroundModel
 		final DeterministicRandom random = new DeterministicRandom(state.clock().rngState());
 		final Map<Integer, Long> counts = itemCounts(state.inventory());
 		final Map<Integer, Long> deltas = new LinkedHashMap<>();
+		final Map<Integer, Long> groundLosses = new LinkedHashMap<>();
 		double hp = state.vitals().currentHp();
 		double mp = state.vitals().currentMp();
 		long experience = state.progress().experience();
@@ -104,7 +106,7 @@ public final class PhantomBackgroundModel
 			final Map<Integer, Long> prospectiveDeltas = new LinkedHashMap<>(deltas);
 			mergeDelta(prospectiveDeltas, loadout.shotItemId(), -loadout.shotsPerEncounter());
 			mergeDelta(prospectiveDeltas, loadout.summonResourceItemId(), -loadout.summonResourcesPerEncounter());
-			for (Map.Entry<Integer, Long> drop : roll.itemCounts().entrySet())
+			for (Map.Entry<Integer, Long> drop : roll.acquiredItemCounts().entrySet())
 			{
 				mergeDelta(prospectiveDeltas, drop.getKey(), drop.getValue());
 			}
@@ -121,10 +123,14 @@ public final class PhantomBackgroundModel
 			final double seconds = encounterMillis / 1000d;
 			mp = Math.min(state.vitals().maximumMp(), mp + (state.combat().mpRegenPerSecond() * seconds));
 
-			for (Map.Entry<Integer, Long> drop : roll.itemCounts().entrySet())
+			for (Map.Entry<Integer, Long> drop : roll.acquiredItemCounts().entrySet())
 			{
 				counts.merge(drop.getKey(), drop.getValue(), Math::addExact);
 				deltas.merge(drop.getKey(), drop.getValue(), Math::addExact);
+			}
+			for (Map.Entry<Integer, Long> loss : roll.groundLosses().entrySet())
+			{
+				groundLosses.merge(loss.getKey(), loss.getValue(), Math::addExact);
 			}
 			addedWeight = inventoryCheck.addedWeight();
 			addedSlots = inventoryCheck.addedSlots();
@@ -153,7 +159,7 @@ public final class PhantomBackgroundModel
 		final Progress progress = new Progress(nextLevel, experience, skillPoints, experienceBeforeDeath);
 		final Vitals vitals = new Vitals(hp, state.vitals().maximumHp(), mp, state.vitals().maximumMp(), dead ? 0 : state.vitals().currentCp(), state.vitals().maximumCp());
 		final InventoryDelta inventoryDelta = new InventoryDelta(Map.copyOf(deltas), addedWeight, addedSlots, newNonStackable);
-		return new BatchResult(reason, encounters, elapsed, progress, vitals, inventoryDelta, random.state(), dead);
+		return new BatchResult(reason, encounters, elapsed, progress, vitals, inventoryDelta, Map.copyOf(groundLosses), random.state(), dead);
 	}
 
 	public static Rewards calculateRewards(int actorLevel, Target target, RewardPolicy policy, CombatFacts combat)
@@ -228,6 +234,7 @@ public final class PhantomBackgroundModel
 	private static DropRoll rollDrops(Target target, DeterministicRandom random)
 	{
 		final Map<Integer, Long> items = new LinkedHashMap<>();
+		final Map<Integer, Long> groundLosses = new LinkedHashMap<>();
 		final Map<Integer, Drop> facts = new HashMap<>();
 		final List<Drop> sorted = target.drops().stream().sorted(Comparator.comparingInt(Drop::groupOrdinal).thenComparingInt(Drop::itemOrdinal).thenComparingInt(Drop::itemId)).toList();
 		final Map<Integer, List<Drop>> groups = new LinkedHashMap<>();
@@ -288,7 +295,7 @@ public final class PhantomBackgroundModel
 			{
 				calculated.add(cached);
 			}
-			addAwards(items, facts, calculated);
+			addAwards(items, groundLosses, facts, calculated);
 		}
 
 		if (target.maximumRandomDropOccurrences() > 0)
@@ -334,9 +341,9 @@ public final class PhantomBackgroundModel
 			{
 				calculated.add(cached);
 			}
-			addAwards(items, facts, calculated);
+			addAwards(items, groundLosses, facts, calculated);
 		}
-		return new DropRoll(Map.copyOf(items), Map.copyOf(facts));
+		return new DropRoll(Map.copyOf(items), Map.copyOf(groundLosses), Map.copyOf(facts));
 	}
 
 	private static boolean isRandomOccurrence(Drop drop, double effectiveChance)
@@ -344,12 +351,19 @@ public final class PhantomBackgroundModel
 		return drop.configuredChanceMultiplier() == null ? effectiveChance < 100 : (effectiveChance * drop.configuredChanceMultiplier()) < 100;
 	}
 
-	private static void addAwards(Map<Integer, Long> items, Map<Integer, Drop> facts, List<Award> awards)
+	private static void addAwards(Map<Integer, Long> items, Map<Integer, Long> groundLosses, Map<Integer, Drop> facts, List<Award> awards)
 	{
 		for (Award award : awards)
 		{
-			items.merge(award.drop().itemId(), award.amount(), Math::addExact);
-			facts.put(award.drop().itemId(), award.drop());
+			if (award.drop().disposition() == DropDisposition.ACQUIRE)
+			{
+				items.merge(award.drop().itemId(), award.amount(), Math::addExact);
+				facts.put(award.drop().itemId(), award.drop());
+			}
+			else
+			{
+				groundLosses.merge(award.drop().itemId(), award.amount(), Math::addExact);
+			}
 		}
 	}
 
@@ -369,7 +383,7 @@ public final class PhantomBackgroundModel
 		long addedWeight = priorWeight;
 		int addedSlots = priorSlots;
 		int newNonStackable = priorNewNonStackable;
-		for (Map.Entry<Integer, Long> entry : roll.itemCounts().entrySet())
+		for (Map.Entry<Integer, Long> entry : roll.acquiredItemCounts().entrySet())
 		{
 			final Drop drop = roll.facts().get(entry.getKey());
 			addedWeight = Math.addExact(addedWeight, Math.multiplyExact(entry.getValue(), drop.itemWeight()));
@@ -485,6 +499,12 @@ public final class PhantomBackgroundModel
 		UNSUPPORTED_TARGET
 	}
 
+	public enum DropDisposition
+	{
+		ACQUIRE,
+		LEAVE_ON_GROUND
+	}
+
 	public record BatchRequest(PhantomBackgroundState state, Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, boolean unsupportedContext)
 	{
 		public BatchRequest
@@ -507,14 +527,23 @@ public final class PhantomBackgroundModel
 				throw new IllegalArgumentException("Invalid background target.");
 			}
 			drops = List.copyOf(drops);
+			if (drops.stream().filter(drop -> drop.disposition() == DropDisposition.LEAVE_ON_GROUND).map(Drop::itemId).distinct().count() > MAX_GROUND_LOSS_ITEM_IDS)
+			{
+				throw new IllegalArgumentException("Background target exceeds the ground-loss evidence bound.");
+			}
 		}
 	}
 
-	public record Drop(int itemId, int groupOrdinal, int itemOrdinal, double rawGroupChance, double rawItemChance, long minimumCount, long maximumCount, double chanceMultiplier, Double configuredChanceMultiplier, double amountMultiplier, double levelGapChance, boolean stackable, int itemWeight)
+	public record Drop(int itemId, int groupOrdinal, int itemOrdinal, double rawGroupChance, double rawItemChance, long minimumCount, long maximumCount, double chanceMultiplier, Double configuredChanceMultiplier, double amountMultiplier, double levelGapChance, boolean stackable, int itemWeight, DropDisposition disposition)
 	{
+		public Drop(int itemId, int groupOrdinal, int itemOrdinal, double rawGroupChance, double rawItemChance, long minimumCount, long maximumCount, double chanceMultiplier, Double configuredChanceMultiplier, double amountMultiplier, double levelGapChance, boolean stackable, int itemWeight)
+		{
+			this(itemId, groupOrdinal, itemOrdinal, rawGroupChance, rawItemChance, minimumCount, maximumCount, chanceMultiplier, configuredChanceMultiplier, amountMultiplier, levelGapChance, stackable, itemWeight, DropDisposition.ACQUIRE);
+		}
+
 		public Drop
 		{
-			if ((itemId <= 0) || (groupOrdinal < -1) || (itemOrdinal < 0) || !finiteNonNegative(rawGroupChance) || !finiteNonNegative(rawItemChance) || (minimumCount < 0) || (maximumCount < minimumCount) || !finiteNonNegative(chanceMultiplier) || ((configuredChanceMultiplier != null) && !finiteNonNegative(configuredChanceMultiplier)) || !finiteNonNegative(amountMultiplier) || !Double.isFinite(levelGapChance) || (levelGapChance < 0) || (levelGapChance > 100) || (itemWeight < 0))
+			if ((itemId <= 0) || (groupOrdinal < -1) || (itemOrdinal < 0) || !finiteNonNegative(rawGroupChance) || !finiteNonNegative(rawItemChance) || (minimumCount < 0) || (maximumCount < minimumCount) || !finiteNonNegative(chanceMultiplier) || ((configuredChanceMultiplier != null) && !finiteNonNegative(configuredChanceMultiplier)) || !finiteNonNegative(amountMultiplier) || !Double.isFinite(levelGapChance) || (levelGapChance < 0) || (levelGapChance > 100) || (itemWeight < 0) || (disposition == null))
 			{
 				throw new IllegalArgumentException("Invalid background drop fact.");
 			}
@@ -569,11 +598,20 @@ public final class PhantomBackgroundModel
 		}
 	}
 
-	public record BatchResult(ResultReason reason, int encounters, long elapsedMillis, Progress progress, Vitals vitals, InventoryDelta inventoryDelta, long nextRngState, boolean dead)
+	public record BatchResult(ResultReason reason, int encounters, long elapsedMillis, Progress progress, Vitals vitals, InventoryDelta inventoryDelta, Map<Integer, Long> groundLosses, long nextRngState, boolean dead)
 	{
+		public BatchResult
+		{
+			groundLosses = Map.copyOf(groundLosses);
+			if ((groundLosses.size() > MAX_GROUND_LOSS_ITEM_IDS) || groundLosses.entrySet().stream().anyMatch(entry -> (entry.getKey() <= 0) || (entry.getValue() <= 0)))
+			{
+				throw new IllegalArgumentException("Invalid bounded ground-loss evidence.");
+			}
+		}
+
 		public static BatchResult retry(ResultReason reason, long rngState)
 		{
-			return new BatchResult(reason, 0, 0, null, null, new InventoryDelta(Map.of(), 0, 0, 0), rngState, false);
+			return new BatchResult(reason, 0, 0, null, null, new InventoryDelta(Map.of(), 0, 0, 0), Map.of(), rngState, false);
 		}
 
 		public boolean mutated()
@@ -582,7 +620,7 @@ public final class PhantomBackgroundModel
 		}
 	}
 
-	private record DropRoll(Map<Integer, Long> itemCounts, Map<Integer, Drop> facts)
+	private record DropRoll(Map<Integer, Long> acquiredItemCounts, Map<Integer, Long> groundLosses, Map<Integer, Drop> facts)
 	{
 	}
 

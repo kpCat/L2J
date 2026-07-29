@@ -37,6 +37,7 @@
 	<property name="phantom.goal014.seed" value="140014" />
 	<property name="phantom.goal014a.seed" value="14001401" />
 	<property name="phantom.goal015.seed" value="15001501" />
+	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
 
@@ -785,6 +786,21 @@
 		</java>
 	</target>
 
+	<target name="phantom-background-production-loot-unblock-test" depends="compile-tests" description="Run Goal 015 production ground-loss disposition and real batch unblock tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="background-production-loot-unblock" />
+			<arg value="${phantom.goal015.production.unblock.seed}" />
+		</java>
+	</target>
+
 	<target name="phantom-background-recovery-teleport-test" depends="compile-tests" description="Run Goal 015 bounded canonical recovery teleport and cancellation tests.">
 		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
 		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
@@ -815,7 +831,7 @@
 		</java>
 	</target>
 
-	<target name="phantom-background-test" depends="phantom-background-model-test,phantom-background-transaction-test,phantom-background-lifecycle-test,phantom-background-decision-test,phantom-background-server-integration-test,phantom-background-performance-smoke,phantom-background-materialization-abort-test,phantom-background-quiescence-test,phantom-background-compact-inventory-test,phantom-background-authoritative-shots-test,phantom-background-production-audit-test,phantom-background-recovery-teleport-test,phantom-background-real-login-test" description="Run the complete focused Goal 015 background farming reconciliation suite." />
+	<target name="phantom-background-test" depends="phantom-background-production-loot-unblock-test,phantom-background-model-test,phantom-background-transaction-test,phantom-background-lifecycle-test,phantom-background-decision-test,phantom-background-server-integration-test,phantom-background-performance-smoke,phantom-background-materialization-abort-test,phantom-background-quiescence-test,phantom-background-compact-inventory-test,phantom-background-authoritative-shots-test,phantom-background-production-audit-test,phantom-background-recovery-teleport-test,phantom-background-real-login-test" description="Run the complete focused Goal 015 background farming reconciliation suite." />
 
 	<target name="phantom-background-completion-test" depends="phantom-background-test" description="Run the complete bounded Goal 015 completion gate." />
 

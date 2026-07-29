@@ -20,9 +20,13 @@
  */
 package org.l2jmobius.gameserver.phantoms.background;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +35,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 
+import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.data.xml.DynamicExpRateData;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
@@ -59,6 +64,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.T
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.TravelAdvance.Status;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DeathPolicy;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Drop;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DropDisposition;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.ExperienceTable;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.LevelForExperience;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.RewardPolicy;
@@ -105,6 +111,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 {
 	public static final long INITIAL_RNG_SEED = 15001501L;
 	private static final long MAX_TRAVEL_BUDGET_MILLIS = 60_000;
+	private static final String LOOT_POLICY_VERSION = "LOOT_POLICY_V1";
 
 	private final Supplier<PhantomGameKnowledgeQuery> _knowledge;
 	private final Supplier<PhantomTopologyQuery> _topology;
@@ -126,7 +133,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final PhantomTopologyQuery topology = _topology.get();
 		final PhantomProgressionCatalog progression = _progression.get();
 		final PhantomCommerceCatalog commerce = _commerce.get();
-		return new Hashes(knowledge.combinedHash(), topology.snapshot().canonicalHash(), progression.combinedHash(), commerce.hashes().combined());
+		return new Hashes(compositeKnowledgeHash(knowledge.combinedHash()), topology.snapshot().canonicalHash(), progression.combinedHash(), commerce.hashes().combined());
 	}
 
 	@Override
@@ -365,14 +372,26 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		}
 
 		final TreeSet<Integer> mutableItemIds = new TreeSet<>();
+		final TreeSet<Integer> groundLossItemIds = new TreeSet<>();
 		for (DropFact fact : knowledge.dropFactsByNpc().getOrDefault(goal.npcId(), List.of()))
 		{
 			final ItemTemplate dropTemplate = ItemData.getInstance().getTemplate(fact.itemId());
-			if ((dropTemplate == null) || dropTemplate.hasExImmediateEffect() || (dropTemplate.getTime() != -1))
+			if (dropTemplate == null)
 			{
 				throw new IllegalArgumentException("Persisted target contains an unsupported death drop.");
 			}
-			mutableItemIds.add(fact.itemId());
+			if (dropDisposition(dropTemplate) == DropDisposition.ACQUIRE)
+			{
+				mutableItemIds.add(fact.itemId());
+			}
+			else
+			{
+				groundLossItemIds.add(fact.itemId());
+			}
+		}
+		if (groundLossItemIds.size() > PhantomBackgroundModel.MAX_GROUND_LOSS_ITEM_IDS)
+		{
+			throw new IllegalArgumentException("Exact farm projection has too many ground-loss item IDs.");
 		}
 		validateShot(player, goal, capability);
 		validateSummonResource(player, goal, capability);
@@ -477,27 +496,78 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		for (DropFact fact : facts)
 		{
 			final ItemTemplate item = ItemData.getInstance().getTemplate(fact.itemId());
-			if ((item == null) || item.hasExImmediateEffect())
+			if (item == null)
 			{
 				throw new IllegalArgumentException("Background target contains an unsupported death drop.");
 			}
+			final DropDisposition disposition = dropDisposition(item);
 			final Float configuredChance = RatesConfig.RATE_DROP_CHANCE_BY_ID.get(fact.itemId());
-			double chance = configuredChance == null ? RatesConfig.RATE_DEATH_DROP_CHANCE_MULTIPLIER : configuredChance;
+			double chance = configuredChance == null ? (item.hasExImmediateEffect() ? RatesConfig.RATE_HERB_DROP_CHANCE_MULTIPLIER : RatesConfig.RATE_DEATH_DROP_CHANCE_MULTIPLIER) : configuredChance;
 			if ((configuredChance != null) && (fact.itemId() == Inventory.ADENA_ID) && (chance > 100))
 			{
 				chance = 100;
 			}
 			chance *= state.combat().dropChanceMultiplier();
-			double amount = RatesConfig.RATE_DROP_AMOUNT_BY_ID.getOrDefault(fact.itemId(), RatesConfig.RATE_DEATH_DROP_AMOUNT_MULTIPLIER);
+			double amount = RatesConfig.RATE_DROP_AMOUNT_BY_ID.getOrDefault(fact.itemId(), item.hasExImmediateEffect() ? RatesConfig.RATE_HERB_DROP_AMOUNT_MULTIPLIER : RatesConfig.RATE_DEATH_DROP_AMOUNT_MULTIPLIER);
 			amount *= state.combat().dropAmountMultiplier();
 			if (fact.itemId() == Inventory.ADENA_ID)
 			{
 				amount *= state.combat().adenaAmountMultiplier();
 			}
 			final double levelGapChance = MathUtil.scaleToRange(levelDifference, fact.itemId() == Inventory.ADENA_ID ? -RatesConfig.DROP_ADENA_MAX_LEVEL_DIFFERENCE : -RatesConfig.DROP_ITEM_MAX_LEVEL_DIFFERENCE, fact.itemId() == Inventory.ADENA_ID ? -RatesConfig.DROP_ADENA_MIN_LEVEL_DIFFERENCE : -RatesConfig.DROP_ITEM_MIN_LEVEL_DIFFERENCE, fact.itemId() == Inventory.ADENA_ID ? RatesConfig.DROP_ADENA_MIN_LEVEL_GAP_CHANCE : RatesConfig.DROP_ITEM_MIN_LEVEL_GAP_CHANCE, 100d);
-			result.add(new Drop(fact.itemId(), fact.groupOrdinal(), fact.itemOrdinal(), fact.rawGroupChance(), fact.rawItemChance(), fact.minimumCount(), fact.maximumCount(), chance, configuredChance == null ? null : configuredChance.doubleValue(), amount, levelGapChance, item.isStackable(), item.getWeight()));
+			result.add(new Drop(fact.itemId(), fact.groupOrdinal(), fact.itemOrdinal(), fact.rawGroupChance(), fact.rawItemChance(), fact.minimumCount(), fact.maximumCount(), chance, configuredChance == null ? null : configuredChance.doubleValue(), amount, levelGapChance, item.isStackable(), item.getWeight(), disposition));
 		}
 		return List.copyOf(result);
+	}
+
+	private static DropDisposition dropDisposition(ItemTemplate item)
+	{
+		if (!item.hasExImmediateEffect() && (item.getTime() == -1))
+		{
+			return DropDisposition.ACQUIRE;
+		}
+		final boolean specificAutoLoot = PlayerConfig.AUTO_LOOT_ITEM_IDS.contains(item.getId());
+		final boolean autoLoot = specificAutoLoot || (!item.hasExImmediateEffect() && PlayerConfig.AUTO_LOOT) || (item.hasExImmediateEffect() && PlayerConfig.AUTO_LOOT_HERBS);
+		if (autoLoot)
+		{
+			throw new IllegalArgumentException("Background target contains an auto-acquired immediate or time-limited death drop.");
+		}
+		return DropDisposition.LEAVE_ON_GROUND;
+	}
+
+	private static String compositeKnowledgeHash(String knowledgeHash)
+	{
+		return digest("BACKGROUND_KNOWLEDGE_V1", knowledgeHash, lootPolicyFingerprint());
+	}
+
+	private static String lootPolicyFingerprint()
+	{
+		final List<Integer> itemIds = Objects.requireNonNull(PlayerConfig.AUTO_LOOT_ITEM_IDS, "Auto-loot item IDs are not loaded.").stream().sorted().toList();
+		final List<Object> facts = new ArrayList<>(itemIds.size() + 4);
+		facts.add(LOOT_POLICY_VERSION);
+		facts.add(PlayerConfig.AUTO_LOOT);
+		facts.add(PlayerConfig.AUTO_LOOT_HERBS);
+		facts.add(PlayerConfig.AUTO_LOOT_SLOT_LIMIT);
+		facts.addAll(itemIds);
+		return digest(facts.toArray());
+	}
+
+	private static String digest(Object... values)
+	{
+		try
+		{
+			final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			for (Object value : values)
+			{
+				digest.update(value.toString().getBytes(StandardCharsets.US_ASCII));
+				digest.update((byte) 0);
+			}
+			return HexFormat.of().formatHex(digest.digest());
+		}
+		catch (NoSuchAlgorithmException exception)
+		{
+			throw new IllegalStateException("SHA-256 is unavailable.", exception);
+		}
 	}
 
 	private static DeathPolicy deathPolicy(PhantomBackgroundState state)
@@ -592,7 +662,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 
 	private static void requireSupportedPlayer(Player player)
 	{
-		if ((player.getInstanceId() != 0) || player.isInParty() || player.isInCombat() || player.isGM() || player.hasPremiumStatus() || player.isOnEvent() || player.isFestivalParticipant() || (player.getKarma() != 0) || (player.getNevitHourglassMultiplier() != 1) || (player.getStat().getVitalityMultiplier() != 1))
+		if ((player.getInstanceId() != 0) || player.isFlying() || player.isFlyingMounted() || player.isMounted() || player.isInParty() || player.isInCombat() || player.isGM() || player.hasPremiumStatus() || player.isOnEvent() || player.isFestivalParticipant() || (player.getKarma() != 0) || (player.getNevitHourglassMultiplier() != 1) || (player.getStat().getVitalityMultiplier() != 1))
 		{
 			throw new IllegalArgumentException("Canonical Player is in an unsupported background context.");
 		}

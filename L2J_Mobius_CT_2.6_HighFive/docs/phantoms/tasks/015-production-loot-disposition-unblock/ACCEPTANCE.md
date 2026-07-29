@@ -1,0 +1,22 @@
+# Acceptance — Goal 015 production loot disposition unblock
+
+- [ ] exact parent `32be3bbc320bc3a054aab8c5d39001910f35e4b8`, branch/subject, one ordinary child, remote exact;
+- [ ] current reconciliation completion preserved with no lifecycle/core edit;
+- [ ] disposition is only ACQUIRE or LEAVE_ON_GROUND;
+- [ ] immediate/timed auto-acquired item rejects before mutation;
+- [ ] non-auto-looted immediate/timed award rolls fully then stays off Player;
+- [ ] grouped/ungrouped occurrence and deterministic RNG include ground losses;
+- [ ] ground loss consumes no item ID, slot, weight, effect, timer or DB row;
+- [ ] LOOT_POLICY_V1 covers all relevant flags and sorted explicit IDs;
+- [ ] config drift makes prior state hash-stale before mutation;
+- [ ] all current FARMING anchors audited deterministically;
+- [ ] shipped pair 22859@giran.farming.22859 is positive;
+- [ ] exact excluded IDs are ground losses under shipped config;
+- [ ] AutoLootHerbs/specific-ID negative controls reject;
+- [ ] real Player + production authority/model/transaction batch succeeds;
+- [ ] EXP/SP/vitals/resources/acquired drops/ground losses exact;
+- [ ] duplicate and materialization/reload conserve state;
+- [ ] existing 13 Goal 015 modes remain green;
+- [ ] no Player/Attackable/config/data/schema/topology/future-Goal changes;
+- [ ] final ant verify, jar and verifier 2× byte-identical green;
+- [ ] token `GOAL_015_PRODUCTION_LOOT_DISPOSITION_UNBLOCKED_PENDING_INDEPENDENT_REVIEW` only after all gates.

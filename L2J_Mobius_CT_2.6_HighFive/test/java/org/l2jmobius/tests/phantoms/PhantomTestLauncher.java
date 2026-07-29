@@ -244,6 +244,7 @@ public final class PhantomTestLauncher
 			case "background-production-audit" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.PRODUCTION_AUDIT);
 			case "background-recovery-teleport" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.RECOVERY_TELEPORT);
 			case "background-real-login" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.REAL_LOGIN);
+			case "background-production-loot-unblock" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.PRODUCTION_LOOT_UNBLOCK);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};
