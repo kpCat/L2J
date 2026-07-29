@@ -93,6 +93,10 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 
 		void beforeStore(Player player);
 
+		default void afterStore(Player player)
+		{
+		}
+
 		static LifecycleSupport none()
 		{
 			return new LifecycleSupport()
@@ -104,6 +108,11 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 
 				@Override
 				public void beforeStore(Player player)
+				{
+				}
+
+				@Override
+				public void afterStore(Player player)
 				{
 				}
 			};
@@ -302,6 +311,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				_lifecycleSupport.beforeStore(cleanupPlayer);
 				failAfter(FailurePoint.BEFORE_STORE_OPERATION);
 				cleanupPlayer.storeMe();
+				_lifecycleSupport.afterStore(cleanupPlayer);
 
 				try
 				{

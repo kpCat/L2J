@@ -231,6 +231,12 @@ public final class PhantomTestLauncher
 			case "commerce-server-integration" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.SERVER_INTEGRATION);
 			case "commerce-hardening" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.HARDENING);
 			case "commerce-performance" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.PERFORMANCE);
+			case "background-model" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.MODEL);
+			case "background-transaction" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.TRANSACTION);
+			case "background-lifecycle" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.LIFECYCLE);
+			case "background-decision" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.DECISION);
+			case "background-server-integration" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.SERVER_INTEGRATION);
+			case "background-performance" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

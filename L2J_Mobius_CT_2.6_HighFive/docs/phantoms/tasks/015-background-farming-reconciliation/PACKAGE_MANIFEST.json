@@ -1,0 +1,28 @@
+{
+  "package": "phantom-world-goal-015-background-farming-reconciliation",
+  "taskId": "015-background-farming-reconciliation",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/015-background-farming-reconciliation/TASK.md",
+  "branch": "feature/phantom-world",
+  "requiredParent": "9c9412bc4a05a520a83b5187054d6c8a8c12db3c",
+  "commitSubject": "feat(phantoms): add background farming reconciliation",
+  "successToken": "GOAL_015_BACKGROUND_FARMING_RECONCILIATION_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 15001501,
+  "initialReadSetEntries": 18,
+  "maximumAdditionalExactFiles": 8,
+  "schemaChanges": false,
+  "configChanges": false,
+  "corePlayerItemAttackableChanges": false,
+  "otherChronicleChanges": false,
+  "productionDatabaseUseAllowed": false,
+  "goal016Started": false,
+  "goal017Started": false,
+  "goal025Started": false,
+  "artificialSuffixSplitAllowed": false,
+  "payloadSha256": {
+    "docs/phantoms/tasks/015-background-farming-reconciliation/ACCEPTANCE.md": "B0F2B8C367A5920709D955B488423459A4547DF9DB73DDEF7D186718FCAEACB2",
+    "docs/phantoms/tasks/015-background-farming-reconciliation/CODEX_LAUNCHER.txt": "D412A602FD628E80B1C988CE9D9AA5F862F45F341A250D9BFCEFB0A6E37B136C",
+    "docs/phantoms/tasks/015-background-farming-reconciliation/TASK.md": "033CF3CD0B27964ED613B386AB9B83CA064F66B95E0C671C50F80D3169457186"
+  },
+  "manifestSelfHashExcluded": true
+}

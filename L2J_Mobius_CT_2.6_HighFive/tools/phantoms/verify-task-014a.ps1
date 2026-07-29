@@ -5,6 +5,7 @@ Set-StrictMode -Version Latest
 
 $implementationCommit = "cb4fa6486dd705f5ba46d92bd8576424cbd188ee"
 $implementationParent = "696689987276137f6a7f3661329171c9ee65e6f9"
+$completionCommit = "9c9412bc4a05a520a83b5187054d6c8a8c12db3c"
 $requiredBranch = "feature/phantom-world"
 $implementationSubject = "fix(phantoms): harden commerce ownership and integration"
 $completionSubject = "fix(phantoms): complete commerce hardening gate"
@@ -63,30 +64,15 @@ Assert-True ($implementationParents[0] -eq $implementationParent) "Goal 014A imp
 Assert-True ((& git -C $repositoryRoot show -s --format=%s $implementationCommit).Trim() -eq $implementationSubject) "Goal 014A implementation commit subject is not exact."
 & git -C $repositoryRoot merge-base --is-ancestor $implementationCommit $head
 Assert-True ($LASTEXITCODE -eq 0) "Goal 014A implementation commit is not an ancestor of HEAD."
-$graphMode = "working-completion"
-if ($head -ne $implementationCommit)
-{
-	$parents = @(((& git -C $repositoryRoot show -s --format=%P $head).Trim() -split " ") | Where-Object { $_ })
-	Assert-True ($parents.Count -eq 1) "Goal 014A completion HEAD is a merge commit."
-	Assert-True ($parents[0] -eq $implementationCommit) "Goal 014A completion HEAD is not a direct child of the implementation commit."
-	Assert-True ((& git -C $repositoryRoot show -s --format=%s $head).Trim() -eq $completionSubject) "Goal 014A completion commit subject is not exact."
-	Assert-True ([int](& git -C $repositoryRoot rev-list --count "$implementationCommit..$head") -eq 1) "Goal 014A graph contains more than one completion child."
-	$graphMode = "committed-completion"
-}
+$completionParents = @(((& git -C $repositoryRoot show -s --format=%P $completionCommit).Trim() -split " ") | Where-Object { $_ })
+Assert-True ($completionParents.Count -eq 1) "Goal 014A completion is a merge commit."
+Assert-True ($completionParents[0] -eq $implementationCommit) "Goal 014A completion is not a direct child of the implementation commit."
+Assert-True ((& git -C $repositoryRoot show -s --format=%s $completionCommit).Trim() -eq $completionSubject) "Goal 014A completion commit subject is not exact."
+& git -C $repositoryRoot merge-base --is-ancestor $completionCommit $head
+Assert-True ($LASTEXITCODE -eq 0) "Goal 014A completion is not an ancestor of HEAD."
+$graphMode = "accepted-completion-ancestor"
 
-$changedPaths = @(& git -c core.autocrlf=false -C $repositoryRoot diff --name-only "$implementationParent..$head")
-foreach ($line in @(& git -C $repositoryRoot status --porcelain=v1 --untracked-files=all -- $moduleRoot))
-{
-	if ($line.Length -ge 4)
-	{
-		$path = $line.Substring(3).Replace("\", "/")
-		if ($path.StartsWith('"') -and $path.EndsWith('"'))
-		{
-			$path = $path.Substring(1, $path.Length - 2)
-		}
-		$changedPaths += $path
-	}
-}
+$changedPaths = @(& git -c core.autocrlf=false -C $repositoryRoot diff --name-only "$implementationParent..$completionCommit")
 $changedPaths = @($changedPaths | Where-Object { $_ } | Sort-Object -Unique)
 Assert-True ($changedPaths.Count -gt 0) "No Goal 014A artifacts found."
 foreach ($path in $changedPaths)
@@ -135,7 +121,7 @@ Assert-True ($backendText.Contains("_catalog.findBuyOffer(") -and $backendText.C
 Assert-True (-not $backendText.Contains("_catalog.findBuyOffers(") -and -not $backendText.Contains("_catalog.findTeleportRoutes(")) "L2jCommerceBackend still performs page-0 exact lookup."
 
 $systemText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java")
-Assert-True ($systemText.Contains("final PhantomGoalStateStore goalStateStore") -and $systemText.Contains("new PhantomCommerceService(commerceCatalog, new PhantomCommerceReceiptStore(profileRepository), goalStateStore") -and $systemText.Contains("new PhantomDecisionEngine(goalStateStore")) "PhantomSystem does not share one goal-state authority instance."
+Assert-True ($systemText.Contains("goalStateStore = new PhantomGoalStateStore(profileRepository)") -and $systemText.Contains("final PhantomGoalStateStore productionGoals = Objects.requireNonNull(goalStateStore)") -and $systemText.Contains("new PhantomCommerceService(commerceCatalog, new PhantomCommerceReceiptStore(productionProfiles), productionGoals") -and $systemText.Contains("new PhantomDecisionEngine(productionGoals") -and [regex]::IsMatch($systemText, "new PhantomBackgroundService\([\s\S]*?productionProfiles,\s*productionGoals,\s*PhantomIdentityLeaseRegistry")) "PhantomSystem does not share one goal-state authority instance."
 
 $suiteText = Read-Utf8Strict (Join-Path $moduleRoot "test/java/org/l2jmobius/tests/phantoms/PhantomCommerceSuite.java")
 foreach ($fact in @("commerce-hardening", "new L2jCommerceBackend(", "new Merchant(", "new Teleporter(", "materialization.dematerialize(", "materialization.materialize(", "player.storeMe()", "currentPersistenceClaims()", "GOAL_REVISION_CONFLICT", "STALE_GOAL_REVISION", "authorityRaceStore.value == null", "authorityRaceActor.firstCalls.get()", "authorityRaceActor.secondCalls.get()", "TELEPORT_PENDING"))
@@ -156,7 +142,7 @@ $verifier014Text = Read-Utf8Strict (Join-Path $moduleRoot "tools/phantoms/verify
 Assert-True (-not $verifier014Text.Contains('$preExistingUntracked')) "Goal 014 verifier still has the obsolete-root special whitelist."
 
 $roadmapText = Read-Utf8Strict (Join-Path $moduleRoot "docs/PHANTOM_BOTS_ROADMAP.md")
-Assert-True ($roadmapText.Contains("Goal 014: FIX_REQUIRED after first review") -and $roadmapText.Contains("Goal 014A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW") -and $roadmapText.Contains("Goal 015: NOT_STARTED") -and $roadmapText.Contains("Goal 017: NOT_STARTED") -and $roadmapText.Contains("Goal 025: NOT_STARTED")) "Roadmap progress truth is incomplete."
+Assert-True ($roadmapText.Contains("Goal 014: ACCEPT after Goal 014A") -and $roadmapText.Contains("Goal 014A + completion: ACCEPT") -and $roadmapText.Contains("Goal 015: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW") -and $roadmapText.Contains("Goal 017: NOT_STARTED") -and $roadmapText.Contains("Goal 025: NOT_STARTED")) "Roadmap progress truth is incomplete."
 $reviewText = Read-Utf8Strict (Join-Path $moduleRoot "docs/phantoms/reviews/014-npc-commerce-supply-travel-loop-review.md")
 Assert-True ($reviewText.Contains("FIX_REQUIRED after first review") -and $reviewText.Contains("Goal 014A")) "Goal 014 first-review findings are missing."
 

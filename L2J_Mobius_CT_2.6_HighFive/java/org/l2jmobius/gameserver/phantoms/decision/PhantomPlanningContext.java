@@ -24,8 +24,13 @@ import java.util.Objects;
 
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 
-public record PhantomPlanningContext(long profileId, PhantomGoal goal, PhantomCapabilitySet capabilities, PhantomActivityState activityState, long logicalNowNanos, long decisionSequence)
+public record PhantomPlanningContext(long profileId, PhantomGoal goal, PhantomCapabilitySet capabilities, PhantomActivityState effectiveState, long activityGeneration, long tickSequence, long logicalNowNanos, long decisionSequence)
 {
+	public PhantomPlanningContext(long profileId, PhantomGoal goal, PhantomCapabilitySet capabilities, PhantomActivityState activityState, long logicalNowNanos, long decisionSequence)
+	{
+		this(profileId, goal, capabilities, activityState, 0, 0, logicalNowNanos, decisionSequence);
+	}
+
 	public PhantomPlanningContext
 	{
 		if (profileId <= 0)
@@ -34,10 +39,15 @@ public record PhantomPlanningContext(long profileId, PhantomGoal goal, PhantomCa
 		}
 		Objects.requireNonNull(goal, "Goal must not be null.");
 		Objects.requireNonNull(capabilities, "Capabilities must not be null.");
-		Objects.requireNonNull(activityState, "Activity state must not be null.");
-		if ((logicalNowNanos < 0) || (decisionSequence <= 0))
+		Objects.requireNonNull(effectiveState, "Activity state must not be null.");
+		if ((activityGeneration < 0) || (tickSequence < 0) || (logicalNowNanos < 0) || (decisionSequence <= 0))
 		{
-			throw new IllegalArgumentException("Logical time must not be negative and decision sequence must be positive.");
+			throw new IllegalArgumentException("Activity identity, logical time or decision sequence is invalid.");
 		}
+	}
+
+	public PhantomActivityState activityState()
+	{
+		return effectiveState;
 	}
 }

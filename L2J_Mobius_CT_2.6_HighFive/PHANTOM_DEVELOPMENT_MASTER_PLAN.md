@@ -633,7 +633,7 @@ Runtime не должен обязательно зависеть от LLM ил�
 - teleport;
 - transaction safety.
 
-### 015. Background farming и reconciliation
+### 015. Background farming и reconciliation — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 - aggregated farming;
 - расход ресурсов;

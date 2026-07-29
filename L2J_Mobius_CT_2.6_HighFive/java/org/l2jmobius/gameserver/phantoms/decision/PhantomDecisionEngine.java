@@ -511,7 +511,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		slot._inFlight = true;
 		slot._decisionSequence++;
 		_metrics.recordDecision();
-		final PhantomPlanningContext planningContext = new PhantomPlanningContext(slot._profileId, slot._goal, slot._capabilities, workItem.effectiveState(), workItem.logicalNowNanos(), slot._decisionSequence);
+		final PhantomPlanningContext planningContext = new PhantomPlanningContext(slot._profileId, slot._goal, slot._capabilities, workItem.effectiveState(), workItem.activityGeneration(), workItem.tickSequence(), workItem.logicalNowNanos(), slot._decisionSequence);
 		return new WorkClaim(slot, slot._generation, slot._goal, slot._plan, planningContext);
 	}
 
@@ -574,7 +574,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		_metrics.recordDecisionStepAttempted();
 		final long generation = slot._generation;
 		final PhantomCancellationToken token = () -> !isPlanCurrent(slot, generation, plan);
-		final PhantomStepContext context = new PhantomStepContext(slot._profileId, slot._goal, plan, step, workItem.effectiveState(), workItem.logicalNowNanos(), slot._attempt, token);
+		final PhantomStepContext context = new PhantomStepContext(slot._profileId, slot._goal, plan, step, workItem.effectiveState(), workItem.activityGeneration(), workItem.tickSequence(), workItem.logicalNowNanos(), slot._attempt, token);
 		return new HandlerClaim(slot, generation, slot._goal, plan, handler, context);
 	}
 

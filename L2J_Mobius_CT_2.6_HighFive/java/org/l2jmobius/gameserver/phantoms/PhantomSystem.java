@@ -29,7 +29,13 @@ import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSinkBridge;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort;
+import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
@@ -54,6 +60,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
@@ -91,6 +98,7 @@ public final class PhantomSystem
 	private PhantomProgressionService _progressionService;
 	private PhantomCombatService _combatService;
 	private PhantomCommerceService _commerceService;
+	private PhantomBackgroundService _backgroundService;
 	private State _state = State.NEW;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
@@ -129,42 +137,29 @@ public final class PhantomSystem
 
 		try
 		{
+			PhantomProfileRepository profileRepository = null;
+			PhantomGoalStateStore goalStateStore = null;
+			PhantomCombatPolicy combatPolicy;
+			PhantomActivityWorkSinkBridge workSinkBridge = null;
+			PhantomMaterializationLifecycleBridge lifecycleBridge = null;
 			if (_productionMaterialization)
 			{
-				final PhantomProfileRepository profileRepository = PhantomProfileRepository.open();
-				_materializationService = new PhantomMaterializationService(profileRepository, PhantomIdentityLeaseRegistry.getInstance(), _metrics, _trace, _settings.maxMaterializedPhantoms());
+				profileRepository = PhantomProfileRepository.open();
+				goalStateStore = new PhantomGoalStateStore(profileRepository);
+				lifecycleBridge = new PhantomMaterializationLifecycleBridge();
+				_materializationService = new PhantomMaterializationService(profileRepository, PhantomIdentityLeaseRegistry.getInstance(), _metrics, _trace, _settings.maxMaterializedPhantoms(), lifecycleBridge);
 				if (!_materializationService.start())
 				{
 					throw new IllegalStateException("Phantom materialization service could not enter the running state.");
 				}
-				final PhantomCombatPolicy combatPolicy = PhantomCombatPolicy.productionDefaults(_settings.maxScheduledPhantomProfiles());
-				final L2jCombatBackend combatBackend = new L2jCombatBackend(_materializationService, () -> _gameKnowledgeService == null ? null : _gameKnowledgeService.query());
-				_progressionService = new PhantomProgressionService(new L2jProgressionBackend(_materializationService, ServerConfig.DATAPACK_ROOT.toPath(), () -> _gameKnowledgeService == null ? null : _gameKnowledgeService.query()), PhantomProgressionPolicy.productionDefaults());
-				_combatService = new PhantomCombatService(combatBackend, PhantomCombatCapabilityResolver.fromProgression(() -> _progressionService.findCatalog().orElse(null)), combatPolicy);
-				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
-				final PhantomGoalStateStore goalStateStore = new PhantomGoalStateStore(profileRepository);
-				_commerceService = new PhantomCommerceService(commerceCatalog, new PhantomCommerceReceiptStore(profileRepository), goalStateStore, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
-				final PhantomCommerceDecision commerceDecision = new PhantomCommerceDecision(_commerceService);
-				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
-				commerceDecision.registerCandidates(candidateRegistry);
-				candidateRegistry.seal();
-				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
-				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
-				new PhantomCombatStepHandlers(_combatService, combatPolicy).register(handlerRegistry);
-				commerceDecision.registerHandlers(handlerRegistry);
-				handlerRegistry.seal();
-				if (!_commerceService.start())
-				{
-					throw new IllegalStateException("Phantom commerce service could not enter the running state.");
-				}
-				_decisionEngine = new PhantomDecisionEngine(goalStateStore, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
-				_decisionEngine.start();
-				_scheduler = createScheduler(new PhantomMaterializationServiceActivityPort(_materializationService), _decisionEngine);
+				workSinkBridge = new PhantomActivityWorkSinkBridge();
+				_scheduler = createScheduler(new PhantomMaterializationServiceActivityPort(_materializationService), workSinkBridge);
+				combatPolicy = PhantomCombatPolicy.productionDefaults(_settings.maxScheduledPhantomProfiles());
 			}
 			else
 			{
 				_scheduler = createScheduler(PhantomActivityMaterializationPort.noop());
-				final PhantomCombatPolicy combatPolicy = PhantomCombatPolicy.productionDefaults(_settings.maxScheduledPhantomProfiles());
+				combatPolicy = PhantomCombatPolicy.productionDefaults(_settings.maxScheduledPhantomProfiles());
 				_combatService = new PhantomCombatService(PhantomCombatBackend.inert(), new PhantomCombatCapabilityResolver(_ -> java.util.List.of()), combatPolicy);
 			}
 			_navigationService = new PhantomNavigationService(_metrics);
@@ -203,9 +198,51 @@ public final class PhantomSystem
 			{
 				throw new IllegalStateException("Phantom Game Knowledge service could not enter the running state.");
 			}
-			if (_progressionService != null)
+			if (_productionMaterialization)
 			{
+				final PhantomProfileRepository productionProfiles = Objects.requireNonNull(profileRepository);
+				final PhantomGoalStateStore productionGoals = Objects.requireNonNull(goalStateStore);
+				final PhantomMaterializationLifecycleBridge productionLifecycle = Objects.requireNonNull(lifecycleBridge);
+				final PhantomActivityWorkSinkBridge productionWorkSink = Objects.requireNonNull(workSinkBridge);
+				final L2jCombatBackend combatBackend = new L2jCombatBackend(_materializationService, _gameKnowledgeService::query);
+				_progressionService = new PhantomProgressionService(new L2jProgressionBackend(_materializationService, ServerConfig.DATAPACK_ROOT.toPath(), _gameKnowledgeService::query), PhantomProgressionPolicy.productionDefaults());
 				_progressionService.start();
+				_combatService = new PhantomCombatService(combatBackend, PhantomCombatCapabilityResolver.fromProgression(() -> _progressionService.findCatalog().orElse(null)), combatPolicy);
+				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
+				_commerceService = new PhantomCommerceService(commerceCatalog, new PhantomCommerceReceiptStore(productionProfiles), productionGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
+				if (!_commerceService.start())
+				{
+					throw new IllegalStateException("Phantom commerce service could not enter the running state.");
+				}
+				_backgroundService = new PhantomBackgroundService(
+					productionProfiles,
+					productionGoals,
+					PhantomIdentityLeaseRegistry.getInstance(),
+					new PhantomBackgroundTransaction(),
+					new L2jPhantomBackgroundAuthority(_gameKnowledgeService::query, _topologyService::query, _progressionService::catalog, _commerceService::catalog),
+					new PhantomBackgroundCompetitionRegistry(),
+					new PhantomSchedulerRelevanceSignalPort(_scheduler),
+					() -> _materializationService);
+				if (!_backgroundService.start())
+				{
+					throw new IllegalStateException("Phantom background service could not enter the running state.");
+				}
+				productionLifecycle.install(_backgroundService);
+				final PhantomCommerceDecision commerceDecision = new PhantomCommerceDecision(_commerceService);
+				final PhantomBackgroundDecision backgroundDecision = new PhantomBackgroundDecision(_backgroundService);
+				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
+				commerceDecision.registerCandidates(candidateRegistry);
+				backgroundDecision.registerCandidates(candidateRegistry);
+				candidateRegistry.seal();
+				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
+				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
+				new PhantomCombatStepHandlers(_combatService, combatPolicy).register(handlerRegistry);
+				commerceDecision.registerHandlers(handlerRegistry);
+				backgroundDecision.registerHandlers(handlerRegistry);
+				handlerRegistry.seal();
+				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
+				_decisionEngine.start();
+				productionWorkSink.install(_decisionEngine);
 			}
 			_combatService.start();
 			if (!_scheduler.start())
@@ -235,6 +272,10 @@ public final class PhantomSystem
 			{
 				_commerceService.beginStop();
 			}
+			if (_backgroundService != null)
+			{
+				_backgroundService.beginStop();
+			}
 			if (_gameKnowledgeService != null)
 			{
 				_gameKnowledgeService.beginStop();
@@ -253,6 +294,10 @@ public final class PhantomSystem
 			if (combatStopped && progressionStopped && commerceStopped && (_materializationService != null))
 			{
 				_materializationService.shutdown();
+			}
+			if (_backgroundService != null)
+			{
+				_backgroundService.finishStop();
 			}
 			if (_scheduler != null)
 			{
@@ -308,6 +353,10 @@ public final class PhantomSystem
 			{
 				_commerceService.beginStop();
 			}
+			if (_backgroundService != null)
+			{
+				_backgroundService.beginStop();
+			}
 			if (_gameKnowledgeService != null)
 			{
 				_gameKnowledgeService.beginStop();
@@ -338,6 +387,12 @@ public final class PhantomSystem
 				_state = State.FAILED;
 				return false;
 			}
+			if ((_backgroundService != null) && (_backgroundService.snapshot().currentOperations() != 0))
+			{
+				_metrics.recordShutdownFailure();
+				_state = State.FAILED;
+				return false;
+			}
 			if (_materializationService != null)
 			{
 				final ShutdownResult result = _materializationService.shutdown();
@@ -346,6 +401,12 @@ public final class PhantomSystem
 					_state = State.FAILED;
 					return false;
 				}
+			}
+			if ((_backgroundService != null) && !_backgroundService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				_state = State.FAILED;
+				return false;
 			}
 			if (!_scheduler.finishStop())
 			{
@@ -400,6 +461,10 @@ public final class PhantomSystem
 				_metrics.recordShutdownFailure();
 				return false;
 			}
+			if ((_backgroundService != null) && (_backgroundService.snapshot().state() == PhantomBackgroundService.ServiceState.RUNNING))
+			{
+				_backgroundService.beginStop();
+			}
 			if (_materializationService != null)
 			{
 				final ShutdownResult result = _materializationService.shutdown();
@@ -407,6 +472,11 @@ public final class PhantomSystem
 				{
 					return false;
 				}
+			}
+			if ((_backgroundService != null) && (_backgroundService.snapshot().state() != PhantomBackgroundService.ServiceState.STOPPED) && !_backgroundService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				return false;
 			}
 			if ((_scheduler.snapshot().state() != PhantomScheduler.SchedulerState.STOPPED) && !_scheduler.finishStop())
 			{
@@ -442,7 +512,7 @@ public final class PhantomSystem
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _backgroundService != null ? _backgroundService.snapshot() : null, _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
 	}
 
 	public static synchronized boolean startConfigured()
@@ -721,7 +791,7 @@ public final class PhantomSystem
 		_combatService.start();
 	}
 
-	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomProgressionService.ServiceSnapshot progression, PhantomCombatService.ServiceSnapshot combat, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
+	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomProgressionService.ServiceSnapshot progression, PhantomCombatService.ServiceSnapshot combat, PhantomBackgroundService.Snapshot background, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
 	{
 	}
 

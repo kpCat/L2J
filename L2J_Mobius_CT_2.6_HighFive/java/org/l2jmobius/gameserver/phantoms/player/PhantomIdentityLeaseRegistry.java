@@ -34,7 +34,8 @@ public final class PhantomIdentityLeaseRegistry
 	public enum OwnerKind
 	{
 		REAL_LOGIN,
-		PHANTOM
+		PHANTOM,
+		BACKGROUND
 	}
 
 	public enum OwnerState

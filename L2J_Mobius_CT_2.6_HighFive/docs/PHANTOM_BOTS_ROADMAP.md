@@ -77,17 +77,17 @@ Goal 012: ACCEPT after Goal 012A
 
 Goal 012A: ACCEPT
 
-Goal 013: FIX_REQUIRED after first review
+Goal 013: ACCEPT after Goal 013B
 
-Goal 013A: FIX_REQUIRED after durability review
+Goal 013A: ACCEPT after Goal 013B
 
-Goal 013B: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 013B: ACCEPT_WITH_ACTIVATION_GATE
 
-Goal 014: FIX_REQUIRED after first review
+Goal 014: ACCEPT after Goal 014A
 
-Goal 014A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 014A + completion: ACCEPT
 
-Goal 015: NOT_STARTED
+Goal 015: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 017: NOT_STARTED
 
@@ -110,12 +110,10 @@ Goal 010C независимо принята, поэтому Goal 010 закр�
 011 потребовал bounded Goal 011A; исправление независимо принято, Goal 011
 закрыта, а Stage II завершён. Архитектурное направление Goal 012 принято, а
 Goal 012A независимо закрыла обязательные action-ownership findings. Goal 012
-принята после Goal 012A. Goal 013 получила `FIX_REQUIRED`; review Goal 013A
-подтвердило её extensibility-результаты, но потребовало bounded correction Goal
-013B для durable CLASS learning. Goal 013B реализована и ожидает независимого
-review. Goal 014 получила `FIX_REQUIRED after first review`; bounded Goal 014A
-реализована и ожидает независимого review. Goal 015, Goal 017 и Goal 025 не
-начаты.
+принята после Goal 012A. Goal 013 и Goal 013A приняты после Goal 013B; Goal 013B
+имеет `ACCEPT_WITH_ACTIVATION_GATE`. Goal 014 принята после Goal 014A, а Goal
+014A с completion принята. Goal 015 реализована и ожидает независимого review.
+Goal 016, Goal 017 и Goal 025 не начаты.
 
 ---
 
@@ -363,7 +361,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013 — `FIX_REQUIRED after first review`; Goal 013A — `FIX_REQUIRED after durability review`; Goal 013B — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 014 — `FIX_REQUIRED after first review`; Goal 014A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 015/017/025 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 016/017/025 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -646,7 +644,7 @@ plan-owned respawn.
 **Зависимости:** 012.
 **Gate:** independent review exact child commit принят; Goal 013 разрешена.
 
-## Goal 013 — Progression, professions, skills, equipment и class catalog — `FIX_REQUIRED`
+## Goal 013 — Progression, professions, skills, equipment и class catalog — `ACCEPT after Goal 013B`
 
 **Назначение:** расширить generic capability keys реальными High Five классами.  
 **Зависимости:** 012.  
@@ -657,7 +655,7 @@ healer/tank/spoiler/dagger/summoner/escape.
 **Gate:** representative class matrix and no one-script-per-class architecture.  
 **Follow-up risk:** `HIGH` — broad class rules and progression persistence.
 
-### Goal 013A — Progression capability extensibility hardening — `FIX_REQUIRED after durability review`
+### Goal 013A — Progression capability extensibility hardening — `ACCEPT after Goal 013B`
 
 **Назначение:** bounded closure доказанных variant/resource/summon/equipment,
 production-composition, skill-learning atomicity и Player CP snapshot findings.
@@ -667,9 +665,8 @@ production-composition, skill-learning atomicity и Player CP snapshot findings.
 authoritative action resources; typed controlled-actor facts; complete bounded
 equipment paging; exact main/subclass truth; separate canonical Player CP.
 **Не включает:** tactical doctrine, commerce, reconciliation, party или PvP.
-**Gate:** independent review сохранило extensibility-результаты, но потребовало
-bounded corrective Goal 013B. Goal 013 не считается accepted до принятия Goal
-013B.
+**Gate:** independent review сохранило extensibility-результаты, а bounded Goal
+013B закрыла durability finding; Goal 013 и Goal 013A приняты после Goal 013B.
 
 ### Goal 013B — Durable CLASS skill learning transaction — `ACCEPT_WITH_ACTIVATION_GATE`
 
@@ -687,7 +684,7 @@ materialization, scheduler, profile schema, config или future Goal.
 `progression.learn_skill`; перед будущей автономной mutation требуется отдельное
 доказательство общей координации SP/item writers.
 
-## Goal 014 — NPC commerce, supplies, travel и sell loop — `FIX_REQUIRED after first review`
+## Goal 014 — NPC commerce, supplies, travel и sell loop — `ACCEPT after Goal 014A`
 
 **Назначение:** замкнуть одиночный economic maintenance loop.  
 **Зависимости:** 009–011, 013 и independent acceptance 013B.
@@ -702,9 +699,9 @@ CP potion supplies, vendors, restrictions, currency и cost извлекаютс
 **Gate:** independent review item/adena/position conservation, exact current
 data parity и restart-safe interruption.
 **Follow-up risk:** `HIGH` — canonical commerce validation and partial actions.
-**Correction:** Goal 014A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+**Correction:** Goal 014A + completion — `ACCEPT`.
 
-## Goal 015 — Background farming baseline и reconciliation — `NOT_STARTED`
+## Goal 015 — Background farming baseline и reconciliation — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** causal cheap simulation для уже поддержанных plans.  
 **Зависимости:** 007, 008, 011–014.  
@@ -1144,25 +1141,22 @@ Completed:
 - Goal 012 after Goal 012A
 - Goal 012A
 
-In progress / required closure:
-- Goal 013 FIX_REQUIRED
-- Goal 013A FIX_REQUIRED after independent review
-- Goal 013B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
-- Goal 014 FIX_REQUIRED after first review
-- Goal 014A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Accepted corrective truth:
+- Goal 013/013A ACCEPT after Goal 013B
+- Goal 013B ACCEPT_WITH_ACTIVATION_GATE
+- Goal 014 ACCEPT after Goal 014A
+- Goal 014A + completion ACCEPT
 
 Next:
-1. Independent review Goal 014A
-2. Goal 015 remains NOT_STARTED
-3. Goal 017 and Goal 025 remain NOT_STARTED
+1. Independent review Goal 015
+2. Goal 016, Goal 017 and Goal 025 remain NOT_STARTED
 
 Stage gate:
 - Stage I COMPLETE
 - Stage II COMPLETE
 
 New risks:
-- Goal 013 durable CLASS transaction awaits independent review
-- Goal 014A commerce hardening awaits independent review
+- Goal 015 background reconciliation awaits independent review
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
@@ -1193,12 +1187,12 @@ Overall:
   Stage II COMPLETE;
   Goal 012 ACCEPT after Goal 012A;
   Goal 012A ACCEPT;
-  Goal 013 FIX_REQUIRED;
-  Goal 013A FIX_REQUIRED after independent review;
-  Goal 013B IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 014 FIX_REQUIRED after first review;
-  Goal 014A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 015/017/025 NOT_STARTED
+  Goal 013/013A ACCEPT after Goal 013B;
+  Goal 013B ACCEPT_WITH_ACTIVATION_GATE;
+  Goal 014 ACCEPT after Goal 014A;
+  Goal 014A + completion ACCEPT;
+  Goal 015 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 016/017/025 NOT_STARTED
 ```
 
 ---

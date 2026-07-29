@@ -24,18 +24,28 @@ import java.util.Objects;
 
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 
-public record PhantomStepContext(long profileId, PhantomGoal goal, PhantomPlan plan, PhantomPlanStep step, PhantomActivityState activityState, long logicalNowNanos, int attempt, PhantomCancellationToken cancellationToken)
+public record PhantomStepContext(long profileId, PhantomGoal goal, PhantomPlan plan, PhantomPlanStep step, PhantomActivityState effectiveState, long activityGeneration, long tickSequence, long logicalNowNanos, int attempt, PhantomCancellationToken cancellationToken)
 {
+	public PhantomStepContext(long profileId, PhantomGoal goal, PhantomPlan plan, PhantomPlanStep step, PhantomActivityState activityState, long logicalNowNanos, int attempt, PhantomCancellationToken cancellationToken)
+	{
+		this(profileId, goal, plan, step, activityState, 0, 0, logicalNowNanos, attempt, cancellationToken);
+	}
+
 	public PhantomStepContext
 	{
-		if ((profileId <= 0) || (logicalNowNanos < 0) || (attempt < 1))
+		if ((profileId <= 0) || (activityGeneration < 0) || (tickSequence < 0) || (logicalNowNanos < 0) || (attempt < 1))
 		{
-			throw new IllegalArgumentException("Step context identifiers, time and attempt are invalid.");
+			throw new IllegalArgumentException("Step context identifiers, activity identity, time or attempt are invalid.");
 		}
 		Objects.requireNonNull(goal, "Goal must not be null.");
 		Objects.requireNonNull(plan, "Plan must not be null.");
 		Objects.requireNonNull(step, "Step must not be null.");
-		Objects.requireNonNull(activityState, "Activity state must not be null.");
+		Objects.requireNonNull(effectiveState, "Activity state must not be null.");
 		Objects.requireNonNull(cancellationToken, "Cancellation token must not be null.");
+	}
+
+	public PhantomActivityState activityState()
+	{
+		return effectiveState;
 	}
 }

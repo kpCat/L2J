@@ -1,0 +1,68 @@
+/*
+ * Copyright (c) 2013 L2jMobius
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+ * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+package org.l2jmobius.gameserver.phantoms.player;
+
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.l2jmobius.gameserver.model.actor.Player;
+
+/**
+ * One-time composition bridge used because materialization owns the accepted
+ * lifecycle seam and is constructed before optional durable subsystems.
+ */
+public final class PhantomMaterializationLifecycleBridge implements PhantomMaterializationLifecyclePort
+{
+	private final PhantomMaterializationLifecyclePort _empty = PhantomMaterializationLifecyclePort.none();
+	private final AtomicReference<PhantomMaterializationLifecyclePort> _delegate = new AtomicReference<>(_empty);
+
+	public void install(PhantomMaterializationLifecyclePort delegate)
+	{
+		if (!_delegate.compareAndSet(_empty, Objects.requireNonNull(delegate, "delegate")))
+		{
+			throw new IllegalStateException("Materialization lifecycle delegate changed concurrently.");
+		}
+	}
+
+	@Override
+	public void beforeMaterialize(long profileId, int characterObjectId)
+	{
+		_delegate.get().beforeMaterialize(profileId, characterObjectId);
+	}
+
+	@Override
+	public void afterPlayerLoad(long profileId, Player player)
+	{
+		_delegate.get().afterPlayerLoad(profileId, player);
+	}
+
+	@Override
+	public void beforeStore(long profileId, Player player)
+	{
+		_delegate.get().beforeStore(profileId, player);
+	}
+
+	@Override
+	public void afterStore(long profileId, Player player)
+	{
+		_delegate.get().afterStore(profileId, player);
+	}
+}

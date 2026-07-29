@@ -32,6 +32,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import org.l2jmobius.commons.threads.ThreadPool;
+import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -78,6 +79,7 @@ public final class PhantomMaterializationService
 		MATERIALIZATION_FAILED_CLEAN,
 		MATERIALIZATION_FAILED_RETAINED,
 		CLEANUP_FAILED_RETAINED,
+		BACKGROUND_RECONCILIATION_BLOCKED,
 		NOT_ACTIVE
 	}
 
@@ -94,6 +96,7 @@ public final class PhantomMaterializationService
 	private final ConcurrentHashMap<Long, Entry> _activeByProfile = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Integer, Entry> _activeByCharacter = new ConcurrentHashMap<>();
 	private final FailureInjector _failureInjector;
+	private final PhantomMaterializationLifecyclePort _lifecyclePort;
 	private final long _actionDrainTimeoutMillis;
 	private final long _shutdownTimeoutMillis;
 	private volatile ServiceState _state = ServiceState.NEW;
@@ -101,10 +104,20 @@ public final class PhantomMaterializationService
 
 	public PhantomMaterializationService(PhantomProfileRepository profileRepository, PhantomIdentityLeaseRegistry identityRegistry, PhantomMetrics metrics, PhantomDiagnosticTrace trace, int maximumMaterialized)
 	{
-		this(profileRepository, identityRegistry, metrics, trace, maximumMaterialized, FailureInjector.none(), PhantomMaterializedPlayer.DEFAULT_ACTION_DRAIN_TIMEOUT_MILLIS, MAXIMUM_SHUTDOWN_TIMEOUT_MILLIS);
+		this(profileRepository, identityRegistry, metrics, trace, maximumMaterialized, FailureInjector.none(), PhantomMaterializationLifecyclePort.none(), PhantomMaterializedPlayer.DEFAULT_ACTION_DRAIN_TIMEOUT_MILLIS, MAXIMUM_SHUTDOWN_TIMEOUT_MILLIS);
+	}
+
+	public PhantomMaterializationService(PhantomProfileRepository profileRepository, PhantomIdentityLeaseRegistry identityRegistry, PhantomMetrics metrics, PhantomDiagnosticTrace trace, int maximumMaterialized, PhantomMaterializationLifecyclePort lifecyclePort)
+	{
+		this(profileRepository, identityRegistry, metrics, trace, maximumMaterialized, FailureInjector.none(), lifecyclePort, PhantomMaterializedPlayer.DEFAULT_ACTION_DRAIN_TIMEOUT_MILLIS, MAXIMUM_SHUTDOWN_TIMEOUT_MILLIS);
 	}
 
 	public PhantomMaterializationService(PhantomProfileRepository profileRepository, PhantomIdentityLeaseRegistry identityRegistry, PhantomMetrics metrics, PhantomDiagnosticTrace trace, int maximumMaterialized, FailureInjector failureInjector, long actionDrainTimeoutMillis, long shutdownTimeoutMillis)
+	{
+		this(profileRepository, identityRegistry, metrics, trace, maximumMaterialized, failureInjector, PhantomMaterializationLifecyclePort.none(), actionDrainTimeoutMillis, shutdownTimeoutMillis);
+	}
+
+	public PhantomMaterializationService(PhantomProfileRepository profileRepository, PhantomIdentityLeaseRegistry identityRegistry, PhantomMetrics metrics, PhantomDiagnosticTrace trace, int maximumMaterialized, FailureInjector failureInjector, PhantomMaterializationLifecyclePort lifecyclePort, long actionDrainTimeoutMillis, long shutdownTimeoutMillis)
 	{
 		if ((maximumMaterialized < 1) || (maximumMaterialized > 10000))
 		{
@@ -126,6 +139,7 @@ public final class PhantomMaterializationService
 		_maximumMaterialized = maximumMaterialized;
 		_permits = new Semaphore(maximumMaterialized, true);
 		_failureInjector = Objects.requireNonNull(failureInjector, "failureInjector");
+		_lifecyclePort = Objects.requireNonNull(lifecyclePort, "lifecyclePort");
 		_actionDrainTimeoutMillis = actionDrainTimeoutMillis;
 		_shutdownTimeoutMillis = shutdownTimeoutMillis;
 	}
@@ -180,12 +194,40 @@ public final class PhantomMaterializationService
 		}
 
 		final int characterObjectId = profile.characterObjectId();
+		try
+		{
+			_lifecyclePort.beforeMaterialize(profileId, characterObjectId);
+		}
+		catch (RuntimeException exception)
+		{
+			return rejectMaterialization(ResultStatus.BACKGROUND_RECONCILIATION_BLOCKED);
+		}
+		final PhantomMaterializedPlayer.LifecycleSupport lifecycleSupport = new PhantomMaterializedPlayer.LifecycleSupport()
+		{
+			@Override
+			public void afterPlayerLoad(Player player)
+			{
+				_lifecyclePort.afterPlayerLoad(profileId, player);
+			}
+
+			@Override
+			public void beforeStore(Player player)
+			{
+				_lifecyclePort.beforeStore(profileId, player);
+			}
+
+			@Override
+			public void afterStore(Player player)
+			{
+				_lifecyclePort.afterStore(profileId, player);
+			}
+		};
 		final Entry entry = new Entry(profileId, characterObjectId, new PhantomMaterializedPlayer(
 			characterObjectId,
 			_identityRegistry,
 			new HeadlessPlayerOutboundSession(16, 128),
 			_failureInjector,
-			PhantomMaterializedPlayer.LifecycleSupport.none(),
+			lifecycleSupport,
 			_actionDrainTimeoutMillis));
 
 		synchronized (_stateMonitor)

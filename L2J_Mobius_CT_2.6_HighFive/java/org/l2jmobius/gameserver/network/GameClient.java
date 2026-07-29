@@ -536,9 +536,14 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 		Lease identityLease = identityRegistry.tryAcquire(objectId, OwnerKind.REAL_LOGIN);
 		if (identityLease == null)
 		{
-			if (identityRegistry.getOwnerKind(objectId) == OwnerKind.PHANTOM)
+			final OwnerKind failedOwner = identityRegistry.getOwnerKind(objectId);
+			if (failedOwner == OwnerKind.PHANTOM)
 			{
 				LOGGER.warning("Character identity is materialized by Phantom: " + objectId);
+			}
+			else if (failedOwner == OwnerKind.BACKGROUND)
+			{
+				LOGGER.warning("Character identity is owned by Phantom background reconciliation: " + objectId);
 			}
 			else
 			{

@@ -5,6 +5,7 @@ Set-StrictMode -Version Latest
 
 $goal014Commit = "696689987276137f6a7f3661329171c9ee65e6f9"
 $goal014Parent = "e9b98a243a68a710425a062155b9197ee6692b17"
+$acceptedCompletion = "9c9412bc4a05a520a83b5187054d6c8a8c12db3c"
 $requiredBranch = "feature/phantom-world"
 $goal014Subject = "feat(phantoms): add npc commerce supply and travel loop"
 $moduleRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
@@ -67,26 +68,11 @@ Assert-True ($goal014Parents[0] -eq $goal014Parent) "Goal 014 commit parent is n
 Assert-True ((& git -C $repositoryRoot show -s --format=%s $goal014Commit).Trim() -eq $goal014Subject) "Goal 014 commit subject is not exact."
 & git -C $repositoryRoot merge-base --is-ancestor $goal014Commit $head
 Assert-True ($LASTEXITCODE -eq 0) "Goal 014 commit is not an ancestor of HEAD."
-$graphMode = "historical-head"
-if ($head -ne $goal014Commit)
-{
-	$graphMode = "cumulative-descendant"
-}
+& git -C $repositoryRoot merge-base --is-ancestor $acceptedCompletion $head
+Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 014A completion is not an ancestor of HEAD."
+$graphMode = "accepted-completion-ancestor"
 
-$changedPaths = @(& git -c core.autocrlf=false -C $repositoryRoot diff --name-only "$goal014Parent..$head")
-$statusLines = @(& git -C $repositoryRoot status --porcelain=v1 --untracked-files=all -- $moduleRoot)
-foreach ($line in $statusLines)
-{
-	if ($line.Length -ge 4)
-	{
-		$path = $line.Substring(3).Replace("\", "/")
-		if ($path.StartsWith('"') -and $path.EndsWith('"'))
-		{
-			$path = $path.Substring(1, $path.Length - 2)
-		}
-		$changedPaths += $path
-	}
-}
+$changedPaths = @(& git -c core.autocrlf=false -C $repositoryRoot diff --name-only "$goal014Parent..$acceptedCompletion")
 $changedPaths = @($changedPaths | Where-Object { $_ } | Sort-Object -Unique)
 Assert-True ($changedPaths.Count -gt 0) "No Goal 014 artifacts found."
 foreach ($path in $changedPaths)
