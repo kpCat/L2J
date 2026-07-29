@@ -25,13 +25,18 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
+import org.l2jmobius.gameserver.data.xml.MapRegionData;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType;
+import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.FarmInput;
@@ -64,6 +69,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public static final long FARM_TRAVEL_BUDGET_MILLIS = 60_000;
 	public static final long DEATH_SIGNAL_TTL_MILLIS = 60_000;
 	public static final String DEATH_SIGNAL_SOURCE = "background.death";
+	private static final long RECOVERY_TELEPORT_TIMEOUT_NANOS = 250_000_000L;
 
 	private final PhantomProfileRepository _profiles;
 	private final PhantomGoalStateStore _goals;
@@ -186,7 +192,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final PhantomBackgroundState state = loaded.state();
 		if ((activityState == PhantomActivityState.WARM) || (activityState == PhantomActivityState.ACTIVE))
 		{
-			return state.state() == State.DEAD ? new Directive(DirectiveKind.RECOVER, "state.dead", spec.anchorId()) : new Directive(DirectiveKind.REPLAN, "recovery.not_dead", state.position().committedAnchorId());
+			final boolean recoverable = (state.state() == State.DEAD) || ((state.state() == State.MATERIALIZED) && (state.vitals().currentHp() == 0));
+			return recoverable ? new Directive(DirectiveKind.RECOVER, "state.dead", spec.anchorId()) : new Directive(DirectiveKind.REPLAN, "recovery.not_dead", state.position().committedAnchorId());
 		}
 		if (activityState != PhantomActivityState.BACKGROUND)
 		{
@@ -300,6 +307,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	public OperationResult recover(long profileId, PhantomGoal goal, PhantomActivityState activityState)
 	{
+		return recover(profileId, goal, activityState, () -> false);
+	}
+
+	public OperationResult recover(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled)
+	{
+		Objects.requireNonNull(cancelled, "cancelled");
 		if ((activityState != PhantomActivityState.WARM) && (activityState != PhantomActivityState.ACTIVE))
 		{
 			return OperationResult.replan("recovery.activity");
@@ -313,9 +326,13 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			return OperationResult.replan("recovery.goal");
 		}
 		final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
-		if (!loaded.successful() || (loaded.state() == null) || (loaded.state().state() != State.DEAD))
+		if (!loaded.successful() || (loaded.state() == null) || ((loaded.state().state() != State.DEAD) && !((loaded.state().state() == State.MATERIALIZED) && (loaded.state().vitals().currentHp() == 0))))
 		{
 			return OperationResult.replan("recovery.not_dead");
+		}
+		if (cancelled.getAsBoolean())
+		{
+			return retry("recovery.teleport_cancelled");
 		}
 		final PhantomMaterializationService materialization = _materialization.get();
 		if (materialization == null)
@@ -335,12 +352,51 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		try (ActionLease lease = action.get())
 		{
 			final Player player = lease.player();
-			if (!player.isDead())
+			final boolean resumeBoundary = !player.isDead() && (loaded.state().state() == State.MATERIALIZED);
+			if (!player.isDead() && !resumeBoundary)
 			{
 				return OperationResult.inconsistent("recovery.runtime_not_dead");
 			}
-			player.doRevive();
-			player.teleToLocation(TeleportWhereType.TOWN);
+			final Location destination = MapRegionData.getInstance().getTeleToLocation(player, TeleportWhereType.TOWN);
+			if (destination == null)
+			{
+				return retry("recovery.town_absent");
+			}
+			if (!resumeBoundary)
+			{
+				player.doRevive();
+				player.teleToLocation(destination, false);
+			}
+			final int expectedInstanceId = destination.getInstanceId();
+			final int expectedX = destination.getX();
+			final int expectedY = destination.getY();
+			final int expectedZ = GeoEngine.getInstance().getHeight(expectedX, expectedY, destination.getZ());
+			final int teleportedZ = expectedZ + 5;
+			if (player.hasHeadlessOutboundSession() && player.isTeleporting())
+			{
+				player.onTeleported();
+			}
+			final long deadline = System.nanoTime() + RECOVERY_TELEPORT_TIMEOUT_NANOS;
+			while (player.isTeleporting())
+			{
+				if (cancelled.getAsBoolean())
+				{
+					return retry("recovery.teleport_cancelled");
+				}
+				if (System.nanoTime() >= deadline)
+				{
+					return retry("recovery.teleport_timeout");
+				}
+				LockSupport.parkNanos(1_000_000L);
+			}
+			if ((player.getInstanceId() != expectedInstanceId) || (player.getX() != expectedX) || (player.getY() != expectedY) || ((player.getZ() != teleportedZ) && (player.getZ() != expectedZ)))
+			{
+				return OperationResult.inconsistent("recovery.teleport_destination_mismatch");
+			}
+			if (player.getZ() != expectedZ)
+			{
+				player.setXYZInvisible(expectedX, expectedY, expectedZ);
+			}
 		}
 		final PhantomMaterializationService.DematerializeResult dematerialized = materialization.dematerialize(profileId);
 		if (dematerialized.status() != ResultStatus.SUCCESS)
@@ -402,7 +458,6 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 		if (loaded.status() == PhantomBackgroundTransaction.Status.STATE_ABSENT)
 		{
-			releaseTransition(profileId, TransitionKind.MATERIALIZING);
 			return;
 		}
 		if (!loaded.successful() || (loaded.state() == null) || !_authority.matchesRuntime(player, loaded.state()))
@@ -419,13 +474,45 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			throw new IllegalStateException("MATERIALIZED state verification failed.");
 		}
+	}
+
+	@Override
+	public void materializeSucceeded(long profileId, int characterObjectId)
+	{
+		requireTransition(profileId, TransitionKind.MATERIALIZING);
 		releaseTransition(profileId, TransitionKind.MATERIALIZING);
+	}
+
+	@Override
+	public void materializeAborted(long profileId, int characterObjectId)
+	{
+		if (_transitions.get(profileId) != TransitionKind.MATERIALIZING)
+		{
+			return;
+		}
+		try
+		{
+			final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
+			if (loaded.status() == PhantomBackgroundTransaction.Status.STATE_ABSENT)
+			{
+				return;
+			}
+			final PhantomBackgroundTransaction.Result recovered = transaction(() -> _transactions.abortMaterialization(profileId, characterObjectId));
+			if (!recovered.successful() || (recovered.state() == null) || ((recovered.state().state() != State.READY) && (recovered.state().state() != State.DEAD)))
+			{
+				failStop();
+			}
+		}
+		finally
+		{
+			releaseTransition(profileId, TransitionKind.MATERIALIZING);
+		}
 	}
 
 	@Override
 	public void beforeStore(long profileId, Player player)
 	{
-		if (!claimTransition(profileId, TransitionKind.DEMATERIALIZING))
+		if (!claimStoreTransition(profileId))
 		{
 			throw new IllegalStateException("Background transition is already owned.");
 		}
@@ -434,7 +521,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	@Override
 	public void afterStore(long profileId, Player player)
 	{
-		requireTransition(profileId, TransitionKind.DEMATERIALIZING);
+		requireStoreTransition(profileId);
 		final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 		final PhantomBackgroundState previous = loaded.successful() ? loaded.state() : null;
 		if ((loaded.status() != PhantomBackgroundTransaction.Status.STATE_ABSENT) && !loaded.successful())
@@ -448,7 +535,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				throw new IllegalStateException("Existing background state lost its explicit goal.");
 			}
-			releaseTransition(profileId, TransitionKind.DEMATERIALIZING);
+			releaseStoreTransition(profileId);
 			return;
 		}
 		try
@@ -461,7 +548,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				throw new IllegalStateException("Existing background state no longer has an exact farm.background goal.", exception);
 			}
-			releaseTransition(profileId, TransitionKind.DEMATERIALIZING);
+			releaseStoreTransition(profileId);
 			return;
 		}
 		final PhantomBackgroundState captured = _authority.capture(profileId, player, goal, previous);
@@ -475,12 +562,18 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			throw new IllegalStateException("Canonical background baseline verification failed.");
 		}
-		releaseTransition(profileId, TransitionKind.DEMATERIALIZING);
+		releaseStoreTransition(profileId);
 	}
 
 	public Snapshot snapshot()
 	{
 		return new Snapshot(_state, _currentOperations.get(), _peakOperations.get(), _currentIdentityLeases.get(), _peakIdentityLeases.get(), _currentTransactions.get(), _peakTransactions.get(), _currentTransitionClaims.get(), _peakTransitionClaims.get(), _completedOperations.get(), _idempotentOperations.get(), _retryOperations.get(), _failedOperations.get(), _retainedIdentityLeases.size());
+	}
+
+	public QuiescenceSnapshot materializationQuiescence()
+	{
+		final int materializing = transitionClaimCount(TransitionKind.MATERIALIZING);
+		return new QuiescenceSnapshot(_currentOperations.get(), _currentIdentityLeases.get(), _currentTransactions.get(), _retainedIdentityLeases.size(), materializing);
 	}
 
 	private OperationClaim acquire(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence)
@@ -660,11 +753,40 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
+	private boolean claimStoreTransition(long profileId)
+	{
+		synchronized (this)
+		{
+			final TransitionKind existing = _transitions.get(profileId);
+			if (existing == TransitionKind.MATERIALIZING)
+			{
+				return true;
+			}
+			final boolean lifecycleAllowed = (_state == ServiceState.RUNNING) || (_state == ServiceState.STOPPING);
+			if (!lifecycleAllowed || (existing != null) || _operations.containsKey(profileId))
+			{
+				return false;
+			}
+			_transitions.put(profileId, TransitionKind.DEMATERIALIZING);
+			increment(_currentTransitionClaims, _peakTransitionClaims);
+			return true;
+		}
+	}
+
 	private void requireTransition(long profileId, TransitionKind kind)
 	{
 		if (_transitions.get(profileId) != kind)
 		{
 			throw new IllegalStateException("Background lifecycle transition identity mismatch.");
+		}
+	}
+
+	private void requireStoreTransition(long profileId)
+	{
+		final TransitionKind kind = _transitions.get(profileId);
+		if ((kind != TransitionKind.MATERIALIZING) && (kind != TransitionKind.DEMATERIALIZING))
+		{
+			throw new IllegalStateException("Background store transition identity mismatch.");
 		}
 	}
 
@@ -674,6 +796,19 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			_currentTransitionClaims.decrementAndGet();
 		}
+	}
+
+	private void releaseStoreTransition(long profileId)
+	{
+		if (_transitions.get(profileId) == TransitionKind.DEMATERIALIZING)
+		{
+			releaseTransition(profileId, TransitionKind.DEMATERIALIZING);
+		}
+	}
+
+	private int transitionClaimCount(TransitionKind kind)
+	{
+		return (int) _transitions.values().stream().filter(kind::equals).count();
 	}
 
 	private void closeLease(Lease lease)
@@ -792,6 +927,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	public record Snapshot(ServiceState state, int currentOperations, int peakOperations, int currentIdentityLeases, int peakIdentityLeases, int currentTransactions, int peakTransactions, int currentTransitionClaims, int peakTransitionClaims, long completedOperations, long idempotentOperations, long retryOperations, long failedOperations, int retainedIdentityLeases)
 	{
+	}
+
+	public record QuiescenceSnapshot(int operations, int identityLeases, int transactions, int retainedIdentityLeases, int materializingTransitionClaims)
+	{
+		public boolean ready()
+		{
+			return (operations == 0) && (identityLeases == 0) && (transactions == 0) && (retainedIdentityLeases == 0) && (materializingTransitionClaims == 0);
+		}
 	}
 
 	private static final class OperationClaim implements AutoCloseable

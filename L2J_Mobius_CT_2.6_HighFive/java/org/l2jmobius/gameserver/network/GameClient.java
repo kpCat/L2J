@@ -44,6 +44,7 @@ import org.l2jmobius.gameserver.model.clan.Clan;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundLoginGuard;
 import org.l2jmobius.gameserver.network.holders.CharacterInfoHolder;
 import org.l2jmobius.gameserver.network.holders.ClientHardwareInfoHolder;
 import org.l2jmobius.gameserver.network.serverpackets.LeaveWorld;
@@ -528,7 +529,9 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 
 		final PhantomIdentityLeaseRegistry identityRegistry = PhantomIdentityLeaseRegistry.getInstance();
 		final OwnerKind currentOwner = identityRegistry.getOwnerKind(objectId);
-		if (!PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(PhantomPlayersConfig.isEnabled(), currentOwner))
+		final boolean phantomEnabled = PhantomPlayersConfig.isEnabled();
+		final PhantomBackgroundLoginGuard.Decision preflight = phantomEnabled ? PhantomBackgroundLoginGuard.Decision.ALLOW_ABSENT : PhantomBackgroundLoginGuard.inspect(objectId);
+		if (!PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(phantomEnabled, currentOwner) && !preflight.requiresArbitration())
 		{
 			return loadWithoutIdentityArbitration(objectId, characterSlot);
 		}
@@ -576,6 +579,12 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 
 		try
 		{
+			final PhantomBackgroundLoginGuard.Decision backgroundDecision = PhantomBackgroundLoginGuard.inspect(objectId);
+			if (!backgroundDecision.allowed())
+			{
+				LOGGER.warning("Character real login is blocked by durable Phantom background state: " + objectId + " (" + backgroundDecision + ")");
+				return null;
+			}
 			Player player = World.getInstance().getPlayer(objectId);
 			if (player != null)
 			{

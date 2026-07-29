@@ -32,10 +32,11 @@ import java.util.Set;
 public record PhantomBackgroundState(State state, Identity identity, Progress progress, Vitals vitals, Position position, CombatFacts combat, Loadout loadout, InventoryFacts inventory, List<AutoGetSkill> autoGetSkills, Clock clock, Receipt receipt, Hashes hashes)
 {
 	public static final String COMPONENT_TYPE = "background.state";
-	public static final int SCHEMA_VERSION = 1;
+	public static final int SCHEMA_VERSION = 2;
 	public static final int MODEL_VERSION = 1;
 	public static final String MODEL_NAME = "BACKGROUND_MODEL_V1";
-	public static final int MAX_TRACKED_ITEMS = 64;
+	public static final int MAX_TRACKED_ITEMS = 160;
+	public static final int MAX_MUTABLE_ITEM_IDS = 96;
 
 	public PhantomBackgroundState
 	{
@@ -260,15 +261,27 @@ public record PhantomBackgroundState(State state, Identity identity, Progress pr
 		}
 	}
 
-	public record InventoryFacts(List<ItemObject> objects, long currentLoad, long maximumLoad, int usedSlots, int maximumSlots)
+	public record InventoryFacts(List<Integer> mutableItemIds, List<ItemObject> objects, String canonicalHash, long currentLoad, long maximumLoad, int usedSlots, int maximumSlots)
 	{
 		public InventoryFacts
 		{
+			mutableItemIds = List.copyOf(mutableItemIds);
 			objects = List.copyOf(objects);
-			if ((objects.size() > MAX_TRACKED_ITEMS) || (currentLoad < 0) || (maximumLoad < currentLoad) || (usedSlots < 0) || (maximumSlots < usedSlots))
+			canonicalHash = boundedHash(canonicalHash, "inventory canonical hash");
+			if ((mutableItemIds.size() > MAX_MUTABLE_ITEM_IDS) || (objects.size() > MAX_TRACKED_ITEMS) || (currentLoad < 0) || (maximumLoad < 0) || (usedSlots < 0) || (maximumSlots < 0))
 			{
 				throw new IllegalArgumentException("Invalid bounded background inventory.");
 			}
+			int previousItemId = 0;
+			for (int itemId : mutableItemIds)
+			{
+				if (itemId <= previousItemId)
+				{
+					throw new IllegalArgumentException("Mutable item IDs must be positive, unique and sorted.");
+				}
+				previousItemId = itemId;
+			}
+			final Set<Integer> mutable = Set.copyOf(mutableItemIds);
 			final Set<Integer> objectIds = new HashSet<>();
 			int previous = 0;
 			for (ItemObject object : objects)
@@ -277,13 +290,17 @@ public record PhantomBackgroundState(State state, Identity identity, Progress pr
 				{
 					throw new IllegalArgumentException("Tracked item objects must be unique and sorted.");
 				}
+				if ((object.location() == ItemLocation.INVENTORY) && !mutable.contains(object.itemId()))
+				{
+					throw new IllegalArgumentException("Tracked inventory object is outside the mutable item allowlist.");
+				}
 				previous = object.objectId();
 			}
 		}
 
-		public static InventoryFacts sorted(List<ItemObject> objects, long currentLoad, long maximumLoad, int usedSlots, int maximumSlots)
+		public static InventoryFacts sorted(List<Integer> mutableItemIds, List<ItemObject> objects, String canonicalHash, long currentLoad, long maximumLoad, int usedSlots, int maximumSlots)
 		{
-			return new InventoryFacts(objects.stream().sorted(Comparator.comparingInt(ItemObject::objectId)).toList(), currentLoad, maximumLoad, usedSlots, maximumSlots);
+			return new InventoryFacts(mutableItemIds.stream().sorted().toList(), objects.stream().sorted(Comparator.comparingInt(ItemObject::objectId)).toList(), canonicalHash, currentLoad, maximumLoad, usedSlots, maximumSlots);
 		}
 
 		public long itemCount(int itemId)

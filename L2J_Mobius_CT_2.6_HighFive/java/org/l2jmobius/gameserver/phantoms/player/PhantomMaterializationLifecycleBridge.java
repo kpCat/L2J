@@ -55,6 +55,18 @@ public final class PhantomMaterializationLifecycleBridge implements PhantomMater
 	}
 
 	@Override
+	public void materializeSucceeded(long profileId, int characterObjectId)
+	{
+		_delegate.get().materializeSucceeded(profileId, characterObjectId);
+	}
+
+	@Override
+	public void materializeAborted(long profileId, int characterObjectId)
+	{
+		_delegate.get().materializeAborted(profileId, characterObjectId);
+	}
+
+	@Override
 	public void beforeStore(long profileId, Player player)
 	{
 		_delegate.get().beforeStore(profileId, player);

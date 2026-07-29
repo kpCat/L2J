@@ -2,7 +2,9 @@
 
 ## Статус и границы
 
-Goal 015 реализована со статусом `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Goal 015 bounded completion имеет статус `BLOCKED`: технические reconciliation
+gates закрыты, но текущий production corpus не содержит допустимой exact
+anchor/NPC пары для одного успешного normal-solo farm.
 Контракт обслуживает только persisted ACTIVE goal `farm.background` с точными
 NPC ID и topology anchor ID. Он не выбирает цель, не создаёт goal и не включает
 party, spoil, manor, quest, craft, raid, instance, PvP или
@@ -163,9 +165,10 @@ Lethal encounter сохраняет resulting MP/resources/drops, `expBeforeDeat
 
 ## Ограничение текущего production corpus
 
-Единственная существующая exact topology farm fixture `giran.farming.22859`
-содержит immediate-effect herb drop. Buff/immediate-effect outcomes исключены,
-поэтому этот конкретный goal доказан как fail-closed до mutation. Поддерживаемый
-runtime farming начнётся только для explicit exact anchor/NPC, все authoritative
-facts которого входят в описанный baseline; loaders/data/config в Goal 015 не
-изменялись.
+Полный deterministic audit текущего production corpus нашёл одну exact topology
+farm fixture: `giran.farming.22859`, NPC `22859`. Она не поддерживается:
+authoritative drop corpus содержит excluded immediate/timed items
+`8600–8614`, `10655–10657` и `13028`. Поэтому этот goal доказан как fail-closed
+до mutation, а список успешных production farming-пар пуст. Добавление или
+изменение topology/datapack находится вне scope; loaders/data/config в Goal 015
+не изменялись.

@@ -21,6 +21,7 @@
 package org.l2jmobius.tests.phantoms;
 
 import java.nio.file.Path;
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -31,6 +32,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -47,6 +53,9 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.holders.npc.DropHolder;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
+import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
+import org.l2jmobius.gameserver.model.item.instance.Item;
+import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
@@ -55,6 +64,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundLoginGuard;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchRequest;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchResult;
@@ -105,6 +115,8 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomActionFacade;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailurePoint;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
@@ -124,6 +136,7 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdge;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyMetrics;
@@ -132,6 +145,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologySnapshot;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyValidationBackend;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyValidationBackend.DoorState;
+import org.l2jmobius.gameserver.scripting.ScriptEngine;
 
 public final class PhantomBackgroundSuite implements PhantomTestSuite
 {
@@ -142,7 +156,14 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		LIFECYCLE("background-lifecycle", true),
 		DECISION("background-decision", true),
 		SERVER_INTEGRATION("background-server-integration", true),
-		PERFORMANCE("background-performance", true);
+		PERFORMANCE("background-performance", true),
+		MATERIALIZATION_ABORT("background-materialization-abort", true),
+		QUIESCENCE("background-quiescence", true),
+		COMPACT_INVENTORY("background-compact-inventory", true),
+		AUTHORITATIVE_SHOTS("background-authoritative-shots", true),
+		PRODUCTION_AUDIT("background-production-audit", true),
+		RECOVERY_TELEPORT("background-recovery-teleport", true),
+		REAL_LOGIN("background-real-login", true);
 
 		private final String _id;
 		private final boolean _database;
@@ -159,6 +180,9 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private static final String ANCHOR_ID = "test.anchor";
 	private static final int PRODUCTION_TARGET_NPC_ID = 22859;
 	private static final String PRODUCTION_FARM_ANCHOR_ID = "giran.farming.22859";
+	private static final int NO_GRADE_WEAPON_ITEM_ID = 6;
+	private static final int NO_GRADE_SOULSHOT_ITEM_ID = 1835;
+	private static final int NO_GRADE_SPIRITSHOT_ITEM_ID = 2509;
 	private static final Hashes HASHES = new Hashes("knowledge-v1", "topology-v1", "progression-v1", "commerce-v1");
 
 	private final Mode _mode;
@@ -189,7 +213,11 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			deleteStaleTestProfile(_environment.primary().objectId());
 			deleteStaleTestProfile(_environment.observer().objectId());
 			context.record("background.database", PhantomTestDatabaseGuard.TARGET_DATABASE);
-			if (_mode == Mode.SERVER_INTEGRATION)
+			if (_mode == Mode.AUTHORITATIVE_SHOTS)
+			{
+				ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
+			}
+			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT))
 			{
 				_production = ProductionAuthorityFixture.start();
 				context.record("background.productionKnowledgeHash", _production.knowledge().snapshot().combinedHash());
@@ -231,6 +259,13 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			case DECISION -> registerDecision(registry);
 			case SERVER_INTEGRATION -> registerServerIntegration(registry);
 			case PERFORMANCE -> registerPerformance(registry);
+			case MATERIALIZATION_ABORT -> registerMaterializationAbort(registry);
+			case QUIESCENCE -> registerQuiescence(registry);
+			case COMPACT_INVENTORY -> registerCompactInventory(registry);
+			case AUTHORITATIVE_SHOTS -> registerAuthoritativeShots(registry);
+			case PRODUCTION_AUDIT -> registerProductionAudit(registry);
+			case RECOVERY_TELEPORT -> registerRecoveryTeleport(registry);
+			case REAL_LOGIN -> registerRealLogin(registry);
 		}
 	}
 
@@ -287,6 +322,487 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("03-bounded-batch-and-no-worker", _ -> testBoundedStructure());
 	}
 
+	private void registerMaterializationAbort(PhantomTestRegistry registry)
+	{
+		registry.add("01-terminal-callback-matrix", _ -> testMaterializationAbortMatrix());
+		registry.add("02-background-claim-abort-retry", _ -> testBackgroundClaimAbortRetry());
+	}
+
+	private void registerQuiescence(PhantomTestRegistry registry)
+	{
+		registry.add("01-materializing-drain-gate", _ -> testMaterializingQuiescence());
+		registry.add("02-transaction-and-retained-drain-gate", _ -> testBlockedQuiescence());
+	}
+
+	private void registerCompactInventory(PhantomTestRegistry registry)
+	{
+		registry.add("01-full-inventory-hash-over-64", _ -> testCompactInventoryHash());
+		registry.add("02-fifty-transition-byte-conservation", _ -> testLifecycleLoop(50, 0));
+	}
+
+	private void registerAuthoritativeShots(PhantomTestRegistry registry)
+	{
+		registry.add("01-current-data-shot-contract", _ -> testAuthoritativeShotContract());
+	}
+
+	private void registerProductionAudit(PhantomTestRegistry registry)
+	{
+		registry.add("01-current-corpus-supported-pair-audit", _ -> testProductionCorpusAudit());
+	}
+
+	private void registerRecoveryTeleport(PhantomTestRegistry registry)
+	{
+		registry.add("01-bounded-canonical-town-recovery", _ -> testDeathRecovery());
+		registry.add("02-recovery-cancellation", _ -> testRecoveryCancellation());
+	}
+
+	private void registerRealLogin(PhantomTestRegistry registry)
+	{
+		registry.add("01-durable-background-login-guard", _ -> testRealLoginGuard());
+	}
+
+	private void testMaterializationAbortMatrix() throws Exception
+	{
+		final PhantomIdentityLeaseRegistry identities = PhantomIdentityLeaseRegistry.getInstance();
+		final int primaryId = _environment.primary().objectId();
+		final int observerId = _environment.observer().objectId();
+
+		final PhantomProfile changedProfile = _repository.create(primaryId);
+		final RecordingLifecyclePort changedPort = new RecordingLifecyclePort();
+		final AtomicReference<PhantomMaterializationService> changedRef = new AtomicReference<>();
+		changedPort._before = () -> changedRef.get().shutdown();
+		final PhantomMaterializationService changed = materialization(1, point ->
+		{
+		}, changedPort);
+		changedRef.set(changed);
+		changed.start();
+		PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SERVICE_NOT_RUNNING, changed.materialize(changedProfile.profileId()).status(), "Service-state change after beforeMaterialize was not typed.");
+		changedPort.assertTerminal(1, 0, 1);
+		deleteProfile(changedProfile);
+
+		final PhantomProfile primary = _repository.create(primaryId);
+		final PhantomProfile observer = _repository.create(observerId);
+		final RecordingLifecyclePort port = new RecordingLifecyclePort();
+		final PhantomMaterializationService service = materialization(2, point ->
+		{
+		}, port);
+		service.start();
+		try
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, service.materialize(primary.profileId()).status(), "Matrix baseline materialization failed.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.ALREADY_ACTIVE, service.materialize(primary.profileId()).status(), "ALREADY_ACTIVE path changed.");
+			port.assertTerminal(2, 1, 1);
+
+			final Field profilesField = PhantomMaterializationService.class.getDeclaredField("_activeByProfile");
+			final Field charactersField = PhantomMaterializationService.class.getDeclaredField("_activeByCharacter");
+			profilesField.setAccessible(true);
+			charactersField.setAccessible(true);
+			final ConcurrentHashMap<?, ?> profiles = (ConcurrentHashMap<?, ?>) profilesField.get(service);
+			@SuppressWarnings("unchecked")
+			final ConcurrentHashMap<Integer, Object> characters = (ConcurrentHashMap<Integer, Object>) charactersField.get(service);
+			final Object existingEntry = profiles.get(primary.profileId());
+			characters.put(observerId, existingEntry);
+			try
+			{
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CHARACTER_ALREADY_ACTIVE, service.materialize(observer.profileId()).status(), "CHARACTER_ALREADY_ACTIVE path changed.");
+			}
+			finally
+			{
+				characters.remove(observerId, existingEntry);
+			}
+			port.assertTerminal(3, 1, 2);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, service.dematerialize(primary.profileId()).status(), "Matrix baseline cleanup failed.");
+
+			try (var identity = identities.tryAcquire(observerId, PhantomIdentityLeaseRegistry.OwnerKind.BACKGROUND))
+			{
+				PhantomAssertions.assertTrue(identity != null, "Could not reserve the identity-busy fixture.");
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.IDENTITY_BUSY, service.materialize(observer.profileId()).status(), "IDENTITY_BUSY path changed.");
+			}
+			port.assertTerminal(4, 1, 3);
+
+			try (var retained = identities.tryAcquire(observerId, PhantomIdentityLeaseRegistry.OwnerKind.REAL_LOGIN))
+			{
+				PhantomAssertions.assertTrue((retained != null) && retained.markRetained(), "Could not create retained real-login ownership.");
+				updateCharacterOnline(observerId, 1);
+				try
+				{
+					PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.RETAINED_IDENTITY_NOT_RECOVERABLE, service.materialize(observer.profileId()).status(), "Retained recovery rejection path changed.");
+				}
+				finally
+				{
+					updateCharacterOnline(observerId, 0);
+				}
+			}
+			port.assertTerminal(5, 1, 4);
+		}
+		finally
+		{
+			service.shutdown();
+			deleteProfile(primary);
+			deleteProfile(observer);
+		}
+
+		assertInjectedMaterializationAbort(primaryId, FailurePoint.AFTER_IDENTITY_CLAIM, false);
+		assertInjectedMaterializationAbort(primaryId, FailurePoint.AFTER_PLAYER_LOAD, false);
+		assertInjectedMaterializationAbort(primaryId, FailurePoint.AFTER_WORLD_SPAWN, false);
+		assertInjectedMaterializationAbort(primaryId, null, true);
+
+		final PhantomProfile missing = _repository.create(2_000_000_001);
+		final RecordingLifecyclePort missingPort = new RecordingLifecyclePort();
+		final PhantomMaterializationService missingService = materialization(1, point ->
+		{
+		}, missingPort);
+		missingService.start();
+		try
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.MATERIALIZATION_FAILED_CLEAN, missingService.materialize(missing.profileId()).status(), "Player.load failure was not cleanly aborted.");
+			missingPort.assertTerminal(1, 0, 1);
+		}
+		finally
+		{
+			missingService.shutdown();
+			deleteProfile(missing);
+		}
+
+		final PhantomProfile capacityPrimary = _repository.create(primaryId);
+		final PhantomProfile capacityObserver = _repository.create(observerId);
+		final RecordingLifecyclePort capacityPort = new RecordingLifecyclePort();
+		final PhantomMaterializationService capacity = materialization(1, point ->
+		{
+		}, capacityPort);
+		capacity.start();
+		try
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, capacity.materialize(capacityPrimary.profileId()).status(), "Capacity fixture baseline failed.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CAPACITY_REACHED, capacity.materialize(capacityObserver.profileId()).status(), "CAPACITY_REACHED path changed.");
+			capacityPort.assertTerminal(2, 1, 1);
+			capacity.dematerialize(capacityPrimary.profileId());
+		}
+		finally
+		{
+			capacity.shutdown();
+			deleteProfile(capacityPrimary);
+			deleteProfile(capacityObserver);
+		}
+		PhantomAssertions.assertEquals(null, identities.getOwnerSnapshot(primaryId), "Materialization abort matrix leaked primary identity ownership.");
+		PhantomAssertions.assertEquals(null, identities.getOwnerSnapshot(observerId), "Materialization abort matrix leaked observer identity ownership.");
+	}
+
+	private void assertInjectedMaterializationAbort(int characterObjectId, FailurePoint failurePoint, boolean callbackFailure) throws Exception
+	{
+		final PhantomProfile profile = _repository.create(characterObjectId);
+		final RecordingLifecyclePort port = new RecordingLifecyclePort();
+		if (callbackFailure)
+		{
+			port._afterLoadFailure = true;
+		}
+		final PhantomMaterializationService service = materialization(1, point ->
+		{
+			if (point == failurePoint)
+			{
+				throw new InjectedFailure();
+			}
+		}, port);
+		service.start();
+		try
+		{
+			PhantomAssertions.assertTrue(service.materialize(profile.profileId()).status() != PhantomMaterializationService.ResultStatus.SUCCESS, "Injected materialization failure unexpectedly succeeded: " + failurePoint);
+			port.assertTerminal(1, 0, 1);
+			PhantomAssertions.assertEquals(0, service.snapshot().retainedEntries(), "Injected materialization failure retained an entry: " + failurePoint);
+		}
+		finally
+		{
+			service.shutdown();
+			deleteProfile(profile);
+		}
+	}
+
+	private void testBackgroundClaimAbortRetry() throws Exception
+	{
+		final AtomicBoolean failOnce = new AtomicBoolean(true);
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
+		{
+			if ((point == FailurePoint.AFTER_PLAYER_LOAD) && failOnce.compareAndSet(true, false))
+			{
+				throw new InjectedFailure();
+			}
+		});
+		try
+		{
+			final var failed = runtime.materialization().materialize(runtime.profileId());
+			PhantomAssertions.assertTrue(failed.status() != PhantomMaterializationService.ResultStatus.SUCCESS, "Injected post-load failure unexpectedly succeeded.");
+			PhantomAssertions.assertTrue(runtime.background().materializationQuiescence().ready(), "Aborted attempt leaked a background transition claim.");
+			PhantomAssertions.assertEquals(State.READY, runtime.transaction().load(runtime.profileId()).state().state(), "Aborted MATERIALIZED state was not restored to READY.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Retry after terminal abort did not materialize.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(runtime.profileId()).status(), "Retry cleanup failed.");
+			runtime.background().materializeAborted(runtime.profileId(), runtime.characterObjectId());
+			PhantomAssertions.assertTrue(runtime.background().materializationQuiescence().ready(), "Idempotent abort changed the quiescence state.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testMaterializingQuiescence() throws Exception
+	{
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
+		try
+		{
+			runtime.background().beforeMaterialize(runtime.profileId(), runtime.characterObjectId());
+			runtime.background().beginStop();
+			final PhantomBackgroundService.QuiescenceSnapshot blocked = runtime.background().materializationQuiescence();
+			PhantomAssertions.assertEquals(1, blocked.materializingTransitionClaims(), "MATERIALIZING claim was not exposed to shutdown.");
+			PhantomAssertions.assertFalse(PhantomSystem.permitsMaterializationShutdown(blocked), "Materialization shutdown ignored a MATERIALIZING claim.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.RUNNING, runtime.materialization().snapshot().state(), "Materialization stopped before background quiescence.");
+			runtime.background().materializeAborted(runtime.profileId(), runtime.characterObjectId());
+			PhantomAssertions.assertTrue(PhantomSystem.permitsMaterializationShutdown(runtime.background().materializationQuiescence()), "Terminal abort did not open the materialization shutdown gate.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, runtime.materialization().shutdown().state(), "Materialization did not stop after quiescence.");
+			PhantomAssertions.assertTrue(runtime.background().finishStop(), "Background did not finish after materialization stopped.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testBlockedQuiescence() throws Exception
+	{
+		final CountDownLatch entered = new CountDownLatch(1);
+		final CountDownLatch release = new CountDownLatch(1);
+		final AtomicBoolean block = new AtomicBoolean();
+		final PhantomBackgroundTransaction transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
+		{
+			if ((point == FaultPoint.AFTER_PROFILE_LOCK) && block.get())
+			{
+				entered.countDown();
+				try
+				{
+					if (!release.await(10, TimeUnit.SECONDS))
+					{
+						throw new AssertionError("Timed out waiting to release blocked background transaction.");
+					}
+				}
+				catch (InterruptedException exception)
+				{
+					Thread.currentThread().interrupt();
+					throw new AssertionError("Blocked background transaction was interrupted.", exception);
+				}
+			}
+		});
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId(), transaction, point ->
+		{
+		});
+		try
+		{
+			runtime.materialization().materialize(runtime.profileId());
+			runtime.materialization().dematerialize(runtime.profileId());
+			block.set(true);
+			final AtomicReference<PhantomBackgroundService.OperationResult> outcome = new AtomicReference<>();
+			final Thread worker = Thread.ofPlatform().name("goal015-blocked-transaction").start(() -> outcome.set(runtime.background().farm(runtime.profileId(), runtime.goal(), 1, 1, PhantomActivityState.BACKGROUND, 1)));
+			PhantomAssertions.assertTrue(entered.await(10, TimeUnit.SECONDS), "Background transaction did not reach the blocking point.");
+			final PhantomBackgroundService.QuiescenceSnapshot blocked = runtime.background().materializationQuiescence();
+			PhantomAssertions.assertTrue((blocked.operations() == 1) && (blocked.identityLeases() == 1) && (blocked.transactions() == 1), "In-flight operation/identity/transaction were not exposed together.");
+			PhantomAssertions.assertFalse(PhantomSystem.permitsMaterializationShutdown(blocked), "Materialization shutdown ignored an in-flight transaction.");
+			runtime.background().beginStop();
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.RUNNING, runtime.materialization().snapshot().state(), "Materialization stopped while the transaction was blocked.");
+			release.countDown();
+			worker.join(10_000);
+			PhantomAssertions.assertFalse(worker.isAlive(), "Blocked background worker did not drain.");
+			PhantomAssertions.assertTrue(outcome.get() != null, "Blocked background worker produced no result.");
+
+			final Field retainedField = PhantomBackgroundService.class.getDeclaredField("_retainedIdentityLeases");
+			retainedField.setAccessible(true);
+			@SuppressWarnings("unchecked")
+			final Map<Integer, Object> retained = (Map<Integer, Object>) retainedField.get(runtime.background());
+			final int sentinelId = 2_000_000_002;
+			final var sentinel = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(sentinelId, PhantomIdentityLeaseRegistry.OwnerKind.BACKGROUND);
+			PhantomAssertions.assertTrue(sentinel != null, "Could not reserve retained-quiescence sentinel.");
+			retained.put(sentinelId, sentinel);
+			try
+			{
+				PhantomAssertions.assertEquals(1, runtime.background().materializationQuiescence().retainedIdentityLeases(), "Retained identity was not exposed to shutdown.");
+				PhantomAssertions.assertFalse(PhantomSystem.permitsMaterializationShutdown(runtime.background().materializationQuiescence()), "Materialization shutdown ignored retained identity ownership.");
+			}
+			finally
+			{
+				retained.remove(sentinelId);
+				sentinel.close();
+			}
+			PhantomAssertions.assertTrue(runtime.background().materializationQuiescence().ready(), "Drained transaction did not become quiescent.");
+		}
+		finally
+		{
+			release.countDown();
+			runtime.close();
+		}
+	}
+
+	private void testCompactInventoryHash() throws Exception
+	{
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
+		try
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Compact inventory fixture did not materialize.");
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				final Item unrelated = action.player().getInventory().addItem(ItemProcessType.REWARD, NO_GRADE_WEAPON_ITEM_ID, 100, action.player(), this);
+				PhantomAssertions.assertTrue(unrelated != null, "Could not create >64 unrelated canonical inventory objects.");
+			}
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(runtime.profileId()).status(), "Compact inventory fixture did not capture.");
+			final PhantomBackgroundState ready = runtime.transaction().load(runtime.profileId()).state();
+			PhantomAssertions.assertTrue(scalarLong("SELECT COUNT(*) FROM items WHERE owner_id=? AND item_id=" + NO_GRADE_WEAPON_ITEM_ID, runtime.characterObjectId()) >= 100, "Current inventory API did not create the required >64 unrelated objects.");
+			PhantomAssertions.assertFalse(ready.inventory().canonicalHash().isBlank(), "Full canonical inventory hash was not persisted.");
+			PhantomAssertions.assertTrue(ready.inventory().objects().stream().noneMatch(item -> item.itemId() == NO_GRADE_WEAPON_ITEM_ID), "Unrelated objects leaked into the compact mutable projection.");
+			PhantomAssertions.assertTrue(new PhantomBackgroundStateCodec().encode(ready).length <= 4096, "Compact >64 inventory state exceeded 4096 bytes.");
+			final int unrelatedObjectId = (int) scalarLong("SELECT MIN(object_id) FROM items WHERE owner_id=? AND item_id=" + NO_GRADE_WEAPON_ITEM_ID, runtime.characterObjectId());
+			try (Connection connection = DatabaseFactory.getConnection();
+				PreparedStatement statement = connection.prepareStatement("UPDATE items SET count=2 WHERE object_id=? AND owner_id=?"))
+			{
+				statement.setInt(1, unrelatedObjectId);
+				statement.setInt(2, runtime.characterObjectId());
+				PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Concurrent unrelated mutation fixture failed.");
+			}
+			final Result conflict = runtime.transaction().execute(new PhantomBackgroundTransaction.Command(ready, runtime.goal(), key(runtime.fixture(), 1, 1, ActionKind.FARM), ready.progress(), ready.vitals(), ready.position(), ready.clock(), Map.of(), ready.autoGetSkills()));
+			PhantomAssertions.assertEquals(Status.CANONICAL_MISMATCH, conflict.status(), "Concurrent untracked canonical inventory change was not a typed conflict.");
+			try (Connection connection = DatabaseFactory.getConnection();
+				PreparedStatement statement = connection.prepareStatement("UPDATE items SET count=1 WHERE object_id=? AND owner_id=?"))
+			{
+				statement.setInt(1, unrelatedObjectId);
+				statement.setInt(2, runtime.characterObjectId());
+				statement.executeUpdate();
+			}
+			final Result exact = runtime.transaction().execute(new PhantomBackgroundTransaction.Command(ready, runtime.goal(), key(runtime.fixture(), 2, 1, ActionKind.FARM), ready.progress(), ready.vitals(), ready.position(), ready.clock(), Map.of(57, -1L, 10, 2L), ready.autoGetSkills()));
+			PhantomAssertions.assertEquals(Status.SUCCESS, exact.status(), "Supported tracked resource/drop batch failed with >64 unrelated objects.");
+			PhantomAssertions.assertEquals(_environment.primary().fixtureItemBaseline() - 1, scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=57", runtime.characterObjectId()), "Tracked stack resource delta was not exact.");
+			PhantomAssertions.assertEquals(2L, scalarLong("SELECT COUNT(*) FROM items WHERE owner_id=? AND item_id=10", runtime.characterObjectId()), "Tracked non-stackable drop delta was not exact.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testAuthoritativeShotContract() throws Exception
+	{
+		final int objectId = _environment.primary().objectId();
+		final Canonical original = canonical(objectId);
+		final int originalBaseClass = (int) scalarLong("SELECT base_class FROM characters WHERE charId=?", objectId);
+		final ShotCapabilitySelection selection = productionShotCapability();
+		Player player = null;
+		try
+		{
+			try (Connection connection = DatabaseFactory.getConnection();
+				PreparedStatement statement = connection.prepareStatement("UPDATE characters SET classid=?,base_class=?,race=?,level=85,exp=? WHERE charId=?"))
+			{
+				statement.setInt(1, selection.playerClass().getId());
+				statement.setInt(2, selection.playerClass().getId());
+				statement.setInt(3, selection.playerClass().getRace().ordinal());
+				statement.setLong(4, ExperienceData.getInstance().getExpForLevel(85));
+				statement.setInt(5, objectId);
+				statement.executeUpdate();
+			}
+			player = Player.load(objectId);
+			PhantomAssertions.assertTrue(player != null, "Authoritative shot Player could not be loaded.");
+			final var skill = SkillData.getInstance().getSkill(selection.rule().actionSkill().skillId(), selection.rule().actionSkill().skillLevel());
+			PhantomAssertions.assertTrue(skill != null, "Authoritative physical capability skill is missing.");
+			player.addSkill(skill, false);
+			final Item weapon = player.getInventory().addItem(ItemProcessType.REWARD, NO_GRADE_WEAPON_ITEM_ID, 1, player, this);
+			PhantomAssertions.assertTrue(weapon != null, "No-grade authoritative weapon could not be created.");
+			player.getInventory().equipItem(weapon);
+			final Item shots = player.getInventory().addItem(ItemProcessType.REWARD, NO_GRADE_SOULSHOT_ITEM_ID, 10, player, this);
+			PhantomAssertions.assertTrue(shots != null, "No-grade authoritative soulshot could not be created.");
+			final Player configuredPlayer = player;
+			final L2jPhantomBackgroundAuthority.ShotContract positive = _production.authority().validateShotContract(configuredPlayer, goalWithShot(NO_GRADE_SOULSHOT_ITEM_ID, 1));
+			PhantomAssertions.assertEquals(ModelKind.MELEE, positive.modelKind(), "Physical capability selected the wrong background model.");
+			PhantomAssertions.assertEquals(1, positive.shotsPerEncounter(), "Current weapon soulshot count changed.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> _production.authority().validateShotContract(configuredPlayer, goalWithShot(57, 1)), "Adena/arbitrary item was admitted as a shot.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> _production.authority().validateShotContract(configuredPlayer, goalWithShot(NO_GRADE_SPIRITSHOT_ITEM_ID, 1)), "Wrong physical shot type was admitted.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> _production.authority().validateShotContract(configuredPlayer, goalWithShot(1463, 1)), "Wrong-grade shot was admitted.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> _production.authority().validateShotContract(configuredPlayer, goalWithShot(NO_GRADE_SOULSHOT_ITEM_ID, 2)), "Wrong bounded shot count was admitted.");
+		}
+		finally
+		{
+			_environment.cleanupLoadedPlayer(player);
+			restoreCharacter(objectId, original, originalBaseClass);
+			restorePrimaryInventoryAndSkills(objectId);
+		}
+	}
+
+	private void testProductionCorpusAudit()
+	{
+		final var knowledge = _production.knowledge().snapshot();
+		final List<String> audited = new ArrayList<>();
+		final List<String> supported = new ArrayList<>();
+		for (PhantomTopologyAnchor anchor : _production.topology().snapshot().anchors().stream().filter(candidate -> candidate.role() == PhantomTopologyAnchorRole.FARMING).sorted(Comparator.comparing(PhantomTopologyAnchor::id)).toList())
+		{
+			final int npcId = anchor.npcId() == null ? 0 : anchor.npcId();
+			final var npc = knowledge.npcById().get(npcId);
+			final boolean normal = (npc != null) && (npc.kind() == NpcKind.MONSTER) && npc.attackable() && npc.targetable() && (NpcData.getInstance().getTemplate(npcId) != null);
+			final boolean spawned = knowledge.spawnAreasByNpc().getOrDefault(npcId, List.of()).stream().anyMatch(area -> (area.instanceId() == 0) && (area.totalConfiguredAmount() > 0) && anchor.nodeId().equals(area.topologyNodeId()));
+			final List<Integer> unsupportedDrops = knowledge.dropFactsByNpc().getOrDefault(npcId, List.of()).stream().filter(fact ->
+			{
+				final var item = ItemData.getInstance().getTemplate(fact.itemId());
+				return (item == null) || item.hasExImmediateEffect() || (item.getTime() != -1);
+			}).map(DropFact::itemId).distinct().sorted().toList();
+			final String evidence = npcId + "@" + anchor.id() + ":normal=" + normal + ":spawned=" + spawned + ":unsupportedDrops=" + unsupportedDrops;
+			audited.add(evidence);
+			if (normal && spawned && unsupportedDrops.isEmpty())
+			{
+				supported.add(npcId + "@" + anchor.id());
+			}
+		}
+		PhantomAssertions.assertEquals(List.of("22859@giran.farming.22859:normal=true:spawned=true:unsupportedDrops=[8600, 8601, 8602, 8603, 8604, 8605, 8606, 8607, 8608, 8609, 8610, 8611, 8612, 8613, 8614, 10655, 10656, 10657, 13028]"), audited, "Deterministic current production farm corpus changed.");
+		PhantomAssertions.assertEquals(List.of(), supported, "A supported production farm pair now exists and must run the real canonical batch before Goal 015 can pass.");
+	}
+
+	private void testRecoveryCancellation() throws Exception
+	{
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
+		try
+		{
+			makeDead(runtime);
+			final var cancelled = runtime.background().recover(runtime.profileId(), runtime.goal(), PhantomActivityState.WARM, () -> true);
+			PhantomAssertions.assertEquals(OperationStatus.RETRY, cancelled.status(), "Recovery cancellation was not typed RETRY.");
+			PhantomAssertions.assertEquals("recovery.teleport_cancelled", cancelled.reason(), "Recovery cancellation reason changed.");
+			PhantomAssertions.assertEquals(State.DEAD, runtime.transaction().load(runtime.profileId()).state().state(), "Cancelled recovery changed durable DEAD state.");
+			PhantomAssertions.assertTrue(runtime.materialization().find(runtime.profileId()).isEmpty(), "Cancelled recovery materialized the Player.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testRealLoginGuard() throws Exception
+	{
+		final Fixture fixture = createFixture(_environment.primary().objectId(), null);
+		try
+		{
+			final byte[] before = new PhantomBackgroundStateCodec().encode(fixture.transaction().load(fixture.profileId()).state());
+			PhantomAssertions.assertEquals(PhantomBackgroundLoginGuard.Decision.REJECT_BACKGROUND_OWNED, PhantomBackgroundLoginGuard.inspect(fixture.characterObjectId()), "READY background state did not block real login.");
+			try (var login = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(fixture.characterObjectId(), PhantomIdentityLeaseRegistry.OwnerKind.REAL_LOGIN))
+			{
+				PhantomAssertions.assertTrue(login != null, "Between-ticks real-login lease could not be acquired.");
+				PhantomAssertions.assertEquals(PhantomBackgroundLoginGuard.Decision.REJECT_BACKGROUND_OWNED, PhantomBackgroundLoginGuard.inspect(fixture.characterObjectId()), "Between-ticks durable background state did not block real login.");
+			}
+			try (var background = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(fixture.characterObjectId(), PhantomIdentityLeaseRegistry.OwnerKind.BACKGROUND))
+			{
+				PhantomAssertions.assertTrue(background != null, "Background lease fixture could not be acquired.");
+				PhantomAssertions.assertTrue(PhantomIdentityLeaseRegistry.getInstance().tryAcquire(fixture.characterObjectId(), PhantomIdentityLeaseRegistry.OwnerKind.REAL_LOGIN) == null, "Real login bypassed a held background lease.");
+			}
+			final byte[] after = new PhantomBackgroundStateCodec().encode(fixture.transaction().load(fixture.profileId()).state());
+			PhantomAssertions.assertTrue(java.util.Arrays.equals(before, after), "Rejected real-login checks changed durable background state.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, fixture.transaction().markMaterialized(fixture.profileId(), fixture.characterObjectId()).status(), "Could not mark the real-login positive control MATERIALIZED.");
+			PhantomAssertions.assertEquals(PhantomBackgroundLoginGuard.Decision.ALLOW_MATERIALIZED, PhantomBackgroundLoginGuard.inspect(fixture.characterObjectId()), "MATERIALIZED state was not admitted to the existing real-login arbitration seam.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, fixture.transaction().abortMaterialization(fixture.profileId(), fixture.characterObjectId()).status(), "Could not restore the real-login fixture.");
+		}
+		finally
+		{
+			fixture.close();
+		}
+	}
+
 	private void testStateCodec()
 	{
 		final PhantomBackgroundState state = state(1, 101, State.READY, 100, 100, inventory());
@@ -311,10 +827,10 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private void testDeterminismAndResources()
 	{
-		final InventoryFacts inventory = InventoryFacts.sorted(List.of(
+		final InventoryFacts inventory = InventoryFacts.sorted(List.of(1463, 2509, 6645), List.of(
 			new ItemObject(1, 1463, 500, true, ItemLocation.INVENTORY),
 			new ItemObject(2, 2509, 500, true, ItemLocation.INVENTORY),
-			new ItemObject(3, 6645, 500, true, ItemLocation.INVENTORY)), 1000, 100000, 3, 100);
+			new ItemObject(3, 6645, 500, true, ItemLocation.INVENTORY)), "model", 1000, 100000, 3, 100);
 		final PhantomBackgroundModel model = new PhantomBackgroundModel();
 		for (int shotItemId : List.of(1463, 2509))
 		{
@@ -334,12 +850,12 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	{
 		final Drop stackable = new Drop(57, -1, 0, 100, 100, 3, 3, 1, null, 1, 100, true, 0);
 		final Drop nonstackable = new Drop(10, -1, 1, 100, 100, 1, 1, 1, null, 1, 100, false, 10);
-		final PhantomBackgroundState state = state(1, 101, State.READY, 100, 100, new InventoryFacts(List.of(), 0, 100000, 0, 100));
+		final PhantomBackgroundState state = state(1, 101, State.READY, 100, 100, new InventoryFacts(List.of(10, 57), List.of(), "model", 0, 100000, 0, 100));
 		final BatchResult result = new PhantomBackgroundModel().evaluate(request(state, target(1, 1, 0, List.of(stackable, nonstackable))));
 		PhantomAssertions.assertTrue(result.encounters() > 0, "Guaranteed drop fixture produced no encounters.");
 		PhantomAssertions.assertTrue(result.inventoryDelta().itemDeltas().get(57) % 3 == 0, "Drop amount became fractional.");
 		PhantomAssertions.assertTrue(result.inventoryDelta().newNonStackableObjects() <= PhantomBackgroundModel.MAX_NEW_NON_STACKABLE_OBJECTS, "Non-stackable object cap was exceeded.");
-		final InventoryFacts full = new InventoryFacts(List.of(), 100, 100, 0, 100);
+		final InventoryFacts full = new InventoryFacts(List.of(10), List.of(), "model", 100, 100, 0, 100);
 		final BatchResult rejected = new PhantomBackgroundModel().evaluate(request(state(1, 101, State.READY, 100, 100, full), target(1, 1, 0, List.of(nonstackable))));
 		PhantomAssertions.assertEquals(PhantomBackgroundModel.ResultReason.WEIGHT_CAPACITY, rejected.reason(), "Weight limit did not stop before mutation.");
 		final List<Drop> tooMany = new ArrayList<>();
@@ -673,22 +1189,64 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
 		try
 		{
-			runtime.materialization().materialize(runtime.profileId());
-			runtime.materialization().dematerialize(runtime.profileId());
-			final PhantomBackgroundState ready = runtime.transaction().load(runtime.profileId()).state();
-			final Vitals deadVitals = new Vitals(0, ready.vitals().maximumHp(), ready.vitals().currentMp(), ready.vitals().maximumMp(), 0, ready.vitals().maximumCp());
-			final Progress deadProgress = new Progress(ready.progress().level(), ready.progress().experience(), ready.progress().skillPoints(), ready.progress().experience());
-			final Result dead = runtime.transaction().execute(new PhantomBackgroundTransaction.Command(ready, runtime.goal(), key(runtime.fixture(), 2, 1, ActionKind.FARM), deadProgress, deadVitals, ready.position(), new Clock(3, 0, 0), Map.of(), exactAutoGetSkills(ready.identity(), deadProgress.level())));
-			PhantomAssertions.assertEquals(Status.SUCCESS, dead.status(), "Causal DEAD state could not be committed.");
-			PhantomAssertions.assertEquals(State.DEAD, dead.state().state(), "Zero HP did not promote DEAD.");
+			final PhantomBackgroundState dead = makeDead(runtime);
+			final long itemCount = scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=57", runtime.characterObjectId());
 			final var recovered = runtime.background().recover(runtime.profileId(), runtime.goal(), PhantomActivityState.WARM);
 			PhantomAssertions.assertEquals(OperationStatus.FAIL_GOAL, recovered.status(), "Canonical recovery did not return typed FAIL_GOAL: " + recovered.reason());
-			PhantomAssertions.assertEquals(State.READY, runtime.transaction().load(runtime.profileId()).state().state(), "Recovered canonical state is not READY.");
+			final PhantomBackgroundState ready = runtime.transaction().load(runtime.profileId()).state();
+			PhantomAssertions.assertEquals(State.READY, ready.state(), "Recovered canonical state is not READY.");
+			PhantomAssertions.assertTrue(ready.vitals().currentHp() > 0, "Recovery did not restore canonical HP.");
+			PhantomAssertions.assertEquals(dead.progress().experience(), ready.progress().experience(), "Recovery fabricated EXP.");
+			PhantomAssertions.assertEquals(itemCount, scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=57", runtime.characterObjectId()), "Recovery fabricated supplies.");
+			PhantomAssertions.assertEquals(ready.position().x(), (int) scalarLong("SELECT x FROM characters WHERE charId=?", runtime.characterObjectId()), "Recovery DB X differs from resolved town.");
+			PhantomAssertions.assertEquals(ready.position().y(), (int) scalarLong("SELECT y FROM characters WHERE charId=?", runtime.characterObjectId()), "Recovery DB Y differs from resolved town.");
+			PhantomAssertions.assertEquals(ready.position().z(), (int) scalarLong("SELECT z FROM characters WHERE charId=?", runtime.characterObjectId()), "Recovery DB Z differs from resolved town.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, runtime.transaction().markMaterialized(runtime.profileId(), runtime.characterObjectId()).status(), "Recovered durable state does not admit MATERIALIZED.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, runtime.transaction().abortMaterialization(runtime.profileId(), runtime.characterObjectId()).status(), "Recovered durable MATERIALIZED control did not restore READY.");
+			Player probe = null;
+			try
+			{
+				probe = Player.load(runtime.characterObjectId());
+				PhantomAssertions.assertTrue(probe != null, "Recovered canonical Player probe could not load.");
+				PhantomAssertions.assertEquals(ready.progress().level(), probe.getLevel(), "Recovered raw Player level differs.");
+				PhantomAssertions.assertEquals(ready.progress().experience(), probe.getExp(), "Recovered raw Player EXP differs.");
+				PhantomAssertions.assertEquals(ready.progress().skillPoints(), probe.getSp(), "Recovered raw Player SP differs.");
+				PhantomAssertions.assertEquals(ready.vitals().currentHp(), probe.getCurrentHp(), "Recovered raw Player HP differs.");
+				PhantomAssertions.assertEquals(ready.position().x(), probe.getX(), "Recovered raw Player X differs.");
+				PhantomAssertions.assertEquals(ready.position().y(), probe.getY(), "Recovered raw Player Y differs.");
+				PhantomAssertions.assertEquals(ready.position().z(), probe.getZ(), "Recovered raw Player Z differs.");
+			}
+			finally
+			{
+				_environment.cleanupLoadedPlayer(probe);
+			}
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Recovered state could not rematerialize.");
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertEquals(ready.position().x(), action.player().getX(), "Rematerialized recovery X differs.");
+				PhantomAssertions.assertEquals(ready.position().y(), action.player().getY(), "Rematerialized recovery Y differs.");
+				PhantomAssertions.assertEquals(ready.position().z(), action.player().getZ(), "Rematerialized recovery Z differs.");
+				PhantomAssertions.assertTrue(action.player().getCurrentHp() > 0, "Rematerialized recovery retained zero HP.");
+			}
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(runtime.profileId()).status(), "Recovered rematerialization cleanup failed.");
 		}
 		finally
 		{
 			runtime.close();
 		}
+	}
+
+	private PhantomBackgroundState makeDead(RuntimeFixture runtime) throws Exception
+	{
+		runtime.materialization().materialize(runtime.profileId());
+		runtime.materialization().dematerialize(runtime.profileId());
+		final PhantomBackgroundState ready = runtime.transaction().load(runtime.profileId()).state();
+		final Vitals deadVitals = new Vitals(0, ready.vitals().maximumHp(), ready.vitals().currentMp(), ready.vitals().maximumMp(), 0, ready.vitals().maximumCp());
+		final Progress deadProgress = new Progress(ready.progress().level(), ready.progress().experience(), ready.progress().skillPoints(), ready.progress().experience());
+		final Result dead = runtime.transaction().execute(new PhantomBackgroundTransaction.Command(ready, runtime.goal(), key(runtime.fixture(), 2, 1, ActionKind.FARM), deadProgress, deadVitals, ready.position(), new Clock(3, 0, 0), Map.of(), exactAutoGetSkills(ready.identity(), deadProgress.level())));
+		PhantomAssertions.assertEquals(Status.SUCCESS, dead.status(), "Causal DEAD state could not be committed.");
+		PhantomAssertions.assertEquals(State.DEAD, dead.state().state(), "Zero HP did not promote DEAD.");
+		return dead.state();
 	}
 
 	private void testStopDrain() throws Exception
@@ -825,10 +1383,6 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(selectedSkill != null, "Selected production capability skill is absent.");
 			player.addSkill(selectedSkill, false);
 			PhantomAssertions.assertTrue((player.getKnownSkill(selected.actionSkill().skillId()) != null) && (player.getKnownSkill(selected.actionSkill().skillId()).getLevel() >= selected.actionSkill().skillLevel()), "Selected production capability was not installed on the real Player fixture.");
-			final PhantomBackgroundState captured = _production.authority().capture(15001501, player, goal, null);
-			PhantomAssertions.assertEquals(player.getObjectId(), captured.identity().characterObjectId(), "Production capture changed the real Player identity.");
-			PhantomAssertions.assertEquals(anchor.id(), captured.position().committedAnchorId(), "Production capture did not retain the exact topology anchor.");
-
 			final NpcTemplate template = NpcData.getInstance().getTemplate(farm.npcId());
 			PhantomAssertions.assertTrue(template != null, "Real current target NPC is absent.");
 			final List<DropFact> facts = _production.knowledge().snapshot().dropFactsByNpc().getOrDefault(farm.npcId(), List.of());
@@ -852,12 +1406,13 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(loaderDrop.getMax(), fact.maximumCount(), "Production maximum count changed at " + index);
 			}
 			PhantomAssertions.assertTrue(facts.stream().anyMatch(fact -> ItemData.getInstance().getTemplate(fact.itemId()).hasExImmediateEffect()), "Real fail-closed target no longer contains the excluded immediate-effect evidence.");
-			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> _production.authority().farmInput(captured, PhantomBackgroundGoalSpec.parse(goal)), "Excluded immediate-effect drop was admitted into background mutation.");
+			final Player configuredPlayer = player;
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> _production.authority().capture(15001501, configuredPlayer, goal, null), "Excluded immediate-effect drop was admitted into the persisted baseline.");
 
 			final Set<String> operationKeys = new HashSet<>();
 			for (int identity = 1; identity <= 300; identity++)
 			{
-				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(captured.identity().profileId(), captured.identity().characterObjectId(), goal.goalId(), goal.revision(), 1, identity, ActionKind.FARM, farm.npcId(), anchor.id(), PhantomBackgroundState.MODEL_VERSION, captured.hashes());
+				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(15001501, player.getObjectId(), goal.goalId(), goal.revision(), 1, identity, ActionKind.FARM, farm.npcId(), anchor.id(), PhantomBackgroundState.MODEL_VERSION, _production.authority().hashes());
 				PhantomAssertions.assertTrue(operationKeys.add(key.digest()), "A production result operation identity collided at " + identity);
 			}
 			PhantomAssertions.assertEquals(300, operationKeys.size(), "Production result identity corpus is incomplete.");
@@ -887,6 +1442,25 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			}
 		}
 		throw new AssertionError("Production progression has no supported background combat capability.");
+	}
+
+	private ShotCapabilitySelection productionShotCapability()
+	{
+		final var equipment = _production.progression().equipment(NO_GRADE_WEAPON_ITEM_ID);
+		PhantomAssertions.assertTrue(equipment != null, "Current progression catalog does not classify the no-grade weapon.");
+		for (PlayerClass playerClass : PlayerClass.values())
+		{
+			final CapabilityRule rule = _production.progression().capabilities(playerClass.getId()).stream().filter(candidate -> "combat.melee_damage".equals(candidate.capabilityKey()) && candidate.requiredItems().isEmpty() && !candidate.summonRequired() && !candidate.servitorRequired() && Set.of(equipment.family()).containsAll(candidate.requiredEquipmentFamilies())).filter(candidate ->
+			{
+				final var fact = _production.progression().skill(candidate.actionSkill());
+				return (fact != null) && fact.damage() && !fact.pvpOnly() && !fact.suicideAttack() && (fact.hpConsume() == 0) && (fact.itemConsumeId() == 0);
+			}).sorted(Comparator.comparingInt(CapabilityRule::rank).reversed().thenComparing(CapabilityRule::stableKey)).findFirst().orElse(null);
+			if (rule != null)
+			{
+				return new ShotCapabilitySelection(playerClass, rule);
+			}
+		}
+		throw new AssertionError("Current progression corpus has no no-grade physical shot capability.");
 	}
 
 	private ProductionFarmSelection productionFarmSelection()
@@ -1002,7 +1576,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			new Position(0, canonical.x(), canonical.y(), canonical.z(), canonical.heading(), ANCHOR_ID),
 			combat(ModelKind.MELEE, 1, 1, 100),
 			Loadout.none(),
-			new InventoryFacts(List.of(), 0, 1_000_000, 0, 100),
+			new InventoryFacts(List.of(10, 57), List.of(), "", 0, 1_000_000, 0, 100),
 			autoGetSkills,
 			new Clock(SEED, 0, 0),
 			Receipt.empty(),
@@ -1031,19 +1605,47 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private RuntimeFixture createRuntimeFixture(int characterObjectId) throws Exception
 	{
+		return createRuntimeFixture(characterObjectId, new PhantomBackgroundTransaction(), point ->
+		{
+		});
+	}
+
+	private RuntimeFixture createRuntimeFixture(int characterObjectId, PhantomBackgroundTransaction transaction, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailureInjector failureInjector) throws Exception
+	{
 		final PhantomProfile profile = _repository.create(characterObjectId);
 		final PhantomGoal goal = goal();
 		final PhantomGoalStateStore goals = new PhantomGoalStateStore(_repository);
 		goals.insert(profile.profileId(), goal);
-		final PhantomBackgroundTransaction transaction = new PhantomBackgroundTransaction();
 		final AtomicReference<PhantomMaterializationService> materializationRef = new AtomicReference<>();
 		final PhantomBackgroundService background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, new FakeAuthority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), materializationRef::get);
 		background.start();
 		final PhantomMetrics metrics = new PhantomMetrics();
-		final PhantomMaterializationService materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 2, background);
+		final PhantomMaterializationService materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 2, failureInjector, background, 5_000, 10_000);
 		materialization.start();
 		materializationRef.set(materialization);
 		return new RuntimeFixture(new Fixture(profile.profileId(), characterObjectId, goal, transaction, null, canonical(characterObjectId)), background, materialization);
+	}
+
+	private PhantomMaterializationService materialization(int maximum, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailureInjector failureInjector, PhantomMaterializationLifecyclePort lifecycle)
+	{
+		final PhantomMetrics metrics = new PhantomMetrics();
+		return new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), maximum, failureInjector, lifecycle, 5_000, 10_000);
+	}
+
+	private void deleteProfile(PhantomProfile profile)
+	{
+		_repository.find(profile.profileId()).ifPresent(current -> _repository.delete(current.profileId(), current.rowVersion()));
+	}
+
+	private static void updateCharacterOnline(int characterObjectId, int online) throws Exception
+	{
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("UPDATE characters SET online=? WHERE charId=?"))
+		{
+			statement.setInt(1, online);
+			statement.setInt(2, characterObjectId);
+			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Character online fixture update failed.");
+		}
 	}
 
 	private static PhantomGoal goal()
@@ -1053,7 +1655,17 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private static PhantomGoal goal(int npcId, String anchorId)
 	{
-		return new PhantomGoal(15, PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("npc", Integer.toString(npcId)), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, npcId + "@" + anchorId)), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchorId), "farm.background", 500, 0, 0, 0, Map.of(), "background.explicit", 0);
+		return goal(npcId, anchorId, Map.of());
+	}
+
+	private static PhantomGoal goalWithShot(int shotItemId, int count)
+	{
+		return goal(PRODUCTION_TARGET_NPC_ID, PRODUCTION_FARM_ANCHOR_ID, Map.of(PhantomBackgroundGoalSpec.SHOT_ITEM, (long) shotItemId, PhantomBackgroundGoalSpec.SHOT_COUNT, (long) count));
+	}
+
+	private static PhantomGoal goal(int npcId, String anchorId, Map<String, Long> constraints)
+	{
+		return new PhantomGoal(15, PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("npc", Integer.toString(npcId)), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, npcId + "@" + anchorId)), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchorId), "farm.background", 500, 0, 0, 0, constraints, "background.explicit", 0);
 	}
 
 	private static PhantomBackgroundState productionState(PhantomTopologyAnchor anchor, Hashes hashes)
@@ -1088,7 +1700,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private static InventoryFacts inventory()
 	{
-		return new InventoryFacts(List.of(), 0, 100000, 0, 100);
+		return new InventoryFacts(List.of(), List.of(), "model", 0, 100000, 0, 100);
 	}
 
 	private static Target target(int level, double experience, double skillPoints, List<Drop> drops)
@@ -1234,6 +1846,45 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			statement.setInt(17, canonical.race());
 			statement.setInt(18, objectId);
 			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Real Player fixture restore did not affect exactly one row.");
+		}
+	}
+
+	private void restorePrimaryInventoryAndSkills(int objectId) throws Exception
+	{
+		final List<Integer> removedObjectIds = new ArrayList<>();
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement select = connection.prepareStatement("SELECT object_id FROM items WHERE owner_id=? AND item_id<>? ORDER BY object_id");
+			PreparedStatement delete = connection.prepareStatement("DELETE FROM items WHERE owner_id=? AND item_id<>?"))
+		{
+			select.setInt(1, objectId);
+			select.setInt(2, PhantomActionFacade.FIXTURE_ITEM_ID);
+			try (ResultSet rows = select.executeQuery())
+			{
+				while (rows.next())
+				{
+					removedObjectIds.add(rows.getInt(1));
+				}
+			}
+			delete.setInt(1, objectId);
+			delete.setInt(2, PhantomActionFacade.FIXTURE_ITEM_ID);
+			delete.executeUpdate();
+		}
+		removedObjectIds.forEach(IdManager.getInstance()::releaseId);
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement item = connection.prepareStatement("UPDATE items SET count=? WHERE owner_id=? AND item_id=?");
+			PreparedStatement skills = connection.prepareStatement("DELETE FROM character_skills WHERE charId=? AND NOT (class_index=0 AND skill_id=?)");
+			PreparedStatement restoreSkill = connection.prepareStatement("INSERT INTO character_skills (charId,skill_id,skill_level,class_index) VALUES (?,?,1,0) ON DUPLICATE KEY UPDATE skill_level=1"))
+		{
+			item.setLong(1, _environment.primary().fixtureItemBaseline());
+			item.setInt(2, objectId);
+			item.setInt(3, PhantomActionFacade.FIXTURE_ITEM_ID);
+			PhantomAssertions.assertEquals(1, item.executeUpdate(), "Primary fixture item restore failed.");
+			skills.setInt(1, objectId);
+			skills.setInt(2, _environment.primary().skillId());
+			skills.executeUpdate();
+			restoreSkill.setInt(1, objectId);
+			restoreSkill.setInt(2, _environment.primary().skillId());
+			restoreSkill.executeUpdate();
 		}
 	}
 
@@ -1419,7 +2070,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		{
 			PhantomBackgroundGoalSpec.parse(goal);
 			final Identity identity = new Identity(profileId, player.getObjectId(), player.getClassIndex(), player.getActiveClass(), player.getRace().ordinal());
-			return new PhantomBackgroundState(State.MATERIALIZED, identity, new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath()), new Vitals(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp()), new Position(0, player.getX(), player.getY(), player.getZ(), player.getHeading(), ANCHOR_ID), combat(ModelKind.MELEE, 1, 1, 100), Loadout.none(), new InventoryFacts(List.of(), 0, 1_000_000, 0, 100), exactAutoGetSkills(identity, player.getLevel()), previous == null ? new Clock(SEED, 0, 0) : previous.clock(), previous == null ? Receipt.empty() : previous.receipt(), HASHES);
+			return new PhantomBackgroundState(State.MATERIALIZED, identity, new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath()), new Vitals(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp()), new Position(0, player.getX(), player.getY(), player.getZ(), player.getHeading(), ANCHOR_ID), combat(ModelKind.MELEE, 1, 1, 100), Loadout.none(), new InventoryFacts(List.of(10, 57), List.of(), "", 0, 1_000_000, 0, 100), exactAutoGetSkills(identity, player.getLevel()), previous == null ? new Clock(SEED, 0, 0) : previous.clock(), previous == null ? Receipt.empty() : previous.receipt(), HASHES);
 		}
 
 		@Override
@@ -1549,8 +2200,74 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	{
 	}
 
+	private record ShotCapabilitySelection(PlayerClass playerClass, CapabilityRule rule)
+	{
+	}
+
 	private record ProductionFarmSelection(int npcId, PhantomTopologyAnchor anchor)
 	{
+	}
+
+	private static final class RecordingLifecyclePort implements PhantomMaterializationLifecyclePort
+	{
+		private final AtomicInteger _beforeCount = new AtomicInteger();
+		private final AtomicInteger _successCount = new AtomicInteger();
+		private final AtomicInteger _abortCount = new AtomicInteger();
+		private final AtomicInteger _activeAttempts = new AtomicInteger();
+		private Runnable _before = () ->
+		{
+		};
+		private boolean _afterLoadFailure;
+
+		@Override
+		public void beforeMaterialize(long profileId, int characterObjectId)
+		{
+			_beforeCount.incrementAndGet();
+			_activeAttempts.incrementAndGet();
+			_before.run();
+		}
+
+		@Override
+		public void afterPlayerLoad(long profileId, Player player)
+		{
+			if (_afterLoadFailure)
+			{
+				throw new InjectedFailure();
+			}
+		}
+
+		@Override
+		public void materializeSucceeded(long profileId, int characterObjectId)
+		{
+			_successCount.incrementAndGet();
+			PhantomAssertions.assertTrue(_activeAttempts.decrementAndGet() >= 0, "Success callback underflowed lifecycle attempts.");
+		}
+
+		@Override
+		public void materializeAborted(long profileId, int characterObjectId)
+		{
+			_abortCount.incrementAndGet();
+			PhantomAssertions.assertTrue(_activeAttempts.decrementAndGet() >= 0, "Abort callback underflowed lifecycle attempts.");
+		}
+
+		@Override
+		public void beforeStore(long profileId, Player player)
+		{
+		}
+
+		@Override
+		public void afterStore(long profileId, Player player)
+		{
+		}
+
+		private void assertTerminal(int before, int success, int abort)
+		{
+			PhantomAssertions.assertEquals(before, _beforeCount.get(), "beforeMaterialize callback count changed.");
+			PhantomAssertions.assertEquals(success, _successCount.get(), "Materialization success terminal count changed.");
+			PhantomAssertions.assertEquals(abort, _abortCount.get(), "Materialization abort terminal count changed.");
+			PhantomAssertions.assertEquals(before, success + abort, "A successful beforeMaterialize attempt lacks exactly one terminal callback.");
+			PhantomAssertions.assertEquals(0, _activeAttempts.get(), "Lifecycle attempt counter leaked.");
+		}
 	}
 
 	private static final class InjectedFailure extends RuntimeException

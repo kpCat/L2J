@@ -126,7 +126,7 @@ public final class PhantomBackgroundDecision
 		{
 			case FARM -> _service.farm(context.profileId(), context.goal(), context.activityGeneration(), context.tickSequence(), context.effectiveState(), context.logicalNowNanos());
 			case TRAVEL -> _service.travel(context.profileId(), context.goal(), context.activityGeneration(), context.tickSequence(), context.effectiveState(), context.logicalNowNanos());
-			case RECOVER -> _service.recover(context.profileId(), context.goal(), context.effectiveState());
+			case RECOVER -> _service.recover(context.profileId(), context.goal(), context.effectiveState(), context.cancellationToken()::isCancelled);
 			default -> throw new IllegalArgumentException("Unsupported background directive.");
 		};
 		final String reason = switch (result.status())

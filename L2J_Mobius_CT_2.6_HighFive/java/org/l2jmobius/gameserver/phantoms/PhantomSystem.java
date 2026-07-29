@@ -291,35 +291,33 @@ public final class PhantomSystem
 			final boolean combatStopped = (_combatService == null) || _combatService.finishStop();
 			final boolean progressionStopped = (_progressionService == null) || _progressionService.finishStop();
 			final boolean commerceStopped = (_commerceService == null) || _commerceService.finishStop();
-			if (combatStopped && progressionStopped && commerceStopped && (_materializationService != null))
+			boolean materializationStopped = _materializationService == null;
+			if (combatStopped && progressionStopped && commerceStopped && backgroundReadyForMaterializationShutdown() && (_materializationService != null))
 			{
-				_materializationService.shutdown();
+				materializationStopped = _materializationService.shutdown().state() == ServiceState.STOPPED;
 			}
-			if (_backgroundService != null)
-			{
-				_backgroundService.finishStop();
-			}
-			if (_scheduler != null)
+			final boolean backgroundStopped = (_backgroundService == null) || (materializationStopped && _backgroundService.finishStop());
+			if (backgroundStopped && (_scheduler != null))
 			{
 				_scheduler.finishStop();
 			}
-			if (_gameKnowledgeService != null)
+			if (backgroundStopped && (_gameKnowledgeService != null))
 			{
 				_gameKnowledgeService.finishStop();
 			}
-			if (_topologyService != null)
+			if (backgroundStopped && (_topologyService != null))
 			{
 				_topologyService.finishStop();
 			}
-			if (_decisionEngine != null)
+			if (backgroundStopped && (_decisionEngine != null))
 			{
 				_decisionEngine.finishStop();
 			}
-			if (_navigationService != null)
+			if (backgroundStopped && (_navigationService != null))
 			{
 				_navigationService.finishStop();
 			}
-			_state = State.STOPPED;
+			_state = backgroundStopped ? State.STOPPED : State.FAILED;
 			throw e;
 		}
 		_metrics.recordLifecycleStart();
@@ -387,7 +385,7 @@ public final class PhantomSystem
 				_state = State.FAILED;
 				return false;
 			}
-			if ((_backgroundService != null) && (_backgroundService.snapshot().currentOperations() != 0))
+			if (!backgroundReadyForMaterializationShutdown())
 			{
 				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
@@ -465,6 +463,11 @@ public final class PhantomSystem
 			{
 				_backgroundService.beginStop();
 			}
+			if (!backgroundReadyForMaterializationShutdown())
+			{
+				_metrics.recordShutdownFailure();
+				return false;
+			}
 			if (_materializationService != null)
 			{
 				final ShutdownResult result = _materializationService.shutdown();
@@ -508,6 +511,16 @@ public final class PhantomSystem
 
 		_state = State.STOPPED;
 		return false;
+	}
+
+	private boolean backgroundReadyForMaterializationShutdown()
+	{
+		return (_backgroundService == null) || permitsMaterializationShutdown(_backgroundService.materializationQuiescence());
+	}
+
+	public static boolean permitsMaterializationShutdown(PhantomBackgroundService.QuiescenceSnapshot snapshot)
+	{
+		return (snapshot != null) && snapshot.ready();
 	}
 
 	public synchronized Snapshot snapshot()

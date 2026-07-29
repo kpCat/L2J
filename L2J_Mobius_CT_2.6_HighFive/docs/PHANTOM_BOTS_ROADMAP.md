@@ -14,9 +14,10 @@
 Последний принятый production baseline:
 8dba87e9c1d5828376b80c1ea16c4578726d4947
 
-Текущий branch HEAD под ревью:
-Goal 014A commerce ownership and integration hardening —
-`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+Текущий branch HEAD:
+Goal 015 background farming reconciliation bounded completion — `BLOCKED`.
+Технические reconciliation gates закрыты, но в текущем production corpus нет
+ни одной допустимой exact anchor/NPC пары для успешного normal-solo farming.
 
 Task 004 technical feasibility:
 ACCEPT
@@ -87,6 +88,9 @@ Goal 014: ACCEPT after Goal 014A
 
 Goal 014A + completion: ACCEPT
 
+Goal 015: BLOCKED
+
+Historical parent marker (до bounded completion):
 Goal 015: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 017: NOT_STARTED
@@ -112,7 +116,8 @@ Goal 010C независимо принята, поэтому Goal 010 закр�
 Goal 012A независимо закрыла обязательные action-ownership findings. Goal 012
 принята после Goal 012A. Goal 013 и Goal 013A приняты после Goal 013B; Goal 013B
 имеет `ACCEPT_WITH_ACTIVATION_GATE`. Goal 014 принята после Goal 014A, а Goal
-014A с completion принята. Goal 015 реализована и ожидает независимого review.
+014A с completion принята. Goal 015 технически завершила reconciliation gates,
+но заблокирована отсутствием допустимой production farming-пары.
 Goal 016, Goal 017 и Goal 025 не начаты.
 
 ---
@@ -361,7 +366,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 016/017/025 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `BLOCKED`; Goal 016/017/025 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -701,7 +706,7 @@ data parity и restart-safe interruption.
 **Follow-up risk:** `HIGH` — canonical commerce validation and partial actions.
 **Correction:** Goal 014A + completion — `ACCEPT`.
 
-## Goal 015 — Background farming baseline и reconciliation — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+## Goal 015 — Background farming baseline и reconciliation — `BLOCKED`
 
 **Назначение:** causal cheap simulation для уже поддержанных plans.  
 **Зависимости:** 007, 008, 011–014.  
@@ -1148,7 +1153,9 @@ Accepted corrective truth:
 - Goal 014A + completion ACCEPT
 
 Next:
-1. Independent review Goal 015
+1. Добавить отдельной разрешённой data-задачей хотя бы одну production exact
+   anchor/NPC пару без excluded immediate/timed drops, затем повторить Goal 015
+   production audit и independent review
 2. Goal 016, Goal 017 and Goal 025 remain NOT_STARTED
 
 Stage gate:
@@ -1156,7 +1163,8 @@ Stage gate:
 - Stage II COMPLETE
 
 New risks:
-- Goal 015 background reconciliation awaits independent review
+- Goal 015 background reconciliation заблокирована production corpus:
+  `giran.farming.22859` содержит excluded immediate/timed drops
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered
 
 Roadmap changes:
@@ -1191,7 +1199,7 @@ Overall:
   Goal 013B ACCEPT_WITH_ACTIVATION_GATE;
   Goal 014 ACCEPT after Goal 014A;
   Goal 014A + completion ACCEPT;
-  Goal 015 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 015 BLOCKED;
   Goal 016/017/025 NOT_STARTED
 ```
 

@@ -710,7 +710,114 @@
 		</java>
 	</target>
 
-	<target name="phantom-background-test" depends="phantom-background-model-test,phantom-background-transaction-test,phantom-background-lifecycle-test,phantom-background-decision-test,phantom-background-server-integration-test,phantom-background-performance-smoke" description="Run the complete focused Goal 015 background farming reconciliation suite." />
+	<target name="phantom-background-materialization-abort-test" depends="compile-tests" description="Run Goal 015 terminal materialization callback and abort/retry tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="background-materialization-abort" />
+			<arg value="${phantom.goal015.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-background-quiescence-test" depends="compile-tests" description="Run Goal 015 explicit background-to-materialization shutdown quiescence tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="background-quiescence" />
+			<arg value="${phantom.goal015.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-background-compact-inventory-test" depends="compile-tests" description="Run Goal 015 full canonical inventory hash and compact tracked projection tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="background-compact-inventory" />
+			<arg value="${phantom.goal015.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-background-authoritative-shots-test" depends="compile-tests" description="Run Goal 015 current-data authoritative shot and summon-resource validation tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="background-authoritative-shots" />
+			<arg value="${phantom.goal015.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-background-production-audit-test" depends="compile-tests" description="Run Goal 015 deterministic current production farming-pair audit.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="background-production-audit" />
+			<arg value="${phantom.goal015.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-background-recovery-teleport-test" depends="compile-tests" description="Run Goal 015 bounded canonical recovery teleport and cancellation tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="background-recovery-teleport" />
+			<arg value="${phantom.goal015.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-background-real-login-test" depends="compile-tests" description="Run Goal 015 durable background real-login guard tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="background-real-login" />
+			<arg value="${phantom.goal015.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-background-test" depends="phantom-background-model-test,phantom-background-transaction-test,phantom-background-lifecycle-test,phantom-background-decision-test,phantom-background-server-integration-test,phantom-background-performance-smoke,phantom-background-materialization-abort-test,phantom-background-quiescence-test,phantom-background-compact-inventory-test,phantom-background-authoritative-shots-test,phantom-background-production-audit-test,phantom-background-recovery-teleport-test,phantom-background-real-login-test" description="Run the complete focused Goal 015 background farming reconciliation suite." />
+
+	<target name="phantom-background-completion-test" depends="phantom-background-test" description="Run the complete bounded Goal 015 completion gate." />
 
 	<target name="prepare-phantom-test-db" depends="compile-tests" description="Destructively recreate only the allowlisted Phantom test database.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestDatabaseProvisioner" classpathref="test.classpath" fork="true" failonerror="true">

@@ -202,6 +202,9 @@ public final class PhantomMaterializationService
 		{
 			return rejectMaterialization(ResultStatus.BACKGROUND_RECONCILIATION_BLOCKED);
 		}
+		final MaterializationLifecycleAttempt lifecycleAttempt = new MaterializationLifecycleAttempt(_lifecyclePort, profileId, characterObjectId);
+		try
+		{
 		final PhantomMaterializedPlayer.LifecycleSupport lifecycleSupport = new PhantomMaterializedPlayer.LifecycleSupport()
 		{
 			@Override
@@ -284,6 +287,7 @@ public final class PhantomMaterializationService
 				entry._countedActive = true;
 				_metrics.recordMaterializationSucceeded();
 				_trace.record("mat.success." + profileId);
+				lifecycleAttempt.succeed();
 				return new MaterializeResult(ResultStatus.SUCCESS, snapshot(entry));
 			}
 			catch (RuntimeException | Error e)
@@ -316,6 +320,11 @@ public final class PhantomMaterializationService
 				_metrics.recordMaterializationRejected();
 				return new MaterializeResult(retained ? ResultStatus.MATERIALIZATION_FAILED_RETAINED : ResultStatus.MATERIALIZATION_FAILED_CLEAN, retained ? snapshot(entry) : null);
 			}
+		}
+		}
+		finally
+		{
+			lifecycleAttempt.abortUnlessCompleted();
 		}
 	}
 
@@ -694,6 +703,40 @@ public final class PhantomMaterializationService
 
 	public record ShutdownSnapshot(ServiceState state, int retainedEntries)
 	{
+	}
+
+	private static final class MaterializationLifecycleAttempt
+	{
+		private final PhantomMaterializationLifecyclePort _port;
+		private final long _profileId;
+		private final int _characterObjectId;
+		private boolean _terminal;
+
+		private MaterializationLifecycleAttempt(PhantomMaterializationLifecyclePort port, long profileId, int characterObjectId)
+		{
+			_port = port;
+			_profileId = profileId;
+			_characterObjectId = characterObjectId;
+		}
+
+		private void succeed()
+		{
+			if (_terminal)
+			{
+				throw new IllegalStateException("Materialization lifecycle attempt already completed.");
+			}
+			_terminal = true;
+			_port.materializeSucceeded(_profileId, _characterObjectId);
+		}
+
+		private void abortUnlessCompleted()
+		{
+			if (!_terminal)
+			{
+				_terminal = true;
+				_port.materializeAborted(_profileId, _characterObjectId);
+			}
+		}
 	}
 
 	private static final class Entry

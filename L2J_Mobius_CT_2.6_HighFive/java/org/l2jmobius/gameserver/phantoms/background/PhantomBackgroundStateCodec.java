@@ -49,12 +49,15 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Vital
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 
 /**
- * Canonical binary codec for {@code background.state} schema version 1.
+ * Canonical binary codec for {@code background.state} schema version 2, with a
+ * read-only schema-1 upgrade path.
  */
 public final class PhantomBackgroundStateCodec
 {
 	private static final int MAGIC = 0x50424731;
-	private static final int FORMAT_VERSION = 1;
+	private static final int FORMAT_VERSION = 2;
+	private static final int LEGACY_FORMAT_VERSION = 1;
+	private static final int LEGACY_SCHEMA_VERSION = 1;
 
 	public byte[] encode(PhantomBackgroundState state)
 	{
@@ -114,7 +117,12 @@ public final class PhantomBackgroundStateCodec
 				output.writeInt(loadout.summonResourceItemId());
 				output.writeInt(loadout.summonResourcesPerEncounter());
 				final InventoryFacts inventory = state.inventory();
-				output.writeByte(inventory.objects().size());
+				output.writeByte(inventory.mutableItemIds().size());
+				for (int itemId : inventory.mutableItemIds())
+				{
+					output.writeInt(itemId);
+				}
+				output.writeShort(inventory.objects().size());
 				for (ItemObject object : inventory.objects())
 				{
 					output.writeInt(object.objectId());
@@ -123,6 +131,7 @@ public final class PhantomBackgroundStateCodec
 					output.writeBoolean(object.stackable());
 					output.writeByte(object.location().ordinal());
 				}
+				writeString(output, inventory.canonicalHash());
 				output.writeLong(inventory.currentLoad());
 				output.writeLong(inventory.maximumLoad());
 				output.writeShort(inventory.usedSlots());
@@ -172,9 +181,16 @@ public final class PhantomBackgroundStateCodec
 			final ByteArrayInputStream bytes = new ByteArrayInputStream(payload);
 			try (DataInputStream input = new DataInputStream(bytes))
 			{
-				if ((input.readInt() != MAGIC) || (input.readUnsignedShort() != FORMAT_VERSION) || (input.readUnsignedShort() != PhantomBackgroundState.SCHEMA_VERSION))
+				if (input.readInt() != MAGIC)
 				{
 					throw new IllegalArgumentException("Unknown background.state format.");
+				}
+				final int formatVersion = input.readUnsignedShort();
+				final int schemaVersion = input.readUnsignedShort();
+				final boolean legacy = (formatVersion == LEGACY_FORMAT_VERSION) && (schemaVersion == LEGACY_SCHEMA_VERSION);
+				if (!legacy && ((formatVersion != FORMAT_VERSION) || (schemaVersion != PhantomBackgroundState.SCHEMA_VERSION)))
+				{
+					throw new IllegalArgumentException("Unknown background.state version.");
 				}
 				final State state = enumValue(State.values(), input.readUnsignedByte(), "state");
 				final Identity identity = new Identity(input.readLong(), input.readInt(), input.readUnsignedByte(), input.readUnsignedShort(), input.readUnsignedByte());
@@ -184,7 +200,25 @@ public final class PhantomBackgroundStateCodec
 				final ModelKind modelKind = enumValue(ModelKind.values(), input.readUnsignedByte(), "model kind");
 				final CombatFacts combat = new CombatFacts(modelKind, input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble());
 				final Loadout loadout = new Loadout(input.readInt(), input.readUnsignedShort(), input.readInt(), input.readInt(), input.readInt(), input.readInt(), input.readInt(), input.readInt());
-				final int itemCount = input.readUnsignedByte();
+				final List<Integer> mutableItemIds = new ArrayList<>();
+				final int itemCount;
+				if (legacy)
+				{
+					itemCount = input.readUnsignedByte();
+				}
+				else
+				{
+					final int mutableItemCount = input.readUnsignedByte();
+					if (mutableItemCount > PhantomBackgroundState.MAX_MUTABLE_ITEM_IDS)
+					{
+						throw new IllegalArgumentException("Too many mutable background item IDs.");
+					}
+					for (int index = 0; index < mutableItemCount; index++)
+					{
+						mutableItemIds.add(input.readInt());
+					}
+					itemCount = input.readUnsignedShort();
+				}
 				if (itemCount > PhantomBackgroundState.MAX_TRACKED_ITEMS)
 				{
 					throw new IllegalArgumentException("Too many tracked background items.");
@@ -194,7 +228,17 @@ public final class PhantomBackgroundStateCodec
 				{
 					objects.add(new ItemObject(input.readInt(), input.readInt(), input.readLong(), input.readBoolean(), enumValue(ItemLocation.values(), input.readUnsignedByte(), "item location")));
 				}
-				final InventoryFacts inventory = new InventoryFacts(objects, input.readLong(), input.readLong(), input.readUnsignedShort(), input.readUnsignedShort());
+				final String inventoryHash;
+				if (legacy)
+				{
+					mutableItemIds.addAll(objects.stream().filter(object -> object.location() == ItemLocation.INVENTORY).map(ItemObject::itemId).distinct().sorted().toList());
+					inventoryHash = PhantomBackgroundInventoryHash.compute(objects.stream().map(object -> new PhantomBackgroundInventoryHash.CanonicalItem(object.objectId(), object.itemId(), object.count(), object.location())).toList());
+				}
+				else
+				{
+					inventoryHash = readString(input, bytes);
+				}
+				final InventoryFacts inventory = new InventoryFacts(mutableItemIds, objects, inventoryHash, input.readLong(), input.readLong(), input.readUnsignedShort(), input.readUnsignedShort());
 				final int autoSkillCount = input.readUnsignedByte();
 				if (autoSkillCount > 64)
 				{
@@ -213,7 +257,7 @@ public final class PhantomBackgroundStateCodec
 					throw new IllegalArgumentException("Trailing bytes after background.state payload.");
 				}
 				final PhantomBackgroundState result = new PhantomBackgroundState(state, identity, progress, vitals, position, combat, loadout, inventory, autoGetSkills, clock, receipt, hashes);
-				if (!Arrays.equals(payload, encode(result)))
+				if (!legacy && !Arrays.equals(payload, encode(result)))
 				{
 					throw new IllegalArgumentException("Non-canonical background.state payload.");
 				}

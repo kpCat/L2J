@@ -3,12 +3,10 @@ param()
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-$requiredParent = "9c9412bc4a05a520a83b5187054d6c8a8c12db3c"
+$requiredParent = "d41950922f6ceec53aca0326e6210e45353e0bc0"
 $requiredBranch = "feature/phantom-world"
-$requiredSubject = "feat(phantoms): add background farming reconciliation"
+$requiredSubject = "fix(phantoms): complete background reconciliation gate"
 $acceptedCommits = @(
-	"e9b98a243a68a710425a062155b9197ee6692b17",
-	"cb4fa6486dd705f5ba46d92bd8576424cbd188ee",
 	$requiredParent
 )
 $moduleRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
@@ -44,24 +42,19 @@ function Is-AllowedPath([string] $path)
 	$local = $path.Substring($prefix.Length)
 	return $local.StartsWith("java/org/l2jmobius/gameserver/phantoms/background/", [StringComparison]::Ordinal) `
 		-or $local -eq "java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java" `
-		-or $local -eq "java/org/l2jmobius/gameserver/phantoms/PhantomMetrics.java" `
-		-or $local -eq "java/org/l2jmobius/gameserver/phantoms/PhantomScheduler.java" `
-		-or $local.StartsWith("java/org/l2jmobius/gameserver/phantoms/activity/", [StringComparison]::Ordinal) `
-		-or $local.StartsWith("java/org/l2jmobius/gameserver/phantoms/decision/", [StringComparison]::Ordinal) `
-		-or $local.StartsWith("java/org/l2jmobius/gameserver/phantoms/player/", [StringComparison]::Ordinal) `
+		-or $local -eq "java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationLifecycleBridge.java" `
+		-or $local -eq "java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationLifecyclePort.java" `
+		-or $local -eq "java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java" `
 		-or $local -eq "java/org/l2jmobius/gameserver/network/GameClient.java" `
 		-or $local -eq "build.xml" `
 		-or $local -eq "test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java" `
 		-or $local -eq "test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java" `
-		-or $local -eq "tools/phantoms/verify-task-014.ps1" `
-		-or $local -eq "tools/phantoms/verify-task-014a.ps1" `
 		-or $local -eq "tools/phantoms/verify-task-015.ps1" `
-		-or $local -eq "PHANTOM_DEVELOPMENT_MASTER_PLAN.md" `
+		-or $local -eq "tools/phantoms/verify-task-015-history.txt" `
 		-or $local -eq "docs/PHANTOM_BOTS_ROADMAP.md" `
 		-or $local -eq "docs/phantoms/architecture/BACKGROUND_FARMING_RECONCILIATION_CONTRACT.md" `
 		-or $local -eq "docs/phantoms/reports/015-background-farming-reconciliation.md" `
-		-or $local -eq "docs/phantoms/reviews/014a-commerce-completion-review.md" `
-		-or $local.StartsWith("docs/phantoms/tasks/015-background-farming-reconciliation/", [StringComparison]::Ordinal)
+		-or $local -eq "docs/phantoms/reviews/015-background-farming-reconciliation-review.md"
 }
 
 $branch = (& git -C $repositoryRoot branch --show-current).Trim()
@@ -112,6 +105,8 @@ foreach ($obsolete in @("CODEX_EXECUTION_BUDGET_BLOCK.md", "MANIFEST.json", "PHA
 $requiredFiles = @(
 	"java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java",
 	"java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundStateCodec.java",
+	"java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundInventoryHash.java",
+	"java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundLoginGuard.java",
 	"java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java",
 	"java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
 	"java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java",
@@ -119,12 +114,14 @@ $requiredFiles = @(
 	"java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java",
 	"java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationLifecyclePort.java",
 	"java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationLifecycleBridge.java",
+	"java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java",
 	"java/org/l2jmobius/gameserver/phantoms/activity/PhantomActivityWorkSinkBridge.java",
+	"java/org/l2jmobius/gameserver/network/GameClient.java",
 	"test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java",
 	"tools/phantoms/verify-task-015.ps1",
 	"docs/phantoms/architecture/BACKGROUND_FARMING_RECONCILIATION_CONTRACT.md",
 	"docs/phantoms/reports/015-background-farming-reconciliation.md",
-	"docs/phantoms/reviews/014a-commerce-completion-review.md"
+	"docs/phantoms/reviews/015-background-farming-reconciliation-review.md"
 )
 foreach ($local in $requiredFiles)
 {
@@ -143,7 +140,7 @@ foreach ($entry in $packageHashes.GetEnumerator())
 }
 
 $stateText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java")
-foreach ($fact in @('COMPONENT_TYPE = "background.state"', "SCHEMA_VERSION = 1", "MODEL_VERSION = 1", "MATERIALIZED", "READY", "VERIFY_PENDING", "DEAD", "INCONSISTENT", "activityGeneration", "tickSequence", "committedAnchorId"))
+foreach ($fact in @('COMPONENT_TYPE = "background.state"', "SCHEMA_VERSION = 2", "MODEL_VERSION = 1", "MATERIALIZED", "READY", "VERIFY_PENDING", "DEAD", "INCONSISTENT", "activityGeneration", "tickSequence", "committedAnchorId", "mutableItemIds", "canonicalHash"))
 {
 	Assert-True ($stateText.Contains($fact)) "Background state fact is missing: $fact"
 }
@@ -155,13 +152,13 @@ foreach ($fact in @("MAX_ENCOUNTERS = 32", "MAX_ELAPSED_MILLIS = 60_000", "MAX_C
 }
 
 $transactionText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java")
-foreach ($fact in @("QUERY_TIMEOUT_SECONDS = 5", "LOCK_PROFILE", "LOCK_COMPONENT", "LOCK_CHARACTER", "LOCK_SUBCLASS", "LOCK_SKILLS", "LOCK_ITEMS", "ORDER BY skill_id FOR UPDATE", "ORDER BY object_id FOR UPDATE", "setAutoCommit(false)", "State.VERIFY_PENDING", "expectedAfterHash", "canonicalAutoGetSkills", "IdManager.getInstance().getNextId()", "captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal)", "lockAndValidateGoal(connection, materializedState.identity().profileId(), goal)"))
+foreach ($fact in @("QUERY_TIMEOUT_SECONDS = 5", "LOCK_PROFILE", "LOCK_COMPONENT", "LOCK_CHARACTER", "LOCK_SUBCLASS", "LOCK_SKILLS", "LOCK_ITEMS", "ORDER BY skill_id FOR UPDATE", "ORDER BY object_id FOR UPDATE", "setAutoCommit(false)", "State.VERIFY_PENDING", "expectedAfterHash", "canonicalAutoGetSkills", "IdManager.getInstance().getNextId()", "captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal)", "lockAndValidateGoal(connection, materializedState.identity().profileId(), goal)", "abortMaterialization", "PhantomBackgroundInventoryHash.compute"))
 {
 	Assert-True ($transactionText.Contains($fact)) "Canonical transaction fact is missing: $fact"
 }
 
 $serviceText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java")
-foreach ($fact in @("_currentOperations", "_peakOperations", "_currentIdentityLeases", "_peakIdentityLeases", "_currentTransactions", "_peakTransactions", "_currentTransitionClaims", "_peakTransitionClaims", "OwnerKind.BACKGROUND", "PlayerAutoSaveTaskManager", "PhantomActivityState.BACKGROUND", "PhantomActivityState.WARM", "DEATH_SIGNAL_SOURCE", "doRevive()", "TeleportWhereType.TOWN", "failGoal", "captureBaseline(captured, goal)"))
+foreach ($fact in @("_currentOperations", "_peakOperations", "_currentIdentityLeases", "_peakIdentityLeases", "_currentTransactions", "_peakTransactions", "_currentTransitionClaims", "_peakTransitionClaims", "OwnerKind.BACKGROUND", "PlayerAutoSaveTaskManager", "PhantomActivityState.BACKGROUND", "PhantomActivityState.WARM", "DEATH_SIGNAL_SOURCE", "doRevive()", "TeleportWhereType.TOWN", "RECOVERY_TELEPORT_TIMEOUT_NANOS", "materializeSucceeded", "materializeAborted", "materializationQuiescence", "failGoal", "captureBaseline(captured, goal)"))
 {
 	Assert-True ($serviceText.Contains($fact)) "Background service fact is missing: $fact"
 }
@@ -175,8 +172,12 @@ foreach ($fact in @('GOAL_TYPE = "farm.background"', 'SOURCE_NAMESPACE = "backgr
 
 $identityText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/player/PhantomIdentityLeaseRegistry.java")
 $clientText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/network/GameClient.java")
+$loginGuardText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundLoginGuard.java")
+$materializationText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java")
 Assert-True ($identityText.Contains("BACKGROUND")) "Typed BACKGROUND identity owner is missing."
 Assert-True ($clientText.Contains("OwnerKind.BACKGROUND")) "REAL_LOGIN arbitration does not recognize BACKGROUND ownership."
+Assert-True ($clientText.Contains("PhantomBackgroundLoginGuard.inspect(objectId)") -and $loginGuardText.Contains("State.MATERIALIZED") -and $loginGuardText.Contains("REJECT_BACKGROUND_OWNED") -and $loginGuardText.Contains("REJECT_UNVERIFIED")) "Durable background real-login guard is incomplete."
+Assert-True ($materializationText.Contains("MaterializationLifecycleAttempt") -and $materializationText.Contains("lifecycleAttempt.succeed()") -and $materializationText.Contains("lifecycleAttempt.abortUnlessCompleted()")) "Materialization attempt has no exact terminal lifecycle callback."
 
 $planningText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/decision/PhantomPlanningContext.java")
 $stepText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/decision/PhantomStepContext.java")
@@ -188,26 +189,26 @@ foreach ($fact in @("activityGeneration", "tickSequence", "effectiveState", "log
 Assert-True ($engineText.Contains("workItem.activityGeneration()") -and $engineText.Contains("workItem.tickSequence()")) "Decision engine does not propagate scheduler identity."
 
 $systemText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java")
-foreach ($fact in @("new PhantomBackgroundService(", "new PhantomBackgroundDecision(", "productionLifecycle.install(_backgroundService)", "productionWorkSink.install(_decisionEngine)", "_backgroundService.beginStop()", "_materializationService.shutdown()"))
+foreach ($fact in @("new PhantomBackgroundService(", "new PhantomBackgroundDecision(", "productionLifecycle.install(_backgroundService)", "productionWorkSink.install(_decisionEngine)", "_backgroundService.beginStop()", "_materializationService.shutdown()", "backgroundReadyForMaterializationShutdown()", "permitsMaterializationShutdown"))
 {
 	Assert-True ($systemText.Contains($fact)) "Production background composition fact is missing: $fact"
 }
 Assert-True ($systemText.IndexOf("new PhantomBackgroundService(", [StringComparison]::Ordinal) -lt $systemText.IndexOf("new PhantomDecisionEngine(", [StringComparison]::Ordinal)) "Background service is not composed before the decision engine."
 
 $suiteText = Read-Utf8Strict (Join-Path $moduleRoot "test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java")
-foreach ($fact in @("SEED = 15001501L", "testLifecycleLoop(1, 100)", "testLifecycleLoop(50, 0)", "identity <= 300", "100_000", "10_000", "BEFORE_OPERATION_COMMIT", "AFTER_OPERATION_COMMIT", "Status.INCONSISTENT", "PRODUCTION_TARGET_NPC_ID", "PhantomTopologyLoader", "Player.load(", "2509", "6645", "Disabled PhantomSystem"))
+foreach ($fact in @("SEED = 15001501L", "testLifecycleLoop(1, 100)", "testLifecycleLoop(50, 0)", "identity <= 300", "100_000", "10_000", "BEFORE_OPERATION_COMMIT", "AFTER_OPERATION_COMMIT", "Status.INCONSISTENT", "PRODUCTION_TARGET_NPC_ID", "PhantomTopologyLoader", "Player.load(", "2509", "6645", "Disabled PhantomSystem", "testMaterializationAbortMatrix", "testMaterializingQuiescence", "testCompactInventoryHash", "testAuthoritativeShotContract", "testProductionCorpusAudit", "testDeathRecovery", "testRealLoginGuard", "unsupportedDrops=[8600", "10655", "13028", "length <= 4096", "COUNT(*) FROM items"))
 {
 	Assert-True ($suiteText.Contains($fact)) "Goal 015 evidence is missing: $fact"
 }
 
 $buildText = Read-Utf8Strict (Join-Path $moduleRoot "build.xml")
 $launcherText = Read-Utf8Strict (Join-Path $moduleRoot "test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java")
-foreach ($target in @("phantom-background-model-test", "phantom-background-transaction-test", "phantom-background-lifecycle-test", "phantom-background-decision-test", "phantom-background-server-integration-test", "phantom-background-performance-smoke", "phantom-background-test", "phantom-static-verify-015"))
+foreach ($target in @("phantom-background-model-test", "phantom-background-transaction-test", "phantom-background-lifecycle-test", "phantom-background-decision-test", "phantom-background-server-integration-test", "phantom-background-performance-smoke", "phantom-background-materialization-abort-test", "phantom-background-quiescence-test", "phantom-background-compact-inventory-test", "phantom-background-authoritative-shots-test", "phantom-background-production-audit-test", "phantom-background-recovery-teleport-test", "phantom-background-real-login-test", "phantom-background-test", "phantom-background-completion-test", "phantom-static-verify-015"))
 {
 	Assert-True ($buildText.Contains("`"$target`"")) "Missing Goal 015 Ant target: $target"
 }
 Assert-True ($buildText.Contains('name="phantom.goal015.seed" value="15001501"') -and $buildText.Contains("phantom-background-test") -and $buildText.Contains("phantom-static-verify-015")) "Goal 015 is not in cumulative verify."
-foreach ($mode in @("background-model", "background-transaction", "background-lifecycle", "background-decision", "background-server-integration", "background-performance"))
+foreach ($mode in @("background-model", "background-transaction", "background-lifecycle", "background-decision", "background-server-integration", "background-performance", "background-materialization-abort", "background-quiescence", "background-compact-inventory", "background-authoritative-shots", "background-production-audit", "background-recovery-teleport", "background-real-login"))
 {
 	Assert-True ($launcherText.Contains("case `"$mode`"")) "Missing Goal 015 launcher mode: $mode"
 }
@@ -224,9 +225,9 @@ foreach ($fact in @("BACKGROUND_MODEL_V1", "VERIFY_PENDING", "Math.round", "NpcT
 	Assert-True ($architectureText.Contains($fact)) "Architecture contract fact is missing: $fact"
 }
 $roadmapText = Read-Utf8Strict (Join-Path $moduleRoot "docs/PHANTOM_BOTS_ROADMAP.md")
-Assert-True ($roadmapText.Contains("Goal 013: ACCEPT after Goal 013B") -and $roadmapText.Contains("Goal 013B: ACCEPT_WITH_ACTIVATION_GATE") -and $roadmapText.Contains("Goal 014: ACCEPT after Goal 014A") -and $roadmapText.Contains("Goal 014A + completion: ACCEPT") -and $roadmapText.Contains("Goal 015: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW") -and $roadmapText.Contains("Goal 017: NOT_STARTED") -and $roadmapText.Contains("Goal 025: NOT_STARTED")) "Roadmap progress truth is incomplete."
-$reviewText = Read-Utf8Strict (Join-Path $moduleRoot "docs/phantoms/reviews/014a-commerce-completion-review.md")
-Assert-True ($reviewText.Contains('`ACCEPT`') -and $reviewText.Contains($requiredParent) -and $reviewText.Contains("IMPLEMENTED_PENDING_INDEPENDENT_REVIEW")) "Goal 014A completion review truth is incomplete."
+Assert-True ($roadmapText.Contains("Goal 013: ACCEPT after Goal 013B") -and $roadmapText.Contains("Goal 013B: ACCEPT_WITH_ACTIVATION_GATE") -and $roadmapText.Contains("Goal 014: ACCEPT after Goal 014A") -and $roadmapText.Contains("Goal 014A + completion: ACCEPT") -and $roadmapText.Contains("Goal 015: BLOCKED") -and $roadmapText.Contains("Goal 017: NOT_STARTED") -and $roadmapText.Contains("Goal 025: NOT_STARTED")) "Roadmap progress truth is incomplete."
+$reviewText = Read-Utf8Strict (Join-Path $moduleRoot "docs/phantoms/reviews/015-background-farming-reconciliation-review.md")
+Assert-True ($reviewText.Contains('`BLOCKED`') -and $reviewText.Contains($requiredParent) -and $reviewText.Contains('Supported production pair count: `0`') -and $reviewText.Contains("giran.farming.22859")) "Goal 015 bounded review truth is incomplete."
 $reportPath = Join-Path $moduleRoot "docs/phantoms/reports/015-background-farming-reconciliation.md"
 Assert-True ((Get-Content -LiteralPath $reportPath -Encoding UTF8).Count -le 180) "Goal 015 report exceeds the 180-line efficiency bound."
 Assert-True (Test-Path -LiteralPath (Join-Path $moduleRoot "dist/libs/GameServer.jar") -PathType Leaf) "GameServer.jar is missing."
@@ -282,9 +283,10 @@ Write-Output "requiredParent=$requiredParent"
 Write-Output "scopePaths=$($changedPaths.Count)"
 Write-Output "seed=15001501"
 Write-Output "model=BACKGROUND_MODEL_V1"
-Write-Output "state=VERSION1_VERIFY_PENDING"
+Write-Output "state=VERSION2_COMPACT_HASH_VERIFY_PENDING"
 Write-Output "transaction=ONE_CANONICAL_MARIADB_BATCH"
 Write-Output "identity=BACKGROUND_TYPED_LEASE"
+Write-Output "productionPairs=0_BLOCKED"
 Write-Output "workers=0"
 Write-Output "utf8=STRICT"
 Write-Output "jar=present"

@@ -1,174 +1,111 @@
-# Goal 015 — Background farming reconciliation
+# Goal 015 — Background farming reconciliation bounded completion
 
 ## Status
 
-`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+`BLOCKED`
+
+Все семь bounded completion findings и исходные Goal 015 gates реализованы и
+проходят тесты. Полный production corpus audit, однако, не нашёл ни одной
+допустимой exact anchor/NPC пары для успешного normal-solo background farming.
+Объявлять полный SUCCESS при нулевом production pair count нельзя.
 
 ## Summary
 
-- Реализована одна capability для ACTIVE `farm.background` с exact NPC/anchor.
-- Typed lease и activity identity закрывают ACTIVE/BACKGROUND arbitration.
-- `BACKGROUND_MODEL_V1` покрывает farming, travel, competition, death/recovery.
-- Canonical MariaDB writer использует `VERIFY_PENDING` reconciliation.
+- Materialization claim после успешного `beforeMaterialize` получает ровно один
+  terminal success/abort callback на всех проверенных status/failure paths.
+- Abort идемпотентно возвращает совпадающее durable состояние в `READY`/`DEAD`;
+  несовпадение переводит его в `INCONSISTENT`.
+- Shutdown materialization ждёт operations, identity leases, transactions,
+  retained leases и `MATERIALIZING`; store transition разрешён в `STOPPING`.
+- Background state schema v2 хранит compact mutable projection и paperdoll
+  proofs; canonical hash покрывает все заблокированные item rows.
+- Shot/resource validation использует текущие item templates/handlers, commerce
+  supply facts, weapon crystal/type и summon facts.
+- WARM recovery имеет bounded exact town teleport, cancellation/timeout и
+  проверку canonical destination до store.
+- Real login fail-closed проверяет durable background state после захвата
+  штатного `REAL_LOGIN` lease.
 
 ## Changed files
 
-- Production: `phantoms/background/**` (11 файлов).
-- Composition/context: `PhantomSystem`, decision contexts/engine, work sink bridge.
-- Identity/lifecycle: identity registry, materialization service/player и два ports.
-- Разрешённый real-login seam: `GameClient.java`.
-- Tests/build: `PhantomBackgroundSuite.java`, launcher и `build.xml`.
-- Tools: verifier 015 и bounded compatibility correction verifiers 014/014A.
-- Docs: architecture/report/review, roadmap/master-plan status и task package.
+- Production: `PhantomSystem.java`, разрешённый seam `GameClient.java`,
+  background package, три materialization lifecycle files.
+- Tests/build: `PhantomBackgroundSuite.java`, `PhantomTestLauncher.java`,
+  `build.xml`.
+- Verification/docs: verifier 015, architecture contract, roadmap, этот report
+  и `015-background-farming-reconciliation-review.md`.
+- Не менялись Player, Item, Inventory, Attackable, loaders, schema, config,
+  datapack, geodata, другие хроники или исторические verifiers.
 
 ## Architecture decisions
 
-- Переиспользованы `Player`, shared identity registry, materialization lifecycle,
-  scheduler work item, decision registries, profile components, topology,
-  Game Knowledge, progression catalog и commerce hash authority.
-- Отдельный Player/fake GameClient, новый persistence schema, config, worker,
-  loader или class-name tactics не создавались.
-- Baseline transaction повторно блокирует exact persisted goal: service-side
-  read не считается достаточным authority против revision race.
-- `background.state` schema 1, payload <=4096, states:
-  `MATERIALIZED/READY/VERIFY_PENDING/DEAD/INCONSISTENT`.
-- Operation key включает profile/character, goal ID/revision,
-  generation/tick/action/NPC/anchor/model и четыре authority hash.
+- State schema увеличена с v1 до v2; v1 читается и детерминированно повышается
+  при следующей canonical записи.
+- Mutable IDs выводятся только из explicit goal/authority: shots, summon
+  resource, все допустимые current NPC drops и существующие tracked stacks.
+- Полная inventory identity не сериализуется в component: SHA-256 охватывает
+  все locked rows, compact projection хранит только изменяемые rows и
+  paperdoll identity proof. Canonical load/slot facts считаются по всем rows.
+- Одна операция сохраняет main/subclass, HP/MP/CP, position, items и auto-get
+  skills в одном `autoCommit=false` MariaDB batch с `VERIFY_PENDING`.
+- Recovery сохраняет exact canonical coordinates/vitals; EXP/SP/items не
+  выдаются и death loss не сбрасывается бесплатно.
+- Real login не зависит от in-memory tick lease: любой durable non-
+  `MATERIALIZED` state отклоняется, read/verification failure также отклоняется.
 
-## Model/formulas
+## DB, configs and fixtures
 
-- Версия: `BACKGROUND_MODEL_V1`; это deterministic approximation, не retail
-  combat equivalence.
-- `effectiveDamage=max(1,offense*100/(defense+100))`;
-  `cycles=max(0.1,speed/500)`; duration — target HP / damage / cycles,
-  variance ±10%, clamp 500..20000 ms.
-- Incoming attrition использует симметричный offense/defense channel, target
-  cycle speed, duration и второй persisted variance roll.
-- Batch caps: 32 encounters, 60000 ms, 16 changed objects, 8 новых
-  non-stackable objects.
-- EXP: current rate cast → current high-level penalty → captured multiplier и
-  exact servitor share → `Math.round`.
-- SP: current rate cast → penalty/multiplier → integer truncation.
-- Drop groups/ungrouped, cumulative/custom occurrence budgets, level-gap/chance/
-  inclusive amount rolls повторяют current `NpcTemplate.calculateDrops`.
-- Death EXP loss использует current `ExperienceLossData`, level span, captured
-  normal-mob reduction и current 10% cap.
-
-## SQL/writer table
-
-| Authority/writer | Goal 015 rule |
-|---|---|
-| identity registry | per-operation `OwnerKind.BACKGROUND`; blocks PHANTOM/REAL_LOGIN |
-| `characters` main | level/exp/expBeforeDeath/sp + HP/MP/CP + x/y/z/heading |
-| `character_subclasses` | exact class_index level/exp/sp; base rows untouched |
-| `character_skills` | current `SkillTreeData` auto-get-only exact class_index |
-| `items` | exact locked objects; IdManager IDs for new rows |
-| goal component | exact persisted ACTIVE goal is locked, never mutated |
-| `background.state` | only `PhantomBackgroundTransaction` mutates |
-| Player/autosave/login | excluded while background lease/transition owns identity |
-
-Lock order:
-
-```text
-phantom_profiles link
-→ exact goal component
-→ background.state
-→ characters
-→ exact subclass
-→ skills ORDER BY skill_id
-→ items ORDER BY object_id
-→ reserved object IDs
-```
-
-Connection uses `autoCommit=false`, 5-second query timeout and exact row-count
-guards. Commit writes `VERIFY_PENDING` plus expected-after SHA-256; fresh
-connection promotes to READY/DEAD. Mismatch writes INCONSISTENT and fail-stops.
-
-## Transition/receipt matrices
-
-| Transition | Guard/result |
-|---|---|
-| ACTIVE → BACKGROUND | Player.storeMe → fresh DB capture → READY/DEAD before lease release |
-| BACKGROUND → ACTIVE | drain/reconcile → Player.load compare → MATERIALIZED before spawn |
-| exact duplicate | fresh proof, IDEMPOTENT, no second mutation |
-| stale goal/generation/tick/hash | typed stale/replan, zero mutation |
-| pre-commit fault | complete rollback and reserved ID release |
-| post-commit unknown | restart resolves VERIFY_PENDING |
-| canonical/hash mismatch | INCONSISTENT, no auto-recovery |
-| DEAD → WARM | Player revive + current to-town + store/verify → FAIL_GOAL |
-
-Travel persists residual time without moving canonical coordinates mid-edge;
-completed edge atomically commits the exact anchor. Competition reservation is
-process-local, `(node,npc)`, capacity clamp 1..32, one operation only.
-
-## DB, config and fixtures
-
-- Использована только `l2jmobiush5_phantom_test`; production DB не использовалась.
-- Seed всех новых modes: `15001501`.
-- Schema, migrations, config, geodata, Player/Item/Inventory/Attackable и loaders
-  не изменялись.
-- Real fixtures: loaded Player, NPC 22859, current NpcData/drop facts, spawn
-  capacity, topology anchors/edges/door state, main/subclass/skill/item rows.
-- Fake authority/ports использовались только для deterministic fault injection.
-
-## READ_SET и расширение
-
-- Выполнен task READ_SET 1–18 bounded symbol/range reads: scheduler/activity,
-  decision, materialization/identity/login, profile/components, knowledge,
-  topology, progression, commerce, combat, Player/stat/EXP loss, Attackable,
-  inventory/item/IdManager, integration suites и build/verifier chain.
-- Единственное дополнительное exact-file расширение:
-  `model/actor/templates/NpcTemplate.java`, `calculateDrops`; причина — доказать
-  порядок groups/ungrouped, отдельные occurrence budgets и custom-rate semantics.
-- Parent/root `AGENTS.md`, README и relevant project docs проверены; отдельного
-  parent AGENTS выше repository contract не найдено.
+- DB: только `l2jmobiush5_phantom_test`.
+- Seed: `15001501`.
+- Schema/migration/config changes: нет.
+- Compact inventory evidence: не менее 100 unrelated non-stack objects,
+  payload не больше 4096 bytes, exact stack/non-stack delta, typed concurrent
+  conflict и 50 ACTIVE/BACKGROUND transitions.
+- Production audit evidence: единственная exact пара
+  `22859@giran.farming.22859`; excluded immediate/timed drop IDs:
+  `8600–8614`, `10655–10657`, `13028`; supported pair count: `0`.
 
 ## Commands and results
 
-- Initial branch/parent/worktree audit: PASS; HEAD был exact
-  `9c9412bc4a05a520a83b5187054d6c8a8c12db3c`.
-- `ant phantom-background-test`: PASS, model 7/7, transaction 7/7,
-  lifecycle 4/4, decision 3/3, server integration 5/5, performance 3/3;
-  1 min 55 s.
-- После exact baseline-goal-lock/resource fix:
-  `ant phantom-background-model-test phantom-background-transaction-test
-  phantom-background-lifecycle-test`: PASS, 18/18; 1 min 17 s.
-- Affected materialization/scheduler/decision suites: PASS, 105/105; 1 min 42 s.
-- Working-tree verifiers 014/014A/015: PASS; joint final run 2 s.
-- Final focused aggregate: PASS, 29/29; 1 min 59 s.
-- Единственный cumulative `ant verify`: PASS, 7 min 57 s.
-- Standalone `ant jar`: PASS, 14 s.
-- Post-commit verifier 015 2× byte-identical фиксируется во внешнем handoff.
+- Семь новых focused targets: PASS после точечных исправлений.
+- Исходные шесть focused targets: PASS.
+- `ant phantom-background-completion-test`: PASS, 13 suites, 40/40,
+  3 min 24 s.
+- Supported cumulative static set
+  (`phantom-static-verify`, `014a`, `015`): PASS.
+- Standalone historical `phantom-static-verify-008`: expected FAIL на current
+  multi-goal history; build заменяет его cumulative preservation echo. Старый
+  verifier не изменялся и не входит в текущий `verify`.
+- Единственный final `ant verify`: PASS, 9 min 9 s.
+- Standalone `ant jar`: PASS, 15 s.
+- Post-commit verifier 015 twice byte-identical: выполняется после commit и
+  фиксируется во внешнем handoff.
 
-## Performance
+## Performance and safety
 
-- 100000 pure model evaluations: PASS, bounded state/RNG, no worker.
-- 10000 duplicate reconciliations: PASS, idempotent and leak-free.
-- Real DB batches, repeated 100 ticks/50 transitions and lifecycle fault/restart
-  matrices завершились с нулевыми retained operation/lease counters.
+- 100,000 deterministic model evaluations: PASS.
+- 10,000 duplicate reconciliations: PASS.
+- Background production не создаёт worker/thread/future и не пишет per-tick
+  logs.
+- Mojibake markers и escaped Cyrillic в изменённых text files проверяются
+  verifier 015 раздельно.
 
-## Scope, encoding and git
+## Deviations and limitations
 
-- Исторические verifier 014/014A имели parent-only status scope и делали любой
-  будущий `ant verify` невозможным. Bounded exception заморозил их accepted
-  completion diff и проверяет `9c9412bc...` как ancestor; product assertions
-  сохранены.
-- Mojibake-маркеры в изменённых файлах проверены: совпадений нет.
-- Escaped Cyrillic в изменённых файлах проверены: совпадений нет.
-- `git diff --check` и full exact diff inspection: PASS.
-- Git-команды использованы только по прямому task contract для branch/parent,
-  scope, commit и push; amend/rebase/squash/merge/force push не выполнялись.
+- Полный SUCCESS невозможен: в разрешённом production corpus отсутствует
+  поддерживаемая farming-пара.
+- Topology/datapack mutation для создания такой пары находится вне scope.
+- Party, spoil, manor, raid, instance, PvP, buffs/vitality/premium/event,
+  Goal 016/017/025 не начаты.
+- Goal остаётся одной capability; Goal 015A/015B не создавались.
 
-## Limitations, risks and next step
+## Git and handoff
 
-- Existing exact production anchor `giran.farming.22859` имеет immediate-effect
-  herb drop. Этот excluded outcome доказан как fail-closed до mutation; loaders/
-  data вне scope не менялись.
-- Model применим только к exact supported normal-solo facts; party, spoil,
-  manor, raid, instance, PvP, buffs/vitality/premium/event остаются fail-closed.
-- Goal 013B activation gate остаётся закрытым: `progression.learn_skill` не
-  зарегистрирован.
-- Goal 015 не self-accepted и требует independent review; Goal 016/017/025 не
-  начаты.
-- Pre-publication usage: 1806071 tokens, 9625 s. Commit SHA/push/final usage
-  передаются во внешнем handoff: SHA нельзя записать внутрь того же commit.
+- Branch: `feature/phantom-world`.
+- Required parent: `d41950922f6ceec53aca0326e6210e45353e0bc0`.
+- Commit subject: `fix(phantoms): complete background reconciliation gate`.
+- Commit SHA: будет передан во внешнем handoff; SHA нельзя записать внутрь
+  собственного commit.
+- Push: PENDING.
+- Next step: отдельное разрешение на production topology/datapack pair, затем
+  повтор production audit и independent review Goal 015.

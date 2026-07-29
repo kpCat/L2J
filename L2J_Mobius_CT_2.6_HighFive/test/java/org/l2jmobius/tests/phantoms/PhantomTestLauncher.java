@@ -237,6 +237,13 @@ public final class PhantomTestLauncher
 			case "background-decision" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.DECISION);
 			case "background-server-integration" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.SERVER_INTEGRATION);
 			case "background-performance" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.PERFORMANCE);
+			case "background-materialization-abort" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.MATERIALIZATION_ABORT);
+			case "background-quiescence" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.QUIESCENCE);
+			case "background-compact-inventory" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.COMPACT_INVENTORY);
+			case "background-authoritative-shots" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.AUTHORITATIVE_SHOTS);
+			case "background-production-audit" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.PRODUCTION_AUDIT);
+			case "background-recovery-teleport" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.RECOVERY_TELEPORT);
+			case "background-real-login" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.REAL_LOGIN);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

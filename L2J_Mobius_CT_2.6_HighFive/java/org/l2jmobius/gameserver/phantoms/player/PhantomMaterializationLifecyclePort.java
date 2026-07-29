@@ -33,6 +33,10 @@ public interface PhantomMaterializationLifecyclePort
 
 	void afterPlayerLoad(long profileId, Player player);
 
+	void materializeSucceeded(long profileId, int characterObjectId);
+
+	void materializeAborted(long profileId, int characterObjectId);
+
 	void beforeStore(long profileId, Player player);
 
 	void afterStore(long profileId, Player player);
@@ -48,6 +52,16 @@ public interface PhantomMaterializationLifecyclePort
 
 			@Override
 			public void afterPlayerLoad(long profileId, Player player)
+			{
+			}
+
+			@Override
+			public void materializeSucceeded(long profileId, int characterObjectId)
+			{
+			}
+
+			@Override
+			public void materializeAborted(long profileId, int characterObjectId)
 			{
 			}
 

@@ -194,6 +194,55 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
+	public Result abortMaterialization(long profileId, int characterObjectId)
+	{
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, profileId), characterObjectId);
+				final LockedComponent component = requireStateComponent(lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE));
+				final PhantomBackgroundState current = decodeState(component);
+				if (current.state() == State.INCONSISTENT)
+				{
+					throw new StateConflict(Status.INCONSISTENT);
+				}
+				final Canonical canonical = lockCanonical(connection, current.identity());
+				final Map<Integer, Integer> skills = lockSkills(connection, current.identity());
+				final List<ItemRow> items = lockItems(connection, characterObjectId);
+				final boolean pendingReceiptMatches = (current.state() != State.VERIFY_PENDING) || current.receipt().expectedAfterHash().equals(expectedAfterHash(current));
+				if (!durableMatches(current, canonical, items, skills) || !pendingReceiptMatches)
+				{
+					final PhantomBackgroundState inconsistent = current.withState(State.INCONSISTENT);
+					writeComponent(connection, component, inconsistent);
+					connection.commit();
+					return new Result(Status.INCONSISTENT, inconsistent);
+				}
+				final PhantomBackgroundState recovered = current.withState(current.vitals().currentHp() == 0 ? State.DEAD : State.READY);
+				if (current.state() != recovered.state())
+				{
+					writeComponent(connection, component, recovered);
+					connection.commit();
+				}
+				else
+				{
+					connection.rollback();
+				}
+				return new Result(Status.SUCCESS, recovered);
+			}
+			catch (Throwable failure)
+			{
+				rollback(connection, failure);
+				return failureResult(failure);
+			}
+		}
+		catch (SQLException | RuntimeException failure)
+		{
+			return failureResult(failure);
+		}
+	}
+
 	public Result execute(Command command)
 	{
 		Objects.requireNonNull(command, "command");
@@ -247,7 +296,7 @@ public final class PhantomBackgroundTransaction
 				mutateProgressAndVitals(connection, expected.identity(), command.progress(), canonicalVitals, command.position());
 				mutateAutoGetSkills(connection, expected.identity(), skillRows, expected.autoGetSkills(), command.autoGetSkills());
 				_faultInjector.inject(FaultPoint.AFTER_CANONICAL_WRITES);
-				final InventoryFacts nextInventory = inventoryFacts(itemMutation.rows(), expected.inventory().maximumLoad(), expected.inventory().maximumSlots());
+				final InventoryFacts nextInventory = inventoryFacts(itemMutation.rows(), expected.inventory());
 				final Receipt receiptWithoutHash = new Receipt(command.operationKey().digest(), command.operationKey().activityGeneration(), command.operationKey().tickSequence(), "");
 				final PhantomBackgroundState ready = expected.after(command.progress(), canonicalVitals, command.position(), nextInventory, command.autoGetSkills(), command.clock(), receiptWithoutHash);
 				final String expectedAfterHash = expectedAfterHash(ready);
@@ -534,6 +583,10 @@ public final class PhantomBackgroundTransaction
 			{
 				continue;
 			}
+			if (!expected.inventory().mutableItemIds().contains(itemId))
+			{
+				throw new StateConflict(Status.ITEM_CONFLICT);
+			}
 			final ItemTemplate template = ItemData.getInstance().getTemplate(itemId);
 			if ((template == null) || (template.getTime() != -1))
 			{
@@ -723,7 +776,7 @@ public final class PhantomBackgroundTransaction
 	{
 		final Position position = new Position(0, canonical.position().x(), canonical.position().y(), canonical.position().z(), canonical.position().heading(), template.position().committedAnchorId());
 		final Progress progress = new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath());
-		final InventoryFacts inventory = inventoryFacts(rows, template.inventory().maximumLoad(), template.inventory().maximumSlots());
+		final InventoryFacts inventory = inventoryFacts(rows, template.inventory());
 		final List<AutoGetSkill> autoSkills = canonicalAutoGetSkills(template.identity(), canonical.level());
 		if (!autoSkills.equals(template.autoGetSkills()))
 		{
@@ -785,7 +838,7 @@ public final class PhantomBackgroundTransaction
 		{
 			return false;
 		}
-		if (!itemObjects(rows).equals(state.inventory().objects()))
+		if (!inventoryFacts(rows, state.inventory()).equals(state.inventory()))
 		{
 			return false;
 		}
@@ -819,7 +872,7 @@ public final class PhantomBackgroundTransaction
 		return Math.abs(left - right) <= 0.000001d;
 	}
 
-	private InventoryFacts inventoryFacts(List<ItemRow> rows, long maximumLoad, int maximumSlots)
+	private InventoryFacts inventoryFacts(List<ItemRow> rows, InventoryFacts projection)
 	{
 		long load = 0;
 		int usedSlots = 0;
@@ -836,7 +889,11 @@ public final class PhantomBackgroundTransaction
 				usedSlots++;
 			}
 		}
-		return new InventoryFacts(itemObjects(rows), load, maximumLoad, usedSlots, maximumSlots);
+		final Set<Integer> mutableItemIds = Set.copyOf(projection.mutableItemIds());
+		final Set<Integer> paperdollProofs = projection.objects().stream().filter(object -> object.location() == ItemLocation.PAPERDOLL).map(ItemObject::objectId).collect(java.util.stream.Collectors.toUnmodifiableSet());
+		final List<ItemObject> tracked = itemObjects(rows).stream().filter(object -> ((object.location() == ItemLocation.INVENTORY) && mutableItemIds.contains(object.itemId())) || ((object.location() == ItemLocation.PAPERDOLL) && paperdollProofs.contains(object.objectId()))).toList();
+		final String canonicalHash = PhantomBackgroundInventoryHash.compute(rows.stream().map(row -> new PhantomBackgroundInventoryHash.CanonicalItem(row.objectId(), row.itemId(), row.count(), row.location())).toList());
+		return new InventoryFacts(projection.mutableItemIds(), tracked, canonicalHash, load, projection.maximumLoad(), usedSlots, projection.maximumSlots());
 	}
 
 	private List<ItemObject> itemObjects(List<ItemRow> rows)
@@ -955,7 +1012,7 @@ public final class PhantomBackgroundTransaction
 
 	private PhantomBackgroundState decodeState(LockedComponent component)
 	{
-		if (component.schemaVersion() != PhantomBackgroundState.SCHEMA_VERSION)
+		if ((component.schemaVersion() != PhantomBackgroundState.SCHEMA_VERSION) && (component.schemaVersion() != 1))
 		{
 			throw new StateConflict(Status.STATE_CONFLICT);
 		}

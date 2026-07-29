@@ -27,6 +27,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.config.RatesConfig;
@@ -36,12 +38,17 @@ import org.l2jmobius.gameserver.data.xml.ExperienceLossData;
 import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
+import org.l2jmobius.gameserver.handler.ItemHandler;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.actor.enums.creature.Race;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
+import org.l2jmobius.gameserver.model.item.EtcItem;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
+import org.l2jmobius.gameserver.model.item.Weapon;
+import org.l2jmobius.gameserver.model.item.instance.Item;
+import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
@@ -62,6 +69,8 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Comba
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashes;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Identity;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.InventoryFacts;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.ItemLocation;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.ItemObject;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Loadout;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.ModelKind;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Position;
@@ -70,6 +79,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Recei
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Vitals;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog.SupplyKind;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
@@ -127,17 +137,35 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		requireSupportedPlayer(player);
 		final PhantomTopologyAnchor anchor = exactAnchor(player, previous);
 		final Capability capability = capability(player, spec);
+		final Tracking tracking = tracking(player, spec, capability);
 		final Identity identity = new Identity(profileId, player.getObjectId(), player.getClassIndex(), player.getActiveClass(), player.getRace().ordinal());
 		final Progress progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
 		final Vitals vitals = new Vitals(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp());
 		final Position position = new Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), anchor.id());
 		final CombatFacts combat = combatFacts(player, capability);
 		final Loadout loadout = new Loadout(capability.skillId(), capability.skillLevel(), capability.summonNpcId(), capability.mpConsume(), spec.shotItemId(), spec.shotsPerEncounter(), spec.summonResourceItemId(), spec.summonResourcesPerEncounter());
-		final InventoryFacts inventory = new InventoryFacts(List.of(), 0, player.getMaxLoad(), 0, player.getInventoryLimit());
+		final InventoryFacts inventory = InventoryFacts.sorted(tracking.mutableItemIds(), tracking.objects(), "", player.getCurrentLoad(), player.getMaxLoad(), player.getInventory().getSize(), player.getInventoryLimit());
 		final List<AutoGetSkill> autoSkills = autoGetSkills(identity, player.getLevel());
 		final Clock clock = previous == null ? new Clock(INITIAL_RNG_SEED, 0, 0) : previous.clock();
 		final Receipt receipt = previous == null ? Receipt.empty() : previous.receipt();
 		return new PhantomBackgroundState(State.MATERIALIZED, identity, progress, vitals, position, combat, loadout, inventory, autoSkills, clock, receipt, hashes());
+	}
+
+	/**
+	 * Validates only the persisted resource contract against the current
+	 * Player/loadout and current production catalogs. This narrow diagnostic is
+	 * used by the focused gate without weakening the exact NPC/anchor checks in
+	 * {@link #capture(long, Player, PhantomGoal, PhantomBackgroundState)}.
+	 */
+	public ShotContract validateShotContract(Player player, PhantomGoal goal)
+	{
+		Objects.requireNonNull(player, "player");
+		final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parse(goal);
+		requireSupportedPlayer(player);
+		final Capability capability = capability(player, spec);
+		validateShot(player, spec, capability);
+		validateSummonResource(player, spec, capability);
+		return new ShotContract(capability.kind(), spec.shotItemId(), spec.shotsPerEncounter(), spec.summonResourceItemId(), spec.summonResourcesPerEncounter());
 	}
 
 	@Override
@@ -306,7 +334,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 				{
 					continue;
 				}
-				return new Capability(ModelKind.SUMMON_PRIMARY, rule.actionSkill().skillId(), rule.actionSkill().skillLevel(), skill.mpConsume(), goal.summonNpcId(), summonFact.expMultiplier(), summon);
+				return new Capability(ModelKind.SUMMON_PRIMARY, rule.actionSkill().skillId(), rule.actionSkill().skillLevel(), skill.mpConsume(), goal.summonNpcId(), summonFact.expMultiplier(), summon, summonFact);
 			}
 			final ModelKind kind = switch (rule.capabilityKey())
 			{
@@ -315,9 +343,121 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 				case "combat.ranged_magic_damage" -> ModelKind.MAGIC;
 				default -> throw new IllegalStateException("Unsupported admitted capability.");
 			};
-			return new Capability(kind, rule.actionSkill().skillId(), rule.actionSkill().skillLevel(), skill.mpConsume(), 0, 0, null);
+			return new Capability(kind, rule.actionSkill().skillId(), rule.actionSkill().skillLevel(), skill.mpConsume(), 0, 0, null, null);
 		}
 		throw new IllegalArgumentException("No exact supported combat capability is currently ready.");
+	}
+
+	private Tracking tracking(Player player, PhantomBackgroundGoalSpec goal, Capability capability)
+	{
+		final PhantomGameKnowledgeSnapshot knowledge = _knowledge.get().snapshot();
+		final PhantomTopologyAnchor farmAnchor = _topology.get().findAnchor(goal.anchorId()).orElseThrow(() -> new IllegalArgumentException("Persisted farm anchor is absent."));
+		final var npc = knowledge.npcById().get(goal.npcId());
+		final NpcTemplate npcTemplate = NpcData.getInstance().getTemplate(goal.npcId());
+		if ((farmAnchor.point().instanceId() != 0) || (npc == null) || (npcTemplate == null) || (npc.kind() != NpcKind.MONSTER) || !npc.attackable() || !npc.targetable() || (npc.level() != npcTemplate.getLevel()))
+		{
+			throw new IllegalArgumentException("Persisted target is not an authoritative instance-zero normal monster.");
+		}
+		final boolean spawned = knowledge.spawnAreasByNpc().getOrDefault(goal.npcId(), List.of()).stream().anyMatch(area -> (area.instanceId() == 0) && (area.totalConfiguredAmount() > 0) && farmAnchor.nodeId().equals(area.topologyNodeId()));
+		if (!spawned)
+		{
+			throw new IllegalArgumentException("Persisted target has no authoritative spawn at the exact farm anchor.");
+		}
+
+		final TreeSet<Integer> mutableItemIds = new TreeSet<>();
+		for (DropFact fact : knowledge.dropFactsByNpc().getOrDefault(goal.npcId(), List.of()))
+		{
+			final ItemTemplate dropTemplate = ItemData.getInstance().getTemplate(fact.itemId());
+			if ((dropTemplate == null) || dropTemplate.hasExImmediateEffect() || (dropTemplate.getTime() != -1))
+			{
+				throw new IllegalArgumentException("Persisted target contains an unsupported death drop.");
+			}
+			mutableItemIds.add(fact.itemId());
+		}
+		validateShot(player, goal, capability);
+		validateSummonResource(player, goal, capability);
+		if (goal.shotItemId() > 0)
+		{
+			mutableItemIds.add(goal.shotItemId());
+		}
+		if (goal.summonResourceItemId() > 0)
+		{
+			mutableItemIds.add(goal.summonResourceItemId());
+		}
+		if (mutableItemIds.size() > PhantomBackgroundState.MAX_MUTABLE_ITEM_IDS)
+		{
+			throw new IllegalArgumentException("Exact farm projection has too many mutable item IDs.");
+		}
+
+		final Set<Integer> mutable = Set.copyOf(mutableItemIds);
+		final List<ItemObject> objects = player.getInventory().getItems().stream()
+			.filter(item -> ((item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY) && mutable.contains(item.getId())) || (item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.PAPERDOLL))
+			.sorted(Comparator.comparingInt(Item::getObjectId))
+			.map(item -> new ItemObject(item.getObjectId(), item.getId(), item.getCount(), item.isStackable(), ItemLocation.valueOf(item.getItemLocation().name())))
+			.toList();
+		return new Tracking(List.copyOf(mutableItemIds), objects);
+	}
+
+	private void validateShot(Player player, PhantomBackgroundGoalSpec goal, Capability capability)
+	{
+		if (goal.shotItemId() == 0)
+		{
+			return;
+		}
+		final ItemTemplate template = ItemData.getInstance().getTemplate(goal.shotItemId());
+		final EtcItem etcItem = template instanceof EtcItem item ? item : null;
+		final var supply = _commerce.get().findSupply(goal.shotItemId());
+		if ((etcItem == null) || (supply == null) || !supply.kinds().contains(SupplyKind.SHOT) || (ItemHandler.getInstance().getHandler(etcItem) == null))
+		{
+			throw new IllegalArgumentException("Configured shot is not an authoritative handled commerce supply.");
+		}
+		final ActionType action = template.getDefaultAction();
+		final int expectedCount;
+		if (capability.kind() == ModelKind.SUMMON_PRIMARY)
+		{
+			if ((action != ActionType.SUMMON_SOULSHOT) && (action != ActionType.SUMMON_SPIRITSHOT))
+			{
+				throw new IllegalArgumentException("Summon-primary background model requires an authoritative summon shot.");
+			}
+			expectedCount = action == ActionType.SUMMON_SOULSHOT ? capability.summon().getSoulShotsPerHit() : capability.summon().getSpiritShotsPerHit();
+		}
+		else
+		{
+			final Weapon weapon = player.getActiveWeaponItem();
+			final ActionType expectedAction = capability.kind() == ModelKind.MAGIC ? ActionType.SPIRITSHOT : ActionType.SOULSHOT;
+			if ((weapon == null) || (action != expectedAction) || (template.getCrystalType() != weapon.getCrystalTypePlus()))
+			{
+				throw new IllegalArgumentException("Configured shot type or grade does not match the captured model and weapon.");
+			}
+			expectedCount = expectedAction == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
+		}
+		if ((expectedCount <= 0) || (expectedCount > 100) || (goal.shotsPerEncounter() != expectedCount) || (player.getInventory().getAllItemsByItemId(goal.shotItemId(), false).stream().mapToLong(Item::getCount).sum() < expectedCount))
+		{
+			throw new IllegalArgumentException("Configured shot count does not match the bounded per-encounter model contract.");
+		}
+	}
+
+	private static void validateSummonResource(Player player, PhantomBackgroundGoalSpec goal, Capability capability)
+	{
+		if (capability.kind() != ModelKind.SUMMON_PRIMARY)
+		{
+			if ((goal.summonResourceItemId() != 0) || (goal.summonResourcesPerEncounter() != 0))
+			{
+				throw new IllegalArgumentException("Non-summon background model cannot consume summon resources.");
+			}
+			return;
+		}
+		final SummonActorFact fact = capability.summonFact();
+		final int expectedItemId = fact.upkeepItemId();
+		final int expectedCount = fact.upkeepItemCount();
+		if ((goal.summonResourceItemId() != expectedItemId) || (goal.summonResourcesPerEncounter() != expectedCount))
+		{
+			throw new IllegalArgumentException("Summon resource does not match the authoritative progression fact.");
+		}
+		if ((expectedItemId > 0) && (player.getInventory().getAllItemsByItemId(expectedItemId, false).stream().mapToLong(Item::getCount).sum() < expectedCount))
+		{
+			throw new IllegalArgumentException("Authoritative summon resource reserve is absent.");
+		}
 	}
 
 	private static CombatFacts combatFacts(Player player, Capability capability)
@@ -473,7 +613,15 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		return Math.abs(left - right) <= 0.000001d;
 	}
 
-	private record Capability(ModelKind kind, int skillId, int skillLevel, int mpConsume, int summonNpcId, double servitorExperienceMultiplier, Summon summon)
+	private record Capability(ModelKind kind, int skillId, int skillLevel, int mpConsume, int summonNpcId, double servitorExperienceMultiplier, Summon summon, SummonActorFact summonFact)
+	{
+	}
+
+	private record Tracking(List<Integer> mutableItemIds, List<ItemObject> objects)
+	{
+	}
+
+	public record ShotContract(ModelKind modelKind, int shotItemId, int shotsPerEncounter, int summonResourceItemId, int summonResourcesPerEncounter)
 	{
 	}
 }
