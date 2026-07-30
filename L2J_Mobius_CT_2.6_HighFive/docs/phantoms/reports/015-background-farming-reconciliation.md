@@ -2,10 +2,15 @@
 
 ## Status
 
-`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+`BLOCKED`
 
 ## Summary
 
+- Последний bounded anchor-tolerance completion от required parent
+  `d4a4557cb2447be501fe8f339cc68b482e8561e0` заблокирован противоречием между
+  обязательной raw-to-normalized Z проверкой и запрещённым topology scope.
+- Production-код, тесты и verifier не изменялись: заведомо ломающая оба shipped
+  production anchor правка не оставлена.
 - Принятый reconciliation и production loot disposition из commit
   `b800f125bddedadd4f181e9a5f398283e73c4c13` сохранены.
 - Единственная production-правка добавляет
@@ -81,6 +86,16 @@
 
 ## Commands and results
 
+- Fresh pre-change
+  `phantom-background-position-canonicalization-test`: PASS, 2/2, seed
+  `15001502`, test DB `l2jmobiush5_phantom_test`.
+- Fresh runtime evidence: `giran.route.north` raw Z `-3400` нормализуется в
+  `-4072` (delta `672`, tolerance `0`); `giran.farming.22859` raw Z `-3061`
+  нормализуется в `-3056` (delta `5`, tolerance `0`).
+- Compile, новый helper/tolerance target, transition negative, production loot
+  3/3, historical modes, verifier, aggregate, `ant verify` и `ant jar` для
+  anchor-tolerance child не запускались: обязательная production precondition
+  доказанно невыполнима в разрешённом scope.
 - Bundled Ant `compile`: PASS.
 - Bundled Ant `compile-tests`: PASS.
 - Новый `phantom-background-position-canonicalization-test`: две диагностические
@@ -104,18 +119,29 @@
 
 ## Deviations, limitations and risks
 
+- Требуемое условие
+  `Math.abs((long) normalizedZ - point.z()) > anchor.validationTolerance()`
+  при shipped topology отклоняет оба production anchor до ARRIVED mutation.
+- Разрешённый production scope содержит только
+  `L2jPhantomBackgroundAuthority.java`, а topology XML прямо запрещён. Для
+  совместимости нужны точечные canonical Z правки `-3400 → -4072` и
+  `-3061 → -3056`; без отдельного разрешения они не выполнены.
+- `validationTolerance` нельзя просто увеличить для departure anchor: topology
+  contract ограничивает его значением `500`, а подтверждённая delta равна
+  `672`.
 - Production activation не выполнялась; требуется независимое ревью.
-- Goal 015A/015B не создавались.
+- Goal 015A/015B/015C не создавались.
 - Goal 016/017/025 не начаты.
 - Party, spoil, manor, quest, craft, raid, instance и PvP вне scope.
 
 ## Git and handoff
 
 - Branch: `feature/phantom-world`.
-- Required parent: `b800f125bddedadd4f181e9a5f398283e73c4c13`.
-- Его parent: `32be3bbc320bc3a054aab8c5d39001910f35e4b8`.
-- Expected subject: `fix(phantoms): canonicalize background anchor positions`.
+- Required parent: `d4a4557cb2447be501fe8f339cc68b482e8561e0`.
+- Его parent: `b800f125bddedadd4f181e9a5f398283e73c4c13`.
+- Expected subject: `fix(phantoms): enforce anchor normalization tolerance`.
 - Expected graph: один ordinary direct child commit, без
   amend/rebase/squash/merge/force push.
 - Commit SHA и push result передаются в final handoff после publication.
-- Next step: независимое ревью Goal 015.
+- Next step: отдельно разрешить canonical Z correction двух shipped topology
+  anchors либо снять требование сохранить их production support.

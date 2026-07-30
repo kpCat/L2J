@@ -2,10 +2,12 @@
 
 ## Статус и границы
 
-Goal 015 production loot disposition и position canonicalization completion имеет статус
-`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Технические reconciliation gates
-сохранены, а exact pair `22859@giran.farming.22859` поддержана при shipped
-AutoLoot policy.
+Goal 015 production loot disposition принят, но последний anchor-tolerance
+completion имеет статус `BLOCKED`. Технические reconciliation gates parent
+`d4a4557cb2447be501fe8f339cc68b482e8561e0` сохранены, а exact pair
+`22859@giran.farming.22859` поддержана при shipped AutoLoot policy. Production
+activation остаётся закрыта: требуемая raw-to-normalized Z проверка несовместима
+с текущими shipped anchor Z и запрещённым topology scope.
 Контракт обслуживает только persisted ACTIVE goal `farm.background` с точными
 NPC ID и topology anchor ID. Он не выбирает цель, не создаёт goal и не включает
 party, spoil, manor, quest, craft, raid, instance, PvP или
@@ -178,6 +180,14 @@ bounded anchor tolerance до mutation; невозможная канониза�
 snap. Поэтому `Player.load`, durable state и exact `matchesRuntime` используют
 одну естественно восстанавливаемую позицию, а raw topology Z не становится
 durable после `ARRIVED`.
+
+Нормативная anchor-tolerance проверка должна fail closed, когда
+`Math.abs((long) normalizedZ - point.z()) > anchor.validationTolerance()`.
+Parent `d4a4557...` её ещё не реализует: shipped `giran.route.north` имеет
+raw/normalized Z `-3400/-4072` при tolerance `0`, а
+`giran.farming.22859` — `-3061/-3056` при tolerance `0`. Поэтому добавление
+проверки без canonical Z correction topology сломает production departure и
+arrival. Заведомо ломающая реализация в production не внесена.
 
 Competition reservation ключуется `(topologyNodeId, npcId)`, capacity берётся
 из configured spawn amount и clamp `1..32`. Reservation живёт только одну
