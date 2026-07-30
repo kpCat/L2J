@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
@@ -43,6 +44,7 @@ import org.l2jmobius.gameserver.data.xml.ExperienceLossData;
 import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.handler.ItemHandler;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.Summon;
@@ -194,7 +196,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		}
 		final PhantomGameKnowledgeSnapshot knowledge = _knowledge.get().snapshot();
 		final PhantomTopologyAnchor anchor = _topology.get().findAnchor(goal.anchorId()).orElseThrow(() -> new IllegalArgumentException("Persisted farm anchor is absent."));
-		if ((anchor.point().instanceId() != 0) || !anchor.id().equals(state.position().committedAnchorId()))
+		if ((anchor.point().instanceId() != 0) || !anchor.id().equals(state.position().committedAnchorId()) || !atCanonicalAnchor(state.position(), anchor))
 		{
 			throw new IllegalArgumentException("Background farm requires the exact committed instance-zero anchor.");
 		}
@@ -253,6 +255,10 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			return unchanged(Status.ANCHOR_MISMATCH, state, edgeId);
 		}
+		if (!atCanonicalAnchor(state.position(), current))
+		{
+			return unchanged(Status.ANCHOR_MISMATCH, state, edgeId);
+		}
 		final String departureAnchor;
 		final String arrivalAnchor;
 		if (edge.fromNodeId().equals(current.nodeId()))
@@ -278,14 +284,41 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			return unchanged(Status.ANCHOR_MISMATCH, state, edgeId);
 		}
+		final Optional<Position> canonicalArrival = canonicalCommittedAnchorPosition(arrival, state.position().heading());
+		if (canonicalArrival.isEmpty())
+		{
+			return unchanged(Status.ANCHOR_MISMATCH, state, edgeId);
+		}
 		final long remaining = state.clock().residualTravelMillis() == 0 ? edge.baseTravelMillis() : state.clock().residualTravelMillis();
 		if (remaining > elapsedBudgetMillis)
 		{
 			return new TravelAdvance(Status.PARTIAL, state.position(), new Clock(state.clock().rngState(), remaining - elapsedBudgetMillis, state.clock().residualEncounterMillis()), edgeId);
 		}
-		final PhantomTopologyPoint point = arrival.point();
-		final Position position = new Position(0, point.x(), point.y(), point.z(), state.position().heading(), arrival.id());
-		return new TravelAdvance(Status.ARRIVED, position, new Clock(state.clock().rngState(), 0, state.clock().residualEncounterMillis()), edgeId);
+		return new TravelAdvance(Status.ARRIVED, canonicalArrival.get(), new Clock(state.clock().rngState(), 0, state.clock().residualEncounterMillis()), edgeId);
+	}
+
+	public static Optional<Position> canonicalCommittedAnchorPosition(PhantomTopologyAnchor anchor, int heading)
+	{
+		Objects.requireNonNull(anchor, "anchor");
+		final PhantomTopologyPoint point = anchor.point();
+		if (point.instanceId() != 0)
+		{
+			return Optional.empty();
+		}
+		final int x = point.x();
+		final int y = point.y();
+		final GeoEngine geoEngine = GeoEngine.getInstance();
+		final int normalizedZ = geoEngine.getHeight(x, y, point.z());
+		if (normalizedZ != geoEngine.getHeight(x, y, point.z()))
+		{
+			return Optional.empty();
+		}
+		final int restoredZ = geoEngine.getHeight(x, y, normalizedZ);
+		if ((restoredZ != normalizedZ) || (Math.abs((long) restoredZ - normalizedZ) > anchor.validationTolerance()))
+		{
+			return Optional.empty();
+		}
+		return Optional.of(new Position(0, x, y, normalizedZ, heading, anchor.id()));
 	}
 
 	@Override
@@ -650,14 +683,29 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 
 	private static boolean atAnchor(Player player, PhantomTopologyAnchor anchor)
 	{
-		if (player.getInstanceId() != anchor.point().instanceId())
+		final Optional<Position> canonical = canonicalCommittedAnchorPosition(anchor, player.getHeading());
+		if (canonical.isEmpty() || (player.getInstanceId() != canonical.get().instanceId()))
 		{
 			return false;
 		}
-		final long dx = (long) player.getX() - anchor.point().x();
-		final long dy = (long) player.getY() - anchor.point().y();
-		final long tolerance = anchor.validationTolerance();
-		return ((dx * dx) + (dy * dy) <= (tolerance * tolerance)) && (Math.abs(player.getZ() - anchor.point().z()) <= tolerance);
+		return withinAnchorTolerance(player.getX(), player.getY(), player.getZ(), canonical.get(), anchor.validationTolerance());
+	}
+
+	private static boolean atCanonicalAnchor(Position position, PhantomTopologyAnchor anchor)
+	{
+		final Optional<Position> canonical = canonicalCommittedAnchorPosition(anchor, position.heading());
+		return canonical.isPresent() && (position.instanceId() == canonical.get().instanceId()) && position.committedAnchorId().equals(anchor.id()) && withinAnchorTolerance(position.x(), position.y(), position.z(), canonical.get(), anchor.validationTolerance());
+	}
+
+	private static boolean withinAnchorTolerance(int x, int y, int z, Position canonical, int tolerance)
+	{
+		final long dx = (long) x - canonical.x();
+		final long dy = (long) y - canonical.y();
+		if ((Math.abs(dx) > tolerance) || (Math.abs(dy) > tolerance))
+		{
+			return false;
+		}
+		return ((dx * dx) + (dy * dy) <= ((long) tolerance * tolerance)) && (Math.abs((long) z - canonical.z()) <= tolerance);
 	}
 
 	private static void requireSupportedPlayer(Player player)

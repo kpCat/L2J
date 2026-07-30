@@ -2,7 +2,7 @@
 
 ## Статус и границы
 
-Goal 015 production loot disposition unblock имеет статус
+Goal 015 production loot disposition и position canonicalization completion имеет статус
 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Технические reconciliation gates
 сохранены, а exact pair `22859@giran.farming.22859` поддержана при shipped
 AutoLoot policy.
@@ -167,6 +167,17 @@ Travel использует только текущий route и `backgroundElig
 authoritative `baseTravelMillis`. Mid-edge сохраняет residual time, а canonical
 position остаётся на последнем committed anchor. Закрытый edge не меняет ни
 position, ни residual; завершение edge атомарно фиксирует anchor/coordinates.
+
+Durable committed-anchor position вычисляется только production helper
+`canonicalCommittedAnchorPosition`: X/Y равны topology anchor, instance равен
+нулю, heading и anchor ID сохраняются, а Z равен
+`GeoEngine.getHeight(x, y, rawZ)`. Helper проверяет детерминированность и
+fixed-point повторной нормализации. Текущая и arrival position проверяются с
+bounded anchor tolerance до mutation; невозможная канонизация возвращает typed
+`ANCHOR_MISMATCH`. Baseline capture сохраняет фактические runtime coordinates без
+snap. Поэтому `Player.load`, durable state и exact `matchesRuntime` используют
+одну естественно восстанавливаемую позицию, а raw topology Z не становится
+durable после `ARRIVED`.
 
 Competition reservation ключуется `(topologyNodeId, npcId)`, capacity берётся
 из configured spawn amount и clamp `1..32`. Reservation живёт только одну

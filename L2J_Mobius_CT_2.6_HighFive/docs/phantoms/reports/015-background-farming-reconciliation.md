@@ -1,4 +1,4 @@
-# Goal 015 — Production loot disposition unblock
+# Goal 015 — каноническая позиция background anchor
 
 ## Status
 
@@ -6,127 +6,116 @@
 
 ## Summary
 
-- Принятый Goal 015 reconciliation code сохранён.
-- Immediate/time-limited drops, которые current AutoLoot policy не приобретает,
-  имеют `LEAVE_ON_GROUND`.
-- Они остаются в полном ordered drop corpus и участвуют в тех же grouped/
-  ungrouped RNG, count rolls и occurrence budgets.
-- Они не входят в Player inventory, weight/slot checks, item mutation,
-  effect/timer/variable state, deferred grant или object-ID reservation.
-- `BatchResult.groundLosses` даёт bounded immutable test/metrics evidence.
-- Auto-loot через `AutoLootHerbs`, `AutoLoot` или `AutoLootItemIds` отклоняет
-  target до mutation.
-- `LOOT_POLICY_V1` fingerprint включён в composite knowledge authority hash;
-  drift любого relevant config value делает старый READY state stale.
+- Принятый reconciliation и production loot disposition из commit
+  `b800f125bddedadd4f181e9a5f398283e73c4c13` сохранены.
+- Единственная production-правка добавляет
+  `canonicalCommittedAnchorPosition`: X/Y берутся из topology anchor, Z вычисляется
+  через `GeoEngine.getHeight(x, y, rawZ)`, instance равен `0`, heading и anchor ID
+  сохраняются.
+- Полное завершение edge атомарно записывает каноническую позицию; partial travel
+  сохраняет последнюю committed position и только уменьшает residual time.
+- Нестабильная/неподдерживаемая канонизация, position вне tolerance, stale authority
+  hash и raw topology Z отклоняются до мутации.
+- Baseline capture по-прежнему сохраняет фактическую позицию runtime Player; snap
+  при capture не добавлен.
+- Test-only `exactAnchorLifecycle` и все post-`Player.load` вызовы
+  `setXYZInvisible` удалены.
 
 ## Changed files
 
 - Production:
-  - `PhantomBackgroundModel.java`;
-  - `L2jPhantomBackgroundAuthority.java`.
+  `java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java`.
 - Tests/build:
-  - `PhantomBackgroundSuite.java`;
-  - `PhantomTestLauncher.java`;
-  - `build.xml`.
+  `test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java`,
+  `test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java`, `build.xml`.
 - Verification/docs:
-  - `tools/phantoms/verify-task-015.ps1`;
-  - architecture contract, roadmap, этот report;
-  - review evidence и current task package.
-- `PHANTOM_DEVELOPMENT_MASTER_PLAN.md` уже содержал требуемый status line и не
-  изменялся.
+  `tools/phantoms/verify-task-015.ps1`, architecture contract, roadmap, этот report
+  и position-canonicalization review.
 
 ## Architecture decisions
 
-- `DropDisposition` отделяет canonical RNG result от способа приобретения.
-- Ground loss агрегируется только после успешного encounter, но не становится
-  canonical Player property и не передаётся transaction command.
-- Inventory capacity и object-ID accounting видят только `ACQUIRE`.
-- Authority hash использует локальный deterministic SHA-256 pattern и включает
-  versioned loot-policy fingerprint.
-- Supported Player дополнительно должен быть non-flying/non-mounted; raid и
-  остальные прежние fail-closed контексты сохранены.
+- Единственный источник durable committed-anchor position — production helper.
+- Helper использует текущий production `GeoEngine`, дважды проверяет одинаковый
+  результат нормализации и fixed-point повторного `getHeight`.
+- Exact X/Y и geodata-normalized Z проверяются с bounded anchor tolerance.
+- `advanceTravel` сначала проверяет текущую committed position и будущую
+  каноническую arrival position; при отказе возвращает typed
+  `ANCHOR_MISMATCH` без изменения position/clock.
+- `farmInput` принимает только каноническую committed position.
+- `matchesRuntime` остаётся exact: materialization должна естественно загрузить
+  ровно сохранённые X/Y/Z/heading.
+- Новых слоёв, worker/thread/Future, логирования или runtime writer нет.
 
 ## DB, configs and fixtures
 
-- DB: только `l2jmobiush5_phantom_test`.
-- Новый focused seed: `15001502`.
-- Historical Goal 015 seed сохранён: `15001501`.
-- Exact pair: `22859@giran.farming.22859`.
-- Shipped policy: `AutoLootHerbs=False`, `AutoLoot=False`,
-  `AutoLootSlotLimit=True`, `AutoLootItemIds=0`.
-- Ground-loss IDs: `8600–8614`, `10655–10657`, `13028`.
+- Использовалась только `l2jmobiush5_phantom_test`.
+- Focused seed: `15001502`; historical seed: `15001501`.
+- Production pair сохранена: `22859@giran.farming.22859`.
 - Supported production pair count: `1`.
-- Schema/migration/config/topology/datapack/geodata/loader changes: нет.
-- Fixture полностью восстанавливает character, inventory и skills.
-- Установленная geodata нормализует Z при `Player.load`; test-only lifecycle
-  placement повторно ставит real Player в exact task anchor до неизменённого
-  production lifecycle.
+- `LOOT_POLICY_V1`, `LEAVE_ON_GROUND`, canonical grouped/ungrouped RNG,
+  occurrence budgets и `groundLosses` сохранены.
+- Production loot batch остаётся успешным: immediate/time-limited ground loss не
+  создаёт Player inventory/effect/timer/object ID; auto-loot drift fail-closed.
+- Shipped `Player.ini`, topology/datapack/geodata, loaders, schema и migrations не
+  менялись.
+- Test fixture записывает в test DB каноническую Z через тот же production helper
+  до `Player.load`; после загрузки координаты не меняются.
 
 ## Product evidence
 
-- Real Player и current loaders/catalogs формируют production authority input.
-- Seed `15001502` даёт ровно один surviving production encounter.
-- `PhantomBackgroundService` передаёт результат в real
-  `PhantomBackgroundTransaction` с `autoCommit=false`.
-- EXP/SP, HP/MP, RNG, receipt/hash и exact acquired deltas совпадают с model.
-- Ground-loss item rows отсутствуют; reservation count равен только added slots.
-- Exact duplicate возвращает `IDEMPOTENT`, не reroll/regrant и не резервирует ID.
-- Real materialize/dematerialize и reload сохраняют committed bytes.
-- Config drift и все три auto-loot acquisition paths имеют negative controls.
+- Текущий direct route `giran.route.north → giran.farming.22859` используется
+  production transition test.
+- Natural real Player загружается в departure anchor, проходит lifecycle capture
+  и dematerialize, partial и ARRIVED через `PhantomBackgroundService`.
+- Partial transaction сохраняет DB/state position и не создаёт runtime Player.
+- ARRIVED transaction сохраняет exact canonical X/Y/Z/heading; raw topology Z не
+  становится durable.
+- Ordinary materialization загружает exact runtime Player без координатной
+  подмены; dematerialization сохраняет byte-identical state.
+- Новый transaction/service/materialization после restart повторяет exact reload
+  и byte conservation.
+- Negative controls покрывают raw topology Z, position вне tolerance, stale hash,
+  partial non-mutation и restart после ARRIVED.
+- Production loot mode подтверждает real Player atomic batch, duplicate и
+  materialization/reload conservation на seed `15001502`.
 
 ## Commands and results
 
-- Initial `ant compile`: INFRA FAIL, Ant отсутствовал в `PATH`; bundled
-  `.phantom-local/tools/apache-ant-1.10.17/bin/ant.bat` найден и использован.
 - Bundled Ant `compile`: PASS.
 - Bundled Ant `compile-tests`: PASS.
-- Новый focused mode: PASS, 3/3.
-- Все 13 historical Goal 015 modes: PASS после одного focused assertion fix.
-- Historical server-integration первая попытка: FAIL из-за ошибочного требования
-  отдельного time-limited drop у exact pair; повтор после удаления этого
-  fabricated assertion: PASS, 5/5.
-- Static verifier 015: PASS после verifier-only исправлений quoting и имени
-  существующего test method.
-- Единственный явный final focused aggregate: PASS, новый mode 3/3 и 13
-  historical modes 40/40, всего 43/43; `BUILD SUCCESSFUL`, 4:20.
-- Единственный final `ant verify`: PASS; `BUILD SUCCESSFUL`, 10:56.
-- Standalone `ant jar`: PASS; `GameServer.jar` и `LoginServer.jar` собраны и
-  скопированы в `dist/libs`, 0:14.
-- Два post-commit byte-identical verifier runs выполняются после immutable
-  commit/push и фиксируются в terminal handoff.
-
-Полные логи: `.phantom-local/logs/goal-015-production-loot-unblock/`.
+- Новый `phantom-background-position-canonicalization-test`: две диагностические
+  попытки выявили отсутствующую fixture initialization и несохранённые runtime
+  vitals; после двух точечных test-only исправлений — PASS, 2/2.
+- `phantom-background-production-loot-unblock-test`: PASS, 3/3.
+- `phantom-background-server-integration-test`: PASS, 5/5.
+- Остальные 12 historical Goal 015 modes: PASS.
+- Static verifier, final focused aggregate, единственный final `ant verify`,
+  standalone `ant jar`, commit/push и два post-commit byte-identical verifier run
+  фиксируются после выполнения соответствующих gate.
 
 ## Performance and safety
 
 - Historical 100,000 model evaluations и 10,000 duplicate reconciliations: PASS.
-- Новых worker/thread/Future/task и per-tick logging нет.
-- Runtime writer остаётся только `PhantomBackgroundTransaction`.
-- Ground-loss evidence ограничена 96 distinct item IDs.
-- Mojibake-маркеры в 14 изменённых файлах проверены: PASS.
-- Escaped Cyrillic в 14 изменённых файлах проверены отдельно: PASS.
+- Изменения ограничены одной production authority и focused evidence.
+- Player, Attackable, Item, Inventory, GameClient и materialization production
+  code не менялись.
+- Mojibake-маркеры в изменённых файлах проверяются static verifier.
+- Escaped Cyrillic в изменённых файлах проверяется static verifier отдельно.
 
 ## Deviations, limitations and risks
 
 - Production activation не выполнялась; требуется независимое ревью.
-- Goal 015 остаётся одной capability; Goal 015A/015B не создавались.
-- Party, spoil, manor, quest, craft, raid, instance, PvP и Goal 016/017/025 не
-  входят в scope.
-- Test fixture exact-anchor placement изолирует внешний geodata Z drift без
-  изменения topology/geodata/loader или production reconciliation.
+- Goal 015A/015B не создавались.
+- Goal 016/017/025 не начаты.
+- Party, spoil, manor, quest, craft, raid, instance и PvP вне scope.
 
 ## Git and handoff
 
 - Branch: `feature/phantom-world`.
-- Required parent: `32be3bbc320bc3a054aab8c5d39001910f35e4b8`.
-- Git inspection использован по прямому разрешению task/user:
-  `git status --short --branch`, `git rev-parse`, `git branch`,
-  `git diff --name-only --`, `git diff --check`, `git diff --stat`,
-  `git diff --numstat`, `git diff --no-ext-diff`.
-- Publication commands после freeze отчёта: exact-allowlist `git add --`,
-  staged `git diff --cached`, `git commit -m`, `git push origin
-  feature/phantom-world`; amend/rebase/squash/merge/force push не используются.
-- Commit subject: `fix(phantoms): support ground-loss production drops`.
-- Commit SHA: передаётся во внешнем handoff после commit.
-- Push: PENDING.
-- Next step: independent review Goal 015; Goal 016/017/025 не начинать.
+- Required parent: `b800f125bddedadd4f181e9a5f398283e73c4c13`.
+- Его parent: `32be3bbc320bc3a054aab8c5d39001910f35e4b8`.
+- Expected subject: `fix(phantoms): canonicalize background anchor positions`.
+- Expected graph: один ordinary direct child commit, без
+  amend/rebase/squash/merge/force push.
+- Commit SHA и push result передаются в final handoff после publication.
+- Next step: независимое ревью Goal 015.

@@ -173,6 +173,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		PRODUCTION_AUDIT("background-production-audit", true),
 		RECOVERY_TELEPORT("background-recovery-teleport", true),
 		REAL_LOGIN("background-real-login", true),
+		POSITION_CANONICALIZATION("background-position-canonicalization", true),
 		PRODUCTION_LOOT_UNBLOCK("background-production-loot-unblock", true);
 
 		private final String _id;
@@ -216,7 +217,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		final long expectedSeed = _mode == Mode.PRODUCTION_LOOT_UNBLOCK ? PRODUCTION_LOOT_UNBLOCK_SEED : SEED;
+		final long expectedSeed = (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.POSITION_CANONICALIZATION) ? PRODUCTION_LOOT_UNBLOCK_SEED : SEED;
 		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Goal 015 mode seed changed.");
 		if (_mode._database)
 		{
@@ -230,7 +231,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			}
-			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK))
+			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK))
 			{
 				_production = ProductionAuthorityFixture.start();
 				context.record("background.productionKnowledgeHash", _production.knowledge().snapshot().combinedHash());
@@ -279,6 +280,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			case PRODUCTION_AUDIT -> registerProductionAudit(registry);
 			case RECOVERY_TELEPORT -> registerRecoveryTeleport(registry);
 			case REAL_LOGIN -> registerRealLogin(registry);
+			case POSITION_CANONICALIZATION -> registerPositionCanonicalization(registry);
 			case PRODUCTION_LOOT_UNBLOCK -> registerProductionLootUnblock(registry);
 		}
 	}
@@ -362,6 +364,12 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private void registerProductionAudit(PhantomTestRegistry registry)
 	{
 		registry.add("01-current-corpus-supported-pair-audit", this::testProductionCorpusAudit);
+	}
+
+	private void registerPositionCanonicalization(PhantomTestRegistry registry)
+	{
+		registry.add("01-canonical-anchor-policy-and-negative-controls", _ -> testCanonicalAnchorPolicy());
+		registry.add("02-real-player-travel-materialization-restart", this::testProductionPositionTransition);
 	}
 
 	private void registerProductionLootUnblock(PhantomTestRegistry registry)
@@ -805,6 +813,193 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		context.record("background.productionLootAudit", String.join("|", audited));
 	}
 
+	private void testCanonicalAnchorPolicy()
+	{
+		final ProductionTravelSelection travel = productionTravelSelection();
+		final L2jPhantomBackgroundAuthority authority = _production.authority();
+		final Hashes hashes = authority.hashes();
+		final Position departure = canonicalAnchorPosition(travel.departure(), 0);
+		final Position arrival = canonicalAnchorPosition(travel.arrival(), 0);
+		PhantomAssertions.assertEquals(departure, canonicalAnchorPosition(travel.departure(), 0), "Canonical departure position must be deterministic.");
+		PhantomAssertions.assertEquals(arrival, canonicalAnchorPosition(travel.arrival(), 0), "Canonical arrival position must be deterministic.");
+		PhantomAssertions.assertTrue(arrival.z() != travel.arrival().point().z(), "The production farm fixture must exercise GeoEngine Z canonicalization.");
+
+		final PhantomGoal goal = goal(PRODUCTION_TARGET_NPC_ID, travel.arrival().id());
+		final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parse(goal);
+		final PhantomBackgroundState initial = productionState(travel.departure(), hashes);
+		final PhantomBackgroundAuthority.TravelAdvance partial = authority.advanceTravel(initial, spec, PhantomBackgroundService.FARM_TRAVEL_BUDGET_MILLIS);
+		PhantomAssertions.assertEquals(PhantomBackgroundAuthority.TravelAdvance.Status.PARTIAL, partial.status(), "Partial canonical travel must succeed.");
+		PhantomAssertions.assertEquals(departure, partial.position(), "Partial canonical travel must preserve the last committed position.");
+		PhantomAssertions.assertTrue(partial.clock().residualTravelMillis() > 0, "Partial canonical travel must retain a residual budget.");
+
+		final Position outsideTolerance = new Position(departure.instanceId(), departure.x(), departure.y(), departure.z() + travel.departure().validationTolerance() + 1, departure.heading(), departure.committedAnchorId());
+		final PhantomBackgroundState outsideState = initial.after(initial.progress(), initial.vitals(), outsideTolerance, initial.inventory(), initial.autoGetSkills(), initial.clock(), initial.receipt());
+		final PhantomBackgroundAuthority.TravelAdvance outside = authority.advanceTravel(outsideState, spec, PhantomBackgroundService.FARM_TRAVEL_BUDGET_MILLIS);
+		PhantomAssertions.assertEquals(PhantomBackgroundAuthority.TravelAdvance.Status.ANCHOR_MISMATCH, outside.status(), "Position outside canonical tolerance must fail closed.");
+		PhantomAssertions.assertFalse(outside.mutated(), "Position outside canonical tolerance must not mutate state.");
+		PhantomAssertions.assertEquals(outsideState.position(), outside.position(), "Position outside canonical tolerance changed durable position.");
+		PhantomAssertions.assertEquals(outsideState.clock(), outside.clock(), "Position outside canonical tolerance consumed travel time.");
+
+		final Hashes staleHashes = new Hashes(hashes.knowledge(), hashes.topology() + "-stale", hashes.progression(), hashes.commerce());
+		final PhantomBackgroundState staleTopologyState = new PhantomBackgroundState(initial.state(), initial.identity(), initial.progress(), initial.vitals(), initial.position(), initial.combat(), initial.loadout(), initial.inventory(), initial.autoGetSkills(), initial.clock(), initial.receipt(), staleHashes);
+		final PhantomBackgroundAuthority.TravelAdvance staleTopology = authority.advanceTravel(staleTopologyState, spec, PhantomBackgroundService.FARM_TRAVEL_BUDGET_MILLIS);
+		PhantomAssertions.assertEquals(PhantomBackgroundAuthority.TravelAdvance.Status.NO_ROUTE, staleTopology.status(), "Changed topology hash must fail closed.");
+		PhantomAssertions.assertFalse(staleTopology.mutated(), "Changed topology hash must not mutate state.");
+		PhantomAssertions.assertEquals(staleTopologyState.position(), staleTopology.position(), "Changed topology hash changed durable position.");
+		PhantomAssertions.assertEquals(staleTopologyState.clock(), staleTopology.clock(), "Changed topology hash consumed travel time.");
+
+		final PhantomBackgroundState finishing = initial.after(initial.progress(), initial.vitals(), initial.position(), initial.inventory(), initial.autoGetSkills(), new Clock(initial.clock().rngState(), 1, initial.clock().residualEncounterMillis()), initial.receipt());
+		final PhantomBackgroundAuthority.TravelAdvance arrived = authority.advanceTravel(finishing, spec, 1);
+		PhantomAssertions.assertEquals(PhantomBackgroundAuthority.TravelAdvance.Status.ARRIVED, arrived.status(), "Canonical travel completion must arrive.");
+		PhantomAssertions.assertEquals(arrival, arrived.position(), "Canonical travel completion must commit the canonical position.");
+		PhantomAssertions.assertTrue(arrived.position().z() != travel.arrival().point().z(), "Raw topology Z must not be durable after ARRIVED.");
+
+		final Position rawFarmPosition = new Position(0, travel.arrival().point().x(), travel.arrival().point().y(), travel.arrival().point().z(), 0, travel.arrival().id());
+		final PhantomBackgroundState rawFarmState = productionState(travel.arrival(), hashes).after(initial.progress(), initial.vitals(), rawFarmPosition, initial.inventory(), initial.autoGetSkills(), initial.clock(), initial.receipt());
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> authority.farmInput(rawFarmState, spec), "Raw non-canonical topology Z must be rejected by farm input.");
+		PhantomAssertions.assertEquals(travel.arrival().point().z(), rawFarmState.position().z(), "Rejected raw position must remain unchanged.");
+	}
+
+	private void testProductionPositionTransition(PhantomTestContext context) throws Exception
+	{
+		final ProductionTravelSelection travel = productionTravelSelection();
+		final Position expectedDeparture = canonicalAnchorPosition(travel.departure(), 0);
+		final Position expectedArrival = canonicalAnchorPosition(travel.arrival(), 0);
+		ProductionPlayerFixture playerFixture = null;
+		PhantomProfile profile = null;
+		PhantomBackgroundService background = null;
+		PhantomMaterializationService materialization = null;
+		try
+		{
+			playerFixture = openProductionPlayerFixture(travel.departure());
+			final int objectId = playerFixture.player().getObjectId();
+			profile = _repository.create(objectId);
+			final PhantomGoal goal = playerFixture.goal();
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_repository);
+			goals.insert(profile.profileId(), goal);
+			final PhantomBackgroundTransaction transaction = new PhantomBackgroundTransaction();
+			final AtomicReference<PhantomMaterializationService> materializationRef = new AtomicReference<>();
+			background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), materializationRef::get);
+			PhantomAssertions.assertTrue(background.start(), "Production position background service did not start.");
+			final PhantomMetrics metrics = new PhantomMetrics();
+			materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, point ->
+			{
+			}, background, 5_000, 10_000);
+			PhantomAssertions.assertTrue(materialization.start(), "Production position materialization service did not start.");
+			materializationRef.set(materialization);
+
+			final PhantomBackgroundState firstCapture = _production.authority().capture(profile.profileId(), playerFixture.player(), goal, null);
+			final PhantomBackgroundState seededPrevious = firstCapture.after(firstCapture.progress(), firstCapture.vitals(), firstCapture.position(), firstCapture.inventory(), firstCapture.autoGetSkills(), new Clock(context.seed(), 0, 0), firstCapture.receipt());
+			final PhantomBackgroundState seededCapture = _production.authority().capture(profile.profileId(), playerFixture.player(), goal, seededPrevious);
+			playerFixture.player().storeMe();
+			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(seededCapture, goal).status(), "Seeded production position baseline capture failed.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(profile.profileId(), objectId).status(), "Seeded production position baseline did not enter MATERIALIZED.");
+			background.beforeStore(profile.profileId(), playerFixture.player());
+			playerFixture.player().storeMe();
+			background.afterStore(profile.profileId(), playerFixture.player());
+			playerFixture.releaseRuntime();
+
+			final PhantomBackgroundState ready = transaction.load(profile.profileId()).state();
+			PhantomAssertions.assertEquals(State.READY, ready.state(), "Production position baseline did not dematerialize to READY.");
+			PhantomAssertions.assertEquals(context.seed(), ready.clock().rngState(), "Production position baseline used the wrong deterministic seed.");
+			PhantomAssertions.assertEquals(expectedDeparture, ready.position(), "Lifecycle baseline capture did not preserve the naturally loaded runtime position.");
+			assertCharacterPosition(objectId, expectedDeparture);
+
+			final PhantomBackgroundService.OperationResult partial = background.travel(profile.profileId(), goal, 1, 1, PhantomActivityState.BACKGROUND, 1);
+			PhantomAssertions.assertEquals(OperationStatus.SUCCESS, partial.status(), "Real production partial travel did not commit.");
+			final PhantomBackgroundState afterPartial = transaction.load(profile.profileId()).state();
+			PhantomAssertions.assertEquals(expectedDeparture, afterPartial.position(), "Partial production travel changed the last committed position.");
+			PhantomAssertions.assertTrue(afterPartial.clock().residualTravelMillis() > 0, "Partial production travel did not persist a residual budget.");
+			assertCharacterPosition(objectId, expectedDeparture);
+			PhantomAssertions.assertTrue(materialization.find(profile.profileId()).isEmpty(), "Partial production travel created a runtime Player.");
+
+			PhantomBackgroundState arrived = afterPartial;
+			long tickSequence = 2;
+			while (!arrived.position().committedAnchorId().equals(travel.arrival().id()) && (tickSequence <= 32))
+			{
+				final PhantomBackgroundService.OperationResult step = background.travel(profile.profileId(), goal, 1, tickSequence, PhantomActivityState.BACKGROUND, tickSequence);
+				PhantomAssertions.assertEquals(OperationStatus.SUCCESS, step.status(), "Real production travel continuation did not commit at tick " + tickSequence);
+				arrived = transaction.load(profile.profileId()).state();
+				tickSequence++;
+			}
+			PhantomAssertions.assertEquals(travel.arrival().id(), arrived.position().committedAnchorId(), "Real production travel did not arrive at the farm anchor.");
+			PhantomAssertions.assertEquals(expectedArrival, arrived.position(), "ARRIVED transaction did not persist the canonical geodata position.");
+			PhantomAssertions.assertTrue(arrived.position().z() != travel.arrival().point().z(), "ARRIVED transaction persisted raw topology Z.");
+			assertCharacterPosition(objectId, expectedArrival);
+
+			final PhantomBackgroundStateCodec codec = new PhantomBackgroundStateCodec();
+			final byte[] arrivedBytes = codec.encode(arrived);
+			final PhantomMaterializationService.MaterializeResult materialized = materialization.materialize(profile.profileId());
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialized.status(), "Canonical ARRIVED state did not materialize through the ordinary lifecycle.");
+			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+			{
+				assertProductionRuntimeMatches(action.player(), transaction.load(profile.profileId()).state());
+				PhantomAssertions.assertEquals(expectedArrival.x(), action.player().getX(), "Materialized ARRIVED Player X differs.");
+				PhantomAssertions.assertEquals(expectedArrival.y(), action.player().getY(), "Materialized ARRIVED Player Y differs.");
+				PhantomAssertions.assertEquals(expectedArrival.z(), action.player().getZ(), "Materialized ARRIVED Player Z differs.");
+			}
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(profile.profileId()).status(), "Canonical ARRIVED dematerialization failed.");
+			final PhantomBackgroundState firstReload = transaction.load(profile.profileId()).state();
+			PhantomAssertions.assertTrue(java.util.Arrays.equals(arrivedBytes, codec.encode(firstReload)), "Materialization/dematerialization changed the canonical ARRIVED state.");
+			assertCharacterPosition(objectId, expectedArrival);
+
+			materialization.shutdown();
+			materialization = null;
+			background.beginStop();
+			PhantomAssertions.assertTrue(background.finishStop(), "First production position background service did not stop cleanly.");
+			background = null;
+
+			final PhantomBackgroundTransaction restartedTransaction = new PhantomBackgroundTransaction();
+			final AtomicReference<PhantomMaterializationService> restartedMaterializationRef = new AtomicReference<>();
+			background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), restartedTransaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), restartedMaterializationRef::get);
+			PhantomAssertions.assertTrue(background.start(), "Restarted production position background service did not start.");
+			final PhantomMetrics restartedMetrics = new PhantomMetrics();
+			materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), restartedMetrics, new PhantomDiagnosticTrace(false, 64, 16, restartedMetrics), 1, point ->
+			{
+			}, background, 5_000, 10_000);
+			PhantomAssertions.assertTrue(materialization.start(), "Restarted production position materialization service did not start.");
+			restartedMaterializationRef.set(materialization);
+			PhantomAssertions.assertTrue(java.util.Arrays.equals(arrivedBytes, codec.encode(restartedTransaction.load(profile.profileId()).state())), "Restart/load changed the canonical ARRIVED state.");
+
+			final PhantomMaterializationService.MaterializeResult restartedMaterialized = materialization.materialize(profile.profileId());
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, restartedMaterialized.status(), "Restarted canonical ARRIVED state did not materialize.");
+			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+			{
+				assertProductionRuntimeMatches(action.player(), restartedTransaction.load(profile.profileId()).state());
+			}
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(profile.profileId()).status(), "Restarted canonical ARRIVED dematerialization failed.");
+			PhantomAssertions.assertTrue(java.util.Arrays.equals(arrivedBytes, codec.encode(restartedTransaction.load(profile.profileId()).state())), "Restart materialization cycle changed the canonical ARRIVED state.");
+			assertCharacterPosition(objectId, expectedArrival);
+			context.record("background.positionCanonicalDeparture", expectedDeparture);
+			context.record("background.positionCanonicalArrival", expectedArrival);
+			context.record("background.positionTravelTicks", tickSequence - 1);
+		}
+		finally
+		{
+			if ((materialization != null) && (profile != null) && materialization.find(profile.profileId()).isPresent())
+			{
+				materialization.dematerialize(profile.profileId());
+			}
+			if (materialization != null)
+			{
+				materialization.shutdown();
+			}
+			if (background != null)
+			{
+				background.beginStop();
+				background.finishStop();
+			}
+			if (profile != null)
+			{
+				deleteProfile(profile);
+			}
+			if (playerFixture != null)
+			{
+				playerFixture.close();
+			}
+		}
+	}
+
 	private void testProductionLootPolicy() throws Exception
 	{
 		final Map<String, String> shipped = shippedAutoLootConfig();
@@ -1006,7 +1201,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final PhantomMetrics metrics = new PhantomMetrics();
 			materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, point ->
 			{
-			}, exactAnchorLifecycle(background, playerFixture.farm().anchor()), 5_000, 10_000);
+			}, background, 5_000, 10_000);
 			PhantomAssertions.assertTrue(materialization.start(), "Production materialization service did not start.");
 			materializationRef.set(materialization);
 
@@ -1072,8 +1267,6 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(committedProbe != null, "Committed production Player did not reload for the conservation preflight.");
 			try
 			{
-				final PhantomTopologyAnchor anchor = playerFixture.farm().anchor();
-				committedProbe.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z());
 				assertProductionRuntimeMatches(committedProbe, transaction.load(profile.profileId()).state());
 			}
 			finally
@@ -1148,49 +1341,6 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(player.getZ() == state.position().z(), "Reloaded production Player Z differs: expected=" + state.position().z() + ", actual=" + player.getZ());
 		PhantomAssertions.assertTrue(player.getHeading() == state.position().heading(), "Reloaded production Player heading differs: expected=" + state.position().heading() + ", actual=" + player.getHeading());
 		PhantomAssertions.assertTrue(_production.authority().matchesRuntime(player, state), "Exact production authority rejected a field-by-field matching reload.");
-	}
-
-	private static PhantomMaterializationLifecyclePort exactAnchorLifecycle(PhantomMaterializationLifecyclePort delegate, PhantomTopologyAnchor anchor)
-	{
-		return new PhantomMaterializationLifecyclePort()
-		{
-			@Override
-			public void beforeMaterialize(long profileId, int characterObjectId)
-			{
-				delegate.beforeMaterialize(profileId, characterObjectId);
-			}
-
-			@Override
-			public void afterPlayerLoad(long profileId, Player player)
-			{
-				player.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z());
-				delegate.afterPlayerLoad(profileId, player);
-			}
-
-			@Override
-			public void materializeSucceeded(long profileId, int characterObjectId)
-			{
-				delegate.materializeSucceeded(profileId, characterObjectId);
-			}
-
-			@Override
-			public void materializeAborted(long profileId, int characterObjectId)
-			{
-				delegate.materializeAborted(profileId, characterObjectId);
-			}
-
-			@Override
-			public void beforeStore(long profileId, Player player)
-			{
-				delegate.beforeStore(profileId, player);
-			}
-
-			@Override
-			public void afterStore(long profileId, Player player)
-			{
-				delegate.afterStore(profileId, player);
-			}
-		};
 	}
 
 	private static void assertProductionDouble(double expected, double actual, String field)
@@ -1807,19 +1957,26 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		{
 			original = canonical(objectId);
 			originalBaseClass = (int) scalarLong("SELECT base_class FROM characters WHERE charId = ?", objectId);
+			final Position canonicalAnchor = canonicalAnchorPosition(anchor, 0);
 			try (Connection connection = DatabaseFactory.getConnection();
-				PreparedStatement statement = connection.prepareStatement("UPDATE characters SET classid=?,base_class=?,race=?,level=85,exp=? WHERE charId=?"))
+				PreparedStatement statement = connection.prepareStatement("UPDATE characters SET classid=?,base_class=?,race=?,level=85,exp=?,x=?,y=?,z=?,heading=? WHERE charId=?"))
 			{
 				statement.setInt(1, selection.playerClass().getId());
 				statement.setInt(2, selection.playerClass().getId());
 				statement.setInt(3, selection.playerClass().getRace().ordinal());
 				statement.setLong(4, ExperienceData.getInstance().getExpForLevel(85));
-				statement.setInt(5, objectId);
+				statement.setInt(5, canonicalAnchor.x());
+				statement.setInt(6, canonicalAnchor.y());
+				statement.setInt(7, canonicalAnchor.z());
+				statement.setInt(8, canonicalAnchor.heading());
+				statement.setInt(9, objectId);
 				PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Could not configure a real supported Player class.");
 			}
 			player = Player.load(objectId);
 			PhantomAssertions.assertTrue(player != null, "Real Player fixture could not be loaded.");
-			player.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z());
+			PhantomAssertions.assertEquals(canonicalAnchor.x(), player.getX(), "Naturally loaded production fixture X differs.");
+			PhantomAssertions.assertEquals(canonicalAnchor.y(), player.getY(), "Naturally loaded production fixture Y differs.");
+			PhantomAssertions.assertEquals(canonicalAnchor.z(), player.getZ(), "Naturally loaded production fixture Z differs.");
 			final CapabilityRule selected = selection.rule();
 			final var selectedSkill = SkillData.getInstance().getSkill(selected.actionSkill().skillId(), selected.actionSkill().skillLevel());
 			PhantomAssertions.assertTrue(selectedSkill != null, "Selected production capability skill is absent.");
@@ -1873,11 +2030,17 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private ProductionPlayerFixture openProductionPlayerFixture() throws Exception
 	{
+		return openProductionPlayerFixture(productionFarmSelection().anchor());
+	}
+
+	private ProductionPlayerFixture openProductionPlayerFixture(PhantomTopologyAnchor initialAnchor) throws Exception
+	{
 		final ProductionFarmSelection farm = productionFarmSelection();
 		final CapabilitySelection selection = productionCapability();
 		final int objectId = _environment.primary().objectId();
 		final Canonical original = canonical(objectId);
 		final int originalBaseClass = (int) scalarLong("SELECT base_class FROM characters WHERE charId = ?", objectId);
+		final Position canonicalInitial = canonicalAnchorPosition(initialAnchor, 0);
 		Player player = null;
 		try
 		{
@@ -1888,9 +2051,9 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				statement.setInt(2, selection.playerClass().getId());
 				statement.setInt(3, selection.playerClass().getRace().ordinal());
 				statement.setLong(4, ExperienceData.getInstance().getExpForLevel(85));
-				statement.setInt(5, farm.anchor().point().x());
-				statement.setInt(6, farm.anchor().point().y());
-				statement.setInt(7, farm.anchor().point().z());
+				statement.setInt(5, canonicalInitial.x());
+				statement.setInt(6, canonicalInitial.y());
+				statement.setInt(7, canonicalInitial.z());
 				statement.setInt(8, objectId);
 				PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Could not configure the production loot Player.");
 			}
@@ -1899,7 +2062,9 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			ensureAutoGetSkills(identity, List.of(new AutoGetSkill(selection.rule().actionSkill().skillId(), selection.rule().actionSkill().skillLevel())));
 			player = Player.load(objectId);
 			PhantomAssertions.assertTrue(player != null, "Production loot real Player could not be loaded.");
-			player.setXYZInvisible(farm.anchor().point().x(), farm.anchor().point().y(), farm.anchor().point().z());
+			PhantomAssertions.assertEquals(canonicalInitial.x(), player.getX(), "Naturally loaded production Player X differs.");
+			PhantomAssertions.assertEquals(canonicalInitial.y(), player.getY(), "Naturally loaded production Player Y differs.");
+			PhantomAssertions.assertEquals(canonicalInitial.z(), player.getZ(), "Naturally loaded production Player Z differs.");
 			player.setCurrentHp(player.getMaxHp());
 			player.setCurrentMp(player.getMaxMp());
 			player.setCurrentCp(player.getMaxCp());
@@ -2060,6 +2225,33 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		return new ProductionFarmSelection(PRODUCTION_TARGET_NPC_ID, anchor);
 	}
 
+	private ProductionTravelSelection productionTravelSelection()
+	{
+		final PhantomTopologyAnchor farm = productionFarmSelection().anchor();
+		for (PhantomTopologyEdge edge : _production.topology().snapshot().edges().stream().filter(PhantomTopologyEdge::backgroundEligible).sorted(Comparator.comparing(PhantomTopologyEdge::id)).toList())
+		{
+			if (farm.id().equals(edge.toAnchorId()) && (edge.fromAnchorId() != null))
+			{
+				final PhantomTopologyAnchor departure = _production.topology().findAnchor(edge.fromAnchorId()).orElseThrow();
+				final List<String> route = _production.topology().routeHint(departure.id(), farm.id()).orElseThrow().edgeIds();
+				if (route.equals(List.of(edge.id())))
+				{
+					return new ProductionTravelSelection(departure, farm, edge);
+				}
+			}
+			if (edge.bidirectional() && farm.id().equals(edge.fromAnchorId()) && (edge.toAnchorId() != null))
+			{
+				final PhantomTopologyAnchor departure = _production.topology().findAnchor(edge.toAnchorId()).orElseThrow();
+				final List<String> route = _production.topology().routeHint(departure.id(), farm.id()).orElseThrow().edgeIds();
+				if (route.equals(List.of(edge.id())))
+				{
+					return new ProductionTravelSelection(departure, farm, edge);
+				}
+			}
+		}
+		throw new AssertionError("Current production topology has no direct background route to " + farm.id());
+	}
+
 	private void testProductionTravel()
 	{
 		final PhantomTopologyEdge edge = _production.topology().snapshot().edges().stream().filter(PhantomTopologyEdge::backgroundEligible).filter(candidate -> (candidate.fromAnchorId() != null) && (candidate.toAnchorId() != null)).findFirst().orElseThrow();
@@ -2079,7 +2271,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		}
 		PhantomAssertions.assertEquals(0L, state.clock().residualTravelMillis(), "Real topology travel did not finish within the bounded edge duration.");
 		PhantomAssertions.assertEquals(arrival.id(), state.position().committedAnchorId(), "Completed travel committed the wrong exact anchor.");
-		PhantomAssertions.assertEquals(arrival.point().x(), state.position().x(), "Completed travel committed the wrong X coordinate.");
+		PhantomAssertions.assertEquals(canonicalAnchorPosition(arrival, state.position().heading()), state.position(), "Completed travel did not commit the canonical geodata position.");
 
 		final PhantomTopologyEdge doorEdge = _production.topology().snapshot().edges().stream().filter(candidate -> (candidate.doorId() != null) && (candidate.fromAnchorId() != null) && (candidate.toAnchorId() != null)).findFirst().orElseThrow();
 		final PhantomTopologyQuery closedTopology = new PhantomTopologyQuery(_production.topology().snapshot(), new ClosedDoorBackend(_production.topologyBackend(), doorEdge.doorId()), new PhantomTopologyMetrics());
@@ -2257,7 +2449,12 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private static PhantomBackgroundState productionState(PhantomTopologyAnchor anchor, Hashes hashes)
 	{
-		return new PhantomBackgroundState(State.READY, new Identity(15001501, 15001501, 0, 0, 0), new Progress(1, 0, 0, 0), new Vitals(100, 100, 100, 100, 10, 10), new Position(0, anchor.point().x(), anchor.point().y(), anchor.point().z(), 0, anchor.id()), combat(ModelKind.MELEE, 1, 1, 0), Loadout.none(), inventory(), List.of(), new Clock(SEED, 0, 0), Receipt.empty(), hashes);
+		return new PhantomBackgroundState(State.READY, new Identity(15001501, 15001501, 0, 0, 0), new Progress(1, 0, 0, 0), new Vitals(100, 100, 100, 100, 10, 10), canonicalAnchorPosition(anchor, 0), combat(ModelKind.MELEE, 1, 1, 0), Loadout.none(), inventory(), List.of(), new Clock(SEED, 0, 0), Receipt.empty(), hashes);
+	}
+
+	private static Position canonicalAnchorPosition(PhantomTopologyAnchor anchor, int heading)
+	{
+		return L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, heading).orElseThrow(() -> new AssertionError("Current anchor has no stable canonical geodata position: " + anchor.id()));
 	}
 
 	private static boolean supportedCapability(String capabilityKey)
@@ -2391,6 +2588,23 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(experience, result.getLong("exp"), "Canonical EXP mismatch.");
 				PhantomAssertions.assertEquals(skillPoints, result.getLong("sp"), "Canonical SP mismatch.");
 				PhantomAssertions.assertEquals(hp, result.getDouble("curHp"), "Canonical HP mismatch.");
+			}
+		}
+	}
+
+	private static void assertCharacterPosition(int objectId, Position expected) throws Exception
+	{
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("SELECT x,y,z,heading FROM characters WHERE charId=?"))
+		{
+			statement.setInt(1, objectId);
+			try (ResultSet result = statement.executeQuery())
+			{
+				PhantomAssertions.assertTrue(result.next(), "Character row disappeared.");
+				PhantomAssertions.assertEquals(expected.x(), result.getInt("x"), "Canonical X mismatch.");
+				PhantomAssertions.assertEquals(expected.y(), result.getInt("y"), "Canonical Y mismatch.");
+				PhantomAssertions.assertEquals(expected.z(), result.getInt("z"), "Canonical Z mismatch.");
+				PhantomAssertions.assertEquals(expected.heading(), result.getInt("heading"), "Canonical heading mismatch.");
 			}
 		}
 	}
@@ -2847,6 +3061,10 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	}
 
 	private record ProductionFarmSelection(int npcId, PhantomTopologyAnchor anchor)
+	{
+	}
+
+	private record ProductionTravelSelection(PhantomTopologyAnchor departure, PhantomTopologyAnchor arrival, PhantomTopologyEdge edge)
 	{
 	}
 

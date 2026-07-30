@@ -3,11 +3,14 @@ param()
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-$requiredParent = "32be3bbc320bc3a054aab8c5d39001910f35e4b8"
+$lootCommit = "b800f125bddedadd4f181e9a5f398283e73c4c13"
+$lootParent = "32be3bbc320bc3a054aab8c5d39001910f35e4b8"
+$requiredParent = $lootCommit
 $requiredBranch = "feature/phantom-world"
-$requiredSubject = "fix(phantoms): support ground-loss production drops"
+$requiredSubject = "fix(phantoms): canonicalize background anchor positions"
 $acceptedCommits = @(
-	$requiredParent
+	$lootParent,
+	$lootCommit
 )
 $moduleRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $repositoryRoot = (Resolve-Path ((& git -C $moduleRoot rev-parse --show-toplevel).Trim())).Path
@@ -40,8 +43,7 @@ function Is-AllowedPath([string] $path)
 		return $false
 	}
 	$local = $path.Substring($prefix.Length)
-	return $local -eq "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java" `
-		-or $local -eq "java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java" `
+	return $local -eq "java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java" `
 		-or $local -eq "build.xml" `
 		-or $local -eq "test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java" `
 		-or $local -eq "test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java" `
@@ -49,8 +51,7 @@ function Is-AllowedPath([string] $path)
 		-or $local -eq "docs/PHANTOM_BOTS_ROADMAP.md" `
 		-or $local -eq "docs/phantoms/architecture/BACKGROUND_FARMING_RECONCILIATION_CONTRACT.md" `
 		-or $local -eq "docs/phantoms/reports/015-background-farming-reconciliation.md" `
-		-or $local -eq "docs/phantoms/reviews/015-production-loot-disposition-unblock-review.md" `
-		-or $local.StartsWith("docs/phantoms/tasks/015-production-loot-disposition-unblock/", [StringComparison]::Ordinal)
+		-or $local -eq "docs/phantoms/reviews/015-background-position-canonicalization-review.md"
 }
 
 $branch = (& git -C $repositoryRoot branch --show-current).Trim()
@@ -61,6 +62,8 @@ foreach ($accepted in $acceptedCommits)
 	& git -C $repositoryRoot merge-base --is-ancestor $accepted $head
 	Assert-True ($LASTEXITCODE -eq 0) "Accepted commit is not an ancestor of HEAD: $accepted"
 }
+Assert-True ((& git -C $repositoryRoot show -s --format=%P $lootCommit).Trim() -eq $lootParent) "Accepted production loot commit has the wrong parent."
+Assert-True ((& git -C $repositoryRoot show -s --format=%s $lootCommit).Trim() -eq "fix(phantoms): support ground-loss production drops") "Accepted production loot commit subject changed."
 
 $graphMode = "working-goal"
 if ($head -ne $requiredParent)
@@ -118,7 +121,8 @@ $requiredFiles = @(
 	"docs/phantoms/architecture/BACKGROUND_FARMING_RECONCILIATION_CONTRACT.md",
 	"docs/phantoms/reports/015-background-farming-reconciliation.md",
 	"docs/phantoms/reviews/015-background-farming-reconciliation-review.md",
-	"docs/phantoms/reviews/015-production-loot-disposition-unblock-review.md"
+	"docs/phantoms/reviews/015-production-loot-disposition-unblock-review.md",
+	"docs/phantoms/reviews/015-background-position-canonicalization-review.md"
 )
 foreach ($local in $requiredFiles)
 {
@@ -150,7 +154,7 @@ foreach ($fact in @("MAX_ENCOUNTERS = 32", "MAX_ELAPSED_MILLIS = 60_000", "MAX_C
 }
 
 $authorityText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java")
-foreach ($fact in @("LOOT_POLICY_V1", "compositeKnowledgeHash", "AUTO_LOOT_HERBS", "AUTO_LOOT", "AUTO_LOOT_SLOT_LIMIT", "AUTO_LOOT_ITEM_IDS", "DropDisposition.LEAVE_ON_GROUND", "isFlying()", "isFlyingMounted()", "isMounted()"))
+foreach ($fact in @("LOOT_POLICY_V1", "compositeKnowledgeHash", "AUTO_LOOT_HERBS", "AUTO_LOOT", "AUTO_LOOT_SLOT_LIMIT", "AUTO_LOOT_ITEM_IDS", "DropDisposition.LEAVE_ON_GROUND", "isFlying()", "isFlyingMounted()", "isMounted()", "canonicalCommittedAnchorPosition", "GeoEngine.getInstance()", "getHeight(x, y, point.z())", "atCanonicalAnchor", "Status.ANCHOR_MISMATCH"))
 {
 	Assert-True ($authorityText.Contains($fact)) "Production loot authority fact is missing: $fact"
 }
@@ -200,19 +204,21 @@ foreach ($fact in @("new PhantomBackgroundService(", "new PhantomBackgroundDecis
 Assert-True ($systemText.IndexOf("new PhantomBackgroundService(", [StringComparison]::Ordinal) -lt $systemText.IndexOf("new PhantomDecisionEngine(", [StringComparison]::Ordinal)) "Background service is not composed before the decision engine."
 
 $suiteText = Read-Utf8Strict (Join-Path $moduleRoot "test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java")
-foreach ($fact in @("SEED = 15001501L", "PRODUCTION_LOOT_UNBLOCK_SEED = 15001502L", "testLifecycleLoop(1, 100)", "testLifecycleLoop(50, 0)", "identity <= 300", "100_000", "10_000", "BEFORE_OPERATION_COMMIT", "AFTER_OPERATION_COMMIT", "Status.INCONSISTENT", "PRODUCTION_TARGET_NPC_ID", "PRODUCTION_FARM_ANCHOR_ID", "PhantomTopologyLoader", "Player.load(", "2509", "6645", "Disabled PhantomSystem", "testMaterializationAbortMatrix", "testMaterializingQuiescence", "testCompactInventoryHash", "testAuthoritativeShotContract", "testProductionCorpusAudit", "testProductionLootPolicy", "testGroundLossModelSemantics", "testProductionLootBatch", "LOOT_POLICY_V1", "LEAVE_ON_GROUND", "groundLosses", "testDeathRecovery", "testRealLoginGuard", "10655", "13028", "length <= 4096", "COUNT(*) FROM items"))
+foreach ($fact in @("SEED = 15001501L", "PRODUCTION_LOOT_UNBLOCK_SEED = 15001502L", "POSITION_CANONICALIZATION", "testCanonicalAnchorPolicy", "testProductionPositionTransition", "productionTravelSelection", "canonicalAnchorPosition", "testLifecycleLoop(1, 100)", "testLifecycleLoop(50, 0)", "identity <= 300", "100_000", "10_000", "BEFORE_OPERATION_COMMIT", "AFTER_OPERATION_COMMIT", "Status.INCONSISTENT", "PRODUCTION_TARGET_NPC_ID", "PRODUCTION_FARM_ANCHOR_ID", "PhantomTopologyLoader", "Player.load(", "2509", "6645", "Disabled PhantomSystem", "testMaterializationAbortMatrix", "testMaterializingQuiescence", "testCompactInventoryHash", "testAuthoritativeShotContract", "testProductionCorpusAudit", "testProductionLootPolicy", "testGroundLossModelSemantics", "testProductionLootBatch", "LOOT_POLICY_V1", "LEAVE_ON_GROUND", "groundLosses", "testDeathRecovery", "testRealLoginGuard", "10655", "13028", "length <= 4096", "COUNT(*) FROM items"))
 {
 	Assert-True ($suiteText.Contains($fact)) "Goal 015 evidence is missing: $fact"
 }
+Assert-True (-not $suiteText.Contains("exactAnchorLifecycle")) "Test-only exact-anchor lifecycle masking is present."
+Assert-True (-not $suiteText.Contains("setXYZInvisible")) "Post-load raw-anchor coordinate masking is present."
 
 $buildText = Read-Utf8Strict (Join-Path $moduleRoot "build.xml")
 $launcherText = Read-Utf8Strict (Join-Path $moduleRoot "test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java")
-foreach ($target in @("phantom-background-production-loot-unblock-test", "phantom-background-model-test", "phantom-background-transaction-test", "phantom-background-lifecycle-test", "phantom-background-decision-test", "phantom-background-server-integration-test", "phantom-background-performance-smoke", "phantom-background-materialization-abort-test", "phantom-background-quiescence-test", "phantom-background-compact-inventory-test", "phantom-background-authoritative-shots-test", "phantom-background-production-audit-test", "phantom-background-recovery-teleport-test", "phantom-background-real-login-test", "phantom-background-test", "phantom-background-completion-test", "phantom-static-verify-015"))
+foreach ($target in @("phantom-background-position-canonicalization-test", "phantom-background-production-loot-unblock-test", "phantom-background-model-test", "phantom-background-transaction-test", "phantom-background-lifecycle-test", "phantom-background-decision-test", "phantom-background-server-integration-test", "phantom-background-performance-smoke", "phantom-background-materialization-abort-test", "phantom-background-quiescence-test", "phantom-background-compact-inventory-test", "phantom-background-authoritative-shots-test", "phantom-background-production-audit-test", "phantom-background-recovery-teleport-test", "phantom-background-real-login-test", "phantom-background-test", "phantom-background-completion-test", "phantom-static-verify-015"))
 {
 	Assert-True ($buildText.Contains("`"$target`"")) "Missing Goal 015 Ant target: $target"
 }
 Assert-True ($buildText.Contains('name="phantom.goal015.seed" value="15001501"') -and $buildText.Contains('name="phantom.goal015.production.unblock.seed" value="15001502"') -and $buildText.Contains("phantom-background-test") -and $buildText.Contains("phantom-static-verify-015")) "Goal 015 is not in cumulative verify."
-foreach ($mode in @("background-production-loot-unblock", "background-model", "background-transaction", "background-lifecycle", "background-decision", "background-server-integration", "background-performance", "background-materialization-abort", "background-quiescence", "background-compact-inventory", "background-authoritative-shots", "background-production-audit", "background-recovery-teleport", "background-real-login"))
+foreach ($mode in @("background-position-canonicalization", "background-production-loot-unblock", "background-model", "background-transaction", "background-lifecycle", "background-decision", "background-server-integration", "background-performance", "background-materialization-abort", "background-quiescence", "background-compact-inventory", "background-authoritative-shots", "background-production-audit", "background-recovery-teleport", "background-real-login"))
 {
 	Assert-True ($launcherText.Contains("case `"$mode`"")) "Missing Goal 015 launcher mode: $mode"
 }
@@ -224,7 +230,7 @@ Assert-True (-not [regex]::IsMatch($productionText, "\b(Logger|LOGGER|_LOGGER)\b
 Assert-True (-not $productionText.Contains("progression.learn_skill")) "Background production crossed the Goal 013B activation gate."
 
 $architectureText = Read-Utf8Strict (Join-Path $moduleRoot "docs/phantoms/architecture/BACKGROUND_FARMING_RECONCILIATION_CONTRACT.md")
-foreach ($fact in @("BACKGROUND_MODEL_V1", "VERIFY_PENDING", "Math.round", "NpcTemplate.calculateDrops", "autoCommit=false", "giran.farming.22859", "LOOT_POLICY_V1", "LEAVE_ON_GROUND", "groundLosses", "Supported production pair count"))
+foreach ($fact in @("BACKGROUND_MODEL_V1", "VERIFY_PENDING", "Math.round", "NpcTemplate.calculateDrops", "autoCommit=false", "giran.farming.22859", "LOOT_POLICY_V1", "LEAVE_ON_GROUND", "groundLosses", "canonicalCommittedAnchorPosition", "GeoEngine.getHeight", "Supported production pair count"))
 {
 	Assert-True ($architectureText.Contains($fact)) "Architecture contract fact is missing: $fact"
 }
@@ -233,7 +239,9 @@ Assert-True ($roadmapText.Contains("Goal 013: ACCEPT after Goal 013B") -and $roa
 $masterPlanText = Read-Utf8Strict (Join-Path $moduleRoot "PHANTOM_DEVELOPMENT_MASTER_PLAN.md")
 Assert-True ($masterPlanText.Contains("### 015. Background farming") -and $masterPlanText.Contains('`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`')) "Master plan Goal 015 status line is stale."
 $reviewText = Read-Utf8Strict (Join-Path $moduleRoot "docs/phantoms/reviews/015-production-loot-disposition-unblock-review.md")
-Assert-True ($reviewText.Contains('`PENDING_INDEPENDENT_REVIEW`') -and $reviewText.Contains($requiredParent) -and $reviewText.Contains('Supported production pair count: `1`') -and $reviewText.Contains("22859@giran.farming.22859")) "Goal 015 production unblock review truth is incomplete."
+Assert-True ($reviewText.Contains('`PENDING_INDEPENDENT_REVIEW`') -and $reviewText.Contains($lootParent) -and $reviewText.Contains('Supported production pair count: `1`') -and $reviewText.Contains("22859@giran.farming.22859")) "Goal 015 production unblock review truth is incomplete."
+$positionReviewText = Read-Utf8Strict (Join-Path $moduleRoot "docs/phantoms/reviews/015-background-position-canonicalization-review.md")
+Assert-True ($positionReviewText.Contains('`PENDING_INDEPENDENT_REVIEW`') -and $positionReviewText.Contains($requiredParent) -and $positionReviewText.Contains($requiredSubject) -and $positionReviewText.Contains("canonicalCommittedAnchorPosition") -and $positionReviewText.Contains("Player.load")) "Goal 015 position canonicalization review truth is incomplete."
 $reportPath = Join-Path $moduleRoot "docs/phantoms/reports/015-background-farming-reconciliation.md"
 Assert-True ((Get-Content -LiteralPath $reportPath -Encoding UTF8).Count -le 170) "Goal 015 report exceeds the 170-line efficiency bound."
 $reportText = Read-Utf8Strict $reportPath
@@ -295,6 +303,7 @@ Write-Output "state=VERSION2_COMPACT_HASH_VERIFY_PENDING"
 Write-Output "transaction=ONE_CANONICAL_MARIADB_BATCH"
 Write-Output "identity=BACKGROUND_TYPED_LEASE"
 Write-Output "lootPolicy=LOOT_POLICY_V1"
+Write-Output "position=GEOENGINE_CANONICAL_COMMITTED_ANCHOR"
 Write-Output "productionPairs=1_SUPPORTED"
 Write-Output "workers=0"
 Write-Output "utf8=STRICT"

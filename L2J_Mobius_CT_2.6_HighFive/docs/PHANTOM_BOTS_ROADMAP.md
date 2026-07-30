@@ -15,10 +15,13 @@
 8dba87e9c1d5828376b80c1ea16c4578726d4947
 
 Текущий branch HEAD:
-Goal 015 production loot disposition unblock —
+Goal 015 production loot disposition и position canonicalization completion —
 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 Exact pair `22859@giran.farming.22859` поддержана при shipped AutoLoot policy:
 immediate/time-limited drops участвуют в canonical RNG и остаются на земле.
+Committed anchor Z канонизируется production `GeoEngine` и без test-only
+координатной подмены сохраняется через travel, transaction, materialization и
+restart.
 
 Task 004 technical feasibility:
 ACCEPT
@@ -117,9 +120,10 @@ Goal 010C независимо принята, поэтому Goal 010 закр�
 Goal 012A независимо закрыла обязательные action-ownership findings. Goal 012
 принята после Goal 012A. Goal 013 и Goal 013A приняты после Goal 013B; Goal 013B
 имеет `ACCEPT_WITH_ACTIVATION_GATE`. Goal 014 принята после Goal 014A, а Goal
-014A с completion принята. Goal 015 production loot disposition unblock
-реализован и ожидает независимого ревью; production-пара
-`22859@giran.farming.22859` доказана на shipped AutoLoot policy.
+014A с completion принята. Goal 015 production loot disposition и position
+canonicalization completion реализованы и ожидают независимого ревью;
+production-пара `22859@giran.farming.22859` доказана на shipped AutoLoot policy,
+а geodata canonical position сохраняется через ARRIVED и restart.
 Goal 016, Goal 017 и Goal 025 не начаты.
 
 ---
@@ -722,6 +726,10 @@ Materialization/background transition не должен бесплатно сб�
 **Production loot disposition:** exact pair `22859@giran.farming.22859`
 поддерживает ordinary `ACQUIRE` и immediate/time-limited
 `LEAVE_ON_GROUND`; loot-policy config входит в authority hash.
+**Position canonicalization:** committed X/Y принадлежат topology anchor, Z
+нормализуется production `GeoEngine`; partial travel сохраняет последнюю
+position, ARRIVED атомарно пишет canonical coordinates, которые без test-only
+snap проходят materialization и restart.
 **Follow-up risk:** `VERY_HIGH` — probabilistic causality and reconciliation.
 
 ## Goal 016 — PopulationManager и schedules
