@@ -4,9 +4,13 @@ Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 ## Summary
 
-Goal 017 продолжен без 017A/017B/017C от required parent
-`d731bf91b5f75cf733175bf57faf19c0354085c0` в ветке
+Goal 017 продолжен без 017A/017B/017C последним micro-completion от required
+parent `0015a5ffd0c10a99514732ef52b969a39ac62eb7` в ветке
 `feature/phantom-world`.
+
+Independent review принял completion architecture и baseline commit. Micro scope
+закрывает reusable terminal formation, safe party pulse minimum и
+подтверждённую test-only population race.
 
 Исправлены только доказанные lifecycle-safety findings:
 
@@ -68,6 +72,10 @@ Tests/tools/docs:
 
 Итоговый scope: 30 файлов. Production <=18, new production <=3, total <=30.
 
+Terminal micro-completion: 10 файлов, из них 3 production/config; новых
+production файлов нет. Из предыдущего completion-кода меняется только
+`PhantomPartyCoordinator`.
+
 ## Architecture decisions
 
 Invitation reservation имеет состояния RESERVED/PUBLISHED/TERMINAL. `prepare`
@@ -94,7 +102,8 @@ Maximum matcher оптимизирует required count, total score, optional c
 - production БД `l2jmobiush5` не изменялась;
 - schema/migrations отсутствуют;
 - новых config keys нет;
-- существующий `PhantomPartyOperationsPerPulse` остаётся budget authority.
+- `PhantomPartyOperationsPerPulse` остаётся budget authority: диапазон
+  `10..10000`, default 64.
 
 ## Tests
 
@@ -111,6 +120,12 @@ Maximum matcher оптимизирует required count, total score, optional c
 - missing route member не двигает waypoint и не допускает ARRIVED;
 - 64-group pulse никогда не превышает budget;
 - maximum-matching counterexample заполняет обе required vacancy.
+- refusal и timeout сохраняют exact ABORTED evidence, завершают старую form goal
+  и делают leader SOLO reusable только для новой ACTIVE goal;
+- stale decision/callback не повторяет invite и не abort-ит новую operation;
+- nine-member canonical group делает progress при budget 10, budget 9 отклонён;
+- population server integration ожидает terminal
+  `ACTIVE + playerRetained + worldPresent`, а не раннюю publication entry.
 
 Source-string проверки не засчитывались как integration evidence.
 
@@ -133,7 +148,7 @@ Pre-freeze gates:
 - working verifier 017: `TASK017_VERIFIER_OK`, scope 30, production 18,
   new production 2.
 
-Terminal frozen-tree results:
+Исторические terminal frozen-tree results baseline commit:
 
 - terminal disposition: `PARTIAL`;
 - единственный final full `ant verify`: FAIL через 12:12 только на известном
@@ -144,9 +159,25 @@ Terminal frozen-tree results:
 - standalone `ant jar`: `BUILD SUCCESSFUL`, 0:17;
 - два post-commit verifier 017 и их byte identity сообщаются в финальном ответе.
 
+Terminal micro-completion gates:
+
+- compile/compile-tests: PASS;
+- focused party lifecycle: PASS, 9/9;
+- config/skeleton: PASS, 13/13;
+- population server integration: PASS 3/3 sequential runs, 1/1 each;
+- final `phantom-party-test`: PASS, 40/40;
+- verifier 016: `TASK016_VERIFIER_OK`;
+- working verifier 017: `TASK017_VERIFIER_OK`, scope 10, production 3,
+  new production 0;
+- final frozen-tree `ant verify`: PASS, `BUILD SUCCESSFUL`, 11:55;
+- standalone `ant jar`: PASS, `BUILD SUCCESSFUL`, 0:15;
+- ordinary child commit/push и два byte-identical verifier выполняются
+  post-report; commit SHA, push result и verifier hash сообщаются в финальном
+  ответе без amend отчёта.
+
 ## Performance
 
-Dynamic pulse fixture: 64 groups, budget 7, 100 pulses; maximum examined не
+Dynamic pulse fixture: 64 groups, budget 10, 100 pulses; maximum examined не
 превышает budget. Party performance target дополнительно использует 100000
 composite pulses, 10000 synthetic profiles и 1000 groups.
 
@@ -163,6 +194,8 @@ composite pulses, 10000 synthetic profiles и 1000 groups.
   перепроверить крупный coordinator lifecycle, добавить real DB/materialized
   Party/ordinary-client fixture, выполнить тяжёлые server-integration regressions
   и отдельно диагностировать известный population flake перед code freeze.
+- Soft ceiling terminal micro-completion: 250k; отсчёт ведётся отдельно от
+  исторического Goal usage.
 
 ## Encoding checks
 
@@ -176,8 +209,8 @@ upstream, scope inventory, exact diff и verifier guard. История не и�
 ordinary final commit.
 
 - branch: `feature/phantom-world`;
-- required parent: `d731bf91b5f75cf733175bf57faf19c0354085c0`;
-- subject: `fix(phantoms): complete party lifecycle safety`;
+- required micro parent: `0015a5ffd0c10a99514732ef52b969a39ac62eb7`;
+- subject: `fix(phantoms): finalize party terminal verification`;
 - commit SHA и push result сообщаются в финальном ответе: report не изменяется
   после ordinary commit и не требует amend;
 - force push/amend/rebase/squash/merge: не используются.

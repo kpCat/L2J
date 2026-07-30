@@ -154,9 +154,9 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		_tactics = Objects.requireNonNull(tactics);
 		_topologyHash = Objects.requireNonNull(topologyHash);
 		_clock = Objects.requireNonNull(clock);
-		if ((operationBudget < 1) || (operationBudget > 10000))
+		if ((operationBudget < 10) || (operationBudget > 10000))
 		{
-			throw new IllegalArgumentException("Party operation budget must be between one and 10000.");
+			throw new IllegalArgumentException("Party operation budget must be between 10 and 10000.");
 		}
 		_operationBudget = operationBudget;
 	}
@@ -217,6 +217,9 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			}
 			final String groupId = PhantomPartyModel.stableGroupId(leaderProfileId, goalId, goalRevision);
 			final StoredPartyState existing = _claims.get(leaderProfileId);
+			long expectedRowVersion = -1;
+			long groupGeneration = 1;
+			long membershipRevision = 0;
 			if (existing != null)
 			{
 				final PartyOperation live = existing.state().operation();
@@ -224,21 +227,31 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				{
 					return CommandOutcome.IDEMPOTENT;
 				}
-				return CommandOutcome.CLAIM_EXISTS;
+				if ((existing.state().status() != StateStatus.SOLO) || ((live != null) && (live.leaderGoalId() == goalId) && (live.leaderGoalRevision() == goalRevision)))
+				{
+					return CommandOutcome.CLAIM_EXISTS;
+				}
+				expectedRowVersion = existing.rowVersion();
+				groupGeneration = existing.state().groupGeneration() + 1;
+				membershipRevision = existing.state().membershipRevision() + 1;
 			}
 			final MemberRef leader = _backend.currentMember(leaderProfileId).orElse(null);
 			if (leader == null)
 			{
 				return CommandOutcome.TARGET_UNAVAILABLE;
 			}
-			final PartyState provisional = state(groupId, 1, 0, StateStatus.FORMING, leader, List.of(leader), List.of(), objective, objectiveRef, requirements, List.of(), null, null, progressionHash(leader), "");
+			final PartyState provisional = state(groupId, groupGeneration, membershipRevision, StateStatus.FORMING, leader, List.of(leader), List.of(), objective, objectiveRef, requirements, List.of(), null, null, progressionHash(leader), "");
 			final String manifest = provisional.canonicalManifestHash();
-			final PartyOperation operation = new PartyOperation(PhantomPartyModel.stableOperationId(groupId, 1, 0, OperationKind.FORM, leader, null, goalId, goalRevision, manifest), OperationKind.FORM, OperationPhase.PREPARED, leader, null, goalId, goalRevision, manifest, 0, deadline(), "");
-			final PartyState prepared = state(groupId, 1, 0, StateStatus.FORMING, leader, List.of(leader), List.of(), objective, objectiveRef, requirements, List.of(), null, operation, progressionHash(leader), "");
+			final PartyOperation operation = new PartyOperation(PhantomPartyModel.stableOperationId(groupId, groupGeneration, membershipRevision, OperationKind.FORM, leader, null, goalId, goalRevision, manifest), OperationKind.FORM, OperationPhase.PREPARED, leader, null, goalId, goalRevision, manifest, 0, deadline(), "");
+			final PartyState prepared = state(groupId, groupGeneration, membershipRevision, StateStatus.FORMING, leader, List.of(leader), List.of(), objective, objectiveRef, requirements, List.of(), null, operation, progressionHash(leader), "");
 			try
 			{
-				final StoredPartyState stored = save(leaderProfileId, -1, prepared);
+				final StoredPartyState stored = save(leaderProfileId, expectedRowVersion, prepared);
 				putClaim(stored);
+				if ((existing != null) && !existing.state().groupId().equals(groupId))
+				{
+					removeGroup(existing.state().groupId());
+				}
 				ensureGroup(groupId);
 				return CommandOutcome.ACCEPTED;
 			}
@@ -842,6 +855,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	{
 		final List<StoredPartyState> groupClaims = claims(runtime.groupId());
 		int examined = 1 + groupClaims.size();
+		if (examined > remainingBudget)
+		{
+			return 0;
+		}
 		if (groupClaims.isEmpty())
 		{
 			removeGroup(runtime.groupId());
@@ -870,17 +887,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return examined;
 		}
 		final List<MemberRef> expected = groupClaims.stream().flatMap(claim -> claim.state().phantomMembers().stream()).distinct().sorted(Comparator.comparing(MemberRef::stableKey)).toList();
-		if ((examined + expected.size() + 1) > remainingBudget)
-		{
-			return examined;
-		}
 		if (!_backend.materialize(leader.profileId()))
 		{
-			examined++;
 			final MemberRef elected = expected.stream().min(Comparator.comparingLong(MemberRef::profileId)).orElse(leader);
 			if (!elected.equals(leader) && _backend.materialize(elected.profileId()))
 			{
-				examined++;
 				electLeader(groupClaims, elected);
 				leader = elected;
 			}
@@ -890,7 +901,6 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			}
 		}
 		final Optional<PartySnapshot> observed = _backend.observe(leader);
-		examined++;
 		if (observed.isEmpty())
 		{
 			final MemberRef expectedLeader = leader;
@@ -899,13 +909,9 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				_backend.invite(leader, missing, PartyDistributionType.FINDERS_KEEPERS);
 			}
-			return Math.min(remainingBudget, examined + expected.size());
-		}
-		final PartySnapshot party = observed.get();
-		if ((examined + party.members().size()) > remainingBudget)
-		{
 			return examined;
 		}
+		final PartySnapshot party = observed.get();
 		if (!party.leader().equals(leader) && (party.leader().kind() == MemberKind.PHANTOM))
 		{
 			electLeader(groupClaims, party.leader());
@@ -915,9 +921,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		if (missing != null)
 		{
 			_backend.invite(leader, missing, party.distribution());
-			return Math.min(remainingBudget, examined + expected.size());
+			return examined;
 		}
-		examined += party.members().size();
 		commitObserved(groupClaims, party);
 		examined += advanceRoute(runtime.groupId(), party, remainingBudget - examined);
 		if (examined < remainingBudget)
@@ -1227,7 +1232,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final StoredPartyState leader = _claims.get(leaderProfileId.getAsLong());
 			if ((leader != null) && sameInvitation(leader.state().operation(), invitation.identity()))
 			{
-				abort(leader, reasonKey);
+				abortFormation(leader, invitation.identity(), reasonKey);
 			}
 		}
 		if (managedInvitee.isEmpty())
@@ -1239,6 +1244,45 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			moveToSolo(member, reasonKey);
 		}
+	}
+
+	private void abortFormation(StoredPartyState stored, InvitationIdentity identity, String failure)
+	{
+		final StoredPartyState current = _claims.get(stored.profileId());
+		if ((current == null) || (current.rowVersion() != stored.rowVersion()) || (current.state().status() != StateStatus.INVITED_OUTBOUND) || !sameInvitation(current.state().operation(), identity))
+		{
+			return;
+		}
+		final PartyState before = current.state();
+		final PartyOperation aborted = before.operation().withPhase(OperationPhase.ABORTED, identity.sequence(), failure);
+		final MemberRef self = before.phantomMembers().stream().filter(member -> (member.kind() == MemberKind.PHANTOM) && (member.profileId() == current.profileId())).findFirst().orElseGet(() -> _backend.currentMember(current.profileId()).orElse(MemberRef.phantom(current.profileId(), 0)));
+		final PartyState solo = state(PhantomPartyModel.sha256("party.solo|" + current.profileId() + '|' + (before.groupGeneration() + 1)), before.groupGeneration() + 1, before.membershipRevision() + 1, StateStatus.SOLO, self, List.of(self), List.of(), before.objectiveMode(), before.objectiveRef(), List.of(), List.of(), null, aborted, before.progressionHash(), failure);
+		try
+		{
+			putClaim(save(current.profileId(), current.rowVersion(), solo));
+			failFormGoal(current.profileId(), aborted, failure);
+			removeGroup(before.groupId());
+		}
+		catch (RuntimeException e)
+		{
+			_metrics.conflict();
+		}
+	}
+
+	private void failFormGoal(long profileId, PartyOperation operation, String failure)
+	{
+		final Optional<StoredGoal> found = _goals.load(profileId);
+		if (found.isEmpty())
+		{
+			return;
+		}
+		final PhantomGoal goal = found.get().goal();
+		if ((goal.status() != PhantomGoalStatus.ACTIVE) || (goal.goalId() != operation.leaderGoalId()) || (goal.revision() != operation.leaderGoalRevision()) || !FORM_GOAL.equals(goal.goalType()))
+		{
+			return;
+		}
+		final PhantomGoal failed = new PhantomGoal(goal.goalId(), goal.goalType(), PhantomGoalStatus.FAILED, goal.subject(), goal.target(), goal.requiredAmount(), goal.currentAmount(), goal.acquisitionMethod(), goal.validSources(), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), goal.deadlineEpochMillis(), goal.constraints(), failure, goal.revision() + 1);
+		_goals.replace(profileId, found.get().rowVersion(), failed);
 	}
 
 	private void rollbackPreparedMember(MemberRef member, StoredPartyState previous, StoredPartyState prepared, String failure)
@@ -1418,7 +1462,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return false;
 		}
 		final PhantomGoal goal = stored.get().goal();
-		if ((goal.goalId() != goalId) || (goal.revision() != goalRevision) || !type.equals(goal.goalType()))
+		if ((goal.status() != PhantomGoalStatus.ACTIVE) || (goal.goalId() != goalId) || (goal.revision() != goalRevision) || !type.equals(goal.goalType()))
 		{
 			return false;
 		}
@@ -1557,7 +1601,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private boolean exactGoal(long profileId, long goalId, long goalRevision, String type, Integer targetObjectId)
 	{
 		final Optional<StoredGoal> stored = _goals.load(profileId);
-		return stored.isPresent() && (stored.get().goal().goalId() == goalId) && (stored.get().goal().revision() == goalRevision) && type.equals(stored.get().goal().goalType()) && ((targetObjectId == null) || goalTargets(stored.get().goal(), targetObjectId));
+		return stored.isPresent() && (stored.get().goal().status() == PhantomGoalStatus.ACTIVE) && (stored.get().goal().goalId() == goalId) && (stored.get().goal().revision() == goalRevision) && type.equals(stored.get().goal().goalType()) && ((targetObjectId == null) || goalTargets(stored.get().goal(), targetObjectId));
 	}
 
 	private static boolean goalTargets(PhantomGoal goal, int requesterObjectId)

@@ -52,7 +52,13 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStat
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.VacancyStatus;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
 import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PartyInvitation;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PreparationOutcome;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.TerminalOutcome;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InvitationIdentity;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InviteOutcome;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InviteResult;
 import org.l2jmobius.gameserver.phantoms.semantic.PhantomPartySemanticActs;
 import org.l2jmobius.gameserver.phantoms.semantic.PhantomSemanticAct;
 
@@ -381,6 +387,18 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		});
 		registry.add("04-transfer-and-leave-commit-exact-canonical-postconditions", PhantomPartySuite::membershipLifecycle);
 		registry.add("05-coordinator-pulse-count-never-exceeds-budget", PhantomPartySuite::boundedPulse);
+		registry.add("06-operation-budget-below-canonical-boundary-rejected", context ->
+		{
+			final MemoryPartyStore states = new MemoryPartyStore();
+			final MemoryGoalStore goals = new MemoryGoalStore();
+			final MemoryPartyBackend backend = new MemoryPartyBackend();
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> coordinator(context, states, goals, backend, 9), "Nine-operation party pulse budget was accepted.");
+			final PhantomPartyCoordinator boundary = coordinator(context, states, goals, backend, 10);
+			PhantomAssertions.assertEquals(10, boundary.snapshot().operationBudget(), "Ten-operation party pulse budget was not retained.");
+		});
+		registry.add("07-nine-member-budget-boundary-makes-progress", PhantomPartySuite::nineMemberBudget);
+		registry.add("08-refusal-makes-form-goal-terminal-and-reusable", context -> terminalFormationReuse(context, TerminalOutcome.REFUSED, "party.invite.refused"));
+		registry.add("09-timeout-makes-form-goal-terminal-and-reusable", context -> terminalFormationReuse(context, TerminalOutcome.EXPIRED, "party.invite.expired"));
 	}
 
 	private static void membershipLifecycle(PhantomTestContext context)
@@ -439,7 +457,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			states.seed(index, new PartyState(draft.groupId(), draft.groupGeneration(), draft.membershipRevision(), draft.status(), draft.leader(), "", draft.canonicalManifestHash(), draft.phantomMembers(), draft.realMembers(), draft.objectiveMode(), draft.objectiveRef(), draft.requirements(), draft.assignments(), null, operation, ZERO, ZERO, ""));
 			goals.put(index, goal(index, PhantomPartyCoordinator.FORM_GOAL, null, 0));
 		}
-		final int budget = 7;
+		final int budget = 10;
 		final PhantomPartyCoordinator coordinator = coordinator(context, states, goals, backend, budget);
 		try
 		{
@@ -456,6 +474,107 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		{
 			coordinator.beginStop();
 			PhantomAssertions.assertTrue(coordinator.finishStop(), "Bounded coordinator did not drain.");
+		}
+	}
+
+	private static void nineMemberBudget(PhantomTestContext context)
+	{
+		final MemoryPartyStore states = new MemoryPartyStore();
+		final MemoryGoalStore goals = new MemoryGoalStore();
+		final MemoryPartyBackend backend = new MemoryPartyBackend();
+		final List<MemberRef> members = java.util.stream.LongStream.rangeClosed(1, 9).mapToObj(profileId -> backend.add(profileId, 2000 + (int) profileId)).toList();
+		final MemberRef leader = members.getFirst();
+		backend.party(new PhantomPartyBackend.PartySnapshot(leader, members, PartyDistributionType.FINDERS_KEEPERS));
+		final String groupId = PhantomPartyModel.sha256("budget.boundary.group");
+		final PartyOperation operation = new PartyOperation(PhantomPartyModel.sha256("budget.boundary.operation"), OperationKind.FORM, OperationPhase.COMMITTED, leader, null, 100, 0, ZERO, 0, 1, "");
+		final PartyState draft = new PartyState(groupId, 1, 0, StateStatus.LEADER, leader, "", ZERO, members, List.of(), ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "budget-boundary"), List.of(), List.of(), null, operation, ZERO, ZERO, "");
+		final String manifest = draft.canonicalManifestHash();
+		for (MemberRef member : members)
+		{
+			final StateStatus status = member.equals(leader) ? StateStatus.LEADER : StateStatus.MEMBER;
+			states.seed(member.profileId(), new PartyState(groupId, 1, 0, status, leader, "", manifest, members, List.of(), draft.objectiveMode(), draft.objectiveRef(), List.of(), List.of(), null, operation, ZERO, ZERO, ""));
+			goals.put(member.profileId(), goal(100, member.equals(leader) ? PhantomPartyCoordinator.FORM_GOAL : PhantomPartyCoordinator.JOIN_GOAL, member.equals(leader) ? null : new PhantomDomainRef("character.object", Integer.toString(leader.characterObjectId())), 0));
+		}
+		final PhantomPartyCoordinator coordinator = coordinator(context, states, goals, backend, 10);
+		try
+		{
+			PhantomAssertions.assertTrue(coordinator.start(), "Nine-member boundary coordinator did not start.");
+			PhantomAssertions.assertTrue(members.stream().allMatch(member -> coordinator.claim(member.profileId()).orElseThrow().state().status() == StateStatus.RECOVERING), "Restart fixture did not begin at the reconcile boundary.");
+			coordinator.onPulse();
+			PhantomAssertions.assertEquals(StateStatus.LEADER, coordinator.claim(leader.profileId()).orElseThrow().state().status(), "Nine-member group remained in the due queue without canonical progress.");
+			PhantomAssertions.assertTrue(members.stream().skip(1).allMatch(member -> coordinator.claim(member.profileId()).orElseThrow().state().status() == StateStatus.MEMBER), "Nine-member reconcile did not publish all canonical member claims.");
+			PhantomAssertions.assertEquals(10, coordinator.snapshot().lastPulseExamined(), "Nine-member boundary did not consume the exact group plus claim budget.");
+			PhantomAssertions.assertTrue(coordinator.snapshot().maximumPulseExamined() <= 10, "Nine-member boundary exceeded its configured pulse budget.");
+		}
+		finally
+		{
+			coordinator.beginStop();
+			PhantomAssertions.assertTrue(coordinator.finishStop(), "Nine-member boundary coordinator did not drain.");
+		}
+	}
+
+	private static void terminalFormationReuse(PhantomTestContext context, TerminalOutcome terminalOutcome, String reasonKey)
+	{
+		final MemoryPartyStore states = new MemoryPartyStore();
+		final MemoryGoalStore goals = new MemoryGoalStore();
+		final MemoryPartyBackend backend = new MemoryPartyBackend();
+		final MemberRef leader = backend.add(1, 101);
+		final MemberRef firstTarget = backend.add(2, 102);
+		final MemberRef secondTarget = backend.add(3, 103);
+		final long oldGoalId = 700;
+		final long newGoalId = 701;
+		goals.put(leader.profileId(), goal(oldGoalId, PhantomPartyCoordinator.FORM_GOAL, null, 0));
+		final PhantomPartyCoordinator coordinator = coordinator(context, states, goals, backend, 10);
+		backend.connect(coordinator);
+		try
+		{
+			PhantomAssertions.assertTrue(coordinator.start(), "Terminal formation coordinator did not start.");
+			PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED, coordinator.form(leader.profileId(), oldGoalId, 0, ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "terminal"), List.of()), "Initial form operation was rejected.");
+			final String oldGroupId = coordinator.claim(leader.profileId()).orElseThrow().state().groupId();
+			PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED, coordinator.invite(leader.profileId(), firstTarget, PartyDistributionType.FINDERS_KEEPERS), "Initial invitation was rejected.");
+			final PartyInvitation firstInvitation = backend.lastInvitation();
+			PhantomAssertions.assertEquals(1, backend.invitationCount(), "Initial form emitted more than one invitation sequence.");
+
+			coordinator.terminal(firstInvitation, OptionalLong.of(leader.profileId()), OptionalLong.of(firstTarget.profileId()), terminalOutcome, reasonKey);
+			coordinator.onPulse();
+			final PartyState reusable = coordinator.claim(leader.profileId()).orElseThrow().state();
+			PhantomAssertions.assertEquals(StateStatus.SOLO, reusable.status(), "Terminal formation did not make the leader reusable.");
+			PhantomAssertions.assertEquals(OperationPhase.ABORTED, reusable.operation().phase(), "Terminal formation lost exact ABORTED evidence.");
+			PhantomAssertions.assertEquals(firstInvitation.identity().sequence(), reusable.operation().invitationSequence(), "Terminal formation lost the exact invitation sequence.");
+			PhantomAssertions.assertEquals(reasonKey, reusable.operation().failureKey(), "Terminal formation lost the typed operation failure.");
+			PhantomAssertions.assertEquals(reasonKey, reusable.lastFailureKey(), "Terminal formation lost the typed state failure.");
+			PhantomAssertions.assertFalse(reusable.groupId().equals(oldGroupId), "Terminal formation retained the old group identity.");
+			PhantomAssertions.assertEquals(0, coordinator.snapshot().groups(), "Terminal formation retained the old GroupRuntime/due entry.");
+			final PhantomGoal failedGoal = goals.load(leader.profileId()).orElseThrow().goal();
+			PhantomAssertions.assertEquals(PhantomGoalStatus.FAILED, failedGoal.status(), "Terminal form goal did not become FAILED.");
+			PhantomAssertions.assertEquals(1L, failedGoal.revision(), "Terminal form goal revision did not advance exactly once.");
+			PhantomAssertions.assertEquals(reasonKey, failedGoal.reasonKey(), "Terminal form goal lost the terminal reason.");
+
+			PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.GOAL_MISMATCH, coordinator.form(leader.profileId(), oldGoalId, 0, ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "terminal"), List.of()), "Stale form decision step was accepted.");
+			PhantomAssertions.assertEquals(1, backend.invitationCount(), "Stale form decision emitted an automatic retry invitation.");
+
+			goals.put(leader.profileId(), goal(newGoalId, PhantomPartyCoordinator.FORM_GOAL, null, 0));
+			PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED, coordinator.form(leader.profileId(), newGoalId, 0, ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "terminal-retry"), List.of()), "New exact form goal could not reuse SOLO.");
+			final PartyState newFormation = coordinator.claim(leader.profileId()).orElseThrow().state();
+			PhantomAssertions.assertFalse(newFormation.groupId().equals(oldGroupId), "New exact form goal reused the terminal group identity.");
+			PhantomAssertions.assertTrue(newFormation.groupGeneration() > reusable.groupGeneration(), "New exact form goal did not advance generation.");
+			PhantomAssertions.assertEquals(OperationKind.FORM, newFormation.operation().kind(), "New exact form goal did not create FORM evidence.");
+			PhantomAssertions.assertEquals(OperationPhase.PREPARED, newFormation.operation().phase(), "New exact form goal did not create PREPARED evidence.");
+			PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED, coordinator.invite(leader.profileId(), secondTarget, PartyDistributionType.FINDERS_KEEPERS), "New exact form goal could not invite another target.");
+			final PartyInvitation secondInvitation = backend.lastInvitation();
+			PhantomAssertions.assertEquals(2, backend.invitationCount(), "New exact form goal did not create exactly one new invitation.");
+
+			coordinator.terminal(firstInvitation, OptionalLong.of(leader.profileId()), OptionalLong.of(firstTarget.profileId()), terminalOutcome, reasonKey);
+			coordinator.onPulse();
+			final PartyOperation stillPending = coordinator.claim(leader.profileId()).orElseThrow().state().operation();
+			PhantomAssertions.assertEquals(secondInvitation.identity().sequence(), stillPending.invitationSequence(), "Stale terminal callback replaced the new invitation identity.");
+			PhantomAssertions.assertFalse(stillPending.phase() == OperationPhase.ABORTED, "Stale terminal callback aborted the new operation.");
+			PhantomAssertions.assertEquals(PhantomGoalStatus.ACTIVE, goals.load(leader.profileId()).orElseThrow().goal().status(), "Stale terminal callback failed the new form goal.");
+		}
+		finally
+		{
+			coordinator.beginStop();
+			PhantomAssertions.assertTrue(coordinator.finishStop(), "Terminal formation coordinator did not drain.");
 		}
 	}
 
@@ -676,6 +795,25 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	{
 		private final Map<Long, MemberRef> _members = new LinkedHashMap<>();
 		private final Map<MemberRef, PartySnapshot> _parties = new LinkedHashMap<>();
+		private PhantomPartyCoordinator _coordinator;
+		private PartyInvitation _lastInvitation;
+		private long _invitationSequence;
+		private int _invitationCount;
+
+		private void connect(PhantomPartyCoordinator coordinator)
+		{
+			_coordinator = coordinator;
+		}
+
+		private PartyInvitation lastInvitation()
+		{
+			return _lastInvitation;
+		}
+
+		private int invitationCount()
+		{
+			return _invitationCount;
+		}
 
 		private MemberRef add(long profileId, int objectId)
 		{
@@ -705,9 +843,27 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		}
 
 		@Override
-		public PartyInvitationService.InviteResult invite(MemberRef requester, MemberRef target, PartyDistributionType distribution)
+		public InviteResult invite(MemberRef requester, MemberRef target, PartyDistributionType distribution)
 		{
-			throw new AssertionError("Bounded lifecycle fixture must not fabricate an invitation.");
+			if (_coordinator == null)
+			{
+				throw new AssertionError("Bounded lifecycle fixture must not fabricate an invitation.");
+			}
+			if ((_lastInvitation != null) && (_lastInvitation.requesterObjectId() == requester.characterObjectId()) && (_lastInvitation.inviteeObjectId() == target.characterObjectId()))
+			{
+				return new InviteResult(InviteOutcome.DELIVERED_MANAGED, _lastInvitation.identity());
+			}
+			final InvitationIdentity identity = new InvitationIdentity(++_invitationSequence, requester.characterObjectId(), target.characterObjectId());
+			final PartyInvitation invitation = new PartyInvitation(identity, requester.characterObjectId(), requester.stableKey(), target.characterObjectId(), target.stableKey(), distribution, requester.characterObjectId(), Long.MAX_VALUE);
+			final OptionalLong managedRequester = requester.kind() == org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind.PHANTOM ? OptionalLong.of(requester.profileId()) : OptionalLong.empty();
+			final OptionalLong managedInvitee = target.kind() == org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind.PHANTOM ? OptionalLong.of(target.profileId()) : OptionalLong.empty();
+			if (_coordinator.prepare(invitation, managedRequester, managedInvitee) != PreparationOutcome.ACCEPTED)
+			{
+				return new InviteResult(InviteOutcome.MANAGED_BACKPRESSURE, identity);
+			}
+			_lastInvitation = invitation;
+			_invitationCount++;
+			return new InviteResult(InviteOutcome.DELIVERED_MANAGED, identity);
 		}
 
 		@Override

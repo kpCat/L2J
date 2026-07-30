@@ -212,6 +212,17 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			final var malformed = readConfig("scheduler-malformed.ini", enabledConfig("PhantomSchedulerPulseMillis = +100\n"));
 			PhantomAssertions.assertFalse(malformed.enabled(), "Signed scheduler pulse did not fail closed.");
 		});
+		registry.add("config-party-budget-canonical-boundary", _ ->
+		{
+			final var defaultBudget = readConfig("party-budget-default.ini", enabledConfig(""));
+			PhantomAssertions.assertTrue(defaultBudget.enabled(), "Missing legacy party budget did not retain the safe default.");
+			PhantomAssertions.assertEquals(64, defaultBudget.partyOperationsPerPulse(), "Missing legacy party budget did not default to 64.");
+			final var belowBoundary = readConfig("party-budget-nine.ini", enabledConfig("PhantomPartyOperationsPerPulse = 9\n"));
+			PhantomAssertions.assertFalse(belowBoundary.enabled(), "Nine-operation party budget did not fail closed.");
+			final var exactBoundary = readConfig("party-budget-ten.ini", enabledConfig("PhantomPartyOperationsPerPulse = 10\n"));
+			PhantomAssertions.assertTrue(exactBoundary.enabled(), "Ten-operation party budget was rejected.");
+			PhantomAssertions.assertEquals(10, exactBoundary.partyOperationsPerPulse(), "Ten-operation party budget was not retained.");
+		});
 		registry.add("trace-disabled-no-storage", _ ->
 		{
 			final PhantomMetrics metrics = new PhantomMetrics();

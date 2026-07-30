@@ -83,7 +83,7 @@ public final class PhantomPlayersConfig
 			final Integer populationActiveTarget = strictInteger(config.getValue("PhantomPopulationActiveTarget"), 0, Math.min(populationTarget != null ? populationTarget : 0, maximumMaterialized), DEFAULT_POPULATION_ACTIVE_TARGET);
 			final Integer populationCreationInFlight = strictInteger(config.getValue("PhantomPopulationCreationInFlight"), 1, 64, DEFAULT_POPULATION_CREATION_IN_FLIGHT);
 			final Integer populationBoundariesPerPulse = strictInteger(config.getValue("PhantomPopulationBoundariesPerPulse"), 1, 10000, DEFAULT_POPULATION_BOUNDARIES_PER_PULSE);
-			final Integer partyOperationsPerPulse = strictInteger(config.getValue("PhantomPartyOperationsPerPulse"), 1, 10000, DEFAULT_PARTY_OPERATIONS_PER_PULSE);
+			final Integer partyOperationsPerPulse = strictInteger(config.getValue("PhantomPartyOperationsPerPulse"), 10, 10000, DEFAULT_PARTY_OPERATIONS_PER_PULSE);
 			final ZoneId populationTimeZone = strictZoneId(config.getValue("PhantomPopulationTimeZone"));
 			if ((populationTarget == null) || (populationActiveTarget == null) || (populationCreationInFlight == null) || (populationBoundariesPerPulse == null) || (partyOperationsPerPulse == null) || (populationTimeZone == null))
 			{
@@ -231,9 +231,9 @@ public final class PhantomPlayersConfig
 			{
 				throw new IllegalArgumentException("Population boundary budget must be between 1 and 10000.");
 			}
-			if (enabled && ((partyOperationsPerPulse < 1) || (partyOperationsPerPulse > 10000)))
+			if (enabled && ((partyOperationsPerPulse < 10) || (partyOperationsPerPulse > 10000)))
 			{
-				throw new IllegalArgumentException("Party operation budget must be between 1 and 10000.");
+				throw new IllegalArgumentException("Party operation budget must be between 10 and 10000.");
 			}
 			Objects.requireNonNull(populationTimeZone, "Population time zone must not be null.");
 		}

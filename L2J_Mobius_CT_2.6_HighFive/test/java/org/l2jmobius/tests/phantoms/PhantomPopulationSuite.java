@@ -756,12 +756,19 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 			await(() -> restartedFixture.manager.snapshot().ready() == 1, 15_000, "READY population did not survive manager restart.");
 			PhantomAssertions.assertTrue(readyIds(restartedFixture.manager).contains(profileId), "Manager restart replaced the durable population identity.");
 			restartedFixture.clock.set(instants.firstActive());
-			await(() -> restartedFixture.materialization.find(profileId).isPresent(), 15_000, "ACTIVE schedule did not materialize the real created Player.");
-			PhantomAssertions.assertTrue(restartedFixture.materialization.find(profileId).orElseThrow().playerRetained(), "Materialized population entry does not retain a real Player.");
+			await(() -> restartedFixture.materialization.find(profileId).filter(active -> (active.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE) && active.playerRetained() && active.worldPresent()).isPresent(), 15_000, "ACTIVE schedule did not materialize the real created Player.");
+			final var firstActive = restartedFixture.materialization.find(profileId).orElseThrow();
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE, firstActive.state(), "Materialized population entry did not reach ACTIVE.");
+			PhantomAssertions.assertTrue(firstActive.playerRetained(), "Materialized population entry does not retain a real Player.");
+			PhantomAssertions.assertTrue(firstActive.worldPresent(), "Materialized population entry is absent from World.");
 			restartedFixture.clock.set(instants.sleeping());
 			await(() -> restartedFixture.materialization.find(profileId).isEmpty(), 15_000, "SLEEPING schedule did not dematerialize the real Player.");
 			restartedFixture.clock.set(instants.secondActive());
-			await(() -> restartedFixture.materialization.find(profileId).isPresent(), 15_000, "Schedule wakeup did not rematerialize the real Player.");
+			await(() -> restartedFixture.materialization.find(profileId).filter(active -> (active.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE) && active.playerRetained() && active.worldPresent()).isPresent(), 15_000, "Schedule wakeup did not rematerialize the real Player.");
+			final var secondActive = restartedFixture.materialization.find(profileId).orElseThrow();
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE, secondActive.state(), "Rematerialized population entry did not reach ACTIVE.");
+			PhantomAssertions.assertTrue(secondActive.playerRetained(), "Rematerialized population entry does not retain a real Player.");
+			PhantomAssertions.assertTrue(secondActive.worldPresent(), "Rematerialized population entry is absent from World.");
 
 			final PhantomPopulationStore store = new PhantomPopulationStore(_profiles, _catalog);
 			final ManagedSnapshot ready = restartedFixture.manager.find(profileId).orElseThrow();

@@ -54,6 +54,18 @@ PREPARED -> CANONICAL_PENDING -> CANONICAL_OBSERVED -> COMMITTED
 возвращает idempotent outcome. Другая цель, revision или target конфликтует.
 Deadline завершает именно принадлежащее операции core-приглашение.
 
+Любой exact non-accepted JOIN terminal managed requester завершает текущую
+formation: JOIN operation сохраняется как `ABORTED` с typed failure и точной
+invitation identity, текущая `party.form` goal становится `FAILED` с
+revision + 1, а leader claim переходит в reusable SOLO. Старый GroupRuntime и
+due entry удаляются сразу.
+
+Старый plan и stale terminal callback не могут сформировать группу, повторить
+invite или затронуть новую operation. Только новая явная `ACTIVE party.form`
+goal с другим ID/revision может optimistic-update существующий SOLO row,
+создать новые groupId/generation и `FORM PREPARED`. Любой non-SOLO claim
+остаётся fail closed.
+
 ## Команды состава
 
 Поддержаны явные goal/action пары:
@@ -138,6 +150,11 @@ Coordinator использует:
 `PhantomPartyOperationsPerPulse`; pulse не превышает budget и не делает полного
 сканирования claims, groups или tactical actions. Startup может один раз читать
 DB страницами по 256.
+
+Допустимый диапазон `PhantomPartyOperationsPerPulse` — `10..10000`, default 64.
+Минимум 10 резервирует одну атомарную reconcile boundary для группы и максимум
+девяти canonical claims. Значение 9 fail closed; incremental pulse algorithm
+для этого не вводится.
 
 `beginStop` закрывает admission и managed registration, terminal-обработку,
 routes и tactical leases. `finishStop` ждёт нулевые operation/persistence,

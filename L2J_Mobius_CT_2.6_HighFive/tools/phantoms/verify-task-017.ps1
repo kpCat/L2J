@@ -1,5 +1,5 @@
 param(
-	[string] $ExpectedParent = "d731bf91b5f75cf733175bf57faf19c0354085c0"
+	[string] $ExpectedParent = "0015a5ffd0c10a99514732ef52b969a39ac62eb7"
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,106 +40,92 @@ try
 	if ($head -ne $ExpectedParent)
 	{
 		$parent = (Git-Lines @("rev-parse", "HEAD^") | Select-Object -First 1)
-		Assert-True ($parent -eq $ExpectedParent) "HEAD is not the single Goal 017 completion commit above required parent."
+		Assert-True ($parent -eq $ExpectedParent) "HEAD is not the single terminal-verification child above required parent."
 		$subject = (Git-Lines @("show", "-s", "--format=%s", "HEAD") | Select-Object -First 1)
-		Assert-True ($subject -eq "fix(phantoms): complete party lifecycle safety") "Goal 017 completion commit subject is wrong."
+		Assert-True ($subject -eq "fix(phantoms): finalize party terminal verification") "Goal 017 terminal-verification commit subject is wrong."
 	}
 
 	$modulePrefix = (Split-Path $Root -Leaf) + "/"
 	$trackedChanges = @(Git-Lines @("diff", "--name-only", $ExpectedParent, "--") | ForEach-Object { $_ -replace ("^" + [regex]::Escape($modulePrefix)), "" })
 	$untrackedChanges = @(Git-Lines @("ls-files", "--others", "--exclude-standard") | ForEach-Object { $_ -replace ("^" + [regex]::Escape($modulePrefix)), "" })
 	$changedPaths = @($trackedChanges + $untrackedChanges | Sort-Object -Unique)
-	Assert-True ($changedPaths.Count -le 30) "Goal 017 completion exceeds the 30-file total scope."
+	Assert-True ($changedPaths.Count -le 10) "Goal 017 terminal verification exceeds the 10-file scope."
 
-	$allowedPatterns = @(
-		"^java/org/l2jmobius/gameserver/model/groups/PartyInvitationDelivery\.java$",
-		"^java/org/l2jmobius/gameserver/model/groups/PartyInvitationService\.java$",
-		"^java/org/l2jmobius/gameserver/network/clientpackets/RequestJoinParty\.java$",
-		"^java/org/l2jmobius/gameserver/network/clientpackets/RequestAnswerJoinParty\.java$",
-		"^java/org/l2jmobius/gameserver/phantoms/party/.+\.java$",
-		"^java/org/l2jmobius/gameserver/phantoms/semantic/PhantomPartySemanticActs\.java$",
-		"^java/org/l2jmobius/gameserver/phantoms/combat/(PhantomCombatBackend|PhantomCombatActorLease|PhantomCombatService|L2jCombatBackend|PhantomPartySupportAction)\.java$",
-		"^java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService\.java$",
-		"^java/org/l2jmobius/gameserver/phantoms/PhantomSystem\.java$",
-		"^test/java/org/l2jmobius/tests/phantoms/PhantomParty.+\.java$",
-		"^test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher\.java$",
-		"^tools/phantoms/verify-task-017\.ps1$",
-		"^docs/phantoms/architecture/PARTY_COORDINATION_CONTRACT\.md$",
-		"^docs/phantoms/reports/017-party-coordination-kernel\.md$",
-		"^docs/phantoms/tasks/017-party-lifecycle-safety-completion/.+$"
+	$allowed = @(
+		"java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java",
+		"java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyDecision.java",
+		"java/org/l2jmobius/gameserver/config/custom/PhantomPlayersConfig.java",
+		"dist/game/config/Custom/PhantomPlayers.ini",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomPopulationSuite.java",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomSkeletonSuite.java",
+		"tools/phantoms/verify-task-017.ps1",
+		"docs/phantoms/architecture/PARTY_COORDINATION_CONTRACT.md",
+		"docs/phantoms/reports/017-party-coordination-kernel.md",
+		"docs/phantoms/reviews/017-party-terminal-verification-review.md"
 	)
 	foreach ($path in $changedPaths)
 	{
-		Assert-True (@($allowedPatterns | Where-Object { $path -match $_ }).Count -gt 0) "Out-of-scope Goal 017 path: $path"
+		Assert-True ($allowed -contains $path) "Out-of-scope Goal 017 terminal-verification path: $path"
 		Assert-True ($path -notmatch "(^|/)Player\.java$|(^|/)Party\.java$|(^|/)(sql|schema|migrations?)/|L2J_Mobius_CT_(?!2\.6_HighFive)") "Forbidden Goal 017 path: $path"
 	}
-
-	$production = @($changedPaths | Where-Object { $_ -match "^java/" })
-	Assert-True ($production.Count -le 18) "Goal 017 completion exceeds 18 production files."
-	$newProductionTracked = @(Git-Lines @("diff", "--name-only", "--diff-filter=A", $ExpectedParent, "--", "java") | ForEach-Object { $_ -replace ("^" + [regex]::Escape($modulePrefix)), "" })
-	$newProduction = @($newProductionTracked + ($untrackedChanges | Where-Object { $_ -match "^java/" }) | Sort-Object -Unique)
-	Assert-True ($newProduction.Count -le 3) "Goal 017 completion exceeds three new production files."
-	Assert-True ($newProduction -contains "java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyParticipationPort.java") "Party participation port is missing."
-	Assert-True ($newProduction -contains "java/org/l2jmobius/gameserver/phantoms/combat/PhantomPartySupportAction.java") "Typed support action is missing."
-
-	$invitationDelivery = Read-Utf8Strict "java/org/l2jmobius/gameserver/model/groups/PartyInvitationDelivery.java"
-	$invitationService = Read-Utf8Strict "java/org/l2jmobius/gameserver/model/groups/PartyInvitationService.java"
-	Assert-True ($invitationDelivery -match "PreparationOutcome" -and $invitationDelivery -match "TerminalOutcome" -and $invitationDelivery -match "managedRequester" -and $invitationDelivery -match "managedInvitee") "Managed invitation callback contract is incomplete."
-	foreach ($outcome in @("ACCEPTED", "REFUSED", "DISABLED", "EXPIRED", "CANCELLED", "DELIVERY_REJECTED", "REVALIDATION_FAILED", "REQUESTER_UNAVAILABLE"))
+	foreach ($required in @(
+		"java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java",
+		"java/org/l2jmobius/gameserver/config/custom/PhantomPlayersConfig.java",
+		"dist/game/config/Custom/PhantomPlayers.ini",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomPopulationSuite.java",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomSkeletonSuite.java",
+		"tools/phantoms/verify-task-017.ps1",
+		"docs/phantoms/architecture/PARTY_COORDINATION_CONTRACT.md",
+		"docs/phantoms/reports/017-party-coordination-kernel.md",
+		"docs/phantoms/reviews/017-party-terminal-verification-review.md"
+	))
 	{
-		Assert-True ($invitationDelivery -match "\b$outcome\b") "Terminal outcome is absent: $outcome"
+		Assert-True ($changedPaths -contains $required) "Required terminal-verification artifact is absent: $required"
 	}
-	Assert-True ($invitationService -match "_pendingByRequester" -and $invitationService -match "_pendingByInvitee" -and $invitationService -match "findByParticipant") "Bidirectional invitation indexes/expiry are incomplete."
-	Assert-True ($invitationService -match "_pendingByInvitee\.remove\(" -and $invitationService -match "_pendingByRequester\.remove\(" -and $invitationService -match "_terminal\.compareAndSet\(false, true\)") "Exact once terminal cleanup is incomplete."
-	Assert-True ($invitationService.IndexOf("deliveryPort.prepare") -lt $invitationService.IndexOf("pending.publishAndDeliver")) "Managed preparation does not precede publication."
-	Assert-True ($invitationService -match "ownedPending" -and $invitationService -match "party\.invite\.delivery_closed") "DeliveryRegistration close does not drain owned invitations."
-	Assert-True ($invitationService -notmatch "new\s+GameClient|import\s+org\.l2jmobius\.gameserver\.phantoms") "Canonical invitation service depends on Phantom transport."
+
+	$production = @($changedPaths | Where-Object { ($_ -match "^java/") -or ($_ -eq "dist/game/config/Custom/PhantomPlayers.ini") })
+	Assert-True ($production.Count -le 4) "Goal 017 terminal verification exceeds four production files."
+	$newProduction = @(Git-Lines @("diff", "--name-only", "--diff-filter=A", $ExpectedParent, "--", "java", "dist/game/config/Custom/PhantomPlayers.ini"))
+	Assert-True ($newProduction.Count -eq 0) "Goal 017 terminal verification adds a production file."
 
 	$coordinator = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java"
-	Assert-True ($coordinator -match "prepare\(PartyInvitation" -and $coordinator -match "CANONICAL_PENDING" -and $coordinator -match "sameInvitation" -and $coordinator -match "processTerminal") "Exact durable invitation saga is incomplete."
-	Assert-True ($coordinator -match "IDEMPOTENT" -and $coordinator -match "leave\(" -and $coordinator -match "expelTarget\(" -and $coordinator -match "transferLeaderTarget\(" -and $coordinator -match "travel\(") "Idempotent lifecycle commands are incomplete."
-	Assert-True ($coordinator -match "_operationClaims" -and $coordinator -match "beginTerminalOperation" -and $coordinator -match "pendingInvitations\(\)") "Operation/shutdown claim drain is incomplete."
-	Assert-True ($coordinator -match "_claimsByGroup" -and $coordinator -match "_dueGroups" -and $coordinator -match "_terminalEvents" -and $coordinator -match "_tacticalReleases") "Bounded coordinator indexes/queues are incomplete."
-	$onPulseStart = $coordinator.IndexOf("public void onPulse()")
-	$onPulseEnd = $coordinator.IndexOf("public void beginStop()", $onPulseStart)
-	$onPulse = $coordinator.Substring($onPulseStart, $onPulseEnd - $onPulseStart)
-	Assert-True ($onPulse -notmatch "_groups\.values\(\)\.stream|_claims\.values\(\)\.stream|_tacticalActions\.values\(\)") "Coordinator pulse contains a full managed-state scan."
-	Assert-True ($onPulse -match "_operationBudget" -and $onPulse -match "_lastPulseExamined") "Coordinator pulse does not account its exact budget."
+	Assert-True ($coordinator -match "operationBudget < 10" -and $coordinator -match "between 10 and 10000") "Coordinator does not enforce the safe party pulse minimum."
+	Assert-True ($coordinator -match "existing\.state\(\)\.status\(\) != StateStatus\.SOLO" -and $coordinator -match "expectedRowVersion = existing\.rowVersion\(\)" -and $coordinator -match "groupGeneration = existing\.state\(\)\.groupGeneration\(\) \+ 1") "SOLO form reuse is not an optimistic new generation."
+	Assert-True ($coordinator -match "abortFormation" -and $coordinator -match "PhantomGoalStatus\.FAILED" -and $coordinator -match "removeGroup\(before\.groupId\(\)\)") "Terminal formation cleanup is incomplete."
+	Assert-True (($coordinator -split "goal\.status\(\) != PhantomGoalStatus\.ACTIVE").Count -ge 2) "Exact command goal is not ACTIVE-gated."
+	Assert-True ($coordinator -match "stored\.get\(\)\.goal\(\)\.status\(\) == PhantomGoalStatus\.ACTIVE") "Exact form goal is not ACTIVE-gated."
+	Assert-True ($coordinator -match "int examined = 1 \+ groupClaims\.size\(\)" -and $coordinator -notmatch "examined \+ expected\.size\(\) \+ 1") "Nine-claim reconcile boundary is still double-counted."
 
-	$background = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java"
-	$system = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java"
-	Assert-True (($background -split "party\.materialized_only").Count -ge 5) "Background party gate is not rechecked at all mutation boundaries."
-	Assert-True ($system -match "PhantomPartyParticipationPort\.bridge\(\)" -and $system -match "partyParticipation\.install\(_partyCoordinator\)") "Production party participation bridge wiring is incomplete."
+	$config = Read-Utf8Strict "java/org/l2jmobius/gameserver/config/custom/PhantomPlayersConfig.java"
+	$ini = Read-Utf8Strict "dist/game/config/Custom/PhantomPlayers.ini"
+	Assert-True ($config -match 'PhantomPartyOperationsPerPulse"\), 10, 10000' -and $config -match "partyOperationsPerPulse < 10") "Config parser or Settings validation accepts a party budget below 10."
+	Assert-True ($config -match "DEFAULT_PARTY_OPERATIONS_PER_PULSE = 64") "Party budget default changed."
+	Assert-True ($ini -match "Valid range: 10\.\.10000" -and $ini -match "PhantomPartyOperationsPerPulse = 64") "Canonical party budget comment/default is stale."
 
-	$matcher = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyRoleMatcher.java"
 	$partyTests = Read-Utf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java"
-	Assert-True ($matcher -match "MatchSolution" -and $matcher -match "requiredFilled" -and $matcher -match "totalScore" -and $matcher -match "optionalFilled") "Deterministic maximum role matching is incomplete."
-	Assert-True ($partyTests -match "maximum-matching-beats-greedy-counterexample") "Required global matching counterexample is absent."
+	Assert-True ($partyTests -match "refusal-makes-form-goal-terminal-and-reusable" -and $partyTests -match "timeout-makes-form-goal-terminal-and-reusable") "Refusal/timeout terminal tests are absent."
+	Assert-True ($partyTests -match "nine-member-budget-boundary-makes-progress" -and $partyTests -match "Nine-operation party pulse budget was accepted") "Party budget boundary tests are absent."
+	Assert-True ($partyTests -match "Stale terminal callback aborted the new operation" -and $partyTests -match "Stale form decision emitted an automatic retry invitation") "Stale callback/decision retry coverage is absent."
 
-	$supportAction = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/combat/PhantomPartySupportAction.java"
-	$l2jCombat = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/combat/L2jCombatBackend.java"
-	$partyBackend = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java"
-	$tactics = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyTactics.java"
-	Assert-True ($supportAction -match "capabilityKey" -and $supportAction -match "variantKey" -and $supportAction -match "targetScope" -and $supportAction -match "targetObjectId" -and $supportAction -match "SelectedSkill") "Typed exact-target support action is incomplete."
-	Assert-True ($partyBackend -match "capabilities\(MemberRef actor, int exactTargetObjectId\)" -and $partyBackend -match "target\.required") "Party backend does not preserve exact target capability truth."
-	Assert-True ($tactics -match "_backend\.capabilities\(actor, target\.characterObjectId\(\)\)" -and $tactics -notmatch "use-all|useAll") "Tactics does not query exact target capabilities."
-	Assert-True ($l2jCombat -match "capabilityKey\(\)" -and $l2jCombat -match "variantKey\(\)" -and $l2jCombat -match "targetScope\(\)" -and $l2jCombat -match "checkCondition") "L2J support execution does not revalidate the typed catalog action."
+	$populationTests = Read-Utf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomPopulationSuite.java"
+	$methodStart = $populationTests.IndexOf("private void testServerIntegration")
+	$methodEnd = $populationTests.IndexOf("private ManagedSnapshot advanceToCharacterPresent", $methodStart)
+	Assert-True (($methodStart -ge 0) -and ($methodEnd -gt $methodStart)) "Population server integration method is absent."
+	$populationMethod = $populationTests.Substring($methodStart, $methodEnd - $methodStart)
+	Assert-True ($populationMethod -match "State\.ACTIVE" -and $populationMethod -match "filter\(active ->" -and $populationMethod -match "active\.playerRetained\(\)" -and $populationMethod -match "active\.worldPresent\(\)") "Population test still waits for non-terminal materialization presence."
+	Assert-True ($populationMethod -notmatch "Thread\.sleep") "Population race fix uses sleep."
 
-	$route = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyRouteCoordinator.java"
-	Assert-True ($route -match "route\.topologyHash\(\)\.equals\(currentTopologyHash\)" -and $route -match "snapshot == null" -and $route -match "snapshot\.attacking\(\)" -and $route -match "RouteStatus\.REGROUPING") "Route authority or missing-member guards are incomplete."
-	Assert-True ($partyTests -match "missing-member-cannot-advance-or-arrive" -and $partyTests -match "coordinator-pulse-count-never-exceeds-budget") "Dynamic route/pulse regression coverage is absent."
+	$configTests = Read-Utf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomSkeletonSuite.java"
+	Assert-True ($configTests -match "config-party-budget-canonical-boundary" -and $configTests -match "PhantomPartyOperationsPerPulse = 9" -and $configTests -match "PhantomPartyOperationsPerPulse = 10") "Config boundary tests are absent."
 
-	$integration = Read-Utf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomPartyServerIntegrationSuite.java"
-	$launcher = Read-Utf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java"
-	Assert-True ($integration -match "PhantomHeadlessPlayerTestEnvironment" -and $integration -match "PhantomMaterializationService" -and $integration -match "PartyInvitationService" -and $integration -match "phantom_profile_components" -and $integration -match "AskJoinParty") "Real DB/materialized Party/ordinary-client integration is incomplete."
-	Assert-True ($integration -match "bilateral-expiry" -and $integration -match "both-managed-identities" -and $integration -notmatch "Files\.readString|source\(context") "Party integration still relies on source-string assertions."
-	Assert-True ($launcher -match 'case "party-server-integration" -> new PhantomPartyServerIntegrationSuite\(\)') "Party server integration launcher still selects the source-string suite."
-
-	$architecture = Read-Utf8Strict "docs/phantoms/architecture/PARTY_COORDINATION_CONTRACT.md"
+	$contract = Read-Utf8Strict "docs/phantoms/architecture/PARTY_COORDINATION_CONTRACT.md"
 	$report = Read-Utf8Strict "docs/phantoms/reports/017-party-coordination-kernel.md"
-	Assert-True (($report -split "`r?`n").Count -le 190) "Goal 017 report exceeds 190 lines."
-	Assert-True ($architecture -match "maximum matching" -and $architecture -match "party\.materialized_only" -and $architecture -match "Missing/cross-instance") "Party architecture contract is stale."
-	Assert-True ($report -match "d731bf91b5f75cf733175bf57faf19c0354085c0" -and $report -match "650" -and $report -match "l2jmobiush5_phantom_test") "Goal 017 completion report evidence is incomplete."
+	$review = Read-Utf8Strict "docs/phantoms/reviews/017-party-terminal-verification-review.md"
+	Assert-True ($contract -match "reusable SOLO" -and $contract -match "10\.\.10000" -and $contract -match "FAILED") "Party architecture contract is stale."
+	Assert-True ($report -match $ExpectedParent -and $report -match "fix\(phantoms\): finalize party terminal verification" -and $report -match "250") "Goal 017 terminal report evidence is incomplete."
+	Assert-True ($review -match $ExpectedParent -and $review -match "ACCEPTED" -and $review -match "test-only") "Independent review record is incomplete."
 
 	$mojibakePairs = @(
 		@(0x0420, 0x045F), @(0x0420, 0x045C), @(0x0420, 0x045B),
@@ -147,10 +133,10 @@ try
 		@(0x0420, 0x00A4), @(0x0420, 0x045A), @(0x0420, 0x0408),
 		@(0x0420, 0x2122), @(0x0420, 0x0491), @(0x0420, 0x00B5),
 		@(0x0420, 0x00B0), @(0x0420, 0x00BB), @(0x0420, 0x2026),
-		@(0x0420, 0x2022), @(0x0421, 0x040F), @(0x0421, 0x20AC),
-		@(0x0421, 0x0402), @(0x0421, 0x2039), @(0x0421, 0x040A),
-		@(0x0421, 0x201A), @(0x0421, 0x0453), @(0x0421, 0x040B),
-		@(0x0421, 0x2026), @(0x0421, 0x2020)
+		@(0x0421, 0x040F), @(0x0421, 0x20AC), @(0x0421, 0x0402),
+		@(0x0421, 0x2039), @(0x0421, 0x040A), @(0x0421, 0x201A),
+		@(0x0421, 0x0453), @(0x0421, 0x040B), @(0x0421, 0x2026),
+		@(0x0421, 0x2020)
 	)
 	$mojibake = ($mojibakePairs | ForEach-Object { [regex]::Escape(([string][char]$_[0]) + ([string][char]$_[1])) }) -join "|"
 	$replacementCharacter = [string][char]0xFFFD
