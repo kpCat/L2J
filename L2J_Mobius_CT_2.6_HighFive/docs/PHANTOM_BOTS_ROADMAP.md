@@ -94,8 +94,8 @@ Goal 014A + completion: ACCEPT
 
 Goal 015: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
-Historical bounded completion marker:
-Goal 015: BLOCKED
+Bounded completion marker:
+Goal 015: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 017: NOT_STARTED
 
@@ -372,7 +372,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `BLOCKED`; Goal 016/017/025 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 016/017/025 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -712,7 +712,7 @@ data parity и restart-safe interruption.
 **Follow-up risk:** `HIGH` — canonical commerce validation and partial actions.
 **Correction:** Goal 014A + completion — `ACCEPT`.
 
-## Goal 015 — Background farming baseline и reconciliation — `BLOCKED`
+## Goal 015 — Background farming baseline и reconciliation — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** causal cheap simulation для уже поддержанных plans.  
 **Зависимости:** 007, 008, 011–014.  
@@ -730,11 +730,11 @@ Materialization/background transition не должен бесплатно сб�
 нормализуется production `GeoEngine`; partial travel сохраняет последнюю
 position, ARRIVED атомарно пишет canonical coordinates, которые без test-only
 snap проходят materialization и restart.
-**Anchor-tolerance blocker:** обязательное сравнение normalized Z с raw anchor Z
-отклоняет оба shipped production anchor: `giran.route.north` имеет delta `672`
-при tolerance `0`, `giran.farming.22859` — delta `5` при tolerance `0`.
-Canonical Z correction topology необходима, но topology XML исключён из
-разрешённого scope; ломающая production-правка не внесена.
+**Anchor normalization tolerance:** helper fail closed сравнивает normalized Z с
+raw anchor Z через long arithmetic. `giran.route.north` хранит canonical
+`-4072` при tolerance `0`; `giran.farming.22859` сохраняет factual spawn
+`-3061`, допускает exact delta `5` и канонизируется в `-3056`. Production
+topology loader, factual spawn, node geometry и edge endpoints валидируются.
 **Follow-up risk:** `VERY_HIGH` — probabilistic causality and reconciliation.
 
 ## Goal 016 — PopulationManager и schedules
@@ -1171,8 +1171,7 @@ Accepted corrective truth:
 - Goal 014A + completion ACCEPT
 
 Next:
-1. Разрешить canonical Z correction двух shipped Goal 015 anchors либо снять
-   требование сохранить их production support.
+1. Провести независимое ревью Goal 015 anchor-tolerance completion.
 2. Goal 016, Goal 017 and Goal 025 remain NOT_STARTED.
 
 Stage gate:
@@ -1180,7 +1179,7 @@ Stage gate:
 - Stage II COMPLETE
 
 New risks:
-- Goal 015 activation остаётся закрыта из-за anchor-tolerance scope conflict.
+- Goal 015 activation остаётся закрыта до независимого ревью.
 - Goal 005 test-only ThreadPool baseline stabilization remains regression-covered.
 
 Roadmap changes:
@@ -1215,7 +1214,7 @@ Overall:
   Goal 013B ACCEPT_WITH_ACTIVATION_GATE;
   Goal 014 ACCEPT after Goal 014A;
   Goal 014A + completion ACCEPT;
-  Goal 015 BLOCKED;
+  Goal 015 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
   Goal 016/017/025 NOT_STARTED
 ```
 

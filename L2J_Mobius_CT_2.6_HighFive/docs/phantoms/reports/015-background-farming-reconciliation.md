@@ -1,147 +1,134 @@
-# Goal 015 — каноническая позиция background anchor
+# Goal 015 — anchor normalization tolerance
 
 ## Status
 
-`BLOCKED`
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+
+Goal 016/017/025: `NOT_STARTED`.
 
 ## Summary
 
-- Последний bounded anchor-tolerance completion от required parent
-  `d4a4557cb2447be501fe8f339cc68b482e8561e0` заблокирован противоречием между
-  обязательной raw-to-normalized Z проверкой и запрещённым topology scope.
-- Production-код, тесты и verifier не изменялись: заведомо ломающая оба shipped
-  production anchor правка не оставлена.
-- Принятый reconciliation и production loot disposition из commit
-  `b800f125bddedadd4f181e9a5f398283e73c4c13` сохранены.
-- Единственная production-правка добавляет
-  `canonicalCommittedAnchorPosition`: X/Y берутся из topology anchor, Z вычисляется
-  через `GeoEngine.getHeight(x, y, rawZ)`, instance равен `0`, heading и anchor ID
-  сохраняются.
-- Полное завершение edge атомарно записывает каноническую позицию; partial travel
-  сохраняет последнюю committed position и только уменьшает residual time.
-- Нестабильная/неподдерживаемая канонизация, position вне tolerance, stale authority
-  hash и raw topology Z отклоняются до мутации.
-- Baseline capture по-прежнему сохраняет фактическую позицию runtime Player; snap
-  при capture не добавлен.
-- Test-only `exactAnchorLifecycle` и все post-`Player.load` вызовы
-  `setXYZInvisible` удалены.
+- Documentation-only BLOCKED parent
+  `7037fe92ad930425a600d070bbaf6c2d0234ada0` сохранён в истории.
+- Production helper теперь сравнивает geodata-normalized Z с raw topology Z:
+  `Math.abs((long) normalizedZ - point.z())`.
+- Бессмысленная tolerance-проверка restored Z против normalized Z удалена;
+  отдельная fixed-point equality сохранена.
+- `giran.route.north` исправлен на factual canonical Z `-4072`, tolerance `0`.
+- `giran.farming.22859` сохраняет factual spawn Z `-3061`, tolerance изменён
+  только на `5`; canonical Z остаётся `-3056`.
+- Принятые reconciliation, production loot disposition и natural Player
+  lifecycle сохранены.
 
 ## Changed files
 
 - Production:
   `java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java`.
-- Tests/build:
-  `test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java`,
-  `test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java`, `build.xml`.
-- Verification/docs:
-  `tools/phantoms/verify-task-015.ps1`, architecture contract, roadmap, этот report
-  и position-canonicalization review.
+- Topology:
+  `dist/game/data/phantoms/topology/high-five-core.xml`.
+- Tests:
+  `test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java`.
+- Verification:
+  `tools/phantoms/verify-task-015.ps1`.
+- Docs: roadmap, architecture contract, этот report и
+  `015-background-anchor-tolerance-review.md`.
+- `PhantomTestLauncher.java` и `build.xml` не менялись: existing focused mode
+  остался ровно `2/2`.
 
 ## Architecture decisions
 
-- Единственный источник durable committed-anchor position — production helper.
-- Helper использует текущий production `GeoEngine`, дважды проверяет одинаковый
-  результат нормализации и fixed-point повторного `getHeight`.
-- Exact X/Y и geodata-normalized Z проверяются с bounded anchor tolerance.
-- `advanceTravel` сначала проверяет текущую committed position и будущую
-  каноническую arrival position; при отказе возвращает typed
-  `ANCHOR_MISMATCH` без изменения position/clock.
-- `farmInput` принимает только каноническую committed position.
-- `matchesRuntime` остаётся exact: materialization должна естественно загрузить
-  ровно сохранённые X/Y/Z/heading.
-- Новых слоёв, worker/thread/Future, логирования или runtime writer нет.
+- Public production path использует `GeoEngine.getInstance()`; новый runtime
+  mutable dependency не добавлен.
+- Private static `IntUnaryOperator` overload является узким deterministic
+  test seam.
+- Проверки helper выполняются fail closed в порядке: instance `0`, два
+  одинаковых raw-height result, raw-to-normalized long delta, normalized fixed
+  point.
+- X/Y берутся из exact anchor; heading и committed anchor ID сохраняются.
+- Arrival с невозможной канонизацией возвращает `ANCHOR_MISMATCH` до mutation.
 
-## DB, configs and fixtures
+## Topology evidence
 
-- Использовалась только `l2jmobiush5_phantom_test`.
-- Focused seed: `15001502`; historical seed: `15001501`.
-- Production pair сохранена: `22859@giran.farming.22859`.
-- Supported production pair count: `1`.
-- `LOOT_POLICY_V1`, `LEAVE_ON_GROUND`, canonical grouped/ungrouped RNG,
-  occurrence budgets и `groundLosses` сохранены.
-- Production loot batch остаётся успешным: immediate/time-limited ground loss не
-  создаёт Player inventory/effect/timer/object ID; auto-loot drift fail-closed.
-- Shipped `Player.ini`, topology/datapack/geodata, loaders, schema и migrations не
+- Production `PhantomTopologyLoader` принимает исправленный
+  `high-five-core.xml`.
+- Factual NPC 22859 spawn `(87439,121072,-3061)` остаётся в tolerance `5`.
+- Farming node center, X/Y, npcId, sources, node bounds и background edge не
   менялись.
-- Test fixture записывает в test DB каноническую Z через тот же production helper
-  до `Player.load`; после загрузки координаты не меняются.
+- Edge `giran.city.farming.background` сохраняет endpoint IDs и
+  `baseTravelMillis=900000`.
+- Parent topology hash:
+  `f8046ed902f024a9181f39b3247d8a6697279db4921ec0a69231c1e9b47cae7f`.
+- Current deterministic topology hash:
+  `7277419d2ff5c6a4f7066182d01e32aeb9708814e54707e7a91a85cb550a3580`.
 
-## Product evidence
+## Focused negative evidence
 
-- Текущий direct route `giran.route.north → giran.farming.22859` используется
-  production transition test.
-- Natural real Player загружается в departure anchor, проходит lifecycle capture
-  и dematerialize, partial и ARRIVED через `PhantomBackgroundService`.
-- Partial transaction сохраняет DB/state position и не создаёт runtime Player.
-- ARRIVED transaction сохраняет exact canonical X/Y/Z/heading; raw topology Z не
-  становится durable.
-- Ordinary materialization загружает exact runtime Player без координатной
-  подмены; dematerialization сохраняет byte-identical state.
-- Новый transaction/service/materialization после restart повторяет exact reload
-  и byte conservation.
-- Negative controls покрывают raw topology Z, position вне tolerance, stale hash,
-  partial non-mutation и restart после ARRIVED.
-- Production loot mode подтверждает real Player atomic batch, duplicate и
-  materialization/reload conservation на seed `15001502`.
+- Delta ровно tolerance допускается; tolerance + 1 отклоняется.
+- Разные first/second raw-height results отклоняются.
+- Non-fixed-point normalized Z и instance не `0` отклоняются.
+- Current route/farming anchors поддерживаются.
+- Synthetic farming arrival с factual raw Z и tolerance `0` возвращает
+  `ANCHOR_MISMATCH`.
+- Direct result и service attempt сохраняют position/clock; mutation
+  transaction fault points не вызываются; background bytes и canonical DB
+  position не меняются.
+
+## Production conservation
+
+- Seed `15001502`, test DB `l2jmobiush5_phantom_test`.
+- Natural `Player.load` без post-load coordinate masking.
+- Partial travel сохраняет departure position и residual time.
+- ARRIVED атомарно сохраняет `(87439,121072,-3056)`.
+- Ordinary `PhantomMaterializationService` использует
+  `PhantomBackgroundService` как lifecycle port.
+- Exact DB/runtime/background X/Y/Z, dematerialization, restart, повторная
+  materialization и byte-identical state подтверждены.
+
+## Production loot
+
+- Supported production pair count: `1`.
+- Exact pair: `22859@giran.farming.22859`.
+- `LOOT_POLICY_V1`, `LEAVE_ON_GROUND`, grouped/ungrouped RNG и occurrence
+  budgets сохранены.
+- Successful atomic real-Player batch, duplicate idempotency и
+  materialization/reload conservation сохранены.
+- Ground-loss inventory rows и object IDs не создаются.
 
 ## Commands and results
 
-- Fresh pre-change
-  `phantom-background-position-canonicalization-test`: PASS, 2/2, seed
-  `15001502`, test DB `l2jmobiush5_phantom_test`.
-- Fresh runtime evidence: `giran.route.north` raw Z `-3400` нормализуется в
-  `-4072` (delta `672`, tolerance `0`); `giran.farming.22859` raw Z `-3061`
-  нормализуется в `-3056` (delta `5`, tolerance `0`).
-- Compile, новый helper/tolerance target, transition negative, production loot
-  3/3, historical modes, verifier, aggregate, `ant verify` и `ant jar` для
-  anchor-tolerance child не запускались: обязательная production precondition
-  доказанно невыполнима в разрешённом scope.
-- Bundled Ant `compile`: PASS.
-- Bundled Ant `compile-tests`: PASS.
-- Новый `phantom-background-position-canonicalization-test`: две диагностические
-  попытки выявили отсутствующую fixture initialization и несохранённые runtime
-  vitals; после двух точечных test-only исправлений — PASS, 2/2.
-- `phantom-background-production-loot-unblock-test`: PASS, 3/3.
-- `phantom-background-server-integration-test`: PASS, 5/5.
-- Остальные 12 historical Goal 015 modes: PASS.
-- Static verifier, final focused aggregate, единственный final `ant verify`,
-  standalone `ant jar`, commit/push и два post-commit byte-identical verifier run
-  фиксируются после выполнения соответствующих gate.
+- `compile-tests`: PASS.
+- `phantom-background-position-canonicalization-test`: PASS, `2/2`.
+- `phantom-background-production-loot-unblock-test`: PASS, `3/3`.
+- `phantom-background-server-integration-test`: PASS, `5/5`.
+- Все 13 historical Goal 015 modes: PASS.
+- Static verifier: PASS, `TASK015_VERIFIER_OK`, working graph, scope `8`.
+- Единственный explicit final `phantom-background-test`: PASS; все 15 report
+  files имеют `failed=0`.
+- Первый `ant verify` остановился на transient historical
+  `combat-server-integration.02`; exact target сразу после этого прошёл `20/20`,
+  out-of-scope правок не было.
+- Повторный и единственный green `ant verify`: PASS, `10:28`.
+- Standalone `ant jar`: PASS, `0:16`.
+- Commit/push и два post-commit verifier run: ожидают выполнения.
 
-## Performance and safety
+## Deviations and safety
 
-- Historical 100,000 model evaluations и 10,000 duplicate reconciliations: PASS.
-- Изменения ограничены одной production authority и focused evidence.
-- Player, Attackable, Item, Inventory, GameClient и materialization production
-  code не менялись.
-- Mojibake-маркеры в изменённых файлах проверяются static verifier.
-- Escaped Cyrillic в изменённых файлах проверяется static verifier отдельно.
-
-## Deviations, limitations and risks
-
-- Требуемое условие
-  `Math.abs((long) normalizedZ - point.z()) > anchor.validationTolerance()`
-  при shipped topology отклоняет оба production anchor до ARRIVED mutation.
-- Разрешённый production scope содержит только
-  `L2jPhantomBackgroundAuthority.java`, а topology XML прямо запрещён. Для
-  совместимости нужны точечные canonical Z правки `-3400 → -4072` и
-  `-3061 → -3056`; без отдельного разрешения они не выполнены.
-- `validationTolerance` нельзя просто увеличить для departure anchor: topology
-  contract ограничивает его значением `500`, а подтверждённая delta равна
-  `672`.
-- Production activation не выполнялась; требуется независимое ревью.
+- Первый historical batch выявил test-only door-anchor assumption после нового
+  fail-closed contract. Exact server-integration test исправлен и повторён
+  зелёным `5/5`; production code/data дополнительно не расширялись.
+- Использовалась только `l2jmobiush5_phantom_test`.
+- Player, GeoEngine, spawn XML, NPC data, loaders, geodata, config, schema,
+  materialization, GameClient, commerce, progression и другие хроники не
+  менялись.
 - Goal 015A/015B/015C не создавались.
-- Goal 016/017/025 не начаты.
-- Party, spoil, manor, quest, craft, raid, instance и PvP вне scope.
 
 ## Git and handoff
 
 - Branch: `feature/phantom-world`.
-- Required parent: `d4a4557cb2447be501fe8f339cc68b482e8561e0`.
-- Его parent: `b800f125bddedadd4f181e9a5f398283e73c4c13`.
-- Expected subject: `fix(phantoms): enforce anchor normalization tolerance`.
-- Expected graph: один ordinary direct child commit, без
+- Required parent: `7037fe92ad930425a600d070bbaf6c2d0234ada0`.
+- Его parent: `d4a4557cb2447be501fe8f339cc68b482e8561e0`.
+- Required subject: `fix(phantoms): resolve anchor tolerance data`.
+- Expected graph: ровно один ordinary direct child, без
   amend/rebase/squash/merge/force push.
-- Commit SHA и push result передаются в final handoff после publication.
-- Next step: отдельно разрешить canonical Z correction двух shipped topology
-  anchors либо снять требование сохранить их production support.
+- Commit SHA и push result передаются в final handoff.
+- Next step: независимое ревью Goal 015.

@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.IntUnaryOperator;
 import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.config.PlayerConfig;
@@ -301,20 +302,32 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	{
 		Objects.requireNonNull(anchor, "anchor");
 		final PhantomTopologyPoint point = anchor.point();
+		final GeoEngine geoEngine = GeoEngine.getInstance();
+		return canonicalCommittedAnchorPosition(anchor, heading, z -> geoEngine.getHeight(point.x(), point.y(), z));
+	}
+
+	private static Optional<Position> canonicalCommittedAnchorPosition(PhantomTopologyAnchor anchor, int heading, IntUnaryOperator heightResolver)
+	{
+		Objects.requireNonNull(anchor, "anchor");
+		Objects.requireNonNull(heightResolver, "heightResolver");
+		final PhantomTopologyPoint point = anchor.point();
 		if (point.instanceId() != 0)
 		{
 			return Optional.empty();
 		}
 		final int x = point.x();
 		final int y = point.y();
-		final GeoEngine geoEngine = GeoEngine.getInstance();
-		final int normalizedZ = geoEngine.getHeight(x, y, point.z());
-		if (normalizedZ != geoEngine.getHeight(x, y, point.z()))
+		final int normalizedZ = heightResolver.applyAsInt(point.z());
+		if (normalizedZ != heightResolver.applyAsInt(point.z()))
 		{
 			return Optional.empty();
 		}
-		final int restoredZ = geoEngine.getHeight(x, y, normalizedZ);
-		if ((restoredZ != normalizedZ) || (Math.abs((long) restoredZ - normalizedZ) > anchor.validationTolerance()))
+		if (Math.abs((long) normalizedZ - point.z()) > anchor.validationTolerance())
+		{
+			return Optional.empty();
+		}
+		final int restoredZ = heightResolver.applyAsInt(normalizedZ);
+		if (restoredZ != normalizedZ)
 		{
 			return Optional.empty();
 		}

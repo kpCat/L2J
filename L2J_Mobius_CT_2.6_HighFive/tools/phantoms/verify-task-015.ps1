@@ -5,12 +5,18 @@ Set-StrictMode -Version Latest
 
 $lootCommit = "b800f125bddedadd4f181e9a5f398283e73c4c13"
 $lootParent = "32be3bbc320bc3a054aab8c5d39001910f35e4b8"
-$requiredParent = $lootCommit
+$positionCommit = "d4a4557cb2447be501fe8f339cc68b482e8561e0"
+$blockedCommit = "7037fe92ad930425a600d070bbaf6c2d0234ada0"
+$positionSubject = "fix(phantoms): canonicalize background anchor positions"
+$blockedSubject = "fix(phantoms): enforce anchor normalization tolerance"
+$requiredParent = $blockedCommit
 $requiredBranch = "feature/phantom-world"
-$requiredSubject = "fix(phantoms): canonicalize background anchor positions"
+$requiredSubject = "fix(phantoms): resolve anchor tolerance data"
 $acceptedCommits = @(
 	$lootParent,
-	$lootCommit
+	$lootCommit,
+	$positionCommit,
+	$blockedCommit
 )
 $moduleRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $repositoryRoot = (Resolve-Path ((& git -C $moduleRoot rev-parse --show-toplevel).Trim())).Path
@@ -44,6 +50,7 @@ function Is-AllowedPath([string] $path)
 	}
 	$local = $path.Substring($prefix.Length)
 	return $local -eq "java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java" `
+		-or $local -eq "dist/game/data/phantoms/topology/high-five-core.xml" `
 		-or $local -eq "build.xml" `
 		-or $local -eq "test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java" `
 		-or $local -eq "test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java" `
@@ -51,7 +58,8 @@ function Is-AllowedPath([string] $path)
 		-or $local -eq "docs/PHANTOM_BOTS_ROADMAP.md" `
 		-or $local -eq "docs/phantoms/architecture/BACKGROUND_FARMING_RECONCILIATION_CONTRACT.md" `
 		-or $local -eq "docs/phantoms/reports/015-background-farming-reconciliation.md" `
-		-or $local -eq "docs/phantoms/reviews/015-background-position-canonicalization-review.md"
+		-or $local -eq "docs/phantoms/reviews/015-background-position-canonicalization-review.md" `
+		-or $local -eq "docs/phantoms/reviews/015-background-anchor-tolerance-review.md"
 }
 
 $branch = (& git -C $repositoryRoot branch --show-current).Trim()
@@ -64,6 +72,10 @@ foreach ($accepted in $acceptedCommits)
 }
 Assert-True ((& git -C $repositoryRoot show -s --format=%P $lootCommit).Trim() -eq $lootParent) "Accepted production loot commit has the wrong parent."
 Assert-True ((& git -C $repositoryRoot show -s --format=%s $lootCommit).Trim() -eq "fix(phantoms): support ground-loss production drops") "Accepted production loot commit subject changed."
+Assert-True ((& git -C $repositoryRoot show -s --format=%P $positionCommit).Trim() -eq $lootCommit) "Accepted position commit has the wrong parent."
+Assert-True ((& git -C $repositoryRoot show -s --format=%s $positionCommit).Trim() -eq $positionSubject) "Accepted position commit subject changed."
+Assert-True ((& git -C $repositoryRoot show -s --format=%P $blockedCommit).Trim() -eq $positionCommit) "Documentation-only BLOCKED commit has the wrong parent."
+Assert-True ((& git -C $repositoryRoot show -s --format=%s $blockedCommit).Trim() -eq $blockedSubject) "Documentation-only BLOCKED commit subject changed."
 
 $graphMode = "working-goal"
 if ($head -ne $requiredParent)
@@ -111,6 +123,7 @@ $requiredFiles = @(
 	"java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java",
 	"java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java",
 	"java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java",
+	"dist/game/data/phantoms/topology/high-five-core.xml",
 	"java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationLifecyclePort.java",
 	"java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationLifecycleBridge.java",
 	"java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java",
@@ -122,7 +135,8 @@ $requiredFiles = @(
 	"docs/phantoms/reports/015-background-farming-reconciliation.md",
 	"docs/phantoms/reviews/015-background-farming-reconciliation-review.md",
 	"docs/phantoms/reviews/015-production-loot-disposition-unblock-review.md",
-	"docs/phantoms/reviews/015-background-position-canonicalization-review.md"
+	"docs/phantoms/reviews/015-background-position-canonicalization-review.md",
+	"docs/phantoms/reviews/015-background-anchor-tolerance-review.md"
 )
 foreach ($local in $requiredFiles)
 {
@@ -154,9 +168,37 @@ foreach ($fact in @("MAX_ENCOUNTERS = 32", "MAX_ELAPSED_MILLIS = 60_000", "MAX_C
 }
 
 $authorityText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java")
-foreach ($fact in @("LOOT_POLICY_V1", "compositeKnowledgeHash", "AUTO_LOOT_HERBS", "AUTO_LOOT", "AUTO_LOOT_SLOT_LIMIT", "AUTO_LOOT_ITEM_IDS", "DropDisposition.LEAVE_ON_GROUND", "isFlying()", "isFlyingMounted()", "isMounted()", "canonicalCommittedAnchorPosition", "GeoEngine.getInstance()", "getHeight(x, y, point.z())", "atCanonicalAnchor", "Status.ANCHOR_MISMATCH"))
+foreach ($fact in @("LOOT_POLICY_V1", "compositeKnowledgeHash", "AUTO_LOOT_HERBS", "AUTO_LOOT", "AUTO_LOOT_SLOT_LIMIT", "AUTO_LOOT_ITEM_IDS", "DropDisposition.LEAVE_ON_GROUND", "isFlying()", "isFlyingMounted()", "isMounted()", "canonicalCommittedAnchorPosition", "GeoEngine.getInstance()", "geoEngine.getHeight(point.x(), point.y(), z)", "heightResolver.applyAsInt(point.z())", "atCanonicalAnchor", "Status.ANCHOR_MISMATCH"))
 {
 	Assert-True ($authorityText.Contains($fact)) "Production loot authority fact is missing: $fact"
+}
+Assert-True ([regex]::IsMatch($authorityText, "Math\.abs\(\(long\)\s*normalizedZ\s*-\s*point\.z\(\)\)\s*>\s*anchor\.validationTolerance\(\)")) "Anchor helper does not compare normalizedZ with raw point.z() using long arithmetic."
+Assert-True ([regex]::Matches($authorityText, "heightResolver\.applyAsInt\(point\.z\(\)\)").Count -eq 2) "Anchor helper does not perform exactly two raw-height resolutions."
+Assert-True ([regex]::IsMatch($authorityText, "if\s*\(\s*restoredZ\s*!=\s*normalizedZ\s*\)")) "Anchor helper does not retain a separate fixed-point equality check."
+Assert-True (-not [regex]::IsMatch($authorityText, "Math\.abs\(\(long\)\s*restoredZ\s*-\s*normalizedZ\)\s*>\s*anchor\.validationTolerance\(\)")) "Meaningless restoredZ-to-normalizedZ tolerance check is present."
+
+$topologyPath = Join-Path $moduleRoot "dist/game/data/phantoms/topology/high-five-core.xml"
+$topologyText = Read-Utf8Strict $topologyPath
+[xml] $topologyXml = $topologyText
+$routeAnchors = @($topologyXml.SelectNodes("/topology/anchor[@id='giran.route.north']"))
+$farmAnchors = @($topologyXml.SelectNodes("/topology/anchor[@id='giran.farming.22859']"))
+Assert-True (($routeAnchors.Count -eq 1) -and ($routeAnchors[0].z -eq "-4072") -and ($routeAnchors[0].tolerance -eq "0") -and ($routeAnchors[0].x -eq "85000") -and ($routeAnchors[0].y -eq "143000") -and ($routeAnchors[0].instanceId -eq "0")) "Corrected route anchor data is not exact."
+Assert-True (($farmAnchors.Count -eq 1) -and ($farmAnchors[0].z -eq "-3061") -and ($farmAnchors[0].tolerance -eq "5") -and ($farmAnchors[0].x -eq "87439") -and ($farmAnchors[0].y -eq "121072") -and ($farmAnchors[0].instanceId -eq "0") -and ($farmAnchors[0].npcId -eq "22859")) "Corrected farming anchor data is not exact."
+$farmNodes = @($topologyXml.SelectNodes("/topology/node[@id='giran.farming.22859']"))
+Assert-True (($farmNodes.Count -eq 1) -and ($farmNodes[0].x -eq "87439") -and ($farmNodes[0].y -eq "121072") -and ($farmNodes[0].z -eq "-3061") -and ($farmNodes[0].radius -eq "500")) "Factual farming node center changed."
+$backgroundEdges = @($topologyXml.SelectNodes("/topology/edge[@id='giran.city.farming.background']"))
+Assert-True (($backgroundEdges.Count -eq 1) -and ($backgroundEdges[0].fromAnchorId -eq "giran.route.north") -and ($backgroundEdges[0].toAnchorId -eq "giran.farming.22859") -and ($backgroundEdges[0].baseTravelMillis -eq "900000")) "Production background edge changed."
+$topologyDiff = @(& git -c core.autocrlf=false -C $repositoryRoot diff --unified=0 $requiredParent -- "$moduleRelative/dist/game/data/phantoms/topology/high-five-core.xml")
+$topologyChanges = @($topologyDiff | Where-Object { ($_ -match "^[+-]") -and ($_ -notmatch "^(---|\+\+\+)") })
+Assert-True ($topologyChanges.Count -eq 4) "Topology correction changed more than the two allowed anchor lines."
+foreach ($expectedChange in @(
+	'-	<anchor id="giran.route.north" role="ROUTE" nodeId="giran.route.north" x="85000" y="143000" z="-3400" instanceId="0" tolerance="0" tags="route">',
+	'+	<anchor id="giran.route.north" role="ROUTE" nodeId="giran.route.north" x="85000" y="143000" z="-4072" instanceId="0" tolerance="0" tags="route">',
+	'-	<anchor id="giran.farming.22859" role="FARMING" nodeId="giran.farming.22859" x="87439" y="121072" z="-3061" instanceId="0" npcId="22859" tolerance="0" tags="monster-spawn">',
+	'+	<anchor id="giran.farming.22859" role="FARMING" nodeId="giran.farming.22859" x="87439" y="121072" z="-3061" instanceId="0" npcId="22859" tolerance="5" tags="monster-spawn">'
+))
+{
+	Assert-True ($topologyChanges -contains $expectedChange) "Topology correction is missing an exact allowed line: $expectedChange"
 }
 
 $transactionText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java")
@@ -204,7 +246,7 @@ foreach ($fact in @("new PhantomBackgroundService(", "new PhantomBackgroundDecis
 Assert-True ($systemText.IndexOf("new PhantomBackgroundService(", [StringComparison]::Ordinal) -lt $systemText.IndexOf("new PhantomDecisionEngine(", [StringComparison]::Ordinal)) "Background service is not composed before the decision engine."
 
 $suiteText = Read-Utf8Strict (Join-Path $moduleRoot "test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java")
-foreach ($fact in @("SEED = 15001501L", "PRODUCTION_LOOT_UNBLOCK_SEED = 15001502L", "POSITION_CANONICALIZATION", "testCanonicalAnchorPolicy", "testProductionPositionTransition", "productionTravelSelection", "canonicalAnchorPosition", "testLifecycleLoop(1, 100)", "testLifecycleLoop(50, 0)", "identity <= 300", "100_000", "10_000", "BEFORE_OPERATION_COMMIT", "AFTER_OPERATION_COMMIT", "Status.INCONSISTENT", "PRODUCTION_TARGET_NPC_ID", "PRODUCTION_FARM_ANCHOR_ID", "PhantomTopologyLoader", "Player.load(", "2509", "6645", "Disabled PhantomSystem", "testMaterializationAbortMatrix", "testMaterializingQuiescence", "testCompactInventoryHash", "testAuthoritativeShotContract", "testProductionCorpusAudit", "testProductionLootPolicy", "testGroundLossModelSemantics", "testProductionLootBatch", "LOOT_POLICY_V1", "LEAVE_ON_GROUND", "groundLosses", "testDeathRecovery", "testRealLoginGuard", "10655", "13028", "length <= 4096", "COUNT(*) FROM items"))
+foreach ($fact in @("SEED = 15001501L", "PRODUCTION_LOOT_UNBLOCK_SEED = 15001502L", "PARENT_PRODUCTION_TOPOLOGY_HASH", "POSITION_CANONICALIZATION", "testCanonicalAnchorPolicy", "testProductionPositionTransition", "testMalformedArrivalTransition", "malformedArrivalTopology", "transactionMutations", "productionTravelSelection", "canonicalAnchorPosition", "syntheticAnchor", "testLifecycleLoop(1, 100)", "testLifecycleLoop(50, 0)", "identity <= 300", "100_000", "10_000", "BEFORE_OPERATION_COMMIT", "AFTER_OPERATION_COMMIT", "Status.INCONSISTENT", "PRODUCTION_TARGET_NPC_ID", "PRODUCTION_FARM_ANCHOR_ID", "PhantomTopologyLoader", "Player.load(", "2509", "6645", "Disabled PhantomSystem", "testMaterializationAbortMatrix", "testMaterializingQuiescence", "testCompactInventoryHash", "testAuthoritativeShotContract", "testProductionCorpusAudit", "testProductionLootPolicy", "testGroundLossModelSemantics", "testProductionLootBatch", "LOOT_POLICY_V1", "LEAVE_ON_GROUND", "groundLosses", "testDeathRecovery", "testRealLoginGuard", "10655", "13028", "length <= 4096", "COUNT(*) FROM items"))
 {
 	Assert-True ($suiteText.Contains($fact)) "Goal 015 evidence is missing: $fact"
 }
@@ -241,7 +283,9 @@ Assert-True ($masterPlanText.Contains("### 015. Background farming") -and $maste
 $reviewText = Read-Utf8Strict (Join-Path $moduleRoot "docs/phantoms/reviews/015-production-loot-disposition-unblock-review.md")
 Assert-True ($reviewText.Contains('`PENDING_INDEPENDENT_REVIEW`') -and $reviewText.Contains($lootParent) -and $reviewText.Contains('Supported production pair count: `1`') -and $reviewText.Contains("22859@giran.farming.22859")) "Goal 015 production unblock review truth is incomplete."
 $positionReviewText = Read-Utf8Strict (Join-Path $moduleRoot "docs/phantoms/reviews/015-background-position-canonicalization-review.md")
-Assert-True ($positionReviewText.Contains('`PENDING_INDEPENDENT_REVIEW`') -and $positionReviewText.Contains($requiredParent) -and $positionReviewText.Contains($requiredSubject) -and $positionReviewText.Contains("canonicalCommittedAnchorPosition") -and $positionReviewText.Contains("Player.load")) "Goal 015 position canonicalization review truth is incomplete."
+Assert-True ($positionReviewText.Contains('`PENDING_INDEPENDENT_REVIEW`') -and $positionReviewText.Contains($lootCommit) -and $positionReviewText.Contains($positionSubject) -and $positionReviewText.Contains("canonicalCommittedAnchorPosition") -and $positionReviewText.Contains("Player.load")) "Goal 015 position canonicalization review truth is incomplete."
+$anchorReviewText = Read-Utf8Strict (Join-Path $moduleRoot "docs/phantoms/reviews/015-background-anchor-tolerance-review.md")
+Assert-True ($anchorReviewText.Contains('`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`') -and $anchorReviewText.Contains($requiredParent) -and $anchorReviewText.Contains($requiredSubject) -and $anchorReviewText.Contains("normalizedZ - point.z()") -and $anchorReviewText.Contains("7277419d2ff5c6a4f7066182d01e32aeb9708814e54707e7a91a85cb550a3580")) "Goal 015 anchor-tolerance review truth is incomplete."
 $reportPath = Join-Path $moduleRoot "docs/phantoms/reports/015-background-farming-reconciliation.md"
 Assert-True ((Get-Content -LiteralPath $reportPath -Encoding UTF8).Count -le 170) "Goal 015 report exceeds the 170-line efficiency bound."
 $reportText = Read-Utf8Strict $reportPath
@@ -304,6 +348,7 @@ Write-Output "transaction=ONE_CANONICAL_MARIADB_BATCH"
 Write-Output "identity=BACKGROUND_TYPED_LEASE"
 Write-Output "lootPolicy=LOOT_POLICY_V1"
 Write-Output "position=GEOENGINE_CANONICAL_COMMITTED_ANCHOR"
+Write-Output "anchorTolerance=RAW_TO_NORMALIZED_Z"
 Write-Output "productionPairs=1_SUPPORTED"
 Write-Output "workers=0"
 Write-Output "utf8=STRICT"

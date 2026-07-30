@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.IntUnaryOperator;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.config.PlayerConfig;
@@ -150,6 +151,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdge;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyMetrics;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologySnapshot;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyValidationBackend;
@@ -192,6 +194,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private static final String ANCHOR_ID = "test.anchor";
 	private static final int PRODUCTION_TARGET_NPC_ID = 22859;
 	private static final String PRODUCTION_FARM_ANCHOR_ID = "giran.farming.22859";
+	private static final String PARENT_PRODUCTION_TOPOLOGY_HASH = "f8046ed902f024a9181f39b3247d8a6697279db4921ec0a69231c1e9b47cae7f";
 	private static final int NO_GRADE_WEAPON_ITEM_ID = 6;
 	private static final int NO_GRADE_SOULSHOT_ITEM_ID = 1835;
 	private static final int NO_GRADE_SPIRITSHOT_ITEM_ID = 2509;
@@ -813,16 +816,53 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		context.record("background.productionLootAudit", String.join("|", audited));
 	}
 
-	private void testCanonicalAnchorPolicy()
+	private void testCanonicalAnchorPolicy() throws Exception
 	{
 		final ProductionTravelSelection travel = productionTravelSelection();
 		final L2jPhantomBackgroundAuthority authority = _production.authority();
 		final Hashes hashes = authority.hashes();
 		final Position departure = canonicalAnchorPosition(travel.departure(), 0);
 		final Position arrival = canonicalAnchorPosition(travel.arrival(), 0);
+		final PhantomTopologySnapshot topology = _production.topology().snapshot();
+		final PhantomTopologySnapshot reloadedTopology = new PhantomTopologyLoader(Path.of("data/phantoms/topology"), _production.topologyBackend(), PhantomTopologyPolicy.productionDefaults()).load(topology.generation());
+		PhantomAssertions.assertEquals(topology.canonicalHash(), reloadedTopology.canonicalHash(), "Corrected production topology hash is not deterministic across loader runs.");
+		PhantomAssertions.assertFalse(PARENT_PRODUCTION_TOPOLOGY_HASH.equals(topology.canonicalHash()), "Corrected production topology hash did not change from the required parent.");
+		PhantomAssertions.assertEquals(-4072, travel.departure().point().z(), "Production route anchor raw Z is not canonical.");
+		PhantomAssertions.assertEquals(0, travel.departure().validationTolerance(), "Production route anchor tolerance changed.");
+		PhantomAssertions.assertEquals(-4072, departure.z(), "Production route anchor did not remain fixed at canonical Z.");
+		PhantomAssertions.assertEquals(-3061, travel.arrival().point().z(), "Production farming anchor lost its factual spawn Z.");
+		PhantomAssertions.assertEquals(5, travel.arrival().validationTolerance(), "Production farming anchor tolerance is not the exact normalization delta.");
+		PhantomAssertions.assertEquals(-3056, arrival.z(), "Production farming anchor canonical Z changed.");
+		PhantomAssertions.assertEquals(5L, Math.abs((long) arrival.z() - travel.arrival().point().z()), "Production farming normalization delta changed.");
+		PhantomAssertions.assertTrue(_production.topologyBackend().spawns(PRODUCTION_TARGET_NPC_ID, 4096).stream().anyMatch(spawn -> spawn.point().equals(travel.arrival().point())), "Production farming anchor no longer matches the factual NPC 22859 spawn.");
+		PhantomAssertions.assertEquals("giran.route.north", travel.edge().fromAnchorId(), "Production background edge departure endpoint changed.");
+		PhantomAssertions.assertEquals(PRODUCTION_FARM_ANCHOR_ID, travel.edge().toAnchorId(), "Production background edge arrival endpoint changed.");
+		PhantomAssertions.assertEquals(900_000L, travel.edge().baseTravelMillis(), "Production background edge travel time changed.");
 		PhantomAssertions.assertEquals(departure, canonicalAnchorPosition(travel.departure(), 0), "Canonical departure position must be deterministic.");
 		PhantomAssertions.assertEquals(arrival, canonicalAnchorPosition(travel.arrival(), 0), "Canonical arrival position must be deterministic.");
 		PhantomAssertions.assertTrue(arrival.z() != travel.arrival().point().z(), "The production farm fixture must exercise GeoEngine Z canonicalization.");
+
+		final PhantomTopologyAnchor exactToleranceAnchor = syntheticAnchor("test.anchor.tolerance", 100, 0, 5);
+		final Optional<Position> exactTolerance = canonicalAnchorPosition(exactToleranceAnchor, 12345, _ -> 105);
+		PhantomAssertions.assertEquals(Optional.of(new Position(0, exactToleranceAnchor.point().x(), exactToleranceAnchor.point().y(), 105, 12345, exactToleranceAnchor.id())), exactTolerance, "Normalization delta exactly equal to tolerance was rejected.");
+		PhantomAssertions.assertTrue(canonicalAnchorPosition(exactToleranceAnchor, 0, _ -> 106).isEmpty(), "Normalization delta tolerance + 1 was admitted.");
+
+		final AtomicInteger unstableCalls = new AtomicInteger();
+		PhantomAssertions.assertTrue(canonicalAnchorPosition(exactToleranceAnchor, 0, _ -> unstableCalls.incrementAndGet() == 1 ? 105 : 106).isEmpty(), "Different first and second raw normalization results were admitted.");
+		PhantomAssertions.assertEquals(2, unstableCalls.get(), "Unstable raw normalization did not fail at the second raw-height call.");
+
+		final AtomicInteger nonFixedCalls = new AtomicInteger();
+		PhantomAssertions.assertTrue(canonicalAnchorPosition(exactToleranceAnchor, 0, _ -> nonFixedCalls.incrementAndGet() <= 2 ? 105 : 104).isEmpty(), "A non-fixed-point normalized Z was admitted.");
+		PhantomAssertions.assertEquals(3, nonFixedCalls.get(), "Fixed-point validation did not perform exactly one normalized-height call.");
+
+		final AtomicInteger unsupportedInstanceCalls = new AtomicInteger();
+		final PhantomTopologyAnchor unsupportedInstance = syntheticAnchor("test.anchor.instance", 100, 1, 5);
+		PhantomAssertions.assertTrue(canonicalAnchorPosition(unsupportedInstance, 0, z ->
+		{
+			unsupportedInstanceCalls.incrementAndGet();
+			return z;
+		}).isEmpty(), "A non-zero instance anchor was admitted.");
+		PhantomAssertions.assertEquals(0, unsupportedInstanceCalls.get(), "A non-zero instance anchor reached height normalization.");
 
 		final PhantomGoal goal = goal(PRODUCTION_TARGET_NPC_ID, travel.arrival().id());
 		final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parse(goal);
@@ -854,15 +894,16 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(arrival, arrived.position(), "Canonical travel completion must commit the canonical position.");
 		PhantomAssertions.assertTrue(arrived.position().z() != travel.arrival().point().z(), "Raw topology Z must not be durable after ARRIVED.");
 
-		final Position rawFarmPosition = new Position(0, travel.arrival().point().x(), travel.arrival().point().y(), travel.arrival().point().z(), 0, travel.arrival().id());
-		final PhantomBackgroundState rawFarmState = productionState(travel.arrival(), hashes).after(initial.progress(), initial.vitals(), rawFarmPosition, initial.inventory(), initial.autoGetSkills(), initial.clock(), initial.receipt());
-		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> authority.farmInput(rawFarmState, spec), "Raw non-canonical topology Z must be rejected by farm input.");
-		PhantomAssertions.assertEquals(travel.arrival().point().z(), rawFarmState.position().z(), "Rejected raw position must remain unchanged.");
+		final Position outsideFarmPosition = new Position(0, arrival.x(), arrival.y(), arrival.z() + travel.arrival().validationTolerance() + 1, 0, travel.arrival().id());
+		final PhantomBackgroundState outsideFarmState = productionState(travel.arrival(), hashes).after(initial.progress(), initial.vitals(), outsideFarmPosition, initial.inventory(), initial.autoGetSkills(), initial.clock(), initial.receipt());
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> authority.farmInput(outsideFarmState, spec), "Farm position outside canonical tolerance must be rejected.");
+		PhantomAssertions.assertEquals(outsideFarmPosition, outsideFarmState.position(), "Rejected farm position must remain unchanged.");
 	}
 
 	private void testProductionPositionTransition(PhantomTestContext context) throws Exception
 	{
 		final ProductionTravelSelection travel = productionTravelSelection();
+		testMalformedArrivalTransition(context, travel);
 		final Position expectedDeparture = canonicalAnchorPosition(travel.departure(), 0);
 		final Position expectedArrival = canonicalAnchorPosition(travel.arrival(), 0);
 		ProductionPlayerFixture playerFixture = null;
@@ -984,6 +1025,82 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				materialization.shutdown();
 			}
+			if (background != null)
+			{
+				background.beginStop();
+				background.finishStop();
+			}
+			if (profile != null)
+			{
+				deleteProfile(profile);
+			}
+			if (playerFixture != null)
+			{
+				playerFixture.close();
+			}
+		}
+	}
+
+	private void testMalformedArrivalTransition(PhantomTestContext context, ProductionTravelSelection travel) throws Exception
+	{
+		final PhantomTopologyQuery malformedTopology = malformedArrivalTopology(travel);
+		final L2jPhantomBackgroundAuthority malformedAuthority = _production.authority(malformedTopology);
+		final PhantomTopologyAnchor departure = malformedTopology.findAnchor(travel.departure().id()).orElseThrow();
+		final PhantomTopologyAnchor malformedArrival = malformedTopology.findAnchor(travel.arrival().id()).orElseThrow();
+		PhantomAssertions.assertEquals(0, malformedArrival.validationTolerance(), "Malformed arrival fixture did not narrow the normalization tolerance.");
+		PhantomAssertions.assertTrue(L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(malformedArrival, 0).isEmpty(), "Malformed arrival fixture unexpectedly canonicalized.");
+
+		ProductionPlayerFixture playerFixture = null;
+		PhantomProfile profile = null;
+		PhantomBackgroundService background = null;
+		try
+		{
+			playerFixture = openProductionPlayerFixture(departure);
+			final int objectId = playerFixture.player().getObjectId();
+			profile = _repository.create(objectId);
+			final PhantomGoal goal = playerFixture.goal();
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_repository);
+			goals.insert(profile.profileId(), goal);
+			final AtomicInteger transactionMutations = new AtomicInteger();
+			final PhantomBackgroundTransaction transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), _ -> transactionMutations.incrementAndGet());
+			background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, malformedAuthority, new PhantomBackgroundCompetitionRegistry(), noSignals(), () -> null);
+			PhantomAssertions.assertTrue(background.start(), "Malformed-arrival background service did not start.");
+
+			final PhantomBackgroundState firstCapture = malformedAuthority.capture(profile.profileId(), playerFixture.player(), goal, null);
+			final PhantomBackgroundState seededPrevious = firstCapture.after(firstCapture.progress(), firstCapture.vitals(), firstCapture.position(), firstCapture.inventory(), firstCapture.autoGetSkills(), new Clock(context.seed(), 0, 0), firstCapture.receipt());
+			final PhantomBackgroundState seededCapture = malformedAuthority.capture(profile.profileId(), playerFixture.player(), goal, seededPrevious);
+			playerFixture.player().storeMe();
+			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(seededCapture, goal).status(), "Malformed-arrival baseline capture failed.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(profile.profileId(), objectId).status(), "Malformed-arrival baseline did not enter MATERIALIZED.");
+			background.beforeStore(profile.profileId(), playerFixture.player());
+			playerFixture.player().storeMe();
+			background.afterStore(profile.profileId(), playerFixture.player());
+			playerFixture.releaseRuntime();
+
+			final PhantomBackgroundState before = transaction.load(profile.profileId()).state();
+			final PhantomBackgroundStateCodec codec = new PhantomBackgroundStateCodec();
+			final byte[] beforeBytes = codec.encode(before);
+			final Canonical beforeCanonical = canonical(objectId);
+			final PhantomBackgroundAuthority.TravelAdvance rejected = malformedAuthority.advanceTravel(before, PhantomBackgroundGoalSpec.parse(goal), PhantomBackgroundService.FARM_TRAVEL_BUDGET_MILLIS);
+			PhantomAssertions.assertEquals(PhantomBackgroundAuthority.TravelAdvance.Status.ANCHOR_MISMATCH, rejected.status(), "Malformed arrival normalization did not return ANCHOR_MISMATCH.");
+			PhantomAssertions.assertFalse(rejected.mutated(), "Malformed arrival normalization mutated the travel result.");
+			PhantomAssertions.assertEquals(before.position(), rejected.position(), "Malformed arrival normalization changed position.");
+			PhantomAssertions.assertEquals(before.clock(), rejected.clock(), "Malformed arrival normalization consumed clock.");
+
+			transactionMutations.set(0);
+			final PhantomBackgroundService.OperationResult serviceRejected = background.travel(profile.profileId(), goal, 1, 1, PhantomActivityState.BACKGROUND, 1);
+			PhantomAssertions.assertEquals(OperationStatus.REPLAN, serviceRejected.status(), "Malformed arrival service result was not a typed replan.");
+			PhantomAssertions.assertEquals("travel.anchor_mismatch", serviceRejected.reason(), "Malformed arrival service reason changed.");
+			PhantomAssertions.assertEquals(0, transactionMutations.get(), "Malformed arrival invoked the background mutation transaction.");
+			final PhantomBackgroundState after = transaction.load(profile.profileId()).state();
+			PhantomAssertions.assertTrue(java.util.Arrays.equals(beforeBytes, codec.encode(after)), "Malformed arrival changed canonical background state.");
+			PhantomAssertions.assertEquals(before.position(), after.position(), "Malformed arrival changed durable position.");
+			PhantomAssertions.assertEquals(before.clock(), after.clock(), "Malformed arrival changed durable clock.");
+			PhantomAssertions.assertEquals(beforeCanonical, canonical(objectId), "Malformed arrival changed canonical DB position.");
+			assertCharacterPosition(objectId, before.position());
+		}
+		finally
+		{
 			if (background != null)
 			{
 				background.beginStop();
@@ -2252,6 +2369,14 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		throw new AssertionError("Current production topology has no direct background route to " + farm.id());
 	}
 
+	private PhantomTopologyQuery malformedArrivalTopology(ProductionTravelSelection travel)
+	{
+		final PhantomTopologySnapshot snapshot = _production.topology().snapshot();
+		final List<PhantomTopologyAnchor> anchors = snapshot.anchors().stream().map(anchor -> anchor.id().equals(travel.arrival().id()) ? new PhantomTopologyAnchor(anchor.id(), anchor.role(), anchor.nodeId(), anchor.point(), anchor.npcId(), anchor.mapRegionLocId(), 0, anchor.tags(), anchor.sourceRefs()) : anchor).toList();
+		final PhantomTopologySnapshot malformed = PhantomTopologySnapshot.create(snapshot.schemaVersion(), snapshot.datasetId(), snapshot.datasetVersion(), snapshot.generation(), snapshot.nodes(), anchors, snapshot.edges(), _production.topologyBackend(), PhantomTopologyPolicy.productionDefaults());
+		return new PhantomTopologyQuery(malformed, _production.topologyBackend(), new PhantomTopologyMetrics());
+	}
+
 	private void testProductionTravel()
 	{
 		final PhantomTopologyEdge edge = _production.topology().snapshot().edges().stream().filter(PhantomTopologyEdge::backgroundEligible).filter(candidate -> (candidate.fromAnchorId() != null) && (candidate.toAnchorId() != null)).findFirst().orElseThrow();
@@ -2278,7 +2403,10 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		final L2jPhantomBackgroundAuthority closedAuthority = _production.authority(closedTopology);
 		final PhantomTopologyAnchor closedDeparture = closedTopology.findAnchor(doorEdge.fromAnchorId()).orElseThrow();
 		final PhantomGoal closedGoal = goal(targetNpcId, doorEdge.toAnchorId());
-		final PhantomBackgroundState closedState = productionState(closedDeparture, closedAuthority.hashes());
+		final PhantomBackgroundState closedBase = productionState(productionTravelSelection().departure(), closedAuthority.hashes());
+		final PhantomTopologyPoint closedPoint = closedDeparture.point();
+		final Position closedPosition = new Position(closedPoint.instanceId(), closedPoint.x(), closedPoint.y(), closedPoint.z(), 0, closedDeparture.id());
+		final PhantomBackgroundState closedState = closedBase.after(closedBase.progress(), closedBase.vitals(), closedPosition, closedBase.inventory(), closedBase.autoGetSkills(), closedBase.clock(), closedBase.receipt());
 		final PhantomBackgroundAuthority.TravelAdvance closed = closedAuthority.advanceTravel(closedState, PhantomBackgroundGoalSpec.parse(closedGoal), 1_000);
 		PhantomAssertions.assertTrue((closed.status() == PhantomBackgroundAuthority.TravelAdvance.Status.NO_ROUTE) || (closed.status() == PhantomBackgroundAuthority.TravelAdvance.Status.EDGE_CLOSED), "Closed real door edge was admitted for background travel.");
 		PhantomAssertions.assertEquals(closedState.position(), closed.position(), "Closed edge mutated canonical position.");
@@ -2455,6 +2583,19 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private static Position canonicalAnchorPosition(PhantomTopologyAnchor anchor, int heading)
 	{
 		return L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, heading).orElseThrow(() -> new AssertionError("Current anchor has no stable canonical geodata position: " + anchor.id()));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Optional<Position> canonicalAnchorPosition(PhantomTopologyAnchor anchor, int heading, IntUnaryOperator heightResolver) throws Exception
+	{
+		final Method method = L2jPhantomBackgroundAuthority.class.getDeclaredMethod("canonicalCommittedAnchorPosition", PhantomTopologyAnchor.class, int.class, IntUnaryOperator.class);
+		method.setAccessible(true);
+		return (Optional<Position>) method.invoke(null, anchor, heading, heightResolver);
+	}
+
+	private static PhantomTopologyAnchor syntheticAnchor(String id, int rawZ, int instanceId, int tolerance)
+	{
+		return new PhantomTopologyAnchor(id, PhantomTopologyAnchorRole.ROUTE, "giran.route.north", new PhantomTopologyPoint(100, 200, rawZ, instanceId), null, null, tolerance, List.of("route"), List.of("test"));
 	}
 
 	private static boolean supportedCapability(String capabilityKey)

@@ -2,75 +2,106 @@
 
 ## Статус
 
-`BLOCKED`
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
-Goal 015 production loot disposition, natural `Player.load`, ARRIVED
-transaction, materialization и restart conservation из required parent
-`d4a4557cb2447be501fe8f339cc68b482e8561e0` сохранены без изменения.
-Goal 016/017/025 имеют статус `NOT_STARTED`.
+Required parent:
+`7037fe92ad930425a600d070bbaf6c2d0234ada0`.
 
-## Требуемая коррекция
+Required subject:
+`fix(phantoms): resolve anchor tolerance data`.
 
-`canonicalCommittedAnchorPosition` должен fail closed при условии:
+Goal 016/017/025: `NOT_STARTED`.
+
+## Production correction
+
+`canonicalCommittedAnchorPosition` fail closed проверяет:
 
 ```java
 Math.abs((long) normalizedZ - point.z()) > anchor.validationTolerance()
 ```
 
-Проверка обязана использовать raw topology anchor Z и long arithmetic. Она
-должна дополнять сохранённые invariants: instance `0`, два одинаковых
-`getHeight(x, y, rawZ)`, fixed point `getHeight(x, y, normalizedZ)`, exact X/Y,
-heading и committed anchor ID.
+Сохранены instance `0`, два одинаковых raw-height вызова, normalized fixed
+point, exact X/Y, heading и committed anchor ID. Production public path
+использует `GeoEngine.getInstance()`; resolver overload private/static и
+доступен только как deterministic test seam.
 
-## Воспроизводимое противоречие
+Старая бессмысленная tolerance-проверка только между `restoredZ` и
+`normalizedZ` удалена. Fixed-point equality `restoredZ != normalizedZ`
+сохранена отдельно.
 
-Fresh запуск существующего
-`phantom-background-position-canonicalization-test` на неизменённом required
-parent, seed `15001502`, DB `l2jmobiush5_phantom_test`, завершился PASS `2/2` и
-зафиксировал:
+## Topology data
 
-| Anchor | Raw Z | GeoEngine normalized Z | Delta | Tolerance |
-|---|---:|---:|---:|---:|
-| `giran.route.north` | -3400 | -4072 | 672 | 0 |
-| `giran.farming.22859` | -3061 | -3056 | 5 | 0 |
+| Anchor | Raw Z | Canonical Z | Tolerance | Result |
+|---|---:|---:|---:|---|
+| `giran.route.north` | -4072 | -4072 | 0 | supported |
+| `giran.farming.22859` | -3061 | -3056 | 5 | supported |
 
-Следовательно, обязательная проверка отклоняет текущие production departure и
-arrival anchors. Это делает невозможными одновременно:
+Farming raw Z сохраняет factual NPC 22859 spawn. Production loader подтверждает
+spawn distance, node geometry и edge endpoints. Farming node center, X/Y,
+npcId, sources, edge и `baseTravelMillis=900000` не изменены.
 
-- требуемый fail-closed raw-to-normalized tolerance contract;
-- сохранение текущих production departure/arrival anchors;
-- successful partial → ARRIVED → materialize → dematerialize → restart;
-- запрет изменения topology XML.
+Parent canonical topology hash:
+`f8046ed902f024a9181f39b3247d8a6697279db4921ec0a69231c1e9b47cae7f`.
 
-Увеличение tolerance не решает departure case: topology anchor contract
-ограничивает tolerance максимумом `500`, а delta равна `672`. Минимальная
-совместимая коррекция — canonical raw Z `-4072` и `-3056` в двух shipped
-topology anchors, но такой файл прямо исключён из allowlist.
+Current canonical topology hash:
+`7277419d2ff5c6a4f7066182d01e32aeb9708814e54707e7a91a85cb550a3580`.
 
-## Безопасный результат
+Повторный production loader даёт тот же current hash.
 
-- Production Java, tests, build routing и verifier не изменены.
-- Нестабильная или заведомо ломающая реализация не оставлена.
-- Принятые `LOOT_POLICY_V1`, `LEAVE_ON_GROUND`, RNG, occurrence budgets,
-  duplicate semantics и production loot `3/3` не затронуты.
-- `Player`, `GeoEngine`, topology XML, datapack, geodata, loaders, config,
-  schema, materialization и другие хроники не изменены.
-- Goal 015A/015B/015C не создавались.
+## Deterministic negative proof
 
-Новый helper/tolerance target, transition negative, cumulative verifier,
-historical aggregate, final `ant verify` и `ant jar` не запускались: обязательная
-production precondition доказанно несовместима с разрешённым scope.
+- Delta ровно tolerance допускается.
+- Delta tolerance + 1 отклоняется.
+- Разные first/second raw normalization result отклоняются.
+- Non-fixed-point normalized Z отклоняется.
+- Instance не `0` отклоняется до height resolution.
+- Current route/farming anchors остаются supported.
 
-## Необходимое решение
+Synthetic malformed arrival сохраняет factual farming raw Z, но использует
+tolerance `0`. Direct `advanceTravel` возвращает `ANCHOR_MISMATCH`, position и
+clock остаются byte-identical. Service attempt возвращает typed
+`travel.anchor_mismatch`; mutation transaction не вызывается, canonical
+background state и DB position не меняются.
 
-Для продолжения нужен отдельный явный scope exception на две canonical Z правки
-shipped topology anchors либо отмена требования сохранить поддержку этих
-anchors. До такого решения Goal 015 остаётся `BLOCKED`, activation закрыта.
+## Preserved production evidence
+
+- Natural `Player.load` без `setXYZInvisible`.
+- Partial → ARRIVED через production authority и atomic MariaDB transaction.
+- Exact DB/runtime/background X/Y/Z.
+- Ordinary materialization lifecycle, dematerialization и restart.
+- Повторная materialization и byte-identical conservation.
+- Production loot `3/3` для `22859@giran.farming.22859`.
+- `LOOT_POLICY_V1`, `LEAVE_ON_GROUND`, RNG, occurrence budgets, duplicate
+  semantics и отсутствие ground-loss inventory rows.
+
+## Scope
+
+Разрешённые production/data изменения ограничены authority helper и двумя
+attributes в `high-five-core.xml`. Player, GeoEngine, spawn/NPC data, другие
+topology entities, loaders, geodata, config, schema, materialization,
+GameClient, commerce, progression и другие хроники не изменены.
+
+Goal 015A/015B/015C не создавались. Activation закрыта до независимого review.
+
+## Verification
+
+- Compile: PASS.
+- Position/helper/transition mode: PASS `2/2`, seed `15001502`.
+- Production loot: PASS `3/3`, seed `15001502`.
+- Production server integration: PASS `5/5`.
+- Все 13 historical Goal 015 modes: PASS.
+- Static verifier: PASS.
+- Единственный explicit final aggregate: PASS, 15/15 suite reports имеют
+  `failed=0`.
+- Первый full verify встретил transient historical combat cleanup failure;
+  exact target прошёл `20/20` без изменений, повторный full verify —
+  `BUILD SUCCESSFUL`.
+- Standalone `ant jar`: PASS.
+- Post-commit verifier reproducibility фиксируется после publication.
 
 ## Git
 
 - Branch: `feature/phantom-world`.
-- Required parent: `d4a4557cb2447be501fe8f339cc68b482e8561e0`.
-- Required parent parent: `b800f125bddedadd4f181e9a5f398283e73c4c13`.
-- Child subject: `fix(phantoms): enforce anchor normalization tolerance`.
+- Expected graph: один ordinary child required parent.
+- Amend/rebase/squash/merge/force push запрещены.
 - Commit SHA и push result передаются в final handoff.

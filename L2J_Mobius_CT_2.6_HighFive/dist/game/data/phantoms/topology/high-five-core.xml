@@ -39,10 +39,10 @@
 		<source path="data/stats/npcs/30000-30099.xml" />
 		<source path="data/spawns/Others/22_22.xml" />
 	</anchor>
-	<anchor id="giran.route.north" role="ROUTE" nodeId="giran.route.north" x="85000" y="143000" z="-3400" instanceId="0" tolerance="0" tags="route">
+	<anchor id="giran.route.north" role="ROUTE" nodeId="giran.route.north" x="85000" y="143000" z="-4072" instanceId="0" tolerance="0" tags="route">
 		<source path="data/mapregion/giran_castle_town.xml" />
 	</anchor>
-	<anchor id="giran.farming.22859" role="FARMING" nodeId="giran.farming.22859" x="87439" y="121072" z="-3061" instanceId="0" npcId="22859" tolerance="0" tags="monster-spawn">
+	<anchor id="giran.farming.22859" role="FARMING" nodeId="giran.farming.22859" x="87439" y="121072" z="-3061" instanceId="0" npcId="22859" tolerance="5" tags="monster-spawn">
 		<source path="data/stats/npcs/22800-22899.xml" />
 		<source path="data/spawns/Others/22_21.xml" />
 	</anchor>

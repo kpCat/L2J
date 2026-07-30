@@ -2,12 +2,11 @@
 
 ## Статус и границы
 
-Goal 015 production loot disposition принят, но последний anchor-tolerance
-completion имеет статус `BLOCKED`. Технические reconciliation gates parent
-`d4a4557cb2447be501fe8f339cc68b482e8561e0` сохранены, а exact pair
+Goal 015 production loot disposition и anchor-tolerance completion имеют статус
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Технические reconciliation gates
+parent `7037fe92ad930425a600d070bbaf6c2d0234ada0` сохранены, а exact pair
 `22859@giran.farming.22859` поддержана при shipped AutoLoot policy. Production
-activation остаётся закрыта: требуемая raw-to-normalized Z проверка несовместима
-с текущими shipped anchor Z и запрещённым topology scope.
+activation остаётся закрыта до независимого ревью.
 Контракт обслуживает только persisted ACTIVE goal `farm.background` с точными
 NPC ID и topology anchor ID. Он не выбирает цель, не создаёт goal и не включает
 party, spoil, manor, quest, craft, raid, instance, PvP или
@@ -181,13 +180,19 @@ snap. Поэтому `Player.load`, durable state и exact `matchesRuntime` ис
 одну естественно восстанавливаемую позицию, а raw topology Z не становится
 durable после `ARRIVED`.
 
-Нормативная anchor-tolerance проверка должна fail closed, когда
+Anchor-tolerance проверка fail closed, когда
 `Math.abs((long) normalizedZ - point.z()) > anchor.validationTolerance()`.
-Parent `d4a4557...` её ещё не реализует: shipped `giran.route.north` имеет
-raw/normalized Z `-3400/-4072` при tolerance `0`, а
-`giran.farming.22859` — `-3061/-3056` при tolerance `0`. Поэтому добавление
-проверки без canonical Z correction topology сломает production departure и
-arrival. Заведомо ломающая реализация в production не внесена.
+Два raw-height вызова должны совпасть, а normalized-height вызов должен вернуть
+fixed point; instance не `0` отклоняется. Production path использует только
+`GeoEngine.getInstance()` и не получает mutable resolver dependency.
+
+Shipped `giran.route.north` хранит canonical raw Z `-4072` с tolerance `0`.
+Shipped `giran.farming.22859` сохраняет factual NPC 22859 spawn Z `-3061`,
+имеет tolerance `5` и нормализуется в `-3056`. Delta ровно tolerance допустима;
+delta `tolerance + 1`, unstable raw result и non-fixed point отклоняются.
+Production topology loader валидирует factual spawn, node geometry и exact
+background edge. Canonical topology hash:
+`7277419d2ff5c6a4f7066182d01e32aeb9708814e54707e7a91a85cb550a3580`.
 
 Competition reservation ключуется `(topologyNodeId, npcId)`, capacity берётся
 из configured spawn amount и clamp `1..32`. Reservation живёт только одну
@@ -211,5 +216,6 @@ Seed `15001502` доказывает реальный успешный batch ч�
 production authority/model и одну atomic MariaDB transaction: EXP/SP, HP/MP,
 acquired item/resource deltas, receipt, RNG и hash совпадают; ground-loss rows
 и object IDs отсутствуют; exact duplicate идемпотентен; materialization,
-dematerialization и reload сохраняют committed state. Topology, datapack,
-geodata, loaders, schema и config не изменялись.
+dematerialization и reload сохраняют committed state. Кроме двух явно
+зафиксированных anchor attributes, datapack, geodata, loaders, schema и config
+не изменялись.
