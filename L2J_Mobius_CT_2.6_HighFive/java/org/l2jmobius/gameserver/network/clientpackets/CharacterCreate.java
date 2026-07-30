@@ -20,38 +20,26 @@
  */
 package org.l2jmobius.gameserver.network.clientpackets;
 
-import java.util.Collection;
 import java.util.logging.Logger;
 
 import org.l2jmobius.commons.util.StringUtil;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.config.custom.AllowedPlayerRacesConfig;
-import org.l2jmobius.gameserver.config.custom.FactionSystemConfig;
-import org.l2jmobius.gameserver.config.custom.StartingLocationConfig;
-import org.l2jmobius.gameserver.config.custom.StartingTitleConfig;
 import org.l2jmobius.gameserver.data.sql.CharInfoTable;
 import org.l2jmobius.gameserver.data.xml.FakePlayerData;
-import org.l2jmobius.gameserver.data.xml.InitialEquipmentData;
-import org.l2jmobius.gameserver.data.xml.InitialShortcutData;
 import org.l2jmobius.gameserver.data.xml.PlayerTemplateData;
-import org.l2jmobius.gameserver.data.xml.SkillData;
-import org.l2jmobius.gameserver.data.xml.SkillTreeData;
-import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerCreationInitializer;
+import org.l2jmobius.gameserver.model.actor.PlayerCreationInitializer.Mode;
 import org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
-import org.l2jmobius.gameserver.model.actor.stat.PlayerStat;
 import org.l2jmobius.gameserver.model.actor.templates.PlayerTemplate;
 import org.l2jmobius.gameserver.model.events.Containers;
 import org.l2jmobius.gameserver.model.events.EventDispatcher;
 import org.l2jmobius.gameserver.model.events.EventType;
 import org.l2jmobius.gameserver.model.events.holders.actor.player.OnPlayerCreate;
-import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
-import org.l2jmobius.gameserver.model.item.holders.InitialEquipment;
-import org.l2jmobius.gameserver.model.item.instance.Item;
-import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
 import org.l2jmobius.gameserver.network.Disconnection;
 import org.l2jmobius.gameserver.network.GameClient;
 import org.l2jmobius.gameserver.network.PacketLogger;
@@ -239,11 +227,6 @@ public class CharacterCreate extends ClientPacket
 			newChar = Player.create(template, client.getAccountName(), _name, new PlayerAppearance(_face, _hairColor, _hairStyle, _isFemale));
 		}
 		
-		// HP and MP are at maximum and CP is zero by default.
-		newChar.setCurrentHp(newChar.getMaxHp());
-		newChar.setCurrentMp(newChar.getMaxMp());
-		// newChar.setMaxLoad(template.getBaseLoad());
-		
 		initNewChar(client, newChar);
 		client.sendPacket(CharCreateOk.STATIC_PACKET);
 		
@@ -258,71 +241,7 @@ public class CharacterCreate extends ClientPacket
 	private void initNewChar(GameClient client, Player newChar)
 	{
 		World.getInstance().addObject(newChar);
-		
-		if (PlayerConfig.STARTING_ADENA > 0)
-		{
-			newChar.addAdena(ItemProcessType.REWARD, PlayerConfig.STARTING_ADENA, null, false);
-		}
-		
-		final PlayerTemplate template = newChar.getTemplate();
-		if (StartingLocationConfig.CUSTOM_STARTING_LOC)
-		{
-			final Location createLoc = new Location(StartingLocationConfig.CUSTOM_STARTING_LOC_X, StartingLocationConfig.CUSTOM_STARTING_LOC_Y, StartingLocationConfig.CUSTOM_STARTING_LOC_Z);
-			newChar.setXYZInvisible(createLoc.getX(), createLoc.getY(), createLoc.getZ());
-		}
-		else if (FactionSystemConfig.FACTION_SYSTEM_ENABLED)
-		{
-			newChar.setXYZInvisible(FactionSystemConfig.FACTION_STARTING_LOCATION.getX(), FactionSystemConfig.FACTION_STARTING_LOCATION.getY(), FactionSystemConfig.FACTION_STARTING_LOCATION.getZ());
-		}
-		else
-		{
-			final Location createLoc = template.getCreationPoint();
-			newChar.setXYZInvisible(createLoc.getX(), createLoc.getY(), createLoc.getZ());
-		}
-		
-		newChar.setTitle(StartingTitleConfig.ENABLE_CUSTOM_STARTING_TITLE ? StartingTitleConfig.CUSTOM_STARTING_TITLE : "");
-		
-		if (PlayerConfig.ENABLE_VITALITY)
-		{
-			newChar.setVitalityPoints(Math.min(PlayerConfig.STARTING_VITALITY_POINTS, PlayerStat.MAX_VITALITY_POINTS), true);
-		}
-		
-		if (PlayerConfig.STARTING_LEVEL > 1)
-		{
-			newChar.getStat().addLevel((byte) (PlayerConfig.STARTING_LEVEL - 1));
-		}
-		
-		if (PlayerConfig.STARTING_SP > 0)
-		{
-			newChar.getStat().addSp(PlayerConfig.STARTING_SP);
-		}
-		
-		final Collection<InitialEquipment> classEquipment = InitialEquipmentData.getInstance().getClassEquipment(newChar.getPlayerClass());
-		if (classEquipment != null)
-		{
-			for (InitialEquipment equipment : classEquipment)
-			{
-				final Item item = newChar.getInventory().addItem(ItemProcessType.REWARD, equipment.getId(), equipment.getCount(), newChar, null);
-				if (item == null)
-				{
-					PacketLogger.warning("Could not create item during player creation: itemId " + equipment.getId() + ", amount " + equipment.getCount() + ".");
-					continue;
-				}
-				
-				if (item.isEquipable() && equipment.isEquipped())
-				{
-					newChar.getInventory().equipItem(item);
-				}
-			}
-		}
-		
-		for (SkillLearn skill : SkillTreeData.getInstance().getAvailableSkills(newChar, newChar.getPlayerClass(), false, true))
-		{
-			newChar.addSkill(SkillData.getInstance().getSkill(skill.getSkillId(), skill.getSkillLevel()), true);
-		}
-		
-		// Register all shortcuts for actions, skills and items for this new character.
-		InitialShortcutData.getInstance().registerAllShortcuts(newChar);
+		PlayerCreationInitializer.initialize(newChar, Mode.CLIENT);
 		
 		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_CREATE, Containers.Players()))
 		{

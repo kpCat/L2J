@@ -64,6 +64,10 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleB
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationDecision;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
@@ -99,6 +103,7 @@ public final class PhantomSystem
 	private PhantomCombatService _combatService;
 	private PhantomCommerceService _commerceService;
 	private PhantomBackgroundService _backgroundService;
+	private PhantomPopulationManager _populationManager;
 	private State _state = State.NEW;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
@@ -230,18 +235,42 @@ public final class PhantomSystem
 				productionLifecycle.install(_backgroundService);
 				final PhantomCommerceDecision commerceDecision = new PhantomCommerceDecision(_commerceService);
 				final PhantomBackgroundDecision backgroundDecision = new PhantomBackgroundDecision(_backgroundService);
+				final File populationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-population-v1.xml");
+				final PhantomPopulationCatalog populationCatalog = PhantomPopulationCatalog.load(populationCatalogFile.toPath(), _settings.populationTimeZone());
+				_populationManager = new PhantomPopulationManager(
+					new PhantomPopulationStore(productionProfiles, populationCatalog),
+					populationCatalog,
+					productionGoals,
+					_scheduler,
+					profileId -> _materializationService.find(profileId).isPresent(),
+					Clock.systemUTC(),
+					_settings.populationTimeZone(),
+					_settings.populationTarget(),
+					_settings.populationActiveTarget(),
+					_settings.maxScheduledPhantomProfiles(),
+					_settings.maxMaterializedPhantoms(),
+					_settings.populationCreationInFlight(),
+					_settings.populationBoundariesPerPulse());
+				final PhantomPopulationDecision populationDecision = new PhantomPopulationDecision(_populationManager);
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
 				commerceDecision.registerCandidates(candidateRegistry);
 				backgroundDecision.registerCandidates(candidateRegistry);
+				populationDecision.registerCandidates(candidateRegistry);
 				candidateRegistry.seal();
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
 				new PhantomCombatStepHandlers(_combatService, combatPolicy).register(handlerRegistry);
 				commerceDecision.registerHandlers(handlerRegistry);
 				backgroundDecision.registerHandlers(handlerRegistry);
+				populationDecision.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
 				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
 				_decisionEngine.start();
+				_populationManager.installDecisionEngine(_decisionEngine);
+				if (!_scheduler.installControlPort(_populationManager))
+				{
+					throw new IllegalStateException("Population control port could not be installed before scheduler start.");
+				}
 				productionWorkSink.install(_decisionEngine);
 			}
 			_combatService.start();
@@ -249,9 +278,17 @@ public final class PhantomSystem
 			{
 				throw new IllegalStateException("Phantom scheduler could not enter the running state.");
 			}
+			if ((_populationManager != null) && !_populationManager.start())
+			{
+				throw new IllegalStateException("Phantom population manager could not enter the running state.");
+			}
 		}
 		catch (RuntimeException e)
 		{
+			if (_populationManager != null)
+			{
+				_populationManager.beginStop();
+			}
 			if (_scheduler != null)
 			{
 				_scheduler.beginStop();
@@ -291,12 +328,13 @@ public final class PhantomSystem
 			final boolean combatStopped = (_combatService == null) || _combatService.finishStop();
 			final boolean progressionStopped = (_progressionService == null) || _progressionService.finishStop();
 			final boolean commerceStopped = (_commerceService == null) || _commerceService.finishStop();
+			final boolean populationStopped = (_populationManager == null) || _populationManager.finishStop();
 			boolean materializationStopped = _materializationService == null;
-			if (combatStopped && progressionStopped && commerceStopped && backgroundReadyForMaterializationShutdown() && (_materializationService != null))
+			if (combatStopped && progressionStopped && commerceStopped && populationStopped && backgroundReadyForMaterializationShutdown() && (_materializationService != null))
 			{
 				materializationStopped = _materializationService.shutdown().state() == ServiceState.STOPPED;
 			}
-			final boolean backgroundStopped = (_backgroundService == null) || (materializationStopped && _backgroundService.finishStop());
+			final boolean backgroundStopped = populationStopped && ((_backgroundService == null) || (materializationStopped && _backgroundService.finishStop()));
 			if (backgroundStopped && (_scheduler != null))
 			{
 				_scheduler.finishStop();
@@ -334,6 +372,10 @@ public final class PhantomSystem
 
 		if (_state == State.RUNNING)
 		{
+			if (_populationManager != null)
+			{
+				_populationManager.beginStop();
+			}
 			_scheduler.beginStop();
 			if (_decisionEngine != null)
 			{
@@ -380,6 +422,12 @@ public final class PhantomSystem
 				return false;
 			}
 			if ((_commerceService != null) && !_commerceService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				_state = State.FAILED;
+				return false;
+			}
+			if ((_populationManager != null) && !_populationManager.finishStop())
 			{
 				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
@@ -440,6 +488,15 @@ public final class PhantomSystem
 		}
 		if (_state == State.FAILED)
 		{
+			if ((_populationManager != null) && (_populationManager.snapshot().state() != PhantomPopulationManager.LifecycleState.STOPPED))
+			{
+				_populationManager.beginStop();
+				if (!_populationManager.finishStop())
+				{
+					_metrics.recordShutdownFailure();
+					return false;
+				}
+			}
 			if (_combatService != null)
 			{
 				_combatService.retryFailedCleanup();

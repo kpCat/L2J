@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import org.l2jmobius.gameserver.phantoms.PhantomServerShutdownHandoffSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerPerformanceSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerSuite;
+import org.l2jmobius.gameserver.phantoms.PhantomPopulationPerformanceSuite;
 import org.l2jmobius.tests.phantoms.PhantomTestDatabaseGuard.GuardException;
 
 public final class PhantomTestLauncher
@@ -246,6 +247,13 @@ public final class PhantomTestLauncher
 			case "background-real-login" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.REAL_LOGIN);
 			case "background-position-canonicalization" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.POSITION_CANONICALIZATION);
 			case "background-production-loot-unblock" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.PRODUCTION_LOOT_UNBLOCK);
+			case "population-catalog" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.CATALOG);
+			case "population-schedule" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.SCHEDULE);
+			case "population-creation" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.CREATION);
+			case "population-reconciliation" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.RECONCILIATION);
+			case "population-lifecycle" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.LIFECYCLE);
+			case "population-server-integration" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.SERVER_INTEGRATION);
+			case "population-performance" -> new PhantomPopulationPerformanceSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

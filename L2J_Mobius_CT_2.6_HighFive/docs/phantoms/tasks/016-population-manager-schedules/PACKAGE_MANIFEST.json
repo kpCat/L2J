@@ -1,0 +1,27 @@
+{
+  "package": "phantom-world-goal-016-population-manager-schedules",
+  "taskId": "016-population-manager-schedules",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/016-population-manager-schedules/TASK.md",
+  "branch": "feature/phantom-world",
+  "requiredParent": "a546dae868d93d54ec4bc6e1836080b90f810167",
+  "commitSubject": "feat(phantoms): add population manager and schedules",
+  "successToken": "GOAL_016_POPULATION_MANAGER_SCHEDULES_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 16001601,
+  "schemaChanges": false,
+  "populationDefaultTarget": 0,
+  "populationDefaultActiveTarget": 0,
+  "maximumInitialReadEntries": 12,
+  "maximumAdditionalExactFiles": 8,
+  "maximumFullVerifyRuns": 2,
+  "artificialSuffixSplitAllowed": false,
+  "productionDatabaseUseAllowed": false,
+  "goal017Started": false,
+  "goal025Started": false,
+  "payloadSha256": {
+    "docs/phantoms/tasks/016-population-manager-schedules/ACCEPTANCE.md": "FC5BBCC02129CA80760DD03B80122FAC6318D5CB6664374337B2CF7EB3CBCA5A",
+    "docs/phantoms/tasks/016-population-manager-schedules/CODEX_LAUNCHER.txt": "26B7D396153446F5F7DD34308D8CD6A0E722F608BA69DD1A4462917330B21042",
+    "docs/phantoms/tasks/016-population-manager-schedules/TASK.md": "E4EFECC4362D4D83B3EA35E643D9DE87C0783ED4F639389D6FAC9EB4724D3E9D"
+  },
+  "manifestSelfHashExcluded": true
+}

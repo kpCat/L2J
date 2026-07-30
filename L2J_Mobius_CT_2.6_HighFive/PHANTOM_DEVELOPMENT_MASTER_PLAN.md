@@ -633,7 +633,7 @@ Runtime не должен обязательно зависеть от LLM ил�
 - teleport;
 - transaction safety.
 
-### 015. Background farming и reconciliation — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+### 015. Background farming и reconciliation — `ACCEPT`
 
 - aggregated farming;
 - расход ресурсов;
@@ -641,7 +641,7 @@ Runtime не должен обязательно зависеть от LLM ил�
 - active/background comparison;
 - anti-dup.
 
-### 016. PopulationManager
+### 016. PopulationManager — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 - новые персонажи level 1;
 - class/level distribution;

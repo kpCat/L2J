@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<populationCatalog version="1">
+	<names>
+		<prefix value="Ari"/>
+		<prefix value="Bren"/>
+		<prefix value="Cora"/>
+		<prefix value="Darin"/>
+		<prefix value="Elen"/>
+		<prefix value="Fenn"/>
+		<prefix value="Galen"/>
+		<prefix value="Hale"/>
+		<suffix value="dor"/>
+		<suffix value="iel"/>
+		<suffix value="mir"/>
+		<suffix value="nor"/>
+		<suffix value="rin"/>
+		<suffix value="sen"/>
+		<suffix value="val"/>
+		<suffix value="wyn"/>
+	</names>
+	<classes>
+		<class id="0" sex="BOTH" weight="12"/>
+		<class id="10" sex="BOTH" weight="10"/>
+		<class id="18" sex="BOTH" weight="10"/>
+		<class id="25" sex="BOTH" weight="8"/>
+		<class id="31" sex="BOTH" weight="10"/>
+		<class id="38" sex="BOTH" weight="8"/>
+		<class id="44" sex="BOTH" weight="12"/>
+		<class id="49" sex="BOTH" weight="8"/>
+		<class id="53" sex="BOTH" weight="10"/>
+		<class id="123" sex="MALE" weight="6"/>
+		<class id="124" sex="FEMALE" weight="6"/>
+	</classes>
+	<schedules>
+		<template id="morning" weight="3" maxPhaseMinutes="20">
+			<window days="MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY" start="06:30" end="08:00" state="WARM"/>
+			<window days="MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY" start="08:00" end="11:30" state="ACTIVE"/>
+			<window days="SATURDAY,SUNDAY" start="09:00" end="13:00" state="ACTIVE"/>
+			<window days="SATURDAY,SUNDAY" start="13:00" end="15:00" state="BACKGROUND"/>
+		</template>
+		<template id="evening" weight="5" maxPhaseMinutes="30">
+			<window days="MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY" start="17:30" end="19:00" state="BACKGROUND"/>
+			<window days="MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY" start="19:00" end="23:30" state="ACTIVE"/>
+			<window days="SATURDAY,SUNDAY" start="17:00" end="23:59" state="ACTIVE"/>
+		</template>
+		<template id="late" weight="2" maxPhaseMinutes="15">
+			<window days="FRIDAY,SATURDAY" start="22:30" end="02:00" state="ACTIVE"/>
+			<window days="SUNDAY" start="20:00" end="23:00" state="WARM"/>
+		</template>
+	</schedules>
+</populationCatalog>

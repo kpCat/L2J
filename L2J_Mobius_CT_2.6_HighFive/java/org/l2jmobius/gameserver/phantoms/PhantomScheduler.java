@@ -47,6 +47,7 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
 
 /**
  * Single shared, bounded activity scheduler. Slots contain no Player, task,
@@ -158,6 +159,7 @@ public final class PhantomScheduler
 	private boolean _pulseInFlight;
 	private PhantomActivityOverloadLevel _overloadLevel = PhantomActivityOverloadLevel.NORMAL;
 	private PhantomActivityOverloadLevel _peakOverloadLevel = PhantomActivityOverloadLevel.NORMAL;
+	private PhantomSchedulerControlPort _controlPort = PhantomSchedulerControlPort.noop();
 
 	public PhantomScheduler(int maximumProfiles, int pulseMillis, int profilesPerPulse, PhantomMetrics metrics, PhantomDiagnosticTrace trace, PhantomActivityMaterializationPort materializationPort, PhantomActivityWorkSink workSink)
 	{
@@ -215,6 +217,20 @@ public final class PhantomScheduler
 				_state = SchedulerState.STOPPED;
 				throw e;
 			}
+			return true;
+		}
+	}
+
+	public boolean installControlPort(PhantomSchedulerControlPort controlPort)
+	{
+		Objects.requireNonNull(controlPort, "controlPort");
+		synchronized (_monitor)
+		{
+			if (_state != SchedulerState.NEW)
+			{
+				return false;
+			}
+			_controlPort = controlPort;
 			return true;
 		}
 	}
@@ -531,6 +547,15 @@ public final class PhantomScheduler
 				_metrics.recordActivityPulseStarted();
 				moveDueProfilesLocked(logicalNow);
 				pulseOverload = updateOverloadLocked();
+			}
+
+			try
+			{
+				_controlPort.onPulse();
+			}
+			catch (Throwable throwable)
+			{
+				_metrics.recordActivityWorkFailure();
 			}
 
 			int processed = 0;

@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.LongFunction;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException.Category;
@@ -54,6 +55,7 @@ public final class PhantomProfileRepository
 	private static final String LIST_COMPONENTS = "SELECT " + COMPONENT_COLUMNS + " FROM phantom_profile_components WHERE profile_id = ? ORDER BY component_type";
 	private static final String UPDATE_COMPONENT = "UPDATE phantom_profile_components SET component_schema_version = ?, payload = ?, row_version = row_version + 1 WHERE profile_id = ? AND component_type = ? AND row_version = ?";
 	private static final String DELETE_COMPONENT = "DELETE FROM phantom_profile_components WHERE profile_id = ? AND component_type = ? AND row_version = ?";
+	private static final String LIST_MANAGED_AFTER = "SELECT p.profile_id AS p_profile_id, p.character_object_id AS p_character_object_id, p.schema_version AS p_schema_version, p.row_version AS p_row_version, p.created_at AS p_created_at, p.updated_at AS p_updated_at, c.profile_id AS c_profile_id, c.component_type AS c_component_type, c.component_schema_version AS c_component_schema_version, c.row_version AS c_row_version, c.payload AS c_payload, c.created_at AS c_created_at, c.updated_at AS c_updated_at FROM phantom_profiles p INNER JOIN phantom_profile_components c ON c.profile_id = p.profile_id WHERE c.component_type = ? AND p.profile_id > ? ORDER BY p.profile_id LIMIT ?";
 
 	private PhantomProfileRepository()
 	{
@@ -107,6 +109,109 @@ public final class PhantomProfileRepository
 			}
 			return requireProfile(connection, profileId);
 		});
+	}
+
+	public ManagedProfile createWithComponent(String componentType, int componentSchemaVersion, byte[] payload)
+	{
+		final byte[] payloadCopy = PhantomProfileComponent.copyPayload(payload);
+		return createWithComponent(componentType, componentSchemaVersion, profileId -> payloadCopy);
+	}
+
+	public ManagedProfile createWithComponent(String componentType, int componentSchemaVersion, LongFunction<byte[]> payloadFactory)
+	{
+		PhantomProfileComponent.requireValidComponentType(componentType);
+		PhantomProfileComponent.requireValidSchemaVersion(componentSchemaVersion);
+		if (payloadFactory == null)
+		{
+			throw new IllegalArgumentException("Managed component payload factory must not be null.");
+		}
+		return write("atomically create managed Phantom profile", connection ->
+		{
+			final long profileId;
+			try (PreparedStatement statement = connection.prepareStatement(INSERT_PROFILE, Statement.RETURN_GENERATED_KEYS))
+			{
+				statement.setNull(1, java.sql.Types.INTEGER);
+				if (statement.executeUpdate() != 1)
+				{
+					throw new SQLException("Managed profile insert did not affect exactly one row.");
+				}
+				try (ResultSet result = statement.getGeneratedKeys())
+				{
+					if (!result.next())
+					{
+						throw new SQLException("Managed profile insert did not return a generated ID.");
+					}
+					profileId = result.getLong(1);
+					if (result.next())
+					{
+						throw new SQLException("Managed profile insert returned multiple generated IDs.");
+					}
+				}
+			}
+			final byte[] payloadCopy = PhantomProfileComponent.copyPayload(payloadFactory.apply(profileId));
+			try (PreparedStatement statement = connection.prepareStatement(INSERT_COMPONENT))
+			{
+				statement.setLong(1, profileId);
+				statement.setString(2, componentType);
+				statement.setInt(3, componentSchemaVersion);
+				statement.setBytes(4, payloadCopy);
+				if (statement.executeUpdate() != 1)
+				{
+					throw new SQLException("Managed component insert did not affect exactly one row.");
+				}
+			}
+			return new ManagedProfile(requireProfile(connection, profileId), requireComponent(connection, profileId, componentType));
+		});
+	}
+
+	public List<ManagedProfile> listManagedAfter(String componentType, long exclusiveProfileId, int pageSize)
+	{
+		PhantomProfileComponent.requireValidComponentType(componentType);
+		if (exclusiveProfileId < 0)
+		{
+			throw new IllegalArgumentException("Exclusive profile ID must not be negative.");
+		}
+		if ((pageSize < 1) || (pageSize > 256))
+		{
+			throw new IllegalArgumentException("Managed profile page size must be between 1 and 256.");
+		}
+		try (Connection connection = getConnection("page managed Phantom profiles");
+			PreparedStatement statement = connection.prepareStatement(LIST_MANAGED_AFTER))
+		{
+			statement.setString(1, componentType);
+			statement.setLong(2, exclusiveProfileId);
+			statement.setInt(3, pageSize);
+			try (ResultSet result = statement.executeQuery())
+			{
+				final List<ManagedProfile> managed = new ArrayList<>(pageSize);
+				while (result.next())
+				{
+					final int characterObjectId = result.getInt("p_character_object_id");
+					final boolean characterObjectIdWasNull = result.wasNull();
+					final PhantomProfile profile = new PhantomProfile(
+						result.getLong("p_profile_id"),
+						characterObjectIdWasNull ? null : characterObjectId,
+						result.getInt("p_schema_version"),
+						result.getLong("p_row_version"),
+						toInstant(result.getTimestamp("p_created_at"), "managed profile created_at"),
+						toInstant(result.getTimestamp("p_updated_at"), "managed profile updated_at"));
+					final PhantomProfileComponent component = new PhantomProfileComponent(
+						result.getLong("c_profile_id"),
+						result.getString("c_component_type"),
+						result.getInt("c_component_schema_version"),
+						result.getLong("c_row_version"),
+						result.getBytes("c_payload"),
+						toInstant(result.getTimestamp("c_created_at"), "managed component created_at"),
+						toInstant(result.getTimestamp("c_updated_at"), "managed component updated_at"));
+					managed.add(new ManagedProfile(profile, component));
+				}
+				return List.copyOf(managed);
+			}
+		}
+		catch (SQLException e)
+		{
+			throw persistenceFailure("page managed Phantom profiles", e);
+		}
 	}
 
 	public Optional<PhantomProfile> find(long profileId)
@@ -743,5 +848,16 @@ public final class PhantomProfileRepository
 
 	private record ForeignKeyMetadata(String constraintName, String tableName, String columnName, String referencedTableName, String referencedColumnName, String deleteRule)
 	{
+	}
+
+	public record ManagedProfile(PhantomProfile profile, PhantomProfileComponent component)
+	{
+		public ManagedProfile
+		{
+			if ((profile == null) || (component == null) || (profile.profileId() != component.profileId()))
+			{
+				throw new IllegalArgumentException("Managed profile and component must reference the same positive profile ID.");
+			}
+		}
 	}
 }

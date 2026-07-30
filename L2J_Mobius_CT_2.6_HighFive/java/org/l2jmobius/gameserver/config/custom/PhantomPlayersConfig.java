@@ -22,6 +22,9 @@ package org.l2jmobius.gameserver.config.custom;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.DateTimeException;
+import java.time.ZoneId;
+import java.util.Objects;
 
 import org.l2jmobius.commons.util.ConfigReader;
 
@@ -35,6 +38,11 @@ public final class PhantomPlayersConfig
 	public static final int DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES = 10000;
 	public static final int DEFAULT_SCHEDULER_PULSE_MILLIS = 100;
 	public static final int DEFAULT_SCHEDULER_PROFILES_PER_PULSE = 128;
+	public static final int DEFAULT_POPULATION_TARGET = 0;
+	public static final int DEFAULT_POPULATION_ACTIVE_TARGET = 0;
+	public static final int DEFAULT_POPULATION_CREATION_IN_FLIGHT = 2;
+	public static final int DEFAULT_POPULATION_BOUNDARIES_PER_PULSE = 64;
+	public static final ZoneId DEFAULT_POPULATION_TIME_ZONE = ZoneId.of("UTC");
 
 	private static volatile Settings _settings = Settings.disabled();
 
@@ -70,8 +78,17 @@ public final class PhantomPlayersConfig
 			{
 				return Settings.disabled();
 			}
+			final Integer populationTarget = strictInteger(config.getValue("PhantomPopulationTarget"), 0, maximumScheduled, DEFAULT_POPULATION_TARGET);
+			final Integer populationActiveTarget = strictInteger(config.getValue("PhantomPopulationActiveTarget"), 0, Math.min(populationTarget != null ? populationTarget : 0, maximumMaterialized), DEFAULT_POPULATION_ACTIVE_TARGET);
+			final Integer populationCreationInFlight = strictInteger(config.getValue("PhantomPopulationCreationInFlight"), 1, 64, DEFAULT_POPULATION_CREATION_IN_FLIGHT);
+			final Integer populationBoundariesPerPulse = strictInteger(config.getValue("PhantomPopulationBoundariesPerPulse"), 1, 10000, DEFAULT_POPULATION_BOUNDARIES_PER_PULSE);
+			final ZoneId populationTimeZone = strictZoneId(config.getValue("PhantomPopulationTimeZone"));
+			if ((populationTarget == null) || (populationActiveTarget == null) || (populationCreationInFlight == null) || (populationBoundariesPerPulse == null) || (populationTimeZone == null))
+			{
+				return Settings.disabled();
+			}
 			final boolean diagnosticsEnabled = enabled && strictBoolean(config.getValue("EnablePhantomDiagnostics"));
-			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse);
+			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, populationTimeZone);
 		}
 		catch (RuntimeException e)
 		{
@@ -135,7 +152,33 @@ public final class PhantomPlayersConfig
 		}
 	}
 
-	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse)
+	private static Integer strictInteger(String value, int minimum, int maximum, int defaultValue)
+	{
+		return value == null ? defaultValue : strictInteger(value, minimum, maximum);
+	}
+
+	private static ZoneId strictZoneId(String value)
+	{
+		if (value == null)
+		{
+			return DEFAULT_POPULATION_TIME_ZONE;
+		}
+		final String normalized = value.trim();
+		if (normalized.isEmpty() || (normalized.length() > 64))
+		{
+			return null;
+		}
+		try
+		{
+			return ZoneId.of(normalized);
+		}
+		catch (DateTimeException e)
+		{
+			return null;
+		}
+	}
+
+	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, ZoneId populationTimeZone)
 	{
 		public Settings
 		{
@@ -144,6 +187,11 @@ public final class PhantomPlayersConfig
 			maxScheduledPhantomProfiles = enabled ? maxScheduledPhantomProfiles : 0;
 			schedulerPulseMillis = enabled ? schedulerPulseMillis : 0;
 			schedulerProfilesPerPulse = enabled ? schedulerProfilesPerPulse : 0;
+			populationTarget = enabled ? populationTarget : 0;
+			populationActiveTarget = enabled ? populationActiveTarget : 0;
+			populationCreationInFlight = enabled ? populationCreationInFlight : 0;
+			populationBoundariesPerPulse = enabled ? populationBoundariesPerPulse : 0;
+			populationTimeZone = enabled ? populationTimeZone : DEFAULT_POPULATION_TIME_ZONE;
 			if (enabled && ((maxMaterializedPhantoms < 1) || (maxMaterializedPhantoms > 10000)))
 			{
 				throw new IllegalArgumentException("Enabled Phantom settings require a materialization cap between 1 and 10000.");
@@ -164,21 +212,43 @@ public final class PhantomPlayersConfig
 			{
 				throw new IllegalArgumentException("Scheduled Phantom profile capacity must cover materialization capacity.");
 			}
+			if (enabled && ((populationTarget < 0) || (populationTarget > maxScheduledPhantomProfiles)))
+			{
+				throw new IllegalArgumentException("Population target must be between zero and scheduled profile capacity.");
+			}
+			if (enabled && ((populationActiveTarget < 0) || (populationActiveTarget > Math.min(populationTarget, maxMaterializedPhantoms))))
+			{
+				throw new IllegalArgumentException("Population ACTIVE target must fit both population and materialization capacity.");
+			}
+			if (enabled && ((populationCreationInFlight < 1) || (populationCreationInFlight > 64)))
+			{
+				throw new IllegalArgumentException("Population creation in-flight limit must be between 1 and 64.");
+			}
+			if (enabled && ((populationBoundariesPerPulse < 1) || (populationBoundariesPerPulse > 10000)))
+			{
+				throw new IllegalArgumentException("Population boundary budget must be between 1 and 10000.");
+			}
+			Objects.requireNonNull(populationTimeZone, "Population time zone must not be null.");
 		}
 
 		public Settings(boolean enabled, boolean diagnosticsEnabled)
 		{
-			this(enabled, diagnosticsEnabled, enabled ? DEFAULT_MAX_MATERIALIZED_PHANTOMS : 0, enabled ? DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES : 0, enabled ? DEFAULT_SCHEDULER_PULSE_MILLIS : 0, enabled ? DEFAULT_SCHEDULER_PROFILES_PER_PULSE : 0);
+			this(enabled, diagnosticsEnabled, enabled ? DEFAULT_MAX_MATERIALIZED_PHANTOMS : 0, enabled ? DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES : 0, enabled ? DEFAULT_SCHEDULER_PULSE_MILLIS : 0, enabled ? DEFAULT_SCHEDULER_PROFILES_PER_PULSE : 0, DEFAULT_POPULATION_TARGET, DEFAULT_POPULATION_ACTIVE_TARGET, enabled ? DEFAULT_POPULATION_CREATION_IN_FLIGHT : 0, enabled ? DEFAULT_POPULATION_BOUNDARIES_PER_PULSE : 0, DEFAULT_POPULATION_TIME_ZONE);
 		}
 
 		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms)
 		{
-			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, enabled ? DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES : 0, enabled ? DEFAULT_SCHEDULER_PULSE_MILLIS : 0, enabled ? DEFAULT_SCHEDULER_PROFILES_PER_PULSE : 0);
+			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, enabled ? DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES : 0, enabled ? DEFAULT_SCHEDULER_PULSE_MILLIS : 0, enabled ? DEFAULT_SCHEDULER_PROFILES_PER_PULSE : 0, DEFAULT_POPULATION_TARGET, DEFAULT_POPULATION_ACTIVE_TARGET, enabled ? DEFAULT_POPULATION_CREATION_IN_FLIGHT : 0, enabled ? DEFAULT_POPULATION_BOUNDARIES_PER_PULSE : 0, DEFAULT_POPULATION_TIME_ZONE);
+		}
+
+		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse)
+		{
+			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, maxScheduledPhantomProfiles, schedulerPulseMillis, schedulerProfilesPerPulse, DEFAULT_POPULATION_TARGET, DEFAULT_POPULATION_ACTIVE_TARGET, enabled ? DEFAULT_POPULATION_CREATION_IN_FLIGHT : 0, enabled ? DEFAULT_POPULATION_BOUNDARIES_PER_PULSE : 0, DEFAULT_POPULATION_TIME_ZONE);
 		}
 
 		public static Settings disabled()
 		{
-			return new Settings(false, false, 0, 0, 0, 0);
+			return new Settings(false, false, 0, 0, 0, 0, 0, 0, 0, 0, DEFAULT_POPULATION_TIME_ZONE);
 		}
 	}
 }
