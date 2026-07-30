@@ -1,219 +1,200 @@
 # Goal 016 — PopulationManager и schedules
 
-Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 ## Summary
 
-Реализована одна цельная capability Goal 016 без suffix-задач:
+Базовая Goal 016 из commit `92a0040f8eb919154067db6c6297b02c858b1b72`
+завершена одним bounded safety completion без suffix-задач. Сохранены atomic
+managed shells, target-driven population, shared scheduler hook, schedule/
+ACTIVE admission, deterministic retirement/return и real materialization.
 
-- target-driven `PhantomPopulationManager` с production defaults `target=0` и
-  `activeTarget=0`;
-- атомарный managed shell (`phantom_profiles` + `population.state`) и
-  restart-safe saga канонического level-1 персонажа;
-- общий transport-neutral initializer, используемый `CharacterCreate` и
-  population creation;
-- строгий data-driven High Five catalog классов, имён, регионов и расписаний;
-- один optional control hook существующего shared scheduler вне его monitor;
-- SLEEPING/WARM/BACKGROUND/ACTIVE, ACTIVE admission и пропорциональные region
-  quotas;
-- детерминированные retirement/return, bounded startup paging, backpressure,
-  lifecycle и production composition.
+Completion закрывает findings независимого review:
 
-Схема БД, `Player.java`, другие хроники и gameplay semantics Goal 015/017/025
-не менялись. Population creation не создаёт `GameClient`, не вызывает packet
-handler и не отправляет client-origin `OnPlayerCreate`.
+- полностью packet-free POPULATION initializer при сохранённом CLIENT delivery;
+- schema-v2 immutable creation authority и startup drift gate;
+- exact durable projection, strict-subset repair и fail-closed extra rows;
+- один explicit character store и read-only fresh verification под exact-object
+  autosave suppression;
+- explicit scheduler ownership retries;
+- bounded pulse без полного `_entries` scan/sort;
+- creation-pending target reduction, shutdown publication barrier и population
+  snapshot в `PhantomSystem`.
+
+Production defaults остаются `target=0`, `activeTarget=0`. `Player.java`,
+schema, другие хроники и background/combat/commerce/progression/topology
+semantics не менялись. Goal 017/025 не начаты.
 
 ## READ_SET
 
-Обязательный bounded read-first pass:
+Использован закрытый read set completion:
 
-1. `docs/phantoms/tasks/016-population-manager-schedules/TASK.md`,
-   `docs/phantoms/PHANTOM_CODEX_EFFICIENCY_STANDARD.md`.
-2. Goal 016 в `docs/PHANTOM_BOTS_ROADMAP.md` и
-   `PHANTOM_DEVELOPMENT_MASTER_PLAN.md`.
-3. `PhantomSystem`: construction/start/shutdown/composition.
-4. `PhantomPlayersConfig`, `PhantomPlayers.ini`.
-5. `PhantomScheduler`: register/signal/pulse/unregister/stop.
-6. `PhantomProfileRepository`: profile/component SQL и transaction wrapper.
-7. `PhantomGoalStateStore`, `PhantomGoal`, candidate/handler contracts.
-8. `PhantomMaterializationService` и Goal 015 absent-state lifecycle.
-9. `CharacterCreate`: validation, creation и initialization.
-10. `Player.create/createDb/load/restore` — только целевые диапазоны.
-11. `InitialEquipmentData`, `InitialShortcutData`, `SkillTreeData` APIs.
-12. Test-DB schema/metadata для accounts, characters, items, skills, shortcuts.
+1. `PhantomPopulationManager`, `Store`, `State`, `StateCodec`, `Catalog`.
+2. `PlayerCreationInitializer`, `InitialShortcutData`,
+   `PlayerAutoSaveTaskManager`.
+3. `PhantomScheduler`, `PhantomSystem`.
+4. Goal 016 population и performance suites.
+5. verifier 016, architecture contract и этот report.
 
-Восемь дополнительных exact reads:
+Четыре разрешённых exact symbol reads:
 
-1. `PhantomMaterializedPlayer.java` — штатная headless materialization identity.
-2. `PlayerAutoSaveTaskManager.java` — доказательство отсутствия autosave при
-   creation.
-3. `LoginController.java` — disabled access-level семантика reserved account.
-4. `MapRegionData.java` — authoritative home-region ID.
-5. `PhantomHeadlessPlayerTestEnvironment.java` — real loader/test DB harness.
-6. `PhantomGoalStateCodec.java` — локальный bounded component codec pattern.
-7. `Shortcuts.java#registerShortcut` — durable shortcut writer.
-8. `Creature.java` status setters — диагностика pristine zero-HP restore.
+1. outbound-session attachment/sink;
+2. MacroList, Shortcuts и SkillTreeData exact APIs;
+3. Player status/inventory exact methods;
+4. test-schema columns для relevant durable projection.
 
-`World.java` ownership и границы координат проверены вместе с обязательным
-Player/World creation-owner чтением. Другие хроники не читались.
+Локальные паттерны: atomic `createWithComponent`, bounded component codec,
+shared scheduler statuses, retained materialization lifecycle, existing
+CharacterCreate initializer delegation и deterministic test launcher.
 
-Локальные аналоги: `PhantomProfileRepository.write`, Goal 015 component/store
-codec, `PhantomScheduler` signal ownership, `PhantomMaterializationService`,
-ordinary `CharacterCreate`, существующие Goal test suites и static verifiers.
+## Changed files
+
+Production:
+
+- `InitialShortcutData.java`;
+- `PlayerCreationInitializer.java`;
+- `PlayerAutoSaveTaskManager.java`;
+- `PhantomSystem.java`;
+- `phantoms/population/PhantomPopulationManager.java`;
+- `PhantomPopulationStore.java`;
+- `PhantomPopulationState.java`;
+- `PhantomPopulationStateCodec.java`;
+- новые `PopulationInitializationContract.java`,
+  `PhantomPopulationPersistencePort.java`,
+  `PhantomPopulationOwnershipPort.java`.
+
+Tests:
+
+- `PhantomPopulationSuite.java`;
+- `PhantomPopulationPerformanceSuite.java`;
+- новый `PhantomPopulationTestDoubles.java`.
+
+Process/docs:
+
+- `verify-task-016.ps1`;
+- `POPULATION_MANAGER_SCHEDULE_CONTRACT.md`;
+- `016-population-manager-schedules.md`;
+- status-only `docs/PHANTOM_BOTS_ROADMAP.md`.
+
+Config, catalog, migrations и `build.xml` не изменялись.
 
 ## Architecture decisions
 
-- `population.state` schema version 1 хранит только bounded identity и
-  reconciliation facts, payload ограничен 4096 байт.
-- Account имеет имя `p` + base36 profile ID (не более 14 ASCII), access level
-  `-1`; ownership подтверждается случайным Base64URL token до insert.
-- Creation location разрешается один раз и долговечно хранится в saga, потому
-  что `PlayerTemplate.getCreationPoint()` выбирает случайную точку.
-- Pristine `Player.load` закономерно видит нулевой HP как dead; общий initializer
-  восстанавливает creation state, затем повторно нормализует vitals после
-  equipment.
-- Startup читает managed profiles страницами не более 256 и fail-closed при
-  превышении `MaxScheduledPhantomProfiles`.
-- Scheduler вызывает единственный `PhantomSchedulerControlPort.onPulse()`
-  вне `_monitor`; PopulationManager не создаёт worker/task/Future.
-- ACTIVE overflow деградирует в WARM; largest-remainder quotas считаются по
-  текущей READY-популяции, daily rotation стабилен.
-- Retired profiles возвращаются по наименьшему ID раньше создания shell;
-  retirement выбирает наибольшие ID и никогда не удаляет character/account.
+- `InitialShortcutData.InitialPlan` — immutable logical authority. CLIENT
+  публикует прежние packets; POPULATION использует durable-only registration.
+- `PopulationInitializationContract` фиксируется до writer и включает version,
+  catalog/timezone/config/initializer, identity-independent creation facts,
+  equipment, skills, shortcuts и macros.
+- `population.state` schema 2 хранит authority hash. Bounded v1 decode даёт
+  typed legacy-authority rejection, а не неявное принятие.
+- Projection допускает только pristine, canonical или доказанный strict subset.
+  Unknown/excess/conflicting facts не удаляются и дают `INCONSISTENT`.
+- `INITIALIZATION_STORED` — durable marker единственного explicit store.
+  Verification load не пишет Player state; autosave suppression scoped по
+  текущему потоку и exact object ID.
+- Manager использует persistence/ownership ports для deterministic real-manager
+  tests. Retry heap хранит action, generation, attempt и due time.
+- READY/region/creation/retired indexes обслуживаются при transition; pulse
+  читает только bounded due/retry work и dirty admission slices.
+- Lifecycle claims закрывают DB-commit/in-memory-publication race.
 
 ## Creation matrix
 
-| Boundary | Durable fact | Restart action | Anti-dup proof |
-|---|---|---|---|
-| SHELL | profile + component atomically | restore bootstrap | one profile |
-| ACCOUNT_INTENT | token/account intent | insert-or-verify owner | one account |
-| ACCOUNT_VERIFIED | owned disabled account | continue character intent | no guessing |
-| CHARACTER_INTENT | exact account/name/class | find zero/one, then create | one character |
-| CHARACTER_CREATED | expected object ID | initialize only while unlinked | bounded resume |
-| INITIALIZATION_INTENT | exact init contract | fresh-load verify | stable item/skill/shortcut sets |
-| LINKED/READY | optimistic profile link/hash | remove bootstrap, schedule | same identity |
+| Boundary | Restart outcome |
+|---|---|
+| shell/account/character intents | continue exact owned identity |
+| each item/skill/shortcut/macro writer | add only missing expected facts |
+| character store | resume from `INITIALIZATION_STORED`, no second store |
+| fresh verification | repeat read-only load, byte-identical DB |
+| profile link/READY update | retry optimistic durable transition |
+| extra/conflicting row | typed `INCONSISTENT`, no unknown-row mutation |
 
-Selected real fixtures: два разных канонических starting classes из
-`PlayerClass.level()==0`, seed `16001601`, test DB
-`l2jmobiush5_phantom_test`; создаются реальные level-1 offline characters.
+Dynamic transport evidence: POPULATION outbound count `0`; CLIENT count is
+positive and preserves legacy delivery.
 
 ## Schedule matrix
 
-| Case | Expected |
+| Case | Evidence |
 |---|---|
-| Midnight wrap | current local interval selected across day boundary |
-| DST gap | first valid instant, no fabricated missed sequence |
-| DST overlap | monotonic latest sequence, no replay |
-| Forward jump | apply latest state only |
-| Backward jump | older boundary cannot replay |
-| ACTIVE overflow | deterministic WARM degradation |
-| Region quotas | proportional largest remainder + stable daily rotation |
-| Restart | recompute current state/next boundary without tick writes |
+| midnight/DST/clock direction | latest-state deterministic evaluation |
+| ACTIVE cap | `min(activeTarget, maxMaterialized)` |
+| region distribution | largest remainder + daily deterministic rotation |
+| 10 000 dirty READY | bounded admission over multiple pulses |
+| 100 000 steady pulses | no DB writes and no full managed scan |
 
 ## Retirement matrix
 
-| Transition | Required ownership |
+| Stage | Target reduction/return |
 |---|---|
-| READY → RETIRE_REQUESTED | persist before withdrawal |
-| withdraw schedule | only source `population.schedule` |
-| unregister | shared scheduler exact slot |
-| wait | actor absent and slot absent |
-| RETIRE_REQUESTED → RETIRED | durable terminal state |
-| RETIRED → READY | same profile/character before any new shell |
-| restart at request | resume unregister/wait/terminal sequence |
+| every creation stage | durable retire without finishing extra creation |
+| READY | withdraw → unregister → absent → RETIRED |
+| RETIRE_REQUESTED restart | resume exact ownership actions |
+| RETIRED return | same lowest-ID profile/character before new shell |
+| scheduler retry/conflict | backoff or typed `INCONSISTENT` |
 
-## Configs and data
+## DB, configs and performance
 
-- `PhantomPopulationTarget = 0`.
-- `PhantomPopulationActiveTarget = 0`.
-- `PhantomPopulationCreationInFlight = 2`.
-- `PhantomPopulationBoundariesPerPulse = 64`.
-- `PhantomPopulationTimeZone = UTC`.
-- Catalog: `dist/game/data/phantoms/population/high-five-population-v1.xml`.
+Все DB tests используют только `l2jmobiush5_phantom_test`, seed `16001601`.
+Миграций нет. Production `PhantomPopulationTarget` и
+`PhantomPopulationActiveTarget` равны `0`.
 
-Invalid enabled config fails closed; legacy configs without Goal 016 keys keep
-zero targets.
+Real-manager performance evidence:
 
-## Tests and commands
+- 100 000 steady control pulses: DB writes `0`;
+- 10 000 dirty READY profiles: admission и daily rotation bounded per pulse;
+- 100 000-profile memory smoke: без worker/task/Future на профиль.
 
-Выполненные focused/implementation прогоны до финального gate:
+## Verification
 
-- initial `compile`: FAILED (3 compile errors), затем исправлен source;
-- `compile`: PASS;
-- `compile-tests`: PASS, включая повтор после restart/backpressure additions;
-- catalog, schedule, performance: PASS;
-- creation: сначала выявлены nullable profile link, pristine HP и randomized
-  location defects; после source fixes PASS 2/2;
-- reconciliation: PASS 1/1;
-- lifecycle: сначала исправлено ошибочное test assertion, затем PASS 2/2;
-- server integration: сначала fixed-clock fixture выбрал inactive schedule;
-  после test-clock fix PASS 1/1;
-- повтор creation/reconciliation/lifecycle/server-integration после усиления
-  restart/backpressure: PASS; финальный integration report 1/1,
-  `elapsedNanos=5310044400`.
+Focused results до final freeze:
 
-Вызов `ant ...` без абсолютного пути не являлся тестовым прогоном: shell не
-наследовал Ant PATH. Все учитываемые команды используют
-`C:\Users\endim\AppData\Local\CodexTools\apache-ant-1.10.17\bin\ant.bat`.
+- compile-tests: PASS;
+- catalog: PASS 3/3;
+- schedule: PASS 3/3;
+- creation: PASS 6/6;
+- reconciliation: PASS 3/3;
+- lifecycle: PASS 3/3;
+- server integration: PASS 1/1;
+- performance smoke: PASS 3/3.
 
-Финальные pre-commit gates:
+Terminal gate results после freeze:
 
-- семь focused modes: catalog 3/3, schedule 3/3, creation 3/3,
-  reconciliation 1/1, lifecycle 2/2, server integration 1/1,
-  performance 3/3; `BUILD SUCCESSFUL`, 2:30;
-- affected suites: skeleton 12/12, activity scheduler 20/20, shutdown handoff
-  7/7, production materialization 20/20, decision core 35/35;
-  `BUILD SUCCESSFUL`, 1:33;
-- corrected verifier 015: `TASK015_VERIFIER_OK`;
-- pre-commit verifier 016: `TASK016_VERIFIER_OK`, working-tree scope 30;
-- единственный final `phantom-population-test`: все 16 cases PASS,
-  `BUILD SUCCESSFUL`, 1:27;
-- первый full `ant verify`: FAILED на unrelated historical
-  `combat-server-integration.02`, 19/20, после всех предыдущих green suites;
-- разрешённый один exact retry `phantom-combat-server-integration-test`:
-  PASS 20/20 с тем же seed `20260725001`;
-- diff-аудит нашёл и исправил реальный initializer parity defect: восстановлен
-  прежний `PacketLogger.warning` для неуспешного starting-item insert;
-  targeted lifecycle 2/2 и creation 3/3 PASS;
-- разрешённый второй и последний full `ant verify`: все runtime suites, включая
-  Goal 016 16/16, PASS; остановился только на deterministic historical verifier
-  014A, ожидавшем superseded pre-acceptance status Goal 015;
-- roadmap status-only closure сохранил явно помеченный historical marker;
-  exact verifier 014A, verifier 015 и verifier 016 после closure: PASS;
-- final catalog audit заменил unordered `Map.copyOf` на immutable
-  `LinkedHashMap`; targeted catalog/schedule/creation — по 3/3 PASS;
-  третий full verify не запускался согласно запрету задачи;
-- финальный standalone `ant jar`: `BUILD SUCCESSFUL`, 0:15.
+- affected suites: skeleton 12/12, headless-player 18/18, production
+  materialization 20/20, shutdown handoff 7/7, activity scheduler 20/20,
+  decision core 35/35 — PASS;
+- verifier 014A: `TASK014A_VERIFIER_OK`;
+- verifier 015: `TASK015_VERIFIER_OK`;
+- working verifier 016: `TASK016_VERIFIER_OK`, scope 18;
+- единственный combat preflight: PASS 20/20;
+- единственный final Goal 016 aggregate: PASS 22/22, 1:28;
+- первый и единственный full `ant verify`: `BUILD SUCCESSFUL`, 12:21;
+- standalone `ant jar`: `BUILD SUCCESSFUL`, 0:16;
+- два byte-identical post-commit verifier 016 выполняются после immutable
+  report/commit; их hashes и result приводятся в финальном ответе.
 
-Два byte-identical post-commit verifier 016 выполняются после создания commit.
+## Limits, encoding and usage
 
-## Performance and lifecycle evidence
-
-Performance suite: 100 000 control pulses за 16 917 700 ns, 100 000 schedule
-evaluations за 418 905 500 ns, 10 000 admission rebalances за 143 222 000 ns,
-synthetic 10 000 managed profiles за 7 426 000 ns; DB writes = 0.
-
-## Deviations, limitations and risks
-
-- mojibake-маркеры в изменённых файлах проверены: 0 совпадений.
-- escaped Cyrillic в изменённых файлах проверены: 0 совпадений.
-- `InitialShortcutData` является существующим ordinary initializer API;
-  population/helper не содержат прямых packet, `GameClient` или serverpacket
-  вызовов, а headless session не имеет network I/O.
-- Геодата отсутствует; creation position использует текущую GeoEngine height
-  policy, полноценная навигация этой целью не заявляется.
-- Goal 016 не принят самостоятельно: требуется независимый review.
+- No packets, fake `GameClient`, client packet handler или `OnPlayerCreate` в
+  population path.
+- Геодата и navigation semantics не входят в completion.
+- Mojibake-маркеры в изменённых файлах проверены: 0.
+- Escaped Cyrillic в изменённых файлах проверены отдельно: 0.
+- Goal usage превысил 400k из-за унаследованного длинного Goal 016 run и
+  обязательной real-DB fault-injection матрицы, restart projection диагностики,
+  lifecycle publication race и повторных тяжёлых Ant suites после реальных
+  source fixes; scope при этом оставался закрытым completion contract.
 
 ## Git
 
 Branch: `feature/phantom-world`.
 
-Required parent: `a546dae868d93d54ec4bc6e1836080b90f810167`.
+Required parent:
+`92a0040f8eb919154067db6c6297b02c858b1b72`.
 
-Commit: этот ordinary Goal 016 commit с subject
-`feat(phantoms): add population manager and schedules`; фактический SHA
-фиксируется Git после создания и приводится в финальном сообщении.
+Commit subject:
+`fix(phantoms): complete population safety contracts`.
 
-Push: выполняется после двух byte-identical post-commit verifier runs в
-`origin/feature/phantom-world`; фактический результат приводится в финальном
-сообщении.
+Commit SHA и push result сообщаются в финальном ответе: report не изменяется
+после ordinary commit и не требует amend.
+
+Next step: независимый review Goal 016; Goal 017/025 остаются `NOT_STARTED`.

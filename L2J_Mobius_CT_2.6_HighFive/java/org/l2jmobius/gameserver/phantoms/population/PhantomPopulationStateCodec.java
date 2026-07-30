@@ -37,7 +37,8 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
  */
 public final class PhantomPopulationStateCodec
 {
-	private static final int MAGIC = 0x50505731;
+	private static final int MAGIC_V1 = 0x50505731;
+	private static final int MAGIC_V2 = 0x50505732;
 
 	public byte[] encode(PhantomPopulationState state)
 	{
@@ -46,11 +47,12 @@ public final class PhantomPopulationStateCodec
 			final ByteArrayOutputStream bytes = new ByteArrayOutputStream(512);
 			try (DataOutputStream output = new DataOutputStream(bytes))
 			{
-				output.writeInt(MAGIC);
+				output.writeInt(MAGIC_V2);
 				output.writeByte(state.state().ordinal());
 				output.writeLong(state.populationGeneration());
 				output.writeLong(state.creationOrdinal());
 				writeText(output, state.catalogHash());
+				writeText(output, state.initializationAuthorityHash());
 				output.writeLong(state.deterministicSeed());
 				output.writeByte(state.nameAttempt());
 				writeText(output, state.reservedAccount());
@@ -94,7 +96,7 @@ public final class PhantomPopulationStateCodec
 		}
 		try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload)))
 		{
-			if (input.readInt() != MAGIC)
+			if (input.readInt() != MAGIC_V2)
 			{
 				throw new IllegalArgumentException("Population state payload has invalid magic.");
 			}
@@ -102,6 +104,7 @@ public final class PhantomPopulationStateCodec
 				enumValue(State.values(), input.readUnsignedByte(), "state"),
 				input.readLong(),
 				input.readLong(),
+				readText(input, 64),
 				readText(input, 64),
 				input.readLong(),
 				input.readUnsignedByte(),
@@ -137,6 +140,61 @@ public final class PhantomPopulationStateCodec
 		catch (IOException e)
 		{
 			throw new IllegalArgumentException("Could not decode population state.", e);
+		}
+	}
+
+	PhantomPopulationState decodeV1(byte[] payload)
+	{
+		if ((payload == null) || (payload.length == 0) || (payload.length > PhantomProfileComponent.MAX_PAYLOAD_BYTES))
+		{
+			throw new IllegalArgumentException("Legacy population state payload has invalid size.");
+		}
+		try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload)))
+		{
+			if (input.readInt() != MAGIC_V1)
+			{
+				throw new IllegalArgumentException("Legacy population state payload has invalid magic.");
+			}
+			final PhantomPopulationState state = new PhantomPopulationState(
+				enumValue(State.values(), input.readUnsignedByte(), "state"),
+				input.readLong(),
+				input.readLong(),
+				readText(input, 64),
+				"",
+				input.readLong(),
+				input.readUnsignedByte(),
+				readText(input, 14),
+				readText(input, 64),
+				readText(input, 16),
+				input.readUnsignedShort(),
+				input.readBoolean(),
+				input.readUnsignedByte(),
+				input.readUnsignedByte(),
+				input.readUnsignedByte(),
+				readText(input, 32),
+				input.readShort(),
+				input.readInt(),
+				input.readInt(),
+				input.readInt(),
+				input.readInt(),
+				readNullableInt(input),
+				readNullableInt(input),
+				enumValue(CreationStage.values(), input.readUnsignedByte(), "creation stage"),
+				readText(input, 64),
+				readText(input, 96));
+			if (input.read() != -1)
+			{
+				throw new IllegalArgumentException("Legacy population state payload contains trailing bytes.");
+			}
+			return state;
+		}
+		catch (EOFException e)
+		{
+			throw new IllegalArgumentException("Legacy population state payload is truncated.", e);
+		}
+		catch (IOException e)
+		{
+			throw new IllegalArgumentException("Could not decode legacy population state.", e);
 		}
 	}
 

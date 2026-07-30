@@ -128,7 +128,8 @@ Goal 012A независимо закрыла обязательные action-ow
 canonicalization и anchor tolerance chain приняты независимым ревью;
 production-пара `22859@giran.farming.22859` доказана на shipped AutoLoot policy,
 а geodata canonical position сохраняется через ARRIVED и restart.
-Goal 016, Goal 017 и Goal 025 не начаты.
+Goal 016 реализована и ожидает независимого review; Goal 017 и Goal 025 не
+начаты.
 
 ---
 
@@ -751,6 +752,10 @@ backpressure and configurable population targets.
 **Не включает:** social personality, clans, conversation.  
 **Gate:** population limits, restart, no hardcoded fantasy counts, bounded DB
 writes.  
+**Safety completion:** packet-free initialization, versioned exact authority,
+restart-safe projection repair, autosave-suppressed read-only verification,
+explicit ownership retries, bounded pulse и shutdown publication barrier
+реализованы; статус остаётся `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 **Follow-up risk:** `HIGH` — mass state and load shaping.
 
 ### Gate Этапа III
@@ -1176,7 +1181,8 @@ Accepted corrective truth:
 
 Next:
 1. Goal 015 anchor-tolerance completion принята независимым ревью.
-2. Goal 016, Goal 017 and Goal 025 remain NOT_STARTED.
+2. Goal 016 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 017 and Goal 025
+   remain `NOT_STARTED`.
 
 Stage gate:
 - Stage I COMPLETE

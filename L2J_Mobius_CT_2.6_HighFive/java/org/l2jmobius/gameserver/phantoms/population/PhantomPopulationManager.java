@@ -24,28 +24,30 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.LongPredicate;
 
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler;
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler.RegistrationStatus;
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler.SignalStatus;
+import org.l2jmobius.gameserver.phantoms.PhantomScheduler.UnregisterStatus;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.AttachResult;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.DetachResult;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.MutationResult;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
@@ -72,7 +74,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private static final long SIGNAL_HEARTBEAT_MILLIS = 3_600_000;
 
 	private final Object _monitor = new Object();
-	private final PhantomPopulationStore _store;
+	private final PhantomPopulationPersistencePort _store;
 	private final PhantomPopulationCatalog _catalog;
 	private final PhantomGoalStateStore _goals;
 	private final PhantomScheduler _scheduler;
@@ -85,15 +87,24 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private final int _boundaryBudget;
 	private final Map<Long, Entry> _entries = new HashMap<>();
 	private final PriorityQueue<DueEntry> _due = new PriorityQueue<>();
-	private final ArrayDeque<Long> _signals = new ArrayDeque<>();
-	private final ArrayDeque<Long> _retirements = new ArrayDeque<>();
-	private final ArrayDeque<Long> _readyTransitions = new ArrayDeque<>();
+	private final PriorityQueue<RetryAction> _retryActions = new PriorityQueue<>();
+	private final TreeSet<Long> _readyIds = new TreeSet<>();
+	private final Map<Integer, TreeSet<Long>> _readyIdsByRegion = new HashMap<>();
+	private final Map<Integer, TreeSet<Long>> _desiredActiveIdsByRegion = new HashMap<>();
+	private final Set<Long> _admittedIds = new HashSet<>();
+	private final Map<Integer, Integer> _classHistogram = new HashMap<>();
+	private final Map<Integer, Integer> _levelHistogram = new HashMap<>();
+	private final Map<Integer, Integer> _regionHistogram = new HashMap<>();
 	private PhantomDecisionEngine _decisionEngine;
+	private PhantomPopulationOwnershipPort _ownership;
 	private LifecycleState _lifecycle = LifecycleState.NEW;
 	private int _target;
 	private int _activeTarget;
 	private boolean _inconsistentDeficit;
 	private boolean _admissionDirty;
+	private boolean _clockRecompute;
+	private long _clockRecomputeCursor;
+	private long _lastEpochDay = Long.MIN_VALUE;
 	private Instant _lastControlInstant = Instant.MIN;
 	private long _populationGeneration = 1;
 	private long _creationOrdinal;
@@ -104,8 +115,13 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private long _peakOperations;
 	private long _peakCreationClaims;
 	private long _peakPersistenceClaims;
+	private long _lastPulseOperations;
+	private long _retrySequence;
+	private int _readyCount;
+	private int _retiredCount;
+	private int _inconsistentCount;
 
-	public PhantomPopulationManager(PhantomPopulationStore store, PhantomPopulationCatalog catalog, PhantomGoalStateStore goals, PhantomScheduler scheduler, LongPredicate materialized, Clock clock, ZoneId zoneId, int target, int activeTarget, int maximumScheduled, int maximumMaterialized, int creationLimit, int boundaryBudget)
+	public PhantomPopulationManager(PhantomPopulationPersistencePort store, PhantomPopulationCatalog catalog, PhantomGoalStateStore goals, PhantomScheduler scheduler, LongPredicate materialized, Clock clock, ZoneId zoneId, int target, int activeTarget, int maximumScheduled, int maximumMaterialized, int creationLimit, int boundaryBudget)
 	{
 		_store = Objects.requireNonNull(store, "Population store must not be null.");
 		_catalog = Objects.requireNonNull(catalog, "Population catalog must not be null.");
@@ -127,15 +143,39 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		_activeTarget = activeTarget;
 	}
 
+	public PhantomPopulationManager(PhantomPopulationPersistencePort store, PhantomPopulationCatalog catalog, PhantomGoalStateStore goals, PhantomPopulationOwnershipPort ownership, Clock clock, ZoneId zoneId, int target, int activeTarget, int maximumScheduled, int maximumMaterialized, int creationLimit, int boundaryBudget)
+	{
+		_store = Objects.requireNonNull(store, "Population store must not be null.");
+		_catalog = Objects.requireNonNull(catalog, "Population catalog must not be null.");
+		_goals = goals;
+		_scheduler = null;
+		_materialized = profileId -> ownership.materialized(profileId);
+		_ownership = Objects.requireNonNull(ownership, "Population ownership port must not be null.");
+		_clock = Objects.requireNonNull(clock, "Population clock must not be null.");
+		_zoneId = Objects.requireNonNull(zoneId, "Population time zone must not be null.");
+		if ((maximumScheduled < 1) || (maximumMaterialized < 1) || (creationLimit < 1) || (creationLimit > 64) || (boundaryBudget < 1) || (boundaryBudget > 10000))
+		{
+			throw new IllegalArgumentException("Population manager capacities are invalid.");
+		}
+		_maximumScheduled = maximumScheduled;
+		_maximumMaterialized = maximumMaterialized;
+		_creationLimit = creationLimit;
+		_boundaryBudget = boundaryBudget;
+		validateTargets(target, activeTarget);
+		_target = target;
+		_activeTarget = activeTarget;
+	}
+
 	public void installDecisionEngine(PhantomDecisionEngine decisionEngine)
 	{
 		synchronized (_monitor)
 		{
-			if ((_lifecycle != LifecycleState.NEW) || (_decisionEngine != null))
+			if ((_lifecycle != LifecycleState.NEW) || (_decisionEngine != null) || (_scheduler == null))
 			{
 				throw new IllegalStateException("Population decision engine can only be installed once before start.");
 			}
 			_decisionEngine = Objects.requireNonNull(decisionEngine, "Decision engine must not be null.");
+			_ownership = new ProductionOwnershipPort(_scheduler, _decisionEngine, _materialized);
 		}
 	}
 
@@ -143,7 +183,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	{
 		synchronized (_monitor)
 		{
-			if ((_lifecycle != LifecycleState.NEW) || (_decisionEngine == null))
+			if ((_lifecycle != LifecycleState.NEW) || (_ownership == null))
 			{
 				return false;
 			}
@@ -165,7 +205,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 					for (ManagedSnapshot snapshot : page)
 					{
 						final long profileId = snapshot.profile().profileId();
-						_entries.put(profileId, new Entry(snapshot));
+						publishEntryLocked(new Entry(snapshot));
 						restoreIds.add(profileId);
 						cursor = profileId;
 						_creationOrdinal = Math.max(_creationOrdinal, snapshot.state().creationOrdinal());
@@ -185,11 +225,11 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			{
 				_lifecycle = LifecycleState.RUNNING;
 			}
+			reconcileTarget(_target, _activeTarget);
 			for (long profileId : restoreIds)
 			{
 				restore(profileId);
 			}
-			reconcileTarget(_target, _activeTarget);
 			return true;
 		}
 		catch (RuntimeException e)
@@ -231,14 +271,14 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				{
 					final long creationPending = counted.stream().filter(entry -> entry._snapshot.state().creationPending()).count();
 					final int creationCapacity = Math.max(0, _creationLimit - (int) creationPending);
-					final int schedulerCapacity = Math.max(0, _maximumScheduled - _scheduler.snapshot().registered());
+					final int schedulerCapacity = Math.max(0, _maximumScheduled - _ownership.registeredCount());
 					shellsToCreate = _inconsistentDeficit ? 0 : Math.min(deficit, Math.min(creationCapacity, schedulerCapacity));
 				}
 			}
 			else if (deficit < 0)
 			{
-				final List<Entry> readyDescending = counted.stream().filter(entry -> entry._snapshot.state().state() == State.READY).sorted(Comparator.comparingLong((Entry entry) -> entry._snapshot.profile().profileId()).reversed()).toList();
-				for (Entry entry : readyDescending)
+				final List<Entry> managedDescending = counted.stream().filter(entry -> entry._snapshot.state().creationPending() || (entry._snapshot.state().state() == State.READY)).sorted(Comparator.comparingLong((Entry entry) -> entry._snapshot.profile().profileId()).reversed()).toList();
+				for (Entry entry : managedDescending)
 				{
 					if (deficit++ >= 0)
 					{
@@ -280,10 +320,29 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			current = entry._snapshot;
 		}
 
-		CreationResult result;
+		CreationResult result = null;
+		boolean requestRetirement = false;
 		try
 		{
 			result = _store.advanceCreation(current);
+			synchronized (_monitor)
+			{
+				final Entry entry = _entries.get(profileId);
+				if ((entry != null) && (result.snapshot() != null) && (_lifecycle == LifecycleState.RUNNING))
+				{
+					transitionSnapshotLocked(entry, result.snapshot());
+					if (result.outcome() == CreationOutcome.INCONSISTENT)
+					{
+						_inconsistentDeficit = true;
+					}
+					if (result.outcome() == CreationOutcome.READY)
+					{
+						queueActionLocked(entry, RetryActionType.READY_REGISTER, 0, _controlCalls);
+					}
+					requestRetirement = entry._retirementPending;
+					entry._retirementPending = false;
+				}
+			}
 		}
 		finally
 		{
@@ -297,24 +356,11 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				_creationClaims--;
 			}
 		}
-		synchronized (_monitor)
+		if (requestRetirement)
 		{
-			final Entry entry = _entries.get(profileId);
-			if ((entry != null) && (result.snapshot() != null))
-			{
-				entry._snapshot = result.snapshot();
-				if (result.outcome() == CreationOutcome.INCONSISTENT)
-				{
-					_inconsistentDeficit = true;
-				}
-				if (result.outcome() == CreationOutcome.READY)
-				{
-					_admissionDirty = true;
-					_readyTransitions.offerLast(profileId);
-				}
-			}
+			requestRetirement(profileId);
 		}
-		if (result.outcome() == CreationOutcome.READY)
+		if ((result != null) && (result.outcome() == CreationOutcome.READY))
 		{
 			reconcileTarget(_target, _activeTarget);
 		}
@@ -351,26 +397,36 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	{
 		final Instant now = _clock.instant();
 		int remaining = _boundaryBudget;
+		int processed = 0;
 		while (remaining > 0)
 		{
-			final Long profileId;
+			final RetryAction action;
 			synchronized (_monitor)
 			{
-				profileId = _readyTransitions.pollFirst();
+				action = !_retryActions.isEmpty() && (_retryActions.peek().duePulse() <= _controlCalls) ? _retryActions.poll() : null;
+				if (action != null)
+				{
+					final Entry entry = _entries.get(action.profileId());
+					if (entry != null)
+					{
+						entry._queuedActions.remove(action.type());
+					}
+				}
 			}
-			if (profileId == null)
+			if (action == null)
 			{
 				break;
 			}
-			installReady(profileId);
+			processRetryAction(action, now);
 			remaining--;
+			processed++;
 		}
 		synchronized (_monitor)
 		{
 			if (now.isBefore(_lastControlInstant))
 			{
-				_lastControlInstant = now;
-				return;
+				_clockRecompute = true;
+				_clockRecomputeCursor = 0;
 			}
 			_lastControlInstant = now;
 			while ((remaining > 0) && !_due.isEmpty() && !_due.peek().due().isAfter(now))
@@ -381,50 +437,38 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				{
 					continue;
 				}
-				evaluateScheduleLocked(entry, now);
+				entry._forceScheduleEvaluation = true;
+				queueActionLocked(entry, RetryActionType.READY_SCHEDULE, 0, _controlCalls);
 				remaining--;
+				processed++;
 			}
-			if (_admissionDirty)
+			while ((remaining > 0) && _clockRecompute)
+			{
+				final Long profileId = _readyIds.higher(_clockRecomputeCursor);
+				if (profileId == null)
+				{
+					_clockRecompute = false;
+					_clockRecomputeCursor = 0;
+					break;
+				}
+				_clockRecomputeCursor = profileId;
+				final Entry entry = _entries.get(profileId);
+				if (entry != null)
+				{
+					entry._forceScheduleEvaluation = true;
+					queueActionLocked(entry, RetryActionType.READY_SCHEDULE, 0, _controlCalls);
+				}
+				remaining--;
+				processed++;
+			}
+			final long epochDay = now.atZone(_zoneId).toLocalDate().toEpochDay();
+			if (_admissionDirty || (_lastEpochDay != epochDay))
 			{
 				rebalanceAdmissionLocked(now);
 				_admissionDirty = false;
+				_lastEpochDay = epochDay;
 			}
-		}
-		while (remaining > 0)
-		{
-			final Long profileId;
-			synchronized (_monitor)
-			{
-				profileId = _signals.pollFirst();
-				if (profileId != null)
-				{
-					final Entry entry = _entries.get(profileId);
-					if (entry != null)
-					{
-						entry._signalQueued = false;
-					}
-				}
-			}
-			if (profileId == null)
-			{
-				break;
-			}
-			applyScheduleSignal(profileId, now);
-			remaining--;
-		}
-		while (remaining > 0)
-		{
-			final Long profileId;
-			synchronized (_monitor)
-			{
-				profileId = _retirements.pollFirst();
-			}
-			if (profileId == null)
-			{
-				break;
-			}
-			completeRetirement(profileId);
-			remaining--;
+			_lastPulseOperations = processed;
 		}
 	}
 
@@ -443,7 +487,17 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		switch (snapshot.state().state())
 		{
 			case SHELL, ACCOUNT_PREPARED, CHARACTER_PRESENT, INITIALIZING -> bootstrap(profileId);
-			case READY -> installReady(profileId);
+			case READY ->
+			{
+				synchronized (_monitor)
+				{
+					final Entry entry = _entries.get(profileId);
+					if (entry != null)
+					{
+						queueActionLocked(entry, RetryActionType.READY_REGISTER, 0, _controlCalls);
+					}
+				}
+			}
 			case RETIRE_REQUESTED -> resumeRetirement(profileId);
 			case RETIRED, INCONSISTENT ->
 			{
@@ -469,18 +523,28 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			snapshot = _store.createShell(_populationGeneration, ordinal, DETERMINISTIC_SEED);
 		}
-		finally
+		catch (RuntimeException e)
 		{
 			synchronized (_monitor)
 			{
 				_persistenceClaims--;
 			}
+			throw e;
 		}
+		boolean published = false;
 		synchronized (_monitor)
 		{
-			_entries.put(snapshot.profile().profileId(), new Entry(snapshot));
+			if (_lifecycle == LifecycleState.RUNNING)
+			{
+				publishEntryLocked(new Entry(snapshot));
+				published = true;
+			}
+			_persistenceClaims--;
 		}
-		bootstrap(snapshot.profile().profileId());
+		if (published)
+		{
+			bootstrap(snapshot.profile().profileId());
+		}
 	}
 
 	private void bootstrap(long profileId)
@@ -499,26 +563,18 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			markInconsistent(profileId, "bootstrap.goal_conflict");
 			return;
 		}
-		final PhantomScheduler.RegistrationResult registration = _scheduler.register(profileId);
-		if ((registration.status() != RegistrationStatus.REGISTERED) && (registration.status() != RegistrationStatus.ALREADY_REGISTERED))
-		{
-			return;
-		}
-		final AttachResult attached = _decisionEngine.attach(profileId);
-		if ((attached != AttachResult.ATTACHED) && (attached != AttachResult.ALREADY_ATTACHED))
-		{
-			return;
-		}
-		final long sequence;
 		synchronized (_monitor)
 		{
-			sequence = ++entry._signalSequence;
+			queueActionLocked(entry, RetryActionType.BOOTSTRAP_REGISTER, 0, _controlCalls);
 		}
-		_scheduler.submitSignal(profileId, new PhantomRelevanceSignal(BOOTSTRAP_SIGNAL_SOURCE, sequence, PhantomActivityState.WARM, SIGNAL_HEARTBEAT_MILLIS));
 	}
 
 	private boolean repairBootstrapGoal(Entry entry)
 	{
+		if (_goals == null)
+		{
+			return true;
+		}
 		final long profileId = entry._snapshot.profile().profileId();
 		final Optional<StoredGoal> stored = _goals.load(profileId);
 		if (stored.isPresent())
@@ -559,34 +615,25 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				return;
 			}
 		}
-		final PhantomScheduler.RegistrationResult registration = _scheduler.register(profileId);
-		if ((registration.status() != RegistrationStatus.REGISTERED) && (registration.status() != RegistrationStatus.ALREADY_REGISTERED))
-		{
-			return;
-		}
-		final AttachResult attach = _decisionEngine.attach(profileId);
-		if ((attach != AttachResult.ATTACHED) && (attach != AttachResult.ALREADY_ATTACHED))
-		{
-			return;
-		}
-		final Instant now = _clock.instant();
 		synchronized (_monitor)
 		{
-			evaluateScheduleLocked(entry, now);
-			_admissionDirty = true;
+			queueActionLocked(entry, RetryActionType.READY_REGISTER, 0, _controlCalls);
 		}
-		cleanupBootstrap(profileId);
 	}
 
-	private void cleanupBootstrap(long profileId)
+	private boolean cleanupBootstrap(long profileId)
 	{
+		if (_decisionEngine == null)
+		{
+			return true;
+		}
 		final Optional<PhantomDecisionEngine.RuntimeSnapshot> runtime = _decisionEngine.find(profileId);
 		if (runtime.isPresent() && BOOTSTRAP_GOAL_TYPE.equals(runtime.get().goalType()))
 		{
 			final MutationResult result = _decisionEngine.clearGoal(profileId);
 			if ((result != MutationResult.APPLIED) && (result != MutationResult.GOAL_NOT_PRESENT))
 			{
-				return;
+				return false;
 			}
 		}
 		final Entry entry;
@@ -601,41 +648,117 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			{
 				sequence = ++entry._signalSequence;
 			}
-			_scheduler.withdrawSignal(profileId, BOOTSTRAP_SIGNAL_SOURCE, sequence);
+			final SignalStatus status = _ownership.withdraw(profileId, BOOTSTRAP_SIGNAL_SOURCE, sequence);
+			return (status == SignalStatus.ACCEPTED) || (status == SignalStatus.COALESCED) || (status == SignalStatus.STALE) || (status == SignalStatus.NOT_REGISTERED);
 		}
+		return true;
 	}
 
 	private void evaluateScheduleLocked(Entry entry, Instant now)
 	{
 		final ScheduleEvaluation evaluation = _catalog.evaluate(entry._snapshot.state().scheduleTemplate(), now, _zoneId, entry._snapshot.state().schedulePhaseMinutes());
+		removeDesiredActiveLocked(entry);
 		entry._desiredState = evaluation.state();
+		addDesiredActiveLocked(entry);
 		entry._nextBoundary = evaluation.nextBoundary();
 		entry._heartbeatDue = now.plusMillis(SIGNAL_HEARTBEAT_MILLIS);
 		entry._scheduleGeneration++;
 		_due.add(new DueEntry(earlier(entry._nextBoundary, entry._heartbeatDue), entry._snapshot.profile().profileId(), entry._scheduleGeneration));
-		queueSignalLocked(entry);
 		_admissionDirty = true;
 	}
 
 	private void rebalanceAdmissionLocked(Instant now)
 	{
-		final List<Entry> ready = _entries.values().stream().filter(entry -> entry._snapshot.state().state() == State.READY).toList();
-		final List<AdmissionProfile> profiles = new ArrayList<>(ready.size());
-		for (Entry entry : ready)
-		{
-			profiles.add(new AdmissionProfile(entry._snapshot.profile().profileId(), entry._snapshot.state().homeMapRegionId(), entry._snapshot.state().deterministicSeed(), entry._desiredState));
-		}
 		final long epochDay = now.atZone(_zoneId).toLocalDate().toEpochDay();
-		final Set<Long> admitted = selectActiveProfiles(profiles, Math.min(_activeTarget, _maximumMaterialized), epochDay);
-		for (Entry entry : ready)
+		final Map<Integer, Integer> population = new HashMap<>();
+		_readyIdsByRegion.forEach((region, ids) -> population.put(region, ids.size()));
+		final Map<Integer, Integer> desired = new HashMap<>();
+		_desiredActiveIdsByRegion.forEach((region, ids) -> desired.put(region, ids.size()));
+		final int limit = Math.min(Math.min(_activeTarget, _maximumMaterialized), desired.values().stream().mapToInt(Integer::intValue).sum());
+		final Map<Integer, Integer> quotas = largestRemainderCounts(population, desired, limit);
+		final Set<Long> admitted = new HashSet<>();
+		for (Map.Entry<Integer, TreeSet<Long>> regional : _desiredActiveIdsByRegion.entrySet())
 		{
-			final PhantomActivityState effective = (entry._desiredState == PhantomActivityState.ACTIVE) && !admitted.contains(entry._snapshot.profile().profileId()) ? PhantomActivityState.WARM : entry._desiredState;
-			if (entry._effectiveState != effective)
+			final TreeSet<Long> ids = regional.getValue();
+			final int quota = Math.min(quotas.getOrDefault(regional.getKey(), 0), ids.size());
+			if ((quota == 0) || ids.isEmpty())
 			{
-				entry._effectiveState = effective;
-				queueSignalLocked(entry);
+				continue;
+			}
+			final long first = ids.first();
+			final long last = ids.last();
+			final long span = (last - first) + 1;
+			final long selectedKey = span > 0 ? first + Math.floorMod(mix(epochDay, regional.getKey()), span) : first;
+			Long cursor = ids.ceiling(selectedKey);
+			if (cursor == null)
+			{
+				cursor = first;
+			}
+			for (int selected = 0; selected < quota; selected++)
+			{
+				admitted.add(cursor);
+				cursor = ids.higher(cursor);
+				if (cursor == null)
+				{
+					cursor = ids.first();
+				}
 			}
 		}
+		final Set<Long> changed = new HashSet<>(_admittedIds);
+		changed.addAll(admitted);
+		changed.removeIf(profileId -> _admittedIds.contains(profileId) == admitted.contains(profileId));
+		_admittedIds.clear();
+		_admittedIds.addAll(admitted);
+		for (long profileId : changed)
+		{
+			final Entry entry = _entries.get(profileId);
+			if ((entry != null) && (entry._snapshot.state().state() == State.READY))
+			{
+				entry._effectiveState = effectiveStateLocked(entry);
+				queueActionLocked(entry, RetryActionType.READY_SCHEDULE, 0, _controlCalls);
+			}
+		}
+	}
+
+	private static Map<Integer, Integer> largestRemainderCounts(Map<Integer, Integer> population, Map<Integer, Integer> desired, int limit)
+	{
+		final Map<Integer, Integer> quotas = new HashMap<>();
+		if ((limit == 0) || population.isEmpty())
+		{
+			return quotas;
+		}
+		final int total = population.values().stream().mapToInt(Integer::intValue).sum();
+		final List<RegionRemainder> remainders = new ArrayList<>(population.size());
+		int allocated = 0;
+		for (Map.Entry<Integer, Integer> region : population.entrySet())
+		{
+			final long scaled = (long) limit * region.getValue();
+			final int floor = Math.min((int) (scaled / total), desired.getOrDefault(region.getKey(), 0));
+			quotas.put(region.getKey(), floor);
+			allocated += floor;
+			remainders.add(new RegionRemainder(region.getKey(), scaled % total));
+		}
+		remainders.sort(Comparator.comparingLong(RegionRemainder::remainder).reversed().thenComparingInt(RegionRemainder::region));
+		while (allocated < limit)
+		{
+			boolean changed = false;
+			for (RegionRemainder remainder : remainders)
+			{
+				final int capacity = desired.getOrDefault(remainder.region(), 0);
+				final int current = quotas.getOrDefault(remainder.region(), 0);
+				if ((current < capacity) && (allocated < limit))
+				{
+					quotas.put(remainder.region(), current + 1);
+					allocated++;
+					changed = true;
+				}
+			}
+			if (!changed)
+			{
+				break;
+			}
+		}
+		return quotas;
 	}
 
 	public static Set<Long> selectActiveProfiles(List<AdmissionProfile> profiles, int limit, long epochDay)
@@ -716,32 +839,281 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		return quotas;
 	}
 
-	private void applyScheduleSignal(long profileId, Instant now)
+	private void processRetryAction(RetryAction action, Instant now)
 	{
-		final Entry entry;
+		try
+		{
+			switch (action.type())
+			{
+				case BOOTSTRAP_REGISTER -> processRegister(action, RetryActionType.BOOTSTRAP_ATTACH);
+				case BOOTSTRAP_ATTACH -> processAttach(action, RetryActionType.BOOTSTRAP_SIGNAL);
+				case BOOTSTRAP_SIGNAL -> processSignal(action, BOOTSTRAP_SIGNAL_SOURCE, PhantomActivityState.WARM, RetryActionType.BOOTSTRAP_REGISTER);
+				case READY_REGISTER -> processRegister(action, RetryActionType.READY_ATTACH);
+				case READY_ATTACH -> processAttach(action, RetryActionType.READY_SCHEDULE);
+				case READY_SCHEDULE -> processReadySchedule(action, now);
+				case RETIRE_WITHDRAW -> processRetireWithdraw(action);
+				case RETIRE_UNREGISTER -> processRetireUnregister(action);
+				case RETIRE_COMPLETE -> processRetireComplete(action);
+				case RETURN_REGISTER -> processRegister(action, RetryActionType.RETURN_ATTACH);
+				case RETURN_ATTACH -> processAttach(action, RetryActionType.RETURN_SCHEDULE);
+				case RETURN_SCHEDULE -> processReturnSchedule(action);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			retryOrFail(action, "ownership.action_exception");
+		}
+	}
+
+	private void processRegister(RetryAction action, RetryActionType next)
+	{
+		if (!actionCurrent(action))
+		{
+			return;
+		}
+		final RegistrationStatus status = _ownership.register(action.profileId());
+		switch (status)
+		{
+			case REGISTERED, ALREADY_REGISTERED -> queueNext(action, next);
+			case CAPACITY_REACHED, NOT_RUNNING -> retryOrFail(action, "ownership.register_exhausted");
+			case INVALID_PROFILE_ID -> failAction(action, "ownership.register_invalid");
+		}
+	}
+
+	private void processAttach(RetryAction action, RetryActionType next)
+	{
+		if (!actionCurrent(action))
+		{
+			return;
+		}
+		final AttachResult status = _ownership.attach(action.profileId());
+		switch (status)
+		{
+			case ATTACHED, ALREADY_ATTACHED -> queueNext(action, next);
+			case CAPACITY_REJECTED, NOT_RUNNING, CANCELLED_BY_STOP, PERSISTENCE_FAILED -> retryOrFail(action, "ownership.attach_exhausted");
+			case INVALID_PROFILE_ID, PROFILE_NOT_FOUND -> failAction(action, "ownership.attach_invalid");
+		}
+	}
+
+	private void processSignal(RetryAction action, String source, PhantomActivityState state, RetryActionType registerAction)
+	{
+		final Entry entry = currentEntry(action);
+		if (entry == null)
+		{
+			return;
+		}
+		final long sequence;
+		synchronized (_monitor)
+		{
+			sequence = ++entry._signalSequence;
+		}
+		final SignalStatus status = _ownership.submit(action.profileId(), source, sequence, state, SIGNAL_HEARTBEAT_MILLIS);
+		switch (status)
+		{
+			case ACCEPTED, COALESCED, STALE ->
+			{
+			}
+			case BACKPRESSURE, NOT_RUNNING -> retryOrFail(action, "ownership.signal_exhausted");
+			case NOT_REGISTERED -> queueNext(action, registerAction);
+			case REJECTED -> failAction(action, "ownership.signal_rejected");
+		}
+	}
+
+	private void processReadySchedule(RetryAction action, Instant now)
+	{
+		final Entry entry = currentEntry(action);
+		if ((entry == null) || (entry._snapshot.state().state() != State.READY))
+		{
+			return;
+		}
 		final PhantomActivityState effective;
 		final long sequence;
 		final long ttl;
 		synchronized (_monitor)
 		{
-			entry = _entries.get(profileId);
-			if ((_lifecycle != LifecycleState.RUNNING) || (entry == null) || (entry._snapshot.state().state() != State.READY))
+			if (entry._forceScheduleEvaluation || entry._nextBoundary.equals(Instant.MAX) || !entry._nextBoundary.isAfter(now) || !entry._heartbeatDue.isAfter(now))
 			{
-				return;
+				entry._forceScheduleEvaluation = false;
+				evaluateScheduleLocked(entry, now);
 			}
+			entry._effectiveState = effectiveStateLocked(entry);
 			effective = entry._effectiveState;
 			sequence = ++entry._signalSequence;
 			final long untilBoundary = Math.max(1, ChronoUnit.MILLIS.between(now, entry._nextBoundary));
 			ttl = Math.min(PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, Math.min(SIGNAL_HEARTBEAT_MILLIS, untilBoundary));
 		}
-		final PhantomScheduler.SignalResult result = effective == PhantomActivityState.SLEEPING ? _scheduler.withdrawSignal(profileId, SCHEDULE_SIGNAL_SOURCE, sequence) : _scheduler.submitSignal(profileId, new PhantomRelevanceSignal(SCHEDULE_SIGNAL_SOURCE, sequence, effective, ttl));
-		if ((result.status() == SignalStatus.BACKPRESSURE) || (result.status() == SignalStatus.NOT_REGISTERED))
+		final SignalStatus status = effective == PhantomActivityState.SLEEPING ? _ownership.withdraw(action.profileId(), SCHEDULE_SIGNAL_SOURCE, sequence) : _ownership.submit(action.profileId(), SCHEDULE_SIGNAL_SOURCE, sequence, effective, ttl);
+		switch (status)
 		{
-			synchronized (_monitor)
+			case ACCEPTED, COALESCED, STALE ->
 			{
-				queueSignalLocked(entry);
+				if (!cleanupBootstrap(action.profileId()))
+				{
+					retryOrFail(action, "ownership.bootstrap_cleanup_exhausted");
+				}
+			}
+			case BACKPRESSURE, NOT_RUNNING -> retryOrFail(action, "ownership.schedule_exhausted");
+			case NOT_REGISTERED -> queueNext(action, RetryActionType.READY_REGISTER);
+			case REJECTED -> failAction(action, "ownership.schedule_rejected");
+		}
+	}
+
+	private void processRetireWithdraw(RetryAction action)
+	{
+		final Entry entry = currentEntry(action);
+		if ((entry == null) || (entry._snapshot.state().state() != State.RETIRE_REQUESTED))
+		{
+			return;
+		}
+		final long scheduleSequence;
+		final long bootstrapSequence;
+		synchronized (_monitor)
+		{
+			scheduleSequence = ++entry._signalSequence;
+			bootstrapSequence = ++entry._signalSequence;
+		}
+		final SignalStatus schedule = _ownership.withdraw(action.profileId(), SCHEDULE_SIGNAL_SOURCE, scheduleSequence);
+		final SignalStatus bootstrap = _ownership.withdraw(action.profileId(), BOOTSTRAP_SIGNAL_SOURCE, bootstrapSequence);
+		if (permanentSignalFailure(schedule) || permanentSignalFailure(bootstrap))
+		{
+			failAction(action, "ownership.retire_withdraw_rejected");
+		}
+		else if (transientSignalFailure(schedule) || transientSignalFailure(bootstrap))
+		{
+			retryOrFail(action, "ownership.retire_withdraw_exhausted");
+		}
+		else
+		{
+			queueNext(action, RetryActionType.RETIRE_UNREGISTER);
+		}
+	}
+
+	private void processRetireUnregister(RetryAction action)
+	{
+		if (!actionCurrent(action))
+		{
+			return;
+		}
+		final UnregisterStatus status = _ownership.unregister(action.profileId());
+		switch (status)
+		{
+			case UNREGISTERED, NOT_REGISTERED -> queueNext(action, RetryActionType.RETIRE_COMPLETE);
+			case PENDING, BACKPRESSURE, NOT_RUNNING -> retryOrFail(action, "ownership.unregister_exhausted");
+			case INVALID_PROFILE_ID -> failAction(action, "ownership.unregister_invalid");
+		}
+	}
+
+	private void processRetireComplete(RetryAction action)
+	{
+		final Entry entry = currentEntry(action);
+		if ((entry == null) || (entry._snapshot.state().state() != State.RETIRE_REQUESTED))
+		{
+			return;
+		}
+		if (_ownership.registered(action.profileId()) || _ownership.materialized(action.profileId()))
+		{
+			retryOrFail(action, "ownership.retire_presence_exhausted");
+			return;
+		}
+		final DetachResult detached = _ownership.detach(action.profileId());
+		switch (detached)
+		{
+			case PENDING ->
+			{
+				retryOrFail(action, "ownership.detach_exhausted");
+				return;
+			}
+			case DETACHED, NOT_ATTACHED ->
+			{
 			}
 		}
+		persistRetired(entry);
+	}
+
+	private void processReturnSchedule(RetryAction action)
+	{
+		final Entry entry = currentEntry(action);
+		if ((entry == null) || (entry._snapshot.state().state() != State.RETIRED))
+		{
+			return;
+		}
+		final boolean linked = entry._snapshot.state().creationStage() == PhantomPopulationState.CreationStage.LINKED;
+		final String source = linked ? SCHEDULE_SIGNAL_SOURCE : BOOTSTRAP_SIGNAL_SOURCE;
+		final long sequence;
+		synchronized (_monitor)
+		{
+			sequence = ++entry._signalSequence;
+		}
+		final SignalStatus status = _ownership.submit(action.profileId(), source, sequence, PhantomActivityState.WARM, SIGNAL_HEARTBEAT_MILLIS);
+		switch (status)
+		{
+			case ACCEPTED, COALESCED, STALE -> persistReturned(entry);
+			case BACKPRESSURE, NOT_RUNNING -> retryOrFail(action, "ownership.return_signal_exhausted");
+			case NOT_REGISTERED -> queueNext(action, RetryActionType.RETURN_REGISTER);
+			case REJECTED -> failAction(action, "ownership.return_signal_rejected");
+		}
+	}
+
+	private boolean actionCurrent(RetryAction action)
+	{
+		return currentEntry(action) != null;
+	}
+
+	private Entry currentEntry(RetryAction action)
+	{
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(action.profileId());
+			return (entry != null) && (entry._ownershipGeneration == action.generation()) && (_lifecycle == LifecycleState.RUNNING) ? entry : null;
+		}
+	}
+
+	private void queueNext(RetryAction current, RetryActionType next)
+	{
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(current.profileId());
+			if ((entry != null) && (entry._ownershipGeneration == current.generation()) && (_lifecycle == LifecycleState.RUNNING))
+			{
+				queueActionLocked(entry, next, 0, _controlCalls);
+			}
+		}
+	}
+
+	private void retryOrFail(RetryAction action, String exhaustedFailure)
+	{
+		if (action.attempt() >= 15)
+		{
+			failAction(action, exhaustedFailure);
+			return;
+		}
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(action.profileId());
+			if ((entry != null) && (entry._ownershipGeneration == action.generation()) && (_lifecycle == LifecycleState.RUNNING))
+			{
+				final long backoff = 1L << Math.min(action.attempt(), 10);
+				queueActionLocked(entry, action.type(), action.attempt() + 1, _controlCalls + backoff);
+			}
+		}
+	}
+
+	private void failAction(RetryAction action, String failure)
+	{
+		if (actionCurrent(action))
+		{
+			markInconsistent(action.profileId(), failure);
+		}
+	}
+
+	private static boolean transientSignalFailure(SignalStatus status)
+	{
+		return (status == SignalStatus.BACKPRESSURE) || (status == SignalStatus.NOT_RUNNING);
+	}
+
+	private static boolean permanentSignalFailure(SignalStatus status)
+	{
+		return status == SignalStatus.REJECTED;
 	}
 
 	private void requestRetirement(long profileId)
@@ -750,8 +1122,13 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
-			if ((entry == null) || (entry._snapshot.state().state() != State.READY))
+			if ((entry == null) || (!entry._snapshot.state().creationPending() && (entry._snapshot.state().state() != State.READY)))
 			{
+				return;
+			}
+			if (entry._creationClaimed)
+			{
+				entry._retirementPending = true;
 				return;
 			}
 			current = entry._snapshot;
@@ -763,24 +1140,24 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			updated = _store.updateState(current, current.state().retireRequested());
 		}
-		finally
+		catch (RuntimeException e)
 		{
 			synchronized (_monitor)
 			{
 				_persistenceClaims--;
 			}
+			throw e;
 		}
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
-			if (entry != null)
+			if ((entry != null) && (_lifecycle == LifecycleState.RUNNING))
 			{
-				entry._snapshot = updated;
-				entry._scheduleGeneration++;
-				_admissionDirty = true;
+				transitionSnapshotLocked(entry, updated);
+				queueActionLocked(entry, RetryActionType.RETIRE_WITHDRAW, 0, _controlCalls);
 			}
+			_persistenceClaims--;
 		}
-		resumeRetirement(profileId);
 	}
 
 	private void resumeRetirement(long profileId)
@@ -794,32 +1171,21 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			return;
 		}
-		final long scheduleSequence;
 		synchronized (_monitor)
 		{
-			scheduleSequence = ++entry._signalSequence;
-		}
-		_scheduler.withdrawSignal(profileId, SCHEDULE_SIGNAL_SOURCE, scheduleSequence);
-		_scheduler.unregister(profileId);
-		synchronized (_monitor)
-		{
-			_retirements.offerLast(profileId);
+			queueActionLocked(entry, RetryActionType.RETIRE_WITHDRAW, 0, _controlCalls);
 		}
 	}
 
-	private void completeRetirement(long profileId)
+	private void persistRetired(Entry claimedEntry)
 	{
+		final long profileId = claimedEntry._snapshot.profile().profileId();
 		final ManagedSnapshot current;
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
 			if ((entry == null) || (entry._snapshot.state().state() != State.RETIRE_REQUESTED))
 			{
-				return;
-			}
-			if (_scheduler.find(profileId).isPresent() || _materialized.test(profileId))
-			{
-				_retirements.offerLast(profileId);
 				return;
 			}
 			current = entry._snapshot;
@@ -831,26 +1197,56 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			retired = _store.updateState(current, current.state().retired());
 		}
-		finally
+		catch (RuntimeException e)
 		{
 			synchronized (_monitor)
 			{
 				_persistenceClaims--;
 			}
+			throw e;
 		}
-		_decisionEngine.detach(profileId);
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
-			if (entry != null)
+			if ((entry != null) && (_lifecycle == LifecycleState.RUNNING))
 			{
-				entry._snapshot = retired;
+				transitionSnapshotLocked(entry, retired);
 			}
+			_persistenceClaims--;
 		}
 	}
 
 	private void returnRetired(long profileId)
 	{
+		final Entry entry;
+		synchronized (_monitor)
+		{
+			entry = _entries.get(profileId);
+			if ((entry == null) || (entry._snapshot.state().state() != State.RETIRED))
+			{
+				return;
+			}
+		}
+		if ((entry._snapshot.state().creationStage() != PhantomPopulationState.CreationStage.LINKED) && !repairBootstrapGoal(entry))
+		{
+			markInconsistent(profileId, "bootstrap.goal_conflict");
+			return;
+		}
+		synchronized (_monitor)
+		{
+			final Entry current = _entries.get(profileId);
+			if ((current != null) && (current._snapshot.state().state() == State.RETIRED))
+			{
+				current._ownershipGeneration++;
+				current._queuedActions.clear();
+				queueActionLocked(current, RetryActionType.RETURN_REGISTER, 0, _controlCalls);
+			}
+		}
+	}
+
+	private void persistReturned(Entry claimedEntry)
+	{
+		final long profileId = claimedEntry._snapshot.profile().profileId();
 		final ManagedSnapshot current;
 		synchronized (_monitor)
 		{
@@ -868,22 +1264,31 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			returned = _store.updateState(current, current.state().returned());
 		}
-		finally
+		catch (RuntimeException e)
 		{
 			synchronized (_monitor)
 			{
 				_persistenceClaims--;
 			}
+			throw e;
 		}
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
-			if (entry != null)
+			if ((entry != null) && (_lifecycle == LifecycleState.RUNNING))
 			{
-				entry._snapshot = returned;
+				transitionSnapshotLocked(entry, returned);
+				if (returned.state().state() == State.READY)
+				{
+					queueActionLocked(entry, RetryActionType.READY_SCHEDULE, 0, _controlCalls);
+				}
 			}
+			_persistenceClaims--;
 		}
-		installReady(profileId);
+		if (returned.state().creationPending())
+		{
+			bootstrap(profileId);
+		}
 	}
 
 	private void markInconsistent(long profileId, String failure)
@@ -896,17 +1301,36 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			{
 				return;
 			}
+			if (entry._snapshot.state().state() == State.INCONSISTENT)
+			{
+				return;
+			}
 			current = entry._snapshot;
+			_persistenceClaims++;
+			updatePeaksLocked();
 		}
-		final ManagedSnapshot failed = _store.updateState(current, current.state().fail(failure));
+		final ManagedSnapshot failed;
+		try
+		{
+			failed = _store.updateState(current, current.state().fail(failure));
+		}
+		catch (RuntimeException e)
+		{
+			synchronized (_monitor)
+			{
+				_persistenceClaims--;
+			}
+			throw e;
+		}
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
-			if (entry != null)
+			if ((entry != null) && (_lifecycle == LifecycleState.RUNNING))
 			{
-				entry._snapshot = failed;
+				transitionSnapshotLocked(entry, failed);
 			}
 			_inconsistentDeficit = true;
+			_persistenceClaims--;
 		}
 	}
 
@@ -924,9 +1348,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			}
 			_lifecycle = LifecycleState.STOPPING;
 			_due.clear();
-			_signals.clear();
-			_retirements.clear();
-			_readyTransitions.clear();
+			_retryActions.clear();
 			return BeginStopResult.STARTED;
 		}
 	}
@@ -944,6 +1366,18 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				return false;
 			}
 			_entries.clear();
+			_readyIds.clear();
+			_readyIdsByRegion.clear();
+			_desiredActiveIdsByRegion.clear();
+			_admittedIds.clear();
+			_classHistogram.clear();
+			_levelHistogram.clear();
+			_regionHistogram.clear();
+			_readyCount = 0;
+			_retiredCount = 0;
+			_inconsistentCount = 0;
+			_inconsistentDeficit = false;
+			_lastPulseOperations = 0;
 			_lifecycle = LifecycleState.STOPPED;
 			return true;
 		}
@@ -953,28 +1387,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	{
 		synchronized (_monitor)
 		{
-			int ready = 0;
-			int retired = 0;
-			int inconsistent = 0;
-			final Map<Integer, Integer> classHistogram = new LinkedHashMap<>();
-			final Map<Integer, Integer> levelHistogram = new LinkedHashMap<>();
-			final Map<Integer, Integer> regionHistogram = new LinkedHashMap<>();
-			for (Entry entry : _entries.values())
-			{
-				switch (entry._snapshot.state().state())
-				{
-					case READY -> ready++;
-					case RETIRED -> retired++;
-					case INCONSISTENT -> inconsistent++;
-					default ->
-					{
-					}
-				}
-				classHistogram.merge(entry._snapshot.state().classId(), 1, Integer::sum);
-				levelHistogram.merge(1, 1, Integer::sum);
-				regionHistogram.merge(entry._snapshot.state().homeMapRegionId(), 1, Integer::sum);
-			}
-			return new Snapshot(_lifecycle, _target, _activeTarget, _entries.size(), ready, retired, inconsistent, _inconsistentDeficit, _due.size(), _signals.size(), _controlCalls, _controlClaims, _creationClaims, _persistenceClaims, _peakOperations, _peakCreationClaims, _peakPersistenceClaims, Map.copyOf(classHistogram), Map.copyOf(levelHistogram), Map.copyOf(regionHistogram));
+			return new Snapshot(_lifecycle, _target, _activeTarget, _entries.size(), _readyCount, _retiredCount, _inconsistentCount, _inconsistentDeficit, _due.size(), 0, _retryActions.size(), _lastPulseOperations, _controlCalls, _controlClaims, _creationClaims, _persistenceClaims, _peakOperations, _peakCreationClaims, _peakPersistenceClaims, Map.copyOf(_classHistogram), Map.copyOf(_levelHistogram), Map.copyOf(_regionHistogram));
 		}
 	}
 
@@ -987,12 +1400,117 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		}
 	}
 
-	private void queueSignalLocked(Entry entry)
+	private void publishEntryLocked(Entry entry)
 	{
-		if (!entry._signalQueued)
+		final long profileId = entry._snapshot.profile().profileId();
+		if (_entries.putIfAbsent(profileId, entry) != null)
 		{
-			entry._signalQueued = true;
-			_signals.offerLast(entry._snapshot.profile().profileId());
+			throw new IllegalStateException("Managed population entry was published twice.");
+		}
+		_classHistogram.merge(entry._snapshot.state().classId(), 1, Integer::sum);
+		_levelHistogram.merge(1, 1, Integer::sum);
+		_regionHistogram.merge(entry._snapshot.state().homeMapRegionId(), 1, Integer::sum);
+		addStateIndexesLocked(entry);
+	}
+
+	private void transitionSnapshotLocked(Entry entry, ManagedSnapshot snapshot)
+	{
+		removeStateIndexesLocked(entry);
+		entry._snapshot = snapshot;
+		entry._ownershipGeneration++;
+		entry._queuedActions.clear();
+		entry._scheduleGeneration++;
+		addStateIndexesLocked(entry);
+	}
+
+	private void addStateIndexesLocked(Entry entry)
+	{
+		final long profileId = entry._snapshot.profile().profileId();
+		switch (entry._snapshot.state().state())
+		{
+			case READY ->
+			{
+				_readyCount++;
+				_readyIds.add(profileId);
+				_readyIdsByRegion.computeIfAbsent(entry._snapshot.state().homeMapRegionId(), _ -> new TreeSet<>()).add(profileId);
+				addDesiredActiveLocked(entry);
+				_admissionDirty = true;
+			}
+			case RETIRED -> _retiredCount++;
+			case INCONSISTENT -> _inconsistentCount++;
+			default ->
+			{
+			}
+		}
+	}
+
+	private void removeStateIndexesLocked(Entry entry)
+	{
+		final long profileId = entry._snapshot.profile().profileId();
+		switch (entry._snapshot.state().state())
+		{
+			case READY ->
+			{
+				_readyCount--;
+				_readyIds.remove(profileId);
+				final int region = entry._snapshot.state().homeMapRegionId();
+				final TreeSet<Long> regional = _readyIdsByRegion.get(region);
+				if (regional != null)
+				{
+					regional.remove(profileId);
+					if (regional.isEmpty())
+					{
+						_readyIdsByRegion.remove(region);
+					}
+				}
+				removeDesiredActiveLocked(entry);
+				_admittedIds.remove(profileId);
+				_admissionDirty = true;
+			}
+			case RETIRED -> _retiredCount--;
+			case INCONSISTENT -> _inconsistentCount--;
+			default ->
+			{
+			}
+		}
+	}
+
+	private void addDesiredActiveLocked(Entry entry)
+	{
+		if ((entry._snapshot.state().state() == State.READY) && (entry._desiredState == PhantomActivityState.ACTIVE))
+		{
+			_desiredActiveIdsByRegion.computeIfAbsent(entry._snapshot.state().homeMapRegionId(), _ -> new TreeSet<>()).add(entry._snapshot.profile().profileId());
+		}
+	}
+
+	private void removeDesiredActiveLocked(Entry entry)
+	{
+		if (entry._desiredState != PhantomActivityState.ACTIVE)
+		{
+			return;
+		}
+		final int region = entry._snapshot.state().homeMapRegionId();
+		final TreeSet<Long> regional = _desiredActiveIdsByRegion.get(region);
+		if (regional != null)
+		{
+			regional.remove(entry._snapshot.profile().profileId());
+			if (regional.isEmpty())
+			{
+				_desiredActiveIdsByRegion.remove(region);
+			}
+		}
+	}
+
+	private PhantomActivityState effectiveStateLocked(Entry entry)
+	{
+		return (entry._desiredState == PhantomActivityState.ACTIVE) && !_admittedIds.contains(entry._snapshot.profile().profileId()) ? PhantomActivityState.WARM : entry._desiredState;
+	}
+
+	private void queueActionLocked(Entry entry, RetryActionType type, int attempt, long duePulse)
+	{
+		if ((_lifecycle == LifecycleState.RUNNING) && entry._queuedActions.add(type))
+		{
+			_retryActions.add(new RetryAction(type, entry._snapshot.profile().profileId(), entry._ownershipGeneration, attempt, duePulse, ++_retrySequence));
 		}
 	}
 
@@ -1040,8 +1558,12 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		ALREADY_STOPPED
 	}
 
-	public record Snapshot(LifecycleState state, int target, int activeTarget, int managed, int ready, int retired, int inconsistent, boolean deficitBlocked, int dueBoundaries, int queuedSignals, long controlCalls, long controlClaims, long creationClaims, long persistenceClaims, long peakOperations, long peakCreationClaims, long peakPersistenceClaims, Map<Integer, Integer> classHistogram, Map<Integer, Integer> levelHistogram, Map<Integer, Integer> regionHistogram)
+	public record Snapshot(LifecycleState state, int target, int activeTarget, int managed, int ready, int retired, int inconsistent, boolean deficitBlocked, int dueBoundaries, int queuedSignals, int retryActions, long lastPulseOperations, long controlCalls, long controlClaims, long creationClaims, long persistenceClaims, long peakOperations, long peakCreationClaims, long peakPersistenceClaims, Map<Integer, Integer> classHistogram, Map<Integer, Integer> levelHistogram, Map<Integer, Integer> regionHistogram)
 	{
+		public static Snapshot inactive()
+		{
+			return new Snapshot(LifecycleState.STOPPED, 0, 0, 0, 0, 0, 0, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Map.of(), Map.of(), Map.of());
+		}
 	}
 
 	public record AdmissionProfile(long profileId, int regionId, long seed, PhantomActivityState desiredState)
@@ -1061,8 +1583,11 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		private Instant _heartbeatDue = Instant.MAX;
 		private long _scheduleGeneration;
 		private long _signalSequence;
-		private boolean _signalQueued;
 		private boolean _creationClaimed;
+		private boolean _retirementPending;
+		private boolean _forceScheduleEvaluation;
+		private long _ownershipGeneration;
+		private final EnumSet<RetryActionType> _queuedActions = EnumSet.noneOf(RetryActionType.class);
 
 		private Entry(ManagedSnapshot snapshot)
 		{
@@ -1082,5 +1607,99 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 
 	private record RegionRemainder(int region, long remainder)
 	{
+	}
+
+	public enum RetryActionType
+	{
+		BOOTSTRAP_REGISTER,
+		BOOTSTRAP_ATTACH,
+		BOOTSTRAP_SIGNAL,
+		READY_REGISTER,
+		READY_ATTACH,
+		READY_SCHEDULE,
+		RETIRE_WITHDRAW,
+		RETIRE_UNREGISTER,
+		RETIRE_COMPLETE,
+		RETURN_REGISTER,
+		RETURN_ATTACH,
+		RETURN_SCHEDULE
+	}
+
+	private record RetryAction(RetryActionType type, long profileId, long generation, int attempt, long duePulse, long sequence) implements Comparable<RetryAction>
+	{
+		@Override
+		public int compareTo(RetryAction other)
+		{
+			final int due = Long.compare(duePulse, other.duePulse);
+			return due != 0 ? due : Long.compare(sequence, other.sequence);
+		}
+	}
+
+	private static final class ProductionOwnershipPort implements PhantomPopulationOwnershipPort
+	{
+		private final PhantomScheduler _scheduler;
+		private final PhantomDecisionEngine _decision;
+		private final LongPredicate _materialized;
+
+		private ProductionOwnershipPort(PhantomScheduler scheduler, PhantomDecisionEngine decision, LongPredicate materialized)
+		{
+			_scheduler = scheduler;
+			_decision = decision;
+			_materialized = materialized;
+		}
+
+		@Override
+		public RegistrationStatus register(long profileId)
+		{
+			return _scheduler.register(profileId).status();
+		}
+
+		@Override
+		public AttachResult attach(long profileId)
+		{
+			return _decision.attach(profileId);
+		}
+
+		@Override
+		public SignalStatus submit(long profileId, String source, long sequence, PhantomActivityState state, long ttlMillis)
+		{
+			return _scheduler.submitSignal(profileId, new PhantomRelevanceSignal(source, sequence, state, ttlMillis)).status();
+		}
+
+		@Override
+		public SignalStatus withdraw(long profileId, String source, long sequence)
+		{
+			return _scheduler.withdrawSignal(profileId, source, sequence).status();
+		}
+
+		@Override
+		public UnregisterStatus unregister(long profileId)
+		{
+			return _scheduler.unregister(profileId).status();
+		}
+
+		@Override
+		public DetachResult detach(long profileId)
+		{
+			return _decision.detach(profileId);
+		}
+
+		@Override
+		public boolean registered(long profileId)
+		{
+			return _scheduler.find(profileId).isPresent();
+		}
+
+		@Override
+		public boolean materialized(long profileId)
+		{
+			return _materialized.test(profileId);
+		}
+
+		@Override
+		public int registeredCount()
+		{
+			return _scheduler.snapshot().registered();
+		}
 	}
 }

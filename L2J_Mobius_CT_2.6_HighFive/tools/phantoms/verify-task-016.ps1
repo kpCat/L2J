@@ -3,9 +3,11 @@ param()
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-$requiredParent = "a546dae868d93d54ec4bc6e1836080b90f810167"
+$implementationCommit = "92a0040f8eb919154067db6c6297b02c858b1b72"
+$implementationParent = "a546dae868d93d54ec4bc6e1836080b90f810167"
+$implementationSubject = "feat(phantoms): add population manager and schedules"
 $requiredBranch = "feature/phantom-world"
-$requiredSubject = "feat(phantoms): add population manager and schedules"
+$completionSubject = "fix(phantoms): complete population safety contracts"
 $seed = "16001601"
 $moduleRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $repositoryRoot = (Resolve-Path ((& git -C $moduleRoot rev-parse --show-toplevel).Trim())).Path
@@ -84,8 +86,10 @@ function Is-AllowedPath([string] $path)
 		"java/org/l2jmobius/gameserver/phantoms/activity/PhantomSchedulerControlPort.java",
 		"java/org/l2jmobius/gameserver/phantoms/profile/PhantomProfileRepository.java",
 		"java/org/l2jmobius/gameserver/config/custom/PhantomPlayersConfig.java",
+		"java/org/l2jmobius/gameserver/data/xml/InitialShortcutData.java",
 		"java/org/l2jmobius/gameserver/model/actor/PlayerCreationInitializer.java",
 		"java/org/l2jmobius/gameserver/network/clientpackets/CharacterCreate.java",
+		"java/org/l2jmobius/gameserver/taskmanagers/PlayerAutoSaveTaskManager.java",
 		"dist/game/config/Custom/PhantomPlayers.ini",
 		"dist/game/data/phantoms/population/high-five-population-v1.xml",
 		"test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java",
@@ -121,14 +125,18 @@ $script:moduleRelative = $moduleRoot.Substring($repositoryPrefix.Length).Replace
 $head = ([string] (Invoke-Git @("rev-parse", "HEAD") | Select-Object -First 1)).Trim()
 $branch = ([string] (Invoke-Git @("branch", "--show-current") | Select-Object -First 1)).Trim()
 Assert-True ($branch -eq $requiredBranch) "Unexpected branch: $branch"
-[void] (Invoke-Git @("merge-base", "--is-ancestor", $requiredParent, $head))
+$pinnedParent = ([string] (Invoke-Git @("rev-parse", "$implementationCommit^") | Select-Object -First 1)).Trim()
+$pinnedSubject = [string] (Invoke-Git @("show", "-s", "--format=%s", $implementationCommit) | Select-Object -First 1)
+Assert-True ($pinnedParent -eq $implementationParent) "Pinned Goal 016 implementation parent changed."
+Assert-True ($pinnedSubject -eq $implementationSubject) "Pinned Goal 016 implementation subject changed."
+[void] (Invoke-Git @("merge-base", "--is-ancestor", $implementationCommit, $head))
 
 $mode = ""
 $changed = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-if ($head -eq $requiredParent)
+if ($head -eq $implementationCommit)
 {
-	$mode = "working-tree"
-	foreach ($line in Invoke-Git @("diff", "--name-only", $requiredParent, "--", $script:moduleRelative))
+	$mode = "working-completion"
+	foreach ($line in Invoke-Git @("diff", "--name-only", $implementationCommit, "--", $script:moduleRelative))
 	{
 		if ($line.Trim().Length -gt 0)
 		{
@@ -150,14 +158,26 @@ if ($head -eq $requiredParent)
 }
 else
 {
-	$mode = "goal016-commit"
-	$parent = ([string] (Invoke-Git @("rev-parse", "HEAD^") | Select-Object -First 1)).Trim()
-	$subject = [string] (Invoke-Git @("show", "-s", "--format=%s", "HEAD") | Select-Object -First 1)
-	Assert-True ($parent -eq $requiredParent) "Goal 016 commit is not the direct child of the required parent."
-	Assert-True ($subject -eq $requiredSubject) "Unexpected Goal 016 commit subject: $subject"
-	$status = @(Invoke-Git @("-c", "core.quotepath=false", "status", "--porcelain=v1", "--", $script:moduleRelative))
-	Assert-True ($status.Count -eq 0) "Goal 016 post-commit verifier requires a clean module worktree."
-	foreach ($line in Invoke-Git @("diff", "--name-only", $requiredParent, $head, "--", $script:moduleRelative))
+	$completionCandidates = [Collections.Generic.List[string]]::new()
+	foreach ($line in Invoke-Git @("log", "--format=%H`t%P`t%s", "--ancestry-path", "$implementationCommit..$head"))
+	{
+		$parts = $line -split "`t", 3
+		if (($parts.Count -eq 3) -and ($parts[1] -eq $implementationCommit) -and ($parts[2] -eq $completionSubject))
+		{
+			$completionCandidates.Add($parts[0])
+		}
+	}
+	Assert-True ($completionCandidates.Count -eq 1) "Expected one unique ordinary Goal 016 completion direct child."
+	$completionCommit = $completionCandidates[0]
+	[void] (Invoke-Git @("merge-base", "--is-ancestor", $completionCommit, $head))
+	$mode = "completion-ancestor"
+	if ($head -eq $completionCommit)
+	{
+		$mode = "completion-commit"
+		$status = @(Invoke-Git @("-c", "core.quotepath=false", "status", "--porcelain=v1", "--", $script:moduleRelative))
+		Assert-True ($status.Count -eq 0) "Goal 016 post-commit verifier requires a clean module worktree."
+	}
+	foreach ($line in Invoke-Git @("diff", "--name-only", $implementationCommit, $completionCommit, "--", $script:moduleRelative))
 	{
 		if ($line.Trim().Length -gt 0)
 		{
@@ -176,8 +196,8 @@ Assert-True (-not ($changed -contains "java/org/l2jmobius/gameserver/model/actor
 
 $manifestPath = "docs/phantoms/tasks/016-population-manager-schedules/PACKAGE_MANIFEST.json"
 $manifest = Read-Utf8Strict $manifestPath | ConvertFrom-Json
-Assert-True ($manifest.requiredParent -eq $requiredParent) "Task package parent mismatch."
-Assert-True ($manifest.commitSubject -eq $requiredSubject) "Task package subject mismatch."
+Assert-True ($manifest.requiredParent -eq $implementationParent) "Task package parent mismatch."
+Assert-True ($manifest.commitSubject -eq $implementationSubject) "Task package subject mismatch."
 Assert-True ([string] $manifest.deterministicSeed -eq $seed) "Task package seed mismatch."
 foreach ($property in $manifest.payloadSha256.PSObject.Properties)
 {
@@ -200,9 +220,14 @@ Assert-True ($configJava -match "DEFAULT_POPULATION_ACTIVE_TARGET\s*=\s*0") "Jav
 
 $initializer = Read-Utf8Strict "java/org/l2jmobius/gameserver/model/actor/PlayerCreationInitializer.java"
 $characterCreate = Read-Utf8Strict "java/org/l2jmobius/gameserver/network/clientpackets/CharacterCreate.java"
+$shortcutData = Read-Utf8Strict "java/org/l2jmobius/gameserver/data/xml/InitialShortcutData.java"
 Assert-True ($characterCreate -match "PlayerCreationInitializer\.initialize\(newChar,\s*Mode\.CLIENT\)") "CharacterCreate does not delegate to the shared initializer."
 Assert-True ($initializer -match "InitialEquipmentData" -and $initializer -match "InitialShortcutData" -and $initializer -match "SkillTreeData") "Shared initializer is incomplete."
 Assert-True ($initializer -notmatch "GameClient|CharacterCreate|OnPlayerCreate|sendPacket|network\.serverpackets") "Shared initializer directly invokes a forbidden client/packet path."
+Assert-True ($initializer -match "DeliveryMode\.POPULATION") "Population initializer does not select packet-free shortcut delivery."
+Assert-True ($shortcutData -match "enum DeliveryMode" -and $shortcutData -match "InitialPlan resolvePlan") "Pure initial shortcut/macro plan is missing."
+Assert-True ($shortcutData -match "(?s)if\s*\(deliveryMode == DeliveryMode\.CLIENT\)\s*\{\s*player\.sendPacket\(new ShortcutRegister") "Legacy shortcut packet delivery is not isolated to CLIENT mode."
+Assert-True ($shortcutData -match "(?s)if\s*\(deliveryMode == DeliveryMode\.POPULATION\).*?registerPopulationMacro") "Population macro registration does not use the durable packet-free writer."
 
 $populationSources = Get-ChildItem -LiteralPath (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/population") -Filter "*.java" -File
 $populationText = ($populationSources | ForEach-Object { Read-Utf8Strict ("java/org/l2jmobius/gameserver/phantoms/population/" + $_.Name) }) -join "`n"
@@ -210,10 +235,31 @@ Assert-True ($populationText -notmatch "GameClient|CharacterCreate|OnPlayerCreat
 Assert-True ($populationText -notmatch "\b(?:Thread|ExecutorService|ScheduledFuture|CompletableFuture)\b|ThreadPool\.") "Population code creates worker/task/Future infrastructure."
 Assert-True ($populationText -notmatch "l2jmobiush5(?!_phantom_test)") "Population code names the production database."
 
+$autosave = Read-Utf8Strict "java/org/l2jmobius/gameserver/taskmanagers/PlayerAutoSaveTaskManager.java"
+Assert-True ($autosave -match "ThreadLocal<Integer>" -and $autosave -match "suppressPopulationLoad\(int objectId\)" -and $autosave -match "PopulationLoadSuppression") "Exact-object autosave suppression seam is missing."
+Assert-True ($autosave -match "(?s)void add\(Player player\).*?POPULATION_LOAD_SUPPRESSION\.get\(\).*?player\.getObjectId\(\) == suppressedObjectId.*?return;") "Autosave add does not reject the exact guarded population load."
+
 $repository = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/profile/PhantomProfileRepository.java"
 Assert-True ($repository -match "createWithComponent" -and $repository -match "setAutoCommit\(false\)" -and $repository -match "connection\.commit\(\)") "Atomic managed shell transaction is missing."
 Assert-True ($repository -match "listManagedAfter" -and $repository -match "pageSize > 256" -and $repository -match "LIMIT \?") "Managed startup paging is not bounded to 256."
 $store = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationStore.java"
+$authority = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/population/PopulationInitializationContract.java"
+$state = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationState.java"
+$stateCodec = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationStateCodec.java"
+$populationTests = Read-Utf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomPopulationSuite.java"
+Assert-True ($authority -match '"POPULATION_CREATION_AUTHORITY_V1"' -and $authority -match "PlayerCreationInitializer\.VERSION") "Versioned population creation authority is missing."
+Assert-True ($state -match "SCHEMA_VERSION\s*=\s*2" -and $state -match "initializationAuthorityHash") "Population state does not persist schema-v2 authority."
+Assert-True ($stateCodec -match "MAGIC_V1" -and $stateCodec -match "MAGIC_V2") "Bounded legacy-v1 and canonical-v2 decoding is missing."
+Assert-True ($store -match "(?s)private ManagedSnapshot decode\(.*?validateAuthority\(snapshot\)") "Startup decode does not validate persisted authority before mutation."
+Assert-True ($store -match "ProjectionStatus\.PRISTINE" -and $store -match "ProjectionStatus\.STRICT_SUBSET" -and $store -match "ProjectionStatus\.CANONICAL") "Exact durable projection classifier is incomplete."
+foreach ($negative in @("An unexpected item was accepted", "An unexpected skill was accepted", "An unexpected shortcut was accepted", "Missing expected shortcut subset", "conflicting equipped flag"))
+{
+	Assert-True ($populationTests.Contains($negative)) "Exact projection negative control is missing: $negative"
+}
+foreach ($faultPoint in @("ADENA", "INITIAL_ITEM", "SKILLS", "SHORTCUTS", "MACROS", "CHARACTER_STORE", "FRESH_VERIFICATION", "PROFILE_LINK", "READY_COMPONENT_UPDATE"))
+{
+	Assert-True ($store -match ("\b" + $faultPoint + "\b")) "Durable writer fault point is missing: $faultPoint"
+}
 $sagaMarkers = @("ACCOUNT_INTENT", "ACCOUNT_VERIFIED", "CHARACTER_INTENT", "Player.create", "INITIALIZATION_INTENT", "updateCharacterLink", ".ready()")
 $lastIndex = -1
 foreach ($marker in $sagaMarkers)
@@ -228,6 +274,19 @@ Assert-True ($scheduler -match "installControlPort" -and $scheduler -match "(?s)
 $manager = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationManager.java"
 Assert-True ($manager -match "loadManagedAfter" -and $manager -match "Math\.min\(256") "Population startup does not use bounded paging."
 Assert-True ($manager -match "RETIRE_REQUESTED" -and $manager -match "State\.RETIRED" -and $manager -match "State\.READY") "Retirement/return lifecycle markers are incomplete."
+foreach ($retryAction in @("BOOTSTRAP_REGISTER", "BOOTSTRAP_ATTACH", "BOOTSTRAP_SIGNAL", "READY_REGISTER", "READY_ATTACH", "READY_SCHEDULE", "RETIRE_WITHDRAW", "RETIRE_UNREGISTER", "RETIRE_COMPLETE", "RETURN_REGISTER", "RETURN_ATTACH", "RETURN_SCHEDULE"))
+{
+	Assert-True ($manager -match ("\b" + $retryAction + "\b")) "Explicit scheduler retry action is missing: $retryAction"
+}
+$pulseStart = $manager.IndexOf("public void onPulse()", [StringComparison]::Ordinal)
+$pulseEnd = $manager.IndexOf("public static Set<Long> selectActiveProfiles", $pulseStart, [StringComparison]::Ordinal)
+Assert-True (($pulseStart -ge 0) -and ($pulseEnd -gt $pulseStart)) "Cannot isolate the population pulse admission path."
+$pulseText = $manager.Substring($pulseStart, $pulseEnd - $pulseStart)
+Assert-True ($pulseText -notmatch "_entries\.values\(\)|_entries\.entrySet\(\)") "Population pulse admission performs a full managed-entry scan."
+Assert-True ($manager -match "(?s)createAndBootstrapShell\(\).*?_store\.createShell.*?if \(_lifecycle == LifecycleState\.RUNNING\).*?publishEntryLocked") "Committed shell publication is not guarded by RUNNING lifecycle state."
+Assert-True ($populationTests -match "population-publication-barrier-test" -and $populationTests -match "Committed shell was published after STOPPING") "Shutdown publication barrier test is missing."
+$system = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java"
+Assert-True ($system -match "PhantomPopulationManager\.Snapshot population" -and $system -match "configuredShutdownSnapshot" -and $system -match "PhantomPopulationManager\.Snapshot\.inactive\(\)") "PhantomSystem does not expose inert and configured population snapshots."
 $decision = Read-Utf8Strict "java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationDecision.java"
 Assert-True ($decision -match '"candidate\.population\.bootstrap"' -and $decision -match '"population\.create_character"') "Population decision keys are missing."
 

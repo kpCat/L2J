@@ -32,6 +32,7 @@ public record PhantomPopulationState(
 	long populationGeneration,
 	long creationOrdinal,
 	String catalogHash,
+	String initializationAuthorityHash,
 	long deterministicSeed,
 	int nameAttempt,
 	String reservedAccount,
@@ -55,7 +56,7 @@ public record PhantomPopulationState(
 	String lastFailure)
 {
 	public static final String COMPONENT_TYPE = "population.state";
-	public static final int SCHEMA_VERSION = 1;
+	public static final int SCHEMA_VERSION = 2;
 
 	public PhantomPopulationState
 	{
@@ -63,6 +64,10 @@ public record PhantomPopulationState(
 		requireRange(populationGeneration, 1, Long.MAX_VALUE, "population generation");
 		requireRange(creationOrdinal, 1, Long.MAX_VALUE, "creation ordinal");
 		requireText(catalogHash, 64, 64, "[0-9a-f]+", "catalog hash");
+		if (!initializationAuthorityHash.isEmpty())
+		{
+			requireText(initializationAuthorityHash, 64, 64, "[0-9a-f]+", "initialization authority hash");
+		}
 		requireRange(nameAttempt, 0, 255, "name attempt");
 		requireText(reservedAccount, 2, 14, "[a-z0-9]+", "reserved account");
 		requireText(ownershipToken, 32, 64, "[A-Za-z0-9_-]+", "ownership token");
@@ -101,12 +106,17 @@ public record PhantomPopulationState(
 
 	public PhantomPopulationState withName(int attempt, String name)
 	{
-		return new PhantomPopulationState(state, populationGeneration, creationOrdinal, catalogHash, deterministicSeed, attempt, reservedAccount, ownershipToken, name, classId, female, face, hairColor, hairStyle, scheduleTemplate, schedulePhaseMinutes, homeMapRegionId, creationX, creationY, creationZ, expectedCharacterObjectId, actualCharacterObjectId, creationStage, initializationHash, lastFailure);
+		return new PhantomPopulationState(state, populationGeneration, creationOrdinal, catalogHash, initializationAuthorityHash, deterministicSeed, attempt, reservedAccount, ownershipToken, name, classId, female, face, hairColor, hairStyle, scheduleTemplate, schedulePhaseMinutes, homeMapRegionId, creationX, creationY, creationZ, expectedCharacterObjectId, actualCharacterObjectId, creationStage, initializationHash, lastFailure);
 	}
 
 	public PhantomPopulationState initialized(int objectId, String hash)
 	{
 		return copy(State.INITIALIZING, objectId, objectId, CreationStage.VERIFIED, hash, "");
+	}
+
+	public PhantomPopulationState initializationStored(int objectId, String hash)
+	{
+		return copy(State.INITIALIZING, objectId, objectId, CreationStage.INITIALIZATION_STORED, hash, "");
 	}
 
 	public PhantomPopulationState fail(String failure)
@@ -121,17 +131,25 @@ public record PhantomPopulationState(
 
 	public PhantomPopulationState retireRequested()
 	{
-		return copy(State.RETIRE_REQUESTED, expectedCharacterObjectId, actualCharacterObjectId, CreationStage.LINKED, initializationHash, "");
+		return copy(State.RETIRE_REQUESTED, expectedCharacterObjectId, actualCharacterObjectId, creationStage, initializationHash, "");
 	}
 
 	public PhantomPopulationState retired()
 	{
-		return copy(State.RETIRED, expectedCharacterObjectId, actualCharacterObjectId, CreationStage.LINKED, initializationHash, "");
+		return copy(State.RETIRED, expectedCharacterObjectId, actualCharacterObjectId, creationStage, initializationHash, "");
 	}
 
 	public PhantomPopulationState returned()
 	{
-		return copy(State.READY, expectedCharacterObjectId, actualCharacterObjectId, CreationStage.LINKED, initializationHash, "");
+		final State returnedState = switch (creationStage)
+		{
+			case LINKED -> State.READY;
+			case VERIFIED, INITIALIZATION_INTENT, INITIALIZATION_STORED -> State.INITIALIZING;
+			case CHARACTER_CREATED, CHARACTER_INTENT -> State.CHARACTER_PRESENT;
+			case ACCOUNT_VERIFIED, ACCOUNT_INTENT -> State.ACCOUNT_PREPARED;
+			case SHELL_DURABLE -> State.SHELL;
+		};
+		return copy(returnedState, expectedCharacterObjectId, actualCharacterObjectId, creationStage, initializationHash, "");
 	}
 
 	public boolean creationPending()
@@ -141,7 +159,7 @@ public record PhantomPopulationState(
 
 	private PhantomPopulationState copy(State newState, Integer expectedObjectId, Integer actualObjectId, CreationStage stage, String hash, String failure)
 	{
-		return new PhantomPopulationState(newState, populationGeneration, creationOrdinal, catalogHash, deterministicSeed, nameAttempt, reservedAccount, ownershipToken, characterName, classId, female, face, hairColor, hairStyle, scheduleTemplate, schedulePhaseMinutes, homeMapRegionId, creationX, creationY, creationZ, expectedObjectId, actualObjectId, stage, hash, failure);
+		return new PhantomPopulationState(newState, populationGeneration, creationOrdinal, catalogHash, initializationAuthorityHash, deterministicSeed, nameAttempt, reservedAccount, ownershipToken, characterName, classId, female, face, hairColor, hairStyle, scheduleTemplate, schedulePhaseMinutes, homeMapRegionId, creationX, creationY, creationZ, expectedObjectId, actualObjectId, stage, hash, failure);
 	}
 
 	private static void requireObjectId(Integer value, String label)
@@ -189,6 +207,7 @@ public record PhantomPopulationState(
 		CHARACTER_CREATED,
 		INITIALIZATION_INTENT,
 		VERIFIED,
-		LINKED
+		LINKED,
+		INITIALIZATION_STORED
 	}
 }

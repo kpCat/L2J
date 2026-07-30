@@ -29,30 +29,45 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.data.sql.CharInfoTable;
 import org.l2jmobius.gameserver.data.xml.InitialEquipmentData;
+import org.l2jmobius.gameserver.data.xml.InitialShortcutData.InitialPlan;
+import org.l2jmobius.gameserver.data.xml.InitialShortcutData.MacroPlan;
+import org.l2jmobius.gameserver.data.xml.InitialShortcutData.ShortcutKey;
+import org.l2jmobius.gameserver.data.xml.InitialShortcutData.ShortcutPlan;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.PlayerTemplateData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerCreationInitializer;
+import org.l2jmobius.gameserver.model.actor.PlayerCreationInitializer.CreationPlan;
+import org.l2jmobius.gameserver.model.actor.PlayerCreationInitializer.InitialItemPlan;
+import org.l2jmobius.gameserver.model.actor.PlayerCreationInitializer.PopulationInitializationObserver;
 import org.l2jmobius.gameserver.model.actor.PlayerCreationInitializer.Mode;
 import org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance;
 import org.l2jmobius.gameserver.model.actor.holders.player.Shortcut;
 import org.l2jmobius.gameserver.model.actor.templates.PlayerTemplate;
 import org.l2jmobius.gameserver.model.item.holders.InitialEquipment;
 import org.l2jmobius.gameserver.model.item.instance.Item;
+import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.ClassEntry;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.ScheduleTemplate;
@@ -68,7 +83,7 @@ import org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager;
  * Durable population shell and canonical level-one creation saga. It never
  * creates a client, dispatches a client event or places a character in World.
  */
-public final class PhantomPopulationStore
+public final class PhantomPopulationStore implements PhantomPopulationPersistencePort
 {
 	private static final int MANAGED_PAGE_SIZE = 256;
 	private static final int DISABLED_ACCOUNT_ACCESS_LEVEL = -1;
@@ -78,18 +93,32 @@ public final class PhantomPopulationStore
 	private final PhantomPopulationCatalog _catalog;
 	private final PhantomPopulationStateCodec _codec;
 	private final SecureRandom _secureRandom;
+	private final ZoneId _zoneId;
+	private final FailureInjector _failureInjector;
 
 	public PhantomPopulationStore(PhantomProfileRepository profiles, PhantomPopulationCatalog catalog)
 	{
-		this(profiles, catalog, new PhantomPopulationStateCodec(), new SecureRandom());
+		this(profiles, catalog, ZoneOffset.UTC);
 	}
 
-	PhantomPopulationStore(PhantomProfileRepository profiles, PhantomPopulationCatalog catalog, PhantomPopulationStateCodec codec, SecureRandom secureRandom)
+	public PhantomPopulationStore(PhantomProfileRepository profiles, PhantomPopulationCatalog catalog, ZoneId zoneId)
+	{
+		this(profiles, catalog, zoneId, new PhantomPopulationStateCodec(), new SecureRandom(), FailureInjector.none());
+	}
+
+	public PhantomPopulationStore(PhantomProfileRepository profiles, PhantomPopulationCatalog catalog, ZoneId zoneId, FailureInjector failureInjector)
+	{
+		this(profiles, catalog, zoneId, new PhantomPopulationStateCodec(), new SecureRandom(), failureInjector);
+	}
+
+	PhantomPopulationStore(PhantomProfileRepository profiles, PhantomPopulationCatalog catalog, ZoneId zoneId, PhantomPopulationStateCodec codec, SecureRandom secureRandom, FailureInjector failureInjector)
 	{
 		_profiles = Objects.requireNonNull(profiles, "Profile repository must not be null.");
 		_catalog = Objects.requireNonNull(catalog, "Population catalog must not be null.");
+		_zoneId = Objects.requireNonNull(zoneId, "Population time zone must not be null.");
 		_codec = Objects.requireNonNull(codec, "Population codec must not be null.");
 		_secureRandom = Objects.requireNonNull(secureRandom, "Secure random must not be null.");
+		_failureInjector = Objects.requireNonNull(failureInjector, "Population failure injector must not be null.");
 	}
 
 	public List<ManagedSnapshot> loadManagedAfter(long exclusiveProfileId, int pageSize)
@@ -111,6 +140,7 @@ public final class PhantomPopulationStore
 			final ScheduleTemplate schedule = _catalog.chooseSchedule(identitySeed >>> 13);
 			final PlayerTemplate template = requireTemplate(classEntry.classId());
 			final Location creationLocation = PlayerCreationInitializer.resolveCreationLocation(template);
+			final PopulationInitializationContract authority = PopulationInitializationContract.resolve(_catalog.hash(), _zoneId, classEntry.classId(), creationLocation);
 			final int maximumPhase = schedule.maximumPhaseMinutes();
 			final int phase = maximumPhase == 0 ? 0 : (int) Math.floorMod(identitySeed >>> 23, (maximumPhase * 2L) + 1L) - maximumPhase;
 			final byte[] tokenBytes = new byte[32];
@@ -120,6 +150,7 @@ public final class PhantomPopulationStore
 				generation,
 				creationOrdinal,
 				_catalog.hash(),
+				authority.hash(),
 				deterministicSeed,
 				0,
 				reservedAccount(profileId),
@@ -161,15 +192,20 @@ public final class PhantomPopulationStore
 				case SHELL -> prepareAccount(current);
 				case ACCOUNT_PREPARED -> prepareCharacter(current);
 				case CHARACTER_PRESENT -> initializeCharacter(current);
-				case INITIALIZING -> verifyAndLink(current);
+				case INITIALIZING -> current.state().creationStage() == CreationStage.VERIFIED ? verifyAndLink(current) : initializeCharacter(current);
 				case READY -> new CreationResult(CreationOutcome.READY, current);
 				case RETIRE_REQUESTED, RETIRED -> new CreationResult(CreationOutcome.NOT_PENDING, current);
 				case INCONSISTENT -> new CreationResult(CreationOutcome.INCONSISTENT, current);
 			};
 		}
+		catch (FaultInjectedException e)
+		{
+			final ManagedSnapshot reloaded = reload(current.profile().profileId());
+			return new CreationResult(reloaded.state().state() == State.READY ? CreationOutcome.READY : CreationOutcome.RETRY, reloaded);
+		}
 		catch (RuntimeException e)
 		{
-			return inconsistentSafely(current, typedFailure(e));
+			return inconsistentSafely(reload(current.profile().profileId()), typedFailure(e));
 		}
 	}
 
@@ -282,6 +318,8 @@ public final class PhantomPopulationStore
 	private CreationResult initializeCharacter(ManagedSnapshot current)
 	{
 		ManagedSnapshot snapshot = current;
+		final boolean initializationStored = !snapshot.state().initializationHash().isEmpty();
+		final boolean resumeStoredInitialization = snapshot.state().creationStage() == CreationStage.INITIALIZATION_STORED;
 		final CharacterRow row = requireExactCharacter(snapshot.state());
 		if ((snapshot.state().expectedCharacterObjectId() != null) && (snapshot.state().expectedCharacterObjectId() != row.objectId()))
 		{
@@ -291,104 +329,153 @@ public final class PhantomPopulationStore
 		{
 			snapshot = updateState(snapshot, snapshot.state().withExpectedCharacter(row.objectId()).advance(State.CHARACTER_PRESENT, CreationStage.CHARACTER_CREATED));
 		}
-		snapshot = updateState(snapshot, snapshot.state().advance(State.INITIALIZING, CreationStage.INITIALIZATION_INTENT));
-		if (isPristine(row.objectId()))
+		if (!resumeStoredInitialization)
 		{
-			final Player player = Player.load(row.objectId());
-			if (player == null)
+			snapshot = updateState(snapshot, snapshot.state().advance(State.INITIALIZING, CreationStage.INITIALIZATION_INTENT));
+		}
+		final PopulationInitializationContract authority = validateAuthority(snapshot);
+		ProjectionInspection inspection = inspectProjection(row.objectId(), snapshot.state(), authority);
+		if (inspection.status() == ProjectionStatus.INCONSISTENT)
+		{
+			return inconsistent(snapshot, inspection.failure());
+		}
+		if (resumeStoredInitialization)
+		{
+			if ((snapshot.state().actualCharacterObjectId() == null) || (snapshot.state().actualCharacterObjectId() != row.objectId()) || (inspection.status() != ProjectionStatus.CANONICAL) || !snapshot.state().initializationHash().equals(inspection.projection().hash()))
 			{
-				throw new IllegalStateException("character.load_for_initialization_failed");
+				return inconsistent(snapshot, "character.stored_projection_mismatch");
 			}
-			PlayerAutoSaveTaskManager.getInstance().remove(player);
-			String expectedHash = "";
-			try
+			final String resumedVerificationFailure = verifyReadOnly(snapshot.profile().profileId(), row.objectId(), snapshot.state(), authority, inspection.projection(), "fresh");
+			if (resumedVerificationFailure != null)
 			{
-				if (!matchesIdentity(player, snapshot.state()))
-				{
-					return inconsistent(snapshot, "character.runtime_identity_mismatch");
-				}
-				PlayerCreationInitializer.initialize(player, Mode.POPULATION, new Location(snapshot.state().creationX(), snapshot.state().creationY(), snapshot.state().creationZ()));
-				player.stopAllTasks();
-				player.storeMe();
-				expectedHash = initializationHash(player);
+				return inconsistent(snapshot, resumedVerificationFailure);
 			}
-			finally
-			{
-				cleanupLoaded(player);
-			}
-			final Player verified = Player.load(row.objectId());
-			if (verified == null)
-			{
-				throw new IllegalStateException("character.fresh_load_failed");
-			}
-			PlayerAutoSaveTaskManager.getInstance().remove(verified);
-			try
-			{
-				final String verificationFailure = initializationFailure(verified, snapshot.state());
-				if (verificationFailure != null)
-				{
-					return inconsistent(snapshot, "character.fresh_" + verificationFailure);
-				}
-				if (!expectedHash.equals(initializationHash(verified)))
-				{
-					return inconsistent(snapshot, "character.fresh_hash_mismatch");
-				}
-			}
-			finally
-			{
-				cleanupLoaded(verified);
-			}
-			snapshot = updateState(snapshot, snapshot.state().initialized(row.objectId(), expectedHash));
+			snapshot = updateState(snapshot, snapshot.state().initialized(row.objectId(), inspection.projection().hash()));
 			return new CreationResult(CreationOutcome.PROGRESSED, snapshot);
 		}
-
-		final Player existing = Player.load(row.objectId());
-		if (existing == null)
+		if (!inspection.missingSkills().isEmpty())
 		{
-			throw new IllegalStateException("character.restart_load_failed");
-		}
-		PlayerAutoSaveTaskManager.getInstance().remove(existing);
-		try
-		{
-			final String verificationFailure = initializationFailure(existing, snapshot.state());
-			if (verificationFailure != null)
+			insertMissingSkills(row.objectId(), inspection.missingSkills());
+			_failureInjector.after(FaultPoint.SKILLS, snapshot.profile().profileId(), inspection.missingSkills().size());
+			inspection = inspectProjection(row.objectId(), snapshot.state(), authority);
+			if (inspection.status() == ProjectionStatus.INCONSISTENT)
 			{
-				return inconsistent(snapshot, "character.partial_" + verificationFailure);
+				return inconsistent(snapshot, inspection.failure());
 			}
-			snapshot = updateState(snapshot, snapshot.state().initialized(row.objectId(), initializationHash(existing)));
-			return new CreationResult(CreationOutcome.PROGRESSED, snapshot);
 		}
-		finally
+		if (inspection.status() != ProjectionStatus.CANONICAL)
 		{
-			cleanupLoaded(existing);
+			PlayerCreationInitializer.preparePopulationCharacterRow(row.objectId(), repairPlan(authority, inspection));
+			inspection = inspectProjection(row.objectId(), snapshot.state(), authority);
+			if (inspection.status() == ProjectionStatus.INCONSISTENT)
+			{
+				return inconsistent(snapshot, inspection.failure());
+			}
+			final byte[] beforeLoad = inspection.projection().canonicalBytes();
+			try (PlayerAutoSaveTaskManager.PopulationLoadSuppression ignored = PlayerAutoSaveTaskManager.suppressPopulationLoad(row.objectId()))
+			{
+				final Player repairPlayer = Player.load(row.objectId());
+				if (repairPlayer == null)
+				{
+					throw new IllegalStateException("character.load_for_initialization_failed");
+				}
+				assertAutosaveSuppressed(row.objectId());
+				try
+				{
+					if (!java.util.Arrays.equals(beforeLoad, inspectProjection(row.objectId(), snapshot.state(), authority).projection().canonicalBytes()))
+					{
+						return inconsistent(snapshot, "character.load_mutated_projection");
+					}
+					if (!matchesIdentity(repairPlayer, snapshot.state()))
+					{
+						return inconsistent(snapshot, "character.runtime_identity_mismatch");
+					}
+					final CreationPlan repairPlan = repairPlan(authority, inspection);
+					PlayerCreationInitializer.initializePopulation(repairPlayer, repairPlan, inspection.existingMacroIds(), new StoreInitializationObserver(snapshot.profile().profileId()));
+				}
+				finally
+				{
+					cleanupLoadedReadOnly(repairPlayer);
+				}
+			}
 		}
+		if (!initializationStored)
+		{
+			try (PlayerAutoSaveTaskManager.PopulationLoadSuppression ignored = PlayerAutoSaveTaskManager.suppressPopulationLoad(row.objectId()))
+			{
+				final Player storePlayer = Player.load(row.objectId());
+				if (storePlayer == null)
+				{
+					throw new IllegalStateException("character.reload_for_initialization_store_failed");
+				}
+				assertAutosaveSuppressed(row.objectId());
+				try
+				{
+					final CreationPlan finalizationPlan = new CreationPlan(
+						Mode.POPULATION,
+						authority.level(),
+						authority.sp(),
+						0,
+						new Location(authority.creationX(), authority.creationY(), authority.creationZ()),
+						authority.title(),
+						authority.vitalityEnabled(),
+						authority.vitalityPoints(),
+						authority.configuredStartingLevel(),
+						authority.configuredStartingSp(),
+						List.of(),
+						List.of(),
+						new InitialPlan(List.of(), List.of()));
+					PlayerCreationInitializer.initializePopulation(storePlayer, finalizationPlan, Set.of(), PopulationInitializationObserver.noop());
+					storePlayer.stopAllTasks();
+					storePlayer.storeMe();
+				}
+				finally
+				{
+					cleanupLoadedReadOnly(storePlayer);
+				}
+			}
+		}
+		final ProjectionInspection canonical = inspectProjection(row.objectId(), snapshot.state(), authority);
+		if (canonical.status() != ProjectionStatus.CANONICAL)
+		{
+			return inconsistent(snapshot, canonical.failure());
+		}
+		if (!initializationStored)
+		{
+			snapshot = updateState(snapshot, snapshot.state().initializationStored(row.objectId(), canonical.projection().hash()));
+			_failureInjector.after(FaultPoint.CHARACTER_STORE, snapshot.profile().profileId(), 0);
+		}
+		final String verificationFailure = verifyReadOnly(snapshot.profile().profileId(), row.objectId(), snapshot.state(), authority, canonical.projection(), "fresh");
+		if (verificationFailure != null)
+		{
+			return inconsistent(snapshot, verificationFailure);
+		}
+		snapshot = updateState(snapshot, snapshot.state().initialized(row.objectId(), canonical.projection().hash()));
+		return new CreationResult(CreationOutcome.PROGRESSED, snapshot);
 	}
 
 	private CreationResult verifyAndLink(ManagedSnapshot current)
 	{
 		ManagedSnapshot snapshot = current;
 		final int objectId = Objects.requireNonNull(snapshot.state().actualCharacterObjectId(), "Verified character object ID is absent.");
-		final Player player = Player.load(objectId);
-		if (player == null)
+		final PopulationInitializationContract authority = validateAuthority(snapshot);
+		final ProjectionInspection canonical = inspectProjection(objectId, snapshot.state(), authority);
+		if (canonical.status() == ProjectionStatus.INCONSISTENT)
 		{
-			throw new IllegalStateException("character.final_load_failed");
+			return inconsistent(snapshot, canonical.failure());
 		}
-		PlayerAutoSaveTaskManager.getInstance().remove(player);
-		try
+		if (canonical.status() != ProjectionStatus.CANONICAL)
 		{
-			final String verificationFailure = initializationFailure(player, snapshot.state());
-			if (verificationFailure != null)
-			{
-				return inconsistent(snapshot, "character.final_" + verificationFailure);
-			}
-			if (!snapshot.state().initializationHash().equals(initializationHash(player)))
-			{
-				return inconsistent(snapshot, "character.final_hash_mismatch");
-			}
+			return initializeCharacter(snapshot);
 		}
-		finally
+		final String verificationFailure = verifyReadOnly(snapshot.profile().profileId(), objectId, snapshot.state(), authority, canonical.projection(), "final");
+		if (verificationFailure != null)
 		{
-			cleanupLoaded(player);
+			return inconsistent(snapshot, verificationFailure);
+		}
+		if (!snapshot.state().initializationHash().equals(canonical.projection().hash()))
+		{
+			return inconsistent(snapshot, "character.final_hash_mismatch");
 		}
 
 		PhantomProfile profile = snapshot.profile();
@@ -396,12 +483,14 @@ public final class PhantomPopulationStore
 		{
 			profile = _profiles.updateCharacterLink(profile.profileId(), profile.rowVersion(), objectId);
 			snapshot = new ManagedSnapshot(profile, snapshot.component(), snapshot.state());
+			_failureInjector.after(FaultPoint.PROFILE_LINK, snapshot.profile().profileId(), 0);
 		}
 		else if (profile.characterObjectId() != objectId)
 		{
 			return inconsistent(snapshot, "profile.link_mismatch");
 		}
 		snapshot = updateState(snapshot, snapshot.state().ready());
+		_failureInjector.after(FaultPoint.READY_COMPONENT_UPDATE, snapshot.profile().profileId(), 0);
 		return new CreationResult(CreationOutcome.READY, snapshot);
 	}
 
@@ -443,27 +532,6 @@ public final class PhantomPopulationStore
 		{
 			return "adena_mismatch";
 		}
-		final List<InitialEquipment> equipment = Optional.ofNullable(InitialEquipmentData.getInstance().getClassEquipment(player.getPlayerClass())).map(ArrayList::new).orElseGet(ArrayList::new);
-		for (InitialEquipment expectedItem : equipment)
-		{
-			long count = 0;
-			for (Item item : player.getInventory().getAllItemsByItemId(expectedItem.getId()))
-			{
-				count += item.getCount();
-			}
-			if (count != expectedItem.getCount())
-			{
-				return "equipment_mismatch";
-			}
-		}
-		if (!SkillTreeData.getInstance().getAvailableSkills(player, player.getPlayerClass(), false, true).isEmpty())
-		{
-			return "skills_mismatch";
-		}
-		if (player.getAllShortcuts().isEmpty())
-		{
-			return "shortcuts_missing";
-		}
 		return null;
 	}
 
@@ -478,85 +546,326 @@ public final class PhantomPopulationStore
 			&& (player.getAppearance().getHairStyle() == state.hairStyle());
 	}
 
-	private static String initializationHash(Player player)
+	private String verifyReadOnly(long profileId, int objectId, PhantomPopulationState state, PopulationInitializationContract authority, DurableProjection expected, String phase)
 	{
-		try
+		final byte[] before = expected.canonicalBytes();
+		try (PlayerAutoSaveTaskManager.PopulationLoadSuppression ignored = PlayerAutoSaveTaskManager.suppressPopulationLoad(objectId))
 		{
-			final ByteArrayOutputStream bytes = new ByteArrayOutputStream(2048);
-			try (DataOutputStream output = new DataOutputStream(bytes))
+			final Player player = Player.load(objectId);
+			if (player == null)
 			{
-				output.writeInt(player.getLevel());
-				output.writeLong(player.getSp());
-				output.writeInt(player.getPlayerClass().getId());
-				output.writeInt(player.getX());
-				output.writeInt(player.getY());
-				output.writeInt(player.getZ());
-				output.writeLong(Double.doubleToLongBits(player.getCurrentHp()));
-				output.writeLong(Double.doubleToLongBits(player.getCurrentMp()));
-				output.writeLong(Double.doubleToLongBits(player.getCurrentCp()));
-				output.writeLong(player.getAdena());
-				final List<Item> items = new ArrayList<>(player.getInventory().getItems());
-				items.sort(Comparator.comparingInt(Item::getId).thenComparingInt(Item::getObjectId));
-				output.writeInt(items.size());
-				for (Item item : items)
+				return "character." + phase + "_load_failed";
+			}
+			assertAutosaveSuppressed(objectId);
+			try
+			{
+				final String failure = initializationFailure(player, state);
+				if (failure != null)
 				{
-					output.writeInt(item.getObjectId());
-					output.writeInt(item.getId());
-					output.writeLong(item.getCount());
-					output.writeBoolean(item.isEquipped());
+					return "character." + phase + "_" + failure;
 				}
-				final List<Skill> skills = new ArrayList<>(player.getSkills().values());
-				skills.sort(Comparator.comparingInt(Skill::getId).thenComparingInt(Skill::getLevel));
-				output.writeInt(skills.size());
-				for (Skill skill : skills)
+				if ("fresh".equals(phase))
 				{
-					output.writeInt(skill.getId());
-					output.writeInt(skill.getLevel());
-				}
-				final List<Shortcut> shortcuts = new ArrayList<>(player.getAllShortcuts());
-				shortcuts.sort(Comparator.comparingInt(Shortcut::getPage).thenComparingInt(Shortcut::getSlot));
-				output.writeInt(shortcuts.size());
-				for (Shortcut shortcut : shortcuts)
-				{
-					output.writeInt(shortcut.getPage());
-					output.writeInt(shortcut.getSlot());
-					output.writeInt(shortcut.getType().ordinal());
-					output.writeInt(shortcut.getId());
-					output.writeInt(shortcut.getLevel());
+					_failureInjector.after(FaultPoint.FRESH_VERIFICATION, profileId, 0);
 				}
 			}
-			return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes.toByteArray()));
+			finally
+			{
+				cleanupLoadedReadOnly(player);
+			}
 		}
-		catch (Exception e)
+		final ProjectionInspection after = inspectProjection(objectId, state, authority);
+		if ((after.status() != ProjectionStatus.CANONICAL) || !java.util.Arrays.equals(before, after.projection().canonicalBytes()))
 		{
-			throw new IllegalStateException("Could not compute canonical population initialization hash.", e);
+			return "character." + phase + "_verification_wrote_state";
+		}
+		return null;
+	}
+
+	private static void assertAutosaveSuppressed(int objectId)
+	{
+		if (!PlayerAutoSaveTaskManager.isPopulationLoadSuppressed(objectId) || PlayerAutoSaveTaskManager.getInstance().containsObjectId(objectId))
+		{
+			throw new IllegalStateException("character.autosave_suppression_failed");
 		}
 	}
 
-	private static void cleanupLoaded(Player player)
+	private static void cleanupLoadedReadOnly(Player player)
 	{
 		PlayerAutoSaveTaskManager.getInstance().remove(player);
 		player.stopAllTasks();
-		player.storeMe();
 		player.deleteMe();
 	}
 
-	private static boolean isPristine(int objectId)
+	private CreationPlan repairPlan(PopulationInitializationContract authority, ProjectionInspection inspection)
+	{
+		final List<InitialItemPlan> missingEquipment = new ArrayList<>();
+		long missingAdena = 0;
+		for (PopulationInitializationContract.ItemFact expected : authority.items())
+		{
+			final long missing = inspection.missingItems().getOrDefault(new ExpectedItemKey(expected.itemId(), expected.equipped()), 0L);
+			if (expected.itemId() == Inventory.ADENA_ID)
+			{
+				missingAdena = Math.addExact(missingAdena, missing);
+			}
+			else if (missing > 0)
+			{
+				missingEquipment.add(new InitialItemPlan(expected.itemId(), missing, expected.equipped()));
+			}
+		}
+		final Set<Integer> requiredMacroPlans = new HashSet<>(inspection.missingMacroIds());
+		for (ShortcutPlan shortcut : authority.initialPlan().shortcuts())
+		{
+			if (inspection.missingShortcutKeys().contains(shortcut.key()) && (shortcut.type() == org.l2jmobius.gameserver.model.actor.enums.player.ShortcutType.MACRO))
+			{
+				requiredMacroPlans.add(shortcut.logicalId());
+			}
+		}
+		return new CreationPlan(
+			Mode.POPULATION,
+			authority.level(),
+			authority.sp(),
+			missingAdena,
+			new Location(authority.creationX(), authority.creationY(), authority.creationZ()),
+			authority.title(),
+			authority.vitalityEnabled(),
+			authority.vitalityPoints(),
+			authority.configuredStartingLevel(),
+			authority.configuredStartingSp(),
+			missingEquipment,
+			List.of(),
+			authority.initialPlan().subset(inspection.missingShortcutKeys(), requiredMacroPlans));
+	}
+
+	private static void insertMissingSkills(int objectId, Set<PopulationInitializationContract.SkillFact> missing)
 	{
 		try (Connection connection = DatabaseFactory.getConnection();
-			PreparedStatement statement = connection.prepareStatement("SELECT (SELECT COUNT(*) FROM items WHERE owner_id = ?) + (SELECT COUNT(*) FROM character_skills WHERE charId = ?) + (SELECT COUNT(*) FROM character_shortcuts WHERE charId = ?)"))
+			PreparedStatement statement = connection.prepareStatement("INSERT INTO character_skills (charId,skill_id,skill_level,class_index) VALUES (?,?,?,0)"))
 		{
-			statement.setInt(1, objectId);
-			statement.setInt(2, objectId);
-			statement.setInt(3, objectId);
-			try (ResultSet result = statement.executeQuery())
+			for (PopulationInitializationContract.SkillFact skill : missing)
 			{
-				return result.next() && (result.getLong(1) == 0);
+				statement.setInt(1, objectId);
+				statement.setInt(2, skill.skillId());
+				statement.setInt(3, skill.skillLevel());
+				if (statement.executeUpdate() != 1)
+				{
+					throw new IllegalStateException("Population initial skill insert did not affect one row.");
+				}
 			}
 		}
 		catch (SQLException e)
 		{
-			throw new IllegalStateException("Could not inspect pristine population character.", e);
+			throw new IllegalStateException("Could not insert missing canonical population skills.", e);
+		}
+	}
+
+	private ProjectionInspection inspectProjection(int objectId, PhantomPopulationState state, PopulationInitializationContract authority)
+	{
+		final DurableProjection projection = loadProjection(objectId);
+		final CharacterProjection character = projection.character();
+		if ((character == null) || !character.matchesIdentity(state) || (character.online() != 0) || (character.level() != authority.level()) || (character.sp() != authority.sp()) || (character.exp() != 0))
+		{
+			return ProjectionInspection.inconsistent(projection, "character.projection_identity_or_level");
+		}
+		final boolean pristineCharacter = (character.curHp() == 0) && (character.curMp() == 0) && (character.curCp() == 0) && character.title().isEmpty();
+		final boolean canonicalCharacter = (character.maxHp() > 0) && (character.curHp() == character.maxHp()) && (character.maxMp() > 0) && (character.curMp() == character.maxMp()) && (character.curCp() == 0) && (character.x() == authority.creationX()) && (character.y() == authority.creationY()) && (character.z() == authority.creationZ()) && character.title().equals(authority.title()) && (character.vitalityPoints() == authority.vitalityPoints());
+		if (!pristineCharacter && !canonicalCharacter)
+		{
+			return ProjectionInspection.inconsistent(projection, "character.projection_properties");
+		}
+
+		final Map<ExpectedItemKey, Long> expectedItems = new LinkedHashMap<>();
+		for (PopulationInitializationContract.ItemFact item : authority.items())
+		{
+			expectedItems.put(new ExpectedItemKey(item.itemId(), item.equipped()), item.count());
+		}
+		final Map<ExpectedItemKey, Long> actualItems = new LinkedHashMap<>();
+		final Map<Integer, ItemProjection> itemsByObjectId = new HashMap<>();
+		for (ItemProjection item : projection.items())
+		{
+			if ((item.objectId() <= 0) || (item.count() <= 0) || (itemsByObjectId.put(item.objectId(), item) != null))
+			{
+				return ProjectionInspection.inconsistent(projection, "character.projection_item_identity");
+			}
+			final boolean equipped;
+			if ("PAPERDOLL".equals(item.location()))
+			{
+				equipped = true;
+			}
+			else if ("INVENTORY".equals(item.location()))
+			{
+				equipped = false;
+			}
+			else
+			{
+				return ProjectionInspection.inconsistent(projection, "character.projection_item_location");
+			}
+			final ExpectedItemKey key = new ExpectedItemKey(item.itemId(), equipped);
+			final Long maximum = expectedItems.get(key);
+			if (maximum == null)
+			{
+				return ProjectionInspection.inconsistent(projection, "character.projection_extra_item");
+			}
+			final long accumulated = actualItems.merge(key, item.count(), Math::addExact);
+			if (accumulated > maximum)
+			{
+				return ProjectionInspection.inconsistent(projection, "character.projection_item_excess");
+			}
+		}
+		final Map<ExpectedItemKey, Long> missingItems = new LinkedHashMap<>();
+		for (Map.Entry<ExpectedItemKey, Long> expected : expectedItems.entrySet())
+		{
+			final long missing = expected.getValue() - actualItems.getOrDefault(expected.getKey(), 0L);
+			if (missing > 0)
+			{
+				missingItems.put(expected.getKey(), missing);
+			}
+		}
+
+		final Set<PopulationInitializationContract.SkillFact> expectedSkills = Set.copyOf(authority.skills());
+		final Set<PopulationInitializationContract.SkillFact> actualSkills = new HashSet<>();
+		for (SkillProjection skill : projection.skills())
+		{
+			final PopulationInitializationContract.SkillFact fact = new PopulationInitializationContract.SkillFact(skill.skillId(), skill.skillLevel());
+			if ((skill.classIndex() != 0) || !expectedSkills.contains(fact) || !actualSkills.add(fact))
+			{
+				return ProjectionInspection.inconsistent(projection, "character.projection_extra_skill");
+			}
+		}
+		final Set<PopulationInitializationContract.SkillFact> missingSkills = new HashSet<>(expectedSkills);
+		missingSkills.removeAll(actualSkills);
+
+		final Map<ShortcutKey, ShortcutPlan> expectedShortcuts = new LinkedHashMap<>();
+		for (ShortcutPlan shortcut : authority.initialPlan().shortcuts())
+		{
+			if (expectedShortcuts.put(shortcut.key(), shortcut) != null)
+			{
+				return ProjectionInspection.inconsistent(projection, "character.authority_duplicate_shortcut");
+			}
+		}
+		final Set<ShortcutKey> actualShortcutKeys = new HashSet<>();
+		for (ShortcutProjection shortcut : projection.shortcuts())
+		{
+			final ShortcutKey key = new ShortcutKey(shortcut.page(), shortcut.slot());
+			final ShortcutPlan expected = expectedShortcuts.get(key);
+			if ((expected == null) || !actualShortcutKeys.add(key) || (shortcut.classIndex() != 0) || (shortcut.type() != expected.type().ordinal()) || (shortcut.level() != expected.level()))
+			{
+				return ProjectionInspection.inconsistent(projection, "character.projection_extra_shortcut");
+			}
+			if (expected.type() == org.l2jmobius.gameserver.model.actor.enums.player.ShortcutType.ITEM)
+			{
+				final ItemProjection owned = itemsByObjectId.get(shortcut.shortcutId());
+				if ((owned == null) || (owned.itemId() != expected.logicalId()))
+				{
+					return ProjectionInspection.inconsistent(projection, "character.projection_item_shortcut_owner");
+				}
+			}
+			else if (shortcut.shortcutId() != expected.logicalId())
+			{
+				return ProjectionInspection.inconsistent(projection, "character.projection_shortcut_identity");
+			}
+		}
+		final Set<ShortcutKey> missingShortcutKeys = new HashSet<>(expectedShortcuts.keySet());
+		missingShortcutKeys.removeAll(actualShortcutKeys);
+
+		final Map<Integer, MacroPlan> expectedMacros = new LinkedHashMap<>();
+		authority.initialPlan().macros().forEach(macro -> expectedMacros.put(macro.id(), macro));
+		final Set<Integer> existingMacroIds = new HashSet<>();
+		for (MacroProjection macro : projection.macros())
+		{
+			final MacroPlan expected = expectedMacros.get(macro.id());
+			if ((expected == null) || !existingMacroIds.add(macro.id()) || (macro.icon() != expected.icon()) || !macro.name().equals(expected.name()) || !macro.description().equals(expected.description()) || !macro.acronym().equals(expected.acronym()) || !macro.commands().equals(expected.serializedCommands()))
+			{
+				return ProjectionInspection.inconsistent(projection, "character.projection_extra_macro");
+			}
+		}
+		final Set<Integer> missingMacroIds = new HashSet<>(expectedMacros.keySet());
+		missingMacroIds.removeAll(existingMacroIds);
+
+		final boolean complete = missingItems.isEmpty() && missingSkills.isEmpty() && missingShortcutKeys.isEmpty() && missingMacroIds.isEmpty();
+		final ProjectionStatus status = canonicalCharacter && complete ? ProjectionStatus.CANONICAL : (pristineCharacter && projection.items().isEmpty() && projection.skills().isEmpty() && projection.shortcuts().isEmpty() && projection.macros().isEmpty() ? ProjectionStatus.PRISTINE : ProjectionStatus.STRICT_SUBSET);
+		final String pending = status == ProjectionStatus.CANONICAL ? "" : (status == ProjectionStatus.PRISTINE ? "character.projection_pristine" : "character.projection_incomplete");
+		return new ProjectionInspection(status, projection, pending, Map.copyOf(missingItems), Set.copyOf(missingSkills), Set.copyOf(missingShortcutKeys), Set.copyOf(missingMacroIds), Set.copyOf(existingMacroIds));
+	}
+
+	private static DurableProjection loadProjection(int objectId)
+	{
+		try (Connection connection = DatabaseFactory.getConnection())
+		{
+			CharacterProjection character = null;
+			try (PreparedStatement statement = connection.prepareStatement("SELECT account_name,charId,char_name,level,maxHp,curHp,maxCp,curCp,maxMp,curMp,face,hairStyle,hairColor,sex,x,y,z,exp,sp,classid,base_class,title,online,vitality_points FROM characters WHERE charId=?"))
+			{
+				statement.setInt(1, objectId);
+				try (ResultSet result = statement.executeQuery())
+				{
+					if (result.next())
+					{
+						character = new CharacterProjection(result.getString("account_name"), result.getInt("charId"), result.getString("char_name"), result.getInt("level"), result.getLong("maxHp"), result.getLong("curHp"), result.getLong("maxCp"), result.getLong("curCp"), result.getLong("maxMp"), result.getLong("curMp"), result.getInt("face"), result.getInt("hairStyle"), result.getInt("hairColor"), result.getInt("sex") != 0, result.getInt("x"), result.getInt("y"), result.getInt("z"), result.getLong("exp"), result.getLong("sp"), result.getInt("classid"), result.getInt("base_class"), Objects.requireNonNullElse(result.getString("title"), ""), result.getInt("online"), result.getInt("vitality_points"));
+					}
+					if ((character != null) && result.next())
+					{
+						throw new IllegalStateException("Population character projection returned duplicate rows.");
+					}
+				}
+			}
+			final List<ItemProjection> items = new ArrayList<>();
+			try (PreparedStatement statement = connection.prepareStatement("SELECT object_id,item_id,count,loc FROM items WHERE owner_id=? ORDER BY object_id"))
+			{
+				statement.setInt(1, objectId);
+				try (ResultSet result = statement.executeQuery())
+				{
+					while (result.next())
+					{
+						items.add(new ItemProjection(result.getInt("object_id"), result.getInt("item_id"), result.getLong("count"), result.getString("loc")));
+					}
+				}
+			}
+			final List<SkillProjection> skills = new ArrayList<>();
+			try (PreparedStatement statement = connection.prepareStatement("SELECT skill_id,skill_level,class_index FROM character_skills WHERE charId=? ORDER BY skill_id,skill_level,class_index"))
+			{
+				statement.setInt(1, objectId);
+				try (ResultSet result = statement.executeQuery())
+				{
+					while (result.next())
+					{
+						skills.add(new SkillProjection(result.getInt("skill_id"), result.getInt("skill_level"), result.getInt("class_index")));
+					}
+				}
+			}
+			final List<ShortcutProjection> shortcuts = new ArrayList<>();
+			try (PreparedStatement statement = connection.prepareStatement("SELECT slot,page,type,shortcut_id,level,class_index FROM character_shortcuts WHERE charId=? ORDER BY page,slot,class_index"))
+			{
+				statement.setInt(1, objectId);
+				try (ResultSet result = statement.executeQuery())
+				{
+					while (result.next())
+					{
+						final String level = result.getString("level");
+						if ((level == null) || !level.matches("-?[0-9]+"))
+						{
+							throw new IllegalStateException("character.projection_shortcut_level");
+						}
+						shortcuts.add(new ShortcutProjection(result.getInt("slot"), result.getInt("page"), result.getInt("type"), result.getInt("shortcut_id"), Integer.parseInt(level), result.getInt("class_index")));
+					}
+				}
+			}
+			final List<MacroProjection> macros = new ArrayList<>();
+			try (PreparedStatement statement = connection.prepareStatement("SELECT id,icon,name,descr,acronym,commands FROM character_macroses WHERE charId=? ORDER BY id"))
+			{
+				statement.setInt(1, objectId);
+				try (ResultSet result = statement.executeQuery())
+				{
+					while (result.next())
+					{
+						macros.add(new MacroProjection(result.getInt("id"), result.getInt("icon"), result.getString("name"), result.getString("descr"), result.getString("acronym"), result.getString("commands")));
+					}
+				}
+			}
+			return new DurableProjection(character, List.copyOf(items), List.copyOf(skills), List.copyOf(shortcuts), List.copyOf(macros));
+		}
+		catch (SQLException e)
+		{
+			throw new IllegalStateException("Could not load exact population character projection.", e);
 		}
 	}
 
@@ -697,11 +1006,42 @@ public final class PhantomPopulationStore
 
 	private ManagedSnapshot decode(ManagedProfile managed)
 	{
+		if (managed.component().componentSchemaVersion() == 1)
+		{
+			_codec.decodeV1(managed.component().payload());
+			throw new PopulationAuthorityException(AuthorityFailure.LEGACY_AUTHORITY_V1, "authority.legacy_v1");
+		}
 		if (managed.component().componentSchemaVersion() != PhantomPopulationState.SCHEMA_VERSION)
 		{
 			throw new IllegalArgumentException("Unknown population.state component schema version.");
 		}
-		return new ManagedSnapshot(managed.profile(), managed.component(), _codec.decode(managed.component().payload()));
+		final ManagedSnapshot snapshot = new ManagedSnapshot(managed.profile(), managed.component(), _codec.decode(managed.component().payload()));
+		validateAuthority(snapshot);
+		return snapshot;
+	}
+
+	public PopulationInitializationContract validateAuthority(ManagedSnapshot snapshot)
+	{
+		Objects.requireNonNull(snapshot, "Managed population snapshot must not be null.");
+		final PhantomPopulationState state = snapshot.state();
+		if (state.initializationAuthorityHash().isEmpty())
+		{
+			throw new PopulationAuthorityException(AuthorityFailure.LEGACY_AUTHORITY_V1, "authority.legacy_v1");
+		}
+		if (!state.catalogHash().equals(_catalog.hash()))
+		{
+			throw new PopulationAuthorityException(AuthorityFailure.CATALOG_DRIFT, "authority.catalog_drift");
+		}
+		final PopulationInitializationContract authority = PopulationInitializationContract.resolve(
+			_catalog.hash(),
+			_zoneId,
+			state.classId(),
+			new Location(state.creationX(), state.creationY(), state.creationZ()));
+		if (!state.initializationAuthorityHash().equals(authority.hash()))
+		{
+			throw new PopulationAuthorityException(AuthorityFailure.CONTRACT_DRIFT, "authority.contract_drift");
+		}
+		return authority;
 	}
 
 	private static PlayerTemplate requireTemplate(int classId)
@@ -756,6 +1096,249 @@ public final class PhantomPopulationStore
 	}
 
 	public record CreationResult(CreationOutcome outcome, ManagedSnapshot snapshot)
+	{
+	}
+
+	public enum AuthorityFailure
+	{
+		LEGACY_AUTHORITY_V1,
+		CATALOG_DRIFT,
+		CONTRACT_DRIFT
+	}
+
+	public static final class PopulationAuthorityException extends IllegalStateException
+	{
+		private static final long serialVersionUID = 1L;
+		private final AuthorityFailure _failure;
+
+		private PopulationAuthorityException(AuthorityFailure failure, String key)
+		{
+			super(key);
+			_failure = failure;
+		}
+
+		public AuthorityFailure failure()
+		{
+			return _failure;
+		}
+	}
+
+	public enum FaultPoint
+	{
+		ADENA,
+		INITIAL_ITEM,
+		SKILLS,
+		SHORTCUTS,
+		MACROS,
+		CHARACTER_STORE,
+		FRESH_VERIFICATION,
+		PROFILE_LINK,
+		READY_COMPONENT_UPDATE
+	}
+
+	@FunctionalInterface
+	public interface FailureInjector
+	{
+		void after(FaultPoint point, long profileId, int ordinal);
+
+		static FailureInjector none()
+		{
+			return (point, profileId, ordinal) ->
+			{
+			};
+		}
+	}
+
+	public static final class FaultInjectedException extends RuntimeException
+	{
+		private static final long serialVersionUID = 1L;
+
+		public FaultInjectedException(String message)
+		{
+			super(message);
+		}
+	}
+
+	private final class StoreInitializationObserver implements PopulationInitializationObserver
+	{
+		private final long _profileId;
+
+		private StoreInitializationObserver(long profileId)
+		{
+			_profileId = profileId;
+		}
+
+		@Override
+		public void afterAdena()
+		{
+			_failureInjector.after(FaultPoint.ADENA, _profileId, 0);
+		}
+
+		@Override
+		public void afterItem(int ordinal)
+		{
+			_failureInjector.after(FaultPoint.INITIAL_ITEM, _profileId, ordinal);
+		}
+
+		@Override
+		public void afterSkills()
+		{
+			_failureInjector.after(FaultPoint.SKILLS, _profileId, 0);
+		}
+
+		@Override
+		public void afterShortcut(int ordinal)
+		{
+			_failureInjector.after(FaultPoint.SHORTCUTS, _profileId, ordinal);
+		}
+
+		@Override
+		public void afterMacro(int ordinal)
+		{
+			_failureInjector.after(FaultPoint.MACROS, _profileId, ordinal);
+		}
+	}
+
+	private enum ProjectionStatus
+	{
+		PRISTINE,
+		STRICT_SUBSET,
+		CANONICAL,
+		INCONSISTENT
+	}
+
+	private record ProjectionInspection(ProjectionStatus status, DurableProjection projection, String failure, Map<ExpectedItemKey, Long> missingItems, Set<PopulationInitializationContract.SkillFact> missingSkills, Set<ShortcutKey> missingShortcutKeys, Set<Integer> missingMacroIds, Set<Integer> existingMacroIds)
+	{
+		private static ProjectionInspection inconsistent(DurableProjection projection, String failure)
+		{
+			return new ProjectionInspection(ProjectionStatus.INCONSISTENT, projection, failure, Map.of(), Set.of(), Set.of(), Set.of(), Set.of());
+		}
+	}
+
+	private record ExpectedItemKey(int itemId, boolean equipped)
+	{
+	}
+
+	private record DurableProjection(CharacterProjection character, List<ItemProjection> items, List<SkillProjection> skills, List<ShortcutProjection> shortcuts, List<MacroProjection> macros)
+	{
+		private byte[] canonicalBytes()
+		{
+			try
+			{
+				final ByteArrayOutputStream bytes = new ByteArrayOutputStream(4096);
+				try (DataOutputStream output = new DataOutputStream(bytes))
+				{
+					output.writeBoolean(character != null);
+					if (character != null)
+					{
+						character.write(output);
+					}
+					output.writeInt(items.size());
+					for (ItemProjection item : items)
+					{
+						output.writeInt(item.objectId());
+						output.writeInt(item.itemId());
+						output.writeLong(item.count());
+						output.writeUTF(item.location());
+					}
+					output.writeInt(skills.size());
+					for (SkillProjection skill : skills)
+					{
+						output.writeInt(skill.skillId());
+						output.writeInt(skill.skillLevel());
+						output.writeInt(skill.classIndex());
+					}
+					output.writeInt(shortcuts.size());
+					for (ShortcutProjection shortcut : shortcuts)
+					{
+						output.writeInt(shortcut.slot());
+						output.writeInt(shortcut.page());
+						output.writeInt(shortcut.type());
+						output.writeInt(shortcut.shortcutId());
+						output.writeInt(shortcut.level());
+						output.writeInt(shortcut.classIndex());
+					}
+					output.writeInt(macros.size());
+					for (MacroProjection macro : macros)
+					{
+						output.writeInt(macro.id());
+						output.writeInt(macro.icon());
+						output.writeUTF(macro.name());
+						output.writeUTF(macro.description());
+						output.writeUTF(macro.acronym());
+						output.writeUTF(macro.commands());
+					}
+				}
+				return bytes.toByteArray();
+			}
+			catch (Exception e)
+			{
+				throw new IllegalStateException("Could not encode durable population projection.", e);
+			}
+		}
+
+		private String hash()
+		{
+			try
+			{
+				return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonicalBytes()));
+			}
+			catch (Exception e)
+			{
+				throw new IllegalStateException("Could not hash durable population projection.", e);
+			}
+		}
+	}
+
+	private record CharacterProjection(String account, int objectId, String name, int level, long maxHp, long curHp, long maxCp, long curCp, long maxMp, long curMp, int face, int hairStyle, int hairColor, boolean female, int x, int y, int z, long exp, long sp, int classId, int baseClass, String title, int online, int vitalityPoints)
+	{
+		private boolean matchesIdentity(PhantomPopulationState state)
+		{
+			return (objectId == Objects.requireNonNullElse(state.expectedCharacterObjectId(), objectId)) && account.equals(state.reservedAccount()) && name.equals(state.characterName()) && (classId == state.classId()) && (baseClass == state.classId()) && (female == state.female()) && (face == state.face()) && (hairColor == state.hairColor()) && (hairStyle == state.hairStyle());
+		}
+
+		private void write(DataOutputStream output) throws Exception
+		{
+			output.writeUTF(account);
+			output.writeInt(objectId);
+			output.writeUTF(name);
+			output.writeInt(level);
+			output.writeLong(maxHp);
+			output.writeLong(curHp);
+			output.writeLong(maxCp);
+			output.writeLong(curCp);
+			output.writeLong(maxMp);
+			output.writeLong(curMp);
+			output.writeInt(face);
+			output.writeInt(hairStyle);
+			output.writeInt(hairColor);
+			output.writeBoolean(female);
+			output.writeInt(x);
+			output.writeInt(y);
+			output.writeInt(z);
+			output.writeLong(exp);
+			output.writeLong(sp);
+			output.writeInt(classId);
+			output.writeInt(baseClass);
+			output.writeUTF(title);
+			output.writeInt(online);
+			output.writeInt(vitalityPoints);
+		}
+	}
+
+	private record ItemProjection(int objectId, int itemId, long count, String location)
+	{
+	}
+
+	private record SkillProjection(int skillId, int skillLevel, int classIndex)
+	{
+	}
+
+	private record ShortcutProjection(int slot, int page, int type, int shortcutId, int level, int classIndex)
+	{
+	}
+
+	private record MacroProjection(int id, int icon, String name, String description, String acronym, String commands)
 	{
 	}
 

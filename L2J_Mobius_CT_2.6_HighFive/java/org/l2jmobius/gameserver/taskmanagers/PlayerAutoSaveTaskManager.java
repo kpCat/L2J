@@ -35,6 +35,7 @@ import org.l2jmobius.gameserver.model.actor.Player;
 public class PlayerAutoSaveTaskManager implements Runnable
 {
 	private static final Map<Player, Long> PLAYER_TIMES = new ConcurrentHashMap<>();
+	private static final ThreadLocal<Integer> POPULATION_LOAD_SUPPRESSION = new ThreadLocal<>();
 	private static boolean _working = false;
 	
 	protected PlayerAutoSaveTaskManager()
@@ -85,6 +86,11 @@ public class PlayerAutoSaveTaskManager implements Runnable
 	
 	public void add(Player player)
 	{
+		final Integer suppressedObjectId = POPULATION_LOAD_SUPPRESSION.get();
+		if ((suppressedObjectId != null) && (player.getObjectId() == suppressedObjectId))
+		{
+			return;
+		}
 		PLAYER_TIMES.put(player, System.currentTimeMillis() + GeneralConfig.CHAR_DATA_STORE_INTERVAL);
 	}
 	
@@ -120,6 +126,53 @@ public class PlayerAutoSaveTaskManager implements Runnable
 			}
 		}
 		return false;
+	}
+
+	public static PopulationLoadSuppression suppressPopulationLoad(int objectId)
+	{
+		if (objectId <= 0)
+		{
+			throw new IllegalArgumentException("Population autosave suppression requires a positive object ID.");
+		}
+		if (POPULATION_LOAD_SUPPRESSION.get() != null)
+		{
+			throw new IllegalStateException("Population autosave suppression is already active on this thread.");
+		}
+		POPULATION_LOAD_SUPPRESSION.set(objectId);
+		return new PopulationLoadSuppression(objectId);
+	}
+
+	public static boolean isPopulationLoadSuppressed(int objectId)
+	{
+		final Integer suppressedObjectId = POPULATION_LOAD_SUPPRESSION.get();
+		return (suppressedObjectId != null) && (suppressedObjectId == objectId);
+	}
+
+	public static final class PopulationLoadSuppression implements AutoCloseable
+	{
+		private final int _objectId;
+		private boolean _closed;
+
+		private PopulationLoadSuppression(int objectId)
+		{
+			_objectId = objectId;
+		}
+
+		@Override
+		public void close()
+		{
+			if (_closed)
+			{
+				return;
+			}
+			final Integer active = POPULATION_LOAD_SUPPRESSION.get();
+			if ((active == null) || (active != _objectId))
+			{
+				throw new IllegalStateException("Population autosave suppression ownership changed unexpectedly.");
+			}
+			POPULATION_LOAD_SUPPRESSION.remove();
+			_closed = true;
+		}
 	}
 	
 	public static PlayerAutoSaveTaskManager getInstance()
