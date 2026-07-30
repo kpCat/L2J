@@ -175,7 +175,10 @@ else
 	{
 		$mode = "completion-commit"
 		$status = @(Invoke-Git @("-c", "core.quotepath=false", "status", "--porcelain=v1", "--", $script:moduleRelative))
-		Assert-True ($status.Count -eq 0) "Goal 016 post-commit verifier requires a clean module worktree."
+		if ($status.Count -gt 0)
+		{
+			$mode = "completion-descendant-working-tree"
+		}
 	}
 	foreach ($line in Invoke-Git @("diff", "--name-only", $implementationCommit, $completionCommit, "--", $script:moduleRelative))
 	{

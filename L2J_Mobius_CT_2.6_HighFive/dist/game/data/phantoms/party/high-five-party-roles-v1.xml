@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<partyRoles version="1">
+	<role key="frontline.guardian" support="false">
+		<capability key="combat.tank" weight="18"/>
+		<capability key="combat.melee_damage" weight="7"/>
+		<objective mode="GENERAL_PVE" weight="120"/>
+		<objective mode="AREA_PVE" weight="180"/>
+	</role>
+	<role key="damage.melee" support="false">
+		<capability key="combat.melee_damage" weight="14"/>
+		<capability key="combat.debuff" weight="4"/>
+		<objective mode="GENERAL_PVE" weight="140"/>
+	</role>
+	<role key="damage.ranged" support="false">
+		<capability key="combat.ranged_physical_damage" weight="14"/>
+		<capability key="combat.ranged_magic_damage" weight="14"/>
+		<capability key="combat.aoe_damage" weight="7"/>
+		<objective mode="AREA_PVE" weight="180"/>
+	</role>
+	<role key="support.healer" support="true">
+		<capability key="combat.heal" weight="20"/>
+		<capability key="combat.resurrection" weight="11"/>
+		<capability key="combat.buff" weight="4"/>
+		<objective mode="RECOVERY" weight="240"/>
+	</role>
+	<role key="support.recharge" support="true">
+		<capability key="combat.recharge" weight="20"/>
+		<capability key="combat.heal" weight="6"/>
+		<objective mode="RECOVERY" weight="180"/>
+	</role>
+	<role key="support.enhancement" support="true">
+		<capability key="combat.buff" weight="12"/>
+		<capability key="combat.song" weight="15"/>
+		<capability key="combat.dance" weight="15"/>
+		<objective mode="GENERAL_PVE" weight="120"/>
+	</role>
+	<role key="control.specialist" support="true">
+		<capability key="combat.crowd_control" weight="15"/>
+		<capability key="combat.debuff" weight="12"/>
+		<objective mode="AREA_PVE" weight="200"/>
+	</role>
+</partyRoles>

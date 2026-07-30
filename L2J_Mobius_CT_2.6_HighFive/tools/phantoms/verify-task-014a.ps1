@@ -142,7 +142,7 @@ $verifier014Text = Read-Utf8Strict (Join-Path $moduleRoot "tools/phantoms/verify
 Assert-True (-not $verifier014Text.Contains('$preExistingUntracked')) "Goal 014 verifier still has the obsolete-root special whitelist."
 
 $roadmapText = Read-Utf8Strict (Join-Path $moduleRoot "docs/PHANTOM_BOTS_ROADMAP.md")
-Assert-True ($roadmapText.Contains("Goal 014: ACCEPT after Goal 014A") -and $roadmapText.Contains("Goal 014A + completion: ACCEPT") -and $roadmapText.Contains("Goal 015: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW") -and $roadmapText.Contains("Goal 017: NOT_STARTED") -and $roadmapText.Contains("Goal 025: NOT_STARTED")) "Roadmap progress truth is incomplete."
+Assert-True ($roadmapText.Contains("Goal 014: ACCEPT after Goal 014A") -and $roadmapText.Contains("Goal 014A + completion: ACCEPT") -and $roadmapText.Contains("Goal 015: ACCEPT") -and $roadmapText.Contains("Goal 017: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW") -and $roadmapText.Contains("Goal 025: NOT_STARTED")) "Roadmap progress truth is incomplete."
 $reviewText = Read-Utf8Strict (Join-Path $moduleRoot "docs/phantoms/reviews/014-npc-commerce-supply-travel-loop-review.md")
 Assert-True ($reviewText.Contains("FIX_REQUIRED after first review") -and $reviewText.Contains("Goal 014A")) "Goal 014 first-review findings are missing."
 

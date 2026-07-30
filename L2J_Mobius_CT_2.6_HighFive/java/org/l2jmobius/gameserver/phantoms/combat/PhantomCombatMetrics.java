@@ -46,6 +46,13 @@ public final class PhantomCombatMetrics
 	private final LongAdder _respawnCompleted = new LongAdder();
 	private final LongAdder _cleanupFailures = new LongAdder();
 	private final LongAdder _stopFailures = new LongAdder();
+	private final LongAdder _externalRequested = new LongAdder();
+	private final LongAdder _externalAcquired = new LongAdder();
+	private final LongAdder _externalRejected = new LongAdder();
+	private final LongAdder _externalReleased = new LongAdder();
+	private final LongAdder _externalReleaseFailures = new LongAdder();
+	private final LongAdder _externalSupportIssued = new LongAdder();
+	private final LongAdder _externalRouteIssued = new LongAdder();
 
 	void sessionRequested()
 	{
@@ -211,12 +218,46 @@ public final class PhantomCombatMetrics
 		_stopFailures.increment();
 	}
 
-	public Snapshot snapshot()
+	void externalRequested()
 	{
-		return new Snapshot(_sessionsRequested.sum(), _sessionsAccepted.sum(), _sessionsRejected.sum(), _currentSessions.get(), _peakSessions.get(), _leasesAcquired.sum(), _leasesRejected.sum(), _leasesReleased.sum(), _currentLeases.get(), _targetsAccepted.sum(), _targetsRejected.sum(), _targetsLost.sum(), _pulses.sum(), _workerDispatches.sum(), _dispatchFailures.sum(), _threatObservations.sum(), _threatEvictions.sum(), _normalAttacks.sum(), _skillCastsIssued.sum(), _skillCastsRejected.sum(), _shotsActivated.sum(), _shotsUnavailable.sum(), _shotsFailed.sum(), _playerDeaths.sum(), _targetDeaths.sum(), _lootCandidates.sum(), _lootPickups.sum(), _lootSuccess.sum(), _lootBlocked.sum(), _cancellations.sum(), _timeouts.sum(), _backendFailures.sum(), _respawnRequested.sum(), _respawnAccepted.sum(), _respawnRejected.sum(), _respawnCompleted.sum(), _cleanupFailures.sum(), _stopFailures.sum());
+		_externalRequested.increment();
 	}
 
-	public record Snapshot(long sessionsRequested, long sessionsAccepted, long sessionsRejected, int currentSessions, int peakSessions, long leasesAcquired, long leasesRejected, long leasesReleased, int currentLeases, long targetsAccepted, long targetsRejected, long targetsLost, long pulses, long workerDispatches, long dispatchFailures, long threatObservations, long threatEvictions, long normalAttacks, long skillCastsIssued, long skillCastsRejected, long shotsActivated, long shotsUnavailable, long shotsFailed, long playerDeaths, long targetDeaths, long lootCandidates, long lootPickups, long lootSuccess, long lootBlocked, long cancellations, long timeouts, long backendFailures, long respawnRequested, long respawnAccepted, long respawnRejected, long respawnCompleted, long cleanupFailures, long stopFailures)
+	void externalAcquired()
+	{
+		_externalAcquired.increment();
+	}
+
+	void externalRejected()
+	{
+		_externalRejected.increment();
+	}
+
+	void externalReleased(boolean clean)
+	{
+		_externalReleased.increment();
+		if (!clean)
+		{
+			_externalReleaseFailures.increment();
+		}
+	}
+
+	void externalSupportIssued()
+	{
+		_externalSupportIssued.increment();
+	}
+
+	void externalRouteIssued()
+	{
+		_externalRouteIssued.increment();
+	}
+
+	public Snapshot snapshot()
+	{
+		return new Snapshot(_sessionsRequested.sum(), _sessionsAccepted.sum(), _sessionsRejected.sum(), _currentSessions.get(), _peakSessions.get(), _leasesAcquired.sum(), _leasesRejected.sum(), _leasesReleased.sum(), _currentLeases.get(), _targetsAccepted.sum(), _targetsRejected.sum(), _targetsLost.sum(), _pulses.sum(), _workerDispatches.sum(), _dispatchFailures.sum(), _threatObservations.sum(), _threatEvictions.sum(), _normalAttacks.sum(), _skillCastsIssued.sum(), _skillCastsRejected.sum(), _shotsActivated.sum(), _shotsUnavailable.sum(), _shotsFailed.sum(), _playerDeaths.sum(), _targetDeaths.sum(), _lootCandidates.sum(), _lootPickups.sum(), _lootSuccess.sum(), _lootBlocked.sum(), _cancellations.sum(), _timeouts.sum(), _backendFailures.sum(), _respawnRequested.sum(), _respawnAccepted.sum(), _respawnRejected.sum(), _respawnCompleted.sum(), _cleanupFailures.sum(), _stopFailures.sum(), _externalRequested.sum(), _externalAcquired.sum(), _externalRejected.sum(), _externalReleased.sum(), _externalReleaseFailures.sum(), _externalSupportIssued.sum(), _externalRouteIssued.sum());
+	}
+
+	public record Snapshot(long sessionsRequested, long sessionsAccepted, long sessionsRejected, int currentSessions, int peakSessions, long leasesAcquired, long leasesRejected, long leasesReleased, int currentLeases, long targetsAccepted, long targetsRejected, long targetsLost, long pulses, long workerDispatches, long dispatchFailures, long threatObservations, long threatEvictions, long normalAttacks, long skillCastsIssued, long skillCastsRejected, long shotsActivated, long shotsUnavailable, long shotsFailed, long playerDeaths, long targetDeaths, long lootCandidates, long lootPickups, long lootSuccess, long lootBlocked, long cancellations, long timeouts, long backendFailures, long respawnRequested, long respawnAccepted, long respawnRejected, long respawnCompleted, long cleanupFailures, long stopFailures, long externalRequested, long externalAcquired, long externalRejected, long externalReleased, long externalReleaseFailures, long externalSupportIssued, long externalRouteIssued)
 	{
 	}
 }

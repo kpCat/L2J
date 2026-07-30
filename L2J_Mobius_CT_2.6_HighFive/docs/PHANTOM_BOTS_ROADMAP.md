@@ -99,9 +99,9 @@ Goal 015: ACCEPT
 
 Historical pre-acceptance marker (superseded): Goal 015: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
-Goal 016: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 016: ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS
 
-Goal 017: NOT_STARTED
+Goal 017: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 025: NOT_STARTED
 ```
@@ -128,8 +128,8 @@ Goal 012A независимо закрыла обязательные action-ow
 canonicalization и anchor tolerance chain приняты независимым ревью;
 production-пара `22859@giran.farming.22859` доказана на shipped AutoLoot policy,
 а geodata canonical position сохраняется через ARRIVED и restart.
-Goal 016 реализована и ожидает независимого review; Goal 017 и Goal 025 не
-начаты.
+Goal 016 принята с явными будущими контрактами admission scale и histogram
+truth; Goal 017 и Goal 025 не начаты.
 
 ---
 
@@ -377,7 +377,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `ACCEPT`; Goal 016/017/025 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `ACCEPT`; Goal 016 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 017 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 025 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -742,7 +742,7 @@ raw anchor Z через long arithmetic. `giran.route.north` хранит canoni
 topology loader, factual spawn, node geometry и edge endpoints валидируются.
 **Follow-up risk:** `VERY_HIGH` — probabilistic causality and reconciliation.
 
-## Goal 016 — PopulationManager и schedules — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+## Goal 016 — PopulationManager и schedules — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`
 
 **Назначение:** создать и обслуживать популяцию profiles.  
 **Зависимости:** 005–007, 015.  
@@ -755,7 +755,8 @@ writes.
 **Safety completion:** packet-free initialization, versioned exact authority,
 restart-safe projection repair, autosave-suppressed read-only verification,
 explicit ownership retries, bounded pulse и shutdown publication barrier
-реализованы; статус остаётся `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+реализованы; независимое review приняло Goal с явными будущими контрактами
+admission scale и histogram truth.
 **Follow-up risk:** `HIGH` — mass state and load shaping.
 
 ### Gate Этапа III
@@ -769,7 +770,7 @@ explicit ownership retries, bounded pulse и shutdown publication barrier
 
 **GOAL:** 017–020
 
-## Goal 017 — Party coordination kernel, semantic acts и party routes — `NOT_STARTED`
+## Goal 017 — Party coordination kernel, semantic acts и party routes — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** структурированное групповое поведение до natural language.  
 **Зависимости:** 008, 010, 013, 016.  
@@ -1181,8 +1182,8 @@ Accepted corrective truth:
 
 Next:
 1. Goal 015 anchor-tolerance completion принята независимым ревью.
-2. Goal 016 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 017 and Goal 025
-   remain `NOT_STARTED`.
+2. Goal 016 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 017 —
+   `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 025 remains `NOT_STARTED`.
 
 Stage gate:
 - Stage I COMPLETE
@@ -1225,8 +1226,9 @@ Overall:
   Goal 014 ACCEPT after Goal 014A;
   Goal 014A + completion ACCEPT;
   Goal 015 ACCEPT;
-  Goal 016 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 017/025 NOT_STARTED
+  Goal 016 ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS;
+  Goal 017 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 025 NOT_STARTED
 ```
 
 ---

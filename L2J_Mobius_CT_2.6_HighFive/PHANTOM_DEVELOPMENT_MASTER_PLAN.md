@@ -649,14 +649,16 @@ Runtime не должен обязательно зависеть от LLM ил�
 - retirement/return;
 - population limits.
 
-### 017. Economy ledger и баланс
+### 017. Party coordination kernel, semantic acts и party routes
 
-- sources/sinks;
-- money supply;
-- baseline pricing;
-- anomaly detection;
-- background caps;
-- conservation tests.
+Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+
+- canonical invite/accept/refuse;
+- contextual roles и vacancies;
+- durable Phantom coordination intent;
+- shared leader route и regroup;
+- typed semantic acts;
+- assist/protect/heal priorities.
 
 ### 018. Personality, memory, reputation
 
@@ -686,32 +688,32 @@ Runtime не должен обязательно зависеть от LLM ил�
 - action intents;
 - нет бессмысленного текста без наблюдателя.
 
-### 021. Private store и trade chat
+### 021. Spoil, manor, quest drop и craft acquisition chains
 
-- sell/buy stores;
-- real items;
-- publication;
-- reservation;
-- restart recovery.
+- eligibility и source selection;
+- spoil/manor/quest collection;
+- active/background parity;
+- recipe ingredient planning;
+- craft preparation без transaction execution.
 
-### 022. Negotiation, direct trade и mail
+### 022. Economy transaction kernel, trade, crafting и enchant
 
-- state machine;
-- counteroffer;
-- meeting;
-- trade/mail;
-- timeout;
-- reservation/escrow;
-- crash recovery;
-- anti-dup.
+- reservation ledger и expiration;
+- direct trade и private stores;
+- crafting execution;
+- enchant risk policy;
+- sources/sinks и audit;
+- crash/restart conservation;
+- anti-dup и lock order.
 
-### 023. Party formation и роли
+### 023. Rift и advanced party recruitment
 
-- leader/tank/healer/buffer/DD/support;
-- recruitment;
-- приглашение настоящего игрока;
-- cooldown;
-- memory.
+- Rift destination/requirements;
+- content-specific composition;
+- real roster и missing roles;
+- class/supply/travel readiness;
+- full-party detection;
+- invite/refuse policy.
 
 ### 024. Party farming и катакомбы
 

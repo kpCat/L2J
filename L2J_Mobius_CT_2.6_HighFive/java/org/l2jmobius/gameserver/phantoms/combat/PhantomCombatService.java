@@ -15,19 +15,23 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.LongSupplier;
 
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ExternalOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PlayableSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
 
 public final class PhantomCombatService
 {
@@ -81,6 +85,23 @@ public final class PhantomCombatService
 		CANCELLED
 	}
 
+	public enum ExternalActionKind
+	{
+		PARTY_TACTIC,
+		PARTY_SUPPORT,
+		PARTY_ROUTE
+	}
+
+	public enum ExternalActionStatus
+	{
+		ACQUIRED,
+		REJECTED_STATE,
+		REJECTED_EXISTING,
+		REJECTED_ACTOR,
+		CANCELLED,
+		BACKEND_FAILURE
+	}
+
 	public record StartResult(StartStatus status, PhantomCombatSessionSnapshot session)
 	{
 		public boolean accepted()
@@ -89,11 +110,33 @@ public final class PhantomCombatService
 		}
 	}
 
-	public record ServiceSnapshot(ServiceState state, int activeSessions, int terminalSessions, int queuedSessions, int currentWorkers, int actorLeases, int maximumSessions)
+	public record ServiceSnapshot(ServiceState state, int activeSessions, int terminalSessions, int queuedSessions, int currentWorkers, int actorLeases, int externalActions, int maximumSessions)
 	{
 		public static ServiceSnapshot inactive()
 		{
-			return new ServiceSnapshot(ServiceState.STOPPED, 0, 0, 0, 0, 0, 0);
+			return new ServiceSnapshot(ServiceState.STOPPED, 0, 0, 0, 0, 0, 0, 0);
+		}
+	}
+
+	public record ExternalActionRequest(long profileId, ExternalActionKind kind, String operationKey, long deadlineLogicalNanos, PhantomCancellationToken ownershipToken)
+	{
+		public ExternalActionRequest
+		{
+			if ((profileId <= 0) || (kind == null) || (operationKey == null) || operationKey.isBlank() || (operationKey.length() > 128) || (deadlineLogicalNanos <= 0) || (ownershipToken == null))
+			{
+				throw new IllegalArgumentException("Invalid external combat action request.");
+			}
+		}
+	}
+
+	public record ExternalActionResult(ExternalActionStatus status, ExternalActionLease lease)
+	{
+		public ExternalActionResult
+		{
+			if ((status == ExternalActionStatus.ACQUIRED) != (lease != null))
+			{
+				throw new IllegalArgumentException("External action status and lease disagree.");
+			}
 		}
 	}
 
@@ -148,8 +191,10 @@ public final class PhantomCombatService
 	private long _nextGeneration;
 	private long _nextWorkerGeneration;
 	private long _nextRespawnGeneration;
+	private long _nextExternalGeneration;
 	private WorkerClaim _workerClaim;
 	private final Map<Long, RespawnOperation> _respawnOperations = new HashMap<>();
+	private final Map<Long, ExternalOperation> _externalOperations = new HashMap<>();
 	private int _actorLeases;
 	private int _startOperations;
 	private boolean _stopFailureRecorded;
@@ -225,7 +270,7 @@ public final class PhantomCombatService
 				_metrics.sessionRejected();
 				return new StartResult(StartStatus.REJECTED_STATE, null);
 			}
-			if (_respawnOperations.containsKey(request.profileId()))
+			if (_respawnOperations.containsKey(request.profileId()) || _externalOperations.containsKey(request.profileId()))
 			{
 				_metrics.sessionRejected();
 				return new StartResult(StartStatus.REJECTED_EXISTING, null);
@@ -429,7 +474,7 @@ public final class PhantomCombatService
 				_metrics.respawnRejected();
 				return RespawnOutcome.RETRY;
 			}
-			if (_respawnOperations.containsKey(request.profileId()))
+			if (_respawnOperations.containsKey(request.profileId()) || _externalOperations.containsKey(request.profileId()))
 			{
 				_metrics.respawnRejected();
 				return RespawnOutcome.RETRY;
@@ -511,9 +556,117 @@ public final class PhantomCombatService
 		}
 	}
 
+	public ExternalActionResult acquireExternalAction(ExternalActionRequest request)
+	{
+		Objects.requireNonNull(request, "request");
+		_metrics.externalRequested();
+		final ExternalOperation operation;
+		synchronized (_monitor)
+		{
+			if (_state != ServiceState.RUNNING)
+			{
+				_metrics.externalRejected();
+				return new ExternalActionResult(ExternalActionStatus.REJECTED_STATE, null);
+			}
+			if (request.ownershipToken().isCancelled())
+			{
+				_metrics.externalRejected();
+				return new ExternalActionResult(ExternalActionStatus.CANCELLED, null);
+			}
+			final PhantomCombatSession session = _sessions.get(request.profileId());
+			if (((session != null) && (!session._result.terminal() || (session._cleanupState != CleanupState.COMPLETE))) || _respawnOperations.containsKey(request.profileId()) || _externalOperations.containsKey(request.profileId()))
+			{
+				_metrics.externalRejected();
+				return new ExternalActionResult(ExternalActionStatus.REJECTED_EXISTING, null);
+			}
+			operation = new ExternalOperation(request, ++_nextExternalGeneration);
+			_externalOperations.put(request.profileId(), operation);
+			_startOperations++;
+		}
+
+		PhantomCombatActorLease actorLease = null;
+		ExternalActionStatus failure = null;
+		try
+		{
+			actorLease = _backend.tryAcquireActor(request.profileId());
+			if (actorLease == null)
+			{
+				_metrics.leaseRejected();
+				failure = ExternalActionStatus.REJECTED_ACTOR;
+			}
+			else
+			{
+				_metrics.leaseAcquired();
+			}
+		}
+		catch (Throwable throwable)
+		{
+			failure = ExternalActionStatus.BACKEND_FAILURE;
+		}
+
+		if (failure != null)
+		{
+			synchronized (_monitor)
+			{
+				_externalOperations.remove(request.profileId(), operation);
+			}
+			closeUnowned(actorLease);
+			finishStartOperation();
+			_metrics.externalRejected();
+			return new ExternalActionResult(failure, null);
+		}
+
+		final ExternalActionLease publishedLease;
+		synchronized (_monitor)
+		{
+			if ((_state == ServiceState.RUNNING) && (_externalOperations.get(request.profileId()) == operation) && !request.ownershipToken().isCancelled())
+			{
+				publishedLease = new ExternalActionLease(this, operation, actorLease);
+				operation._lease = publishedLease;
+				_actorLeases++;
+				_metrics.externalAcquired();
+			}
+			else
+			{
+				_externalOperations.remove(request.profileId(), operation);
+				publishedLease = null;
+			}
+		}
+		if (publishedLease == null)
+		{
+			closeUnowned(actorLease);
+			finishStartOperation();
+			_metrics.externalRejected();
+			return new ExternalActionResult(ExternalActionStatus.CANCELLED, null);
+		}
+		finishStartOperation();
+		return new ExternalActionResult(ExternalActionStatus.ACQUIRED, publishedLease);
+	}
+
+	public boolean cancelExternalAction(long profileId, String operationKey)
+	{
+		final ExternalActionLease lease;
+		synchronized (_monitor)
+		{
+			final ExternalOperation operation = _externalOperations.get(profileId);
+			if ((operation == null) || !operation._request.operationKey().equals(operationKey))
+			{
+				return false;
+			}
+			lease = operation._lease;
+		}
+		if (lease == null)
+		{
+			return false;
+		}
+		lease.close();
+		return true;
+	}
+
 	public void beginStop()
 	{
 		final List<PhantomCombatSession> cleanups = new ArrayList<>();
+		final List<ExternalActionLease> externalLeases = new ArrayList<>();
 		synchronized (_dispatchGate)
 		{
 			synchronized (_monitor)
@@ -545,10 +698,18 @@ public final class PhantomCombatService
 						cleanups.add(session);
 					}
 				}
+				for (ExternalOperation operation : _externalOperations.values())
+				{
+					if (operation._lease != null)
+					{
+						externalLeases.add(operation._lease);
+					}
+				}
 				removeCompletedStopSessionsLocked();
 			}
 		}
 		cleanups.forEach(session -> attemptCleanup(session, false));
+		externalLeases.forEach(ExternalActionLease::close);
 	}
 
 	public boolean finishStop()
@@ -560,7 +721,7 @@ public final class PhantomCombatService
 				return true;
 			}
 			removeCompletedStopSessionsLocked();
-			if (!_stopRequested || (_workerClaim != null) || (_actorLeases != 0) || (_startOperations != 0) || !_respawnOperations.isEmpty() || !_sessions.isEmpty() || !_queue.isEmpty())
+			if (!_stopRequested || (_workerClaim != null) || (_actorLeases != 0) || (_startOperations != 0) || !_respawnOperations.isEmpty() || !_externalOperations.isEmpty() || !_sessions.isEmpty() || !_queue.isEmpty())
 			{
 				if (_stopRequested && !_stopFailureRecorded)
 				{
@@ -606,7 +767,7 @@ public final class PhantomCombatService
 					active++;
 				}
 			}
-			return new ServiceSnapshot(_state, active, terminal, _queue.size(), _workerClaim == null ? 0 : 1, _actorLeases, _policy.maximumSessions());
+			return new ServiceSnapshot(_state, active, terminal, _queue.size(), _workerClaim == null ? 0 : 1, _actorLeases, _externalOperations.size(), _policy.maximumSessions());
 		}
 	}
 
@@ -1192,6 +1353,48 @@ public final class PhantomCombatService
 		}
 	}
 
+	private void releaseExternal(ExternalOperation operation, PhantomCombatActorLease actorLease, ExternalOwnedAction ownedAction, boolean cancel)
+	{
+		Throwable failure = null;
+		try
+		{
+			if (cancel)
+			{
+				actorLease.cancelExternalAction(ownedAction);
+			}
+		}
+		catch (Throwable throwable)
+		{
+			failure = throwable;
+		}
+		try
+		{
+			actorLease.close();
+		}
+		catch (Throwable throwable)
+		{
+			if (failure == null)
+			{
+				failure = throwable;
+			}
+			else
+			{
+				failure.addSuppressed(throwable);
+			}
+		}
+		synchronized (_monitor)
+		{
+			if (_externalOperations.remove(operation._request.profileId(), operation))
+			{
+				operation._lease = null;
+				_actorLeases--;
+				_metrics.leaseReleased();
+				_metrics.externalReleased(failure == null);
+				_monitor.notifyAll();
+			}
+		}
+	}
+
 	private void closeUnowned(PhantomCombatActorLease lease)
 	{
 		if (lease != null)
@@ -1393,6 +1596,154 @@ public final class PhantomCombatService
 		private boolean cancelled()
 		{
 			return _token.isCancelled();
+		}
+	}
+
+	private static final class ExternalOperation
+	{
+		private final ExternalActionRequest _request;
+		private final long _generation;
+		private ExternalActionLease _lease;
+
+		private ExternalOperation(ExternalActionRequest request, long generation)
+		{
+			_request = request;
+			_generation = generation;
+		}
+	}
+
+	public static final class ExternalActionLease implements AutoCloseable
+	{
+		private final PhantomCombatService _owner;
+		private final ExternalOperation _operation;
+		private final PhantomCombatActorLease _actorLease;
+		private final AtomicBoolean _released = new AtomicBoolean();
+		private volatile ExternalOwnedAction _ownedAction;
+
+		private ExternalActionLease(PhantomCombatService owner, ExternalOperation operation, PhantomCombatActorLease actorLease)
+		{
+			_owner = owner;
+			_operation = operation;
+			_actorLease = actorLease;
+		}
+
+		public long profileId()
+		{
+			return _operation._request.profileId();
+		}
+
+		public ExternalActionKind kind()
+		{
+			return _operation._request.kind();
+		}
+
+		public String operationKey()
+		{
+			return _operation._request.operationKey();
+		}
+
+		public long generation()
+		{
+			return _operation._generation;
+		}
+
+		public boolean expired(long logicalNowNanos)
+		{
+			return (logicalNowNanos >= _operation._request.deadlineLogicalNanos()) || _operation._request.ownershipToken().isCancelled();
+		}
+
+		public ActorSnapshot actorSnapshot()
+		{
+			return active() ? _actorLease.actorSnapshot() : null;
+		}
+
+		public PlayableSnapshot playableSnapshot(int objectId)
+		{
+			return active() ? _actorLease.playableSnapshot(objectId) : null;
+		}
+
+		public TargetSnapshot targetSnapshot(int objectId)
+		{
+			return active() ? _actorLease.targetSnapshot(objectId) : null;
+		}
+
+		public List<ThreatObservation> observedAttackers(int protectedObjectId, int limit)
+		{
+			return active() ? _actorLease.observedAttackers(protectedObjectId, limit) : List.of();
+		}
+
+		public ActionOutcome castSupport(int targetObjectId, SelectedSkill skill, String capabilityKey)
+		{
+			if (!active() || (kind() != ExternalActionKind.PARTY_SUPPORT))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final ActionOutcome outcome = _actorLease.castSupport(targetObjectId, skill, capabilityKey);
+			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
+			{
+				_ownedAction = new ExternalOwnedAction(kind(), targetObjectId, skill, 0, 0, 0, 0);
+				_owner._metrics.externalSupportIssued();
+			}
+			return outcome;
+		}
+
+		public ActionOutcome attack(int targetObjectId)
+		{
+			if (!active() || (kind() != ExternalActionKind.PARTY_TACTIC))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final ActorSnapshot actor = _actorLease.actorSnapshot();
+			final TargetSnapshot target = _actorLease.targetSnapshot(targetObjectId);
+			if ((actor == null) || (target == null) || !target.validFor(actor, 2500))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final ActionOutcome outcome = _actorLease.attack(targetObjectId);
+			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
+			{
+				_ownedAction = new ExternalOwnedAction(kind(), targetObjectId, null, 0, 0, 0, actor.instanceId());
+			}
+			return outcome;
+		}
+
+		public ActionOutcome moveTo(int x, int y, int z, int instanceId)
+		{
+			if (!active() || (kind() != ExternalActionKind.PARTY_ROUTE))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final ActionOutcome outcome = _actorLease.moveTo(x, y, z, instanceId);
+			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
+			{
+				_ownedAction = new ExternalOwnedAction(kind(), 0, null, x, y, z, instanceId);
+				_owner._metrics.externalRouteIssued();
+			}
+			return outcome;
+		}
+
+		public void complete()
+		{
+			release(false);
+		}
+
+		@Override
+		public void close()
+		{
+			release(true);
+		}
+
+		private boolean active()
+		{
+			return !_released.get() && !_operation._request.ownershipToken().isCancelled();
+		}
+
+		private void release(boolean cancel)
+		{
+			if (_released.compareAndSet(false, true))
+			{
+				_owner.releaseExternal(_operation, _actorLease, _ownedAction, cancel);
+			}
 		}
 	}
 }

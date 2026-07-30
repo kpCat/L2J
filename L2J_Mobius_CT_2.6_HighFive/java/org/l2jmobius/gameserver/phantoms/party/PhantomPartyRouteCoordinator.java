@@ -1,0 +1,372 @@
+/*
+ * Copyright (c) 2013 L2jMobius
+ */
+package org.l2jmobius.gameserver.phantoms.party;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionKind;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionLease;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionRequest;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService.Submission;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService.SubmissionStatus;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RouteManifest;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RouteStatus;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
+
+/**
+ * Owns exactly one navigation request and route manifest per group.
+ */
+public final class PhantomPartyRouteCoordinator
+{
+	private final PhantomNavigationService _navigation;
+	private final PhantomCombatService _combat;
+	private final Object _stateLock = new Object();
+	private final Map<String, PendingRoute> _pending = new HashMap<>();
+	private final Map<String, String> _routeByGroup = new HashMap<>();
+	private final Map<Long, MovementLease> _movement = new HashMap<>();
+	private final Set<Long> _movementReservations = new HashSet<>();
+
+	public PhantomPartyRouteCoordinator(PhantomNavigationService navigation, PhantomCombatService combat)
+	{
+		_navigation = navigation;
+		_combat = combat;
+	}
+
+	public Optional<RouteManifest> request(String groupId, long generation, MemberSnapshot leader, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destinationRef, PhantomNavigationPoint destination, String topologyHash, long now, long deadline)
+	{
+		if ((leader.ref().kind() != MemberKind.PHANTOM) || (destination.instanceId() != leader.instanceId()))
+		{
+			return Optional.empty();
+		}
+		final String routeId = PhantomPartyModel.sha256(groupId + '|' + generation + '|' + destinationRef.namespace() + ':' + destinationRef.key() + '|' + topologyHash);
+		final PendingRoute pending = new PendingRoute(leader.ref().profileId(), routeId, generation, destinationRef, topologyHash);
+		synchronized (_stateLock)
+		{
+			if (_pending.putIfAbsent(groupId, pending) != null)
+			{
+				return Optional.empty();
+			}
+		}
+		final PhantomNavigationPoint origin = new PhantomNavigationPoint(leader.x(), leader.y(), leader.z(), leader.instanceId());
+		final Submission submission = _navigation.submit(new PhantomNavigationRequest(leader.ref().profileId(), origin, destination, now, deadline, 100000));
+		final boolean stillOwned;
+		synchronized (_stateLock)
+		{
+			stillOwned = _pending.get(groupId) == pending;
+			if (stillOwned && (submission.status() == SubmissionStatus.ACCEPTED))
+			{
+				pending._requestId = submission.requestId();
+			}
+			else if (stillOwned)
+			{
+				_pending.remove(groupId);
+			}
+		}
+		if (!stillOwned)
+		{
+			if (submission.status() == SubmissionStatus.ACCEPTED)
+			{
+				_navigation.cancel(leader.ref().profileId(), submission.requestId());
+			}
+			return Optional.empty();
+		}
+		if (submission.status() == SubmissionStatus.REJECTED)
+		{
+			return Optional.empty();
+		}
+		if (submission.status() == SubmissionStatus.COMPLETED)
+		{
+			final Optional<RouteManifest> result = manifest(routeId, generation, destinationRef, submission.immediateResult(), topologyHash);
+			result.ifPresent(_ -> rememberRoute(groupId, routeId));
+			return result;
+		}
+		return Optional.empty();
+	}
+
+	public Optional<RouteManifest> poll(String groupId)
+	{
+		final PendingRoute pending;
+		synchronized (_stateLock)
+		{
+			pending = _pending.get(groupId);
+		}
+		if ((pending == null) || (pending._requestId == 0))
+		{
+			return Optional.empty();
+		}
+		final Optional<PhantomNavigationResult> result = _navigation.consume(pending._requestId);
+		if (result.isEmpty())
+		{
+			return Optional.empty();
+		}
+		synchronized (_stateLock)
+		{
+			if (!_pending.remove(groupId, pending))
+			{
+				return Optional.empty();
+			}
+			_routeByGroup.put(groupId, pending._routeId);
+		}
+		return manifest(pending._routeId, pending._generation, pending._destination, result.get(), pending._topologyHash);
+	}
+
+	public RouteManifest advance(String groupId, RouteManifest route, MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots, int operationBudget, long deadline, PhantomCancellationToken token)
+	{
+		rememberRoute(groupId, route.routeId());
+		releaseCompletedMovement(snapshots);
+		final MemberSnapshot leaderSnapshot = snapshots.get(leader);
+		if ((leaderSnapshot == null) || (leaderSnapshot.instanceId() != route.waypoints().getFirst().instanceId()) || (operationBudget < 1))
+		{
+			return route.withProgress(route.currentWaypoint(), RouteStatus.FAILED);
+		}
+		boolean separated = false;
+		boolean allAtWaypoint = true;
+		final PhantomNavigationPoint waypoint = route.waypoints().get(route.currentWaypoint());
+		for (MemberRef member : roster)
+		{
+			final MemberSnapshot snapshot = snapshots.get(member);
+			if ((snapshot == null) || (snapshot.instanceId() != leaderSnapshot.instanceId()))
+			{
+				continue;
+			}
+			final double leaderDistance = distance(snapshot, leaderSnapshot.x(), leaderSnapshot.y(), leaderSnapshot.z());
+			separated |= leaderDistance > route.maximumSeparation();
+			allAtWaypoint &= distance(snapshot, waypoint.x(), waypoint.y(), waypoint.z()) <= route.regroupRadius();
+		}
+		int waypointIndex = route.currentWaypoint();
+		if (allAtWaypoint && (waypointIndex + 1 < route.waypoints().size()))
+		{
+			waypointIndex++;
+		}
+		else if (allAtWaypoint)
+		{
+			return route.withProgress(waypointIndex, RouteStatus.ARRIVED);
+		}
+		final PhantomNavigationPoint sharedWaypoint = route.waypoints().get(waypointIndex);
+		int issued = 0;
+		for (MemberRef member : roster)
+		{
+			if ((issued >= operationBudget) || (member.kind() != MemberKind.PHANTOM) || !reserveMovement(member.profileId()))
+			{
+				continue;
+			}
+			final MemberSnapshot snapshot = snapshots.get(member);
+			if ((snapshot == null) || snapshot.dead() || (snapshot.instanceId() != sharedWaypoint.instanceId()))
+			{
+				releaseMovementReservation(member.profileId());
+				continue;
+			}
+			final PhantomNavigationPoint target = separated && !member.equals(leader) ? new PhantomNavigationPoint(leaderSnapshot.x(), leaderSnapshot.y(), leaderSnapshot.z(), leaderSnapshot.instanceId()) : sharedWaypoint;
+			final String operationKey = "party.route." + route.routeId().substring(0, 20) + '.' + route.generation() + '.' + waypointIndex;
+			final PhantomCombatService.ExternalActionResult acquisition = _combat.acquireExternalAction(new ExternalActionRequest(member.profileId(), ExternalActionKind.PARTY_ROUTE, operationKey, deadline, token));
+			final ExternalActionLease lease = acquisition.lease();
+			if (lease == null)
+			{
+				releaseMovementReservation(member.profileId());
+				continue;
+			}
+			final ActionOutcome outcome = lease.moveTo(target.x(), target.y(), target.z(), target.instanceId());
+			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
+			{
+				if (rememberMovement(member.profileId(), route.routeId(), lease))
+				{
+					issued++;
+				}
+				else
+				{
+					lease.close();
+				}
+			}
+			else
+			{
+				releaseMovementReservation(member.profileId());
+				lease.close();
+			}
+		}
+		return route.withProgress(waypointIndex, separated ? RouteStatus.REGROUPING : RouteStatus.MOVING);
+	}
+
+	public void cancel(String groupId)
+	{
+		final PendingRoute pending;
+		final List<ExternalActionLease> movement;
+		synchronized (_stateLock)
+		{
+			pending = _pending.remove(groupId);
+			final String routeId = _routeByGroup.remove(groupId);
+			movement = _movement.entrySet().stream().filter(entry -> (routeId != null) && routeId.equals(entry.getValue()._routeId)).map(Map.Entry::getValue).map(value -> value._lease).toList();
+			_movement.entrySet().removeIf(entry -> (routeId != null) && routeId.equals(entry.getValue()._routeId));
+		}
+		if (pending != null)
+		{
+			final long requestId = pending._requestId;
+			if (requestId > 0)
+			{
+				_navigation.cancel(pending._leaderProfileId, requestId);
+			}
+		}
+		for (ExternalActionLease lease : movement)
+		{
+			lease.close();
+		}
+	}
+
+	public void beginStop()
+	{
+		final List<String> groups;
+		synchronized (_stateLock)
+		{
+			groups = java.util.stream.Stream.concat(_pending.keySet().stream(), _routeByGroup.keySet().stream()).distinct().toList();
+		}
+		for (String groupId : groups)
+		{
+			cancel(groupId);
+		}
+	}
+
+	public Snapshot snapshot()
+	{
+		synchronized (_stateLock)
+		{
+			return new Snapshot(_pending.size(), _movement.size());
+		}
+	}
+
+	private void releaseCompletedMovement(Map<MemberRef, MemberSnapshot> snapshots)
+	{
+		final Map<Long, MemberSnapshot> byProfile = new HashMap<>();
+		snapshots.forEach((ref, snapshot) ->
+		{
+			if (ref.kind() == MemberKind.PHANTOM)
+			{
+				byProfile.put(ref.profileId(), snapshot);
+			}
+		});
+		final List<ExternalActionLease> completed = new ArrayList<>();
+		synchronized (_stateLock)
+		{
+			for (Map.Entry<Long, MovementLease> entry : new ArrayList<>(_movement.entrySet()))
+			{
+				final MemberSnapshot snapshot = byProfile.get(entry.getKey());
+				if ((snapshot == null) || !snapshot.moving())
+				{
+					completed.add(entry.getValue()._lease);
+					_movement.remove(entry.getKey());
+				}
+			}
+		}
+		completed.forEach(ExternalActionLease::complete);
+	}
+
+	private boolean reserveMovement(long profileId)
+	{
+		synchronized (_stateLock)
+		{
+			if (_movement.containsKey(profileId) || !_movementReservations.add(profileId))
+			{
+				return false;
+			}
+			return true;
+		}
+	}
+
+	private void releaseMovementReservation(long profileId)
+	{
+		synchronized (_stateLock)
+		{
+			_movementReservations.remove(profileId);
+		}
+	}
+
+	private boolean rememberMovement(long profileId, String routeId, ExternalActionLease lease)
+	{
+		synchronized (_stateLock)
+		{
+			_movementReservations.remove(profileId);
+			if (!_routeByGroup.containsValue(routeId))
+			{
+				return false;
+			}
+			_movement.put(profileId, new MovementLease(routeId, lease));
+			return true;
+		}
+	}
+
+	private void rememberRoute(String groupId, String routeId)
+	{
+		synchronized (_stateLock)
+		{
+			_routeByGroup.put(groupId, routeId);
+		}
+	}
+
+	private static Optional<RouteManifest> manifest(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, PhantomNavigationResult result, String topologyHash)
+	{
+		if (result.route() == null)
+		{
+			return Optional.empty();
+		}
+		final String navigationHash = PhantomPartyModel.sha256(result.route().mode() + "|" + result.route().waypoints());
+		return Optional.of(new RouteManifest(routeId, generation, destination, result.route().waypoints(), 0, 250, 1500, RouteStatus.MOVING, topologyHash, navigationHash));
+	}
+
+	private static double distance(MemberSnapshot snapshot, int x, int y, int z)
+	{
+		final long dx = (long) snapshot.x() - x;
+		final long dy = (long) snapshot.y() - y;
+		final long dz = (long) snapshot.z() - z;
+		return Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
+	}
+
+	public record Snapshot(int navigationClaims, int movementClaims)
+	{
+	}
+
+	private static final class PendingRoute
+	{
+		private final long _leaderProfileId;
+		private final String _routeId;
+		private final long _generation;
+		private final org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef _destination;
+		private final String _topologyHash;
+		private volatile long _requestId;
+
+		private PendingRoute(long leaderProfileId, String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, String topologyHash)
+		{
+			_leaderProfileId = leaderProfileId;
+			_routeId = routeId;
+			_generation = generation;
+			_destination = destination;
+			_topologyHash = topologyHash;
+		}
+	}
+
+	private static final class MovementLease
+	{
+		private final String _routeId;
+		private final ExternalActionLease _lease;
+
+		private MovementLease(String routeId, ExternalActionLease lease)
+		{
+			_routeId = routeId;
+			_lease = lease;
+		}
+	}
+}

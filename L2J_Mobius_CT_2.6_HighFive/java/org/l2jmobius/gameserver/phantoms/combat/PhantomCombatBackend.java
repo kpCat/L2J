@@ -69,6 +69,29 @@ public interface PhantomCombatBackend
 		}
 	}
 
+	record PlayableSnapshot(int objectId, int classId, int instanceId, int x, int y, int z, double currentHp, double maximumHp, double currentMp, double maximumMp, double currentCp, double maximumCp, boolean dead, boolean alikeDead, boolean casting, boolean moving, int currentTargetObjectId, List<Integer> attackerObjectIds)
+	{
+		public PlayableSnapshot
+		{
+			if ((objectId <= 0) || (classId < 0) || (instanceId < 0) || !finite(currentHp, maximumHp, currentMp, maximumMp, currentCp, maximumCp) || (maximumHp <= 0) || (maximumMp < 0) || (maximumCp < 0) || (currentCp < 0) || (currentTargetObjectId < 0) || (attackerObjectIds == null) || (attackerObjectIds.size() > 32) || attackerObjectIds.stream().anyMatch(id -> id == null || id <= 0))
+			{
+				throw new IllegalArgumentException("Invalid playable combat snapshot.");
+			}
+			attackerObjectIds = attackerObjectIds.stream().distinct().sorted().toList();
+		}
+	}
+
+	record ExternalOwnedAction(PhantomCombatService.ExternalActionKind kind, int targetObjectId, SelectedSkill selectedSkill, int x, int y, int z, int instanceId)
+	{
+		public ExternalOwnedAction
+		{
+			if ((kind == null) || (targetObjectId < 0) || (instanceId < 0))
+			{
+				throw new IllegalArgumentException("Invalid external combat action.");
+			}
+		}
+	}
+
 	record ThreatObservation(int targetObjectId, long threatValue)
 	{
 		public ThreatObservation

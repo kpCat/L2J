@@ -254,6 +254,15 @@ public final class PhantomTestLauncher
 			case "population-lifecycle" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.LIFECYCLE);
 			case "population-server-integration" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.SERVER_INTEGRATION);
 			case "population-performance" -> new PhantomPopulationPerformanceSuite();
+			case "party-canonical-invitation" -> new PhantomPartySuite(PhantomPartySuite.Mode.CANONICAL_INVITATION);
+			case "party-state-recovery" -> new PhantomPartySuite(PhantomPartySuite.Mode.STATE_RECOVERY);
+			case "party-role-vacancy" -> new PhantomPartySuite(PhantomPartySuite.Mode.ROLE_VACANCY);
+			case "party-semantic-acts" -> new PhantomPartySuite(PhantomPartySuite.Mode.SEMANTIC_ACTS);
+			case "party-route" -> new PhantomPartySuite(PhantomPartySuite.Mode.ROUTE);
+			case "party-tactics" -> new PhantomPartySuite(PhantomPartySuite.Mode.TACTICS);
+			case "party-lifecycle" -> new PhantomPartySuite(PhantomPartySuite.Mode.LIFECYCLE);
+			case "party-server-integration" -> new PhantomPartySuite(PhantomPartySuite.Mode.SERVER_INTEGRATION);
+			case "party-performance" -> new PhantomPartySuite(PhantomPartySuite.Mode.PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

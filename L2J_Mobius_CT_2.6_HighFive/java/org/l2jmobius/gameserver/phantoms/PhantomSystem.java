@@ -30,6 +30,7 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSinkBridge;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomCompositeSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort;
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
@@ -58,6 +59,13 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyDecision;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge;
@@ -104,6 +112,7 @@ public final class PhantomSystem
 	private PhantomCommerceService _commerceService;
 	private PhantomBackgroundService _backgroundService;
 	private PhantomPopulationManager _populationManager;
+	private PhantomPartyCoordinator _partyCoordinator;
 	private State _state = State.NEW;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
@@ -166,6 +175,7 @@ public final class PhantomSystem
 				_scheduler = createScheduler(PhantomActivityMaterializationPort.noop());
 				combatPolicy = PhantomCombatPolicy.productionDefaults(_settings.maxScheduledPhantomProfiles());
 				_combatService = new PhantomCombatService(PhantomCombatBackend.inert(), new PhantomCombatCapabilityResolver(_ -> java.util.List.of()), combatPolicy);
+				_combatService.start();
 			}
 			_navigationService = new PhantomNavigationService(_metrics);
 			if (!_navigationService.start())
@@ -213,6 +223,7 @@ public final class PhantomSystem
 				_progressionService = new PhantomProgressionService(new L2jProgressionBackend(_materializationService, ServerConfig.DATAPACK_ROOT.toPath(), _gameKnowledgeService::query), PhantomProgressionPolicy.productionDefaults());
 				_progressionService.start();
 				_combatService = new PhantomCombatService(combatBackend, PhantomCombatCapabilityResolver.fromProgression(() -> _progressionService.findCatalog().orElse(null)), combatPolicy);
+				_combatService.start();
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
 				_commerceService = new PhantomCommerceService(commerceCatalog, new PhantomCommerceReceiptStore(productionProfiles), productionGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
 				if (!_commerceService.start())
@@ -251,11 +262,29 @@ public final class PhantomSystem
 					_settings.maxMaterializedPhantoms(),
 					_settings.populationCreationInFlight(),
 					_settings.populationBoundariesPerPulse());
+				final File partyRoleCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-party-roles-v1.xml");
+				final PhantomPartyRoleCatalog partyRoleCatalog = PhantomPartyRoleCatalog.load(partyRoleCatalogFile.toPath());
+				_partyCoordinator = new PhantomPartyCoordinator(
+					new PhantomPartyStore(productionProfiles),
+					productionGoals,
+					new L2jPhantomPartyBackend(productionProfiles, _materializationService, _progressionService),
+					partyRoleCatalog,
+					new PhantomPartyRouteCoordinator(_navigationService, _combatService),
+					new PhantomPartyTactics(_combatService),
+					() -> _topologyService.query().snapshot().canonicalHash(),
+					System::nanoTime,
+					_settings.partyOperationsPerPulse());
+				if (!_partyCoordinator.start())
+				{
+					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
+				}
 				final PhantomPopulationDecision populationDecision = new PhantomPopulationDecision(_populationManager);
+				final PhantomPartyDecision partyDecision = new PhantomPartyDecision(_partyCoordinator);
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
 				commerceDecision.registerCandidates(candidateRegistry);
 				backgroundDecision.registerCandidates(candidateRegistry);
 				populationDecision.registerCandidates(candidateRegistry);
+				partyDecision.registerCandidates(candidateRegistry);
 				candidateRegistry.seal();
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
@@ -263,17 +292,17 @@ public final class PhantomSystem
 				commerceDecision.registerHandlers(handlerRegistry);
 				backgroundDecision.registerHandlers(handlerRegistry);
 				populationDecision.registerHandlers(handlerRegistry);
+				partyDecision.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
 				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
 				_decisionEngine.start();
 				_populationManager.installDecisionEngine(_decisionEngine);
-				if (!_scheduler.installControlPort(_populationManager))
+				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(java.util.List.of(_populationManager, _partyCoordinator))))
 				{
 					throw new IllegalStateException("Population control port could not be installed before scheduler start.");
 				}
 				productionWorkSink.install(_decisionEngine);
 			}
-			_combatService.start();
 			if (!_scheduler.start())
 			{
 				throw new IllegalStateException("Phantom scheduler could not enter the running state.");
@@ -285,6 +314,10 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException e)
 		{
+			if (_partyCoordinator != null)
+			{
+				_partyCoordinator.beginStop();
+			}
 			if (_populationManager != null)
 			{
 				_populationManager.beginStop();
@@ -325,7 +358,8 @@ public final class PhantomSystem
 			{
 				_navigationService.beginStop();
 			}
-			final boolean combatStopped = (_combatService == null) || _combatService.finishStop();
+			final boolean partyStopped = (_partyCoordinator == null) || _partyCoordinator.finishStop();
+			final boolean combatStopped = partyStopped && ((_combatService == null) || _combatService.finishStop());
 			final boolean progressionStopped = (_progressionService == null) || _progressionService.finishStop();
 			final boolean commerceStopped = (_commerceService == null) || _commerceService.finishStop();
 			final boolean populationStopped = (_populationManager == null) || _populationManager.finishStop();
@@ -372,6 +406,10 @@ public final class PhantomSystem
 
 		if (_state == State.RUNNING)
 		{
+			if (_partyCoordinator != null)
+			{
+				_partyCoordinator.beginStop();
+			}
 			if (_populationManager != null)
 			{
 				_populationManager.beginStop();
@@ -408,6 +446,12 @@ public final class PhantomSystem
 			if (_navigationService != null)
 			{
 				_navigationService.beginStop();
+			}
+			if ((_partyCoordinator != null) && !_partyCoordinator.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				_state = State.FAILED;
+				return false;
 			}
 			if ((_combatService != null) && !_combatService.finishStop())
 			{
@@ -488,6 +532,15 @@ public final class PhantomSystem
 		}
 		if (_state == State.FAILED)
 		{
+			if ((_partyCoordinator != null) && (_partyCoordinator.snapshot().state() != PhantomPartyCoordinator.State.STOPPED))
+			{
+				_partyCoordinator.beginStop();
+				if (!_partyCoordinator.finishStop())
+				{
+					_metrics.recordShutdownFailure();
+					return false;
+				}
+			}
 			if ((_populationManager != null) && (_populationManager.snapshot().state() != PhantomPopulationManager.LifecycleState.STOPPED))
 			{
 				_populationManager.beginStop();
@@ -583,6 +636,11 @@ public final class PhantomSystem
 	public synchronized Snapshot snapshot()
 	{
 		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _backgroundService != null ? _backgroundService.snapshot() : null, _populationManager != null ? _populationManager.snapshot() : PhantomPopulationManager.Snapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+	}
+
+	public synchronized PhantomPartyCoordinator.Snapshot partySnapshot()
+	{
+		return _partyCoordinator == null ? PhantomPartyCoordinator.Snapshot.inactive() : _partyCoordinator.snapshot();
 	}
 
 	public static synchronized boolean startConfigured()

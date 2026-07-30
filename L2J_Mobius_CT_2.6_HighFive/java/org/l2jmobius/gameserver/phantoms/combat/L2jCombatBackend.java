@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -33,11 +34,14 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillUseHolder;
+import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ExternalOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PlayableSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
@@ -52,6 +56,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 {
 	private static final int MAXIMUM_ACQUISITION_DISTANCE = 2000;
 	private static final int MAXIMUM_LOOT_DISTANCE = 300;
+	private static final Set<String> PARTY_SUPPORT_CAPABILITIES = Set.of("combat.heal", "combat.recharge", "combat.resurrection", "combat.buff", "combat.song", "combat.dance");
+	private static final Set<TargetType> PARTY_SUPPORT_TARGET_TYPES = Set.of(TargetType.ONE, TargetType.SELF, TargetType.PARTY, TargetType.PARTY_MEMBER, TargetType.PARTY_NOTME, TargetType.PARTY_OTHER, TargetType.TARGET_PARTY, TargetType.PC_BODY, TargetType.AURA_FRIENDLY, TargetType.AREA_FRIENDLY);
 	private final PhantomMaterializationService _materializationService;
 	private final Supplier<PhantomGameKnowledgeQuery> _knowledgeSupplier;
 
@@ -100,6 +106,19 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			return targetSnapshot(monster);
 		}
 
+		@Override
+		public PlayableSnapshot playableSnapshot(int objectId)
+		{
+			final WorldObject object = World.getInstance().findObject(objectId);
+			if (!(object instanceof Player player))
+			{
+				return null;
+			}
+			final WorldObject target = player.getTarget();
+			final List<Integer> attackers = player.getAttackByList().stream().filter(Creature::isMonster).map(Creature::getObjectId).distinct().sorted().limit(32).toList();
+			return new PlayableSnapshot(player.getObjectId(), player.getActiveClass(), player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp(), player.isDead(), player.isAlikeDead(), player.isCastingNow(), player.isMoving(), target == null ? 0 : target.getObjectId(), attackers);
+		}
+
 		private TargetSnapshot targetSnapshot(Monster monster)
 		{
 			final boolean normalMonster = isNormalMonster(monster) && monster.isMortal() && monster.isSpawned();
@@ -131,6 +150,38 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			for (Creature creature : _player.getAttackByList())
 			{
 				if ((creature instanceof Monster monster) && (monster.getTarget() == _player))
+				{
+					final TargetSnapshot target = targetSnapshot(monster);
+					if ((target != null) && target.validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
+					{
+						observations.put(monster.getObjectId(), new ThreatObservation(monster.getObjectId(), 1));
+						if (observations.size() > limit)
+						{
+							observations.pollLastEntry();
+						}
+					}
+				}
+			}
+			return List.copyOf(observations.values());
+		}
+
+		@Override
+		public List<ThreatObservation> observedAttackers(int protectedObjectId, int limit)
+		{
+			if ((limit < 1) || (limit > 32))
+			{
+				return List.of();
+			}
+			final WorldObject object = World.getInstance().findObject(protectedObjectId);
+			if (!(object instanceof Player protectedPlayer) || (_player.getParty() == null) || (_player.getParty() != protectedPlayer.getParty()))
+			{
+				return List.of();
+			}
+			final TreeMap<Integer, ThreatObservation> observations = new TreeMap<>();
+			final ActorSnapshot actor = actorSnapshot();
+			for (Creature creature : protectedPlayer.getAttackByList())
+			{
+				if ((creature instanceof Monster monster) && (monster.getTarget() == protectedPlayer))
 				{
 					final TargetSnapshot target = targetSnapshot(monster);
 					if ((target != null) && target.validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
@@ -297,6 +348,69 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public ActionOutcome castSupport(int targetObjectId, SelectedSkill selected, String capabilityKey)
+		{
+			if ((selected == null) || !PARTY_SUPPORT_CAPABILITIES.contains(capabilityKey))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if (!(object instanceof Player target) || (_player.getParty() == null) || (_player.getParty() != target.getParty()) || (_player.getInstanceId() != target.getInstanceId()))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final Skill skill = _player.getKnownSkill(selected.skillId());
+			if ((skill == null) || (skill.getLevel() != selected.skillLevel()) || skill.isPassive() || skill.isToggle() || skill.isDebuff() || skill.hasNegativeEffect() || !PARTY_SUPPORT_TARGET_TYPES.contains(skill.getTargetType()))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final boolean resurrection = "combat.resurrection".equals(capabilityKey);
+			if (resurrection != target.isDead())
+			{
+				return ActionOutcome.REJECTED;
+			}
+			if (!resurrection && target.isAlikeDead())
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final int castRange = Math.max(0, skill.getCastRange());
+			if ((target != _player) && (distance(_player, target) > Math.max(200, castRange + 100)))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			if (_player.isSkillDisabled(skill) || !_player.checkDoCastConditions(skill) || !skill.checkCondition(_player, target, false))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			final SkillUseHolder current = _player.getCurrentSkill();
+			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (current != null) && (current.getSkillId() == selected.skillId()) && (current.getSkillLevel() == selected.skillLevel()))
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			_player.setTarget(target);
+			_player.getAI().setIntention(Intention.CAST, skill, target);
+			return ActionOutcome.ISSUED;
+		}
+
+		@Override
+		public ActionOutcome moveTo(int x, int y, int z, int instanceId)
+		{
+			final ActorSnapshot actor = actorSnapshot();
+			if ((instanceId != actor.instanceId()) || actor.dead() || actor.casting() || actor.attacking())
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final long dx = (long) _player.getX() - x;
+			final long dy = (long) _player.getY() - y;
+			if (((dx * dx) + (dy * dy)) <= 2500)
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			_player.getAI().setIntention(Intention.MOVE_TO, new Location(x, y, z));
+			return ActionOutcome.ISSUED;
+		}
+
+		@Override
 		public ActionOutcome pickUp(int objectId)
 		{
 			final WorldObject object = World.getInstance().findObject(objectId);
@@ -343,6 +457,48 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				cancelledOwnedAction = true;
 			}
 			if (cancelledOwnedAction || ((_player.getAI().getIntention() == Intention.IDLE) && (selectedTargetObjectId == action.combatTargetObjectId())))
+			{
+				_player.setTarget(null);
+			}
+		}
+
+		@Override
+		public void cancelExternalAction(ExternalOwnedAction action)
+		{
+			if ((action == null) || !_player.hasAI())
+			{
+				return;
+			}
+			if (action.kind() == PhantomCombatService.ExternalActionKind.PARTY_ROUTE)
+			{
+				if (_player.getAI().getIntention() == Intention.MOVE_TO)
+				{
+					_player.getAI().setIntention(Intention.IDLE);
+				}
+				return;
+			}
+			if (action.kind() == PhantomCombatService.ExternalActionKind.PARTY_TACTIC)
+			{
+				if ((_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() != null) && (_player.getAI().getAttackTarget().getObjectId() == action.targetObjectId()))
+				{
+					_player.getAI().setIntention(Intention.IDLE);
+				}
+				final WorldObject selectedTarget = _player.getTarget();
+				if ((selectedTarget != null) && (selectedTarget.getObjectId() == action.targetObjectId()))
+				{
+					_player.setTarget(null);
+				}
+				return;
+			}
+			final SkillUseHolder current = _player.getCurrentSkill();
+			final SelectedSkill selected = action.selectedSkill();
+			if ((_player.getAI().getIntention() == Intention.CAST) && (selected != null) && (current != null) && (current.getSkillId() == selected.skillId()) && (current.getSkillLevel() == selected.skillLevel()))
+			{
+				_player.abortCast();
+				_player.getAI().setIntention(Intention.IDLE);
+			}
+			final WorldObject selectedTarget = _player.getTarget();
+			if ((selectedTarget != null) && (selectedTarget.getObjectId() == action.targetObjectId()))
 			{
 				_player.setTarget(null);
 			}

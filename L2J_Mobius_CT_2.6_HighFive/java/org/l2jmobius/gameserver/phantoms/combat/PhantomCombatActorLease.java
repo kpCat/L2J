@@ -9,6 +9,8 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutco
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ExternalOwnedAction;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PlayableSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
@@ -21,9 +23,19 @@ public interface PhantomCombatActorLease extends AutoCloseable
 
 	TargetSnapshot targetSnapshot(int targetObjectId);
 
+	default PlayableSnapshot playableSnapshot(int objectId)
+	{
+		return null;
+	}
+
 	boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode);
 
 	List<ThreatObservation> observedAttackers(int limit);
+
+	default List<ThreatObservation> observedAttackers(int protectedObjectId, int limit)
+	{
+		return List.of();
+	}
 
 	List<LootCandidate> lootCandidates(int limit, int maximumDistance);
 
@@ -35,9 +47,23 @@ public interface PhantomCombatActorLease extends AutoCloseable
 
 	ActionOutcome cast(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode);
 
+	default ActionOutcome castSupport(int targetObjectId, SelectedSkill skill, String capabilityKey)
+	{
+		return ActionOutcome.REJECTED;
+	}
+
+	default ActionOutcome moveTo(int x, int y, int z, int instanceId)
+	{
+		return ActionOutcome.REJECTED;
+	}
+
 	ActionOutcome pickUp(int objectId);
 
 	void cancelOwnedAction(PhantomOwnedAction action);
+
+	default void cancelExternalAction(ExternalOwnedAction action)
+	{
+	}
 
 	RespawnOutcome respawnTown();
 
