@@ -2,148 +2,150 @@
 
 Статус: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
-## Граница canonical Party
+## Каноническая Party
 
-`PartyInvitationService` находится в `model/groups` и не зависит от Phantom.
-Обычные `RequestJoinParty` и `RequestAnswerJoinParty`, а также Phantom-команды
-используют один сервис и одинаковые проверки. Сервис владеет:
+`PartyInvitationService` расположен в `model/groups`, не зависит от Phantom и
+является единственным сервисом приглашений для packet handlers и внутренних
+команд. Он владеет точной парой requester/invitee, монотонным
+`InvitationIdentity`, request-полями игроков и pending-флагом существующей
+`Party`.
 
-- точной парой requester/invitee и монотонным invitation sequence;
-- request-полями игроков и pending invitation существующей `Party`;
-- revalidation перед принятием;
-- очисткой при refuse, disabled, timeout, cancel и terminal failure;
-- выбором client delivery или зарегистрированной managed delivery.
+Одна запись приглашения публикуется только после:
 
-Managed delivery не создаёт `GameClient` и не вызывает packet handlers.
-`PartyInvitationDelivery` передаёт immutable invitation в coordinator.
-Все изменения состава выполняются только публичными методами canonical `Party`
-через общий сервис.
+1. резервирования обоих индексов;
+2. определения managed requester и invitee;
+3. успешного `prepare` с сохранением точной identity;
+4. установки request-полей.
 
-## Durable manifest и member claims
+Accept, refuse, disable, expire, cancel, delivery failure, revalidation failure
+и недоступный requester атомарно отсоединяют оба индекса. Только победитель
+посылает один terminal callback. Expiry проверяется по requester и invitee.
+Закрытие managed registration сначала прекращает admission, затем отменяет все
+принадлежащие регистрации приглашения вне общего state-lock.
 
-Компонент:
+Сервис не создаёт `GameClient` и не вызывает packet handlers. Managed boundary
+переносит только immutable значения. Все изменения состава выполняются
+публичными операциями канонической `Party`.
 
-```text
-type = party.state
-schema = 1
-payload <= 4096 bytes
-roster <= 9
-```
+## Durable saga и retry
 
-Leader manifest и каждый Phantom member claim содержат один `groupId`,
-`groupGeneration`, `membershipRevision`, точного лидера, Phantom/real roster,
-objective, requirements, assignments, route, operation и evidence hashes.
-Manifest hash вычисляется из канонически отсортированных фактов.
+Компонент `party.state` сохраняет schema 1, roster не более девяти участников и
+payload не более 4096 байт. Leader и каждый managed member хранят одинаковые:
 
-Операция проходит фазы:
+- `groupId`, generation и membership revision;
+- точного leader и Phantom/real roster;
+- objective, role requirements и assignments;
+- route и operation;
+- manifest, progression и topology hashes.
 
-```text
-PREPARED
-CANONICAL_PENDING
-CANONICAL_OBSERVED
-COMMITTED
-ABORTED
-```
-
-Сохранение использует существующий optimistic row version. Cross-profile ACID
-не заявляется: конфликт поколения, ревизии или manifest переводится в typed
-conflict/inconsistent path. Текущая несвязанная goal никогда не заменяется.
-
-## Consent и restart
-
-Phantom принимает новый invite только при точной текущей `party.join` goal,
-которая ссылается на requester. После commit точные party goals переходят в
-`party.lead` или `party.member`.
-
-При restart:
-
-- committed Phantom-only claims переходят в `RECOVERING`;
-- материализуются только точные Phantom members;
-- canonical Party пересобирается обычными invite/respond операциями;
-- отсутствие лидера приводит к детерминированному выбору минимального profile ID
-  и увеличению generation;
-- real member refs удаляются из recovery roster;
-- группа с real leader становится `SOLO`;
-- согласие реального игрока никогда не воспроизводится автоматически;
-- незавершённая операция до `CANONICAL_OBSERVED` безопасно abort-ится.
-
-## Contextual roles и vacancies
-
-`high-five-party-roles-v1.xml` — строгий, XXE-safe, content-addressed каталог.
-Роли сопоставляются только со string capability keys progression catalog.
-Нет таблицы class ID и единственной роли класса.
-
-Matcher учитывает intrinsic/learned/READY_NOW, rank, resources, runtime state и
-objective context. Один actor сохраняет все capability facts, но одна vacancy
-получает одного primary assignee. Результат различает:
+Фазы операции:
 
 ```text
-FILLED
-MISSING
-OPTIONAL
-UNSUPPORTED
+PREPARED -> CANONICAL_PENDING -> CANONICAL_OBSERVED -> COMMITTED
+                                                    \-> ABORTED
 ```
 
-Каждая assignment/vacancy содержит provenance и общий evidence hash.
+`prepare` приглашения сохраняет sequence и точные requester/invitee object IDs
+на обеих managed сторонах до публикации prompt. Optimistic conflict отклоняет
+публикацию и выполняет rollback либо переводит спорную запись в
+`INCONSISTENT`. Stale terminal identity не изменяет более новую операцию.
 
-## Typed semantic acts
+Повтор `form` или `inviteTarget` с тем же goal ID/revision и участниками
+возвращает idempotent outcome. Другая цель, revision или target конфликтует.
+Deadline завершает именно принадлежащее операции core-приглашение.
 
-`PhantomSemanticAct` содержит string `actKey`, actor/target refs, group identity,
-reason, confidence, bounded typed slots и provenance. Он не содержит фразу,
-prompt, LLM output или parser state и сам ничего не изменяет. Dispatch разрешён
-только при совпадении текущих `groupId` и `groupGeneration`.
+## Команды состава
 
-## Shared route
-
-Лидер создаёт ровно один navigation request и один `RouteManifest`.
-Followers используют его текущую shared waypoint либо текущую позицию лидера
-при regroup. Нет per-member pathfinding, snap, teleport или background travel.
-
-Movement каждого Phantom выдаётся через `PhantomCombatService` как
-`PARTY_ROUTE`, поэтому оно разделяет per-profile exclusion с combat, respawn и
-support. Route хранит progress, regroup, arrived/failed и topology/navigation
-hashes; real leader остаётся observation-only.
-
-## Tactics и ownership
-
-Priority planner строит typed directives:
+Поддержаны явные goal/action пары:
 
 ```text
-ASSIST_TARGET
-PROTECT_MEMBER
-HEAL_MEMBER
-RECHARGE_MEMBER
-RESURRECT_MEMBER
-PARTY_SUPPORT
+party.leave
+party.expel_member
+party.transfer_leader
+party.travel
 ```
 
-Assist/protect повторно подтверждают normal-monster target. Support выбирает
-ровно один exact progression action skill/variant. Heal, recharge,
-resurrection, buff, song и dance повторно проверяются production backend:
-known skill, target scope, Party identity, instance, death predicate, range,
-reuse и skill conditions.
+Команда проверяет goal ID/revision, generation, exact target и текущую
+каноническую роль. Сначала выполняется каноническая операция, затем наблюдается
+реальная `Party`, после чего обновляются все затронутые claims. Ушедший или
+исключённый Phantom становится `SOLO`; disband переводит в `SOLO` всех managed
+участников. Реальная смена лидера увеличивает generation ровно один раз.
+Повтор уже committed операции idempotent, stale generation не мутирует state.
 
-Любое действие захватывает общий combat external-action lease
-(`PARTY_TACTIC`, `PARTY_SUPPORT` или `PARTY_ROUTE`). Combat session, respawn и
-другая external action того же profile взаимно исключаются.
+## Restart и consent
 
-## Scheduler, lifecycle и bounds
+Committed Phantom-only claims восстанавливаются как `RECOVERING`. Реальные
+участники не восстанавливаются автоматически. Группа с real leader становится
+`SOLO`; незавершённая операция до `CANONICAL_OBSERVED` abort-ится. Новый invite
+принимается Phantom только по точной текущей `party.join` goal либо точному
+recovery claim.
 
-Population и Party образуют один `PhantomCompositeSchedulerControlPort`, который
-содержит не более восьми stages и считает isolated failures. Существует только
-одна scheduler task.
+## Роли и capabilities
 
-`PhantomPartyOperationsPerPulse` имеет default `64` и диапазон `1..10000`.
-Legacy config без ключа получает `64`. Pulse не сканирует World и не создаёт
-thread, executor, timer или Future на группу/profile.
+Роли определяются string capability keys из строгого content-addressed
+High Five каталога. Matcher решает bounded maximum matching для максимум девяти
+участников в порядке:
 
-`beginStop` закрывает managed admission, cancels invitations/routes и releases
-external actions. `finishStop` возвращает `false`, пока остаётся persistence,
-invite, navigation, movement или tactical claim. Disabled Phantom World не
-загружает каталог, компоненты и coordinator.
+1. число заполненных required vacancies;
+2. суммарный contextual score;
+3. число заполненных optional vacancies;
+4. лексический tie-break.
 
-## Явно вне контракта
+Один участник занимает не более одной vacancy, но все capability evidence
+сохраняются. Результат различает `FILLED`, `MISSING`, `OPTIONAL` и
+`UNSUPPORTED`.
 
-Global matchmaking, Party Match Room, Rift composition, Command Channel,
-background party rewards/travel/farming, text/LLM/personality, clans,
-reputation, PvP/PK, economy и будущие Goals 018/019/020/023/025 не реализованы.
+Backend выдаёт обычный snapshot без выдуманной target-readiness и отдельный
+`capabilities(actor, exactTargetObjectId)`. Tactics запрашивает exact target
+только для реально low-HP, low-MP или dead участника. SELF применяется только к
+себе, PARTY/PARTY_MEMBER/ALLY — к совместимому участнику.
+
+Support проходит через typed `PhantomPartySupportAction`: capability key,
+variant, target scope, exact target object ID и skill ID/level. L2J backend
+повторно проверяет каталог, известный skill, Party/instance/range, состояние
+смерти, reuse, ресурсы и skill conditions. Capability key не может переименовать
+посторонний positive skill; use-all buff/song/dance отсутствует.
+
+## Route authority
+
+На группу существует один navigation request и один `RouteManifest`. Перед
+advance проверяются route ownership, deadline, cancellation и topology hash.
+Каждый канонический участник обязан иметь snapshot в одном instance.
+
+Missing/cross-instance участник даёт `REGROUPING` или typed failure и не
+позволяет сдвинуть waypoint либо получить `ARRIVED`. Dead, casting или attacking
+участник не перемещается. Expired movement lease отменяется. Cancel остаётся
+group-scoped; snap, teleport и background travel отсутствуют.
+
+## Background gate
+
+Узкий `PhantomPartyParticipationPort` блокирует background directive, farm,
+travel, acquire и commit для `LEADER`, `MEMBER`, `RECOVERING` и точных
+`CANONICAL_PENDING/CANONICAL_OBSERVED` операций. Причина:
+`party.materialized_only`. Bridge создаётся до BackgroundService и получает
+coordinator после его startup.
+
+## Pulse и lifecycle
+
+Coordinator использует:
+
+- индекс `groupId -> sorted claims`;
+- bounded round-robin queue групп;
+- bounded terminal/inbound/tactical-release queues;
+- operation и persistence claims.
+
+Каждый просмотренный group/profile/action учитывается в
+`PhantomPartyOperationsPerPulse`; pulse не превышает budget и не делает полного
+сканирования claims, groups или tactical actions. Startup может один раз читать
+DB страницами по 256.
+
+`beginStop` закрывает admission и managed registration, terminal-обработку,
+routes и tactical leases. `finishStop` ждёт нулевые operation/persistence,
+invitation, queue, navigation, movement и tactical claims. Callback в гонке
+либо завершается под claim, либо отклоняется до мутации.
+
+## Вне контракта
+
+Global matchmaking, Rift policy, Command Channel, background party rewards,
+текст/LLM/personality, clans, PvP/PK, economy и будущие Goals
+018/019/020/023/025 не реализуются в Goal 017.

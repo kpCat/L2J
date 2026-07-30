@@ -47,7 +47,7 @@ public interface PhantomCombatActorLease extends AutoCloseable
 
 	ActionOutcome cast(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode);
 
-	default ActionOutcome castSupport(int targetObjectId, SelectedSkill skill, String capabilityKey)
+	default ActionOutcome castSupport(PhantomPartySupportAction action)
 	{
 		return ActionOutcome.REJECTED;
 	}

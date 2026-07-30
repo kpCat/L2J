@@ -53,6 +53,7 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lea
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyParticipationPort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
@@ -80,6 +81,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private final PhantomBackgroundCompetitionRegistry _competition;
 	private final PhantomRelevanceSignalPort _signals;
 	private final Supplier<PhantomMaterializationService> _materialization;
+	private final PhantomPartyParticipationPort _partyParticipation;
 	private final ConcurrentHashMap<Long, Boolean> _operations = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, TransitionKind> _transitions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Integer, Lease> _retainedIdentityLeases = new ConcurrentHashMap<>();
@@ -99,10 +101,20 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	public PhantomBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomIdentityLeaseRegistry identities, PhantomBackgroundTransaction transactions, PhantomBackgroundAuthority authority, PhantomBackgroundCompetitionRegistry competition, PhantomRelevanceSignalPort signals, Supplier<PhantomMaterializationService> materialization)
 	{
-		this(profiles, goals, identities, transactions, authority, new PhantomBackgroundModel(), competition, signals, materialization);
+		this(profiles, goals, identities, transactions, authority, new PhantomBackgroundModel(), competition, signals, materialization, PhantomPartyParticipationPort.noop());
+	}
+
+	public PhantomBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomIdentityLeaseRegistry identities, PhantomBackgroundTransaction transactions, PhantomBackgroundAuthority authority, PhantomBackgroundCompetitionRegistry competition, PhantomRelevanceSignalPort signals, Supplier<PhantomMaterializationService> materialization, PhantomPartyParticipationPort partyParticipation)
+	{
+		this(profiles, goals, identities, transactions, authority, new PhantomBackgroundModel(), competition, signals, materialization, partyParticipation);
 	}
 
 	public PhantomBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomIdentityLeaseRegistry identities, PhantomBackgroundTransaction transactions, PhantomBackgroundAuthority authority, PhantomBackgroundModel model, PhantomBackgroundCompetitionRegistry competition, PhantomRelevanceSignalPort signals, Supplier<PhantomMaterializationService> materialization)
+	{
+		this(profiles, goals, identities, transactions, authority, model, competition, signals, materialization, PhantomPartyParticipationPort.noop());
+	}
+
+	public PhantomBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomIdentityLeaseRegistry identities, PhantomBackgroundTransaction transactions, PhantomBackgroundAuthority authority, PhantomBackgroundModel model, PhantomBackgroundCompetitionRegistry competition, PhantomRelevanceSignalPort signals, Supplier<PhantomMaterializationService> materialization, PhantomPartyParticipationPort partyParticipation)
 	{
 		_profiles = Objects.requireNonNull(profiles, "profiles");
 		_goals = Objects.requireNonNull(goals, "goals");
@@ -113,6 +125,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		_competition = Objects.requireNonNull(competition, "competition");
 		_signals = Objects.requireNonNull(signals, "signals");
 		_materialization = Objects.requireNonNull(materialization, "materialization");
+		_partyParticipation = Objects.requireNonNull(partyParticipation, "partyParticipation");
 	}
 
 	public synchronized boolean start()
@@ -171,6 +184,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			return new Directive(DirectiveKind.RETRY, "service.not_running", "");
 		}
+		if (_partyParticipation.blocksBackground(profileId))
+		{
+			return new Directive(DirectiveKind.RETRY, "party.materialized_only", "");
+		}
 		final PhantomBackgroundGoalSpec spec;
 		try
 		{
@@ -215,6 +232,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (activityState != PhantomActivityState.BACKGROUND)
 		{
 			return OperationResult.replan("activity.not_background");
+		}
+		if (_partyParticipation.blocksBackground(profileId))
+		{
+			return retry("party.materialized_only");
 		}
 		final OperationClaim claim = acquire(profileId, goal, activityGeneration, tickSequence);
 		if (!claim.acquired())
@@ -276,6 +297,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (activityState != PhantomActivityState.BACKGROUND)
 		{
 			return OperationResult.replan("activity.not_background");
+		}
+		if (_partyParticipation.blocksBackground(profileId))
+		{
+			return retry("party.materialized_only");
 		}
 		final OperationClaim claim = acquire(profileId, goal, activityGeneration, tickSequence);
 		if (!claim.acquired())
@@ -594,6 +619,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			}
 			increment(_currentOperations, _peakOperations);
 		}
+		if (_partyParticipation.blocksBackground(profileId))
+		{
+			return releaseFailedOperation(profileId, retry("party.materialized_only"));
+		}
 		Lease lease = null;
 		boolean leaseCounted = false;
 		try
@@ -661,6 +690,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	private OperationResult commit(OperationClaim claim, PhantomBackgroundTransaction.Command command)
 	{
+		if (_partyParticipation.blocksBackground(claim.profileId()))
+		{
+			return retry("party.materialized_only");
+		}
 		PhantomBackgroundTransaction.Result result = transaction(() -> _transactions.execute(command));
 		if ((result.status() == PhantomBackgroundTransaction.Status.COMMIT_OUTCOME_UNKNOWN) || (result.status() == PhantomBackgroundTransaction.Status.POST_COMMIT_VERIFICATION_FAILED))
 		{

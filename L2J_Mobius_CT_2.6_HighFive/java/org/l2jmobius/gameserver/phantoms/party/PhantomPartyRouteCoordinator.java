@@ -40,6 +40,7 @@ public final class PhantomPartyRouteCoordinator
 	private final Object _stateLock = new Object();
 	private final Map<String, PendingRoute> _pending = new HashMap<>();
 	private final Map<String, String> _routeByGroup = new HashMap<>();
+	private final Map<String, Long> _routeDeadlines = new HashMap<>();
 	private final Map<Long, MovementLease> _movement = new HashMap<>();
 	private final Set<Long> _movementReservations = new HashSet<>();
 
@@ -56,7 +57,7 @@ public final class PhantomPartyRouteCoordinator
 			return Optional.empty();
 		}
 		final String routeId = PhantomPartyModel.sha256(groupId + '|' + generation + '|' + destinationRef.namespace() + ':' + destinationRef.key() + '|' + topologyHash);
-		final PendingRoute pending = new PendingRoute(leader.ref().profileId(), routeId, generation, destinationRef, topologyHash);
+		final PendingRoute pending = new PendingRoute(leader.ref().profileId(), routeId, generation, destinationRef, topologyHash, deadline);
 		synchronized (_stateLock)
 		{
 			if (_pending.putIfAbsent(groupId, pending) != null)
@@ -94,7 +95,7 @@ public final class PhantomPartyRouteCoordinator
 		if (submission.status() == SubmissionStatus.COMPLETED)
 		{
 			final Optional<RouteManifest> result = manifest(routeId, generation, destinationRef, submission.immediateResult(), topologyHash);
-			result.ifPresent(_ -> rememberRoute(groupId, routeId));
+			result.ifPresent(_ -> rememberRoute(groupId, routeId, deadline));
 			return result;
 		}
 		return Optional.empty();
@@ -123,32 +124,58 @@ public final class PhantomPartyRouteCoordinator
 				return Optional.empty();
 			}
 			_routeByGroup.put(groupId, pending._routeId);
+			_routeDeadlines.put(groupId, pending._deadline);
 		}
 		return manifest(pending._routeId, pending._generation, pending._destination, result.get(), pending._topologyHash);
 	}
 
-	public RouteManifest advance(String groupId, RouteManifest route, MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots, int operationBudget, long deadline, PhantomCancellationToken token)
+	public AdvanceResult advance(String groupId, RouteManifest route, MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots, int operationBudget, long logicalNow, String currentTopologyHash, PhantomCancellationToken token)
 	{
-		rememberRoute(groupId, route.routeId());
-		releaseCompletedMovement(snapshots);
+		final long deadline;
+		synchronized (_stateLock)
+		{
+			if (!route.routeId().equals(_routeByGroup.get(groupId)))
+			{
+				return new AdvanceResult(route.withProgress(route.currentWaypoint(), RouteStatus.FAILED), 1);
+			}
+			deadline = _routeDeadlines.getOrDefault(groupId, 0L);
+		}
+		if (token.isCancelled() || (deadline <= 0) || (logicalNow >= deadline) || !route.topologyHash().equals(currentTopologyHash))
+		{
+			cancel(groupId);
+			return new AdvanceResult(route.withProgress(route.currentWaypoint(), RouteStatus.FAILED), 1);
+		}
+		releaseCompletedMovement(route.routeId(), roster, snapshots, logicalNow);
 		final MemberSnapshot leaderSnapshot = snapshots.get(leader);
 		if ((leaderSnapshot == null) || (leaderSnapshot.instanceId() != route.waypoints().getFirst().instanceId()) || (operationBudget < 1))
 		{
-			return route.withProgress(route.currentWaypoint(), RouteStatus.FAILED);
+			return new AdvanceResult(route.withProgress(route.currentWaypoint(), RouteStatus.FAILED), 1);
 		}
 		boolean separated = false;
 		boolean allAtWaypoint = true;
+		boolean movementBlocked = false;
+		int examined = 1;
 		final PhantomNavigationPoint waypoint = route.waypoints().get(route.currentWaypoint());
 		for (MemberRef member : roster)
 		{
+			if (examined >= operationBudget)
+			{
+				return new AdvanceResult(route, examined);
+			}
+			examined++;
 			final MemberSnapshot snapshot = snapshots.get(member);
 			if ((snapshot == null) || (snapshot.instanceId() != leaderSnapshot.instanceId()))
 			{
-				continue;
+				return new AdvanceResult(route.withProgress(route.currentWaypoint(), RouteStatus.REGROUPING), examined);
 			}
+			movementBlocked |= snapshot.dead() || snapshot.casting() || snapshot.attacking();
 			final double leaderDistance = distance(snapshot, leaderSnapshot.x(), leaderSnapshot.y(), leaderSnapshot.z());
 			separated |= leaderDistance > route.maximumSeparation();
 			allAtWaypoint &= distance(snapshot, waypoint.x(), waypoint.y(), waypoint.z()) <= route.regroupRadius();
+		}
+		if (movementBlocked)
+		{
+			return new AdvanceResult(route.withProgress(route.currentWaypoint(), RouteStatus.REGROUPING), examined);
 		}
 		int waypointIndex = route.currentWaypoint();
 		if (allAtWaypoint && (waypointIndex + 1 < route.waypoints().size()))
@@ -157,18 +184,23 @@ public final class PhantomPartyRouteCoordinator
 		}
 		else if (allAtWaypoint)
 		{
-			return route.withProgress(waypointIndex, RouteStatus.ARRIVED);
+			return new AdvanceResult(route.withProgress(waypointIndex, RouteStatus.ARRIVED), examined);
 		}
 		final PhantomNavigationPoint sharedWaypoint = route.waypoints().get(waypointIndex);
 		int issued = 0;
 		for (MemberRef member : roster)
 		{
-			if ((issued >= operationBudget) || (member.kind() != MemberKind.PHANTOM) || !reserveMovement(member.profileId()))
+			if ((examined >= operationBudget) || (member.kind() != MemberKind.PHANTOM))
+			{
+				continue;
+			}
+			examined++;
+			if (!reserveMovement(member.profileId()))
 			{
 				continue;
 			}
 			final MemberSnapshot snapshot = snapshots.get(member);
-			if ((snapshot == null) || snapshot.dead() || (snapshot.instanceId() != sharedWaypoint.instanceId()))
+			if ((snapshot == null) || snapshot.dead() || snapshot.casting() || snapshot.attacking() || (snapshot.instanceId() != sharedWaypoint.instanceId()))
 			{
 				releaseMovementReservation(member.profileId());
 				continue;
@@ -200,7 +232,7 @@ public final class PhantomPartyRouteCoordinator
 				lease.close();
 			}
 		}
-		return route.withProgress(waypointIndex, separated ? RouteStatus.REGROUPING : RouteStatus.MOVING);
+		return new AdvanceResult(route.withProgress(waypointIndex, separated ? RouteStatus.REGROUPING : RouteStatus.MOVING), examined);
 	}
 
 	public void cancel(String groupId)
@@ -211,6 +243,7 @@ public final class PhantomPartyRouteCoordinator
 		{
 			pending = _pending.remove(groupId);
 			final String routeId = _routeByGroup.remove(groupId);
+			_routeDeadlines.remove(groupId);
 			movement = _movement.entrySet().stream().filter(entry -> (routeId != null) && routeId.equals(entry.getValue()._routeId)).map(Map.Entry::getValue).map(value -> value._lease).toList();
 			_movement.entrySet().removeIf(entry -> (routeId != null) && routeId.equals(entry.getValue()._routeId));
 		}
@@ -249,30 +282,38 @@ public final class PhantomPartyRouteCoordinator
 		}
 	}
 
-	private void releaseCompletedMovement(Map<MemberRef, MemberSnapshot> snapshots)
+	private void releaseCompletedMovement(String routeId, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots, long logicalNow)
 	{
-		final Map<Long, MemberSnapshot> byProfile = new HashMap<>();
-		snapshots.forEach((ref, snapshot) ->
-		{
-			if (ref.kind() == MemberKind.PHANTOM)
-			{
-				byProfile.put(ref.profileId(), snapshot);
-			}
-		});
 		final List<ExternalActionLease> completed = new ArrayList<>();
+		final List<ExternalActionLease> expired = new ArrayList<>();
 		synchronized (_stateLock)
 		{
-			for (Map.Entry<Long, MovementLease> entry : new ArrayList<>(_movement.entrySet()))
+			for (MemberRef member : roster)
 			{
-				final MemberSnapshot snapshot = byProfile.get(entry.getKey());
-				if ((snapshot == null) || !snapshot.moving())
+				if (member.kind() != MemberKind.PHANTOM)
 				{
-					completed.add(entry.getValue()._lease);
-					_movement.remove(entry.getKey());
+					continue;
+				}
+				final MovementLease movement = _movement.get(member.profileId());
+				if ((movement == null) || !routeId.equals(movement._routeId))
+				{
+					continue;
+				}
+				final MemberSnapshot snapshot = snapshots.get(member);
+				if (movement._lease.expired(logicalNow))
+				{
+					expired.add(movement._lease);
+					_movement.remove(member.profileId());
+				}
+				else if ((snapshot == null) || !snapshot.moving())
+				{
+					completed.add(movement._lease);
+					_movement.remove(member.profileId());
 				}
 			}
 		}
 		completed.forEach(ExternalActionLease::complete);
+		expired.forEach(ExternalActionLease::close);
 	}
 
 	private boolean reserveMovement(long profileId)
@@ -309,11 +350,12 @@ public final class PhantomPartyRouteCoordinator
 		}
 	}
 
-	private void rememberRoute(String groupId, String routeId)
+	private void rememberRoute(String groupId, String routeId, long deadline)
 	{
 		synchronized (_stateLock)
 		{
 			_routeByGroup.put(groupId, routeId);
+			_routeDeadlines.put(groupId, deadline);
 		}
 	}
 
@@ -339,6 +381,17 @@ public final class PhantomPartyRouteCoordinator
 	{
 	}
 
+	public record AdvanceResult(RouteManifest route, int examinedOperations)
+	{
+		public AdvanceResult
+		{
+			if ((route == null) || (examinedOperations < 1))
+			{
+				throw new IllegalArgumentException("Invalid bounded route advance result.");
+			}
+		}
+	}
+
 	private static final class PendingRoute
 	{
 		private final long _leaderProfileId;
@@ -346,15 +399,17 @@ public final class PhantomPartyRouteCoordinator
 		private final long _generation;
 		private final org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef _destination;
 		private final String _topologyHash;
+		private final long _deadline;
 		private volatile long _requestId;
 
-		private PendingRoute(long leaderProfileId, String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, String topologyHash)
+		private PendingRoute(long leaderProfileId, String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, String topologyHash, long deadline)
 		{
 			_leaderProfileId = leaderProfileId;
 			_routeId = routeId;
 			_generation = generation;
 			_destination = destination;
 			_topologyHash = topologyHash;
+			_deadline = deadline;
 		}
 	}
 

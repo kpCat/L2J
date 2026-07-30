@@ -39,6 +39,8 @@ public interface PhantomPartyBackend
 
 	Optional<MemberSnapshot> memberSnapshot(MemberRef member);
 
+	List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId);
+
 	boolean materialize(long profileId);
 
 	record PartySnapshot(MemberRef leader, List<MemberRef> members, PartyDistributionType distribution)

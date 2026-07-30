@@ -10,6 +10,13 @@ import java.util.OptionalLong;
  */
 public interface PartyInvitationDelivery
 {
+	enum PreparationOutcome
+	{
+		ACCEPTED,
+		REJECTED,
+		STOPPING
+	}
+
 	enum DeliveryOutcome
 	{
 		ACCEPTED,
@@ -17,11 +24,28 @@ public interface PartyInvitationDelivery
 		STOPPING
 	}
 
+	enum TerminalOutcome
+	{
+		ACCEPTED,
+		REFUSED,
+		DISABLED,
+		EXPIRED,
+		CANCELLED,
+		DELIVERY_REJECTED,
+		REVALIDATION_FAILED,
+		REQUESTER_UNAVAILABLE
+	}
+
 	OptionalLong managedIdentity(int characterObjectId);
+
+	default PreparationOutcome prepare(PartyInvitation invitation, OptionalLong managedRequester, OptionalLong managedInvitee)
+	{
+		return PreparationOutcome.ACCEPTED;
+	}
 
 	DeliveryOutcome deliver(PartyInvitation invitation, long managedIdentity);
 
-	default void cancelled(PartyInvitation invitation, long managedIdentity, String reasonKey)
+	default void terminal(PartyInvitation invitation, OptionalLong managedRequester, OptionalLong managedInvitee, TerminalOutcome outcome, String reasonKey)
 	{
 	}
 

@@ -1672,16 +1672,16 @@ public final class PhantomCombatService
 			return active() ? _actorLease.observedAttackers(protectedObjectId, limit) : List.of();
 		}
 
-		public ActionOutcome castSupport(int targetObjectId, SelectedSkill skill, String capabilityKey)
+		public ActionOutcome castSupport(PhantomPartySupportAction action)
 		{
-			if (!active() || (kind() != ExternalActionKind.PARTY_SUPPORT))
+			if (!active() || (kind() != ExternalActionKind.PARTY_SUPPORT) || (action == null))
 			{
 				return ActionOutcome.REJECTED;
 			}
-			final ActionOutcome outcome = _actorLease.castSupport(targetObjectId, skill, capabilityKey);
+			final ActionOutcome outcome = _actorLease.castSupport(action);
 			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
 			{
-				_ownedAction = new ExternalOwnedAction(kind(), targetObjectId, skill, 0, 0, 0, 0);
+				_ownedAction = new ExternalOwnedAction(kind(), action.targetObjectId(), action.skill(), 0, 0, 0, 0);
 				_owner._metrics.externalSupportIssued();
 			}
 			return outcome;

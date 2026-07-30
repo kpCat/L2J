@@ -261,7 +261,7 @@ public final class PhantomTestLauncher
 			case "party-route" -> new PhantomPartySuite(PhantomPartySuite.Mode.ROUTE);
 			case "party-tactics" -> new PhantomPartySuite(PhantomPartySuite.Mode.TACTICS);
 			case "party-lifecycle" -> new PhantomPartySuite(PhantomPartySuite.Mode.LIFECYCLE);
-			case "party-server-integration" -> new PhantomPartySuite(PhantomPartySuite.Mode.SERVER_INTEGRATION);
+			case "party-server-integration" -> new PhantomPartyServerIntegrationSuite();
 			case "party-performance" -> new PhantomPartySuite(PhantomPartySuite.Mode.PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;

@@ -159,7 +159,7 @@ public final class PhantomPartyModel
 		}
 	}
 
-	public record MemberSnapshot(MemberRef ref, int classId, int instanceId, int x, int y, int z, int hpPercent, int mpPercent, int cpPercent, boolean dead, boolean casting, boolean moving, int targetObjectId, List<Integer> attackerObjectIds, List<MemberCapability> capabilities, String progressionHash)
+	public record MemberSnapshot(MemberRef ref, int classId, int instanceId, int x, int y, int z, int hpPercent, int mpPercent, int cpPercent, boolean dead, boolean casting, boolean attacking, boolean moving, int targetObjectId, List<Integer> attackerObjectIds, List<MemberCapability> capabilities, String progressionHash)
 	{
 		public MemberSnapshot
 		{
@@ -357,7 +357,7 @@ public final class PhantomPartyModel
 		}
 	}
 
-	public record TacticalDirective(DirectiveKind kind, MemberRef actor, MemberRef targetMember, int targetObjectId, String capabilityKey, String variantKey, int actionSkillId, int actionSkillLevel, String reasonKey, int priority)
+	public record TacticalDirective(DirectiveKind kind, MemberRef actor, MemberRef targetMember, int targetObjectId, String capabilityKey, String variantKey, String targetScope, int actionSkillId, int actionSkillLevel, String reasonKey, int priority)
 	{
 		public TacticalDirective
 		{
@@ -365,6 +365,11 @@ public final class PhantomPartyModel
 			Objects.requireNonNull(actor, "Party directive actor must not be null.");
 			capabilityKey = capabilityKey == null || capabilityKey.isEmpty() ? "" : requireKey(capabilityKey, "Directive capability");
 			variantKey = variantKey == null || variantKey.isEmpty() ? "" : requireKey(variantKey, "Directive variant");
+			targetScope = targetScope == null ? "" : targetScope;
+			if (targetScope.length() > 48)
+			{
+				throw new IllegalArgumentException("Directive target scope is too long.");
+			}
 			reasonKey = requireKey(reasonKey, "Directive reason");
 			if ((targetObjectId < 0) || (actionSkillId < 0) || (actionSkillLevel < 0) || (priority < 0) || (priority > 10000))
 			{

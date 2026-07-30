@@ -4,6 +4,7 @@
 package org.l2jmobius.gameserver.model.groups;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -15,6 +16,8 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.holders.player.BlockList;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.DeliveryOutcome;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PartyInvitation;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PreparationOutcome;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.TerminalOutcome;
 import org.l2jmobius.gameserver.model.groups.matching.PartyMatchRoom;
 import org.l2jmobius.gameserver.model.groups.matching.PartyMatchRoomList;
 import org.l2jmobius.gameserver.network.SystemMessageId;
@@ -138,8 +141,12 @@ public final class PartyInvitationService
 		}
 	}
 
-	public record InvitationSnapshot(InvitationIdentity identity, int requesterObjectId, int inviteeObjectId, PartyDistributionType distributionType, int partyLeaderObjectId, long expiresAtGameTick, boolean managed)
+	public record InvitationSnapshot(InvitationIdentity identity, int requesterObjectId, int inviteeObjectId, PartyDistributionType distributionType, int partyLeaderObjectId, long expiresAtGameTick, boolean managedRequester, boolean managedInvitee)
 	{
+		public boolean managed()
+		{
+			return managedRequester || managedInvitee;
+		}
 	}
 
 	private static final PartyInvitationService INSTANCE = new PartyInvitationService();
@@ -187,8 +194,9 @@ public final class PartyInvitationService
 		}
 		expireKnownInvitation(target.getObjectId());
 		final PartyInvitationDelivery deliveryPort = _managedDelivery;
-		final OptionalLong managedIdentity = deliveryPort.managedIdentity(target.getObjectId());
-		final InviteOutcome commonFailure = validateInvite(requester, target, managedIdentity.isPresent());
+		final OptionalLong managedRequesterIdentity = deliveryPort.managedIdentity(requester.getObjectId());
+		final OptionalLong managedInviteeIdentity = deliveryPort.managedIdentity(target.getObjectId());
+		final InviteOutcome commonFailure = validateInvite(requester, target, managedInviteeIdentity.isPresent());
 		if (commonFailure != null)
 		{
 			return new InviteResult(commonFailure, null);
@@ -228,9 +236,6 @@ public final class PartyInvitationService
 			distributionType = currentParty.getDistributionType();
 		}
 
-		final SystemMessage invited = new SystemMessage(SystemMessageId.C1_HAS_BEEN_INVITED_TO_THE_PARTY);
-		invited.addString(target.getName());
-
 		final long expiresAt = currentGameTick() + ((long) Player.REQUEST_TIMEOUT * GameTimeTaskManager.TICKS_PER_SECOND);
 		final PendingInvitation pending;
 		final InviteOutcome reservationFailure;
@@ -249,7 +254,7 @@ public final class PartyInvitationService
 			else
 			{
 				final InvitationIdentity identity = new InvitationIdentity(++_nextSequence, requester.getObjectId(), target.getObjectId());
-				pending = new PendingInvitation(identity, requester, target, currentParty, distributionType, expiresAt, managedIdentity.orElse(0), deliveryPort);
+				pending = new PendingInvitation(identity, requester, target, currentParty, distributionType, expiresAt, managedRequesterIdentity.orElse(0), managedInviteeIdentity.orElse(0), deliveryPort);
 				reservationFailure = null;
 				_pendingByInvitee.put(target.getObjectId(), pending);
 				_pendingByRequester.put(requester.getObjectId(), pending);
@@ -267,28 +272,39 @@ public final class PartyInvitationService
 			requester.sendPacket(message);
 			return new InviteResult(reservationFailure, null);
 		}
-		requester.sendPacket(invited);
-		requester.setPartyDistributionType(distributionType);
-		requester.onTransactionRequest(target);
-		if (currentParty != null)
-		{
-			currentParty.setPendingInvitation(true);
-		}
 
-		if (managedIdentity.isPresent())
+		if (pending.managed())
 		{
-			final DeliveryOutcome delivery = deliveryPort.deliver(pending.deliveryValue(), managedIdentity.orElseThrow());
-			if (delivery != DeliveryOutcome.ACCEPTED)
+			final PreparationOutcome preparation;
+			try
 			{
-				clearExact(pending, "party.invite.delivery_rejected");
-				requester.sendPacket(SystemMessageId.WAITING_FOR_ANOTHER_REPLY);
+				preparation = deliveryPort.prepare(pending.deliveryValue(), managedRequesterIdentity, managedInviteeIdentity);
+			}
+			catch (RuntimeException e)
+			{
+				clearExact(pending, TerminalOutcome.DELIVERY_REJECTED, "party.invite.preparation_failed");
 				return new InviteResult(InviteOutcome.MANAGED_BACKPRESSURE, null);
 			}
-			return new InviteResult(InviteOutcome.DELIVERED_MANAGED, pending._identity);
+			if (preparation != PreparationOutcome.ACCEPTED)
+			{
+				clearExact(pending, TerminalOutcome.DELIVERY_REJECTED, preparation == PreparationOutcome.STOPPING ? "party.invite.delivery_stopping" : "party.invite.preparation_rejected");
+				return new InviteResult(InviteOutcome.MANAGED_BACKPRESSURE, null);
+			}
 		}
 
-		target.sendPacket(new AskJoinParty(requester.getName(), distributionType));
-		return new InviteResult(InviteOutcome.DELIVERED_CLIENT, pending._identity);
+		final DeliveryOutcome publication = pending.publishAndDeliver();
+		if (publication == DeliveryOutcome.BACKPRESSURE)
+		{
+			clearExact(pending, TerminalOutcome.DELIVERY_REJECTED, "party.invite.delivery_rejected");
+			requester.sendPacket(SystemMessageId.WAITING_FOR_ANOTHER_REPLY);
+			return new InviteResult(InviteOutcome.MANAGED_BACKPRESSURE, null);
+		}
+		if (publication == DeliveryOutcome.STOPPING)
+		{
+			clearExact(pending, TerminalOutcome.CANCELLED, "party.invite.cancelled");
+			return new InviteResult(InviteOutcome.MANAGED_BACKPRESSURE, null);
+		}
+		return new InviteResult(managedInviteeIdentity.isPresent() ? InviteOutcome.DELIVERED_MANAGED : InviteOutcome.DELIVERED_CLIENT, pending._identity);
 	}
 
 	public RespondResult respond(Player invitee, int clientResponse, InvitationIdentity expectedIdentity)
@@ -313,7 +329,7 @@ public final class PartyInvitationService
 		synchronized (_stateLock)
 		{
 			final PendingInvitation candidate = _pendingByInvitee.get(invitee.getObjectId());
-			if (candidate == null)
+			if ((candidate == null) || (candidate._publicationState != PublicationState.PUBLISHED))
 			{
 				pending = null;
 				lookupFailure = RespondOutcome.NO_PENDING_INVITE;
@@ -336,13 +352,13 @@ public final class PartyInvitationService
 		}
 		if (expired(pending))
 		{
-			clearDetached(pending, "party.invite.expired");
+			clearDetached(pending, TerminalOutcome.EXPIRED, "party.invite.expired");
 			return new RespondResult(RespondOutcome.EXPIRED, pending._identity, invitee.getParty());
 		}
 		final Player requester = pending._requester;
 		if ((requester == null) || (invitee.getActiveRequester() != requester) || requester.isRequestExpired())
 		{
-			clearDetached(pending, "party.invite.requester_unavailable");
+			clearDetached(pending, TerminalOutcome.REQUESTER_UNAVAILABLE, "party.invite.requester_unavailable");
 			return new RespondResult(RespondOutcome.REQUESTER_UNAVAILABLE, pending._identity, invitee.getParty());
 		}
 
@@ -352,12 +368,12 @@ public final class PartyInvitationService
 			final SystemMessage message = new SystemMessage(SystemMessageId.C1_IS_SET_TO_REFUSE_PARTY_REQUESTS_AND_CANNOT_RECEIVE_A_PARTY_REQUEST);
 			message.addPcName(invitee);
 			requester.sendPacket(message);
-			clearDetached(pending, "party.invite.disabled");
+			clearDetached(pending, TerminalOutcome.DISABLED, "party.invite.disabled");
 			return new RespondResult(RespondOutcome.DISABLED, pending._identity, invitee.getParty());
 		}
 		if (response == Response.REFUSE)
 		{
-			clearDetached(pending, "party.invite.refused");
+			clearDetached(pending, TerminalOutcome.REFUSED, "party.invite.refused");
 			return new RespondResult(RespondOutcome.REFUSED, pending._identity, invitee.getParty());
 		}
 
@@ -370,7 +386,7 @@ public final class PartyInvitationService
 				invitee.sendPacket(message);
 				requester.sendPacket(message);
 			}
-			clearDetached(pending, "party.invite.revalidation_failed");
+			clearDetached(pending, TerminalOutcome.REVALIDATION_FAILED, "party.invite.revalidation_failed");
 			return new RespondResult(revalidation == InviteOutcome.PARTY_FULL ? RespondOutcome.PARTY_FULL : RespondOutcome.REVALIDATION_FAILED, pending._identity, invitee.getParty());
 		}
 
@@ -382,7 +398,7 @@ public final class PartyInvitationService
 		}
 		invitee.joinParty(party);
 		updatePartyMatchRoom(requester, invitee);
-		clearDetached(pending, "party.invite.accepted");
+		clearDetached(pending, TerminalOutcome.ACCEPTED, "party.invite.accepted");
 		return new RespondResult(RespondOutcome.ACCEPTED, pending._identity, party);
 	}
 
@@ -397,7 +413,7 @@ public final class PartyInvitationService
 		{
 			return false;
 		}
-		clearDetached(pending, "party.invite.cancelled");
+		clearDetached(pending, TerminalOutcome.CANCELLED, "party.invite.cancelled");
 		return true;
 	}
 
@@ -417,7 +433,7 @@ public final class PartyInvitationService
 		{
 			return false;
 		}
-		clearDetached(pending, "party.invite.expired");
+		clearDetached(pending, TerminalOutcome.EXPIRED, "party.invite.expired");
 		return true;
 	}
 
@@ -437,7 +453,7 @@ public final class PartyInvitationService
 			final PendingInvitation expiredPending = detachExact(pending._identity);
 			if (expiredPending != null)
 			{
-				clearDetached(expiredPending, "party.invite.expired");
+				clearDetached(expiredPending, TerminalOutcome.EXPIRED, "party.invite.expired");
 			}
 			return Optional.empty();
 		}
@@ -502,7 +518,7 @@ public final class PartyInvitationService
 
 	private InviteOutcome validateInvite(Player requester, Player target, boolean managedTarget)
 	{
-		if (!managedTarget && ((target.getClient() == null) || target.getClient().isDetached()))
+		if (!managedTarget && !target.hasHeadlessOutboundSession() && ((target.getClient() == null) || target.getClient().isDetached()))
 		{
 			requester.sendMessage("Player is in offline mode.");
 			return InviteOutcome.TARGET_OFFLINE;
@@ -704,13 +720,13 @@ public final class PartyInvitationService
 
 	private void expireKnownInvitation(int playerObjectId)
 	{
-		final PendingInvitation pending = findByInvitee(playerObjectId);
+		final PendingInvitation pending = findByParticipant(playerObjectId);
 		if ((pending != null) && expired(pending))
 		{
 			final PendingInvitation expiredPending = detachExact(pending._identity);
 			if (expiredPending != null)
 			{
-				clearDetached(expiredPending, "party.invite.expired");
+				clearDetached(expiredPending, TerminalOutcome.EXPIRED, "party.invite.expired");
 			}
 		}
 	}
@@ -725,20 +741,30 @@ public final class PartyInvitationService
 		return GameTimeTaskManager.getInstance().getGameTicks();
 	}
 
-	private void clearExact(PendingInvitation pending, String reasonKey)
+	private void clearExact(PendingInvitation pending, TerminalOutcome outcome, String reasonKey)
 	{
 		if (detachExact(pending._identity) == null)
 		{
 			return;
 		}
-		clearDetached(pending, reasonKey);
+		clearDetached(pending, outcome, reasonKey);
 	}
 
 	private PendingInvitation findByInvitee(int inviteeObjectId)
 	{
 		synchronized (_stateLock)
 		{
-			return _pendingByInvitee.get(inviteeObjectId);
+			final PendingInvitation pending = _pendingByInvitee.get(inviteeObjectId);
+			return (pending != null) && (pending._publicationState == PublicationState.PUBLISHED) ? pending : null;
+		}
+	}
+
+	private PendingInvitation findByParticipant(int characterObjectId)
+	{
+		synchronized (_stateLock)
+		{
+			final PendingInvitation invitee = _pendingByInvitee.get(characterObjectId);
+			return invitee != null ? invitee : _pendingByRequester.get(characterObjectId);
 		}
 	}
 
@@ -747,7 +773,7 @@ public final class PartyInvitationService
 		synchronized (_stateLock)
 		{
 			final PendingInvitation pending = _pendingByInvitee.get(identity.inviteeObjectId());
-			return ((pending != null) && pending._identity.equals(identity)) ? pending : null;
+			return ((pending != null) && (pending._publicationState == PublicationState.PUBLISHED) && pending._identity.equals(identity)) ? pending : null;
 		}
 	}
 
@@ -765,42 +791,90 @@ public final class PartyInvitationService
 		}
 	}
 
+	private boolean publishExact(PendingInvitation pending)
+	{
+		synchronized (_stateLock)
+		{
+			if ((_pendingByInvitee.get(pending._identity.inviteeObjectId()) != pending) || (_pendingByRequester.get(pending._identity.requesterObjectId()) != pending) || pending._detached.get())
+			{
+				return false;
+			}
+			pending._publicationState = PublicationState.PUBLISHED;
+			return true;
+		}
+	}
+
 	private void removePending(PendingInvitation pending)
 	{
 		_pendingByInvitee.remove(pending._identity.inviteeObjectId(), pending);
 		_pendingByRequester.remove(pending._identity.requesterObjectId(), pending);
+		pending._detached.set(true);
 	}
 
-	private void clearDetached(PendingInvitation pending, String reasonKey)
+	private void clearDetached(PendingInvitation pending, TerminalOutcome outcome, String reasonKey)
 	{
-		if (pending._invitee.getActiveRequester() == pending._requester)
+		synchronized (pending)
 		{
-			pending._invitee.setActiveRequester(null);
-		}
-		pending._requester.onTransactionResponse();
-		final Party party = pending._requester.getParty();
-		if ((pending._partyAtInvite != null) && (party == pending._partyAtInvite) && party.getPendingInvitation())
-		{
-			party.setPendingInvitation(false);
-		}
-		if (pending._managedIdentity > 0)
-		{
-			pending._delivery.cancelled(pending.deliveryValue(), pending._managedIdentity, reasonKey);
+			if (!pending._terminal.compareAndSet(false, true))
+			{
+				return;
+			}
+			if (pending._requestFieldsInstalled)
+			{
+				if (pending._invitee.getActiveRequester() == pending._requester)
+				{
+					pending._invitee.setActiveRequester(null);
+				}
+				pending._requester.onTransactionResponse();
+				final Party party = pending._requester.getParty();
+				if ((pending._partyAtInvite != null) && (party == pending._partyAtInvite) && party.getPendingInvitation())
+				{
+					party.setPendingInvitation(false);
+				}
+			}
+			pending._publicationState = PublicationState.TERMINAL;
+			if (pending.managed())
+			{
+				pending._delivery.terminal(pending.deliveryValue(), pending.managedRequester(), pending.managedInvitee(), outcome, reasonKey);
+			}
 		}
 	}
 
 	private void uninstall(PartyInvitationDelivery delivery)
 	{
+		final List<PendingInvitation> detached;
 		synchronized (_stateLock)
 		{
-			if (_managedDelivery == delivery)
+			if (_managedDelivery != delivery)
 			{
-				_managedDelivery = NoopDelivery.INSTANCE;
+				return;
 			}
+			_managedDelivery = NoopDelivery.INSTANCE;
+			detached = _pendingByInvitee.values().stream().filter(pending -> pending._delivery == delivery).toList();
+			detached.forEach(this::removePending);
+		}
+		for (PendingInvitation pending : detached)
+		{
+			clearDetached(pending, TerminalOutcome.CANCELLED, "party.invite.delivery_closed");
 		}
 	}
 
-	private static final class PendingInvitation
+	private int ownedPending(PartyInvitationDelivery delivery)
+	{
+		synchronized (_stateLock)
+		{
+			return (int) _pendingByInvitee.values().stream().filter(pending -> pending._delivery == delivery).count();
+		}
+	}
+
+	private enum PublicationState
+	{
+		RESERVED,
+		PUBLISHED,
+		TERMINAL
+	}
+
+	private final class PendingInvitation
 	{
 		private final InvitationIdentity _identity;
 		private final Player _requester;
@@ -808,10 +882,15 @@ public final class PartyInvitationService
 		private final Party _partyAtInvite;
 		private final PartyDistributionType _distributionType;
 		private final long _expiresAtGameTick;
-		private final long _managedIdentity;
+		private final long _managedRequesterIdentity;
+		private final long _managedInviteeIdentity;
 		private final PartyInvitationDelivery _delivery;
+		private final AtomicBoolean _detached = new AtomicBoolean();
+		private final AtomicBoolean _terminal = new AtomicBoolean();
+		private volatile PublicationState _publicationState = PublicationState.RESERVED;
+		private boolean _requestFieldsInstalled;
 
-		private PendingInvitation(InvitationIdentity identity, Player requester, Player invitee, Party partyAtInvite, PartyDistributionType distributionType, long expiresAtGameTick, long managedIdentity, PartyInvitationDelivery delivery)
+		private PendingInvitation(InvitationIdentity identity, Player requester, Player invitee, Party partyAtInvite, PartyDistributionType distributionType, long expiresAtGameTick, long managedRequesterIdentity, long managedInviteeIdentity, PartyInvitationDelivery delivery)
 		{
 			_identity = identity;
 			_requester = requester;
@@ -819,8 +898,52 @@ public final class PartyInvitationService
 			_partyAtInvite = partyAtInvite;
 			_distributionType = distributionType;
 			_expiresAtGameTick = expiresAtGameTick;
-			_managedIdentity = managedIdentity;
+			_managedRequesterIdentity = managedRequesterIdentity;
+			_managedInviteeIdentity = managedInviteeIdentity;
 			_delivery = delivery;
+		}
+
+		private synchronized DeliveryOutcome publishAndDeliver()
+		{
+			if (_detached.get())
+			{
+				return DeliveryOutcome.STOPPING;
+			}
+			_requester.setPartyDistributionType(_distributionType);
+			_requester.onTransactionRequest(_invitee);
+			if (_partyAtInvite != null)
+			{
+				_partyAtInvite.setPendingInvitation(true);
+			}
+			_requestFieldsInstalled = true;
+			if (!publishExact(this))
+			{
+				return DeliveryOutcome.STOPPING;
+			}
+			final SystemMessage invited = new SystemMessage(SystemMessageId.C1_HAS_BEEN_INVITED_TO_THE_PARTY);
+			invited.addString(_invitee.getName());
+			_requester.sendPacket(invited);
+			if (_managedInviteeIdentity > 0)
+			{
+				return _delivery.deliver(deliveryValue(), _managedInviteeIdentity);
+			}
+			_invitee.sendPacket(new AskJoinParty(_requester.getName(), _distributionType));
+			return DeliveryOutcome.ACCEPTED;
+		}
+
+		private boolean managed()
+		{
+			return (_managedRequesterIdentity > 0) || (_managedInviteeIdentity > 0);
+		}
+
+		private OptionalLong managedRequester()
+		{
+			return _managedRequesterIdentity > 0 ? OptionalLong.of(_managedRequesterIdentity) : OptionalLong.empty();
+		}
+
+		private OptionalLong managedInvitee()
+		{
+			return _managedInviteeIdentity > 0 ? OptionalLong.of(_managedInviteeIdentity) : OptionalLong.empty();
 		}
 
 		private PartyInvitation deliveryValue()
@@ -830,7 +953,7 @@ public final class PartyInvitationService
 
 		private InvitationSnapshot snapshot()
 		{
-			return new InvitationSnapshot(_identity, _requester.getObjectId(), _invitee.getObjectId(), _distributionType, _partyAtInvite == null ? 0 : _partyAtInvite.getLeaderObjectId(), _expiresAtGameTick, _managedIdentity > 0);
+			return new InvitationSnapshot(_identity, _requester.getObjectId(), _invitee.getObjectId(), _distributionType, _partyAtInvite == null ? 0 : _partyAtInvite.getLeaderObjectId(), _expiresAtGameTick, _managedRequesterIdentity > 0, _managedInviteeIdentity > 0);
 		}
 	}
 
@@ -853,6 +976,11 @@ public final class PartyInvitationService
 			{
 				_owner.uninstall(_delivery);
 			}
+		}
+
+		public int pendingInvitations()
+		{
+			return _closed.get() ? 0 : _owner.ownedPending(_delivery);
 		}
 	}
 

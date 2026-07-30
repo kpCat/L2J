@@ -1,204 +1,188 @@
-# Goal 017 — Party coordination kernel
+# Goal 017 — завершение lifecycle safety Party
 
 Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 ## Summary
 
-Реализована одна цельная capability без 017A/017B: canonical party invitation
-для packet handlers и Phantom, durable leader/member claims, Phantom-only
-recovery, contextual roles/vacancies, typed semantic acts, shared route/regroup
-и party tactics через общий combat external-action ownership.
+Goal 017 продолжен без 017A/017B/017C от required parent
+`d731bf91b5f75cf733175bf57faf19c0354085c0` в ветке
+`feature/phantom-world`.
 
-Поддержаны Phantom↔Phantom, Phantom→real и real→Phantom. Consent реального
-игрока после restart не восстанавливается. `Player.java`, schema и другие
-хроники не изменялись.
+Исправлены только доказанные lifecycle-safety findings:
 
-До Goal 017 зафиксирован независимый verdict Goal 016:
-`ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`, без нового suffix.
+- двусторонний expiry и exact-once terminal invitation lifecycle;
+- durable managed requester/invitee preparation по точной invitation identity;
+- idempotent form/invite и lifecycle command retry;
+- leave, expel, leader transfer и travel с exact goal/generation/target guards;
+- operation/persistence/shutdown claims;
+- background party gate;
+- bounded maximum role matching;
+- exact-target support capability и typed skill execution;
+- route topology/deadline/missing-member guards;
+- индексированный bounded coordinator pulse.
 
-## READ_SET — exact current-code audit
+`Player.java`, `Party.java`, schema/migrations, другие хроники и будущие Goals не
+изменялись. Старый 27-target affected aggregate не запускался.
 
-Прочитаны обязательные master plan, workflow/task standards, весь task package
-017 и report 016. Точечно проверены:
+## READ_SET
 
-1. `RequestJoinParty`, `RequestAnswerJoinParty`, `Party` и нужные участки
-   `Player`;
-2. OfflinePlay party restore и AutoPlay follow/assist;
-3. materialization ActionLease и outbound session;
-4. goal store/decision engine/scheduler control;
-5. progression capability catalog/evaluator;
-6. combat sessions, respawn, actor lease и L2J backend;
-7. navigation service/progress и topology snapshot;
-8. profile component optimistic repository;
-9. population/background/commerce ownership patterns;
-10. текущие tests/build/verifiers.
+По completion package выполнен точечный read-first аудит:
 
-Локальные паттерны: bounded binary component codec, optimistic row version,
-immutable backend snapshots, ActionLease, exact goal identity, shared scheduler
-control, fixed aggregate metrics.
+1. `PartyInvitationDelivery`, `PartyInvitationService` и оба packet handler;
+2. только точные request-поля `Player` и membership methods `Party`;
+3. coordinator, decision, backend, role matcher, tactics, route и state model;
+4. combat external ownership и production L2J backend;
+5. background acquire/commit и `PhantomSystem` composition/shutdown;
+6. Party suite/launcher/build targets/verifiers;
+7. локальные real DB/materialization/client integration fixtures.
 
-## Scope / changed files
+Master plan и исходный Goal 017 package намеренно не перечитывались по прямому
+указанию задачи. Module README и дополнительный корневой AGENTS.md не найдены.
 
-Production:
+Переиспользованы локальные паттерны:
 
-- `model/groups/PartyInvitationDelivery.java`, `PartyInvitationService.java`;
-- оба party packet handlers;
-- `phantoms/party/**` и `phantoms/semantic/**`;
-- combat backend/service/actor lease/metrics;
-- composite scheduler control и `PhantomSystem`;
-- `PhantomPlayersConfig.java`, `PhantomPlayers.ini`;
-- `high-five-party-roles-v1.xml`.
+- outbound/session seam обычного `Player`;
+- canonical `PartyInvitationService` и публичные операции `Party`;
+- optimistic profile component store;
+- combat/background two-phase ownership claims;
+- общий scheduler pulse без нового worker/thread/future.
 
-Tests/build:
+## Changed files
 
-- `PhantomPartySuite.java`, `PhantomTestLauncher.java`;
-- девять focused targets, affected aggregate, final party aggregate;
-- `verify-task-017.ps1`;
-- descendant-compatible `verify-task-016.ps1`.
+Production: 18 файлов, из них 2 новых.
 
-Docs:
+- invitation core: `PartyInvitationDelivery`, `PartyInvitationService`;
+- party: coordinator, backend, decision, model, matcher, route, tactics и
+  participation port;
+- combat: actor lease, service, L2J backend и typed support action;
+- background service, semantic acts и `PhantomSystem`.
 
-- review Goal 016;
-- этот report и `PARTY_COORDINATION_CONTRACT.md`;
-- status-only roadmap/master-plan alignment;
-- неизменённый task package 017.
+Tests/tools/docs:
 
-## Invitation state machine
+- `PhantomPartySuite`;
+- новый `PhantomPartyServerIntegrationSuite`;
+- `PhantomTestLauncher`;
+- verifier 017;
+- architecture contract и этот отчёт;
+- шесть файлов completion package.
 
-```text
-validate → reserve exact request → client/managed delivery
-→ refuse/disabled/cancel/expire
-или revalidate → canonical Party commit → observe → durable commit
-```
+Итоговый scope: 30 файлов. Production <=18, new production <=3, total <=30.
 
-Packet handlers делегируют общему core service. Fake `GameClient`, handler
-invocation и direct member-list mutation отсутствуют.
+## Architecture decisions
 
-## Persistence state machine
+Invitation reservation имеет состояния RESERVED/PUBLISHED/TERMINAL. `prepare`
+исполняется до prompt/enqueue; все terminal paths отсоединяют оба индекса и
+посылают один callback, если managed хотя бы одна сторона. Закрытие delivery
+registration отменяет все принадлежащие ему входящие и исходящие invitations.
 
-```text
-PREPARED → CANONICAL_PENDING → CANONICAL_OBSERVED → COMMITTED
-                                               ↘ ABORTED
-```
+Coordinator сохраняет exact invitation sequence на leader и managed member до
+публикации. Stale identity не может abort/commit новую операцию. Lifecycle
+команды сначала выполняют canonical mutation, затем наблюдают postcondition и
+обновляют claims.
 
-`party.state` schema 1, payload ≤4096, roster ≤9. Manifest/member claims
-содержат generation/revision и hashes. Recovery удаляет real refs, не
-воспроизводит real consent и детерминированно переизбирает Phantom leader.
+Pulse использует `groupId -> sorted claims`, due-group queue и отдельные bounded
+terminal/inbound/tactical-release queues. В pulse-path отсутствуют полные
+сканирования managed state.
 
-## Role/vacancy evidence
+Maximum matcher оптимизирует required count, total score, optional count и
+лексический tie-break. Exact-target support проходит с capability/variant/scope
+и skill ID/level через combat ownership с повторной L2J validation.
 
-Строгий XML связывает generic roles только со string capability keys.
-Matcher сохраняет multi-capability facts и учитывает objective, readiness,
-resources и runtime state. Вывод: FILLED/MISSING/OPTIONAL/UNSUPPORTED с
-provenance и evidence hash. Class-ID switch отсутствует.
+## DB, configs, migrations
 
-## Semantic acts
-
-String-key acts имеют typed refs/slots, stable hash и generation guard. Текст,
-LLM, personality и Semantic Pack parsing отсутствуют; act сам не мутирует state.
-
-## Shared route и tactics
-
-На группу существует один leader navigation request/manifest. Followers
-используют shared waypoint или leader position при regroup. Snap, teleport,
-cross-instance и background travel отсутствуют.
-
-Assist/protect подтверждают normal monster. Heal/recharge/resurrect и один
-explicit buff/song/dance используют exact progression action skill. Все
-движения и tactics проходят через общий combat external lease.
-
-## Config, DB и migrations
-
-- `PhantomPartyOperationsPerPulse = 64`;
-- диапазон `1..10000`, legacy missing default `64`;
-- Phantom World по-прежнему выключен по умолчанию;
+- тестовая БД: только `l2jmobiush5_phantom_test`;
+- production БД `l2jmobiush5` не изменялась;
 - schema/migrations отсутствуют;
-- тесты используют только `l2jmobiush5_phantom_test`;
-- deterministic seed `17001701`.
+- новых config keys нет;
+- существующий `PhantomPartyOperationsPerPulse` остаётся budget authority.
 
-## Commands and results
+## Tests
 
-Early read-only Git:
+Новые dynamic проверки:
 
-- `git status --short --branch`;
-- `git branch --show-current`;
-- `git rev-parse` для HEAD/upstream/required parent;
-- `git merge-base --is-ancestor`;
-- bounded `git show`, `git diff --check`, `git diff --name-only` для Goal 016.
+- requester-side expiry очищает оба invitation index;
+- cancel/retry получает новую exact identity;
+- managed requester и invitee получают prepare/terminal exactly once;
+- materialized Phantom и обычный World Player образуют реальную `Party`;
+- ordinary outbound session получает настоящий `AskJoinParty`;
+- `party.state` записывается в MariaDB и загружается новым store adapter;
+- canonical transfer/expel/leave дают реальные postconditions;
+- transfer/leave claims и generation проверяются через coordinator;
+- missing route member не двигает waypoint и не допускает ARRIVED;
+- 64-group pulse никогда не превышает budget;
+- maximum-matching counterexample заполняет обе required vacancy.
 
-Build/test:
+Source-string проверки не засчитывались как integration evidence.
 
-- `ant compile`, `ant compile-tests` — PASS;
-- все девять focused Goal 017 modes — PASS;
-- `phantom-party-affected-test` — PASS, 27 affected targets;
-- verifiers 014A/015/016/017 до cumulative run — PASS:
-  `TASK014A_VERIFIER_OK`, `TASK015_VERIFIER_OK`, `TASK016_VERIFIER_OK`,
-  `TASK017_VERIFIER_OK`, working scope 49;
-- final `phantom-party-test` после последнего source fix — PASS, 32/32, 0:19;
-- первый full `ant verify` — `BUILD SUCCESSFUL`, 10:47;
-- после реального source/test/verifier fix разрешён второй full `ant verify`;
-  он дошёл до unrelated historical flake
-  `population-server-integration.01-real-create-materialize-sleep-retire`
-  (`Materialized population entry does not retain a real Player`) и завершился
-  FAIL за 10:40;
-- единственный разрешённый exact targeted retry
-  `phantom-population-server-integration-test` — PASS 1/1, 0:32; третьего full
-  verify не было;
-- финальный standalone `ant jar` — `BUILD SUCCESSFUL`, 0:15;
-- два byte-identical post-commit verifier 017 выполняются после immutable
-  report/ordinary commit; hashes и result приводятся в финальном ответе.
+## Verification results
 
-Первые короткие Ant invocations были остановлены process timeout до получения
-результата и не заявляются как пройденные. Реальные fixes до cumulative run:
-точное structural assertion packet-handler delegation, пустой operation
-failure key, ожидаемый порядок vacancy statuses, requester/invitee reservation
-без общего lock на external boundaries, route-scoped cancellation и
-descendant-compatible verifier 014A. Финальный source fix добавил durable
-Phantom member claim до canonical invite, terminal rollback и exact stale
-leader-goal revision guard. Финальный performance review заменил
-экспоненциальный role search на детерминированный
-`O(requirements × members × capabilities)` matcher и закрепил приоритет
-required vacancy над optional.
+Development:
+
+- compile/compile-tests: PASS;
+- focused Party dynamic и real server integration: PASS;
+- final `phantom-party-test`: PASS, 36/36.
+
+Pre-freeze gates:
+
+- семь exact affected regressions: PASS после единственного предусмотренного
+  population preflight; первый population affected-run поймал известный
+  несвязанный Goal 016 flake, точный report проверен, код не менялся;
+- combat preflight: PASS, 20/20;
+- population preflight: PASS, 1/1;
+- verifier 016: `TASK016_VERIFIER_OK`;
+- working verifier 017: `TASK017_VERIFIER_OK`, scope 30, production 18,
+  new production 2.
+
+Terminal frozen-tree results:
+
+- terminal disposition: `PARTIAL`;
+- единственный final full `ant verify`: FAIL через 12:12 только на известном
+  preflight-green population flake `Materialized population entry does not retain
+  a real Player`;
+- разрешённый единственный exact targeted retry: FAIL с тем же симптомом; broad
+  rerun и второй full verify не выполнялись;
+- standalone `ant jar`: `BUILD SUCCESSFUL`, 0:17;
+- два post-commit verifier 017 и их byte identity сообщаются в финальном ответе.
 
 ## Performance
 
-- 100000 composite control pulses;
-- synthetic 10000 profiles / 1000 groups;
-- matcher bounded девятью members;
-- pulse budget `64`;
-- no per-party/profile worker, executor, timer или Future;
-- fixed aggregate metrics без IDs в labels.
+Dynamic pulse fixture: 64 groups, budget 7, 100 pulses; maximum examined не
+превышает budget. Party performance target дополнительно использует 100000
+composite pulses, 10000 synthetic profiles и 1000 groups.
 
-Точные elapsed measurements находятся в generated test reports.
+Новых threads, executors, timers, scheduled futures и per-profile workers нет.
 
-## Deviations and limitations
+## Deviations, limitations, risks
 
-- Cross-profile ACID не заявляется; используется phase saga и optimistic claims.
-- Real leader — observation-only для route.
-- Геодата не добавлялась; сохраняется принятый navigation fallback contract.
-- Global matchmaking, Rift, background rewards, text/LLM, personality, clans,
-  PvP, economy и Goals 018/019/020/023/025 вне scope.
+- Cross-profile ACID не заявляется: используется bounded optimistic saga.
+- Реальный лидер остаётся observation-only для route execution.
+- Геодата и fallback navigation не менялись.
+- Global matchmaking, Rift, background rewards, text/LLM, clans, PvP/economy и
+  Goals 018/019/020/023/025 вне scope.
+- Soft usage target 650k превышен. Причина: bounded completion потребовал
+  перепроверить крупный coordinator lifecycle, добавить real DB/materialized
+  Party/ordinary-client fixture, выполнить тяжёлые server-integration regressions
+  и отдельно диагностировать известный population flake перед code freeze.
 
-## Scope guard
+## Encoding checks
 
-Разрешён bounded exception больше десяти файлов: задача сама определяет
-несколько связанных integration seams одной capability. Изменений вне High Five
-нет. `Player.java` и schema не изменены.
+- mojibake-маркеры в изменённых файлах проверены: 0;
+- escaped Cyrillic в изменённых файлах проверены отдельно: 0.
 
-- Mojibake-маркеры в 49 изменённых файлах проверены: совпадений нет.
-- Escaped Cyrillic в 49 изменённых файлах проверен отдельно: user-facing
-  совпадений нет.
+## Git
 
-## Branch, commit, push
+Разрешённые read-only Git-команды использовались для required parent, branch,
+upstream, scope inventory, exact diff и verifier guard. История не изменялась до
+ordinary final commit.
 
 - branch: `feature/phantom-world`;
-- required parent: `57caea2e5b5597c9a06b87cb8e868f227c4aa88e`;
-- commit: SELF, subject `feat(phantoms): add party coordination kernel`;
-- commit SHA и push result сообщаются в финальном ответе; report не изменяется
+- required parent: `d731bf91b5f75cf733175bf57faf19c0354085c0`;
+- subject: `fix(phantoms): complete party lifecycle safety`;
+- commit SHA и push result сообщаются в финальном ответе: report не изменяется
   после ordinary commit и не требует amend;
 - force push/amend/rebase/squash/merge: не используются.
 
 ## Next step
 
-Независимый review Goal 017. Goal 018/019/020/023/025 до принятия gate не
-начинать.
+После полного успеха — независимый review Goal 017. Следующий Goal до принятия
+gate не начинается.

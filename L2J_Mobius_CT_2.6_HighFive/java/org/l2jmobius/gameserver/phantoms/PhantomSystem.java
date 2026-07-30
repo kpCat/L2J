@@ -66,6 +66,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyParticipationPort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge;
@@ -219,9 +220,9 @@ public final class PhantomSystem
 				final PhantomGoalStateStore productionGoals = Objects.requireNonNull(goalStateStore);
 				final PhantomMaterializationLifecycleBridge productionLifecycle = Objects.requireNonNull(lifecycleBridge);
 				final PhantomActivityWorkSinkBridge productionWorkSink = Objects.requireNonNull(workSinkBridge);
-				final L2jCombatBackend combatBackend = new L2jCombatBackend(_materializationService, _gameKnowledgeService::query);
 				_progressionService = new PhantomProgressionService(new L2jProgressionBackend(_materializationService, ServerConfig.DATAPACK_ROOT.toPath(), _gameKnowledgeService::query), PhantomProgressionPolicy.productionDefaults());
 				_progressionService.start();
+				final L2jCombatBackend combatBackend = new L2jCombatBackend(_materializationService, _gameKnowledgeService::query, () -> _progressionService.findCatalog().orElse(null));
 				_combatService = new PhantomCombatService(combatBackend, PhantomCombatCapabilityResolver.fromProgression(() -> _progressionService.findCatalog().orElse(null)), combatPolicy);
 				_combatService.start();
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
@@ -230,6 +231,7 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom commerce service could not enter the running state.");
 				}
+				final PhantomPartyParticipationPort.Bridge partyParticipation = PhantomPartyParticipationPort.bridge();
 				_backgroundService = new PhantomBackgroundService(
 					productionProfiles,
 					productionGoals,
@@ -238,7 +240,8 @@ public final class PhantomSystem
 					new L2jPhantomBackgroundAuthority(_gameKnowledgeService::query, _topologyService::query, _progressionService::catalog, _commerceService::catalog),
 					new PhantomBackgroundCompetitionRegistry(),
 					new PhantomSchedulerRelevanceSignalPort(_scheduler),
-					() -> _materializationService);
+					() -> _materializationService,
+					partyParticipation);
 				if (!_backgroundService.start())
 				{
 					throw new IllegalStateException("Phantom background service could not enter the running state.");
@@ -264,13 +267,14 @@ public final class PhantomSystem
 					_settings.populationBoundariesPerPulse());
 				final File partyRoleCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-party-roles-v1.xml");
 				final PhantomPartyRoleCatalog partyRoleCatalog = PhantomPartyRoleCatalog.load(partyRoleCatalogFile.toPath());
+				final L2jPhantomPartyBackend partyBackend = new L2jPhantomPartyBackend(productionProfiles, _materializationService, _progressionService);
 				_partyCoordinator = new PhantomPartyCoordinator(
 					new PhantomPartyStore(productionProfiles),
 					productionGoals,
-					new L2jPhantomPartyBackend(productionProfiles, _materializationService, _progressionService),
+					partyBackend,
 					partyRoleCatalog,
 					new PhantomPartyRouteCoordinator(_navigationService, _combatService),
-					new PhantomPartyTactics(_combatService),
+					new PhantomPartyTactics(_combatService, partyBackend),
 					() -> _topologyService.query().snapshot().canonicalHash(),
 					System::nanoTime,
 					_settings.partyOperationsPerPulse());
@@ -278,6 +282,7 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
 				}
+				partyParticipation.install(_partyCoordinator);
 				final PhantomPopulationDecision populationDecision = new PhantomPopulationDecision(_populationManager);
 				final PhantomPartyDecision partyDecision = new PhantomPartyDecision(_partyCoordinator);
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();

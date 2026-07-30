@@ -21,6 +21,10 @@ public final class PhantomPartySemanticActs
 	public static final String INVITE_REFUSED = "party.invite.refused";
 	public static final String MEMBER_JOINED = "party.member.joined";
 	public static final String MEMBER_LEFT = "party.member.left";
+	public static final String LEAVE_REQUESTED = "party.leave.requested";
+	public static final String EXPEL_REQUESTED = "party.expel.requested";
+	public static final String LEADER_TRANSFER_REQUESTED = "party.leader_transfer.requested";
+	public static final String TRAVEL_REQUESTED = "party.travel.requested";
 	public static final String ROLE_ASSIGNED = "party.role.assigned";
 	public static final String VACANCY_OPEN = "party.vacancy.open";
 	public static final String ROUTE_STARTED = "party.route.started";
@@ -28,7 +32,7 @@ public final class PhantomPartySemanticActs
 	public static final String ASSIST_REQUESTED = "party.assist.requested";
 	public static final String PROTECT_REQUESTED = "party.protect.requested";
 	public static final String SUPPORT_REQUESTED = "party.support.requested";
-	public static final Set<String> KEYS = Set.of(INVITE_REQUESTED, INVITE_ACCEPTED, INVITE_REFUSED, MEMBER_JOINED, MEMBER_LEFT, ROLE_ASSIGNED, VACANCY_OPEN, ROUTE_STARTED, REGROUP_REQUESTED, ASSIST_REQUESTED, PROTECT_REQUESTED, SUPPORT_REQUESTED);
+	public static final Set<String> KEYS = Set.of(INVITE_REQUESTED, INVITE_ACCEPTED, INVITE_REFUSED, MEMBER_JOINED, MEMBER_LEFT, LEAVE_REQUESTED, EXPEL_REQUESTED, LEADER_TRANSFER_REQUESTED, TRAVEL_REQUESTED, ROLE_ASSIGNED, VACANCY_OPEN, ROUTE_STARTED, REGROUP_REQUESTED, ASSIST_REQUESTED, PROTECT_REQUESTED, SUPPORT_REQUESTED);
 
 	public static PhantomSemanticAct create(String actKey, PhantomDomainRef actor, PhantomDomainRef target, String groupId, long generation, String reasonKey, int confidence, Map<String, PhantomDomainRef> domainSlots, Map<String, Long> numericSlots, String provenance)
 	{

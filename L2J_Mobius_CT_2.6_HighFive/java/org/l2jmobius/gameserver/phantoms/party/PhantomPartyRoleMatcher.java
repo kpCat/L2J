@@ -5,9 +5,9 @@ package org.l2jmobius.gameserver.phantoms.party;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
@@ -38,42 +38,37 @@ public final class PhantomPartyRoleMatcher
 		{
 			throw new IllegalArgumentException("Party role matching input is outside bounds.");
 		}
-		final List<RoleRequirement> orderedRequirements = requirements.stream().sorted(Comparator.comparing(RoleRequirement::required).reversed().thenComparing(RoleRequirement::vacancyKey)).toList();
+		final List<RoleRequirement> orderedRequirements = requirements.stream().sorted(Comparator.comparing(RoleRequirement::vacancyKey)).toList();
 		final List<MemberSnapshot> orderedMembers = members.stream().sorted(Comparator.comparing(member -> member.ref().stableKey())).toList();
-		final Set<String> usedMembers = new HashSet<>();
-		final List<RoleAssignment> assignments = new ArrayList<>();
+		final List<List<AssignmentCandidate>> candidates = new ArrayList<>(orderedRequirements.size());
 		for (RoleRequirement requirement : orderedRequirements)
 		{
 			if (!_catalog.contains(requirement.roleKey()))
 			{
+				candidates.add(List.of());
 				continue;
 			}
 			final RoleDefinition role = _catalog.require(requirement.roleKey());
-			MemberSnapshot selectedMember = null;
-			Candidate selectedCapability = null;
-			for (MemberSnapshot member : orderedMembers)
+			final List<AssignmentCandidate> requirementCandidates = new ArrayList<>();
+			for (int memberIndex = 0; memberIndex < orderedMembers.size(); memberIndex++)
 			{
-				if (usedMembers.contains(member.ref().stableKey()) || member.dead())
+				final MemberSnapshot member = orderedMembers.get(memberIndex);
+				if (member.dead())
 				{
 					continue;
 				}
 				final Candidate candidate = bestCapability(objective, role, member);
-				if ((candidate == null) || (candidate.score < requirement.minimumScore()))
+				if ((candidate != null) && (candidate.score >= requirement.minimumScore()))
 				{
-					continue;
-				}
-				if ((selectedCapability == null) || (candidate.score > selectedCapability.score) || ((candidate.score == selectedCapability.score) && (member.ref().stableKey().compareTo(selectedMember.ref().stableKey()) < 0)))
-				{
-					selectedMember = member;
-					selectedCapability = candidate;
+					final RoleAssignment assignment = new RoleAssignment(requirement.vacancyKey(), role.roleKey(), member.ref(), candidate.capability.capabilityKey(), candidate.capability.variantKey(), candidate.score, "role.catalog+progression.capability+runtime.context");
+					requirementCandidates.add(new AssignmentCandidate(memberIndex, assignment));
 				}
 			}
-			if (selectedMember != null)
-			{
-				usedMembers.add(selectedMember.ref().stableKey());
-				assignments.add(new RoleAssignment(requirement.vacancyKey(), role.roleKey(), selectedMember.ref(), selectedCapability.capability.capabilityKey(), selectedCapability.capability.variantKey(), selectedCapability.score, "role.catalog+progression.capability+runtime.context"));
-			}
+			requirementCandidates.sort(Comparator.comparing(value -> value.assignment().member().stableKey() + '|' + value.assignment().capabilityKey() + '|' + value.assignment().variantKey()));
+			candidates.add(List.copyOf(requirementCandidates));
 		}
+		final MatchSolution solution = solve(0, 0, orderedRequirements, candidates, new HashMap<>());
+		final List<RoleAssignment> assignments = solution.assignments();
 		final List<Vacancy> vacancies = new ArrayList<>(orderedRequirements.size());
 		for (RoleRequirement requirement : orderedRequirements)
 		{
@@ -108,6 +103,41 @@ public final class PhantomPartyRoleMatcher
 		return new RoleMatchResult(assignments, vacancies, _catalog.hash(), PhantomPartyModel.sha256(evidence.toString()));
 	}
 
+	private static MatchSolution solve(int requirementIndex, int memberMask, List<RoleRequirement> requirements, List<List<AssignmentCandidate>> candidates, Map<Integer, MatchSolution> memo)
+	{
+		if (requirementIndex >= requirements.size())
+		{
+			return MatchSolution.EMPTY;
+		}
+		final int memoKey = (requirementIndex << PhantomPartyModel.MAX_ROSTER) | memberMask;
+		final MatchSolution cached = memo.get(memoKey);
+		if (cached != null)
+		{
+			return cached;
+		}
+		final RoleRequirement requirement = requirements.get(requirementIndex);
+		MatchSolution best = solve(requirementIndex + 1, memberMask, requirements, candidates, memo);
+		for (AssignmentCandidate candidate : candidates.get(requirementIndex))
+		{
+			final int bit = 1 << candidate.memberIndex();
+			if ((memberMask & bit) != 0)
+			{
+				continue;
+			}
+			final MatchSolution tail = solve(requirementIndex + 1, memberMask | bit, requirements, candidates, memo);
+			final ArrayList<RoleAssignment> assignments = new ArrayList<>(tail.assignments().size() + 1);
+			assignments.add(candidate.assignment());
+			assignments.addAll(tail.assignments());
+			final MatchSolution selected = new MatchSolution(tail.requiredFilled() + (requirement.required() ? 1 : 0), tail.totalScore() + candidate.assignment().score(), tail.optionalFilled() + (requirement.required() ? 0 : 1), List.copyOf(assignments));
+			if (selected.betterThan(best))
+			{
+				best = selected;
+			}
+		}
+		memo.put(memoKey, best);
+		return best;
+	}
+
 	private static Candidate bestCapability(ObjectiveMode objective, RoleDefinition role, MemberSnapshot member)
 	{
 		Candidate best = null;
@@ -133,5 +163,36 @@ public final class PhantomPartyRoleMatcher
 
 	private record Candidate(MemberCapability capability, int score)
 	{
+	}
+
+	private record AssignmentCandidate(int memberIndex, RoleAssignment assignment)
+	{
+	}
+
+	private record MatchSolution(int requiredFilled, int totalScore, int optionalFilled, List<RoleAssignment> assignments)
+	{
+		private static final MatchSolution EMPTY = new MatchSolution(0, 0, 0, List.of());
+
+		private boolean betterThan(MatchSolution other)
+		{
+			if (requiredFilled != other.requiredFilled)
+			{
+				return requiredFilled > other.requiredFilled;
+			}
+			if (totalScore != other.totalScore)
+			{
+				return totalScore > other.totalScore;
+			}
+			if (optionalFilled != other.optionalFilled)
+			{
+				return optionalFilled > other.optionalFilled;
+			}
+			return canonical().compareTo(other.canonical()) < 0;
+		}
+
+		private String canonical()
+		{
+			return assignments.stream().map(value -> value.vacancyKey() + '|' + value.member().stableKey() + '|' + value.capabilityKey() + '|' + value.variantKey()).reduce("", (left, right) -> left + '\n' + right);
+		}
 	}
 }

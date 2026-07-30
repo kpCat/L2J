@@ -8,9 +8,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomPartySupportAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionKind;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionLease;
@@ -28,12 +30,18 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.TacticalD
  */
 public final class PhantomPartyTactics
 {
-	private static final List<String> EXPLICIT_SUPPORT = List.of("combat.buff", "combat.song", "combat.dance");
 	private final PhantomCombatService _combat;
+	private final PhantomPartyBackend _backend;
 
 	public PhantomPartyTactics(PhantomCombatService combat)
 	{
+		this(combat, null);
+	}
+
+	public PhantomPartyTactics(PhantomCombatService combat, PhantomPartyBackend backend)
+	{
 		_combat = combat;
+		_backend = backend;
 	}
 
 	public List<TacticalDirective> plan(MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots)
@@ -58,36 +66,30 @@ public final class PhantomPartyTactics
 				{
 					continue;
 				}
+				final List<MemberCapability> exactCapabilities = _backend == null ? actorSnapshot.capabilities() : _backend.capabilities(actor, target.characterObjectId());
 				if (targetSnapshot.dead())
 				{
-					addSupport(candidates, DirectiveKind.RESURRECT_MEMBER, actorSnapshot, targetSnapshot, "combat.resurrection", "member.dead", 9500);
+					addSupport(candidates, DirectiveKind.RESURRECT_MEMBER, actorSnapshot, targetSnapshot, exactCapabilities, "combat.resurrection", "member.dead", 9500);
 				}
 				else
 				{
 					if (targetSnapshot.hpPercent() <= 55)
 					{
-						addSupport(candidates, DirectiveKind.HEAL_MEMBER, actorSnapshot, targetSnapshot, "combat.heal", "member.hp.low", 8000 + (55 - targetSnapshot.hpPercent()));
+						addSupport(candidates, DirectiveKind.HEAL_MEMBER, actorSnapshot, targetSnapshot, exactCapabilities, "combat.heal", "member.hp.low", 8000 + (55 - targetSnapshot.hpPercent()));
 					}
 					if (targetSnapshot.mpPercent() <= 35)
 					{
-						addSupport(candidates, DirectiveKind.RECHARGE_MEMBER, actorSnapshot, targetSnapshot, "combat.recharge", "member.mp.low", 7000 + (35 - targetSnapshot.mpPercent()));
-					}
-					if (!actor.equals(target))
-					{
-						for (String capabilityKey : EXPLICIT_SUPPORT)
-						{
-							addSupport(candidates, DirectiveKind.PARTY_SUPPORT, actorSnapshot, targetSnapshot, capabilityKey, "support.explicit", 4000);
-						}
+						addSupport(candidates, DirectiveKind.RECHARGE_MEMBER, actorSnapshot, targetSnapshot, exactCapabilities, "combat.recharge", "member.mp.low", 7000 + (35 - targetSnapshot.mpPercent()));
 					}
 				}
 				if (!actor.equals(target) && !targetSnapshot.attackerObjectIds().isEmpty())
 				{
-					candidates.add(new TacticalDirective(DirectiveKind.PROTECT_MEMBER, actor, target, targetSnapshot.attackerObjectIds().getFirst(), "", "", 0, 0, "member.attacked", 8500));
+					candidates.add(new TacticalDirective(DirectiveKind.PROTECT_MEMBER, actor, target, targetSnapshot.attackerObjectIds().getFirst(), "", "", "", 0, 0, "member.attacked", 8500));
 				}
 			}
 			if ((leaderSnapshot != null) && (leaderSnapshot.targetObjectId() > 0) && (leaderSnapshot.instanceId() == actorSnapshot.instanceId()))
 			{
-				candidates.add(new TacticalDirective(DirectiveKind.ASSIST_TARGET, actor, leader, leaderSnapshot.targetObjectId(), "", "", 0, 0, "leader.target", 6000));
+				candidates.add(new TacticalDirective(DirectiveKind.ASSIST_TARGET, actor, leader, leaderSnapshot.targetObjectId(), "", "", "", 0, 0, "leader.target", 6000));
 			}
 		}
 		return candidates.stream().sorted(Comparator.comparingInt(TacticalDirective::priority).reversed().thenComparing(value -> value.actor().stableKey()).thenComparing(value -> value.kind().name()).thenComparingInt(TacticalDirective::targetObjectId)).toList();
@@ -114,7 +116,7 @@ public final class PhantomPartyTactics
 		final ActionOutcome outcome;
 		if (support)
 		{
-			outcome = lease.castSupport(directive.targetObjectId(), new SelectedSkill(directive.actionSkillId(), directive.actionSkillLevel()), directive.capabilityKey());
+			outcome = lease.castSupport(new PhantomPartySupportAction(directive.capabilityKey(), directive.variantKey(), directive.targetScope(), directive.targetObjectId(), new SelectedSkill(directive.actionSkillId(), directive.actionSkillLevel())));
 		}
 		else
 		{
@@ -128,12 +130,17 @@ public final class PhantomPartyTactics
 		return Optional.of(lease);
 	}
 
-	private static void addSupport(List<TacticalDirective> output, DirectiveKind kind, MemberSnapshot actor, MemberSnapshot target, String capabilityKey, String reason, int priority)
+	private static void addSupport(List<TacticalDirective> output, DirectiveKind kind, MemberSnapshot actor, MemberSnapshot target, List<MemberCapability> capabilities, String capabilityKey, String reason, int priority)
 	{
-		final MemberCapability capability = actor.capabilities().stream().filter(value -> value.capabilityKey().equals(capabilityKey) && value.readyNow() && (value.actionSkillId() > 0) && (value.actionSkillLevel() > 0)).sorted(Comparator.comparingInt(MemberCapability::contextualScore).reversed().thenComparing(MemberCapability::identity)).findFirst().orElse(null);
+		final MemberCapability capability = capabilities.stream().filter(value -> value.capabilityKey().equals(capabilityKey) && value.readyNow() && scopeAllows(value.targetScope(), actor.ref().equals(target.ref())) && (value.actionSkillId() > 0) && (value.actionSkillLevel() > 0)).sorted(Comparator.comparingInt(MemberCapability::contextualScore).reversed().thenComparing(MemberCapability::identity)).findFirst().orElse(null);
 		if (capability != null)
 		{
-			output.add(new TacticalDirective(kind, actor.ref(), target.ref(), target.ref().characterObjectId(), capability.capabilityKey(), capability.variantKey(), capability.actionSkillId(), capability.actionSkillLevel(), reason, priority + capability.contextualScore()));
+			output.add(new TacticalDirective(kind, actor.ref(), target.ref(), target.ref().characterObjectId(), capability.capabilityKey(), capability.variantKey(), capability.targetScope(), capability.actionSkillId(), capability.actionSkillLevel(), reason, priority + capability.contextualScore()));
 		}
+	}
+
+	private static boolean scopeAllows(String targetScope, boolean self)
+	{
+		return self ? Set.of("SELF", "SINGLE_TARGET", "PARTY", "PARTY_MEMBER", "ALLY").contains(targetScope) : Set.of("SINGLE_TARGET", "PARTY", "PARTY_MEMBER", "ALLY").contains(targetScope);
 	}
 }

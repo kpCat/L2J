@@ -6,13 +6,31 @@ package org.l2jmobius.tests.phantoms;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.l2jmobius.gameserver.phantoms.activity.PhantomCompositeSchedulerControlPort;
+import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleMatcher;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStateCodec;
@@ -33,6 +51,8 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RouteStat
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStatus;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.VacancyStatus;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
+import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
 import org.l2jmobius.gameserver.phantoms.semantic.PhantomPartySemanticActs;
 import org.l2jmobius.gameserver.phantoms.semantic.PhantomSemanticAct;
 
@@ -193,6 +213,18 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(VacancyStatus.FILLED, result.vacancies().stream().filter(value -> value.vacancyKey().equals("slot.z.required")).findFirst().orElseThrow().status(), "Required vacancy did not receive assignment priority.");
 			PhantomAssertions.assertEquals(VacancyStatus.OPTIONAL, result.vacancies().stream().filter(value -> value.vacancyKey().equals("slot.a.optional")).findFirst().orElseThrow().status(), "Optional vacancy consumed the only eligible member.");
 		});
+		registry.add("06-maximum-matching-beats-greedy-counterexample", _ ->
+		{
+			final PhantomPartyRoleCatalog catalog = new PhantomPartyRoleCatalog(Map.of(
+				"support.heal", new RoleDefinition("support.heal", Map.of("combat.heal", 10), Map.of(), true),
+				"support.recharge", new RoleDefinition("support.recharge", Map.of("combat.recharge", 10), Map.of(), true)),
+				PhantomPartyModel.sha256("maximum.matching.catalog"));
+			final MemberSnapshot flexible = member(1, 101, 100, 100, false, 0, List.of(cap("combat.heal", "strong", 100, 1001), cap("combat.recharge", "only", 50, 1002)));
+			final MemberSnapshot healerOnly = member(2, 102, 100, 100, false, 0, List.of(cap("combat.heal", "only", 50, 1001)));
+			final var result = new PhantomPartyRoleMatcher(catalog).match(ObjectiveMode.RECOVERY, List.of(new RoleRequirement("slot.heal", "support.heal", true, 1), new RoleRequirement("slot.recharge", "support.recharge", true, 1)), List.of(flexible, healerOnly));
+			PhantomAssertions.assertEquals(2, result.assignments().size(), "Global role assignment left a required vacancy open.");
+			PhantomAssertions.assertEquals(flexible.ref(), result.assignments().stream().filter(value -> value.vacancyKey().equals("slot.recharge")).findFirst().orElseThrow().member(), "Flexible member was greedily consumed by HEAL.");
+		});
 	}
 
 	private static void semantics(PhantomTestRegistry registry)
@@ -242,6 +274,49 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(source.contains("_routeByGroup.remove(groupId)") && source.contains("routeId.equals(entry.getValue()._routeId)"), "Route cancellation is not scoped to the selected group route.");
 			PhantomAssertions.assertFalse(source.contains("new ArrayList<>(_movement.values())"), "Route cancellation still closes every group's movement lease.");
 		});
+		registry.add("05-missing-member-cannot-advance-or-arrive", _ ->
+		{
+			final PhantomNavigationBackend backend = new PhantomNavigationBackend()
+			{
+				@Override
+				public CapabilitySnapshot capability(PhantomNavigationPoint origin, PhantomNavigationPoint destination)
+				{
+					return new CapabilitySnapshot(PhantomNavigationCapability.GEODATA_DIRECT_ONLY, 1);
+				}
+
+				@Override
+				public boolean canMoveDirect(PhantomNavigationPoint origin, PhantomNavigationPoint destination)
+				{
+					return true;
+				}
+
+				@Override
+				public List<PhantomNavigationPoint> findPath(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellationToken)
+				{
+					throw new AssertionError("Direct route fixture invoked pathfinding.");
+				}
+			};
+			final PhantomNavigationService navigation = new PhantomNavigationService(PhantomNavigationPolicy.productionDefaults(), backend, worker ->
+			{
+				worker.run();
+				return true;
+			}, System::nanoTime, new PhantomMetrics());
+			PhantomAssertions.assertTrue(navigation.start(), "Route navigation fixture did not start.");
+			final PhantomPartyRouteCoordinator routes = new PhantomPartyRouteCoordinator(navigation, null);
+			final MemberRef leader = MemberRef.phantom(1, 101);
+			final MemberRef missing = MemberRef.phantom(2, 102);
+			final MemberSnapshot leaderSnapshot = new MemberSnapshot(leader, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO);
+			final String groupId = PhantomPartyModel.sha256("route.missing.member");
+			final long now = Math.max(1, System.nanoTime());
+			final RouteManifest route = routes.request(groupId, 1, leaderSnapshot, new PhantomDomainRef("location", "missing"), new PhantomNavigationPoint(100, 100, 0, 0), ZERO, now, now + 1_000_000_000L).orElseThrow();
+			final var result = routes.advance(groupId, route, leader, List.of(leader, missing), Map.of(leader, leaderSnapshot), 10, now + 1, ZERO, () -> false);
+			PhantomAssertions.assertEquals(RouteStatus.REGROUPING, result.route().status(), "Missing canonical member did not force REGROUPING.");
+			PhantomAssertions.assertEquals(route.currentWaypoint(), result.route().currentWaypoint(), "Missing canonical member advanced a waypoint.");
+			PhantomAssertions.assertFalse(result.route().status() == RouteStatus.ARRIVED, "Missing canonical member allowed ARRIVED.");
+			routes.beginStop();
+			navigation.beginStop();
+			PhantomAssertions.assertTrue(navigation.finishStop(), "Route navigation fixture did not drain.");
+		});
 	}
 
 	private static void tactics(PhantomTestRegistry registry)
@@ -253,9 +328,10 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			final MemberRef dead = MemberRef.real(103);
 			final MemberSnapshot leaderSnapshot = member(1, 101, 40, 20, false, 900, List.of());
 			final MemberSnapshot supportSnapshot = member(2, 102, 100, 100, false, 0, List.of(cap("combat.heal", "heal", 50, 1001), cap("combat.recharge", "recharge", 50, 1002), cap("combat.resurrection", "resurrection", 50, 1003), cap("combat.song", "song", 50, 1004)));
-			final MemberSnapshot deadSnapshot = new MemberSnapshot(dead, 0, 0, 0, 0, 0, 0, 0, 0, true, false, false, 0, List.of(901), List.of(), ZERO);
+			final MemberSnapshot deadSnapshot = new MemberSnapshot(dead, 0, 0, 0, 0, 0, 0, 0, 0, true, false, false, false, 0, List.of(901), List.of(), ZERO);
 			final List<DirectiveKind> kinds = new PhantomPartyTactics(null).plan(leader, List.of(leader, support, dead), Map.of(leader, leaderSnapshot, support, supportSnapshot, dead, deadSnapshot)).stream().map(value -> value.kind()).distinct().toList();
-			PhantomAssertions.assertTrue(kinds.containsAll(List.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER, DirectiveKind.HEAL_MEMBER, DirectiveKind.RECHARGE_MEMBER, DirectiveKind.RESURRECT_MEMBER, DirectiveKind.PARTY_SUPPORT)), "Tactical capability coverage is incomplete.");
+			PhantomAssertions.assertTrue(kinds.containsAll(List.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER, DirectiveKind.HEAL_MEMBER, DirectiveKind.RECHARGE_MEMBER, DirectiveKind.RESURRECT_MEMBER)), "Tactical capability coverage is incomplete.");
+			PhantomAssertions.assertFalse(kinds.contains(DirectiveKind.PARTY_SUPPORT), "Planner fabricated a use-all support action without an exact target need.");
 		});
 		registry.add("02-external-combat-ownership-is-mandatory", context ->
 		{
@@ -303,6 +379,84 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			}
 			PhantomAssertions.assertFalse(all.contains("new Thread") || all.contains("ExecutorService") || all.contains("ScheduledFuture"), "Party subsystem owns a worker/future.");
 		});
+		registry.add("04-transfer-and-leave-commit-exact-canonical-postconditions", PhantomPartySuite::membershipLifecycle);
+		registry.add("05-coordinator-pulse-count-never-exceeds-budget", PhantomPartySuite::boundedPulse);
+	}
+
+	private static void membershipLifecycle(PhantomTestContext context)
+	{
+		final MemoryPartyStore states = new MemoryPartyStore();
+		final MemoryGoalStore goals = new MemoryGoalStore();
+		final MemoryPartyBackend backend = new MemoryPartyBackend();
+		final MemberRef leader = backend.add(1, 101);
+		final MemberRef member = backend.add(2, 102);
+		backend.party(new PhantomPartyBackend.PartySnapshot(leader, List.of(leader, member), PartyDistributionType.FINDERS_KEEPERS));
+		final String groupId = PhantomPartyModel.sha256("membership.lifecycle");
+		final PartyOperation form = new PartyOperation(PhantomPartyModel.sha256("membership.form"), OperationKind.FORM, OperationPhase.COMMITTED, leader, null, 1, 0, ZERO, 0, 1, "");
+		final PartyState draft = new PartyState(groupId, 1, 0, StateStatus.LEADER, leader, "", ZERO, List.of(leader, member), List.of(), ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "lifecycle"), List.of(), List.of(), null, form, ZERO, ZERO, "");
+		final String manifest = draft.canonicalManifestHash();
+		states.seed(1, new PartyState(groupId, 1, 0, StateStatus.LEADER, leader, "", manifest, List.of(leader, member), List.of(), draft.objectiveMode(), draft.objectiveRef(), List.of(), List.of(), null, form, ZERO, ZERO, ""));
+		states.seed(2, new PartyState(groupId, 1, 0, StateStatus.MEMBER, leader, "", manifest, List.of(leader, member), List.of(), draft.objectiveMode(), draft.objectiveRef(), List.of(), List.of(), null, form, ZERO, ZERO, ""));
+		goals.put(1, goal(1, PhantomPartyCoordinator.FORM_GOAL, null, 0));
+		goals.put(2, goal(1, PhantomPartyCoordinator.JOIN_GOAL, new PhantomDomainRef("character.object", "101"), 0));
+		final PhantomPartyCoordinator coordinator = coordinator(context, states, goals, backend, 32);
+		try
+		{
+			PhantomAssertions.assertTrue(coordinator.start(), "Lifecycle coordinator did not start.");
+			coordinator.onPulse();
+			final long generation = coordinator.claim(1).orElseThrow().state().groupGeneration();
+			goals.put(1, goal(2, PhantomPartyCoordinator.TRANSFER_LEADER_GOAL, new PhantomDomainRef("profile", "2"), 0));
+			PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED, coordinator.transferLeaderTarget(1, 2, 0, generation, new PhantomDomainRef("profile", "2")), "Exact canonical leader transfer was rejected.");
+			final PartyState transferred = coordinator.claim(2).orElseThrow().state();
+			PhantomAssertions.assertEquals(member, transferred.leader(), "Transferred claim did not observe the canonical leader.");
+			PhantomAssertions.assertEquals(generation + 1, transferred.groupGeneration(), "Leader transfer did not advance generation exactly once.");
+			PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.IDEMPOTENT, coordinator.transferLeaderTarget(1, 2, 0, generation, new PhantomDomainRef("profile", "2")), "Exact transfer retry was not idempotent.");
+
+			goals.put(1, goal(3, PhantomPartyCoordinator.LEAVE_GOAL, null, 0));
+			PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED, coordinator.leave(1, 3, 0, transferred.groupGeneration()), "Exact member leave was rejected.");
+			PhantomAssertions.assertEquals(StateStatus.SOLO, coordinator.claim(1).orElseThrow().state().status(), "Departed Phantom did not move to SOLO.");
+			PhantomAssertions.assertFalse(coordinator.claim(2).orElseThrow().state().phantomMembers().contains(leader), "Remaining claim retained departed Phantom.");
+		}
+		finally
+		{
+			coordinator.beginStop();
+			PhantomAssertions.assertTrue(coordinator.finishStop(), "Lifecycle coordinator did not drain.");
+		}
+	}
+
+	private static void boundedPulse(PhantomTestContext context)
+	{
+		final MemoryPartyStore states = new MemoryPartyStore();
+		final MemoryGoalStore goals = new MemoryGoalStore();
+		final MemoryPartyBackend backend = new MemoryPartyBackend();
+		for (int index = 1; index <= 64; index++)
+		{
+			final MemberRef member = backend.add(index, 1000 + index);
+			backend.party(new PhantomPartyBackend.PartySnapshot(member, List.of(member), PartyDistributionType.FINDERS_KEEPERS));
+			final String groupId = PhantomPartyModel.sha256("bounded.group." + index);
+			final PartyOperation operation = new PartyOperation(PhantomPartyModel.sha256("bounded.operation." + index), OperationKind.FORM, OperationPhase.COMMITTED, member, null, index, 0, ZERO, 0, 1, "");
+			final PartyState draft = new PartyState(groupId, 1, 0, StateStatus.LEADER, member, "", ZERO, List.of(member), List.of(), ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "bounded"), List.of(), List.of(), null, operation, ZERO, ZERO, "");
+			states.seed(index, new PartyState(draft.groupId(), draft.groupGeneration(), draft.membershipRevision(), draft.status(), draft.leader(), "", draft.canonicalManifestHash(), draft.phantomMembers(), draft.realMembers(), draft.objectiveMode(), draft.objectiveRef(), draft.requirements(), draft.assignments(), null, operation, ZERO, ZERO, ""));
+			goals.put(index, goal(index, PhantomPartyCoordinator.FORM_GOAL, null, 0));
+		}
+		final int budget = 7;
+		final PhantomPartyCoordinator coordinator = coordinator(context, states, goals, backend, budget);
+		try
+		{
+			PhantomAssertions.assertTrue(coordinator.start(), "Bounded coordinator did not start.");
+			for (int pulse = 0; pulse < 100; pulse++)
+			{
+				coordinator.onPulse();
+				PhantomAssertions.assertTrue(coordinator.snapshot().lastPulseExamined() <= budget, "Pulse examined work beyond its configured budget.");
+			}
+			PhantomAssertions.assertTrue(coordinator.snapshot().maximumPulseExamined() <= budget, "Historical pulse accounting exceeded the configured budget.");
+			PhantomAssertions.assertEquals(64, coordinator.snapshot().partyClaims(), "Bounded pulse dropped a managed claim.");
+		}
+		finally
+		{
+			coordinator.beginStop();
+			PhantomAssertions.assertTrue(coordinator.finishStop(), "Bounded coordinator did not drain.");
+		}
 	}
 
 	private static void integration(PhantomTestRegistry registry)
@@ -385,7 +539,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	private static MemberSnapshot member(long profileId, int objectId, int hp, int mp, boolean dead, int target, List<MemberCapability> capabilities)
 	{
-		return new MemberSnapshot(MemberRef.phantom(profileId, objectId), 0, 0, 0, 0, 0, hp, mp, 100, dead, false, false, target, List.of(901), capabilities, ZERO);
+		return new MemberSnapshot(MemberRef.phantom(profileId, objectId), 0, 0, 0, 0, 0, hp, mp, 100, dead, false, false, false, target, List.of(901), capabilities, ZERO);
 	}
 
 	private static PartyOperation operationFixture()
@@ -414,5 +568,210 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	private static PhantomSemanticAct semantic(long generation)
 	{
 		return PhantomPartySemanticActs.create(PhantomPartySemanticActs.ASSIST_REQUESTED, new PhantomDomainRef("profile", "1"), new PhantomDomainRef("npc.object", "900"), PhantomPartyModel.sha256("semantic.group"), generation, "leader.target", 9000, Map.of(), Map.of("target.object", 900L), "party.tactics.test");
+	}
+
+	private static PhantomPartyCoordinator coordinator(PhantomTestContext context, MemoryPartyStore states, MemoryGoalStore goals, MemoryPartyBackend backend, int budget)
+	{
+		return new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context), new PhantomPartyRouteCoordinator(null, null), new PhantomPartyTactics(null, backend), () -> ZERO, System::nanoTime, budget);
+	}
+
+	private static PhantomGoal goal(long goalId, String type, PhantomDomainRef target, long revision)
+	{
+		return new PhantomGoal(goalId, type, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "1"), target, 1, 0, null, List.of(), null, "party.lifecycle", 500, 0, 0, 0, Map.of(), "party.lifecycle", revision);
+	}
+
+	private static final class MemoryPartyStore implements PhantomPartyPersistencePort
+	{
+		private final TreeMap<Long, StoredPartyState> _states = new TreeMap<>();
+
+		private void seed(long profileId, PartyState state)
+		{
+			_states.put(profileId, new StoredPartyState(profileId, 0, state));
+		}
+
+		@Override
+		public Optional<StoredPartyState> load(long profileId)
+		{
+			return Optional.ofNullable(_states.get(profileId));
+		}
+
+		@Override
+		public StoredPartyState save(long profileId, long expectedRowVersion, PartyState state)
+		{
+			final StoredPartyState current = _states.get(profileId);
+			if (((current == null) && (expectedRowVersion >= 0)) || ((current != null) && (current.rowVersion() != expectedRowVersion)))
+			{
+				throw new IllegalStateException("Injected optimistic conflict.");
+			}
+			final StoredPartyState stored = new StoredPartyState(profileId, current == null ? 0 : current.rowVersion() + 1, state);
+			_states.put(profileId, stored);
+			return stored;
+		}
+
+		@Override
+		public List<StoredPartyState> loadManagedAfter(long exclusiveProfileId, int pageSize)
+		{
+			return _states.tailMap(exclusiveProfileId, false).values().stream().limit(pageSize).toList();
+		}
+	}
+
+	private static final class MemoryGoalStore implements PhantomGoalStore
+	{
+		private final Map<Long, StoredGoal> _goals = new LinkedHashMap<>();
+
+		private void put(long profileId, PhantomGoal goal)
+		{
+			final StoredGoal current = _goals.get(profileId);
+			_goals.put(profileId, new StoredGoal(goal, current == null ? 0 : current.rowVersion() + 1));
+		}
+
+		@Override
+		public boolean profileExists(long profileId)
+		{
+			return profileId > 0;
+		}
+
+		@Override
+		public Optional<StoredGoal> load(long profileId)
+		{
+			return Optional.ofNullable(_goals.get(profileId));
+		}
+
+		@Override
+		public StoredGoal insert(long profileId, PhantomGoal goal)
+		{
+			if (_goals.containsKey(profileId))
+			{
+				throw new IllegalStateException("Goal exists.");
+			}
+			put(profileId, goal);
+			return _goals.get(profileId);
+		}
+
+		@Override
+		public StoredGoal replace(long profileId, long expectedRowVersion, PhantomGoal goal)
+		{
+			final StoredGoal current = _goals.get(profileId);
+			if ((current == null) || (current.rowVersion() != expectedRowVersion))
+			{
+				throw new IllegalStateException("Goal conflict.");
+			}
+			put(profileId, goal);
+			return _goals.get(profileId);
+		}
+
+		@Override
+		public void delete(long profileId, long expectedRowVersion)
+		{
+			final StoredGoal current = _goals.get(profileId);
+			if ((current == null) || (current.rowVersion() != expectedRowVersion))
+			{
+				throw new IllegalStateException("Goal conflict.");
+			}
+			_goals.remove(profileId);
+		}
+	}
+
+	private static final class MemoryPartyBackend implements PhantomPartyBackend
+	{
+		private final Map<Long, MemberRef> _members = new LinkedHashMap<>();
+		private final Map<MemberRef, PartySnapshot> _parties = new LinkedHashMap<>();
+
+		private MemberRef add(long profileId, int objectId)
+		{
+			final MemberRef member = MemberRef.phantom(profileId, objectId);
+			_members.put(profileId, member);
+			return member;
+		}
+
+		private void party(PartySnapshot snapshot)
+		{
+			for (MemberRef member : snapshot.members())
+			{
+				_parties.put(member, snapshot);
+			}
+		}
+
+		@Override
+		public OptionalLong managedProfileId(int characterObjectId)
+		{
+			return _members.values().stream().filter(member -> member.characterObjectId() == characterObjectId).mapToLong(MemberRef::profileId).findFirst();
+		}
+
+		@Override
+		public Optional<MemberRef> currentMember(long profileId)
+		{
+			return Optional.ofNullable(_members.get(profileId));
+		}
+
+		@Override
+		public PartyInvitationService.InviteResult invite(MemberRef requester, MemberRef target, PartyDistributionType distribution)
+		{
+			throw new AssertionError("Bounded lifecycle fixture must not fabricate an invitation.");
+		}
+
+		@Override
+		public PartyInvitationService.RespondResult respond(MemberRef invitee, PartyInvitationService.Response response, PartyInvitationService.InvitationIdentity identity)
+		{
+			throw new AssertionError("Bounded lifecycle fixture must not fabricate a response.");
+		}
+
+		@Override
+		public PartyInvitationService.MembershipOutcome leave(MemberRef member)
+		{
+			final PartySnapshot current = _parties.remove(member);
+			if (current == null)
+			{
+				return PartyInvitationService.MembershipOutcome.NOT_IN_PARTY;
+			}
+			final List<MemberRef> remaining = current.members().stream().filter(candidate -> !candidate.equals(member)).toList();
+			if (!remaining.isEmpty())
+			{
+				party(new PartySnapshot(current.leader().equals(member) ? remaining.getFirst() : current.leader(), remaining, current.distribution()));
+			}
+			return PartyInvitationService.MembershipOutcome.COMPLETED;
+		}
+
+		@Override
+		public PartyInvitationService.MembershipOutcome expel(MemberRef requester, MemberRef member)
+		{
+			return leave(member);
+		}
+
+		@Override
+		public PartyInvitationService.MembershipOutcome transferLeader(MemberRef requester, MemberRef member)
+		{
+			final PartySnapshot current = _parties.get(requester);
+			if ((current == null) || !current.leader().equals(requester) || !current.members().contains(member))
+			{
+				return PartyInvitationService.MembershipOutcome.NOT_LEADER;
+			}
+			party(new PartySnapshot(member, current.members(), current.distribution()));
+			return PartyInvitationService.MembershipOutcome.COMPLETED;
+		}
+
+		@Override
+		public Optional<PartySnapshot> observe(MemberRef member)
+		{
+			return Optional.ofNullable(_parties.get(member));
+		}
+
+		@Override
+		public Optional<MemberSnapshot> memberSnapshot(MemberRef member)
+		{
+			return Optional.of(new MemberSnapshot(member, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO));
+		}
+
+		@Override
+		public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId)
+		{
+			return List.of();
+		}
+
+		@Override
+		public boolean materialize(long profileId)
+		{
+			return _members.containsKey(profileId);
+		}
 	}
 }

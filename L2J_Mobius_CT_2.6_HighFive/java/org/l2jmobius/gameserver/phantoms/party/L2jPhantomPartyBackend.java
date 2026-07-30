@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
 
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
@@ -21,6 +22,7 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InviteResult
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.MembershipOutcome;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.RespondResult;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.Response;
+import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
@@ -141,9 +143,26 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final Player player = acquired.player();
 			final WorldObject target = player.getTarget();
 			final List<Integer> attackers = player.getAttackByList().stream().filter(Creature::isMonster).map(Creature::getObjectId).distinct().sorted().limit(32).toList();
-			final List<MemberCapability> capabilities = member.kind() == MemberKind.PHANTOM ? phantomCapabilities(member.profileId()) : realCapabilities(player);
+			final List<MemberCapability> capabilities = member.kind() == MemberKind.PHANTOM ? phantomCapabilities(member.profileId(), 0) : realCapabilities(player, 0);
 			final String progressionHash = _progression.findCatalog().map(catalog -> catalog.combinedHash()).orElse("0".repeat(64));
-			return Optional.of(new MemberSnapshot(member, player.getActiveClass(), player.getInstanceId(), player.getX(), player.getY(), player.getZ(), percent(player.getCurrentHp(), player.getMaxHp()), percent(player.getCurrentMp(), player.getMaxMp()), percent(player.getCurrentCp(), player.getMaxCp()), player.isDead(), player.isCastingNow(), player.isMoving(), target == null ? 0 : target.getObjectId(), attackers, capabilities, progressionHash));
+			return Optional.of(new MemberSnapshot(member, player.getActiveClass(), player.getInstanceId(), player.getX(), player.getY(), player.getZ(), percent(player.getCurrentHp(), player.getMaxHp()), percent(player.getCurrentMp(), player.getMaxMp()), percent(player.getCurrentCp(), player.getMaxCp()), player.isDead(), player.isCastingNow(), player.isAttackingNow(), player.isMoving(), target == null ? 0 : target.getObjectId(), attackers, capabilities, progressionHash));
+		}
+	}
+
+	@Override
+	public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId)
+	{
+		if (exactTargetObjectId <= 0)
+		{
+			return List.of();
+		}
+		if (actor.kind() == MemberKind.PHANTOM)
+		{
+			return phantomCapabilities(actor.profileId(), exactTargetObjectId);
+		}
+		try (AcquiredPlayer acquired = acquire(actor))
+		{
+			return acquired == null ? List.of() : realCapabilities(acquired.player(), exactTargetObjectId);
 		}
 	}
 
@@ -157,20 +176,34 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		};
 	}
 
-	private List<MemberCapability> phantomCapabilities(long profileId)
+	private List<MemberCapability> phantomCapabilities(long profileId, int targetObjectId)
 	{
-		return _progression.capabilities(profileId, null).stream().map(L2jPhantomPartyBackend::capability).toList();
+		return _progression.capabilities(profileId, targetObjectId > 0 ? targetObjectId : null).stream().map(L2jPhantomPartyBackend::capability).toList();
 	}
 
-	private List<MemberCapability> realCapabilities(Player player)
+	private List<MemberCapability> realCapabilities(Player player, int targetObjectId)
 	{
 		final List<MemberCapability> result = new ArrayList<>();
 		for (CapabilityRule rule : _progression.findCatalog().map(catalog -> catalog.capabilities(player.getActiveClass())).orElse(List.of()))
 		{
-			final boolean learned = player.getKnownSkill(rule.actionSkill().skillId()) != null;
-			result.add(new MemberCapability(rule.capabilityKey(), rule.variantKey(), rule.rank(), rule.actionSkill().skillId(), rule.actionSkill().skillLevel(), rule.targetScope().name(), true, learned, learned && !player.isDead() && !player.isCastingNow(), learned ? "ready" : "skill.missing", Math.max(1, percent(player.getCurrentMp(), player.getMaxMp()) * 10), "progression.catalog+real.current_player"));
+			final Skill skill = player.getKnownSkill(rule.actionSkill().skillId());
+			final boolean learned = (skill != null) && (skill.getLevel() == rule.actionSkill().skillLevel());
+			final WorldObject targetObject = targetObjectId > 0 ? World.getInstance().findObject(targetObjectId) : null;
+			final boolean targetReady = !rule.targetRequired() || (learned && (targetObject instanceof Player target) && targetCompatible(player, target, rule.targetScope().name()) && skill.checkCondition(player, target, false));
+			final boolean ready = learned && !player.isDead() && !player.isCastingNow() && targetReady && !player.isSkillDisabled(skill) && player.checkDoCastConditions(skill);
+			final String reason = !learned ? "skill.missing" : !targetReady ? (targetObjectId > 0 ? "target.invalid" : "target.required") : ready ? "ready" : "skill.unavailable";
+			result.add(new MemberCapability(rule.capabilityKey(), rule.variantKey(), rule.rank(), rule.actionSkill().skillId(), rule.actionSkill().skillLevel(), rule.targetScope().name(), true, learned, ready, reason, Math.max(1, percent(player.getCurrentMp(), player.getMaxMp()) * 10), "progression.catalog+real.current_player"));
 		}
 		return result;
+	}
+
+	private static boolean targetCompatible(Player actor, Player target, String targetScope)
+	{
+		if ("SELF".equals(targetScope))
+		{
+			return actor == target;
+		}
+		return Set.of("SINGLE_TARGET", "PARTY", "PARTY_MEMBER", "ALLY").contains(targetScope) && ((actor == target) || ((actor.getParty() != null) && (actor.getParty() == target.getParty()))) && (actor.getInstanceId() == target.getInstanceId());
 	}
 
 	private static MemberCapability capability(CapabilityEvaluation evaluation)

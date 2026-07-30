@@ -51,6 +51,8 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Npc
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CapabilityRule;
 
 public final class L2jCombatBackend implements PhantomCombatBackend
 {
@@ -60,17 +62,24 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	private static final Set<TargetType> PARTY_SUPPORT_TARGET_TYPES = Set.of(TargetType.ONE, TargetType.SELF, TargetType.PARTY, TargetType.PARTY_MEMBER, TargetType.PARTY_NOTME, TargetType.PARTY_OTHER, TargetType.TARGET_PARTY, TargetType.PC_BODY, TargetType.AURA_FRIENDLY, TargetType.AREA_FRIENDLY);
 	private final PhantomMaterializationService _materializationService;
 	private final Supplier<PhantomGameKnowledgeQuery> _knowledgeSupplier;
+	private final Supplier<PhantomProgressionCatalog> _progressionCatalog;
 
 	public L2jCombatBackend(PhantomMaterializationService materializationService, Supplier<PhantomGameKnowledgeQuery> knowledgeSupplier)
 	{
+		this(materializationService, knowledgeSupplier, () -> null);
+	}
+
+	public L2jCombatBackend(PhantomMaterializationService materializationService, Supplier<PhantomGameKnowledgeQuery> knowledgeSupplier, Supplier<PhantomProgressionCatalog> progressionCatalog)
+	{
 		_materializationService = Objects.requireNonNull(materializationService, "materializationService");
 		_knowledgeSupplier = Objects.requireNonNull(knowledgeSupplier, "knowledgeSupplier");
+		_progressionCatalog = Objects.requireNonNull(progressionCatalog, "progressionCatalog");
 	}
 
 	@Override
 	public PhantomCombatActorLease tryAcquireActor(long profileId)
 	{
-		return _materializationService.tryAcquireAction(profileId).map(lease -> new L2jActorLease(lease, _knowledgeSupplier)).orElse(null);
+		return _materializationService.tryAcquireAction(profileId).map(lease -> new L2jActorLease(lease, _knowledgeSupplier, _progressionCatalog)).orElse(null);
 	}
 
 	private static final class L2jActorLease implements PhantomCombatActorLease
@@ -78,13 +87,15 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private final ActionLease _materializationLease;
 		private final Player _player;
 		private final Supplier<PhantomGameKnowledgeQuery> _knowledgeSupplier;
+		private final Supplier<PhantomProgressionCatalog> _progressionCatalog;
 		private final AtomicBoolean _closed = new AtomicBoolean();
 
-		private L2jActorLease(ActionLease materializationLease, Supplier<PhantomGameKnowledgeQuery> knowledgeSupplier)
+		private L2jActorLease(ActionLease materializationLease, Supplier<PhantomGameKnowledgeQuery> knowledgeSupplier, Supplier<PhantomProgressionCatalog> progressionCatalog)
 		{
 			_materializationLease = materializationLease;
 			_player = materializationLease.player();
 			_knowledgeSupplier = knowledgeSupplier;
+			_progressionCatalog = progressionCatalog;
 		}
 
 		@Override
@@ -348,23 +359,40 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
-		public ActionOutcome castSupport(int targetObjectId, SelectedSkill selected, String capabilityKey)
+		public ActionOutcome castSupport(PhantomPartySupportAction action)
 		{
-			if ((selected == null) || !PARTY_SUPPORT_CAPABILITIES.contains(capabilityKey))
+			if ((action == null) || !PARTY_SUPPORT_CAPABILITIES.contains(action.capabilityKey()))
 			{
 				return ActionOutcome.REJECTED;
 			}
-			final WorldObject object = World.getInstance().findObject(targetObjectId);
-			if (!(object instanceof Player target) || (_player.getParty() == null) || (_player.getParty() != target.getParty()) || (_player.getInstanceId() != target.getInstanceId()))
+			final PhantomProgressionCatalog catalog = _progressionCatalog.get();
+			final CapabilityRule rule = catalog == null ? null : catalog.capabilities(_player.getActiveClass()).stream().filter(candidate -> candidate.capabilityKey().equals(action.capabilityKey()) && candidate.variantKey().equals(action.variantKey()) && candidate.targetScope().name().equals(action.targetScope()) && (candidate.actionSkill().skillId() == action.skill().skillId()) && (candidate.actionSkill().skillLevel() == action.skill().skillLevel())).findFirst().orElse(null);
+			if (rule == null)
 			{
 				return ActionOutcome.REJECTED;
 			}
-			final Skill skill = _player.getKnownSkill(selected.skillId());
-			if ((skill == null) || (skill.getLevel() != selected.skillLevel()) || skill.isPassive() || skill.isToggle() || skill.isDebuff() || skill.hasNegativeEffect() || !PARTY_SUPPORT_TARGET_TYPES.contains(skill.getTargetType()))
+			final WorldObject object = World.getInstance().findObject(action.targetObjectId());
+			if (!(object instanceof Player target) || (_player.getInstanceId() != target.getInstanceId()))
 			{
 				return ActionOutcome.REJECTED;
 			}
-			final boolean resurrection = "combat.resurrection".equals(capabilityKey);
+			final boolean self = target == _player;
+			final boolean targetScopeAllowed = switch (rule.targetScope())
+			{
+				case SELF -> self;
+				case SINGLE_TARGET, PARTY, ALLY -> self || ((_player.getParty() != null) && (_player.getParty() == target.getParty()));
+				default -> false;
+			};
+			if (!targetScopeAllowed || (!self && ((_player.getParty() == null) || (_player.getParty() != target.getParty()))))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final Skill skill = _player.getKnownSkill(action.skill().skillId());
+			if ((skill == null) || (skill.getLevel() != action.skill().skillLevel()) || skill.isPassive() || skill.isToggle() || skill.isDebuff() || skill.hasNegativeEffect() || !PARTY_SUPPORT_TARGET_TYPES.contains(skill.getTargetType()))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final boolean resurrection = "combat.resurrection".equals(action.capabilityKey());
 			if (resurrection != target.isDead())
 			{
 				return ActionOutcome.REJECTED;
@@ -383,7 +411,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.UNAVAILABLE;
 			}
 			final SkillUseHolder current = _player.getCurrentSkill();
-			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (current != null) && (current.getSkillId() == selected.skillId()) && (current.getSkillLevel() == selected.skillLevel()))
+			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (current != null) && (current.getSkillId() == action.skill().skillId()) && (current.getSkillLevel() == action.skill().skillLevel()))
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
