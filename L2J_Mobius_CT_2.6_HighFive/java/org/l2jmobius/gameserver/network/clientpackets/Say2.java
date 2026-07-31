@@ -31,6 +31,8 @@ import org.l2jmobius.gameserver.managers.PunishmentManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.chat.ChatObservationService;
+import org.l2jmobius.gameserver.model.chat.ChatObservationService.DispatchHandle;
 import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.events.EventDispatcher;
 import org.l2jmobius.gameserver.model.events.EventType;
@@ -218,7 +220,15 @@ public class Say2 extends ClientPacket
 		final IChatHandler handler = ChatHandler.getInstance().getHandler(chatType);
 		if (handler != null)
 		{
-			handler.onChat(chatType, player, _target, _text);
+			final DispatchHandle observationScope = ChatObservationService.getInstance().openClientDispatch(player.getObjectId(), player.getName(), chatType, _target, _text, System.currentTimeMillis());
+			try
+			{
+				handler.onChat(chatType, player, _target, _text);
+			}
+			finally
+			{
+				observationScope.close();
+			}
 		}
 		else
 		{

@@ -222,7 +222,7 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 				assertResult(fixture.service().understand("пригласи", InputContext.empty()), UnderstandingStatus.CLARIFICATION_REQUIRED, "party.invite", "clarify.target_player");
 				assertResult(fixture.service().understand("нужен саппорт", InputContext.empty()), UnderstandingStatus.CLARIFICATION_REQUIRED, "party.role.query", "clarify.party_role");
 				assertResult(fixture.service().understand("идем в гиран", InputContext.empty()), UnderstandingStatus.CLARIFICATION_REQUIRED, "party.travel", "clarify.location");
-				assertResult(fixture.service().understand("где взять 0 адены", InputContext.empty()), UnderstandingStatus.CLARIFICATION_REQUIRED, "item.acquire.query", "clarify.quantity");
+				assertResult(fixture.service().understand("где взять 0 штук адены", InputContext.empty()), UnderstandingStatus.CLARIFICATION_REQUIRED, "item.acquire.query", "clarify.quantity");
 			}
 			finally
 			{
@@ -330,7 +330,7 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 			try
 			{
 				PhantomAssertions.assertEquals(new PhantomDomainRef("character.object", "101"), fixture.service().understand("пригласи Иван", contextFixture("player-ivan")).slots().getFirst().domainReference(), "Real contextual identity was rewritten.");
-				PhantomAssertions.assertEquals(new PhantomDomainRef("profile", "00000000-0000-0000-0000-000000000019"), fixture.service().understand("пригласи его", contextFixture("selected-managed")).slots().getFirst().domainReference(), "Managed contextual identity was rewritten.");
+				PhantomAssertions.assertEquals(new PhantomDomainRef("profile", "19"), fixture.service().understand("пригласи его", contextFixture("selected-managed")).slots().getFirst().domainReference(), "Managed contextual identity was rewritten.");
 				PhantomAssertions.assertEquals(new PhantomDomainRef("character.object", "301"), fixture.service().understand("пригласи лидера", contextFixture("leader")).slots().getFirst().domainReference(), "Canonical leader identity was lost.");
 				PhantomAssertions.assertEquals(new PhantomDomainRef("character.object", "101"), fixture.service().understand("пригласи того", contextFixture("previous-ivan")).slots().getFirst().domainReference(), "Previous accepted target identity was lost.");
 			}
@@ -382,7 +382,7 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 			final PhantomSemanticPack pack = pack(context);
 			final CorpusRun run = runCorpus(pack, pack.corpus());
 			PhantomAssertions.assertTrue(run.positiveIntentAccuracyBasisPoints() >= 9600, "Positive intent accuracy is below 96%.");
-			PhantomAssertions.assertTrue(run.slotPrecisionBasisPoints() >= 9900, "Slot precision is below 99%.");
+			PhantomAssertions.assertTrue(run.slotPrecisionBasisPoints() >= 9900, "Slot precision is below 99%: " + run.slotFailures());
 			PhantomAssertions.assertEquals(10000, run.safetyBasisPoints(), "Clarification/negative safety is below 100%: " + run.safetyFailures());
 			PhantomAssertions.assertTrue(run.cyrillic() >= 120, "Cyrillic corpus coverage is below 120.");
 			PhantomAssertions.assertTrue(run.transliteration() >= 40, "Transliteration corpus coverage is below 40.");
@@ -639,7 +639,7 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 		final PlayerReference ivan = player("character.object", "101", "Иван");
 		final PlayerReference latinIvan = player("character.object", "101", "Ivan");
 		final PlayerReference petr = player("character.object", "102", "Петр");
-		final PlayerReference managed = player("profile", "00000000-0000-0000-0000-000000000019", "Мира");
+		final PlayerReference managed = player("profile", "19", "Мира");
 		final PlayerReference leader = player("character.object", "301", "Лидер");
 		return switch (key)
 		{
@@ -679,6 +679,7 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 		int clarification = 0;
 		int rejected = 0;
 		final List<String> safetyFailures = new ArrayList<>();
+		final List<String> slotFailures = new ArrayList<>();
 		final Map<String, String> canonical = new java.util.TreeMap<>();
 		try
 		{
@@ -715,7 +716,14 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 				expectedSlots += expected.size();
 				for (var entry : expected.entrySet())
 				{
-					correctSlots += entry.getValue().equals(actual.get(entry.getKey())) ? 1 : 0;
+					if (entry.getValue().equals(actual.get(entry.getKey())))
+					{
+						correctSlots++;
+					}
+					else
+					{
+						slotFailures.add(corpusCase.caseId() + ":" + entry.getKey() + " expected=" + entry.getValue() + " actual=" + actual.get(entry.getKey()));
+					}
 				}
 				final boolean hasCyrillic = corpusCase.input().codePoints().anyMatch(codePoint -> Character.UnicodeScript.of(codePoint) == Character.UnicodeScript.CYRILLIC);
 				final boolean hasLatin = corpusCase.input().codePoints().anyMatch(codePoint -> Character.UnicodeScript.of(codePoint) == Character.UnicodeScript.LATIN);
@@ -732,7 +740,7 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 			service.beginStop();
 			service.finishStop();
 		}
-		return new CorpusRun(basisPoints(positiveCorrect, positive), basisPoints(correctSlots, expectedSlots), basisPoints(safetyCorrect, safety), cyrillic, transliteration, abbreviation, fuzzy, clarification, rejected, List.copyOf(safetyFailures), Map.copyOf(canonical));
+		return new CorpusRun(basisPoints(positiveCorrect, positive), basisPoints(correctSlots, expectedSlots), basisPoints(safetyCorrect, safety), cyrillic, transliteration, abbreviation, fuzzy, clarification, rejected, List.copyOf(safetyFailures), List.copyOf(slotFailures), Map.copyOf(canonical));
 	}
 
 	private static Map<SlotType, String> expectedSlots(String encoded)
@@ -777,7 +785,7 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 		}
 	}
 
-	private record CorpusRun(int positiveIntentAccuracyBasisPoints, int slotPrecisionBasisPoints, int safetyBasisPoints, int cyrillic, int transliteration, int abbreviation, int fuzzy, int clarification, int rejected, List<String> safetyFailures, Map<String, String> canonicalResults)
+	private record CorpusRun(int positiveIntentAccuracyBasisPoints, int slotPrecisionBasisPoints, int safetyBasisPoints, int cyrillic, int transliteration, int abbreviation, int fuzzy, int clarification, int rejected, List<String> safetyFailures, List<String> slotFailures, Map<String, String> canonicalResults)
 	{
 	}
 }

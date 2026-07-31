@@ -17,6 +17,7 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.LongSupplier;
 
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException.Category;
@@ -39,6 +40,8 @@ import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialEvent;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialSnapshot;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialState;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialReceiptLedger.Receipt;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialReceiptLedger.ReceiptStatus;
 
 /**
  * Single-writer social-state owner with fixed stripes, bounded cache and no
@@ -52,14 +55,14 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 
 		Optional<StoredState> load(long profileId);
 
-		StoredState save(long profileId, long expectedRowVersion, SocialState state);
+		StoredState save(long profileId, long expectedStateRowVersion, long expectedReceiptRowVersion, SocialState state, PhantomSocialReceiptLedger receipts);
 	}
 
-	public record StoredState(long profileId, long rowVersion, SocialState state)
+	public record StoredState(long profileId, long stateRowVersion, long receiptRowVersion, SocialState state, PhantomSocialReceiptLedger receipts)
 	{
 		public StoredState
 		{
-			if ((profileId <= 0) || (rowVersion < 0) || (state == null))
+			if ((profileId <= 0) || (stateRowVersion < 0) || (receiptRowVersion < 0) || (state == null) || (receipts == null))
 			{
 				throw new IllegalArgumentException("Stored social state metadata is invalid.");
 			}
@@ -93,11 +96,11 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 		}
 	}
 
-	public record Snapshot(ServiceState state, String catalogHash, int cacheEntries, int cacheLimit, int operationClaims, int writeClaims, long durableWrites, long recordedEvents, long idempotentEvents, long optimisticConflicts, long capacityFailures, long authorityStale, long failures)
+	public record Snapshot(ServiceState state, String catalogHash, int cacheEntries, int cacheLimit, int operationClaims, int writeClaims, long durableWrites, long recordedEvents, long staleEvents, long idempotentEvents, long optimisticConflicts, long capacityFailures, long authorityStale, long failures)
 	{
 		public static Snapshot inactive()
 		{
-			return new Snapshot(ServiceState.STOPPED, "none", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+			return new Snapshot(ServiceState.STOPPED, "none", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 		}
 	}
 
@@ -106,6 +109,7 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 	private final PhantomSocialCatalog _catalog;
 	private final PersistencePort _store;
 	private final long _personalitySeed;
+	private final LongSupplier _clock;
 	private final int _cacheLimit;
 	private final Object[] _stripes = new Object[STRIPES];
 	private final Object _lifecycleLock = new Object();
@@ -114,6 +118,7 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 	private final AtomicInteger _writeClaims = new AtomicInteger();
 	private final LongAdder _durableWrites = new LongAdder();
 	private final LongAdder _recordedEvents = new LongAdder();
+	private final LongAdder _staleEvents = new LongAdder();
 	private final LongAdder _idempotentEvents = new LongAdder();
 	private final LongAdder _optimisticConflicts = new LongAdder();
 	private final LongAdder _capacityFailures = new LongAdder();
@@ -123,8 +128,14 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 
 	public PhantomSocialService(PhantomSocialCatalog catalog, PersistencePort store, long personalitySeed, int cacheLimit)
 	{
+		this(catalog, store, personalitySeed, cacheLimit, () -> 0L);
+	}
+
+	public PhantomSocialService(PhantomSocialCatalog catalog, PersistencePort store, long personalitySeed, int cacheLimit, LongSupplier clock)
+	{
 		_catalog = Objects.requireNonNull(catalog);
 		_store = Objects.requireNonNull(store);
+		_clock = Objects.requireNonNull(clock);
 		if (personalitySeed <= 0)
 		{
 			throw new IllegalArgumentException("Social personality seed must be positive.");
@@ -217,14 +228,35 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 							_authorityStale.increment();
 							return new Result(Status.AUTHORITY_STALE, "social.authority_stale");
 						}
-						if (state.containsEvent(event.eventId()))
+						final long clockMinute = _clock.getAsLong();
+						if (clockMinute < 0)
+						{
+							throw new IllegalArgumentException("Social clock returned a negative minute.");
+						}
+						final long effectiveMinute = Math.max(Math.max(state.logicalMinute(), event.happenedEpochMinute()), clockMinute);
+						final PhantomSocialReceiptLedger storedReceipts = current == null ? PhantomSocialReceiptLedger.empty() : current.receipts();
+						if (storedReceipts.find(event.eventId()) != null)
 						{
 							_idempotentEvents.increment();
 							return new Result(Status.IDEMPOTENT, "social.event_idempotent");
 						}
-						final SocialState mutated = apply(state, event);
-						final StoredState saved = durableSave(event.ownerProfileId(), current == null ? -1 : current.rowVersion(), mutated);
+						final PhantomSocialReceiptLedger receipts = storedReceipts.prune(effectiveMinute);
+						if (receipts.receipts().size() >= PhantomSocialReceiptLedger.MAX_RECEIPTS)
+						{
+							throw new CapacityFailure();
+						}
+						final EventDefinition definition = _catalog.requireEvent(event.eventKey());
+						final long expiryMinute = Math.addExact(event.happenedEpochMinute(), definition.ttlMinutes());
+						final boolean stale = effectiveMinute >= expiryMinute;
+						final SocialState mutated = stale ? advanceLogicalMinuteOnly(state, effectiveMinute) : apply(state, event, effectiveMinute, definition);
+						final PhantomSocialReceiptLedger nextReceipts = receipts.add(new Receipt(event.eventId(), definition.code(), event.happenedEpochMinute(), expiryMinute, stale ? ReceiptStatus.STALE : ReceiptStatus.APPLIED));
+						final StoredState saved = durableSave(event.ownerProfileId(), current == null ? -1 : current.stateRowVersion(), current == null ? -1 : current.receiptRowVersion(), mutated, nextReceipts);
 						cache(saved);
+						if (stale)
+						{
+							_staleEvents.increment();
+							return new Result(Status.STALE, "social.event_stale");
+						}
 						_recordedEvents.increment();
 						return new Result(Status.RECORDED, "social.event_recorded");
 					}
@@ -397,7 +429,7 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 
 	public Snapshot snapshot()
 	{
-		return new Snapshot(_state, _catalog.hash(), cacheSize(), _cacheLimit, _operationClaims.get(), _writeClaims.get(), _durableWrites.sum(), _recordedEvents.sum(), _idempotentEvents.sum(), _optimisticConflicts.sum(), _capacityFailures.sum(), _authorityStale.sum(), _failures.sum());
+		return new Snapshot(_state, _catalog.hash(), cacheSize(), _cacheLimit, _operationClaims.get(), _writeClaims.get(), _durableWrites.sum(), _recordedEvents.sum(), _staleEvents.sum(), _idempotentEvents.sum(), _optimisticConflicts.sum(), _capacityFailures.sum(), _authorityStale.sum(), _failures.sum());
 	}
 
 	private EnsureResult ensureStored(long profileId)
@@ -429,7 +461,7 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 				{
 					return new EnsureResult(Status.PROFILE_NOT_FOUND, null, false, "social.profile_not_found");
 				}
-				final StoredState inserted = durableSave(profileId, -1, createState(profileId));
+				final StoredState inserted = durableSave(profileId, -1, -1, createState(profileId), PhantomSocialReceiptLedger.empty());
 				cache(inserted);
 				return new EnsureResult(Status.INITIALIZED, inserted, true, "social.initialized");
 			}
@@ -470,11 +502,10 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 		return new SocialState(_catalog.hash(), _personalitySeed, 0, traits, List.of(), List.of());
 	}
 
-	private SocialState apply(SocialState state, SocialEvent event)
+	private SocialState apply(SocialState state, SocialEvent event, long effectiveMinute, EventDefinition definition)
 	{
-		final EventDefinition definition = _catalog.requireEvent(event.eventKey());
-		final SocialState projected = project(state, event.happenedEpochMinute());
-		final long effectiveMinute = projected.logicalMinute();
+		final SocialState projected = project(state, effectiveMinute);
+		final long eventAge = effectiveMinute - event.happenedEpochMinute();
 		final List<RelationshipRecord> relationships = new ArrayList<>(projected.relationships());
 		int targetIndex = -1;
 		for (int index = 0; index < relationships.size(); index++)
@@ -514,7 +545,8 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 		for (Map.Entry<Integer, Integer> delta : definition.dimensionDeltas().entrySet())
 		{
 			final long scaled = ((long) delta.getValue() * event.magnitude()) / 1000L;
-			values.set(delta.getKey(), PhantomSocialModel.clamp((long) values.get(delta.getKey()) + scaled));
+			final int aged = decay(PhantomSocialModel.clamp(scaled), eventAge, _catalog.dimensions().get(delta.getKey()).decayPerDay());
+			values.set(delta.getKey(), PhantomSocialModel.clamp((long) values.get(delta.getKey()) + aged));
 		}
 		final List<Integer> agreements = new ArrayList<>(current.agreements());
 		for (int index = 0; index < agreements.size(); index++)
@@ -524,7 +556,8 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 		relationships.set(targetIndex, current.withValues(values, agreements, effectiveMinute, effectiveMinute));
 
 		final List<MemoryRecord> memories = new ArrayList<>(projected.memories());
-		final int salience = (int) Math.min(PhantomSocialModel.MAX_VALUE, ((long) definition.salience() * event.magnitude()) / 1000L);
+		final int baseSalience = (int) Math.min(PhantomSocialModel.MAX_VALUE, ((long) definition.salience() * event.magnitude()) / 1000L);
+		final int salience = Math.max(0, decay(baseSalience, eventAge, _catalog.limits().memoryDecayPerDay()));
 		if ((salience >= _catalog.limits().memorySalienceThreshold()) && (event.happenedEpochMinute() <= (Long.MAX_VALUE - definition.ttlMinutes())))
 		{
 			final long expiry = event.happenedEpochMinute() + definition.ttlMinutes();
@@ -539,6 +572,11 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 			memories.remove(evicted);
 		}
 		return new SocialState(projected.authorityHash(), projected.personalitySeed(), effectiveMinute, projected.traits(), relationships, memories);
+	}
+
+	private SocialState advanceLogicalMinuteOnly(SocialState state, long effectiveMinute)
+	{
+		return new SocialState(state.authorityHash(), state.personalitySeed(), effectiveMinute, state.traits(), state.relationships(), state.memories());
 	}
 
 	private SocialState project(SocialState state, long requestedMinute)
@@ -675,12 +713,12 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 		return result;
 	}
 
-	private StoredState durableSave(long profileId, long expectedRowVersion, SocialState state)
+	private StoredState durableSave(long profileId, long expectedStateRowVersion, long expectedReceiptRowVersion, SocialState state, PhantomSocialReceiptLedger receipts)
 	{
 		_writeClaims.incrementAndGet();
 		try
 		{
-			final StoredState result = _store.save(profileId, expectedRowVersion, state);
+			final StoredState result = _store.save(profileId, expectedStateRowVersion, expectedReceiptRowVersion, state, receipts);
 			_durableWrites.increment();
 			return result;
 		}

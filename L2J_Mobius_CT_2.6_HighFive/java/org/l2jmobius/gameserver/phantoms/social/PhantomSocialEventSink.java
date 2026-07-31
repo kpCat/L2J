@@ -19,6 +19,7 @@ public interface PhantomSocialEventSink
 		READY,
 		INITIALIZED,
 		RECORDED,
+		STALE,
 		IDEMPOTENT,
 		DISABLED,
 		NOT_RUNNING,
@@ -43,7 +44,7 @@ public interface PhantomSocialEventSink
 
 		public boolean durable()
 		{
-			return (status == Status.RECORDED) || (status == Status.IDEMPOTENT);
+			return (status == Status.RECORDED) || (status == Status.STALE) || (status == Status.IDEMPOTENT);
 		}
 	}
 

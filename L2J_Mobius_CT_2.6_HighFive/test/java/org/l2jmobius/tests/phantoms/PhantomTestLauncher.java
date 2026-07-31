@@ -278,6 +278,14 @@ public final class PhantomTestLauncher
 			case "semantic-context" -> new PhantomSemanticSuite(PhantomSemanticSuite.Mode.CONTEXT);
 			case "semantic-corpus" -> new PhantomSemanticSuite(PhantomSemanticSuite.Mode.CORPUS);
 			case "semantic-lifecycle-performance" -> new PhantomSemanticSuite(PhantomSemanticSuite.Mode.LIFECYCLE_PERFORMANCE);
+			case "social-activation" -> new PhantomActivationGateSuite(PhantomActivationGateSuite.Mode.SOCIAL);
+			case "semantic-activation" -> new PhantomActivationGateSuite(PhantomActivationGateSuite.Mode.SEMANTIC);
+			case "chat-observation" -> new PhantomChatObservationSuite();
+			case "conversation-catalog-codec" -> new PhantomConversationSuite(PhantomConversationSuite.Mode.CATALOG_CODEC);
+			case "conversation-understanding" -> new PhantomConversationSuite(PhantomConversationSuite.Mode.UNDERSTANDING);
+			case "conversation-social-style" -> new PhantomConversationSuite(PhantomConversationSuite.Mode.SOCIAL_STYLE);
+			case "conversation-chat-integration" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.CHAT_INTEGRATION);
+			case "conversation-lifecycle-performance" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

@@ -27,6 +27,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +44,26 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceExcept
  */
 public final class PhantomProfileRepository
 {
+	public record ComponentMutation(String componentType, long expectedRowVersion, int componentSchemaVersion, byte[] payload)
+	{
+		public ComponentMutation
+		{
+			PhantomProfileComponent.requireValidComponentType(componentType);
+			if (expectedRowVersion < -1)
+			{
+				throw new IllegalArgumentException("Expected component row version must be -1 or non-negative.");
+			}
+			PhantomProfileComponent.requireValidSchemaVersion(componentSchemaVersion);
+			payload = PhantomProfileComponent.copyPayload(payload);
+		}
+
+		@Override
+		public byte[] payload()
+		{
+			return payload.clone();
+		}
+	}
+
 	private static final String PROFILE_COLUMNS = "profile_id, character_object_id, schema_version, row_version, created_at, updated_at";
 	private static final String COMPONENT_COLUMNS = "profile_id, component_type, component_schema_version, row_version, payload, created_at, updated_at";
 	private static final String INSERT_PROFILE = "INSERT INTO phantom_profiles (character_object_id) VALUES (?)";
@@ -374,6 +395,66 @@ public final class PhantomProfileRepository
 				requireOptimisticWinner(statement.executeUpdate(), "Phantom profile component update");
 			}
 			return requireComponent(connection, profileId, componentType);
+		});
+	}
+
+	/**
+	 * Applies one to three already-versioned component mutations in one transaction.
+	 * The strict component ordering keeps concurrent multi-component writers from
+	 * acquiring row locks in different orders.
+	 */
+	public List<PhantomProfileComponent> mutateComponentsAtomically(long profileId, List<ComponentMutation> mutations)
+	{
+		requireProfileId(profileId);
+		if ((mutations == null) || mutations.isEmpty() || (mutations.size() > 3))
+		{
+			throw new IllegalArgumentException("Atomic component mutation count must be between one and three.");
+		}
+		final List<ComponentMutation> ordered = mutations.stream().sorted(Comparator.comparing(ComponentMutation::componentType)).toList();
+		for (int index = 0; index < ordered.size(); index++)
+		{
+			if (!ordered.get(index).equals(mutations.get(index)) || ((index > 0) && ordered.get(index - 1).componentType().equals(ordered.get(index).componentType())))
+			{
+				throw new IllegalArgumentException("Atomic component mutations must be unique and strictly sorted by component type.");
+			}
+		}
+		return write("mutate Phantom profile components atomically", connection ->
+		{
+			for (ComponentMutation mutation : ordered)
+			{
+				if (mutation.expectedRowVersion() < 0)
+				{
+					try (PreparedStatement statement = connection.prepareStatement(INSERT_COMPONENT))
+					{
+						statement.setLong(1, profileId);
+						statement.setString(2, mutation.componentType());
+						statement.setInt(3, mutation.componentSchemaVersion());
+						statement.setBytes(4, mutation.payload());
+						if (statement.executeUpdate() != 1)
+						{
+							throw new SQLException("Component insert did not affect exactly one row.");
+						}
+					}
+				}
+				else
+				{
+					try (PreparedStatement statement = connection.prepareStatement(UPDATE_COMPONENT))
+					{
+						statement.setInt(1, mutation.componentSchemaVersion());
+						statement.setBytes(2, mutation.payload());
+						statement.setLong(3, profileId);
+						statement.setString(4, mutation.componentType());
+						statement.setLong(5, mutation.expectedRowVersion());
+						requireOptimisticWinner(statement.executeUpdate(), "Phantom profile component update");
+					}
+				}
+			}
+			final List<PhantomProfileComponent> result = new ArrayList<>(ordered.size());
+			for (ComponentMutation mutation : ordered)
+			{
+				result.add(requireComponent(connection, profileId, mutation.componentType()));
+			}
+			return List.copyOf(result);
 		});
 	}
 

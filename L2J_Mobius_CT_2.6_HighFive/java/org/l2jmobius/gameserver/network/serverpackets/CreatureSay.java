@@ -26,6 +26,8 @@ import java.util.List;
 import org.l2jmobius.commons.network.WritableBuffer;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.chat.ChatObservationService;
+import org.l2jmobius.gameserver.model.chat.ChatObservationService.DispatchDescriptor;
 import org.l2jmobius.gameserver.network.GameClient;
 import org.l2jmobius.gameserver.network.NpcStringId;
 import org.l2jmobius.gameserver.network.ServerPackets;
@@ -36,6 +38,7 @@ public class CreatureSay extends ServerPacket
 {
 	private final Creature _sender;
 	private final ChatType _chatType;
+	private final DispatchDescriptor _observation;
 	private String _senderName = null;
 	private String _text = null;
 	private int _charId = 0;
@@ -48,6 +51,7 @@ public class CreatureSay extends ServerPacket
 		_chatType = chatType;
 		_senderName = senderName;
 		_text = text;
+		_observation = sender instanceof Player ? ChatObservationService.getInstance().captureClientPacket(sender.getObjectId(), chatType, text) : null;
 	}
 	
 	public CreatureSay(Creature sender, ChatType chatType, NpcStringId npcStringId)
@@ -55,6 +59,7 @@ public class CreatureSay extends ServerPacket
 		_sender = sender;
 		_chatType = chatType;
 		_messageId = npcStringId.getId();
+		_observation = null;
 		if (sender != null)
 		{
 			_senderName = sender.getName();
@@ -67,6 +72,7 @@ public class CreatureSay extends ServerPacket
 		_chatType = chatType;
 		_charId = charId;
 		_messageId = systemMessageId.getId();
+		_observation = null;
 	}
 	
 	/**
@@ -118,6 +124,10 @@ public class CreatureSay extends ServerPacket
 		if (player != null)
 		{
 			player.broadcastSnoop(_chatType, _senderName, _text, this);
+			if ((_observation != null) && (_sender != null) && (_text != null))
+			{
+				ChatObservationService.getInstance().publishDelivered(_observation, _sender.getObjectId(), _chatType, _text, player.getObjectId(), player.getName());
+			}
 		}
 	}
 }

@@ -673,7 +673,7 @@ Status: `ACCEPT_WITH_ACTIVATION_GATE`.
 
 ### 019. Semantic Pack: понимание
 
-Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Status: `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`.
 
 - русский;
 - транслит;
@@ -685,7 +685,12 @@ Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 ### 020. Conversation engine и действия
 
-Status: `NOT_STARTED`.
+Status: `CHECKPOINT_1_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+
+Checkpoint 1: actual-delivery observation, bounded conversation state,
+clarification continuation и observer-only response/action planning.
+
+Action/outbound checkpoint: `NOT_STARTED`.
 
 - PM/local/trade chat;
 - observer-aware generation;

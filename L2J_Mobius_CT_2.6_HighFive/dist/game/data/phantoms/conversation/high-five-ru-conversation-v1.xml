@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<conversationCatalog id="high-five-ru-conversation" version="1">
+	<limits ingressQueue="1024" openBatches="256" observersPerMessage="32" operationsPerPulse="32" sessionsPerProfile="8" recentHashes="8" pendingSlots="4" templatesPerAct="8" renderedCodePoints="100" renderedUtf8Bytes="400" evidence="16" proposalSlots="8" statePayload="4096" cacheEntries="512" aggregationPulses="1" clarificationTtlMinutes="10"/>
+	<channels>
+		<channel type="GENERAL" cooldownMinutes="1"/>
+		<channel type="WHISPER" cooldownMinutes="1"/>
+		<channel type="PARTY" cooldownMinutes="1"/>
+		<channel type="TRADE" cooldownMinutes="2"/>
+	</channels>
+	<styles>
+		<style key="neutral" minimumWarmth="-499" maximumWarmth="499" minimumEscalation="3000" maximumInvitePreference="3000" suppressAcknowledgement="false"/>
+		<style key="warm" minimumWarmth="500" maximumWarmth="3000" minimumEscalation="3000" maximumInvitePreference="3000" suppressAcknowledgement="false"/>
+		<style key="cold" minimumWarmth="-3000" maximumWarmth="-500" minimumEscalation="3000" maximumInvitePreference="3000" suppressAcknowledgement="false"/>
+		<style key="cautious" minimumWarmth="-3000" maximumWarmth="3000" minimumEscalation="500" maximumInvitePreference="3000" suppressAcknowledgement="false"/>
+		<style key="terse" minimumWarmth="-3000" maximumWarmth="3000" minimumEscalation="3000" maximumInvitePreference="-500" suppressAcknowledgement="true"/>
+	</styles>
+	<responseActs>
+		<act key="clarify.intent"><template style="neutral" text="Уточни, пожалуйста, что ты предлагаешь."/></act>
+		<act key="clarify.target_player"><template style="neutral" text="Уточни, о каком персонаже речь."/></act>
+		<act key="clarify.entity"><template style="neutral" text="Уточни, о чём именно речь."/></act>
+		<act key="clarify.party_role"><template style="neutral" text="Уточни нужную роль в группе."/></act>
+		<act key="clarify.location"><template style="neutral" text="Уточни место назначения."/></act>
+		<act key="clarify.quantity"><template style="neutral" text="Уточни количество."/></act>
+		<act key="clarify.complexity"><template style="neutral" text="Сформулируй просьбу короче и точнее."/></act>
+		<act key="ack.action_proposed">
+			<template style="neutral" text="Понял. Я только зафиксировал возможное действие."/>
+			<template style="warm" text="Хорошо, я зафиксировал это как возможное действие."/>
+			<template style="cold" text="Запрос отмечен без выполнения."/>
+			<template style="cautious" text="Запрос понятен, но пока только отмечен."/>
+			<template style="terse" text="Отмечено."/>
+		</act>
+		<act key="ack.query_proposed">
+			<template style="neutral" text="Понял вопрос и зафиксировал запрос."/>
+			<template style="warm" text="Понял, постараюсь учесть этот вопрос."/>
+			<template style="cold" text="Вопрос зафиксирован."/>
+			<template style="cautious" text="Вопрос понятен, но ответа пока нет."/>
+			<template style="terse" text="Понял."/>
+		</act>
+		<act key="ack.accepted"><template style="neutral" text="Понял согласие."/></act>
+		<act key="ack.refused"><template style="neutral" text="Понял отказ."/></act>
+		<act key="no_response.cooldown"><template style="neutral" text="Ответ пока не планируется из-за паузы."/></act>
+		<act key="no_response.not_addressed"><template style="neutral" text="Сообщение не было адресовано этому наблюдателю."/></act>
+		<act key="no_response.unsupported"><template style="neutral" text="Поддерживаемый ответ не определён."/></act>
+	</responseActs>
+	<proposalMappings>
+		<mapping intent="party.invite" proposal="party.invite" kind="action" ttlMinutes="5"/>
+		<mapping intent="party.accept" proposal="party.accept" kind="action" ttlMinutes="5"/>
+		<mapping intent="party.refuse" proposal="party.refuse" kind="action" ttlMinutes="5"/>
+		<mapping intent="party.leave" proposal="party.leave" kind="action" ttlMinutes="5"/>
+		<mapping intent="party.role.query" proposal="party.role.query" kind="query" ttlMinutes="10"/>
+		<mapping intent="party.travel" proposal="party.travel" kind="action" ttlMinutes="5"/>
+		<mapping intent="party.support.request" proposal="party.support" kind="action" ttlMinutes="5"/>
+		<mapping intent="party.assist.request" proposal="party.assist" kind="action" ttlMinutes="5"/>
+		<mapping intent="party.regroup.request" proposal="party.regroup" kind="action" ttlMinutes="5"/>
+		<mapping intent="entity.locate" proposal="entity.locate" kind="query" ttlMinutes="10"/>
+		<mapping intent="item.acquire.query" proposal="item.acquire" kind="query" ttlMinutes="10"/>
+		<mapping intent="item.source.query" proposal="item.source" kind="query" ttlMinutes="10"/>
+		<mapping intent="content.requirements.query" proposal="content.requirements" kind="query" ttlMinutes="10"/>
+	</proposalMappings>
+	<election private="exact-recipient" party="leader-or-min-profile" localTrade="unique-exact-vocative"/>
+</conversationCatalog>

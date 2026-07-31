@@ -6,6 +6,7 @@ package org.l2jmobius.gameserver.phantoms.semantic.understanding;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -117,6 +118,18 @@ public final class PhantomSemanticModel
 			{
 				throw new IllegalArgumentException("Context players must use character.object or profile identity.");
 			}
+			try
+			{
+				final long identity = Long.parseLong(reference.key());
+				if ((identity <= 0) || (reference.namespace().equals("character.object") && (identity > Integer.MAX_VALUE)))
+				{
+					throw new IllegalArgumentException("Context player identity is outside its namespace bounds.");
+				}
+			}
+			catch (NumberFormatException exception)
+			{
+				throw new IllegalArgumentException("Context player identity must be a positive decimal number.", exception);
+			}
 			if ((exactName == null) || exactName.isBlank() || (exactName.codePointCount(0, exactName.length()) > 64))
 			{
 				throw new IllegalArgumentException("Context player name must contain 1..64 code points.");
@@ -151,6 +164,10 @@ public final class PhantomSemanticModel
 			{
 				throw new IllegalArgumentException("Semantic text slot must be a bounded response.");
 			}
+			if ((domainReference != null) && !validNamespace(type, domainReference.namespace()))
+			{
+				throw new IllegalArgumentException("Semantic domain slot namespace does not match its slot type.");
+			}
 		}
 
 		public static SlotValue domain(SlotType type, PhantomDomainRef reference, int start, int end)
@@ -181,6 +198,23 @@ public final class PhantomSemanticModel
 		public int compareTo(SlotValue other)
 		{
 			return ORDER.compare(this, other);
+		}
+	}
+
+	public record FragmentResult(UnderstandingStatus status, String normalizedHash, String packHash, String corpusHash, String knowledgeHash, String topologyHash, String partyRoleHash, List<SlotValue> slots, String reasonKey, List<UnderstandingEvidence> evidence)
+	{
+		public FragmentResult
+		{
+			Objects.requireNonNull(status, "Fragment status must not be null.");
+			normalizedHash = requireHash(normalizedHash, "Fragment normalized hash");
+			packHash = requireHash(packHash, "Fragment pack hash");
+			corpusHash = requireHash(corpusHash, "Fragment corpus hash");
+			knowledgeHash = requireHash(knowledgeHash, "Fragment knowledge hash");
+			topologyHash = requireHash(topologyHash, "Fragment topology hash");
+			partyRoleHash = requireHash(partyRoleHash, "Fragment party-role hash");
+			slots = immutableSlots(slots, 4);
+			reasonKey = requireKey(reasonKey, "Fragment reason");
+			evidence = immutableEvidence(evidence);
 		}
 	}
 
@@ -375,7 +409,31 @@ public final class PhantomSemanticModel
 		}
 		result.forEach(value -> Objects.requireNonNull(value, "Semantic slot must not be null."));
 		Collections.sort(result);
+		final EnumSet<SlotType> types = EnumSet.noneOf(SlotType.class);
+		for (SlotValue slot : result)
+		{
+			if (!types.add(slot.type()))
+			{
+				throw new IllegalArgumentException("Semantic slots must not repeat a slot type.");
+			}
+		}
 		return List.copyOf(result);
+	}
+
+	private static boolean validNamespace(SlotType type, String namespace)
+	{
+		return switch (type)
+		{
+			case TARGET_PLAYER -> namespace.equals("profile") || namespace.equals("character.object");
+			case PARTY_ROLE -> namespace.equals("party.role");
+			case CAPABILITY -> namespace.equals("capability");
+			case ITEM -> namespace.equals("item");
+			case NPC -> namespace.equals("npc");
+			case CONTENT -> namespace.equals("content");
+			case TOPOLOGY_NODE -> namespace.equals("topology.node");
+			case LOCATION -> namespace.equals("topology.node") || namespace.equals("location");
+			case QUANTITY, RESPONSE -> false;
+		};
 	}
 
 	private static List<UnderstandingEvidence> immutableEvidence(List<UnderstandingEvidence> values)

@@ -337,7 +337,8 @@ try
 	if ($script:Mode -eq "accepted")
 	{
 		$remote = (Git-Lines @("rev-parse", "origin/feature/phantom-world") | Select-Object -First 1)
-		Assert-True ($remote -eq $script:AcceptedCommit) "Remote feature/phantom-world is not the accepted Goal 018 commit."
+		& git merge-base --is-ancestor $script:AcceptedCommit $remote
+		Assert-True ($LASTEXITCODE -eq 0) "Remote feature/phantom-world does not contain the accepted Goal 018 commit."
 		$jarEntries = & jar tf (Join-Path $script:ModuleRoot "dist/libs/GameServer.jar")
 		Assert-True ($LASTEXITCODE -eq 0) "Could not inspect GameServer.jar."
 		Assert-True ($jarEntries -contains "org/l2jmobius/gameserver/phantoms/social/PhantomSocialService.class") "GameServer.jar lacks PhantomSocialService."

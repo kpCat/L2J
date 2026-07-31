@@ -3,6 +3,7 @@ param()
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+$AcceptedCommit = "384b521f2cd29f4162c9aca9116eb0ff40cbd681"
 $RequiredParent = "d30b657a9351d8cb099548e959854bf826b7d1d1"
 $RequiredSubject = "feat(phantoms): add russian semantic understanding"
 $RequiredBranch = "feature/phantom-world"
@@ -118,30 +119,12 @@ try
 	$branch = (Git-Lines @("branch", "--show-current") | Select-Object -First 1)
 	Assert-True ($branch -eq $RequiredBranch) "Goal 019 must remain on feature/phantom-world."
 	$head = (Git-Lines @("rev-parse", "HEAD") | Select-Object -First 1)
-	& git merge-base --is-ancestor $RequiredParent $head
-	Assert-True ($LASTEXITCODE -eq 0) "Required Goal 019 parent is not an ancestor of HEAD."
-
-	$script:Mode = "working"
-	$script:AcceptedCommit = ""
-	if ($head -ne $RequiredParent)
-	{
-		$candidates = @()
-		foreach ($line in Git-Lines @("log", "--format=%H`t%P`t%s", "--ancestry-path", "$RequiredParent..$head"))
-		{
-			$parts = $line -split "`t", 3
-			if (($parts.Count -eq 3) -and ($parts[1] -eq $RequiredParent) -and ($parts[2] -eq $RequiredSubject))
-			{
-				$candidates += $parts[0]
-			}
-		}
-		Assert-True ($candidates.Count -eq 1) "Expected one unique ordinary Goal 019 direct child."
-		$script:AcceptedCommit = $candidates[0]
-		& git merge-base --is-ancestor $script:AcceptedCommit $head
-		Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 019 commit is not an ancestor of HEAD."
-		Assert-True ((Git-Lines @("rev-parse", "$($script:AcceptedCommit)^" ) | Select-Object -First 1) -eq $RequiredParent) "Goal 019 accepted commit parent changed."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:AcceptedCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 019 accepted commit subject changed."
-		$script:Mode = "accepted"
-	}
+	Assert-True ((Git-Lines @("rev-parse", "$AcceptedCommit^" ) | Select-Object -First 1) -eq $RequiredParent) "Accepted Goal 019 commit has the wrong parent."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $AcceptedCommit) | Select-Object -First 1) -eq $RequiredSubject) "Accepted Goal 019 commit has the wrong subject."
+	& git merge-base --is-ancestor $AcceptedCommit $head
+	Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 019 commit is not an ancestor of HEAD."
+	$script:Mode = "accepted"
+	$script:AcceptedCommit = $AcceptedCommit
 
 	$changed = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 	if ($script:Mode -eq "working")
@@ -174,6 +157,7 @@ try
 	Assert-True (($changedPaths.Count -gt 0) -and ($changedPaths.Count -le 28)) "Goal 019 total scope must contain 1..28 files."
 	foreach ($path in $changedPaths)
 	{
+		Assert-True ($path -notmatch "^docs/phantoms/tasks/020") "Goal 020 path leaked into historical Goal 019 scope: $path"
 		Assert-True (Is-AllowedPath $path) "Out-of-scope Goal 019 path: $path"
 		Assert-True ($path -notmatch "(^|/)(Player|Party|World)\.java$|(^|/)(sql|schema|migrations?)/|L2J_Mobius_CT_(?!2\.6_HighFive)|(^|/)phantoms/social/") "Forbidden Goal 019 path: $path"
 	}
@@ -313,7 +297,8 @@ try
 	if ($script:Mode -eq "accepted")
 	{
 		$remote = (Git-Lines @("rev-parse", "origin/feature/phantom-world") | Select-Object -First 1)
-		Assert-True ($remote -eq $script:AcceptedCommit) "Remote feature/phantom-world is not the accepted Goal 019 commit."
+		& git merge-base --is-ancestor $script:AcceptedCommit $remote
+		Assert-True ($LASTEXITCODE -eq 0) "Remote feature/phantom-world does not descend from accepted Goal 019."
 		$jarEntries = & jar tf (Join-Path $script:ModuleRoot "dist/libs/GameServer.jar")
 		Assert-True ($LASTEXITCODE -eq 0) "Could not inspect GameServer.jar."
 		Assert-True ($jarEntries -contains "org/l2jmobius/gameserver/phantoms/semantic/understanding/PhantomSemanticUnderstandingService.class") "GameServer.jar lacks PhantomSemanticUnderstandingService."

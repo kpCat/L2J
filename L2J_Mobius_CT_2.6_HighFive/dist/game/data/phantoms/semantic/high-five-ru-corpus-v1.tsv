@@ -4,7 +4,7 @@ cyr002	позови Иван	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=cha
 cyr003	пожалуйста пригласи Иван	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
 cyr004	ну позови Иван	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
 cyr005	пригласи Иван в группу	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
-cyr006	пригласи его	selected-managed	ACCEPTED	party.invite	TARGET_PLAYER=profile:00000000-0000-0000-0000-000000000019	6000	accept.matched
+cyr006	пригласи его	selected-managed	ACCEPTED	party.invite	TARGET_PLAYER=profile:19	6000	accept.matched
 cyr007	пригласи лидера	leader	ACCEPTED	party.invite	TARGET_PLAYER=character.object:301	6000	accept.matched
 cyr008	пригласи того	previous-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
 cyr009	пригласи меня	speaker-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
@@ -35,7 +35,7 @@ cyr033	какая роль у Иван	player-ivan	ACCEPTED	party.role.query	TAR
 cyr034	какая роль у лидера	leader	ACCEPTED	party.role.query	TARGET_PLAYER=character.object:301	6000	accept.matched
 cyr035	пожалуйста нужен танк	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:frontline.guardian	6000	accept.matched
 cyr036	ну кто нужен хилер	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:support.healer	6000	accept.matched
-cyr037	какая роль у его	selected-managed	ACCEPTED	party.role.query	TARGET_PLAYER=profile:00000000-0000-0000-0000-000000000019	6000	accept.matched
+cyr037	какая роль у его	selected-managed	ACCEPTED	party.role.query	TARGET_PLAYER=profile:19	6000	accept.matched
 cyr038	кто нужен танк	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:frontline.guardian	6000	accept.matched
 cyr039	идем в город гиран	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.city	6000	accept.matched
 cyr040	двигаемся в регион гиран	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.region	6000	accept.matched
@@ -53,7 +53,7 @@ cyr051	нужно танкование	none	ACCEPTED	party.support.request	CAPAB
 cyr052	дай воскрешение	none	ACCEPTED	party.support.request	CAPABILITY=capability:combat.resurrection	6000	accept.matched
 cyr053	помоги Иван	player-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
 cyr054	ассистируй Иван	player-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
-cyr055	помоги его	selected-managed	ACCEPTED	party.assist.request	TARGET_PLAYER=profile:00000000-0000-0000-0000-000000000019	6000	accept.matched
+cyr055	помоги его	selected-managed	ACCEPTED	party.assist.request	TARGET_PLAYER=profile:19	6000	accept.matched
 cyr056	пожалуйста помоги Иван	player-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
 cyr057	соберемся	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
 cyr058	все ко мне	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
@@ -66,7 +66,7 @@ cyr064	найди город гиран	none	ACCEPTED	entity.locate	TOPOLOGY_NOD
 cyr065	где находится рифт	none	ACCEPTED	entity.locate	CONTENT=content:rift.high-five-core	6000	accept.matched
 cyr066	где взять адену	none	ACCEPTED	item.acquire.query	ITEM=item:57	6000	accept.matched
 cyr067	как получить адену	none	ACCEPTED	item.acquire.query	ITEM=item:57	6000	accept.matched
-cyr068	где взять 5 адены	none	ACCEPTED	item.acquire.query	ITEM=item:57;QUANTITY=5	6000	accept.matched
+cyr068	где взять 5 штук адены	none	ACCEPTED	item.acquire.query	ITEM=item:57;QUANTITY=5	6000	accept.matched
 cyr069	кто роняет адену	none	ACCEPTED	item.source.query	ITEM=item:57	6000	accept.matched
 cyr070	что нужно для рифт	none	ACCEPTED	content.requirements.query	CONTENT=content:rift.high-five-core	6000	accept.matched
 tr001	inv Ivan	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
@@ -188,7 +188,7 @@ cl036	где взять	none	CLARIFICATION_REQUIRED	item.acquire.query	-	0	clari
 cl037	пожалуйста где взять	none	CLARIFICATION_REQUIRED	item.acquire.query	-	0	clarify.entity
 cl038	где взять неизвестно	none	CLARIFICATION_REQUIRED	item.acquire.query	-	0	clarify.entity
 cl039	как получить неизвестно	none	CLARIFICATION_REQUIRED	item.acquire.query	-	0	clarify.entity
-cl040	где взять 0 адены	none	CLARIFICATION_REQUIRED	item.acquire.query	ITEM=item:57	0	clarify.quantity
+cl040	где взять 0 штук адены	none	CLARIFICATION_REQUIRED	item.acquire.query	ITEM=item:57	0	clarify.quantity
 cl041	кто роняет неизвестно	none	CLARIFICATION_REQUIRED	item.source.query	-	0	clarify.entity
 cl042	источник неизвестно	none	CLARIFICATION_REQUIRED	item.source.query	-	0	clarify.entity
 cl043	что нужно для	none	CLARIFICATION_REQUIRED	content.requirements.query	-	0	clarify.entity

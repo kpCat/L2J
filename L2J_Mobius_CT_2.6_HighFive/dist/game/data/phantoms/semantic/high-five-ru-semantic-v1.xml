@@ -154,6 +154,7 @@
 		<reason key="clarify.party_role"/>
 		<reason key="clarify.location"/>
 		<reason key="clarify.quantity"/>
+		<reason key="clarify.complexity"/>
 		<reason key="reject.unsupported"/>
 		<reason key="reject.too_long"/>
 		<reason key="reject.mixed_script"/>
@@ -213,7 +214,7 @@
 		<intent key="item.acquire.query" baseScore="7000" requiredAll="ITEM" requiredAny="-">
 			<pattern id="acquire.where" text="где взять {ITEM}"/>
 			<pattern id="acquire.how" text="как получить {ITEM}"/>
-			<pattern id="acquire.quantity" text="где взять {QUANTITY} {ITEM}"/>
+			<pattern id="acquire.quantity" text="где взять {QUANTITY} штук {ITEM}"/>
 			<pattern id="acquire.missing" text="где взять"/>
 		</intent>
 		<intent key="item.source.query" baseScore="7000" requiredAll="ITEM" requiredAny="-">

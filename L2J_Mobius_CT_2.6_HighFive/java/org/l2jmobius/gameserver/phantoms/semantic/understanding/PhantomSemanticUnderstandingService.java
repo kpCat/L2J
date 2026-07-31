@@ -23,6 +23,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticGrounding.Authority;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.EntityCandidate;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.EvidenceQuality;
+import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.FragmentResult;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.InputContext;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.IntentCandidate;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.NormalizedText;
@@ -146,6 +147,7 @@ public final class PhantomSemanticUnderstandingService
 			}
 			_pack = candidate;
 			_state = State.RUNNING;
+			_monitor.notifyAll();
 		}
 		_metrics._startsCompleted.increment();
 		return true;
@@ -193,6 +195,81 @@ public final class PhantomSemanticUnderstandingService
 		}
 	}
 
+	/**
+	 * Resolves only the explicitly supplied slot families. It deliberately has no
+	 * intent selection path and therefore cannot turn a clarification fragment into
+	 * a new command.
+	 */
+	public FragmentResult resolveFragment(String input, InputContext context, Set<SlotType> expectedSlots)
+	{
+		Objects.requireNonNull(context, "Semantic fragment context must not be null.");
+		if ((expectedSlots == null) || expectedSlots.isEmpty() || (expectedSlots.size() > 4) || expectedSlots.contains(SlotType.RESPONSE))
+		{
+			throw new IllegalArgumentException("Semantic fragment expected slots must contain one to four resolvable slot types.");
+		}
+		final PhantomSemanticPack pack;
+		synchronized (_monitor)
+		{
+			if ((_state != State.RUNNING) || _stopping || (_pack == null))
+			{
+				_metrics._rejectedOperations.increment();
+				throw new IllegalStateException("Semantic understanding has no running immutable generation.");
+			}
+			_operationClaims++;
+			pack = _pack;
+		}
+		try
+		{
+			final NormalizedText normalized;
+			try
+			{
+				normalized = PhantomSemanticNormalizer.normalize(input, pack);
+			}
+			catch (PhantomSemanticNormalizer.Rejection rejection)
+			{
+				return fragment(pack, UnderstandingStatus.REJECTED, PhantomSemanticNormalizer.EMPTY_HASH, List.of(), rejection.reasonKey(), List.of());
+			}
+			final List<Token> words = normalized.tokens().stream().filter(token -> token.kind() != TokenKind.PUNCTUATION).filter(token -> !pack.isFiller(token.canonicalValue())).toList();
+			if (words.isEmpty())
+			{
+				return fragment(pack, UnderstandingStatus.REJECTED, normalized.normalizedHash(), List.of(), "reject.unsupported", List.of());
+			}
+			final CandidateBudget budget = new CandidateBudget(pack.limits().maxCandidates());
+			final List<SlotValue> slots = new ArrayList<>();
+			final List<UnderstandingEvidence> evidence = new ArrayList<>();
+			String clarification = null;
+			for (SlotType type : expectedSlots.stream().sorted().toList())
+			{
+				final SlotResolution resolution = resolveSlot(type, words, context, pack, budget);
+				if (resolution.value() != null)
+				{
+					slots.add(resolution.value());
+					if ((resolution.evidence() != null) && (evidence.size() < pack.limits().maxEvidence()))
+					{
+						evidence.add(resolution.evidence());
+					}
+				}
+				else if (clarification == null)
+				{
+					clarification = resolution.reason();
+				}
+			}
+			if (budget.incomplete())
+			{
+				return fragment(pack, UnderstandingStatus.CLARIFICATION_REQUIRED, normalized.normalizedHash(), List.of(), "clarify.complexity", List.of());
+			}
+			return slots.isEmpty() ? fragment(pack, UnderstandingStatus.CLARIFICATION_REQUIRED, normalized.normalizedHash(), List.of(), clarification == null ? "clarify.entity" : clarification, evidence) : fragment(pack, UnderstandingStatus.ACCEPTED, normalized.normalizedHash(), slots, "accept.matched", evidence);
+		}
+		finally
+		{
+			synchronized (_monitor)
+			{
+				_operationClaims--;
+				_monitor.notifyAll();
+			}
+		}
+	}
+
 	public boolean beginStop()
 	{
 		synchronized (_monitor)
@@ -223,7 +300,7 @@ public final class PhantomSemanticUnderstandingService
 				return false;
 			}
 			final long deadline = System.nanoTime() + (STOP_WAIT_MILLIS * 1_000_000L);
-			while (_operationClaims > 0)
+			while (_startClaimed || (_operationClaims > 0))
 			{
 				final long remainingNanos = deadline - System.nanoTime();
 				if (remainingNanos <= 0)
@@ -286,6 +363,10 @@ public final class PhantomSemanticUnderstandingService
 				fuzzyCandidates += candidate.fuzzyEvidence();
 				candidates.add(candidate);
 			}
+		}
+		if (budget.incomplete())
+		{
+			return new ParseOutcome(result(pack, UnderstandingStatus.CLARIFICATION_REQUIRED, normalized.normalizedHash(), "unknown", 0, List.of(), List.of(), "clarify.complexity", List.of(new UnderstandingEvidence("budget.incomplete", EvidenceQuality.EXACT, -1, -1, "candidate-budget"))), budget.count(), fuzzyCandidates);
 		}
 		if (candidates.isEmpty())
 		{
@@ -362,6 +443,7 @@ public final class PhantomSemanticUnderstandingService
 	{
 		if ((matches.size() >= pack.limits().maxCandidates()) || budget.exhausted())
 		{
+			budget.skip();
 			return;
 		}
 		if (partIndex == pattern.parts().size())
@@ -746,6 +828,11 @@ public final class PhantomSemanticUnderstandingService
 		return new UnderstandingResult(status, normalizedHash, pack.packHash(), pack.corpusHash(), pack.authorityHashes().knowledgeHash(), pack.authorityHashes().topologyHash(), pack.authorityHashes().partyRoleHash(), intent, confidence, slots, alternatives, reason, evidence.stream().limit(pack.limits().maxEvidence()).toList());
 	}
 
+	private static FragmentResult fragment(PhantomSemanticPack pack, UnderstandingStatus status, String normalizedHash, List<SlotValue> slots, String reason, List<UnderstandingEvidence> evidence)
+	{
+		return new FragmentResult(status, normalizedHash, pack.packHash(), pack.corpusHash(), pack.authorityHashes().knowledgeHash(), pack.authorityHashes().topologyHash(), pack.authorityHashes().partyRoleHash(), slots, reason, evidence.stream().limit(pack.limits().maxEvidence()).toList());
+	}
+
 	private static boolean sameScript(String left, String right)
 	{
 		return script(left) == script(right);
@@ -862,6 +949,7 @@ public final class PhantomSemanticUnderstandingService
 	{
 		private final int _maximum;
 		private int _count;
+		private boolean _incomplete;
 
 		private CandidateBudget(int maximum)
 		{
@@ -872,6 +960,7 @@ public final class PhantomSemanticUnderstandingService
 		{
 			if (_count >= _maximum)
 			{
+				_incomplete = true;
 				return false;
 			}
 			_count++;
@@ -881,6 +970,16 @@ public final class PhantomSemanticUnderstandingService
 		private boolean exhausted()
 		{
 			return _count >= _maximum;
+		}
+
+		private boolean incomplete()
+		{
+			return _incomplete;
+		}
+
+		private void skip()
+		{
+			_incomplete = true;
 		}
 
 		private int count()

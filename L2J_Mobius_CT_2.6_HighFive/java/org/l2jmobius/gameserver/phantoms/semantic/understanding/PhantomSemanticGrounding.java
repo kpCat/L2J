@@ -5,6 +5,7 @@ package org.l2jmobius.gameserver.phantoms.semantic.understanding;
 
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -51,7 +52,7 @@ public final class PhantomSemanticGrounding
 		{
 			throw new IllegalArgumentException("Game Knowledge and topology generations are not pinned to the same hash.");
 		}
-		return new ProductionAuthority(knowledge, topology, partyRoles, new Hashes(knowledge.snapshot().combinedHash(), topologyHash, partyRoles.hash()));
+		return new ProductionAuthority(knowledge, topology, partyRoles, new Hashes(canonicalHash(knowledge.snapshot().combinedHash()), canonicalHash(topologyHash), canonicalHash(partyRoles.hash())));
 	}
 
 	public static Authority fixed(Hashes hashes, Map<SlotType, Map<String, PhantomDomainRef>> references)
@@ -90,13 +91,22 @@ public final class PhantomSemanticGrounding
 		return key;
 	}
 
+	private static String canonicalHash(String value)
+	{
+		if ((value == null) || !value.matches("[0-9A-Fa-f]{64}"))
+		{
+			throw new IllegalArgumentException("Semantic production authority returned an invalid SHA-256 hash.");
+		}
+		return value.toUpperCase(Locale.ROOT);
+	}
+
 	private record ProductionAuthority(PhantomGameKnowledgeQuery _knowledge, PhantomTopologyQuery _topology, PhantomPartyRoleCatalog _partyRoles, Hashes _hashes) implements Authority
 	{
 		@Override
 		public Hashes hashes()
 		{
-			final Hashes current = new Hashes(_knowledge.snapshot().combinedHash(), _topology.snapshot().canonicalHash(), _partyRoles.hash());
-			if (!_hashes.equals(current) || !_knowledge.snapshot().topologyHash().equals(current.topologyHash()))
+			final Hashes current = new Hashes(canonicalHash(_knowledge.snapshot().combinedHash()), canonicalHash(_topology.snapshot().canonicalHash()), canonicalHash(_partyRoles.hash()));
+			if (!_hashes.equals(current) || !canonicalHash(_knowledge.snapshot().topologyHash()).equals(current.topologyHash()))
 			{
 				throw new IllegalStateException("Semantic authority generation drifted during publication.");
 			}

@@ -209,7 +209,8 @@ public final class PhantomSocialPartyIntegrationSuite implements PhantomTestSuit
 			final InvitationIdentity accepted = backend.lastInvitationIdentity();
 			pulse(coordinator);
 			PhantomAssertions.assertTrue(first.isInParty() && (first.getParty() == second.getParty()), "Canonical managed invitation did not create one real Party.");
-			PhantomAssertions.assertTrue(social.snapshot().recordedEvents() >= 4, "Accepted and joined events were not recorded for both managed perspectives.");
+			PhantomAssertions.assertEquals(2L, sink.recorded("party.invite.accepted.outbound", "party.invite.accepted.inbound"), "Accepted events were not recorded for both managed perspectives.");
+			PhantomAssertions.assertEquals(2L, sink.recorded("party.member.joined"), "First canonical JOIN was not recorded exactly once for both managed perspectives.");
 
 			final byte[] firstAfterAccept = component(firstProfile.profileId()).payload();
 			final long coordinatorEventsBeforeRetry = coordinator.snapshot().socialEventsRecorded();
@@ -382,6 +383,7 @@ public final class PhantomSocialPartyIntegrationSuite implements PhantomTestSuit
 	private static final class SelectiveFailureSink implements PhantomSocialEventSink
 	{
 		private final PhantomSocialEventSink _delegate;
+		private final List<String> _recordedKeys = new ArrayList<>();
 		private String _failureKey = "";
 
 		private SelectiveFailureSink(PhantomSocialEventSink delegate)
@@ -401,7 +403,17 @@ public final class PhantomSocialPartyIntegrationSuite implements PhantomTestSuit
 			{
 				throw new IllegalStateException("Injected downstream social failure.");
 			}
-			return _delegate.record(event);
+			final Result result = _delegate.record(event);
+			if (result.status() == PhantomSocialEventSink.Status.RECORDED)
+			{
+				_recordedKeys.add(event.eventKey());
+			}
+			return result;
+		}
+
+		private long recorded(String... eventKeys)
+		{
+			return _recordedKeys.stream().filter(key -> List.of(eventKeys).contains(key)).count();
 		}
 	}
 

@@ -429,6 +429,13 @@ public final class PhantomMaterializationService
 		return entry == null ? Optional.empty() : Optional.of(snapshot(entry));
 	}
 
+	/** Direct immutable lookup used by actual-delivery observers; never scans profiles. */
+	public Optional<MaterializationSnapshot> findByCharacterObjectId(int characterObjectId)
+	{
+		final Entry entry = _activeByCharacter.get(characterObjectId);
+		return entry == null ? Optional.empty() : Optional.of(snapshot(entry));
+	}
+
 	public boolean ownsCharacterObjectId(int objectId)
 	{
 		return _activeByCharacter.containsKey(objectId);

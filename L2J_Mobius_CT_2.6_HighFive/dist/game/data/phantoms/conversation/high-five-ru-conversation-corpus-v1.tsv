@@ -1,0 +1,129 @@
+case_id	category	channel	input	expected_act	expected_style	expected_proposal
+c001	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c002	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c003	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c004	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c005	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c006	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c007	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c008	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c009	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c010	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c011	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c012	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c013	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c014	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c015	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c016	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c017	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c018	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c019	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c020	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c021	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c022	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c023	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c024	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c025	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c026	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c027	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c028	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c029	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c030	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c031	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c032	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c033	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c034	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c035	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c036	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c037	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c038	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c039	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c040	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c041	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c042	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c043	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c044	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c045	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c046	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c047	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c048	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c049	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c050	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c051	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c052	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c053	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c054	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c055	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c056	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c057	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c058	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c059	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c060	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c061	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c062	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c063	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c064	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c065	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c066	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c067	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c068	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c069	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c070	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c071	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c072	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c073	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c074	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c075	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c076	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c077	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c078	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c079	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c080	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c081	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c082	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c083	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c084	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c085	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c086	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c087	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c088	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c089	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c090	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c091	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c092	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c093	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c094	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c095	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c096	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c097	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c098	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c099	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c100	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c101	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c102	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c103	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c104	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c105	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c106	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c107	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c108	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c109	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c110	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c111	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c112	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c113	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c114	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c115	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c116	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c117	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c118	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c119	duplicate	PARTY	соберемся	ack.action_proposed	neutral	party.regroup
+c120	restart	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c121	private	WHISPER	пригласи меня	ack.action_proposed	neutral	party.invite
+c122	party-election	PARTY	идем в гиран	ack.action_proposed	neutral	party.travel
+c123	local-trade-address	GENERAL	Фантом, где кларисса	ack.query_proposed	neutral	entity.locate
+c124	clarification	WHISPER	хилер	ack.action_proposed	neutral	party.invite
+c125	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	party.invite
+c126	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
+c127	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
+c128	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire

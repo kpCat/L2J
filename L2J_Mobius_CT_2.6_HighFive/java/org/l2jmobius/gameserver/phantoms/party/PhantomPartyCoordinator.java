@@ -898,6 +898,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				return examined;
 			}
 		}
+		if (groupClaims.stream().map(claim -> claim.state().operation()).anyMatch(operation -> (operation != null) && (operation.kind() == OperationKind.JOIN) && (operation.phase() == OperationPhase.CANONICAL_PENDING)))
+		{
+			return examined;
+		}
 		MemberRef leader = groupClaims.getFirst().state().leader();
 		if (leader.kind() != MemberKind.PHANTOM)
 		{
@@ -1002,6 +1006,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private void commitObserved(List<StoredPartyState> existing, PartySnapshot party)
 	{
 		final PartyState authority = existing.stream().filter(claim -> claim.state().leader().equals(party.leader())).findFirst().orElse(existing.getFirst()).state();
+		final PartyOperation observedJoin = exactObservedJoin(existing, party);
 		final List<MemberRef> phantoms = party.members().stream().filter(member -> member.kind() == MemberKind.PHANTOM).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
 		final List<MemberRef> reals = party.members().stream().filter(member -> member.kind() == MemberKind.REAL).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
 		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(party.members());
@@ -1038,7 +1043,26 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			}
 		}
 		_metrics.commit();
-		emitJoined(phantoms, authority.operation());
+		emitJoined(phantoms, observedJoin, observedJoin == null ? null : observedJoin.withPhase(OperationPhase.COMMITTED, observedJoin.invitationSequence(), ""));
+	}
+
+	private static PartyOperation exactObservedJoin(List<StoredPartyState> existing, PartySnapshot party)
+	{
+		PartyOperation candidate = null;
+		for (StoredPartyState stored : existing)
+		{
+			final PartyOperation operation = stored.state().operation();
+			if ((operation == null) || (operation.kind() != OperationKind.JOIN) || (operation.phase() != OperationPhase.CANONICAL_OBSERVED) || !operation.leader().equals(party.leader()) || (operation.member() == null) || !party.members().contains(operation.member()))
+			{
+				continue;
+			}
+			if ((candidate != null) && (!candidate.operationId().equals(operation.operationId()) || (candidate.invitationSequence() != operation.invitationSequence()) || !candidate.leader().equals(operation.leader()) || !candidate.member().equals(operation.member())))
+			{
+				return null;
+			}
+			candidate = operation;
+		}
+		return candidate;
 	}
 
 	private void commitRealLedMember(long profileId, StoredGoal joinGoal, PartySnapshot party, InvitationIdentity identity)
@@ -1051,17 +1075,19 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final String groupId = PhantomPartyModel.sha256("party.real|" + party.leader().characterObjectId() + '|' + identity.sequence());
 		final List<MemberRef> phantoms = party.members().stream().filter(value -> value.kind() == MemberKind.PHANTOM).toList();
 		final List<MemberRef> reals = party.members().stream().filter(value -> value.kind() == MemberKind.REAL).toList();
-		final long goalId = joinGoal == null ? identity.sequence() : joinGoal.goal().goalId();
-		final long goalRevision = joinGoal == null ? 0 : joinGoal.goal().revision();
-		final PartyOperation operation = new PartyOperation(PhantomPartyModel.sha256(groupId + "|join|" + profileId), OperationKind.JOIN, OperationPhase.COMMITTED, party.leader(), member, goalId, goalRevision, ZERO_HASH, identity.sequence(), deadline(), "");
+		final StoredPartyState current = _claims.get(profileId);
+		final PartyOperation observed = current == null ? null : current.state().operation();
+		final long goalId = observed == null ? (joinGoal == null ? identity.sequence() : joinGoal.goal().goalId()) : observed.leaderGoalId();
+		final long goalRevision = observed == null ? (joinGoal == null ? 0 : joinGoal.goal().revision()) : observed.leaderGoalRevision();
+		final String operationId = observed == null ? PhantomPartyModel.sha256(groupId + "|join|" + profileId) : observed.operationId();
+		final PartyOperation operation = new PartyOperation(operationId, OperationKind.JOIN, OperationPhase.COMMITTED, party.leader(), member, goalId, goalRevision, ZERO_HASH, identity.sequence(), deadline(), "");
 		final PartyState draft = state(groupId, 1, 1, StateStatus.MEMBER, party.leader(), phantoms, reals, ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "real-led"), List.of(), List.of(), null, operation, progressionHash(member), "");
 		final PartyState committed = new PartyState(draft.groupId(), draft.groupGeneration(), draft.membershipRevision(), draft.status(), draft.leader(), draft.ownRoleKey(), draft.canonicalManifestHash(), draft.phantomMembers(), draft.realMembers(), draft.objectiveMode(), draft.objectiveRef(), draft.requirements(), draft.assignments(), null, operation, draft.progressionHash(), draft.topologyHash(), "");
-		final StoredPartyState current = _claims.get(profileId);
 		try
 		{
 			putClaim(save(profileId, current == null ? -1 : current.rowVersion(), committed));
 			transitionGoal(profileId, MEMBER_GOAL, operation);
-			emitJoined(phantoms, operation);
+			emitJoined(phantoms, observed, operation);
 		}
 		catch (RuntimeException e)
 		{
@@ -1671,9 +1697,9 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		}
 	}
 
-	private void emitJoined(List<MemberRef> managedMembers, PartyOperation operation)
+	private void emitJoined(List<MemberRef> managedMembers, PartyOperation observed, PartyOperation committed)
 	{
-		if ((operation == null) || (operation.kind() != OperationKind.JOIN) || (operation.member() == null))
+		if (!isExactFirstJoinTransition(observed, committed))
 		{
 			return;
 		}
@@ -1683,12 +1709,22 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				continue;
 			}
-			final MemberRef counterpart = owner.equals(operation.member()) ? operation.leader() : operation.member();
+			final MemberRef counterpart = owner.equals(committed.member()) ? committed.leader() : committed.member();
 			if (!owner.equals(counterpart))
 			{
-				emitSocial(owner.profileId(), "party.member.joined", subject(counterpart), operation.operationId(), "membership");
+				emitSocial(owner.profileId(), "party.member.joined", subject(counterpart), committed.operationId(), "membership");
 			}
 		}
+	}
+
+	private static boolean isExactFirstJoinTransition(PartyOperation observed, PartyOperation committed)
+	{
+		return (observed != null) && (committed != null) //
+			&& (observed.kind() == OperationKind.JOIN) && (observed.phase() == OperationPhase.CANONICAL_OBSERVED) //
+			&& (committed.kind() == OperationKind.JOIN) && (committed.phase() == OperationPhase.COMMITTED) //
+			&& observed.operationId().equals(committed.operationId()) //
+			&& (observed.invitationSequence() == committed.invitationSequence()) //
+			&& observed.leader().equals(committed.leader()) && observed.member().equals(committed.member());
 	}
 
 	private void emitMembership(PartyState before, MemberRef actor, MemberRef target, PartyOperation operation)

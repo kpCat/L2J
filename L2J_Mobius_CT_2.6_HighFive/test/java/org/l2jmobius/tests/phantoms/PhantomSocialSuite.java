@@ -29,6 +29,7 @@ import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.MemoryRecord;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.RelationshipRecord;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialEvent;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialState;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialReceiptLedger;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService.PersistencePort;
@@ -455,15 +456,15 @@ public final class PhantomSocialSuite implements PhantomTestSuite
 			store.addProfile(1);
 			final PhantomSocialService service = service(catalog, store, 16);
 			final SubjectRef subject = SubjectRef.character(77);
-			for (int index = 0; index < 200; index++)
-			{
-				service.record(event(1, "accepted-out-" + index, "party.invite.accepted.outbound", subject, 1000, 1000));
-				service.record(event(1, "accepted-in-" + index, "party.invite.accepted.inbound", subject, 1000, 1000));
-			}
 			for (int index = 0; index < 20; index++)
 			{
-				service.record(event(1, "fulfilled-" + index, "agreement.fulfilled", subject, 1000, 1000));
-				service.record(event(1, "debt-" + index, "debt.incurred", subject, 1000, 1000));
+				PhantomAssertions.assertEquals(Status.RECORDED, service.record(event(1, "accepted-out-" + index, "party.invite.accepted.outbound", subject, 1000, 10000)).status(), "Positive clamp outbound event was not recorded.");
+				PhantomAssertions.assertEquals(Status.RECORDED, service.record(event(1, "accepted-in-" + index, "party.invite.accepted.inbound", subject, 1000, 10000)).status(), "Positive clamp inbound event was not recorded.");
+			}
+			for (int index = 0; index < 10; index++)
+			{
+				PhantomAssertions.assertEquals(Status.RECORDED, service.record(event(1, "fulfilled-" + index, "agreement.fulfilled", subject, 1000, 10000)).status(), "Positive clamp fulfilled event was not recorded.");
+				PhantomAssertions.assertEquals(Status.RECORDED, service.record(event(1, "debt-" + index, "debt.incurred", subject, 1000, 10000)).status(), "Positive clamp debt event was not recorded.");
 			}
 			PhantomAssertions.assertEquals(3000, service.modifier(1, subject, "party.invite.preference", 1000).value().deltaBasisPoints(), "Positive social modifier did not clamp at 3000.");
 			service.beginStop();
@@ -678,7 +679,7 @@ public final class PhantomSocialSuite implements PhantomTestSuite
 		}
 
 		@Override
-		public StoredState save(long profileId, long expectedRowVersion, SocialState state)
+		public StoredState save(long profileId, long expectedStateRowVersion, long expectedReceiptRowVersion, SocialState state, PhantomSocialReceiptLedger receipts)
 		{
 			if (_blocking.get())
 			{
@@ -696,7 +697,7 @@ public final class PhantomSocialSuite implements PhantomTestSuite
 					throw new IllegalStateException("Injected social write was interrupted.", e);
 				}
 			}
-			return _delegate.save(profileId, expectedRowVersion, state);
+			return _delegate.save(profileId, expectedStateRowVersion, expectedReceiptRowVersion, state, receipts);
 		}
 	}
 }
