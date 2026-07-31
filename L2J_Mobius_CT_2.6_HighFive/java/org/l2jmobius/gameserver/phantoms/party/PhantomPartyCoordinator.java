@@ -21,6 +21,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
@@ -61,6 +62,10 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RouteMani
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStatus;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.TacticalDirective;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialEventSink;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialEvent;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef;
 
 /**
  * Single-pulse party saga owner. It has no worker, timer or scheduled future.
@@ -122,6 +127,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final PhantomPartyTactics _tactics;
 	private final Supplier<String> _topologyHash;
 	private final LongSupplier _clock;
+	private final PhantomSocialEventSink _socialEvents;
+	private final LongSupplier _socialClock;
 	private final int _operationBudget;
 	private final ArrayBlockingQueue<ManagedInvitation> _inbound = new ArrayBlockingQueue<>(MAX_INBOUND_INVITES);
 	private final ArrayBlockingQueue<TerminalEvent> _terminalEvents = new ArrayBlockingQueue<>(MAX_TERMINAL_EVENTS);
@@ -136,6 +143,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final Set<String> _dueGroupSet = new HashSet<>();
 	private final AtomicInteger _operationClaims = new AtomicInteger();
 	private final AtomicInteger _persistenceClaims = new AtomicInteger();
+	private final AtomicLong _socialEventsRecorded = new AtomicLong();
+	private final AtomicLong _socialEventFailures = new AtomicLong();
 	private final PhantomPartyMetrics _metrics = new PhantomPartyMetrics();
 	private volatile State _state = State.NEW;
 	private volatile DeliveryRegistration _deliveryRegistration;
@@ -144,6 +153,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private int _pulseLane;
 
 	public PhantomPartyCoordinator(PhantomPartyPersistencePort store, PhantomGoalStore goals, PhantomPartyBackend backend, PhantomPartyRoleCatalog roleCatalog, PhantomPartyRouteCoordinator routes, PhantomPartyTactics tactics, Supplier<String> topologyHash, LongSupplier clock, int operationBudget)
+	{
+		this(store, goals, backend, roleCatalog, routes, tactics, topologyHash, clock, operationBudget, PhantomSocialEventSink.noop(), () -> System.currentTimeMillis() / 60000L);
+	}
+
+	public PhantomPartyCoordinator(PhantomPartyPersistencePort store, PhantomGoalStore goals, PhantomPartyBackend backend, PhantomPartyRoleCatalog roleCatalog, PhantomPartyRouteCoordinator routes, PhantomPartyTactics tactics, Supplier<String> topologyHash, LongSupplier clock, int operationBudget, PhantomSocialEventSink socialEvents, LongSupplier socialClock)
 	{
 		_store = Objects.requireNonNull(store);
 		_goals = Objects.requireNonNull(goals);
@@ -154,6 +168,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		_tactics = Objects.requireNonNull(tactics);
 		_topologyHash = Objects.requireNonNull(topologyHash);
 		_clock = Objects.requireNonNull(clock);
+		_socialEvents = Objects.requireNonNull(socialEvents);
+		_socialClock = Objects.requireNonNull(socialClock);
 		if ((operationBudget < 10) || (operationBudget > 10000))
 		{
 			throw new IllegalArgumentException("Party operation budget must be between 10 and 10000.");
@@ -526,7 +542,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 					{
 						final MemberRef member = _backend.currentMember(managedInvitee.getAsLong()).orElse(null);
 						final StoredGoal goal = _goals.load(managedInvitee.getAsLong()).orElse(null);
-						if ((member == null) || (goal == null) || !JOIN_GOAL.equals(goal.goal().goalType()) || !goalTargets(goal.goal(), invitation.requesterObjectId()))
+						if ((member == null) || (goal == null) || (goal.goal().status() != PhantomGoalStatus.ACTIVE) || !JOIN_GOAL.equals(goal.goal().goalType()) || !goalTargets(goal.goal(), invitation.requesterObjectId()))
 						{
 							return PreparationOutcome.REJECTED;
 						}
@@ -736,7 +752,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	public Snapshot snapshot()
 	{
 		final PhantomPartyRouteCoordinator.Snapshot route = _routes.snapshot();
-		return new Snapshot(_state, _claims.size(), _groups.size(), _terminalEvents.size(), _inbound.size(), _operationClaims.get(), _persistenceClaims.get(), route.navigationClaims(), route.movementClaims(), _tacticalActions.size(), _operationBudget, _lastPulseExamined, _maximumPulseExamined, _metrics.snapshot());
+		return new Snapshot(_state, _claims.size(), _groups.size(), _terminalEvents.size(), _inbound.size(), _operationClaims.get(), _persistenceClaims.get(), route.navigationClaims(), route.movementClaims(), _tacticalActions.size(), _operationBudget, _lastPulseExamined, _maximumPulseExamined, _socialEventsRecorded.get(), _socialEventFailures.get(), _metrics.snapshot());
 	}
 
 	public Optional<StoredPartyState> claim(long profileId)
@@ -754,9 +770,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return;
 		}
 		final StoredGoal storedGoal = _goals.load(managed.profileId()).orElse(null);
-		final boolean recoveryConsent = recoveryClaimMatches(managed.profileId(), invitation.requesterObjectId());
-		final boolean explicitConsent = (storedGoal != null) && JOIN_GOAL.equals(storedGoal.goal().goalType()) && goalTargets(storedGoal.goal(), invitation.requesterObjectId());
-		if (!recoveryConsent && !explicitConsent)
+		final boolean explicitConsent = (storedGoal != null) && (storedGoal.goal().status() == PhantomGoalStatus.ACTIVE) && JOIN_GOAL.equals(storedGoal.goal().goalType()) && goalTargets(storedGoal.goal(), invitation.requesterObjectId());
+		if (!explicitConsent)
 		{
 			_backend.respond(invitee, Response.REFUSE, invitation.identity());
 			_metrics.inviteRefused();
@@ -777,6 +792,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		if (event.outcome() != TerminalOutcome.ACCEPTED)
 		{
 			abortManagedInvitation(invitation, event.managedRequester(), event.managedInvitee(), event.reasonKey());
+			emitInvitationTerminal(event);
 			return;
 		}
 		event.managedRequester().ifPresent(profileId -> markObservedExact(profileId, invitation.identity()));
@@ -799,6 +815,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				ensureGroup(groupForLeader(observed.get().leader().profileId()));
 			}
 		}
+		emitInvitationTerminal(event);
 	}
 
 	private void markObservedExact(long profileId, InvitationIdentity identity)
@@ -1021,6 +1038,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			}
 		}
 		_metrics.commit();
+		emitJoined(phantoms, authority.operation());
 	}
 
 	private void commitRealLedMember(long profileId, StoredGoal joinGoal, PartySnapshot party, InvitationIdentity identity)
@@ -1043,6 +1061,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			putClaim(save(profileId, current == null ? -1 : current.rowVersion(), committed));
 			transitionGoal(profileId, MEMBER_GOAL, operation);
+			emitJoined(phantoms, operation);
 		}
 		catch (RuntimeException e)
 		{
@@ -1179,6 +1198,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return;
 		}
 		final PhantomGoal goal = found.get().goal();
+		if (goal.status() != PhantomGoalStatus.ACTIVE)
+		{
+			return;
+		}
 		if (nextType.equals(LEAD_GOAL))
 		{
 			if ((goal.goalId() != operation.leaderGoalId()) || (goal.revision() != operation.leaderGoalRevision()) || !FORM_GOAL.equals(goal.goalType()))
@@ -1416,12 +1439,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				default -> MembershipOutcome.INVALID_TARGET;
 			};
 			final PartySnapshot observed = observeAfterMembership(current, actor, target).orElse(null);
-			if ((canonical != MembershipOutcome.COMPLETED) && !membershipPostcondition(kind, actor, target, observed))
+			if ((canonical != MembershipOutcome.COMPLETED) && !membershipPostcondition(kind, actor, target, observed, canonical))
 			{
 				abort(prepared, "party.membership.canonical_rejected");
 				return CommandOutcome.CANONICAL_REJECTED;
 			}
-			if (!membershipPostcondition(kind, actor, target, observed))
+			if (!membershipPostcondition(kind, actor, target, observed, canonical))
 			{
 				markInconsistent(prepared, "party.membership.postcondition_failed");
 				return CommandOutcome.CANONICAL_REJECTED;
@@ -1430,6 +1453,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				return CommandOutcome.PERSISTENCE_CONFLICT;
 			}
+			emitMembership(current, actor, target, preparedOperation);
 			return canonical == MembershipOutcome.COMPLETED ? CommandOutcome.ACCEPTED : CommandOutcome.IDEMPOTENT;
 		}
 	}
@@ -1506,12 +1530,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return _backend.observe(actor);
 	}
 
-	private static boolean membershipPostcondition(OperationKind kind, MemberRef actor, MemberRef target, PartySnapshot observed)
+	private static boolean membershipPostcondition(OperationKind kind, MemberRef actor, MemberRef target, PartySnapshot observed, MembershipOutcome canonical)
 	{
 		return switch (kind)
 		{
 			case LEAVE -> (observed == null) || !observed.members().contains(actor);
-			case EXPEL -> (observed != null) && !observed.members().contains(target);
+			case EXPEL -> ((observed == null) && (canonical == MembershipOutcome.COMPLETED)) || ((observed != null) && !observed.members().contains(target));
 			case TRANSFER_LEADER -> (observed != null) && observed.leader().equals(target);
 			default -> false;
 		};
@@ -1614,10 +1638,129 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return ("character.object".equals(target.namespace()) && Integer.toString(requesterObjectId).equals(target.key())) || ("profile".equals(target.namespace()) && goal.validSources().stream().anyMatch(source -> "character.object".equals(source.namespace()) && Integer.toString(requesterObjectId).equals(source.key())));
 	}
 
-	private boolean recoveryClaimMatches(long profileId, int requesterObjectId)
+	private void emitInvitationTerminal(TerminalEvent terminal)
 	{
-		final StoredPartyState claim = _claims.get(profileId);
-		return (claim != null) && (claim.state().status() == StateStatus.RECOVERING) && (claim.state().leader().kind() == MemberKind.PHANTOM) && (claim.state().leader().characterObjectId() == requesterObjectId);
+		final String outbound;
+		final String inbound;
+		switch (terminal.outcome())
+		{
+			case ACCEPTED:
+				outbound = "party.invite.accepted.outbound";
+				inbound = "party.invite.accepted.inbound";
+				break;
+			case REFUSED:
+				outbound = "party.invite.refused.outbound";
+				inbound = "party.invite.refused.inbound";
+				break;
+			case EXPIRED:
+				outbound = "party.invite.expired.outbound";
+				inbound = "party.invite.expired.inbound";
+				break;
+			default:
+				return;
+		}
+		final PartyInvitation invitation = terminal.invitation();
+		final String source = "invitation|" + invitation.identity().sequence() + '|' + invitation.identity().requesterObjectId() + '|' + invitation.identity().inviteeObjectId();
+		if (terminal.managedRequester().isPresent())
+		{
+			emitSocial(terminal.managedRequester().getAsLong(), outbound, subject(terminal.managedInvitee(), invitation.identity().inviteeObjectId()), source, "outbound");
+		}
+		if (terminal.managedInvitee().isPresent())
+		{
+			emitSocial(terminal.managedInvitee().getAsLong(), inbound, subject(terminal.managedRequester(), invitation.identity().requesterObjectId()), source, "inbound");
+		}
+	}
+
+	private void emitJoined(List<MemberRef> managedMembers, PartyOperation operation)
+	{
+		if ((operation == null) || (operation.kind() != OperationKind.JOIN) || (operation.member() == null))
+		{
+			return;
+		}
+		for (MemberRef owner : managedMembers)
+		{
+			if (owner.kind() != MemberKind.PHANTOM)
+			{
+				continue;
+			}
+			final MemberRef counterpart = owner.equals(operation.member()) ? operation.leader() : operation.member();
+			if (!owner.equals(counterpart))
+			{
+				emitSocial(owner.profileId(), "party.member.joined", subject(counterpart), operation.operationId(), "membership");
+			}
+		}
+	}
+
+	private void emitMembership(PartyState before, MemberRef actor, MemberRef target, PartyOperation operation)
+	{
+		final String eventKey = switch (operation.kind())
+		{
+			case LEAVE -> "party.member.left";
+			case EXPEL -> "party.member.expelled";
+			case TRANSFER_LEADER -> "party.leader.transferred";
+			default -> null;
+		};
+		if (eventKey == null)
+		{
+			return;
+		}
+		for (MemberRef owner : before.phantomMembers())
+		{
+			final MemberRef counterpart;
+			if (operation.kind() == OperationKind.LEAVE)
+			{
+				counterpart = owner.equals(actor) ? leaveCounterpart(before, actor) : actor;
+			}
+			else
+			{
+				counterpart = owner.equals(target) ? actor : target;
+			}
+			if ((counterpart != null) && !owner.equals(counterpart))
+			{
+				emitSocial(owner.profileId(), eventKey, subject(counterpart), operation.operationId(), "membership");
+			}
+		}
+	}
+
+	private static MemberRef leaveCounterpart(PartyState before, MemberRef actor)
+	{
+		if (!before.leader().equals(actor))
+		{
+			return before.leader();
+		}
+		return java.util.stream.Stream.concat(before.phantomMembers().stream(), before.realMembers().stream()).filter(member -> !member.equals(actor)).findFirst().orElse(null);
+	}
+
+	private void emitSocial(long ownerProfileId, String eventKey, SubjectRef subject, String sourceIdentity, String perspective)
+	{
+		final String eventId = PhantomSocialModel.sha256("social.event|party|" + sourceIdentity + '|' + ownerProfileId + '|' + eventKey + '|' + subject.stableKey() + '|' + perspective);
+		final String evidence = PhantomSocialModel.sha256("party.evidence|" + sourceIdentity);
+		try
+		{
+			final PhantomSocialEventSink.Result result = _socialEvents.record(new SocialEvent(ownerProfileId, eventId, eventKey, subject, Math.max(0, _socialClock.getAsLong()), 1000, evidence));
+			if (result.status() == PhantomSocialEventSink.Status.RECORDED)
+			{
+				_socialEventsRecorded.incrementAndGet();
+			}
+			else if ((result.status() != PhantomSocialEventSink.Status.IDEMPOTENT) && (result.status() != PhantomSocialEventSink.Status.DISABLED))
+			{
+				_socialEventFailures.incrementAndGet();
+			}
+		}
+		catch (RuntimeException e)
+		{
+			_socialEventFailures.incrementAndGet();
+		}
+	}
+
+	private static SubjectRef subject(OptionalLong managedProfileId, int characterObjectId)
+	{
+		return managedProfileId.isPresent() ? SubjectRef.phantom(managedProfileId.getAsLong()) : SubjectRef.character(characterObjectId);
+	}
+
+	private static SubjectRef subject(MemberRef member)
+	{
+		return member.kind() == MemberKind.PHANTOM ? SubjectRef.phantom(member.profileId()) : SubjectRef.character(member.characterObjectId());
 	}
 
 	private String groupForLeader(long leaderProfileId)
@@ -1804,11 +1947,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return (claim != null) && Set.of(StateStatus.LEADER, StateStatus.MEMBER, StateStatus.RECOVERING).contains(claim.state().status());
 	}
 
-	public record Snapshot(State state, int partyClaims, int groups, int terminalEvents, int inboundInvites, int operationClaims, int persistenceClaims, int navigationClaims, int routeActions, int tacticalActions, int operationBudget, int lastPulseExamined, int maximumPulseExamined, PhantomPartyMetrics.Snapshot metrics)
+	public record Snapshot(State state, int partyClaims, int groups, int terminalEvents, int inboundInvites, int operationClaims, int persistenceClaims, int navigationClaims, int routeActions, int tacticalActions, int operationBudget, int lastPulseExamined, int maximumPulseExamined, long socialEventsRecorded, long socialEventFailures, PhantomPartyMetrics.Snapshot metrics)
 	{
 		public static Snapshot inactive()
 		{
-			return new Snapshot(State.STOPPED, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, new PhantomPartyMetrics().snapshot());
+			return new Snapshot(State.STOPPED, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, new PhantomPartyMetrics().snapshot());
 		}
 	}
 

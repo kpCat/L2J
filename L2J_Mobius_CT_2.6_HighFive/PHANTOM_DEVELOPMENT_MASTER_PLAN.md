@@ -651,7 +651,7 @@ Runtime не должен обязательно зависеть от LLM ил�
 
 ### 017. Party coordination kernel, semantic acts и party routes
 
-Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Status: `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`.
 
 - canonical invite/accept/refuse;
 - contextual roles и vacancies;
@@ -661,6 +661,8 @@ Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 - assist/protect/heal priorities.
 
 ### 018. Personality, memory, reputation
+
+Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 - traits;
 - memory events;

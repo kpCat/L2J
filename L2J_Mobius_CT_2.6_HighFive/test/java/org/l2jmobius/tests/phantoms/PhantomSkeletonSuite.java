@@ -223,6 +223,16 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(exactBoundary.enabled(), "Ten-operation party budget was rejected.");
 			PhantomAssertions.assertEquals(10, exactBoundary.partyOperationsPerPulse(), "Ten-operation party budget was not retained.");
 		});
+		registry.add("config-social-cache-boundaries", _ ->
+		{
+			final var legacyDefault = readConfig("social-cache-default.ini", enabledConfig(""));
+			PhantomAssertions.assertTrue(legacyDefault.enabled(), "Missing legacy social cache key did not retain the safe default.");
+			PhantomAssertions.assertEquals(1024, legacyDefault.socialCacheProfiles(), "Missing legacy social cache key did not default to 1024.");
+			PhantomAssertions.assertFalse(readConfig("social-cache-fifteen.ini", enabledConfig("PhantomSocialCacheProfiles = 15\n")).enabled(), "Social cache below 16 did not fail closed.");
+			PhantomAssertions.assertEquals(16, readConfig("social-cache-sixteen.ini", enabledConfig("PhantomSocialCacheProfiles = 16\n")).socialCacheProfiles(), "Social cache lower boundary was rejected.");
+			PhantomAssertions.assertEquals(10000, readConfig("social-cache-ten-thousand.ini", enabledConfig("PhantomSocialCacheProfiles = 10000\n")).socialCacheProfiles(), "Social cache upper boundary was rejected.");
+			PhantomAssertions.assertFalse(readConfig("social-cache-ten-thousand-one.ini", enabledConfig("PhantomSocialCacheProfiles = 10001\n")).enabled(), "Social cache above 10000 did not fail closed.");
+		});
 		registry.add("trace-disabled-no-storage", _ ->
 		{
 			final PhantomMetrics metrics = new PhantomMetrics();

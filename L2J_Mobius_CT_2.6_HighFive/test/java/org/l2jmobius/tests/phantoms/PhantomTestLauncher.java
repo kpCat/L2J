@@ -263,6 +263,14 @@ public final class PhantomTestLauncher
 			case "party-lifecycle" -> new PhantomPartySuite(PhantomPartySuite.Mode.LIFECYCLE);
 			case "party-server-integration" -> new PhantomPartyServerIntegrationSuite();
 			case "party-performance" -> new PhantomPartySuite(PhantomPartySuite.Mode.PERFORMANCE);
+			case "social-catalog" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.CATALOG);
+			case "social-codec" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.CODEC);
+			case "social-personality" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.PERSONALITY);
+			case "social-decay" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.DECAY);
+			case "social-events" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.EVENTS);
+			case "social-modifiers" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.MODIFIERS);
+			case "social-party-integration" -> new PhantomSocialPartyIntegrationSuite();
+			case "social-lifecycle-performance" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

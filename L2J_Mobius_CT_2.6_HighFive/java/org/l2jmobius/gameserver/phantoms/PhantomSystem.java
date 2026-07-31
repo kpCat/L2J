@@ -82,6 +82,9 @@ import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionStepHandlers;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialStore;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomSchedulerRelevanceSignalPort;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
@@ -95,6 +98,7 @@ public final class PhantomSystem
 {
 	public static final int TRACE_CAPACITY = 64;
 	public static final int TRACE_SAMPLE_EVERY = 16;
+	public static final long SOCIAL_PERSONALITY_SEED = 18001801L;
 
 	private static PhantomSystem _configuredInstance;
 
@@ -114,6 +118,7 @@ public final class PhantomSystem
 	private PhantomBackgroundService _backgroundService;
 	private PhantomPopulationManager _populationManager;
 	private PhantomPartyCoordinator _partyCoordinator;
+	private PhantomSocialService _socialService;
 	private State _state = State.NEW;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
@@ -160,6 +165,13 @@ public final class PhantomSystem
 			if (_productionMaterialization)
 			{
 				profileRepository = PhantomProfileRepository.open();
+				final File socialCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/social/high-five-social-v1.xml");
+				final PhantomSocialCatalog socialCatalog = PhantomSocialCatalog.load(socialCatalogFile.toPath());
+				_socialService = new PhantomSocialService(socialCatalog, new PhantomSocialStore(profileRepository, socialCatalog), SOCIAL_PERSONALITY_SEED, _settings.socialCacheProfiles());
+				if (!_socialService.start())
+				{
+					throw new IllegalStateException("Phantom social service could not enter the running state.");
+				}
 				goalStateStore = new PhantomGoalStateStore(profileRepository);
 				lifecycleBridge = new PhantomMaterializationLifecycleBridge();
 				_materializationService = new PhantomMaterializationService(profileRepository, PhantomIdentityLeaseRegistry.getInstance(), _metrics, _trace, _settings.maxMaterializedPhantoms(), lifecycleBridge);
@@ -277,7 +289,9 @@ public final class PhantomSystem
 					new PhantomPartyTactics(_combatService, partyBackend),
 					() -> _topologyService.query().snapshot().canonicalHash(),
 					System::nanoTime,
-					_settings.partyOperationsPerPulse());
+					_settings.partyOperationsPerPulse(),
+					_socialService,
+					() -> System.currentTimeMillis() / 60000L);
 				if (!_partyCoordinator.start())
 				{
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
@@ -364,7 +378,13 @@ public final class PhantomSystem
 				_navigationService.beginStop();
 			}
 			final boolean partyStopped = (_partyCoordinator == null) || _partyCoordinator.finishStop();
-			final boolean combatStopped = partyStopped && ((_combatService == null) || _combatService.finishStop());
+			boolean socialStopped = _socialService == null;
+			if (partyStopped && (_socialService != null))
+			{
+				_socialService.beginStop();
+				socialStopped = _socialService.finishStop();
+			}
+			final boolean combatStopped = partyStopped && socialStopped && ((_combatService == null) || _combatService.finishStop());
 			final boolean progressionStopped = (_progressionService == null) || _progressionService.finishStop();
 			final boolean commerceStopped = (_commerceService == null) || _commerceService.finishStop();
 			final boolean populationStopped = (_populationManager == null) || _populationManager.finishStop();
@@ -458,6 +478,16 @@ public final class PhantomSystem
 				_state = State.FAILED;
 				return false;
 			}
+			if (_socialService != null)
+			{
+				_socialService.beginStop();
+				if (!_socialService.finishStop())
+				{
+					_metrics.recordShutdownFailure();
+					_state = State.FAILED;
+					return false;
+				}
+			}
 			if ((_combatService != null) && !_combatService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
@@ -541,6 +571,15 @@ public final class PhantomSystem
 			{
 				_partyCoordinator.beginStop();
 				if (!_partyCoordinator.finishStop())
+				{
+					_metrics.recordShutdownFailure();
+					return false;
+				}
+			}
+			if ((_socialService != null) && (_socialService.snapshot().state() != PhantomSocialService.ServiceState.STOPPED))
+			{
+				_socialService.beginStop();
+				if (!_socialService.finishStop())
 				{
 					_metrics.recordShutdownFailure();
 					return false;
@@ -640,7 +679,7 @@ public final class PhantomSystem
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _backgroundService != null ? _backgroundService.snapshot() : null, _populationManager != null ? _populationManager.snapshot() : PhantomPopulationManager.Snapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _backgroundService != null ? _backgroundService.snapshot() : null, _populationManager != null ? _populationManager.snapshot() : PhantomPopulationManager.Snapshot.inactive(), _socialService != null ? _socialService.snapshot() : PhantomSocialService.Snapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
 	}
 
 	public synchronized PhantomPartyCoordinator.Snapshot partySnapshot()
@@ -776,7 +815,8 @@ public final class PhantomSystem
 			progressionActorLeases = progressionSnapshot.currentActorLeases();
 		}
 		final PhantomPopulationManager.Snapshot populationSnapshot = configured._populationManager == null ? PhantomPopulationManager.Snapshot.inactive() : configured._populationManager.snapshot();
-		return new ConfiguredShutdownSnapshot(true, configured._state, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers, topologyState, topologyRegisteredProfiles, topologyEventsInFlight, topologyGeneration, knowledgeState, progressionState, progressionCatalogHash, progressionOperations, progressionActorLeases, combatState, combatActiveSessions, combatTerminalSessions, combatQueuedSessions, combatWorkers, combatActorLeases, populationSnapshot);
+		final PhantomSocialService.Snapshot socialSnapshot = configured._socialService == null ? PhantomSocialService.Snapshot.inactive() : configured._socialService.snapshot();
+		return new ConfiguredShutdownSnapshot(true, configured._state, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers, topologyState, topologyRegisteredProfiles, topologyEventsInFlight, topologyGeneration, knowledgeState, progressionState, progressionCatalogHash, progressionOperations, progressionActorLeases, combatState, combatActiveSessions, combatTerminalSessions, combatQueuedSessions, combatWorkers, combatActorLeases, populationSnapshot, socialSnapshot.state(), socialSnapshot.catalogHash(), socialSnapshot.cacheEntries(), socialSnapshot.operationClaims(), socialSnapshot.writeClaims());
 	}
 
 	static synchronized PhantomMaterializationService configuredMaterializationService()
@@ -925,20 +965,20 @@ public final class PhantomSystem
 		_combatService.start();
 	}
 
-	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomProgressionService.ServiceSnapshot progression, PhantomCombatService.ServiceSnapshot combat, PhantomBackgroundService.Snapshot background, PhantomPopulationManager.Snapshot population, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
+	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomProgressionService.ServiceSnapshot progression, PhantomCombatService.ServiceSnapshot combat, PhantomBackgroundService.Snapshot background, PhantomPopulationManager.Snapshot population, PhantomSocialService.Snapshot social, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
 	{
 	}
 
-	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration, PhantomGameKnowledgeService.State knowledgeState, PhantomProgressionService.State progressionState, String progressionCatalogHash, int progressionOperations, int progressionActorLeases, PhantomCombatService.ServiceState combatState, int combatActiveSessions, int combatTerminalSessions, int combatQueuedSessions, int combatWorkers, int combatActorLeases, PhantomPopulationManager.Snapshot population)
+	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration, PhantomGameKnowledgeService.State knowledgeState, PhantomProgressionService.State progressionState, String progressionCatalogHash, int progressionOperations, int progressionActorLeases, PhantomCombatService.ServiceState combatState, int combatActiveSessions, int combatTerminalSessions, int combatQueuedSessions, int combatWorkers, int combatActorLeases, PhantomPopulationManager.Snapshot population, PhantomSocialService.ServiceState socialState, String socialCatalogHash, int socialCacheEntries, int socialOperations, int socialWrites)
 	{
 		public ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration, PhantomGameKnowledgeService.State knowledgeState, PhantomCombatService.ServiceState combatState, int combatActiveSessions, int combatTerminalSessions, int combatQueuedSessions, int combatWorkers, int combatActorLeases)
 		{
-			this(configured, systemState, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers, topologyState, topologyRegisteredProfiles, topologyEventsInFlight, topologyGeneration, knowledgeState, null, "none", 0, 0, combatState, combatActiveSessions, combatTerminalSessions, combatQueuedSessions, combatWorkers, combatActorLeases, PhantomPopulationManager.Snapshot.inactive());
+			this(configured, systemState, materializationServiceState, retainedMaterializationEntries, navigationState, navigationActiveRequests, navigationQueuedRequests, navigationWorkers, topologyState, topologyRegisteredProfiles, topologyEventsInFlight, topologyGeneration, knowledgeState, null, "none", 0, 0, combatState, combatActiveSessions, combatTerminalSessions, combatQueuedSessions, combatWorkers, combatActorLeases, PhantomPopulationManager.Snapshot.inactive(), PhantomSocialService.ServiceState.STOPPED, "none", 0, 0, 0);
 		}
 
 		private static ConfiguredShutdownSnapshot notConfigured()
 		{
-			return new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, "none", 0, 0, null, 0, 0, 0, 0, 0, PhantomPopulationManager.Snapshot.inactive());
+			return new ConfiguredShutdownSnapshot(false, null, null, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, "none", 0, 0, null, 0, 0, 0, 0, 0, PhantomPopulationManager.Snapshot.inactive(), PhantomSocialService.ServiceState.STOPPED, "none", 0, 0, 0);
 		}
 	}
 }

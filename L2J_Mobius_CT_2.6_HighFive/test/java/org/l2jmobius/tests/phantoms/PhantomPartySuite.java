@@ -399,6 +399,73 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		registry.add("07-nine-member-budget-boundary-makes-progress", PhantomPartySuite::nineMemberBudget);
 		registry.add("08-refusal-makes-form-goal-terminal-and-reusable", context -> terminalFormationReuse(context, TerminalOutcome.REFUSED, "party.invite.refused"));
 		registry.add("09-timeout-makes-form-goal-terminal-and-reusable", context -> terminalFormationReuse(context, TerminalOutcome.EXPIRED, "party.invite.expired"));
+		registry.add("10-inactive-join-goals-cannot-prepare-or-accept", PhantomPartySuite::inactiveJoinConsent);
+		registry.add("11-inactive-membership-goals-cannot-transition", PhantomPartySuite::inactiveMembershipTransition);
+	}
+
+	private static void inactiveJoinConsent(PhantomTestContext context)
+	{
+		for (PhantomGoalStatus status : List.of(PhantomGoalStatus.FAILED, PhantomGoalStatus.COMPLETED, PhantomGoalStatus.ABANDONED))
+		{
+			final MemoryPartyStore states = new MemoryPartyStore();
+			final MemoryGoalStore goals = new MemoryGoalStore();
+			final MemoryPartyBackend backend = new MemoryPartyBackend();
+			final MemberRef invitee = backend.add(2, 102);
+			goals.put(invitee.profileId(), goal(2, PhantomPartyCoordinator.JOIN_GOAL, new PhantomDomainRef("character.object", "999"), 0, status));
+			final PhantomPartyCoordinator coordinator = coordinator(context, states, goals, backend, 10);
+			try
+			{
+				PhantomAssertions.assertTrue(coordinator.start(), "Inactive-consent coordinator did not start.");
+				final InvitationIdentity identity = new InvitationIdentity(status.ordinal() + 1L, 999, invitee.characterObjectId());
+				final PartyInvitation invitation = new PartyInvitation(identity, 999, MemberRef.real(999).stableKey(), invitee.characterObjectId(), invitee.stableKey(), PartyDistributionType.FINDERS_KEEPERS, 999, Long.MAX_VALUE);
+				PhantomAssertions.assertEquals(PreparationOutcome.REJECTED, coordinator.prepare(invitation, OptionalLong.empty(), OptionalLong.of(invitee.profileId())), status + " join goal prepared a real-to-Phantom invitation.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.DeliveryOutcome.ACCEPTED, coordinator.deliver(invitation, invitee.profileId()), "Inactive-consent fixture could not enqueue managed delivery.");
+				coordinator.onPulse();
+				PhantomAssertions.assertEquals(PartyInvitationService.Response.REFUSE, backend.lastResponse(), status + " join goal accepted a managed invitation.");
+				PhantomAssertions.assertTrue(coordinator.claim(invitee.profileId()).isEmpty(), status + " join goal created a membership claim.");
+			}
+			finally
+			{
+				coordinator.beginStop();
+				PhantomAssertions.assertTrue(coordinator.finishStop(), "Inactive-consent coordinator did not drain.");
+			}
+		}
+	}
+
+	private static void inactiveMembershipTransition(PhantomTestContext context)
+	{
+		for (PhantomGoalStatus status : List.of(PhantomGoalStatus.FAILED, PhantomGoalStatus.COMPLETED, PhantomGoalStatus.ABANDONED))
+		{
+			final MemoryPartyStore states = new MemoryPartyStore();
+			final MemoryGoalStore goals = new MemoryGoalStore();
+			final MemoryPartyBackend backend = new MemoryPartyBackend();
+			final MemberRef leader = backend.add(1, 101);
+			final MemberRef member = backend.add(2, 102);
+			backend.party(new PhantomPartyBackend.PartySnapshot(leader, List.of(leader, member), PartyDistributionType.FINDERS_KEEPERS));
+			final String groupId = PhantomPartyModel.sha256("inactive.transition." + status);
+			final PartyOperation operation = new PartyOperation(PhantomPartyModel.sha256(groupId + ".operation"), OperationKind.FORM, OperationPhase.COMMITTED, leader, member, 1, 0, ZERO, 0, 1, "");
+			final PartyState draft = new PartyState(groupId, 1, 0, StateStatus.LEADER, leader, "", ZERO, List.of(leader, member), List.of(), ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "inactive-transition"), List.of(), List.of(), null, operation, ZERO, ZERO, "");
+			final String manifest = draft.canonicalManifestHash();
+			states.seed(leader.profileId(), new PartyState(groupId, 1, 0, StateStatus.LEADER, leader, "", manifest, List.of(leader, member), List.of(), draft.objectiveMode(), draft.objectiveRef(), List.of(), List.of(), null, operation, ZERO, ZERO, ""));
+			states.seed(member.profileId(), new PartyState(groupId, 1, 0, StateStatus.MEMBER, leader, "", manifest, List.of(leader, member), List.of(), draft.objectiveMode(), draft.objectiveRef(), List.of(), List.of(), null, operation, ZERO, ZERO, ""));
+			goals.put(leader.profileId(), goal(1, PhantomPartyCoordinator.FORM_GOAL, null, 0, status));
+			goals.put(member.profileId(), goal(2, PhantomPartyCoordinator.JOIN_GOAL, new PhantomDomainRef("character.object", "101"), 0, status));
+			final PhantomPartyCoordinator coordinator = coordinator(context, states, goals, backend, 10);
+			try
+			{
+				PhantomAssertions.assertTrue(coordinator.start(), "Inactive-transition coordinator did not start.");
+				coordinator.onPulse();
+				PhantomAssertions.assertEquals(status, goals.load(leader.profileId()).orElseThrow().goal().status(), status + " form goal was revived during leader transition.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.FORM_GOAL, goals.load(leader.profileId()).orElseThrow().goal().goalType(), status + " form goal changed to party.lead.");
+				PhantomAssertions.assertEquals(status, goals.load(member.profileId()).orElseThrow().goal().status(), status + " join goal was revived during member transition.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.JOIN_GOAL, goals.load(member.profileId()).orElseThrow().goal().goalType(), status + " join goal changed to party.member.");
+			}
+			finally
+			{
+				coordinator.beginStop();
+				PhantomAssertions.assertTrue(coordinator.finishStop(), "Inactive-transition coordinator did not drain.");
+			}
+		}
 	}
 
 	private static void membershipLifecycle(PhantomTestContext context)
@@ -696,7 +763,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	private static PhantomGoal goal(long goalId, String type, PhantomDomainRef target, long revision)
 	{
-		return new PhantomGoal(goalId, type, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "1"), target, 1, 0, null, List.of(), null, "party.lifecycle", 500, 0, 0, 0, Map.of(), "party.lifecycle", revision);
+		return goal(goalId, type, target, revision, PhantomGoalStatus.ACTIVE);
+	}
+
+	private static PhantomGoal goal(long goalId, String type, PhantomDomainRef target, long revision, PhantomGoalStatus status)
+	{
+		return new PhantomGoal(goalId, type, status, new PhantomDomainRef("profile", "1"), target, 1, 0, null, List.of(), null, "party.lifecycle", 500, 0, 0, 0, Map.of(), "party.lifecycle", revision);
 	}
 
 	private static final class MemoryPartyStore implements PhantomPartyPersistencePort
@@ -797,6 +869,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private final Map<MemberRef, PartySnapshot> _parties = new LinkedHashMap<>();
 		private PhantomPartyCoordinator _coordinator;
 		private PartyInvitation _lastInvitation;
+		private PartyInvitationService.Response _lastResponse;
 		private long _invitationSequence;
 		private int _invitationCount;
 
@@ -813,6 +886,11 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private int invitationCount()
 		{
 			return _invitationCount;
+		}
+
+		private PartyInvitationService.Response lastResponse()
+		{
+			return _lastResponse;
 		}
 
 		private MemberRef add(long profileId, int objectId)
@@ -869,7 +947,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		@Override
 		public PartyInvitationService.RespondResult respond(MemberRef invitee, PartyInvitationService.Response response, PartyInvitationService.InvitationIdentity identity)
 		{
-			throw new AssertionError("Bounded lifecycle fixture must not fabricate a response.");
+			_lastResponse = response;
+			if (response == PartyInvitationService.Response.ACCEPT)
+			{
+				throw new AssertionError("Bounded lifecycle fixture must not fabricate an accepted response.");
+			}
+			return null;
 		}
 
 		@Override

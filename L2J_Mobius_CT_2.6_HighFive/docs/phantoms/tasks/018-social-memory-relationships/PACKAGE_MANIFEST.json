@@ -1,0 +1,33 @@
+{
+  "package": "phantom-world-goal-018-social-memory-relationships",
+  "taskId": "018-social-memory-relationships",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/018-social-memory-relationships/TASK.md",
+  "branch": "feature/phantom-world",
+  "requiredParent": "6cf261370e3cb98158805828e995cfe6e8b14651",
+  "commitSubject": "feat(phantoms): add social memory and relationships",
+  "successToken": "GOAL_018_SOCIAL_MEMORY_RELATIONSHIPS_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 18001801,
+  "maximumInitialReadEntries": 9,
+  "maximumAdditionalExactFiles": 6,
+  "maximumNewProductionFiles": 10,
+  "maximumChangedProductionFiles": 15,
+  "maximumChangedTotalFiles": 32,
+  "softGoalUsageTokens": 550000,
+  "maximumFullVerifyRuns": 2,
+  "schemaChanges": false,
+  "playerOrPartyChanges": false,
+  "packetChanges": false,
+  "combatNavigationBackgroundPopulationChanges": false,
+  "productionDatabaseUseAllowed": false,
+  "artificialSuffixGoalAllowed": false,
+  "goal019Started": false,
+  "payloadSha256": {
+    "docs/phantoms/tasks/018-social-memory-relationships/ACCEPTANCE.md": "CEF49DF7C050EE137A59CAD93A86B058FE5F53FA0BC661752C128E4A55E2E0DA",
+    "docs/phantoms/tasks/018-social-memory-relationships/CODEX_LAUNCHER.txt": "224DC6FF295CD5C75DF8C492F76FD0B7BE83FAE051707AEE26953DD4156A87C1",
+    "docs/phantoms/tasks/018-social-memory-relationships/MODEL_CONTRACT.md": "FB77E830F97C2B6C185EEB2CD6B09E20EAC33279DDDAF8EDC8F310EB24086660",
+    "docs/phantoms/tasks/018-social-memory-relationships/TASK.md": "AD6D394A5A667122A4A17C7FC0AC8D42C1FA1D4CA4BEDD7F4AE93EF045C98E0A",
+    "docs/phantoms/tasks/018-social-memory-relationships/TEST_CASES.md": "1DF90F900D83686B2FCAB429FB6D245483F90BA4DB49AC3ACDB01269759B0B09"
+  },
+  "manifestSelfHashExcluded": true
+}

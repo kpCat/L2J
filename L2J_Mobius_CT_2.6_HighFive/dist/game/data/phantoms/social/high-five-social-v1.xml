@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<socialCatalog version="1">
+	<limits relationships="24" memories="24" memorySalienceThreshold="100" memoryDecayPerDay="20" eviction="expired-lowest-salience-oldest-hash"/>
+	<traits>
+		<trait code="1" key="persistence"/>
+		<trait code="2" key="caution"/>
+		<trait code="3" key="sociability"/>
+		<trait code="4" key="loyalty"/>
+		<trait code="5" key="empathy"/>
+		<trait code="6" key="assertiveness"/>
+	</traits>
+	<relationships>
+		<dimension code="101" key="trust" decayPerDay="20"/>
+		<dimension code="102" key="respect" decayPerDay="10"/>
+		<dimension code="103" key="fear" decayPerDay="40"/>
+		<dimension code="104" key="anger" decayPerDay="80"/>
+		<dimension code="105" key="friendship" decayPerDay="8"/>
+		<dimension code="106" key="rivalry" decayPerDay="6"/>
+		<dimension code="107" key="debt" decayPerDay="0"/>
+	</relationships>
+	<reputation>
+		<dimension code="201" key="reliability" decayPerDay="4"/>
+		<dimension code="202" key="helpfulness" decayPerDay="6"/>
+		<dimension code="203" key="competence" decayPerDay="3"/>
+		<dimension code="204" key="hostility" decayPerDay="20"/>
+	</reputation>
+	<events>
+		<event code="1001" key="party.invite.accepted.outbound" ttlMinutes="43200" salience="500">
+			<delta source="relationship.trust" value="120"/>
+			<delta source="relationship.respect" value="50"/>
+			<delta source="reputation.reliability" value="60"/>
+			<agreement key="offered" value="1"/>
+			<agreement key="accepted" value="1"/>
+		</event>
+		<event code="1002" key="party.invite.accepted.inbound" ttlMinutes="43200" salience="500">
+			<delta source="relationship.trust" value="100"/>
+			<delta source="relationship.friendship" value="50"/>
+			<delta source="reputation.helpfulness" value="30"/>
+			<agreement key="accepted" value="1"/>
+		</event>
+		<event code="1003" key="party.invite.refused.outbound" ttlMinutes="21600" salience="400">
+			<delta source="relationship.trust" value="-30"/>
+			<delta source="relationship.anger" value="50"/>
+			<delta source="relationship.rivalry" value="20"/>
+			<delta source="reputation.reliability" value="-20"/>
+			<agreement key="offered" value="1"/>
+			<agreement key="refused" value="1"/>
+		</event>
+		<event code="1004" key="party.invite.refused.inbound" ttlMinutes="21600" salience="350">
+			<delta source="relationship.trust" value="-20"/>
+			<delta source="relationship.anger" value="30"/>
+			<agreement key="refused" value="1"/>
+		</event>
+		<event code="1005" key="party.invite.expired.outbound" ttlMinutes="10080" salience="250">
+			<delta source="reputation.reliability" value="-40"/>
+			<agreement key="offered" value="1"/>
+			<agreement key="refused" value="1"/>
+		</event>
+		<event code="1006" key="party.invite.expired.inbound" ttlMinutes="10080" salience="200">
+			<delta source="reputation.reliability" value="-20"/>
+			<agreement key="refused" value="1"/>
+		</event>
+		<event code="1007" key="party.member.joined" ttlMinutes="129600" salience="700">
+			<delta source="relationship.trust" value="80"/>
+			<delta source="relationship.friendship" value="100"/>
+			<delta source="reputation.reliability" value="50"/>
+		</event>
+		<event code="1008" key="party.member.left" ttlMinutes="129600" salience="650">
+			<delta source="relationship.friendship" value="-80"/>
+			<delta source="reputation.reliability" value="-50"/>
+		</event>
+		<event code="1009" key="party.member.expelled" ttlMinutes="259200" salience="1000">
+			<delta source="relationship.trust" value="-300"/>
+			<delta source="relationship.anger" value="300"/>
+			<delta source="reputation.hostility" value="200"/>
+		</event>
+		<event code="1010" key="party.leader.transferred" ttlMinutes="129600" salience="700">
+			<delta source="relationship.respect" value="180"/>
+			<delta source="reputation.competence" value="100"/>
+		</event>
+		<event code="1011" key="party.support.received" ttlMinutes="129600" salience="800">
+			<delta source="relationship.trust" value="120"/>
+			<delta source="reputation.helpfulness" value="200"/>
+		</event>
+		<event code="1012" key="agreement.fulfilled" ttlMinutes="525600" salience="1200">
+			<delta source="relationship.trust" value="250"/>
+			<delta source="reputation.reliability" value="300"/>
+			<agreement key="fulfilled" value="1"/>
+		</event>
+		<event code="1013" key="agreement.broken" ttlMinutes="525600" salience="1800">
+			<delta source="relationship.trust" value="-500"/>
+			<delta source="relationship.anger" value="300"/>
+			<delta source="reputation.reliability" value="-500"/>
+			<delta source="reputation.hostility" value="200"/>
+			<agreement key="broken" value="1"/>
+		</event>
+		<event code="1014" key="debt.incurred" ttlMinutes="525600" salience="900">
+			<delta source="relationship.debt" value="500"/>
+		</event>
+		<event code="1015" key="debt.repaid" ttlMinutes="525600" salience="900">
+			<delta source="relationship.trust" value="100"/>
+			<delta source="relationship.debt" value="-500"/>
+			<delta source="reputation.reliability" value="100"/>
+		</event>
+	</events>
+	<modifiers>
+		<modifier key="goal.persistence" minimum="-3000" maximum="3000">
+			<weight source="trait.persistence" value="2400"/>
+			<weight source="trait.loyalty" value="600"/>
+		</modifier>
+		<modifier key="risk.tolerance" minimum="-3000" maximum="3000">
+			<weight source="trait.assertiveness" value="1800"/>
+			<weight source="trait.caution" value="-1800"/>
+		</modifier>
+		<modifier key="party.invite.preference" minimum="-3000" maximum="3000">
+			<weight source="relationship.trust" value="900"/>
+			<weight source="relationship.friendship" value="700"/>
+			<weight source="relationship.fear" value="-400"/>
+			<weight source="relationship.anger" value="-700"/>
+			<weight source="relationship.rivalry" value="-500"/>
+			<weight source="relationship.debt" value="300"/>
+			<weight source="reputation.reliability" value="800"/>
+			<weight source="reputation.hostility" value="-800"/>
+			<weight source="agreement.fulfilled" value="350"/>
+			<weight source="agreement.broken" value="-600"/>
+			<weight source="agreement.refused" value="-250"/>
+		</modifier>
+		<modifier key="party.support.priority" minimum="-3000" maximum="3000">
+			<weight source="relationship.trust" value="700"/>
+			<weight source="relationship.friendship" value="800"/>
+			<weight source="relationship.debt" value="-300"/>
+			<weight source="reputation.helpfulness" value="600"/>
+		</modifier>
+		<modifier key="conversation.warmth" minimum="-3000" maximum="3000">
+			<weight source="relationship.trust" value="700"/>
+			<weight source="relationship.friendship" value="900"/>
+			<weight source="relationship.anger" value="-900"/>
+			<weight source="reputation.hostility" value="-700"/>
+		</modifier>
+		<modifier key="conflict.escalation" minimum="-3000" maximum="3000">
+			<weight source="trait.assertiveness" value="500"/>
+			<weight source="relationship.trust" value="-500"/>
+			<weight source="relationship.fear" value="-300"/>
+			<weight source="relationship.anger" value="1000"/>
+			<weight source="relationship.rivalry" value="800"/>
+			<weight source="reputation.hostility" value="900"/>
+		</modifier>
+	</modifiers>
+</socialCatalog>
