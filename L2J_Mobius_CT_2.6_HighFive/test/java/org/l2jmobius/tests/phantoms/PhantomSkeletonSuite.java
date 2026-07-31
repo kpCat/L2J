@@ -141,6 +141,9 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(0L, disabled.gameKnowledge().metrics().buildsStarted(), "Disabled system scanned Game Knowledge sources.");
 			PhantomAssertions.assertEquals(0, disabled.gameKnowledge().counts().items(), "Disabled system retained Game Knowledge facts.");
 			PhantomAssertions.assertEquals("none", disabled.gameKnowledge().hashes().combinedHash(), "Disabled system exposed a Game Knowledge generation hash.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticUnderstandingService.State.STOPPED, disabled.semanticUnderstanding().state(), "Disabled system constructed semantic understanding.");
+			PhantomAssertions.assertEquals("none", disabled.semanticUnderstanding().packHash(), "Disabled system read a semantic pack.");
+			PhantomAssertions.assertEquals(0L, disabled.semanticUnderstanding().metrics().startsCompleted(), "Disabled system started semantic understanding.");
 			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ServiceState.STOPPED, disabled.combat().state(), "Disabled system constructed a combat service.");
 			PhantomAssertions.assertEquals(0, disabled.combat().activeSessions(), "Disabled system retained a combat session.");
 			PhantomAssertions.assertEquals(0, disabled.combat().currentWorkers(), "Disabled system created a combat worker.");
@@ -178,6 +181,8 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(0, running.gameKnowledge().counts().items(), "Enabled inert Game Knowledge loaded production facts.");
 			PhantomAssertions.assertEquals(running.gameKnowledge().combinedHash(), running.gameKnowledge().hashes().combinedHash(), "Enabled inert Game Knowledge component diagnostics are inconsistent.");
 			PhantomAssertions.assertEquals(0L, java.util.Arrays.stream(running.gameKnowledge().metrics().queriesByCategory()).sum(), "Enabled Game Knowledge issued an automatic query.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticUnderstandingService.State.STOPPED, running.semanticUnderstanding().state(), "Inert test composition unexpectedly loaded production semantic data.");
+			PhantomAssertions.assertEquals(0L, running.semanticUnderstanding().metrics().parses(), "Inert test composition parsed semantic input.");
 			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ServiceState.RUNNING, running.combat().state(), "Enabled inert combat service is not running.");
 			PhantomAssertions.assertEquals(0, running.combat().activeSessions(), "Enabled inert combat service started a session.");
 			PhantomAssertions.assertEquals(0, running.combat().terminalSessions(), "Enabled inert combat service retained a terminal slot.");
@@ -193,6 +198,7 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(ServiceState.STOPPED, stopped.navigation().state(), "Navigation service remained running after stop.");
 			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService.State.STOPPED, stopped.gameKnowledge().state(), "Game Knowledge remained running after stop.");
 			PhantomAssertions.assertEquals("none", stopped.gameKnowledge().hashes().combinedHash(), "Stopped Game Knowledge retained component diagnostics.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticUnderstandingService.State.STOPPED, stopped.semanticUnderstanding().state(), "Semantic understanding remained active in inert composition.");
 			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ServiceState.STOPPED, stopped.combat().state(), "Combat service remained running after stop.");
 			PhantomAssertions.assertEquals(0, stopped.combat().activeSessions(), "Stopped combat service retained a session.");
 			PhantomAssertions.assertEquals(0, stopped.combat().currentWorkers(), "Stopped combat service retained a worker.");

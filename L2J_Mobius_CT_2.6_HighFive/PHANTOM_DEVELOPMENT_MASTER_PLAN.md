@@ -662,7 +662,7 @@ Status: `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`.
 
 ### 018. Personality, memory, reputation
 
-Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Status: `ACCEPT_WITH_ACTIVATION_GATE`.
 
 - traits;
 - memory events;
@@ -672,6 +672,8 @@ Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 - deterministic tests.
 
 ### 019. Semantic Pack: понимание
+
+Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 - русский;
 - транслит;
@@ -683,6 +685,8 @@ Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 ### 020. Conversation engine и действия
 
+Status: `NOT_STARTED`.
+
 - PM/local/trade chat;
 - observer-aware generation;
 - cooldown;
@@ -691,6 +695,8 @@ Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 - нет бессмысленного текста без наблюдателя.
 
 ### 021. Spoil, manor, quest drop и craft acquisition chains
+
+Status: `NOT_STARTED`.
 
 - eligibility и source selection;
 - spoil/manor/quest collection;
@@ -726,6 +732,8 @@ Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 - competition.
 
 ### 025. PvP, PK, karma и revenge
+
+Status: `NOT_STARTED`.
 
 - risk;
 - flags/karma/drop;

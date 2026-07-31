@@ -1,0 +1,241 @@
+case_id	input	context_fixture	expected_status	expected_intent	expected_slots	minimum_confidence	reason_key
+cyr001	пригласи Иван	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr002	позови Иван	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr003	пожалуйста пригласи Иван	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr004	ну позови Иван	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr005	пригласи Иван в группу	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr006	пригласи его	selected-managed	ACCEPTED	party.invite	TARGET_PLAYER=profile:00000000-0000-0000-0000-000000000019	6000	accept.matched
+cyr007	пригласи лидера	leader	ACCEPTED	party.invite	TARGET_PLAYER=character.object:301	6000	accept.matched
+cyr008	пригласи того	previous-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr009	пригласи меня	speaker-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr010	пригласи, Иван!	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr011	согласен	none	ACCEPTED	party.accept	-	6000	accept.matched
+cyr012	пожалуйста согласен	none	ACCEPTED	party.accept	-	6000	accept.matched
+cyr013	принимаю	none	ACCEPTED	party.accept	-	6000	accept.matched
+cyr014	да	none	ACCEPTED	party.accept	-	6000	accept.matched
+cyr015	ну да	none	ACCEPTED	party.accept	-	6000	accept.matched
+cyr016	отказываюсь	none	ACCEPTED	party.refuse	-	6000	accept.matched
+cyr017	нет	none	ACCEPTED	party.refuse	-	6000	accept.matched
+cyr018	не согласен	none	ACCEPTED	party.refuse	-	6000	accept.matched
+cyr019	просто нет	none	ACCEPTED	party.refuse	-	6000	accept.matched
+cyr020	пожалуйста отказываюсь	none	ACCEPTED	party.refuse	-	6000	accept.matched
+cyr021	покинь группу	none	ACCEPTED	party.leave	-	6000	accept.matched
+cyr022	выйди из группы	none	ACCEPTED	party.leave	-	6000	accept.matched
+cyr023	уйди из группы	none	ACCEPTED	party.leave	-	6000	accept.matched
+cyr024	пожалуйста покинь группу	none	ACCEPTED	party.leave	-	6000	accept.matched
+cyr025	ну выйди из группы	none	ACCEPTED	party.leave	-	6000	accept.matched
+cyr026	просто уйди из группы	none	ACCEPTED	party.leave	-	6000	accept.matched
+cyr027	покинь, группу!	none	ACCEPTED	party.leave	-	6000	accept.matched
+cyr028	давай покинь группу	none	ACCEPTED	party.leave	-	6000	accept.matched
+cyr029	нужен танк	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:frontline.guardian	6000	accept.matched
+cyr030	кто нужен хилер	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:support.healer	6000	accept.matched
+cyr031	нужен речардж	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:support.recharge	6000	accept.matched
+cyr032	кто нужен бафер	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:support.enhancement	6000	accept.matched
+cyr033	какая роль у Иван	player-ivan	ACCEPTED	party.role.query	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr034	какая роль у лидера	leader	ACCEPTED	party.role.query	TARGET_PLAYER=character.object:301	6000	accept.matched
+cyr035	пожалуйста нужен танк	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:frontline.guardian	6000	accept.matched
+cyr036	ну кто нужен хилер	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:support.healer	6000	accept.matched
+cyr037	какая роль у его	selected-managed	ACCEPTED	party.role.query	TARGET_PLAYER=profile:00000000-0000-0000-0000-000000000019	6000	accept.matched
+cyr038	кто нужен танк	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:frontline.guardian	6000	accept.matched
+cyr039	идем в город гиран	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.city	6000	accept.matched
+cyr040	двигаемся в регион гиран	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.region	6000	accept.matched
+cyr041	идем в бакалея гирана	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.shop.30081	6000	accept.matched
+cyr042	идем в некрополь прошлого	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:ssq.necropolis.past	6000	accept.matched
+cyr043	идем к центру гирана	none	ACCEPTED	party.travel	LOCATION=topology.node:giran.city	6000	accept.matched
+cyr044	идем к магазин гирана	none	ACCEPTED	party.travel	LOCATION=topology.node:giran.shop.30081	6000	accept.matched
+cyr045	идем туда	current-giran	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.city	6000	accept.matched
+cyr046	пожалуйста идем в город гиран	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.city	6000	accept.matched
+cyr047	ну двигаемся в регион гиран	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.region	6000	accept.matched
+cyr048	идем в город гиран!	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.city	6000	accept.matched
+cyr049	нужно лечение	none	ACCEPTED	party.support.request	CAPABILITY=capability:combat.heal	6000	accept.matched
+cyr050	дай усиление	none	ACCEPTED	party.support.request	CAPABILITY=capability:combat.buff	6000	accept.matched
+cyr051	нужно танкование	none	ACCEPTED	party.support.request	CAPABILITY=capability:combat.tank	6000	accept.matched
+cyr052	дай воскрешение	none	ACCEPTED	party.support.request	CAPABILITY=capability:combat.resurrection	6000	accept.matched
+cyr053	помоги Иван	player-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr054	ассистируй Иван	player-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr055	помоги его	selected-managed	ACCEPTED	party.assist.request	TARGET_PLAYER=profile:00000000-0000-0000-0000-000000000019	6000	accept.matched
+cyr056	пожалуйста помоги Иван	player-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
+cyr057	соберемся	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
+cyr058	все ко мне	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
+cyr059	пожалуйста соберемся	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
+cyr060	ну все ко мне	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
+cyr061	соберемся!	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
+cyr062	где кларисса	none	ACCEPTED	entity.locate	NPC=npc:30080	6000	accept.matched
+cyr063	где гк	none	ACCEPTED	entity.locate	NPC=npc:30080	6000	accept.matched
+cyr064	найди город гиран	none	ACCEPTED	entity.locate	TOPOLOGY_NODE=topology.node:giran.city	6000	accept.matched
+cyr065	где находится рифт	none	ACCEPTED	entity.locate	CONTENT=content:rift.high-five-core	6000	accept.matched
+cyr066	где взять адену	none	ACCEPTED	item.acquire.query	ITEM=item:57	6000	accept.matched
+cyr067	как получить адену	none	ACCEPTED	item.acquire.query	ITEM=item:57	6000	accept.matched
+cyr068	где взять 5 адены	none	ACCEPTED	item.acquire.query	ITEM=item:57;QUANTITY=5	6000	accept.matched
+cyr069	кто роняет адену	none	ACCEPTED	item.source.query	ITEM=item:57	6000	accept.matched
+cyr070	что нужно для рифт	none	ACCEPTED	content.requirements.query	CONTENT=content:rift.high-five-core	6000	accept.matched
+tr001	inv Ivan	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr002	inv Ivan!	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr003	plz inv Ivan	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr004	inv, Ivan	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr005	inv Ivan.	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr006	plz inv Ivan!	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr007	inv (Ivan)	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr008	inv Ivan?	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr009	inv-Ivan	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr010	plz inv, Ivan	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr011	pokin party	none	ACCEPTED	party.leave	-	6000	accept.matched
+tr012	pokin pt	none	ACCEPTED	party.leave	-	6000	accept.matched
+tr013	plz pokin party	none	ACCEPTED	party.leave	-	6000	accept.matched
+tr014	vyidi iz party	none	ACCEPTED	party.leave	-	6000	accept.matched
+tr015	uydi iz pt	none	ACCEPTED	party.leave	-	6000	accept.matched
+tr016	assist Ivan	latin-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr017	assist Ivan!	latin-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr018	plz assist Ivan	latin-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr019	assist, Ivan	latin-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr020	assist (Ivan)	latin-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr021	regroup	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
+tr022	regroup!	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
+tr023	plz regroup	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
+tr024	regroup.	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
+tr025	regroup?	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
+tr026	nuzhno heal	none	ACCEPTED	party.support.request	CAPABILITY=capability:combat.heal	6000	accept.matched
+tr027	day buff	none	ACCEPTED	party.support.request	CAPABILITY=capability:combat.buff	6000	accept.matched
+tr028	gde gk	none	ACCEPTED	entity.locate	NPC=npc:30080	6000	accept.matched
+tr029	plz gde gk	none	ACCEPTED	entity.locate	NPC=npc:30080	6000	accept.matched
+tr030	gde gk!	none	ACCEPTED	entity.locate	NPC=npc:30080	6000	accept.matched
+tr031	priglasi Ivan	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr032	pozovi Ivan	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr033	priglasi Ivan v party	latin-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+tr034	soglasen	none	ACCEPTED	party.accept	-	6000	accept.matched
+tr035	prinimayu	none	ACCEPTED	party.accept	-	6000	accept.matched
+tr036	da	none	ACCEPTED	party.accept	-	6000	accept.matched
+tr037	otkazyvayus	none	ACCEPTED	party.refuse	-	6000	accept.matched
+tr038	net	none	ACCEPTED	party.refuse	-	6000	accept.matched
+tr039	ne soglasen	none	ACCEPTED	party.refuse	-	6000	accept.matched
+tr040	nuzhen tank	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:frontline.guardian	6000	accept.matched
+tr041	kto nuzhen healer	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:support.healer	6000	accept.matched
+tr042	idyom v giran city	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.city	6000	accept.matched
+tr043	idyom k giran center	none	ACCEPTED	party.travel	LOCATION=topology.node:giran.city	6000	accept.matched
+tr044	gde clarissa	none	ACCEPTED	entity.locate	NPC=npc:30080	6000	accept.matched
+tr045	gde helvetia	none	ACCEPTED	entity.locate	NPC=npc:30081	6000	accept.matched
+tr046	gde nakhoditsya rift	none	ACCEPTED	entity.locate	CONTENT=content:rift.high-five-core	6000	accept.matched
+tr047	gde vzyat adena	none	ACCEPTED	item.acquire.query	ITEM=item:57	6000	accept.matched
+tr048	kto ronyaet adena	none	ACCEPTED	item.source.query	ITEM=item:57	6000	accept.matched
+tr049	chto nuzhno dlya rift	none	ACCEPTED	content.requirements.query	CONTENT=content:rift.high-five-core	6000	accept.matched
+tr050	trebovaniya queen ant	none	ACCEPTED	content.requirements.query	CONTENT=content:epic.29001	6000	accept.matched
+fz001	приглси Иван	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+fz002	приглас Иван	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+fz003	позов Иван	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+fz004	соглсен	none	ACCEPTED	party.accept	-	6000	accept.matched
+fz005	принима	none	ACCEPTED	party.accept	-	6000	accept.matched
+fz006	отказваюсь	none	ACCEPTED	party.refuse	-	6000	accept.matched
+fz007	покин группу	none	ACCEPTED	party.leave	-	6000	accept.matched
+fz008	выйд из группы	none	ACCEPTED	party.leave	-	6000	accept.matched
+fz009	уйд из группы	none	ACCEPTED	party.leave	-	6000	accept.matched
+fz010	кто нужн танк	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:frontline.guardian	6000	accept.matched
+fz011	нужен хилр	none	ACCEPTED	party.role.query	PARTY_ROLE=party.role:support.healer	6000	accept.matched
+fz012	кака роль у Иван	player-ivan	ACCEPTED	party.role.query	TARGET_PLAYER=character.object:101	6000	accept.matched
+fz013	идмм в город гиран	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.city	6000	accept.matched
+fz014	двигаемя в регион гиран	none	ACCEPTED	party.travel	TOPOLOGY_NODE=topology.node:giran.region	6000	accept.matched
+fz015	нжно лечение	none	ACCEPTED	party.support.request	CAPABILITY=capability:combat.heal	6000	accept.matched
+fz016	помги Иван	player-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
+fz017	ассистиру Иван	player-ivan	ACCEPTED	party.assist.request	TARGET_PLAYER=character.object:101	6000	accept.matched
+fz018	соберемя	none	ACCEPTED	party.regroup.request	-	6000	accept.matched
+fz019	где клариса	none	ACCEPTED	entity.locate	NPC=npc:30080	6000	accept.matched
+fz020	где хельветиа	none	ACCEPTED	entity.locate	NPC=npc:30081	6000	accept.matched
+fz021	где находится риффт	none	ACCEPTED	entity.locate	CONTENT=content:rift.high-five-core	6000	accept.matched
+fz022	найд город гиран	none	ACCEPTED	entity.locate	TOPOLOGY_NODE=topology.node:giran.city	6000	accept.matched
+fz023	где взят адену	none	ACCEPTED	item.acquire.query	ITEM=item:57	6000	accept.matched
+fz024	как получит адену	none	ACCEPTED	item.acquire.query	ITEM=item:57	6000	accept.matched
+fz025	где взять адэну	none	ACCEPTED	item.acquire.query	ITEM=item:57	6000	accept.matched
+fz026	кто роняе адены	none	ACCEPTED	item.source.query	ITEM=item:57	6000	accept.matched
+fz027	источнк адены	none	ACCEPTED	item.source.query	ITEM=item:57	6000	accept.matched
+fz028	что нужо для рифт	none	ACCEPTED	content.requirements.query	CONTENT=content:rift.high-five-core	6000	accept.matched
+fz029	требованя рифт	none	ACCEPTED	content.requirements.query	CONTENT=content:rift.high-five-core	6000	accept.matched
+fz030	пожалуйста приглси Иван	player-ivan	ACCEPTED	party.invite	TARGET_PLAYER=character.object:101	6000	accept.matched
+cl001	пригласи	none	CLARIFICATION_REQUIRED	party.invite	-	0	clarify.target_player
+cl002	пожалуйста пригласи	none	CLARIFICATION_REQUIRED	party.invite	-	0	clarify.target_player
+cl003	пригласи Алекс	duplicate-alex	CLARIFICATION_REQUIRED	party.invite	-	0	clarify.target_player
+cl004	позови Алекс	duplicate-alex	CLARIFICATION_REQUIRED	party.invite	-	0	clarify.target_player
+cl005	пригласи его	two-players	CLARIFICATION_REQUIRED	party.invite	-	0	clarify.target_player
+cl006	позови его	two-players	CLARIFICATION_REQUIRED	party.invite	-	0	clarify.target_player
+cl007	пригласи Неизвестный	none	CLARIFICATION_REQUIRED	party.invite	-	0	clarify.target_player
+cl008	позови Неизвестный	none	CLARIFICATION_REQUIRED	party.invite	-	0	clarify.target_player
+cl009	пригласи лидера	none	CLARIFICATION_REQUIRED	party.invite	-	0	clarify.target_player
+cl010	пригласи того	none	CLARIFICATION_REQUIRED	party.invite	-	0	clarify.target_player
+cl011	нужен саппорт	none	CLARIFICATION_REQUIRED	party.role.query	-	0	clarify.party_role
+cl012	кто нужен саппорт	none	CLARIFICATION_REQUIRED	party.role.query	-	0	clarify.party_role
+cl013	нужен дд	none	CLARIFICATION_REQUIRED	party.role.query	-	0	clarify.party_role
+cl014	кто нужен дд	none	CLARIFICATION_REQUIRED	party.role.query	-	0	clarify.party_role
+cl015	нужен неизвестный	none	CLARIFICATION_REQUIRED	party.role.query	-	0	clarify.party_role
+cl016	какая роль у Алекс	duplicate-alex	CLARIFICATION_REQUIRED	party.role.query	-	0	clarify.target_player
+cl017	какая роль у его	two-players	CLARIFICATION_REQUIRED	party.role.query	-	0	clarify.target_player
+cl018	нужен саппорт!	none	CLARIFICATION_REQUIRED	party.role.query	-	0	clarify.party_role
+cl019	идем в гиран	none	CLARIFICATION_REQUIRED	party.travel	-	0	clarify.location
+cl020	двигаемся в гиран	none	CLARIFICATION_REQUIRED	party.travel	-	0	clarify.location
+cl021	пожалуйста идем в гиран	none	CLARIFICATION_REQUIRED	party.travel	-	0	clarify.location
+cl022	идем в	none	CLARIFICATION_REQUIRED	party.travel	-	0	clarify.location
+cl023	ну идем в	none	CLARIFICATION_REQUIRED	party.travel	-	0	clarify.location
+cl024	идем туда	none	CLARIFICATION_REQUIRED	party.travel	-	0	clarify.location
+cl025	идем к неизвестно	none	CLARIFICATION_REQUIRED	party.travel	-	0	clarify.location
+cl026	нужно магия	none	CLARIFICATION_REQUIRED	party.support.request	-	0	clarify.entity
+cl027	дай неизвестно	none	CLARIFICATION_REQUIRED	party.support.request	-	0	clarify.entity
+cl028	помоги	none	CLARIFICATION_REQUIRED	party.assist.request	-	0	clarify.target_player
+cl029	пожалуйста помоги	none	CLARIFICATION_REQUIRED	party.assist.request	-	0	clarify.target_player
+cl030	помоги Алекс	duplicate-alex	CLARIFICATION_REQUIRED	party.assist.request	-	0	clarify.target_player
+cl031	ассистируй его	two-players	CLARIFICATION_REQUIRED	party.assist.request	-	0	clarify.target_player
+cl032	где неизвестный	none	CLARIFICATION_REQUIRED	entity.locate	-	0	clarify.entity
+cl033	где непонятно	none	CLARIFICATION_REQUIRED	entity.locate	-	0	clarify.entity
+cl034	найди гиран	none	CLARIFICATION_REQUIRED	entity.locate	-	0	clarify.location
+cl035	найди неизвестно	none	CLARIFICATION_REQUIRED	entity.locate	-	0	clarify.location
+cl036	где взять	none	CLARIFICATION_REQUIRED	item.acquire.query	-	0	clarify.entity
+cl037	пожалуйста где взять	none	CLARIFICATION_REQUIRED	item.acquire.query	-	0	clarify.entity
+cl038	где взять неизвестно	none	CLARIFICATION_REQUIRED	item.acquire.query	-	0	clarify.entity
+cl039	как получить неизвестно	none	CLARIFICATION_REQUIRED	item.acquire.query	-	0	clarify.entity
+cl040	где взять 0 адены	none	CLARIFICATION_REQUIRED	item.acquire.query	ITEM=item:57	0	clarify.quantity
+cl041	кто роняет неизвестно	none	CLARIFICATION_REQUIRED	item.source.query	-	0	clarify.entity
+cl042	источник неизвестно	none	CLARIFICATION_REQUIRED	item.source.query	-	0	clarify.entity
+cl043	что нужно для	none	CLARIFICATION_REQUIRED	content.requirements.query	-	0	clarify.entity
+cl044	требования неизвестно	none	CLARIFICATION_REQUIRED	content.requirements.query	-	0	clarify.entity
+cl045	что нужно для неизвестно	none	CLARIFICATION_REQUIRED	content.requirements.query	-	0	clarify.entity
+neg001	привет	none	REJECTED	unknown	-	0	reject.unsupported
+neg002	до свидания	none	REJECTED	unknown	-	0	reject.unsupported
+neg003	как дела	none	REJECTED	unknown	-	0	reject.unsupported
+neg004	погода хорошая	none	REJECTED	unknown	-	0	reject.unsupported
+neg005	продай меч	none	REJECTED	unknown	-	0	reject.unsupported
+neg006	купи броню	none	REJECTED	unknown	-	0	reject.unsupported
+neg007	атакуй монстра	none	REJECTED	unknown	-	0	reject.unsupported
+neg008	бей его	none	REJECTED	unknown	-	0	reject.unsupported
+neg009	телепортируйся	none	REJECTED	unknown	-	0	reject.unsupported
+neg010	создай клан	none	REJECTED	unknown	-	0	reject.unsupported
+neg011	отправь письмо	none	REJECTED	unknown	-	0	reject.unsupported
+neg012	скажи шутку	none	REJECTED	unknown	-	0	reject.unsupported
+neg013	расскажи историю	none	REJECTED	unknown	-	0	reject.unsupported
+neg014	покажи инвентарь	none	REJECTED	unknown	-	0	reject.unsupported
+neg015	сколько времени	none	REJECTED	unknown	-	0	reject.unsupported
+neg016	дай адену	none	REJECTED	unknown	-	0	reject.unsupported
+neg017	возьми предмет	none	REJECTED	unknown	-	0	reject.unsupported
+neg018	иди домой	none	REJECTED	unknown	-	0	reject.unsupported
+neg019	стой здесь	none	REJECTED	unknown	-	0	reject.unsupported
+neg020	жди меня	none	REJECTED	unknown	-	0	reject.unsupported
+neg021	hello there	none	REJECTED	unknown	-	0	reject.unsupported
+neg022	good bye	none	REJECTED	unknown	-	0	reject.unsupported
+neg023	buy sword	none	REJECTED	unknown	-	0	reject.unsupported
+neg024	sell armor	none	REJECTED	unknown	-	0	reject.unsupported
+neg025	attack monster	none	REJECTED	unknown	-	0	reject.unsupported
+neg026	make clan	none	REJECTED	unknown	-	0	reject.unsupported
+neg027	send mail	none	REJECTED	unknown	-	0	reject.unsupported
+neg028	tell joke	none	REJECTED	unknown	-	0	reject.unsupported
+neg029	show inventory	none	REJECTED	unknown	-	0	reject.unsupported
+neg030	wait here	none	REJECTED	unknown	-	0	reject.unsupported
+neg031	пaти	none	REJECTED	unknown	-	0	reject.mixed_script
+neg032	приглaси Иван	none	REJECTED	unknown	-	0	reject.mixed_script
+neg033	гuран	none	REJECTED	unknown	-	0	reject.mixed_script
+neg034	клaрисса	none	REJECTED	unknown	-	0	reject.mixed_script
+neg035	адeна	none	REJECTED	unknown	-	0	reject.mixed_script
+neg036	😀	none	REJECTED	unknown	-	0	reject.unsupported
+neg037	привет 😀	none	REJECTED	unknown	-	0	reject.unsupported
+neg038	💥 пати	none	REJECTED	unknown	-	0	reject.unsupported
+neg039	где 🚀	none	REJECTED	unknown	-	0	reject.unsupported
+neg040	⚔️	none	REJECTED	unknown	-	0	reject.unsupported
+neg041	привет‍мир	none	REJECTED	unknown	-	0	reject.unsupported
+neg042	слово‌слово	none	REJECTED	unknown	-	0	reject.unsupported
+neg043	αθήνα	none	REJECTED	unknown	-	0	reject.unsupported
+neg044	東京	none	REJECTED	unknown	-	0	reject.unsupported
+neg045	مرحبا	none	REJECTED	unknown	-	0	reject.unsupported

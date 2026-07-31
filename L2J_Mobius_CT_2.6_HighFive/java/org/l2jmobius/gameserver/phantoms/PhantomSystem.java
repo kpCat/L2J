@@ -82,6 +82,8 @@ import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionStepHandlers;
+import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticGrounding;
+import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticUnderstandingService;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialStore;
@@ -112,6 +114,7 @@ public final class PhantomSystem
 	private PhantomNavigationService _navigationService;
 	private PhantomTopologyService _topologyService;
 	private PhantomGameKnowledgeService _gameKnowledgeService;
+	private PhantomSemanticUnderstandingService _semanticUnderstandingService;
 	private PhantomProgressionService _progressionService;
 	private PhantomCombatService _combatService;
 	private PhantomCommerceService _commerceService;
@@ -279,6 +282,13 @@ public final class PhantomSystem
 					_settings.populationBoundariesPerPulse());
 				final File partyRoleCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-party-roles-v1.xml");
 				final PhantomPartyRoleCatalog partyRoleCatalog = PhantomPartyRoleCatalog.load(partyRoleCatalogFile.toPath());
+				final File semanticPackFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/semantic/high-five-ru-semantic-v1.xml");
+				final File semanticCorpusFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/semantic/high-five-ru-corpus-v1.tsv");
+				_semanticUnderstandingService = PhantomSemanticUnderstandingService.production(semanticPackFile.toPath(), semanticCorpusFile.toPath(), PhantomSemanticGrounding.production(_gameKnowledgeService.query(), _topologyService.query(), partyRoleCatalog));
+				if (!_semanticUnderstandingService.start())
+				{
+					throw new IllegalStateException("Phantom semantic understanding service could not enter the running state.");
+				}
 				final L2jPhantomPartyBackend partyBackend = new L2jPhantomPartyBackend(productionProfiles, _materializationService, _progressionService);
 				_partyCoordinator = new PhantomPartyCoordinator(
 					new PhantomPartyStore(productionProfiles),
@@ -365,6 +375,10 @@ public final class PhantomSystem
 			{
 				_backgroundService.beginStop();
 			}
+			if (_semanticUnderstandingService != null)
+			{
+				_semanticUnderstandingService.beginStop();
+			}
 			if (_gameKnowledgeService != null)
 			{
 				_gameKnowledgeService.beginStop();
@@ -398,11 +412,12 @@ public final class PhantomSystem
 			{
 				_scheduler.finishStop();
 			}
-			if (backgroundStopped && (_gameKnowledgeService != null))
+			final boolean semanticStopped = (_semanticUnderstandingService == null) || _semanticUnderstandingService.finishStop();
+			if (backgroundStopped && semanticStopped && (_gameKnowledgeService != null))
 			{
 				_gameKnowledgeService.finishStop();
 			}
-			if (backgroundStopped && (_topologyService != null))
+			if (backgroundStopped && semanticStopped && (_topologyService != null))
 			{
 				_topologyService.finishStop();
 			}
@@ -414,7 +429,7 @@ public final class PhantomSystem
 			{
 				_navigationService.finishStop();
 			}
-			_state = backgroundStopped ? State.STOPPED : State.FAILED;
+			_state = backgroundStopped && semanticStopped ? State.STOPPED : State.FAILED;
 			throw e;
 		}
 		_metrics.recordLifecycleStart();
@@ -459,6 +474,10 @@ public final class PhantomSystem
 			if (_backgroundService != null)
 			{
 				_backgroundService.beginStop();
+			}
+			if (_semanticUnderstandingService != null)
+			{
+				_semanticUnderstandingService.beginStop();
 			}
 			if (_gameKnowledgeService != null)
 			{
@@ -535,6 +554,12 @@ public final class PhantomSystem
 			}
 			if (!_scheduler.finishStop())
 			{
+				_state = State.FAILED;
+				return false;
+			}
+			if ((_semanticUnderstandingService != null) && !_semanticUnderstandingService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
 				return false;
 			}
@@ -639,6 +664,15 @@ public final class PhantomSystem
 			{
 				return false;
 			}
+			if ((_semanticUnderstandingService != null) && (_semanticUnderstandingService.snapshot().state() != PhantomSemanticUnderstandingService.State.STOPPED))
+			{
+				_semanticUnderstandingService.beginStop();
+				if (!_semanticUnderstandingService.finishStop())
+				{
+					_metrics.recordShutdownFailure();
+					return false;
+				}
+			}
 			if ((_gameKnowledgeService != null) && (_gameKnowledgeService.snapshot().state() != PhantomGameKnowledgeService.State.STOPPED) && !_gameKnowledgeService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
@@ -679,7 +713,7 @@ public final class PhantomSystem
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _backgroundService != null ? _backgroundService.snapshot() : null, _populationManager != null ? _populationManager.snapshot() : PhantomPopulationManager.Snapshot.inactive(), _socialService != null ? _socialService.snapshot() : PhantomSocialService.Snapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _semanticUnderstandingService != null ? _semanticUnderstandingService.snapshot() : PhantomSemanticUnderstandingService.Snapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _backgroundService != null ? _backgroundService.snapshot() : null, _populationManager != null ? _populationManager.snapshot() : PhantomPopulationManager.Snapshot.inactive(), _socialService != null ? _socialService.snapshot() : PhantomSocialService.Snapshot.inactive(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
 	}
 
 	public synchronized PhantomPartyCoordinator.Snapshot partySnapshot()
@@ -965,7 +999,7 @@ public final class PhantomSystem
 		_combatService.start();
 	}
 
-	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomProgressionService.ServiceSnapshot progression, PhantomCombatService.ServiceSnapshot combat, PhantomBackgroundService.Snapshot background, PhantomPopulationManager.Snapshot population, PhantomSocialService.Snapshot social, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
+	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomSemanticUnderstandingService.Snapshot semanticUnderstanding, PhantomProgressionService.ServiceSnapshot progression, PhantomCombatService.ServiceSnapshot combat, PhantomBackgroundService.Snapshot background, PhantomPopulationManager.Snapshot population, PhantomSocialService.Snapshot social, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
 	{
 	}
 

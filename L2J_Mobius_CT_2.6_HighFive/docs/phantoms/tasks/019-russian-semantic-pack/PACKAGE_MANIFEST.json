@@ -1,0 +1,33 @@
+{
+  "package": "phantom-world-goal-019-russian-semantic-pack",
+  "taskId": "019-russian-semantic-pack",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/019-russian-semantic-pack/TASK.md",
+  "branch": "feature/phantom-world",
+  "requiredParent": "d30b657a9351d8cb099548e959854bf826b7d1d1",
+  "commitSubject": "feat(phantoms): add russian semantic understanding",
+  "successToken": "GOAL_019_RUSSIAN_SEMANTIC_UNDERSTANDING_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 19001901,
+  "maximumInitialReadEntries": 8,
+  "maximumAdditionalExactFiles": 6,
+  "maximumNewProductionFiles": 10,
+  "maximumChangedProductionDataConfigFiles": 13,
+  "maximumChangedTotalFiles": 28,
+  "softGoalUsageTokens": 500000,
+  "maximumFullVerifyRuns": 2,
+  "schemaChanges": false,
+  "socialProductionChanges": false,
+  "playerPartyPacketChanges": false,
+  "actionDispatch": false,
+  "runtimeLlm": false,
+  "productionDatabaseUseAllowed": false,
+  "goal020Started": false,
+  "payloadSha256": {
+    "docs/phantoms/tasks/019-russian-semantic-pack/ACCEPTANCE.md": "F3BA7355F325056416323E23FC7B4916A8B2E44E0570DD1693C8F18EAA171041",
+    "docs/phantoms/tasks/019-russian-semantic-pack/ARCHITECTURE.md": "28EB1F9571CF630A7A931B0D9EACC404FCFBFBF3DF13A6281598D2C0A9761185",
+    "docs/phantoms/tasks/019-russian-semantic-pack/CODEX_LAUNCHER.txt": "E3F0FDF9A6767DFFED5F7B78BC91ABC06C4D4EA59B4560E8582403A5CA99AA91",
+    "docs/phantoms/tasks/019-russian-semantic-pack/TASK.md": "B584BD869CB3E34FE3E5E5107DBC19D76628FD00583704D63BDD34BEC92BD10E",
+    "docs/phantoms/tasks/019-russian-semantic-pack/TEST_CASES.md": "0D294782E970F000B399143FB509A2CAD0F8D5EC6A586DC8E249229828FEA58E"
+  },
+  "manifestSelfHashExcluded": true
+}

@@ -271,6 +271,13 @@ public final class PhantomTestLauncher
 			case "social-modifiers" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.MODIFIERS);
 			case "social-party-integration" -> new PhantomSocialPartyIntegrationSuite();
 			case "social-lifecycle-performance" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.LIFECYCLE_PERFORMANCE);
+			case "semantic-pack" -> new PhantomSemanticSuite(PhantomSemanticSuite.Mode.PACK);
+			case "semantic-normalization" -> new PhantomSemanticSuite(PhantomSemanticSuite.Mode.NORMALIZATION);
+			case "semantic-intents" -> new PhantomSemanticSuite(PhantomSemanticSuite.Mode.INTENTS);
+			case "semantic-grounding" -> new PhantomSemanticSuite(PhantomSemanticSuite.Mode.GROUNDING);
+			case "semantic-context" -> new PhantomSemanticSuite(PhantomSemanticSuite.Mode.CONTEXT);
+			case "semantic-corpus" -> new PhantomSemanticSuite(PhantomSemanticSuite.Mode.CORPUS);
+			case "semantic-lifecycle-performance" -> new PhantomSemanticSuite(PhantomSemanticSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

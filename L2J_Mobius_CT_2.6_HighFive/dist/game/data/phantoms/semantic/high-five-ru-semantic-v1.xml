@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<semanticPack id="high-five-ru-semantic-v1" locale="ru" version="1">
+	<limits maxXmlBytes="262144" maxCorpusBytes="262144" maxInputCodePoints="512" maxInputUtf8Bytes="2048" maxTokens="64" maxTokenCodePoints="64" maxFillers="32" maxLexicalAliases="128" maxPatterns="128" maxEntityAliases="128" maxContextAliases="32" maxCandidates="128" maxAlternatives="4" maxEvidence="16" maxSlots="16" maxPartyMembers="9" maxContextPlayers="32" maxPreviousSlots="16" acceptanceThreshold="6000" ambiguityMargin="500"/>
+	<normalization form="NFKC" lowercase="Locale.ROOT" yoToE="true" collapseWhitespace="true" repeatLimit="2" punctuation="?!,.:;-'&quot;/()"/>
+	<typoPolicy minimumCodePoints="4" shortMaximumCodePoints="7" shortDistance="1" longDistance="2"/>
+	<fillers>
+		<word value="пожалуйста"/>
+		<word value="ну"/>
+		<word value="давай"/>
+		<word value="просто"/>
+		<word value="же"/>
+	</fillers>
+	<lexicalAliases>
+		<alias kind="TRANSLITERATION" from="plz" to="пожалуйста"/>
+		<alias kind="TRANSLITERATION" from="priglasi" to="пригласи"/>
+		<alias kind="TRANSLITERATION" from="pozovi" to="позови"/>
+		<alias kind="TRANSLITERATION" from="soglasen" to="согласен"/>
+		<alias kind="TRANSLITERATION" from="prinimayu" to="принимаю"/>
+		<alias kind="TRANSLITERATION" from="da" to="да"/>
+		<alias kind="TRANSLITERATION" from="otkazyvayus" to="отказываюсь"/>
+		<alias kind="TRANSLITERATION" from="net" to="нет"/>
+		<alias kind="TRANSLITERATION" from="ne" to="не"/>
+		<alias kind="TRANSLITERATION" from="pokin" to="покинь"/>
+		<alias kind="TRANSLITERATION" from="vyidi" to="выйди"/>
+		<alias kind="TRANSLITERATION" from="uydi" to="уйди"/>
+		<alias kind="TRANSLITERATION" from="iz" to="из"/>
+		<alias kind="TRANSLITERATION" from="gruppy" to="группы"/>
+		<alias kind="TRANSLITERATION" from="gruppu" to="группу"/>
+		<alias kind="TRANSLITERATION" from="kto" to="кто"/>
+		<alias kind="TRANSLITERATION" from="nuzhen" to="нужен"/>
+		<alias kind="TRANSLITERATION" from="nuzhna" to="нужна"/>
+		<alias kind="TRANSLITERATION" from="nuzhno" to="нужно"/>
+		<alias kind="TRANSLITERATION" from="kakaya" to="какая"/>
+		<alias kind="TRANSLITERATION" from="rol" to="роль"/>
+		<alias kind="TRANSLITERATION" from="u" to="у"/>
+		<alias kind="TRANSLITERATION" from="idyom" to="идем"/>
+		<alias kind="TRANSLITERATION" from="dvigaemsya" to="двигаемся"/>
+		<alias kind="TRANSLITERATION" from="v" to="в"/>
+		<alias kind="TRANSLITERATION" from="k" to="к"/>
+		<alias kind="TRANSLITERATION" from="day" to="дай"/>
+		<alias kind="TRANSLITERATION" from="pomogi" to="помоги"/>
+		<alias kind="TRANSLITERATION" from="assistiruy" to="ассистируй"/>
+		<alias kind="TRANSLITERATION" from="soberemsya" to="соберемся"/>
+		<alias kind="TRANSLITERATION" from="vse" to="все"/>
+		<alias kind="TRANSLITERATION" from="ko" to="ко"/>
+		<alias kind="TRANSLITERATION" from="mne" to="мне"/>
+		<alias kind="TRANSLITERATION" from="gde" to="где"/>
+		<alias kind="TRANSLITERATION" from="naydi" to="найди"/>
+		<alias kind="TRANSLITERATION" from="vzyat" to="взять"/>
+		<alias kind="TRANSLITERATION" from="kak" to="как"/>
+		<alias kind="TRANSLITERATION" from="poluchit" to="получить"/>
+		<alias kind="TRANSLITERATION" from="ronyaet" to="роняет"/>
+		<alias kind="TRANSLITERATION" from="istochnik" to="источник"/>
+		<alias kind="TRANSLITERATION" from="chto" to="что"/>
+		<alias kind="TRANSLITERATION" from="dlya" to="для"/>
+		<alias kind="TRANSLITERATION" from="trebovaniya" to="требования"/>
+		<alias kind="TRANSLITERATION" from="nakhoditsya" to="находится"/>
+		<alias kind="ABBREVIATION" from="inv" to="пригласи"/>
+		<alias kind="ABBREVIATION" from="инв" to="пригласи"/>
+		<alias kind="ABBREVIATION" from="pt" to="группу"/>
+		<alias kind="ABBREVIATION" from="party" to="группу"/>
+		<alias kind="ABBREVIATION" from="пати" to="группу"/>
+		<alias kind="ABBREVIATION" from="assist" to="помоги"/>
+		<alias kind="ABBREVIATION" from="ассист" to="помоги"/>
+		<alias kind="ABBREVIATION" from="regroup" to="соберемся"/>
+		<alias kind="ABBREVIATION" from="регрупп" to="соберемся"/>
+		<alias kind="ABBREVIATION" from="heal" to="лечение"/>
+		<alias kind="ABBREVIATION" from="хил" to="лечение"/>
+		<alias kind="ABBREVIATION" from="buff" to="усиление"/>
+		<alias kind="ABBREVIATION" from="баф" to="усиление"/>
+	</lexicalAliases>
+	<slots>
+		<slot type="TARGET_PLAYER" maxTokens="4"/>
+		<slot type="PARTY_ROLE" maxTokens="3"/>
+		<slot type="CAPABILITY" maxTokens="3"/>
+		<slot type="ITEM" maxTokens="3"/>
+		<slot type="NPC" maxTokens="3"/>
+		<slot type="CONTENT" maxTokens="4"/>
+		<slot type="TOPOLOGY_NODE" maxTokens="4"/>
+		<slot type="LOCATION" maxTokens="4"/>
+		<slot type="QUANTITY" maxTokens="1"/>
+		<slot type="RESPONSE" maxTokens="2"/>
+	</slots>
+	<contextAliases>
+		<alias slot="TARGET_PLAYER" phrase="меня" resolver="SPEAKER"/>
+		<alias slot="TARGET_PLAYER" phrase="его" resolver="SELECTED_OR_UNIQUE_PLAYER"/>
+		<alias slot="TARGET_PLAYER" phrase="ее" resolver="SELECTED_OR_UNIQUE_PLAYER"/>
+		<alias slot="TARGET_PLAYER" phrase="лидера" resolver="PARTY_LEADER"/>
+		<alias slot="TARGET_PLAYER" phrase="того" resolver="PREVIOUS_TARGET"/>
+		<alias slot="TOPOLOGY_NODE" phrase="туда" resolver="CURRENT_TOPOLOGY"/>
+		<alias slot="TOPOLOGY_NODE" phrase="здесь" resolver="CURRENT_TOPOLOGY"/>
+		<alias slot="LOCATION" phrase="сюда" resolver="CURRENT_LOCATION"/>
+	</contextAliases>
+	<entityAliases>
+		<alias slot="ITEM" phrase="адена" key="57" quality="EXACT"/>
+		<alias slot="ITEM" phrase="адены" key="57" quality="EXACT"/>
+		<alias slot="ITEM" phrase="адену" key="57" quality="EXACT"/>
+		<alias slot="ITEM" phrase="adena" key="57" quality="TRANSLITERATION"/>
+		<alias slot="ITEM" phrase="аденка" key="57" quality="ABBREVIATION"/>
+		<alias slot="NPC" phrase="кларисса" key="30080" quality="EXACT"/>
+		<alias slot="NPC" phrase="clarissa" key="30080" quality="TRANSLITERATION"/>
+		<alias slot="NPC" phrase="гейткипер" key="30080" quality="EXACT"/>
+		<alias slot="NPC" phrase="гк" key="30080" quality="ABBREVIATION"/>
+		<alias slot="NPC" phrase="gk" key="30080" quality="ABBREVIATION"/>
+		<alias slot="NPC" phrase="хельветия" key="30081" quality="EXACT"/>
+		<alias slot="NPC" phrase="helvetia" key="30081" quality="TRANSLITERATION"/>
+		<alias slot="CONTENT" phrase="рифт" key="rift.high-five-core" quality="EXACT"/>
+		<alias slot="CONTENT" phrase="rift" key="rift.high-five-core" quality="TRANSLITERATION"/>
+		<alias slot="CONTENT" phrase="кутус" key="raid.25001" quality="EXACT"/>
+		<alias slot="CONTENT" phrase="kutus" key="raid.25001" quality="TRANSLITERATION"/>
+		<alias slot="CONTENT" phrase="королева муравьев" key="epic.29001" quality="EXACT"/>
+		<alias slot="CONTENT" phrase="queen ant" key="epic.29001" quality="TRANSLITERATION"/>
+		<alias slot="TOPOLOGY_NODE" phrase="город гиран" key="giran.city" quality="EXACT"/>
+		<alias slot="TOPOLOGY_NODE" phrase="giran city" key="giran.city" quality="TRANSLITERATION"/>
+		<alias slot="TOPOLOGY_NODE" phrase="регион гиран" key="giran.region" quality="EXACT"/>
+		<alias slot="TOPOLOGY_NODE" phrase="гиран" key="giran.city" quality="EXACT"/>
+		<alias slot="TOPOLOGY_NODE" phrase="гиран" key="giran.region" quality="EXACT"/>
+		<alias slot="TOPOLOGY_NODE" phrase="бакалея гирана" key="giran.shop.30081" quality="EXACT"/>
+		<alias slot="TOPOLOGY_NODE" phrase="некрополь прошлого" key="ssq.necropolis.past" quality="EXACT"/>
+		<alias slot="LOCATION" phrase="центр гирана" key="giran.city" quality="EXACT"/>
+		<alias slot="LOCATION" phrase="центру гирана" key="giran.city" quality="EXACT"/>
+		<alias slot="LOCATION" phrase="giran center" key="giran.city" quality="TRANSLITERATION"/>
+		<alias slot="LOCATION" phrase="магазин гирана" key="giran.shop.30081" quality="EXACT"/>
+		<alias slot="CAPABILITY" phrase="лечение" key="combat.heal" quality="EXACT"/>
+		<alias slot="CAPABILITY" phrase="хил" key="combat.heal" quality="ABBREVIATION"/>
+		<alias slot="CAPABILITY" phrase="heal" key="combat.heal" quality="ABBREVIATION"/>
+		<alias slot="CAPABILITY" phrase="исцеление" key="combat.heal" quality="EXACT"/>
+		<alias slot="CAPABILITY" phrase="усиление" key="combat.buff" quality="EXACT"/>
+		<alias slot="CAPABILITY" phrase="баф" key="combat.buff" quality="ABBREVIATION"/>
+		<alias slot="CAPABILITY" phrase="buff" key="combat.buff" quality="ABBREVIATION"/>
+		<alias slot="CAPABILITY" phrase="танкование" key="combat.tank" quality="EXACT"/>
+		<alias slot="CAPABILITY" phrase="воскрешение" key="combat.resurrection" quality="EXACT"/>
+		<alias slot="CAPABILITY" phrase="контроль" key="combat.crowd_control" quality="EXACT"/>
+		<alias slot="CAPABILITY" phrase="урон" key="combat.melee_damage" quality="EXACT"/>
+		<alias slot="PARTY_ROLE" phrase="танк" key="frontline.guardian" quality="EXACT"/>
+		<alias slot="PARTY_ROLE" phrase="tank" key="frontline.guardian" quality="TRANSLITERATION"/>
+		<alias slot="PARTY_ROLE" phrase="хилер" key="support.healer" quality="EXACT"/>
+		<alias slot="PARTY_ROLE" phrase="healer" key="support.healer" quality="TRANSLITERATION"/>
+		<alias slot="PARTY_ROLE" phrase="речардж" key="support.recharge" quality="EXACT"/>
+		<alias slot="PARTY_ROLE" phrase="recharge" key="support.recharge" quality="TRANSLITERATION"/>
+		<alias slot="PARTY_ROLE" phrase="бафер" key="support.enhancement" quality="EXACT"/>
+		<alias slot="PARTY_ROLE" phrase="buffer" key="support.enhancement" quality="TRANSLITERATION"/>
+		<alias slot="PARTY_ROLE" phrase="дд" key="damage.melee" quality="ABBREVIATION"/>
+		<alias slot="PARTY_ROLE" phrase="дд" key="damage.ranged" quality="ABBREVIATION"/>
+		<alias slot="PARTY_ROLE" phrase="саппорт" key="support.healer" quality="ABBREVIATION"/>
+		<alias slot="PARTY_ROLE" phrase="саппорт" key="support.recharge" quality="ABBREVIATION"/>
+		<alias slot="PARTY_ROLE" phrase="саппорт" key="support.enhancement" quality="ABBREVIATION"/>
+	</entityAliases>
+	<reasons>
+		<reason key="accept.matched"/>
+		<reason key="clarify.intent"/>
+		<reason key="clarify.target_player"/>
+		<reason key="clarify.entity"/>
+		<reason key="clarify.party_role"/>
+		<reason key="clarify.location"/>
+		<reason key="clarify.quantity"/>
+		<reason key="reject.unsupported"/>
+		<reason key="reject.too_long"/>
+		<reason key="reject.mixed_script"/>
+	</reasons>
+	<intents>
+		<intent key="party.invite" baseScore="7200" requiredAll="TARGET_PLAYER" requiredAny="-">
+			<pattern id="invite.target" text="пригласи {TARGET_PLAYER}"/>
+			<pattern id="invite.call" text="позови {TARGET_PLAYER}"/>
+			<pattern id="invite.group" text="пригласи {TARGET_PLAYER} в группу"/>
+			<pattern id="invite.missing" text="пригласи"/>
+		</intent>
+		<intent key="party.accept" baseScore="7600" requiredAll="-" requiredAny="-">
+			<pattern id="accept.agree" text="согласен"/>
+			<pattern id="accept.take" text="принимаю"/>
+			<pattern id="accept.yes" text="да"/>
+		</intent>
+		<intent key="party.refuse" baseScore="7600" requiredAll="-" requiredAny="-">
+			<pattern id="refuse.explicit" text="отказываюсь"/>
+			<pattern id="refuse.no" text="нет"/>
+			<pattern id="refuse.disagree" text="не согласен"/>
+		</intent>
+		<intent key="party.leave" baseScore="7400" requiredAll="-" requiredAny="-">
+			<pattern id="leave.exit" text="покинь группу"/>
+			<pattern id="leave.walk" text="выйди из группы"/>
+			<pattern id="leave.go" text="уйди из группы"/>
+		</intent>
+		<intent key="party.role.query" baseScore="7000" requiredAll="-" requiredAny="TARGET_PLAYER,PARTY_ROLE">
+			<pattern id="role.need" text="кто нужен {PARTY_ROLE}"/>
+			<pattern id="role.player" text="какая роль у {TARGET_PLAYER}"/>
+			<pattern id="role.short" text="нужен {PARTY_ROLE}"/>
+		</intent>
+		<intent key="party.travel" baseScore="7000" requiredAll="-" requiredAny="TOPOLOGY_NODE,LOCATION">
+			<pattern id="travel.node" text="идем в {TOPOLOGY_NODE}"/>
+			<pattern id="travel.move" text="двигаемся в {TOPOLOGY_NODE}"/>
+			<pattern id="travel.location" text="идем к {LOCATION}"/>
+			<pattern id="travel.context" text="идем {TOPOLOGY_NODE}"/>
+			<pattern id="travel.missing" text="идем в"/>
+		</intent>
+		<intent key="party.support.request" baseScore="7100" requiredAll="CAPABILITY" requiredAny="-">
+			<pattern id="support.need" text="нужно {CAPABILITY}"/>
+			<pattern id="support.give" text="дай {CAPABILITY}"/>
+		</intent>
+		<intent key="party.assist.request" baseScore="7100" requiredAll="TARGET_PLAYER" requiredAny="-">
+			<pattern id="assist.help" text="помоги {TARGET_PLAYER}"/>
+			<pattern id="assist.explicit" text="ассистируй {TARGET_PLAYER}"/>
+			<pattern id="assist.missing" text="помоги"/>
+		</intent>
+		<intent key="party.regroup.request" baseScore="7400" requiredAll="-" requiredAny="-">
+			<pattern id="regroup.gather" text="соберемся"/>
+			<pattern id="regroup.me" text="все ко мне"/>
+		</intent>
+		<intent key="entity.locate" baseScore="6900" requiredAll="-" requiredAny="NPC,CONTENT,TOPOLOGY_NODE">
+			<pattern id="locate.npc" text="где {NPC}"/>
+			<pattern id="locate.node" text="найди {TOPOLOGY_NODE}"/>
+			<pattern id="locate.content" text="где находится {CONTENT}"/>
+		</intent>
+		<intent key="item.acquire.query" baseScore="7000" requiredAll="ITEM" requiredAny="-">
+			<pattern id="acquire.where" text="где взять {ITEM}"/>
+			<pattern id="acquire.how" text="как получить {ITEM}"/>
+			<pattern id="acquire.quantity" text="где взять {QUANTITY} {ITEM}"/>
+			<pattern id="acquire.missing" text="где взять"/>
+		</intent>
+		<intent key="item.source.query" baseScore="7000" requiredAll="ITEM" requiredAny="-">
+			<pattern id="source.drop" text="кто роняет {ITEM}"/>
+			<pattern id="source.short" text="источник {ITEM}"/>
+		</intent>
+		<intent key="content.requirements.query" baseScore="7000" requiredAll="CONTENT" requiredAny="-">
+			<pattern id="requirements.full" text="что нужно для {CONTENT}"/>
+			<pattern id="requirements.short" text="требования {CONTENT}"/>
+			<pattern id="requirements.missing" text="что нужно для"/>
+		</intent>
+		<intent key="unknown" baseScore="0" requiredAll="-" requiredAny="-">
+		</intent>
+	</intents>
+</semanticPack>
