@@ -31,6 +31,9 @@ import org.l2jmobius.gameserver.model.chat.ChatObservationService.Origin;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationCatalog.ProposalMapping;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore.HandoffResult;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore.HandoffStatus;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.Authorization;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationActionProposal;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationEvidence;
@@ -43,6 +46,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.P
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore.StoredState;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.FragmentResult;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.InputContext;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.SlotType;
@@ -108,7 +112,8 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		SAVED,
 		DUPLICATE,
 		FAILED,
-		AUTHORITY_STALE
+		AUTHORITY_STALE,
+		CAPACITY_REACHED
 	}
 
 	@FunctionalInterface
@@ -153,6 +158,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	private final PhantomSemanticUnderstandingService _semantic;
 	private final PhantomSocialService _social;
 	private final PhantomConversationPlanSink _plans;
+	private final PhantomIdentityLeaseRegistry _identities;
 	private final ChatObservationService _observation;
 	private final PhaseObserver _phaseObserver;
 	private final ArrayBlockingQueue<IngressEvent> _ingress;
@@ -162,7 +168,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	private final PriorityQueue<DueEntry> _delayed = new PriorityQueue<>();
 	private final ArrayDeque<Long> _due = new ArrayDeque<>();
 	private final Set<Long> _dueMembership = new HashSet<>();
-	private final Map<Long, DispatchDescriptor> _forcedOverflow = new HashMap<>();
+	private final Set<Long> _managedDispatches = new HashSet<>();
 	private final LinkedHashMap<Long, TerminalKind> _terminal = new LinkedHashMap<>();
 	private final Map<Long, StoredState> _cache;
 	private final AtomicBoolean _pulseOwner = new AtomicBoolean();
@@ -203,7 +209,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		_semantic = Objects.requireNonNull(semantic);
 		_social = Objects.requireNonNull(social);
 		_plans = Objects.requireNonNull(plans);
-		Objects.requireNonNull(identities);
+		_identities = Objects.requireNonNull(identities);
 		_observation = Objects.requireNonNull(observation);
 		_phaseObserver = Objects.requireNonNull(phaseObserver);
 		_ingress = new ArrayBlockingQueue<>(catalog.limits().ingressQueue());
@@ -252,6 +258,12 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	@Override
 	public boolean onDelivered(ChatObservationService.DeliveredObservation delivered)
 	{
+		final DispatchDescriptor dispatch = delivered.dispatch();
+		if ((dispatch.origin() != Origin.CLIENT_CHAT) || !_catalog.supports(dispatch.chatType()) || (_identities.getOwnerKind(delivered.recipientObjectId()) != OwnerKind.PHANTOM))
+		{
+			_ingressIgnored.increment();
+			return true;
+		}
 		final OperationClaim claim = beginOperation();
 		if (claim == null)
 		{
@@ -260,12 +272,6 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		}
 		try (claim)
 		{
-			final DispatchDescriptor dispatch = delivered.dispatch();
-			if ((dispatch.origin() != Origin.CLIENT_CHAT) || !_catalog.supports(dispatch.chatType()))
-			{
-				_ingressIgnored.increment();
-				return true;
-			}
 			synchronized (_indexMonitor)
 			{
 				if (_terminal.containsKey(dispatch.dispatchId()))
@@ -273,6 +279,12 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 					_duplicates.increment();
 					return true;
 				}
+				if (!_managedDispatches.contains(dispatch.dispatchId()) && (_managedDispatches.size() >= _catalog.limits().ingressQueue()))
+				{
+					completeWithoutBatchLocked(dispatch.dispatchId(), TerminalKind.OVERFLOW);
+					return false;
+				}
+				_managedDispatches.add(dispatch.dispatchId());
 			}
 			final DeliveredObservation observation;
 			try
@@ -298,6 +310,12 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	@Override
 	public boolean onDispatchClosed(DispatchDescriptor dispatch)
 	{
+		if ((dispatch.origin() != Origin.CLIENT_CHAT) || !_catalog.supports(dispatch.chatType()))
+		{
+			_unsupported.increment();
+			_ingressIgnored.increment();
+			return true;
+		}
 		final OperationClaim claim = beginOperation();
 		if (claim == null)
 		{
@@ -306,11 +324,13 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		}
 		try (claim)
 		{
-			if ((dispatch.origin() != Origin.CLIENT_CHAT) || !_catalog.supports(dispatch.chatType()))
+			synchronized (_indexMonitor)
 			{
-				_unsupported.increment();
-				_ingressIgnored.increment();
-				return true;
+				if (!_managedDispatches.remove(dispatch.dispatchId()))
+				{
+					_ingressIgnored.increment();
+					return true;
+				}
 			}
 			if (!_ingress.offer(IngressEvent.closed(dispatch)))
 			{
@@ -347,21 +367,22 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 			synchronized (_indexMonitor)
 			{
 				_pulse++;
-				promoteDueLocked();
 			}
-			boolean preferDue = true;
 			while (budget.remaining() > 0)
 			{
-				boolean progressed = preferDue ? processOneDue(budget) : processOneIngress(budget);
-				if (!progressed)
+				boolean progressed = processOneDue(budget);
+				if (budget.remaining() > 0)
 				{
-					progressed = preferDue ? processOneIngress(budget) : processOneDue(budget);
+					progressed |= processOneIngress(budget);
+				}
+				if (budget.remaining() > 0)
+				{
+					progressed |= processOnePromotion(budget);
 				}
 				if (!progressed)
 				{
 					break;
 				}
-				preferDue = !preferDue;
 			}
 		}
 		catch (RuntimeException exception)
@@ -429,7 +450,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 				_delayed.clear();
 				_due.clear();
 				_dueMembership.clear();
-				_forcedOverflow.clear();
+				_managedDispatches.clear();
 			}
 			_state = ServiceState.STOPPED;
 			return true;
@@ -455,6 +476,10 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 
 	private boolean processOneIngress(PulseBudget budget)
 	{
+		if (budget.remaining() == 0)
+		{
+			return false;
+		}
 		final IngressEvent event = _ingress.poll();
 		if (event == null)
 		{
@@ -495,26 +520,13 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 				_batches.put(event.dispatchId(), work);
 			}
 			work.add(event.observation(), _catalog.limits().observersPerMessage());
-			if (_forcedOverflow.remove(event.dispatchId()) != null)
-			{
-				work._overflow = true;
-				work._closed = true;
-				scheduleDelayedLocked(work, _pulse + _catalog.limits().aggregationPulses());
-			}
 			return;
 		}
 		final BatchWork work = _batches.get(event.dispatchId());
 		if (work == null)
 		{
-			if (_forcedOverflow.remove(event.dispatchId()) != null)
-			{
-				completeWithoutBatchLocked(event.dispatchId(), TerminalKind.OVERFLOW);
-			}
-			else
-			{
-				_closedMismatches.increment();
-				rememberTerminalLocked(event.dispatchId(), TerminalKind.FAILED);
-			}
+			_closedMismatches.increment();
+			completeWithoutBatchLocked(event.dispatchId(), TerminalKind.FAILED);
 			return;
 		}
 		if (work._closed)
@@ -595,10 +607,10 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		{
 			return switch (token.phase())
 			{
-				case RESOLVING_OBSERVERS -> StepResult.value(_context.profileIdForObject(work._observers.get(token.cursor()).recipientObjectId()));
+				case RESOLVING_OBSERVERS -> StepResult.value(resolveManagedProfile(work._observers.get(token.cursor()).recipientObjectId()));
 				case ELECTING -> StepResult.value(elect(work._descriptor, work._resolved));
 				case LOADING_STATE -> StepResult.value(token.conflictReload() ? exact(work._electedProfile) : load(work._electedProfile));
-				case BUILDING_CONTEXT -> StepResult.value(_context.snapshot(work._electedProfile, work._electedObservation, null, List.of()));
+				case BUILDING_CONTEXT -> StepResult.value((_identities.getOwnerKind(work._electedObservation.recipientObjectId()) == OwnerKind.PHANTOM) ? _context.snapshot(work._electedProfile, work._electedObservation, null, List.of()) : Optional.empty());
 				case UNDERSTANDING -> semanticStep(work, token.semanticStep());
 				case READING_SOCIAL -> socialStep(work, token.socialCursor());
 				case PERSISTING -> persistStep(work);
@@ -675,17 +687,34 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		_persistenceClaims.incrementAndGet();
 		try
 		{
-			final StoredState saved = _store.save(work._electedProfile, work._loaded == null ? -1 : work._loaded.rowVersion(), next);
+			final StoredState saved;
+			if ((work._planned.response() != null) && _store.executionEnabled())
+			{
+				final HandoffResult handoff = _store.handoff(work._electedProfile, work._loaded == null ? -1 : work._loaded.rowVersion(), next, ExecutionEntry.prepared(work._planned.response()));
+				if (handoff.status() == HandoffStatus.DUPLICATE)
+				{
+					return StepResult.value(new SaveAttempt(true, null, false, PersistenceStatus.DUPLICATE));
+				}
+				if (handoff.status() == HandoffStatus.CAPACITY_REACHED)
+				{
+					return StepResult.value(new SaveAttempt(false, null, true, PersistenceStatus.CAPACITY_REACHED));
+				}
+				saved = handoff.conversation();
+			}
+			else
+			{
+				saved = _store.save(work._electedProfile, work._loaded == null ? -1 : work._loaded.rowVersion(), next);
+			}
 			cache(saved);
-			return StepResult.value(new SaveAttempt(false, saved, false));
+			return StepResult.value(new SaveAttempt(false, saved, false, PersistenceStatus.SAVED));
 		}
 		catch (ConcurrentModificationException exception)
 		{
-			return StepResult.value(new SaveAttempt(true, null, false));
+			return StepResult.value(new SaveAttempt(true, null, false, PersistenceStatus.FAILED));
 		}
 		catch (RuntimeException exception)
 		{
-			return StepResult.value(new SaveAttempt(false, null, true));
+			return StepResult.value(new SaveAttempt(false, null, true, PersistenceStatus.FAILED));
 		}
 		finally
 		{
@@ -854,14 +883,14 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 				}
 				else if (attempt.failed())
 				{
-					work._persistenceStatus = PersistenceStatus.FAILED;
+					work._persistenceStatus = attempt.status();
 					completeLocked(work, TerminalKind.FAILED);
 					return;
 				}
 				else
 				{
 					work._loaded = attempt.saved();
-					work._persistenceStatus = PersistenceStatus.SAVED;
+					work._persistenceStatus = attempt.status();
 					if (work._planned.response() == null)
 					{
 						completeLocked(work, TerminalKind.DONE);
@@ -915,29 +944,25 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	{
 		synchronized (_indexMonitor)
 		{
+			_managedDispatches.remove(dispatch.dispatchId());
 			final BatchWork work = _batches.get(dispatch.dispatchId());
 			if (work != null)
 			{
-				work._overflow = true;
-				work._closed = true;
-				scheduleDelayedLocked(work, _pulse + _catalog.limits().aggregationPulses());
+				completeLocked(work, TerminalKind.OVERFLOW);
 				return;
 			}
-			if (_forcedOverflow.size() < _catalog.limits().openBatches())
-			{
-				_forcedOverflow.putIfAbsent(dispatch.dispatchId(), dispatch);
-			}
-			else
-			{
-				completeWithoutBatchLocked(dispatch.dispatchId(), TerminalKind.OVERFLOW);
-			}
+			completeWithoutBatchLocked(dispatch.dispatchId(), TerminalKind.OVERFLOW);
 		}
 	}
 
-	private void promoteDueLocked()
+	private boolean processOnePromotion(PulseBudget budget)
 	{
-		while (!_delayed.isEmpty() && (_delayed.peek().duePulse() <= _pulse))
+		synchronized (_indexMonitor)
 		{
+			if (_delayed.isEmpty() || (_delayed.peek().duePulse() > _pulse) || !budget.claim())
+			{
+				return false;
+			}
 			final DueEntry entry = _delayed.remove();
 			if (_dueMembership.contains(entry.dispatchId()) && _batches.containsKey(entry.dispatchId()))
 			{
@@ -947,6 +972,8 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 			{
 				_dueMembership.remove(entry.dispatchId());
 			}
+			_indexTransitions.increment();
+			return true;
 		}
 	}
 
@@ -972,7 +999,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		work._claimed = false;
 		_batches.remove(work._dispatchId);
 		_dueMembership.remove(work._dispatchId);
-		_forcedOverflow.remove(work._dispatchId);
+		_managedDispatches.remove(work._dispatchId);
 		rememberTerminalLocked(work._dispatchId, terminal);
 		terminalMetric(terminal);
 		_batchesProcessed.increment();
@@ -980,8 +1007,15 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 
 	private void completeWithoutBatchLocked(long dispatchId, TerminalKind terminal)
 	{
+		_dueMembership.remove(dispatchId);
+		_managedDispatches.remove(dispatchId);
 		rememberTerminalLocked(dispatchId, terminal);
 		terminalMetric(terminal);
+	}
+
+	private OptionalLong resolveManagedProfile(int recipientObjectId)
+	{
+		return (_identities.getOwnerKind(recipientObjectId) == OwnerKind.PHANTOM) ? _context.profileIdForObject(recipientObjectId) : OptionalLong.empty();
 	}
 
 	private void terminalMetric(TerminalKind terminal)
@@ -1131,7 +1165,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		final String text = _catalog.template(act, style, selector(profileId, batch._observationHash, act, style));
 		final long cooldown = nowMinute + _catalog.channel(batch._descriptor.channel()).cooldownMinutes();
 		final List<ConversationEvidence> evidence = understanding.evidence().stream().limit(_catalog.limits().evidence()).map(item -> new ConversationEvidence(item.key(), item.authorityKey())).toList();
-		final ConversationResponsePlan response = suppressed ? null : new ConversationResponsePlan(profileId, batch._dispatchId, batch._observationHash, batch._descriptor.channel(), new ConversationSubject(context.counterpart()), semanticHash, act, style, text, proposal, cooldown, evidence);
+		final ConversationResponsePlan response = suppressed ? null : new ConversationResponsePlan(profileId, batch._dispatchId, batch._observationHash, batch._descriptor.channel(), new ConversationSubject(context.speaker()), semanticHash, act, style, text, proposal, cooldown, evidence);
 		final ConversationSession session = new ConversationSession(batch._descriptor.channel(), context.counterpart(), nowMinute, cooldown, understanding.status() == UnderstandingStatus.ACCEPTED ? understanding.selectedIntent() : previous == null ? null : previous.previousIntent(), understanding.status() == UnderstandingStatus.ACCEPTED ? understanding.slots() : previous == null ? List.of() : previous.previousSlots(), pending, PhantomConversationModel.sha256(act), PhantomConversationModel.sha256(style), proposal == null ? "" : PhantomConversationModel.sha256(proposal.proposalKey() + '|' + semanticHash));
 		return new Planned(profileId, session, response, batch._observationHash, nowMinute);
 	}
@@ -1140,7 +1174,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	{
 		final String semanticHash = PhantomConversationModel.sha256("no-semantic|" + batch._observationHash + '|' + act);
 		final String text = _catalog.template(act, "neutral", selector(profileId, batch._observationHash, act, "neutral"));
-		final ConversationResponsePlan response = new ConversationResponsePlan(profileId, batch._dispatchId, batch._observationHash, batch._descriptor.channel(), new ConversationSubject(context.counterpart()), semanticHash, act, "neutral", text, null, previous.cooldownUntilMinute(), List.of(new ConversationEvidence("conversation.cooldown", Long.toString(previous.cooldownUntilMinute()))));
+		final ConversationResponsePlan response = new ConversationResponsePlan(profileId, batch._dispatchId, batch._observationHash, batch._descriptor.channel(), new ConversationSubject(context.speaker()), semanticHash, act, "neutral", text, null, previous.cooldownUntilMinute(), List.of(new ConversationEvidence("conversation.cooldown", Long.toString(previous.cooldownUntilMinute()))));
 		final ConversationSession session = new ConversationSession(previous.channel(), previous.counterpart(), nowMinute, previous.cooldownUntilMinute(), previous.previousIntent(), previous.previousSlots(), previous.pending(), PhantomConversationModel.sha256(act), PhantomConversationModel.sha256("neutral"), previous.lastProposalHash());
 		return new Planned(profileId, session, response, batch._observationHash, nowMinute);
 	}
@@ -1360,7 +1394,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	{
 	}
 
-	private record SaveAttempt(boolean conflict, StoredState saved, boolean failed)
+	private record SaveAttempt(boolean conflict, StoredState saved, boolean failed, PersistenceStatus status)
 	{
 	}
 

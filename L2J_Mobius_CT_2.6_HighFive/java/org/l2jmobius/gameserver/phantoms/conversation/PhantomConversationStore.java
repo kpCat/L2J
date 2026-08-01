@@ -26,10 +26,17 @@ public final class PhantomConversationStore
 
 	private final PhantomProfileRepository _profiles;
 	private final PhantomConversationStateCodec _codec = new PhantomConversationStateCodec();
+	private final PhantomConversationExecutionStore _execution;
 
 	public PhantomConversationStore(PhantomProfileRepository profiles)
 	{
+		this(profiles, null);
+	}
+
+	public PhantomConversationStore(PhantomProfileRepository profiles, PhantomConversationExecutionStore execution)
+	{
 		_profiles = Objects.requireNonNull(profiles);
+		_execution = execution;
 	}
 
 	public Optional<StoredState> load(long profileId)
@@ -44,6 +51,20 @@ public final class PhantomConversationStore
 			? _profiles.insertComponent(profileId, PhantomConversationModel.COMPONENT_TYPE, PhantomConversationModel.SCHEMA_VERSION, payload) //
 			: _profiles.updateComponent(profileId, PhantomConversationModel.COMPONENT_TYPE, expectedRowVersion, PhantomConversationModel.SCHEMA_VERSION, payload);
 		return decode(component);
+	}
+
+	public PhantomConversationExecutionStore.HandoffResult handoff(long profileId, long expectedRowVersion, ConversationState state, PhantomConversationExecutionModel.ExecutionEntry entry)
+	{
+		if (_execution == null)
+		{
+			throw new IllegalStateException("Durable conversation execution handoff is not configured.");
+		}
+		return _execution.handoff(profileId, expectedRowVersion, state, entry);
+	}
+
+	public boolean executionEnabled()
+	{
+		return _execution != null;
 	}
 
 	private StoredState decode(PhantomProfileComponent component)

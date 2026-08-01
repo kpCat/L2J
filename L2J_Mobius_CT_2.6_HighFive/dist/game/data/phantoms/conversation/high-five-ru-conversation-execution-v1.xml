@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<conversationExecutionPolicy id="high-five-ru-conversation-execution-v1" version="1">
+	<limits executionQueue="1024" operationsPerPulse="16" recoveryPage="256" entries="4" receipts="16" textUtf8Bytes="240" executionTtlMinutes="120" outboundRetries="1" replayHorizonMinutes="1440" />
+	<proposals>
+		<proposal key="party.role.query" kind="QUERY" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="entity.locate" kind="QUERY" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="npc,topology.node,content" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="item.acquire" kind="QUERY" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="item" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="item.source" kind="QUERY" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="item" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="content.requirements" kind="QUERY" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="content" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="party.invite" kind="GOAL" goalType="party.form" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="target.player" targetNamespaces="character.object,profile" counterpartRequired="true" />
+		<proposal key="party.leave" kind="GOAL" goalType="party.leave" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="party.travel" kind="GOAL" goalType="party.travel" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="location,topology.node" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="party.accept" kind="PARTY_RESPONSE" goalType="party.join" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="party.refuse" kind="PARTY_RESPONSE" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="party.support" kind="DEFERRED" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="party.assist" kind="DEFERRED" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="party.regroup" kind="DEFERRED" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="" targetNamespaces="" counterpartRequired="true" />
+	</proposals>
+	<responseActs>
+		<act key="ack.accepted" />
+		<act key="ack.action_proposed" />
+		<act key="ack.query_proposed" />
+		<act key="ack.refused" />
+		<act key="clarify.complexity" />
+		<act key="clarify.entity" />
+		<act key="clarify.intent" />
+		<act key="clarify.location" />
+		<act key="clarify.party_role" />
+		<act key="clarify.quantity" />
+		<act key="clarify.target_player" />
+		<act key="no_response.cooldown" />
+		<act key="no_response.not_addressed" />
+		<act key="no_response.unsupported" />
+	</responseActs>
+	<styles>
+		<style key="cautious" />
+		<style key="cold" />
+		<style key="neutral" />
+		<style key="terse" />
+		<style key="warm" />
+	</styles>
+	<results>
+		<result key="action.deferred" neutral="Эта просьба отложена до тактической политики Goal 024." warm="Я запомню просьбу, но смогу выполнить её после Goal 024." cold="Действие недоступно до Goal 024." cautious="Не выполняю это действие до появления безопасной тактической политики Goal 024." terse="Отложено до Goal 024." />
+		<result key="execution.expired" neutral="Срок выполнения ответа истёк." warm="Я не успел выполнить запрос вовремя." cold="Запрос просрочен." cautious="Срок безопасного выполнения запроса истёк." terse="Просрочено." />
+		<result key="execution.failed" neutral="Не удалось безопасно выполнить запрос." warm="Сейчас не получилось безопасно выполнить запрос." cold="Выполнение отклонено." cautious="Запрос остановлен из-за проверки безопасности." terse="Не выполнено." />
+		<result key="execution.prepared" neutral="Запрос подготовлен." warm="Я подготовил запрос." cold="Запрос подготовлен." cautious="Запрос подготовлен к безопасной проверке." terse="Подготовлено." />
+		<result key="goal.busy" neutral="Сейчас выполняется другая цель." warm="Сначала закончу текущую цель." cold="Другая цель уже активна." cautious="Не заменяю уже активную цель." terse="Цель занята." />
+		<result key="goal.invalid" neutral="Для этой цели не хватает точных данных." warm="Мне нужны более точные данные для этой цели." cold="Цель не подтверждена." cautious="Цель отклонена без точной текущей опоры." terse="Нет точных данных." />
+		<result key="goal.submitted" neutral="Цель передана планировщику." warm="Хорошо, передаю цель планировщику." cold="Цель поставлена." cautious="Проверенная цель передана планировщику." terse="Цель поставлена." />
+		<result key="outbound.invalid" neutral="Ответ не прошёл проверку отправки." warm="Не смог безопасно отправить ответ." cold="Ответ отклонён." cautious="Ответ остановлен проверкой отправки." terse="Не отправлено." />
+		<result key="party.accepted" neutral="Приглашение принято." warm="Согласен, принимаю приглашение." cold="Приглашение принято." cautious="Точное приглашение принято." terse="Принято." />
+		<result key="party.refused" neutral="Приглашение отклонено." warm="Спасибо, но я откажусь." cold="Приглашение отклонено." cautious="Точное приглашение отклонено." terse="Отказ." />
+		<result key="party.stale" neutral="Подходящее приглашение уже недоступно." warm="Похоже, это приглашение уже не действует." cold="Приглашение устарело." cautious="Точная текущая заявка не найдена." terse="Устарело." />
+		<result key="query.ambiguous" neutral="Факты неоднозначны: {facts}" warm="Нашёл несколько вариантов: {facts}" cold="Неоднозначно: {facts}" cautious="Текущие данные дают несколько вариантов: {facts}" terse="Несколько вариантов: {facts}" />
+		<result key="query.not_found" neutral="Подтверждённых фактов не найдено." warm="Пока не нашёл подтверждённых данных." cold="Фактов нет." cautious="В текущих данных точного факта нет." terse="Не найдено." />
+		<result key="query.ok" neutral="Факты: {facts}" warm="Вот что удалось подтвердить: {facts}" cold="Факты: {facts}" cautious="Подтверждённые текущие факты: {facts}" terse="Факты: {facts}" />
+	</results>
+</conversationExecutionPolicy>

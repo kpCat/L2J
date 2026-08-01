@@ -5,6 +5,7 @@ Set-StrictMode -Version Latest
 
 $RequiredParent = "384b521f2cd29f4162c9aca9116eb0ff40cbd681"
 $ImplementationCommit = "e7ba469e63caa6dee113278087258fab005a435a"
+$AcceptedCommit = "21ba300fc612f9777891912f80efc633f5b6db18"
 $ImplementationSubject = "feat(phantoms): add conversation observation and planning"
 $CompletionSubject = "fix(phantoms): complete conversation planning safety"
 $RequiredBranch = "feature/phantom-world"
@@ -37,14 +38,7 @@ function To-ModulePath([string] $path)
 
 function Read-TargetBytes([string] $relativePath)
 {
-	if ($script:Mode -eq "working")
-	{
-		$path = Join-Path $script:ModuleRoot $relativePath
-		Assert-True (Test-Path -LiteralPath $path -PathType Leaf) "Required Goal 020c1 file is missing: $relativePath"
-		return [IO.File]::ReadAllBytes($path)
-	}
-
-	return Read-CommitBytes $script:TargetCommit $relativePath
+	return Read-CommitBytes $AcceptedCommit $relativePath
 }
 
 function Read-CommitBytes([string] $commit, [string] $relativePath)
@@ -187,57 +181,19 @@ try
 	$implementationParent = (Git-Lines @("rev-parse", "$ImplementationCommit^") | Select-Object -First 1)
 	$implementationActualSubject = (Git-Lines @("show", "-s", "--format=%s", $ImplementationCommit) | Select-Object -First 1)
 	Assert-True (($implementationParent -eq $RequiredParent) -and ($implementationActualSubject -eq $ImplementationSubject)) "Pinned Goal 020c1 implementation commit graph or subject changed."
-	& git merge-base --is-ancestor $ImplementationCommit $head
-	Assert-True ($LASTEXITCODE -eq 0) "Pinned Goal 020c1 implementation commit is not an ancestor of HEAD."
-	$script:Mode = "working"
-	$script:TargetCommit = ""
-	$script:CompletionCommit = ""
-	if ($head -ne $ImplementationCommit)
-	{
-		$candidates = @()
-		foreach ($commit in Git-Lines @("rev-list", "--ancestry-path", "$ImplementationCommit..$head"))
-		{
-			$parent = (Git-Lines @("rev-parse", "$commit^") | Select-Object -First 1)
-			$subject = (Git-Lines @("show", "-s", "--format=%s", $commit) | Select-Object -First 1)
-			if (($parent -eq $ImplementationCommit) -and ($subject -eq $CompletionSubject))
-			{
-				$candidates += $commit
-			}
-		}
-		Assert-True ($candidates.Count -eq 1) "Expected one unique ordinary Goal 020c1 completion child."
-		$script:CompletionCommit = $candidates[0]
-		$script:TargetCommit = $script:CompletionCommit
-		& git merge-base --is-ancestor $script:CompletionCommit $head
-		Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 020c1 completion child is not an ancestor of HEAD."
-		$script:Mode = "accepted"
-	}
+	$completionParent = (Git-Lines @("rev-parse", "$AcceptedCommit^") | Select-Object -First 1)
+	$completionActualSubject = (Git-Lines @("show", "-s", "--format=%s", $AcceptedCommit) | Select-Object -First 1)
+	Assert-True (($completionParent -eq $ImplementationCommit) -and ($completionActualSubject -eq $CompletionSubject)) "Pinned Goal 020c1 accepted commit graph or subject changed."
+	& git merge-base --is-ancestor $AcceptedCommit $head
+	Assert-True ($LASTEXITCODE -eq 0) "Pinned accepted Goal 020c1 commit is not an ancestor of HEAD."
+	$script:Mode = "accepted"
+	$script:TargetCommit = $AcceptedCommit
+	$script:CompletionCommit = $AcceptedCommit
 
 	$changed = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-	if ($script:Mode -eq "working")
+	foreach ($line in Git-Lines @("diff", "--name-only", $RequiredParent, $AcceptedCommit, "--"))
 	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $RequiredParent, "--"))
-		{
-			[void] $changed.Add((To-ModulePath $line))
-		}
-		foreach ($line in Git-Lines @("-c", "core.quotepath=false", "status", "--porcelain=v1", "--untracked-files=all", "--", "."))
-		{
-			if ($line.Length -ge 4)
-			{
-				$path = $line.Substring(3)
-				if ($path.Contains(" -> "))
-				{
-					$path = $path.Split(@(" -> "), [StringSplitOptions]::None)[1]
-				}
-				[void] $changed.Add((To-ModulePath $path))
-			}
-		}
-	}
-	else
-	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $RequiredParent, $script:TargetCommit, "--"))
-		{
-			[void] $changed.Add((To-ModulePath $line))
-		}
+		[void] $changed.Add((To-ModulePath $line))
 	}
 	$changedPaths = @($changed | Sort-Object)
 	Assert-True (($changedPaths.Count -gt 0) -and ($changedPaths.Count -le 54)) "Goal 020c1 total scope must contain 1..54 files."
@@ -269,31 +225,9 @@ try
 	}
 
 	$completionChanged = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-	if ($script:Mode -eq "working")
+	foreach ($line in Git-Lines @("diff", "--name-only", $ImplementationCommit, $AcceptedCommit, "--"))
 	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $ImplementationCommit, "--"))
-		{
-			[void] $completionChanged.Add((To-ModulePath $line))
-		}
-		foreach ($line in Git-Lines @("-c", "core.quotepath=false", "status", "--porcelain=v1", "--untracked-files=all", "--", "."))
-		{
-			if ($line.Length -ge 4)
-			{
-				$path = $line.Substring(3)
-				if ($path.Contains(" -> "))
-				{
-					$path = $path.Split(@(" -> "), [StringSplitOptions]::None)[1]
-				}
-				[void] $completionChanged.Add((To-ModulePath $path))
-			}
-		}
-	}
-	else
-	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $ImplementationCommit, $script:TargetCommit, "--"))
-		{
-			[void] $completionChanged.Add((To-ModulePath $line))
-		}
+		[void] $completionChanged.Add((To-ModulePath $line))
 	}
 	$completionPaths = @($completionChanged | Sort-Object)
 	Assert-True (($completionPaths.Count -gt 0) -and ($completionPaths.Count -le 16)) "Goal 020c1 completion scope must contain 1..16 files."

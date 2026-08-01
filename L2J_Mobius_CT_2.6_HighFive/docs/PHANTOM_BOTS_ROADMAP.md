@@ -103,6 +103,16 @@ Goal 016: ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS
 
 Goal 017: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
+Goal 018: ACCEPT after activation gates closed in Goal 020 Checkpoint 1
+
+Goal 019: ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS
+
+Goal 020 Checkpoint 1: ACCEPT_WITH_ACTIVATION_GATE
+
+Goal 020 Checkpoint 2: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
+Goal 021: NOT_STARTED
+
 Goal 025: NOT_STARTED
 ```
 
@@ -129,7 +139,10 @@ canonicalization и anchor tolerance chain приняты независимым
 production-пара `22859@giran.farming.22859` доказана на shipped AutoLoot policy,
 а geodata canonical position сохраняется через ARRIVED и restart.
 Goal 016 принята с явными будущими контрактами admission scale и histogram
-truth; Goal 017 и Goal 025 не начаты.
+truth; Goal 017 ожидает независимого review. Goal 018 принята после закрытия
+activation gates в Goal 020 Checkpoint 1; Goal 019 принята с явными будущими
+контрактами; Checkpoint 1 имеет `ACCEPT_WITH_ACTIVATION_GATE`, а Checkpoint 2 —
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Goal 021 и Goal 025 не начаты.
 
 ---
 
@@ -377,7 +390,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `ACCEPT`; Goal 016 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 017 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 025 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `ACCEPT`; Goal 016 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 017 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 018 — `ACCEPT`; Goal 019 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 020 Checkpoint 1 — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 020 Checkpoint 2 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 021/025 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -781,7 +794,7 @@ route, assist/protect/heal priorities.
 **Gate:** real party lifecycle, cancellation and leader/member recovery.  
 **Follow-up risk:** `HIGH` — party concurrency and route coordination.
 
-## Goal 018 — Personality, memory, reputation и relationship modifiers
+## Goal 018 — Personality, memory, reputation и relationship modifiers — `ACCEPT`
 
 **Назначение:** устойчивые индивидуальные решения и отношения.  
 **Зависимости:** 005, 008, 017.  
@@ -792,7 +805,7 @@ risk and conversation modifiers.
 **Gate:** bounded persistence, deterministic decay and no unbounded event log.  
 **Follow-up risk:** `MEDIUM` — primarily bounded model/persistence tuning.
 
-## Goal 019 — Semantic Pack и entity grounding
+## Goal 019 — Semantic Pack и entity grounding — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`
 
 **Назначение:** понять русский L2-язык без runtime LLM.  
 **Зависимости:** 008, 011.  
@@ -804,7 +817,10 @@ personality policy.
 **Gate:** precision/recall corpus, ambiguity and low-confidence safety.  
 **Follow-up risk:** `HIGH` — Russian slang/entity ambiguity and corpus breadth.
 
-## Goal 020 — Conversation policy, verbalization и action dispatch
+## Goal 020 — Conversation policy, verbalization и action dispatch — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+
+Checkpoint 1: `ACCEPT_WITH_ACTIVATION_GATE`.
+Checkpoint 2: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 **Назначение:** связать understanding с безопасным semantic act/action.  
 **Зависимости:** 017–019.  
@@ -829,7 +845,7 @@ semantic acts.
 
 **GOAL:** 021–027
 
-## Goal 021 — Spoil, manor, quest drop и craft acquisition chains
+## Goal 021 — Spoil, manor, quest drop и craft acquisition chains — `NOT_STARTED`
 
 **Назначение:** предметные способы получения ресурсов.  
 **Зависимости:** 011–015, 019.  
@@ -874,7 +890,7 @@ perceptible-history protection.
 **Gate:** решения объяснимы целями обеих сторон и world facts.  
 **Follow-up risk:** `HIGH` — topology, goals, memory and dialogue convergence.
 
-## Goal 025 — PvP/PK, threat и escalation
+## Goal 025 — PvP/PK, threat и escalation — `NOT_STARTED`
 
 **Назначение:** безопасно исполнять конфликтные решения.  
 **Зависимости:** 012, 013, 017, 018, 020, 024.  
@@ -1183,7 +1199,10 @@ Accepted corrective truth:
 Next:
 1. Goal 015 anchor-tolerance completion принята независимым ревью.
 2. Goal 016 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 017 —
-   `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 025 remains `NOT_STARTED`.
+   `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 018 — `ACCEPT`; Goal 019 —
+   `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 020 Checkpoint 1 —
+   `ACCEPT_WITH_ACTIVATION_GATE`; Checkpoint 2 —
+   `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 021/025 — `NOT_STARTED`.
 
 Stage gate:
 - Stage I COMPLETE
@@ -1228,6 +1247,11 @@ Overall:
   Goal 015 ACCEPT;
   Goal 016 ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS;
   Goal 017 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 018 ACCEPT;
+  Goal 019 ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS;
+  Goal 020 Checkpoint 1 ACCEPT_WITH_ACTIVATION_GATE;
+  Goal 020 Checkpoint 2 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 021 NOT_STARTED;
   Goal 025 NOT_STARTED
 ```
 

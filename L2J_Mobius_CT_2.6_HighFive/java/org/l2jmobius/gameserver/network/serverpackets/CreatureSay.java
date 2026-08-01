@@ -51,7 +51,7 @@ public class CreatureSay extends ServerPacket
 		_chatType = chatType;
 		_senderName = senderName;
 		_text = text;
-		_observation = sender instanceof Player ? ChatObservationService.getInstance().captureClientPacket(sender.getObjectId(), chatType, text) : null;
+		_observation = sender instanceof Player ? ChatObservationService.getInstance().capturePacket(sender.getObjectId(), chatType, text) : null;
 	}
 	
 	public CreatureSay(Creature sender, ChatType chatType, NpcStringId npcStringId)

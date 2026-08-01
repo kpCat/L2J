@@ -15,27 +15,41 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import org.l2jmobius.gameserver.handler.ChatHandler;
 import org.l2jmobius.gameserver.handler.IChatHandler;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService.DispatchDescriptor;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService.Origin;
+import org.l2jmobius.gameserver.model.groups.Party;
+import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
 import org.l2jmobius.gameserver.network.clientpackets.Say2;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.network.serverpackets.CreatureSay;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.conversation.L2jPhantomConversationContextPort;
+import org.l2jmobius.gameserver.phantoms.conversation.L2jPhantomConversationExecutionPort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationCatalog;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.OutboundState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionService;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.Authorization;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationResponsePlan;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationSubject;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.DeliveredObservation;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService.BatchPhase;
@@ -43,7 +57,24 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore.StoredState;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.PartyState;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
@@ -66,6 +97,8 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 {
 	public enum Mode
 	{
+		MANAGED_INGRESS,
+		OUTBOUND_CHAT,
 		CHAT_INTEGRATION,
 		LIFECYCLE_PERFORMANCE
 	}
@@ -75,6 +108,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	}
 
 	private static final long SEED = 20002001L;
+	private static final long CHECKPOINT_2_SEED = 20002002L;
 	private static final Hashes HASHES = new Hashes("A".repeat(64), "B".repeat(64), "C".repeat(64));
 	private static final Method RUN_PULSE = method(PhantomConversationService.class, "runPulse", int.class);
 	private static final Method DISPATCH_FINAL = method(Say2.class, "dispatchFinalFiltered", IChatHandler.class, ChatType.class, Player.class, String.class, String.class, long.class);
@@ -94,6 +128,8 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	private Player _speaker;
 	private Player _observer;
 	private boolean _stateExistedBeforePublish;
+	private final AtomicInteger _contextLookups = new AtomicInteger();
+	private PhantomTopologyQuery _topology;
 
 	public PhantomConversationIntegrationSuite(Mode mode)
 	{
@@ -103,13 +139,19 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	@Override
 	public String id()
 	{
-		return _mode == Mode.CHAT_INTEGRATION ? "conversation-chat-integration" : "conversation-lifecycle-performance";
+		return switch (_mode)
+		{
+			case MANAGED_INGRESS -> "conversation-managed-ingress";
+			case OUTBOUND_CHAT -> "conversation-outbound-chat";
+			case CHAT_INTEGRATION -> "conversation-chat-integration";
+			case LIFECYCLE_PERFORMANCE -> "conversation-lifecycle-performance";
+		};
 	}
 
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(SEED, context.seed(), "Conversation integration mode used the wrong seed.");
+		PhantomAssertions.assertEquals((_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
 		_environment = new PhantomHeadlessPlayerTestEnvironment();
 		_environment.initialize(context);
 		_profiles = PhantomProfileRepository.open();
@@ -125,6 +167,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		final L2jTopologyValidationBackend topologyBackend = new L2jTopologyValidationBackend();
 		final var topologySnapshot = new PhantomTopologyLoader(Path.of("data/phantoms/topology"), topologyBackend, PhantomTopologyPolicy.productionDefaults()).load(1);
 		final PhantomTopologyQuery topology = new PhantomTopologyQuery(topologySnapshot, topologyBackend, new PhantomTopologyMetrics());
+		_topology = topology;
 		final PhantomSemanticPack semanticPack = PhantomSemanticPack.load(Path.of("data/phantoms/semantic/high-five-ru-semantic-v1.xml"), Path.of("data/phantoms/semantic/high-five-ru-corpus-v1.tsv"), PhantomSemanticGrounding.fixed(HASHES, references()));
 		_semantic = PhantomSemanticUnderstandingService.loaded(semanticPack);
 		PhantomAssertions.assertTrue(_semantic.start(), "Conversation semantic service did not start.");
@@ -133,7 +176,23 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(_social.start(), "Conversation social service did not start.");
 		_catalog = PhantomConversationCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-v1.xml"), Path.of("data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv"));
 		_store = new PhantomConversationStore(_profiles);
-		_contextPort = new L2jPhantomConversationContextPort(_materialization, topology);
+		final PhantomConversationService.ContextPort delegate = new L2jPhantomConversationContextPort(_materialization, topology);
+		_contextPort = new PhantomConversationService.ContextPort()
+		{
+			@Override
+			public java.util.OptionalLong profileIdForObject(int characterObjectId)
+			{
+				_contextLookups.incrementAndGet();
+				return delegate.profileIdForObject(characterObjectId);
+			}
+
+			@Override
+			public java.util.Optional<PhantomConversationService.ContextSnapshot> snapshot(long observerProfileId, DeliveredObservation observation, String previousIntent, List<org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.SlotValue> previousSlots)
+			{
+				_contextLookups.incrementAndGet();
+				return delegate.snapshot(observerProfileId, observation, previousIntent, previousSlots);
+			}
+		};
 		startConversation(event ->
 		{
 		});
@@ -175,7 +234,15 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
-		if (_mode == Mode.CHAT_INTEGRATION)
+		if (_mode == Mode.MANAGED_INGRESS)
+		{
+			managedIngress(registry);
+		}
+		else if (_mode == Mode.OUTBOUND_CHAT)
+		{
+			outboundChat(registry);
+		}
+		else if (_mode == Mode.CHAT_INTEGRATION)
 		{
 			chatIntegration(registry);
 		}
@@ -183,6 +250,207 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		{
 			lifecyclePerformance(registry);
 		}
+	}
+
+	private void outboundChat(PhantomTestRegistry registry)
+	{
+		registry.add("01-four-current-handler-seams-generated-origin-and-at-most-once", context ->
+		{
+			World.getInstance().addObject(_speaker);
+			final PhantomConversationExecutionCatalog executionCatalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml"));
+			final PhantomConversationExecutionStore executionStore = new PhantomConversationExecutionStore(_profiles, executionCatalog);
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
+			final PhantomGameKnowledgeService knowledge = PhantomGameKnowledgeService.inertForTesting(_topology.snapshot().canonicalHash());
+			PhantomAssertions.assertTrue(knowledge.start(), "Outbound test knowledge authority did not start.");
+			final PhantomPartyCoordinator party = idleParty(goals);
+			final L2jPhantomConversationExecutionPort port = new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, _topology, party, _materialization, ChatObservationService.getInstance());
+			PhantomConversationExecutionService execution = new PhantomConversationExecutionService(executionCatalog, executionStore, goals, port);
+			PhantomAssertions.assertTrue(execution.start(), "Outbound execution service did not start.");
+
+			final EnumMap<ChatType, IChatHandler> previous = new EnumMap<>(ChatType.class);
+			for (ChatType channel : List.of(ChatType.WHISPER, ChatType.PARTY, ChatType.GENERAL, ChatType.TRADE))
+			{
+				previous.put(channel, ChatHandler.getInstance().getHandler(channel));
+			}
+			final EnumMap<ChatType, AtomicInteger> calls = new EnumMap<>(ChatType.class);
+			for (ChatType channel : previous.keySet())
+			{
+				calls.put(channel, new AtomicInteger());
+			}
+			final IChatHandler tracking = new IChatHandler()
+			{
+				@Override
+				public void onChat(ChatType type, Player active, String target, String text)
+				{
+					calls.get(type).incrementAndGet();
+					new CreatureSay(active, type, active.getName(), text).runImpl(_speaker);
+				}
+
+				@Override
+				public ChatType[] getChatTypeList()
+				{
+					return new ChatType[]
+					{
+						ChatType.WHISPER,
+						ChatType.PARTY,
+						ChatType.GENERAL,
+						ChatType.TRADE
+					};
+				}
+			};
+			ChatHandler.getInstance().registerHandler(tracking);
+			final Party localParty = new Party(_observer, PartyDistributionType.FINDERS_KEEPERS);
+			_observer.setParty(localParty);
+			final long generatedBefore = ChatObservationService.getInstance().snapshot().generatedDeliveries();
+			final long ingressBefore = _conversation.snapshot().ingressAccepted();
+			ConversationResponsePlan duplicate = null;
+			try
+			{
+				int receipts = 0;
+				for (ChatType channel : List.of(ChatType.WHISPER, ChatType.PARTY, ChatType.GENERAL, ChatType.TRADE))
+				{
+					final ConversationResponsePlan plan = outboundPlan(_observerProfile.profileId(), 950000L + channel.ordinal(), channel, _speaker.getObjectId());
+					duplicate = plan;
+					final ExecutionEntry entry = ExecutionEntry.prepared(plan);
+					final var current = executionStore.load(_observerProfile.profileId()).orElse(null);
+					final ExecutionState next = (current == null ? ExecutionState.empty(executionCatalog.hash(), entry.createdMinute()) : current.state()).add(entry);
+					executionStore.save(_observerProfile.profileId(), current == null ? -1 : current.rowVersion(), next);
+					execution.publish(plan);
+					for (int pulse = 0; (pulse < 64) && (executionStore.load(_observerProfile.profileId()).orElseThrow().state().receipts().size() <= receipts); pulse++)
+					{
+						execution.onPulse();
+					}
+					receipts++;
+					PhantomAssertions.assertEquals(1, calls.get(channel).get(), "Current registered handler was not called exactly once for " + channel);
+				}
+				final int callsBeforeDuplicate = calls.values().stream().mapToInt(AtomicInteger::get).sum();
+				execution.publish(duplicate);
+				for (int pulse = 0; pulse < 16; pulse++)
+				{
+					execution.onPulse();
+				}
+				PhantomAssertions.assertEquals(callsBeforeDuplicate, calls.values().stream().mapToInt(AtomicInteger::get).sum(), "Duplicate plan signal sent a second message.");
+
+				final ConversationResponsePlan crashedPlan = outboundPlan(_observerProfile.profileId(), 960001, ChatType.WHISPER, _speaker.getObjectId());
+				final ExecutionEntry dispatching = ExecutionEntry.prepared(crashedPlan).withOutbound(OutboundState.DISPATCHING, "execution.prepared", System.currentTimeMillis() / 60000L);
+				final var beforeCrash = executionStore.load(_observerProfile.profileId()).orElseThrow();
+				executionStore.save(_observerProfile.profileId(), beforeCrash.rowVersion(), beforeCrash.state().add(dispatching));
+				execution.beginStop();
+				PhantomAssertions.assertTrue(execution.finishStop(), "Outbound execution service did not stop for restart.");
+				execution = new PhantomConversationExecutionService(executionCatalog, executionStore, goals, port);
+				PhantomAssertions.assertTrue(execution.start(), "Outbound execution service did not restart.");
+				for (int pulse = 0; pulse < 32; pulse++)
+				{
+					execution.onPulse();
+				}
+				PhantomAssertions.assertEquals(callsBeforeDuplicate, calls.values().stream().mapToInt(AtomicInteger::get).sum(), "Restart resent durable DISPATCHING outbound.");
+				PhantomAssertions.assertTrue(executionStore.load(_observerProfile.profileId()).orElseThrow().state().receipts().stream().anyMatch(receipt -> receipt.planId().equals(dispatching.planId()) && (receipt.outboundState() == OutboundState.UNCERTAIN)), "Restart did not persist DISPATCHING as UNCERTAIN.");
+				final ExecutionEntry offline = ExecutionEntry.prepared(outboundPlan(_observerProfile.profileId(), 960002, ChatType.WHISPER, Integer.MAX_VALUE));
+				PhantomAssertions.assertEquals(0, port.dispatch(_observerProfile.profileId(), offline).deliveries(), "Offline exact counterpart produced a generated delivery.");
+			}
+			finally
+			{
+				execution.beginStop();
+				execution.finishStop();
+				_observer.setParty(null);
+				ChatHandler.getInstance().removeHandler(tracking);
+				for (IChatHandler handler : previous.values().stream().filter(java.util.Objects::nonNull).distinct().toList())
+				{
+					ChatHandler.getInstance().registerHandler(handler);
+				}
+				knowledge.beginStop();
+				knowledge.finishStop();
+			}
+			final var chat = ChatObservationService.getInstance().snapshot();
+			PhantomAssertions.assertTrue(chat.generatedDeliveries() >= generatedBefore + 4, "Generated delivery metrics did not record all four handler seams.");
+			PhantomAssertions.assertEquals(ingressBefore, _conversation.snapshot().ingressAccepted(), "PHANTOM_GENERATED delivery looped into conversation ingress.");
+			context.record("conversation.outbound.generatedDeliveries", chat.generatedDeliveries() - generatedBefore);
+		});
+	}
+
+	private void managedIngress(PhantomTestRegistry registry)
+	{
+		registry.add("01-100k-real-recipients-offer-and-context-zero", context ->
+		{
+			final var before = _conversation.snapshot();
+			final int contextBefore = _contextLookups.get();
+			final DispatchDescriptor descriptor = new DispatchDescriptor(900001, Origin.CLIENT_CHAT, _speaker.getObjectId(), _speaker.getName(), ChatType.GENERAL, "", "где взять адену", 60_000_000L);
+			for (int index = 0; index < 100_000; index++)
+			{
+				_conversation.onDelivered(new ChatObservationService.DeliveredObservation(descriptor, 2_000_000 + index, "Real" + index));
+			}
+			_conversation.onDispatchClosed(descriptor);
+			final var after = _conversation.snapshot();
+			PhantomAssertions.assertEquals(before.ingressAccepted(), after.ingressAccepted(), "Real recipients consumed conversation ingress offers.");
+			PhantomAssertions.assertEquals(contextBefore, _contextLookups.get(), "Real recipients reached conversation context resolution.");
+			PhantomAssertions.assertEquals(0, after.ingressSize(), "Real recipients left ingress residue.");
+			context.record("conversation.managedIngress.realCallbacks", 100_000);
+		});
+
+		registry.add("02-general-real-fanout-retains-one-managed-observer", context ->
+		{
+			final int before = _plans.size();
+			final String addressed = _observer.getName() + ", где взять адену";
+			final DispatchDescriptor descriptor = new DispatchDescriptor(900002, Origin.CLIENT_CHAT, _speaker.getObjectId(), _speaker.getName(), ChatType.GENERAL, "", addressed, 120_000_000L);
+			for (int index = 0; index < 100; index++)
+			{
+				_conversation.onDelivered(new ChatObservationService.DeliveredObservation(descriptor, 2_200_000 + index, "RealFanout" + index));
+			}
+			_conversation.onDelivered(delivery(descriptor, _observer));
+			_conversation.onDispatchClosed(descriptor);
+			driveUntilPlans(before + 1, 128);
+			PhantomAssertions.assertEquals(before + 1, _plans.size(), "GENERAL fanout did not elect exactly one managed observer.");
+			PhantomAssertions.assertEquals(_observerProfile.profileId(), _plans.getLast().ownerProfileId(), "GENERAL fanout elected a non-managed observer.");
+		});
+
+		registry.add("03-released-phantom-lease-is-discarded-before-context", context ->
+		{
+			final int before = _plans.size();
+			final int contextBefore = _contextLookups.get();
+			final int objectId = 2_300_001;
+			final DispatchDescriptor descriptor = new DispatchDescriptor(900003, Origin.CLIENT_CHAT, _speaker.getObjectId(), _speaker.getName(), ChatType.WHISPER, "Departing", "где взять адену", 180_000_000L);
+			final Lease lease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(objectId, OwnerKind.PHANTOM);
+			PhantomAssertions.assertTrue(lease != null, "Could not acquire changing managed identity fixture.");
+			_conversation.onDelivered(new ChatObservationService.DeliveredObservation(descriptor, objectId, "Departing"));
+			_conversation.onDispatchClosed(descriptor);
+			lease.close();
+			driveUntilIdle(128);
+			PhantomAssertions.assertEquals(before, _plans.size(), "Released Phantom lease produced a conversation plan.");
+			PhantomAssertions.assertEquals(contextBefore, _contextLookups.get(), "Released Phantom lease reached context resolution.");
+		});
+
+		registry.add("04-dual-drop-overflow-and-delayed-housekeeping-leave-no-residue", context ->
+		{
+			stopConversation();
+			startConversation(event ->
+			{
+			});
+			final int queue = _catalog.limits().ingressQueue();
+			final List<DispatchDescriptor> descriptors = new ArrayList<>(queue);
+			for (int index = 0; index < queue; index++)
+			{
+				final DispatchDescriptor descriptor = new DispatchDescriptor(910000L + index, Origin.CLIENT_CHAT, _speaker.getObjectId(), _speaker.getName(), ChatType.GENERAL, "", "где взять адену", 240_000_000L + index);
+				descriptors.add(descriptor);
+				_conversation.onDelivered(delivery(descriptor, _observer));
+			}
+			final long backpressureBefore = _conversation.snapshot().backpressure();
+			_conversation.onDispatchClosed(descriptors.getFirst());
+			PhantomAssertions.assertTrue(_conversation.snapshot().backpressure() > backpressureBefore, "Saturated CLOSED offer did not enter typed overflow handling.");
+			for (int pulse = 0; (pulse < 4096) && (_conversation.snapshot().ingressSize() > 0); pulse++)
+			{
+				pulse(_conversation, 1);
+			}
+			for (int index = 1; index < descriptors.size(); index++)
+			{
+				_conversation.onDispatchClosed(descriptors.get(index));
+			}
+			driveUntilIdle(16384, 1);
+			final var snapshot = _conversation.snapshot();
+			PhantomAssertions.assertEquals(0, snapshot.ingressSize(), "Overflow cleanup retained ingress residue.");
+			PhantomAssertions.assertEquals(0, snapshot.openBatches(), "Overflow cleanup retained open batch residue.");
+			PhantomAssertions.assertEquals(0, snapshot.dueBatches(), "Overflow cleanup retained due batch residue.");
+			PhantomAssertions.assertTrue(snapshot.maximumOperationsPerPulse() <= 1, "Delayed promotion exceeded the one-operation pulse budget.");
+		});
 	}
 
 	private void chatIntegration(PhantomTestRegistry registry)
@@ -257,14 +525,23 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		{
 			final int before = _plans.size();
 			final ChatObservationService observation = ChatObservationService.getInstance();
+			final List<Lease> leases = new ArrayList<>();
 			try (var scope = observation.openClientDispatch(_speaker.getObjectId(), _speaker.getName(), ChatType.WHISPER, _observer.getName(), "где взять адену", 180_000_000L))
 			{
 				final DispatchDescriptor descriptor = observation.captureClientPacket(_speaker.getObjectId(), ChatType.WHISPER, "где взять адену");
 				for (int index = 0; index < 31; index++)
 				{
-					observation.publishDelivered(descriptor, _speaker.getObjectId(), ChatType.WHISPER, "где взять адену", 1_000_000 + index, "Ordinary" + index);
+					final int objectId = 1_000_000 + index;
+					final Lease lease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(objectId, OwnerKind.PHANTOM);
+					PhantomAssertions.assertTrue(lease != null, "Could not reserve a synthetic managed recipient.");
+					leases.add(lease);
+					observation.publishDelivered(descriptor, _speaker.getObjectId(), ChatType.WHISPER, "где взять адену", objectId, "Managed" + index);
 				}
 				observation.publishDelivered(descriptor, _speaker.getObjectId(), ChatType.WHISPER, "где взять адену", _observer.getObjectId(), _observer.getName());
+			}
+			finally
+			{
+				leases.forEach(Lease::close);
 			}
 			pulse(_conversation, 1);
 			PhantomAssertions.assertEquals(before, _plans.size(), "32-recipient batch completed without resuming across pulses.");
@@ -361,13 +638,25 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	{
 		registry.add("01-256-closed-batches-use-bounded-incremental-index-without-scan", context ->
 		{
-			for (int index = 0; index < 256; index++)
+			final List<Lease> leases = new ArrayList<>();
+			try
 			{
-				final DispatchDescriptor descriptor = new DispatchDescriptor(800000L + index, Origin.CLIENT_CHAT, _speaker.getObjectId(), _speaker.getName(), ChatType.WHISPER, "Nobody" + index, "где взять адену", 60_000_000L + index);
-				_conversation.onDelivered(new ChatObservationService.DeliveredObservation(descriptor, 1_000_000 + index, "Nobody" + index));
-				_conversation.onDispatchClosed(descriptor);
+				for (int index = 0; index < 256; index++)
+				{
+					final int objectId = 1_100_000 + index;
+					final Lease lease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(objectId, OwnerKind.PHANTOM);
+					PhantomAssertions.assertTrue(lease != null, "Could not reserve a managed backlog recipient.");
+					leases.add(lease);
+					final DispatchDescriptor descriptor = new DispatchDescriptor(800000L + index, Origin.CLIENT_CHAT, _speaker.getObjectId(), _speaker.getName(), ChatType.WHISPER, "Managed" + index, "где взять адену", 60_000_000L + index);
+					_conversation.onDelivered(new ChatObservationService.DeliveredObservation(descriptor, objectId, "Managed" + index));
+					_conversation.onDispatchClosed(descriptor);
+				}
+				driveUntilIdle(4096);
 			}
-			driveUntilIdle(4096);
+			finally
+			{
+				leases.forEach(Lease::close);
+			}
 			final var snapshot = _conversation.snapshot();
 			PhantomAssertions.assertEquals(0, snapshot.openBatches(), "256-batch backlog did not drain through the due index.");
 			PhantomAssertions.assertEquals(0, snapshot.dueBatches(), "Due membership retained a completed batch.");
@@ -457,6 +746,108 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			_plans.add(plan);
 		}, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance(), observer);
 		PhantomAssertions.assertTrue(_conversation.start(), "Conversation service did not start.");
+	}
+
+	private ConversationResponsePlan outboundPlan(long profileId, long dispatchId, ChatType channel, int counterpartObjectId)
+	{
+		final long now = System.currentTimeMillis() / 60000L;
+		final String observation = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.sha256("outbound|" + profileId + '|' + dispatchId);
+		final String semantic = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.sha256("outbound.semantic|" + profileId + '|' + dispatchId);
+		return new ConversationResponsePlan(profileId, dispatchId, observation, channel, new ConversationSubject(new PhantomDomainRef("character.object", Integer.toString(counterpartObjectId))), semantic, "ack.accepted", "neutral", "Проверенный ответ.", null, now + 1, List.of());
+	}
+
+	private PhantomPartyCoordinator idleParty(PhantomGoalStore goals)
+	{
+		final PhantomPartyPersistencePort states = new PhantomPartyPersistencePort()
+		{
+			@Override
+			public Optional<StoredPartyState> load(long profileId)
+			{
+				return Optional.empty();
+			}
+
+			@Override
+			public StoredPartyState save(long profileId, long expectedRowVersion, PartyState state)
+			{
+				throw new UnsupportedOperationException("Idle outbound fixture does not persist Party state.");
+			}
+
+			@Override
+			public List<StoredPartyState> loadManagedAfter(long exclusiveProfileId, int pageSize)
+			{
+				return List.of();
+			}
+		};
+		final PhantomPartyBackend backend = new PhantomPartyBackend()
+		{
+			@Override
+			public OptionalLong managedProfileId(int characterObjectId)
+			{
+				return OptionalLong.empty();
+			}
+
+			@Override
+			public Optional<MemberRef> currentMember(long profileId)
+			{
+				return Optional.empty();
+			}
+
+			@Override
+			public PartyInvitationService.InviteResult invite(MemberRef requester, MemberRef target, PartyDistributionType distribution)
+			{
+				throw new UnsupportedOperationException("Idle outbound fixture does not invite.");
+			}
+
+			@Override
+			public PartyInvitationService.RespondResult respond(MemberRef invitee, PartyInvitationService.Response response, PartyInvitationService.InvitationIdentity identity)
+			{
+				throw new UnsupportedOperationException("Idle outbound fixture does not respond.");
+			}
+
+			@Override
+			public PartyInvitationService.MembershipOutcome leave(MemberRef member)
+			{
+				throw new UnsupportedOperationException("Idle outbound fixture does not leave.");
+			}
+
+			@Override
+			public PartyInvitationService.MembershipOutcome expel(MemberRef requester, MemberRef member)
+			{
+				throw new UnsupportedOperationException("Idle outbound fixture does not expel.");
+			}
+
+			@Override
+			public PartyInvitationService.MembershipOutcome transferLeader(MemberRef requester, MemberRef member)
+			{
+				throw new UnsupportedOperationException("Idle outbound fixture does not transfer leadership.");
+			}
+
+			@Override
+			public Optional<PartySnapshot> observe(MemberRef member)
+			{
+				return Optional.empty();
+			}
+
+			@Override
+			public Optional<MemberSnapshot> memberSnapshot(MemberRef member)
+			{
+				return Optional.empty();
+			}
+
+			@Override
+			public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId)
+			{
+				return List.of();
+			}
+
+			@Override
+			public boolean materialize(long profileId)
+			{
+				return false;
+			}
+		};
+		final PhantomPartyRoleCatalog roles = PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml"));
+		return new PhantomPartyCoordinator(states, goals, backend, roles, new PhantomPartyRouteCoordinator((PhantomNavigationService) null, null), new PhantomPartyTactics(null, backend), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 16);
 	}
 
 	private void stopConversation()

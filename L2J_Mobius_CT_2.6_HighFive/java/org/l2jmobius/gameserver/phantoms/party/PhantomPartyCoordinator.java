@@ -109,6 +109,21 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		TARGET_UNAVAILABLE
 	}
 
+	public enum PendingResponse
+	{
+		ACCEPT,
+		REFUSE
+	}
+
+	public enum PendingResponseOutcome
+	{
+		COMPLETED,
+		REJECTED,
+		STALE,
+		IDEMPOTENT,
+		STOPPING
+	}
+
 	public enum RouteOutcome
 	{
 		ACCEPTED,
@@ -131,6 +146,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final LongSupplier _socialClock;
 	private final int _operationBudget;
 	private final ArrayBlockingQueue<ManagedInvitation> _inbound = new ArrayBlockingQueue<>(MAX_INBOUND_INVITES);
+	private final Map<Long, PartyInvitation> _pendingManagedInvitations = new ConcurrentHashMap<>();
+	private final LinkedHashMap<String, PendingResponseOutcome> _conversationResponses = new LinkedHashMap<>();
 	private final ArrayBlockingQueue<TerminalEvent> _terminalEvents = new ArrayBlockingQueue<>(MAX_TERMINAL_EVENTS);
 	private final ArrayBlockingQueue<Long> _tacticalReleases = new ArrayBlockingQueue<>(MAX_INBOUND_INVITES);
 	private final Map<Long, StoredPartyState> _claims = new ConcurrentHashMap<>();
@@ -540,23 +557,27 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 					}
 					else if (managedRequester.isEmpty())
 					{
-						final MemberRef member = _backend.currentMember(managedInvitee.getAsLong()).orElse(null);
-						final StoredGoal goal = _goals.load(managedInvitee.getAsLong()).orElse(null);
-						if ((member == null) || (goal == null) || (goal.goal().status() != PhantomGoalStatus.ACTIVE) || !JOIN_GOAL.equals(goal.goal().goalType()) || !goalTargets(goal.goal(), invitation.requesterObjectId()))
+						final StoredGoal existingGoal = _goals.load(managedInvitee.getAsLong()).orElse(null);
+						if ((existingGoal != null) && JOIN_GOAL.equals(existingGoal.goal().goalType()) && ((existingGoal.goal().status() != PhantomGoalStatus.ACTIVE) || !goalTargets(existingGoal.goal(), invitation.requesterObjectId())))
 						{
 							return PreparationOutcome.REJECTED;
 						}
-						final MemberRef leader = MemberRef.real(invitation.requesterObjectId());
-						final String groupId = PhantomPartyModel.sha256("party.real.pending|" + invitation.identity().sequence());
-						final PartyOperation operation = new PartyOperation(PhantomPartyModel.sha256(groupId + "|join|" + member.profileId()), OperationKind.JOIN, OperationPhase.CANONICAL_PENDING, leader, member, goal.goal().goalId(), goal.goal().revision(), ZERO_HASH, invitation.identity().sequence(), deadline(), "");
-						memberState = state(groupId, 1, 0, StateStatus.INVITED_INBOUND, leader, List.of(member), List.of(leader), ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "real-led"), List.of(), List.of(), null, operation, progressionHash(member), "");
+						final MemberRef member = _backend.currentMember(managedInvitee.getAsLong()).orElse(null);
+						if (member == null)
+						{
+							return PreparationOutcome.REJECTED;
+						}
+						memberState = null;
 					}
 					else
 					{
 						throw new IllegalStateException("Managed invitation member preparation is not exact.");
 					}
-					pendingMember = save(managedInvitee.getAsLong(), previousMember == null ? -1 : previousMember.rowVersion(), memberState);
-					putClaim(pendingMember);
+					if (memberState != null)
+					{
+						pendingMember = save(managedInvitee.getAsLong(), previousMember == null ? -1 : previousMember.rowVersion(), memberState);
+						putClaim(pendingMember);
+					}
 				}
 				return PreparationOutcome.ACCEPTED;
 			}
@@ -578,7 +599,21 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		}
 		try (control)
 		{
-			return _inbound.offer(new ManagedInvitation(invitation, managedIdentity)) ? DeliveryOutcome.ACCEPTED : DeliveryOutcome.BACKPRESSURE;
+			final PartyInvitation previous = _pendingManagedInvitations.putIfAbsent(managedIdentity, invitation);
+			if ((previous != null) && !previous.identity().equals(invitation.identity()))
+			{
+				return DeliveryOutcome.BACKPRESSURE;
+			}
+			if (previous != null)
+			{
+				return DeliveryOutcome.ACCEPTED;
+			}
+			if (!_inbound.offer(new ManagedInvitation(invitation, managedIdentity)))
+			{
+				_pendingManagedInvitations.remove(managedIdentity, invitation);
+				return DeliveryOutcome.BACKPRESSURE;
+			}
+			return DeliveryOutcome.ACCEPTED;
 		}
 	}
 
@@ -592,6 +627,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		}
 		try (control)
 		{
+			managedInvitee.ifPresent(profileId -> _pendingManagedInvitations.remove(profileId, invitation));
 			managedInvitee.ifPresent(profileId -> _inbound.removeIf(entry -> (entry.profileId() == profileId) && entry.invitation().identity().equals(invitation.identity())));
 			final TerminalEvent event = new TerminalEvent(invitation, managedRequester, managedInvitee, outcome, reasonKey);
 			if (_state == State.STOPPING)
@@ -715,6 +751,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			_deliveryRegistration = null;
 		}
 		_inbound.clear();
+		_pendingManagedInvitations.clear();
 		_routes.beginStop();
 		_tacticalActions.values().forEach(ExternalActionLease::close);
 		_tacticalActions.clear();
@@ -760,6 +797,95 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return Optional.ofNullable(_claims.get(profileId));
 	}
 
+	public Optional<PartyInvitation> pendingInvitation(long profileId)
+	{
+		return _state == State.RUNNING ? Optional.ofNullable(_pendingManagedInvitations.get(profileId)) : Optional.empty();
+	}
+
+	public PendingResponseOutcome respondToPending(long profileId, InvitationIdentity exactIdentity, PendingResponse response, String planId)
+	{
+		Objects.requireNonNull(exactIdentity);
+		Objects.requireNonNull(response);
+		if ((planId == null) || !planId.matches("[A-F0-9]{64}"))
+		{
+			return PendingResponseOutcome.REJECTED;
+		}
+		synchronized (_indexLock)
+		{
+			final PendingResponseOutcome replay = _conversationResponses.get(planId);
+			if (replay != null)
+			{
+				return PendingResponseOutcome.IDEMPOTENT;
+			}
+		}
+		final OperationClaim control = beginOperation();
+		if (control == null)
+		{
+			return PendingResponseOutcome.STOPPING;
+		}
+		PendingResponseOutcome outcome;
+		try (control)
+		{
+			final PartyInvitation invitation = _pendingManagedInvitations.get(profileId);
+			if ((invitation == null) || !invitation.identity().equals(exactIdentity))
+			{
+				outcome = PendingResponseOutcome.STALE;
+			}
+			else
+			{
+				final MemberRef invitee = _backend.currentMember(profileId).orElse(null);
+				final StoredGoal goal = _goals.load(profileId).orElse(null);
+				final boolean exactConsent = (response == PendingResponse.REFUSE) || ((goal != null) && (goal.goal().status() == PhantomGoalStatus.ACTIVE) && JOIN_GOAL.equals(goal.goal().goalType()) && goalTargets(goal.goal(), invitation.requesterObjectId()) && goal.goal().purposeKey().equals("conversation.action") && goal.goal().reasonKey().equals("conversation.party.accept") && goalMatchesPlan(goal.goal(), planId));
+				if ((invitee == null) || !exactConsent)
+				{
+					outcome = PendingResponseOutcome.REJECTED;
+				}
+				else
+				{
+					final PartyInvitationService.RespondResult result = _backend.respond(invitee, response == PendingResponse.ACCEPT ? Response.ACCEPT : Response.REFUSE, exactIdentity);
+					outcome = (response == PendingResponse.ACCEPT) ? ((result != null) && result.accepted() ? PendingResponseOutcome.COMPLETED : PendingResponseOutcome.REJECTED) : ((result != null) && (result.outcome() == PartyInvitationService.RespondOutcome.REFUSED) ? PendingResponseOutcome.COMPLETED : PendingResponseOutcome.REJECTED);
+					if (response == PendingResponse.ACCEPT)
+					{
+						if ((result != null) && result.accepted())
+						{
+							_metrics.inviteAccepted();
+						}
+						else
+						{
+							_metrics.inviteRefused();
+						}
+					}
+					else
+					{
+						_metrics.inviteRefused();
+					}
+				}
+			}
+		}
+		synchronized (_indexLock)
+		{
+			_conversationResponses.put(planId, outcome);
+			while (_conversationResponses.size() > 512)
+			{
+				_conversationResponses.remove(_conversationResponses.keySet().iterator().next());
+			}
+		}
+		return outcome;
+	}
+
+	private static boolean goalMatchesPlan(PhantomGoal goal, String planId)
+	{
+		for (int index = 0; index < 4; index++)
+		{
+			final long expected = Long.parseUnsignedLong(planId.substring(index * 16, (index + 1) * 16), 16);
+			if (!Objects.equals(goal.constraints().get("conversation.plan." + index), expected))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private void processManagedInvitation(ManagedInvitation managed)
 	{
 		final PartyInvitation invitation = managed.invitation();
@@ -773,8 +899,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final boolean explicitConsent = (storedGoal != null) && (storedGoal.goal().status() == PhantomGoalStatus.ACTIVE) && JOIN_GOAL.equals(storedGoal.goal().goalType()) && goalTargets(storedGoal.goal(), invitation.requesterObjectId());
 		if (!explicitConsent)
 		{
-			_backend.respond(invitee, Response.REFUSE, invitation.identity());
-			_metrics.inviteRefused();
+			if ((storedGoal != null) && JOIN_GOAL.equals(storedGoal.goal().goalType()))
+			{
+				_backend.respond(invitee, Response.REFUSE, invitation.identity());
+				_metrics.inviteRefused();
+			}
 			return;
 		}
 		final PartyInvitationService.RespondResult response = _backend.respond(invitee, Response.ACCEPT, invitation.identity());

@@ -68,11 +68,15 @@ public final class ChatObservationService
 
 	public interface DispatchHandle extends AutoCloseable
 	{
+		DispatchDescriptor descriptor();
+
+		int deliveries();
+
 		@Override
 		void close();
 	}
 
-	public record Snapshot(long scopes, long nestedRejected, long rejections, long mismatches, long captures, long deliveries, long dispatchesClosed, long backpressure, long callbackFailures, boolean observerRegistered)
+	public record Snapshot(long scopes, long clientScopes, long generatedScopes, long nestedRejected, long rejections, long mismatches, long captures, long deliveries, long clientDeliveries, long generatedDeliveries, long dispatchesClosed, long backpressure, long callbackFailures, boolean observerRegistered)
 	{
 	}
 
@@ -85,11 +89,15 @@ public final class ChatObservationService
 	private final Set<Long> _closedDispatches = new HashSet<>(CLOSED_DISPATCHES);
 	private final AtomicLong _dispatchIds = new AtomicLong();
 	private final LongAdder _scopes = new LongAdder();
+	private final LongAdder _clientScopes = new LongAdder();
+	private final LongAdder _generatedScopes = new LongAdder();
 	private final LongAdder _nestedRejected = new LongAdder();
 	private final LongAdder _rejections = new LongAdder();
 	private final LongAdder _mismatches = new LongAdder();
 	private final LongAdder _captures = new LongAdder();
 	private final LongAdder _deliveries = new LongAdder();
+	private final LongAdder _clientDeliveries = new LongAdder();
+	private final LongAdder _generatedDeliveries = new LongAdder();
 	private final LongAdder _dispatchesClosed = new LongAdder();
 	private final LongAdder _backpressure = new LongAdder();
 	private final LongAdder _callbackFailures = new LongAdder();
@@ -106,6 +114,16 @@ public final class ChatObservationService
 
 	public DispatchHandle openClientDispatch(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
 	{
+		return openDispatch(Origin.CLIENT_CHAT, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis);
+	}
+
+	public DispatchHandle openGeneratedDispatch(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
+	{
+		return openDispatch(Origin.PHANTOM_GENERATED, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis);
+	}
+
+	private DispatchHandle openDispatch(Origin origin, int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
+	{
 		if (_scope.get() != null)
 		{
 			_nestedRejected.increment();
@@ -120,7 +138,7 @@ public final class ChatObservationService
 		final DispatchScope scope;
 		try
 		{
-			scope = new DispatchScope(new DispatchDescriptor(dispatchId, Origin.CLIENT_CHAT, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis), Thread.currentThread());
+			scope = new DispatchScope(new DispatchDescriptor(dispatchId, origin, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis), Thread.currentThread());
 		}
 		catch (RuntimeException exception)
 		{
@@ -129,10 +147,24 @@ public final class ChatObservationService
 		}
 		_scope.set(scope);
 		_scopes.increment();
+		if (origin == Origin.CLIENT_CHAT)
+		{
+			_clientScopes.increment();
+		}
+		else
+		{
+			_generatedScopes.increment();
+		}
 		return scope;
 	}
 
 	public DispatchDescriptor captureClientPacket(int senderObjectId, ChatType chatType, String text)
+	{
+		final DispatchDescriptor descriptor = capturePacket(senderObjectId, chatType, text);
+		return (descriptor != null) && (descriptor.origin() == Origin.CLIENT_CHAT) ? descriptor : null;
+	}
+
+	public DispatchDescriptor capturePacket(int senderObjectId, ChatType chatType, String text)
 	{
 		final DispatchScope scope = _scope.get();
 		if ((scope == null) || scope._closed || (scope._owner != Thread.currentThread()))
@@ -140,7 +172,7 @@ public final class ChatObservationService
 			return null;
 		}
 		final DispatchDescriptor descriptor = scope._descriptor;
-		if ((descriptor.origin() != Origin.CLIENT_CHAT) || (descriptor.speakerObjectId() != senderObjectId) || (descriptor.chatType() != chatType) || !descriptor.finalText().equals(text))
+		if ((descriptor.speakerObjectId() != senderObjectId) || (descriptor.chatType() != chatType) || !descriptor.finalText().equals(text))
 		{
 			_mismatches.increment();
 			return null;
@@ -151,7 +183,7 @@ public final class ChatObservationService
 
 	public void publishDelivered(DispatchDescriptor descriptor, int senderObjectId, ChatType chatType, String text, int recipientObjectId, String recipientName)
 	{
-		if ((descriptor == null) || (descriptor.origin() != Origin.CLIENT_CHAT) || (descriptor.speakerObjectId() != senderObjectId) || (descriptor.chatType() != chatType) || !descriptor.finalText().equals(text) || !validRecipient(recipientObjectId, recipientName))
+		if ((descriptor == null) || (descriptor.speakerObjectId() != senderObjectId) || (descriptor.chatType() != chatType) || !descriptor.finalText().equals(text) || !validRecipient(recipientObjectId, recipientName))
 		{
 			_rejections.increment();
 			return;
@@ -160,6 +192,19 @@ public final class ChatObservationService
 		{
 			_mismatches.increment();
 			return;
+		}
+		final DispatchScope scope = _scope.get();
+		if ((scope != null) && (scope._descriptor.dispatchId() == descriptor.dispatchId()) && !scope._closed)
+		{
+			scope._deliveries++;
+		}
+		if (descriptor.origin() == Origin.CLIENT_CHAT)
+		{
+			_clientDeliveries.increment();
+		}
+		else
+		{
+			_generatedDeliveries.increment();
 		}
 		final Registration registration = _registration;
 		if ((registration == null) || !registration.claim())
@@ -204,7 +249,7 @@ public final class ChatObservationService
 
 	public Snapshot snapshot()
 	{
-		return new Snapshot(_scopes.sum(), _nestedRejected.sum(), _rejections.sum(), _mismatches.sum(), _captures.sum(), _deliveries.sum(), _dispatchesClosed.sum(), _backpressure.sum(), _callbackFailures.sum(), _registration != null);
+		return new Snapshot(_scopes.sum(), _clientScopes.sum(), _generatedScopes.sum(), _nestedRejected.sum(), _rejections.sum(), _mismatches.sum(), _captures.sum(), _deliveries.sum(), _clientDeliveries.sum(), _generatedDeliveries.sum(), _dispatchesClosed.sum(), _backpressure.sum(), _callbackFailures.sum(), _registration != null);
 	}
 
 	private static boolean validDescriptorFields(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
@@ -267,11 +312,24 @@ public final class ChatObservationService
 		private final DispatchDescriptor _descriptor;
 		private final Thread _owner;
 		private boolean _closed;
+		private int _deliveries;
 
 		private DispatchScope(DispatchDescriptor descriptor, Thread owner)
 		{
 			_descriptor = descriptor;
 			_owner = owner;
+		}
+
+		@Override
+		public DispatchDescriptor descriptor()
+		{
+			return _descriptor;
+		}
+
+		@Override
+		public int deliveries()
+		{
+			return _deliveries;
 		}
 
 		@Override
@@ -361,6 +419,18 @@ public final class ChatObservationService
 	private enum InertScope implements DispatchHandle
 	{
 		INSTANCE;
+
+		@Override
+		public DispatchDescriptor descriptor()
+		{
+			return null;
+		}
+
+		@Override
+		public int deliveries()
+		{
+			return 0;
+		}
 
 		@Override
 		public void close()

@@ -25,6 +25,7 @@ import java.util.Optional;
 
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.ComponentMutation;
 
 public final class PhantomGoalStateStore implements PhantomGoalStore
 {
@@ -72,6 +73,16 @@ public final class PhantomGoalStateStore implements PhantomGoalStore
 	public void delete(long profileId, long expectedRowVersion)
 	{
 		_repository.deleteComponent(profileId, COMPONENT_TYPE, expectedRowVersion);
+	}
+
+	public ComponentMutation componentMutation(long expectedRowVersion, PhantomGoal goal)
+	{
+		return new ComponentMutation(COMPONENT_TYPE, expectedRowVersion, COMPONENT_SCHEMA_VERSION, _codec.encode(Objects.requireNonNull(goal)));
+	}
+
+	public StoredGoal decodeComponent(PhantomProfileComponent component)
+	{
+		return decode(component);
 	}
 
 	private StoredGoal decode(PhantomProfileComponent component)

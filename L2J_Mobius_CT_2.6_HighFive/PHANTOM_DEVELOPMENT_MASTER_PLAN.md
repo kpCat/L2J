@@ -662,7 +662,7 @@ Status: `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`.
 
 ### 018. Personality, memory, reputation
 
-Status: `ACCEPT_WITH_ACTIVATION_GATE`.
+Status: `ACCEPT` after activation gates closed in Goal 020 Checkpoint 1.
 
 - traits;
 - memory events;
@@ -685,12 +685,13 @@ Status: `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`.
 
 ### 020. Conversation engine и действия
 
-Status: `CHECKPOINT_1_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
-Checkpoint 1: actual-delivery observation, bounded conversation state,
-clarification continuation и observer-only response/action planning.
+Checkpoint 1: `ACCEPT_WITH_ACTIVATION_GATE`; actual-delivery observation,
+bounded conversation state, clarification continuation и observer-only
+response/action planning.
 
-Action/outbound checkpoint: `NOT_STARTED`.
+Checkpoint 2 (action/outbound): `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 - PM/local/trade chat;
 - observer-aware generation;

@@ -42,6 +42,7 @@
 	<property name="phantom.goal018.seed" value="18001801" />
 	<property name="phantom.goal019.seed" value="19001901" />
 	<property name="phantom.goal020c1.seed" value="20002001" />
+	<property name="phantom.goal020c2.seed" value="20002002" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -1273,6 +1274,93 @@
 
 	<target name="phantom-conversation-checkpoint1-affected-test" depends="phantom-profile-persistence-test,phantom-social-party-integration-test,phantom-semantic-test,phantom-server-shutdown-handoff-test" description="Run exact profile, social/Party, semantic and System lifecycle regressions affected by Checkpoint 1." />
 
+	<target name="phantom-conversation-managed-ingress-test" depends="compile-tests" description="Run PHANTOM-only ingress and bounded delayed/overflow housekeeping tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="conversation-managed-ingress" />
+			<arg value="${phantom.goal020c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-conversation-execution-catalog-codec-test" depends="compile-tests" description="Run strict execution policy, model and codec tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="conversation-execution-catalog-codec" />
+			<arg value="${phantom.goal020c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-conversation-handoff-durability-test" depends="compile-tests" description="Run atomic conversation state/execution handoff and recovery tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="conversation-handoff-durability" />
+			<arg value="${phantom.goal020c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-conversation-query-execution-test" depends="compile-tests" description="Run bounded read-only conversation query execution tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="conversation-query-execution" />
+			<arg value="${phantom.goal020c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-conversation-party-actions-test" depends="compile-tests,phantom-party-canonical-invitation-test" description="Run Goal arbitration, exact Party response and deferred action tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="conversation-party-actions" />
+			<arg value="${phantom.goal020c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-conversation-outbound-chat-test" depends="compile-tests" description="Run materialized four-channel generated chat and loop-prevention tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="conversation-outbound-chat" />
+			<arg value="${phantom.goal020c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-conversation-restart-idempotency-test" depends="compile-tests" description="Run DISPATCHING uncertainty, expiry and duplicate restart tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="conversation-restart-idempotency" />
+			<arg value="${phantom.goal020c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-conversation-execution-lifecycle-performance-smoke" depends="compile-tests" description="Run 10k execution envelope and shared-scheduler lifecycle smoke.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="conversation-execution-lifecycle-performance" />
+			<arg value="${phantom.goal020c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-conversation-checkpoint2-test" depends="phantom-conversation-managed-ingress-test,phantom-conversation-execution-catalog-codec-test,phantom-conversation-handoff-durability-test,phantom-conversation-query-execution-test,phantom-conversation-party-actions-test,phantom-conversation-outbound-chat-test,phantom-conversation-restart-idempotency-test,phantom-conversation-execution-lifecycle-performance-smoke" description="Run the final Goal 020 Checkpoint 2 aggregate." />
+
+	<target name="phantom-conversation-checkpoint2-affected-test" depends="phantom-conversation-checkpoint1-test,phantom-decision-core-test,phantom-decision-persistence-test,phantom-party-canonical-invitation-test,phantom-party-lifecycle-test,phantom-party-server-integration-test,phantom-game-knowledge-core-test,phantom-game-knowledge-query-truth-test,phantom-production-materialization-test,phantom-server-shutdown-handoff-test" description="Run exact Checkpoint 1, Goal, Party, Knowledge, materialization and shutdown regressions affected by Checkpoint 2." />
+
 	<target name="prepare-phantom-test-db" depends="compile-tests" description="Destructively recreate only the allowlisted Phantom test database.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestDatabaseProvisioner" classpathref="test.classpath" fork="true" failonerror="true">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
@@ -1581,9 +1669,19 @@
 		</exec>
 	</target>
 
+	<target name="phantom-static-verify-020c2" description="Run the descendant-compatible Goal 020 Checkpoint 2 verifier.">
+		<exec executable="powershell" dir="${basedir}" failonerror="true">
+			<arg value="-NoProfile" />
+			<arg value="-ExecutionPolicy" />
+			<arg value="Bypass" />
+			<arg value="-File" />
+			<arg value="${basedir}/tools/phantoms/verify-task-020c2.ps1" />
+		</exec>
+	</target>
+
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->
-	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-profile-persistence-test,phantom-production-materialization-test,phantom-production-materialization-performance-smoke,phantom-server-shutdown-handoff-test,phantom-activity-scheduler-test,phantom-activity-scheduler-performance-smoke,phantom-decision-core-test,phantom-decision-persistence-test,phantom-decision-performance-smoke,phantom-navigation-core-test,phantom-navigation-performance-smoke,phantom-topology-core-test,phantom-topology-perception-test,phantom-topology-scheduler-signal-integration-test,phantom-topology-signal-ledger-test,phantom-topology-generation-test,phantom-topology-production-corpus-test,phantom-topology-performance-smoke,phantom-game-knowledge-core-test,phantom-game-knowledge-query-truth-test,phantom-game-knowledge-parity-test,phantom-game-knowledge-content-test,phantom-game-knowledge-performance-smoke,phantom-combat-core-test,phantom-combat-ownership-test,phantom-combat-action-ownership-test,phantom-combat-server-integration-test,phantom-combat-performance-smoke,phantom-progression-catalog-test,phantom-progression-parity-test,phantom-capability-runtime-test,phantom-progression-operations-test,phantom-progression-server-integration-test,phantom-progression-durability-test,phantom-progression-performance-smoke,phantom-progression-extensibility-test,phantom-progression-production-composition-test,phantom-commerce-test,phantom-commerce-hardening-test,phantom-background-test,phantom-population-test,phantom-party-test,phantom-social-test,phantom-semantic-test,phantom-social-activation-test,phantom-semantic-activation-test,phantom-chat-observation-test,phantom-conversation-catalog-codec-test,phantom-conversation-understanding-test,phantom-conversation-social-style-test,phantom-conversation-chat-integration-test,phantom-conversation-lifecycle-performance-smoke,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004,phantom-static-verify-004a,phantom-static-verify-004b,phantom-static-verify-005,phantom-static-verify-006,phantom-static-verify-006a,phantom-static-verify-006b,phantom-static-verify-007,phantom-static-verify-014a,phantom-static-verify-015,phantom-static-verify-016,phantom-static-verify-017,phantom-static-verify-018,phantom-static-verify-019,phantom-static-verify-020c1" description="Run Goal 020 Checkpoint 1 and all prior Phantom verification gates." />
+	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-profile-persistence-test,phantom-production-materialization-test,phantom-production-materialization-performance-smoke,phantom-server-shutdown-handoff-test,phantom-activity-scheduler-test,phantom-activity-scheduler-performance-smoke,phantom-decision-core-test,phantom-decision-persistence-test,phantom-decision-performance-smoke,phantom-navigation-core-test,phantom-navigation-performance-smoke,phantom-topology-core-test,phantom-topology-perception-test,phantom-topology-scheduler-signal-integration-test,phantom-topology-signal-ledger-test,phantom-topology-generation-test,phantom-topology-production-corpus-test,phantom-topology-performance-smoke,phantom-game-knowledge-core-test,phantom-game-knowledge-query-truth-test,phantom-game-knowledge-parity-test,phantom-game-knowledge-content-test,phantom-game-knowledge-performance-smoke,phantom-combat-core-test,phantom-combat-ownership-test,phantom-combat-action-ownership-test,phantom-combat-server-integration-test,phantom-combat-performance-smoke,phantom-progression-catalog-test,phantom-progression-parity-test,phantom-capability-runtime-test,phantom-progression-operations-test,phantom-progression-server-integration-test,phantom-progression-durability-test,phantom-progression-performance-smoke,phantom-progression-extensibility-test,phantom-progression-production-composition-test,phantom-commerce-test,phantom-commerce-hardening-test,phantom-background-test,phantom-population-test,phantom-party-test,phantom-social-test,phantom-semantic-test,phantom-social-activation-test,phantom-semantic-activation-test,phantom-chat-observation-test,phantom-conversation-catalog-codec-test,phantom-conversation-understanding-test,phantom-conversation-social-style-test,phantom-conversation-chat-integration-test,phantom-conversation-lifecycle-performance-smoke,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004,phantom-static-verify-004a,phantom-static-verify-004b,phantom-static-verify-005,phantom-static-verify-006,phantom-static-verify-006a,phantom-static-verify-006b,phantom-static-verify-007,phantom-static-verify-014a,phantom-static-verify-015,phantom-static-verify-016,phantom-static-verify-017,phantom-static-verify-018,phantom-static-verify-019,phantom-static-verify-020c1,phantom-static-verify-020c2" description="Run Goal 020 Checkpoint 2 and all prior Phantom verification gates." />
 
 	<target name="jar" depends="compile" description="Create the jar files.">
 		<tstamp>

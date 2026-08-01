@@ -286,6 +286,14 @@ public final class PhantomTestLauncher
 			case "conversation-social-style" -> new PhantomConversationSuite(PhantomConversationSuite.Mode.SOCIAL_STYLE);
 			case "conversation-chat-integration" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.CHAT_INTEGRATION);
 			case "conversation-lifecycle-performance" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.LIFECYCLE_PERFORMANCE);
+			case "conversation-managed-ingress" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.MANAGED_INGRESS);
+			case "conversation-execution-catalog-codec" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.CATALOG_CODEC);
+			case "conversation-handoff-durability" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.HANDOFF_DURABILITY);
+			case "conversation-query-execution" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.QUERY_EXECUTION);
+			case "conversation-party-actions" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.PARTY_ACTIONS);
+			case "conversation-outbound-chat" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.OUTBOUND_CHAT);
+			case "conversation-restart-idempotency" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.RESTART_IDEMPOTENCY);
+			case "conversation-execution-lifecycle-performance" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

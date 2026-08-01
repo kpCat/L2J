@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationResponsePlan;
 
-/** Observer-only plan boundary. Checkpoint 1 has no execution implementation. */
+/** Bounded post-commit wake boundary; durable execution state remains authoritative. */
 @FunctionalInterface
 public interface PhantomConversationPlanSink
 {
@@ -16,6 +16,40 @@ public interface PhantomConversationPlanSink
 	static ObserverOnly observerOnly()
 	{
 		return new ObserverOnly();
+	}
+
+	static Bridge bridge()
+	{
+		return new Bridge();
+	}
+
+	final class Bridge implements PhantomConversationPlanSink
+	{
+		private PhantomConversationPlanSink _delegate;
+
+		public synchronized void install(PhantomConversationPlanSink delegate)
+		{
+			if ((_delegate != null) || (delegate == null) || (delegate == this))
+			{
+				throw new IllegalStateException("Conversation plan sink bridge installation is invalid.");
+			}
+			_delegate = delegate;
+		}
+
+		@Override
+		public void publish(ConversationResponsePlan plan)
+		{
+			final PhantomConversationPlanSink delegate;
+			synchronized (this)
+			{
+				delegate = _delegate;
+			}
+			if (delegate == null)
+			{
+				throw new IllegalStateException("Conversation plan sink is not installed.");
+			}
+			delegate.publish(plan);
+		}
 	}
 
 	final class ObserverOnly implements PhantomConversationPlanSink

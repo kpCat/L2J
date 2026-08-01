@@ -50,7 +50,11 @@ import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceDecision;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService;
 import org.l2jmobius.gameserver.phantoms.conversation.L2jPhantomConversationContextPort;
+import org.l2jmobius.gameserver.phantoms.conversation.L2jPhantomConversationExecutionPort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationCatalog;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionService;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationPlanSink;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore;
@@ -129,6 +133,7 @@ public final class PhantomSystem
 	private PhantomPartyCoordinator _partyCoordinator;
 	private PhantomSocialService _socialService;
 	private PhantomConversationService _conversationService;
+	private PhantomConversationExecutionService _conversationExecutionService;
 	private State _state = State.NEW;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
@@ -317,7 +322,17 @@ public final class PhantomSystem
 				final File conversationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-v1.xml");
 				final File conversationCorpusFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv");
 				final PhantomConversationCatalog conversationCatalog = PhantomConversationCatalog.load(conversationCatalogFile.toPath(), conversationCorpusFile.toPath());
-				_conversationService = new PhantomConversationService(conversationCatalog, new PhantomConversationStore(productionProfiles), new L2jPhantomConversationContextPort(_materializationService, _topologyService.query()), _semanticUnderstandingService, _socialService, PhantomConversationPlanSink.observerOnly(), PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance());
+				final File conversationExecutionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml");
+				final PhantomConversationExecutionCatalog conversationExecutionCatalog = PhantomConversationExecutionCatalog.load(conversationExecutionCatalogFile.toPath());
+				final PhantomConversationExecutionStore conversationExecutionStore = new PhantomConversationExecutionStore(productionProfiles, conversationExecutionCatalog);
+				final PhantomConversationPlanSink.Bridge conversationExecutionSignal = PhantomConversationPlanSink.bridge();
+				_conversationService = new PhantomConversationService(conversationCatalog, new PhantomConversationStore(productionProfiles, conversationExecutionStore), new L2jPhantomConversationContextPort(_materializationService, _topologyService.query()), _semanticUnderstandingService, _socialService, conversationExecutionSignal, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance());
+				_conversationExecutionService = new PhantomConversationExecutionService(conversationExecutionCatalog, conversationExecutionStore, productionGoals, new L2jPhantomConversationExecutionPort(conversationExecutionCatalog, _gameKnowledgeService, _topologyService.query(), _partyCoordinator, _materializationService, ChatObservationService.getInstance()));
+				conversationExecutionSignal.install(_conversationExecutionService);
+				if (!_conversationExecutionService.start())
+				{
+					throw new IllegalStateException("Phantom conversation execution service could not enter the running state.");
+				}
 				if (!_conversationService.start())
 				{
 					throw new IllegalStateException("Phantom conversation service could not enter the running state.");
@@ -341,7 +356,7 @@ public final class PhantomSystem
 				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
 				_decisionEngine.start();
 				_populationManager.installDecisionEngine(_decisionEngine);
-				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(java.util.List.of(_populationManager, _partyCoordinator, _conversationService))))
+				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService))))
 				{
 					throw new IllegalStateException("Population control port could not be installed before scheduler start.");
 				}
@@ -367,6 +382,10 @@ public final class PhantomSystem
 					_state = State.FAILED;
 					throw e;
 				}
+			}
+			if (_conversationExecutionService != null)
+			{
+				_conversationExecutionService.beginStop();
 			}
 			if (_partyCoordinator != null)
 			{
@@ -417,7 +436,8 @@ public final class PhantomSystem
 				_navigationService.beginStop();
 			}
 			final boolean conversationStopped = (_conversationService == null) || _conversationService.finishStop();
-			final boolean partyStopped = conversationStopped && ((_partyCoordinator == null) || _partyCoordinator.finishStop());
+			final boolean conversationExecutionStopped = conversationStopped && ((_conversationExecutionService == null) || _conversationExecutionService.finishStop());
+			final boolean partyStopped = conversationExecutionStopped && ((_partyCoordinator == null) || _partyCoordinator.finishStop());
 			boolean socialStopped = _socialService == null;
 			if (partyStopped && (_socialService != null))
 			{
@@ -476,6 +496,16 @@ public final class PhantomSystem
 			{
 				_conversationService.beginStop();
 				if (!_conversationService.finishStop())
+				{
+					_metrics.recordShutdownFailure();
+					_state = State.FAILED;
+					return false;
+				}
+			}
+			if (_conversationExecutionService != null)
+			{
+				_conversationExecutionService.beginStop();
+				if (!_conversationExecutionService.finishStop())
 				{
 					_metrics.recordShutdownFailure();
 					_state = State.FAILED;
@@ -637,6 +667,15 @@ public final class PhantomSystem
 					return false;
 				}
 			}
+			if ((_conversationExecutionService != null) && (_conversationExecutionService.snapshot().state() != PhantomConversationExecutionService.State.STOPPED))
+			{
+				_conversationExecutionService.beginStop();
+				if (!_conversationExecutionService.finishStop())
+				{
+					_metrics.recordShutdownFailure();
+					return false;
+				}
+			}
 			if ((_partyCoordinator != null) && (_partyCoordinator.snapshot().state() != PhantomPartyCoordinator.State.STOPPED))
 			{
 				_partyCoordinator.beginStop();
@@ -758,7 +797,7 @@ public final class PhantomSystem
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _semanticUnderstandingService != null ? _semanticUnderstandingService.snapshot() : PhantomSemanticUnderstandingService.Snapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _backgroundService != null ? _backgroundService.snapshot() : null, _populationManager != null ? _populationManager.snapshot() : PhantomPopulationManager.Snapshot.inactive(), _socialService != null ? _socialService.snapshot() : PhantomSocialService.Snapshot.inactive(), _conversationService != null ? _conversationService.snapshot() : PhantomConversationService.Snapshot.inactive(), ChatObservationService.getInstance().snapshot(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _semanticUnderstandingService != null ? _semanticUnderstandingService.snapshot() : PhantomSemanticUnderstandingService.Snapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _backgroundService != null ? _backgroundService.snapshot() : null, _populationManager != null ? _populationManager.snapshot() : PhantomPopulationManager.Snapshot.inactive(), _socialService != null ? _socialService.snapshot() : PhantomSocialService.Snapshot.inactive(), _conversationService != null ? _conversationService.snapshot() : PhantomConversationService.Snapshot.inactive(), _conversationExecutionService != null ? _conversationExecutionService.snapshot() : PhantomConversationExecutionService.Snapshot.inactive(), ChatObservationService.getInstance().snapshot(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
 	}
 
 	public synchronized PhantomPartyCoordinator.Snapshot partySnapshot()
@@ -1046,7 +1085,7 @@ public final class PhantomSystem
 		_combatService.start();
 	}
 
-	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomSemanticUnderstandingService.Snapshot semanticUnderstanding, PhantomProgressionService.ServiceSnapshot progression, PhantomCombatService.ServiceSnapshot combat, PhantomBackgroundService.Snapshot background, PhantomPopulationManager.Snapshot population, PhantomSocialService.Snapshot social, PhantomConversationService.Snapshot conversation, ChatObservationService.Snapshot chatObservation, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
+	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomSemanticUnderstandingService.Snapshot semanticUnderstanding, PhantomProgressionService.ServiceSnapshot progression, PhantomCombatService.ServiceSnapshot combat, PhantomBackgroundService.Snapshot background, PhantomPopulationManager.Snapshot population, PhantomSocialService.Snapshot social, PhantomConversationService.Snapshot conversation, PhantomConversationExecutionService.Snapshot conversationExecution, ChatObservationService.Snapshot chatObservation, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
 	{
 	}
 
