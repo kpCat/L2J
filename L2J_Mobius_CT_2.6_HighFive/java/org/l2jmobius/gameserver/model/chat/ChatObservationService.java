@@ -3,7 +3,10 @@
  */
 package org.l2jmobius.gameserver.model.chat;
 
+import java.util.ArrayDeque;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -55,6 +58,12 @@ public final class ChatObservationService
 	{
 		/** @return true when the bounded consumer accepted the observation. */
 		boolean onDelivered(DeliveredObservation observation);
+
+		/** @return true when the consumer accepted the synchronous dispatch boundary. */
+		default boolean onDispatchClosed(DispatchDescriptor dispatch)
+		{
+			return true;
+		}
 	}
 
 	public interface DispatchHandle extends AutoCloseable
@@ -63,19 +72,25 @@ public final class ChatObservationService
 		void close();
 	}
 
-	public record Snapshot(long scopes, long nestedRejected, long mismatches, long captures, long deliveries, long backpressure, long callbackFailures, boolean observerRegistered)
+	public record Snapshot(long scopes, long nestedRejected, long rejections, long mismatches, long captures, long deliveries, long dispatchesClosed, long backpressure, long callbackFailures, boolean observerRegistered)
 	{
 	}
 
+	private static final int CLOSED_DISPATCHES = 2048;
 	private static final ChatObservationService INSTANCE = new ChatObservationService();
 	private final Object _registrationMonitor = new Object();
+	private final Object _closedMonitor = new Object();
 	private final ThreadLocal<DispatchScope> _scope = new ThreadLocal<>();
+	private final ArrayDeque<Long> _closedOrder = new ArrayDeque<>(CLOSED_DISPATCHES);
+	private final Set<Long> _closedDispatches = new HashSet<>(CLOSED_DISPATCHES);
 	private final AtomicLong _dispatchIds = new AtomicLong();
 	private final LongAdder _scopes = new LongAdder();
 	private final LongAdder _nestedRejected = new LongAdder();
+	private final LongAdder _rejections = new LongAdder();
 	private final LongAdder _mismatches = new LongAdder();
 	private final LongAdder _captures = new LongAdder();
 	private final LongAdder _deliveries = new LongAdder();
+	private final LongAdder _dispatchesClosed = new LongAdder();
 	private final LongAdder _backpressure = new LongAdder();
 	private final LongAdder _callbackFailures = new LongAdder();
 	private volatile Registration _registration;
@@ -96,8 +111,22 @@ public final class ChatObservationService
 			_nestedRejected.increment();
 			return InertScope.INSTANCE;
 		}
+		if (!validDescriptorFields(speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis))
+		{
+			_rejections.increment();
+			return InertScope.INSTANCE;
+		}
 		final long dispatchId = _dispatchIds.updateAndGet(value -> value == Long.MAX_VALUE ? 1 : value + 1);
-		final DispatchScope scope = new DispatchScope(new DispatchDescriptor(dispatchId, Origin.CLIENT_CHAT, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis), Thread.currentThread());
+		final DispatchScope scope;
+		try
+		{
+			scope = new DispatchScope(new DispatchDescriptor(dispatchId, Origin.CLIENT_CHAT, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis), Thread.currentThread());
+		}
+		catch (RuntimeException exception)
+		{
+			_rejections.increment();
+			return InertScope.INSTANCE;
+		}
 		_scope.set(scope);
 		_scopes.increment();
 		return scope;
@@ -122,8 +151,14 @@ public final class ChatObservationService
 
 	public void publishDelivered(DispatchDescriptor descriptor, int senderObjectId, ChatType chatType, String text, int recipientObjectId, String recipientName)
 	{
-		if ((descriptor == null) || (descriptor.origin() != Origin.CLIENT_CHAT) || (descriptor.speakerObjectId() != senderObjectId) || (descriptor.chatType() != chatType) || !descriptor.finalText().equals(text))
+		if ((descriptor == null) || (descriptor.origin() != Origin.CLIENT_CHAT) || (descriptor.speakerObjectId() != senderObjectId) || (descriptor.chatType() != chatType) || !descriptor.finalText().equals(text) || !validRecipient(recipientObjectId, recipientName))
 		{
+			_rejections.increment();
+			return;
+		}
+		if (isClosed(descriptor.dispatchId()))
+		{
+			_mismatches.increment();
 			return;
 		}
 		final Registration registration = _registration;
@@ -169,7 +204,62 @@ public final class ChatObservationService
 
 	public Snapshot snapshot()
 	{
-		return new Snapshot(_scopes.sum(), _nestedRejected.sum(), _mismatches.sum(), _captures.sum(), _deliveries.sum(), _backpressure.sum(), _callbackFailures.sum(), _registration != null);
+		return new Snapshot(_scopes.sum(), _nestedRejected.sum(), _rejections.sum(), _mismatches.sum(), _captures.sum(), _deliveries.sum(), _dispatchesClosed.sum(), _backpressure.sum(), _callbackFailures.sum(), _registration != null);
+	}
+
+	private static boolean validDescriptorFields(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
+	{
+		return (speakerObjectId > 0) && (speakerName != null) && !speakerName.isBlank() && (speakerName.length() <= 64) && (chatType != null) && (finalText != null) && !finalText.isEmpty() && (finalText.length() <= 1024) && (epochMillis >= 0) && ((whisperTarget == null) || (whisperTarget.length() <= 64));
+	}
+
+	private static boolean validRecipient(int recipientObjectId, String recipientName)
+	{
+		return (recipientObjectId > 0) && (recipientName != null) && !recipientName.isBlank() && (recipientName.length() <= 64);
+	}
+
+	private boolean isClosed(long dispatchId)
+	{
+		synchronized (_closedMonitor)
+		{
+			return _closedDispatches.contains(dispatchId);
+		}
+	}
+
+	private void publishClosed(DispatchDescriptor descriptor)
+	{
+		synchronized (_closedMonitor)
+		{
+			if (!_closedDispatches.add(descriptor.dispatchId()))
+			{
+				return;
+			}
+			_closedOrder.addLast(descriptor.dispatchId());
+			while (_closedOrder.size() > CLOSED_DISPATCHES)
+			{
+				_closedDispatches.remove(_closedOrder.removeFirst());
+			}
+		}
+		_dispatchesClosed.increment();
+		final Registration registration = _registration;
+		if ((registration == null) || !registration.claim())
+		{
+			return;
+		}
+		try
+		{
+			if (!registration._observer.onDispatchClosed(descriptor))
+			{
+				_backpressure.increment();
+			}
+		}
+		catch (RuntimeException exception)
+		{
+			_callbackFailures.increment();
+		}
+		finally
+		{
+			registration.release();
+		}
 	}
 
 	private final class DispatchScope implements DispatchHandle
@@ -204,6 +294,7 @@ public final class ChatObservationService
 			{
 				_mismatches.increment();
 			}
+			publishClosed(_descriptor);
 		}
 	}
 

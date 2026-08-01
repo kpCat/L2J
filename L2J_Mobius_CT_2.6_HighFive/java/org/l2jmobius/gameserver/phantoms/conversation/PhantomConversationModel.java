@@ -172,7 +172,7 @@ public final class PhantomConversationModel
 				throw new IllegalArgumentException("Conversation logical minute is invalid.");
 			}
 			sessions = sortedSessions(sessions);
-			recentObservationHashes = sortedHashes(recentObservationHashes);
+			recentObservationHashes = orderedHashes(recentObservationHashes);
 		}
 	}
 
@@ -309,7 +309,7 @@ public final class PhantomConversationModel
 		return List.copyOf(result);
 	}
 
-	private static List<String> sortedHashes(List<String> input)
+	private static List<String> orderedHashes(List<String> input)
 	{
 		final List<String> result = new ArrayList<>(input == null ? List.of() : input);
 		if (result.size() > MAX_RECENT_HASHES)
@@ -317,10 +317,10 @@ public final class PhantomConversationModel
 			throw new IllegalArgumentException("Recent observation hash count exceeds eight.");
 		}
 		result.replaceAll(value -> requireHash(value, "Recent observation hash"));
-		result.sort(String::compareTo);
-		for (int index = 1; index < result.size(); index++)
+		final Set<String> unique = new HashSet<>();
+		for (String hash : result)
 		{
-			if (result.get(index - 1).equals(result.get(index)))
+			if (!unique.add(hash))
 			{
 				throw new IllegalArgumentException("Recent observation hashes must be unique.");
 			}

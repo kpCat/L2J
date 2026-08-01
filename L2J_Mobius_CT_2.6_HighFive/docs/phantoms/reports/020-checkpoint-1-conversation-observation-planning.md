@@ -1,167 +1,163 @@
 # Goal 020 Checkpoint 1 — наблюдение чата и планирование диалога
 
-## Терминальные результаты
+## Статус
 
-- Status: `PARTIAL`.
-- Final checkpoint aggregate: `PASS`, единственный запуск, `BUILD SUCCESSFUL` за 1:24.
-- Full `ant verify`: `PARTIAL`. Первый invocation выявил bounded-receipt regression
-  в historical social clamp test; exact fix и retry прошли. Второй invocation прошёл
-  всю test-матрицу, но вернул exit 1 на устаревшем exact-remote check verifier 018.
-- После минимального descendant-compatible fix exact static tail 018/019/020c1: `PASS`.
-  Третий full verify не запускался: лимит task-пакета исчерпан.
-- Standalone `ant jar`: `PASS`, `BUILD SUCCESSFUL` за 14 секунд.
-- Commit/push: выполняются после фиксации этого отчёта; SHA и remote evidence
-  публикуются в финальном handoff, чтобы не создавать второй child/amend.
-- Два accepted-verifier запуска: выполняются post-push; для `PARTIAL` verifier печатает
-  отдельный детерминированный token и не утверждает completion.
-
-## Summary
-
-Реализован только заранее запланированный Checkpoint 1 Goal 020: фактическая доставка
-клиентского чата наблюдается после финальной фильтрации, а bounded conversation-контур
-выбирает одного наблюдателя и сохраняет только immutable response/action plans.
-Ни один план не отправляется и не исполняется.
-
-Goal 019 принят как `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; его verifier закреплён
-за accepted-коммитом `384b521f2cd29f4162c9aca9116eb0ff40cbd681` и проверяет
-исторические blobs на любых потомках. Goal 018 остаётся
-`ACCEPT_WITH_ACTIVATION_GATE`, а требуемые activation gates закрыты тестами Goal 020.
-
-## Graph и scope
-
+- Status: `SUCCESS`.
+- Implementation commit: `e7ba469e63caa6dee113278087258fab005a435a`.
+- Implementation parent: `384b521f2cd29f4162c9aca9116eb0ff40cbd681`.
+- Implementation subject: `feat(phantoms): add conversation observation and planning`.
+- Единственный разрешённый completion child subject:
+  `fix(phantoms): complete conversation planning safety`.
 - Ветка: `feature/phantom-world`.
-- Required parent: `384b521f2cd29f4162c9aca9116eb0ff40cbd681`.
-- Единственный допустимый child subject: `feat(phantoms): add conversation observation and planning`.
-- Scope: 52 файла; production/data/config: 26; новых production/data: 11.
-- Другие хроники, геодата, schema, `Player.java`, `Party.java` и существующие chat handlers не менялись.
-- User task package из девяти файлов сохранён и включён в scope.
+- Seed: `20002001`.
 
-## Прочитанные файлы и локальные аналоги
+## Результат completion
 
-Прочитаны обязательные master plan, workflow/task-package contracts, весь текущий task
-package, accepted reports Goal 018/019, а также целевые profile/social/semantic/chat/
-materialization/party/system исходники и их focused fixtures.
+Checkpoint 1 завершён по bounded completion authority без переписывания
+implementation commit. Наблюдение начинается после финальной фильтрации `Say2`,
+`CreatureSay.runImpl(Player)` сообщает фактического получателя, а синхронный
+`DISPATCH_CLOSED` закрывает recipient set до observer election.
 
-Переиспользованы локальные паттерны:
+Conversation planner ничего не отправляет и не исполняет. Он не создаёт outbound
+`CreatureSay`, goal, party/movement/combat/trade/inventory действие. Результат —
+только immutable observer-only response/action plan с
+`CHECKPOINT_2_REQUIRED`.
 
-- profile component optimistic transactions для атомарного `social.state` + `social.receipts`;
-- двухфазный `beginStop`/`finishStop` и shared scheduler pulse;
-- immutable semantic generation с строгими hash/domain/slot contracts;
-- bounded state codec и observer-only sink вместо action facade.
+## Доказанная delivery boundary
 
-Дополнительно прочитаны точечно:
+Точечно прочитаны `ServerPacket.runImpl`, `Player.sendPacket`, client-bound
+`PlayerOutboundSession`, `GameClient.sendPacket`, а также General, Whisper, Party
+и Trade handler paths. Все целевые send/broadcast обходы синхронны, а
+`GameClient.sendPacket` вызывает `packet.runImpl(_player)` до возврата. Поэтому
+`Say2`-scope закрывается после всех штатных recipient callbacks. Late delivery
+после CLOSED учитывается как mismatch и не создаёт batch.
 
-- `PhantomPartyCoordinator.java` — доказать first JOIN transition и его ordering;
-- `PhantomServerShutdownHandoffSuite.java` — сохранить серверный drain order;
-- `PhantomIdentityLeaseRegistry.java` — переиспользовать identity ingress lease;
-- `PhantomActivityWorkSinkBridge.java` — переиспользовать общий pulse без worker на диалог;
-- `build.xml` — сохранить cumulative Ant wiring;
-- `verify-task-018.ps1` и `verify-task-019.ps1` — descendant-compatible verifier pattern.
+Невалидный/null/oversized final-filtered input создаёт inert scope с фиксированной
+rejection-метрикой. Обычный handler всё равно вызывается ровно один раз. Callback
+исключения изолированы, close идемпотентен.
 
-Непроверенных API библиотек не использовано; новые зависимости и внешние provider-ы не добавлялись.
+## Resumable shared-pulse planner
 
-## Changed files
+Batch остаётся owned до `DONE`/`FAILED` и проходит фазы:
 
-- Generic chat seam: `ChatObservationService.java`, `Say2.java`, `CreatureSay.java`.
-- Conversation: семь Java-файлов под `phantoms/conversation` и два data-файла.
-- Social/profile: repository atomic mutation, receipt ledger, store/service/event result.
-- Semantic: strict identity/slot/pattern/budget/start-drain и fragment continuation.
-- Party/system: точечный first JOIN transition, lifecycle composition и snapshot.
-- Tests/build: восемь focused routes, affected/final aggregates и cumulative verify.
-- Docs/tools: master status, Goal 019 review/verifier, architecture contract, task package,
-  этот отчёт и `verify-task-020c1.ps1`.
+```text
+COLLECTING, RESOLVING_OBSERVERS, ELECTING, LOADING_STATE,
+BUILDING_CONTEXT, UNDERSTANDING, READING_SOCIAL,
+PERSISTING, PUBLISHING, DONE, FAILED
+```
 
-## Architecture decisions
+Pulse ownership использует CAS `AtomicBoolean`. Bounded delayed/due queue и
+membership set заменили полный scan `_batches`. После каждого operation batch
+возвращается в хвост due queue, сохраняя cursor/generation/phase. Ни один внешний
+context/materialization/topology/semantic/social/store/plan callback не выполняется
+под index monitor.
 
-- `Say2` создаёт dispatch scope только после всех существующих фильтров и закрывает его
-  в `finally` непосредственно вокруг текущего `IChatHandler.onChat`.
-- Текстовый `CreatureSay` захватывает immutable dispatch descriptor при создании;
-  recipient callback вызывается после штатного snoop только для реально доставленного пакета.
-- Generic chat service не зависит от `phantoms`; установлен только один bounded observer.
-- Conversation объединяет recipient callbacks по dispatch ID на один shared pulse, затем
-  детерминированно выбирает private recipient, party leader/min profile или unique vocative.
-- `conversation.state` ограничен 4096 байтами, восемью sessions, восемью recent hashes и
-  четырьмя pending slots; authority generation включает semantic/social/conversation hashes.
-- Clarification продолжает только ожидаемые slot families через `resolveFragment`, не выбирая
-  новый intent из фрагмента.
-- Три social/personality modifiers выбирают style; template selection включает catalog hash.
-- Persistence выполняется до публикации immutable observer-only plan.
+Операции считаются точно: каждый observer lookup, election, load, context build,
+semantic call, каждый из трёх social modifiers, persistence и publication.
+Budget exhaustion не повторяет завершённую boundary и не теряет dispatch.
+
+## Persistence и authority
+
+Persistence outcomes типизированы как `SAVED`, `DUPLICATE`, `FAILED` и
+`AUTHORITY_STALE`; publication разрешена только после `SAVED`. Optimistic conflict
+перезагружает exact state отдельной budgeted операцией. Если observation уже
+сохранён, losing worker завершает `DUPLICATE` без rewrite и второго plan.
+
+Отсутствующий `conversation.state` создаётся. Существующий state с несовпадающей
+authority generation завершается `AUTHORITY_STALE`: реальный DB payload и row
+version не меняются, session/recent state не сбрасывается, plan/proposal не
+публикуется. `recentObservationHashes` хранится oldest-to-newest; duplicate
+отклоняется, eviction удаляет oldest, codec/restart сохраняют порядок без
+лексической сортировки.
 
 ## Activation gates Goal 018/019
 
-- `social.state` и `social.receipts` обновляются одной транзакцией с optimistic versions.
-- Ledger хранит до 96 exact full-hash receipts; stale/out-of-order event сохраняет причинность
-  и не изменяет relationship delta задним числом.
-- Party JOIN публикуется ровно при первом exact `OBSERVED -> COMMITTED` переходе.
-- Semantic identity, namespace slots, pattern topology и candidate budget fail closed.
-- Start/drain учитывает параллельный start claim и все operations.
-- Production authority test разрешает все семь grounded families через реальные
-  game-knowledge/topology/party-role seams.
+Принятая foundation из implementation commit сохранена без изменений:
 
-## DB, migrations и config
+- atomic `social.state` + `social.receipts`;
+- stale/out-of-order causality;
+- first exact JOIN emission;
+- strict semantic identity/slot/pattern/budget/start-drain;
+- real production authority test.
 
-- Использовалась только `l2jmobiush5_phantom_test`; seed Goal: `20002001`.
-- Production DB автоматическими тестами не изменялась.
-- Schema/migrations отсутствуют; новые данные живут в существующей profile-component таблице.
-- Новых config keys нет. Phantom World по-прежнему выключен существующим feature flag.
+Goal 019 остаётся `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; verifier 019 остаётся
+historical/descendant-compatible. Verifier 018 сохраняет descendant-compatible
+remote ancestry.
 
-## Focused и affected test results
+## Scope
 
-- `phantom-social-activation-test`: PASS, 3/3.
-- `phantom-semantic-activation-test`: PASS, 3/3.
+- Cumulative Goal 019 parent → final tree: 53 файла.
+- Cumulative production/data/config: 26.
+- Cumulative new production/data: 11.
+- Completion scope: 11 файлов.
+- Completion production: 4 файла.
+- Completion new production/data: 0.
+- Не менялись data, schema, social/semantic foundation, `Player.java`, `Party.java`,
+  existing chat handlers и другие хроники.
+
+Completion production files:
+
+- `java/org/l2jmobius/gameserver/model/chat/ChatObservationService.java`;
+- `java/org/l2jmobius/gameserver/network/clientpackets/Say2.java`;
+- `java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationService.java`;
+- `java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationModel.java`.
+
+Tests/docs/tooling:
+
+- `PhantomChatObservationSuite.java`;
+- `PhantomConversationSuite.java`;
+- `PhantomConversationIntegrationSuite.java`;
+- `verify-task-020c1.ps1`;
+- текущий `ARCHITECTURE.md`;
+- `docs/phantoms/reviews/020-checkpoint-1-independent-review.md`;
+- этот отчёт.
+
+## Focused verification
+
+- `ant compile`: PASS после одного исправления arity нового Snapshot record.
 - `phantom-chat-observation-test`: PASS, 2/2.
 - `phantom-conversation-catalog-codec-test`: PASS, 2/2.
 - `phantom-conversation-understanding-test`: PASS, 2/2.
 - `phantom-conversation-social-style-test`: PASS, 1/1.
-- `phantom-conversation-chat-integration-test`: PASS, 2/2.
-- `phantom-conversation-lifecycle-performance-smoke`: PASS, 3/3.
-- `phantom-profile-persistence-test`: PASS, 18/18.
-- `phantom-social-party-integration-test`: PASS, 3/3.
-- `phantom-semantic-test`: PASS, все focused semantic sections.
+- `phantom-conversation-chat-integration-test`: PASS, 5/5.
+- `phantom-conversation-lifecycle-performance-smoke`: PASS, 4/4.
+- `phantom-social-activation-test`: PASS, 3/3.
+- `phantom-semantic-activation-test`: PASS, 3/3.
 - `phantom-server-shutdown-handoff-test`: PASS, 7/7.
-- `phantom-conversation-checkpoint1-affected-test`: PASS.
 
-## Performance measurements
+Focused regressions подтверждают 32 recipients на нескольких pulses, exhaustion
+на каждой фазе, 256 batches без scan, interleaved A/B без смешивания, запрет
+election до CLOSED, отсутствие внешнего callback под monitor, read-only authority
+drift, inert invalid seam, optimistic duplicate, temporal codec/restart, shutdown
+во всех operational phases и отсутствие outbound/actions.
 
-- 100,000 generic non-managed deliveries прошли bounded ignore path без DB и plan output.
-- 100,000 mixed deliveries сохранили queue/batch/cache/state bounds и максимум 32 операции/pulse.
-- Worst-case receipts: `6 + 96 * 42 = 4038` байт, меньше component limit 4096.
-- Worst-case conversation state codec подтверждён focused boundary tests на 4096 байтах.
-- Отдельный thread/executor/future для фантома или диалога не создаётся.
+## Terminal verification
 
-## Commands
+- Verifier 018: PASS, `TASK018_VERIFIER_OK`.
+- Verifier 019: PASS, `TASK019_VERIFIER_OK`.
+- Verifier 020c1 precommit: PASS, `TASK020C1_VERIFIER_OK`, working mode,
+  cumulative scope `53/26/11`, completion scope `11/4/0`.
+- Final checkpoint aggregate: PASS, `BUILD SUCCESSFUL`, 1 минута 12 секунд.
+- Единственный дополнительный full `ant verify`: PASS, `BUILD SUCCESSFUL`,
+  13 минут 6 секунд. Второй full verify не запускался.
+- Standalone `ant jar`: PASS, `BUILD SUCCESSFUL`, 13 секунд.
+- Ordinary completion commit/push: `PENDING`.
+- Два byte-identical accepted verifier 020c1: `PENDING`.
 
-- Восемь exact focused Ant targets запускались отдельно; после lifecycle-hardening повторены
-  chat observation, lifecycle/performance, shutdown handoff и semantic activation.
-- Выполнен exact `phantom-conversation-checkpoint1-affected-test`.
-- `powershell -File tools/phantoms/verify-task-019.ps1` выполнен до production edits.
-- Terminal aggregate/verify/jar и post-commit verifier evidence находятся только в
-  разделе «Терминальные результаты».
+## DB, performance и ограничения
 
-Git-команды использовались, потому что task прямо требует graph/scope guard, commit и push:
-`git status`, `git branch --show-current`, `git rev-parse`, `git diff --name-status`,
-`git diff --name-only`, `git diff --check`, `git ls-files --others`, а verifier-скрипты
-дополнительно используют read-only `git show`, `git log`, `git merge-base` и `git ls-tree`.
-История ещё не изменялась на момент формирования основной части отчёта.
+Использовалась только `l2jmobiush5_phantom_test`. Production DB не изменялась.
+Schema/migrations/config keys отсутствуют. 256-batch regression сохранил bounds:
+ingress 1024, batches 256, observers 32, operations/pulse 32. Отдельный worker,
+executor, future или thread на conversation/phantom не добавлен.
 
-## Deviations и bounded exceptions
+Checkpoint 2, outbound/action execution, Goal 021 и Goal 025 не начинались.
+Следующий шаг после успешного terminal evidence — только независимый review.
 
-- `PhantomSocialEventSink.java` изменён для обязательного structured `STALE`, хотя literal
-  allowlist перечислял social store/service/receipt family; без этого causality не выражается.
-- `PhantomSemanticGrounding.java` изменён для canonical uppercase production authority hashes
-  и real authority gate; файл был в обязательном READ_SET, но не в literal existing allowlist.
-- `PhantomMaterializationService.java` получил разрешённый task-пакетом узкий read-only accessor.
-- Три managed-profile corpus fixtures переведены на строгий numeric `profile:<id>` identity.
-- `verify-task-018.ps1` получил минимальный descendant-compatible remote ancestry check:
-  cumulative `ant verify` доказал, что старое exact-remote условие уже ложно на accepted Goal 019.
-- Scope остаётся внутри всех трёх жёстких лимитов; архитектурное расширение не вводилось.
+## Git
 
-## Limitations, risks и next step
-
-- Checkpoint 1 намеренно не создаёт outbound `CreatureSay`, goals или action execution.
-- Party/movement/combat/trade/inventory действия не вызываются и не резервируются.
-- Plan sink хранит только bounded counters/last immutable plan; это не очередь исполнения.
-- Callback отражает `ServerPacket.runImpl(Player)` delivery; сетевое подтверждение клиента
-  протоколом High Five не существует и не имитируется.
-- Goal 020 Checkpoint 2, action/outbound delivery и Goal 021 остаются `NOT_STARTED`.
-- Следующий шаг — независимый review этого checkpoint; до принятия gate новый slice не начинать.
+Разрешённые task authority git-команды используются для graph/scope/diff guards,
+ordinary commit и push. Amend/rebase/squash/merge/force/force-with-lease не
+используются. Completion commit — ровно один direct child, содержащий этот отчёт;
+его exact SHA и remote evidence публикуются post-commit verifier и финальным
+handoff без amend или второго commit.

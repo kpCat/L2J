@@ -4,7 +4,9 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $RequiredParent = "384b521f2cd29f4162c9aca9116eb0ff40cbd681"
-$RequiredSubject = "feat(phantoms): add conversation observation and planning"
+$ImplementationCommit = "e7ba469e63caa6dee113278087258fab005a435a"
+$ImplementationSubject = "feat(phantoms): add conversation observation and planning"
+$CompletionSubject = "fix(phantoms): complete conversation planning safety"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "20002001"
 
@@ -42,10 +44,15 @@ function Read-TargetBytes([string] $relativePath)
 		return [IO.File]::ReadAllBytes($path)
 	}
 
+	return Read-CommitBytes $script:TargetCommit $relativePath
+}
+
+function Read-CommitBytes([string] $commit, [string] $relativePath)
+{
 	$repositoryPath = $script:ModulePrefix + $relativePath
 	$start = [Diagnostics.ProcessStartInfo]::new()
 	$start.FileName = "git"
-	$start.Arguments = "show $($script:AcceptedCommit)`:$repositoryPath"
+	$start.Arguments = "show $commit`:$repositoryPath"
 	$start.UseShellExecute = $false
 	$start.RedirectStandardOutput = $true
 	$start.RedirectStandardError = $true
@@ -55,7 +62,7 @@ function Read-TargetBytes([string] $relativePath)
 	$process.StandardOutput.BaseStream.CopyTo($memory)
 	$errorText = $process.StandardError.ReadToEnd()
 	$process.WaitForExit()
-	Assert-True ($process.ExitCode -eq 0) "Accepted Goal 020c1 blob is absent: $relativePath ($errorText)"
+	Assert-True ($process.ExitCode -eq 0) "Goal 020c1 blob is absent at $commit`: $relativePath ($errorText)"
 	return $memory.ToArray()
 }
 
@@ -71,6 +78,19 @@ function Get-TargetSha256([string] $relativePath)
 	try
 	{
 		return ([BitConverter]::ToString($sha256.ComputeHash((Read-TargetBytes $relativePath)))).Replace("-", "")
+	}
+	finally
+	{
+		$sha256.Dispose()
+	}
+}
+
+function Get-CommitSha256([string] $commit, [string] $relativePath)
+{
+	$sha256 = [Security.Cryptography.SHA256]::Create()
+	try
+	{
+		return ([BitConverter]::ToString($sha256.ComputeHash((Read-CommitBytes $commit $relativePath)))).Replace("-", "")
 	}
 	finally
 	{
@@ -117,7 +137,8 @@ function Is-AllowedPath([string] $path)
 		"tools/phantoms/verify-task-020c1.ps1",
 		"docs/phantoms/architecture/CONVERSATION_OBSERVATION_PLANNING_CONTRACT.md",
 		"docs/phantoms/reports/020-checkpoint-1-conversation-observation-planning.md",
-		"docs/phantoms/reviews/019-russian-semantic-understanding-review.md"
+		"docs/phantoms/reviews/019-russian-semantic-understanding-review.md",
+		"docs/phantoms/reviews/020-checkpoint-1-independent-review.md"
 	)
 	if ($exact -contains $path)
 	{
@@ -130,6 +151,29 @@ function Is-AllowedPath([string] $path)
 	return $path -match "^docs/phantoms/tasks/020-checkpoint-1-conversation-observation-planning/[^/]+$"
 }
 
+function Is-CompletionAllowedPath([string] $path)
+{
+	return @(
+		"build.xml",
+		"java/org/l2jmobius/gameserver/model/chat/ChatObservationService.java",
+		"java/org/l2jmobius/gameserver/network/clientpackets/Say2.java",
+		"java/org/l2jmobius/gameserver/network/serverpackets/CreatureSay.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationService.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationModel.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationStateCodec.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationCatalog.java",
+		"java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomChatObservationSuite.java",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomConversationSuite.java",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomConversationIntegrationSuite.java",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomServerShutdownHandoffSuite.java",
+		"tools/phantoms/verify-task-020c1.ps1",
+		"docs/phantoms/tasks/020-checkpoint-1-conversation-observation-planning/ARCHITECTURE.md",
+		"docs/phantoms/reports/020-checkpoint-1-conversation-observation-planning.md",
+		"docs/phantoms/reviews/020-checkpoint-1-independent-review.md"
+	) -contains $path
+}
+
 $script:ModuleRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 Push-Location $script:ModuleRoot
 try
@@ -140,26 +184,31 @@ try
 	$branch = (Git-Lines @("branch", "--show-current") | Select-Object -First 1)
 	Assert-True ($branch -eq $RequiredBranch) "Goal 020c1 must remain on feature/phantom-world."
 	$head = (Git-Lines @("rev-parse", "HEAD") | Select-Object -First 1)
+	$implementationParent = (Git-Lines @("rev-parse", "$ImplementationCommit^") | Select-Object -First 1)
+	$implementationActualSubject = (Git-Lines @("show", "-s", "--format=%s", $ImplementationCommit) | Select-Object -First 1)
+	Assert-True (($implementationParent -eq $RequiredParent) -and ($implementationActualSubject -eq $ImplementationSubject)) "Pinned Goal 020c1 implementation commit graph or subject changed."
+	& git merge-base --is-ancestor $ImplementationCommit $head
+	Assert-True ($LASTEXITCODE -eq 0) "Pinned Goal 020c1 implementation commit is not an ancestor of HEAD."
 	$script:Mode = "working"
-	$script:AcceptedCommit = ""
-	if ($head -ne $RequiredParent)
+	$script:TargetCommit = ""
+	$script:CompletionCommit = ""
+	if ($head -ne $ImplementationCommit)
 	{
-		& git merge-base --is-ancestor $RequiredParent $head
-		Assert-True ($LASTEXITCODE -eq 0) "Required Goal 019 parent is not an ancestor of HEAD."
 		$candidates = @()
-		foreach ($commit in Git-Lines @("rev-list", "--ancestry-path", "$RequiredParent..$head"))
+		foreach ($commit in Git-Lines @("rev-list", "--ancestry-path", "$ImplementationCommit..$head"))
 		{
 			$parent = (Git-Lines @("rev-parse", "$commit^") | Select-Object -First 1)
 			$subject = (Git-Lines @("show", "-s", "--format=%s", $commit) | Select-Object -First 1)
-			if (($parent -eq $RequiredParent) -and ($subject -eq $RequiredSubject))
+			if (($parent -eq $ImplementationCommit) -and ($subject -eq $CompletionSubject))
 			{
 				$candidates += $commit
 			}
 		}
-		Assert-True ($candidates.Count -eq 1) "Expected one unique ordinary Goal 020c1 direct child."
-		$script:AcceptedCommit = $candidates[0]
-		& git merge-base --is-ancestor $script:AcceptedCommit $head
-		Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 020c1 commit is not an ancestor of HEAD."
+		Assert-True ($candidates.Count -eq 1) "Expected one unique ordinary Goal 020c1 completion child."
+		$script:CompletionCommit = $candidates[0]
+		$script:TargetCommit = $script:CompletionCommit
+		& git merge-base --is-ancestor $script:CompletionCommit $head
+		Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 020c1 completion child is not an ancestor of HEAD."
 		$script:Mode = "accepted"
 	}
 
@@ -185,7 +234,7 @@ try
 	}
 	else
 	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $RequiredParent, $script:AcceptedCommit, "--"))
+		foreach ($line in Git-Lines @("diff", "--name-only", $RequiredParent, $script:TargetCommit, "--"))
 		{
 			[void] $changed.Add((To-ModulePath $line))
 		}
@@ -219,6 +268,48 @@ try
 		Assert-True ($changed.Contains($required)) "Required Goal 020c1 artifact is absent: $required"
 	}
 
+	$completionChanged = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+	if ($script:Mode -eq "working")
+	{
+		foreach ($line in Git-Lines @("diff", "--name-only", $ImplementationCommit, "--"))
+		{
+			[void] $completionChanged.Add((To-ModulePath $line))
+		}
+		foreach ($line in Git-Lines @("-c", "core.quotepath=false", "status", "--porcelain=v1", "--untracked-files=all", "--", "."))
+		{
+			if ($line.Length -ge 4)
+			{
+				$path = $line.Substring(3)
+				if ($path.Contains(" -> "))
+				{
+					$path = $path.Split(@(" -> "), [StringSplitOptions]::None)[1]
+				}
+				[void] $completionChanged.Add((To-ModulePath $path))
+			}
+		}
+	}
+	else
+	{
+		foreach ($line in Git-Lines @("diff", "--name-only", $ImplementationCommit, $script:TargetCommit, "--"))
+		{
+			[void] $completionChanged.Add((To-ModulePath $line))
+		}
+	}
+	$completionPaths = @($completionChanged | Sort-Object)
+	Assert-True (($completionPaths.Count -gt 0) -and ($completionPaths.Count -le 16)) "Goal 020c1 completion scope must contain 1..16 files."
+	Assert-True ($completionChanged.Contains("docs/phantoms/reviews/020-checkpoint-1-independent-review.md")) "Goal 020c1 independent review handoff is absent."
+	foreach ($path in $completionPaths)
+	{
+		Assert-True (Is-CompletionAllowedPath $path) "Out-of-scope Goal 020c1 completion path: $path"
+	}
+	$completionProduction = @($completionPaths | Where-Object { ($_ -match "^java/org/l2jmobius/gameserver/") -or ($_ -match "^dist/game/(config|data)/") })
+	Assert-True ($completionProduction.Count -le 8) "Goal 020c1 completion exceeds eight production files."
+	foreach ($path in $completionProduction)
+	{
+		$implementationEntry = @(Git-Lines @("-C", $repositoryRoot, "ls-tree", "--name-only", $ImplementationCommit, "--", ($script:ModulePrefix + $path)))
+		Assert-True ($implementationEntry.Count -eq 1) "Goal 020c1 completion adds a new production/data file: $path"
+	}
+
 	$production = @($changedPaths | Where-Object { ($_ -match "^java/org/l2jmobius/gameserver/") -or ($_ -match "^dist/game/(config|data)/") })
 	Assert-True ($production.Count -le 30) "Goal 020c1 exceeds 30 changed production/data/config files."
 	$newProduction = @()
@@ -234,11 +325,12 @@ try
 
 	$manifest = Read-TargetUtf8Strict "docs/phantoms/tasks/020-checkpoint-1-conversation-observation-planning/PACKAGE_MANIFEST.json" | ConvertFrom-Json
 	Assert-True ($manifest.requiredParent -eq $RequiredParent) "Goal 020c1 task package parent mismatch."
-	Assert-True ($manifest.commitSubject -eq $RequiredSubject) "Goal 020c1 task package subject mismatch."
+	Assert-True ($manifest.commitSubject -eq $ImplementationSubject) "Goal 020c1 task package subject mismatch."
 	Assert-True ([string] $manifest.deterministicSeed -eq $RequiredSeed) "Goal 020c1 task package seed mismatch."
 	foreach ($property in $manifest.payloadSha256.PSObject.Properties)
 	{
-		Assert-True ((Get-TargetSha256 $property.Name) -eq ([string] $property.Value).ToUpperInvariant()) "Goal 020c1 task package hash mismatch: $($property.Name)"
+		$actualHash = if ($property.Name -eq "docs/phantoms/tasks/020-checkpoint-1-conversation-observation-planning/ARCHITECTURE.md") { Get-CommitSha256 $ImplementationCommit $property.Name } else { Get-TargetSha256 $property.Name }
+		Assert-True ($actualHash -eq ([string] $property.Value).ToUpperInvariant()) "Goal 020c1 task package hash mismatch: $($property.Name)"
 	}
 
 	$review019 = Read-TargetUtf8Strict "docs/phantoms/reviews/019-russian-semantic-understanding-review.md"
@@ -254,7 +346,7 @@ try
 	$chat = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/model/chat/ChatObservationService.java"
 	$say2 = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/network/clientpackets/Say2.java"
 	$creatureSay = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/network/serverpackets/CreatureSay.java"
-	Assert-True ($chat -notmatch "org\.l2jmobius\.gameserver\.phantoms" -and $chat -match "ThreadLocal<DispatchScope>" -and $chat -match "A chat delivery observer is already registered" -and $chat -match "callbackFailures") "Generic chat seam dependency or bounded registration contract is wrong."
+	Assert-True ($chat -notmatch "org\.l2jmobius\.gameserver\.phantoms" -and $chat -match "ThreadLocal<DispatchScope>" -and $chat -match "A chat delivery observer is already registered" -and $chat -match "onDispatchClosed" -and $chat -match "validDescriptorFields" -and $chat -match "callbackFailures") "Generic chat seam dependency, close boundary or bounded registration contract is wrong."
 	$filterIndex = $say2.IndexOf("checkText()")
 	$scopeIndex = $say2.IndexOf("openClientDispatch")
 	$handlerIndex = $say2.IndexOf("handler.onChat", $scopeIndex)
@@ -274,9 +366,15 @@ try
 	$model = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationModel.java"
 	$codec = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationStateCodec.java"
 	Assert-True ($planSink -match "observerOnly" -and $planSink -match "final class ObserverOnly" -and $planSink -notmatch "CreatureSay|sendPacket") "Conversation plan sink is not observer-only."
-	Assert-True ($service -match "aggregationPulses" -and $service -match "TreeMap<Long, DeliveredObservation>" -and $service -match "case WHISPER" -and $service -match "case PARTY" -and $service -match "exactAddress" -and $service -match "resolveFragment") "Conversation aggregation, election or clarification continuation is incomplete."
+	foreach ($phase in @("COLLECTING", "RESOLVING_OBSERVERS", "ELECTING", "LOADING_STATE", "BUILDING_CONTEXT", "UNDERSTANDING", "READING_SOCIAL", "PERSISTING", "PUBLISHING", "DONE", "FAILED"))
+	{
+		Assert-True ($service.Contains($phase)) "Conversation resumable phase is absent: $phase"
+	}
+	Assert-True ($service -match "AtomicBoolean _pulseOwner" -and $service -match "PriorityQueue<DueEntry>" -and $service -match "_dueMembership" -and $service -notmatch "_pulseMonitor|_batches\.entrySet\(\)\.stream") "Conversation pulse ownership or incremental due index is incomplete."
+	Assert-True ($service -match "PersistenceStatus" -and $service -match "AUTHORITY_STALE" -and $service -match "token\.conflictReload" -and $service -match "onDispatchClosed" -and $service -match "case WHISPER" -and $service -match "case PARTY" -and $service -match "exactAddress" -and $service -match "resolveFragment") "Conversation aggregation, typed persistence, election or clarification continuation is incomplete."
 	Assert-True ($service -match "conversationCatalogHash" -or $service -match "_catalog\.hash\(\)") "Conversation catalog hash is absent from deterministic planning."
 	Assert-True ($model -match 'COMPONENT_TYPE = "conversation\.state"' -and $model -match "MAX_SESSIONS = 8" -and $model -match "MAX_RECENT_HASHES = 8" -and $model -match "MAX_PENDING_SLOTS = 4") "Conversation state identity or bounds changed."
+	Assert-True ($model -match "orderedHashes" -and $model -notmatch "recentObservationHashes\s*=\s*sortedHashes|recent\.sort") "Recent observation hashes are not preserved oldest-to-newest."
 	Assert-True ($codec -match "DECLARED_WORST_CASE_BYTES = 3456" -and $codec -match "result\.length > 4096" -and $codec -match "has trailing bytes" -and $codec -match "is invalid") "Conversation codec is not compact and fail-closed."
 
 	$repository = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/profile/PhantomProfileRepository.java"
@@ -324,13 +422,15 @@ try
 	$integrationTests = Read-TargetUtf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomConversationIntegrationSuite.java"
 	$socialPartyTests = Read-TargetUtf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomSocialPartyIntegrationSuite.java"
 	Assert-True ($activationTests -match "PhantomProfileRepository\.open" -and $activationTests -match "production-authority" -and $socialPartyTests -match "PhantomTestDatabaseGuard\.TARGET_DATABASE" -and $socialPartyTests -match "First canonical JOIN") "Activation test does not cover real DB/authority/JOIN gates."
-	Assert-True ($integrationTests -match "100000" -and $integrationTests -match "actual-delivery" -and $integrationTests -match "observer-only") "Conversation integration/performance coverage is incomplete."
+	Assert-True ($integrationTests -match "DISPATCH_CLOSED" -and $integrationTests -match "32-recipient" -and $integrationTests -match "256-closed-batches" -and $integrationTests -match "AUTHORITY_STALE" -and $integrationTests -match "one-operation-budget" -and $integrationTests -match "shutdown-during-every-operational-phase") "Conversation completion integration/performance coverage is incomplete."
 
 	$contract = Read-TargetUtf8Strict "docs/phantoms/architecture/CONVERSATION_OBSERVATION_PLANNING_CONTRACT.md"
 	$report = Read-TargetUtf8Strict "docs/phantoms/reports/020-checkpoint-1-conversation-observation-planning.md"
+	$review020 = Read-TargetUtf8Strict "docs/phantoms/reviews/020-checkpoint-1-independent-review.md"
 	Assert-True ($contract -match "delivery thread" -and $contract -match "observer-only" -and $contract -match "4096") "Conversation architecture contract is incomplete."
+	Assert-True ($review020 -match "PENDING_INDEPENDENT_REVIEW" -and $review020.Contains($ImplementationCommit) -and $review020.Contains($CompletionSubject)) "Goal 020c1 independent review handoff is incomplete."
 	Assert-True (($report -split "`r?`n").Count -le 220) "Goal 020c1 report exceeds 220 lines."
-	Assert-True ($report.Contains($RequiredParent) -and $report.Contains($RequiredSubject)) "Goal 020c1 report graph evidence is incomplete."
+	Assert-True ($report.Contains($RequiredParent) -and $report.Contains($ImplementationCommit) -and $report.Contains($ImplementationSubject) -and $report.Contains($CompletionSubject)) "Goal 020c1 report graph evidence is incomplete."
 	$completion = "OK"
 	if ($script:Mode -eq "accepted")
 	{
@@ -366,19 +466,33 @@ try
 	if ($script:Mode -eq "accepted")
 	{
 		$remote = (Git-Lines @("rev-parse", "origin/feature/phantom-world") | Select-Object -First 1)
-		& git merge-base --is-ancestor $script:AcceptedCommit $remote
+		& git merge-base --is-ancestor $script:CompletionCommit $remote
 		Assert-True ($LASTEXITCODE -eq 0) "Remote feature/phantom-world does not contain accepted Goal 020c1."
 		$jarEntries = & jar tf (Join-Path $script:ModuleRoot "dist/libs/GameServer.jar")
 		Assert-True ($LASTEXITCODE -eq 0) "Could not inspect GameServer.jar."
 		foreach ($entry in @(
 			"org/l2jmobius/gameserver/model/chat/ChatObservationService.class",
 			"org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationService.class",
-			"org/l2jmobius/gameserver/phantoms/social/PhantomSocialReceiptLedger.class",
-			"data/phantoms/conversation/high-five-ru-conversation-v1.xml",
-			"data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv"
+			"org/l2jmobius/gameserver/phantoms/social/PhantomSocialReceiptLedger.class"
 		))
 		{
 			Assert-True ($jarEntries -contains $entry) "GameServer.jar lacks Goal 020c1 entry: $entry"
+		}
+		$conversationJava = Git-Lines @("-C", $repositoryRoot, "ls-tree", "-r", "--name-only", $script:TargetCommit, "--", ($script:ModulePrefix + "java/org/l2jmobius/gameserver/phantoms/conversation"))
+		foreach ($sourcePath in @($conversationJava | Where-Object { $_.EndsWith(".java", [StringComparison]::Ordinal) }))
+		{
+			$classEntry = (To-ModulePath $sourcePath).Substring("java/".Length).Replace(".java", ".class")
+			Assert-True ($jarEntries -contains $classEntry) "GameServer.jar lacks compiled conversation class: $classEntry"
+		}
+		foreach ($dataPath in @(
+			"dist/game/data/phantoms/conversation/high-five-ru-conversation-v1.xml",
+			"dist/game/data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv"
+		))
+		{
+			$tracked = @(Git-Lines @("-C", $repositoryRoot, "ls-tree", "--name-only", $script:TargetCommit, "--", ($script:ModulePrefix + $dataPath)))
+			Assert-True ($tracked.Count -eq 1) "Canonical tracked conversation datapack is absent: $dataPath"
+			$jarDataEntry = $dataPath.Substring("dist/game/".Length)
+			Assert-True ($jarEntries -notcontains $jarDataEntry) "Conversation datapack must remain outside GameServer.jar: $jarDataEntry"
 		}
 	}
 	else
@@ -389,7 +503,7 @@ try
 
 	if ($script:Mode -eq "accepted")
 	{
-		& git diff --check $RequiredParent $script:AcceptedCommit --
+		& git diff --check $RequiredParent $script:TargetCommit --
 	}
 	else
 	{
@@ -399,13 +513,16 @@ try
 
 	Write-Output "TASK020C1_VERIFIER_$completion"
 	Write-Output "mode=$($script:Mode)"
-	Write-Output "accepted_commit=$(if ($script:Mode -eq 'accepted') { $script:AcceptedCommit } else { 'WORKING' })"
+	Write-Output "implementation_commit=$ImplementationCommit"
+	Write-Output "completion_commit=$(if ($script:Mode -eq 'accepted') { $script:CompletionCommit } else { 'WORKING' })"
 	Write-Output "accepted_parent=$RequiredParent"
 	Write-Output "catalog_sha256=$catalogHash"
 	Write-Output "corpus_sha256=$corpusHash"
 	Write-Output "scope=$($changedPaths.Count)"
 	Write-Output "production=$($production.Count)"
 	Write-Output "new_production=$($newProduction.Count)"
+	Write-Output "completion_scope=$($completionPaths.Count)"
+	Write-Output "completion_production=$($completionProduction.Count)"
 }
 finally
 {

@@ -98,9 +98,12 @@ public final class PhantomConversationSuite implements PhantomTestSuite
 			final PhantomConversationStateCodec codec = new PhantomConversationStateCodec();
 			final String a = "A".repeat(64);
 			final ConversationSession session = new ConversationSession(ChatType.WHISPER, new PhantomDomainRef("character.object", "100"), 1000, 1001, "item.acquire.query", List.of(SlotValue.domain(SlotType.ITEM, new PhantomDomainRef("item", "57"), -1, -1)), null, a, a, a);
-			final ConversationState state = new ConversationState(a, "B".repeat(64), "C".repeat(64), "D".repeat(64), "E".repeat(64), "F".repeat(64), "1".repeat(64), 1000, List.of(session), List.of("2".repeat(64)));
+			final List<String> temporalHashes = List.of("F".repeat(64), "2".repeat(64), "A".repeat(64));
+			final ConversationState state = new ConversationState(a, "B".repeat(64), "C".repeat(64), "D".repeat(64), "E".repeat(64), "F".repeat(64), "1".repeat(64), 1000, List.of(session), temporalHashes);
 			final byte[] encoded = codec.encode(state);
 			PhantomAssertions.assertEquals(state, codec.decode(encoded), "conversation.state round-trip changed durable facts.");
+			PhantomAssertions.assertEquals(temporalHashes, codec.decode(encoded).recentObservationHashes(), "conversation.state codec did not preserve oldest-to-newest observation order.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new ConversationState(a, "B".repeat(64), "C".repeat(64), "D".repeat(64), "E".repeat(64), "F".repeat(64), "1".repeat(64), 1000, List.of(session), List.of(a, a)), "Duplicate recent observation hash was accepted.");
 			PhantomAssertions.assertTrue(PhantomConversationStateCodec.DECLARED_WORST_CASE_BYTES <= 4096, "Declared conversation.state worst case exceeds 4096.");
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> codec.decode(java.util.Arrays.copyOf(encoded, encoded.length - 1)), "Truncated conversation.state was accepted.");
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> codec.decode(java.util.Arrays.copyOf(encoded, encoded.length + 1)), "Trailing conversation.state byte was accepted.");

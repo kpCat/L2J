@@ -5,6 +5,7 @@
 ```text
 final filtered Say2 dispatch
 → generic actual-delivery observation
+→ synchronous DISPATCH_CLOSED boundary
 → bounded Phantom ingress queue
 → managed-observer aggregation/election
 → immutable context snapshot
@@ -15,6 +16,12 @@ final filtered Say2 dispatch
 ```
 
 No dependency may point back from core chat/network code into Phantom packages.
+
+`GameClient.sendPacket` invokes `ServerPacket.runImpl(Player)` synchronously, and
+all four supported chat handlers iterate/send synchronously. `Say2` therefore
+closes the observation scope only after every legitimate `CreatureSay` recipient
+callback has returned. A delivery after that close is a mismatch and cannot open
+a new batch.
 
 ## Safety boundary
 
@@ -76,6 +83,27 @@ Any drift fails closed before state reuse or plan publication.
 Ingress, batching, context construction, state mutation and plan publication all
 consume one shared operation budget. Unfinished batches are requeued after other
 due batches; no profile/session full scan occurs on a pulse.
+
+Each batch remains owned by one resumable state machine:
+
+```text
+COLLECTING → RESOLVING_OBSERVERS → ELECTING → LOADING_STATE
+→ BUILDING_CONTEXT → UNDERSTANDING → READING_SOCIAL
+→ PERSISTING → PUBLISHING → DONE | FAILED
+```
+
+The pulse owner is a CAS claim. A bounded delayed/due queue plus membership set
+replaces full-map discovery. Observer lookup, election, load, context, each
+semantic operation, each of three social reads, persistence and publication each
+consume exactly one operation. No index monitor crosses an external boundary.
+
+## Persistence outcomes
+
+Persistence is typed as `SAVED`, `DUPLICATE`, `FAILED` or `AUTHORITY_STALE`.
+Only `SAVED` may publish. Existing state with a different authority generation is
+read-only: its payload, row version, sessions and recent hashes are not reset.
+Recent observation hashes retain temporal oldest-to-newest order across codec
+round-trips and restart.
 
 ## Checkpoint 2 handoff
 

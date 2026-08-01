@@ -220,22 +220,27 @@ public class Say2 extends ClientPacket
 		final IChatHandler handler = ChatHandler.getInstance().getHandler(chatType);
 		if (handler != null)
 		{
-			final DispatchHandle observationScope = ChatObservationService.getInstance().openClientDispatch(player.getObjectId(), player.getName(), chatType, _target, _text, System.currentTimeMillis());
-			try
-			{
-				handler.onChat(chatType, player, _target, _text);
-			}
-			finally
-			{
-				observationScope.close();
-			}
+			dispatchFinalFiltered(handler, chatType, player, _target, _text, System.currentTimeMillis());
 		}
 		else
 		{
 			PacketLogger.info("No handler registered for ChatType: " + _type + " Player: " + player);
 		}
 	}
-	
+
+	private static void dispatchFinalFiltered(IChatHandler handler, ChatType chatType, Player player, String target, String finalText, long epochMillis)
+	{
+		final DispatchHandle observationScope = ChatObservationService.getInstance().openClientDispatch(player.getObjectId(), player.getName(), chatType, target, finalText, epochMillis);
+		try
+		{
+			handler.onChat(chatType, player, target, finalText);
+		}
+		finally
+		{
+			observationScope.close();
+		}
+	}
+
 	private boolean checkBot(String text)
 	{
 		for (String botCommand : WALKER_COMMAND_LIST)
