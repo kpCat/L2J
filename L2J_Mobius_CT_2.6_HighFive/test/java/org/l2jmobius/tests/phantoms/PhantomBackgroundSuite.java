@@ -48,6 +48,7 @@ import java.util.function.IntUnaryOperator;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.config.PlayerConfig;
+import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.data.xml.DoorData;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
 import org.l2jmobius.gameserver.data.xml.ItemData;
@@ -67,6 +68,15 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Candidate;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Phase;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ReceiptKind;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority;
@@ -77,9 +87,11 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundLoginGuard;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchRequest;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchResult;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchMode;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DeathPolicy;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Drop;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DropDisposition;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DropOrigin;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.ExperienceTable;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.LevelForExperience;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.RewardPolicy;
@@ -176,7 +188,9 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		RECOVERY_TELEPORT("background-recovery-teleport", true),
 		REAL_LOGIN("background-real-login", true),
 		POSITION_CANONICALIZATION("background-position-canonicalization", true),
-		PRODUCTION_LOOT_UNBLOCK("background-production-loot-unblock", true);
+		PRODUCTION_LOOT_UNBLOCK("background-production-loot-unblock", true),
+		ACQUISITION_PARITY("acquisition-background-parity", true),
+		ACQUISITION_ATOMIC_RESTART("acquisition-atomic-restart", true);
 
 		private final String _id;
 		private final boolean _database;
@@ -190,6 +204,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private static final long SEED = 15001501L;
 	private static final long PRODUCTION_LOOT_UNBLOCK_SEED = 15001502L;
+	private static final long ACQUISITION_SEED = 21002101L;
 	private static final int TARGET_NPC_ID = 100;
 	private static final String ANCHOR_ID = "test.anchor";
 	private static final int PRODUCTION_TARGET_NPC_ID = 22859;
@@ -220,7 +235,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		final long expectedSeed = (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.POSITION_CANONICALIZATION) ? PRODUCTION_LOOT_UNBLOCK_SEED : SEED;
+		final long expectedSeed = (_mode == Mode.ACQUISITION_PARITY) || (_mode == Mode.ACQUISITION_ATOMIC_RESTART) ? ACQUISITION_SEED : ((_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.POSITION_CANONICALIZATION) ? PRODUCTION_LOOT_UNBLOCK_SEED : SEED);
 		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Goal 015 mode seed changed.");
 		if (_mode._database)
 		{
@@ -234,7 +249,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			}
-			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK))
+			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY))
 			{
 				_production = ProductionAuthorityFixture.start();
 				context.record("background.productionKnowledgeHash", _production.knowledge().snapshot().combinedHash());
@@ -285,7 +300,25 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			case REAL_LOGIN -> registerRealLogin(registry);
 			case POSITION_CANONICALIZATION -> registerPositionCanonicalization(registry);
 			case PRODUCTION_LOOT_UNBLOCK -> registerProductionLootUnblock(registry);
+			case ACQUISITION_PARITY -> registerAcquisitionParity(registry);
+			case ACQUISITION_ATOMIC_RESTART -> registerAcquisitionAtomicRestart(registry);
 		}
+	}
+
+	private void registerAcquisitionParity(PhantomTestRegistry registry)
+	{
+		registry.add("01-authoritative-death-drop-parity", _ -> testAcquisitionBackgroundParity(PhantomAcquisitionCatalog.Method.DEATH_DROP));
+		registry.add("02-authoritative-spoil-sweep-parity", _ -> testAcquisitionBackgroundParity(PhantomAcquisitionCatalog.Method.SPOIL_SWEEP));
+		registry.add("03-capacity-capability-and-death-controls", _ -> testAcquisitionBackgroundControls());
+		registry.add("04-ordinary-goal-015-regression", _ -> testAcquisitionOrdinaryRegression());
+	}
+
+	private void registerAcquisitionAtomicRestart(PhantomTestRegistry registry)
+	{
+		registry.add("01-precommit-fault-matrix-is-atomic", _ -> testAcquisitionPrecommitFaults());
+		registry.add("02-postcommit-restart-and-exact-replay", _ -> testAcquisitionPostcommitRestart());
+		registry.add("03-stale-identity-hash-and-version-guards", _ -> testAcquisitionAtomicGuards());
+		registry.add("04-repeated-active-background-conservation", _ -> testAcquisitionRepeatedTransitions());
 	}
 
 	private void registerModel(PhantomTestRegistry registry)
@@ -2459,6 +2492,251 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(PhantomBackgroundService.class.getDeclaredFields().length < 40, "Background coordinator accumulated unbounded infrastructure.");
 	}
 
+	private void testAcquisitionBackgroundParity(PhantomAcquisitionCatalog.Method method)
+	{
+		final AcquisitionParityFixture fixture = acquisitionParityFixture(method);
+		final BatchResult repeated = new PhantomBackgroundModel().evaluate(fixture.request());
+		PhantomAssertions.assertEquals(fixture.result(), repeated, "Authoritative acquisition background replay changed for " + method);
+		PhantomAssertions.assertTrue(fixture.result().acquisitionTargetDelta() > 0, "Authoritative acquisition target did not produce deterministic progress for " + method);
+		PhantomAssertions.assertEquals(fixture.result().acquisitionTargetDelta(), fixture.result().inventoryDelta().itemDeltas().getOrDefault(fixture.source().itemId(), 0L), "Acquisition target progress is not backed by the committed item delta for " + method);
+		PhantomAssertions.assertEquals(1L, fixture.input().target().drops().stream().filter(drop -> drop.origin() == DropOrigin.ACQUISITION_TARGET).count(), "Authoritative source did not identify exactly one acquisition target fact.");
+		PhantomAssertions.assertTrue(fixture.input().target().drops().stream().filter(drop -> drop.origin() != DropOrigin.ACQUISITION_TARGET).allMatch(drop -> drop.origin() == DropOrigin.INCIDENTAL_DEATH_DROP), "Incidental death drops were not kept separate from acquisition progress.");
+		PhantomAssertions.assertEquals(method == PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? BatchMode.ACQUISITION_SPOIL_SWEEP : BatchMode.ACQUISITION_DEATH_DROP, fixture.request().mode(), "Background acquisition mode changed.");
+	}
+
+	private void testAcquisitionBackgroundControls()
+	{
+		final AcquisitionParityFixture spoil = acquisitionParityFixture(PhantomAcquisitionCatalog.Method.SPOIL_SWEEP);
+		final PhantomBackgroundState missingCapability = acquisitionParityState(spoil.source(), List.of(), spoil.state().inventory(), spoil.state().combat(), spoil.state().vitals());
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> _production.authority().acquisitionInput(missingCapability, spoil.source()), "Missing durable spoil/sweep capability was admitted by authority.");
+		final BatchRequest ineligible = new BatchRequest(missingCapability, spoil.input().target(), spoil.input().rewardPolicy(), spoil.input().deathPolicy(), spoil.input().experienceTable(), spoil.input().levelForExperience(), false, BatchMode.ACQUISITION_SPOIL_SWEEP, spoil.source().itemId(), 1, false);
+		final BatchResult rejected = new PhantomBackgroundModel().evaluate(ineligible);
+		PhantomAssertions.assertEquals(PhantomBackgroundModel.ResultReason.ACQUISITION_INELIGIBLE, rejected.reason(), "Missing spoil capability did not fail closed.");
+		PhantomAssertions.assertEquals(0L, rejected.acquisitionTargetDelta(), "Missing spoil capability produced progress.");
+		PhantomAssertions.assertTrue(rejected.inventoryDelta().itemDeltas().isEmpty(), "Missing spoil capability produced item mutations.");
+
+		final InventoryFacts full = new InventoryFacts(List.of(spoil.source().itemId()), List.of(), "acquisition-capacity", 0, 0, 0, 0);
+		final PhantomBackgroundState capacityState = acquisitionParityState(spoil.source(), spoil.state().autoGetSkills(), full, spoil.state().combat(), spoil.state().vitals());
+		final BatchRequest capacityRequest = new BatchRequest(capacityState, spoil.input().target(), spoil.input().rewardPolicy(), spoil.input().deathPolicy(), spoil.input().experienceTable(), spoil.input().levelForExperience(), false, BatchMode.ACQUISITION_SPOIL_SWEEP, spoil.source().itemId(), 1, true);
+		final BatchResult capacity = new PhantomBackgroundModel().evaluate(capacityRequest);
+		PhantomAssertions.assertTrue((capacity.reason() == PhantomBackgroundModel.ResultReason.SLOT_CAPACITY) || (capacity.reason() == PhantomBackgroundModel.ResultReason.WEIGHT_CAPACITY), "Full inventory did not reject acquisition output.");
+		PhantomAssertions.assertEquals(0L, capacity.acquisitionTargetDelta(), "Rejected capacity output advanced acquisition progress.");
+		PhantomAssertions.assertTrue(capacity.inventoryDelta().itemDeltas().isEmpty(), "Rejected capacity output mutated inventory.");
+
+		final CombatFacts vulnerable = new CombatFacts(ModelKind.MELEE, 1000, 1000, 1, 1, 1000, 1000, 0, 0, 1, 1, 0, 1, 1, 1, 1);
+		final Vitals oneHit = new Vitals(1, 1, 100, 100, 10, 10);
+		final PhantomBackgroundState deathState = acquisitionParityState(spoil.source(), spoil.state().autoGetSkills(), spoil.state().inventory(), vulnerable, oneHit);
+		final Target lethal = new Target(spoil.input().target().npcId(), spoil.input().target().level(), true, spoil.input().target().maximumHp(), spoil.input().target().maximumMp(), 1_000_000, 1_000_000, spoil.input().target().physicalDefense(), spoil.input().target().magicDefense(), spoil.input().target().attackSpeed(), spoil.input().target().castSpeed(), spoil.input().target().baseExperience(), spoil.input().target().baseSkillPoints(), spoil.input().target().drops(), spoil.input().target().maximumRandomDropOccurrences());
+		final BatchResult death = new PhantomBackgroundModel().evaluate(new BatchRequest(deathState, lethal, spoil.input().rewardPolicy(), spoil.input().deathPolicy(), spoil.input().experienceTable(), spoil.input().levelForExperience(), false, BatchMode.ACQUISITION_SPOIL_SWEEP, spoil.source().itemId(), 1, true));
+		PhantomAssertions.assertEquals(PhantomBackgroundModel.ResultReason.DEAD, death.reason(), "Background acquisition ignored authoritative death control.");
+		PhantomAssertions.assertTrue(death.dead(), "Background acquisition death result is not terminal.");
+	}
+
+	private void testAcquisitionOrdinaryRegression()
+	{
+		final AcquisitionParityFixture fixture = acquisitionParityFixture(PhantomAcquisitionCatalog.Method.DEATH_DROP);
+		final BatchRequest ordinary = new BatchRequest(fixture.state(), fixture.input().target(), fixture.input().rewardPolicy(), fixture.input().deathPolicy(), fixture.input().experienceTable(), fixture.input().levelForExperience(), false);
+		final BatchRequest explicit = new BatchRequest(fixture.state(), fixture.input().target(), fixture.input().rewardPolicy(), fixture.input().deathPolicy(), fixture.input().experienceTable(), fixture.input().levelForExperience(), false, BatchMode.ORDINARY_DEATH_DROP, 0, 0, true);
+		PhantomAssertions.assertEquals(new PhantomBackgroundModel().evaluate(ordinary), new PhantomBackgroundModel().evaluate(explicit), "Goal 015 ordinary death-drop behavior changed.");
+	}
+
+	private AcquisitionParityFixture acquisitionParityFixture(PhantomAcquisitionCatalog.Method method)
+	{
+		final float originalDeathChance = RatesConfig.RATE_DEATH_DROP_CHANCE_MULTIPLIER;
+		final float originalSpoilChance = RatesConfig.RATE_SPOIL_DROP_CHANCE_MULTIPLIER;
+		RatesConfig.RATE_DEATH_DROP_CHANCE_MULTIPLIER = 1_000_000;
+		RatesConfig.RATE_SPOIL_DROP_CHANCE_MULTIPLIER = 1_000_000;
+		try
+		{
+		final PhantomAcquisitionCatalog catalog = PhantomAcquisitionCatalog.load(Path.of("data/phantoms/acquisition/high-five-acquisition-v1.xml"));
+		final PhantomAcquisitionSourcePlanner planner = new PhantomAcquisitionSourcePlanner(catalog, _production.knowledge(), _production.topology(), _production.progression());
+		final Map<Integer, List<DropFact>> byItem = method == PhantomAcquisitionCatalog.Method.DEATH_DROP ? _production.knowledge().snapshot().dropSourcesByItem() : _production.knowledge().snapshot().spoilSourcesByItem();
+		final List<Integer> items = byItem.values().stream().flatMap(List::stream).sorted(Comparator.comparingDouble(DropFact::rawItemChance).reversed().thenComparingInt(DropFact::itemId).thenComparingInt(DropFact::npcId)).map(DropFact::itemId).distinct().toList();
+		int rankedCount = 0;
+		int authorityCount = 0;
+		int mutatedCount = 0;
+		String lastFailure = "none";
+		for (int itemId : items)
+		{
+			final int classId = method == PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? 117 : 88;
+			final Map<Integer, Integer> knownSkills = method == PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? Map.of(348, 1, 42, 1) : Map.of();
+			final var request = new PhantomAcquisitionSourcePlanner.Request(1, itemId, 1, PhantomActivityState.BACKGROUND, classId, 85, Map.of(), knownSkills, Set.of(method), method, "", Map.of(), 0);
+			final var planned = planner.plan(request);
+			rankedCount += planned.ranked().size();
+			for (var ranked : planned.ranked())
+			{
+				final Source source = ranked.source();
+				final List<AutoGetSkill> skills = method == PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? List.of(new AutoGetSkill(source.sweepSkillId(), source.sweepSkillLevel()), new AutoGetSkill(source.spoilSkillId(), source.spoilSkillLevel())).stream().sorted(Comparator.comparingInt(AutoGetSkill::skillId)).toList() : List.of();
+				final InventoryFacts inventory = new InventoryFacts(List.of(source.itemId()), List.of(), "acquisition-parity", 0, 1_000_000, 0, 100);
+				final CombatFacts combat = new CombatFacts(ModelKind.MELEE, 1_000_000_000, 1_000_000_000, 1_000_000_000, 1_000_000_000, 1000, 1000, 1_000, 1_000, 1, 1, 0, 1, 1, 1, 1);
+				final PhantomBackgroundState state = acquisitionParityState(source, skills, inventory, combat, new Vitals(1_000_000, 1_000_000, 1_000_000, 1_000_000, 1_000_000, 1_000_000));
+				try
+				{
+					final PhantomBackgroundAuthority.FarmInput input = _production.authority().acquisitionInput(state, source);
+					authorityCount++;
+					final BatchMode mode = method == PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? BatchMode.ACQUISITION_SPOIL_SWEEP : BatchMode.ACQUISITION_DEATH_DROP;
+					final BatchRequest batch = new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false, mode, source.itemId(), 1, true);
+					final BatchResult result = new PhantomBackgroundModel().evaluate(batch);
+					if (result.mutated())
+					{
+						mutatedCount++;
+					}
+					if (result.acquisitionTargetDelta() > 0)
+					{
+						return new AcquisitionParityFixture(source, state, input, batch, result);
+					}
+				}
+				catch (IllegalArgumentException | IllegalStateException failure)
+				{
+					lastFailure = failure.getClass().getSimpleName() + ':' + failure.getMessage();
+				}
+			}
+		}
+			throw new AssertionError("No deterministic authoritative background acquisition fixture was found for " + method + ": items=" + items.size() + ",ranked=" + rankedCount + ",authority=" + authorityCount + ",mutated=" + mutatedCount + ",lastFailure=" + lastFailure);
+		}
+		finally
+		{
+			RatesConfig.RATE_DEATH_DROP_CHANCE_MULTIPLIER = originalDeathChance;
+			RatesConfig.RATE_SPOIL_DROP_CHANCE_MULTIPLIER = originalSpoilChance;
+		}
+	}
+
+	private PhantomBackgroundState acquisitionParityState(Source source, List<AutoGetSkill> skills, InventoryFacts inventory, CombatFacts combat, Vitals vitals)
+	{
+		final PhantomTopologyAnchor anchor = _production.topology().findAnchor(source.anchorId()).orElseThrow();
+		return new PhantomBackgroundState(State.READY, new Identity(ACQUISITION_SEED, Math.toIntExact(ACQUISITION_SEED), 0, source.method() == PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? 117 : 88, 0), new Progress(85, ExperienceData.getInstance().getExpForLevel(85), 0, 0), vitals, canonicalAnchorPosition(anchor, 0), combat, Loadout.none(), inventory, skills, new Clock(ACQUISITION_SEED, 0, 0), Receipt.empty(), _production.authority().hashes());
+	}
+
+	private void testAcquisitionPrecommitFaults() throws Exception
+	{
+		final List<FaultPoint> faults = List.of(FaultPoint.AFTER_PROFILE_LOCK, FaultPoint.AFTER_GOAL_LOCK, FaultPoint.AFTER_ACQUISITION_LOCK, FaultPoint.AFTER_BACKGROUND_LOCK, FaultPoint.AFTER_CANONICAL_WRITES, FaultPoint.AFTER_BACKGROUND_STATE_WRITE, FaultPoint.AFTER_GOAL_STATE_WRITE, FaultPoint.AFTER_ACQUISITION_STATE_WRITE, FaultPoint.BEFORE_OPERATION_COMMIT);
+		for (FaultPoint fault : faults)
+		{
+			final PhantomBackgroundTransaction transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
+			{
+				if (point == fault)
+				{
+					throw new IllegalStateException("injected acquisition fault " + fault);
+				}
+			});
+			try (AcquisitionAtomicFixture fixture = createAcquisitionAtomicFixture(transaction))
+			{
+				final AcquisitionAtomicSnapshot before = acquisitionAtomicSnapshot(fixture);
+				PhantomAssertions.assertEquals(Status.BACKEND_FAILURE, transaction.execute(acquisitionCommand(fixture, fixture.goal(), fixture.goalRowVersion(), fixture.stateRowVersion(), fixture.ready().hashes())).status(), "Precommit fault did not reject at " + fault);
+				PhantomAssertions.assertEquals(before, acquisitionAtomicSnapshot(fixture), "Precommit fault escaped the atomic rollback at " + fault);
+			}
+		}
+	}
+
+	private void testAcquisitionPostcommitRestart() throws Exception
+	{
+		final PhantomBackgroundTransaction uncertain = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
+		{
+			if (point == FaultPoint.AFTER_OPERATION_COMMIT)
+			{
+				throw new IllegalStateException("injected postcommit acquisition fault");
+			}
+		});
+		try (AcquisitionAtomicFixture fixture = createAcquisitionAtomicFixture(uncertain))
+		{
+			final PhantomBackgroundTransaction.Command command = acquisitionCommand(fixture, fixture.goal(), fixture.goalRowVersion(), fixture.stateRowVersion(), fixture.ready().hashes());
+			PhantomAssertions.assertEquals(Status.COMMIT_OUTCOME_UNKNOWN, uncertain.execute(command).status(), "Postcommit acquisition fault was reported as a rollback.");
+			final PhantomBackgroundTransaction restarted = new PhantomBackgroundTransaction();
+			PhantomAssertions.assertEquals(Status.SUCCESS, restarted.reconcileVerifyPending(fixture.profileId(), fixture.characterObjectId()).status(), "Restart did not reconcile acquisition VERIFY_PENDING.");
+			final AcquisitionAtomicSnapshot committed = acquisitionAtomicSnapshot(fixture);
+			PhantomAssertions.assertEquals(fixture.baselineCount() + fixture.requiredAmount(), committed.itemCount(), "Committed acquisition item delta was not exact.");
+			PhantomAssertions.assertEquals(fixture.baselineCount(), committed.acquisition().state().baselineCount(), "Acquisition baseline was rewritten after commit.");
+			PhantomAssertions.assertEquals(fixture.requiredAmount(), committed.acquisition().state().progress(), "Acquisition progress was not derived from authoritative current amount.");
+			PhantomAssertions.assertEquals(PhantomAcquisitionState.Status.COMPLETED, committed.acquisition().state().status(), "Acquisition state did not complete at the required amount.");
+			PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, committed.goal().goal().status(), "Goal did not complete in the same transaction.");
+			PhantomAssertions.assertEquals(Status.IDEMPOTENT, restarted.execute(command).status(), "Exact durable acquisition replay was not idempotent after restart.");
+			PhantomAssertions.assertEquals(committed, acquisitionAtomicSnapshot(fixture), "Exact acquisition replay duplicated an item, Goal, or state mutation.");
+		}
+	}
+
+	private void testAcquisitionAtomicGuards() throws Exception
+	{
+		try (AcquisitionAtomicFixture fixture = createAcquisitionAtomicFixture(new PhantomBackgroundTransaction()))
+		{
+			final Hashes staleHashes = new Hashes("knowledge-stale", fixture.ready().hashes().topology(), fixture.ready().hashes().progression(), fixture.ready().hashes().commerce());
+			PhantomAssertions.assertEquals(Status.HASH_STALE, fixture.transaction().execute(acquisitionCommand(fixture, fixture.goal(), fixture.goalRowVersion(), fixture.stateRowVersion(), staleHashes)).status(), "Stale authority hash was admitted.");
+			PhantomAssertions.assertEquals(Status.ACQUISITION_CONFLICT, fixture.transaction().execute(acquisitionCommand(fixture, fixture.goal(), fixture.goalRowVersion(), fixture.stateRowVersion() + 1, fixture.ready().hashes())).status(), "Stale acquisition rowVersion was admitted.");
+			PhantomAssertions.assertEquals(Status.GOAL_STALE, fixture.transaction().execute(acquisitionCommand(fixture, fixture.goal(), fixture.goalRowVersion() + 1, fixture.stateRowVersion(), fixture.ready().hashes())).status(), "Stale acquisition Goal rowVersion was admitted.");
+			final PhantomGoal changed = new PhantomGoal(fixture.goal().goalId(), fixture.goal().goalType(), fixture.goal().status(), fixture.goal().subject(), fixture.goal().target(), fixture.goal().requiredAmount(), fixture.goal().currentAmount(), fixture.goal().acquisitionMethod(), fixture.goal().validSources(), fixture.goal().selectedAnchor(), fixture.goal().purposeKey(), fixture.goal().priority(), fixture.goal().riskBudget(), fixture.goal().expenseBudget(), fixture.goal().deadlineEpochMillis(), fixture.goal().constraints(), fixture.goal().reasonKey(), fixture.goal().revision() + 1);
+			PhantomAssertions.assertEquals(Status.GOAL_STALE, fixture.transaction().execute(acquisitionCommand(fixture, changed, fixture.goalRowVersion(), fixture.stateRowVersion(), fixture.ready().hashes())).status(), "Changed acquisition Goal identity was admitted.");
+			PhantomAssertions.assertEquals(fixture.baselineCount(), acquisitionAtomicSnapshot(fixture).itemCount(), "Rejected acquisition guard mutated canonical inventory.");
+		}
+	}
+
+	private void testAcquisitionRepeatedTransitions() throws Exception
+	{
+		try (AcquisitionAtomicFixture fixture = createAcquisitionAtomicFixture(new PhantomBackgroundTransaction()))
+		{
+			final AcquisitionAtomicSnapshot before = acquisitionAtomicSnapshot(fixture);
+			for (int index = 0; index < 20; index++)
+			{
+				PhantomAssertions.assertEquals(Status.SUCCESS, fixture.transaction().markMaterialized(fixture.profileId(), fixture.characterObjectId()).status(), "Acquisition materialization transition failed at " + index);
+				PhantomAssertions.assertEquals(Status.SUCCESS, fixture.transaction().abortMaterialization(fixture.profileId(), fixture.characterObjectId()).status(), "Acquisition abort transition failed at " + index);
+			}
+			PhantomAssertions.assertEquals(before, acquisitionAtomicSnapshot(fixture), "Repeated active/background transitions changed item, Goal, or acquisition state.");
+		}
+	}
+
+	private AcquisitionAtomicFixture createAcquisitionAtomicFixture(PhantomBackgroundTransaction transaction) throws Exception
+	{
+		final int characterObjectId = _environment.primary().objectId();
+		final Canonical canonical = canonical(characterObjectId);
+		final long baseline = scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=57 AND loc='INVENTORY'", characterObjectId);
+		final long required = 3;
+		final PhantomProfile profile = _repository.create(characterObjectId);
+		try
+		{
+			final PhantomGoal goal = new PhantomGoal(21, PhantomAcquisitionGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("item", "57"), required, 0, PhantomAcquisitionCatalog.Method.DEATH_DROP.key(), List.of(new PhantomDomainRef(PhantomAcquisitionGoalSpec.SOURCE_NAMESPACE, PhantomAcquisitionCatalog.Method.DEATH_DROP.key())), new PhantomDomainRef(PhantomAcquisitionGoalSpec.ANCHOR_NAMESPACE, ANCHOR_ID), PhantomAcquisitionGoalSpec.PURPOSE_KEY, 500, 0, 0, 0, Map.of(PhantomAcquisitionGoalSpec.BASELINE_CONSTRAINT, baseline, PhantomAcquisitionGoalSpec.MAXIMUM_SWITCHES_CONSTRAINT, 4L), "acquisition.atomic.test", 0);
+			PhantomAcquisitionGoalSpec.parse(goal);
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_repository);
+			final PhantomGoalStateStore.StoredGoal storedGoal = goals.insert(profile.profileId(), goal);
+			final Identity identity = new Identity(profile.profileId(), characterObjectId, 0, canonical.classId(), canonical.race());
+			final List<AutoGetSkill> skills = exactAutoGetSkills(identity, canonical.level());
+			ensureAutoGetSkills(identity, skills);
+			final PhantomBackgroundState materialized = new PhantomBackgroundState(State.MATERIALIZED, identity, new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()), new Vitals(canonical.currentHp(), canonical.maximumHp(), canonical.currentMp(), canonical.maximumMp(), canonical.currentCp(), canonical.maximumCp()), new Position(0, canonical.x(), canonical.y(), canonical.z(), canonical.heading(), ANCHOR_ID), combat(ModelKind.MELEE, 1, 1, 100), Loadout.none(), new InventoryFacts(List.of(57), List.of(), "", 0, 1_000_000, 0, 100), skills, new Clock(ACQUISITION_SEED, 0, 0), Receipt.empty(), HASHES);
+			final Result captured = transaction.captureBaseline(materialized, goal);
+			PhantomAssertions.assertEquals(Status.SUCCESS, captured.status(), "Acquisition atomic fixture background capture failed.");
+			final Source source = new Source("1".repeat(64), PhantomAcquisitionCatalog.Method.DEATH_DROP, TARGET_NPC_ID, 57, "test:death-drop:57", "test.node", ANCHOR_ID, 0, 0, 0, 0, 0);
+			final Candidate candidate = new Candidate(source.sourceId(), source.method(), 100, 0, 0, "");
+			final PhantomAcquisitionState.Hashes acquisitionHashes = new PhantomAcquisitionState.Hashes("a".repeat(64), "b".repeat(64), "c".repeat(64), "d".repeat(64), "e".repeat(64));
+			final PhantomAcquisitionState state = new PhantomAcquisitionState(acquisitionHashes, goal.goalId(), goal.revision(), 57, required, baseline, baseline, 0, PhantomAcquisitionState.Status.READY, source, List.of(candidate), 0, 0, Phase.TARGET_REQUIRED, 0, 0, 0, null, List.of(), 0);
+			final PhantomAcquisitionStore acquisition = new PhantomAcquisitionStore(_repository, goals);
+			final PhantomAcquisitionStore.StoredState storedState = acquisition.insert(profile.profileId(), state);
+			final Fixture background = new Fixture(profile.profileId(), characterObjectId, goal, transaction, captured.state(), canonical);
+			return new AcquisitionAtomicFixture(background, goals, acquisition, storedGoal.rowVersion(), storedState.rowVersion(), baseline, required);
+		}
+		catch (Throwable failure)
+		{
+			final Optional<PhantomProfile> current = _repository.find(profile.profileId());
+			if (current.isPresent())
+			{
+				_repository.delete(profile.profileId(), current.get().rowVersion());
+			}
+			restorePrimaryInventoryAndSkills(characterObjectId);
+			throw failure;
+		}
+	}
+
+	private static PhantomBackgroundTransaction.Command acquisitionCommand(AcquisitionAtomicFixture fixture, PhantomGoal goal, long goalRowVersion, long stateRowVersion, Hashes hashes)
+	{
+		final PhantomBackgroundState ready = fixture.ready();
+		final Source source = fixture.acquisition().load(fixture.profileId()).orElseThrow().state().selectedSource();
+		final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(fixture.profileId(), fixture.characterObjectId(), goal.goalId(), goal.revision(), 1, 1, ActionKind.ACQUISITION_DEATH_DROP, source.npcId(), source.anchorId(), PhantomBackgroundState.MODEL_VERSION, hashes);
+		final PhantomAcquisitionState expected = fixture.acquisition().load(fixture.profileId()).orElseThrow().state();
+		final var mutation = new PhantomBackgroundTransaction.AcquisitionMutation(expected, stateRowVersion, goalRowVersion, ReceiptKind.BACKGROUND_DEATH_DROP, 1);
+		return new PhantomBackgroundTransaction.Command(ready, goal, key, ready.progress(), ready.vitals(), ready.position(), new Clock(ACQUISITION_SEED + 1, 0, 0), Map.of(expected.targetItemId(), fixture.requiredAmount()), ready.autoGetSkills(), List.of(expected.targetItemId()), mutation);
+	}
+
+	private AcquisitionAtomicSnapshot acquisitionAtomicSnapshot(AcquisitionAtomicFixture fixture) throws Exception
+	{
+		return new AcquisitionAtomicSnapshot(fixture.transaction().load(fixture.profileId()).state(), fixture.goals().load(fixture.profileId()).orElseThrow(), fixture.acquisition().load(fixture.profileId()).orElseThrow(), scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=57 AND loc='INVENTORY'", fixture.characterObjectId()));
+	}
+
 	private Fixture createFixture(int characterObjectId, PhantomBackgroundTransaction transaction) throws Exception
 	{
 		final Canonical canonical = canonical(characterObjectId);
@@ -3099,9 +3377,9 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		}
 	}
 
-	private record ProductionAuthorityFixture(PhantomGameKnowledgeService knowledgeService, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, L2jTopologyValidationBackend topologyBackend, PhantomProgressionCatalog progression, PhantomCommerceCatalog commerce, L2jPhantomBackgroundAuthority authority) implements AutoCloseable
+	static record ProductionAuthorityFixture(PhantomGameKnowledgeService knowledgeService, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, L2jTopologyValidationBackend topologyBackend, PhantomProgressionCatalog progression, PhantomCommerceCatalog commerce, L2jPhantomBackgroundAuthority authority) implements AutoCloseable
 	{
-		private static ProductionAuthorityFixture start()
+		static ProductionAuthorityFixture start()
 		{
 			MapRegionData.getInstance();
 			SpawnData.getInstance();
@@ -3191,6 +3469,48 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private record Canonical(int level, long experience, long experienceBeforeDeath, long skillPoints, double currentHp, double maximumHp, double currentMp, double maximumMp, double currentCp, double maximumCp, int x, int y, int z, int heading, int classId, int race)
 	{
+	}
+
+	private record AcquisitionParityFixture(Source source, PhantomBackgroundState state, PhantomBackgroundAuthority.FarmInput input, BatchRequest request, BatchResult result)
+	{
+	}
+
+	private record AcquisitionAtomicSnapshot(PhantomBackgroundState background, PhantomGoalStateStore.StoredGoal goal, PhantomAcquisitionStore.StoredState acquisition, long itemCount)
+	{
+	}
+
+	private record AcquisitionAtomicFixture(Fixture background, PhantomGoalStateStore goals, PhantomAcquisitionStore acquisition, long goalRowVersion, long stateRowVersion, long baselineCount, long requiredAmount) implements AutoCloseable
+	{
+		private long profileId()
+		{
+			return background.profileId();
+		}
+
+		private int characterObjectId()
+		{
+			return background.characterObjectId();
+		}
+
+		private PhantomGoal goal()
+		{
+			return background.goal();
+		}
+
+		private PhantomBackgroundTransaction transaction()
+		{
+			return background.transaction();
+		}
+
+		private PhantomBackgroundState ready()
+		{
+			return background.ready();
+		}
+
+		@Override
+		public void close() throws Exception
+		{
+			background.close();
+		}
 	}
 
 	private record CapabilitySelection(PlayerClass playerClass, CapabilityRule rule)

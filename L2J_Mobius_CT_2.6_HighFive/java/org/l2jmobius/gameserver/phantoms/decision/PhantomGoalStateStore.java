@@ -20,6 +20,7 @@
  */
 package org.l2jmobius.gameserver.phantoms.decision;
 
+import java.util.ConcurrentModificationException;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -66,7 +67,19 @@ public final class PhantomGoalStateStore implements PhantomGoalStore
 	@Override
 	public StoredGoal replace(long profileId, long expectedRowVersion, PhantomGoal goal)
 	{
-		return decode(_repository.updateComponent(profileId, COMPONENT_TYPE, expectedRowVersion, COMPONENT_SCHEMA_VERSION, _codec.encode(goal)));
+		try
+		{
+			return decode(_repository.updateComponent(profileId, COMPONENT_TYPE, expectedRowVersion, COMPONENT_SCHEMA_VERSION, _codec.encode(goal)));
+		}
+		catch (ConcurrentModificationException exception)
+		{
+			final StoredGoal current = load(profileId).orElse(null);
+			if ((current != null) && "acquire.item".equals(goal.goalType()) && (goal.status() == PhantomGoalStatus.COMPLETED) && (current.goal().goalId() == goal.goalId()) && (current.goal().revision() < Long.MAX_VALUE) && ((current.goal().revision() + 1) == goal.revision()) && (current.goal().status() == PhantomGoalStatus.COMPLETED) && (current.goal().currentAmount() == current.goal().requiredAmount()))
+			{
+				return current;
+			}
+			throw exception;
+		}
 	}
 
 	@Override

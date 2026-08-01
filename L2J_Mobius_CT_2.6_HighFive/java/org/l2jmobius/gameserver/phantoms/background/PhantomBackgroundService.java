@@ -42,10 +42,16 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.FarmInput;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.TravelAdvance;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchRequest;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchMode;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchResult;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DropDisposition;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.ActionKind;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Clock;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ReceiptKind;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
@@ -290,6 +296,125 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				return result.withModel(batch.encounters(), batch.elapsedMillis(), batch.dead());
 			}
 		}
+	}
+
+	public OperationResult acquireItem(long profileId, PhantomGoal goal, long goalRowVersion, PhantomAcquisitionState acquisitionState, long acquisitionRowVersion, long activityGeneration, long tickSequence, PhantomActivityState activityState, long logicalNowNanos, long logicalMinute)
+	{
+		if ((activityState != PhantomActivityState.BACKGROUND) || (acquisitionState == null) || (acquisitionState.selectedSource() == null))
+		{
+			return OperationResult.replan("acquisition.background.invalid");
+		}
+		if (_partyParticipation.blocksBackground(profileId))
+		{
+			return retry("party.materialized_only");
+		}
+		final OperationClaim claim = acquireAcquisition(profileId, goal, goalRowVersion, acquisitionState, activityGeneration, tickSequence);
+		if (!claim.acquired())
+		{
+			return claim.failure();
+		}
+		try (claim)
+		{
+			final PhantomBackgroundState background = claim.state();
+			if (!background.acceptsBackgroundWork() || !background.position().committedAnchorId().equals(acquisitionState.selectedSource().anchorId()))
+			{
+				return OperationResult.replan("acquisition.travel.required");
+			}
+			final FarmInput input;
+			try
+			{
+				input = _authority.acquisitionInput(background, acquisitionState.selectedSource());
+			}
+			catch (RuntimeException exception)
+			{
+				return OperationResult.replan("acquisition.authority.unsupported");
+			}
+			final Method method = acquisitionState.selectedSource().method();
+			final BatchMode mode = method == Method.DEATH_DROP ? BatchMode.ACQUISITION_DEATH_DROP : BatchMode.ACQUISITION_SPOIL_SWEEP;
+			final ActionKind actionKind = method == Method.DEATH_DROP ? ActionKind.ACQUISITION_DEATH_DROP : ActionKind.ACQUISITION_SPOIL_SWEEP;
+			final ReceiptKind receiptKind = method == Method.DEATH_DROP ? ReceiptKind.BACKGROUND_DEATH_DROP : ReceiptKind.BACKGROUND_SPOIL_SWEEP;
+			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, actionKind, acquisitionState.selectedSource().npcId(), acquisitionState.selectedSource().anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes());
+			try (PhantomBackgroundCompetitionRegistry.Reservation reservation = _competition.tryReserve(input.topologyNodeId(), acquisitionState.selectedSource().npcId(), input.spawnCapacity()))
+			{
+				if (reservation == null)
+				{
+					return retry("competition.capacity");
+				}
+				final long remaining = acquisitionState.requiredAmount() - acquisitionState.progress();
+				final BatchResult batch = _model.evaluate(new BatchRequest(background, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false, mode, acquisitionState.targetItemId(), remaining, true));
+				if (!batch.mutated())
+				{
+					return switch (batch.reason())
+					{
+						case STATE_NOT_READY, TIME_BUDGET -> retry("model." + batch.reason().name().toLowerCase());
+						default -> OperationResult.replan("model." + batch.reason().name().toLowerCase());
+					};
+				}
+				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = _authority.autoGetSkills(background.identity(), batch.progress().level());
+				final Clock clock = new Clock(batch.nextRngState(), 0, 0);
+				final List<Integer> mutableItems = input.target().drops().stream().filter(drop -> drop.disposition() == DropDisposition.ACQUIRE).map(drop -> drop.itemId()).distinct().sorted().toList();
+				final PhantomBackgroundTransaction.AcquisitionMutation acquisition = new PhantomBackgroundTransaction.AcquisitionMutation(acquisitionState, acquisitionRowVersion, goalRowVersion, receiptKind, logicalMinute);
+				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(background, goal, key, batch.progress(), batch.vitals(), background.position(), clock, batch.inventoryDelta().itemDeltas(), autoSkills, mutableItems, acquisition);
+				return commit(claim, command).withModel(batch.encounters(), batch.elapsedMillis(), batch.dead());
+			}
+		}
+	}
+
+	public OperationResult travelAcquisition(long profileId, PhantomGoal goal, long goalRowVersion, PhantomAcquisitionState acquisitionState, long activityGeneration, long tickSequence, PhantomActivityState activityState, long logicalNowNanos)
+	{
+		if ((activityState != PhantomActivityState.BACKGROUND) || (acquisitionState == null) || (acquisitionState.selectedSource() == null))
+		{
+			return OperationResult.replan("acquisition.background.invalid");
+		}
+		if (_partyParticipation.blocksBackground(profileId))
+		{
+			return retry("party.materialized_only");
+		}
+		final OperationClaim claim = acquireAcquisition(profileId, goal, goalRowVersion, acquisitionState, activityGeneration, tickSequence);
+		if (!claim.acquired())
+		{
+			return claim.failure();
+		}
+		try (claim)
+		{
+			final PhantomBackgroundState state = claim.state();
+			if (!state.acceptsBackgroundWork())
+			{
+				return retry("state.not_ready");
+			}
+			final TravelAdvance advance;
+			try
+			{
+				advance = _authority.advanceAcquisitionTravel(state, acquisitionState.selectedSource(), FARM_TRAVEL_BUDGET_MILLIS);
+			}
+			catch (RuntimeException exception)
+			{
+				return OperationResult.replan("acquisition.travel.unsupported");
+			}
+			if (!advance.mutated())
+			{
+				return switch (advance.status())
+				{
+					case AT_DESTINATION -> OperationResult.success("acquisition.travel.at_destination");
+					case EDGE_CLOSED, NO_ROUTE -> retry("acquisition.travel." + advance.status().name().toLowerCase());
+					default -> OperationResult.replan("acquisition.travel." + advance.status().name().toLowerCase());
+				};
+			}
+			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, ActionKind.ACQUISITION_TRAVEL, acquisitionState.selectedSource().npcId(), acquisitionState.selectedSource().anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes());
+			final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(), Map.of(), state.autoGetSkills());
+			return commit(claim, command);
+		}
+	}
+
+	public Optional<PhantomBackgroundState> acquisitionSnapshot(long profileId)
+	{
+		final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
+		return loaded.successful() ? Optional.ofNullable(loaded.state()) : Optional.empty();
+	}
+
+	public PhantomBackgroundState.Hashes authorityHashes()
+	{
+		return _authority.hashes();
 	}
 
 	public OperationResult travel(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence, PhantomActivityState activityState, long logicalNowNanos)
@@ -563,6 +688,23 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			releaseStoreTransition(profileId);
 			return;
 		}
+		if (PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType()))
+		{
+			final PhantomAcquisitionGoalSpec acquisition = PhantomAcquisitionGoalSpec.parse(goal);
+			final PhantomBackgroundState captured = _authority.captureAcquisition(profileId, player, goal, previous, acquisition.itemId());
+			final PhantomBackgroundTransaction.Result stored = transaction(() -> _transactions.captureBaseline(captured, goal));
+			if (!stored.successful())
+			{
+				throw new IllegalStateException("Canonical acquisition background baseline capture failed.");
+			}
+			final PhantomBackgroundTransaction.Result verified = transaction(() -> _transactions.reconcileVerifyPending(profileId, player.getObjectId()));
+			if (!verified.successful() || (verified.state() == null) || ((verified.state().state() != State.READY) && (verified.state().state() != State.DEAD)))
+			{
+				throw new IllegalStateException("Canonical acquisition background baseline verification failed.");
+			}
+			releaseStoreTransition(profileId);
+			return;
+		}
 		try
 		{
 			PhantomBackgroundGoalSpec.parse(goal);
@@ -688,6 +830,82 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
+	private OperationClaim acquireAcquisition(long profileId, PhantomGoal goal, long goalRowVersion, PhantomAcquisitionState acquisitionState, long activityGeneration, long tickSequence)
+	{
+		if (_state != ServiceState.RUNNING)
+		{
+			return OperationClaim.failed(retry("service.not_running"));
+		}
+		if (_operations.putIfAbsent(profileId, Boolean.TRUE) != null)
+		{
+			return OperationClaim.failed(retry("background.busy"));
+		}
+		increment(_currentOperations, _peakOperations);
+		if (_partyParticipation.blocksBackground(profileId))
+		{
+			return releaseFailedOperation(profileId, retry("party.materialized_only"));
+		}
+		Lease lease = null;
+		boolean leaseCounted = false;
+		try
+		{
+			final PhantomProfile profile = _profiles.find(profileId).orElse(null);
+			if ((profile == null) || (profile.characterObjectId() == null))
+			{
+				return releaseFailedOperation(profileId, OperationResult.replan("profile.unlinked"));
+			}
+			final int characterObjectId = profile.characterObjectId();
+			lease = _identities.tryAcquire(characterObjectId, OwnerKind.BACKGROUND);
+			if (lease == null)
+			{
+				return releaseFailedOperation(profileId, retry("identity.busy"));
+			}
+			increment(_currentIdentityLeases, _peakIdentityLeases);
+			leaseCounted = true;
+			if ((World.getInstance().getPlayer(characterObjectId) != null) || (World.getInstance().findObject(characterObjectId) != null) || PlayerAutoSaveTaskManager.getInstance().containsObjectId(characterObjectId))
+			{
+				closeLease(lease);
+				return releaseFailedOperation(profileId, retry("identity.runtime_busy"));
+			}
+			final PhantomGoalStateStore.StoredGoal storedGoal = _goals.load(profileId).orElse(null);
+			if ((storedGoal == null) || (storedGoal.rowVersion() != goalRowVersion) || !storedGoal.goal().equals(goal))
+			{
+				closeLease(lease);
+				return releaseFailedOperation(profileId, OperationResult.replan("goal.stale"));
+			}
+			final PhantomAcquisitionGoalSpec spec = PhantomAcquisitionGoalSpec.parse(storedGoal.goal());
+			if ((acquisitionState.goalId() != goal.goalId()) || (acquisitionState.goalRevision() != goal.revision()) || (acquisitionState.targetItemId() != spec.itemId()))
+			{
+				closeLease(lease);
+				return releaseFailedOperation(profileId, OperationResult.replan("acquisition.state.stale"));
+			}
+			PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
+			if ((loaded.state() != null) && (loaded.state().state() == State.VERIFY_PENDING))
+			{
+				loaded = transaction(() -> _transactions.reconcileVerifyPending(profileId, characterObjectId));
+			}
+			if (!loaded.successful() || (loaded.state() == null))
+			{
+				closeLease(lease);
+				return releaseFailedOperation(profileId, mapTransactionFailure(loaded.status()));
+			}
+			if (!loaded.state().hashes().equals(_authority.hashes()))
+			{
+				closeLease(lease);
+				return releaseFailedOperation(profileId, OperationResult.replan("authority.hash_stale"));
+			}
+			return OperationClaim.acquired(this, profileId, characterObjectId, lease, loaded.state(), null);
+		}
+		catch (RuntimeException exception)
+		{
+			if ((lease != null) && leaseCounted)
+			{
+				closeLease(lease);
+			}
+			return releaseFailedOperation(profileId, retry("background.acquire_failed"));
+		}
+	}
+
 	private OperationResult commit(OperationClaim claim, PhantomBackgroundTransaction.Command command)
 	{
 		if (_partyParticipation.blocksBackground(claim.profileId()))
@@ -741,7 +959,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return switch (status)
 		{
 			case STALE_OPERATION, GOAL_STALE, HASH_STALE, STATE_CONFLICT, STATE_ABSENT, PROFILE_LINK_STALE -> OperationResult.replan("transaction." + status.name().toLowerCase());
-			case INCONSISTENT, CANONICAL_MISMATCH, ITEM_CONFLICT, ITEM_LIMIT, UNSUPPORTED_ITEM, UNSUPPORTED_INSTANCE, OBJECT_ID_EXHAUSTED, PROGRESSION_CONFLICT -> OperationResult.inconsistent("transaction." + status.name().toLowerCase());
+			case INCONSISTENT, CANONICAL_MISMATCH, ITEM_CONFLICT, ITEM_LIMIT, UNSUPPORTED_ITEM, UNSUPPORTED_INSTANCE, OBJECT_ID_EXHAUSTED, PROGRESSION_CONFLICT, ACQUISITION_CONFLICT -> OperationResult.inconsistent("transaction." + status.name().toLowerCase());
 			default -> retry("transaction." + status.name().toLowerCase());
 		};
 	}

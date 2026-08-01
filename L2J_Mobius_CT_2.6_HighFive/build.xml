@@ -43,6 +43,7 @@
 	<property name="phantom.goal019.seed" value="19001901" />
 	<property name="phantom.goal020c1.seed" value="20002001" />
 	<property name="phantom.goal020c2.seed" value="20002002" />
+	<property name="phantom.goal021c1.seed" value="21002101" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -1360,6 +1361,122 @@
 	<target name="phantom-conversation-checkpoint2-test" depends="phantom-conversation-managed-ingress-test,phantom-conversation-execution-catalog-codec-test,phantom-conversation-handoff-durability-test,phantom-conversation-query-execution-test,phantom-conversation-party-actions-test,phantom-conversation-outbound-chat-test,phantom-conversation-restart-idempotency-test,phantom-conversation-execution-lifecycle-performance-smoke" description="Run the final Goal 020 Checkpoint 2 aggregate." />
 
 	<target name="phantom-conversation-checkpoint2-affected-test" depends="phantom-conversation-checkpoint1-test,phantom-decision-core-test,phantom-decision-persistence-test,phantom-party-canonical-invitation-test,phantom-party-lifecycle-test,phantom-party-server-integration-test,phantom-game-knowledge-core-test,phantom-game-knowledge-query-truth-test,phantom-production-materialization-test,phantom-server-shutdown-handoff-test" description="Run exact Checkpoint 1, Goal, Party, Knowledge, materialization and shutdown regressions affected by Checkpoint 2." />
+
+	<target name="phantom-acquisition-catalog-codec-test" depends="compile-tests" description="Run strict Goal 021 Checkpoint 1 acquisition policy and durable codec tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="acquisition-catalog-codec" />
+			<arg value="${phantom.goal021c1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-source-planner-test" depends="compile-tests" description="Run production-authority bounded acquisition source planning tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="acquisition-source-planner" />
+			<arg value="${phantom.goal021c1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-recipe-planning-test" depends="compile-tests" description="Run direct and bounded ingredient-DAG acquisition planning tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="acquisition-recipe-planning" />
+			<arg value="${phantom.goal021c1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-active-spoil-test" depends="compile-tests" description="Run materialized canonical spoil, existing Combat kill and sweep integration tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="420000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="acquisition-active-spoil" />
+			<arg value="${phantom.goal021c1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-background-parity-test" depends="compile-tests" description="Run authoritative death-drop/spoil background parity and fail-closed controls.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="420000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="acquisition-background-parity" />
+			<arg value="${phantom.goal021c1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-atomic-restart-test" depends="compile-tests" description="Run atomic item/background/Goal/acquisition fault and restart tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="420000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="acquisition-atomic-restart" />
+			<arg value="${phantom.goal021c1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-source-switching-test" depends="compile-tests" description="Run deterministic acquisition threshold, cooldown and source-switch tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="acquisition-source-switching" />
+			<arg value="${phantom.goal021c1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-lifecycle-performance-smoke" depends="compile-tests" description="Run 100k source, 10k recipe and acquisition lifecycle structural smoke.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="acquisition-lifecycle-performance" />
+			<arg value="${phantom.goal021c1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-checkpoint1-test" depends="phantom-acquisition-catalog-codec-test,phantom-acquisition-source-planner-test,phantom-acquisition-recipe-planning-test,phantom-acquisition-active-spoil-test,phantom-acquisition-background-parity-test,phantom-acquisition-atomic-restart-test,phantom-acquisition-source-switching-test,phantom-acquisition-lifecycle-performance-smoke" description="Run the final Goal 021 Checkpoint 1 acquisition aggregate." />
 
 	<target name="prepare-phantom-test-db" depends="compile-tests" description="Destructively recreate only the allowlisted Phantom test database.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestDatabaseProvisioner" classpathref="test.classpath" fork="true" failonerror="true">

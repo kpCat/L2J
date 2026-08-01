@@ -247,6 +247,8 @@ public final class PhantomTestLauncher
 			case "background-real-login" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.REAL_LOGIN);
 			case "background-position-canonicalization" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.POSITION_CANONICALIZATION);
 			case "background-production-loot-unblock" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.PRODUCTION_LOOT_UNBLOCK);
+			case "acquisition-background-parity" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.ACQUISITION_PARITY);
+			case "acquisition-atomic-restart" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.ACQUISITION_ATOMIC_RESTART);
 			case "population-catalog" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.CATALOG);
 			case "population-schedule" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.SCHEDULE);
 			case "population-creation" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.CREATION);
@@ -294,6 +296,12 @@ public final class PhantomTestLauncher
 			case "conversation-outbound-chat" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.OUTBOUND_CHAT);
 			case "conversation-restart-idempotency" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.RESTART_IDEMPOTENCY);
 			case "conversation-execution-lifecycle-performance" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.LIFECYCLE_PERFORMANCE);
+			case "acquisition-catalog-codec" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.CATALOG_CODEC);
+			case "acquisition-source-planner" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.SOURCE_PLANNER);
+			case "acquisition-recipe-planning" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.RECIPE_PLANNING);
+			case "acquisition-active-spoil" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.ACQUISITION);
+			case "acquisition-source-switching" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.SOURCE_SWITCHING);
+			case "acquisition-lifecycle-performance" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

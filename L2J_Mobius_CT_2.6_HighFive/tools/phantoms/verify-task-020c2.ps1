@@ -4,6 +4,7 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $RequiredParent = "75e3a07324946adb69c87e8628b4f11ac749ce8f"
+$AcceptedCommit = "d48dccb42dcfe5993f1c852e021086e498c0622d"
 $RequiredSubject = "fix(phantoms): close exact conversation invitation ownership"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "20002002"
@@ -35,12 +36,6 @@ function To-ModulePath([string] $path)
 
 function Read-TargetBytes([string] $relativePath)
 {
-	if ($script:Mode -eq "working")
-	{
-		$path = Join-Path $script:ModuleRoot $relativePath
-		Assert-True (Test-Path -LiteralPath $path -PathType Leaf) "Required Goal 020c2 file is missing: $relativePath"
-		return [IO.File]::ReadAllBytes($path)
-	}
 	$repositoryPath = $script:ModulePrefix + $relativePath
 	$start = [Diagnostics.ProcessStartInfo]::new()
 	$start.FileName = "git"
@@ -100,44 +95,17 @@ try
 	$script:ModulePrefix = (Split-Path $script:ModuleRoot -Leaf) + "/"
 	Assert-True ((Git-Lines @("branch", "--show-current") | Select-Object -First 1) -eq $RequiredBranch) "Goal 020c2 must remain on feature/phantom-world."
 	$head = (Git-Lines @("rev-parse", "HEAD") | Select-Object -First 1)
-	if ($head -eq $RequiredParent)
-	{
-		$script:Mode = "working"
-		$script:TargetCommit = $null
-	}
-	else
-	{
-		& git merge-base --is-ancestor $RequiredParent $head
-		Assert-True ($LASTEXITCODE -eq 0) "Pinned Goal 020 Checkpoint 2 foundation is not an ancestor of HEAD."
-		$pathCommits = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$RequiredParent..$head"))
-		Assert-True ($pathCommits.Count -gt 0) "Goal 020c2 safety completion commit is absent."
-		$script:TargetCommit = $pathCommits[0]
-		Assert-True ((Git-Lines @("rev-parse", "$($script:TargetCommit)^" ) | Select-Object -First 1) -eq $RequiredParent) "Goal 020c2 is not one ordinary child of its required parent."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 020c2 commit subject changed."
-		$script:Mode = "accepted"
-	}
+	Assert-True ((Git-Lines @("rev-parse", "$AcceptedCommit^" ) | Select-Object -First 1) -eq $RequiredParent) "Pinned Goal 020c2 commit is not one ordinary child of its required parent."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $AcceptedCommit) | Select-Object -First 1) -eq $RequiredSubject) "Pinned Goal 020c2 commit subject changed."
+	& git merge-base --is-ancestor $AcceptedCommit $head
+	Assert-True ($LASTEXITCODE -eq 0) "Pinned accepted Goal 020c2 commit is not an ancestor of HEAD."
+	$script:Mode = "historical"
+	$script:TargetCommit = $AcceptedCommit
 
 	$changed = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-	if ($script:Mode -eq "working")
+	foreach ($line in Git-Lines @("diff", "--name-only", $RequiredParent, $AcceptedCommit, "--"))
 	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $RequiredParent, "--"))
-		{
-			[void] $changed.Add((To-ModulePath $line))
-		}
-		foreach ($line in Git-Lines @("-c", "core.quotepath=false", "status", "--porcelain=v1", "--untracked-files=all", "--", "."))
-		{
-			if ($line.Length -ge 4)
-			{
-				[void] $changed.Add((To-ModulePath $line.Substring(3)))
-			}
-		}
-	}
-	else
-	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $RequiredParent, $script:TargetCommit, "--"))
-		{
-			[void] $changed.Add((To-ModulePath $line))
-		}
+		[void] $changed.Add((To-ModulePath $line))
 	}
 	$changedPaths = @($changed | Sort-Object)
 	Assert-True (($changedPaths.Count -gt 0) -and ($changedPaths.Count -le 10)) "Goal 020 exact invitation ownership scope must contain 1..10 files."
@@ -268,7 +236,7 @@ try
 	$review = Read-TargetUtf8Strict "docs/phantoms/reviews/020-checkpoint-2-independent-review.md"
 	Assert-True ($contract.Contains("conversation.execution") -and $contract.Contains("DISPATCHING") -and $contract.Contains("PHANTOM_GENERATED") -and $contract.Contains("Goal 024")) "Goal 020 final architecture contract is incomplete."
 	Assert-True (($report -split "`r?`n").Count -le 240) "Goal 020c2 report exceeds 240 lines."
-	$statusRecorded = $report.Contains("COMPLETED_PENDING_INDEPENDENT_REVIEW") -or (($script:Mode -eq "working") -and $report.Contains("PENDING_FINAL_GATES"))
+	$statusRecorded = $report.Contains("COMPLETED_PENDING_INDEPENDENT_REVIEW")
 	Assert-True ($statusRecorded -and $report.Contains($RequiredParent) -and $report.Contains($RequiredSubject) -and $review.Contains("ACCEPT_WITH_EXECUTION_SAFETY_COMPLETION") -and $review.Contains($RequiredParent) -and $review.Contains("PENDING_INDEPENDENT_REVIEW")) "Goal 020c2 completion report or independent review handoff is incomplete."
 
 	$mojibakePairs = @(
@@ -286,43 +254,28 @@ try
 		Assert-True ($text -notmatch $escapedCyrillic) "Escaped Cyrillic found in changed file: $path"
 	}
 
-	if ($script:Mode -eq "accepted")
+	$remote = (Git-Lines @("rev-parse", "origin/feature/phantom-world") | Select-Object -First 1)
+	& git merge-base --is-ancestor $AcceptedCommit $remote
+	Assert-True ($LASTEXITCODE -eq 0) "Remote feature/phantom-world does not contain accepted Goal 020c2."
+	$jarEntries = & jar tf (Join-Path $script:ModuleRoot "dist/libs/GameServer.jar")
+	Assert-True ($LASTEXITCODE -eq 0) "Could not inspect GameServer.jar."
+	foreach ($entry in @(
+		"org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionModel.class",
+		"org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionCodec.class",
+		"org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionService.class",
+		"org/l2jmobius/gameserver/phantoms/conversation/L2jPhantomConversationExecutionPort.class"
+	))
 	{
-		$remote = (Git-Lines @("rev-parse", "origin/feature/phantom-world") | Select-Object -First 1)
-		& git merge-base --is-ancestor $script:TargetCommit $remote
-		Assert-True ($LASTEXITCODE -eq 0) "Remote feature/phantom-world does not contain Goal 020c2."
-		$jarEntries = & jar tf (Join-Path $script:ModuleRoot "dist/libs/GameServer.jar")
-		Assert-True ($LASTEXITCODE -eq 0) "Could not inspect GameServer.jar."
-		foreach ($entry in @(
-			"org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionModel.class",
-			"org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionCodec.class",
-			"org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionService.class",
-			"org/l2jmobius/gameserver/phantoms/conversation/L2jPhantomConversationExecutionPort.class"
-		))
-		{
-			Assert-True ($jarEntries -contains $entry) "GameServer.jar lacks Goal 020c2 entry: $entry"
-		}
-		Assert-True ($jarEntries -notcontains "data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml") "Execution datapack must remain outside GameServer.jar."
+		Assert-True ($jarEntries -contains $entry) "GameServer.jar lacks Goal 020c2 entry: $entry"
 	}
-	else
-	{
-		$compiled = Join-Path (Split-Path $script:ModuleRoot -Parent) "build/bin/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionService.class"
-		Assert-True (Test-Path -LiteralPath $compiled -PathType Leaf) "Compiled conversation execution service is absent."
-	}
+	Assert-True ($jarEntries -notcontains "data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml") "Execution datapack must remain outside GameServer.jar."
 
-	if ($script:Mode -eq "working")
-	{
-		& git diff --check $RequiredParent --
-	}
-	else
-	{
-		& git diff --check $RequiredParent $script:TargetCommit --
-	}
+	& git diff --check $RequiredParent $AcceptedCommit --
 	Assert-True ($LASTEXITCODE -eq 0) "git diff --check failed."
 
 	Write-Output "TASK020C2_VERIFIER_OK"
 	Write-Output "mode=$($script:Mode)"
-	Write-Output "implementation_commit=$(if ($script:Mode -eq 'accepted') { $script:TargetCommit } else { 'WORKING' })"
+	Write-Output "implementation_commit=$AcceptedCommit"
 	Write-Output "accepted_parent=$RequiredParent"
 	Write-Output "policy_sha256=$(Get-TargetSha256 'dist/game/data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml')"
 	Write-Output "scope=$($changedPaths.Count)"

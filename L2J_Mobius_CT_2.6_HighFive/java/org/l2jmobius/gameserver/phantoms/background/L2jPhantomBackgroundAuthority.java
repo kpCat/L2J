@@ -68,6 +68,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.T
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DeathPolicy;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Drop;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DropDisposition;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DropOrigin;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.ExperienceTable;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.LevelForExperience;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.RewardPolicy;
@@ -87,10 +88,14 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Progr
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Receipt;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Vitals;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog.SupplyKind;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropFact;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropSourceKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnAreaFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
@@ -161,6 +166,32 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		return new PhantomBackgroundState(State.MATERIALIZED, identity, progress, vitals, position, combat, loadout, inventory, autoSkills, clock, receipt, hashes());
 	}
 
+	@Override
+	public PhantomBackgroundState captureAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
+	{
+		Objects.requireNonNull(player, "player");
+		final PhantomAcquisitionGoalSpec spec = PhantomAcquisitionGoalSpec.parse(goal);
+		if (spec.itemId() != targetItemId)
+		{
+			throw new IllegalArgumentException("Acquisition background target item changed.");
+		}
+		requireSupportedPlayer(player);
+		final PhantomTopologyAnchor anchor = exactAnchor(player, previous);
+		final Capability capability = capability(player, null);
+		final Identity identity = new Identity(profileId, player.getObjectId(), player.getClassIndex(), player.getActiveClass(), player.getRace().ordinal());
+		final Progress progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
+		final Vitals vitals = new Vitals(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp());
+		final Position position = new Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), anchor.id());
+		final CombatFacts combat = combatFacts(player, capability);
+		final Loadout loadout = new Loadout(capability.skillId(), capability.skillLevel(), 0, capability.mpConsume(), 0, 0, 0, 0);
+		final List<ItemObject> objects = player.getInventory().getItems().stream().filter(item -> ((item.getId() == targetItemId) && (item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY)) || (item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.PAPERDOLL)).sorted(Comparator.comparingInt(Item::getObjectId)).map(item -> new ItemObject(item.getObjectId(), item.getId(), item.getCount(), item.isStackable(), ItemLocation.valueOf(item.getItemLocation().name()))).toList();
+		final InventoryFacts inventory = InventoryFacts.sorted(List.of(targetItemId), objects, "", player.getCurrentLoad(), player.getMaxLoad(), player.getInventory().getSize(), player.getInventoryLimit());
+		final List<AutoGetSkill> autoSkills = autoGetSkills(identity, player.getLevel());
+		final Clock clock = previous == null ? new Clock(INITIAL_RNG_SEED, 0, 0) : previous.clock();
+		final Receipt receipt = previous == null ? Receipt.empty() : previous.receipt();
+		return new PhantomBackgroundState(State.MATERIALIZED, identity, progress, vitals, position, combat, loadout, inventory, autoSkills, clock, receipt, hashes());
+	}
+
 	/**
 	 * Validates only the persisted resource contract against the current
 	 * Player/loadout and current production catalogs. This narrow diagnostic is
@@ -221,7 +252,66 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	}
 
 	@Override
+	public FarmInput acquisitionInput(PhantomBackgroundState state, Source source)
+	{
+		if (!state.hashes().equals(hashes()) || (source.instanceId() != 0) || (source.itemId() <= 0) || ((source.method() != Method.DEATH_DROP) && (source.method() != Method.SPOIL_SWEEP)))
+		{
+			throw new IllegalStateException("Acquisition background authority generation or source is invalid.");
+		}
+		final PhantomGameKnowledgeSnapshot knowledge = _knowledge.get().snapshot();
+		final PhantomTopologyAnchor anchor = _topology.get().findAnchor(source.anchorId()).orElseThrow(() -> new IllegalArgumentException("Acquisition source anchor is absent."));
+		if (!anchor.nodeId().equals(source.topologyNodeId()) || !anchor.id().equals(state.position().committedAnchorId()) || !atCanonicalAnchor(state.position(), anchor))
+		{
+			throw new IllegalArgumentException("Acquisition background source is not at the committed anchor.");
+		}
+		final var npc = knowledge.npcById().get(source.npcId());
+		final NpcTemplate template = NpcData.getInstance().getTemplate(source.npcId());
+		if ((npc == null) || (template == null) || (npc.kind() != NpcKind.MONSTER) || !npc.attackable() || !npc.targetable() || (npc.level() != template.getLevel()))
+		{
+			throw new IllegalArgumentException("Acquisition source is not an authoritative normal monster.");
+		}
+		final boolean spawned = knowledge.spawnAreasByNpc().getOrDefault(source.npcId(), List.of()).stream().anyMatch(area -> (area.instanceId() == 0) && source.topologyNodeId().equals(area.topologyNodeId()) && (area.totalConfiguredAmount() > 0));
+		if (!spawned)
+		{
+			throw new IllegalArgumentException("Acquisition source has no authoritative spawn at its anchor.");
+		}
+		final DropSourceKind expectedKind = source.method() == Method.DEATH_DROP ? DropSourceKind.DEATH_DROP : DropSourceKind.SPOIL;
+		final List<DropFact> selectedFacts = source.method() == Method.DEATH_DROP ? knowledge.dropFactsByNpc().getOrDefault(source.npcId(), List.of()) : knowledge.spoilFactsByNpc().getOrDefault(source.npcId(), List.of());
+		final DropFact selected = selectedFacts.stream().filter(fact -> (fact.itemId() == source.itemId()) && (fact.sourceKind() == expectedKind) && fact.stableKey().equals(source.factKey())).findFirst().orElseThrow(() -> new IllegalArgumentException("Acquisition source fact is stale."));
+		if ((source.method() == Method.SPOIL_SWEEP) && !durableSpoilEligible(state, source))
+		{
+			throw new IllegalArgumentException("Durable acquisition spoil capability evidence is absent.");
+		}
+		final List<Drop> result = new ArrayList<>();
+		for (DropFact fact : knowledge.dropFactsByNpc().getOrDefault(source.npcId(), List.of()))
+		{
+			final DropOrigin origin = (source.method() == Method.DEATH_DROP) && fact.stableKey().equals(selected.stableKey()) ? DropOrigin.ACQUISITION_TARGET : DropOrigin.INCIDENTAL_DEATH_DROP;
+			result.add(drop(state, npc.level(), fact, origin, false));
+		}
+		if (source.method() == Method.SPOIL_SWEEP)
+		{
+			result.add(drop(state, npc.level(), selected, DropOrigin.ACQUISITION_TARGET, true));
+		}
+		final Target target = new Target(source.npcId(), npc.level(), true, template.getBaseHpMax(), template.getBaseMpMax(), template.getBasePAtk(), template.getBaseMAtk(), template.getBasePDef(), template.getBaseMDef(), template.getBasePAtkSpd(), template.getBaseMAtkSpd(), npc.exp(), npc.sp(), List.copyOf(result), RatesConfig.DROP_MAX_OCCURRENCES_NORMAL);
+		final double expRate = DynamicExpRateData.getInstance().isEnabled() ? DynamicExpRateData.getInstance().getDynamicExpRate(state.progress().level()) : RatesConfig.RATE_XP;
+		final double spRate = DynamicExpRateData.getInstance().isEnabled() ? DynamicExpRateData.getInstance().getDynamicSpRate(state.progress().level()) : RatesConfig.RATE_SP;
+		final long configuredAmount = knowledge.spawnAreasByNpc().getOrDefault(source.npcId(), List.of()).stream().filter(area -> source.topologyNodeId().equals(area.topologyNodeId())).mapToLong(SpawnAreaFact::totalConfiguredAmount).sum();
+		return new FarmInput(target, new RewardPolicy(RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE, expRate, spRate), deathPolicy(state), experienceTable(), levelForExperience(), source.topologyNodeId(), (int) Math.clamp(configuredAmount, 1, 32));
+	}
+
+	@Override
 	public TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis)
+	{
+		return advanceTravel(state, goal.anchorId(), elapsedBudgetMillis);
+	}
+
+	@Override
+	public TravelAdvance advanceAcquisitionTravel(PhantomBackgroundState state, Source source, long elapsedBudgetMillis)
+	{
+		return advanceTravel(state, source.anchorId(), elapsedBudgetMillis);
+	}
+
+	private TravelAdvance advanceTravel(PhantomBackgroundState state, String destinationAnchorId, long elapsedBudgetMillis)
 	{
 		if ((elapsedBudgetMillis <= 0) || (elapsedBudgetMillis > MAX_TRAVEL_BUDGET_MILLIS))
 		{
@@ -232,11 +322,11 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			return unchanged(Status.NO_ROUTE, state, "");
 		}
-		if (state.position().committedAnchorId().equals(goal.anchorId()))
+		if (state.position().committedAnchorId().equals(destinationAnchorId))
 		{
 			return unchanged(Status.AT_DESTINATION, state, "");
 		}
-		final PhantomTopologyQuery.RouteHint route = topology.routeHint(state.position().committedAnchorId(), goal.anchorId()).orElse(null);
+		final PhantomTopologyQuery.RouteHint route = topology.routeHint(state.position().committedAnchorId(), destinationAnchorId).orElse(null);
 		if ((route == null) || route.edgeIds().isEmpty())
 		{
 			return unchanged(Status.NO_ROUTE, state, "");
@@ -375,7 +465,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			{
 				continue;
 			}
-			if (goal.summonNpcId() > 0)
+			if ((goal != null) && (goal.summonNpcId() > 0))
 			{
 				final Summon summon = player.getSummon();
 				if ((summon == null) || (summon.getId() != goal.summonNpcId()))
@@ -537,33 +627,53 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 
 	private List<Drop> drops(PhantomBackgroundState state, int targetLevel, List<DropFact> facts)
 	{
-		final int levelDifference = targetLevel - state.progress().level();
 		final List<Drop> result = new ArrayList<>();
 		for (DropFact fact : facts)
 		{
-			final ItemTemplate item = ItemData.getInstance().getTemplate(fact.itemId());
-			if (item == null)
-			{
-				throw new IllegalArgumentException("Background target contains an unsupported death drop.");
-			}
-			final DropDisposition disposition = dropDisposition(item);
-			final Float configuredChance = RatesConfig.RATE_DROP_CHANCE_BY_ID.get(fact.itemId());
-			double chance = configuredChance == null ? (item.hasExImmediateEffect() ? RatesConfig.RATE_HERB_DROP_CHANCE_MULTIPLIER : RatesConfig.RATE_DEATH_DROP_CHANCE_MULTIPLIER) : configuredChance;
-			if ((configuredChance != null) && (fact.itemId() == Inventory.ADENA_ID) && (chance > 100))
-			{
-				chance = 100;
-			}
-			chance *= state.combat().dropChanceMultiplier();
-			double amount = RatesConfig.RATE_DROP_AMOUNT_BY_ID.getOrDefault(fact.itemId(), item.hasExImmediateEffect() ? RatesConfig.RATE_HERB_DROP_AMOUNT_MULTIPLIER : RatesConfig.RATE_DEATH_DROP_AMOUNT_MULTIPLIER);
-			amount *= state.combat().dropAmountMultiplier();
-			if (fact.itemId() == Inventory.ADENA_ID)
-			{
-				amount *= state.combat().adenaAmountMultiplier();
-			}
-			final double levelGapChance = MathUtil.scaleToRange(levelDifference, fact.itemId() == Inventory.ADENA_ID ? -RatesConfig.DROP_ADENA_MAX_LEVEL_DIFFERENCE : -RatesConfig.DROP_ITEM_MAX_LEVEL_DIFFERENCE, fact.itemId() == Inventory.ADENA_ID ? -RatesConfig.DROP_ADENA_MIN_LEVEL_DIFFERENCE : -RatesConfig.DROP_ITEM_MIN_LEVEL_DIFFERENCE, fact.itemId() == Inventory.ADENA_ID ? RatesConfig.DROP_ADENA_MIN_LEVEL_GAP_CHANCE : RatesConfig.DROP_ITEM_MIN_LEVEL_GAP_CHANCE, 100d);
-			result.add(new Drop(fact.itemId(), fact.groupOrdinal(), fact.itemOrdinal(), fact.rawGroupChance(), fact.rawItemChance(), fact.minimumCount(), fact.maximumCount(), chance, configuredChance == null ? null : configuredChance.doubleValue(), amount, levelGapChance, item.isStackable(), item.getWeight(), disposition));
+			result.add(drop(state, targetLevel, fact, DropOrigin.ORDINARY, false));
 		}
 		return List.copyOf(result);
+	}
+
+	private Drop drop(PhantomBackgroundState state, int targetLevel, DropFact fact, DropOrigin origin, boolean spoil)
+	{
+		final ItemTemplate item = ItemData.getInstance().getTemplate(fact.itemId());
+		if (item == null)
+		{
+			throw new IllegalArgumentException("Background target contains an unsupported drop.");
+		}
+		final DropDisposition disposition = spoil ? DropDisposition.ACQUIRE : dropDisposition(item);
+		final Float configuredChance = spoil ? null : RatesConfig.RATE_DROP_CHANCE_BY_ID.get(fact.itemId());
+		double chance = spoil ? RatesConfig.RATE_SPOIL_DROP_CHANCE_MULTIPLIER : configuredChance == null ? (item.hasExImmediateEffect() ? RatesConfig.RATE_HERB_DROP_CHANCE_MULTIPLIER : RatesConfig.RATE_DEATH_DROP_CHANCE_MULTIPLIER) : configuredChance;
+		if (!spoil && (configuredChance != null) && (fact.itemId() == Inventory.ADENA_ID) && (chance > 100))
+		{
+			chance = 100;
+		}
+		if (!spoil)
+		{
+			chance *= state.combat().dropChanceMultiplier();
+		}
+		double amount = spoil ? RatesConfig.RATE_SPOIL_DROP_AMOUNT_MULTIPLIER : RatesConfig.RATE_DROP_AMOUNT_BY_ID.getOrDefault(fact.itemId(), item.hasExImmediateEffect() ? RatesConfig.RATE_HERB_DROP_AMOUNT_MULTIPLIER : RatesConfig.RATE_DEATH_DROP_AMOUNT_MULTIPLIER) * state.combat().dropAmountMultiplier();
+		if (!spoil && (fact.itemId() == Inventory.ADENA_ID))
+		{
+			amount *= state.combat().adenaAmountMultiplier();
+		}
+		final int levelDifference = targetLevel - state.progress().level();
+		final double levelGapChance = spoil ? 100d : MathUtil.scaleToRange(levelDifference, fact.itemId() == Inventory.ADENA_ID ? -RatesConfig.DROP_ADENA_MAX_LEVEL_DIFFERENCE : -RatesConfig.DROP_ITEM_MAX_LEVEL_DIFFERENCE, fact.itemId() == Inventory.ADENA_ID ? -RatesConfig.DROP_ADENA_MIN_LEVEL_DIFFERENCE : -RatesConfig.DROP_ITEM_MIN_LEVEL_DIFFERENCE, fact.itemId() == Inventory.ADENA_ID ? RatesConfig.DROP_ADENA_MIN_LEVEL_GAP_CHANCE : RatesConfig.DROP_ITEM_MIN_LEVEL_GAP_CHANCE, 100d);
+		return new Drop(fact.itemId(), fact.groupOrdinal(), fact.itemOrdinal(), fact.rawGroupChance(), fact.rawItemChance(), fact.minimumCount(), fact.maximumCount(), chance, configuredChance == null ? null : configuredChance.doubleValue(), amount, levelGapChance, item.isStackable(), item.getWeight(), disposition, origin);
+	}
+
+	private boolean durableSpoilEligible(PhantomBackgroundState state, Source source)
+	{
+		final Map<Integer, Integer> known = new HashMap<>();
+		state.autoGetSkills().forEach(skill -> known.merge(skill.skillId(), skill.skillLevel(), Math::max));
+		final PhantomProgressionCatalog catalog = _progression.get();
+		return durableCapability(catalog, state.identity().activeClassId(), "profession.spoil", source.spoilSkillId(), source.spoilSkillLevel(), known) && durableCapability(catalog, state.identity().activeClassId(), "profession.sweep", source.sweepSkillId(), source.sweepSkillLevel(), known);
+	}
+
+	private static boolean durableCapability(PhantomProgressionCatalog catalog, int classId, String key, int skillId, int skillLevel, Map<Integer, Integer> known)
+	{
+		return catalog.capabilities(classId).stream().filter(rule -> key.equals(rule.capabilityKey()) && (rule.actionSkill().skillId() == skillId) && (rule.actionSkill().skillLevel() == skillLevel) && rule.requiredItems().isEmpty() && rule.requiredEquipmentFamilies().isEmpty()).anyMatch(rule -> rule.evidenceSkills().stream().allMatch(skill -> known.getOrDefault(skill.skillId(), 0) >= skill.skillLevel()));
 	}
 
 	private static DropDisposition dropDisposition(ItemTemplate item)

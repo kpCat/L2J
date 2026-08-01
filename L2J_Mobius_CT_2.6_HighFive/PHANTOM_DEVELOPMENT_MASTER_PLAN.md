@@ -685,13 +685,14 @@ Status: `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`.
 
 ### 020. Conversation engine и действия
 
-Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Status: `ACCEPT`.
 
 Checkpoint 1: `ACCEPT_WITH_ACTIVATION_GATE`; actual-delivery observation,
 bounded conversation state, clarification continuation и observer-only
 response/action planning.
 
-Checkpoint 2 (action/outbound): `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Checkpoint 2 (action/outbound): `ACCEPT`; final Goal 020 baseline
+`d48dccb42dcfe5993f1c852e021086e498c0622d`.
 
 - PM/local/trade chat;
 - observer-aware generation;
@@ -702,7 +703,8 @@ Checkpoint 2 (action/outbound): `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 ### 021. Spoil, manor, quest drop и craft acquisition chains
 
-Status: `NOT_STARTED`.
+Status: `IN_PROGRESS`; Checkpoint 1 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`,
+Checkpoint 2 `NOT_STARTED`.
 
 - eligibility и source selection;
 - spoil/manor/quest collection;

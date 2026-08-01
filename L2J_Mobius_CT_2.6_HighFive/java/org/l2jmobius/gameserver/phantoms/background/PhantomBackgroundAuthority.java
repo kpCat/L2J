@@ -33,6 +33,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.AutoG
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Clock;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashes;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Position;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 
 /**
@@ -46,11 +47,26 @@ public interface PhantomBackgroundAuthority
 
 	PhantomBackgroundState capture(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous);
 
+	default PhantomBackgroundState captureAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
+	{
+		throw new UnsupportedOperationException("Acquisition background capture is unavailable.");
+	}
+
 	boolean matchesRuntime(Player player, PhantomBackgroundState state);
 
 	FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal);
 
+	default FarmInput acquisitionInput(PhantomBackgroundState state, Source source)
+	{
+		throw new UnsupportedOperationException("Acquisition background authority is unavailable.");
+	}
+
 	TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis);
+
+	default TravelAdvance advanceAcquisitionTravel(PhantomBackgroundState state, Source source, long elapsedBudgetMillis)
+	{
+		throw new UnsupportedOperationException("Acquisition background travel is unavailable.");
+	}
 
 	List<AutoGetSkill> autoGetSkills(PhantomBackgroundState.Identity identity, int level);
 

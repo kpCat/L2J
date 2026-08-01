@@ -6,6 +6,9 @@ package org.l2jmobius.gameserver.phantoms.combat;
 import java.util.List;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionTargetSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionActorPosition;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
@@ -22,6 +25,36 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	ActorSnapshot actorSnapshot();
 
 	TargetSnapshot targetSnapshot(int targetObjectId);
+
+	default AcquisitionTargetSnapshot acquisitionTargetSnapshot(int targetObjectId)
+	{
+		return null;
+	}
+
+	default List<AcquisitionTargetSnapshot> acquisitionTargets(int npcId, int limit, int maximumDistance)
+	{
+		return List.of();
+	}
+
+	default long acquisitionInventoryCount(int itemId)
+	{
+		return -1;
+	}
+
+	default int acquisitionLevel()
+	{
+		return 0;
+	}
+
+	default AcquisitionActorPosition acquisitionPosition()
+	{
+		return null;
+	}
+
+	default int knownSkillLevel(int skillId)
+	{
+		return 0;
+	}
 
 	default PlayableSnapshot playableSnapshot(int objectId)
 	{
@@ -46,6 +79,11 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	ActionOutcome attack(int targetObjectId);
 
 	ActionOutcome cast(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode);
+
+	default ActionOutcome castAcquisition(int targetObjectId, SelectedSkill skill, AcquisitionSkillKind kind)
+	{
+		return ActionOutcome.REJECTED;
+	}
 
 	default ActionOutcome castSupport(PhantomPartySupportAction action)
 	{

@@ -59,6 +59,9 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 	{
 		TRAVEL,
 		FARM,
-		RECOVER
+		RECOVER,
+		ACQUISITION_DEATH_DROP,
+		ACQUISITION_SPOIL_SWEEP,
+		ACQUISITION_TRAVEL
 	}
 }

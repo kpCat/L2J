@@ -33,6 +33,11 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSinkBridge;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomCompositeSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionDecision;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore;
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision;
@@ -129,6 +134,7 @@ public final class PhantomSystem
 	private PhantomCombatService _combatService;
 	private PhantomCommerceService _commerceService;
 	private PhantomBackgroundService _backgroundService;
+	private PhantomAcquisitionService _acquisitionService;
 	private PhantomPopulationManager _populationManager;
 	private PhantomPartyCoordinator _partyCoordinator;
 	private PhantomSocialService _socialService;
@@ -274,8 +280,17 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom background service could not enter the running state.");
 				}
 				productionLifecycle.install(_backgroundService);
+				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
+				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
+				final PhantomAcquisitionStore acquisitionStore = new PhantomAcquisitionStore(productionProfiles, productionGoals);
+				_acquisitionService = new PhantomAcquisitionService(acquisitionCatalog, acquisitionStore, productionGoals, new PhantomAcquisitionSourcePlanner(acquisitionCatalog, _gameKnowledgeService.query(), _topologyService.query(), _progressionService.catalog()), _gameKnowledgeService.query(), _topologyService.query(), _progressionService.catalog(), _combatService, _backgroundService, _navigationService);
+				if (!_acquisitionService.start())
+				{
+					throw new IllegalStateException("Phantom acquisition service could not enter the running state.");
+				}
 				final PhantomCommerceDecision commerceDecision = new PhantomCommerceDecision(_commerceService);
 				final PhantomBackgroundDecision backgroundDecision = new PhantomBackgroundDecision(_backgroundService);
+				final PhantomAcquisitionDecision acquisitionDecision = new PhantomAcquisitionDecision(_acquisitionService);
 				final File populationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-population-v1.xml");
 				final PhantomPopulationCatalog populationCatalog = PhantomPopulationCatalog.load(populationCatalogFile.toPath(), _settings.populationTimeZone());
 				_populationManager = new PhantomPopulationManager(
@@ -340,6 +355,7 @@ public final class PhantomSystem
 				final PhantomPopulationDecision populationDecision = new PhantomPopulationDecision(_populationManager);
 				final PhantomPartyDecision partyDecision = new PhantomPartyDecision(_partyCoordinator);
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
+				acquisitionDecision.registerCandidates(candidateRegistry);
 				commerceDecision.registerCandidates(candidateRegistry);
 				backgroundDecision.registerCandidates(candidateRegistry);
 				populationDecision.registerCandidates(candidateRegistry);
@@ -348,6 +364,7 @@ public final class PhantomSystem
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
 				new PhantomCombatStepHandlers(_combatService, combatPolicy).register(handlerRegistry);
+				acquisitionDecision.registerHandlers(handlerRegistry);
 				commerceDecision.registerHandlers(handlerRegistry);
 				backgroundDecision.registerHandlers(handlerRegistry);
 				populationDecision.registerHandlers(handlerRegistry);
@@ -403,6 +420,10 @@ public final class PhantomSystem
 			{
 				_decisionEngine.beginStop();
 			}
+			if (_acquisitionService != null)
+			{
+				_acquisitionService.beginStop();
+			}
 			if (_combatService != null)
 			{
 				_combatService.beginStop();
@@ -444,7 +465,8 @@ public final class PhantomSystem
 				_socialService.beginStop();
 				socialStopped = _socialService.finishStop();
 			}
-			final boolean combatStopped = partyStopped && socialStopped && ((_combatService == null) || _combatService.finishStop());
+			final boolean acquisitionStopped = partyStopped && socialStopped && ((_acquisitionService == null) || _acquisitionService.finishStop());
+			final boolean combatStopped = acquisitionStopped && ((_combatService == null) || _combatService.finishStop());
 			final boolean progressionStopped = (_progressionService == null) || _progressionService.finishStop();
 			final boolean commerceStopped = (_commerceService == null) || _commerceService.finishStop();
 			final boolean populationStopped = (_populationManager == null) || _populationManager.finishStop();
@@ -525,6 +547,10 @@ public final class PhantomSystem
 			{
 				_decisionEngine.beginStop();
 			}
+			if (_acquisitionService != null)
+			{
+				_acquisitionService.beginStop();
+			}
 			if (_combatService != null)
 			{
 				_combatService.beginStop();
@@ -572,6 +598,12 @@ public final class PhantomSystem
 					_state = State.FAILED;
 					return false;
 				}
+			}
+			if ((_acquisitionService != null) && !_acquisitionService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				_state = State.FAILED;
+				return false;
 			}
 			if ((_combatService != null) && !_combatService.finishStop())
 			{
@@ -703,6 +735,15 @@ public final class PhantomSystem
 					return false;
 				}
 			}
+			if ((_acquisitionService != null) && (_acquisitionService.snapshot().state() == PhantomAcquisitionService.ServiceState.RUNNING))
+			{
+				_acquisitionService.beginStop();
+			}
+			if ((_acquisitionService != null) && (_acquisitionService.snapshot().state() != PhantomAcquisitionService.ServiceState.STOPPED) && !_acquisitionService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				return false;
+			}
 			if (_combatService != null)
 			{
 				_combatService.retryFailedCleanup();
@@ -803,6 +844,11 @@ public final class PhantomSystem
 	public synchronized PhantomPartyCoordinator.Snapshot partySnapshot()
 	{
 		return _partyCoordinator == null ? PhantomPartyCoordinator.Snapshot.inactive() : _partyCoordinator.snapshot();
+	}
+
+	public synchronized PhantomAcquisitionService.Snapshot acquisitionSnapshot()
+	{
+		return _acquisitionService == null ? null : _acquisitionService.snapshot();
 	}
 
 	public static synchronized boolean startConfigured()

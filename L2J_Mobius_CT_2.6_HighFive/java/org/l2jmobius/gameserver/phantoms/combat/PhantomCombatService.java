@@ -23,6 +23,9 @@ import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ExternalOwnedAction;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionActorPosition;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PlayableSnapshot;
@@ -87,6 +90,7 @@ public final class PhantomCombatService
 
 	public enum ExternalActionKind
 	{
+		ACQUISITION,
 		PARTY_TACTIC,
 		PARTY_SUPPORT,
 		PARTY_ROUTE
@@ -408,6 +412,14 @@ public final class PhantomCombatService
 		{
 			final PhantomCombatSession session = _sessions.get(profileId);
 			return session == null ? Optional.empty() : Optional.of(session.snapshot());
+		}
+	}
+
+	public boolean hasClaim(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			return _sessions.containsKey(profileId) || _respawnOperations.containsKey(profileId) || _externalOperations.containsKey(profileId);
 		}
 	}
 
@@ -1667,6 +1679,56 @@ public final class PhantomCombatService
 			return active() ? _actorLease.targetSnapshot(objectId) : null;
 		}
 
+		public AcquisitionTargetSnapshot acquisitionTargetSnapshot(int objectId)
+		{
+			return active() && (kind() == ExternalActionKind.ACQUISITION) ? _actorLease.acquisitionTargetSnapshot(objectId) : null;
+		}
+
+		public List<AcquisitionTargetSnapshot> acquisitionTargets(int npcId, int limit, int maximumDistance)
+		{
+			return active() && (kind() == ExternalActionKind.ACQUISITION) ? _actorLease.acquisitionTargets(npcId, limit, maximumDistance) : List.of();
+		}
+
+		public long acquisitionInventoryCount(int itemId)
+		{
+			return active() && (kind() == ExternalActionKind.ACQUISITION) ? _actorLease.acquisitionInventoryCount(itemId) : -1;
+		}
+
+		public int acquisitionLevel()
+		{
+			return active() && (kind() == ExternalActionKind.ACQUISITION) ? _actorLease.acquisitionLevel() : 0;
+		}
+
+		public AcquisitionActorPosition acquisitionPosition()
+		{
+			return active() && (kind() == ExternalActionKind.ACQUISITION) ? _actorLease.acquisitionPosition() : null;
+		}
+
+		public int knownSkillLevel(int skillId)
+		{
+			return active() && (kind() == ExternalActionKind.ACQUISITION) ? _actorLease.knownSkillLevel(skillId) : 0;
+		}
+
+		public ActionOutcome castAcquisition(int targetObjectId, SelectedSkill skill, AcquisitionSkillKind acquisitionKind)
+		{
+			if (!active() || (kind() != ExternalActionKind.ACQUISITION) || (skill == null) || (acquisitionKind == null))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final ActorSnapshot actor = _actorLease.actorSnapshot();
+			final AcquisitionTargetSnapshot target = _actorLease.acquisitionTargetSnapshot(targetObjectId);
+			if ((actor == null) || (target == null))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final ActionOutcome outcome = _actorLease.castAcquisition(targetObjectId, skill, acquisitionKind);
+			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
+			{
+				_ownedAction = new ExternalOwnedAction(kind(), targetObjectId, skill, 0, 0, 0, actor.instanceId());
+			}
+			return outcome;
+		}
+
 		public List<ThreatObservation> observedAttackers(int protectedObjectId, int limit)
 		{
 			return active() ? _actorLease.observedAttackers(protectedObjectId, limit) : List.of();
@@ -1709,7 +1771,7 @@ public final class PhantomCombatService
 
 		public ActionOutcome moveTo(int x, int y, int z, int instanceId)
 		{
-			if (!active() || (kind() != ExternalActionKind.PARTY_ROUTE))
+			if (!active() || ((kind() != ExternalActionKind.PARTY_ROUTE) && (kind() != ExternalActionKind.ACQUISITION)))
 			{
 				return ActionOutcome.REJECTED;
 			}

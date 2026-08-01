@@ -42,6 +42,12 @@ public interface PhantomCombatBackend
 		INELIGIBLE
 	}
 
+	enum AcquisitionSkillKind
+	{
+		SPOIL,
+		SWEEP
+	}
+
 	record ActorSnapshot(int objectId, int classId, int instanceId, double currentHp, double maximumHp, double currentMp, double maximumMp, double currentCp, double maximumCp, boolean dead, boolean alikeDead, boolean attacking, boolean casting, boolean moving, int currentTargetObjectId, String intention, int currentSkillId, int currentSkillLevel)
 	{
 		public ActorSnapshot
@@ -66,6 +72,38 @@ public interface PhantomCombatBackend
 		public boolean validFor(ActorSnapshot actor, int maximumDistance)
 		{
 			return normalMonster && knowledgeMonster && targetable && attackable && !invulnerable && surroundingRegion && !peaceRestricted && !dead && !alikeDead && (instanceId == actor.instanceId()) && (distance <= maximumDistance);
+		}
+	}
+
+	record AcquisitionTargetSnapshot(int objectId, int npcId, int instanceId, double distance, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean normalMonster, boolean knowledgeMonster, boolean peaceRestricted, boolean surroundingRegion, boolean spoiled, int spoilerObjectId, boolean sweepActive, boolean sweepOwnerEligible)
+	{
+		public AcquisitionTargetSnapshot
+		{
+			if ((objectId <= 0) || (npcId <= 0) || (instanceId < 0) || !Double.isFinite(distance) || (distance < 0) || (spoilerObjectId < 0))
+			{
+				throw new IllegalArgumentException("Invalid acquisition target snapshot.");
+			}
+		}
+
+		public boolean liveValidFor(ActorSnapshot actor, int expectedNpcId, int maximumDistance)
+		{
+			return (npcId == expectedNpcId) && (instanceId == actor.instanceId()) && !dead && !alikeDead && targetable && attackable && !invulnerable && normalMonster && knowledgeMonster && !peaceRestricted && surroundingRegion && (distance <= maximumDistance);
+		}
+
+		public boolean sweepValidFor(ActorSnapshot actor, int expectedNpcId, int maximumDistance)
+		{
+			return (npcId == expectedNpcId) && (instanceId == actor.instanceId()) && (dead || alikeDead) && targetable && normalMonster && knowledgeMonster && !peaceRestricted && surroundingRegion && spoiled && sweepActive && sweepOwnerEligible && (distance <= maximumDistance);
+		}
+	}
+
+	record AcquisitionActorPosition(int x, int y, int z, int instanceId)
+	{
+		public AcquisitionActorPosition
+		{
+			if (instanceId < 0)
+			{
+				throw new IllegalArgumentException("Invalid acquisition actor position.");
+			}
 		}
 	}
 

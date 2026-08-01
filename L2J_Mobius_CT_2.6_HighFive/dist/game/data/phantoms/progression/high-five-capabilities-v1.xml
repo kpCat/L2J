@@ -38,6 +38,8 @@
 	<capabilityRule classId="93" capabilityKey="combat.mobility" variantKey="dash" rank="800" skillId="4" skillLevel="2" source="data/stats/players/skillTrees/2ndClass/TreasureHunter.xml" />
 	<capabilityRule classId="93" capabilityKey="combat.escape" variantKey="dash" rank="750" skillId="4" skillLevel="2" source="data/stats/players/skillTrees/2ndClass/TreasureHunter.xml" />
 	<capabilityRule classId="117" capabilityKey="profession.sweep" variantKey="dwarven-sweep" rank="950" skillId="42" skillLevel="1" source="data/stats/players/skillTrees/StartingClass/DwarvenFighter.xml" />
+	<capabilityRule classId="117" capabilityKey="profession.spoil" variantKey="fortune-seeker-spoil" rank="950" skillId="348" skillLevel="1" source="data/stats/players/skillTrees/3rdClass/FortuneSeeker.xml" />
+	<capabilityRule classId="118" capabilityKey="profession.craft" variantKey="maestro-create-item" rank="950" skillId="172" skillLevel="10" source="data/stats/players/skillTrees/3rdClass/Maestro.xml" />
 	<capabilityRule classId="96" capabilityKey="logistics.summon_friend" variantKey="warlock-summon-friend" rank="850" skillId="1403" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/Warlock.xml" />
 	<capabilityRule classId="104" capabilityKey="logistics.summon_friend" variantKey="elemental-summoner-summon-friend" rank="850" skillId="1403" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/ElementalSummoner.xml" />
 	<capabilityRule classId="111" capabilityKey="logistics.summon_friend" variantKey="phantom-summoner-summon-friend" rank="850" skillId="1403" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/PhantomSummoner.xml" />

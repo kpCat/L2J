@@ -26,7 +26,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
@@ -37,6 +39,8 @@ import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
+import org.l2jmobius.gameserver.config.RatesConfig;
+import org.l2jmobius.gameserver.managers.InstanceManager;
 import org.l2jmobius.gameserver.managers.ItemManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -50,8 +54,15 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatActorLease;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
@@ -59,6 +70,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObserva
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
@@ -66,12 +78,17 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatResult;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomRespawnRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.CancelStatus;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionKind;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionLease;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionRequest;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSessionSnapshot;
 import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
@@ -86,6 +103,10 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.Re
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalogBuilder;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyMetrics;
@@ -96,14 +117,25 @@ import org.l2jmobius.gameserver.scripting.ScriptEngine;
 
 public final class PhantomCombatServerIntegrationSuite implements PhantomTestSuite
 {
+	public enum Mode
+	{
+		BASELINE,
+		ACQUISITION
+	}
+
+	private static final long ACQUISITION_SEED = 21002101L;
 	private static final int MELEE_CLASS_ID = 88;
 	private static final int MAGIC_CLASS_ID = 94;
 	private static final int MAGIC_SKILL_ID = 1339;
 	private static final int WEAPON_ITEM_ID = 6;
 	private static final int SOULSHOT_ITEM_ID = 1835;
 	private static final int ADENA_ITEM_ID = 57;
-	private static final long WAIT_MILLIS = 5000;
+	private static final long WAIT_MILLIS = 10000;
+	private static final int SPOIL_CLASS_ID = 117;
+	private static final int SPOIL_SKILL_ID = 348;
+	private static final int SWEEP_SKILL_ID = 42;
 
+	private final Mode _mode;
 	private final PhantomHeadlessPlayerTestEnvironment _environment = new PhantomHeadlessPlayerTestEnvironment();
 	private final List<Monster> _worldFixtures = new ArrayList<>();
 	private PhantomProfileRepository _repository;
@@ -116,17 +148,35 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private Player _player;
 	private Player _observer;
 	private SpawnFact _combatPoint;
+	private Source _acquisitionSource;
+	private PhantomProgressionCatalog _progression;
 	private Path _moduleRoot;
+	private float _spoilChanceRateBaseline;
+	private double _acquisitionRawItemChance;
+
+	public PhantomCombatServerIntegrationSuite()
+	{
+		this(Mode.BASELINE);
+	}
+
+	public PhantomCombatServerIntegrationSuite(Mode mode)
+	{
+		_mode = mode;
+	}
 
 	@Override
 	public String id()
 	{
-		return "combat-server-integration";
+		return _mode == Mode.ACQUISITION ? "acquisition-active-spoil" : "combat-server-integration";
 	}
 
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
+		if (_mode == Mode.ACQUISITION)
+		{
+			PhantomAssertions.assertEquals(ACQUISITION_SEED, context.seed(), "Active acquisition mode used the wrong seed.");
+		}
 		_moduleRoot = context.moduleRoot();
 		_environment.initialize(context);
 		try
@@ -144,7 +194,19 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_knowledge = new PhantomGameKnowledgeService(builder);
 			PhantomAssertions.assertTrue(_knowledge.start(), "Game Knowledge service did not start.");
 			_query = _knowledge.query();
-			_combatPoint = selectCombatPoint();
+			final PhantomProgressionPolicy progressionPolicy = PhantomProgressionPolicy.productionDefaults();
+			_progression = new PhantomProgressionCatalogBuilder().build(new L2jProgressionBackend(null, Path.of("."), () -> _query).load(progressionPolicy), progressionPolicy);
+			if (_mode == Mode.ACQUISITION)
+			{
+				_acquisitionSource = selectAcquisitionSource(topologyQuery, context);
+				_combatPoint = _query.snapshot().spawnFactsByNpc().getOrDefault(_acquisitionSource.npcId(), List.of()).stream().filter(fact -> (fact.pointKind() == SpawnPointKind.EXACT) && (fact.instanceId() == 0)).findFirst().orElseThrow(() -> new AssertionError("Acquisition source has no exact normal-world spawn."));
+				_spoilChanceRateBaseline = RatesConfig.RATE_SPOIL_DROP_CHANCE_MULTIPLIER;
+				RatesConfig.RATE_SPOIL_DROP_CHANCE_MULTIPLIER = Math.max(_spoilChanceRateBaseline, (float) Math.ceil(100 / _acquisitionRawItemChance));
+			}
+			else
+			{
+				_combatPoint = selectCombatPoint();
+			}
 
 			_repository = PhantomProfileRepository.open();
 			_profile = _repository.create(_environment.primary().objectId());
@@ -154,9 +216,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Test actor did not materialize.");
 			_player = World.getInstance().getPlayer(_environment.primary().objectId());
 			PhantomAssertions.assertTrue(_player != null, "Materialized World Player is absent.");
+			if (_mode == Mode.ACQUISITION)
+			{
+				prepareAcquisitionActor();
+			}
 			relocateToCombatPoint();
 
-			_backend = new L2jCombatBackend(_materialization, () -> _query);
+			_backend = new L2jCombatBackend(_materialization, () -> _query, () -> _progression);
 			_combat = new PhantomCombatService(_backend, PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query), PhantomCombatPolicy.productionDefaults(1));
 			_combat.start();
 
@@ -164,6 +230,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			context.record("combatIntegration.profileId", _profile.profileId());
 			context.record("combatIntegration.actorObjectId", _player.getObjectId());
 			context.record("combatIntegration.normalNpcId", _combatPoint.npcId());
+			if (_mode == Mode.ACQUISITION)
+			{
+				context.record("acquisition.activeItemId", _acquisitionSource.itemId());
+				context.record("acquisition.activeSourceId", _acquisitionSource.sourceId());
+			}
 		}
 		catch (Throwable throwable)
 		{
@@ -181,6 +252,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.ACQUISITION)
+		{
+			registry.add("01-exact-target-skill-distance-instance-and-ownership", _ -> testAcquisitionControls());
+			registry.add("02-canonical-spoil-existing-combat-sweep-inventory", _ -> testCanonicalAcquisitionChain());
+			registry.add("03-dispatch-crash-recovery-never-blind-repeats", _ -> testAcquisitionDispatchRecovery());
+			return;
+		}
 		registry.add("01-exact-world-player-action-lease", _ -> testExactActorLease());
 		registry.add("02-canonical-player-ai-attack-and-death", _ -> testCanonicalAttack());
 		registry.add("03-canonical-selected-skill-cast", _ -> testCanonicalCast());
@@ -201,6 +279,187 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		registry.add("18-production-combat-has-no-packet-route", _ -> testNoPacketRoute());
 		registry.add("19-canonical-player-cp-snapshot", _ -> testCanonicalCpSnapshot());
 		registry.add("20-dematerialization-waits-for-combat-lease", _ -> testDematerializationDrain());
+	}
+
+	private Source selectAcquisitionSource(PhantomTopologyQuery topology, PhantomTestContext context)
+	{
+		final PhantomAcquisitionCatalog catalog = PhantomAcquisitionCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/acquisition/high-five-acquisition-v1.xml"));
+		final PhantomAcquisitionSourcePlanner planner = new PhantomAcquisitionSourcePlanner(catalog, _query, topology, _progression);
+		Source best = null;
+		double bestChance = -1;
+		for (int itemId : _query.snapshot().spoilSourcesByItem().keySet().stream().sorted().toList())
+		{
+			final var request = new PhantomAcquisitionSourcePlanner.Request(1, itemId, 1, PhantomActivityState.ACTIVE, SPOIL_CLASS_ID, 85, Map.of(), Map.of(SPOIL_SKILL_ID, 1, SWEEP_SKILL_ID, 1), Set.of(Method.SPOIL_SWEEP), Method.SPOIL_SWEEP, "", Map.of(), 0);
+			final var result = planner.plan(request);
+			if (result.selected() == null)
+			{
+				continue;
+			}
+			final Source source = result.selected().source();
+			if (_query.snapshot().spawnFactsByNpc().getOrDefault(source.npcId(), List.of()).stream().noneMatch(fact -> (fact.pointKind() == SpawnPointKind.EXACT) && (fact.instanceId() == 0)))
+			{
+				continue;
+			}
+			final double chance = _query.snapshot().spoilSourcesByItem().getOrDefault(itemId, List.of()).stream().filter(fact -> fact.stableKey().equals(source.factKey())).mapToDouble(DropFact::rawItemChance).findFirst().orElse(0);
+			if ((chance > bestChance) || ((Double.compare(chance, bestChance) == 0) && ((best == null) || (source.sourceId().compareTo(best.sourceId()) < 0))))
+			{
+				best = source;
+				bestChance = chance;
+			}
+		}
+		if (best == null)
+		{
+			throw new AssertionError("No production spoil/sweep source has an exact normal-world spawn.");
+		}
+		context.record("acquisition.activeRawItemChance", bestChance);
+		_acquisitionRawItemChance = bestChance;
+		return best;
+	}
+
+	private void prepareAcquisitionActor()
+	{
+		_player.setPlayerClass(SPOIL_CLASS_ID);
+		_player.getStat().setLevel((byte) 85);
+		_player.setInvul(true);
+		ensureWeapon();
+		for (int skillId : List.of(SPOIL_SKILL_ID, SWEEP_SKILL_ID))
+		{
+			final Skill skill = SkillData.getInstance().getSkill(skillId, 1);
+			PhantomAssertions.assertTrue(skill != null, "Canonical acquisition skill is unavailable: " + skillId);
+			_player.addSkill(skill, false);
+			_player.enableSkill(skill);
+		}
+		_player.setCurrentHp(_player.getMaxHp());
+		_player.setCurrentMp(_player.getMaxMp());
+		_player.setCurrentCp(_player.getMaxCp());
+	}
+
+	private void resetAcquisitionActor()
+	{
+		resetActor(true);
+		prepareAcquisitionActor();
+		relocateToCombatPoint();
+	}
+
+	private ExternalActionLease acquireAcquisition(String operation)
+	{
+		final var result = _combat.acquireExternalAction(new ExternalActionRequest(_profile.profileId(), ExternalActionKind.ACQUISITION, operation, System.nanoTime() + TimeUnit.SECONDS.toNanos(10), () -> false));
+		PhantomAssertions.assertEquals(ExternalActionStatus.ACQUIRED, result.status(), "Acquisition action lease was not acquired.");
+		return result.lease();
+	}
+
+	private void testAcquisitionControls()
+	{
+		resetAcquisitionActor();
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		try (ExternalActionLease lease = acquireAcquisition("acquisition-controls"))
+		{
+			final List<AcquisitionTargetSnapshot> targets = lease.acquisitionTargets(_acquisitionSource.npcId(), 8, 2000);
+			PhantomAssertions.assertTrue(targets.stream().anyMatch(value -> value.objectId() == target.getObjectId()), "Exact authoritative acquisition target was not observed.");
+			PhantomAssertions.assertTrue(lease.acquisitionTargets(_acquisitionSource.npcId() + 1, 8, 2000).stream().noneMatch(value -> value.objectId() == target.getObjectId()), "Wrong NPC identity was admitted.");
+			PhantomAssertions.assertEquals(1, lease.knownSkillLevel(SPOIL_SKILL_ID), "Canonical known spoil skill was not observed.");
+			PhantomAssertions.assertEquals(1, lease.knownSkillLevel(SWEEP_SKILL_ID), "Canonical known sweep skill was not observed.");
+			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID + 1, 1), AcquisitionSkillKind.SPOIL), "Unknown acquisition skill was admitted.");
+			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.castAcquisition(target.getObjectId() + 1, new SelectedSkill(SPOIL_SKILL_ID, 1), AcquisitionSkillKind.SPOIL), "Wrong exact target was admitted.");
+			PhantomAssertions.assertEquals(StartStatus.REJECTED_EXISTING, _combat.startSession(request(target, PhantomCombatMode.MELEE_PHYSICAL, false, false)).status(), "Existing Combat admitted a second owner during acquisition.");
+		}
+
+		final Monster wrongInstance = spawnNormalMonster(targetMaximumHp());
+		final int wrongInstanceId = InstanceManager.getInstance().createDynamicInstance(0).getId();
+		wrongInstance.setInstanceId(wrongInstanceId);
+		final Monster distant = spawnAtDistance(targetMaximumHp(), 2101);
+		try (ExternalActionLease lease = acquireAcquisition("acquisition-negative-targets"))
+		{
+			final AcquisitionTargetSnapshot instanceSnapshot = lease.acquisitionTargetSnapshot(wrongInstance.getObjectId());
+			final AcquisitionTargetSnapshot distanceSnapshot = lease.acquisitionTargetSnapshot(distant.getObjectId());
+			PhantomAssertions.assertTrue((instanceSnapshot != null) && !instanceSnapshot.liveValidFor(lease.actorSnapshot(), _acquisitionSource.npcId(), 2000), "Wrong instance was admitted.");
+			PhantomAssertions.assertTrue((distanceSnapshot != null) && !distanceSnapshot.liveValidFor(lease.actorSnapshot(), _acquisitionSource.npcId(), 2000), "Out-of-range target was admitted.");
+		}
+		finally
+		{
+			wrongInstance.setInstanceId(0);
+			InstanceManager.getInstance().destroyInstance(wrongInstanceId);
+		}
+	}
+
+	private void testCanonicalAcquisitionChain() throws Exception
+	{
+		resetAcquisitionActor();
+		final long before = _player.getInventory().getInventoryItemCount(_acquisitionSource.itemId(), -1);
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		try
+		{
+			try (ExternalActionLease lease = acquireAcquisition("acquisition-chain-spoil"))
+			{
+				final ActionOutcome spoil = lease.castAcquisition(target.getObjectId(), new SelectedSkill(_acquisitionSource.spoilSkillId(), _acquisitionSource.spoilSkillLevel()), AcquisitionSkillKind.SPOIL);
+				PhantomAssertions.assertTrue((spoil == ActionOutcome.ISSUED) || (spoil == ActionOutcome.ALREADY_OWNED), "Canonical spoil cast was not issued.");
+				await(() -> target.isSpoiled() && (target.getSpoilerObjectId() == _player.getObjectId()), "Canonical spoil was not observed on the exact Monster.");
+			}
+			await(() -> !_player.isCastingNow() && !_player.isAttackingNow(), "Acquisition lease did not release the canonical spoil action.");
+			target.setCurrentHp(1);
+			target.getStatus().stopHpMpRegeneration();
+			_player.setPlayerClass(MELEE_CLASS_ID);
+
+			final PhantomCombatService.StartResult started = _combat.startSession(request(target, PhantomCombatMode.MELEE_PHYSICAL, false, false));
+			PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Existing Combat did not accept the spoiled exact target.");
+			awaitCombatOutcome(target, "Existing Combat");
+			PhantomAssertions.assertTrue(target.isDead() || target.isAlikeDead(), "Existing Combat did not kill the spoiled exact target: " + _combat.find(_profile.profileId()).orElse(null));
+			PhantomAssertions.assertEquals(PhantomCombatResult.VICTORY, awaitTerminal().result(), "Existing Combat did not publish canonical victory.");
+			consumeTerminal();
+			PhantomAssertions.assertTrue(target.isSweepActive(), "Canonical spoiled corpse did not expose sweep state.");
+			prepareAcquisitionActor();
+
+			try (ExternalActionLease lease = acquireAcquisition("acquisition-chain-sweep"))
+			{
+				final AcquisitionTargetSnapshot corpse = lease.acquisitionTargetSnapshot(target.getObjectId());
+				PhantomAssertions.assertTrue((corpse != null) && corpse.sweepValidFor(lease.actorSnapshot(), _acquisitionSource.npcId(), 2000), "Exact spoiled corpse was not sweep-eligible.");
+				final ActionOutcome sweep = lease.castAcquisition(target.getObjectId(), new SelectedSkill(_acquisitionSource.sweepSkillId(), _acquisitionSource.sweepSkillLevel()), AcquisitionSkillKind.SWEEP);
+				PhantomAssertions.assertTrue((sweep == ActionOutcome.ISSUED) || (sweep == ActionOutcome.ALREADY_OWNED), "Canonical sweep cast was not issued.");
+				await(() -> !target.isSweepActive(), "Canonical sweep did not consume the exact corpse loot state.");
+			}
+			final long after = _player.getInventory().getInventoryItemCount(_acquisitionSource.itemId(), -1);
+			PhantomAssertions.assertTrue(after > before, "Canonical spoil/sweep produced no authoritative target-item inventory delta.");
+		}
+		finally
+		{
+			final long after = _player.getInventory().getInventoryItemCount(_acquisitionSource.itemId(), -1);
+			destroyInventoryCount(_player, _acquisitionSource.itemId(), Math.max(0, after - before));
+		}
+	}
+
+	private void testAcquisitionDispatchRecovery() throws Exception
+	{
+		resetAcquisitionActor();
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		try (ExternalActionLease lease = acquireAcquisition("acquisition-recovery-spoil-1"))
+		{
+			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID, 1), AcquisitionSkillKind.SPOIL), "Initial spoil dispatch was not issued.");
+			await(() -> target.isSpoiled(), "Initial spoil dispatch did not become observable.");
+		}
+		try (ExternalActionLease recovered = acquireAcquisition("acquisition-recovery-spoil-2"))
+		{
+			PhantomAssertions.assertEquals(ActionOutcome.ALREADY_OWNED, recovered.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID, 1), AcquisitionSkillKind.SPOIL), "Observed spoil was blindly repeated after dispatch recovery.");
+		}
+		await(() -> !_player.isCastingNow() && !_player.isAttackingNow(), "Recovered acquisition lease did not release the canonical spoil action.");
+		target.setCurrentHp(1);
+		target.getStatus().stopHpMpRegeneration();
+		_player.setPlayerClass(MELEE_CLASS_ID);
+		final PhantomCombatService.StartResult started = _combat.startSession(request(target, PhantomCombatMode.MELEE_PHYSICAL, false, false));
+		PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Recovery fixture Combat start failed.");
+		awaitCombatOutcome(target, "Recovery fixture Combat");
+		PhantomAssertions.assertTrue(target.isDead() || target.isAlikeDead(), "Recovery fixture target did not die: " + _combat.find(_profile.profileId()).orElse(null));
+		awaitTerminal();
+		consumeTerminal();
+		prepareAcquisitionActor();
+		try (ExternalActionLease lease = acquireAcquisition("acquisition-recovery-sweep-1"))
+		{
+			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.castAcquisition(target.getObjectId(), new SelectedSkill(SWEEP_SKILL_ID, 1), AcquisitionSkillKind.SWEEP), "Initial sweep dispatch was not issued.");
+			await(() -> !target.isSweepActive(), "Initial sweep dispatch did not become observable.");
+		}
+		try (ExternalActionLease recovered = acquireAcquisition("acquisition-recovery-sweep-2"))
+		{
+			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, recovered.castAcquisition(target.getObjectId(), new SelectedSkill(SWEEP_SKILL_ID, 1), AcquisitionSkillKind.SWEEP), "Consumed sweep was blindly repeated after dispatch recovery.");
+		}
 	}
 
 	private void testExactActorLease()
@@ -648,6 +907,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		return _combat.find(_profile.profileId()).orElseThrow();
 	}
 
+	private void awaitCombatOutcome(Monster target, String label) throws Exception
+	{
+		try
+		{
+			await(() -> target.isDead() || target.isAlikeDead() || _combat.find(_profile.profileId()).map(value -> value.result().terminal()).orElse(false), label + " neither killed nor terminated.");
+		}
+		catch (AssertionError error)
+		{
+			throw new AssertionError(label + " neither killed nor terminated: session=" + _combat.find(_profile.profileId()).orElse(null) + ", actorIntention=" + _player.getAI().getIntention() + ", actorTarget=" + _player.getTarget() + ", attackTarget=" + _player.getAI().getAttackTarget() + ", actorAttacking=" + _player.isAttackingNow() + ", targetHp=" + target.getCurrentHp(), error);
+		}
+	}
+
 	private void consumeTerminal()
 	{
 		_combat.consumeTerminal(_profile.profileId());
@@ -714,6 +985,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		_player.abortAttack();
 		_player.abortCast();
+		_player.setInvul(false);
 		_player.setTarget(null);
 		_player.getAI().setIntention(Intention.IDLE);
 		_player.setPlayerClass(MELEE_CLASS_ID);
@@ -752,6 +1024,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(template != null, "Normal-monster template is unavailable.");
 		final Monster monster = spawn(new Monster(template), 20 + (_worldFixtures.size() * 5));
 		monster.setCurrentHp(Math.min(hp, monster.getMaxHp()));
+		return monster;
+	}
+
+	private Monster spawnAtDistance(double hp, int distance)
+	{
+		final NpcTemplate template = NpcData.getInstance().getTemplate(_combatPoint.npcId());
+		PhantomAssertions.assertTrue(template != null, "Normal-monster template is unavailable.");
+		final Monster monster = new Monster(template);
+		monster.setInstanceId(0);
+		monster.spawnMe(_player.getX() + distance, _player.getY(), _player.getZ());
+		monster.setCurrentHp(Math.min(hp, monster.getMaxHp()));
+		_worldFixtures.add(monster);
 		return monster;
 	}
 
@@ -810,6 +1094,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void cleanup() throws Exception
 	{
+		if (_mode == Mode.ACQUISITION)
+		{
+			RatesConfig.RATE_SPOIL_DROP_CHANCE_MULTIPLIER = _spoilChanceRateBaseline;
+		}
 		Throwable failure = null;
 		try
 		{

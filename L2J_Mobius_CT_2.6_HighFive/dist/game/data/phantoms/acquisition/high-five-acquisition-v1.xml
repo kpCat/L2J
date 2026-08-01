@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<acquisitionPolicy id="high-five-acquisition-v1" version="1">
+	<limits sourceCandidates="8" areasPerSource="4" recipesPerProduct="4" recipeDepth="6" recipeNodes="48" deficits="32" receipts="8" failuresPerSource="8" sourceSwitches="4" operationsPerStep="8" payloadBytes="4096" activeTargetDistance="2000" verificationAttempts="3" />
+	<methods>
+		<method key="death_drop" status="EXECUTABLE" preference="700" />
+		<method key="spoil_sweep" status="EXECUTABLE" preference="800" />
+		<method key="recipe_preparation" status="PLANNING_ONLY" preference="400" />
+		<method key="manor_crop" status="DEFERRED_CHECKPOINT_2" preference="0" />
+		<method key="quest_collection" status="DEFERRED_CHECKPOINT_2" preference="0" />
+	</methods>
+	<sourceScoring methodPreference="100" topologyCost="5" levelGap="10" chanceUtility="25" spawnCapacity="5" resourceReserve="10" failurePenalty="100" switchPenalty="50" recipeLeafReuse="20" ambiguityThreshold="5" />
+	<switchPolicy failureThreshold="3" cooldownMinutes="5" />
+	<recipePlanning preferCraftEligible="true" preferLeafReuse="true" deferManor="true" deferQuest="true" />
+	<reasonKeys>
+		<reason key="goal.invalid" />
+		<reason key="source.ambiguous" />
+		<reason key="source.authority_stale" />
+		<reason key="source.exhausted" />
+		<reason key="source.ineligible" />
+		<reason key="source.inventory_capacity" />
+		<reason key="source.repeated_failure" />
+		<reason key="source.resource_reserve" />
+		<reason key="source.target_unavailable" />
+	</reasonKeys>
+</acquisitionPolicy>

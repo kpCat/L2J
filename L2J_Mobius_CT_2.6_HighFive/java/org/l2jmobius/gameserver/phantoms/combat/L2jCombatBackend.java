@@ -37,6 +37,9 @@ import org.l2jmobius.gameserver.model.skill.holders.SkillUseHolder;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionActorPosition;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ExternalOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
@@ -118,6 +121,73 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public AcquisitionTargetSnapshot acquisitionTargetSnapshot(int targetObjectId)
+		{
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			return object instanceof Monster monster ? acquisitionSnapshot(monster) : null;
+		}
+
+		@Override
+		public List<AcquisitionTargetSnapshot> acquisitionTargets(int npcId, int limit, int maximumDistance)
+		{
+			if ((npcId <= 0) || (limit < 1) || (limit > 8) || (maximumDistance < 1) || (maximumDistance > MAXIMUM_ACQUISITION_DISTANCE))
+			{
+				return List.of();
+			}
+			final WorldRegion region = _player.getWorldRegion();
+			if (region == null)
+			{
+				return List.of();
+			}
+			final ActorSnapshot actor = actorSnapshot();
+			final TreeMap<Integer, AcquisitionTargetSnapshot> result = new TreeMap<>();
+			for (WorldRegion surrounding : region.getSurroundingRegions())
+			{
+				for (WorldObject object : surrounding.getVisibleObjects())
+				{
+					if (object instanceof Monster monster)
+					{
+						final AcquisitionTargetSnapshot snapshot = acquisitionSnapshot(monster);
+						if ((snapshot != null) && snapshot.liveValidFor(actor, npcId, maximumDistance))
+						{
+							result.put(snapshot.objectId(), snapshot);
+							if (result.size() > limit)
+							{
+								result.pollLastEntry();
+							}
+						}
+					}
+				}
+			}
+			return List.copyOf(result.values());
+		}
+
+		@Override
+		public long acquisitionInventoryCount(int itemId)
+		{
+			return itemId > 0 ? _player.getInventory().getInventoryItemCount(itemId, -1) : -1;
+		}
+
+		@Override
+		public int acquisitionLevel()
+		{
+			return _player.getLevel();
+		}
+
+		@Override
+		public AcquisitionActorPosition acquisitionPosition()
+		{
+			return new AcquisitionActorPosition(_player.getX(), _player.getY(), _player.getZ(), _player.getInstanceId());
+		}
+
+		@Override
+		public int knownSkillLevel(int skillId)
+		{
+			final Skill skill = skillId > 0 ? _player.getKnownSkill(skillId) : null;
+			return skill == null ? 0 : skill.getLevel();
+		}
+
+		@Override
 		public PlayableSnapshot playableSnapshot(int objectId)
 		{
 			final WorldObject object = World.getInstance().findObject(objectId);
@@ -140,6 +210,16 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final boolean restrictedActor = _player.isOnEvent() || _player.isInOlympiadMode() || _player.isInDuel() || _player.isInSiege() || _player.isInsideZone(ZoneId.SIEGE);
 			final boolean peaceRestricted = restrictedActor || _player.isInsideZone(ZoneId.PEACE) || monster.isInsideZone(ZoneId.PEACE);
 			return new TargetSnapshot(monster.getObjectId(), monster.getId(), monster.getInstanceId(), monster.getCurrentHp(), monster.getMaxHp(), monster.isDead(), monster.isAlikeDead(), monster.isTargetable(), monster.isAttackable() && monster.isAutoAttackable(_player), monster.isInvul(), normalMonster, knowledgeMonster, distance(_player, monster), peaceRestricted, surrounding);
+		}
+
+		private AcquisitionTargetSnapshot acquisitionSnapshot(Monster monster)
+		{
+			final TargetSnapshot target = targetSnapshot(monster);
+			if (target == null)
+			{
+				return null;
+			}
+			return new AcquisitionTargetSnapshot(target.objectId(), target.npcId(), target.instanceId(), target.distance(), target.dead(), target.alikeDead(), target.targetable(), target.attackable(), target.invulnerable(), target.normalMonster(), target.knowledgeMonster(), target.peaceRestricted(), target.surroundingRegion(), monster.isSpoiled(), monster.getSpoilerObjectId(), monster.isSweepActive(), monster.checkSpoilOwner(_player, false));
 		}
 
 		@Override
@@ -359,6 +439,47 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public ActionOutcome castAcquisition(int targetObjectId, SelectedSkill selected, AcquisitionSkillKind kind)
+		{
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if (!(object instanceof Monster target) || (selected == null) || (kind == null))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final AcquisitionTargetSnapshot snapshot = acquisitionSnapshot(target);
+			final ActorSnapshot actor = actorSnapshot();
+			final boolean valid = (snapshot != null) && (kind == AcquisitionSkillKind.SPOIL ? snapshot.liveValidFor(actor, target.getId(), MAXIMUM_ACQUISITION_DISTANCE) && (!snapshot.spoiled() || (snapshot.spoilerObjectId() == actor.objectId())) : snapshot.sweepValidFor(actor, target.getId(), MAXIMUM_ACQUISITION_DISTANCE));
+			final Skill skill = _player.getKnownSkill(selected.skillId());
+			final String capabilityKey = kind == AcquisitionSkillKind.SPOIL ? "profession.spoil" : "profession.sweep";
+			if (!valid || !supportsAcquisitionSkill(selected, capabilityKey) || (skill == null) || (skill.getLevel() < selected.skillLevel()) || skill.isPassive() || skill.isToggle())
+			{
+				return ActionOutcome.REJECTED;
+			}
+			if ((kind == AcquisitionSkillKind.SPOIL) && snapshot.spoiled() && (snapshot.spoilerObjectId() == actor.objectId()))
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			_player.setTarget(target);
+			if (_player.isSkillDisabled(skill) || !_player.checkDoCastConditions(skill) || !skill.checkCondition(_player, target, false))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			final SkillUseHolder current = _player.getCurrentSkill();
+			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (current != null) && (current.getSkillId() == selected.skillId()) && (current.getSkillLevel() == selected.skillLevel()))
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			_player.getAI().setIntention(Intention.CAST, skill, target);
+			return ActionOutcome.ISSUED;
+		}
+
+		private boolean supportsAcquisitionSkill(SelectedSkill selected, String capabilityKey)
+		{
+			final PhantomProgressionCatalog catalog = _progressionCatalog.get();
+			return (catalog != null) && catalog.capabilities(_player.getActiveClass()).stream().filter(rule -> capabilityKey.equals(rule.capabilityKey()) && (rule.actionSkill().skillId() == selected.skillId()) && (rule.actionSkill().skillLevel() == selected.skillLevel()) && rule.requiredItems().isEmpty() && rule.requiredEquipmentFamilies().isEmpty()).anyMatch(rule -> rule.evidenceSkills().stream().allMatch(evidence -> knownSkillLevel(evidence.skillId()) >= evidence.skillLevel()));
+		}
+
+		@Override
 		public ActionOutcome castSupport(PhantomPartySupportAction action)
 		{
 			if ((action == null) || !PARTY_SUPPORT_CAPABILITIES.contains(action.capabilityKey()))
@@ -497,7 +618,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return;
 			}
-			if (action.kind() == PhantomCombatService.ExternalActionKind.PARTY_ROUTE)
+			if ((action.kind() == PhantomCombatService.ExternalActionKind.PARTY_ROUTE) || ((action.kind() == PhantomCombatService.ExternalActionKind.ACQUISITION) && (action.targetObjectId() == 0)))
 			{
 				if (_player.getAI().getIntention() == Intention.MOVE_TO)
 				{
@@ -517,6 +638,26 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 					_player.setTarget(null);
 				}
 				return;
+			}
+			if (action.kind() == PhantomCombatService.ExternalActionKind.ACQUISITION)
+			{
+				boolean cancelled = false;
+				final SkillUseHolder acquisitionSkill = _player.getCurrentSkill();
+				final SelectedSkill selected = action.selectedSkill();
+				if ((selected != null) && (acquisitionSkill != null) && (acquisitionSkill.getSkillId() == selected.skillId()) && (acquisitionSkill.getSkillLevel() == selected.skillLevel()) && (_player.getAI().getCastTarget() != null) && (_player.getAI().getCastTarget().getObjectId() == action.targetObjectId()))
+				{
+					_player.abortCast();
+					cancelled = true;
+				}
+				if ((_player.getAI().getAttackTarget() != null) && (_player.getAI().getAttackTarget().getObjectId() == action.targetObjectId()))
+				{
+					_player.abortAttack();
+					cancelled = true;
+				}
+				if (cancelled)
+				{
+					_player.getAI().setIntention(Intention.IDLE);
+				}
 			}
 			final SkillUseHolder current = _player.getCurrentSkill();
 			final SelectedSkill selected = action.selectedSkill();

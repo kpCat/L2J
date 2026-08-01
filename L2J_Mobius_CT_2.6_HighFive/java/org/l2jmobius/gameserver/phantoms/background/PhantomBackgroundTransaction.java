@@ -59,6 +59,12 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Progr
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Receipt;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Vitals;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Phase;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ReceiptKind;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.TerminalResult;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStateCodec;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
@@ -94,24 +100,31 @@ public final class PhantomBackgroundTransaction
 	private final FaultInjector _faultInjector;
 	private final PhantomBackgroundStateCodec _stateCodec;
 	private final PhantomGoalStateCodec _goalCodec;
+	private final PhantomAcquisitionStateCodec _acquisitionCodec;
 
 	public PhantomBackgroundTransaction()
 	{
-		this(DatabaseFactory::getConnection, ObjectIdAllocator.production(), FaultInjector.none(), new PhantomBackgroundStateCodec(), new PhantomGoalStateCodec());
+		this(DatabaseFactory::getConnection, ObjectIdAllocator.production(), FaultInjector.none(), new PhantomBackgroundStateCodec(), new PhantomGoalStateCodec(), new PhantomAcquisitionStateCodec());
 	}
 
 	public PhantomBackgroundTransaction(ConnectionProvider connections, ObjectIdAllocator ids, FaultInjector faultInjector)
 	{
-		this(connections, ids, faultInjector, new PhantomBackgroundStateCodec(), new PhantomGoalStateCodec());
+		this(connections, ids, faultInjector, new PhantomBackgroundStateCodec(), new PhantomGoalStateCodec(), new PhantomAcquisitionStateCodec());
 	}
 
 	PhantomBackgroundTransaction(ConnectionProvider connections, ObjectIdAllocator ids, FaultInjector faultInjector, PhantomBackgroundStateCodec stateCodec, PhantomGoalStateCodec goalCodec)
+	{
+		this(connections, ids, faultInjector, stateCodec, goalCodec, new PhantomAcquisitionStateCodec());
+	}
+
+	PhantomBackgroundTransaction(ConnectionProvider connections, ObjectIdAllocator ids, FaultInjector faultInjector, PhantomBackgroundStateCodec stateCodec, PhantomGoalStateCodec goalCodec, PhantomAcquisitionStateCodec acquisitionCodec)
 	{
 		_connections = Objects.requireNonNull(connections, "connections");
 		_ids = Objects.requireNonNull(ids, "ids");
 		_faultInjector = Objects.requireNonNull(faultInjector, "faultInjector");
 		_stateCodec = Objects.requireNonNull(stateCodec, "stateCodec");
 		_goalCodec = Objects.requireNonNull(goalCodec, "goalCodec");
+		_acquisitionCodec = Objects.requireNonNull(acquisitionCodec, "acquisitionCodec");
 	}
 
 	public Result captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal)
@@ -257,13 +270,27 @@ public final class PhantomBackgroundTransaction
 				final PhantomBackgroundState expected = command.expectedState();
 				requireProfileLink(lockProfile(connection, expected.identity().profileId()), expected.identity().characterObjectId());
 				_faultInjector.inject(FaultPoint.AFTER_PROFILE_LOCK);
-				lockAndValidateGoal(connection, expected.identity().profileId(), command.goal());
+				final LockedGoal lockedGoal = command.acquisition() == null ? new LockedGoal(lockAndValidateGoal(connection, expected.identity().profileId(), command.goal()), command.goal()) : lockAcquisitionGoal(connection, expected.identity().profileId());
 				_faultInjector.inject(FaultPoint.AFTER_GOAL_LOCK);
+				final LockedComponent acquisitionComponent;
+				if (command.acquisition() != null)
+				{
+					acquisitionComponent = lockAcquisitionComponent(connection, expected.identity().profileId());
+					_faultInjector.inject(FaultPoint.AFTER_ACQUISITION_LOCK);
+				}
+				else
+				{
+					acquisitionComponent = null;
+				}
 				final LockedComponent component = requireStateComponent(lockComponent(connection, expected.identity().profileId(), PhantomBackgroundState.COMPONENT_TYPE));
 				final PhantomBackgroundState stored = decodeState(component);
 				final Status identityStatus = operationIdentityStatus(stored, command);
 				if (identityStatus == Status.IDEMPOTENT)
 				{
+					if (command.acquisition() != null)
+					{
+						validateCommittedAcquisition(command, lockedGoal, acquisitionComponent);
+					}
 					connection.rollback();
 					final Result verification = reconcileVerifyPending(expected.identity().profileId(), expected.identity().characterObjectId());
 					return verification.status() == Status.SUCCESS ? new Result(Status.IDEMPOTENT, verification.state()) : verification;
@@ -271,6 +298,11 @@ public final class PhantomBackgroundTransaction
 				if (identityStatus != Status.SUCCESS)
 				{
 					throw new StateConflict(identityStatus);
+				}
+				if (command.acquisition() != null)
+				{
+					validateExpectedAcquisitionGoal(lockedGoal, command.goal(), command.acquisition());
+					validateExpectedAcquisitionComponent(acquisitionComponent, command.acquisition());
 				}
 				if (!Arrays.equals(_stateCodec.encode(stored), _stateCodec.encode(expected)))
 				{
@@ -291,12 +323,14 @@ public final class PhantomBackgroundTransaction
 				{
 					throw new StateConflict(Status.CANONICAL_MISMATCH);
 				}
-				final ItemMutationResult itemMutation = mutateItems(connection, expected, itemRows, command.itemDeltas(), reservedIds, releasedIds);
+				final Set<Integer> mutableItemIds = expandedMutableItemIds(expected.inventory(), command.additionalMutableItemIds());
+				final ItemMutationResult itemMutation = mutateItems(connection, expected, itemRows, command.itemDeltas(), mutableItemIds, reservedIds, releasedIds);
 				final Vitals canonicalVitals = canonicalVitals(command.vitals());
 				mutateProgressAndVitals(connection, expected.identity(), command.progress(), canonicalVitals, command.position());
 				mutateAutoGetSkills(connection, expected.identity(), skillRows, expected.autoGetSkills(), command.autoGetSkills());
 				_faultInjector.inject(FaultPoint.AFTER_CANONICAL_WRITES);
-				final InventoryFacts nextInventory = inventoryFacts(itemMutation.rows(), expected.inventory());
+				final InventoryFacts inventoryProjection = new InventoryFacts(mutableItemIds.stream().sorted().toList(), expected.inventory().objects(), expected.inventory().canonicalHash(), expected.inventory().currentLoad(), expected.inventory().maximumLoad(), expected.inventory().usedSlots(), expected.inventory().maximumSlots());
+				final InventoryFacts nextInventory = inventoryFacts(itemMutation.rows(), inventoryProjection);
 				final Receipt receiptWithoutHash = new Receipt(command.operationKey().digest(), command.operationKey().activityGeneration(), command.operationKey().tickSequence(), "");
 				final PhantomBackgroundState ready = expected.after(command.progress(), canonicalVitals, command.position(), nextInventory, command.autoGetSkills(), command.clock(), receiptWithoutHash);
 				final String expectedAfterHash = expectedAfterHash(ready);
@@ -304,6 +338,22 @@ public final class PhantomBackgroundTransaction
 				final PhantomBackgroundState completed = expected.after(command.progress(), canonicalVitals, command.position(), nextInventory, command.autoGetSkills(), command.clock(), receipt);
 				final PhantomBackgroundState pending = completed.withState(State.VERIFY_PENDING);
 				writeComponent(connection, component, pending);
+				_faultInjector.inject(FaultPoint.AFTER_BACKGROUND_STATE_WRITE);
+				PhantomAcquisitionState nextAcquisition = null;
+				PhantomGoal nextGoal = null;
+				if (command.acquisition() != null)
+				{
+					final AcquisitionMutation acquisition = command.acquisition();
+					final long beforeCount = expected.inventory().itemCount(acquisition.expectedState().targetItemId());
+					final long afterCount = nextInventory.itemCount(acquisition.expectedState().targetItemId());
+					final var acquisitionReceipt = new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt(command.operationKey().digest(), acquisition.expectedState().selectedSource().sourceId(), acquisition.receiptKind(), beforeCount, afterCount, TerminalResult.COMMITTED, acquisition.logicalMinute());
+					nextAcquisition = acquisition.expectedState().observe(afterCount, PhantomAcquisitionState.Status.READY, Phase.NONE, acquisitionReceipt, acquisition.logicalMinute());
+					nextGoal = PhantomAcquisitionGoalSpec.project(lockedGoal.goal(), nextAcquisition.progress(), nextAcquisition.status() == PhantomAcquisitionState.Status.COMPLETED ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.ACTIVE, nextAcquisition.selectedSource());
+					writeRawComponent(connection, lockedGoal.component(), expected.identity().profileId(), PhantomGoalStateStore.COMPONENT_TYPE, PhantomGoalStateStore.COMPONENT_SCHEMA_VERSION, _goalCodec.encode(nextGoal));
+					_faultInjector.inject(FaultPoint.AFTER_GOAL_STATE_WRITE);
+					writeRawComponent(connection, acquisitionComponent, expected.identity().profileId(), PhantomAcquisitionState.COMPONENT_TYPE, PhantomAcquisitionState.SCHEMA_VERSION, _acquisitionCodec.encode(nextAcquisition));
+					_faultInjector.inject(FaultPoint.AFTER_ACQUISITION_STATE_WRITE);
+				}
 				_faultInjector.inject(FaultPoint.BEFORE_OPERATION_COMMIT);
 				commitAttempted = true;
 				connection.commit();
@@ -313,7 +363,7 @@ public final class PhantomBackgroundTransaction
 				}
 				_faultInjector.inject(FaultPoint.AFTER_OPERATION_COMMIT);
 				final Result verification = reconcileVerifyPending(expected.identity().profileId(), expected.identity().characterObjectId());
-				return verification.status() == Status.SUCCESS ? verification : new Result(Status.POST_COMMIT_VERIFICATION_FAILED, pending);
+				return verification.status() == PhantomBackgroundTransaction.Status.SUCCESS ? new Result(PhantomBackgroundTransaction.Status.SUCCESS, verification.state(), nextAcquisition, nextGoal) : new Result(PhantomBackgroundTransaction.Status.POST_COMMIT_VERIFICATION_FAILED, pending, nextAcquisition, nextGoal);
 			}
 			catch (Throwable failure)
 			{
@@ -403,7 +453,7 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
-	private void lockAndValidateGoal(Connection connection, long profileId, PhantomGoal expected) throws SQLException
+	private LockedComponent lockAndValidateGoal(Connection connection, long profileId, PhantomGoal expected) throws SQLException
 	{
 		final LockedComponent goalComponent = lockComponent(connection, profileId, PhantomGoalStateStore.COMPONENT_TYPE);
 		if ((goalComponent == null) || (goalComponent.schemaVersion() != PhantomGoalStateStore.COMPONENT_SCHEMA_VERSION))
@@ -422,6 +472,114 @@ public final class PhantomBackgroundTransaction
 		if ((actual.status() != PhantomGoalStatus.ACTIVE) || !Arrays.equals(_goalCodec.encode(expected), _goalCodec.encode(actual)))
 		{
 			throw new StateConflict(Status.GOAL_STALE);
+		}
+		return goalComponent;
+	}
+
+	private LockedGoal lockAcquisitionGoal(Connection connection, long profileId) throws SQLException
+	{
+		final LockedComponent component = lockComponent(connection, profileId, PhantomGoalStateStore.COMPONENT_TYPE);
+		if ((component == null) || (component.schemaVersion() != PhantomGoalStateStore.COMPONENT_SCHEMA_VERSION))
+		{
+			throw new StateConflict(Status.GOAL_STALE);
+		}
+		final PhantomGoal actual;
+		try
+		{
+			actual = _goalCodec.decode(component.payload());
+			if (actual.status() == PhantomGoalStatus.ACTIVE)
+			{
+				PhantomAcquisitionGoalSpec.parse(actual);
+			}
+			else if (actual.status() == PhantomGoalStatus.COMPLETED)
+			{
+				PhantomAcquisitionGoalSpec.project(actual, actual.currentAmount(), PhantomGoalStatus.COMPLETED, null);
+			}
+			else
+			{
+				throw new IllegalArgumentException("Acquisition Goal is not executable or completed.");
+			}
+		}
+		catch (RuntimeException failure)
+		{
+			throw new StateConflict(Status.GOAL_STALE);
+		}
+		return new LockedGoal(component, actual);
+	}
+
+	private LockedComponent lockAcquisitionComponent(Connection connection, long profileId) throws SQLException
+	{
+		final LockedComponent component = lockComponent(connection, profileId, PhantomAcquisitionState.COMPONENT_TYPE);
+		if ((component == null) || (component.schemaVersion() != PhantomAcquisitionState.SCHEMA_VERSION))
+		{
+			throw new StateConflict(Status.ACQUISITION_CONFLICT);
+		}
+		return component;
+	}
+
+	private void validateExpectedAcquisitionGoal(LockedGoal locked, PhantomGoal expected, AcquisitionMutation acquisition)
+	{
+		if ((locked.component().rowVersion() != acquisition.expectedGoalRowVersion()) || !Arrays.equals(_goalCodec.encode(expected), _goalCodec.encode(locked.goal())) || (locked.goal().goalId() != acquisition.expectedState().goalId()) || (locked.goal().revision() != acquisition.expectedState().goalRevision()))
+		{
+			throw new StateConflict(Status.GOAL_STALE);
+		}
+	}
+
+	private void validateExpectedAcquisitionComponent(LockedComponent component, AcquisitionMutation acquisition)
+	{
+		if (component.rowVersion() != acquisition.expectedStateRowVersion())
+		{
+			throw new StateConflict(Status.ACQUISITION_CONFLICT);
+		}
+		try
+		{
+			if (!Arrays.equals(component.payload(), _acquisitionCodec.encode(acquisition.expectedState())) || (acquisition.expectedState().selectedSource() == null))
+			{
+				throw new StateConflict(Status.ACQUISITION_CONFLICT);
+			}
+		}
+		catch (RuntimeException failure)
+		{
+			if (failure instanceof StateConflict conflict)
+			{
+				throw conflict;
+			}
+			throw new StateConflict(Status.ACQUISITION_CONFLICT);
+		}
+	}
+
+	private void validateCommittedAcquisition(Command command, LockedGoal lockedGoal, LockedComponent component)
+	{
+		final AcquisitionMutation acquisition = command.acquisition();
+		try
+		{
+			if ((lockedGoal.component().rowVersion() != Math.addExact(acquisition.expectedGoalRowVersion(), 1)) || (component.rowVersion() != Math.addExact(acquisition.expectedStateRowVersion(), 1)))
+			{
+				throw new StateConflict(Status.ACQUISITION_CONFLICT);
+			}
+			final PhantomAcquisitionState expected = acquisition.expectedState();
+			final long beforeCount = command.expectedState().inventory().itemCount(expected.targetItemId());
+			final long afterCount = Math.addExact(beforeCount, command.itemDeltas().getOrDefault(expected.targetItemId(), 0L));
+			final var receipt = new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt(command.operationKey().digest(), expected.selectedSource().sourceId(), acquisition.receiptKind(), beforeCount, afterCount, TerminalResult.COMMITTED, acquisition.logicalMinute());
+			final PhantomAcquisitionState expectedCommitted = expected.observe(afterCount, PhantomAcquisitionState.Status.READY, Phase.NONE, receipt, acquisition.logicalMinute());
+			final PhantomAcquisitionState actual = _acquisitionCodec.decode(component.payload());
+			if (!Arrays.equals(_acquisitionCodec.encode(expectedCommitted), _acquisitionCodec.encode(actual)))
+			{
+				throw new StateConflict(Status.ACQUISITION_CONFLICT);
+			}
+			final PhantomGoal expectedGoal = PhantomAcquisitionGoalSpec.project(command.goal(), expectedCommitted.progress(), expectedCommitted.status() == PhantomAcquisitionState.Status.COMPLETED ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.ACTIVE, expectedCommitted.selectedSource());
+			if (!Arrays.equals(_goalCodec.encode(expectedGoal), _goalCodec.encode(lockedGoal.goal())))
+			{
+				throw new StateConflict(Status.GOAL_STALE);
+			}
+		}
+		catch (RuntimeException failure)
+		{
+			if (failure instanceof StateConflict conflict)
+			{
+				throw conflict;
+			}
+			throw new StateConflict(Status.ACQUISITION_CONFLICT);
 		}
 	}
 
@@ -566,7 +724,7 @@ public final class PhantomBackgroundTransaction
 		return result;
 	}
 
-	private ItemMutationResult mutateItems(Connection connection, PhantomBackgroundState expected, List<ItemRow> lockedRows, Map<Integer, Long> deltas, List<Integer> reservedIds, List<Integer> releasedIds) throws SQLException
+	private ItemMutationResult mutateItems(Connection connection, PhantomBackgroundState expected, List<ItemRow> lockedRows, Map<Integer, Long> deltas, Set<Integer> mutableItemIds, List<Integer> reservedIds, List<Integer> releasedIds) throws SQLException
 	{
 		if (deltas.size() > PhantomBackgroundModel.MAX_CHANGED_ITEM_OBJECTS)
 		{
@@ -583,7 +741,7 @@ public final class PhantomBackgroundTransaction
 			{
 				continue;
 			}
-			if (!expected.inventory().mutableItemIds().contains(itemId))
+			if (!mutableItemIds.contains(itemId))
 			{
 				throw new StateConflict(Status.ITEM_CONFLICT);
 			}
@@ -663,6 +821,17 @@ public final class PhantomBackgroundTransaction
 		}
 		rows.sort(Comparator.comparingInt(ItemRow::objectId));
 		return new ItemMutationResult(List.copyOf(rows));
+	}
+
+	private static Set<Integer> expandedMutableItemIds(InventoryFacts inventory, List<Integer> additions)
+	{
+		final java.util.TreeSet<Integer> result = new java.util.TreeSet<>(inventory.mutableItemIds());
+		result.addAll(additions);
+		if ((result.size() > PhantomBackgroundState.MAX_MUTABLE_ITEM_IDS) || result.stream().anyMatch(itemId -> itemId <= 0))
+		{
+			throw new StateConflict(Status.ITEM_LIMIT);
+		}
+		return Set.copyOf(result);
 	}
 
 	private void mutateProgressAndVitals(Connection connection, Identity identity, Progress progress, Vitals vitals, Position position) throws SQLException
@@ -1054,6 +1223,23 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
+	private static void writeRawComponent(Connection connection, LockedComponent existing, long profileId, String componentType, int schemaVersion, byte[] payload) throws SQLException
+	{
+		if (existing == null)
+		{
+			throw new StateConflict(Status.ACQUISITION_CONFLICT);
+		}
+		try (PreparedStatement statement = prepare(connection, UPDATE_COMPONENT))
+		{
+			statement.setInt(1, schemaVersion);
+			statement.setBytes(2, payload);
+			statement.setLong(3, profileId);
+			statement.setString(4, componentType);
+			statement.setLong(5, existing.rowVersion());
+			requireOne(statement.executeUpdate(), componentType + " update");
+		}
+	}
+
 	private static void requireProfileLink(Integer actual, int expected)
 	{
 		if ((actual == null) || (actual != expected))
@@ -1171,6 +1357,7 @@ public final class PhantomBackgroundTransaction
 		UNSUPPORTED_INSTANCE,
 		OBJECT_ID_EXHAUSTED,
 		PROGRESSION_CONFLICT,
+		ACQUISITION_CONFLICT,
 		INCONSISTENT,
 		BACKEND_FAILURE,
 		COMMIT_OUTCOME_UNKNOWN,
@@ -1181,11 +1368,15 @@ public final class PhantomBackgroundTransaction
 	{
 		AFTER_PROFILE_LOCK,
 		AFTER_GOAL_LOCK,
+		AFTER_ACQUISITION_LOCK,
 		AFTER_BACKGROUND_LOCK,
 		AFTER_CHARACTER_LOCK,
 		AFTER_SKILL_LOCKS,
 		AFTER_ITEM_LOCKS,
 		AFTER_CANONICAL_WRITES,
+		AFTER_BACKGROUND_STATE_WRITE,
+		AFTER_GOAL_STATE_WRITE,
+		AFTER_ACQUISITION_STATE_WRITE,
 		BEFORE_OPERATION_COMMIT,
 		AFTER_OPERATION_COMMIT,
 		BEFORE_VERIFY_COMMIT,
@@ -1237,8 +1428,13 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
-	public record Command(PhantomBackgroundState expectedState, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, Progress progress, Vitals vitals, Position position, Clock clock, Map<Integer, Long> itemDeltas, List<AutoGetSkill> autoGetSkills)
+	public record Command(PhantomBackgroundState expectedState, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, Progress progress, Vitals vitals, Position position, Clock clock, Map<Integer, Long> itemDeltas, List<AutoGetSkill> autoGetSkills, List<Integer> additionalMutableItemIds, AcquisitionMutation acquisition)
 	{
+		public Command(PhantomBackgroundState expectedState, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, Progress progress, Vitals vitals, Position position, Clock clock, Map<Integer, Long> itemDeltas, List<AutoGetSkill> autoGetSkills)
+		{
+			this(expectedState, goal, operationKey, progress, vitals, position, clock, itemDeltas, autoGetSkills, List.of(), null);
+		}
+
 		public Command
 		{
 			Objects.requireNonNull(expectedState, "expectedState");
@@ -1250,15 +1446,38 @@ public final class PhantomBackgroundTransaction
 			Objects.requireNonNull(clock, "clock");
 			itemDeltas = Map.copyOf(itemDeltas);
 			autoGetSkills = List.copyOf(autoGetSkills);
+			additionalMutableItemIds = additionalMutableItemIds.stream().distinct().sorted().toList();
 			if ((operationKey.profileId() != expectedState.identity().profileId()) || (operationKey.characterObjectId() != expectedState.identity().characterObjectId()))
 			{
 				throw new IllegalArgumentException("Operation and background state identities differ.");
 			}
+			if ((additionalMutableItemIds.size() > PhantomBackgroundState.MAX_MUTABLE_ITEM_IDS) || additionalMutableItemIds.stream().anyMatch(itemId -> itemId <= 0) || ((acquisition == null) != additionalMutableItemIds.isEmpty()))
+			{
+				throw new IllegalArgumentException("Invalid acquisition background item allowlist.");
+			}
 		}
 	}
 
-	public record Result(Status status, PhantomBackgroundState state)
+	public record AcquisitionMutation(PhantomAcquisitionState expectedState, long expectedStateRowVersion, long expectedGoalRowVersion, ReceiptKind receiptKind, long logicalMinute)
 	{
+		public AcquisitionMutation
+		{
+			Objects.requireNonNull(expectedState, "expectedState");
+			Objects.requireNonNull(receiptKind, "receiptKind");
+			if ((expectedStateRowVersion < 0) || (expectedGoalRowVersion < 0) || (logicalMinute < 0) || (expectedState.selectedSource() == null) || ((receiptKind != ReceiptKind.BACKGROUND_DEATH_DROP) && (receiptKind != ReceiptKind.BACKGROUND_SPOIL_SWEEP)))
+			{
+				throw new IllegalArgumentException("Invalid acquisition background mutation.");
+			}
+		}
+	}
+
+	public record Result(Status status, PhantomBackgroundState state, PhantomAcquisitionState acquisitionState, PhantomGoal goal)
+	{
+		public Result(Status status, PhantomBackgroundState state)
+		{
+			this(status, state, null, null);
+		}
+
 		public static Result rejected(Status status)
 		{
 			return new Result(status, null);
@@ -1276,6 +1495,10 @@ public final class PhantomBackgroundTransaction
 		{
 			payload = payload.clone();
 		}
+	}
+
+	private record LockedGoal(LockedComponent component, PhantomGoal goal)
+	{
 	}
 
 	private record CharacterRow(int level, long experience, long skillPoints, long experienceBeforeDeath, Vitals vitals, Position position, int classId, int raceOrdinal)
