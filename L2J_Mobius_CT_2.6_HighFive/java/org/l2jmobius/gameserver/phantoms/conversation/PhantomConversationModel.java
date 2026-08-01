@@ -208,11 +208,17 @@ public final class PhantomConversationModel
 		}
 	}
 
-	public record ConversationResponsePlan(long ownerProfileId, long dispatchId, String observationHash, ChatType channel, ConversationSubject counterpart, String semanticResultHash, String responseAct, String style, String renderedText, ConversationActionProposal proposal, long cooldownUntilMinute, List<ConversationEvidence> evidence)
+	public enum DeliveryPolicy
+	{
+		SEND,
+		SUPPRESS_ACK
+	}
+
+	public record ConversationResponsePlan(long ownerProfileId, long dispatchId, String observationHash, ChatType channel, ConversationSubject counterpart, String semanticResultHash, String responseAct, String style, String renderedText, ConversationActionProposal proposal, DeliveryPolicy deliveryPolicy, long cooldownUntilMinute, List<ConversationEvidence> evidence)
 	{
 		public ConversationResponsePlan
 		{
-			if ((ownerProfileId <= 0) || (dispatchId <= 0) || (channel == null) || (counterpart == null) || (cooldownUntilMinute < 0))
+			if ((ownerProfileId <= 0) || (dispatchId <= 0) || (channel == null) || (counterpart == null) || (deliveryPolicy == null) || (cooldownUntilMinute < 0))
 			{
 				throw new IllegalArgumentException("Conversation response plan identity is invalid.");
 			}
@@ -229,6 +235,11 @@ public final class PhantomConversationModel
 			{
 				throw new IllegalArgumentException("Conversation evidence exceeds 16 entries.");
 			}
+		}
+
+		public ConversationResponsePlan(long ownerProfileId, long dispatchId, String observationHash, ChatType channel, ConversationSubject counterpart, String semanticResultHash, String responseAct, String style, String renderedText, ConversationActionProposal proposal, long cooldownUntilMinute, List<ConversationEvidence> evidence)
+		{
+			this(ownerProfileId, dispatchId, observationHash, channel, counterpart, semanticResultHash, responseAct, style, renderedText, proposal, DeliveryPolicy.SEND, cooldownUntilMinute, evidence);
 		}
 	}
 

@@ -72,6 +72,8 @@ public final class ChatObservationService
 
 		int deliveries();
 
+		boolean expectedCounterpartDelivered();
+
 		@Override
 		void close();
 	}
@@ -114,15 +116,25 @@ public final class ChatObservationService
 
 	public DispatchHandle openClientDispatch(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
 	{
-		return openDispatch(Origin.CLIENT_CHAT, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis);
+		return openDispatch(Origin.CLIENT_CHAT, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis, 0);
 	}
 
 	public DispatchHandle openGeneratedDispatch(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
 	{
-		return openDispatch(Origin.PHANTOM_GENERATED, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis);
+		return openDispatch(Origin.PHANTOM_GENERATED, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis, 0);
 	}
 
-	private DispatchHandle openDispatch(Origin origin, int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
+	public DispatchHandle openGeneratedDispatch(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis, int expectedCounterpartObjectId)
+	{
+		if (expectedCounterpartObjectId <= 0)
+		{
+			_rejections.increment();
+			return InertScope.INSTANCE;
+		}
+		return openDispatch(Origin.PHANTOM_GENERATED, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis, expectedCounterpartObjectId);
+	}
+
+	private DispatchHandle openDispatch(Origin origin, int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis, int expectedCounterpartObjectId)
 	{
 		if (_scope.get() != null)
 		{
@@ -138,7 +150,7 @@ public final class ChatObservationService
 		final DispatchScope scope;
 		try
 		{
-			scope = new DispatchScope(new DispatchDescriptor(dispatchId, origin, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis), Thread.currentThread());
+			scope = new DispatchScope(new DispatchDescriptor(dispatchId, origin, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis), Thread.currentThread(), expectedCounterpartObjectId);
 		}
 		catch (RuntimeException exception)
 		{
@@ -197,6 +209,10 @@ public final class ChatObservationService
 		if ((scope != null) && (scope._descriptor.dispatchId() == descriptor.dispatchId()) && !scope._closed)
 		{
 			scope._deliveries++;
+			if ((scope._expectedCounterpartObjectId > 0) && (scope._expectedCounterpartObjectId == recipientObjectId))
+			{
+				scope._expectedCounterpartDelivered = true;
+			}
 		}
 		if (descriptor.origin() == Origin.CLIENT_CHAT)
 		{
@@ -311,13 +327,16 @@ public final class ChatObservationService
 	{
 		private final DispatchDescriptor _descriptor;
 		private final Thread _owner;
+		private final int _expectedCounterpartObjectId;
 		private boolean _closed;
 		private int _deliveries;
+		private boolean _expectedCounterpartDelivered;
 
-		private DispatchScope(DispatchDescriptor descriptor, Thread owner)
+		private DispatchScope(DispatchDescriptor descriptor, Thread owner, int expectedCounterpartObjectId)
 		{
 			_descriptor = descriptor;
 			_owner = owner;
+			_expectedCounterpartObjectId = expectedCounterpartObjectId;
 		}
 
 		@Override
@@ -330,6 +349,12 @@ public final class ChatObservationService
 		public int deliveries()
 		{
 			return _deliveries;
+		}
+
+		@Override
+		public boolean expectedCounterpartDelivered()
+		{
+			return _expectedCounterpartDelivered;
 		}
 
 		@Override
@@ -430,6 +455,12 @@ public final class ChatObservationService
 		public int deliveries()
 		{
 			return 0;
+		}
+
+		@Override
+		public boolean expectedCounterpartDelivered()
+		{
+			return false;
 		}
 
 		@Override

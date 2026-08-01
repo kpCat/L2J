@@ -27,6 +27,8 @@ import org.w3c.dom.Node;
 
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.QueryFact;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.QueryResult;
 
 /** Strict, XXE-safe and content-addressed conversation execution policy. */
 public final class PhantomConversationExecutionCatalog
@@ -105,21 +107,24 @@ public final class PhantomConversationExecutionCatalog
 	private static final Set<String> REQUIRED_RESPONSE_ACTS = Set.of("ack.accepted", "ack.action_proposed", "ack.query_proposed", "ack.refused", "clarify.complexity", "clarify.entity", "clarify.intent", "clarify.location", "clarify.party_role", "clarify.quantity", "clarify.target_player", "no_response.cooldown", "no_response.not_addressed", "no_response.unsupported");
 	private static final Set<String> REQUIRED_STYLES = Set.of("neutral", "warm", "cold", "cautious", "terse");
 	private static final Set<String> REQUIRED_REASONS = Set.of("action.deferred", "execution.expired", "execution.failed", "execution.prepared", "goal.busy", "goal.invalid", "goal.submitted", "outbound.invalid", "party.accepted", "party.refused", "party.stale", "query.ambiguous", "query.not_found", "query.ok");
+	private static final Set<String> REQUIRED_FACT_LABELS = Set.of("content.capability", "content.party_max", "content.party_min", "content.reference", "entity.reference", "item.reference", "item.source", "party.group_generation", "party.role", "party.vacancy", "topology.instance", "topology.reference", "topology.x", "topology.y", "topology.z");
 	private final String _hash;
 	private final Limits _limits;
 	private final Map<String, ProposalPolicy> _proposals;
 	private final List<String> _responseActs;
 	private final List<String> _styles;
 	private final List<String> _reasons;
+	private final Map<String, String> _factLabels;
 	private final Map<String, Map<String, String>> _templates;
 
-	private PhantomConversationExecutionCatalog(String hash, Limits limits, Map<String, ProposalPolicy> proposals, List<String> responseActs, List<String> styles, Map<String, Map<String, String>> templates)
+	private PhantomConversationExecutionCatalog(String hash, Limits limits, Map<String, ProposalPolicy> proposals, List<String> responseActs, List<String> styles, Map<String, String> factLabels, Map<String, Map<String, String>> templates)
 	{
 		_hash = hash;
 		_limits = limits;
 		_proposals = Map.copyOf(proposals);
 		_responseActs = List.copyOf(responseActs);
 		_styles = List.copyOf(styles);
+		_factLabels = Map.copyOf(factLabels);
 		_templates = Map.copyOf(templates);
 		_reasons = templates.keySet().stream().sorted().toList();
 	}
@@ -149,7 +154,7 @@ public final class PhantomConversationExecutionCatalog
 				throw new IllegalArgumentException("Conversation execution policy identity is invalid.");
 			}
 			final List<Element> sections = children(root);
-			if (!sections.stream().map(Element::getTagName).toList().equals(List.of("limits", "proposals", "responseActs", "styles", "results")))
+			if (!sections.stream().map(Element::getTagName).toList().equals(List.of("limits", "proposals", "responseActs", "styles", "factLabels", "results")))
 			{
 				throw new IllegalArgumentException("Conversation execution policy sections are not exact.");
 			}
@@ -165,12 +170,13 @@ public final class PhantomConversationExecutionCatalog
 			{
 				throw new IllegalArgumentException("Conversation execution styles are incomplete.");
 			}
-			final Map<String, Map<String, String>> results = results(sections.get(4), styles);
+			final Map<String, String> factLabels = factLabels(sections.get(4));
+			final Map<String, Map<String, String>> results = results(sections.get(5), styles);
 			if (!results.keySet().equals(REQUIRED_REASONS))
 			{
 				throw new IllegalArgumentException("Conversation execution result policy is incomplete.");
 			}
-			return new PhantomConversationExecutionCatalog(hash(bytes), limits, proposals, acts, styles, results);
+			return new PhantomConversationExecutionCatalog(hash(bytes), limits, proposals, acts, styles, factLabels, results);
 		}
 		catch (RuntimeException exception)
 		{
@@ -207,6 +213,38 @@ public final class PhantomConversationExecutionCatalog
 		final String safeFacts = (facts == null) || facts.isBlank() ? "нет" : PhantomConversationExecutionModel.requireUtf8(facts, 128, "Execution result facts");
 		final String text = templates.getOrDefault(style, templates.get("neutral")).replace("{facts}", safeFacts);
 		return PhantomConversationExecutionModel.requireUtf8(text, _limits.textUtf8Bytes(), "Rendered execution result");
+	}
+
+	public String renderQuery(String reason, String style, QueryResult result)
+	{
+		return render(reason, style, renderFacts(result));
+	}
+
+	private String renderFacts(QueryResult result)
+	{
+		if (result.facts().isEmpty())
+		{
+			return null;
+		}
+		final List<String> rendered = new ArrayList<>();
+		for (QueryFact fact : result.facts())
+		{
+			final String baseKey = fact.key().replaceFirst("\\.\\d+$", "");
+			final String label = _factLabels.get(baseKey);
+			if (label == null)
+			{
+				throw new IllegalArgumentException("Unknown query fact label: " + fact.key());
+			}
+			final String value = fact.reference() != null ? fact.reference().namespace() + ':' + fact.reference().key() : fact.number() != null ? Long.toString(fact.number()) : fact.value();
+			final String item = label + '=' + value;
+			final String candidate = rendered.isEmpty() ? item : String.join(", ", rendered) + ", " + item;
+			if (candidate.getBytes(StandardCharsets.UTF_8).length > 128)
+			{
+				break;
+			}
+			rendered.add(item);
+		}
+		return rendered.isEmpty() ? null : String.join(", ", rendered);
 	}
 
 	int responseActId(String key)
@@ -370,6 +408,27 @@ public final class PhantomConversationExecutionCatalog
 			throw new IllegalArgumentException("Execution results are empty or oversized.");
 		}
 		return result.entrySet().stream().sorted(Map.Entry.comparingByKey()).collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (left, right) -> left, LinkedHashMap::new));
+	}
+
+	private static Map<String, String> factLabels(Element parent)
+	{
+		require(parent, "factLabels", Set.of());
+		final Map<String, String> result = new LinkedHashMap<>();
+		for (Element element : children(parent))
+		{
+			require(element, "label", Set.of("key", "text"));
+			final String key = PhantomConversationExecutionModel.requireKey(element.getAttribute("key"), "Query fact label key");
+			final String text = PhantomConversationExecutionModel.requireUtf8(element.getAttribute("text"), 32, "Query fact label");
+			if (result.putIfAbsent(key, text) != null)
+			{
+				throw new IllegalArgumentException("Duplicate query fact label.");
+			}
+		}
+		if (!result.keySet().equals(REQUIRED_FACT_LABELS) || !new ArrayList<>(result.keySet()).equals(result.keySet().stream().sorted().toList()))
+		{
+			throw new IllegalArgumentException("Query fact labels are incomplete or unordered.");
+		}
+		return Map.copyOf(result);
 	}
 
 	private static int id(List<String> values, String key, String label)

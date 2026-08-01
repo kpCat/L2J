@@ -39,6 +39,23 @@
 		<style key="terse" />
 		<style key="warm" />
 	</styles>
+	<factLabels>
+		<label key="content.capability" text="возможность" />
+		<label key="content.party_max" text="максимум группы" />
+		<label key="content.party_min" text="минимум группы" />
+		<label key="content.reference" text="контент" />
+		<label key="entity.reference" text="цель" />
+		<label key="item.reference" text="предмет" />
+		<label key="item.source" text="источник" />
+		<label key="party.group_generation" text="поколение группы" />
+		<label key="party.role" text="роль" />
+		<label key="party.vacancy" text="свободных мест" />
+		<label key="topology.instance" text="инстанс" />
+		<label key="topology.reference" text="точка" />
+		<label key="topology.x" text="x" />
+		<label key="topology.y" text="y" />
+		<label key="topology.z" text="z" />
+	</factLabels>
 	<results>
 		<result key="action.deferred" neutral="Эта просьба отложена до тактической политики Goal 024." warm="Я запомню просьбу, но смогу выполнить её после Goal 024." cold="Действие недоступно до Goal 024." cautious="Не выполняю это действие до появления безопасной тактической политики Goal 024." terse="Отложено до Goal 024." />
 		<result key="execution.expired" neutral="Срок выполнения ответа истёк." warm="Я не успел выполнить запрос вовремя." cold="Запрос просрочен." cautious="Срок безопасного выполнения запроса истёк." terse="Просрочено." />

@@ -3,8 +3,8 @@ param()
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-$RequiredParent = "21ba300fc612f9777891912f80efc633f5b6db18"
-$RequiredSubject = "feat(phantoms): activate conversation responses and actions"
+$RequiredParent = "6d7ac26ff614d0e565589fdfc303684743b32cd9"
+$RequiredSubject = "fix(phantoms): finalize conversation execution safety"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "20002002"
 
@@ -79,38 +79,27 @@ function Get-TargetSha256([string] $relativePath)
 function Is-AllowedPath([string] $path)
 {
 	$exact = @(
-		"PHANTOM_DEVELOPMENT_MASTER_PLAN.md",
-		"build.xml",
-		"docs/PHANTOM_BOTS_ROADMAP.md",
 		"dist/game/data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml",
 		"java/org/l2jmobius/gameserver/model/chat/ChatObservationService.java",
-		"java/org/l2jmobius/gameserver/network/serverpackets/CreatureSay.java",
-		"java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationPlanSink.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationModel.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationService.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationStore.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionCatalog.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionCodec.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionModel.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionPort.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionService.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionStore.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/L2jPhantomConversationExecutionPort.java",
 		"java/org/l2jmobius/gameserver/phantoms/decision/PhantomGoalStateStore.java",
 		"java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java",
 		"test/java/org/l2jmobius/tests/phantoms/PhantomConversationExecutionSuite.java",
 		"test/java/org/l2jmobius/tests/phantoms/PhantomConversationIntegrationSuite.java",
-		"test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java",
-		"test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java",
-		"tools/phantoms/verify-task-020c1.ps1",
 		"tools/phantoms/verify-task-020c2.ps1",
-		"docs/phantoms/architecture/CONVERSATION_OUTBOUND_ACTION_CONTRACT.md",
 		"docs/phantoms/reports/020-conversation-outbound-actions.md",
-		"docs/phantoms/reviews/020-checkpoint-1-final-review.md",
 		"docs/phantoms/reviews/020-checkpoint-2-independent-review.md"
 	)
-	if ($exact -contains $path)
-	{
-		return $true
-	}
-	if ($path -match "^java/org/l2jmobius/gameserver/phantoms/conversation/(?:L2j)?PhantomConversationExecution[^/]+\.java$")
-	{
-		return $true
-	}
-	return $path -match "^docs/phantoms/tasks/020-checkpoint-2-conversation-outbound-actions/[^/]+$"
+	return $exact -contains $path
 }
 
 $script:ModuleRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
@@ -129,9 +118,9 @@ try
 	else
 	{
 		& git merge-base --is-ancestor $RequiredParent $head
-		Assert-True ($LASTEXITCODE -eq 0) "Pinned Checkpoint 1 parent is not an ancestor of HEAD."
+		Assert-True ($LASTEXITCODE -eq 0) "Pinned Goal 020 Checkpoint 2 foundation is not an ancestor of HEAD."
 		$pathCommits = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$RequiredParent..$head"))
-		Assert-True ($pathCommits.Count -gt 0) "Goal 020c2 implementation commit is absent."
+		Assert-True ($pathCommits.Count -gt 0) "Goal 020c2 safety completion commit is absent."
 		$script:TargetCommit = $pathCommits[0]
 		Assert-True ((Git-Lines @("rev-parse", "$($script:TargetCommit)^" ) | Select-Object -First 1) -eq $RequiredParent) "Goal 020c2 is not one ordinary child of its required parent."
 		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 020c2 commit subject changed."
@@ -161,14 +150,14 @@ try
 		}
 	}
 	$changedPaths = @($changed | Sort-Object)
-	Assert-True (($changedPaths.Count -gt 0) -and ($changedPaths.Count -le 60)) "Goal 020c2 total scope must contain 1..60 files."
+	Assert-True (($changedPaths.Count -gt 0) -and ($changedPaths.Count -le 26)) "Goal 020c2 completion scope must contain 1..26 files."
 	foreach ($path in $changedPaths)
 	{
 		Assert-True (Is-AllowedPath $path) "Out-of-scope Goal 020c2 path: $path"
 		Assert-True ($path -notmatch "(^|/)(Player|Party)\.java$|(^|/)(sql|schema|migrations?)/|L2J_Mobius_CT_(?!2\.6_HighFive)|(?:^|/)scripts?/handlers?/chat/") "Forbidden Goal 020c2 path: $path"
 	}
 	$production = @($changedPaths | Where-Object { ($_ -match "^java/org/l2jmobius/gameserver/") -or ($_ -match "^dist/game/(?:config|data)/") })
-	Assert-True ($production.Count -le 34) "Goal 020c2 exceeds 34 changed production/data/config files."
+	Assert-True ($production.Count -le 14) "Goal 020c2 completion exceeds 14 changed production/data files."
 	$newProduction = @()
 	foreach ($path in $production)
 	{
@@ -178,43 +167,34 @@ try
 			$newProduction += $path
 		}
 	}
-	Assert-True ($newProduction.Count -le 18) "Goal 020c2 exceeds 18 new production/data files."
+	Assert-True ($newProduction.Count -le 2) "Goal 020c2 completion exceeds 2 new production/data files."
 
 	foreach ($required in @(
-		"build.xml",
 		"dist/game/data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml",
 		"java/org/l2jmobius/gameserver/model/chat/ChatObservationService.java",
-		"java/org/l2jmobius/gameserver/network/serverpackets/CreatureSay.java",
-		"java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/L2jPhantomConversationExecutionPort.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionCatalog.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionCodec.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionModel.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionPort.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionService.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionStore.java",
+		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationModel.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationService.java",
 		"java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java",
 		"test/java/org/l2jmobius/tests/phantoms/PhantomConversationExecutionSuite.java",
 		"test/java/org/l2jmobius/tests/phantoms/PhantomConversationIntegrationSuite.java",
 		"tools/phantoms/verify-task-020c2.ps1",
-		"docs/phantoms/architecture/CONVERSATION_OUTBOUND_ACTION_CONTRACT.md",
 		"docs/phantoms/reports/020-conversation-outbound-actions.md",
-		"docs/phantoms/reviews/020-checkpoint-1-final-review.md",
 		"docs/phantoms/reviews/020-checkpoint-2-independent-review.md"
 	))
 	{
 		Assert-True ($changed.Contains($required)) "Required Goal 020c2 artifact is absent: $required"
 	}
 
-	$manifest = Read-TargetUtf8Strict "docs/phantoms/tasks/020-checkpoint-2-conversation-outbound-actions/PACKAGE_MANIFEST.json" | ConvertFrom-Json
-	Assert-True (($manifest.requiredParent -eq $RequiredParent) -and ($manifest.commitSubject -eq $RequiredSubject) -and ([string] $manifest.deterministicSeed -eq $RequiredSeed) -and $manifest.finalGoal020Checkpoint) "Goal 020c2 task manifest contract changed."
-	foreach ($property in $manifest.payloadSha256.PSObject.Properties)
-	{
-		Assert-True ((Get-TargetSha256 $property.Name) -eq ([string] $property.Value).ToUpperInvariant()) "Goal 020c2 task package hash mismatch: $($property.Name)"
-	}
-
 	$reviewC1 = Read-TargetUtf8Strict "docs/phantoms/reviews/020-checkpoint-1-final-review.md"
 	$verifierC1 = Read-TargetUtf8Strict "tools/phantoms/verify-task-020c1.ps1"
-	Assert-True ($reviewC1.Contains("ACCEPT_WITH_ACTIVATION_GATE") -and $reviewC1.Contains($RequiredParent)) "Checkpoint 1 final review is not pinned."
+	Assert-True ($reviewC1.Contains("ACCEPT_WITH_ACTIVATION_GATE") -and $reviewC1.Contains("21ba300fc612f9777891912f80efc633f5b6db18")) "Checkpoint 1 final review is not pinned."
 	Assert-True ($verifierC1.Contains('$AcceptedCommit = "21ba300fc612f9777891912f80efc633f5b6db18"') -and $verifierC1.Contains("merge-base --is-ancestor") -and $verifierC1.Contains("Read-TargetBytes")) "Verifier 020c1 is not descendant-compatible."
 
 	$conversation = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationService.java"
@@ -224,16 +204,18 @@ try
 
 	$executionModel = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionModel.java"
 	$executionCodec = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionCodec.java"
+	$executionPort = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionPort.java"
 	$executionStore = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionStore.java"
 	$executionService = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionService.java"
-	Assert-True ($executionModel.Contains('COMPONENT_TYPE = "conversation.execution"') -and $executionModel.Contains("MAX_ENTRIES = 4") -and $executionModel.Contains("MAX_RECEIPTS = 16") -and $executionModel.Contains("RECEIPT_CAPACITY_REACHED") -and $executionModel.Contains("pruneReceipts")) "conversation.execution identity, bounds or replay horizon is incomplete."
-	Assert-True ($executionCodec.Contains("DECLARED_WORST_CASE_BYTES = 4076") -and $executionCodec.Contains("result.length > 4096") -and $executionCodec.Contains("has trailing bytes") -and $executionCodec.Contains("Unknown execution")) "conversation.execution codec is not fail-closed and bounded."
-	Assert-True ($executionStore.Contains("mutateComponentsAtomically") -and $executionStore.Contains("PhantomConversationModel.COMPONENT_TYPE") -and $executionStore.Contains("PhantomConversationExecutionModel.COMPONENT_TYPE") -and $executionStore.Contains("mutateGoal") -and $executionStore.Contains("pageAfter")) "Atomic planner handoff, Goal mutation or component paging is incomplete."
+	Assert-True ($executionModel.Contains('COMPONENT_TYPE = "conversation.execution"') -and $executionModel.Contains("MAX_ENTRIES = 4") -and $executionModel.Contains("MAX_RECEIPTS = 16") -and $executionModel.Contains("MAX_ARGUMENTS = 4") -and $executionModel.Contains("ARGUMENT_CAPACITY_REACHED") -and $executionModel.Contains("InvitationBinding") -and $executionModel.Contains("InvitationResponse") -and $executionModel.Contains("OutboundState.SUPPRESSED") -and $executionModel.Contains("pruneReceipts")) "conversation.execution identity, bounds, invitation binding or replay horizon is incomplete."
+	Assert-True ($executionCodec.Contains("DECLARED_WORST_CASE_BYTES = 4076") -and $executionCodec.Contains("result.length > 4096") -and $executionCodec.Contains("LEGACY_MAGIC") -and $executionCodec.Contains("invitation response") -and $executionCodec.Contains("has trailing bytes") -and $executionCodec.Contains("Unknown execution")) "conversation.execution codec is not legacy-readable, fail-closed and bounded."
+	Assert-True ($executionPort.Contains("record QueryFact") -and $executionPort.Contains("values != 1") -and $executionPort.Contains("ordered.size() > 8") -and $executionPort.Contains("duplicate fact keys") -and $executionPort.Contains("expectedCounterpartDelivered") -and $executionPort.Contains("UNCERTAIN")) "Structured query facts or exact outbound delivery result is incomplete."
+	Assert-True ($executionStore.Contains("mutateComponentsAtomically") -and $executionStore.Contains("PhantomConversationModel.COMPONENT_TYPE") -and $executionStore.Contains("PhantomConversationExecutionModel.COMPONENT_TYPE") -and $executionStore.Contains("base.receipts().size() + base.entries().size() + 1") -and $executionStore.Contains("mutateGoal") -and $executionStore.Contains("pageAfter")) "Atomic planner handoff, receipt reservation, Goal mutation or component paging is incomplete."
 	foreach ($phase in @("RECOVERY_PAGE", "RECOVERY_ENTRY", "DELAY_PROMOTE", "LOAD", "AUTHORIZE", "QUERY", "GOAL_SUBMIT", "GOAL_OBSERVE", "PARTY_RESPONSE", "OUTBOUND_PREPARE", "OUTBOUND_DISPATCH", "TERMINAL_STORE"))
 	{
 		Assert-True ($executionService.Contains($phase)) "Execution boundary is absent: $phase"
 	}
-	Assert-True ($executionService.Contains("operationsPerPulse") -and $executionService.Contains("remainingBudget() < 3") -and $executionService.Contains("OutboundState.DISPATCHING") -and $executionService.Contains("OutboundState.UNCERTAIN") -and $executionService.Contains("recoveryPage")) "Execution budget, paging or at-most-once policy is incomplete."
+	Assert-True ($executionService.Contains("operationsPerPulse") -and $executionService.Contains("remainingBudget() < 3") -and $executionService.Contains("executionPriority") -and $executionService.Contains("capacityRetry") -and $executionService.Contains("InvitationBinding") -and $executionService.Contains("reconcileInvitation") -and $executionService.Contains("allowsGoalSupersession") -and $executionService.Contains("expectedCounterpartDelivered") -and $executionService.Contains("OutboundState.DISPATCHING") -and $executionService.Contains("OutboundState.UNCERTAIN") -and $executionService.Contains("recoveryPage")) "Execution budget, fair selection, invitation recovery or at-most-once policy is incomplete."
 
 	$policyText = Read-TargetUtf8Strict "dist/game/data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml"
 	$policy = [xml] $policyText
@@ -247,14 +229,23 @@ try
 	{
 		Assert-True (($policy.conversationExecutionPolicy.proposals.proposal | Where-Object { $_.key -eq $deferred }).kind -eq "DEFERRED") "Deferred Goal 024 boundary changed: $deferred"
 	}
+	$factLabelKeys = @($policy.conversationExecutionPolicy.factLabels.label | ForEach-Object { $_.key })
+	Assert-True (($factLabelKeys.Count -eq 15) -and (($factLabelKeys | Sort-Object -Unique).Count -eq 15)) "Structured fact presentation labels are not exact and unique."
+	foreach ($factLabel in @("content.capability", "content.party_max", "content.party_min", "content.reference", "entity.reference", "item.reference", "item.source", "party.group_generation", "party.role", "party.vacancy", "topology.instance", "topology.reference", "topology.x", "topology.y", "topology.z"))
+	{
+		Assert-True ($factLabelKeys -contains $factLabel) "Structured fact label is absent: $factLabel"
+	}
 
 	$adapter = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/conversation/L2jPhantomConversationExecutionPort.java"
 	$goalStore = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/decision/PhantomGoalStateStore.java"
 	$party = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java"
-	Assert-True ($adapter.Contains("_knowledge.query()") -and $adapter.Contains("_topology.findNode") -and $adapter.Contains("_party.claim") -and $adapter.Contains("policy.goalType()") -and $adapter.Contains("party.generation") -and $adapter.Contains("party.instance")) "Canonical query or Goal evidence dependencies are incomplete."
-	Assert-True ($goalStore.Contains("componentMutation") -and $party.Contains("pendingInvitation") -and $party.Contains("respondToPending") -and $party.Contains("goalMatchesPlan") -and $party.Contains("PartyInvitationService.RespondOutcome.REFUSED")) "Atomic Goal or exact Party response seam is incomplete."
-	Assert-True ($adapter.Contains("ChatHandler.getInstance().getHandler") -and $adapter.Contains("openGeneratedDispatch") -and $adapter.Contains("tryAcquireAction") -and $adapter.Contains("ChatType.WHISPER") -and $adapter.Contains("ChatType.PARTY") -and $adapter.Contains("ChatType.GENERAL") -and $adapter.Contains("ChatType.TRADE")) "Generated current-handler dispatch is incomplete."
+	Assert-True ($adapter.Contains("_knowledge.query()") -and $adapter.Contains("_topology.findNode") -and $adapter.Contains("_party.claim") -and $adapter.Contains("new QueryFact") -and $adapter.Contains("game.knowledge.item") -and $adapter.Contains("topology.snapshot") -and $adapter.Contains("party.claim") -and $adapter.Contains("policy.goalType()") -and $adapter.Contains("party.generation") -and $adapter.Contains("party.instance")) "Canonical structured query or Goal evidence dependencies are incomplete."
+	Assert-True ($goalStore.Contains("componentMutation") -and $party.Contains("pendingInvitation") -and $party.Contains("respondToPending") -and $party.Contains("ConversationResponseKey") -and $party.Contains("goalMatchesPlan") -and $party.Contains("goalMatchesInvitation") -and $party.Contains("PartyInvitationService.RespondOutcome.REFUSED")) "Atomic Goal or exact Party response/replay seam is incomplete."
+	Assert-True ($adapter.Contains("allowsGoalSupersession") -and $adapter.Contains("PhantomPartyCoordinator.LEAD_GOAL") -and $adapter.Contains("PhantomPartyCoordinator.MEMBER_GOAL") -and $adapter.Contains("Set.of(StateStatus.LEADER, StateStatus.MEMBER)") -and $adapter.Contains("claim.state().status() != StateStatus.LEADER") -and $adapter.Contains('entry.proposalKey().equals("party.leave") ? leader || member') -and $adapter.Contains('entry.proposalKey().equals("party.travel") && leader')) "Exact membership Goal submission or supersession policy is incomplete."
+	Assert-True ($adapter.Contains("ChatHandler.getInstance().getHandler") -and $adapter.Contains("openGeneratedDispatch") -and $adapter.Contains("expectedCounterpartDelivered") -and $adapter.Contains("tryAcquireAction") -and $adapter.Contains("ChatType.WHISPER") -and $adapter.Contains("ChatType.PARTY") -and $adapter.Contains("ChatType.GENERAL") -and $adapter.Contains("ChatType.TRADE")) "Generated exact-recipient current-handler dispatch is incomplete."
 	Assert-True ($adapter -notmatch "\.addItem\s*\(|\.destroyItem\s*\(|\.teleToLocation\s*\(|\.setParty\s*\(|\.doCast\s*\(|\.doAttack\s*\(|new\s+GameClient|clientpackets") "Conversation adapter contains a direct gameplay or packet-handler bypass."
+	$adapterHasCyrillic = @($adapter.ToCharArray() | Where-Object { ([int] $_ -ge 0x0400) -and ([int] $_ -le 0x052F) }).Count -gt 0
+	Assert-True (-not $adapterHasCyrillic) "Production query adapter contains Cyrillic presentation text."
 
 	$chat = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/model/chat/ChatObservationService.java"
 	$creatureSay = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/network/serverpackets/CreatureSay.java"
@@ -278,15 +269,16 @@ try
 	Assert-True ($build.Contains('name="phantom.goal020c2.seed" value="20002002"') -and $build.Contains('name="phantom-conversation-checkpoint2-test"') -and $build.Contains('name="phantom-conversation-checkpoint2-affected-test"') -and $build.Contains('name="phantom-static-verify-020c2"')) "Goal 020c2 seed, aggregates or verifier target is absent."
 	$executionTests = Read-TargetUtf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomConversationExecutionSuite.java"
 	$integrationTests = Read-TargetUtf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomConversationIntegrationSuite.java"
-	Assert-True ($executionTests.Contains("10_000") -and $executionTests.Contains("maximumOperationsPerPulse") -and $executionTests.Contains("DISPATCHING") -and $executionTests.Contains("UNCERTAIN") -and $executionTests.Contains("replay-horizon") -and $integrationTests.Contains("100_000") -and $integrationTests.Contains("PHANTOM_GENERATED")) "Mandatory execution, ingress, restart or lifecycle evidence is incomplete."
+	Assert-True ($executionTests.Contains("Receipt reservation matrix changed") -and $executionTests.Contains("Rejected reservation changed durable bytes") -and $executionTests.Contains("Expired receipt did not reopen handoff capacity") -and $executionTests.Contains("Four execution arguments") -and $executionTests.Contains("fifth semantic slot") -and $executionTests.Contains("InvitationBinding") -and $executionTests.Contains("Replacement invitation") -and $executionTests.Contains("SUPPRESS_ACK") -and $executionTests.Contains("structured fact") -and $executionTests.Contains("exact-membership-goal-supersession") -and $executionTests.Contains("Recovered DISPATCHING") -and $executionTests.Contains("spun once per pulse") -and $executionTests.Contains("10_000") -and $executionTests.Contains("maximumOperationsPerPulse")) "Mandatory capacity, binding, query, Goal, recovery or lifecycle evidence is incomplete."
+	Assert-True ($integrationTests.Contains("NetworkBackedClient") -and $integrationTests.Contains("ScriptEngine.MASTER_HANDLER_FILE") -and $integrationTests.Contains("ChatType.WHISPER") -and $integrationTests.Contains("ChatType.PARTY") -and $integrationTests.Contains("ChatType.GENERAL") -and $integrationTests.Contains("ChatType.TRADE") -and $integrationTests.Contains("wrong") -and $integrationTests.Contains("zero") -and $integrationTests.Contains("throw") -and $integrationTests.Contains("PHANTOM_GENERATED") -and $integrationTests.Contains("100_000")) "Real four-channel handler, failure or ingress evidence is incomplete."
 
 	$contract = Read-TargetUtf8Strict "docs/phantoms/architecture/CONVERSATION_OUTBOUND_ACTION_CONTRACT.md"
 	$report = Read-TargetUtf8Strict "docs/phantoms/reports/020-conversation-outbound-actions.md"
 	$review = Read-TargetUtf8Strict "docs/phantoms/reviews/020-checkpoint-2-independent-review.md"
 	Assert-True ($contract.Contains("conversation.execution") -and $contract.Contains("DISPATCHING") -and $contract.Contains("PHANTOM_GENERATED") -and $contract.Contains("Goal 024")) "Goal 020 final architecture contract is incomplete."
 	Assert-True (($report -split "`r?`n").Count -le 240) "Goal 020c2 report exceeds 240 lines."
-	$statusRecorded = $report.Contains("IMPLEMENTED_PENDING_INDEPENDENT_REVIEW") -or (($script:Mode -eq "working") -and $report.Contains("PENDING_FINAL_GATES"))
-	Assert-True ($statusRecorded -and $report.Contains($RequiredParent) -and $report.Contains($RequiredSubject) -and $review.Contains("PENDING_INDEPENDENT_REVIEW")) "Goal 020c2 report or independent review handoff is incomplete."
+	$statusRecorded = $report.Contains("COMPLETED_PENDING_INDEPENDENT_REVIEW") -or (($script:Mode -eq "working") -and $report.Contains("PENDING_FINAL_GATES"))
+	Assert-True ($statusRecorded -and $report.Contains($RequiredParent) -and $report.Contains($RequiredSubject) -and $review.Contains("ACCEPT_WITH_EXECUTION_SAFETY_COMPLETION") -and $review.Contains($RequiredParent) -and $review.Contains("PENDING_INDEPENDENT_REVIEW")) "Goal 020c2 completion report or independent review handoff is incomplete."
 
 	$mojibakePairs = @(
 		@(0x0420, 0x045F), @(0x0420, 0x045C), @(0x0420, 0x045B), @(0x0420, 0x2022), @(0x0420, 0x040E), @(0x0420, 0x203A), @(0x0420, 0x00A4), @(0x0420, 0x045A),

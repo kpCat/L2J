@@ -20,6 +20,8 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionReceipt;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationBinding;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationResponse;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.OutboundState;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 
@@ -27,7 +29,8 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 public final class PhantomConversationExecutionCodec
 {
 	public static final int DECLARED_WORST_CASE_BYTES = 4076;
-	private static final int MAGIC = 0x43584531;
+	private static final int LEGACY_MAGIC = 0x43584531;
+	private static final int MAGIC = 0x43584532;
 	private static final List<String> ARGUMENT_KEYS = List.of("capability", "content", "item", "location", "npc", "party.role", "quantity", "response", "target.player", "topology.node");
 	private final PhantomConversationExecutionCatalog _catalog;
 
@@ -87,7 +90,8 @@ public final class PhantomConversationExecutionCodec
 		}
 		try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload)))
 		{
-			if ((input.readInt() != MAGIC) || (input.readUnsignedShort() != PhantomConversationExecutionModel.SCHEMA_VERSION))
+			final int magic = input.readInt();
+			if (((magic != MAGIC) && (magic != LEGACY_MAGIC)) || (input.readUnsignedShort() != PhantomConversationExecutionModel.SCHEMA_VERSION))
 			{
 				throw new IllegalArgumentException("Unknown conversation.execution version.");
 			}
@@ -102,7 +106,7 @@ public final class PhantomConversationExecutionCodec
 			final List<ExecutionEntry> entries = new ArrayList<>(entryCount);
 			for (int index = 0; index < entryCount; index++)
 			{
-				entries.add(readEntry(input));
+				entries.add(readEntry(input, magic == MAGIC));
 			}
 			final List<ExecutionReceipt> receipts = new ArrayList<>(receiptCount);
 			for (int index = 0; index < receiptCount; index++)
@@ -151,6 +155,14 @@ public final class PhantomConversationExecutionCodec
 			output.writeByte(id + 1);
 			writeString(output, argument.value(), PhantomConversationExecutionModel.MAX_ARGUMENT_BYTES, false);
 		}
+		output.writeBoolean(entry.invitationBinding() != null);
+		if (entry.invitationBinding() != null)
+		{
+			output.writeLong(entry.invitationBinding().sequence());
+			output.writeInt(entry.invitationBinding().requesterObjectId());
+			output.writeInt(entry.invitationBinding().inviteeObjectId());
+			output.writeByte(entry.invitationBinding().response().ordinal());
+		}
 		output.writeLong(entry.createdMinute());
 		output.writeLong(entry.expiryMinute());
 		output.writeByte(entry.outboundState().ordinal());
@@ -163,7 +175,7 @@ public final class PhantomConversationExecutionCodec
 		output.writeLong(entry.terminalMinute());
 	}
 
-	private ExecutionEntry readEntry(DataInputStream input) throws Exception
+	private ExecutionEntry readEntry(DataInputStream input, boolean hasInvitationBinding) throws Exception
 	{
 		final String planId = readHash(input);
 		final String observationHash = readHash(input);
@@ -193,7 +205,16 @@ public final class PhantomConversationExecutionCodec
 			}
 			arguments.add(new Argument(ARGUMENT_KEYS.get(keyId - 1), readString(input, PhantomConversationExecutionModel.MAX_ARGUMENT_BYTES, false)));
 		}
-		return new ExecutionEntry(planId, observationHash, ChatType.values()[channelId], counterpart, responseAct, style, text, proposal, target, arguments, input.readLong(), input.readLong(), enumValue(OutboundState.values(), input.readUnsignedByte(), "outbound"), enumValue(ActionState.values(), input.readUnsignedByte(), "action"), input.readLong(), input.readLong(), _catalog.reason(input.readUnsignedByte()), input.readUnsignedByte(), input.readUnsignedByte(), input.readLong());
+		final InvitationBinding binding;
+		if (hasInvitationBinding && input.readBoolean())
+		{
+			binding = new InvitationBinding(input.readLong(), input.readInt(), input.readInt(), enumValue(InvitationResponse.values(), input.readUnsignedByte(), "invitation response"));
+		}
+		else
+		{
+			binding = null;
+		}
+		return new ExecutionEntry(planId, observationHash, ChatType.values()[channelId], counterpart, responseAct, style, text, proposal, target, arguments, binding, input.readLong(), input.readLong(), enumValue(OutboundState.values(), input.readUnsignedByte(), "outbound"), enumValue(ActionState.values(), input.readUnsignedByte(), "action"), input.readLong(), input.readLong(), _catalog.reason(input.readUnsignedByte()), input.readUnsignedByte(), input.readUnsignedByte(), input.readLong());
 	}
 
 	private void writeReceipt(DataOutputStream output, ExecutionReceipt receipt) throws Exception

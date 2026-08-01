@@ -147,7 +147,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final int _operationBudget;
 	private final ArrayBlockingQueue<ManagedInvitation> _inbound = new ArrayBlockingQueue<>(MAX_INBOUND_INVITES);
 	private final Map<Long, PartyInvitation> _pendingManagedInvitations = new ConcurrentHashMap<>();
-	private final LinkedHashMap<String, PendingResponseOutcome> _conversationResponses = new LinkedHashMap<>();
+	private final LinkedHashMap<ConversationResponseKey, PendingResponseOutcome> _conversationResponses = new LinkedHashMap<>();
 	private final ArrayBlockingQueue<TerminalEvent> _terminalEvents = new ArrayBlockingQueue<>(MAX_TERMINAL_EVENTS);
 	private final ArrayBlockingQueue<Long> _tacticalReleases = new ArrayBlockingQueue<>(MAX_INBOUND_INVITES);
 	private final Map<Long, StoredPartyState> _claims = new ConcurrentHashMap<>();
@@ -804,18 +804,28 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	public PendingResponseOutcome respondToPending(long profileId, InvitationIdentity exactIdentity, PendingResponse response, String planId)
 	{
+		return respondToPending(profileId, exactIdentity, response, planId, false);
+	}
+
+	public PendingResponseOutcome respondToPending(long profileId, InvitationIdentity exactIdentity, PendingResponse response, String planId, boolean requireInvitationEvidence)
+	{
 		Objects.requireNonNull(exactIdentity);
 		Objects.requireNonNull(response);
 		if ((planId == null) || !planId.matches("[A-F0-9]{64}"))
 		{
 			return PendingResponseOutcome.REJECTED;
 		}
+		final ConversationResponseKey responseKey = new ConversationResponseKey(planId, exactIdentity, response);
 		synchronized (_indexLock)
 		{
-			final PendingResponseOutcome replay = _conversationResponses.get(planId);
+			final PendingResponseOutcome replay = _conversationResponses.get(responseKey);
 			if (replay != null)
 			{
-				return PendingResponseOutcome.IDEMPOTENT;
+				return replay == PendingResponseOutcome.COMPLETED ? PendingResponseOutcome.IDEMPOTENT : replay;
+			}
+			if (_conversationResponses.keySet().stream().anyMatch(key -> key.planId().equals(planId)))
+			{
+				return PendingResponseOutcome.REJECTED;
 			}
 		}
 		final OperationClaim control = beginOperation();
@@ -835,7 +845,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				final MemberRef invitee = _backend.currentMember(profileId).orElse(null);
 				final StoredGoal goal = _goals.load(profileId).orElse(null);
-				final boolean exactConsent = (response == PendingResponse.REFUSE) || ((goal != null) && (goal.goal().status() == PhantomGoalStatus.ACTIVE) && JOIN_GOAL.equals(goal.goal().goalType()) && goalTargets(goal.goal(), invitation.requesterObjectId()) && goal.goal().purposeKey().equals("conversation.action") && goal.goal().reasonKey().equals("conversation.party.accept") && goalMatchesPlan(goal.goal(), planId));
+				final boolean exactConsent = (response == PendingResponse.REFUSE) || ((goal != null) && (goal.goal().status() == PhantomGoalStatus.ACTIVE) && JOIN_GOAL.equals(goal.goal().goalType()) && goalTargets(goal.goal(), invitation.requesterObjectId()) && goal.goal().purposeKey().equals("conversation.action") && goal.goal().reasonKey().equals("conversation.party.accept") && goalMatchesPlan(goal.goal(), planId) && (!requireInvitationEvidence || goalMatchesInvitation(goal.goal(), exactIdentity)));
 				if ((invitee == null) || !exactConsent)
 				{
 					outcome = PendingResponseOutcome.REJECTED;
@@ -864,13 +874,22 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		}
 		synchronized (_indexLock)
 		{
-			_conversationResponses.put(planId, outcome);
+			_conversationResponses.put(responseKey, outcome);
 			while (_conversationResponses.size() > 512)
 			{
 				_conversationResponses.remove(_conversationResponses.keySet().iterator().next());
 			}
 		}
 		return outcome;
+	}
+
+	private static boolean goalMatchesInvitation(PhantomGoal goal, InvitationIdentity identity)
+	{
+		return Objects.equals(goal.constraints().get("party.invitation"), identity.sequence()) && Objects.equals(goal.constraints().get("party.requester"), (long) identity.requesterObjectId()) && Objects.equals(goal.constraints().get("party.invitee"), (long) identity.inviteeObjectId());
+	}
+
+	private record ConversationResponseKey(String planId, InvitationIdentity identity, PendingResponse response)
+	{
 	}
 
 	private static boolean goalMatchesPlan(PhantomGoal goal, String planId)

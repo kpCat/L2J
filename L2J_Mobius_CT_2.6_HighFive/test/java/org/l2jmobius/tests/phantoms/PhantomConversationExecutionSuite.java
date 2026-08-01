@@ -25,11 +25,14 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionReceipt;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationBinding;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationResponse;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.OutboundState;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.GoalPreparation;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.OutboundResult;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.PendingInvitation;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.QueryFact;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.QueryResult;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.ResultStatus;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionService;
@@ -41,6 +44,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.C
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationResponsePlan;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationState;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationSubject;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.DeliveryPolicy;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
@@ -167,6 +171,11 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			final byte[] trailing = Arrays.copyOf(encoded, encoded.length + 1);
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> codec.decode(trailing), "Trailing execution bytes were accepted.");
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> entry.withOutbound(OutboundState.SENT, "query.ok", 101), "PREPARED skipped the durable DISPATCHING boundary.");
+			final ExecutionEntry bound = ExecutionEntry.prepared(plan(1, 2, "party.accept", null, List.of())).withInvitation(new InvitationBinding(9, 777, 888, InvitationResponse.ACCEPT));
+			PhantomAssertions.assertEquals(bound, codec.decode(codec.encode(ExecutionState.empty(_catalog.hash(), 100).add(bound))).entries().getFirst(), "Typed invitation binding did not roundtrip.");
+			final List<SlotValue> four = executionSlots(4);
+			PhantomAssertions.assertEquals(4, ExecutionEntry.prepared(plan(1, 3, "item.source", null, four)).arguments().size(), "Four execution arguments did not roundtrip exactly.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> ExecutionEntry.prepared(plan(1, 4, "item.source", null, executionSlots(5))), "A fifth semantic slot vanished instead of failing before handoff.");
 			context.record("conversation.execution.payloadBytes", encoded.length);
 		});
 
@@ -185,6 +194,21 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			PhantomAssertions.assertThrows(IllegalStateException.class, () -> saturated.compact(pendingTerminal.planId()), "A live replay receipt was evicted to compact a seventeenth plan.");
 			PhantomAssertions.assertEquals(PhantomConversationExecutionModel.MAX_RECEIPTS, saturated.pruneReceipts(100).receipts().size(), "Replay horizon pruned a live receipt.");
 			PhantomAssertions.assertEquals(0, saturated.pruneReceipts(116).receipts().size(), "Expired replay receipts were not pruned deterministically.");
+		});
+
+		registry.add("04-structured-query-facts-are-bounded-unique-and-rendered-by-catalog", context ->
+		{
+			final QueryResult structured = factResult(ResultStatus.COMPLETED);
+			final String rendered = _catalog.renderQuery("query.ok", "neutral", structured);
+			PhantomAssertions.assertTrue(rendered.contains("предмет") && rendered.contains("источник"), "Russian fact labels did not remain catalog-owned.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new QueryResult(ResultStatus.COMPLETED, List.of(new QueryFact("item.source", null, null, "drop", "game.knowledge.item"), new QueryFact("item.source", null, null, "spoil", "game.knowledge.item"))), "Duplicate structured fact keys were accepted.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new QueryFact("item.reference", new PhantomDomainRef("item", "57"), 57L, null, "game.knowledge.item"), "A structured fact with two value representations was accepted.");
+			final List<QueryFact> oversized = new ArrayList<>();
+			for (int index = 0; index < 9; index++)
+			{
+				oversized.add(new QueryFact("item.source." + index, null, null, "drop", "game.knowledge.item"));
+			}
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new QueryResult(ResultStatus.COMPLETED, oversized), "A ninth structured fact was accepted.");
 		});
 	}
 
@@ -224,6 +248,55 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(service.snapshot().pages() > 0, "Execution recovery did not use component paging.");
 			stop(service);
 		});
+
+		registry.add("03-receipt-reservation-rejects-before-conversation-mutation-and-expiry-reopens", context ->
+		{
+			for (int[] shape : List.of(new int[]
+			{
+				15,
+				0,
+				1
+			}, new int[]
+			{
+				15,
+				1,
+				0
+			}, new int[]
+			{
+				16,
+				0,
+				0
+			}))
+			{
+				final PhantomProfile profile = profile();
+				final PhantomConversationExecutionStore store = store();
+				final ExecutionEntry bootstrap = ExecutionEntry.prepared(plan(profile.profileId(), 40, "party.support", null, List.of()));
+				final var first = store.handoff(profile.profileId(), -1, conversationState(100), bootstrap);
+				final List<ExecutionEntry> entries = shape[1] == 0 ? List.of() : List.of(ExecutionEntry.prepared(plan(profile.profileId(), 41, "party.support", null, List.of())));
+				final var configured = store.save(profile.profileId(), first.execution().rowVersion(), new ExecutionState(_catalog.hash(), 100, entries, receipts(profile.profileId(), shape[0], 100)));
+				final var beforeConversation = _repository.findComponent(profile.profileId(), PhantomConversationModel.COMPONENT_TYPE).orElseThrow();
+				final var beforeExecution = _repository.findComponent(profile.profileId(), PhantomConversationExecutionModel.COMPONENT_TYPE).orElseThrow();
+				final ExecutionEntry candidate = ExecutionEntry.prepared(plan(profile.profileId(), 42, "party.support", null, List.of()));
+				final var result = store.handoff(profile.profileId(), beforeConversation.rowVersion(), conversationState(101), candidate);
+				PhantomAssertions.assertEquals(shape[2] == 1 ? HandoffStatus.SAVED : HandoffStatus.CAPACITY_REACHED, result.status(), "Receipt reservation matrix changed for " + shape[0] + "+" + shape[1]);
+				if (shape[2] == 0)
+				{
+					final var afterConversation = _repository.findComponent(profile.profileId(), PhantomConversationModel.COMPONENT_TYPE).orElseThrow();
+					final var afterExecution = _repository.findComponent(profile.profileId(), PhantomConversationExecutionModel.COMPONENT_TYPE).orElseThrow();
+					PhantomAssertions.assertEquals(beforeConversation.rowVersion(), afterConversation.rowVersion(), "Rejected reservation changed conversation version.");
+					PhantomAssertions.assertEquals(beforeExecution.rowVersion(), afterExecution.rowVersion(), "Rejected reservation changed execution version.");
+					PhantomAssertions.assertTrue(Arrays.equals(beforeConversation.payload(), afterConversation.payload()) && Arrays.equals(beforeExecution.payload(), afterExecution.payload()), "Rejected reservation changed durable bytes.");
+				}
+				PhantomAssertions.assertTrue(configured.rowVersion() >= 0, "Capacity fixture was not durable.");
+			}
+
+			final PhantomProfile expiredProfile = profile();
+			final PhantomConversationExecutionStore expiredStore = store();
+			final var bootstrap = expiredStore.handoff(expiredProfile.profileId(), -1, conversationState(1), ExecutionEntry.prepared(plan(expiredProfile.profileId(), 50, "party.support", null, List.of())));
+			expiredStore.save(expiredProfile.profileId(), bootstrap.execution().rowVersion(), new ExecutionState(_catalog.hash(), 1, List.of(), receipts(expiredProfile.profileId(), 16, 1)));
+			final ConversationResponsePlan late = planAt(expiredProfile.profileId(), 51, "party.support", null, List.of(), 2_000);
+			PhantomAssertions.assertEquals(HandoffStatus.SAVED, expiredStore.handoff(expiredProfile.profileId(), bootstrap.conversation().rowVersion(), conversationState(2_000), ExecutionEntry.prepared(late)).status(), "Expired receipt did not reopen handoff capacity.");
+		});
 	}
 
 	private void queries(PhantomTestRegistry registry)
@@ -245,7 +318,7 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 				final ExecutionEntry entry = ExecutionEntry.prepared(plan);
 				store.handoff(profile.profileId(), -1, conversationState(100), entry);
 				final MemoryPort port = new MemoryPort();
-				port.query = new QueryResult(ResultStatus.COMPLETED, "источник=текущие данные");
+				port.query = factResult(ResultStatus.COMPLETED);
 				final PhantomConversationExecutionService service = service(store, port, 101);
 				service.publish(plan);
 				drive(service, 64);
@@ -267,7 +340,7 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 				final ConversationResponsePlan plan = plan(profile.profileId(), 200 + status.ordinal(), "entity.locate", null, List.of(SlotValue.domain(SlotType.NPC, new PhantomDomainRef("npc", "999999"), -1, -1)));
 				store.handoff(profile.profileId(), -1, conversationState(100), ExecutionEntry.prepared(plan));
 				final MemoryPort port = new MemoryPort();
-				port.query = new QueryResult(status, status == ResultStatus.AMBIGUOUS ? "вариант=1;вариант=2" : "");
+				port.query = status == ResultStatus.AMBIGUOUS ? new QueryResult(status, List.of(new QueryFact("item.source.0", null, null, "drop", "game.knowledge.item"), new QueryFact("item.source.1", null, null, "spoil", "game.knowledge.item"))) : new QueryResult(status, List.of());
 				final PhantomConversationExecutionService service = service(store, port, 101);
 				service.publish(plan);
 				drive(service, 64);
@@ -285,6 +358,8 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 				PhantomAssertions.assertTrue(source.contains("\"" + proposal + "\""), "Production query adapter omitted " + proposal);
 			}
 			PhantomAssertions.assertTrue(source.contains("_knowledge.query()") && source.contains("_topology.findNode") && source.contains("_party.claim"), "Production query adapter bypasses a current canonical authority.");
+			PhantomAssertions.assertTrue(source.contains("new QueryFact") && source.contains("game.knowledge.item") && source.contains("topology.snapshot") && source.contains("party.claim"), "Production query adapter omitted structured authority evidence.");
+			PhantomAssertions.assertFalse(source.codePoints().anyMatch(value -> ((value >= 'А') && (value <= 'я')) || (value == 'Ё') || (value == 'ё')), "Production query adapter contains Russian presentation labels or sentences.");
 			for (String mutation : List.of("addItem(", "destroyItem(", "teleToLocation(", "setParty(", "doCast(", "doAttack("))
 			{
 				PhantomAssertions.assertFalse(source.contains(mutation), "Conversation query/dispatch adapter contains direct gameplay mutation: " + mutation);
@@ -333,6 +408,31 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			stop(service);
 		});
 
+		registry.add("02a-exact-membership-goal-supersession-is-atomic-and-revisioned", context ->
+		{
+			final PhantomProfile profile = profile();
+			final PhantomGoal previous = unrelatedGoal(7101);
+			_goals.insert(profile.profileId(), previous);
+			final PhantomConversationExecutionStore store = store();
+			final ConversationResponsePlan plan = plan(profile.profileId(), 315, "party.leave", null, List.of());
+			final ExecutionEntry entry = ExecutionEntry.prepared(plan);
+			store.handoff(profile.profileId(), -1, conversationState(100), entry);
+			final MemoryPort port = new MemoryPort();
+			port.allowSupersession = true;
+			final PhantomConversationExecutionService service = service(store, port, 101);
+			service.publish(plan);
+			drive(service, 8);
+
+			final PhantomGoal replacement = _goals.load(profile.profileId()).orElseThrow().goal();
+			final ExecutionEntry submitted = store.load(profile.profileId()).orElseThrow().state().entry(entry.planId());
+			PhantomAssertions.assertEquals("party.leave", replacement.goalType(), "Allowed membership supersession installed the wrong Goal type.");
+			PhantomAssertions.assertEquals(previous.revision() + 1, replacement.revision(), "Allowed membership supersession lost the previous Goal revision.");
+			PhantomAssertions.assertEquals(ActionState.SUBMITTED, submitted.actionState(), "Execution was not submitted with the replacement Goal.");
+			PhantomAssertions.assertEquals(replacement.goalId(), submitted.goalId(), "Execution and replacement Goal were not committed as one ownership handoff.");
+			PhantomAssertions.assertEquals(replacement.revision(), submitted.goalRevision(), "Execution lost the replacement Goal revision.");
+			stop(service);
+		});
+
 		registry.add("03-accept-refuse-stale-and-deferred-are-exact-and-bounded", context ->
 		{
 			for (String key : List.of("party.accept", "party.refuse"))
@@ -349,6 +449,15 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(1, port.partyResponses.get(), "Exact pending invitation did not receive one canonical response: " + key);
 				PhantomAssertions.assertEquals(key.equals("party.accept"), port.accepted, "Pending invitation response kind changed: " + key);
 				PhantomAssertions.assertEquals(key.equals("party.accept"), _goals.load(profile.profileId()).isPresent(), "Only ACCEPT may create the exact party.join Goal.");
+				PhantomAssertions.assertEquals(9L, port.lastResponseInvitation.sequence(), "Party response did not use the durable invitation sequence.");
+				if (key.equals("party.accept"))
+				{
+					PhantomAssertions.assertEquals(new InvitationBinding(9, 777, 888, InvitationResponse.ACCEPT), port.lastPreparedEntry.invitationBinding(), "Accept Goal was not prepared from the durable invitation binding.");
+					final PhantomGoal goal = _goals.load(profile.profileId()).orElseThrow().goal();
+					PhantomAssertions.assertEquals(9L, goal.constraints().get("party.invitation"), "Accept Goal lost invitation sequence evidence.");
+					PhantomAssertions.assertEquals(777L, goal.constraints().get("party.requester"), "Accept Goal lost requester evidence.");
+					PhantomAssertions.assertEquals(888L, goal.constraints().get("party.invitee"), "Accept Goal lost invitee evidence.");
+				}
 				stop(service);
 			}
 			for (String key : List.of("party.support", "party.assist", "party.regroup"))
@@ -378,8 +487,69 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			{
 				PhantomAssertions.assertTrue(source.contains(evidence), "Production Goal adapter omitted exact current evidence: " + evidence);
 			}
+			PhantomAssertions.assertTrue(source.contains("claim.state().status() != StateStatus.LEADER") && source.contains("Set.of(StateStatus.LEADER, StateStatus.MEMBER)"), "Production Goal adapter does not reject member travel or non-membership leave before Goal submission.");
 			final String decision = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyDecision.java"));
 			PhantomAssertions.assertTrue(decision.contains("PhantomPartyCoordinator.FORM_GOAL") && decision.contains("_coordinator.form"), "party.invite no longer reaches the current Decision/Party path.");
+		});
+
+		registry.add("05-ack-suppression-never-suppresses-actions-or-factual-results", context ->
+		{
+			for (String key : List.of("party.support", "party.refuse", "party.invite"))
+			{
+				final PhantomProfile profile = profile();
+				final PhantomConversationExecutionStore store = store();
+				final PhantomDomainRef target = key.equals("party.invite") ? new PhantomDomainRef("character.object", "777") : null;
+				final List<SlotValue> slots = target == null ? List.of() : List.of(SlotValue.domain(SlotType.TARGET_PLAYER, target, -1, -1));
+				final ConversationResponsePlan plan = withDelivery(plan(profile.profileId(), 600 + key.length(), key, target, slots), DeliveryPolicy.SUPPRESS_ACK);
+				store.handoff(profile.profileId(), -1, conversationState(100), ExecutionEntry.prepared(plan));
+				final MemoryPort port = new MemoryPort();
+				if (key.equals("party.refuse"))
+				{
+					port.pending = new PendingInvitation(19, 777, 888, "Speaker", new PhantomDomainRef("character.object", "777"));
+				}
+				final PhantomConversationExecutionService service = service(store, port, 101);
+				service.publish(plan);
+				drive(service, 32);
+				final ExecutionState state = store.load(profile.profileId()).orElseThrow().state();
+				PhantomAssertions.assertEquals(0, port.dispatchCalls.get(), "SUPPRESS_ACK crossed a chat handler boundary: " + key);
+				PhantomAssertions.assertTrue(state.receipts().stream().anyMatch(receipt -> receipt.outboundState() == OutboundState.SUPPRESSED) || state.entries().stream().anyMatch(item -> item.outboundState() == OutboundState.SUPPRESSED), "Suppressed action lost its durable terminal outbound state: " + key);
+				PhantomAssertions.assertTrue(key.equals("party.support") ? state.receipts().stream().anyMatch(receipt -> receipt.actionState() == ActionState.DEFERRED) : key.equals("party.refuse") ? port.partyResponses.get() == 1 : _goals.load(profile.profileId()).isPresent(), "Suppression changed action execution: " + key);
+				stop(service);
+			}
+
+			final PhantomProfile queryProfile = profile();
+			final PhantomConversationExecutionStore queryStore = store();
+			final ConversationResponsePlan queryPlan = withDelivery(plan(queryProfile.profileId(), 690, "item.source", null, List.of(SlotValue.domain(SlotType.ITEM, new PhantomDomainRef("item", "57"), -1, -1))), DeliveryPolicy.SUPPRESS_ACK);
+			final ExecutionEntry queryEntry = ExecutionEntry.prepared(queryPlan);
+			PhantomAssertions.assertEquals(OutboundState.PREPARED, queryEntry.outboundState(), "A factual query was incorrectly terse-suppressed.");
+			queryStore.handoff(queryProfile.profileId(), -1, conversationState(100), queryEntry);
+			final MemoryPort queryPort = new MemoryPort();
+			final PhantomConversationExecutionService queryService = service(queryStore, queryPort, 101);
+			queryService.publish(queryPlan);
+			drive(queryService, 32);
+			PhantomAssertions.assertEquals(1, queryPort.dispatchCalls.get(), "Factual query result did not reach outbound dispatch.");
+			stop(queryService);
+		});
+
+		registry.add("06-invitation-replacement-after-binding-is-stale", context ->
+		{
+			final PhantomProfile profile = profile();
+			final PhantomConversationExecutionStore store = store();
+			final ConversationResponsePlan plan = plan(profile.profileId(), 700, "party.refuse", null, List.of());
+			store.handoff(profile.profileId(), -1, conversationState(100), ExecutionEntry.prepared(plan));
+			final MemoryPort port = new MemoryPort();
+			port.pending = new PendingInvitation(21, 777, 888, "Speaker", new PhantomDomainRef("character.object", "777"));
+			final PhantomConversationExecutionService service = service(store, port, 101);
+			service.publish(plan);
+			service.onPulse();
+			final ExecutionEntry bound = store.load(profile.profileId()).orElseThrow().state().entries().getFirst();
+			PhantomAssertions.assertEquals(new InvitationBinding(21, 777, 888, InvitationResponse.REFUSE), bound.invitationBinding(), "Invitation binding was not durable before response.");
+			port.pending = new PendingInvitation(22, 777, 888, "Speaker", new PhantomDomainRef("character.object", "777"));
+			drive(service, 32);
+			final ExecutionReceipt receipt = store.load(profile.profileId()).orElseThrow().state().receipts().getFirst();
+			PhantomAssertions.assertEquals(ActionState.REJECTED, receipt.actionState(), "Replacement invitation was not rejected as stale.");
+			PhantomAssertions.assertEquals(0, port.partyResponses.get(), "Replacement invitation crossed the response boundary.");
+			stop(service);
 		});
 	}
 
@@ -418,6 +588,56 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomGoalStatus.ABANDONED, _goals.load(profile.profileId()).orElseThrow().goal().status(), "Expired exact conversation Goal remained ACTIVE.");
 			PhantomAssertions.assertEquals(owned.goalId(), _goals.load(profile.profileId()).orElseThrow().goal().goalId(), "Expiry replaced the owned Goal identity.");
 			stop(expirer);
+		});
+
+		registry.add("03-refusal-crash-without-durable-proof-recovers-uncertain", context ->
+		{
+			final PhantomProfile profile = profile();
+			final PhantomConversationExecutionStore store = store();
+			final ConversationResponsePlan plan = plan(profile.profileId(), 520, "party.refuse", null, List.of());
+			store.handoff(profile.profileId(), -1, conversationState(100), ExecutionEntry.prepared(plan));
+			final MemoryPort crashing = new MemoryPort();
+			crashing.pending = new PendingInvitation(31, 777, 888, "Speaker", new PhantomDomainRef("character.object", "777"));
+			crashing.throwAfterResponse = true;
+			final PhantomConversationExecutionService first = service(store, crashing, 101);
+			first.publish(plan);
+			drive(first, 8);
+			stop(first);
+			final ExecutionEntry stranded = store.load(profile.profileId()).orElseThrow().state().entries().getFirst();
+			PhantomAssertions.assertEquals(ActionState.PREPARED, stranded.actionState(), "Injected refusal crash incorrectly claimed a terminal response.");
+			final MemoryPort restarted = new MemoryPort();
+			restarted.reconciliation = ResultStatus.UNCERTAIN;
+			final PhantomConversationExecutionService second = service(store, restarted, 101);
+			drive(second, 32);
+			final ExecutionReceipt receipt = store.load(profile.profileId()).orElseThrow().state().receipts().getFirst();
+			PhantomAssertions.assertEquals(ActionState.UNCERTAIN, receipt.actionState(), "Unprovable refusal restart was reported as success.");
+			PhantomAssertions.assertEquals(1, restarted.dispatchCalls.get(), "Uncertain refusal did not send its factual failure result exactly once.");
+			stop(second);
+		});
+
+		registry.add("04-accept-crash-reconciles-from-exact-membership-proof", context ->
+		{
+			final PhantomProfile profile = profile();
+			final PhantomConversationExecutionStore store = store();
+			final ConversationResponsePlan plan = plan(profile.profileId(), 530, "party.accept", null, List.of());
+			store.handoff(profile.profileId(), -1, conversationState(100), ExecutionEntry.prepared(plan));
+			final MemoryPort crashing = new MemoryPort();
+			crashing.pending = new PendingInvitation(32, 777, 888, "Speaker", new PhantomDomainRef("character.object", "777"));
+			crashing.throwAfterResponse = true;
+			final PhantomConversationExecutionService first = service(store, crashing, 101);
+			first.publish(plan);
+			drive(first, 10);
+			stop(first);
+			final ExecutionEntry stranded = store.load(profile.profileId()).orElseThrow().state().entries().getFirst();
+			PhantomAssertions.assertEquals(ActionState.SUBMITTED, stranded.actionState(), "Injected accept crash lost the durable submitted Goal state.");
+			final MemoryPort restarted = new MemoryPort();
+			restarted.reconciliation = ResultStatus.COMPLETED;
+			final PhantomConversationExecutionService second = service(store, restarted, 101);
+			drive(second, 32);
+			final ExecutionReceipt receipt = store.load(profile.profileId()).orElseThrow().state().receipts().getFirst();
+			PhantomAssertions.assertEquals(ActionState.COMPLETED, receipt.actionState(), "Exact accept membership proof did not reconcile to completed.");
+			PhantomAssertions.assertEquals(0, restarted.partyResponses.get(), "Reconciled accept was sent a second time.");
+			stop(second);
 		});
 	}
 
@@ -498,6 +718,52 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(0, service.snapshot().claims(), "Boundary shutdown retained a claim at " + phase);
 			}
 		});
+
+		registry.add("03-deterministic-priority-keeps-work-fair-and-capacity-waits-for-expiry", context ->
+		{
+			final PhantomProfile profile = profile();
+			final PhantomConversationExecutionStore store = store();
+			final ExecutionEntry blocked = terminal(ExecutionEntry.prepared(plan(profile.profileId(), 40_000, "party.support", null, List.of())), 101);
+			final ExecutionEntry query = ExecutionEntry.prepared(plan(profile.profileId(), 40_001, "item.source", null, List.of(SlotValue.domain(SlotType.ITEM, new PhantomDomainRef("item", "57"), -1, -1))));
+			final List<ExecutionEntry> entries = new ArrayList<>(List.of(blocked, query));
+			entries.sort(java.util.Comparator.comparing(ExecutionEntry::planId));
+			store.save(profile.profileId(), -1, new ExecutionState(_catalog.hash(), 101, entries, receipts(profile.profileId(), 16, 100)));
+			final MemoryPort port = new MemoryPort();
+			final AtomicInteger targetLoads = new AtomicInteger();
+			final PhantomConversationExecutionService service = new PhantomConversationExecutionService(_catalog, store, _goals, port, () -> 101, (phase, profileId) ->
+			{
+				if ((phase == PhantomConversationExecutionService.Phase.LOAD) && (profileId == profile.profileId()))
+				{
+					targetLoads.incrementAndGet();
+				}
+			});
+			PhantomAssertions.assertTrue(service.start(), "Fairness execution service did not start.");
+			drive(service, 16);
+			PhantomAssertions.assertEquals(1, port.queryCalls.get(), "Capacity-blocked terminal entry starved a PREPARED query.");
+			PhantomAssertions.assertTrue(port.dispatchCalls.get() >= 1, "Capacity-blocked terminal entry starved query outbound.");
+			final int before = targetLoads.get();
+			final int dispatchesBefore = port.dispatchCalls.get();
+			drive(service, 100);
+			PhantomAssertions.assertEquals(before, targetLoads.get(), "Capacity-blocked terminal entry spun once per pulse before receipt expiry.");
+			PhantomAssertions.assertEquals(dispatchesBefore, port.dispatchCalls.get(), "Capacity wait repeated an outbound dispatch.");
+			stop(service);
+
+			final PhantomProfile recoveredProfile = profile();
+			final PhantomConversationExecutionStore recoveredStore = store();
+			final ExecutionEntry dispatching = ExecutionEntry.prepared(plan(recoveredProfile.profileId(), 41_000, "party.support", null, List.of())).withAction(ActionState.DEFERRED, 0, 0, "action.deferred", 101).withOutbound(OutboundState.DISPATCHING, "action.deferred", 101);
+			final ConversationResponsePlan recoveredPlan = plan(recoveredProfile.profileId(), 41_001, "party.support", null, List.of());
+			final ExecutionEntry prepared = ExecutionEntry.prepared(recoveredPlan);
+			final List<ExecutionEntry> recoveredEntries = new ArrayList<>(List.of(prepared, dispatching));
+			recoveredEntries.sort(java.util.Comparator.comparing(ExecutionEntry::planId));
+			recoveredStore.save(recoveredProfile.profileId(), -1, new ExecutionState(_catalog.hash(), 101, recoveredEntries, List.of()));
+			final MemoryPort recoveredPort = new MemoryPort();
+			final PhantomConversationExecutionService recoveredService = service(recoveredStore, recoveredPort, 101);
+			recoveredService.publish(recoveredPlan);
+			recoveredService.onPulse();
+			PhantomAssertions.assertTrue(recoveredStore.load(recoveredProfile.profileId()).orElseThrow().state().receipts().stream().anyMatch(receipt -> receipt.outboundState() == OutboundState.UNCERTAIN), "Recovered DISPATCHING was not selected before lexicographically ordered work.");
+			PhantomAssertions.assertEquals(0, recoveredPort.dispatchCalls.get(), "Recovered DISPATCHING was resent.");
+			stop(recoveredService);
+		});
 	}
 
 	private PhantomConversationExecutionStore store()
@@ -540,15 +806,58 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 
 	private static ConversationResponsePlan plan(long profileId, long dispatchId, String proposalKey, PhantomDomainRef target, List<SlotValue> slots)
 	{
+		return planAt(profileId, dispatchId, proposalKey, target, slots, 100);
+	}
+
+	private static ConversationResponsePlan planAt(long profileId, long dispatchId, String proposalKey, PhantomDomainRef target, List<SlotValue> slots, long createdMinute)
+	{
 		final String observation = PhantomConversationModel.sha256("observation|" + profileId + '|' + dispatchId);
 		final String semantic = PhantomConversationModel.sha256("semantic|" + profileId + '|' + dispatchId + '|' + proposalKey);
-		final ConversationActionProposal proposal = proposalKey == null ? null : new ConversationActionProposal(proposalKey, new PhantomDomainRef("profile", Long.toString(profileId)), target, slots, semantic, observation, 9000, 100, 220, Authorization.CHECKPOINT_2_REQUIRED);
-		return new ConversationResponsePlan(profileId, dispatchId, observation, ChatType.WHISPER, new ConversationSubject(new PhantomDomainRef("character.object", "777")), semantic, proposalKey == null ? "ack.accepted" : proposalKey.endsWith("query") || proposalKey.contains("source") || proposalKey.contains("acquire") || proposalKey.contains("requirements") || proposalKey.contains("locate") ? "ack.query_proposed" : "ack.action_proposed", "neutral", "Ответ подготовлен.", proposal, 101, List.of());
+		final ConversationActionProposal proposal = proposalKey == null ? null : new ConversationActionProposal(proposalKey, new PhantomDomainRef("profile", Long.toString(profileId)), target, slots, semantic, observation, 9000, createdMinute, createdMinute + 120, Authorization.CHECKPOINT_2_REQUIRED);
+		return new ConversationResponsePlan(profileId, dispatchId, observation, ChatType.WHISPER, new ConversationSubject(new PhantomDomainRef("character.object", "777")), semantic, proposalKey == null ? "ack.accepted" : proposalKey.endsWith("query") || proposalKey.contains("source") || proposalKey.contains("acquire") || proposalKey.contains("requirements") || proposalKey.contains("locate") ? "ack.query_proposed" : "ack.action_proposed", "neutral", "Ответ подготовлен.", proposal, createdMinute + 1, List.of());
+	}
+
+	private static ConversationResponsePlan withDelivery(ConversationResponsePlan plan, DeliveryPolicy deliveryPolicy)
+	{
+		return new ConversationResponsePlan(plan.ownerProfileId(), plan.dispatchId(), plan.observationHash(), plan.channel(), plan.counterpart(), plan.semanticResultHash(), plan.responseAct(), plan.style(), plan.renderedText(), plan.proposal(), deliveryPolicy, plan.cooldownUntilMinute(), plan.evidence());
+	}
+
+	private List<ExecutionReceipt> receipts(long profileId, int count, long terminalMinute)
+	{
+		final List<ExecutionReceipt> result = new ArrayList<>();
+		for (int index = 0; index < count; index++)
+		{
+			final ExecutionEntry prepared = ExecutionEntry.prepared(planAt(profileId, 80_000L + index, "party.support", null, List.of(), Math.max(0, terminalMinute - 1)));
+			final ExecutionEntry terminal = prepared.withAction(ActionState.DEFERRED, 0, 0, "action.deferred", terminalMinute).withOutbound(OutboundState.DISPATCHING, "action.deferred", terminalMinute).withOutbound(OutboundState.SENT, "action.deferred", terminalMinute);
+			result.add(ExecutionReceipt.from(terminal));
+		}
+		result.sort(java.util.Comparator.naturalOrder());
+		return List.copyOf(result);
+	}
+
+	private ExecutionEntry terminal(ExecutionEntry prepared, long terminalMinute)
+	{
+		return prepared.withResult(_catalog.render("action.deferred", "neutral", null), "action.deferred").withAction(ActionState.DEFERRED, 0, 0, "action.deferred", terminalMinute).withOutbound(OutboundState.DISPATCHING, "action.deferred", terminalMinute).withOutbound(OutboundState.SENT, "action.deferred", terminalMinute);
+	}
+
+	private static List<SlotValue> executionSlots(int count)
+	{
+		return List.of( //
+			SlotValue.domain(SlotType.CONTENT, new PhantomDomainRef("content", "raid.queen_ant"), -1, -1), //
+			SlotValue.domain(SlotType.ITEM, new PhantomDomainRef("item", "57"), -1, -1), //
+			SlotValue.domain(SlotType.NPC, new PhantomDomainRef("npc", "30001"), -1, -1), //
+			SlotValue.domain(SlotType.TARGET_PLAYER, new PhantomDomainRef("character.object", "777"), -1, -1), //
+			SlotValue.domain(SlotType.TOPOLOGY_NODE, new PhantomDomainRef("topology.node", "giran"), -1, -1)).subList(0, count);
 	}
 
 	private static PhantomGoal unrelatedGoal(long goalId)
 	{
 		return new PhantomGoal(goalId, "progression.level", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "1"), null, 1, 0, null, List.of(), null, "progression", 500, 0, 0, 0, Map.of(), "progression.level", 0);
+	}
+
+	private static QueryResult factResult(ResultStatus status)
+	{
+		return new QueryResult(status, List.of(new QueryFact("item.reference", new PhantomDomainRef("item", "57"), null, null, "game.knowledge.item"), new QueryFact("item.source.0", null, null, "drop", "game.knowledge.item")));
 	}
 
 	private record QueryFixture(String key, PhantomDomainRef target, List<SlotValue> slots)
@@ -561,8 +870,13 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		private final AtomicInteger goalPreparations = new AtomicInteger();
 		private final AtomicInteger partyResponses = new AtomicInteger();
 		private final AtomicInteger dispatchCalls = new AtomicInteger();
-		private QueryResult query = new QueryResult(ResultStatus.COMPLETED, "факт=подтверждён");
+		private QueryResult query = factResult(ResultStatus.COMPLETED);
 		private PendingInvitation pending;
+		private ExecutionEntry lastPreparedEntry;
+		private PendingInvitation lastResponseInvitation;
+		private ResultStatus reconciliation = ResultStatus.UNCERTAIN;
+		private boolean allowSupersession;
+		private boolean throwAfterResponse;
 		private boolean accepted;
 
 		@Override
@@ -576,14 +890,27 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		public GoalPreparation prepareGoal(long profileId, ExecutionEntry entry, long goalId, long nowMinute)
 		{
 			goalPreparations.incrementAndGet();
+			lastPreparedEntry = entry;
 			final Map<String, Long> constraints = new java.util.TreeMap<>();
 			for (int index = 0; index < 4; index++)
 			{
 				constraints.put("conversation.plan." + index, Long.parseUnsignedLong(entry.planId().substring(index * 16, (index + 1) * 16), 16));
 			}
+			if (entry.invitationBinding() != null)
+			{
+				constraints.put("party.invitation", entry.invitationBinding().sequence());
+				constraints.put("party.requester", (long) entry.invitationBinding().requesterObjectId());
+				constraints.put("party.invitee", (long) entry.invitationBinding().inviteeObjectId());
+			}
 			final String type = entry.proposalKey().equals("party.accept") ? "party.join" : entry.proposalKey().equals("party.invite") ? "party.form" : entry.proposalKey();
 			final PhantomGoal goal = new PhantomGoal(goalId, type, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("party", "general"), entry.target(), 1, 0, null, List.of(), null, "conversation.action", 700, 0, 0, (nowMinute + 120) * 60000L, constraints, "conversation." + entry.proposalKey(), 0);
 			return new GoalPreparation(ResultStatus.COMPLETED, goal);
+		}
+
+		@Override
+		public boolean allowsGoalSupersession(long profileId, ExecutionEntry entry, PhantomGoal previousGoal)
+		{
+			return allowSupersession;
 		}
 
 		@Override
@@ -596,9 +923,25 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		public ResultStatus respondToPending(long profileId, PendingInvitation invitation, boolean accept, String planId)
 		{
 			partyResponses.incrementAndGet();
+			lastResponseInvitation = invitation;
 			accepted = accept;
 			pending = null;
+			if (throwAfterResponse)
+			{
+				throw new IllegalStateException("Injected post-response failure.");
+			}
 			return ResultStatus.COMPLETED;
+		}
+
+		@Override
+		public ResultStatus reconcileInvitation(long profileId, ExecutionEntry entry)
+		{
+			if ((pending != null) && (entry.invitationBinding() != null))
+			{
+				final InvitationBinding binding = entry.invitationBinding();
+				return (pending.sequence() == binding.sequence()) && (pending.requesterObjectId() == binding.requesterObjectId()) && (pending.inviteeObjectId() == binding.inviteeObjectId()) ? ResultStatus.REJECTED : ResultStatus.STALE;
+			}
+			return reconciliation;
 		}
 
 		@Override

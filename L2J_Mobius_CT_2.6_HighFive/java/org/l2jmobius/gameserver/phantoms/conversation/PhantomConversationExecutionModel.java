@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationActionProposal;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationResponsePlan;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.DeliveryPolicy;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.SlotValue;
 
@@ -29,6 +30,7 @@ public final class PhantomConversationExecutionModel
 	public static final int MAX_TEXT_BYTES = 240;
 	public static final int MAX_REFERENCE_BYTES = 64;
 	public static final int MAX_ARGUMENT_BYTES = 48;
+	private static final Set<String> QUERY_PROPOSALS = Set.of("party.role.query", "entity.locate", "item.acquire", "item.source", "content.requirements");
 	private static final Pattern HASH = Pattern.compile("^[A-F0-9]{64}$");
 	private static final Pattern KEY = Pattern.compile("^[a-z][a-z0-9_.-]{0,63}$");
 
@@ -44,7 +46,8 @@ public final class PhantomConversationExecutionModel
 		SENT,
 		FAILED,
 		UNCERTAIN,
-		EXPIRED
+		EXPIRED,
+		SUPPRESSED
 	}
 
 	public enum ActionState
@@ -57,6 +60,23 @@ public final class PhantomConversationExecutionModel
 		DEFERRED,
 		EXPIRED,
 		UNCERTAIN
+	}
+
+	public enum InvitationResponse
+	{
+		ACCEPT,
+		REFUSE
+	}
+
+	public record InvitationBinding(long sequence, int requesterObjectId, int inviteeObjectId, InvitationResponse response)
+	{
+		public InvitationBinding
+		{
+			if ((sequence <= 0) || (requesterObjectId <= 0) || (inviteeObjectId <= 0) || (response == null))
+			{
+				throw new IllegalArgumentException("Invitation binding identity is invalid.");
+			}
+		}
 	}
 
 	public record Argument(String key, String value) implements Comparable<Argument>
@@ -74,7 +94,7 @@ public final class PhantomConversationExecutionModel
 		}
 	}
 
-	public record ExecutionEntry(String planId, String observationHash, ChatType channel, PhantomDomainRef counterpart, String responseAct, String style, String text, String proposalKey, PhantomDomainRef target, List<Argument> arguments, long createdMinute, long expiryMinute, OutboundState outboundState, ActionState actionState, long goalId, long goalRevision, String reasonKey, int actionAttempts, int outboundAttempts, long terminalMinute)
+	public record ExecutionEntry(String planId, String observationHash, ChatType channel, PhantomDomainRef counterpart, String responseAct, String style, String text, String proposalKey, PhantomDomainRef target, List<Argument> arguments, InvitationBinding invitationBinding, long createdMinute, long expiryMinute, OutboundState outboundState, ActionState actionState, long goalId, long goalRevision, String reasonKey, int actionAttempts, int outboundAttempts, long terminalMinute)
 	{
 		public ExecutionEntry
 		{
@@ -99,14 +119,28 @@ public final class PhantomConversationExecutionModel
 			{
 				throw new IllegalArgumentException("Execution entry state is inconsistent.");
 			}
+			if ((invitationBinding != null) && (!Set.of("party.accept", "party.refuse").contains(proposalKey) || ((invitationBinding.response() == InvitationResponse.ACCEPT) != "party.accept".equals(proposalKey))))
+			{
+				throw new IllegalArgumentException("Execution invitation binding is inconsistent.");
+			}
+		}
+
+		public ExecutionEntry(String planId, String observationHash, ChatType channel, PhantomDomainRef counterpart, String responseAct, String style, String text, String proposalKey, PhantomDomainRef target, List<Argument> arguments, long createdMinute, long expiryMinute, OutboundState outboundState, ActionState actionState, long goalId, long goalRevision, String reasonKey, int actionAttempts, int outboundAttempts, long terminalMinute)
+		{
+			this(planId, observationHash, channel, counterpart, responseAct, style, text, proposalKey, target, arguments, null, createdMinute, expiryMinute, outboundState, actionState, goalId, goalRevision, reasonKey, actionAttempts, outboundAttempts, terminalMinute);
 		}
 
 		public static ExecutionEntry prepared(ConversationResponsePlan plan)
 		{
 			final ConversationActionProposal proposal = plan.proposal();
-			final List<Argument> arguments = proposal == null ? List.of() : proposal.slots().stream().limit(MAX_ARGUMENTS).map(PhantomConversationExecutionModel::argument).sorted().toList();
-			final String canonical = plan.ownerProfileId() + "|" + plan.dispatchId() + "|" + plan.observationHash() + "|" + plan.semanticResultHash() + "|" + plan.channel() + "|" + plan.counterpart().reference().namespace() + ':' + plan.counterpart().reference().key() + "|" + plan.responseAct() + "|" + plan.style() + "|" + (proposal == null ? "none" : proposal.proposalKey() + '|' + proposal.semanticResultHash());
-			return new ExecutionEntry(PhantomConversationModel.sha256(canonical), plan.observationHash(), plan.channel(), plan.counterpart().reference(), plan.responseAct(), plan.style(), plan.renderedText(), proposal == null ? null : proposal.proposalKey(), proposal == null ? null : proposal.target(), arguments, proposal == null ? Math.max(0, plan.cooldownUntilMinute() - 1) : proposal.createdMinute(), proposal == null ? Math.max(1, plan.cooldownUntilMinute() + 60) : proposal.expiryMinute(), OutboundState.PREPARED, proposal == null ? ActionState.NONE : ActionState.PREPARED, 0, 0, "execution.prepared", 0, 0, -1);
+			if ((proposal != null) && (proposal.slots().size() > MAX_ARGUMENTS))
+			{
+				throw new IllegalArgumentException("ARGUMENT_CAPACITY_REACHED");
+			}
+			final List<Argument> arguments = proposal == null ? List.of() : proposal.slots().stream().map(PhantomConversationExecutionModel::argument).sorted().toList();
+			final String canonical = plan.ownerProfileId() + "|" + plan.dispatchId() + "|" + plan.observationHash() + "|" + plan.semanticResultHash() + "|" + plan.channel() + "|" + plan.counterpart().reference().namespace() + ':' + plan.counterpart().reference().key() + "|" + plan.responseAct() + "|" + plan.style() + "|" + plan.deliveryPolicy() + "|" + (proposal == null ? "none" : proposal.proposalKey() + '|' + proposal.semanticResultHash());
+			final OutboundState outbound = (proposal != null) && (plan.deliveryPolicy() == DeliveryPolicy.SUPPRESS_ACK) && !QUERY_PROPOSALS.contains(proposal.proposalKey()) ? OutboundState.SUPPRESSED : OutboundState.PREPARED;
+			return new ExecutionEntry(PhantomConversationModel.sha256(canonical), plan.observationHash(), plan.channel(), plan.counterpart().reference(), plan.responseAct(), plan.style(), plan.renderedText(), proposal == null ? null : proposal.proposalKey(), proposal == null ? null : proposal.target(), arguments, null, proposal == null ? Math.max(0, plan.cooldownUntilMinute() - 1) : proposal.createdMinute(), proposal == null ? Math.max(1, plan.cooldownUntilMinute() + 60) : proposal.expiryMinute(), outbound, proposal == null ? ActionState.NONE : ActionState.PREPARED, 0, 0, "execution.prepared", 0, 0, -1);
 		}
 
 		public ExecutionEntry withOutbound(OutboundState next, String reason, long nowMinute)
@@ -123,7 +157,16 @@ public final class PhantomConversationExecutionModel
 
 		public ExecutionEntry withResult(String nextText, String reason)
 		{
-			return new ExecutionEntry(planId, observationHash, channel, counterpart, responseAct, style, nextText, proposalKey, target, arguments, createdMinute, expiryMinute, outboundState, actionState, goalId, goalRevision, reason, actionAttempts, outboundAttempts, terminalMinute);
+			return new ExecutionEntry(planId, observationHash, channel, counterpart, responseAct, style, nextText, proposalKey, target, arguments, invitationBinding, createdMinute, expiryMinute, outboundState, actionState, goalId, goalRevision, reason, actionAttempts, outboundAttempts, terminalMinute);
+		}
+
+		public ExecutionEntry withInvitation(InvitationBinding binding)
+		{
+			if (invitationBinding != null)
+			{
+				throw new IllegalStateException("Invitation binding is already durable.");
+			}
+			return new ExecutionEntry(planId, observationHash, channel, counterpart, responseAct, style, text, proposalKey, target, arguments, Objects.requireNonNull(binding), createdMinute, expiryMinute, outboundState, actionState, goalId, goalRevision, reasonKey, actionAttempts, outboundAttempts, terminalMinute);
 		}
 
 		public boolean terminal()
@@ -133,7 +176,7 @@ public final class PhantomConversationExecutionModel
 
 		private ExecutionEntry copy(OutboundState outbound, ActionState action, long nextGoalId, long nextGoalRevision, String reason, int nextActionAttempts, int nextOutboundAttempts, long nextTerminalMinute)
 		{
-			return new ExecutionEntry(planId, observationHash, channel, counterpart, responseAct, style, text, proposalKey, target, arguments, createdMinute, expiryMinute, outbound, action, nextGoalId, nextGoalRevision, reason, nextActionAttempts, nextOutboundAttempts, nextTerminalMinute);
+			return new ExecutionEntry(planId, observationHash, channel, counterpart, responseAct, style, text, proposalKey, target, arguments, invitationBinding, createdMinute, expiryMinute, outbound, action, nextGoalId, nextGoalRevision, reason, nextActionAttempts, nextOutboundAttempts, nextTerminalMinute);
 		}
 	}
 
@@ -266,7 +309,7 @@ public final class PhantomConversationExecutionModel
 
 	public static boolean terminalOutbound(OutboundState state)
 	{
-		return Set.of(OutboundState.SENT, OutboundState.FAILED, OutboundState.UNCERTAIN, OutboundState.EXPIRED).contains(state);
+		return Set.of(OutboundState.SENT, OutboundState.FAILED, OutboundState.UNCERTAIN, OutboundState.EXPIRED, OutboundState.SUPPRESSED).contains(state);
 	}
 
 	public static boolean terminalAction(ActionState state)
@@ -288,7 +331,7 @@ public final class PhantomConversationExecutionModel
 	private static void requireActionTransition(ActionState current, ActionState next)
 	{
 		final boolean valid = (current == ActionState.NONE) && (next == ActionState.PREPARED) //
-			|| (current == ActionState.PREPARED) && Set.of(ActionState.SUBMITTED, ActionState.COMPLETED, ActionState.REJECTED, ActionState.DEFERRED, ActionState.EXPIRED).contains(next) //
+			|| (current == ActionState.PREPARED) && Set.of(ActionState.SUBMITTED, ActionState.COMPLETED, ActionState.REJECTED, ActionState.DEFERRED, ActionState.EXPIRED, ActionState.UNCERTAIN).contains(next) //
 			|| (current == ActionState.SUBMITTED) && Set.of(ActionState.COMPLETED, ActionState.REJECTED, ActionState.EXPIRED, ActionState.UNCERTAIN).contains(next);
 		if (!valid)
 		{

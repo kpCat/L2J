@@ -92,6 +92,11 @@ public final class PhantomConversationExecutionStore
 		{
 			return new HandoffResult(HandoffStatus.CAPACITY_REACHED, null, current);
 		}
+		// Every accepted live entry reserves the receipt slot it will need at terminalization.
+		if ((base.receipts().size() + base.entries().size() + 1) > PhantomConversationExecutionModel.MAX_RECEIPTS)
+		{
+			return new HandoffResult(HandoffStatus.CAPACITY_REACHED, null, current);
+		}
 		final ExecutionState next = base.add(entry);
 		final List<PhantomProfileComponent> components = _profiles.mutateComponentsAtomically(profileId, List.of( //
 			new ComponentMutation(PhantomConversationExecutionModel.COMPONENT_TYPE, current == null ? -1 : current.rowVersion(), PhantomConversationExecutionModel.SCHEMA_VERSION, _codec.encode(next)), //

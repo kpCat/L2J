@@ -3,6 +3,7 @@
  */
 package org.l2jmobius.gameserver.phantoms.conversation;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -22,6 +23,8 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ActionState;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationBinding;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationResponse;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.OutboundState;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.GoalPreparation;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.PendingInvitation;
@@ -190,10 +193,10 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 					if (profileId != null)
 					{
 						_membership.remove(profileId);
-						final int delay = process(profileId);
-						if (delay > 0)
-					{
-						schedule(profileId, delay);
+						final long delay = process(profileId);
+						if (delay != 0)
+						{
+							schedule(profileId, delay);
 					}
 						progressed = true;
 					}
@@ -294,7 +297,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		return true;
 	}
 
-	private int process(long profileId)
+	private long process(long profileId)
 	{
 		try
 		{
@@ -308,17 +311,17 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 				return 0;
 			}
 			_entriesLoaded.increment();
-			ExecutionEntry entry = stored.state().entries().getFirst();
+			ExecutionEntry entry = selectEntry(stored.state());
 			if (entry.outboundState() == OutboundState.DISPATCHING)
 			{
 				entry = entry.withOutbound(OutboundState.UNCERTAIN, "execution.failed", now());
 				final FinalStoreResult terminal = storeFinal(stored, entry);
 				if ((terminal == null) || !terminal.compacted())
 				{
-					return 1;
+					return terminal == null ? 1 : capacityRetry(stored.state());
 				}
 				_uncertain.increment();
-				return entry.actionState() == ActionState.SUBMITTED ? 10 : 0;
+				return entry.actionState() == ActionState.SUBMITTED ? 10 : 1;
 			}
 			if (now() >= entry.expiryMinute())
 			{
@@ -328,15 +331,19 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 				{
 					return 1;
 				}
+				if (expiry == ExpiryOutcome.CAPACITY)
+				{
+					return capacityRetry(stored.state());
+				}
 				if (expiry == ExpiryOutcome.NOT_OWNED)
 				{
 					final FinalStoreResult terminal = storeFinal(stored, entry);
 					if ((terminal == null) || !terminal.compacted())
 					{
-						return 1;
+						return terminal == null ? 1 : capacityRetry(stored.state());
 					}
 				}
-				return 0;
+				return 1;
 			}
 			final ProposalPolicy policy = entry.proposalKey() == null ? null : _catalog.proposal(entry.proposalKey());
 			if ((entry.proposalKey() != null) && ((policy == null) || !policy.authorizes(entry)))
@@ -368,12 +375,12 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			}
 			if (entry.outboundState() == OutboundState.PREPARED)
 			{
-				return dispatch(stored, entry) ? (entry.actionState() == ActionState.SUBMITTED ? 10 : 0) : 1;
+				return dispatch(stored, entry) ? (entry.actionState() == ActionState.SUBMITTED ? 10 : 1) : 1;
 			}
 			if (entry.terminal())
 			{
 				final FinalStoreResult terminal = storeFinal(stored, entry);
-				return (terminal != null) && terminal.compacted() ? 0 : 1;
+				return terminal == null ? 1 : terminal.compacted() ? 1 : capacityRetry(stored.state());
 			}
 			return entry.actionState() == ActionState.SUBMITTED ? 10 : 1;
 		}
@@ -402,7 +409,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 				final QueryResult result = _port.query(stored.profileId(), entry);
 				_queries.increment();
 				final String reason = queryReason(result.status());
-				final ExecutionEntry next = entry.withResult(_catalog.render(reason, entry.style(), result.facts()), reason).withAction(result.status() == ResultStatus.REJECTED ? ActionState.REJECTED : ActionState.COMPLETED, 0, 0, reason, now());
+				final ExecutionEntry next = entry.withResult(_catalog.renderQuery(reason, entry.style(), result), reason).withAction(result.status() == ResultStatus.REJECTED || result.status() == ResultStatus.UNCERTAIN ? ActionState.REJECTED : ActionState.COMPLETED, 0, 0, reason, now());
 				save(stored, next);
 				yield 1;
 			}
@@ -423,12 +430,36 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			}
 			case PARTY_RESPONSE ->
 			{
+				if (entry.invitationBinding() == null)
+				{
+					if (!spend(Phase.PARTY_RESPONSE, stored.profileId()))
+					{
+						yield 1;
+					}
+					final PendingInvitation invitation = _port.pendingInvitation(stored.profileId()).orElse(null);
+					if ((invitation == null) || !invitation.requester().equals(entry.counterpart()))
+					{
+						final ExecutionEntry next = entry.withResult(_catalog.render("party.stale", entry.style(), null), "party.stale").withAction(ActionState.REJECTED, 0, 0, "party.stale", now());
+						save(stored, next);
+						yield 1;
+					}
+					final InvitationResponse response = entry.proposalKey().equals("party.accept") ? InvitationResponse.ACCEPT : InvitationResponse.REFUSE;
+					save(stored, entry.withInvitation(new InvitationBinding(invitation.sequence(), invitation.requesterObjectId(), invitation.inviteeObjectId(), response)));
+					yield 1;
+				}
 				if (entry.proposalKey().equals("party.accept"))
 				{
 					if (exactInvitation(stored.profileId(), entry).isEmpty())
 					{
-						final ExecutionEntry next = entry.withResult(_catalog.render("party.stale", entry.style(), null), "party.stale").withAction(ActionState.REJECTED, 0, 0, "party.stale", now());
+						final ResultStatus reconciliation = _port.reconcileInvitation(stored.profileId(), entry);
+						final boolean uncertain = reconciliation == ResultStatus.UNCERTAIN;
+						final String reason = uncertain ? "execution.failed" : "party.stale";
+						final ExecutionEntry next = entry.withResult(_catalog.render(reason, entry.style(), null), reason).withAction(uncertain ? ActionState.UNCERTAIN : ActionState.REJECTED, 0, 0, reason, now());
 						save(stored, next);
+						if (uncertain)
+						{
+							_uncertain.increment();
+						}
 						yield 1;
 					}
 					if (!spend(Phase.GOAL_SUBMIT, stored.profileId()))
@@ -443,10 +474,16 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 					yield 1;
 				}
 				final PendingInvitation invitation = exactInvitation(stored.profileId(), entry).orElse(null);
-				final ResultStatus result = invitation == null ? ResultStatus.STALE : _port.respondToPending(stored.profileId(), invitation, false, entry.planId());
+				final ResultStatus result = invitation == null ? _port.reconcileInvitation(stored.profileId(), entry) : _port.respondToPending(stored.profileId(), invitation, false, entry.planId());
 				_partyResponses.increment();
-				final String reason = result == ResultStatus.COMPLETED || result == ResultStatus.IDEMPOTENT ? "party.refused" : "party.stale";
-				final ExecutionEntry next = entry.withResult(_catalog.render(reason, entry.style(), null), reason).withAction(result == ResultStatus.COMPLETED || result == ResultStatus.IDEMPOTENT ? ActionState.COMPLETED : ActionState.REJECTED, 0, 0, reason, now());
+				final boolean completed = result == ResultStatus.COMPLETED || result == ResultStatus.IDEMPOTENT;
+				final boolean uncertain = result == ResultStatus.UNCERTAIN;
+				final String reason = completed ? "party.refused" : uncertain ? "execution.failed" : "party.stale";
+				final ExecutionEntry next = entry.withResult(_catalog.render(reason, entry.style(), null), reason).withAction(completed ? ActionState.COMPLETED : uncertain ? ActionState.UNCERTAIN : ActionState.REJECTED, 0, 0, reason, now());
+				if (uncertain)
+				{
+					_uncertain.increment();
+				}
 				save(stored, next);
 				yield 1;
 			}
@@ -501,21 +538,27 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			return stored;
 		}
 		final StoredGoal current = _goals.load(stored.profileId()).orElse(null);
-		if ((current != null) && owned(entry, current.goal()) && (current.goal().status() != PhantomGoalStatus.ACTIVE))
+		final ResultStatus reconciliation = _port.reconcileInvitation(stored.profileId(), entry);
+		if ((reconciliation == ResultStatus.COMPLETED) && (current != null) && owned(entry, current.goal()))
 		{
-			final boolean completed = current.goal().status() == PhantomGoalStatus.COMPLETED;
+			final ExecutionEntry resolved = entry.withResult(_catalog.render("party.accepted", entry.style(), null), "party.accepted").withAction(ActionState.COMPLETED, entry.goalId(), current.goal().revision(), "party.accepted", now());
+			return save(stored, resolved);
+		}
+		if ((reconciliation == ResultStatus.STALE) || ((current != null) && owned(entry, current.goal()) && (current.goal().status() != PhantomGoalStatus.ACTIVE)))
+		{
+			final boolean completed = (reconciliation != ResultStatus.STALE) && (current != null) && (current.goal().status() == PhantomGoalStatus.COMPLETED);
 			final String reason = completed ? "party.accepted" : "party.stale";
-			final ExecutionEntry resolved = entry.withResult(_catalog.render(reason, entry.style(), null), reason).withAction(completed ? ActionState.COMPLETED : ActionState.REJECTED, entry.goalId(), current.goal().revision(), reason, now());
+			final ExecutionEntry resolved = entry.withResult(_catalog.render(reason, entry.style(), null), reason).withAction(completed ? ActionState.COMPLETED : ActionState.REJECTED, entry.goalId(), current == null ? entry.goalRevision() : current.goal().revision(), reason, now());
 			return save(stored, resolved);
 		}
 		if (!hasBudget())
 		{
 			return stored;
 		}
-		final ExecutionEntry uncertain = entry.withResult(_catalog.render("execution.failed", entry.style(), null), "execution.failed").withAction(ActionState.UNCERTAIN, entry.goalId(), entry.goalRevision(), "execution.failed", now()).withOutbound(OutboundState.FAILED, "execution.failed", now());
-		final FinalStoreResult terminal = storeFinal(stored, uncertain);
+		final ExecutionEntry uncertain = entry.withResult(_catalog.render("execution.failed", entry.style(), null), "execution.failed").withAction(ActionState.UNCERTAIN, entry.goalId(), entry.goalRevision(), "execution.failed", now());
+		final StoredExecution saved = save(stored, uncertain);
 		_uncertain.increment();
-		return terminal == null ? stored : terminal.stored();
+		return saved;
 	}
 
 	private StoredExecution rejectSubmittedGoal(StoredExecution stored, ExecutionEntry entry, String reason)
@@ -543,8 +586,11 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 				final ExecutionEntry next = entry.withResult(_catalog.render("goal.submitted", entry.style(), null), "goal.submitted").withAction(ActionState.SUBMITTED, current.goal().goalId(), current.goal().revision(), "goal.submitted", now());
 				return save(stored, next);
 			}
-			final ExecutionEntry next = entry.withResult(_catalog.render("goal.busy", entry.style(), null), "goal.busy").withAction(ActionState.REJECTED, 0, 0, "goal.busy", now());
-			return save(stored, next);
+			if (!_port.allowsGoalSupersession(stored.profileId(), entry, current.goal()))
+			{
+				final ExecutionEntry next = entry.withResult(_catalog.render("goal.busy", entry.style(), null), "goal.busy").withAction(ActionState.REJECTED, 0, 0, "goal.busy", now());
+				return save(stored, next);
+			}
 		}
 		final long goalId = goalId(stored.profileId(), entry);
 		final GoalPreparation prepared = _port.prepareGoal(stored.profileId(), entry, goalId, now());
@@ -553,11 +599,17 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			final ExecutionEntry next = entry.withResult(_catalog.render("goal.invalid", entry.style(), null), "goal.invalid").withAction(ActionState.REJECTED, 0, 0, "goal.invalid", now());
 			return save(stored, next);
 		}
-		final ExecutionEntry submitted = entry.withResult(_catalog.render("goal.submitted", entry.style(), null), "goal.submitted").withAction(ActionState.SUBMITTED, prepared.goal().goalId(), prepared.goal().revision(), "goal.submitted", now());
+		final PhantomGoal goal = (current != null) && (current.goal().status() == PhantomGoalStatus.ACTIVE) ? withRevision(prepared.goal(), current.goal().revision() + 1) : prepared.goal();
+		final ExecutionEntry submitted = entry.withResult(_catalog.render("goal.submitted", entry.style(), null), "goal.submitted").withAction(ActionState.SUBMITTED, goal.goalId(), goal.revision(), "goal.submitted", now());
 		final ExecutionState nextState = stored.state().replace(submitted);
-		final GoalMutationResult result = _store.mutateGoal(stored.profileId(), stored.rowVersion(), nextState, _goals, current == null ? -1 : current.rowVersion(), prepared.goal());
+		final GoalMutationResult result = _store.mutateGoal(stored.profileId(), stored.rowVersion(), nextState, _goals, current == null ? -1 : current.rowVersion(), goal);
 		_goalsSubmitted.increment();
 		return result.execution();
+	}
+
+	private static PhantomGoal withRevision(PhantomGoal goal, long revision)
+	{
+		return new PhantomGoal(goal.goalId(), goal.goalType(), goal.status(), goal.subject(), goal.target(), goal.requiredAmount(), goal.currentAmount(), goal.acquisitionMethod(), goal.validSources(), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), goal.deadlineEpochMillis(), goal.constraints(), goal.reasonKey(), revision);
 	}
 
 	private boolean dispatch(StoredExecution stored, ExecutionEntry entry)
@@ -582,11 +634,16 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			spend(Phase.OUTBOUND_DISPATCH, stored.profileId());
 			final var result = _port.dispatch(stored.profileId(), dispatching);
 			_outboundDispatches.increment();
-			final boolean sent = (result.status() == ResultStatus.COMPLETED) && (result.deliveries() > 0);
-			final ExecutionEntry terminal = dispatching.withOutbound(sent ? OutboundState.SENT : OutboundState.FAILED, sent ? dispatching.reasonKey() : "outbound.invalid", now());
+			final boolean sent = (result.status() == ResultStatus.COMPLETED) && result.expectedCounterpartDelivered();
+			final boolean uncertain = (result.status() == ResultStatus.UNCERTAIN) || ((result.deliveries() > 0) && !result.expectedCounterpartDelivered());
+			final ExecutionEntry terminal = dispatching.withOutbound(sent ? OutboundState.SENT : uncertain ? OutboundState.UNCERTAIN : OutboundState.FAILED, sent ? dispatching.reasonKey() : "outbound.invalid", now());
 			if (sent)
 			{
 				_sent.increment();
+			}
+			else if (uncertain)
+			{
+				_uncertain.increment();
 			}
 			final FinalStoreResult storedFinal = storeFinal(stored, terminal);
 			return (storedFinal != null) && storedFinal.compacted();
@@ -677,12 +734,17 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		{
 			_terminalReceipts.increment();
 		}
-		return ExpiryOutcome.MUTATED;
+		return compacted ? ExpiryOutcome.MUTATED : ExpiryOutcome.CAPACITY;
 	}
 
 	private Optional<PendingInvitation> exactInvitation(long profileId, ExecutionEntry entry)
 	{
-		return _port.pendingInvitation(profileId).filter(invitation -> invitation.requester().equals(entry.counterpart()));
+		final InvitationBinding binding = entry.invitationBinding();
+		if (binding == null)
+		{
+			return Optional.empty();
+		}
+		return _port.pendingInvitation(profileId).filter(invitation -> (invitation.sequence() == binding.sequence()) && (invitation.requesterObjectId() == binding.requesterObjectId()) && (invitation.inviteeObjectId() == binding.inviteeObjectId()));
 	}
 
 	private boolean owned(ExecutionEntry entry, PhantomGoal goal)
@@ -691,7 +753,8 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		{
 			return false;
 		}
-		if (!goal.purposeKey().equals("conversation.action") || !goal.reasonKey().equals("conversation." + entry.proposalKey()))
+		final boolean membershipAccept = entry.proposalKey().equals("party.accept") && goal.reasonKey().equals("party.membership.committed");
+		if (!goal.purposeKey().equals("conversation.action") || (!goal.reasonKey().equals("conversation." + entry.proposalKey()) && !membershipAccept))
 		{
 			return false;
 		}
@@ -699,6 +762,14 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		{
 			final long expected = Long.parseUnsignedLong(entry.planId().substring(index * 16, (index + 1) * 16), 16);
 			if (!Objects.equals(goal.constraints().get("conversation.plan." + index), expected))
+			{
+				return false;
+			}
+		}
+		if (entry.invitationBinding() != null)
+		{
+			final InvitationBinding binding = entry.invitationBinding();
+			if (!Objects.equals(goal.constraints().get("party.invitation"), binding.sequence()) || !Objects.equals(goal.constraints().get("party.requester"), (long) binding.requesterObjectId()) || !Objects.equals(goal.constraints().get("party.invitee"), (long) binding.inviteeObjectId()))
 			{
 				return false;
 			}
@@ -727,7 +798,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		}
 	}
 
-	private void schedule(long profileId, int delay)
+	private void schedule(long profileId, long delay)
 	{
 		if (!_membership.add(profileId))
 		{
@@ -735,7 +806,10 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		}
 		synchronized (_dueMonitor)
 		{
-			_delayed.add(new DueProfile(_pulse + delay, ++_dueSequence, profileId));
+			final boolean capacityWait = delay < 0;
+			final long dueMinute = capacityWait ? (-delay) - 1 : now();
+			final long duePulse = capacityWait ? _pulse + 1 : _pulse + delay;
+			_delayed.add(new DueProfile(dueMinute, duePulse, ++_dueSequence, profileId));
 		}
 	}
 
@@ -744,7 +818,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		DueProfile due;
 		synchronized (_dueMonitor)
 		{
-			if (_delayed.isEmpty() || (_delayed.peek().pulse() > _pulse))
+			if (_delayed.isEmpty() || (_delayed.peek().minute() > now()) || (_delayed.peek().pulse() > _pulse))
 			{
 				return false;
 			}
@@ -814,15 +888,60 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			case COMPLETED, IDEMPOTENT -> "query.ok";
 			case AMBIGUOUS -> "query.ambiguous";
 			case NOT_FOUND, STALE -> "query.not_found";
-			case REJECTED -> "execution.failed";
+			case REJECTED, UNCERTAIN -> "execution.failed";
 		};
 	}
 
-	private record DueProfile(long pulse, long sequence, long profileId) implements Comparable<DueProfile>
+	private ExecutionEntry selectEntry(ExecutionState state)
+	{
+		final long replayFloor = Math.max(0, now() - _catalog.limits().replayHorizonMinutes());
+		final int liveReceipts = (int) state.receipts().stream().filter(receipt -> receipt.terminalMinute() >= replayFloor).count();
+		return state.entries().stream().min(Comparator.comparingInt((ExecutionEntry entry) -> executionPriority(entry, liveReceipts)).thenComparingLong(ExecutionEntry::createdMinute).thenComparing(ExecutionEntry::planId)).orElseThrow();
+	}
+
+	private static int executionPriority(ExecutionEntry entry, int liveReceipts)
+	{
+		if (entry.outboundState() == OutboundState.DISPATCHING)
+		{
+			return 0;
+		}
+		if (entry.terminal() && (liveReceipts < PhantomConversationExecutionModel.MAX_RECEIPTS))
+		{
+			return 1;
+		}
+		if (entry.actionState() == ActionState.PREPARED)
+		{
+			return 2;
+		}
+		if (entry.outboundState() == OutboundState.PREPARED)
+		{
+			return 3;
+		}
+		if (entry.actionState() == ActionState.SUBMITTED)
+		{
+			return 4;
+		}
+		return entry.terminal() ? 5 : 6;
+	}
+
+	private long capacityRetry(ExecutionState state)
+	{
+		final long horizon = _catalog.limits().replayHorizonMinutes();
+		final long earliest = state.receipts().stream().mapToLong(receipt -> receipt.terminalMinute() > (Long.MAX_VALUE - horizon) ? Long.MAX_VALUE : receipt.terminalMinute() + horizon).min().orElse(now() + 1);
+		final long notBefore = Math.max(now() + 1, earliest);
+		return notBefore == Long.MAX_VALUE ? -Long.MAX_VALUE : -(notBefore + 1);
+	}
+
+	private record DueProfile(long minute, long pulse, long sequence, long profileId) implements Comparable<DueProfile>
 	{
 		@Override
 		public int compareTo(DueProfile other)
 		{
+			final int byMinute = Long.compare(minute, other.minute);
+			if (byMinute != 0)
+			{
+				return byMinute;
+			}
 			final int byPulse = Long.compare(pulse, other.pulse);
 			return byPulse != 0 ? byPulse : Long.compare(sequence, other.sequence);
 		}
@@ -836,6 +955,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 	{
 		NOT_OWNED,
 		MUTATED,
+		CAPACITY,
 		BUDGET
 	}
 }

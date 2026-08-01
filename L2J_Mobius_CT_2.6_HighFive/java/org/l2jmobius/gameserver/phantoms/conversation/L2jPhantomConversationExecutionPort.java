@@ -5,7 +5,6 @@ package org.l2jmobius.gameserver.phantoms.conversation;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,6 +22,8 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InvitationId
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.Argument;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationBinding;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationResponse;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
@@ -32,6 +33,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.PendingResponse;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.PendingResponseOutcome;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStatus;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
@@ -68,7 +70,7 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 			case "entity.locate" -> locate(knowledge, entry);
 			case "item.acquire", "item.source" -> itemSources(knowledge, entry);
 			case "content.requirements" -> content(knowledge, entry);
-			default -> new QueryResult(ResultStatus.REJECTED, "");
+			default -> new QueryResult(ResultStatus.REJECTED, List.of());
 		};
 	}
 
@@ -97,11 +99,12 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 			case "party.leave" ->
 			{
 				final var claim = _party.claim(profileId).orElse(null);
-				if (claim == null)
+				if ((claim == null) || !Set.of(StateStatus.LEADER, StateStatus.MEMBER).contains(claim.state().status()))
 				{
 					return new GoalPreparation(ResultStatus.REJECTED, null);
 				}
 				constraints.put("party.generation", claim.state().groupGeneration());
+				constraints.putAll(hashEvidence("party.group", claim.state().groupId()));
 				target = null;
 			}
 			case "party.travel" ->
@@ -109,13 +112,14 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 				final var claim = _party.claim(profileId).orElse(null);
 				final PhantomDomainRef destination = argumentReference(entry, "topology.node", "location");
 				final Optional<org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNode> node = destination == null ? Optional.empty() : _topology.findNode(destination.key());
-				if ((claim == null) || node.isEmpty())
+				if ((claim == null) || (claim.state().status() != StateStatus.LEADER) || node.isEmpty())
 				{
 					return new GoalPreparation(ResultStatus.REJECTED, null);
 				}
 				target = destination;
 				final PhantomTopologyPoint point = node.get().area().representativePoint();
 				constraints.put("party.generation", claim.state().groupGeneration());
+				constraints.putAll(hashEvidence("party.group", claim.state().groupId()));
 				constraints.put("party.x", (long) point.x());
 				constraints.put("party.y", (long) point.y());
 				constraints.put("party.z", (long) point.z());
@@ -123,13 +127,15 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 			}
 			case "party.accept" ->
 			{
-				final PendingInvitation invitation = pendingInvitation(profileId).orElse(null);
-				if (invitation == null)
+				final InvitationBinding invitation = entry.invitationBinding();
+				if ((invitation == null) || (invitation.response() != InvitationResponse.ACCEPT))
 				{
 					return new GoalPreparation(ResultStatus.STALE, null);
 				}
 				target = new PhantomDomainRef("character.object", Integer.toString(invitation.requesterObjectId()));
 				constraints.put("party.invitation", invitation.sequence());
+				constraints.put("party.requester", (long) invitation.requesterObjectId());
+				constraints.put("party.invitee", (long) invitation.inviteeObjectId());
 			}
 			default ->
 			{
@@ -139,6 +145,23 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		final long deadline = entry.expiryMinute() > (Long.MAX_VALUE / 60000L) ? Long.MAX_VALUE : entry.expiryMinute() * 60000L;
 		final PhantomGoal goal = new PhantomGoal(goalId, goalType, PhantomGoalStatus.ACTIVE, subject, target, 1, 0, null, List.of(), null, "conversation.action", 600, 0, 0, deadline, constraints, "conversation." + entry.proposalKey(), 0);
 		return new GoalPreparation(ResultStatus.COMPLETED, goal);
+	}
+
+	@Override
+	public boolean allowsGoalSupersession(long profileId, ExecutionEntry entry, PhantomGoal previousGoal)
+	{
+		if ((previousGoal == null) || (previousGoal.status() != PhantomGoalStatus.ACTIVE))
+		{
+			return false;
+		}
+		final var claim = _party.claim(profileId).orElse(null);
+		if (claim == null)
+		{
+			return false;
+		}
+		final boolean leader = previousGoal.goalType().equals(PhantomPartyCoordinator.LEAD_GOAL) && (claim.state().status() == StateStatus.LEADER);
+		final boolean member = previousGoal.goalType().equals(PhantomPartyCoordinator.MEMBER_GOAL) && (claim.state().status() == StateStatus.MEMBER);
+		return entry.proposalKey().equals("party.leave") ? leader || member : entry.proposalKey().equals("party.travel") && leader;
 	}
 
 	@Override
@@ -156,13 +179,39 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 	public ResultStatus respondToPending(long profileId, PendingInvitation invitation, boolean accept, String planId)
 	{
 		final InvitationIdentity identity = new InvitationIdentity(invitation.sequence(), invitation.requesterObjectId(), invitation.inviteeObjectId());
-		return switch (_party.respondToPending(profileId, identity, accept ? PendingResponse.ACCEPT : PendingResponse.REFUSE, planId))
+		return switch (_party.respondToPending(profileId, identity, accept ? PendingResponse.ACCEPT : PendingResponse.REFUSE, planId, true))
 		{
 			case COMPLETED -> ResultStatus.COMPLETED;
 			case IDEMPOTENT -> ResultStatus.IDEMPOTENT;
 			case STALE -> ResultStatus.STALE;
 			default -> ResultStatus.REJECTED;
 		};
+	}
+
+	@Override
+	public ResultStatus reconcileInvitation(long profileId, ExecutionEntry entry)
+	{
+		final InvitationBinding binding = entry.invitationBinding();
+		if (binding == null)
+		{
+			return ResultStatus.REJECTED;
+		}
+		final PendingInvitation current = pendingInvitation(profileId).orElse(null);
+		if (current != null)
+		{
+			return exact(current, binding) ? ResultStatus.REJECTED : ResultStatus.STALE;
+		}
+		if (binding.response() == InvitationResponse.REFUSE)
+		{
+			return ResultStatus.UNCERTAIN;
+		}
+		final var claim = _party.claim(profileId).orElse(null);
+		if ((claim == null) || ((claim.state().status() != StateStatus.MEMBER) && (claim.state().status() != StateStatus.LEADER)) || (claim.state().operation() == null) || (claim.state().operation().member() == null))
+		{
+			return ResultStatus.UNCERTAIN;
+		}
+		final var operation = claim.state().operation();
+		return (operation.invitationSequence() == binding.sequence()) && (operation.leader().characterObjectId() == binding.requesterObjectId()) && (operation.member().characterObjectId() == binding.inviteeObjectId()) ? ResultStatus.COMPLETED : ResultStatus.UNCERTAIN;
 	}
 
 	@Override
@@ -186,7 +235,7 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 				return new OutboundResult(ResultStatus.STALE, 0);
 			}
 			final Player counterpart = resolve(entry.counterpart());
-			if ((counterpart == null) || ((entry.channel() == ChatType.PARTY) && !sender.isInParty()))
+			if ((counterpart == null) || ((entry.channel() == ChatType.PARTY) && ((sender.getParty() == null) || (sender.getParty() != counterpart.getParty()))))
 			{
 				return new OutboundResult(ResultStatus.STALE, 0);
 			}
@@ -196,14 +245,15 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 				return new OutboundResult(ResultStatus.REJECTED, 0);
 			}
 			final String target = entry.channel() == ChatType.WHISPER ? counterpart.getName() : "";
-			try (DispatchHandle dispatch = _observation.openGeneratedDispatch(sender.getObjectId(), sender.getName(), entry.channel(), target, entry.text(), System.currentTimeMillis()))
+			try (DispatchHandle dispatch = _observation.openGeneratedDispatch(sender.getObjectId(), sender.getName(), entry.channel(), target, entry.text(), System.currentTimeMillis(), counterpart.getObjectId()))
 			{
 				if (dispatch.descriptor() == null)
 				{
 					return new OutboundResult(ResultStatus.REJECTED, 0);
 				}
 				handler.onChat(entry.channel(), sender, target, entry.text());
-				return new OutboundResult(dispatch.deliveries() > 0 ? ResultStatus.COMPLETED : ResultStatus.REJECTED, dispatch.deliveries());
+				final ResultStatus status = dispatch.expectedCounterpartDelivered() ? ResultStatus.COMPLETED : dispatch.deliveries() > 0 ? ResultStatus.UNCERTAIN : ResultStatus.REJECTED;
+				return new OutboundResult(status, dispatch.deliveries(), dispatch.expectedCounterpartDelivered());
 			}
 		}
 	}
@@ -213,16 +263,18 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		final var claim = _party.claim(profileId).orElse(null);
 		if (claim == null)
 		{
-			return new QueryResult(ResultStatus.NOT_FOUND, "");
+			return new QueryResult(ResultStatus.NOT_FOUND, List.of());
 		}
 		final Set<String> assigned = claim.state().assignments().stream().map(assignment -> assignment.vacancyKey()).collect(java.util.stream.Collectors.toSet());
-		final List<String> factsValues = new ArrayList<>();
-		factsValues.add("роль=" + (claim.state().ownRoleKey().isEmpty() ? "не назначена" : claim.state().ownRoleKey()));
-		factsValues.add("группа=" + claim.state().groupId().substring(0, 8));
-		factsValues.add("поколение=" + claim.state().groupGeneration());
-		factsValues.add("вакансий=" + claim.state().requirements().stream().filter(requirement -> !assigned.contains(requirement.vacancyKey())).count());
-		claim.state().requirements().stream().filter(requirement -> !assigned.contains(requirement.vacancyKey())).limit(2).forEach(requirement -> factsValues.add("нужна=" + requirement.roleKey()));
-		final String facts = boundedFacts(factsValues);
+		final List<QueryFact> facts = new ArrayList<>();
+		facts.add(new QueryFact("party.role", null, null, claim.state().ownRoleKey().isEmpty() ? "unassigned" : claim.state().ownRoleKey(), "party.claim"));
+		facts.add(new QueryFact("party.group_generation", null, claim.state().groupGeneration(), null, "party.claim"));
+		facts.add(new QueryFact("party.vacancy", null, claim.state().requirements().stream().filter(requirement -> !assigned.contains(requirement.vacancyKey())).count(), null, "party.claim"));
+		final int[] index =
+		{
+			0
+		};
+		claim.state().requirements().stream().filter(requirement -> !assigned.contains(requirement.vacancyKey())).limit(2).forEach(requirement -> facts.add(new QueryFact("party.vacancy." + index[0]++, null, null, requirement.roleKey(), "party.claim")));
 		return new QueryResult(ResultStatus.COMPLETED, facts);
 	}
 
@@ -231,25 +283,32 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		final PhantomDomainRef reference = argumentReference(entry, "npc", "topology.node", "content");
 		if (reference == null)
 		{
-			return new QueryResult(ResultStatus.NOT_FOUND, "");
+			return new QueryResult(ResultStatus.NOT_FOUND, List.of());
 		}
 		if (reference.namespace().equals("topology.node"))
 		{
-			return _topology.findNode(reference.key()).map(node -> new QueryResult(ResultStatus.COMPLETED, pointFact(node.id(), node.area().representativePoint()))).orElse(new QueryResult(ResultStatus.NOT_FOUND, ""));
+			return _topology.findNode(reference.key()).map(node -> new QueryResult(ResultStatus.COMPLETED, pointFacts(node.id(), node.area().representativePoint()))).orElse(new QueryResult(ResultStatus.NOT_FOUND, List.of()));
 		}
 		if (reference.namespace().equals("npc"))
 		{
 			final int npcId = positiveInt(reference.key());
 			if ((npcId == 0) || knowledge.findNpc(npcId).isEmpty())
 			{
-				return new QueryResult(ResultStatus.NOT_FOUND, "");
+				return new QueryResult(ResultStatus.NOT_FOUND, List.of());
 			}
 			final var areas = knowledge.spawnAreas(npcId, PageRequest.first(4)).values().stream().filter(area -> (area.topologyNodeId() != null) && _topology.findNode(area.topologyNodeId()).isPresent()).limit(2).toList();
 			if (areas.isEmpty())
 			{
-				return new QueryResult(ResultStatus.NOT_FOUND, "");
+				return new QueryResult(ResultStatus.NOT_FOUND, List.of());
 			}
-			final String facts = boundedFacts(areas.stream().map(area -> "npc=" + npcId + ",узел=" + area.topologyNodeId() + ",instance=" + area.instanceId()).toList());
+			final List<QueryFact> facts = new ArrayList<>();
+			facts.add(new QueryFact("entity.reference", new PhantomDomainRef("npc", Integer.toString(npcId)), null, null, "game.knowledge.npc"));
+			for (int index = 0; index < areas.size(); index++)
+			{
+				final var area = areas.get(index);
+				facts.add(new QueryFact("topology.reference." + index, new PhantomDomainRef("topology.node", area.topologyNodeId()), null, null, "game.knowledge.npc"));
+				facts.add(new QueryFact("topology.instance." + index, null, (long) area.instanceId(), null, "game.knowledge.npc"));
+			}
 			return new QueryResult(areas.size() > 1 ? ResultStatus.AMBIGUOUS : ResultStatus.COMPLETED, facts);
 		}
 		if (reference.namespace().equals("content"))
@@ -257,11 +316,17 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 			final var content = knowledge.content(reference.key()).orElse(null);
 			if ((content == null) || (content.topologyNodeId() == null))
 			{
-				return new QueryResult(ResultStatus.NOT_FOUND, "");
+				return new QueryResult(ResultStatus.NOT_FOUND, List.of());
 			}
-			return _topology.findNode(content.topologyNodeId()).map(node -> new QueryResult(ResultStatus.COMPLETED, pointFact(node.id(), node.area().representativePoint()))).orElse(new QueryResult(ResultStatus.NOT_FOUND, ""));
+			return _topology.findNode(content.topologyNodeId()).map(node ->
+			{
+				final List<QueryFact> facts = new ArrayList<>();
+				facts.add(new QueryFact("content.reference", new PhantomDomainRef("content", content.contentId()), null, null, "game.knowledge.content"));
+				facts.addAll(pointFacts(node.id(), node.area().representativePoint()));
+				return new QueryResult(ResultStatus.COMPLETED, facts);
+			}).orElse(new QueryResult(ResultStatus.NOT_FOUND, List.of()));
 		}
-		return new QueryResult(ResultStatus.NOT_FOUND, "");
+		return new QueryResult(ResultStatus.NOT_FOUND, List.of());
 	}
 
 	private static QueryResult itemSources(PhantomGameKnowledgeQuery knowledge, ExecutionEntry entry)
@@ -270,9 +335,9 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		final int itemId = (reference == null) || !reference.namespace().equals("item") ? 0 : positiveInt(reference.key());
 		if ((itemId == 0) || knowledge.findItem(itemId).isEmpty())
 		{
-			return new QueryResult(ResultStatus.NOT_FOUND, "");
+			return new QueryResult(ResultStatus.NOT_FOUND, List.of());
 		}
-		final Set<String> sources = new LinkedHashSet<>();
+		final List<String> sources = new ArrayList<>();
 		if (!knowledge.dropSources(itemId, PageRequest.first(1)).values().isEmpty())
 		{
 			sources.add("drop");
@@ -289,7 +354,17 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		{
 			sources.add("recipe");
 		}
-		return sources.isEmpty() ? new QueryResult(ResultStatus.NOT_FOUND, "") : new QueryResult(ResultStatus.COMPLETED, "item=" + itemId + ";источники=" + String.join(",", sources));
+		if (sources.isEmpty())
+		{
+			return new QueryResult(ResultStatus.NOT_FOUND, List.of());
+		}
+		final List<QueryFact> facts = new ArrayList<>();
+		facts.add(new QueryFact("item.reference", new PhantomDomainRef("item", Integer.toString(itemId)), null, null, "game.knowledge.item"));
+		for (int index = 0; index < sources.size(); index++)
+		{
+			facts.add(new QueryFact("item.source." + index, null, null, sources.get(index), "game.knowledge.item"));
+		}
+		return new QueryResult(ResultStatus.COMPLETED, facts);
 	}
 
 	private static QueryResult content(PhantomGameKnowledgeQuery knowledge, ExecutionEntry entry)
@@ -297,36 +372,21 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		final PhantomDomainRef reference = argumentReference(entry, "content");
 		if ((reference == null) || !reference.namespace().equals("content"))
 		{
-			return new QueryResult(ResultStatus.NOT_FOUND, "");
+			return new QueryResult(ResultStatus.NOT_FOUND, List.of());
 		}
 		return knowledge.content(reference.key()).map(value ->
 		{
-			final List<String> facts = new ArrayList<>();
-			facts.add("контент=" + value.contentId());
-			facts.add("группа=" + value.recommendedMinParty() + "-" + value.recommendedMaxParty());
-			value.requirements().stream().limit(3).forEach(requirement -> facts.add("требование=" + requirement.capabilityKey() + ':' + requirement.minimumCount() + ':' + requirement.minimumRank() + ':' + (requirement.required() ? "обязательно" : "желательно")));
-			return new QueryResult(ResultStatus.COMPLETED, boundedFacts(facts));
-		}).orElse(new QueryResult(ResultStatus.NOT_FOUND, ""));
-	}
-
-	private static String boundedFacts(List<String> facts)
-	{
-		final StringBuilder result = new StringBuilder();
-		for (String fact : facts)
-		{
-			if ((fact == null) || fact.isBlank() || fact.codePoints().anyMatch(Character::isISOControl))
+			final List<QueryFact> facts = new ArrayList<>();
+			facts.add(new QueryFact("content.reference", new PhantomDomainRef("content", value.contentId()), null, null, "game.knowledge.content"));
+			facts.add(new QueryFact("content.party_min", null, (long) value.recommendedMinParty(), null, "game.knowledge.content"));
+			facts.add(new QueryFact("content.party_max", null, (long) value.recommendedMaxParty(), null, "game.knowledge.content"));
+			final int[] index =
 			{
-				continue;
-			}
-			final String candidate = result.isEmpty() ? fact : result + ";" + fact;
-			if (candidate.getBytes(StandardCharsets.UTF_8).length > 128)
-			{
-				break;
-			}
-			result.setLength(0);
-			result.append(candidate);
-		}
-		return result.isEmpty() ? "нет" : result.toString();
+				0
+			};
+			value.requirements().stream().limit(3).forEach(requirement -> facts.add(new QueryFact("content.capability." + index[0]++, null, null, requirement.capabilityKey() + ':' + requirement.minimumCount() + ':' + requirement.minimumRank() + ':' + (requirement.required() ? "required" : "preferred"), "game.knowledge.content")));
+			return new QueryResult(ResultStatus.COMPLETED, facts);
+		}).orElse(new QueryResult(ResultStatus.NOT_FOUND, List.of()));
 	}
 
 	private Player resolve(PhantomDomainRef reference)
@@ -370,17 +430,32 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 
 	private static Map<String, Long> planEvidence(String planId)
 	{
+		return hashEvidence("conversation.plan", planId);
+	}
+
+	private static Map<String, Long> hashEvidence(String prefix, String hash)
+	{
 		final Map<String, Long> result = new TreeMap<>();
 		for (int index = 0; index < 4; index++)
 		{
-			result.put("conversation.plan." + index, Long.parseUnsignedLong(planId.substring(index * 16, (index + 1) * 16), 16));
+			result.put(prefix + "." + index, Long.parseUnsignedLong(hash.substring(index * 16, (index + 1) * 16), 16));
 		}
 		return result;
 	}
 
-	private static String pointFact(String id, PhantomTopologyPoint point)
+	private static List<QueryFact> pointFacts(String id, PhantomTopologyPoint point)
 	{
-		return boundedFacts(List.of("узел=" + id, "x=" + point.x(), "y=" + point.y(), "z=" + point.z(), "instance=" + point.instanceId()));
+		return List.of( //
+			new QueryFact("topology.instance", null, (long) point.instanceId(), null, "topology.snapshot"), //
+			new QueryFact("topology.reference", new PhantomDomainRef("topology.node", id), null, null, "topology.snapshot"), //
+			new QueryFact("topology.x", null, (long) point.x(), null, "topology.snapshot"), //
+			new QueryFact("topology.y", null, (long) point.y(), null, "topology.snapshot"), //
+			new QueryFact("topology.z", null, (long) point.z(), null, "topology.snapshot"));
+	}
+
+	private static boolean exact(PendingInvitation invitation, InvitationBinding binding)
+	{
+		return (invitation.sequence() == binding.sequence()) && (invitation.requesterObjectId() == binding.requesterObjectId()) && (invitation.inviteeObjectId() == binding.inviteeObjectId());
 	}
 
 	private static int positiveInt(String value)

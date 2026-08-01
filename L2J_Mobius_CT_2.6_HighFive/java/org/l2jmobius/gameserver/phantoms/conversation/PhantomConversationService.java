@@ -42,6 +42,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.C
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationState;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationSubject;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.DeliveredObservation;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.DeliveryPolicy;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.PendingClarification;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore.StoredState;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
@@ -683,6 +684,15 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 
 	private StepResult persistStep(BatchWork work)
 	{
+		final ExecutionEntry executionEntry;
+		try
+		{
+			executionEntry = (work._planned.response() != null) && _store.executionEnabled() ? ExecutionEntry.prepared(work._planned.response()) : null;
+		}
+		catch (IllegalArgumentException exception)
+		{
+			return StepResult.value(new SaveAttempt(false, null, true, PersistenceStatus.CAPACITY_REACHED));
+		}
 		final ConversationState next = mutate(work._baseState, work._planned);
 		_persistenceClaims.incrementAndGet();
 		try
@@ -690,7 +700,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 			final StoredState saved;
 			if ((work._planned.response() != null) && _store.executionEnabled())
 			{
-				final HandoffResult handoff = _store.handoff(work._electedProfile, work._loaded == null ? -1 : work._loaded.rowVersion(), next, ExecutionEntry.prepared(work._planned.response()));
+				final HandoffResult handoff = _store.handoff(work._electedProfile, work._loaded == null ? -1 : work._loaded.rowVersion(), next, executionEntry);
 				if (handoff.status() == HandoffStatus.DUPLICATE)
 				{
 					return StepResult.value(new SaveAttempt(true, null, false, PersistenceStatus.DUPLICATE));
@@ -1161,11 +1171,12 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 			act = "no_response.unsupported";
 		}
 		final String style = social.style();
-		final boolean suppressed = (proposal != null) && act.startsWith("ack.") && social.suppressAcknowledgement();
+		final boolean suppressed = (proposal != null) && !act.equals("ack.query_proposed") && act.startsWith("ack.") && social.suppressAcknowledgement();
 		final String text = _catalog.template(act, style, selector(profileId, batch._observationHash, act, style));
 		final long cooldown = nowMinute + _catalog.channel(batch._descriptor.channel()).cooldownMinutes();
 		final List<ConversationEvidence> evidence = understanding.evidence().stream().limit(_catalog.limits().evidence()).map(item -> new ConversationEvidence(item.key(), item.authorityKey())).toList();
-		final ConversationResponsePlan response = suppressed ? null : new ConversationResponsePlan(profileId, batch._dispatchId, batch._observationHash, batch._descriptor.channel(), new ConversationSubject(context.speaker()), semanticHash, act, style, text, proposal, cooldown, evidence);
+		final DeliveryPolicy deliveryPolicy = suppressed ? DeliveryPolicy.SUPPRESS_ACK : DeliveryPolicy.SEND;
+		final ConversationResponsePlan response = new ConversationResponsePlan(profileId, batch._dispatchId, batch._observationHash, batch._descriptor.channel(), new ConversationSubject(context.speaker()), semanticHash, act, style, text, proposal, deliveryPolicy, cooldown, evidence);
 		final ConversationSession session = new ConversationSession(batch._descriptor.channel(), context.counterpart(), nowMinute, cooldown, understanding.status() == UnderstandingStatus.ACCEPTED ? understanding.selectedIntent() : previous == null ? null : previous.previousIntent(), understanding.status() == UnderstandingStatus.ACCEPTED ? understanding.slots() : previous == null ? List.of() : previous.previousSlots(), pending, PhantomConversationModel.sha256(act), PhantomConversationModel.sha256(style), proposal == null ? "" : PhantomConversationModel.sha256(proposal.proposalKey() + '|' + semanticHash));
 		return new Planned(profileId, session, response, batch._observationHash, nowMinute);
 	}

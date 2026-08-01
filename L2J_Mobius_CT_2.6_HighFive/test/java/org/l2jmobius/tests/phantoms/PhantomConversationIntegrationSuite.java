@@ -5,7 +5,10 @@ package org.l2jmobius.tests.phantoms;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.channels.AsynchronousServerSocketChannel;
+import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -20,10 +23,16 @@ import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.l2jmobius.gameserver.handler.ChatHandler;
 import org.l2jmobius.gameserver.handler.IChatHandler;
+import org.l2jmobius.commons.network.Connection;
+import org.l2jmobius.commons.network.ConnectionConfig;
+import org.l2jmobius.commons.network.PacketExecutor;
+import org.l2jmobius.commons.network.ReadHandler;
+import org.l2jmobius.commons.network.WriteHandler;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService;
@@ -34,6 +43,7 @@ import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
 import org.l2jmobius.gameserver.network.clientpackets.Say2;
 import org.l2jmobius.gameserver.network.enums.ChatType;
+import org.l2jmobius.gameserver.network.GameClient;
 import org.l2jmobius.gameserver.network.serverpackets.CreatureSay;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
@@ -42,6 +52,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.L2jPhantomConversationExec
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationCatalog;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionReceipt;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionState;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.OutboundState;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionService;
@@ -92,6 +103,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyMetrics;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
+import org.l2jmobius.gameserver.scripting.ScriptEngine;
 
 public final class PhantomConversationIntegrationSuite implements PhantomTestSuite
 {
@@ -256,7 +268,11 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	{
 		registry.add("01-four-current-handler-seams-generated-origin-and-at-most-once", context ->
 		{
-			World.getInstance().addObject(_speaker);
+			_observer.getStat().setLevel((byte) 20);
+			_speaker.getStat().setLevel((byte) 20);
+			_speaker.spawnMe(_observer.getX(), _observer.getY(), _observer.getZ());
+			final NetworkBackedClient onlineCounterpart = NetworkBackedClient.attach(_speaker);
+			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			final PhantomConversationExecutionCatalog executionCatalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml"));
 			final PhantomConversationExecutionStore executionStore = new PhantomConversationExecutionStore(_profiles, executionCatalog);
 			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
@@ -271,36 +287,12 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			for (ChatType channel : List.of(ChatType.WHISPER, ChatType.PARTY, ChatType.GENERAL, ChatType.TRADE))
 			{
 				previous.put(channel, ChatHandler.getInstance().getHandler(channel));
+				PhantomAssertions.assertTrue(previous.get(channel) != null, "Actual registered chat handler is absent for " + channel);
 			}
-			final EnumMap<ChatType, AtomicInteger> calls = new EnumMap<>(ChatType.class);
-			for (ChatType channel : previous.keySet())
-			{
-				calls.put(channel, new AtomicInteger());
-			}
-			final IChatHandler tracking = new IChatHandler()
-			{
-				@Override
-				public void onChat(ChatType type, Player active, String target, String text)
-				{
-					calls.get(type).incrementAndGet();
-					new CreatureSay(active, type, active.getName(), text).runImpl(_speaker);
-				}
-
-				@Override
-				public ChatType[] getChatTypeList()
-				{
-					return new ChatType[]
-					{
-						ChatType.WHISPER,
-						ChatType.PARTY,
-						ChatType.GENERAL,
-						ChatType.TRADE
-					};
-				}
-			};
-			ChatHandler.getInstance().registerHandler(tracking);
 			final Party localParty = new Party(_observer, PartyDistributionType.FINDERS_KEEPERS);
 			_observer.setParty(localParty);
+			localParty.addPartyMember(_speaker);
+			_speaker.setParty(localParty);
 			final long generatedBefore = ChatObservationService.getInstance().snapshot().generatedDeliveries();
 			final long ingressBefore = _conversation.snapshot().ingressAccepted();
 			ConversationResponsePlan duplicate = null;
@@ -321,15 +313,16 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 						execution.onPulse();
 					}
 					receipts++;
-					PhantomAssertions.assertEquals(1, calls.get(channel).get(), "Current registered handler was not called exactly once for " + channel);
+					final ExecutionReceipt receipt = executionStore.load(_observerProfile.profileId()).orElseThrow().state().receipts().stream().filter(value -> value.planId().equals(entry.planId())).findFirst().orElseThrow();
+					PhantomAssertions.assertEquals(OutboundState.SENT, receipt.outboundState(), "Actual registered handler did not deliver to the exact counterpart for " + channel);
 				}
-				final int callsBeforeDuplicate = calls.values().stream().mapToInt(AtomicInteger::get).sum();
+				final long deliveriesBeforeDuplicate = ChatObservationService.getInstance().snapshot().generatedDeliveries();
 				execution.publish(duplicate);
 				for (int pulse = 0; pulse < 16; pulse++)
 				{
 					execution.onPulse();
 				}
-				PhantomAssertions.assertEquals(callsBeforeDuplicate, calls.values().stream().mapToInt(AtomicInteger::get).sum(), "Duplicate plan signal sent a second message.");
+				PhantomAssertions.assertEquals(deliveriesBeforeDuplicate, ChatObservationService.getInstance().snapshot().generatedDeliveries(), "Duplicate plan signal sent a second message.");
 
 				final ConversationResponsePlan crashedPlan = outboundPlan(_observerProfile.profileId(), 960001, ChatType.WHISPER, _speaker.getObjectId());
 				final ExecutionEntry dispatching = ExecutionEntry.prepared(crashedPlan).withOutbound(OutboundState.DISPATCHING, "execution.prepared", System.currentTimeMillis() / 60000L);
@@ -343,17 +336,71 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 				{
 					execution.onPulse();
 				}
-				PhantomAssertions.assertEquals(callsBeforeDuplicate, calls.values().stream().mapToInt(AtomicInteger::get).sum(), "Restart resent durable DISPATCHING outbound.");
+				PhantomAssertions.assertEquals(deliveriesBeforeDuplicate, ChatObservationService.getInstance().snapshot().generatedDeliveries(), "Restart resent durable DISPATCHING outbound.");
 				PhantomAssertions.assertTrue(executionStore.load(_observerProfile.profileId()).orElseThrow().state().receipts().stream().anyMatch(receipt -> receipt.planId().equals(dispatching.planId()) && (receipt.outboundState() == OutboundState.UNCERTAIN)), "Restart did not persist DISPATCHING as UNCERTAIN.");
 				final ExecutionEntry offline = ExecutionEntry.prepared(outboundPlan(_observerProfile.profileId(), 960002, ChatType.WHISPER, Integer.MAX_VALUE));
 				PhantomAssertions.assertEquals(0, port.dispatch(_observerProfile.profileId(), offline).deliveries(), "Offline exact counterpart produced a generated delivery.");
+
+				final AtomicReference<String> failureMode = new AtomicReference<>("wrong");
+				final AtomicInteger failureCalls = new AtomicInteger();
+				final IChatHandler failureHandler = new IChatHandler()
+				{
+					@Override
+					public void onChat(ChatType type, Player active, String target, String text)
+					{
+						failureCalls.incrementAndGet();
+						if (failureMode.get().equals("throw"))
+						{
+							throw new IllegalStateException("Injected handler failure.");
+						}
+						if (failureMode.get().equals("wrong"))
+						{
+							new CreatureSay(active, type, active.getName(), text).runImpl(_observer);
+						}
+					}
+
+					@Override
+					public ChatType[] getChatTypeList()
+					{
+						return new ChatType[]
+						{
+							ChatType.WHISPER
+						};
+					}
+				};
+				ChatHandler.getInstance().registerHandler(failureHandler);
+				int failureIndex = 0;
+				for (String mode : List.of("wrong", "zero", "throw"))
+				{
+					failureMode.set(mode);
+					final ConversationResponsePlan plan = outboundPlan(_observerProfile.profileId(), 970000L + failureIndex++, ChatType.WHISPER, _speaker.getObjectId());
+					final ExecutionEntry entry = ExecutionEntry.prepared(plan);
+					final var current = executionStore.load(_observerProfile.profileId()).orElseThrow();
+					executionStore.save(_observerProfile.profileId(), current.rowVersion(), current.state().add(entry));
+					execution.publish(plan);
+					for (int pulse = 0; (pulse < 64) && executionStore.load(_observerProfile.profileId()).orElseThrow().state().receipts().stream().noneMatch(receipt -> receipt.planId().equals(entry.planId())); pulse++)
+					{
+						execution.onPulse();
+					}
+					final ExecutionReceipt receipt = executionStore.load(_observerProfile.profileId()).orElseThrow().state().receipts().stream().filter(value -> value.planId().equals(entry.planId())).findFirst().orElseThrow();
+					PhantomAssertions.assertEquals(mode.equals("zero") ? OutboundState.FAILED : OutboundState.UNCERTAIN, receipt.outboundState(), "Failure injection produced the wrong at-most-once terminal state: " + mode);
+				}
+				final int callsAfterFailures = failureCalls.get();
+				for (int pulse = 0; pulse < 32; pulse++)
+				{
+					execution.onPulse();
+				}
+				PhantomAssertions.assertEquals(callsAfterFailures, failureCalls.get(), "Failure-injected outbound was retried after terminalization.");
+				ChatHandler.getInstance().removeHandler(failureHandler);
+				ChatHandler.getInstance().registerHandler(previous.get(ChatType.WHISPER));
 			}
 			finally
 			{
 				execution.beginStop();
 				execution.finishStop();
 				_observer.setParty(null);
-				ChatHandler.getInstance().removeHandler(tracking);
+				_speaker.setParty(null);
+				onlineCounterpart.close();
 				for (IChatHandler handler : previous.values().stream().filter(java.util.Objects::nonNull).distinct().toList())
 				{
 					ChatHandler.getInstance().registerHandler(handler);
@@ -362,7 +409,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 				knowledge.finishStop();
 			}
 			final var chat = ChatObservationService.getInstance().snapshot();
-			PhantomAssertions.assertTrue(chat.generatedDeliveries() >= generatedBefore + 4, "Generated delivery metrics did not record all four handler seams.");
+			PhantomAssertions.assertTrue(chat.generatedDeliveries() >= generatedBefore + 4, "Generated delivery metrics did not record all four actual handler seams.");
 			PhantomAssertions.assertEquals(ingressBefore, _conversation.snapshot().ingressAccepted(), "PHANTOM_GENERATED delivery looped into conversation ingress.");
 			context.record("conversation.outbound.generatedDeliveries", chat.generatedDeliveries() - generatedBefore);
 		});
@@ -913,6 +960,49 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	private static DispatchDescriptor descriptor(long dispatchId, String text, long epochMillis)
 	{
 		return new DispatchDescriptor(dispatchId, Origin.CLIENT_CHAT, 1, "Speaker", ChatType.WHISPER, "Observer", text, epochMillis);
+	}
+
+	private static final class NetworkBackedClient implements AutoCloseable
+	{
+		private final Player _player;
+		private final Connection<GameClient> _connection;
+		private final AsynchronousSocketChannel _peer;
+		private final AsynchronousServerSocketChannel _server;
+
+		private NetworkBackedClient(Player player, Connection<GameClient> connection, AsynchronousSocketChannel peer, AsynchronousServerSocketChannel server)
+		{
+			_player = player;
+			_connection = connection;
+			_peer = peer;
+			_server = server;
+		}
+
+		private static NetworkBackedClient attach(Player player) throws Exception
+		{
+			final AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open().bind(new InetSocketAddress("127.0.0.1", 0));
+			final var accepted = server.accept();
+			final AsynchronousSocketChannel channel = AsynchronousSocketChannel.open();
+			channel.connect(server.getLocalAddress()).get(5, TimeUnit.SECONDS);
+			final AsynchronousSocketChannel peer = accepted.get(5, TimeUnit.SECONDS);
+			final ConnectionConfig config = new ConnectionConfig(server.getLocalAddress());
+			final PacketExecutor<GameClient> executor = new PacketExecutor<>(config);
+			final ReadHandler<GameClient> reader = new ReadHandler<>((buffer, client) -> null, executor);
+			final Connection<GameClient> connection = new Connection<>(channel, reader, new WriteHandler<>(), config);
+			final GameClient client = new GameClient(connection);
+			connection.setClient(client);
+			client.setPlayer(player);
+			player.setClient(client);
+			return new NetworkBackedClient(player, connection, peer, server);
+		}
+
+		@Override
+		public void close() throws Exception
+		{
+			_player.setClient(null);
+			_connection.close();
+			_peer.close();
+			_server.close();
+		}
 	}
 
 	private ChatObservationService.DeliveredObservation delivery(DispatchDescriptor descriptor, Player recipient)

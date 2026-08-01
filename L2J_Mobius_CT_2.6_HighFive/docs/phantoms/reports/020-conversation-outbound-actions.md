@@ -1,160 +1,159 @@
-# Goal 020 Checkpoint 2 — исходящие ответы и действия
+# Goal 020 Checkpoint 2 — conversation execution safety completion
 
-## Статус и граф
+## Статус и provenance
 
-- Status: `SUCCESS` для реализованного scope; terminal gate status указан ниже.
-- Required parent: `21ba300fc612f9777891912f80efc633f5b6db18`.
-- Checkpoint 1 implementation: `e7ba469e63caa6dee113278087258fab005a435a`.
-- Subject: `feat(phantoms): activate conversation responses and actions`.
+- Status: `COMPLETED_PENDING_INDEPENDENT_REVIEW`.
+- Foundation verdict: `ACCEPT_WITH_EXECUTION_SAFETY_COMPLETION`.
+- Required parent: `6d7ac26ff614d0e565589fdfc303684743b32cd9`.
+- Subject: `fix(phantoms): finalize conversation execution safety`.
 - Branch: `feature/phantom-world`.
 - Seed: `20002002`.
-- Commit SHA: self, exact SHA публикуется post-commit verifier без amend.
+- Commit SHA: self; exact SHA фиксируют post-commit verifiers без amend.
 
-## Результат
+## Summary
 
-Checkpoint 1 зафиксирован review-решением `ACCEPT_WITH_ACTIVATION_GATE`, а
-verifier 020c1 закреплён на принятом дереве. PHANTOM-only fast path теперь
-отбрасывает real/generated recipients до queue/batch/context/DB. Delayed
-promotion и overflow terminalization имеют точный bounded lifecycle.
+Восемь обязательных execution-safety findings закрыты в bounded completion
+Checkpoint 2. Planner теперь резервирует место для будущего receipt до атомарного
+handoff, invitation response связывается с exact sequence/requester/invitee/kind,
+а restart не повторяет неподтверждённую Party или chat операцию.
 
-Planner атомарно сохраняет `conversation.state` вместе с PREPARED entry нового
-`conversation.execution`. Execution service работает в общем scheduler, считает
-каждую внешнюю/durable boundary и восстанавливается только страницами component
-type до 256 rows.
+Query boundary возвращает не готовые фразы, а не более восьми уникальных
+`QueryFact` с authority evidence. Русские labels и templates принадлежат XML
+catalog. Conversation-owned Goal хранит plan evidence, current party
+group/generation и topology snapshot; допустимая замена membership Goal выполняется
+в одной транзакции с `conversation.execution`.
 
-Строгий content-addressed XML определяет 13 proposal contracts, Goal mappings,
-channels/slots/targets, templates, TTL, retry и hard bounds. Query читает текущие
-Game Knowledge/topology/Party facts. Invite/leave/travel создают только
-conversation-owned Goal; busy Goal не заменяется. ACCEPT/REFUSE использует exact
-pending invitation и canonical Party response. Support/assist/regroup остаются
-`DEFERRED` до Goal 024.
+WHISPER, PARTY, GENERAL и TRADE проходят реальные зарегистрированные
+`IChatHandler` под `Origin.PHANTOM_GENERATED`. Успех требует доставки exact
+counterpart; частичная доставка и exception становятся `UNCERTAIN`, нулевая —
+`FAILED`. `SUPPRESS_ACK` подавляет только chat acknowledgement, но не действие.
 
-WHISPER/PARTY/GENERAL/TRADE отправляются через текущий `IChatHandler` под
-`Origin.PHANTOM_GENERATED`. До handler call сохраняется `DISPATCHING`; restart
-переводит его в `UNCERTAIN` без resend. Generated callbacks не входят в planner.
+Support, assist и regroup остаются typed `DEFERRED` до Goal 024.
 
 ## Архитектурные решения
 
-- Durable component — единственная истина; plan sink является только wake signal.
-- Full plan ID и terminal receipts сохраняют at-most-once внутри replay horizon.
-  При 16 live receipts новый terminal entry не вытесняет старый, а создаёт
-  безопасный capacity backpressure.
-- Goal ID детерминирован из plan/profile/proposal; ownership требует purpose,
-  reason и четыре части plan hash.
-- Исчезнувшая после restart ACCEPT invitation не повторяется: результат
-  `UNCERTAIN`, ACTIVE Goal не отменяется вслепую.
-- Query facts ограничены до 128 UTF-8 байт до применения русского data-template.
-- Player/Party/chat handlers/schema не изменялись; fake GameClient отсутствует.
+- Матрица admission учитывает live receipts, live entries и новый entry:
+  `15+0+1` разрешено, `15+1+1` и `16+0+1` отклоняются до изменения planner state.
+- Codec пишет `CXE2`, читает `CXE1/CXE2`, fail-closed на неизвестной версии,
+  trailing bytes и envelope больше 4096 bytes.
+- Exact invitation binding сохраняется до response boundary. ACCEPT после crash
+  завершается только по точному membership/Goal proof; REFUSE без durable proof
+  остаётся `UNCERTAIN`.
+- Party replay key включает plan ID, invitation identity и response kind; outcome
+  переиспользуется только для точного ключа.
+- Execution selection имеет детерминированный приоритет recovery/compaction/work;
+  capacity retry назначается к earliest receipt expiry без pulse spin.
+- Leave может заменить exact leader/member membership Goal; travel — только
+  leader Goal. Member travel без отдельного контракта отклоняется.
+- Conversation code не выполняет gameplay mutation и не владеет worker/thread.
 
-## Scope
+## Changed files и scope
 
-- New production/data: 8 (limit 18).
-- Changed production/data/config: 16 (limit 34).
-- Total: 37 (limit 60).
+- Changed production/data: 12 из 14.
+- New production/data: 0 из 2.
+- Total changed: 17 из 26.
 - Schema/migration/config keys: отсутствуют.
-- Production DB: не использовалась; только `l2jmobiush5_phantom_test`.
+- `Player.java`, `Party.java`, existing chat handlers и другие хроники не менялись.
 
-Новые production/data:
+Production/data:
 
-- `high-five-ru-conversation-execution-v1.xml`;
-- `L2jPhantomConversationExecutionPort.java`;
-- `PhantomConversationExecutionCatalog.java`;
-- `PhantomConversationExecutionCodec.java`;
-- `PhantomConversationExecutionModel.java`;
-- `PhantomConversationExecutionPort.java`;
-- `PhantomConversationExecutionService.java`;
-- `PhantomConversationExecutionStore.java`.
+- `dist/game/data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml`;
+- `java/org/l2jmobius/gameserver/model/chat/ChatObservationService.java`;
+- `java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationModel.java`;
+- `java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationService.java`;
+- шесть `PhantomConversationExecution*` contracts/catalog/codec/store/service files;
+- `java/org/l2jmobius/gameserver/phantoms/conversation/L2jPhantomConversationExecutionPort.java`;
+- `java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java`.
 
-## Read-first evidence
+Test/process artifacts:
 
-Обязательные task/master/workflow документы, Checkpoint 1 tree/verifier, точные
-chat/conversation/Goal/Party/Knowledge/topology/materialization/system symbols и
-локальные тестовые аналоги прочитаны до изменений. README в module root и
-`docs/phantoms/CONTEXT_INDEX.md` отсутствуют.
+- `PhantomConversationExecutionSuite.java`;
+- `PhantomConversationIntegrationSuite.java`;
+- `verify-task-020c2.ps1`;
+- этот отчёт и independent review handoff.
 
-Дополнительные exact files/symbols сверх initial READ_SET (12):
+## DB, data и config
 
-1. `PartyInvitationService.java` — canonical response outcome.
-2. `PartyInvitationDelivery.java` — exact managed identity/terminal callback.
-3. `PhantomPartyModel.java` — generation, role requirements и Goal evidence.
-4. `PhantomGameKnowledgeModel.java` — accepted content/source fact shapes.
-5. `build.xml` — локальный test/verifier wiring.
-6. `PhantomTestLauncher.java` — focused-mode dispatch pattern.
-7. `verify-task-020c1.ps1` — descendant-compatible verifier pattern.
-8. Checkpoint 1 report — terminal evidence/report style.
-9. `PHANTOM_DEVELOPMENT_MASTER_PLAN.md` — статусы и архитектурные границы.
-10. `docs/PHANTOM_BOTS_ROADMAP.md` — roadmap status boundary.
-11. `PhantomConversationExecutionCodec.java` после реализации — worst-case audit.
-12. `PhantomConversationExecutionService.java` после реализации — второй
-    read-only budget/restart audit.
+- Использовалась только `l2jmobiush5_phantom_test`; production DB не менялась.
+- Schema и migrations не менялись.
+- Новый config key не добавлялся.
+- XML policy сохраняет 13 proposals и hard bounds; добавлены только строгие
+  structured fact labels.
 
-Локально переиспользованы sorted multi-component transaction, goal.runtime
-optimistic store, shared composite scheduler, materialization action lease,
-canonical Party invitation service, immutable Game Knowledge/topology queries и
-зарегистрированные chat handlers.
+## Focused results
 
-## Focused verification
+- `compile-tests`: PASS, 2108 production + 79 test sources.
+- managed ingress: PASS, 4/4.
+- catalog/codec: PASS, 4/4.
+- atomic handoff/capacity: PASS, 3/3.
+- structured queries: PASS, 3/3.
+- canonical invitation: PASS, 4/4.
+- party actions: PASS, 7/7.
+- real four-channel outbound: PASS, 1/1.
+- restart idempotency: PASS, 4/4.
+- execution lifecycle/performance: PASS, 3/3.
 
-- compile-tests: PASS, 2108 production + 79 test sources.
-- conversation-managed-ingress: PASS, 4/4.
-- conversation-execution-catalog-codec: PASS, 3/3.
-- conversation-handoff-durability: PASS, 2/2.
-- conversation-query-execution: PASS, 3/3.
-- conversation-party-actions: PASS, 4/4; canonical invitation 4/4.
-- conversation-outbound-chat: PASS, 1/1.
-- conversation-restart-idempotency: PASS, 2/2.
-- conversation-execution-lifecycle-performance: PASS, 2/2.
+Evidence включает four/five slot boundary, receipt matrix и expiry reopen,
+binding round-trip, replacement invitation, accept/refuse crash recovery,
+ack suppression, atomic Goal supersession, wrong/zero/exception delivery,
+recovered `DISPATCHING` priority и отсутствие capacity spin.
 
-Evidence включает 100 000 real callbacks без offer/context, один addressed
-Phantom среди 100 real recipients, lease drift, dual-drop overflow cleanup,
-10 000 durable codec records/signals, exact phase shutdown, replay receipt
-capacity, DISPATCHING restart, четыре generated channels и отсутствие Goal writes
-из query.
+## Terminal gates
+
+- Affected aggregate на окончательном production/test дереве: PASS,
+  `BUILD SUCCESSFUL`, 1:52.
+- Verifier 020c1 descendant check: PASS, `TASK020C1_VERIFIER_OK`.
+- Verifier 020c2 working mode: PASS, `TASK020C2_VERIFIER_OK`; scope 17,
+  production 12, new production 0, policy SHA-256
+  `AFDEA6953131C29508233BED64ABCD77FFD25C8FCA07A303D1FEAB78CA6148A6`.
+- Единственный final checkpoint2 aggregate: PASS, `BUILD SUCCESSFUL`, 0:53.
+- Один full `ant verify`: обязательный post-freeze commit condition; commit не
+  создаётся без `BUILD SUCCESSFUL`.
+- Standalone `ant jar`: обязательный post-freeze commit condition; commit не
+  создаётся без `BUILD SUCCESSFUL` и рабочих JAR в `dist/libs`.
+- Mojibake-маркеры в 17 изменённых файлах: PASS.
+- Escaped Cyrillic в 17 изменённых файлах: PASS.
+- Ordinary commit/push: post-freeze evidence; amend/rebase/squash/merge/force
+  запрещены.
+- Два byte-identical accepted verifier 020c2: обязательное post-commit evidence.
 
 ## Ограничения и риски
 
-- High Five не подтверждает client delivery; `DISPATCHING` после crash навсегда
-  становится `UNCERTAIN`, поэтому возможна потеря, но не автоматический duplicate.
-- Receipt capacity намеренно может остановить новые планы одного профиля внутри
-  replay horizon.
-- Query сообщает только существующие bounded facts и не обещает route/purchase.
+- Протокол High Five не подтверждает получение клиентом: сохранённый
+  `DISPATCHING` после crash становится `UNCERTAIN`, поэтому допустима потеря, но
+  автоматический duplicate запрещён.
+- REFUSE не имеет durable membership effect и после crash честно остаётся
+  `UNCERTAIN`.
+- Receipt backpressure намеренно задерживает профиль до replay expiry.
+- Query сообщает только текущие bounded authoritative facts и не обещает
+  route/purchase/combat result.
 - Tactical support/assist/regroup остаётся вне scope до Goal 024.
-- Независимый review Checkpoint 2 ещё не выполнен.
+- Completion ещё не прошла независимый review.
 
-## Terminal results — изменяется после freeze
+## Read-first и deviations
 
-- Checkpoint status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
-- Affected aggregate: PASS после исправления двух выявленных Party regression
-  fixtures; финальный прогон `BUILD SUCCESSFUL`, 1:49.
-- Verifier 020c1: `TASK020C1_VERIFIER_OK`, accepted tree завершён на
-  `21ba300fc612f9777891912f80efc633f5b6db18`.
-- Verifier 020c2 working: `TASK020C2_VERIFIER_OK`; scope 37, production 16,
-  new production 8, policy SHA-256
-  `F337EFA8D717B881232E9A154BC47F6277DB77E0D1129624D17809DC394F656F`.
-- Единственный final checkpoint2 aggregate: PASS, `BUILD SUCCESSFUL`, 0:48.
-- Единственный full `ant verify`: PASS, `BUILD SUCCESSFUL`, 13:00. Intentional
-  negative harness controls напечатали ожидаемые локальные FAIL/Java Result.
-- Standalone `ant jar`: PASS, `BUILD SUCCESSFUL`, 0:14; рабочие JAR скопированы
-  в `dist/libs`.
-- Mojibake-маркеры в изменённых файлах проверены: PASS, 37 files.
-- Escaped Cyrillic в изменённых файлах проверены: PASS, 37 files.
-- Ordinary commit/push: post-commit evidence, без amend.
-- Два byte-identical accepted verifier 020c2: post-commit evidence.
+Прочитаны completion attachment, закрытый READ_SET, два C2 suite, verifier и
+foundation report/review. Переиспользованы multi-component transaction,
+goal.runtime optimistic mutation, shared composite scheduler, canonical Party
+invitation coordinator, Game Knowledge/topology queries, materialization action
+lease и текущий chat handler registry.
+
+Root README и `docs/phantoms/CONTEXT_INDEX.md` отсутствуют и повторно не искались.
+Для диагностики fixture дополнительно read-only просмотрены четыре текущих chat
+handler и ближайшие `Party` group methods; production handler/Party code не менялся.
+Apache Ant отсутствовал в PATH, поэтому использован официальный локальный
+Apache Ant 1.10.17 из пользовательского cache; в repository он не добавлялся.
 
 ## Git
 
-Git использован только по task workflow для branch/parent/upstream, status/scope,
-historical blobs/verifiers, diff guard, ordinary commit и push. Прямые команды:
-`git rev-parse --show-toplevel`, `git status --short`, `git branch --show-current`,
-`git rev-parse HEAD`, `git rev-parse --abbrev-ref --symbolic-full-name '@{u}'`,
-`git diff --name-status`, `git ls-files --others --exclude-standard`,
-`git diff --check`, `git diff --stat`, `git diff`, а после terminal audit —
-`git add`, `git diff --cached --check`, `git diff --cached --name-status`,
-`git diff --cached --stat`, `git diff --cached`, `git commit -m` и
-`git push origin feature/phantom-world`. Verifier 020c1/020c2 дополнительно
-использует собственные bounded read-only Git-команды для provenance/scope/blob/
-ancestry/remote checks. Amend, rebase, squash, merge, reset, restore, force и
-force-with-lease не использовались.
+Git-команды разрешены completion workflow только для provenance/scope/diff,
+ordinary commit и push. До terminal gate использованы `git status`,
+`git branch --show-current`, `git rev-parse`, `git diff --name-status`,
+`git diff --stat`, `git diff --numstat`, bounded `git diff` и
+`git ls-files --others --exclude-standard`. После freeze допустимы только
+`git diff --check`, bounded diff audit, `git add`, staged audit, обычный commit и
+`git push origin feature/phantom-world`. Amend, rebase, squash, merge, reset,
+restore, force и force-with-lease не используются.
 
-Следующий шаг после terminal gates — только независимый review; Goal 021/025 не
-начат.
+Следующий шаг после terminal gates — только независимый review completion;
+Goal 021/025 не начат.
