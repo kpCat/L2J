@@ -111,8 +111,8 @@ public record PhantomAcquisitionGoalSpec(int itemId, long requiredAmount, long b
 		{
 			throw new IllegalArgumentException("Invalid acquisition Goal progress projection.");
 		}
-		final PhantomDomainRef anchor = (source == null) || (source.method() == Method.RECIPE_PREPARATION) ? goal.selectedAnchor() : new PhantomDomainRef(ANCHOR_NAMESPACE, source.anchorId());
-		return new PhantomGoal(goal.goalId(), goal.goalType(), status, goal.subject(), goal.target(), goal.requiredAmount(), progress, source == null ? goal.acquisitionMethod() : source.method().key(), goal.validSources(), anchor, goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), goal.deadlineEpochMillis(), goal.constraints(), goal.reasonKey(), goal.revision());
+		final PhantomDomainRef anchor = (source == null) || (source.method() == Method.RECIPE_PREPARATION) ? null : new PhantomDomainRef(ANCHOR_NAMESPACE, source.anchorId());
+		return new PhantomGoal(goal.goalId(), goal.goalType(), status, goal.subject(), goal.target(), goal.requiredAmount(), progress, source == null ? null : source.method().key(), goal.validSources(), anchor, goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), goal.deadlineEpochMillis(), goal.constraints(), goal.reasonKey(), goal.revision());
 	}
 
 	public boolean initialCountMatches(long authoritativeCount, PhantomGoal goal)

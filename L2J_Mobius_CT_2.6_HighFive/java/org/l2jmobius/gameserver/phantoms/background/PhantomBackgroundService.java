@@ -46,6 +46,8 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Batch
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchResult;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DropDisposition;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.ActionKind;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.AcquisitionIdentity;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.AcquisitionEligibilitySnapshot;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Clock;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
@@ -321,9 +323,19 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				return OperationResult.replan("acquisition.travel.required");
 			}
 			final FarmInput input;
+			Map<Integer, Integer> eligibilitySkills = Map.of();
 			try
 			{
-				input = _authority.acquisitionInput(background, acquisitionState.selectedSource());
+				if (acquisitionState.selectedSource().method() == Method.SPOIL_SWEEP)
+				{
+					final var eligibility = transaction(() -> _transactions.readAcquisitionEligibility(profileId, claim.characterObjectId(), background.identity().classIndex(), background.identity().activeClassId(), List.of(acquisitionState.selectedSource().spoilSkillId(), acquisitionState.selectedSource().sweepSkillId()), acquisitionState.hashes().progression(), _authority.hashes()));
+					if (!eligibility.successful())
+					{
+						return OperationResult.replan("acquisition.eligibility.stale");
+					}
+					eligibilitySkills = eligibility.snapshot().skillLevels();
+				}
+				input = _authority.acquisitionInput(background, acquisitionState.selectedSource(), eligibilitySkills);
 			}
 			catch (RuntimeException exception)
 			{
@@ -333,7 +345,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final BatchMode mode = method == Method.DEATH_DROP ? BatchMode.ACQUISITION_DEATH_DROP : BatchMode.ACQUISITION_SPOIL_SWEEP;
 			final ActionKind actionKind = method == Method.DEATH_DROP ? ActionKind.ACQUISITION_DEATH_DROP : ActionKind.ACQUISITION_SPOIL_SWEEP;
 			final ReceiptKind receiptKind = method == Method.DEATH_DROP ? ReceiptKind.BACKGROUND_DEATH_DROP : ReceiptKind.BACKGROUND_SPOIL_SWEEP;
-			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, actionKind, acquisitionState.selectedSource().npcId(), acquisitionState.selectedSource().anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes());
+			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, actionKind, acquisitionState.selectedSource().npcId(), acquisitionState.selectedSource().anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), new AcquisitionIdentity(acquisitionState.selectedSource().sourceId(), acquisitionRowVersion, acquisitionState.targetItemId(), acquisitionState.hashes().catalog(), acquisitionState.hashes().background()));
 			try (PhantomBackgroundCompetitionRegistry.Reservation reservation = _competition.tryReserve(input.topologyNodeId(), acquisitionState.selectedSource().npcId(), input.spawnCapacity()))
 			{
 				if (reservation == null)
@@ -353,14 +365,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = _authority.autoGetSkills(background.identity(), batch.progress().level());
 				final Clock clock = new Clock(batch.nextRngState(), 0, 0);
 				final List<Integer> mutableItems = input.target().drops().stream().filter(drop -> drop.disposition() == DropDisposition.ACQUIRE).map(drop -> drop.itemId()).distinct().sorted().toList();
-				final PhantomBackgroundTransaction.AcquisitionMutation acquisition = new PhantomBackgroundTransaction.AcquisitionMutation(acquisitionState, acquisitionRowVersion, goalRowVersion, receiptKind, logicalMinute);
+				final PhantomBackgroundTransaction.AcquisitionMutation acquisition = new PhantomBackgroundTransaction.AcquisitionMutation(acquisitionState, acquisitionRowVersion, goalRowVersion, receiptKind, logicalMinute, eligibilitySkills);
 				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(background, goal, key, batch.progress(), batch.vitals(), background.position(), clock, batch.inventoryDelta().itemDeltas(), autoSkills, mutableItems, acquisition);
 				return commit(claim, command).withModel(batch.encounters(), batch.elapsedMillis(), batch.dead());
 			}
 		}
 	}
 
-	public OperationResult travelAcquisition(long profileId, PhantomGoal goal, long goalRowVersion, PhantomAcquisitionState acquisitionState, long activityGeneration, long tickSequence, PhantomActivityState activityState, long logicalNowNanos)
+	public OperationResult travelAcquisition(long profileId, PhantomGoal goal, long goalRowVersion, PhantomAcquisitionState acquisitionState, long acquisitionRowVersion, long activityGeneration, long tickSequence, PhantomActivityState activityState, long logicalNowNanos)
 	{
 		if ((activityState != PhantomActivityState.BACKGROUND) || (acquisitionState == null) || (acquisitionState.selectedSource() == null))
 		{
@@ -400,7 +412,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					default -> OperationResult.replan("acquisition.travel." + advance.status().name().toLowerCase());
 				};
 			}
-			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, ActionKind.ACQUISITION_TRAVEL, acquisitionState.selectedSource().npcId(), acquisitionState.selectedSource().anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes());
+			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, ActionKind.ACQUISITION_TRAVEL, acquisitionState.selectedSource().npcId(), acquisitionState.selectedSource().anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), new AcquisitionIdentity(acquisitionState.selectedSource().sourceId(), acquisitionRowVersion, acquisitionState.targetItemId(), acquisitionState.hashes().catalog(), acquisitionState.hashes().background()));
 			final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(), Map.of(), state.autoGetSkills());
 			return commit(claim, command);
 		}
@@ -410,6 +422,16 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 		return loaded.successful() ? Optional.ofNullable(loaded.state()) : Optional.empty();
+	}
+
+	public Optional<AcquisitionEligibilitySnapshot> acquisitionEligibility(long profileId, PhantomBackgroundState state, List<Integer> requestedSkillIds, String progressionHash)
+	{
+		if ((state == null) || (state.identity().profileId() != profileId))
+		{
+			return Optional.empty();
+		}
+		final var result = transaction(() -> _transactions.readAcquisitionEligibility(profileId, state.identity().characterObjectId(), state.identity().classIndex(), state.identity().activeClassId(), requestedSkillIds, progressionHash, _authority.hashes()));
+		return result.successful() ? Optional.of(result.snapshot()) : Optional.empty();
 	}
 
 	public PhantomBackgroundState.Hashes authorityHashes()

@@ -21,6 +21,7 @@
 package org.l2jmobius.gameserver.phantoms.background;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -59,6 +60,11 @@ public interface PhantomBackgroundAuthority
 	default FarmInput acquisitionInput(PhantomBackgroundState state, Source source)
 	{
 		throw new UnsupportedOperationException("Acquisition background authority is unavailable.");
+	}
+
+	default FarmInput acquisitionInput(PhantomBackgroundState state, Source source, Map<Integer, Integer> learnedSkills)
+	{
+		return acquisitionInput(state, source);
 	}
 
 	TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis);

@@ -87,6 +87,7 @@ public final class PhantomBackgroundTransaction
 	private static final String UPDATE_MAIN = "UPDATE characters SET level = ?, exp = ?, expBeforeDeath = ?, sp = ?, curHp = ?, curMp = ?, curCp = ?, x = ?, y = ?, z = ?, heading = ? WHERE charId = ?";
 	private static final String UPDATE_SUBCLASS = "UPDATE character_subclasses SET level = ?, exp = ?, sp = ? WHERE charId = ? AND class_index = ?";
 	private static final String LOCK_SKILLS = "SELECT skill_id, skill_level FROM character_skills WHERE charId = ? AND class_index = ? ORDER BY skill_id FOR UPDATE";
+	private static final String LOCK_SKILL_EXACT = "SELECT skill_level FROM character_skills WHERE charId = ? AND class_index = ? AND skill_id = ? FOR UPDATE";
 	private static final String INSERT_SKILL = "INSERT INTO character_skills (charId, skill_id, skill_level, class_index) VALUES (?, ?, ?, ?)";
 	private static final String UPDATE_SKILL = "UPDATE character_skills SET skill_level = ? WHERE charId = ? AND skill_id = ? AND class_index = ? AND skill_level = ?";
 	private static final String DELETE_SKILL = "DELETE FROM character_skills WHERE charId = ? AND skill_id = ? AND class_index = ? AND skill_level = ?";
@@ -125,6 +126,47 @@ public final class PhantomBackgroundTransaction
 		_stateCodec = Objects.requireNonNull(stateCodec, "stateCodec");
 		_goalCodec = Objects.requireNonNull(goalCodec, "goalCodec");
 		_acquisitionCodec = Objects.requireNonNull(acquisitionCodec, "acquisitionCodec");
+	}
+
+	public EligibilityResult readAcquisitionEligibility(long profileId, int characterObjectId, int classIndex, int activeClassId, List<Integer> requestedSkillIds, String progressionHash, PhantomBackgroundState.Hashes expectedBackgroundHashes)
+	{
+		final List<Integer> requested = requestedSkillIds == null ? List.of() : requestedSkillIds.stream().distinct().sorted().toList();
+		if ((profileId <= 0) || (characterObjectId <= 0) || (classIndex < 0) || (activeClassId < 0) || requested.isEmpty() || (requested.size() > 8) || requested.stream().anyMatch(skillId -> skillId <= 0) || (progressionHash == null) || !progressionHash.matches("[0-9a-f]{64}") || (expectedBackgroundHashes == null))
+		{
+			return EligibilityResult.rejected(Status.PROGRESSION_CONFLICT);
+		}
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, profileId), characterObjectId);
+				final LockedComponent component = requireStateComponent(lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE));
+				final PhantomBackgroundState state = decodeState(component);
+				final Identity identity = state.identity();
+				if ((identity.characterObjectId() != characterObjectId) || (identity.classIndex() != classIndex) || (identity.activeClassId() != activeClassId) || !state.hashes().equals(expectedBackgroundHashes))
+				{
+					throw new StateConflict(Status.PROGRESSION_CONFLICT);
+				}
+				lockCanonical(connection, identity);
+				final Map<Integer, Integer> levels = new LinkedHashMap<>();
+				for (int skillId : requested)
+				{
+					levels.put(skillId, lockExactSkill(connection, identity, skillId));
+				}
+				connection.rollback();
+				return new EligibilityResult(Status.SUCCESS, new AcquisitionEligibilitySnapshot(profileId, characterObjectId, classIndex, activeClassId, levels, progressionHash, state.hashes()));
+			}
+			catch (Throwable failure)
+			{
+				rollback(connection, failure);
+				return EligibilityResult.rejected(failure instanceof StateConflict conflict ? conflict._status : Status.BACKEND_FAILURE);
+			}
+		}
+		catch (SQLException | RuntimeException failure)
+		{
+			return EligibilityResult.rejected(Status.BACKEND_FAILURE);
+		}
 	}
 
 	public Result captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal)
@@ -317,6 +359,10 @@ public final class PhantomBackgroundTransaction
 				_faultInjector.inject(FaultPoint.AFTER_CHARACTER_LOCK);
 				final Map<Integer, Integer> skillRows = lockSkills(connection, expected.identity());
 				_faultInjector.inject(FaultPoint.AFTER_SKILL_LOCKS);
+				if (command.acquisition() != null)
+				{
+					validateAcquisitionEligibility(command.acquisition(), skillRows);
+				}
 				final List<ItemRow> itemRows = lockItems(connection, expected.identity().characterObjectId());
 				_faultInjector.inject(FaultPoint.AFTER_ITEM_LOCKS);
 				if (!durableMatches(expected, canonical, itemRows, skillRows))
@@ -510,7 +556,7 @@ public final class PhantomBackgroundTransaction
 	private LockedComponent lockAcquisitionComponent(Connection connection, long profileId) throws SQLException
 	{
 		final LockedComponent component = lockComponent(connection, profileId, PhantomAcquisitionState.COMPONENT_TYPE);
-		if ((component == null) || (component.schemaVersion() != PhantomAcquisitionState.SCHEMA_VERSION))
+		if ((component == null) || ((component.schemaVersion() != PhantomAcquisitionState.LEGACY_SCHEMA_VERSION) && (component.schemaVersion() != PhantomAcquisitionState.SCHEMA_VERSION)))
 		{
 			throw new StateConflict(Status.ACQUISITION_CONFLICT);
 		}
@@ -533,7 +579,8 @@ public final class PhantomBackgroundTransaction
 		}
 		try
 		{
-			if (!Arrays.equals(component.payload(), _acquisitionCodec.encode(acquisition.expectedState())) || (acquisition.expectedState().selectedSource() == null))
+			final PhantomAcquisitionState actual = _acquisitionCodec.decode(component.payload());
+			if (!Arrays.equals(_acquisitionCodec.encode(actual), _acquisitionCodec.encode(acquisition.expectedState())) || (acquisition.expectedState().selectedSource() == null))
 			{
 				throw new StateConflict(Status.ACQUISITION_CONFLICT);
 			}
@@ -545,6 +592,31 @@ public final class PhantomBackgroundTransaction
 				throw conflict;
 			}
 			throw new StateConflict(Status.ACQUISITION_CONFLICT);
+		}
+	}
+
+	private static void validateAcquisitionEligibility(AcquisitionMutation acquisition, Map<Integer, Integer> lockedSkills)
+	{
+		final PhantomAcquisitionState.Source source = acquisition.expectedState().selectedSource();
+		if (source.method() != org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method.SPOIL_SWEEP)
+		{
+			if (!acquisition.eligibilitySkills().isEmpty())
+			{
+				throw new StateConflict(Status.PROGRESSION_CONFLICT);
+			}
+			return;
+		}
+		final Map<Integer, Integer> expected = Map.of(source.spoilSkillId(), source.spoilSkillLevel(), source.sweepSkillId(), source.sweepSkillLevel());
+		if (!expected.equals(acquisition.eligibilitySkills()))
+		{
+			throw new StateConflict(Status.PROGRESSION_CONFLICT);
+		}
+		for (var skill : expected.entrySet())
+		{
+			if (!skill.getValue().equals(lockedSkills.get(skill.getKey())))
+			{
+				throw new StateConflict(Status.PROGRESSION_CONFLICT);
+			}
 		}
 	}
 
@@ -704,6 +776,29 @@ public final class PhantomBackgroundTransaction
 			}
 		}
 		return result;
+	}
+
+	private int lockExactSkill(Connection connection, Identity identity, int skillId) throws SQLException
+	{
+		try (PreparedStatement statement = prepare(connection, LOCK_SKILL_EXACT))
+		{
+			statement.setInt(1, identity.characterObjectId());
+			statement.setInt(2, identity.classIndex());
+			statement.setInt(3, skillId);
+			try (ResultSet rows = statement.executeQuery())
+			{
+				if (!rows.next())
+				{
+					return 0;
+				}
+				final int level = rows.getInt(1);
+				if (rows.next())
+				{
+					throw new SQLException("Duplicate exact character skill row.");
+				}
+				return level;
+			}
+		}
 	}
 
 	private List<ItemRow> lockItems(Connection connection, int characterObjectId) throws SQLException
@@ -1458,16 +1553,45 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
-	public record AcquisitionMutation(PhantomAcquisitionState expectedState, long expectedStateRowVersion, long expectedGoalRowVersion, ReceiptKind receiptKind, long logicalMinute)
+	public record AcquisitionMutation(PhantomAcquisitionState expectedState, long expectedStateRowVersion, long expectedGoalRowVersion, ReceiptKind receiptKind, long logicalMinute, Map<Integer, Integer> eligibilitySkills)
 	{
+		public AcquisitionMutation(PhantomAcquisitionState expectedState, long expectedStateRowVersion, long expectedGoalRowVersion, ReceiptKind receiptKind, long logicalMinute)
+		{
+			this(expectedState, expectedStateRowVersion, expectedGoalRowVersion, receiptKind, logicalMinute, expectedState.selectedSource() != null && expectedState.selectedSource().method() == org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? Map.of(expectedState.selectedSource().spoilSkillId(), expectedState.selectedSource().spoilSkillLevel(), expectedState.selectedSource().sweepSkillId(), expectedState.selectedSource().sweepSkillLevel()) : Map.of());
+		}
+
 		public AcquisitionMutation
 		{
 			Objects.requireNonNull(expectedState, "expectedState");
 			Objects.requireNonNull(receiptKind, "receiptKind");
-			if ((expectedStateRowVersion < 0) || (expectedGoalRowVersion < 0) || (logicalMinute < 0) || (expectedState.selectedSource() == null) || ((receiptKind != ReceiptKind.BACKGROUND_DEATH_DROP) && (receiptKind != ReceiptKind.BACKGROUND_SPOIL_SWEEP)))
+			eligibilitySkills = Map.copyOf(eligibilitySkills);
+			if ((expectedStateRowVersion < 0) || (expectedGoalRowVersion < 0) || (logicalMinute < 0) || (expectedState.selectedSource() == null) || (eligibilitySkills.size() > 8) || eligibilitySkills.entrySet().stream().anyMatch(entry -> (entry.getKey() <= 0) || (entry.getValue() <= 0)) || ((receiptKind != ReceiptKind.BACKGROUND_DEATH_DROP) && (receiptKind != ReceiptKind.BACKGROUND_SPOIL_SWEEP)))
 			{
 				throw new IllegalArgumentException("Invalid acquisition background mutation.");
 			}
+		}
+	}
+
+	public record AcquisitionEligibilitySnapshot(long profileId, int characterObjectId, int classIndex, int activeClassId, Map<Integer, Integer> skillLevels, String progressionHash, PhantomBackgroundState.Hashes backgroundHashes)
+	{
+		public AcquisitionEligibilitySnapshot
+		{
+			skillLevels = Map.copyOf(skillLevels);
+			Objects.requireNonNull(progressionHash, "progressionHash");
+			Objects.requireNonNull(backgroundHashes, "backgroundHashes");
+		}
+	}
+
+	public record EligibilityResult(Status status, AcquisitionEligibilitySnapshot snapshot)
+	{
+		public static EligibilityResult rejected(Status status)
+		{
+			return new EligibilityResult(status, null);
+		}
+
+		public boolean successful()
+		{
+			return (status == Status.SUCCESS) && (snapshot != null);
 		}
 	}
 

@@ -132,7 +132,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private static final int ADENA_ITEM_ID = 57;
 	private static final long WAIT_MILLIS = 10000;
 	private static final int SPOIL_CLASS_ID = 117;
-	private static final int SPOIL_SKILL_ID = 348;
+	private static final int SPOIL_SKILL_ID = 254;
 	private static final int SWEEP_SKILL_ID = 42;
 
 	private final Mode _mode;
@@ -289,7 +289,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		double bestChance = -1;
 		for (int itemId : _query.snapshot().spoilSourcesByItem().keySet().stream().sorted().toList())
 		{
-			final var request = new PhantomAcquisitionSourcePlanner.Request(1, itemId, 1, PhantomActivityState.ACTIVE, SPOIL_CLASS_ID, 85, Map.of(), Map.of(SPOIL_SKILL_ID, 1, SWEEP_SKILL_ID, 1), Set.of(Method.SPOIL_SWEEP), Method.SPOIL_SWEEP, "", Map.of(), 0);
+			final var request = new PhantomAcquisitionSourcePlanner.Request(1, itemId, 1, PhantomActivityState.ACTIVE, SPOIL_CLASS_ID, 85, Map.of(), Map.of(SPOIL_SKILL_ID, 11, SWEEP_SKILL_ID, 1), Set.of(Method.SPOIL_SWEEP), Method.SPOIL_SWEEP, "", Map.of(), 0);
 			final var result = planner.plan(request);
 			if (result.selected() == null)
 			{
@@ -324,7 +324,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		ensureWeapon();
 		for (int skillId : List.of(SPOIL_SKILL_ID, SWEEP_SKILL_ID))
 		{
-			final Skill skill = SkillData.getInstance().getSkill(skillId, 1);
+			final Skill skill = SkillData.getInstance().getSkill(skillId, skillId == SPOIL_SKILL_ID ? 11 : 1);
 			PhantomAssertions.assertTrue(skill != null, "Canonical acquisition skill is unavailable: " + skillId);
 			_player.addSkill(skill, false);
 			_player.enableSkill(skill);
@@ -339,6 +339,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		resetActor(true);
 		prepareAcquisitionActor();
 		relocateToCombatPoint();
+	}
+
+	private Monster spawnDeterministicSpoilMonster()
+	{
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		// Keep the canonical NPC/drop identity while removing the unseeded magic-resist chance from this integration fixture.
+		target.getStat().setLevel((byte) 1);
+		return target;
 	}
 
 	private ExternalActionLease acquireAcquisition(String operation)
@@ -357,10 +365,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final List<AcquisitionTargetSnapshot> targets = lease.acquisitionTargets(_acquisitionSource.npcId(), 8, 2000);
 			PhantomAssertions.assertTrue(targets.stream().anyMatch(value -> value.objectId() == target.getObjectId()), "Exact authoritative acquisition target was not observed.");
 			PhantomAssertions.assertTrue(lease.acquisitionTargets(_acquisitionSource.npcId() + 1, 8, 2000).stream().noneMatch(value -> value.objectId() == target.getObjectId()), "Wrong NPC identity was admitted.");
-			PhantomAssertions.assertEquals(1, lease.knownSkillLevel(SPOIL_SKILL_ID), "Canonical known spoil skill was not observed.");
-			PhantomAssertions.assertEquals(1, lease.knownSkillLevel(SWEEP_SKILL_ID), "Canonical known sweep skill was not observed.");
+			PhantomAssertions.assertEquals(_acquisitionSource.spoilSkillLevel(), lease.knownSkillLevel(SPOIL_SKILL_ID), "Canonical known spoil skill was not observed.");
+			PhantomAssertions.assertEquals(_acquisitionSource.sweepSkillLevel(), lease.knownSkillLevel(SWEEP_SKILL_ID), "Canonical known sweep skill was not observed.");
 			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID + 1, 1), AcquisitionSkillKind.SPOIL), "Unknown acquisition skill was admitted.");
-			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.castAcquisition(target.getObjectId() + 1, new SelectedSkill(SPOIL_SKILL_ID, 1), AcquisitionSkillKind.SPOIL), "Wrong exact target was admitted.");
+			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.castAcquisition(target.getObjectId() + 1, new SelectedSkill(SPOIL_SKILL_ID, 11), AcquisitionSkillKind.SPOIL), "Wrong exact target was admitted.");
 			PhantomAssertions.assertEquals(StartStatus.REJECTED_EXISTING, _combat.startSession(request(target, PhantomCombatMode.MELEE_PHYSICAL, false, false)).status(), "Existing Combat admitted a second owner during acquisition.");
 		}
 
@@ -386,7 +394,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	{
 		resetAcquisitionActor();
 		final long before = _player.getInventory().getInventoryItemCount(_acquisitionSource.itemId(), -1);
-		final Monster target = spawnNormalMonster(targetMaximumHp());
+		final Monster target = spawnDeterministicSpoilMonster();
 		try
 		{
 			try (ExternalActionLease lease = acquireAcquisition("acquisition-chain-spoil"))
@@ -430,15 +438,15 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private void testAcquisitionDispatchRecovery() throws Exception
 	{
 		resetAcquisitionActor();
-		final Monster target = spawnNormalMonster(targetMaximumHp());
+		final Monster target = spawnDeterministicSpoilMonster();
 		try (ExternalActionLease lease = acquireAcquisition("acquisition-recovery-spoil-1"))
 		{
-			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID, 1), AcquisitionSkillKind.SPOIL), "Initial spoil dispatch was not issued.");
+			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID, 11), AcquisitionSkillKind.SPOIL), "Initial spoil dispatch was not issued.");
 			await(() -> target.isSpoiled(), "Initial spoil dispatch did not become observable.");
 		}
 		try (ExternalActionLease recovered = acquireAcquisition("acquisition-recovery-spoil-2"))
 		{
-			PhantomAssertions.assertEquals(ActionOutcome.ALREADY_OWNED, recovered.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID, 1), AcquisitionSkillKind.SPOIL), "Observed spoil was blindly repeated after dispatch recovery.");
+			PhantomAssertions.assertEquals(ActionOutcome.ALREADY_OWNED, recovered.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID, 11), AcquisitionSkillKind.SPOIL), "Observed spoil was blindly repeated after dispatch recovery.");
 		}
 		await(() -> !_player.isCastingNow() && !_player.isAttackingNow(), "Recovered acquisition lease did not release the canonical spoil action.");
 		target.setCurrentHp(1);

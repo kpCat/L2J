@@ -7,7 +7,8 @@
 Required parent: `d48dccb42dcfe5993f1c852e021086e498c0622d`
 Branch: `feature/phantom-world`
 Seed: `21002101`
-Commit subject: `feat(phantoms): add acquisition planning and spoil chains`
+Foundation subject: `feat(phantoms): add acquisition planning and spoil chains`
+Safety completion subject: `fix(phantoms): complete acquisition eligibility and recovery`
 
 ## Summary
 
@@ -19,8 +20,9 @@ kill → canonical sweep и background death-drop/spoil parity.
 ## Architecture decisions
 
 - Game Knowledge, Topology и Progression остаются authority источниками.
-- `acquisition.state` schema 1 ограничен 4096 bytes; progress выводится только
-  из immutable baseline и canonical current item count.
+- `acquisition.state` writer использует schema 2, legacy schema 1 читается; declared
+  worst case остаётся меньше 4096 bytes, а progress выводится только из immutable
+  baseline и canonical current item count.
 - Recipe DAG ограничен и ничего не исполняет.
 - Один Decision step сохраняет максимум один acquisition transition.
 - Active acquisition переиспользует существующий Combat ownership/lifecycle.
@@ -58,7 +60,8 @@ Focused development results:
 - `phantom-acquisition-recipe-planning-test` — PASS.
 - `phantom-acquisition-active-spoil-test` — PASS (3/3).
 - `phantom-acquisition-background-parity-test` — PASS (4/4).
-- `phantom-acquisition-atomic-restart-test` — PASS (4/4).
+- `phantom-acquisition-atomic-restart-test` — PASS (foundation 4/4; safety
+  completion 6/6).
 - `phantom-acquisition-source-switching-test` — PASS.
 - `phantom-acquisition-lifecycle-performance-smoke` — PASS (4/4).
 
@@ -114,3 +117,39 @@ canonical item write, после background/Goal/acquisition writes, перед 
 ## Next step
 
 Независимое ревью Goal 021 Checkpoint 1; Checkpoint 2 не начинать до gate.
+
+## Bounded safety completion
+
+Safety completion выполнен как один direct ordinary child опубликованного foundation
+`bf0cc37b2af7023f3709f635ae4350306b892597`, без переписывания истории.
+
+- Exact Dwarf lineage rules используют canonical Spoil 254, Sweeper 42 и planning-only
+  Create Item 172; runtime сохраняет фактически известный уровень skill. Spoil Crush
+  348 не принимается как generic Spoil.
+- Background eligibility читает не более восьми exact `character_skills` rows для
+  active class index через read-only transaction boundary. `autoGetSkills` не
+  используется как learned-skill ledger; eligibility повторно проверяется под
+  locks до общей item/background/Goal/acquisition mutation.
+- Persisted dispatch attempt ограничен catalog policy. `UNAVAILABLE`, `REJECTED`,
+  restart с active exact cast, observed effect и terminal uncertainty не приводят
+  к blind recast и освобождают external ownership.
+- Kill phase использует persisted `COMBAT_PREPARED`; только exact существующая или
+  успешно принятая session переводит state в `COMBAT_SUBMITTED`.
+- Acquisition background operation identity v2 включает source ID и expected
+  acquisition row version. Ordinary Goal 015 digest остался byte-identical.
+- Cross-method ambiguity, topology/resource/switch/recipe evidence, отсутствие
+  quest authority и очистка stale Goal source закреплены focused tests.
+
+Safety completion scope перед freeze: 22 файла всего, 15 production/data, новых
+production/data файлов 0. `Player.java`, `Party.java`, schema, skill/quest handlers,
+manor/quest execution и Goal 022 execution не затронуты.
+
+Focused safety gates: capability 1/1, learned eligibility 1/1, dispatch recovery
+1/1, Combat recovery 1/1, operation identity 1/1, scoring evidence 1/1, recipe
+planning 3/3, background atomic/restart 6/6, background parity 4/4, ordinary Goal
+015 regression 1/1, active spoil 3/3 и lifecycle/performance 4/4 — PASS с seed
+`21002101`. Verifier 020c2 и working verifier 021c1 прошли в PowerShell 5.1 и 7.6.3.
+
+Результаты единственного completion final aggregate, одного additional full
+`ant verify`, standalone `ant jar`, push и двух byte-identical accepted verifier
+runs передаются в финальном handoff после freeze без изменения frozen artifacts.

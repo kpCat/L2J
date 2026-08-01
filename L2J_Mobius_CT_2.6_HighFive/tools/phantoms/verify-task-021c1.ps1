@@ -4,7 +4,9 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $RequiredParent = "d48dccb42dcfe5993f1c852e021086e498c0622d"
-$RequiredSubject = "feat(phantoms): add acquisition planning and spoil chains"
+$FoundationCommit = "bf0cc37b2af7023f3709f635ae4350306b892597"
+$FoundationSubject = "feat(phantoms): add acquisition planning and spoil chains"
+$CompletionSubject = "fix(phantoms): complete acquisition eligibility and recovery"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "21002101"
 
@@ -102,6 +104,40 @@ function Is-AllowedPath([string] $path)
 	return $false
 }
 
+function Is-CompletionAllowedPath([string] $path)
+{
+	if (($path -in @(
+		'dist/game/data/phantoms/acquisition/high-five-acquisition-v1.xml',
+		'dist/game/data/phantoms/progression/high-five-capabilities-v1.xml',
+		'docs/phantoms/reports/021-checkpoint-1-acquisition-spoil.md',
+		'docs/phantoms/reviews/021-checkpoint-1-independent-review.md',
+		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionCatalog.java',
+		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionGoalSpec.java',
+		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionRecipePlanner.java',
+		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionService.java',
+		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionSourcePlanner.java',
+		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionState.java',
+		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionStateCodec.java',
+		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionStore.java',
+		'java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java',
+		'java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundAuthority.java',
+		'java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundOperationKey.java',
+		'java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java',
+		'java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java',
+		'java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatService.java',
+		'java/org/l2jmobius/gameserver/phantoms/combat/L2jCombatBackend.java',
+		'test/java/org/l2jmobius/tests/phantoms/PhantomAcquisitionSuite.java',
+		'test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java',
+		'test/java/org/l2jmobius/tests/phantoms/PhantomCombatServerIntegrationSuite.java',
+		'build.xml',
+		'tools/phantoms/verify-task-021c1.ps1'
+	)))
+	{
+		return $true
+	}
+	return $false
+}
+
 $script:ModuleRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 Push-Location $script:ModuleRoot
 try
@@ -113,26 +149,30 @@ try
 	& git merge-base --is-ancestor $RequiredParent $head
 	Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 020 baseline is not an ancestor of HEAD."
 	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $RequiredParent) | Select-Object -First 1) -eq "fix(phantoms): close exact conversation invitation ownership") "Accepted Goal 020 subject changed."
+	Assert-True ((Git-Lines @("rev-parse", "$FoundationCommit^" ) | Select-Object -First 1) -eq $RequiredParent) "Goal 021c1 foundation parent changed."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $FoundationCommit) | Select-Object -First 1) -eq $FoundationSubject) "Goal 021c1 foundation subject changed."
+	& git merge-base --is-ancestor $FoundationCommit $head
+	Assert-True ($LASTEXITCODE -eq 0) "Goal 021c1 foundation is not an ancestor of HEAD."
 
-	if ($head -eq $RequiredParent)
+	if ($head -eq $FoundationCommit)
 	{
 		$script:Mode = "working"
 		$script:TargetCommit = ""
 	}
 	else
 	{
-		$matching = @(Git-Lines @("log", "--format=%H", "--fixed-strings", "--grep=$RequiredSubject", "$RequiredParent..$head"))
-		Assert-True ($matching.Count -eq 1) "Goal 021c1 subject must identify exactly one implementation commit."
+		$matching = @(Git-Lines @("log", "--format=%H", "--fixed-strings", "--grep=$CompletionSubject", "$FoundationCommit..$head"))
+		Assert-True ($matching.Count -eq 1) "Goal 021c1 completion subject must identify exactly one accepted commit."
 		$script:Mode = "committed"
 		$script:TargetCommit = $matching[0]
-		Assert-True ((Git-Lines @("rev-parse", "$($script:TargetCommit)^" ) | Select-Object -First 1) -eq $RequiredParent) "Goal 021c1 implementation is not one ordinary child of accepted Goal 020."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 021c1 commit subject changed."
+		Assert-True ((Git-Lines @("rev-parse", "$($script:TargetCommit)^" ) | Select-Object -First 1) -eq $FoundationCommit) "Goal 021c1 completion is not one ordinary child of the pinned foundation."
+		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $CompletionSubject) "Goal 021c1 completion subject changed."
 		& git merge-base --is-ancestor $script:TargetCommit $head
-		Assert-True ($LASTEXITCODE -eq 0) "Goal 021c1 implementation commit is not an ancestor of HEAD."
+		Assert-True ($LASTEXITCODE -eq 0) "Goal 021c1 completion commit is not an ancestor of HEAD."
 	}
 
 	$changed = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-	$rangeEnd = "HEAD"
+	$rangeEnd = $FoundationCommit
 	if ($script:Mode -ne "working")
 	{
 		$rangeEnd = $script:TargetCommit
@@ -143,6 +183,10 @@ try
 	}
 	if ($script:Mode -eq "working")
 	{
+		foreach ($line in Git-Lines @("diff", "--name-only", $FoundationCommit, "--"))
+		{
+			[void] $changed.Add((To-ModulePath $line))
+		}
 		foreach ($line in Git-Lines @("ls-files", "--others", "--exclude-standard", "--"))
 		{
 			[void] $changed.Add((To-ModulePath $line))
@@ -167,6 +211,39 @@ try
 		}
 	}
 	Assert-True ($newProduction.Count -le 16) "Goal 021c1 exceeds 16 new production/data files."
+
+	$completion = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+	if ($script:Mode -eq "working")
+	{
+		foreach ($line in Git-Lines @("diff", "--name-only", $FoundationCommit, "--"))
+		{
+			[void] $completion.Add((To-ModulePath $line))
+		}
+		foreach ($line in Git-Lines @("ls-files", "--others", "--exclude-standard", "--"))
+		{
+			[void] $completion.Add((To-ModulePath $line))
+		}
+	}
+	else
+	{
+		foreach ($line in Git-Lines @("diff", "--name-only", $FoundationCommit, $script:TargetCommit, "--"))
+		{
+			[void] $completion.Add((To-ModulePath $line))
+		}
+	}
+	$completionPaths = @($completion | Sort-Object)
+	Assert-True (($completionPaths.Count -gt 0) -and ($completionPaths.Count -le 25)) "Goal 021c1 safety completion must contain 1..25 files."
+	foreach ($path in $completionPaths)
+	{
+		Assert-True (Is-CompletionAllowedPath $path) "Out-of-scope Goal 021c1 safety completion path: $path"
+	}
+	$completionProduction = @($completionPaths | Where-Object { ($_ -match '^java/org/l2jmobius/gameserver/') -or ($_ -match '^dist/game/(?:config|data)/') })
+	Assert-True ($completionProduction.Count -le 15) "Goal 021c1 safety completion exceeds 15 production/data files."
+	foreach ($path in $completionProduction)
+	{
+		$existing = @(Git-Lines @("-C", $repositoryRoot, "ls-tree", "--name-only", $FoundationCommit, "--", ($script:ModulePrefix + $path)))
+		Assert-True ($existing.Count -gt 0) "Goal 021c1 safety completion adds a production/data file: $path"
+	}
 
 	$required = @(
 		'dist/game/data/phantoms/acquisition/high-five-acquisition-v1.xml',
@@ -216,11 +293,11 @@ try
 	$decision = Read-TargetUtf8Strict 'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionDecision.java'
 	Assert-True ($catalog.Contains('disallow-doctype-decl') -and $catalog.Contains('setExpandEntityReferences(false)') -and $catalog.Contains('Invalid acquisition policy element')) "Acquisition catalog is not strict/XXE-safe."
 	Assert-True ($state.Contains('MAX_CANDIDATES = 8') -and $state.Contains('MAX_RECEIPTS = 8') -and $state.Contains('MAX_SWITCHES = 4') -and $state.Contains('MAX_RECIPE_NODES = 48') -and $state.Contains('observedProgress')) "Acquisition durable bounds or baseline progress are incomplete."
-	Assert-True ($codec.Contains('DECLARED_WORST_CASE_BYTES = 3824') -and $codec.Contains('PhantomProfileComponent.MAX_PAYLOAD_BYTES') -and $codec.Contains('Non-canonical or trailing acquisition.state payload') -and $codec.Contains('Unknown acquisition.state version')) "Acquisition codec is not bounded and fail-closed."
+	Assert-True ($codec.Contains('DECLARED_WORST_CASE_BYTES') -and $codec.Contains('PhantomProfileComponent.MAX_PAYLOAD_BYTES') -and $codec.Contains('Non-canonical or trailing acquisition.state payload') -and $codec.Contains('Unknown acquisition.state version')) "Acquisition codec is not bounded and fail-closed."
 	Assert-True ($planner.Contains('_knowledge.dropSources') -and $planner.Contains('_knowledge.spoilSources') -and $planner.Contains('_knowledge.spawnAreas') -and $planner.Contains('_topology.snapshot') -and $planner.Contains('_progression.capabilities')) "Acquisition source planner bypasses required indexed authorities."
 	Assert-True ($recipe.Contains('_limits.recipeDepth()') -and $recipe.Contains('_limits.recipeNodes()') -and $recipe.Contains('_limits.deficits()') -and $recipe.Contains('!path.add(itemId)')) "Recipe DAG bounds/cycle control are incomplete."
 	Assert-True ($decision.Contains('One bounded persisted acquisition transition per Decision step') -and $decision.Contains('PhantomAcquisitionService.BACKGROUND_ACTION')) "Acquisition Decision integration is incomplete."
-	Assert-True ($service.Contains('beginCombat') -and $service.Contains('castAcquisition') -and $service.Contains('AcquisitionSkillKind.SWEEP') -and $service.Contains('releaseExternal') -and $service.Contains('beginStop')) "Active spoil/Combat/sweep ownership or lifecycle is incomplete."
+	Assert-True ($service.Contains('startAcquisitionSession') -and $service.Contains('castAcquisition') -and $service.Contains('AcquisitionSkillKind.SWEEP') -and $service.Contains('releaseExternal') -and $service.Contains('beginStop')) "Active spoil/Combat/sweep ownership or lifecycle is incomplete."
 	Assert-True ($service -notmatch '\.addItem\s*\(|\.destroyItem\s*\(|\.setCount\s*\(|new\s+Thread\s*\(|ThreadPool\.|ScheduledFuture|ExecutorService') "Acquisition service contains direct inventory mutation or owns a worker."
 
 	$backgroundModel = Read-TargetUtf8Strict 'java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java'
@@ -274,7 +351,7 @@ try
 
 	if ($script:Mode -eq "committed")
 	{
-		Assert-True ((Git-Lines @("status", "--porcelain")).Count -eq 0) "Post-commit Goal 021c1 worktree is not clean."
+		Assert-True (@(Git-Lines @("status", "--porcelain")).Count -eq 0) "Post-commit Goal 021c1 worktree is not clean."
 		$remote = (Git-Lines @("rev-parse", "origin/$RequiredBranch") | Select-Object -First 1)
 		Assert-True ($remote -eq $head) "Goal 021c1 HEAD is not pushed to origin/feature/phantom-world."
 		$jarPath = Join-Path $script:ModuleRoot 'dist/libs/GameServer.jar'

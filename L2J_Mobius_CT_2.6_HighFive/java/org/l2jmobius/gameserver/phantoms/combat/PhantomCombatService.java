@@ -189,6 +189,7 @@ public final class PhantomCombatService
 	private final LongSupplier _clock;
 	private final Dispatcher _dispatcher;
 	private final Map<Long, PhantomCombatSession> _sessions = new HashMap<>();
+	private final Map<Long, String> _sessionOperationOwners = new HashMap<>();
 	private final ArrayDeque<Long> _queue = new ArrayDeque<>();
 	private final Set<Long> _queued = new HashSet<>();
 	private ServiceState _state = ServiceState.NEW;
@@ -263,6 +264,20 @@ public final class PhantomCombatService
 
 	public StartResult startSession(PhantomCombatRequest request)
 	{
+		return startSession(request, "");
+	}
+
+	public StartResult startAcquisitionSession(PhantomCombatRequest request, String operationOwner)
+	{
+		if ((operationOwner == null) || operationOwner.isBlank() || (operationOwner.length() > 128))
+		{
+			throw new IllegalArgumentException("Invalid acquisition combat operation owner.");
+		}
+		return startSession(request, operationOwner);
+	}
+
+	private StartResult startSession(PhantomCombatRequest request, String operationOwner)
+	{
 		Objects.requireNonNull(request, "request");
 		_metrics.sessionRequested();
 		final long now = now();
@@ -282,7 +297,7 @@ public final class PhantomCombatService
 			final PhantomCombatSession existing = _sessions.get(request.profileId());
 			if (existing != null)
 			{
-				if (!existing._result.terminal() && existing._request.sameOperation(request))
+				if (!existing._result.terminal() && existing._request.sameOperation(request) && operationOwner.equals(_sessionOperationOwners.getOrDefault(request.profileId(), "")))
 				{
 					return new StartResult(StartStatus.IDEMPOTENT, existing.snapshot());
 				}
@@ -296,6 +311,14 @@ public final class PhantomCombatService
 			}
 			reserved = new PhantomCombatSession(request, ++_nextGeneration, now, _policy.maximumThreatEntries());
 			_sessions.put(request.profileId(), reserved);
+			if (operationOwner.isEmpty())
+			{
+				_sessionOperationOwners.remove(request.profileId());
+			}
+			else
+			{
+				_sessionOperationOwners.put(request.profileId(), operationOwner);
+			}
 			_startOperations++;
 		}
 
@@ -352,6 +375,7 @@ public final class PhantomCombatService
 			synchronized (_monitor)
 			{
 				_sessions.remove(request.profileId(), reserved);
+				_sessionOperationOwners.remove(request.profileId());
 			}
 			try
 			{
@@ -385,6 +409,7 @@ public final class PhantomCombatService
 			else
 			{
 				_sessions.remove(request.profileId(), reserved);
+				_sessionOperationOwners.remove(request.profileId());
 			}
 		}
 		if (!published)
@@ -415,6 +440,15 @@ public final class PhantomCombatService
 		}
 	}
 
+	public boolean matchesAcquisitionSession(long profileId, int targetObjectId, String operationOwner)
+	{
+		synchronized (_monitor)
+		{
+			final PhantomCombatSession session = _sessions.get(profileId);
+			return (session != null) && (session._request.targetObjectId() == targetObjectId) && Objects.equals(_sessionOperationOwners.get(profileId), operationOwner);
+		}
+	}
+
 	public boolean hasClaim(long profileId)
 	{
 		synchronized (_monitor)
@@ -433,6 +467,7 @@ public final class PhantomCombatService
 				return Optional.empty();
 			}
 			_sessions.remove(profileId);
+			_sessionOperationOwners.remove(profileId);
 			removeSessionMetricLocked(session);
 			return Optional.of(session.snapshot());
 		}

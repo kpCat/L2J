@@ -83,8 +83,8 @@ public final class PhantomAcquisitionSourcePlanner
 		}
 		if (request.allowedMethods().contains(Method.SPOIL_SWEEP) && (_catalog.method(Method.SPOIL_SWEEP).status() == MethodStatus.EXECUTABLE))
 		{
-			final SkillRef spoil = capability(request, "profession.spoil");
-			final SkillRef sweep = capability(request, "profession.sweep");
+			final SkillRef spoil = capability(request, "profession.spoil", 254);
+			final SkillRef sweep = capability(request, "profession.sweep", 42);
 			if ((spoil != null) && (sweep != null))
 			{
 				addDropPages(ranked, request, Method.SPOIL_SWEEP, DropSourceKind.SPOIL, spoil, sweep);
@@ -92,7 +92,7 @@ public final class PhantomAcquisitionSourcePlanner
 		}
 		if (request.allowedMethods().contains(Method.RECIPE_PREPARATION) && (_catalog.method(Method.RECIPE_PREPARATION).status() == MethodStatus.PLANNING_ONLY))
 		{
-			final SkillRef craftSkill = capability(request, "profession.craft");
+			final SkillRef craftSkill = capability(request, "profession.craft", 172);
 			final CraftEvidence craft = craftSkill == null ? new CraftEvidence(0, 0, false) : new CraftEvidence(craftSkill.skillId(), craftSkill.skillLevel(), true);
 			final Map<Integer, Long> ingredientInventory = new HashMap<>(request.inventory());
 			ingredientInventory.remove(request.itemId());
@@ -102,7 +102,7 @@ public final class PhantomAcquisitionSourcePlanner
 				final String factKey = "recipe:" + recipe.plan().recipeListId() + ':' + request.itemId();
 				final String sourceId = sourceId(Method.RECIPE_PREPARATION, 0, request.itemId(), factKey, "planning", "planning", 0, 0, 0, 0, 0);
 				final Source source = new Source(sourceId, Method.RECIPE_PREPARATION, 0, request.itemId(), factKey, "planning", "planning", 0, 0, 0, 0, 0);
-				ranked.add(new RankedSource(source, score(request, Method.RECIPE_PREPARATION, 0, 0, 0, sourceId), recipe.plan()));
+				ranked.add(new RankedSource(source, score(request, Method.RECIPE_PREPARATION, 0, 0, 0, sourceId, source.anchorId(), recipe.plan()), recipe.plan()));
 			}
 		}
 		ranked.sort(RankedSource.ORDER);
@@ -112,11 +112,21 @@ public final class PhantomAcquisitionSourcePlanner
 			final boolean deferred = request.allowedMethods().stream().anyMatch(method -> _catalog.method(method).status() == MethodStatus.DEFERRED_CHECKPOINT_2);
 			return deferred ? Result.deferredCheckpoint() : Result.blocked("source.exhausted");
 		}
-		if ((bounded.size() > 1) && ((long) bounded.getFirst().score() - bounded.get(1).score() <= _catalog.sourceScoring().ambiguityThreshold()) && (bounded.getFirst().source().method() == bounded.get(1).source().method()))
+		if ((bounded.size() > 1) && ((long) bounded.getFirst().score() - bounded.get(1).score() <= _catalog.sourceScoring().ambiguityThreshold()))
 		{
 			return new Result(List.copyOf(bounded), null, "source.ambiguous", false);
 		}
-		return new Result(List.copyOf(bounded), bounded.getFirst(), "source.ready", false);
+		RankedSource selected = bounded.getFirst();
+		if (request.preferredMethod() != null)
+		{
+			final RankedSource preferred = bounded.stream().filter(value -> value.source().method() == request.preferredMethod()).findFirst().orElse(null);
+			final RankedSource other = bounded.stream().filter(value -> value.source().method() != request.preferredMethod()).findFirst().orElse(null);
+			if ((preferred != null) && ((other == null) || ((long) preferred.score() - other.score() > _catalog.sourceScoring().ambiguityThreshold())))
+			{
+				selected = preferred;
+			}
+		}
+		return new Result(List.copyOf(bounded), selected, "source.ready", false);
 	}
 
 	private void addDropPages(List<RankedSource> output, Request request, Method method, DropSourceKind expectedKind, SkillRef spoil, SkillRef sweep)
@@ -161,43 +171,65 @@ public final class PhantomAcquisitionSourcePlanner
 					continue;
 				}
 				final Source source = new Source(id, method, fact.npcId(), fact.itemId(), fact.stableKey(), area.topologyNodeId(), anchor.id(), area.instanceId(), spoilId, spoilLevel, sweepId, sweepLevel);
-				output.add(new RankedSource(source, score(request, method, _knowledge.findNpc(fact.npcId()).orElseThrow().level(), chanceUtility(fact), (int) Math.min(32, area.totalConfiguredAmount()), id), null));
+				output.add(new RankedSource(source, score(request, method, _knowledge.findNpc(fact.npcId()).orElseThrow().level(), chanceUtility(fact), (int) Math.min(32, area.totalConfiguredAmount()), id, anchor.id(), null), null));
 				break;
 			}
 		}
 	}
 
-	private SkillRef capability(Request request, String key)
+	private SkillRef capability(Request request, String key, int canonicalSkillId)
 	{
-		return _progression.capabilities(request.classId()).stream().filter(rule -> key.equals(rule.capabilityKey()) && exactSkillsKnown(rule, request.knownSkills())).sorted(Comparator.comparingInt(CapabilityRule::rank).reversed().thenComparing(CapabilityRule::stableKey)).map(CapabilityRule::actionSkill).findFirst().orElse(null);
+		return _progression.capabilities(request.classId()).stream().filter(rule -> key.equals(rule.capabilityKey()) && (rule.actionSkill().skillId() == canonicalSkillId) && exactSkillsKnown(rule, request.knownSkills())).sorted(Comparator.comparingInt(CapabilityRule::rank).reversed().thenComparing(CapabilityRule::stableKey)).map(rule -> new SkillRef(rule.actionSkill().skillId(), request.knownSkills().get(rule.actionSkill().skillId()))).findFirst().orElse(null);
 	}
 
 	private static boolean exactSkillsKnown(CapabilityRule rule, Map<Integer, Integer> known)
 	{
-		return rule.requiredEquipmentFamilies().isEmpty() && rule.requiredItems().isEmpty() && rule.evidenceSkills().stream().allMatch(skill -> known.getOrDefault(skill.skillId(), 0) >= skill.skillLevel());
+		return rule.requiredEquipmentFamilies().isEmpty() && rule.requiredItems().isEmpty() && (known.getOrDefault(rule.actionSkill().skillId(), 0) >= rule.actionSkill().skillLevel()) && rule.evidenceSkills().stream().allMatch(skill -> known.getOrDefault(skill.skillId(), 0) >= skill.skillLevel());
 	}
 
-	private int score(Request request, Method method, int npcLevel, int chance, int capacity, String sourceId)
+	private int score(Request request, Method method, int npcLevel, int chance, int capacity, String sourceId, String sourceAnchorId, RecipePlan recipePlan)
 	{
 		final var weights = _catalog.sourceScoring();
 		long score = (long) _catalog.method(method).preference() * weights.methodPreference();
-		if (request.preferredMethod() == method)
-		{
-			score += weights.methodPreference() * 1000L;
-		}
-		if (request.currentAnchorId().equals(""))
-		{
-			score -= weights.topologyCost();
-		}
+		score -= (long) topologyCost(request.currentAnchorId(), sourceAnchorId, method) * weights.topologyCost();
 		score -= (long) Math.abs(request.level() - npcLevel) * weights.levelGap();
 		score += (long) chance * weights.chanceUtility();
 		score += (long) capacity * weights.spawnCapacity();
+		score -= (long) request.resources().pressurePermille() * weights.resourceReserve();
+		if (!request.currentSourceId().isEmpty() && !request.currentSourceId().equals(sourceId))
+		{
+			score -= weights.switchPenalty();
+		}
+		if (recipePlan != null)
+		{
+			final long reused = recipePlan.nodes().stream().mapToLong(PhantomAcquisitionState.RecipeNode::inventoryUsed).reduce(0, (left, right) -> (left >= 1000) || (right >= 1000) ? 1000 : left + right);
+			score += reused * weights.recipeLeafReuse();
+		}
 		final Candidate previous = request.previousCandidates().get(sourceId);
 		if (previous != null)
 		{
 			score -= (long) previous.failures() * weights.failurePenalty();
 		}
 		return (int) Math.clamp(score, Integer.MIN_VALUE + 1L, Integer.MAX_VALUE);
+	}
+
+	private int topologyCost(String currentAnchorId, String sourceAnchorId, Method method)
+	{
+		if (method == Method.RECIPE_PREPARATION)
+		{
+			return 0;
+		}
+		if (currentAnchorId.isEmpty() || sourceAnchorId.isEmpty())
+		{
+			return 1000;
+		}
+		if (currentAnchorId.equals(sourceAnchorId))
+		{
+			return 0;
+		}
+		final PhantomTopologyAnchor current = _topology.findAnchor(currentAnchorId).orElse(null);
+		final PhantomTopologyAnchor source = _topology.findAnchor(sourceAnchorId).orElse(null);
+		return (current != null) && (source != null) && current.nodeId().equals(source.nodeId()) ? 1 : 1000;
 	}
 
 	private String sourceId(Method method, int npcId, int itemId, String factKey, String nodeId, String anchorId, int instanceId, int spoilId, int spoilLevel, int sweepId, int sweepLevel)
@@ -234,19 +266,51 @@ public final class PhantomAcquisitionSourcePlanner
 		}
 	}
 
-	public record Request(long profileId, int itemId, long remainingAmount, PhantomActivityState activityState, int classId, int level, Map<Integer, Long> inventory, Map<Integer, Integer> knownSkills, Set<Method> allowedMethods, Method preferredMethod, String currentAnchorId, Map<String, Candidate> previousCandidates, long logicalMinute)
+	public record Request(long profileId, int itemId, long remainingAmount, PhantomActivityState activityState, int classId, int level, Map<Integer, Long> inventory, Map<Integer, Integer> knownSkills, Set<Method> allowedMethods, Method preferredMethod, String currentAnchorId, String currentSourceId, ResourceEvidence resources, Map<String, Candidate> previousCandidates, long logicalMinute)
 	{
+		public Request(long profileId, int itemId, long remainingAmount, PhantomActivityState activityState, int classId, int level, Map<Integer, Long> inventory, Map<Integer, Integer> knownSkills, Set<Method> allowedMethods, Method preferredMethod, String currentAnchorId, Map<String, Candidate> previousCandidates, long logicalMinute)
+		{
+			this(profileId, itemId, remainingAmount, activityState, classId, level, inventory, knownSkills, allowedMethods, preferredMethod, currentAnchorId, "", ResourceEvidence.unavailable(), previousCandidates, logicalMinute);
+		}
+
 		public Request
 		{
 			inventory = Map.copyOf(inventory);
 			knownSkills = Map.copyOf(knownSkills);
 			allowedMethods = Set.copyOf(allowedMethods);
 			currentAnchorId = Objects.requireNonNullElse(currentAnchorId, "");
+			currentSourceId = Objects.requireNonNullElse(currentSourceId, "");
+			Objects.requireNonNull(resources, "resources");
 			previousCandidates = Map.copyOf(previousCandidates);
 			if ((profileId <= 0) || (itemId <= 0) || (remainingAmount <= 0) || (activityState == null) || (classId < 0) || (level < 1) || allowedMethods.isEmpty() || (logicalMinute < 0))
 			{
 				throw new IllegalArgumentException("Invalid acquisition source planning request.");
 			}
+		}
+	}
+
+	public record ResourceEvidence(long currentLoad, long maximumLoad, int usedSlots, int maximumSlots, boolean available)
+	{
+		public ResourceEvidence
+		{
+			if ((currentLoad < 0) || (maximumLoad < 0) || (usedSlots < 0) || (maximumSlots < 0) || (available && ((maximumLoad < 1) || (maximumSlots < 1) || (currentLoad > maximumLoad) || (usedSlots > maximumSlots))))
+			{
+				throw new IllegalArgumentException("Invalid acquisition resource evidence.");
+			}
+		}
+
+		public static ResourceEvidence unavailable()
+		{
+			return new ResourceEvidence(0, 0, 0, 0, false);
+		}
+
+		private int pressurePermille()
+		{
+			if (!available)
+			{
+				return 1000;
+			}
+			return (int) Math.max(Math.floor((double) currentLoad * 1000d / maximumLoad), ((long) usedSlots * 1000) / maximumSlots);
 		}
 	}
 

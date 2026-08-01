@@ -31,16 +31,23 @@ import java.util.Set;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
 
 /** Durable bounded acquisition state; authoritative item counts remain external. */
-public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevision, int targetItemId, long requiredAmount, long baselineCount, long lastObservedCount, long progress, Status status, Source selectedSource, List<Candidate> candidates, int sourceCursor, int switchCount, Phase phase, int targetObjectId, int targetNpcId, int targetInstanceId, RecipePlan recipePlan, List<Receipt> receipts, long logicalMinute)
+public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevision, int targetItemId, long requiredAmount, long baselineCount, long lastObservedCount, long progress, Status status, Source selectedSource, List<Candidate> candidates, int sourceCursor, int switchCount, Phase phase, int targetObjectId, int targetNpcId, int targetInstanceId, RecipePlan recipePlan, List<Receipt> receipts, int phaseAttempt, long logicalMinute)
 {
 	public static final String COMPONENT_TYPE = "acquisition.state";
-	public static final int SCHEMA_VERSION = 1;
+	public static final int SCHEMA_VERSION = 2;
+	public static final int LEGACY_SCHEMA_VERSION = 1;
 	public static final int MAX_CANDIDATES = 8;
 	public static final int MAX_RECEIPTS = 8;
 	public static final int MAX_FAILURES_PER_SOURCE = 8;
 	public static final int MAX_SWITCHES = 4;
 	public static final int MAX_RECIPE_NODES = 48;
 	public static final int MAX_DEFICITS = 32;
+	public static final int MAX_PHASE_ATTEMPTS = 3;
+
+	public PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevision, int targetItemId, long requiredAmount, long baselineCount, long lastObservedCount, long progress, Status status, Source selectedSource, List<Candidate> candidates, int sourceCursor, int switchCount, Phase phase, int targetObjectId, int targetNpcId, int targetInstanceId, RecipePlan recipePlan, List<Receipt> receipts, long logicalMinute)
+	{
+		this(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, status, selectedSource, candidates, sourceCursor, switchCount, phase, targetObjectId, targetNpcId, targetInstanceId, recipePlan, receipts, 0, logicalMinute);
+	}
 
 	public PhantomAcquisitionState
 	{
@@ -49,7 +56,7 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		Objects.requireNonNull(phase, "phase");
 		candidates = List.copyOf(candidates);
 		receipts = List.copyOf(receipts);
-		if ((goalId <= 0) || (goalRevision < 0) || (targetItemId <= 0) || (requiredAmount <= 0) || (baselineCount < 0) || (lastObservedCount < 0) || (progress != observedProgress(baselineCount, lastObservedCount, requiredAmount)) || (candidates.size() > MAX_CANDIDATES) || (sourceCursor < 0) || (sourceCursor > candidates.size()) || (switchCount < 0) || (switchCount > MAX_SWITCHES) || (receipts.size() > MAX_RECEIPTS) || (logicalMinute < 0))
+		if ((goalId <= 0) || (goalRevision < 0) || (targetItemId <= 0) || (requiredAmount <= 0) || (baselineCount < 0) || (lastObservedCount < 0) || (progress != observedProgress(baselineCount, lastObservedCount, requiredAmount)) || (candidates.size() > MAX_CANDIDATES) || (sourceCursor < 0) || (sourceCursor > candidates.size()) || (switchCount < 0) || (switchCount > MAX_SWITCHES) || (receipts.size() > MAX_RECEIPTS) || (phaseAttempt < 0) || (phaseAttempt > MAX_PHASE_ATTEMPTS) || (logicalMinute < 0))
 		{
 			throw new IllegalArgumentException("Invalid acquisition state bounds.");
 		}
@@ -79,10 +86,14 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		{
 			throw new IllegalArgumentException("Acquisition phase cannot retain a target claim.");
 		}
-		final boolean phaseRequiresTarget = (phase == Phase.SPOIL_PREPARED) || (phase == Phase.SPOIL_DISPATCHING) || (phase == Phase.SPOIL_OBSERVED) || (phase == Phase.COMBAT_SUBMITTED) || (phase == Phase.COMBAT_TERMINAL) || (phase == Phase.SWEEP_PREPARED) || (phase == Phase.SWEEP_DISPATCHING) || (phase == Phase.VERIFYING);
+		final boolean phaseRequiresTarget = (phase == Phase.SPOIL_PREPARED) || (phase == Phase.SPOIL_DISPATCHING) || (phase == Phase.SPOIL_OBSERVED) || (phase == Phase.COMBAT_PREPARED) || (phase == Phase.COMBAT_SUBMITTED) || (phase == Phase.COMBAT_TERMINAL) || (phase == Phase.SWEEP_PREPARED) || (phase == Phase.SWEEP_DISPATCHING) || (phase == Phase.VERIFYING);
 		if (phaseRequiresTarget != (targetObjectId > 0))
 		{
 			throw new IllegalArgumentException("Acquisition phase and exact target claim disagree.");
+		}
+		if ((phaseAttempt > 0) && (phase != Phase.SPOIL_PREPARED) && (phase != Phase.SPOIL_DISPATCHING) && (phase != Phase.SWEEP_PREPARED) && (phase != Phase.SWEEP_DISPATCHING))
+		{
+			throw new IllegalArgumentException("Acquisition phase attempt has no dispatch owner.");
 		}
 		if (((phase == Phase.SPOIL_PREPARED) || (phase == Phase.SPOIL_DISPATCHING) || (phase == Phase.SPOIL_OBSERVED) || (phase == Phase.SWEEP_PREPARED) || (phase == Phase.SWEEP_DISPATCHING)) && ((selectedSource == null) || (selectedSource.method() != Method.SPOIL_SWEEP)))
 		{
@@ -108,12 +119,17 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 
 	public PhantomAcquisitionState withPlan(Status nextStatus, Source source, List<Candidate> ranked, RecipePlan plan, Phase nextPhase, long minute)
 	{
-		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, nextStatus, source, ranked, source == null ? 0 : indexOf(ranked, source.sourceId()), switchCount, nextPhase, 0, 0, 0, plan, receipts, minute);
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, nextStatus, source, ranked, source == null ? 0 : indexOf(ranked, source.sourceId()), switchCount, nextPhase, 0, 0, 0, plan, receipts, 0, minute);
 	}
 
 	public PhantomAcquisitionState withPhase(Phase nextPhase, int objectId, int npcId, int instanceId, long minute)
 	{
-		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, status == Status.READY ? Status.ACTIVE : status, selectedSource, candidates, sourceCursor, switchCount, nextPhase, objectId, npcId, instanceId, recipePlan, receipts, minute);
+		return withPhase(nextPhase, objectId, npcId, instanceId, 0, minute);
+	}
+
+	public PhantomAcquisitionState withPhase(Phase nextPhase, int objectId, int npcId, int instanceId, int nextAttempt, long minute)
+	{
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, status == Status.READY ? Status.ACTIVE : status, selectedSource, candidates, sourceCursor, switchCount, nextPhase, objectId, npcId, instanceId, recipePlan, receipts, nextAttempt, minute);
 	}
 
 	public PhantomAcquisitionState observe(long authoritativeCount, Status nextStatus, Phase nextPhase, Receipt receipt, long minute)
@@ -121,7 +137,7 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		final long nextProgress = observedProgress(baselineCount, authoritativeCount, requiredAmount);
 		final Status effectiveStatus = nextProgress == requiredAmount ? Status.COMPLETED : nextStatus;
 		final List<Receipt> nextReceipts = appendReceipt(receipts, receipt);
-		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, authoritativeCount, nextProgress, effectiveStatus, selectedSource, candidates, sourceCursor, switchCount, nextProgress == requiredAmount ? Phase.NONE : nextPhase, 0, 0, 0, recipePlan, nextReceipts, minute);
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, authoritativeCount, nextProgress, effectiveStatus, selectedSource, candidates, sourceCursor, switchCount, nextProgress == requiredAmount ? Phase.NONE : nextPhase, 0, 0, 0, recipePlan, nextReceipts, 0, minute);
 	}
 
 	public PhantomAcquisitionState failSource(String reasonKey, long minute)
@@ -135,7 +151,7 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		{
 			next.add(candidate.sourceId().equals(selectedSource.sourceId()) ? candidate.failed(reasonKey, minute) : candidate);
 		}
-		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, Status.BLOCKED, selectedSource, next, sourceCursor, switchCount, Phase.NONE, 0, 0, 0, recipePlan, receipts, minute);
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, Status.BLOCKED, selectedSource, next, sourceCursor, switchCount, Phase.NONE, 0, 0, 0, recipePlan, receipts, 0, minute);
 	}
 
 	public PhantomAcquisitionState switchSource(int nextCursor, Source nextSource, RecipePlan nextRecipePlan, long minute)
@@ -145,7 +161,7 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 			throw new IllegalArgumentException("Invalid acquisition source switch.");
 		}
 		final Candidate next = candidates.get(nextCursor);
-		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, Status.READY, nextSource, candidates, nextCursor, switchCount + 1, Phase.TRAVEL_REQUIRED, 0, 0, 0, next.method() == Method.RECIPE_PREPARATION ? nextRecipePlan : null, receipts, minute);
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, Status.READY, nextSource, candidates, nextCursor, switchCount + 1, Phase.TRAVEL_REQUIRED, 0, 0, 0, next.method() == Method.RECIPE_PREPARATION ? nextRecipePlan : null, receipts, 0, minute);
 	}
 
 	public static long observedProgress(long baseline, long current, long required)
@@ -226,7 +242,8 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		COMBAT_TERMINAL,
 		SWEEP_PREPARED,
 		SWEEP_DISPATCHING,
-		VERIFYING
+		VERIFYING,
+		COMBAT_PREPARED
 	}
 
 	public enum ReceiptKind

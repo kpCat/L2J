@@ -47,7 +47,7 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Sta
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.TerminalResult;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 
-/** Canonical binary codec for {@code acquisition.state} schema version 1. */
+/** Canonical binary codec for {@code acquisition.state} schema versions 1 and 2. */
 public final class PhantomAcquisitionStateCodec
 {
 	private static final int MAGIC = 0x50415131;
@@ -55,7 +55,7 @@ public final class PhantomAcquisitionStateCodec
 	private static final int MAX_FACT_KEY_BYTES = 160;
 	private static final int MAX_TOPOLOGY_ID_BYTES = 96;
 	private static final int MAX_REASON_BYTES = 64;
-	private static final int DECLARED_WORST_CASE_BYTES = 3824;
+	private static final int DECLARED_WORST_CASE_BYTES = 3825;
 
 	public int declaredWorstCaseBytes()
 	{
@@ -64,6 +64,11 @@ public final class PhantomAcquisitionStateCodec
 
 	public byte[] encode(PhantomAcquisitionState state)
 	{
+		return encode(state, PhantomAcquisitionState.SCHEMA_VERSION);
+	}
+
+	private byte[] encode(PhantomAcquisitionState state, int schemaVersion)
+	{
 		try
 		{
 			final ByteArrayOutputStream bytes = new ByteArrayOutputStream(1024);
@@ -71,7 +76,7 @@ public final class PhantomAcquisitionStateCodec
 			{
 				output.writeInt(MAGIC);
 				output.writeShort(FORMAT_VERSION);
-				output.writeShort(PhantomAcquisitionState.SCHEMA_VERSION);
+				output.writeShort(schemaVersion);
 				writeHashes(output, state.hashes());
 				output.writeLong(state.goalId());
 				output.writeLong(state.goalRevision());
@@ -118,6 +123,10 @@ public final class PhantomAcquisitionStateCodec
 					output.writeByte(receipt.result().ordinal());
 					output.writeLong(receipt.logicalMinute());
 				}
+				if (schemaVersion >= 2)
+				{
+					output.writeByte(state.phaseAttempt());
+				}
 				output.writeLong(state.logicalMinute());
 			}
 			final byte[] payload = bytes.toByteArray();
@@ -144,7 +153,12 @@ public final class PhantomAcquisitionStateCodec
 			final ByteArrayInputStream bytes = new ByteArrayInputStream(payload);
 			try (DataInputStream input = new DataInputStream(bytes))
 			{
-				if ((input.readInt() != MAGIC) || (input.readUnsignedShort() != FORMAT_VERSION) || (input.readUnsignedShort() != PhantomAcquisitionState.SCHEMA_VERSION))
+				if ((input.readInt() != MAGIC) || (input.readUnsignedShort() != FORMAT_VERSION))
+				{
+					throw new IllegalArgumentException("Unknown acquisition.state version.");
+				}
+				final int schemaVersion = input.readUnsignedShort();
+				if ((schemaVersion != PhantomAcquisitionState.LEGACY_SCHEMA_VERSION) && (schemaVersion != PhantomAcquisitionState.SCHEMA_VERSION))
 				{
 					throw new IllegalArgumentException("Unknown acquisition.state version.");
 				}
@@ -185,8 +199,9 @@ public final class PhantomAcquisitionStateCodec
 				{
 					receipts.add(new Receipt(readHash(input), readHash(input), enumValue(ReceiptKind.values(), input.readUnsignedByte(), "receipt kind"), input.readLong(), input.readLong(), enumValue(TerminalResult.values(), input.readUnsignedByte(), "terminal result"), input.readLong()));
 				}
-				final PhantomAcquisitionState result = new PhantomAcquisitionState(hashes, goalId, goalRevision, itemId, required, baseline, observed, progress, status, selected, candidates, cursor, switches, phase, targetObjectId, targetNpcId, targetInstanceId, recipe, receipts, input.readLong());
-				if ((bytes.available() != 0) || !Arrays.equals(payload, encode(result)))
+				final int phaseAttempt = schemaVersion >= 2 ? input.readUnsignedByte() : 0;
+				final PhantomAcquisitionState result = new PhantomAcquisitionState(hashes, goalId, goalRevision, itemId, required, baseline, observed, progress, status, selected, candidates, cursor, switches, phase, targetObjectId, targetNpcId, targetInstanceId, recipe, receipts, phaseAttempt, input.readLong());
+				if ((bytes.available() != 0) || !Arrays.equals(payload, encode(result, schemaVersion)))
 				{
 					throw new IllegalArgumentException("Non-canonical or trailing acquisition.state payload.");
 				}

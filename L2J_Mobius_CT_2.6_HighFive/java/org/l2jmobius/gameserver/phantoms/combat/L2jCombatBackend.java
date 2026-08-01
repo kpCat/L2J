@@ -476,7 +476,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private boolean supportsAcquisitionSkill(SelectedSkill selected, String capabilityKey)
 		{
 			final PhantomProgressionCatalog catalog = _progressionCatalog.get();
-			return (catalog != null) && catalog.capabilities(_player.getActiveClass()).stream().filter(rule -> capabilityKey.equals(rule.capabilityKey()) && (rule.actionSkill().skillId() == selected.skillId()) && (rule.actionSkill().skillLevel() == selected.skillLevel()) && rule.requiredItems().isEmpty() && rule.requiredEquipmentFamilies().isEmpty()).anyMatch(rule -> rule.evidenceSkills().stream().allMatch(evidence -> knownSkillLevel(evidence.skillId()) >= evidence.skillLevel()));
+			return (catalog != null) && (knownSkillLevel(selected.skillId()) == selected.skillLevel()) && catalog.capabilities(_player.getActiveClass()).stream().filter(rule -> capabilityKey.equals(rule.capabilityKey()) && (rule.actionSkill().skillId() == selected.skillId()) && (selected.skillLevel() >= rule.actionSkill().skillLevel()) && rule.requiredItems().isEmpty() && rule.requiredEquipmentFamilies().isEmpty()).anyMatch(rule -> rule.evidenceSkills().stream().allMatch(evidence -> knownSkillLevel(evidence.skillId()) >= evidence.skillLevel()));
 		}
 
 		@Override

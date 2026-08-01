@@ -254,6 +254,13 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	@Override
 	public FarmInput acquisitionInput(PhantomBackgroundState state, Source source)
 	{
+		return acquisitionInput(state, source, Map.of());
+	}
+
+	@Override
+	public FarmInput acquisitionInput(PhantomBackgroundState state, Source source, Map<Integer, Integer> learnedSkills)
+	{
+		learnedSkills = Map.copyOf(learnedSkills);
 		if (!state.hashes().equals(hashes()) || (source.instanceId() != 0) || (source.itemId() <= 0) || ((source.method() != Method.DEATH_DROP) && (source.method() != Method.SPOIL_SWEEP)))
 		{
 			throw new IllegalStateException("Acquisition background authority generation or source is invalid.");
@@ -278,7 +285,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final DropSourceKind expectedKind = source.method() == Method.DEATH_DROP ? DropSourceKind.DEATH_DROP : DropSourceKind.SPOIL;
 		final List<DropFact> selectedFacts = source.method() == Method.DEATH_DROP ? knowledge.dropFactsByNpc().getOrDefault(source.npcId(), List.of()) : knowledge.spoilFactsByNpc().getOrDefault(source.npcId(), List.of());
 		final DropFact selected = selectedFacts.stream().filter(fact -> (fact.itemId() == source.itemId()) && (fact.sourceKind() == expectedKind) && fact.stableKey().equals(source.factKey())).findFirst().orElseThrow(() -> new IllegalArgumentException("Acquisition source fact is stale."));
-		if ((source.method() == Method.SPOIL_SWEEP) && !durableSpoilEligible(state, source))
+		if ((source.method() == Method.SPOIL_SWEEP) && !durableSpoilEligible(state, source, learnedSkills))
 		{
 			throw new IllegalArgumentException("Durable acquisition spoil capability evidence is absent.");
 		}
@@ -663,17 +670,15 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		return new Drop(fact.itemId(), fact.groupOrdinal(), fact.itemOrdinal(), fact.rawGroupChance(), fact.rawItemChance(), fact.minimumCount(), fact.maximumCount(), chance, configuredChance == null ? null : configuredChance.doubleValue(), amount, levelGapChance, item.isStackable(), item.getWeight(), disposition, origin);
 	}
 
-	private boolean durableSpoilEligible(PhantomBackgroundState state, Source source)
+	private boolean durableSpoilEligible(PhantomBackgroundState state, Source source, Map<Integer, Integer> learnedSkills)
 	{
-		final Map<Integer, Integer> known = new HashMap<>();
-		state.autoGetSkills().forEach(skill -> known.merge(skill.skillId(), skill.skillLevel(), Math::max));
 		final PhantomProgressionCatalog catalog = _progression.get();
-		return durableCapability(catalog, state.identity().activeClassId(), "profession.spoil", source.spoilSkillId(), source.spoilSkillLevel(), known) && durableCapability(catalog, state.identity().activeClassId(), "profession.sweep", source.sweepSkillId(), source.sweepSkillLevel(), known);
+		return durableCapability(catalog, state.identity().activeClassId(), "profession.spoil", source.spoilSkillId(), source.spoilSkillLevel(), learnedSkills) && durableCapability(catalog, state.identity().activeClassId(), "profession.sweep", source.sweepSkillId(), source.sweepSkillLevel(), learnedSkills);
 	}
 
 	private static boolean durableCapability(PhantomProgressionCatalog catalog, int classId, String key, int skillId, int skillLevel, Map<Integer, Integer> known)
 	{
-		return catalog.capabilities(classId).stream().filter(rule -> key.equals(rule.capabilityKey()) && (rule.actionSkill().skillId() == skillId) && (rule.actionSkill().skillLevel() == skillLevel) && rule.requiredItems().isEmpty() && rule.requiredEquipmentFamilies().isEmpty()).anyMatch(rule -> rule.evidenceSkills().stream().allMatch(skill -> known.getOrDefault(skill.skillId(), 0) >= skill.skillLevel()));
+		return (known.getOrDefault(skillId, 0) == skillLevel) && catalog.capabilities(classId).stream().filter(rule -> key.equals(rule.capabilityKey()) && (rule.actionSkill().skillId() == skillId) && (skillLevel >= rule.actionSkill().skillLevel()) && rule.requiredItems().isEmpty() && rule.requiredEquipmentFamilies().isEmpty()).anyMatch(rule -> rule.evidenceSkills().stream().allMatch(skill -> known.getOrDefault(skill.skillId(), 0) >= skill.skillLevel()));
 	}
 
 	private static DropDisposition dropDisposition(ItemTemplate item)

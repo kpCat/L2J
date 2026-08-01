@@ -86,7 +86,7 @@ public final class PhantomAcquisitionRecipePlanner
 		final Build build = new Build(new HashMap<>(inventory));
 		expand(root.productItemId(), requested, 0, root, build, new HashSet<>());
 		final List<RecipeNode> nodes = build.nodes.values().stream().map(Node::snapshot).sorted(Comparator.comparingInt(RecipeNode::depth).thenComparingInt(RecipeNode::itemId)).toList();
-		final List<Deficit> deficits = nodes.stream().filter(node -> node.leaf() && (node.deficit() > 0)).map(node -> new Deficit(node.itemId(), node.deficit(), !_knowledge.manorSources(node.itemId(), new PageRequest(1, null)).values().isEmpty(), true)).sorted(Comparator.comparingInt(Deficit::itemId)).toList();
+		final List<Deficit> deficits = nodes.stream().filter(node -> node.leaf() && (node.deficit() > 0)).map(node -> new Deficit(node.itemId(), node.deficit(), !_knowledge.manorSources(node.itemId(), new PageRequest(1, null)).values().isEmpty(), false)).sorted(Comparator.comparingInt(Deficit::itemId)).toList();
 		if ((nodes.size() > _limits.recipeNodes()) || (deficits.size() > _limits.deficits()))
 		{
 			throw new BoundFailure();
