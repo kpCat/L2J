@@ -544,11 +544,15 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			final ExecutionEntry resolved = entry.withResult(_catalog.render("party.accepted", entry.style(), null), "party.accepted").withAction(ActionState.COMPLETED, entry.goalId(), current.goal().revision(), "party.accepted", now());
 			return save(stored, resolved);
 		}
-		if ((reconciliation == ResultStatus.STALE) || ((current != null) && owned(entry, current.goal()) && (current.goal().status() != PhantomGoalStatus.ACTIVE)))
+		if ((reconciliation == ResultStatus.STALE) || (reconciliation == ResultStatus.REJECTED) || ((current != null) && owned(entry, current.goal()) && (current.goal().status() != PhantomGoalStatus.ACTIVE)))
 		{
-			final boolean completed = (reconciliation != ResultStatus.STALE) && (current != null) && (current.goal().status() == PhantomGoalStatus.COMPLETED);
+			final boolean completed = (reconciliation != ResultStatus.STALE) && (reconciliation != ResultStatus.REJECTED) && (current != null) && (current.goal().status() == PhantomGoalStatus.COMPLETED);
 			final String reason = completed ? "party.accepted" : "party.stale";
 			final ExecutionEntry resolved = entry.withResult(_catalog.render(reason, entry.style(), null), reason).withAction(completed ? ActionState.COMPLETED : ActionState.REJECTED, entry.goalId(), current == null ? entry.goalRevision() : current.goal().revision(), reason, now());
+			if (!completed && (current != null) && (current.goal().status() == PhantomGoalStatus.ACTIVE) && owned(entry, current.goal()))
+			{
+				return _store.mutateGoal(stored.profileId(), stored.rowVersion(), stored.state().replace(resolved), _goals, current.rowVersion(), current.goal().withStatus(PhantomGoalStatus.ABANDONED)).execution();
+			}
 			return save(stored, resolved);
 		}
 		if (!hasBudget())

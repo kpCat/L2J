@@ -3,8 +3,8 @@ param()
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-$RequiredParent = "6d7ac26ff614d0e565589fdfc303684743b32cd9"
-$RequiredSubject = "fix(phantoms): finalize conversation execution safety"
+$RequiredParent = "75e3a07324946adb69c87e8628b4f11ac749ce8f"
+$RequiredSubject = "fix(phantoms): close exact conversation invitation ownership"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "20002002"
 
@@ -79,20 +79,10 @@ function Get-TargetSha256([string] $relativePath)
 function Is-AllowedPath([string] $path)
 {
 	$exact = @(
-		"dist/game/data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml",
-		"java/org/l2jmobius/gameserver/model/chat/ChatObservationService.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationPlanSink.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationModel.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationService.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionCatalog.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionCodec.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionModel.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionPort.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionService.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionStore.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/L2jPhantomConversationExecutionPort.java",
-		"java/org/l2jmobius/gameserver/phantoms/decision/PhantomGoalStateStore.java",
 		"java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java",
 		"test/java/org/l2jmobius/tests/phantoms/PhantomConversationExecutionSuite.java",
 		"test/java/org/l2jmobius/tests/phantoms/PhantomConversationIntegrationSuite.java",
 		"tools/phantoms/verify-task-020c2.ps1",
@@ -150,14 +140,14 @@ try
 		}
 	}
 	$changedPaths = @($changed | Sort-Object)
-	Assert-True (($changedPaths.Count -gt 0) -and ($changedPaths.Count -le 26)) "Goal 020c2 completion scope must contain 1..26 files."
+	Assert-True (($changedPaths.Count -gt 0) -and ($changedPaths.Count -le 10)) "Goal 020 exact invitation ownership scope must contain 1..10 files."
 	foreach ($path in $changedPaths)
 	{
 		Assert-True (Is-AllowedPath $path) "Out-of-scope Goal 020c2 path: $path"
 		Assert-True ($path -notmatch "(^|/)(Player|Party)\.java$|(^|/)(sql|schema|migrations?)/|L2J_Mobius_CT_(?!2\.6_HighFive)|(?:^|/)scripts?/handlers?/chat/") "Forbidden Goal 020c2 path: $path"
 	}
 	$production = @($changedPaths | Where-Object { ($_ -match "^java/org/l2jmobius/gameserver/") -or ($_ -match "^dist/game/(?:config|data)/") })
-	Assert-True ($production.Count -le 14) "Goal 020c2 completion exceeds 14 changed production/data files."
+	Assert-True ($production.Count -le 4) "Goal 020 exact invitation ownership exceeds 4 changed production files."
 	$newProduction = @()
 	foreach ($path in $production)
 	{
@@ -167,21 +157,13 @@ try
 			$newProduction += $path
 		}
 	}
-	Assert-True ($newProduction.Count -le 2) "Goal 020c2 completion exceeds 2 new production/data files."
+	Assert-True ($newProduction.Count -eq 0) "Goal 020 exact invitation ownership added a production file."
 
 	foreach ($required in @(
-		"dist/game/data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml",
-		"java/org/l2jmobius/gameserver/model/chat/ChatObservationService.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/L2jPhantomConversationExecutionPort.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionCatalog.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionCodec.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionModel.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionPort.java",
 		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionService.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionStore.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationModel.java",
-		"java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationService.java",
 		"java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java",
+		"test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java",
 		"test/java/org/l2jmobius/tests/phantoms/PhantomConversationExecutionSuite.java",
 		"test/java/org/l2jmobius/tests/phantoms/PhantomConversationIntegrationSuite.java",
 		"tools/phantoms/verify-task-020c2.ps1",
@@ -241,6 +223,11 @@ try
 	$party = Read-TargetUtf8Strict "java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java"
 	Assert-True ($adapter.Contains("_knowledge.query()") -and $adapter.Contains("_topology.findNode") -and $adapter.Contains("_party.claim") -and $adapter.Contains("new QueryFact") -and $adapter.Contains("game.knowledge.item") -and $adapter.Contains("topology.snapshot") -and $adapter.Contains("party.claim") -and $adapter.Contains("policy.goalType()") -and $adapter.Contains("party.generation") -and $adapter.Contains("party.instance")) "Canonical structured query or Goal evidence dependencies are incomplete."
 	Assert-True ($goalStore.Contains("componentMutation") -and $party.Contains("pendingInvitation") -and $party.Contains("respondToPending") -and $party.Contains("ConversationResponseKey") -and $party.Contains("goalMatchesPlan") -and $party.Contains("goalMatchesInvitation") -and $party.Contains("PartyInvitationService.RespondOutcome.REFUSED")) "Atomic Goal or exact Party response/replay seam is incomplete."
+	Assert-True ($party.Contains("conversationResponseOutcome") -and $party.Contains("conversationOwnsAccept") -and $party.Contains('goal.constraints().containsKey("party.invitation")') -and $party.Contains('goal.constraints().containsKey("party.requester")') -and $party.Contains('goal.constraints().containsKey("party.invitee")')) "Exact conversation invitation ownership or read-only replay outcome is incomplete."
+	$replayIndex = $adapter.IndexOf("_party.conversationResponseOutcome")
+	$pendingIndex = $adapter.IndexOf("final PendingInvitation current", $replayIndex)
+	Assert-True (($replayIndex -ge 0) -and ($pendingIndex -gt $replayIndex) -and $adapter.Contains("case COMPLETED, IDEMPOTENT -> ResultStatus.COMPLETED") -and $adapter.Contains("case STALE -> ResultStatus.STALE") -and $adapter.Contains("case REJECTED -> ResultStatus.REJECTED")) "Production invitation reconciliation is not replay-first and typed."
+	Assert-True ($executionService.Contains("reconciliation == ResultStatus.REJECTED") -and $executionService.Contains("reconciliation != ResultStatus.REJECTED") -and $executionService.Contains("current.goal().withStatus(PhantomGoalStatus.ABANDONED)")) "Rejected/stale invitation reconciliation is not terminal, can inherit completed Goal state or leaves active consent."
 	Assert-True ($adapter.Contains("allowsGoalSupersession") -and $adapter.Contains("PhantomPartyCoordinator.LEAD_GOAL") -and $adapter.Contains("PhantomPartyCoordinator.MEMBER_GOAL") -and $adapter.Contains("Set.of(StateStatus.LEADER, StateStatus.MEMBER)") -and $adapter.Contains("claim.state().status() != StateStatus.LEADER") -and $adapter.Contains('entry.proposalKey().equals("party.leave") ? leader || member') -and $adapter.Contains('entry.proposalKey().equals("party.travel") && leader')) "Exact membership Goal submission or supersession policy is incomplete."
 	Assert-True ($adapter.Contains("ChatHandler.getInstance().getHandler") -and $adapter.Contains("openGeneratedDispatch") -and $adapter.Contains("expectedCounterpartDelivered") -and $adapter.Contains("tryAcquireAction") -and $adapter.Contains("ChatType.WHISPER") -and $adapter.Contains("ChatType.PARTY") -and $adapter.Contains("ChatType.GENERAL") -and $adapter.Contains("ChatType.TRADE")) "Generated exact-recipient current-handler dispatch is incomplete."
 	Assert-True ($adapter -notmatch "\.addItem\s*\(|\.destroyItem\s*\(|\.teleToLocation\s*\(|\.setParty\s*\(|\.doCast\s*\(|\.doAttack\s*\(|new\s+GameClient|clientpackets") "Conversation adapter contains a direct gameplay or packet-handler bypass."
@@ -269,8 +256,12 @@ try
 	Assert-True ($build.Contains('name="phantom.goal020c2.seed" value="20002002"') -and $build.Contains('name="phantom-conversation-checkpoint2-test"') -and $build.Contains('name="phantom-conversation-checkpoint2-affected-test"') -and $build.Contains('name="phantom-static-verify-020c2"')) "Goal 020c2 seed, aggregates or verifier target is absent."
 	$executionTests = Read-TargetUtf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomConversationExecutionSuite.java"
 	$integrationTests = Read-TargetUtf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomConversationIntegrationSuite.java"
+	$partyTests = Read-TargetUtf8Strict "test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java"
 	Assert-True ($executionTests.Contains("Receipt reservation matrix changed") -and $executionTests.Contains("Rejected reservation changed durable bytes") -and $executionTests.Contains("Expired receipt did not reopen handoff capacity") -and $executionTests.Contains("Four execution arguments") -and $executionTests.Contains("fifth semantic slot") -and $executionTests.Contains("InvitationBinding") -and $executionTests.Contains("Replacement invitation") -and $executionTests.Contains("SUPPRESS_ACK") -and $executionTests.Contains("structured fact") -and $executionTests.Contains("exact-membership-goal-supersession") -and $executionTests.Contains("Recovered DISPATCHING") -and $executionTests.Contains("spun once per pulse") -and $executionTests.Contains("10_000") -and $executionTests.Contains("maximumOperationsPerPulse")) "Mandatory capacity, binding, query, Goal, recovery or lifecycle evidence is incomplete."
+	Assert-True ($executionTests.Contains("exact-rejected-replay-cannot-inherit-completed-goal") -and $executionTests.Contains("Exact REJECTED replay inherited")) "Exact rejected replay precedence regression is absent."
 	Assert-True ($integrationTests.Contains("NetworkBackedClient") -and $integrationTests.Contains("ScriptEngine.MASTER_HANDLER_FILE") -and $integrationTests.Contains("ChatType.WHISPER") -and $integrationTests.Contains("ChatType.PARTY") -and $integrationTests.Contains("ChatType.GENERAL") -and $integrationTests.Contains("ChatType.TRADE") -and $integrationTests.Contains("wrong") -and $integrationTests.Contains("zero") -and $integrationTests.Contains("throw") -and $integrationTests.Contains("PHANTOM_GENERATED") -and $integrationTests.Contains("100_000")) "Real four-channel handler, failure or ingress evidence is incomplete."
+	Assert-True ($partyTests.Contains("managed-pulse-reserves-conversation-owned-accept") -and $partyTests.Contains("exact-response-outcomes-are-read-only-and-process-local") -and $partyTests.Contains("Ordinary explicit party.join no longer auto-accepts") -and $partyTests.Contains("new requester")) "Exact Party ownership and replay tests are incomplete."
+	Assert-True ($integrationTests.Contains("execution-exclusively-owns-exact-invitation-and-reconciliation") -and $integrationTests.Contains("Old conversation consent accepted a replacement sequence") -and $integrationTests.Contains("Replacement invitation left the old conversation Goal active") -and $integrationTests.Contains("Replay reconciliation invoked the backend again") -and $integrationTests.Contains("No-proof refusal produced a misleading success response")) "Real execution ownership, replacement or restart reconciliation evidence is incomplete."
 
 	$contract = Read-TargetUtf8Strict "docs/phantoms/architecture/CONVERSATION_OUTBOUND_ACTION_CONTRACT.md"
 	$report = Read-TargetUtf8Strict "docs/phantoms/reports/020-conversation-outbound-actions.md"

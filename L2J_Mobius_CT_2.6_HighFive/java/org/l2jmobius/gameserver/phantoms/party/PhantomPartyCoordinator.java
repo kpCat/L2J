@@ -802,6 +802,20 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return _state == State.RUNNING ? Optional.ofNullable(_pendingManagedInvitations.get(profileId)) : Optional.empty();
 	}
 
+	public Optional<PendingResponseOutcome> conversationResponseOutcome(String planId, InvitationIdentity exactIdentity, PendingResponse response)
+	{
+		Objects.requireNonNull(exactIdentity);
+		Objects.requireNonNull(response);
+		if ((planId == null) || !planId.matches("[A-F0-9]{64}"))
+		{
+			return Optional.empty();
+		}
+		synchronized (_indexLock)
+		{
+			return Optional.ofNullable(_conversationResponses.get(new ConversationResponseKey(planId, exactIdentity, response)));
+		}
+	}
+
 	public PendingResponseOutcome respondToPending(long profileId, InvitationIdentity exactIdentity, PendingResponse response, String planId)
 	{
 		return respondToPending(profileId, exactIdentity, response, planId, false);
@@ -915,6 +929,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return;
 		}
 		final StoredGoal storedGoal = _goals.load(managed.profileId()).orElse(null);
+		if ((storedGoal != null) && conversationOwnsAccept(storedGoal.goal()))
+		{
+			return;
+		}
 		final boolean explicitConsent = (storedGoal != null) && (storedGoal.goal().status() == PhantomGoalStatus.ACTIVE) && JOIN_GOAL.equals(storedGoal.goal().goalType()) && goalTargets(storedGoal.goal(), invitation.requesterObjectId());
 		if (!explicitConsent)
 		{
@@ -932,6 +950,22 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return;
 		}
 		_metrics.inviteAccepted();
+	}
+
+	private static boolean conversationOwnsAccept(PhantomGoal goal)
+	{
+		if ((goal.status() != PhantomGoalStatus.ACTIVE) || !JOIN_GOAL.equals(goal.goalType()) || !goal.purposeKey().equals("conversation.action") || !goal.reasonKey().equals("conversation.party.accept"))
+		{
+			return false;
+		}
+		for (int index = 0; index < 4; index++)
+		{
+			if (!goal.constraints().containsKey("conversation.plan." + index))
+			{
+				return false;
+			}
+		}
+		return goal.constraints().containsKey("party.invitation") && goal.constraints().containsKey("party.requester") && goal.constraints().containsKey("party.invitee");
 	}
 
 	private void processTerminal(TerminalEvent event)

@@ -639,6 +639,34 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(0, restarted.partyResponses.get(), "Reconciled accept was sent a second time.");
 			stop(second);
 		});
+
+		registry.add("05-exact-rejected-replay-cannot-inherit-completed-goal", context ->
+		{
+			final PhantomProfile profile = profile();
+			final PhantomConversationExecutionStore store = store();
+			final ConversationResponsePlan plan = plan(profile.profileId(), 540, "party.accept", null, List.of());
+			store.handoff(profile.profileId(), -1, conversationState(100), ExecutionEntry.prepared(plan));
+			final MemoryPort firstPort = new MemoryPort();
+			firstPort.pending = new PendingInvitation(33, 777, 888, "Speaker", new PhantomDomainRef("character.object", "777"));
+			final PhantomConversationExecutionService first = service(store, firstPort, 101);
+			first.publish(plan);
+			first.onPulse();
+			first.onPulse();
+			stop(first);
+			final ExecutionEntry submitted = store.load(profile.profileId()).orElseThrow().state().entries().getFirst();
+			PhantomAssertions.assertEquals(ActionState.SUBMITTED, submitted.actionState(), "Rejected replay fixture did not reach durable SUBMITTED state.");
+			final var owned = _goals.load(profile.profileId()).orElseThrow();
+			_goals.replace(profile.profileId(), owned.rowVersion(), owned.goal().withStatus(PhantomGoalStatus.COMPLETED));
+			final MemoryPort rejectedPort = new MemoryPort();
+			rejectedPort.reconciliation = ResultStatus.REJECTED;
+			final PhantomConversationExecutionService restarted = service(store, rejectedPort, 101);
+			drive(restarted, 32);
+			final ExecutionReceipt receipt = store.load(profile.profileId()).orElseThrow().state().receipts().getFirst();
+			PhantomAssertions.assertEquals(ActionState.REJECTED, receipt.actionState(), "Exact REJECTED replay inherited an unrelated completed Goal outcome.");
+			PhantomAssertions.assertEquals("party.stale", receipt.reasonKey(), "Exact REJECTED replay produced a success reason.");
+			PhantomAssertions.assertEquals(0, rejectedPort.partyResponses.get(), "Rejected replay invoked the backend response path.");
+			stop(restarted);
+		});
 	}
 
 	private void lifecycle(PhantomTestRegistry registry)

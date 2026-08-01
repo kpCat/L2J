@@ -196,6 +196,19 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		{
 			return ResultStatus.REJECTED;
 		}
+		final InvitationIdentity identity = new InvitationIdentity(binding.sequence(), binding.requesterObjectId(), binding.inviteeObjectId());
+		final PendingResponse response = binding.response() == InvitationResponse.ACCEPT ? PendingResponse.ACCEPT : PendingResponse.REFUSE;
+		final PendingResponseOutcome replay = _party.conversationResponseOutcome(entry.planId(), identity, response).orElse(null);
+		if (replay != null)
+		{
+			return switch (replay)
+			{
+				case COMPLETED, IDEMPOTENT -> ResultStatus.COMPLETED;
+				case STALE -> ResultStatus.STALE;
+				case REJECTED -> ResultStatus.REJECTED;
+				case STOPPING -> ResultStatus.UNCERTAIN;
+			};
+		}
 		final PendingInvitation current = pendingInvitation(profileId).orElse(null);
 		if (current != null)
 		{

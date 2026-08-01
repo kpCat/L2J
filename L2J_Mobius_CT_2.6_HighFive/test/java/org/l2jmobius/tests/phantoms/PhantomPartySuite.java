@@ -158,8 +158,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				final PartyInvitation acceptInvitation = new PartyInvitation(acceptIdentity, 778, "Requester2", 202, "Invitee", PartyDistributionType.FINDERS_KEEPERS, 778, Long.MAX_VALUE);
 				PhantomAssertions.assertEquals(PreparationOutcome.ACCEPTED, coordinator.prepare(acceptInvitation, OptionalLong.empty(), OptionalLong.of(2)), "Second exact invitation was not prepared.");
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.DeliveryOutcome.ACCEPTED, coordinator.deliver(acceptInvitation, 2), "Second exact invitation was not retained.");
-				goals.put(2, conversationJoinGoal(acceptPlan, 778));
-				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.COMPLETED, coordinator.respondToPending(2, acceptIdentity, PhantomPartyCoordinator.PendingResponse.ACCEPT, acceptPlan), "Exact conversation-owned join Goal did not authorize ACCEPT.");
+				goals.put(2, conversationJoinGoal(acceptPlan, acceptIdentity));
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.COMPLETED, coordinator.respondToPending(2, acceptIdentity, PhantomPartyCoordinator.PendingResponse.ACCEPT, acceptPlan, true), "Exact conversation-owned join Goal did not authorize ACCEPT.");
 				PhantomAssertions.assertEquals(PartyInvitationService.Response.ACCEPT, backend.lastResponse(), "Canonical accept response kind changed.");
 				coordinator.terminal(acceptInvitation, OptionalLong.empty(), OptionalLong.of(2), TerminalOutcome.ACCEPTED, "party.invite.accepted");
 				coordinator.onPulse();
@@ -170,7 +170,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				final PartyInvitation forgedInvitation = new PartyInvitation(forgedIdentity, 779, "Requester3", 202, "Invitee", PartyDistributionType.FINDERS_KEEPERS, 779, Long.MAX_VALUE);
 				PhantomAssertions.assertEquals(PreparationOutcome.ACCEPTED, coordinator.prepare(forgedInvitation, OptionalLong.empty(), OptionalLong.of(2)), "Forged-control invitation fixture was not prepared.");
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.DeliveryOutcome.ACCEPTED, coordinator.deliver(forgedInvitation, 2), "Forged-control invitation was not retained.");
-				goals.put(2, conversationJoinGoal(acceptPlan, 779));
+				goals.put(2, conversationJoinGoal(acceptPlan, forgedIdentity));
 				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.REJECTED, coordinator.respondToPending(2, forgedIdentity, PhantomPartyCoordinator.PendingResponse.ACCEPT, forgedPlan), "A different plan reused another conversation Goal consent.");
 				coordinator.terminal(forgedInvitation, OptionalLong.empty(), OptionalLong.of(2), TerminalOutcome.CANCELLED, "party.invite.cancelled");
 				coordinator.onPulse();
@@ -179,6 +179,96 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			{
 				coordinator.beginStop();
 				PhantomAssertions.assertTrue(coordinator.finishStop(), "Conversation Party fixture did not stop.");
+			}
+		});
+		registry.add("05-managed-pulse-reserves-conversation-owned-accept", context ->
+		{
+			final MemoryPartyStore states = new MemoryPartyStore();
+			final MemoryGoalStore goals = new MemoryGoalStore();
+			final MemoryPartyBackend backend = new MemoryPartyBackend();
+			final MemberRef invitee = backend.add(2, 202);
+			final PhantomPartyCoordinator coordinator = coordinator(context, states, goals, backend, 16);
+			PhantomAssertions.assertTrue(coordinator.start(), "Invitation ownership fixture did not start.");
+			try
+			{
+				final InvitationIdentity ordinaryIdentity = new InvitationIdentity(201, 700, invitee.characterObjectId());
+				final PartyInvitation ordinary = invitation(ordinaryIdentity, invitee);
+				goals.put(2, goal(7001, PhantomPartyCoordinator.JOIN_GOAL, new PhantomDomainRef("character.object", "700"), 0));
+				PhantomAssertions.assertEquals(PreparationOutcome.ACCEPTED, coordinator.prepare(ordinary, OptionalLong.empty(), OptionalLong.of(2)), "Ordinary join invitation was not prepared.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.DeliveryOutcome.ACCEPTED, coordinator.deliver(ordinary, 2), "Ordinary join invitation was not delivered.");
+				coordinator.onPulse();
+				PhantomAssertions.assertEquals(1, backend.responseCount(), "Ordinary explicit party.join no longer auto-accepts.");
+				PhantomAssertions.assertEquals(PartyInvitationService.Response.ACCEPT, backend.lastResponse(), "Ordinary explicit party.join changed response kind.");
+				coordinator.terminal(ordinary, OptionalLong.empty(), OptionalLong.of(2), TerminalOutcome.CANCELLED, "party.invite.cancelled");
+				coordinator.onPulse();
+
+				final String planId = PhantomPartyModel.sha256("conversation.ownership");
+				final InvitationIdentity exactIdentity = new InvitationIdentity(202, 701, invitee.characterObjectId());
+				final PartyInvitation exact = invitation(exactIdentity, invitee);
+				goals.put(2, conversationJoinGoal(planId, exactIdentity));
+				PhantomAssertions.assertEquals(PreparationOutcome.ACCEPTED, coordinator.prepare(exact, OptionalLong.empty(), OptionalLong.of(2)), "Conversation-owned invitation was not prepared.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.DeliveryOutcome.ACCEPTED, coordinator.deliver(exact, 2), "Conversation-owned invitation was not delivered.");
+				coordinator.onPulse();
+				PhantomAssertions.assertEquals(1, backend.responseCount(), "Generic Party pulse consumed conversation-owned consent.");
+				PhantomAssertions.assertEquals(exactIdentity, coordinator.pendingInvitation(2).orElseThrow().identity(), "Generic Party pulse removed the conversation-owned invitation.");
+				PhantomAssertions.assertTrue(coordinator.conversationResponseOutcome(planId, exactIdentity, PhantomPartyCoordinator.PendingResponse.ACCEPT).isEmpty(), "Generic Party pulse fabricated replay proof.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.COMPLETED, coordinator.respondToPending(2, exactIdentity, PhantomPartyCoordinator.PendingResponse.ACCEPT, planId, true), "Execution-owned exact response did not complete.");
+				PhantomAssertions.assertEquals(2, backend.responseCount(), "Execution-owned exact response was not sent exactly once.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.COMPLETED, coordinator.conversationResponseOutcome(planId, exactIdentity, PhantomPartyCoordinator.PendingResponse.ACCEPT).orElseThrow(), "Exact completed replay outcome changed.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.IDEMPOTENT, coordinator.respondToPending(2, exactIdentity, PhantomPartyCoordinator.PendingResponse.ACCEPT, planId, true), "Exact response retry was not idempotent.");
+				PhantomAssertions.assertEquals(2, backend.responseCount(), "Exact response retry crossed the backend twice.");
+				final InvitationIdentity replacement = new InvitationIdentity(203, exactIdentity.requesterObjectId(), exactIdentity.inviteeObjectId());
+				PhantomAssertions.assertTrue(coordinator.conversationResponseOutcome(planId, replacement, PhantomPartyCoordinator.PendingResponse.ACCEPT).isEmpty(), "Replacement identity inherited exact replay proof.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.REJECTED, coordinator.respondToPending(2, replacement, PhantomPartyCoordinator.PendingResponse.ACCEPT, planId, true), "Same plan accepted a replacement invitation.");
+				final InvitationIdentity otherRequester = new InvitationIdentity(204, 702, exactIdentity.inviteeObjectId());
+				PhantomAssertions.assertTrue(coordinator.conversationResponseOutcome(planId, otherRequester, PhantomPartyCoordinator.PendingResponse.ACCEPT).isEmpty(), "A new requester inherited old conversation consent.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.REJECTED, coordinator.respondToPending(2, otherRequester, PhantomPartyCoordinator.PendingResponse.ACCEPT, planId, true), "Same plan accepted a new requester.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.REJECTED, coordinator.respondToPending(2, exactIdentity, PhantomPartyCoordinator.PendingResponse.REFUSE, planId, true), "Same plan accepted a different response kind.");
+				PhantomAssertions.assertEquals(2, backend.responseCount(), "Mismatched replay attempt crossed the backend.");
+			}
+			finally
+			{
+				coordinator.beginStop();
+				PhantomAssertions.assertTrue(coordinator.finishStop(), "Invitation ownership fixture did not stop.");
+			}
+		});
+		registry.add("06-exact-response-outcomes-are-read-only-and-process-local", context ->
+		{
+			final MemoryGoalStore goals = new MemoryGoalStore();
+			final MemoryPartyBackend backend = new MemoryPartyBackend();
+			final MemberRef invitee = backend.add(2, 202);
+			final PhantomPartyCoordinator coordinator = coordinator(context, new MemoryPartyStore(), goals, backend, 16);
+			PhantomAssertions.assertTrue(coordinator.start(), "Replay outcome fixture did not start.");
+			final InvitationIdentity currentIdentity = new InvitationIdentity(301, 800, invitee.characterObjectId());
+			final PartyInvitation current = invitation(currentIdentity, invitee);
+			final String stalePlan = PhantomPartyModel.sha256("conversation.stale");
+			final String rejectedPlan = PhantomPartyModel.sha256("conversation.rejected");
+			try
+			{
+				PhantomAssertions.assertEquals(PreparationOutcome.ACCEPTED, coordinator.prepare(current, OptionalLong.empty(), OptionalLong.of(2)), "Replay fixture invitation was not prepared.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.DeliveryOutcome.ACCEPTED, coordinator.deliver(current, 2), "Replay fixture invitation was not delivered.");
+				final InvitationIdentity missing = new InvitationIdentity(300, currentIdentity.requesterObjectId(), currentIdentity.inviteeObjectId());
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.STALE, coordinator.respondToPending(2, missing, PhantomPartyCoordinator.PendingResponse.REFUSE, stalePlan, true), "Missing exact invitation did not become STALE.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.STALE, coordinator.conversationResponseOutcome(stalePlan, missing, PhantomPartyCoordinator.PendingResponse.REFUSE).orElseThrow(), "STALE replay outcome changed.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.REJECTED, coordinator.respondToPending(2, currentIdentity, PhantomPartyCoordinator.PendingResponse.ACCEPT, rejectedPlan, true), "Missing exact Goal consent was not REJECTED.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.PendingResponseOutcome.REJECTED, coordinator.conversationResponseOutcome(rejectedPlan, currentIdentity, PhantomPartyCoordinator.PendingResponse.ACCEPT).orElseThrow(), "REJECTED replay outcome changed.");
+				PhantomAssertions.assertEquals(0, backend.responseCount(), "Read-only replay outcomes performed gameplay mutation.");
+			}
+			finally
+			{
+				coordinator.beginStop();
+				PhantomAssertions.assertTrue(coordinator.finishStop(), "Replay outcome fixture did not stop.");
+			}
+			final PhantomPartyCoordinator restarted = coordinator(context, new MemoryPartyStore(), goals, backend, 16);
+			PhantomAssertions.assertTrue(restarted.start(), "Restarted replay fixture did not start.");
+			try
+			{
+				PhantomAssertions.assertTrue(restarted.conversationResponseOutcome(stalePlan, new InvitationIdentity(300, 800, 202), PhantomPartyCoordinator.PendingResponse.REFUSE).isEmpty(), "Process-local replay proof survived coordinator restart.");
+			}
+			finally
+			{
+				restarted.beginStop();
+				PhantomAssertions.assertTrue(restarted.finishStop(), "Restarted replay fixture did not stop.");
 			}
 		});
 	}
@@ -822,14 +912,22 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		return new PhantomGoal(goalId, type, status, new PhantomDomainRef("profile", "1"), target, 1, 0, null, List.of(), null, "party.lifecycle", 500, 0, 0, 0, Map.of(), "party.lifecycle", revision);
 	}
 
-	private static PhantomGoal conversationJoinGoal(String planId, int requesterObjectId)
+	private static PartyInvitation invitation(InvitationIdentity identity, MemberRef invitee)
+	{
+		return new PartyInvitation(identity, identity.requesterObjectId(), MemberRef.real(identity.requesterObjectId()).stableKey(), invitee.characterObjectId(), invitee.stableKey(), PartyDistributionType.FINDERS_KEEPERS, identity.requesterObjectId(), Long.MAX_VALUE);
+	}
+
+	private static PhantomGoal conversationJoinGoal(String planId, InvitationIdentity identity)
 	{
 		final Map<String, Long> constraints = new TreeMap<>();
 		for (int index = 0; index < 4; index++)
 		{
 			constraints.put("conversation.plan." + index, Long.parseUnsignedLong(planId.substring(index * 16, (index + 1) * 16), 16));
 		}
-		return new PhantomGoal(9001, PhantomPartyCoordinator.JOIN_GOAL, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("party", "general"), new PhantomDomainRef("character.object", Integer.toString(requesterObjectId)), 1, 0, null, List.of(), null, "conversation.action", 600, 0, 0, 0, constraints, "conversation.party.accept", 0);
+		constraints.put("party.invitation", identity.sequence());
+		constraints.put("party.requester", (long) identity.requesterObjectId());
+		constraints.put("party.invitee", (long) identity.inviteeObjectId());
+		return new PhantomGoal(9001, PhantomPartyCoordinator.JOIN_GOAL, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("party", "general"), new PhantomDomainRef("character.object", Integer.toString(identity.requesterObjectId())), 1, 0, null, List.of(), null, "conversation.action", 600, 0, 0, 0, constraints, "conversation.party.accept", 0);
 	}
 
 	private static final class MemoryPartyStore implements PhantomPartyPersistencePort
@@ -938,6 +1036,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private PartyInvitationService.Response _lastResponse;
 		private long _invitationSequence;
 		private int _invitationCount;
+		private int _responseCount;
 
 		private void connect(PhantomPartyCoordinator coordinator)
 		{
@@ -957,6 +1056,11 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private PartyInvitationService.Response lastResponse()
 		{
 			return _lastResponse;
+		}
+
+		private int responseCount()
+		{
+			return _responseCount;
 		}
 
 		private MemberRef add(long profileId, int objectId)
@@ -1013,6 +1117,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		@Override
 		public PartyInvitationService.RespondResult respond(MemberRef invitee, PartyInvitationService.Response response, PartyInvitationService.InvitationIdentity identity)
 		{
+			_responseCount++;
 			_lastResponse = response;
 			final PartyInvitationService.RespondOutcome outcome = response == PartyInvitationService.Response.ACCEPT ? PartyInvitationService.RespondOutcome.ACCEPTED : response == PartyInvitationService.Response.REFUSE ? PartyInvitationService.RespondOutcome.REFUSED : PartyInvitationService.RespondOutcome.DISABLED;
 			return new PartyInvitationService.RespondResult(outcome, identity, null);

@@ -40,7 +40,10 @@ import org.l2jmobius.gameserver.model.chat.ChatObservationService.DispatchDescri
 import org.l2jmobius.gameserver.model.chat.ChatObservationService.Origin;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PartyInvitation;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PreparationOutcome;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InvitationIdentity;
 import org.l2jmobius.gameserver.network.clientpackets.Say2;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.network.GameClient;
@@ -54,13 +57,19 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionReceipt;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ActionState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationBinding;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationResponse;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.OutboundState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.Authorization;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationActionProposal;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationResponsePlan;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationState;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationSubject;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.DeliveryPolicy;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.DeliveredObservation;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService.BatchPhase;
@@ -412,6 +421,147 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(chat.generatedDeliveries() >= generatedBefore + 4, "Generated delivery metrics did not record all four actual handler seams.");
 			PhantomAssertions.assertEquals(ingressBefore, _conversation.snapshot().ingressAccepted(), "PHANTOM_GENERATED delivery looped into conversation ingress.");
 			context.record("conversation.outbound.generatedDeliveries", chat.generatedDeliveries() - generatedBefore);
+		});
+		registry.add("02-execution-exclusively-owns-exact-invitation-and-reconciliation", context ->
+		{
+			final PhantomConversationExecutionCatalog executionCatalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml"));
+			final PhantomConversationExecutionStore executionStore = new PhantomConversationExecutionStore(_profiles, executionCatalog);
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
+			final PhantomGameKnowledgeService knowledge = PhantomGameKnowledgeService.inertForTesting(_topology.snapshot().canonicalHash());
+			PhantomAssertions.assertTrue(knowledge.start(), "Invitation ownership knowledge authority did not start.");
+			final MemberRef invitee = MemberRef.phantom(_observerProfile.profileId(), _observer.getObjectId());
+			final AtomicInteger responses = new AtomicInteger();
+			final ConversationPartyBackend backend = new ConversationPartyBackend(invitee, responses);
+			PhantomPartyCoordinator party = conversationParty(goals, backend);
+			PhantomConversationExecutionService execution = null;
+			try
+			{
+				PhantomAssertions.assertTrue(party.start(), "Invitation ownership Party coordinator did not start.");
+				final L2jPhantomConversationExecutionPort port = new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, _topology, party, _materialization, ChatObservationService.getInstance());
+				execution = new PhantomConversationExecutionService(executionCatalog, executionStore, goals, port);
+				PhantomAssertions.assertTrue(execution.start(), "Invitation ownership execution service did not start.");
+
+				final InvitationIdentity exactIdentity = new InvitationIdentity(10, _speaker.getObjectId(), _observer.getObjectId());
+				final PartyInvitation exact = invitation(exactIdentity, _speaker.getName(), _observer.getName());
+				PhantomAssertions.assertEquals(PreparationOutcome.ACCEPTED, party.prepare(exact, OptionalLong.empty(), OptionalLong.of(_observerProfile.profileId())), "Exact conversation invitation was not prepared.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.DeliveryOutcome.ACCEPTED, party.deliver(exact, _observerProfile.profileId()), "Exact conversation invitation was not delivered.");
+				final ConversationResponsePlan acceptPlan = invitationPlan(980010, "party.accept", _speaker.getObjectId());
+				final ExecutionEntry prepared = ExecutionEntry.prepared(acceptPlan);
+				final var before = executionStore.load(_observerProfile.profileId()).orElse(null);
+				executionStore.save(_observerProfile.profileId(), before == null ? -1 : before.rowVersion(), (before == null ? ExecutionState.empty(executionCatalog.hash(), prepared.createdMinute()) : before.state()).add(prepared));
+				execution.publish(acceptPlan);
+				execution.onPulse();
+				final ExecutionEntry bound = executionStore.load(_observerProfile.profileId()).orElseThrow().state().entry(prepared.planId());
+				PhantomAssertions.assertEquals(new InvitationBinding(10, exactIdentity.requesterObjectId(), exactIdentity.inviteeObjectId(), InvitationResponse.ACCEPT), bound.invitationBinding(), "Execution did not bind the exact invitation before Goal submission.");
+				execution.onPulse();
+				PhantomAssertions.assertTrue(goals.load(_observerProfile.profileId()).isPresent(), "Execution did not submit the exact conversation-owned Goal.");
+				party.onPulse();
+				PhantomAssertions.assertEquals(0, responses.get(), "Generic Party pulse auto-accepted a conversation-owned Goal.");
+				PhantomAssertions.assertEquals(exactIdentity, party.pendingInvitation(_observerProfile.profileId()).orElseThrow().identity(), "Generic Party pulse removed the exact invitation.");
+				execution.onPulse();
+				PhantomAssertions.assertEquals(1, responses.get(), "Execution service did not answer the exact invitation exactly once.");
+				for (int pulse = 0; pulse < 16; pulse++)
+				{
+					execution.onPulse();
+				}
+				PhantomAssertions.assertEquals(1, responses.get(), "Execution retried a completed invitation response.");
+				PhantomAssertions.assertEquals(PhantomConversationExecutionPort.ResultStatus.COMPLETED, port.reconcileInvitation(_observerProfile.profileId(), bound), "Exact completed replay did not win over conflicting pending state.");
+				PhantomAssertions.assertEquals(1, responses.get(), "Replay reconciliation invoked the backend again.");
+
+				execution.beginStop();
+				PhantomAssertions.assertTrue(execution.finishStop(), "Invitation ownership execution service did not stop.");
+				execution = null;
+				party.beginStop();
+				PhantomAssertions.assertTrue(party.finishStop(), "Invitation ownership Party coordinator did not stop.");
+				final var completedGoal = goals.load(_observerProfile.profileId()).orElseThrow();
+				goals.delete(_observerProfile.profileId(), completedGoal.rowVersion());
+
+				party = conversationParty(goals, backend);
+				PhantomAssertions.assertTrue(party.start(), "Original replacement fixture Party coordinator did not start.");
+				final InvitationIdentity originalIdentity = new InvitationIdentity(20, exactIdentity.requesterObjectId(), exactIdentity.inviteeObjectId());
+				final PartyInvitation original = invitation(originalIdentity, _speaker.getName(), _observer.getName());
+				PhantomAssertions.assertEquals(PreparationOutcome.ACCEPTED, party.prepare(original, OptionalLong.empty(), OptionalLong.of(_observerProfile.profileId())), "Original replacement fixture invitation was not prepared.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.DeliveryOutcome.ACCEPTED, party.deliver(original, _observerProfile.profileId()), "Original replacement fixture invitation was not delivered.");
+				final ConversationResponsePlan stalePlan = invitationPlan(980012, "party.accept", _speaker.getObjectId());
+				final ExecutionEntry stalePrepared = ExecutionEntry.prepared(stalePlan);
+				final var beforeStale = executionStore.load(_observerProfile.profileId()).orElseThrow();
+				executionStore.save(_observerProfile.profileId(), beforeStale.rowVersion(), beforeStale.state().add(stalePrepared));
+				final L2jPhantomConversationExecutionPort originalPort = new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, _topology, party, _materialization, ChatObservationService.getInstance());
+				execution = new PhantomConversationExecutionService(executionCatalog, executionStore, goals, originalPort);
+				PhantomAssertions.assertTrue(execution.start(), "Original replacement fixture execution service did not start.");
+				execution.publish(stalePlan);
+				execution.onPulse();
+				execution.onPulse();
+				final ExecutionEntry staleBound = executionStore.load(_observerProfile.profileId()).orElseThrow().state().entry(stalePrepared.planId());
+				PhantomAssertions.assertEquals(ActionState.SUBMITTED, staleBound.actionState(), "Old plan did not reach durable SUBMITTED before replacement.");
+				execution.beginStop();
+				PhantomAssertions.assertTrue(execution.finishStop(), "Original replacement fixture execution service did not stop.");
+				execution = null;
+				party.beginStop();
+				PhantomAssertions.assertTrue(party.finishStop(), "Original replacement fixture Party coordinator did not stop.");
+
+				party = conversationParty(goals, backend);
+				PhantomAssertions.assertTrue(party.start(), "Replacement invitation Party coordinator did not start.");
+				final InvitationIdentity replacementIdentity = new InvitationIdentity(21, exactIdentity.requesterObjectId(), exactIdentity.inviteeObjectId());
+				final PartyInvitation replacement = invitation(replacementIdentity, _speaker.getName(), _observer.getName());
+				PhantomAssertions.assertEquals(PreparationOutcome.ACCEPTED, party.prepare(replacement, OptionalLong.empty(), OptionalLong.of(_observerProfile.profileId())), "Replacement invitation was not prepared.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.DeliveryOutcome.ACCEPTED, party.deliver(replacement, _observerProfile.profileId()), "Replacement invitation was not delivered.");
+				party.onPulse();
+				PhantomAssertions.assertEquals(1, responses.get(), "Old conversation consent accepted a replacement sequence.");
+				final L2jPhantomConversationExecutionPort replacementPort = new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, _topology, party, _materialization, ChatObservationService.getInstance());
+				PhantomAssertions.assertEquals(PhantomConversationExecutionPort.ResultStatus.STALE, replacementPort.reconcileInvitation(_observerProfile.profileId(), staleBound), "Replacement invitation did not reconcile the old plan as STALE.");
+				execution = new PhantomConversationExecutionService(executionCatalog, executionStore, goals, replacementPort);
+				PhantomAssertions.assertTrue(execution.start(), "Replacement reconciliation execution service did not start.");
+				execution.publish(stalePlan);
+				for (int pulse = 0; (pulse < 32) && executionStore.load(_observerProfile.profileId()).orElseThrow().state().receipts().stream().noneMatch(receipt -> receipt.planId().equals(staleBound.planId())); pulse++)
+				{
+					execution.onPulse();
+				}
+				final ExecutionReceipt stale = executionStore.load(_observerProfile.profileId()).orElseThrow().state().receipts().stream().filter(receipt -> receipt.planId().equals(staleBound.planId())).findFirst().orElseThrow();
+				PhantomAssertions.assertEquals(ActionState.REJECTED, stale.actionState(), "Replacement invitation did not terminalize the old execution as rejected.");
+				PhantomAssertions.assertEquals("party.stale", stale.reasonKey(), "Replacement invitation produced a non-stale result.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ABANDONED, goals.load(_observerProfile.profileId()).orElseThrow().goal().status(), "Replacement invitation left the old conversation Goal active.");
+				PhantomAssertions.assertEquals(1, responses.get(), "Replacement reconciliation invoked the backend.");
+				execution.beginStop();
+				PhantomAssertions.assertTrue(execution.finishStop(), "Replacement reconciliation execution service did not stop.");
+				execution = null;
+
+				party.beginStop();
+				PhantomAssertions.assertTrue(party.finishStop(), "Replacement invitation Party coordinator did not stop.");
+				party = conversationParty(goals, backend);
+				PhantomAssertions.assertTrue(party.start(), "No-proof Party coordinator did not start.");
+				final L2jPhantomConversationExecutionPort restartedPort = new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, _topology, party, _materialization, ChatObservationService.getInstance());
+				PhantomAssertions.assertEquals(PhantomConversationExecutionPort.ResultStatus.UNCERTAIN, restartedPort.reconcileInvitation(_observerProfile.profileId(), bound), "ACCEPT without replay or canonical membership proof was reported as success.");
+				final ConversationResponsePlan refusePlan = invitationPlan(980011, "party.refuse", _speaker.getObjectId());
+				final InvitationBinding refusal = new InvitationBinding(12, exactIdentity.requesterObjectId(), exactIdentity.inviteeObjectId(), InvitationResponse.REFUSE);
+				final ExecutionEntry refused = ExecutionEntry.prepared(refusePlan).withInvitation(refusal);
+				PhantomAssertions.assertEquals(PhantomConversationExecutionPort.ResultStatus.UNCERTAIN, restartedPort.reconcileInvitation(_observerProfile.profileId(), refused), "REFUSE without process-local replay proof was reported as success.");
+				final var restartState = executionStore.load(_observerProfile.profileId()).orElseThrow();
+				executionStore.save(_observerProfile.profileId(), restartState.rowVersion(), restartState.state().add(refused));
+				execution = new PhantomConversationExecutionService(executionCatalog, executionStore, goals, restartedPort);
+				PhantomAssertions.assertTrue(execution.start(), "No-proof reconciliation execution service did not start.");
+				execution.publish(refusePlan);
+				for (int pulse = 0; (pulse < 32) && executionStore.load(_observerProfile.profileId()).orElseThrow().state().receipts().stream().noneMatch(receipt -> receipt.planId().equals(refused.planId())); pulse++)
+				{
+					execution.onPulse();
+				}
+				final ExecutionReceipt uncertain = executionStore.load(_observerProfile.profileId()).orElseThrow().state().receipts().stream().filter(receipt -> receipt.planId().equals(refused.planId())).findFirst().orElseThrow();
+				PhantomAssertions.assertEquals(ActionState.UNCERTAIN, uncertain.actionState(), "No-proof refusal did not remain UNCERTAIN.");
+				PhantomAssertions.assertEquals("execution.failed", uncertain.reasonKey(), "No-proof refusal produced a misleading success response.");
+				PhantomAssertions.assertEquals(1, responses.get(), "No-proof reconciliation invoked the backend.");
+			}
+			finally
+			{
+				if (execution != null)
+				{
+					execution.beginStop();
+					execution.finishStop();
+				}
+				party.beginStop();
+				party.finishStop();
+				knowledge.beginStop();
+				knowledge.finishStop();
+			}
 		});
 	}
 
@@ -803,6 +953,20 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		return new ConversationResponsePlan(profileId, dispatchId, observation, channel, new ConversationSubject(new PhantomDomainRef("character.object", Integer.toString(counterpartObjectId))), semantic, "ack.accepted", "neutral", "Проверенный ответ.", null, now + 1, List.of());
 	}
 
+	private ConversationResponsePlan invitationPlan(long dispatchId, String proposalKey, int counterpartObjectId)
+	{
+		final long now = System.currentTimeMillis() / 60000L;
+		final String observation = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.sha256("invitation.ownership|" + dispatchId);
+		final String semantic = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.sha256("invitation.ownership.semantic|" + dispatchId);
+		final ConversationActionProposal proposal = new ConversationActionProposal(proposalKey, new PhantomDomainRef("profile", Long.toString(_observerProfile.profileId())), null, List.of(), semantic, observation, 10000, now, now + 5, Authorization.CHECKPOINT_2_REQUIRED);
+		return new ConversationResponsePlan(_observerProfile.profileId(), dispatchId, observation, ChatType.WHISPER, new ConversationSubject(new PhantomDomainRef("character.object", Integer.toString(counterpartObjectId))), semantic, "ack.accepted", "neutral", "Проверенный ответ.", proposal, DeliveryPolicy.SUPPRESS_ACK, now + 1, List.of());
+	}
+
+	private static PartyInvitation invitation(InvitationIdentity identity, String requesterName, String inviteeName)
+	{
+		return new PartyInvitation(identity, identity.requesterObjectId(), requesterName, identity.inviteeObjectId(), inviteeName, PartyDistributionType.FINDERS_KEEPERS, identity.requesterObjectId(), Long.MAX_VALUE);
+	}
+
 	private PhantomPartyCoordinator idleParty(PhantomGoalStore goals)
 	{
 		final PhantomPartyPersistencePort states = new PhantomPartyPersistencePort()
@@ -895,6 +1059,112 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		};
 		final PhantomPartyRoleCatalog roles = PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml"));
 		return new PhantomPartyCoordinator(states, goals, backend, roles, new PhantomPartyRouteCoordinator((PhantomNavigationService) null, null), new PhantomPartyTactics(null, backend), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 16);
+	}
+
+	private PhantomPartyCoordinator conversationParty(PhantomGoalStore goals, PhantomPartyBackend backend)
+	{
+		final PhantomPartyPersistencePort states = new PhantomPartyPersistencePort()
+		{
+			@Override
+			public Optional<StoredPartyState> load(long profileId)
+			{
+				return Optional.empty();
+			}
+
+			@Override
+			public StoredPartyState save(long profileId, long expectedRowVersion, PartyState state)
+			{
+				throw new UnsupportedOperationException("Conversation invitation fixture does not persist Party state.");
+			}
+
+			@Override
+			public List<StoredPartyState> loadManagedAfter(long exclusiveProfileId, int pageSize)
+			{
+				return List.of();
+			}
+		};
+		final PhantomPartyRoleCatalog roles = PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml"));
+		return new PhantomPartyCoordinator(states, goals, backend, roles, new PhantomPartyRouteCoordinator((PhantomNavigationService) null, null), new PhantomPartyTactics(null, backend), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 16);
+	}
+
+	private static final class ConversationPartyBackend implements PhantomPartyBackend
+	{
+		private final MemberRef _invitee;
+		private final AtomicInteger _responses;
+
+		private ConversationPartyBackend(MemberRef invitee, AtomicInteger responses)
+		{
+			_invitee = invitee;
+			_responses = responses;
+		}
+
+		@Override
+		public OptionalLong managedProfileId(int characterObjectId)
+		{
+			return characterObjectId == _invitee.characterObjectId() ? OptionalLong.of(_invitee.profileId()) : OptionalLong.empty();
+		}
+
+		@Override
+		public Optional<MemberRef> currentMember(long profileId)
+		{
+			return profileId == _invitee.profileId() ? Optional.of(_invitee) : Optional.empty();
+		}
+
+		@Override
+		public PartyInvitationService.InviteResult invite(MemberRef requester, MemberRef target, PartyDistributionType distribution)
+		{
+			throw new UnsupportedOperationException("Conversation invitation fixture does not invite.");
+		}
+
+		@Override
+		public PartyInvitationService.RespondResult respond(MemberRef invitee, PartyInvitationService.Response response, InvitationIdentity identity)
+		{
+			_responses.incrementAndGet();
+			final PartyInvitationService.RespondOutcome outcome = response == PartyInvitationService.Response.ACCEPT ? PartyInvitationService.RespondOutcome.ACCEPTED : PartyInvitationService.RespondOutcome.REFUSED;
+			return new PartyInvitationService.RespondResult(outcome, identity, null);
+		}
+
+		@Override
+		public PartyInvitationService.MembershipOutcome leave(MemberRef member)
+		{
+			throw new UnsupportedOperationException("Conversation invitation fixture does not leave.");
+		}
+
+		@Override
+		public PartyInvitationService.MembershipOutcome expel(MemberRef requester, MemberRef member)
+		{
+			throw new UnsupportedOperationException("Conversation invitation fixture does not expel.");
+		}
+
+		@Override
+		public PartyInvitationService.MembershipOutcome transferLeader(MemberRef requester, MemberRef member)
+		{
+			throw new UnsupportedOperationException("Conversation invitation fixture does not transfer leadership.");
+		}
+
+		@Override
+		public Optional<PartySnapshot> observe(MemberRef member)
+		{
+			return Optional.empty();
+		}
+
+		@Override
+		public Optional<MemberSnapshot> memberSnapshot(MemberRef member)
+		{
+			return Optional.empty();
+		}
+
+		@Override
+		public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId)
+		{
+			return List.of();
+		}
+
+		@Override
+		public boolean materialize(long profileId)
+		{
+			return false;
+		}
 	}
 
 	private void stopConversation()

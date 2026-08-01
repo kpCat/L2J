@@ -1,159 +1,113 @@
-# Goal 020 Checkpoint 2 — conversation execution safety completion
+# Goal 020 — exact conversation invitation ownership micro-completion
 
 ## Статус и provenance
 
 - Status: `COMPLETED_PENDING_INDEPENDENT_REVIEW`.
-- Foundation verdict: `ACCEPT_WITH_EXECUTION_SAFETY_COMPLETION`.
-- Required parent: `6d7ac26ff614d0e565589fdfc303684743b32cd9`.
-- Subject: `fix(phantoms): finalize conversation execution safety`.
+- Goal 020 Checkpoint 2 foundation: принята для bounded ownership completion.
+- Required parent: `75e3a07324946adb69c87e8628b4f11ac749ce8f`.
+- Subject: `fix(phantoms): close exact conversation invitation ownership`.
 - Branch: `feature/phantom-world`.
 - Seed: `20002002`.
 - Commit SHA: self; exact SHA фиксируют post-commit verifiers без amend.
 
 ## Summary
 
-Восемь обязательных execution-safety findings закрыты в bounded completion
-Checkpoint 2. Planner теперь резервирует место для будущего receipt до атомарного
-handoff, invitation response связывается с exact sequence/requester/invitee/kind,
-а restart не повторяет неподтверждённую Party или chat операцию.
+Последний micro-completion Goal 020 закрывает единственную оставшуюся границу
+ownership: generic `PhantomPartyCoordinator` pulse больше не принимает и не
+отклоняет invitation по conversation-owned `party.join` Goal. Полный Goal
+распознаётся по ACTIVE status, типу/purpose/reason, четырём частям plan hash и
+exact sequence/requester/invitee constraints. Обычный non-conversation
+`party.join` сохраняет canonical automatic accept.
 
-Query boundary возвращает не готовые фразы, а не более восьми уникальных
-`QueryFact` с authority evidence. Русские labels и templates принадлежат XML
-catalog. Conversation-owned Goal хранит plan evidence, current party
-group/generation и topology snapshot; допустимая замена membership Goal выполняется
-в одной транзакции с `conversation.execution`.
+Execution service остаётся единственным владельцем exact ACCEPT/REFUSE через
+`respondToPending`. Coordinator предоставляет read-only process-local outcome
+только для полного ключа plan + identity + response kind. Production
+reconciliation сначала читает этот outcome, затем использует существующее
+canonical membership/Goal evidence. Отсутствие proof после restart остаётся
+`UNCERTAIN`; disappearance invitation не считается success.
 
-WHISPER, PARTY, GENERAL и TRADE проходят реальные зарегистрированные
-`IChatHandler` под `Origin.PHANTOM_GENERATED`. Успех требует доставки exact
-counterpart; частичная доставка и exception становятся `UNCERTAIN`, нулевая —
-`FAILED`. `SUPPRESS_ACK` подавляет только chat acknowledgement, но не действие.
-
-Support, assist и regroup остаются typed `DEFERRED` до Goal 024.
-
-## Архитектурные решения
-
-- Матрица admission учитывает live receipts, live entries и новый entry:
-  `15+0+1` разрешено, `15+1+1` и `16+0+1` отклоняются до изменения planner state.
-- Codec пишет `CXE2`, читает `CXE1/CXE2`, fail-closed на неизвестной версии,
-  trailing bytes и envelope больше 4096 bytes.
-- Exact invitation binding сохраняется до response boundary. ACCEPT после crash
-  завершается только по точному membership/Goal proof; REFUSE без durable proof
-  остаётся `UNCERTAIN`.
-- Party replay key включает plan ID, invitation identity и response kind; outcome
-  переиспользуется только для точного ключа.
-- Execution selection имеет детерминированный приоритет recovery/compaction/work;
-  capacity retry назначается к earliest receipt expiry без pulse spin.
-- Leave может заменить exact leader/member membership Goal; travel — только
-  leader Goal. Member travel без отдельного контракта отклоняется.
-- Conversation code не выполняет gameplay mutation и не владеет worker/thread.
+Все ранее принятые результаты Goal 020 сохранены: atomic handoff, capacity
+reservation, CXE1/CXE2, durable binding, structured query facts, SUPPRESS_ACK,
+Goal supersession, exact-counterpart delivery, DISPATCHING recovery,
+PHANTOM_GENERATED loop prevention, PHANTOM-only ingress и bounded lifecycle.
+Support/assist/regroup остаются typed `DEFERRED` до Goal 024.
 
 ## Changed files и scope
 
-- Changed production/data: 12 из 14.
-- New production/data: 0 из 2.
-- Total changed: 17 из 26.
-- Schema/migration/config keys: отсутствуют.
-- `Player.java`, `Party.java`, existing chat handlers и другие хроники не менялись.
+- Production: 3 из 4; new production: 0.
+- Total: 9 из 10.
+- Data/schema/config: не менялись.
+- `Player.java`, `Party.java`, chat handlers, worker/thread/executor/Future/task:
+  не менялись и не добавлялись.
 
-Production/data:
+Production:
 
-- `dist/game/data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml`;
-- `java/org/l2jmobius/gameserver/model/chat/ChatObservationService.java`;
-- `java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationModel.java`;
-- `java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationService.java`;
-- шесть `PhantomConversationExecution*` contracts/catalog/codec/store/service files;
+- `java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java`;
 - `java/org/l2jmobius/gameserver/phantoms/conversation/L2jPhantomConversationExecutionPort.java`;
-- `java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java`.
+- `java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionService.java`.
 
-Test/process artifacts:
+Tests/process:
 
-- `PhantomConversationExecutionSuite.java`;
-- `PhantomConversationIntegrationSuite.java`;
-- `verify-task-020c2.ps1`;
+- `test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java`;
+- `test/java/org/l2jmobius/tests/phantoms/PhantomConversationExecutionSuite.java`;
+- `test/java/org/l2jmobius/tests/phantoms/PhantomConversationIntegrationSuite.java`;
+- `tools/phantoms/verify-task-020c2.ps1`;
 - этот отчёт и independent review handoff.
 
-## DB, data и config
-
-- Использовалась только `l2jmobiush5_phantom_test`; production DB не менялась.
-- Schema и migrations не менялись.
-- Новый config key не добавлялся.
-- XML policy сохраняет 13 proposals и hard bounds; добавлены только строгие
-  structured fact labels.
-
-## Focused results
+## Focused evidence
 
 - `compile-tests`: PASS, 2108 production + 79 test sources.
-- managed ingress: PASS, 4/4.
-- catalog/codec: PASS, 4/4.
-- atomic handoff/capacity: PASS, 3/3.
-- structured queries: PASS, 3/3.
-- canonical invitation: PASS, 4/4.
-- party actions: PASS, 7/7.
-- real four-channel outbound: PASS, 1/1.
-- restart idempotency: PASS, 4/4.
-- execution lifecycle/performance: PASS, 3/3.
+- canonical invitation: PASS, 6/6.
+- real conversation outbound/ownership integration: PASS, 2/2 после исправления
+  test-only response-act fixture; первый запуск честно упал до ownership boundary
+  на неизвестном `party.accept` response act.
 
-Evidence включает four/five slot boundary, receipt matrix и expiry reopen,
-binding round-trip, replacement invitation, accept/refuse crash recovery,
-ack suppression, atomic Goal supersession, wrong/zero/exception delivery,
-recovered `DISPATCHING` priority и отсутствие capacity spin.
+Dynamic evidence проверяет:
+
+- ordinary ACTIVE non-conversation `party.join` продолжает auto-accept;
+- exact conversation-owned Goal остаётся pending в generic Party pulse;
+- execution service отвечает exact invitation ровно один раз;
+- replacement sequence того же requester становится `STALE`;
+- новый requester и другой response kind не наследуют consent;
+- exact COMPLETED/STALE/REJECTED outcomes сохраняют тип;
+- mismatch не наследует replay proof;
+- coordinator restart теряет только process-local proof;
+- ACCEPT/REFUSE без replay/canonical proof остаются `UNCERTAIN`;
+- no-proof refusal получает `execution.failed`, а не misleading success.
 
 ## Terminal gates
 
-- Affected aggregate на окончательном production/test дереве: PASS,
-  `BUILD SUCCESSFUL`, 1:52.
-- Verifier 020c1 descendant check: PASS, `TASK020C1_VERIFIER_OK`.
-- Verifier 020c2 working mode: PASS, `TASK020C2_VERIFIER_OK`; scope 17,
-  production 12, new production 0, policy SHA-256
-  `AFDEA6953131C29508233BED64ABCD77FFD25C8FCA07A303D1FEAB78CA6148A6`.
-- Единственный final checkpoint2 aggregate: PASS, `BUILD SUCCESSFUL`, 0:53.
-- Один full `ant verify`: обязательный post-freeze commit condition; commit не
-  создаётся без `BUILD SUCCESSFUL`.
-- Standalone `ant jar`: обязательный post-freeze commit condition; commit не
-  создаётся без `BUILD SUCCESSFUL` и рабочих JAR в `dist/libs`.
-- Mojibake-маркеры в 17 изменённых файлах: PASS.
-- Escaped Cyrillic в 17 изменённых файлах: PASS.
-- Ordinary commit/push: post-freeze evidence; amend/rebase/squash/merge/force
-  запрещены.
-- Два byte-identical accepted verifier 020c2: обязательное post-commit evidence.
+- conversation party-action: PASS, 7/7;
+- conversation restart: PASS, 5/5;
+- Party lifecycle: PASS, 11/11;
+- verifier 020c1: PASS;
+- working verifier 020c2: PASS;
+- единственный final Goal 020 aggregate: PASS, `BUILD SUCCESSFUL`, 57 s.
 
-## Ограничения и риски
+После content freeze выполняются один полный `ant verify`, отдельный `ant jar`,
+ordinary commit/push и ровно два accepted verifier 020c2. Они являются
+обязательными условиями передачи результата на independent review; при любом
+отрицательном результате commit/push не выполняются и статус не считается
+достигнутым.
 
-- Протокол High Five не подтверждает получение клиентом: сохранённый
-  `DISPATCHING` после crash становится `UNCERTAIN`, поэтому допустима потеря, но
-  автоматический duplicate запрещён.
-- REFUSE не имеет durable membership effect и после crash честно остаётся
-  `UNCERTAIN`.
-- Receipt backpressure намеренно задерживает профиль до replay expiry.
-- Query сообщает только текущие bounded authoritative facts и не обещает
-  route/purchase/combat result.
-- Tactical support/assist/regroup остаётся вне scope до Goal 024.
-- Completion ещё не прошла независимый review.
+## DB, performance и риски
 
-## Read-first и deviations
+- Используется только `l2jmobiush5_phantom_test`; production DB не меняется.
+- Новый persistence component отсутствует; replay proof намеренно process-local и
+  ограничен существующим bounded map на 512 записей.
+- Generic Party pulse не создаёт новый response path и не удаляет pending entry.
+- После полного restart REFUSE без proof не может быть подтверждён и остаётся
+  `UNCERTAIN`; это безопаснее ложного success или повторной gameplay-команды.
+- Goal 021 и Goal 025 не начаты.
 
-Прочитаны completion attachment, закрытый READ_SET, два C2 suite, verifier и
-foundation report/review. Переиспользованы multi-component transaction,
-goal.runtime optimistic mutation, shared composite scheduler, canonical Party
-invitation coordinator, Game Knowledge/topology queries, materialization action
-lease и текущий chat handler registry.
+## Read-first и Git
 
-Root README и `docs/phantoms/CONTEXT_INDEX.md` отсутствуют и повторно не искались.
-Для диагностики fixture дополнительно read-only просмотрены четыре текущих chat
-handler и ближайшие `Party` group methods; production handler/Party code не менялся.
-Apache Ant отсутствовал в PATH, поэтому использован официальный локальный
-Apache Ant 1.10.17 из пользовательского cache; в repository он не добавлялся.
+Прочитаны только attachment, четыре разрешённых production-кандидата, три
+целевых suite, verifier и актуальные Goal 020 handoff-документы. Переиспользованы
+существующие exact replay key, Goal evidence helpers, canonical Party backend и
+shared execution pulse. Исходные Goal 020 packages, roadmap, master plan, старые
+reports и unrelated subsystems не перечитывались.
 
-## Git
-
-Git-команды разрешены completion workflow только для provenance/scope/diff,
-ordinary commit и push. До terminal gate использованы `git status`,
-`git branch --show-current`, `git rev-parse`, `git diff --name-status`,
-`git diff --stat`, `git diff --numstat`, bounded `git diff` и
-`git ls-files --others --exclude-standard`. После freeze допустимы только
-`git diff --check`, bounded diff audit, `git add`, staged audit, обычный commit и
-`git push origin feature/phantom-world`. Amend, rebase, squash, merge, reset,
+Git разрешён micro-completion workflow для provenance/scope/diff, exact staging,
+одного ordinary commit и обычного push. Amend, rebase, squash, merge, reset,
 restore, force и force-with-lease не используются.
-
-Следующий шаг после terminal gates — только независимый review completion;
-Goal 021/025 не начат.
