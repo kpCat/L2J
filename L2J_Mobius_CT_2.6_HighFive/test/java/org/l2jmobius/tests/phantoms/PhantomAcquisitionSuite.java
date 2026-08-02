@@ -95,6 +95,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Ite
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ItemFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.RecipeFact;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
@@ -250,12 +251,14 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		if ("recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", "")))
 		{
 			registry.add("01-active-service-exact-recipe-inventory-truth", this::testProductionRecipeInventoryTruth);
+			registry.add("02-failed-probe-excludes-recipe-before-service-inventory", this::testRecipeProbeUnionServiceBounds);
 			return;
 		}
 		registry.add("01-production-direct-and-multilevel-recipes", this::testProductionRecipes);
 		registry.add("02-inventory-ceiling-shared-dag-and-deferred-leaves", this::testSharedRecipeDag);
 		registry.add("03-cycle-depth-node-deficit-and-prerequisite-controls", this::testRecipeNegativeControls);
 		registry.add("04-active-service-exact-recipe-inventory-truth", this::testProductionRecipeInventoryTruth);
+		registry.add("05-failed-probe-excludes-recipe-before-service-inventory", this::testRecipeProbeUnionServiceBounds);
 	}
 
 	private void registerSourceSwitching(PhantomTestRegistry registry)
@@ -435,28 +438,53 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 	{
 		try (SyntheticSource fixture = syntheticSource(context))
 		{
+			final PhantomAcquisitionSourcePlanner.Result deathTie = fixture.planned().result();
+			PhantomAssertions.assertEquals("source.ambiguous", deathTie.reasonKey(), "Two equal death sources were not reported as ambiguous.");
+			PhantomAssertions.assertTrue(deathTie.selected() == null, "Equal death sources selected a source.");
+			PhantomAssertions.assertTrue((deathTie.ranked().size() == 2) && deathTie.ranked().stream().allMatch(value -> value.source().method() == Method.DEATH_DROP) && (deathTie.ranked().get(0).score() == deathTie.ranked().get(1).score()), "Preferred death bonus did not preserve the same-method tie: " + deathTie);
+			final PhantomAcquisitionSourcePlanner.Result repeatedDeathTie = fixture.planned().planner().plan(fixture.planned().request());
+			PhantomAssertions.assertTrue(Arrays.equals(deathTie.toString().getBytes(StandardCharsets.UTF_8), repeatedDeathTie.toString().getBytes(StandardCharsets.UTF_8)), "Repeated equal death ranking was not byte-identical.");
+
 			final String equalPreferences = Files.readString(xml(context), StandardCharsets.UTF_8).replace("<method key=\"death_drop\" status=\"EXECUTABLE\" preference=\"700\" />", "<method key=\"death_drop\" status=\"EXECUTABLE\" preference=\"800\" />");
 			final Path policy = Files.createTempFile(context.reportsDirectory(), "acquisition-cross-method-", ".xml");
 			Files.writeString(policy, equalPreferences, StandardCharsets.UTF_8);
 			try
 			{
 				final PhantomAcquisitionSourcePlanner crossPlanner = new PhantomAcquisitionSourcePlanner(PhantomAcquisitionCatalog.load(policy), fixture.service().query(), fixture.topology(), _production.progression());
-				final var crossRequest = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(254, 11, 42, 1), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), null, "synthetic.anchor", "", new ResourceEvidence(0, 100, 0, 100, true), Map.of(), 0);
+				final ResourceEvidence resources = new ResourceEvidence(0, 100, 0, 100, true);
+				final var spoilTieRequest = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(254, 11, 42, 1), Set.of(Method.SPOIL_SWEEP), Method.SPOIL_SWEEP, "synthetic.anchor", "", resources, Map.of(), 0);
+				final var spoilTie = crossPlanner.plan(spoilTieRequest);
+				PhantomAssertions.assertEquals("source.ambiguous", spoilTie.reasonKey(), "Two equal spoil sources were not reported as ambiguous.");
+				PhantomAssertions.assertTrue((spoilTie.selected() == null) && (spoilTie.ranked().size() == 2) && spoilTie.ranked().stream().allMatch(value -> value.source().method() == Method.SPOIL_SWEEP) && (spoilTie.ranked().get(0).score() == spoilTie.ranked().get(1).score()), "Preferred spoil bonus did not preserve the same-method tie.");
+
+				final var allSourcesRequest = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(254, 11, 42, 1), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), null, "synthetic.anchor", "", resources, Map.of(), 0);
+				final var allSources = crossPlanner.plan(allSourcesRequest);
+				final Map<String, Candidate> coolingDuplicates = new LinkedHashMap<>();
+				final Set<Method> retainedMethods = java.util.EnumSet.noneOf(Method.class);
+				for (RankedSource value : allSources.ranked())
+				{
+					if (!retainedMethods.add(value.source().method()))
+					{
+						coolingDuplicates.put(value.source().sourceId(), new Candidate(value.source().sourceId(), value.source().method(), value.score(), 3, 10, "source.target_unavailable"));
+					}
+				}
+				final var crossRequest = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(254, 11, 42, 1), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), null, "synthetic.anchor", "", resources, coolingDuplicates, 11);
 				final var cross = crossPlanner.plan(crossRequest);
 				PhantomAssertions.assertEquals("source.ambiguous", cross.reasonKey(), "Cross-method near tie was not reported as ambiguous.");
 				PhantomAssertions.assertTrue(cross.selected() == null, "Cross-method near tie selected a source.");
 				PhantomAssertions.assertTrue(cross.ranked().size() > 1 && cross.ranked().get(0).source().method() != cross.ranked().get(1).source().method(), "Cross-method ambiguity control did not compare different methods.");
 				for (Method preferred : List.of(Method.DEATH_DROP, Method.SPOIL_SWEEP))
 				{
-					final var preferredRequest = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(254, 11, 42, 1), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), preferred, "synthetic.anchor", "", new ResourceEvidence(0, 100, 0, 100, true), Map.of(), 0);
+					final var preferredRequest = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(254, 11, 42, 1), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), preferred, "synthetic.anchor", "", resources, coolingDuplicates, 11);
 					final var preferredResult = crossPlanner.plan(preferredRequest);
 					PhantomAssertions.assertEquals(preferred, preferredResult.selected().source().method(), "Preferred method bonus was applied after ambiguity for " + preferred);
 					PhantomAssertions.assertEquals(preferredResult, crossPlanner.plan(preferredRequest), "Preferred method ranking is not deterministic for " + preferred);
 				}
-				final var ineligibleSpoil = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), Method.SPOIL_SWEEP, "synthetic.anchor", "", new ResourceEvidence(0, 100, 0, 100, true), Map.of(), 0);
+				final var ineligibleSpoil = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), Method.SPOIL_SWEEP, "synthetic.anchor", "", resources, coolingDuplicates, 11);
 				PhantomAssertions.assertEquals(Method.DEATH_DROP, crossPlanner.plan(ineligibleSpoil).selected().source().method(), "Preferred bonus made an ineligible Spoil source executable.");
-				final Map<String, Candidate> coolingSpoil = cross.ranked().stream().filter(value -> value.source().method() == Method.SPOIL_SWEEP).collect(java.util.stream.Collectors.toUnmodifiableMap(value -> value.source().sourceId(), value -> new Candidate(value.source().sourceId(), value.source().method(), value.score(), 3, 10, "source.target_unavailable")));
-				final var coolingRequest = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(254, 11, 42, 1), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), Method.SPOIL_SWEEP, "synthetic.anchor", "", new ResourceEvidence(0, 100, 0, 100, true), coolingSpoil, 11);
+				final Map<String, Candidate> coolingSpoil = new LinkedHashMap<>(coolingDuplicates);
+				allSources.ranked().stream().filter(value -> value.source().method() == Method.SPOIL_SWEEP).forEach(value -> coolingSpoil.put(value.source().sourceId(), new Candidate(value.source().sourceId(), value.source().method(), value.score(), 3, 10, "source.target_unavailable")));
+				final var coolingRequest = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(254, 11, 42, 1), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), Method.SPOIL_SWEEP, "synthetic.anchor", "", resources, coolingSpoil, 11);
 				PhantomAssertions.assertEquals(Method.DEATH_DROP, crossPlanner.plan(coolingRequest).selected().source().method(), "Preferred bonus bypassed source cooldown.");
 			}
 			finally
@@ -540,7 +568,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 
 	private void testRecipeNegativeControls(PhantomTestContext context) throws Exception
 	{
-		for (RecipeShape shape : List.of(RecipeShape.CYCLE, RecipeShape.DEPTH, RecipeShape.NODES, RecipeShape.DEFICITS, RecipeShape.ALTERNATIVE_UNION))
+		for (RecipeShape shape : List.of(RecipeShape.CYCLE, RecipeShape.DEPTH, RecipeShape.NODES, RecipeShape.DEFICITS))
 		{
 			try (SyntheticKnowledge fixture = syntheticRecipes(context, shape))
 			{
@@ -553,6 +581,20 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 					PhantomAssertions.assertEquals("recipe.bounds", planner.probe(7, 1).reasonKey(), "Recipe probe bound failure is not typed: " + shape);
 				}
 			}
+		}
+		try (SyntheticKnowledge fixture = syntheticRecipes(context, RecipeShape.ALTERNATIVE_UNION))
+		{
+			final PhantomAcquisitionRecipePlanner planner = new PhantomAcquisitionRecipePlanner(fixture.query(), catalog(context).limits());
+			for (int alternative = 0; alternative < 4; alternative++)
+			{
+				final int intermediate = 11 + (alternative * 33);
+				final var individual = planner.plan(7, 1, Map.of(intermediate + 1, 1L), new CraftEvidence(172, 10, true));
+				PhantomAssertions.assertTrue(individual.planned(), "Individually bounded root alternative was rejected: " + alternative);
+				PhantomAssertions.assertEquals(10 + alternative, individual.plan().recipeListId(), "Inventory evidence did not select the expected bounded root alternative.");
+				PhantomAssertions.assertTrue((individual.plan().nodes().size() <= 48) && (individual.plan().deficits().size() <= 32) && individual.plan().nodes().stream().allMatch(node -> node.depth() <= 6), "An individual root alternative exceeded a recipe bound.");
+			}
+			PhantomAssertions.assertEquals("recipe.bounds", planner.probe(7, 1).reasonKey(), "The 132-ID alternative union did not fail closed at the 128-ID probe bound.");
+			context.record("acquisition.recipeAlternativeUnionIds", 132);
 		}
 		try (SyntheticKnowledge fixture = syntheticRecipes(context, RecipeShape.SHARED))
 		{
@@ -594,6 +636,40 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(0, fixture.service().snapshot().externalClaims(), "Active recipe planning retained an action lease.");
 		}
 		context.record("acquisition.recipeExactInventoryIds", exactIds.size());
+	}
+
+	private void testRecipeProbeUnionServiceBounds(PhantomTestContext context) throws Exception
+	{
+		try (SyntheticKnowledge fixture = syntheticRecipes(context, RecipeShape.ALTERNATIVE_UNION))
+		{
+			final PhantomAcquisitionRecipePlanner planner = new PhantomAcquisitionRecipePlanner(fixture.query(), catalog(context).limits());
+			PhantomAssertions.assertEquals("recipe.bounds", planner.probe(7, 1).reasonKey(), "Synthetic alternative union did not exceed the exact inventory probe bound.");
+
+			try (AcquisitionServiceFixture recipeOnly = acquisitionPlanningFixture(7, Map.of(), fixture.query(), fixture.topology(), Set.of(Method.RECIPE_PREPARATION)))
+			{
+				final Map<Integer, Long> before = Map.copyOf(recipeOnly.lease().inventoryCounts);
+				final var result = recipeOnly.plan(1);
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, result.status(), "Recipe-only failed probe did not persist one terminal planning transition.");
+				PhantomAssertions.assertEquals("recipe.bounds", result.reasonKey(), "Recipe-only failed probe lost its exact reason.");
+				PhantomAssertions.assertEquals(Status.BLOCKED, recipeOnly.state().status(), "Recipe-only failed probe did not persist BLOCKED.");
+				PhantomAssertions.assertTrue((recipeOnly.state().selectedSource() == null) && (recipeOnly.state().recipePlan() == null), "Recipe-only failed probe recreated a source or recipe plan.");
+				PhantomAssertions.assertTrue(recipeOnly.lease().lastInventoryRequest.isEmpty(), "Recipe-only failed probe called the active exact inventory API.");
+				PhantomAssertions.assertEquals(before, recipeOnly.lease().inventoryCounts, "Recipe-only failed probe mutated active inventory evidence.");
+				PhantomAssertions.assertTrue((recipeOnly.storedGoal().acquisitionMethod() == null) && (recipeOnly.storedGoal().selectedAnchor() == null), "Recipe-only failed probe retained stale Goal method or anchor.");
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.DirectiveKind.BLOCKED, recipeOnly.service().directive(recipeOnly.profileId(), recipeOnly.storedGoal(), PhantomActivityState.ACTIVE).kind(), "Recipe-only failed probe left an infinite PLAN directive.");
+			}
+
+			try (AcquisitionServiceFixture mixed = acquisitionPlanningFixture(7, Map.of(), fixture.query(), fixture.topology(), Set.of(Method.DEATH_DROP, Method.RECIPE_PREPARATION)))
+			{
+				final var result = mixed.plan(1);
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, result.status(), "Mixed failed probe did not continue with the executable source.");
+				PhantomAssertions.assertEquals(Method.DEATH_DROP, mixed.state().selectedSource().method(), "Failed recipe probe was not excluded before authoritative death-source planning.");
+				PhantomAssertions.assertTrue(mixed.state().recipePlan() == null, "Mixed failed probe recreated a recipe plan.");
+				PhantomAssertions.assertTrue(mixed.lease().lastInventoryRequest.isEmpty(), "Mixed failed probe called the active exact inventory API.");
+				PhantomAssertions.assertEquals(Method.DEATH_DROP.key(), mixed.storedGoal().acquisitionMethod(), "Mixed failed probe did not project the executable method to Goal state.");
+				PhantomAssertions.assertTrue(mixed.storedGoal().selectedAnchor() != null, "Mixed failed probe did not project the authoritative death-source anchor.");
+			}
+		}
 	}
 
 	private void testThresholdAndCooldown(PhantomTestContext context)
@@ -898,7 +974,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			combat.start();
 			service = new PhantomAcquisitionService(catalog, store, goals, new PhantomAcquisitionSourcePlanner(catalog, _production.knowledge(), _production.topology(), _production.progression()), _production.knowledge(), _production.topology(), _production.progression(), combat, background, new PhantomNavigationService(new PhantomMetrics()));
 			PhantomAssertions.assertTrue(service.start(), "Acquisition safety fixture service did not start.");
-			return new AcquisitionServiceFixture(profiles, profile, goal, store, service, combat, backend, lease);
+			return new AcquisitionServiceFixture(profiles, profile, goal, goals, store, service, combat, backend, lease);
 		}
 		catch (Throwable failure)
 		{
@@ -919,6 +995,11 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 
 	private AcquisitionServiceFixture acquisitionPlanningFixture(RecipeFact recipe, Map<Integer, Long> inventory) throws Exception
 	{
+		return acquisitionPlanningFixture(recipe.productItemId(), inventory, _production.knowledge(), _production.topology(), Set.of(Method.RECIPE_PREPARATION));
+	}
+
+	private AcquisitionServiceFixture acquisitionPlanningFixture(int itemId, Map<Integer, Long> inventory, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, Set<Method> allowedMethods) throws Exception
+	{
 		final PhantomProfileRepository profiles = PhantomProfileRepository.open();
 		final PhantomProfile profile = profiles.create(_environment.primary().objectId());
 		PhantomCombatService combat = null;
@@ -927,8 +1008,11 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		{
 			final PhantomAcquisitionCatalog catalog = PhantomAcquisitionCatalog.load(Path.of("data/phantoms/acquisition/high-five-acquisition-v1.xml"));
 			final PhantomGoalStateStore goals = new PhantomGoalStateStore(profiles);
-			final String anchorId = _production.topology().snapshot().anchors().getFirst().id();
-			final PhantomGoal goal = new PhantomGoal(21, PhantomAcquisitionGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("item", Integer.toString(recipe.productItemId())), 1, 0, Method.RECIPE_PREPARATION.key(), List.of(new PhantomDomainRef(PhantomAcquisitionGoalSpec.SOURCE_NAMESPACE, Method.RECIPE_PREPARATION.key())), new PhantomDomainRef(PhantomAcquisitionGoalSpec.ANCHOR_NAMESPACE, anchorId), PhantomAcquisitionGoalSpec.PURPOSE_KEY, 500, 0, 0, 0, Map.of(PhantomAcquisitionGoalSpec.BASELINE_CONSTRAINT, 0L, PhantomAcquisitionGoalSpec.MAXIMUM_SWITCHES_CONSTRAINT, 4L), "acquisition.recipe.inventory.test", 0);
+			final String anchorId = topology.snapshot().anchors().getFirst().id();
+			final List<Method> orderedMethods = allowedMethods.stream().sorted(Comparator.comparing(Method::key)).toList();
+			final Method initialMethod = allowedMethods.contains(Method.RECIPE_PREPARATION) ? Method.RECIPE_PREPARATION : orderedMethods.getFirst();
+			final List<PhantomDomainRef> validSources = orderedMethods.stream().map(method -> new PhantomDomainRef(PhantomAcquisitionGoalSpec.SOURCE_NAMESPACE, method.key())).toList();
+			final PhantomGoal goal = new PhantomGoal(21, PhantomAcquisitionGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("item", Integer.toString(itemId)), 1, 0, initialMethod.key(), validSources, new PhantomDomainRef(PhantomAcquisitionGoalSpec.ANCHOR_NAMESPACE, anchorId), PhantomAcquisitionGoalSpec.PURPOSE_KEY, 500, 0, 0, 0, Map.of(PhantomAcquisitionGoalSpec.BASELINE_CONSTRAINT, 0L, PhantomAcquisitionGoalSpec.MAXIMUM_SWITCHES_CONSTRAINT, 4L), "acquisition.recipe.inventory.test", 0);
 			goals.insert(profile.profileId(), goal);
 			final PhantomBackgroundService background = new PhantomBackgroundService(profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), new PhantomBackgroundTransaction(), _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), () -> null);
 			final FakeAcquisitionLease lease = new FakeAcquisitionLease();
@@ -938,9 +1022,9 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			combat = new PhantomCombatService(backend, new PhantomCombatCapabilityResolver(_ -> List.of(new CapabilityEvidence(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(), "acquisition-test", 1, List.of()))), PhantomCombatPolicy.productionDefaults(2), new PhantomCombatMetrics(), () -> 1, new HoldingDispatcher());
 			combat.start();
 			final PhantomAcquisitionStore store = new PhantomAcquisitionStore(profiles, goals);
-			service = new PhantomAcquisitionService(catalog, store, goals, new PhantomAcquisitionSourcePlanner(catalog, _production.knowledge(), _production.topology(), _production.progression()), _production.knowledge(), _production.topology(), _production.progression(), combat, background, new PhantomNavigationService(new PhantomMetrics()));
+			service = new PhantomAcquisitionService(catalog, store, goals, new PhantomAcquisitionSourcePlanner(catalog, knowledge, topology, _production.progression()), knowledge, topology, _production.progression(), combat, background, new PhantomNavigationService(new PhantomMetrics()));
 			PhantomAssertions.assertTrue(service.start(), "Acquisition recipe inventory fixture service did not start.");
-			return new AcquisitionServiceFixture(profiles, profile, goal, store, service, combat, backend, lease);
+			return new AcquisitionServiceFixture(profiles, profile, goal, goals, store, service, combat, backend, lease);
 		}
 		catch (Throwable failure)
 		{
@@ -1181,12 +1265,14 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 				public BackendData load(PhantomGameKnowledgePolicy policy)
 				{
 					final BackendData base = delegate.load(policy);
-					final List<NpcFact> npcs = base.npcs().stream().map(npc -> npc.npcId() == 103 ? new NpcFact(103, 20, npc.kind(), npc.attackable(), npc.targetable(), npc.canBeSown(), npc.exp(), npc.sp(), npc.authority()) : npc).toList();
+					final List<NpcFact> npcs = base.npcs().stream().map(npc -> ((npc.npcId() == 102) || (npc.npcId() == 103)) ? new NpcFact(npc.npcId(), 20, npc.kind(), npc.attackable(), npc.targetable(), npc.canBeSown(), npc.exp(), npc.sp(), npc.authority()) : npc).toList();
+					final List<SpawnFact> spawns = base.spawns().stream().map(spawn -> ((spawn.npcId() == 102) || (spawn.npcId() == 103)) ? new SpawnFact(spawn.npcId(), spawn.spawnOrdinal(), spawn.instanceId(), spawn.x(), spawn.y(), spawn.z(), 1, spawn.locationId(), spawn.pointKind(), spawn.topologyNodeId(), spawn.mapRegionLocId(), spawn.authority()) : spawn).toList();
 					final ArrayList<DropFact> drops = new ArrayList<>(base.drops().stream().filter(fact -> (fact.itemId() != 1) || ((fact.npcId() != 102) && (fact.npcId() != 103))).toList());
 					drops.add(new DropFact(102, 1, DropSourceKind.DEATH_DROP, ChanceModel.UNGROUPED_INDEPENDENT, -1, 0, 0, 10, 1, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
 					drops.add(new DropFact(103, 1, DropSourceKind.DEATH_DROP, ChanceModel.UNGROUPED_INDEPENDENT, -1, 0, 0, 10, 1, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
+					drops.add(new DropFact(102, 1, DropSourceKind.SPOIL, ChanceModel.UNGROUPED_INDEPENDENT, -1, 0, 0, 10, 1, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
 					drops.add(new DropFact(103, 1, DropSourceKind.SPOIL, ChanceModel.UNGROUPED_INDEPENDENT, -1, 0, 0, 10, 1, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
-					return new BackendData(base.items(), npcs, drops, base.spawns(), base.recipes(), base.classes(), base.completeClassSkills());
+					return new BackendData(base.items(), npcs, drops, spawns, base.recipes(), base.classes(), base.completeClassSkills());
 				}
 
 				@Override
@@ -1196,7 +1282,9 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 				}
 			};
 			final PhantomTopologyCoreSuite.TestBackend topologyBackend = new PhantomTopologyCoreSuite.TestBackend();
+			topologyBackend._npcs.put(102, new PhantomTopologyValidationBackend.NpcFact(102, "Monster", true));
 			topologyBackend._npcs.put(103, new PhantomTopologyValidationBackend.NpcFact(103, "Monster", true));
+			topologyBackend._spawns.put(102, List.of(new PhantomTopologyValidationBackend.SpawnFact(102, new PhantomTopologyPoint(150, 150, 0, 0))));
 			topologyBackend._spawns.put(103, List.of(new PhantomTopologyValidationBackend.SpawnFact(103, new PhantomTopologyPoint(150, 150, 0, 0))));
 			final PhantomTopologyNode node = new PhantomTopologyNode("synthetic.area", PhantomTopologyNodeKind.FARMING_AREA, 0, PhantomTopologyArea.cuboid(0, 0, 1000, 0, 1000, -100, 100), null, List.of(), List.of());
 			final PhantomTopologyAnchor anchor = new PhantomTopologyAnchor("synthetic.anchor", PhantomTopologyAnchorRole.ROUTE, node.id(), new PhantomTopologyPoint(100, 100, 0, 0), null, null, 0, List.of(), List.of());
@@ -1244,6 +1332,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			{
 				final BackendData base = delegate.load(policy);
 				final ArrayList<ItemFact> items = new ArrayList<>(base.items());
+				final ArrayList<DropFact> drops = new ArrayList<>(base.drops());
 				final ArrayList<RecipeFact> recipes = new ArrayList<>();
 				final int highest = shape == RecipeShape.ALTERNATIVE_UNION ? 180 : (shape == RecipeShape.NODES ? 70 : (shape == RecipeShape.DEFICITS ? 50 : (shape == RecipeShape.DEPTH ? 20 : 10)));
 				for (int itemId = 11; itemId <= highest; itemId++)
@@ -1278,9 +1367,11 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 					{
 						for (int alternative = 0; alternative < 4; alternative++)
 						{
-							final int first = 11 + (alternative * 40);
-							recipes.add(recipe(10 + alternative, 7, java.util.stream.IntStream.range(first, first + 40).mapToObj(item -> new IngredientFact(item, 1)).toList()));
+							final int intermediate = 11 + (alternative * 33);
+							recipes.add(recipe(10 + alternative, 7, List.of(new IngredientFact(intermediate, 1))));
+							recipes.add(recipe(100 + alternative, intermediate, java.util.stream.IntStream.rangeClosed(intermediate + 1, intermediate + 32).mapToObj(item -> new IngredientFact(item, 1)).toList()));
 						}
+						drops.add(new DropFact(102, 7, DropSourceKind.DEATH_DROP, ChanceModel.UNGROUPED_INDEPENDENT, -1, 0, 0, 10, 1, 1, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
 					}
 					case ALTERNATIVES ->
 					{
@@ -1288,7 +1379,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 						recipes.add(recipe(11, 7, List.of(new IngredientFact(1, 1), new IngredientFact(2, 2))));
 					}
 				}
-				return new BackendData(items, base.npcs(), base.drops(), base.spawns(), recipes, base.classes(), base.completeClassSkills());
+				return new BackendData(items, base.npcs(), drops, base.spawns(), recipes, base.classes(), base.completeClassSkills());
 			}
 
 			@Override
@@ -1298,9 +1389,16 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			}
 		};
 		final PhantomGameKnowledgePolicy policy = PhantomGameKnowledgePolicy.productionDefaults();
-		final PhantomGameKnowledgeService service = new PhantomGameKnowledgeService(new PhantomGameKnowledgeBuilder(backend, new PhantomStaticManorParser(root.resolve("Seeds.xml"), policy), new PhantomCuratedKnowledgeParser(root.resolve("curated"), backend, policy), PhantomGameKnowledgeCoreSuite.topology(), policy));
+		final PhantomTopologyCoreSuite.TestBackend topologyBackend = new PhantomTopologyCoreSuite.TestBackend();
+		topologyBackend._npcs.put(102, new PhantomTopologyValidationBackend.NpcFact(102, "Monster", true));
+		topologyBackend._spawns.put(102, List.of(new PhantomTopologyValidationBackend.SpawnFact(102, new PhantomTopologyPoint(100, 100, 0, 0))));
+		final PhantomTopologyNode node = new PhantomTopologyNode("synthetic.area", PhantomTopologyNodeKind.FARMING_AREA, 0, PhantomTopologyArea.cuboid(0, 0, 1000, 0, 1000, -100, 100), null, List.of(), List.of());
+		final PhantomTopologyAnchor anchor = new PhantomTopologyAnchor("synthetic.anchor", PhantomTopologyAnchorRole.ROUTE, node.id(), new PhantomTopologyPoint(100, 100, 0, 0), null, null, 0, List.of(), List.of());
+		final PhantomTopologySnapshot snapshot = PhantomTopologySnapshot.create(1, "synthetic-recipes", 1, 1, List.of(node), List.of(anchor), List.of(), topologyBackend, PhantomTopologyPolicy.productionDefaults());
+		final PhantomTopologyQuery topology = new PhantomTopologyQuery(snapshot, topologyBackend, new PhantomTopologyMetrics());
+		final PhantomGameKnowledgeService service = new PhantomGameKnowledgeService(new PhantomGameKnowledgeBuilder(backend, new PhantomStaticManorParser(root.resolve("Seeds.xml"), policy), new PhantomCuratedKnowledgeParser(root.resolve("curated"), backend, policy), topology, policy));
 		PhantomAssertions.assertTrue(service.start(), "Synthetic recipe knowledge did not start.");
-		return new SyntheticKnowledge(service);
+		return new SyntheticKnowledge(service, topology);
 	}
 
 	private static RecipeFact recipe(int listId, int product, List<IngredientFact> ingredients)
@@ -1438,17 +1536,19 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		private final PhantomProfileRepository _profiles;
 		private final PhantomProfile _profile;
 		private final PhantomGoal _goal;
+		private final PhantomGoalStateStore _goals;
 		private final PhantomAcquisitionStore _store;
 		private final PhantomAcquisitionService _service;
 		private final PhantomCombatService _combat;
 		private final FakeAcquisitionBackend _backend;
 		private final FakeAcquisitionLease _lease;
 
-		private AcquisitionServiceFixture(PhantomProfileRepository profiles, PhantomProfile profile, PhantomGoal goal, PhantomAcquisitionStore store, PhantomAcquisitionService service, PhantomCombatService combat, FakeAcquisitionBackend backend, FakeAcquisitionLease lease)
+		private AcquisitionServiceFixture(PhantomProfileRepository profiles, PhantomProfile profile, PhantomGoal goal, PhantomGoalStateStore goals, PhantomAcquisitionStore store, PhantomAcquisitionService service, PhantomCombatService combat, FakeAcquisitionBackend backend, FakeAcquisitionLease lease)
 		{
 			_profiles = profiles;
 			_profile = profile;
 			_goal = goal;
+			_goals = goals;
 			_store = store;
 			_service = service;
 			_combat = combat;
@@ -1464,6 +1564,11 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		private PhantomGoal goal()
 		{
 			return _goal;
+		}
+
+		private PhantomGoal storedGoal()
+		{
+			return _goals.load(profileId()).orElseThrow().goal();
 		}
 
 		private PhantomAcquisitionService service()
@@ -1772,7 +1877,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 	{
 	}
 
-	private record SyntheticKnowledge(PhantomGameKnowledgeService service) implements AutoCloseable
+	private record SyntheticKnowledge(PhantomGameKnowledgeService service, PhantomTopologyQuery topology) implements AutoCloseable
 	{
 		private PhantomGameKnowledgeQuery query()
 		{

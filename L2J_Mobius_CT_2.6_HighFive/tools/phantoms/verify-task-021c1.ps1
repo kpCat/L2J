@@ -8,7 +8,9 @@ $FoundationCommit = "bf0cc37b2af7023f3709f635ae4350306b892597"
 $FoundationSubject = "feat(phantoms): add acquisition planning and spoil chains"
 $SafetyCommit = "c764382485d27391a6449aa4843d4f684efc1f12"
 $SafetySubject = "fix(phantoms): complete acquisition eligibility and recovery"
+$ClosureCommit = "6556400433020a2833b9d19e0a6c6ac5db2499eb"
 $ClosureSubject = "fix(phantoms): close acquisition recovery and recipe truth"
+$MicroSubject = "fix(phantoms): enforce acquisition ambiguity and probe bounds"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "21002101"
 
@@ -106,26 +108,15 @@ function Is-AllowedPath([string] $path)
 	return $false
 }
 
-function Is-CompletionAllowedPath([string] $path)
+function Is-MicroAllowedPath([string] $path)
 {
 	if (($path -in @(
-		'dist/game/data/phantoms/acquisition/high-five-acquisition-v1.xml',
 		'docs/phantoms/reports/021-checkpoint-1-acquisition-spoil.md',
 		'docs/phantoms/reviews/021-checkpoint-1-independent-review.md',
-		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionCatalog.java',
 		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionRecipePlanner.java',
 		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionService.java',
 		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionSourcePlanner.java',
-		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionState.java',
-		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionStateCodec.java',
-		'java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java',
-		'java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java',
-		'java/org/l2jmobius/gameserver/phantoms/combat/L2jCombatBackend.java',
-		'java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatActorLease.java',
-		'java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatService.java',
 		'test/java/org/l2jmobius/tests/phantoms/PhantomAcquisitionSuite.java',
-		'test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java',
-		'test/java/org/l2jmobius/tests/phantoms/PhantomCombatServerIntegrationSuite.java',
 		'build.xml',
 		'tools/phantoms/verify-task-021c1.ps1'
 	)))
@@ -150,30 +141,34 @@ try
 	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $FoundationCommit) | Select-Object -First 1) -eq $FoundationSubject) "Goal 021c1 foundation subject changed."
 	Assert-True ((Git-Lines @("rev-parse", "$SafetyCommit^" ) | Select-Object -First 1) -eq $FoundationCommit) "Goal 021c1 safety parent changed."
 	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $SafetyCommit) | Select-Object -First 1) -eq $SafetySubject) "Goal 021c1 safety subject changed."
+	Assert-True ((Git-Lines @("rev-parse", "$ClosureCommit^" ) | Select-Object -First 1) -eq $SafetyCommit) "Goal 021c1 final closure parent changed."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $ClosureCommit) | Select-Object -First 1) -eq $ClosureSubject) "Goal 021c1 final closure subject changed."
 	& git merge-base --is-ancestor $FoundationCommit $head
 	Assert-True ($LASTEXITCODE -eq 0) "Goal 021c1 foundation is not an ancestor of HEAD."
 	& git merge-base --is-ancestor $SafetyCommit $head
 	Assert-True ($LASTEXITCODE -eq 0) "Goal 021c1 safety completion is not an ancestor of HEAD."
+	& git merge-base --is-ancestor $ClosureCommit $head
+	Assert-True ($LASTEXITCODE -eq 0) "Goal 021c1 final closure is not an ancestor of HEAD."
 
-	if ($head -eq $SafetyCommit)
+	if ($head -eq $ClosureCommit)
 	{
 		$script:Mode = "working"
 		$script:TargetCommit = ""
 	}
 	else
 	{
-		$matching = @(Git-Lines @("log", "--format=%H", "--fixed-strings", "--grep=$ClosureSubject", "$SafetyCommit..$head"))
-		Assert-True ($matching.Count -eq 1) "Goal 021c1 final closure subject must identify exactly one accepted commit."
+		$matching = @(Git-Lines @("log", "--format=%H", "--fixed-strings", "--grep=$MicroSubject", "$ClosureCommit..$head"))
+		Assert-True ($matching.Count -eq 1) "Goal 021c1 micro-completion subject must identify exactly one accepted commit."
 		$script:Mode = "committed"
 		$script:TargetCommit = $matching[0]
-		Assert-True ((Git-Lines @("rev-parse", "$($script:TargetCommit)^" ) | Select-Object -First 1) -eq $SafetyCommit) "Goal 021c1 final closure is not one ordinary child of the pinned safety commit."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $ClosureSubject) "Goal 021c1 final closure subject changed."
+		Assert-True ((Git-Lines @("rev-parse", "$($script:TargetCommit)^" ) | Select-Object -First 1) -eq $ClosureCommit) "Goal 021c1 micro-completion is not one ordinary child of the pinned final closure."
+		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $MicroSubject) "Goal 021c1 micro-completion subject changed."
 		& git merge-base --is-ancestor $script:TargetCommit $head
-		Assert-True ($LASTEXITCODE -eq 0) "Goal 021c1 completion commit is not an ancestor of HEAD."
+		Assert-True ($LASTEXITCODE -eq 0) "Goal 021c1 micro-completion commit is not an ancestor of HEAD."
 	}
 
 	$changed = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-	$rangeEnd = $SafetyCommit
+	$rangeEnd = $ClosureCommit
 	if ($script:Mode -ne "working")
 	{
 		$rangeEnd = $script:TargetCommit
@@ -184,7 +179,7 @@ try
 	}
 	if ($script:Mode -eq "working")
 	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $SafetyCommit, "--"))
+		foreach ($line in Git-Lines @("diff", "--name-only", $ClosureCommit, "--"))
 		{
 			[void] $changed.Add((To-ModulePath $line))
 		}
@@ -216,7 +211,7 @@ try
 	$completion = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 	if ($script:Mode -eq "working")
 	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $SafetyCommit, "--"))
+		foreach ($line in Git-Lines @("diff", "--name-only", $ClosureCommit, "--"))
 		{
 			[void] $completion.Add((To-ModulePath $line))
 		}
@@ -227,23 +222,23 @@ try
 	}
 	else
 	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $SafetyCommit, $script:TargetCommit, "--"))
+		foreach ($line in Git-Lines @("diff", "--name-only", $ClosureCommit, $script:TargetCommit, "--"))
 		{
 			[void] $completion.Add((To-ModulePath $line))
 		}
 	}
 	$completionPaths = @($completion | Sort-Object)
-	Assert-True (($completionPaths.Count -gt 0) -and ($completionPaths.Count -le 20)) "Goal 021c1 final closure must contain 1..20 files."
+	Assert-True (($completionPaths.Count -gt 0) -and ($completionPaths.Count -le 8)) "Goal 021c1 micro-completion must contain 1..8 files."
 	foreach ($path in $completionPaths)
 	{
-		Assert-True (Is-CompletionAllowedPath $path) "Out-of-scope Goal 021c1 final closure path: $path"
+		Assert-True (Is-MicroAllowedPath $path) "Out-of-scope Goal 021c1 micro-completion path: $path"
 	}
 	$completionProduction = @($completionPaths | Where-Object { ($_ -match '^java/org/l2jmobius/gameserver/') -or ($_ -match '^dist/game/(?:config|data)/') })
-	Assert-True ($completionProduction.Count -le 12) "Goal 021c1 final closure exceeds 12 production/data files."
+	Assert-True ($completionProduction.Count -le 3) "Goal 021c1 micro-completion exceeds 3 production/data files."
 	foreach ($path in $completionProduction)
 	{
-		$existing = @(Git-Lines @("-C", $repositoryRoot, "ls-tree", "--name-only", $SafetyCommit, "--", ($script:ModulePrefix + $path)))
-		Assert-True ($existing.Count -gt 0) "Goal 021c1 final closure adds a production/data file: $path"
+		$existing = @(Git-Lines @("-C", $repositoryRoot, "ls-tree", "--name-only", $ClosureCommit, "--", ($script:ModulePrefix + $path)))
+		Assert-True ($existing.Count -gt 0) "Goal 021c1 micro-completion adds a production/data file: $path"
 	}
 
 	$required = @(
@@ -301,11 +296,16 @@ try
 	$preferredMethodScore = $planner.IndexOf('score += weights.preferredMethodBonus()')
 	$topologyScore = $planner.IndexOf('topologyCost(request.currentAnchorId()')
 	Assert-True (($baseMethodScore -ge 0) -and ($baseMethodScore -lt $preferredMethodScore) -and ($preferredMethodScore -lt $topologyScore) -and ($planner.IndexOf('ranked.sort(RankedSource.ORDER)') -lt $planner.IndexOf('source.ambiguous')) -and !$planner.Contains('bounded.stream().filter(value -> value.source().method() == request.preferredMethod())')) "Preferred method is not scored before ambiguity."
+	Assert-True ($planner.Contains('(bounded.size() > 1) && ((long) bounded.getFirst().score() - bounded.get(1).score() <= _catalog.sourceScoring().ambiguityThreshold())') -and !$planner.Contains('bounded.getFirst().source().method() != bounded.get(1).source().method()')) "Acquisition ambiguity still depends on method identity instead of the canonical score margin."
 	Assert-True ($recipe.Contains('_limits.recipeDepth()') -and $recipe.Contains('_limits.recipeNodes()') -and $recipe.Contains('_limits.deficits()') -and $recipe.Contains('!path.add(itemId)') -and $recipe.Contains('MAX_INVENTORY_ITEM_IDS = 128') -and $recipe.Contains('Probe probe(') -and $recipe.Contains('recipe.bounds')) "Recipe DAG probe bounds/cycle control are incomplete."
 	Assert-True ($decision.Contains('One bounded persisted acquisition transition per Decision step') -and $decision.Contains('PhantomAcquisitionService.BACKGROUND_ACTION')) "Acquisition Decision integration is incomplete."
 	Assert-True ($service.Contains('startAcquisitionSession') -and $service.Contains('castAcquisition') -and $service.Contains('AcquisitionSkillKind.SWEEP') -and $service.Contains('releaseExternal') -and $service.Contains('beginStop')) "Active spoil/Combat/sweep ownership or lifecycle is incomplete."
 	Assert-True ($service.Contains('rejectionReason(lease, persisted.state(), kind)') -and $service.Contains('recoverMissingCombatAttempt') -and $service.Contains('matchesAcquisitionSession') -and $service.Contains('Phase.COMBAT_PREPARED') -and $service.Contains('Phase.COMBAT_TERMINAL') -and $service.Contains('Phase.VERIFYING')) "REJECTED or COMBAT_SUBMITTED recovery is not bounded by exact evidence."
-	Assert-True (($service.IndexOf('probeRecipeInventory') -lt $service.IndexOf('recipeInventory(profileId')) -and ($service.IndexOf('recipeInventory(profileId') -lt $service.IndexOf('_planner.plan(new PhantomAcquisitionSourcePlanner.Request'))) "Recipe planning is not a two-pass probe/read/final-plan flow."
+	$failedProbe = $service.IndexOf('if (!probe.successful())')
+	$excludeRecipe = $service.IndexOf('effectiveMethods.remove(Method.RECIPE_PREPARATION)')
+	$recipeInventory = $service.IndexOf('recipeInventory(profileId')
+	$finalPlanner = $service.IndexOf('_planner.plan(new PhantomAcquisitionSourcePlanner.Request')
+	Assert-True (($service.IndexOf('probeRecipeInventory') -lt $failedProbe) -and ($failedProbe -lt $excludeRecipe) -and ($excludeRecipe -lt $recipeInventory) -and ($recipeInventory -lt $finalPlanner) -and $service.Contains('effectiveMethods.isEmpty() ? PhantomAcquisitionSourcePlanner.Result.blocked(recipeProbeReason)') -and $service.Contains('java.util.Set.copyOf(effectiveMethods)')) "Failed recipe probe is not excluded before inventory read and final planning."
 	Assert-True ($service -notmatch '\.addItem\s*\(|\.destroyItem\s*\(|\.setCount\s*\(|new\s+Thread\s*\(|ThreadPool\.|ScheduledFuture|ExecutorService') "Acquisition service contains direct inventory mutation or owns a worker."
 
 	$backgroundModel = Read-TargetUtf8Strict 'java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java'
@@ -327,7 +327,7 @@ try
 	Assert-True ($system.IndexOf('new PhantomAcquisitionService') -gt $system.IndexOf('if (_productionMaterialization)')) "Acquisition runtime escaped the production/feature-gated composition path."
 
 	$tests = (Read-TargetUtf8Strict 'test/java/org/l2jmobius/tests/phantoms/PhantomAcquisitionSuite.java') + "`n" + (Read-TargetUtf8Strict 'test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java') + "`n" + (Read-TargetUtf8Strict 'test/java/org/l2jmobius/tests/phantoms/PhantomCombatServerIntegrationSuite.java')
-	foreach ($evidence in @('100_000', '10_000', 'AFTER_OPERATION_COMMIT', 'ACQUISITION_INELIGIBLE', 'SLOT_CAPACITY', 'currentClaims()', 'externalClaims()', 'navigationClaims()', 'castAcquisition', 'AcquisitionSkillKind.SWEEP', 'foreign_session', 'TerminalResult.UNCERTAIN', 'readAcquisitionInventoryCounts', 'rangeClosed(1, 129)', 'preferredResult'))
+	foreach ($evidence in @('100_000', '10_000', 'AFTER_OPERATION_COMMIT', 'ACQUISITION_INELIGIBLE', 'SLOT_CAPACITY', 'currentClaims()', 'externalClaims()', 'navigationClaims()', 'castAcquisition', 'AcquisitionSkillKind.SWEEP', 'foreign_session', 'TerminalResult.UNCERTAIN', 'readAcquisitionInventoryCounts', 'rangeClosed(1, 129)', 'preferredResult', 'Two equal death sources', 'Two equal spoil sources', 'Repeated equal death ranking was not byte-identical', 'acquisition.recipeAlternativeUnionIds', 'Recipe-only failed probe', 'Mixed failed probe', 'lastInventoryRequest.isEmpty()'))
 	{
 		Assert-True ($tests.Contains($evidence)) "Mandatory acquisition test evidence is absent: $evidence"
 	}
@@ -341,7 +341,9 @@ try
 	$aggregate = @($buildXml.project.target | Where-Object { $_.name -eq 'phantom-acquisition-checkpoint1-test' })
 	Assert-True ($aggregate.Count -eq 1) "Final acquisition aggregate is absent or duplicated."
 	$aggregateDependencies = @($aggregate[0].depends -split ',' | ForEach-Object { $_.Trim() })
-	foreach ($dependency in @('phantom-acquisition-catalog-codec-test', 'phantom-acquisition-source-planner-test', 'phantom-acquisition-recipe-planning-test', 'phantom-acquisition-active-spoil-test', 'phantom-acquisition-background-parity-test', 'phantom-acquisition-atomic-restart-test', 'phantom-acquisition-source-switching-test', 'phantom-acquisition-lifecycle-performance-smoke', 'phantom-acquisition-capability-test', 'phantom-acquisition-learned-eligibility-test', 'phantom-acquisition-dispatch-recovery-test', 'phantom-acquisition-combat-recovery-test', 'phantom-acquisition-operation-identity-test', 'phantom-acquisition-scoring-evidence-test', 'phantom-acquisition-goal015-regression-test', 'phantom-acquisition-rejected-recovery-test', 'phantom-acquisition-combat-submitted-recovery-test', 'phantom-acquisition-recipe-inventory-test', 'phantom-acquisition-preferred-method-test'))
+	$requiredAggregateDependencies = @('phantom-acquisition-catalog-codec-test', 'phantom-acquisition-source-planner-test', 'phantom-acquisition-recipe-planning-test', 'phantom-acquisition-active-spoil-test', 'phantom-acquisition-background-parity-test', 'phantom-acquisition-atomic-restart-test', 'phantom-acquisition-source-switching-test', 'phantom-acquisition-lifecycle-performance-smoke', 'phantom-acquisition-capability-test', 'phantom-acquisition-learned-eligibility-test', 'phantom-acquisition-dispatch-recovery-test', 'phantom-acquisition-combat-recovery-test', 'phantom-acquisition-operation-identity-test', 'phantom-acquisition-scoring-evidence-test', 'phantom-acquisition-goal015-regression-test', 'phantom-acquisition-rejected-recovery-test', 'phantom-acquisition-combat-submitted-recovery-test', 'phantom-acquisition-recipe-inventory-test', 'phantom-acquisition-preferred-method-test')
+	Assert-True ($aggregateDependencies.Count -eq $requiredAggregateDependencies.Count) "Final acquisition aggregate dependency set changed."
+	foreach ($dependency in $requiredAggregateDependencies)
 	{
 		Assert-True ($aggregateDependencies -contains $dependency) "Final acquisition aggregate dependency is absent: $dependency"
 	}

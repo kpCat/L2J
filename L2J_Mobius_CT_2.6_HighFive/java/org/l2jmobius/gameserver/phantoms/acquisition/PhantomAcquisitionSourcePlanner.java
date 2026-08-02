@@ -117,7 +117,7 @@ public final class PhantomAcquisitionSourcePlanner
 			final boolean deferred = request.allowedMethods().stream().anyMatch(method -> _catalog.method(method).status() == MethodStatus.DEFERRED_CHECKPOINT_2);
 			return deferred ? Result.deferredCheckpoint() : Result.blocked(recipeReason.isEmpty() ? "source.exhausted" : recipeReason);
 		}
-		if ((bounded.size() > 1) && (bounded.getFirst().source().method() != bounded.get(1).source().method()) && ((long) bounded.getFirst().score() - bounded.get(1).score() <= _catalog.sourceScoring().ambiguityThreshold()))
+		if ((bounded.size() > 1) && ((long) bounded.getFirst().score() - bounded.get(1).score() <= _catalog.sourceScoring().ambiguityThreshold()))
 		{
 			return new Result(List.copyOf(bounded), null, "source.ambiguous", false);
 		}

@@ -264,12 +264,18 @@ public final class PhantomAcquisitionService
 			{
 				return completeObserved(profileId, storedGoal, existing.orElse(null), observation.itemCount(), logicalMinute);
 			}
-			final java.util.Set<Method> methods = planningMethods(spec, progress);
+			final java.util.EnumSet<Method> effectiveMethods = java.util.EnumSet.copyOf(planningMethods(spec, progress));
+			String recipeProbeReason = "";
 			Observation planningObservation = observation;
-			if (methods.contains(Method.RECIPE_PREPARATION))
+			if (effectiveMethods.contains(Method.RECIPE_PREPARATION))
 			{
 				final var probe = _planner.probeRecipeInventory(spec.itemId(), spec.requiredAmount() - progress);
-				if (probe.successful() && !probe.exactItemIds().isEmpty())
+				if (!probe.successful())
+				{
+					effectiveMethods.remove(Method.RECIPE_PREPARATION);
+					recipeProbeReason = probe.reasonKey();
+				}
+				else if (!probe.exactItemIds().isEmpty())
 				{
 					final Map<Integer, Long> inventory = recipeInventory(profileId, storedGoal, previous, spec, observation, activityState, probe.exactItemIds(), logicalNowNanos, token);
 					if (inventory == null)
@@ -280,7 +286,7 @@ public final class PhantomAcquisitionService
 				}
 			}
 			final Map<String, Candidate> previousCandidates = candidates(previous);
-			final PhantomAcquisitionSourcePlanner.Result planned = _planner.plan(new PhantomAcquisitionSourcePlanner.Request(profileId, spec.itemId(), spec.requiredAmount() - progress, activityState, planningObservation.classId(), planningObservation.level(), planningObservation.inventory(), planningObservation.knownSkills(), methods, spec.preferredMethod(), planningObservation.anchorId(), previous == null || previous.selectedSource() == null ? "" : previous.selectedSource().sourceId(), planningObservation.resources(), previousCandidates, logicalMinute));
+			final PhantomAcquisitionSourcePlanner.Result planned = effectiveMethods.isEmpty() ? PhantomAcquisitionSourcePlanner.Result.blocked(recipeProbeReason) : _planner.plan(new PhantomAcquisitionSourcePlanner.Request(profileId, spec.itemId(), spec.requiredAmount() - progress, activityState, planningObservation.classId(), planningObservation.level(), planningObservation.inventory(), planningObservation.knownSkills(), java.util.Set.copyOf(effectiveMethods), spec.preferredMethod(), planningObservation.anchorId(), previous == null || previous.selectedSource() == null ? "" : previous.selectedSource().sourceId(), planningObservation.resources(), previousCandidates, logicalMinute));
 			final List<Candidate> candidates = planned.ranked().stream().map(ranked -> merge(ranked, previousCandidates.get(ranked.source().sourceId()))).toList();
 			final RankedSource selected = planned.selected();
 			final Source source = selected == null ? null : selected.source();

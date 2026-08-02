@@ -4,7 +4,7 @@
 
 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
-Terminal closure: `PARTIAL_AGGREGATE_RERUN_REQUIRED`. Реализация и финальное дерево собраны и прошли focused/affected/plain verify, но нормативный aggregate на финальном дереве не имеет зелёного запуска после последнего test-fixture исправления. Статус `ACCEPT` и success-token недопустимы.
+Terminal closure: `FINALIZED_PENDING_INDEPENDENT_REVIEW`. Отдельная bounded micro-completion authority закрыла ambiguity и failed-probe bounds, после чего единственный разрешённый final aggregate, plain verify и standalone jar прошли. Статус `ACCEPT` остаётся правом независимого reviewer.
 
 - Ветка: `feature/phantom-world`.
 - Test DB: `l2jmobiush5_phantom_test`.
@@ -12,7 +12,8 @@ Terminal closure: `PARTIAL_AGGREGATE_RERUN_REQUIRED`. Реализация и ф
 - Accepted Goal 020 parent: `d48dccb42dcfe5993f1c852e021086e498c0622d`.
 - Foundation: `bf0cc37b2af7023f3709f635ae4350306b892597`, `feat(phantoms): add acquisition planning and spoil chains`.
 - Safety completion: `c764382485d27391a6449aa4843d4f684efc1f12`, `fix(phantoms): complete acquisition eligibility and recovery`.
-- Final closure: один ordinary direct child safety-коммита с subject `fix(phantoms): close acquisition recovery and recipe truth`; точный SHA фиксируется post-commit verifier и финальным handoff без amend.
+- Final closure: `6556400433020a2833b9d19e0a6c6ac5db2499eb`, один ordinary direct child safety-коммита, subject `fix(phantoms): close acquisition recovery and recipe truth`.
+- Micro-completion: ровно один ordinary direct child final closure с subject `fix(phantoms): enforce acquisition ambiguity and probe bounds`; точный SHA фиксируется post-commit verifier и финальным handoff без amend.
 
 Это первый из двух заранее запланированных checkpoint Goal 021, не Goal 021A/021B.
 
@@ -27,6 +28,8 @@ Terminal closure: `PARTIAL_AGGREGATE_RERUN_REQUIRED`. Реализация и ф
 - Active inventory read выполняется через текущий Combat actor lease; background read валидирует profile, class и authority hashes и использует только explicit `IN (...)` IDs. Оба API возвращают immutable maps, включая нули для отсутствующих IDs.
 - Только финальный recipe plan сохраняется; deficits, `inventoryUsed`, shared-ingredient accounting и alternative choice основаны на canonical counts.
 - `preferredMethodBonus` участвует в score до canonical sort и ambiguity. Preference не делает ineligible/cooling source допустимым.
+- Ambiguity применяется к любым двум верхним sources при score margin не больше threshold, включая равные death/death и spoil/spoil; method/NPC/anchor identity не обходит ambiguity, а `sourceId` остаётся только stable list tie-breaker.
+- Неуспешный recipe probe удаляет `RECIPE_PREPARATION` из effective methods до active/background inventory read и final planner. Recipe-only атомарно сохраняет `BLOCKED` с exact `recipe.*` reason и очищенными Goal method/anchor; mixed Goal продолжает только по оставшимся допустимым sources.
 - `REJECTED` spoil/sweep после persisted dispatch освобождает lease, фиксирует ровно один source failure с exact reason и после третьего failure переводит состояние к bounded switch без blind recast.
 - `COMBAT_SUBMITTED` сначала сверяет exact Goal/source/target owner. Foreign session не читается и не consume-ится; пропавшая session восстанавливается только по live target, owned spoiled corpse или item growth. Недостаточная evidence ограничена `verificationAttempts` и завершается `UNCERTAIN/BLOCKED` receipt.
 
@@ -36,6 +39,7 @@ Terminal closure: `PARTIAL_AGGREGATE_RERUN_REQUIRED`. Реализация и ф
 - Craft, trade, private stores и enchant не исполняются; это Goal 022.
 - `Player.java`, `Party.java`, schema, skill handlers, quest handlers и другие хроники не менялись.
 - Новых production/data файлов final closure не добавляет; новых workers, библиотек и config keys нет.
+- Micro-completion меняет 6 уже существующих файлов, из них 2 production; новых production/data/config файлов нет.
 - Phantom World остаётся выключенным по умолчанию.
 
 ## Изменённые файлы
@@ -92,6 +96,11 @@ Schema/migrations не менялись. Автоматические DB tests �
 - Третий aggregate прямо запрещён verification authority. Поэтому на текущем финальном дереве нет допустимого terminal-green aggregate, хотя причина второго FAIL исправлена и focused route зелёный.
 - Второй разрешённый plain `ant verify` без global seed override — PASS, `BUILD SUCCESSFUL`, 13:44.
 - Standalone `ant jar` после финального production/test изменения — PASS, `BUILD SUCCESSFUL`, 17 секунд.
+- Новая bounded micro-completion authority разрешила ровно один aggregate после исправления ambiguity/probe bounds. Synthetic corpus содержит 4 root alternatives: каждая отдельно укладывается в 48 nodes, 32 deficits и depth 6, а union 132 exact IDs корректно даёт `recipe.bounds`.
+- Micro focused gates: `compile-tests`, scoring ambiguity, recipe inventory/union service, полные source-planner и source-switching — PASS. Historical 020c2 и working 021c1 verifier outputs byte-identical в PowerShell 5.1/7.6.
+- Единственный final micro-completion `phantom-acquisition-checkpoint1-test` с `phantom.goal021c1.seed=21002101` — PASS, `BUILD SUCCESSFUL`, 5:55.
+- После freeze plain `ant verify` без global seed override — PASS, `BUILD SUCCESSFUL`, 13:20; standalone `ant jar` — PASS, `BUILD SUCCESSFUL`, 17 секунд.
+- Final micro scope до commit: 6 existing files, 2 production, 0 new production/data; cumulative Goal scope остаётся 18 files, 11 production/data, 0 new production.
 
 ## Команды
 
@@ -103,6 +112,9 @@ Schema/migrations не менялись. Автоматические DB tests �
 - два разрешённых запуска `ant phantom-acquisition-checkpoint1-test`;
 - второй разрешённый plain `ant verify` без global seed override;
 - standalone `ant jar`.
+- bounded micro-completion focused/affected targets;
+- один разрешённый final micro-completion `ant -Dphantom.goal021c1.seed=21002101 phantom-acquisition-checkpoint1-test`;
+- один plain `ant verify` без seed override и один standalone `ant jar` после freeze.
 
 Для всех Ant-команд использовался portable Apache Ant 1.10.17. Все DB routes работали только с `l2jmobiush5_phantom_test`.
 
@@ -122,8 +134,7 @@ Affected и aggregate routes повторно подтвердили 100k indexe
 - Полноценный pathfinding без geodata этим checkpoint не подтверждается.
 - Recipe execution отсутствует намеренно.
 - Независимое принятие checkpoint ещё не выполнено; этот отчёт не переводит статус в `ACCEPT`.
-- Для полного terminal closure требуется новая явная verification authority на один aggregate rerun; текущая authority исчерпана и запрещает третий запуск.
 
 ## Следующий шаг
 
-Получить отдельное разрешение на один aggregate rerun финального дерева, затем выполнить независимое review Goal 021 Checkpoint 1. Manor/quest Checkpoint 2 и Goal 022 не начинать до отдельного gate.
+Выполнить независимое review Goal 021 Checkpoint 1 по pinned micro-completion commit и двум byte-identical post-commit verifier outputs. Manor/quest Checkpoint 2 и Goal 022 не начинать до отдельного gate.
