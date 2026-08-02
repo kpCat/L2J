@@ -5,7 +5,9 @@ package org.l2jmobius.gameserver.phantoms.combat;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
@@ -166,6 +168,18 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		public long acquisitionInventoryCount(int itemId)
 		{
 			return itemId > 0 ? _player.getInventory().getInventoryItemCount(itemId, -1) : -1;
+		}
+
+		@Override
+		public Map<Integer, Long> acquisitionInventoryCounts(List<Integer> exactItemIds)
+		{
+			PhantomCombatActorLease.validateAcquisitionInventoryItemIds(exactItemIds);
+			final Map<Integer, Long> result = new LinkedHashMap<>();
+			for (int itemId : exactItemIds)
+			{
+				result.put(itemId, _player.getInventory().getInventoryItemCount(itemId, -1));
+			}
+			return Map.copyOf(result);
 		}
 
 		@Override

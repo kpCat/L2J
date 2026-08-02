@@ -264,8 +264,23 @@ public final class PhantomAcquisitionService
 			{
 				return completeObserved(profileId, storedGoal, existing.orElse(null), observation.itemCount(), logicalMinute);
 			}
+			final java.util.Set<Method> methods = planningMethods(spec, progress);
+			Observation planningObservation = observation;
+			if (methods.contains(Method.RECIPE_PREPARATION))
+			{
+				final var probe = _planner.probeRecipeInventory(spec.itemId(), spec.requiredAmount() - progress);
+				if (probe.successful() && !probe.exactItemIds().isEmpty())
+				{
+					final Map<Integer, Long> inventory = recipeInventory(profileId, storedGoal, previous, spec, observation, activityState, probe.exactItemIds(), logicalNowNanos, token);
+					if (inventory == null)
+					{
+						return retry("acquisition.recipe.inventory_unavailable");
+					}
+					planningObservation = observation.withInventory(inventory);
+				}
+			}
 			final Map<String, Candidate> previousCandidates = candidates(previous);
-			final PhantomAcquisitionSourcePlanner.Result planned = _planner.plan(new PhantomAcquisitionSourcePlanner.Request(profileId, spec.itemId(), spec.requiredAmount() - progress, activityState, observation.classId(), observation.level(), observation.inventory(), observation.knownSkills(), planningMethods(spec, progress), spec.preferredMethod(), observation.anchorId(), previous == null || previous.selectedSource() == null ? "" : previous.selectedSource().sourceId(), observation.resources(), previousCandidates, logicalMinute));
+			final PhantomAcquisitionSourcePlanner.Result planned = _planner.plan(new PhantomAcquisitionSourcePlanner.Request(profileId, spec.itemId(), spec.requiredAmount() - progress, activityState, planningObservation.classId(), planningObservation.level(), planningObservation.inventory(), planningObservation.knownSkills(), methods, spec.preferredMethod(), planningObservation.anchorId(), previous == null || previous.selectedSource() == null ? "" : previous.selectedSource().sourceId(), planningObservation.resources(), previousCandidates, logicalMinute));
 			final List<Candidate> candidates = planned.ranked().stream().map(ranked -> merge(ranked, previousCandidates.get(ranked.source().sourceId()))).toList();
 			final RankedSource selected = planned.selected();
 			final Source source = selected == null ? null : selected.source();
@@ -385,7 +400,7 @@ public final class PhantomAcquisitionService
 				case SPOIL_DISPATCHING -> observeSpoil(current, logicalNowNanos, logicalMinute, token);
 				case SPOIL_OBSERVED -> prepareCombat(current, logicalMinute);
 				case COMBAT_PREPARED -> submitCombat(current, current.state().selectedSource().method() == Method.DEATH_DROP, logicalMinute, token);
-				case COMBAT_SUBMITTED -> observeCombat(current, logicalMinute);
+				case COMBAT_SUBMITTED -> observeCombat(current, logicalNowNanos, logicalMinute, token);
 				case COMBAT_TERMINAL -> prepareSweepOrVerify(current, logicalNowNanos, logicalMinute, token);
 				case SWEEP_PREPARED -> dispatch(current, AcquisitionSkillKind.SWEEP, Phase.SWEEP_DISPATCHING, logicalNowNanos, logicalMinute, token);
 				case SWEEP_DISPATCHING -> observeSweep(current, logicalNowNanos, logicalMinute, token);
@@ -618,9 +633,7 @@ public final class PhantomAcquisitionService
 			}
 			case REJECTED ->
 			{
-				releaseExternal(current.profileId());
-				_store.replace(persisted.profileId(), persisted.acquisition().rowVersion(), persisted.state().withPhase(preparedPhase(kind), target.objectId(), target.npcId(), target.instanceId(), persisted.state().phaseAttempt(), logicalMinute));
-				yield OperationResult.replan("acquisition.dispatch.rejected");
+				yield failSource(persisted, rejectionReason(lease, persisted.state(), kind), logicalMinute);
 			}
 		};
 	}
@@ -682,14 +695,23 @@ public final class PhantomAcquisitionService
 		};
 	}
 
-	private OperationResult observeCombat(Current current, long logicalMinute)
+	private OperationResult observeCombat(Current current, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
 	{
+		final String owner = combatOwner(current.state());
+		if (!_combat.matchesAcquisitionSession(current.profileId(), current.state().targetObjectId(), owner))
+		{
+			if (_combat.find(current.profileId()).isPresent())
+			{
+				return OperationResult.replan("acquisition.combat.foreign_session");
+			}
+			return recoverMissingCombat(current, logicalNowNanos, logicalMinute, token);
+		}
 		final var snapshot = _combat.find(current.profileId()).orElse(null);
 		if (snapshot == null)
 		{
-			return retry("acquisition.combat.missing_session");
+			return recoverMissingCombat(current, logicalNowNanos, logicalMinute, token);
 		}
-		if (snapshot.targetObjectId() != current.state().targetObjectId())
+		if ((snapshot.targetObjectId() != current.state().targetObjectId()) || !_combat.matchesAcquisitionSession(current.profileId(), current.state().targetObjectId(), owner))
 		{
 			return OperationResult.replan("acquisition.combat.foreign_session");
 		}
@@ -708,6 +730,50 @@ public final class PhantomAcquisitionService
 		}
 		_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.COMBAT_TERMINAL, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), logicalMinute));
 		return OperationResult.success("acquisition.combat.terminal");
+	}
+
+	private OperationResult recoverMissingCombat(Current current, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
+	{
+		final ExternalActionLease lease = external(current, logicalNowNanos, token);
+		if (lease == null)
+		{
+			return recoverMissingCombatAttempt(current, logicalMinute, -1);
+		}
+		final long count = lease.acquisitionInventoryCount(current.state().targetItemId());
+		final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(current.state().targetObjectId());
+		if (count > current.state().lastObservedCount())
+		{
+			releaseExternal(current.profileId());
+			return advanceToVerify(current, logicalMinute);
+		}
+		final var actor = lease.actorSnapshot();
+		final Source source = current.state().selectedSource();
+		if ((target != null) && (actor != null) && target.liveValidFor(actor, source.npcId(), MAXIMUM_TARGET_DISTANCE))
+		{
+			releaseExternal(current.profileId());
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.COMBAT_PREPARED, target.objectId(), target.npcId(), target.instanceId(), logicalMinute));
+			return OperationResult.success("acquisition.combat.recovered_live_target");
+		}
+		if ((source.method() == Method.SPOIL_SWEEP) && (target != null) && (actor != null) && (target.spoilerObjectId() == actor.objectId()) && target.sweepValidFor(actor, source.npcId(), MAXIMUM_TARGET_DISTANCE))
+		{
+			releaseExternal(current.profileId());
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.COMBAT_TERMINAL, target.objectId(), target.npcId(), target.instanceId(), logicalMinute));
+			return OperationResult.success("acquisition.combat.recovered_corpse");
+		}
+		releaseExternal(current.profileId());
+		return recoverMissingCombatAttempt(current, logicalMinute, count);
+	}
+
+	private OperationResult recoverMissingCombatAttempt(Current current, long logicalMinute, long observedCount)
+	{
+		final int attempt = current.state().phaseAttempt() + 1;
+		if (attempt < _catalog.limits().verificationAttempts())
+		{
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.COMBAT_SUBMITTED, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), attempt, logicalMinute));
+			return retry("acquisition.combat.missing_session");
+		}
+		final ReceiptKind kind = current.state().selectedSource().method() == Method.DEATH_DROP ? ReceiptKind.ACTIVE_DEATH_DROP : ReceiptKind.ACTIVE_SPOIL;
+		return uncertain(current, kind, logicalMinute, observedCount);
 	}
 
 	private OperationResult prepareSweepOrVerify(Current current, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
@@ -782,6 +848,21 @@ public final class PhantomAcquisitionService
 		final int skillId = kind == AcquisitionSkillKind.SPOIL ? state.selectedSource().spoilSkillId() : state.selectedSource().sweepSkillId();
 		final int skillLevel = kind == AcquisitionSkillKind.SPOIL ? state.selectedSource().spoilSkillLevel() : state.selectedSource().sweepSkillLevel();
 		return (actor != null) && actor.casting() && "CAST".equals(actor.intention()) && (actor.currentTargetObjectId() == state.targetObjectId()) && (actor.currentSkillId() == skillId) && (actor.currentSkillLevel() == skillLevel);
+	}
+
+	private static String rejectionReason(ExternalActionLease lease, PhantomAcquisitionState state, AcquisitionSkillKind kind)
+	{
+		final Source source = state.selectedSource();
+		final int skillId = kind == AcquisitionSkillKind.SPOIL ? source.spoilSkillId() : source.sweepSkillId();
+		final int skillLevel = kind == AcquisitionSkillKind.SPOIL ? source.spoilSkillLevel() : source.sweepSkillLevel();
+		if (lease.knownSkillLevel(skillId) < skillLevel)
+		{
+			return "source.ineligible";
+		}
+		final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(state.targetObjectId());
+		final var actor = lease.actorSnapshot();
+		final boolean valid = (target != null) && (actor != null) && (kind == AcquisitionSkillKind.SPOIL ? target.liveValidFor(actor, source.npcId(), MAXIMUM_TARGET_DISTANCE) : target.sweepValidFor(actor, source.npcId(), MAXIMUM_TARGET_DISTANCE));
+		return valid ? "source.ineligible" : "source.target_unavailable";
 	}
 
 	private static String combatOwner(PhantomAcquisitionState state)
@@ -941,7 +1022,7 @@ public final class PhantomAcquisitionService
 				learnedSkills = eligibility.get().skillLevels();
 			}
 			final ResourceEvidence resources = new ResourceEvidence(state.inventory().currentLoad(), state.inventory().maximumLoad(), state.inventory().usedSlots(), state.inventory().maximumSlots(), true);
-			return new Observation(state.identity().activeClassId(), state.progress().level(), Map.of(spec.itemId(), state.inventory().itemCount(spec.itemId())), learnedSkills, state.position().committedAnchorId(), resources, state.inventory().itemCount(spec.itemId()));
+			return new Observation(state.identity().activeClassId(), state.progress().level(), Map.of(spec.itemId(), state.inventory().itemCount(spec.itemId())), learnedSkills, state.position().committedAnchorId(), resources, spec.itemId(), state.inventory().itemCount(spec.itemId()), state);
 		}
 		final PhantomGoalStateStore.StoredGoal stored = _goals.load(profileId).orElse(null);
 		if (stored == null)
@@ -969,7 +1050,30 @@ public final class PhantomAcquisitionService
 		final String anchor = durable.map(value -> value.position().committedAnchorId()).orElse("");
 		final int level = lease.acquisitionLevel();
 		releaseExternal(profileId);
-		return (count < 0) || (level < 1) ? null : new Observation(classId, level, Map.of(spec.itemId(), count), skills, anchor, ResourceEvidence.unavailable(), count);
+		return (count < 0) || (level < 1) ? null : new Observation(classId, level, Map.of(spec.itemId(), count), skills, anchor, ResourceEvidence.unavailable(), spec.itemId(), count, null);
+	}
+
+	private Map<Integer, Long> recipeInventory(long profileId, PhantomGoalStateStore.StoredGoal goal, PhantomAcquisitionState previous, PhantomAcquisitionGoalSpec spec, Observation observation, PhantomActivityState activityState, List<Integer> exactItemIds, long logicalNowNanos, PhantomCancellationToken token)
+	{
+		if (activityState == PhantomActivityState.BACKGROUND)
+		{
+			return observation.backgroundState() == null ? null : _background.acquisitionInventoryCounts(profileId, observation.backgroundState(), exactItemIds).orElse(null);
+		}
+		final PhantomAcquisitionState leaseState = previous != null ? previous : new PhantomAcquisitionState(hashes(), goal.goal().goalId(), goal.goal().revision(), spec.itemId(), spec.requiredAmount(), spec.baselineCount(), observation.itemCount(), PhantomAcquisitionState.observedProgress(spec.baselineCount(), observation.itemCount(), spec.requiredAmount()), Status.PLANNING, null, List.of(), 0, 0, Phase.NONE, 0, 0, 0, null, List.of(), 0);
+		final Current current = new Current(profileId, goal, new StoredState(leaseState, -1));
+		final ExternalActionLease lease = external(current, logicalNowNanos, token);
+		if (lease == null)
+		{
+			return null;
+		}
+		try
+		{
+			return lease.acquisitionInventoryCounts(exactItemIds);
+		}
+		finally
+		{
+			releaseExternal(profileId);
+		}
 	}
 
 	private List<Integer> requestedCapabilitySkillIds(int classId)
@@ -1244,8 +1348,14 @@ public final class PhantomAcquisitionService
 		}
 	}
 
-	private record Observation(int classId, int level, Map<Integer, Long> inventory, Map<Integer, Integer> knownSkills, String anchorId, ResourceEvidence resources, long itemCount)
+	private record Observation(int classId, int level, Map<Integer, Long> inventory, Map<Integer, Integer> knownSkills, String anchorId, ResourceEvidence resources, int targetItemId, long itemCount, PhantomBackgroundState backgroundState)
 	{
+		private Observation withInventory(Map<Integer, Long> exactCounts)
+		{
+			final Map<Integer, Long> merged = new HashMap<>(exactCounts);
+			merged.put(targetItemId(), itemCount);
+			return new Observation(classId, level, Map.copyOf(merged), knownSkills, anchorId, resources, targetItemId, itemCount, backgroundState);
+		}
 	}
 
 	private record Current(long profileId, PhantomGoalStateStore.StoredGoal goal, StoredState acquisition)

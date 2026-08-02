@@ -1729,6 +1729,15 @@ public final class PhantomCombatService
 			return active() && (kind() == ExternalActionKind.ACQUISITION) ? _actorLease.acquisitionInventoryCount(itemId) : -1;
 		}
 
+		public Map<Integer, Long> acquisitionInventoryCounts(List<Integer> exactItemIds)
+		{
+			if (!active() || (kind() != ExternalActionKind.ACQUISITION))
+			{
+				return Map.of();
+			}
+			return _actorLease.acquisitionInventoryCounts(exactItemIds);
+		}
+
 		public int acquisitionLevel()
 		{
 			return active() && (kind() == ExternalActionKind.ACQUISITION) ? _actorLease.acquisitionLevel() : 0;

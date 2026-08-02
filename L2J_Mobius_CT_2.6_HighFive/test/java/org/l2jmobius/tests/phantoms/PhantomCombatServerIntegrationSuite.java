@@ -341,11 +341,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		relocateToCombatPoint();
 	}
 
-	private Monster spawnDeterministicSpoilMonster()
+	private DeterministicSpoilMonster spawnDeterministicSpoilMonster()
 	{
-		final Monster target = spawnNormalMonster(targetMaximumHp());
-		// Keep the canonical NPC/drop identity while removing the unseeded magic-resist chance from this integration fixture.
-		target.getStat().setLevel((byte) 1);
+		final NpcTemplate template = NpcData.getInstance().getTemplate(_combatPoint.npcId());
+		PhantomAssertions.assertTrue(template != null, "Normal-monster template is unavailable.");
+		// NpcStat#getLevel reads the immutable template level, so a stat override does not remove the unseeded magic-resist roll.
+		// Keep the canonical NPC/drop template while bounding only the cast fixture's effective level.
+		final DeterministicSpoilMonster target = spawn(new DeterministicSpoilMonster(template), 20 + (_worldFixtures.size() * 5));
+		target.setCurrentHp(Math.min(targetMaximumHp(), target.getMaxHp()));
 		return target;
 	}
 
@@ -362,6 +365,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final Monster target = spawnNormalMonster(targetMaximumHp());
 		try (ExternalActionLease lease = acquireAcquisition("acquisition-controls"))
 		{
+			final long inventoryBefore = _player.getInventory().getInventoryItemCount(57, -1);
+			final Map<Integer, Long> inventoryCounts = lease.acquisitionInventoryCounts(List.of(57, 99999));
+			PhantomAssertions.assertEquals(inventoryBefore, inventoryCounts.get(57), "Exact active inventory count differed from canonical Player inventory.");
+			PhantomAssertions.assertEquals(0L, inventoryCounts.get(99999), "Absent exact active inventory item was not zero.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> lease.acquisitionInventoryCounts(java.util.stream.IntStream.rangeClosed(1, 129).boxed().toList()), "129 active inventory IDs were admitted by the production backend.");
+			PhantomAssertions.assertThrows(UnsupportedOperationException.class, () -> inventoryCounts.put(57, 1L), "Production active inventory snapshot was mutable.");
 			final List<AcquisitionTargetSnapshot> targets = lease.acquisitionTargets(_acquisitionSource.npcId(), 8, 2000);
 			PhantomAssertions.assertTrue(targets.stream().anyMatch(value -> value.objectId() == target.getObjectId()), "Exact authoritative acquisition target was not observed.");
 			PhantomAssertions.assertTrue(lease.acquisitionTargets(_acquisitionSource.npcId() + 1, 8, 2000).stream().noneMatch(value -> value.objectId() == target.getObjectId()), "Wrong NPC identity was admitted.");
@@ -370,6 +379,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID + 1, 1), AcquisitionSkillKind.SPOIL), "Unknown acquisition skill was admitted.");
 			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.castAcquisition(target.getObjectId() + 1, new SelectedSkill(SPOIL_SKILL_ID, 11), AcquisitionSkillKind.SPOIL), "Wrong exact target was admitted.");
 			PhantomAssertions.assertEquals(StartStatus.REJECTED_EXISTING, _combat.startSession(request(target, PhantomCombatMode.MELEE_PHYSICAL, false, false)).status(), "Existing Combat admitted a second owner during acquisition.");
+			PhantomAssertions.assertEquals(inventoryBefore, _player.getInventory().getInventoryItemCount(57, -1), "Exact active inventory read mutated canonical inventory.");
 		}
 
 		final Monster wrongInstance = spawnNormalMonster(targetMaximumHp());
@@ -394,7 +404,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	{
 		resetAcquisitionActor();
 		final long before = _player.getInventory().getInventoryItemCount(_acquisitionSource.itemId(), -1);
-		final Monster target = spawnDeterministicSpoilMonster();
+		final DeterministicSpoilMonster target = spawnDeterministicSpoilMonster();
 		try
 		{
 			try (ExternalActionLease lease = acquireAcquisition("acquisition-chain-spoil"))
@@ -404,6 +414,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				await(() -> target.isSpoiled() && (target.getSpoilerObjectId() == _player.getObjectId()), "Canonical spoil was not observed on the exact Monster.");
 			}
 			await(() -> !_player.isCastingNow() && !_player.isAttackingNow(), "Acquisition lease did not release the canonical spoil action.");
+			target.restoreTemplateLevel();
 			target.setCurrentHp(1);
 			target.getStatus().stopHpMpRegeneration();
 			_player.setPlayerClass(MELEE_CLASS_ID);
@@ -438,7 +449,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private void testAcquisitionDispatchRecovery() throws Exception
 	{
 		resetAcquisitionActor();
-		final Monster target = spawnDeterministicSpoilMonster();
+		final DeterministicSpoilMonster target = spawnDeterministicSpoilMonster();
 		try (ExternalActionLease lease = acquireAcquisition("acquisition-recovery-spoil-1"))
 		{
 			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID, 11), AcquisitionSkillKind.SPOIL), "Initial spoil dispatch was not issued.");
@@ -449,6 +460,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertEquals(ActionOutcome.ALREADY_OWNED, recovered.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID, 11), AcquisitionSkillKind.SPOIL), "Observed spoil was blindly repeated after dispatch recovery.");
 		}
 		await(() -> !_player.isCastingNow() && !_player.isAttackingNow(), "Recovered acquisition lease did not release the canonical spoil action.");
+		target.restoreTemplateLevel();
 		target.setCurrentHp(1);
 		target.getStatus().stopHpMpRegeneration();
 		_player.setPlayerClass(MELEE_CLASS_ID);
@@ -1098,6 +1110,27 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			Thread.sleep(10);
 		}
 		PhantomAssertions.assertTrue(condition.getAsBoolean(), message);
+	}
+
+	private static final class DeterministicSpoilMonster extends Monster
+	{
+		private int _effectiveLevel = 1;
+
+		private DeterministicSpoilMonster(NpcTemplate template)
+		{
+			super(template);
+		}
+
+		@Override
+		public int getLevel()
+		{
+			return _effectiveLevel;
+		}
+
+		private void restoreTemplateLevel()
+		{
+			_effectiveLevel = getTemplate().getLevel();
+		}
 	}
 
 	private void cleanup() throws Exception

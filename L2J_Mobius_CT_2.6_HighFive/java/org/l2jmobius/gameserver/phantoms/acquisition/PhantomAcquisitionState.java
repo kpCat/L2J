@@ -91,7 +91,7 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		{
 			throw new IllegalArgumentException("Acquisition phase and exact target claim disagree.");
 		}
-		if ((phaseAttempt > 0) && (phase != Phase.SPOIL_PREPARED) && (phase != Phase.SPOIL_DISPATCHING) && (phase != Phase.SWEEP_PREPARED) && (phase != Phase.SWEEP_DISPATCHING))
+		if ((phaseAttempt > 0) && (phase != Phase.SPOIL_PREPARED) && (phase != Phase.SPOIL_DISPATCHING) && (phase != Phase.SWEEP_PREPARED) && (phase != Phase.SWEEP_DISPATCHING) && (phase != Phase.COMBAT_SUBMITTED))
 		{
 			throw new IllegalArgumentException("Acquisition phase attempt has no dispatch owner.");
 		}

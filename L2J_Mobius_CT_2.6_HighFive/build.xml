@@ -1476,7 +1476,7 @@
 		</java>
 	</target>
 
-	<target name="phantom-acquisition-checkpoint1-test" depends="phantom-acquisition-catalog-codec-test,phantom-acquisition-source-planner-test,phantom-acquisition-recipe-planning-test,phantom-acquisition-active-spoil-test,phantom-acquisition-background-parity-test,phantom-acquisition-atomic-restart-test,phantom-acquisition-source-switching-test,phantom-acquisition-lifecycle-performance-smoke" description="Run the final Goal 021 Checkpoint 1 acquisition aggregate." />
+	<target name="phantom-acquisition-checkpoint1-test" depends="phantom-acquisition-catalog-codec-test,phantom-acquisition-source-planner-test,phantom-acquisition-recipe-planning-test,phantom-acquisition-active-spoil-test,phantom-acquisition-background-parity-test,phantom-acquisition-atomic-restart-test,phantom-acquisition-source-switching-test,phantom-acquisition-lifecycle-performance-smoke,phantom-acquisition-capability-test,phantom-acquisition-learned-eligibility-test,phantom-acquisition-dispatch-recovery-test,phantom-acquisition-combat-recovery-test,phantom-acquisition-operation-identity-test,phantom-acquisition-scoring-evidence-test,phantom-acquisition-goal015-regression-test,phantom-acquisition-rejected-recovery-test,phantom-acquisition-combat-submitted-recovery-test,phantom-acquisition-recipe-inventory-test,phantom-acquisition-preferred-method-test" description="Run the final Goal 021 Checkpoint 1 acquisition aggregate." />
 
 	<target name="phantom-acquisition-capability-test" depends="compile-tests" description="Run exact Goal 021 acquisition profession capability lineage tests.">
 		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
@@ -1589,6 +1589,37 @@
 			<arg value="${phantom.goal021c1.seed}" />
 		</java>
 	</target>
+
+	<target name="phantom-acquisition-rejected-recovery-test" depends="phantom-acquisition-dispatch-recovery-test" description="Run bounded REJECTED spoil and sweep recovery closure tests." />
+
+	<target name="phantom-acquisition-combat-submitted-recovery-test" depends="phantom-acquisition-combat-recovery-test" description="Run exact COMBAT_SUBMITTED ownership and evidence recovery closure tests." />
+
+	<target name="phantom-acquisition-recipe-inventory-test" depends="compile-tests" description="Run active and background exact recipe inventory truth closure tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="420000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<jvmarg value="-Dphantom.acquisition.focus=recipe-inventory" />
+			<arg value="acquisition-recipe-planning" />
+			<arg value="${phantom.goal021c1.seed}" />
+		</java>
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="420000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<jvmarg value="-Dphantom.acquisition.focus=recipe-inventory" />
+			<arg value="acquisition-atomic-restart" />
+			<arg value="${phantom.goal021c1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-preferred-method-test" depends="phantom-acquisition-scoring-evidence-test" description="Run preferred-method scoring-before-ambiguity closure tests." />
 
 	<target name="prepare-phantom-test-db" depends="compile-tests" description="Destructively recreate only the allowlisted Phantom test database.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestDatabaseProvisioner" classpathref="test.classpath" fork="true" failonerror="true">

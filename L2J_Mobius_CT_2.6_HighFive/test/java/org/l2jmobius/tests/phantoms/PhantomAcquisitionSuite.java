@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePla
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner.ResourceEvidence;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore.StoredState;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Candidate;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Deficit;
@@ -245,9 +247,15 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 
 	private void registerRecipePlanning(PhantomTestRegistry registry)
 	{
+		if ("recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", "")))
+		{
+			registry.add("01-active-service-exact-recipe-inventory-truth", this::testProductionRecipeInventoryTruth);
+			return;
+		}
 		registry.add("01-production-direct-and-multilevel-recipes", this::testProductionRecipes);
 		registry.add("02-inventory-ceiling-shared-dag-and-deferred-leaves", this::testSharedRecipeDag);
 		registry.add("03-cycle-depth-node-deficit-and-prerequisite-controls", this::testRecipeNegativeControls);
+		registry.add("04-active-service-exact-recipe-inventory-truth", this::testProductionRecipeInventoryTruth);
 	}
 
 	private void registerSourceSwitching(PhantomTestRegistry registry)
@@ -291,6 +299,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(8, first.limits().sourceCandidates(), "Source candidate bound changed.");
 		PhantomAssertions.assertEquals(48, first.limits().recipeNodes(), "Recipe node bound changed.");
 		PhantomAssertions.assertEquals(3, first.switchPolicy().failureThreshold(), "Switch failure threshold changed.");
+		PhantomAssertions.assertTrue(first.sourceScoring().preferredMethodBonus() > first.sourceScoring().ambiguityThreshold(), "Preferred method bonus cannot resolve an eligible cross-method tie.");
 
 		final String text = new String(source, StandardCharsets.UTF_8);
 		assertInvalidCatalog(context, text.replace("<sourceScoring ", "<sourceScoring unknown=\"1\" "), "unknown-attribute");
@@ -437,6 +446,18 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals("source.ambiguous", cross.reasonKey(), "Cross-method near tie was not reported as ambiguous.");
 				PhantomAssertions.assertTrue(cross.selected() == null, "Cross-method near tie selected a source.");
 				PhantomAssertions.assertTrue(cross.ranked().size() > 1 && cross.ranked().get(0).source().method() != cross.ranked().get(1).source().method(), "Cross-method ambiguity control did not compare different methods.");
+				for (Method preferred : List.of(Method.DEATH_DROP, Method.SPOIL_SWEEP))
+				{
+					final var preferredRequest = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(254, 11, 42, 1), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), preferred, "synthetic.anchor", "", new ResourceEvidence(0, 100, 0, 100, true), Map.of(), 0);
+					final var preferredResult = crossPlanner.plan(preferredRequest);
+					PhantomAssertions.assertEquals(preferred, preferredResult.selected().source().method(), "Preferred method bonus was applied after ambiguity for " + preferred);
+					PhantomAssertions.assertEquals(preferredResult, crossPlanner.plan(preferredRequest), "Preferred method ranking is not deterministic for " + preferred);
+				}
+				final var ineligibleSpoil = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), Method.SPOIL_SWEEP, "synthetic.anchor", "", new ResourceEvidence(0, 100, 0, 100, true), Map.of(), 0);
+				PhantomAssertions.assertEquals(Method.DEATH_DROP, crossPlanner.plan(ineligibleSpoil).selected().source().method(), "Preferred bonus made an ineligible Spoil source executable.");
+				final Map<String, Candidate> coolingSpoil = cross.ranked().stream().filter(value -> value.source().method() == Method.SPOIL_SWEEP).collect(java.util.stream.Collectors.toUnmodifiableMap(value -> value.source().sourceId(), value -> new Candidate(value.source().sourceId(), value.source().method(), value.score(), 3, 10, "source.target_unavailable")));
+				final var coolingRequest = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 117, 20, Map.of(), Map.of(254, 11, 42, 1), Set.of(Method.DEATH_DROP, Method.SPOIL_SWEEP), Method.SPOIL_SWEEP, "synthetic.anchor", "", new ResourceEvidence(0, 100, 0, 100, true), coolingSpoil, 11);
+				PhantomAssertions.assertEquals(Method.DEATH_DROP, crossPlanner.plan(coolingRequest).selected().source().method(), "Preferred bonus bypassed source cooldown.");
 			}
 			finally
 			{
@@ -495,6 +516,9 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			final Map<Integer, Long> inventory = new LinkedHashMap<>(Map.of(1, 3L, 2, 1L));
 			final Map<Integer, Long> before = Map.copyOf(inventory);
 			final var result = planner.plan(7, 2, inventory, new CraftEvidence(172, 10, true));
+			final var probe = planner.probe(7, 2);
+			PhantomAssertions.assertTrue(probe.successful() && probe.exactItemIds().equals(probe.exactItemIds().stream().distinct().sorted().toList()), "Recipe probe did not return a canonical exact inventory union.");
+			PhantomAssertions.assertTrue(probe.exactItemIds().containsAll(List.of(1, 2, 9, 10)), "Recipe probe omitted a bounded alternative dependency.");
 			PhantomAssertions.assertTrue(result.planned(), "Shared-ingredient synthetic recipe was not planned.");
 			PhantomAssertions.assertEquals(2L, result.plan().batchCount(), "Synthetic root ceiling batches changed.");
 			PhantomAssertions.assertEquals((long) result.plan().nodes().size(), result.plan().nodes().stream().map(RecipeNode::itemId).distinct().count(), "Shared ingredients were duplicated instead of DAG-aggregated.");
@@ -506,17 +530,28 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals("", result.plan().reasonKey(), "Ready craft evidence was rejected.");
 			context.record("acquisition.sharedRecipeNodes", result.plan().nodes().size());
 		}
+		try (SyntheticKnowledge fixture = syntheticRecipes(context, RecipeShape.ALTERNATIVES))
+		{
+			final PhantomAcquisitionRecipePlanner planner = new PhantomAcquisitionRecipePlanner(fixture.query(), catalog(context).limits());
+			PhantomAssertions.assertEquals(10, planner.plan(7, 1, Map.of(1, 2L), new CraftEvidence(172, 10, true)).plan().recipeListId(), "Actual inventory did not select the first lower-deficit alternative.");
+			PhantomAssertions.assertEquals(11, planner.plan(7, 1, Map.of(2, 2L), new CraftEvidence(172, 10, true)).plan().recipeListId(), "Actual inventory did not select the second lower-deficit alternative.");
+		}
 	}
 
 	private void testRecipeNegativeControls(PhantomTestContext context) throws Exception
 	{
-		for (RecipeShape shape : List.of(RecipeShape.CYCLE, RecipeShape.DEPTH, RecipeShape.NODES, RecipeShape.DEFICITS))
+		for (RecipeShape shape : List.of(RecipeShape.CYCLE, RecipeShape.DEPTH, RecipeShape.NODES, RecipeShape.DEFICITS, RecipeShape.ALTERNATIVE_UNION))
 		{
 			try (SyntheticKnowledge fixture = syntheticRecipes(context, shape))
 			{
-				final var result = new PhantomAcquisitionRecipePlanner(fixture.query(), catalog(context).limits()).plan(7, 1, Map.of(), new CraftEvidence(172, 10, true));
+				final var planner = new PhantomAcquisitionRecipePlanner(fixture.query(), catalog(context).limits());
+				final var result = planner.plan(7, 1, Map.of(), new CraftEvidence(172, 10, true));
 				PhantomAssertions.assertFalse(result.planned(), "Recipe overflow/cycle was accepted: " + shape);
 				PhantomAssertions.assertEquals("recipe.bounds", result.reasonKey(), "Recipe bound failure is not typed: " + shape);
+				if (shape != RecipeShape.DEFICITS)
+				{
+					PhantomAssertions.assertEquals("recipe.bounds", planner.probe(7, 1).reasonKey(), "Recipe probe bound failure is not typed: " + shape);
+				}
 			}
 		}
 		try (SyntheticKnowledge fixture = syntheticRecipes(context, RecipeShape.SHARED))
@@ -527,6 +562,38 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(noCraft.planned(), "Planning-only recipe incorrectly required execution authorization.");
 			PhantomAssertions.assertEquals("recipe.craft_evidence_missing", noCraft.plan().reasonKey(), "Missing craft prerequisite was not preserved in the plan.");
 		}
+	}
+
+	private void testProductionRecipeInventoryTruth(PhantomTestContext context) throws Exception
+	{
+		final PhantomAcquisitionRecipePlanner recipePlanner = new PhantomAcquisitionRecipePlanner(_production.knowledge(), catalog(context).limits());
+		final RecipeFact recipe = _production.knowledge().snapshot().recipeByListId().values().stream().sorted(Comparator.comparingInt(RecipeFact::recipeListId)).filter(value -> recipePlanner.probe(value.productItemId(), 1).successful() && recipePlanner.plan(value.productItemId(), 1, Map.of(), new CraftEvidence(172, 10, true)).planned()).findFirst().orElseThrow();
+		final List<Integer> exactIds = recipePlanner.probe(recipe.productItemId(), 1).exactItemIds();
+		PhantomAssertions.assertTrue(!exactIds.isEmpty() && exactIds.size() <= 128, "Production recipe probe did not expose a bounded ingredient inventory set.");
+		final Map<Integer, Long> partial = new LinkedHashMap<>();
+		partial.put(exactIds.getFirst(), 1_000L);
+		final Map<Integer, Long> before = Map.copyOf(partial);
+		long zeroDeficit;
+		try (AcquisitionServiceFixture fixture = acquisitionPlanningFixture(recipe, Map.of()))
+		{
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, fixture.plan(1).status(), "Active recipe service plan without ingredients failed.");
+			zeroDeficit = fixture.state().recipePlan().deficits().stream().mapToLong(Deficit::count).sum();
+			PhantomAssertions.assertEquals(exactIds, fixture.lease().lastInventoryRequest, "Active recipe planning did not request only the probed exact IDs.");
+			PhantomAssertions.assertEquals(0L, fixture.lease().acquisitionInventoryCounts(List.of(99999)).get(99999), "Absent active inventory item was not reported as zero.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> fixture.lease().acquisitionInventoryCounts(java.util.stream.IntStream.rangeClosed(1, 129).boxed().toList()), "129 active inventory IDs were admitted.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> fixture.lease().acquisitionInventoryCounts(List.of(2, 1)), "Unsorted active inventory IDs were admitted.");
+			PhantomAssertions.assertThrows(UnsupportedOperationException.class, () -> fixture.lease().acquisitionInventoryCounts(List.of(99999)).put(99999, 1L), "Active inventory count map was mutable.");
+		}
+		try (AcquisitionServiceFixture fixture = acquisitionPlanningFixture(recipe, partial))
+		{
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, fixture.plan(1).status(), "Active recipe service plan with partial ingredients failed.");
+			final var plan = fixture.state().recipePlan();
+			PhantomAssertions.assertTrue(plan.nodes().stream().mapToLong(RecipeNode::inventoryUsed).sum() > 0, "Partial active ingredients were not consumed by the final plan.");
+			PhantomAssertions.assertTrue(plan.deficits().stream().mapToLong(Deficit::count).sum() < zeroDeficit, "Partial active ingredients did not reduce the final deficit.");
+			PhantomAssertions.assertEquals(before, partial, "Active recipe planning mutated caller inventory evidence.");
+			PhantomAssertions.assertEquals(0, fixture.service().snapshot().externalClaims(), "Active recipe planning retained an action lease.");
+		}
+		context.record("acquisition.recipeExactInventoryIds", exactIds.size());
 	}
 
 	private void testThresholdAndCooldown(PhantomTestContext context)
@@ -598,13 +665,51 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			}
 		}
 
-		try (AcquisitionServiceFixture fixture = acquisitionServiceFixture(Method.SPOIL_SWEEP, Phase.SPOIL_PREPARED, 0))
+		for (AcquisitionSkillKind kind : AcquisitionSkillKind.values())
+		{
+			final Phase prepared = kind == AcquisitionSkillKind.SPOIL ? Phase.SPOIL_PREPARED : Phase.SWEEP_PREPARED;
+			try (AcquisitionServiceFixture fixture = acquisitionServiceFixture(Method.SPOIL_SWEEP, prepared, 0))
+			{
+				fixture.lease().castOutcome = ActionOutcome.REJECTED;
+				long sequence = 1;
+				for (int failure = 1; failure <= 3; failure++)
+				{
+					PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.REPLAN, fixture.advance(sequence++).status(), kind + " REJECTED dispatch was not typed as a replan.");
+					PhantomAssertions.assertEquals(failure, fixture.state().candidates().getFirst().failures(), kind + " REJECTED did not persist exactly one source failure.");
+					PhantomAssertions.assertEquals("source.ineligible", fixture.state().candidates().getFirst().lastFailureReason(), kind + " REJECTED reason did not come from the exact repeat check.");
+					PhantomAssertions.assertEquals(0, fixture.service().snapshot().externalClaims(), kind + " REJECTED retained external ownership.");
+					if (failure < 3)
+					{
+						PhantomAssertions.assertEquals(Phase.TARGET_REQUIRED, fixture.state().phase(), kind + " REJECTED remained in a dispatch phase.");
+						if (kind == AcquisitionSkillKind.SWEEP)
+						{
+							fixture.forcePhase(Phase.SWEEP_PREPARED);
+						}
+						else
+						{
+							PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, fixture.advance(sequence++).status(), kind + " target was not reacquired after a bounded rejection.");
+						}
+					}
+				}
+				PhantomAssertions.assertEquals(Status.BLOCKED, fixture.state().status(), kind + " third REJECTED did not expose source switching.");
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.DirectiveKind.SWITCH, fixture.service().directive(fixture.profileId(), fixture.goal(), PhantomActivityState.ACTIVE).kind(), kind + " bounded REJECTED did not select SWITCH.");
+				final int casts = fixture.lease().castCalls;
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.REPLAN, fixture.advance(sequence).status(), kind + " blocked state did not remain non-executable.");
+				PhantomAssertions.assertEquals(casts, fixture.lease().castCalls, kind + " cast repeated after the rejection threshold.");
+			}
+		}
+
+		try (AcquisitionServiceFixture fixture = acquisitionServiceFixture(Method.SPOIL_SWEEP, Phase.SPOIL_PREPARED, 0, 2, 5, 9, 10))
 		{
 			fixture.lease().castOutcome = ActionOutcome.REJECTED;
-			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.REPLAN, fixture.advance(1).status(), "REJECTED dispatch was not typed as a replan.");
-			PhantomAssertions.assertEquals(Phase.SPOIL_PREPARED, fixture.state().phase(), "REJECTED dispatch remained stuck in DISPATCHING.");
-			PhantomAssertions.assertEquals(0, fixture.state().phaseAttempt(), "REJECTED dispatch consumed a verification attempt.");
-			PhantomAssertions.assertEquals(0, fixture.service().snapshot().externalClaims(), "REJECTED dispatch retained external ownership.");
+			fixture.lease().invalidateTargetOnRejectedCast = true;
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.REPLAN, fixture.advance(1).status(), "Stale-target REJECTED was not bounded.");
+			PhantomAssertions.assertEquals("source.target_unavailable", fixture.state().candidates().getFirst().lastFailureReason(), "Stale-target rejection lost its exact reason.");
+			fixture.lease().target = fixture.lease().liveTarget(201);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, fixture.advance(2).status(), "A new target was not selected after stale-target rejection.");
+			PhantomAssertions.assertEquals(201, fixture.state().targetObjectId(), "Stale target identity was reused.");
+			PhantomAssertions.assertEquals(5L, fixture.state().baselineCount(), "Target recovery changed the acquisition baseline.");
+			PhantomAssertions.assertEquals(4L, fixture.state().progress(), "Target recovery changed baseline-derived progress.");
 		}
 
 		try (AcquisitionServiceFixture fixture = acquisitionServiceFixture(Method.SPOIL_SWEEP, Phase.SPOIL_DISPATCHING, 0))
@@ -688,15 +793,79 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.RETRY, fixture.advance(1).status(), "Temporary Combat capacity did not remain retryable.");
 			PhantomAssertions.assertEquals(Phase.COMBAT_PREPARED, fixture.state().phase(), "Temporary Combat capacity falsely marked submission.");
 		}
+
+		try (AcquisitionServiceFixture fixture = acquisitionServiceFixture(Method.DEATH_DROP, Phase.COMBAT_SUBMITTED, 0))
+		{
+			PhantomAssertions.assertTrue(fixture.combat().startSession(fixture.request(200)).accepted(), "Submitted foreign-owner fixture was not established.");
+			final var result = fixture.advance(1);
+			PhantomAssertions.assertEquals("acquisition.combat.foreign_session", result.reasonKey(), "Submitted foreign owner was not rejected before observation.");
+			PhantomAssertions.assertEquals(Phase.COMBAT_SUBMITTED, fixture.state().phase(), "Foreign submitted session mutated acquisition state.");
+			PhantomAssertions.assertTrue(fixture.combat().find(fixture.profileId()).isPresent(), "Foreign submitted session was consumed.");
+		}
+
+		try (AcquisitionServiceFixture fixture = acquisitionServiceFixture(Method.DEATH_DROP, Phase.COMBAT_SUBMITTED, 0))
+		{
+			PhantomAssertions.assertTrue(fixture.combat().startAcquisitionSession(fixture.request(201), fixture.combatOwner()).accepted(), "Submitted foreign-target fixture was not established.");
+			final var result = fixture.advance(1);
+			PhantomAssertions.assertEquals("acquisition.combat.foreign_session", result.reasonKey(), "Submitted foreign target was not rejected before observation.");
+			PhantomAssertions.assertEquals(Phase.COMBAT_SUBMITTED, fixture.state().phase(), "Foreign submitted target mutated acquisition state.");
+			PhantomAssertions.assertTrue(fixture.combat().find(fixture.profileId()).isPresent(), "Foreign submitted target was consumed.");
+		}
+
+		try (AcquisitionServiceFixture fixture = acquisitionServiceFixture(Method.DEATH_DROP, Phase.COMBAT_SUBMITTED, 0))
+		{
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, fixture.advance(1).status(), "Missing exact session did not recover a live target.");
+			PhantomAssertions.assertEquals(Phase.COMBAT_PREPARED, fixture.state().phase(), "Live target recovery was not durable COMBAT_PREPARED.");
+		}
+
+		try (AcquisitionServiceFixture fixture = acquisitionServiceFixture(Method.SPOIL_SWEEP, Phase.COMBAT_SUBMITTED, 0))
+		{
+			fixture.lease().target = fixture.lease().sweepTarget();
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, fixture.advance(1).status(), "Missing exact session did not recover an owned spoiled corpse.");
+			PhantomAssertions.assertEquals(Phase.COMBAT_TERMINAL, fixture.state().phase(), "Owned spoiled corpse was not durable COMBAT_TERMINAL.");
+		}
+
+		try (AcquisitionServiceFixture fixture = acquisitionServiceFixture(Method.DEATH_DROP, Phase.COMBAT_SUBMITTED, 0))
+		{
+			fixture.lease().inventoryCount = 1;
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, fixture.advance(1).status(), "Missing exact session ignored authoritative inventory growth.");
+			PhantomAssertions.assertEquals(Phase.VERIFYING, fixture.state().phase(), "Inventory growth did not recover to VERIFYING.");
+		}
+
+		try (AcquisitionServiceFixture fixture = acquisitionServiceFixture(Method.DEATH_DROP, Phase.COMBAT_SUBMITTED, 0))
+		{
+			fixture.lease().target = new AcquisitionTargetSnapshot(200, 101, 0, 10, false, false, true, true, false, true, true, false, true, false, 0, false, false);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.RETRY, fixture.advance(1).status(), "Reused exact object identity was admitted as the acquisition target.");
+			PhantomAssertions.assertEquals(1, fixture.state().phaseAttempt(), "Reused target identity did not consume one bounded evidence attempt.");
+		}
+
+		try (AcquisitionServiceFixture fixture = acquisitionServiceFixture(Method.DEATH_DROP, Phase.COMBAT_SUBMITTED, 0))
+		{
+			fixture.lease().target = null;
+			for (int attempt = 1; attempt <= 2; attempt++)
+			{
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.RETRY, fixture.advance(attempt).status(), "Missing Combat evidence did not use a bounded retry.");
+				PhantomAssertions.assertEquals(attempt, fixture.state().phaseAttempt(), "Missing Combat attempt was not durable.");
+			}
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.REPLAN, fixture.advance(3).status(), "Missing Combat evidence did not fail closed at the verification limit.");
+			PhantomAssertions.assertEquals(Status.BLOCKED, fixture.state().status(), "Missing Combat uncertainty did not persist BLOCKED.");
+			PhantomAssertions.assertEquals(TerminalResult.UNCERTAIN, fixture.state().receipts().getLast().result(), "Missing Combat recovery did not persist an UNCERTAIN receipt.");
+			PhantomAssertions.assertEquals(0, fixture.service().snapshot().externalClaims(), "Missing Combat terminal recovery retained external ownership.");
+		}
 		context.record("acquisition.combatKillOwners", 1);
 	}
 
 	private AcquisitionServiceFixture acquisitionServiceFixture(Method method, Phase phase, int phaseAttempt) throws Exception
 	{
-		return acquisitionServiceFixture(method, phase, phaseAttempt, 2);
+		return acquisitionServiceFixture(method, phase, phaseAttempt, 2, 0, 0, 1);
 	}
 
 	private AcquisitionServiceFixture acquisitionServiceFixture(Method method, Phase phase, int phaseAttempt, int maximumCombatSessions) throws Exception
+	{
+		return acquisitionServiceFixture(method, phase, phaseAttempt, maximumCombatSessions, 0, 0, 1);
+	}
+
+	private AcquisitionServiceFixture acquisitionServiceFixture(Method method, Phase phase, int phaseAttempt, int maximumCombatSessions, long baseline, long lastObserved, long required) throws Exception
 	{
 		final PhantomProfileRepository profiles = PhantomProfileRepository.open();
 		final PhantomProfile profile = profiles.create(_environment.primary().objectId());
@@ -707,14 +876,14 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			final PhantomAcquisitionCatalog catalog = PhantomAcquisitionCatalog.load(Path.of("data/phantoms/acquisition/high-five-acquisition-v1.xml"));
 			final PhantomGoalStateStore goals = new PhantomGoalStateStore(profiles);
 			final String anchorId = _production.topology().snapshot().anchors().getFirst().id();
-			final PhantomGoal goal = new PhantomGoal(21, PhantomAcquisitionGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("item", "57"), 1, 0, method.key(), List.of(new PhantomDomainRef(PhantomAcquisitionGoalSpec.SOURCE_NAMESPACE, method.key())), new PhantomDomainRef(PhantomAcquisitionGoalSpec.ANCHOR_NAMESPACE, anchorId), PhantomAcquisitionGoalSpec.PURPOSE_KEY, 500, 0, 0, 0, Map.of(PhantomAcquisitionGoalSpec.BASELINE_CONSTRAINT, 0L, PhantomAcquisitionGoalSpec.MAXIMUM_SWITCHES_CONSTRAINT, 4L), "acquisition.safety.test", 0);
+			final PhantomGoal goal = new PhantomGoal(21, PhantomAcquisitionGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("item", "57"), required, PhantomAcquisitionState.observedProgress(baseline, lastObserved, required), method.key(), List.of(new PhantomDomainRef(PhantomAcquisitionGoalSpec.SOURCE_NAMESPACE, method.key())), new PhantomDomainRef(PhantomAcquisitionGoalSpec.ANCHOR_NAMESPACE, anchorId), PhantomAcquisitionGoalSpec.PURPOSE_KEY, 500, 0, 0, 0, Map.of(PhantomAcquisitionGoalSpec.BASELINE_CONSTRAINT, baseline, PhantomAcquisitionGoalSpec.MAXIMUM_SWITCHES_CONSTRAINT, 4L), "acquisition.safety.test", 0);
 			goals.insert(profile.profileId(), goal);
 			final PhantomBackgroundService background = new PhantomBackgroundService(profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), new PhantomBackgroundTransaction(), _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), () -> null);
 			final var backgroundHashes = background.authorityHashes();
 			final Hashes hashes = new Hashes(catalog.hash(), _production.knowledge().snapshot().combinedHash(), _production.topology().snapshot().canonicalHash(), _production.progression().combinedHash().toLowerCase(java.util.Locale.ROOT), canonicalDigest(backgroundHashes.knowledge(), backgroundHashes.topology(), backgroundHashes.progression(), backgroundHashes.commerce()));
 			final Source source = method == Method.SPOIL_SWEEP ? new Source("2".repeat(64), method, 100, 57, "test:spoil:57", "test.node", anchorId, 0, 254, 11, 42, 1) : new Source("1".repeat(64), method, 100, 57, "test:death-drop:57", "test.node", anchorId, 0, 0, 0, 0, 0);
 			final Candidate candidate = new Candidate(source.sourceId(), source.method(), 1, 0, 0, "");
-			final PhantomAcquisitionState state = new PhantomAcquisitionState(hashes, goal.goalId(), goal.revision(), 57, 1, 0, 0, 0, Status.READY, source, List.of(candidate), 0, 0, phase, 200, 100, 0, null, List.of(), phaseAttempt, 0);
+			final PhantomAcquisitionState state = new PhantomAcquisitionState(hashes, goal.goalId(), goal.revision(), 57, required, baseline, lastObserved, PhantomAcquisitionState.observedProgress(baseline, lastObserved, required), Status.READY, source, List.of(candidate), 0, 0, phase, 200, 100, 0, null, List.of(), phaseAttempt, 0);
 			final PhantomAcquisitionStore store = new PhantomAcquisitionStore(profiles, goals);
 			store.insert(profile.profileId(), state);
 			final FakeAcquisitionLease lease = new FakeAcquisitionLease();
@@ -729,6 +898,48 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			combat.start();
 			service = new PhantomAcquisitionService(catalog, store, goals, new PhantomAcquisitionSourcePlanner(catalog, _production.knowledge(), _production.topology(), _production.progression()), _production.knowledge(), _production.topology(), _production.progression(), combat, background, new PhantomNavigationService(new PhantomMetrics()));
 			PhantomAssertions.assertTrue(service.start(), "Acquisition safety fixture service did not start.");
+			return new AcquisitionServiceFixture(profiles, profile, goal, store, service, combat, backend, lease);
+		}
+		catch (Throwable failure)
+		{
+			if (service != null)
+			{
+				service.beginStop();
+				service.finishStop();
+			}
+			if (combat != null)
+			{
+				combat.beginStop();
+				combat.finishStop();
+			}
+			profiles.find(profile.profileId()).ifPresent(current -> profiles.delete(current.profileId(), current.rowVersion()));
+			throw failure;
+		}
+	}
+
+	private AcquisitionServiceFixture acquisitionPlanningFixture(RecipeFact recipe, Map<Integer, Long> inventory) throws Exception
+	{
+		final PhantomProfileRepository profiles = PhantomProfileRepository.open();
+		final PhantomProfile profile = profiles.create(_environment.primary().objectId());
+		PhantomCombatService combat = null;
+		PhantomAcquisitionService service = null;
+		try
+		{
+			final PhantomAcquisitionCatalog catalog = PhantomAcquisitionCatalog.load(Path.of("data/phantoms/acquisition/high-five-acquisition-v1.xml"));
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(profiles);
+			final String anchorId = _production.topology().snapshot().anchors().getFirst().id();
+			final PhantomGoal goal = new PhantomGoal(21, PhantomAcquisitionGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("item", Integer.toString(recipe.productItemId())), 1, 0, Method.RECIPE_PREPARATION.key(), List.of(new PhantomDomainRef(PhantomAcquisitionGoalSpec.SOURCE_NAMESPACE, Method.RECIPE_PREPARATION.key())), new PhantomDomainRef(PhantomAcquisitionGoalSpec.ANCHOR_NAMESPACE, anchorId), PhantomAcquisitionGoalSpec.PURPOSE_KEY, 500, 0, 0, 0, Map.of(PhantomAcquisitionGoalSpec.BASELINE_CONSTRAINT, 0L, PhantomAcquisitionGoalSpec.MAXIMUM_SWITCHES_CONSTRAINT, 4L), "acquisition.recipe.inventory.test", 0);
+			goals.insert(profile.profileId(), goal);
+			final PhantomBackgroundService background = new PhantomBackgroundService(profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), new PhantomBackgroundTransaction(), _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), () -> null);
+			final FakeAcquisitionLease lease = new FakeAcquisitionLease();
+			lease.actor = lease.actorForClass(118);
+			lease.inventoryCounts.putAll(inventory);
+			final FakeAcquisitionBackend backend = new FakeAcquisitionBackend(lease);
+			combat = new PhantomCombatService(backend, new PhantomCombatCapabilityResolver(_ -> List.of(new CapabilityEvidence(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(), "acquisition-test", 1, List.of()))), PhantomCombatPolicy.productionDefaults(2), new PhantomCombatMetrics(), () -> 1, new HoldingDispatcher());
+			combat.start();
+			final PhantomAcquisitionStore store = new PhantomAcquisitionStore(profiles, goals);
+			service = new PhantomAcquisitionService(catalog, store, goals, new PhantomAcquisitionSourcePlanner(catalog, _production.knowledge(), _production.topology(), _production.progression()), _production.knowledge(), _production.topology(), _production.progression(), combat, background, new PhantomNavigationService(new PhantomMetrics()));
+			PhantomAssertions.assertTrue(service.start(), "Acquisition recipe inventory fixture service did not start.");
 			return new AcquisitionServiceFixture(profiles, profile, goal, store, service, combat, backend, lease);
 		}
 		catch (Throwable failure)
@@ -1034,7 +1245,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 				final BackendData base = delegate.load(policy);
 				final ArrayList<ItemFact> items = new ArrayList<>(base.items());
 				final ArrayList<RecipeFact> recipes = new ArrayList<>();
-				final int highest = shape == RecipeShape.NODES ? 70 : (shape == RecipeShape.DEFICITS ? 50 : (shape == RecipeShape.DEPTH ? 20 : 10));
+				final int highest = shape == RecipeShape.ALTERNATIVE_UNION ? 180 : (shape == RecipeShape.NODES ? 70 : (shape == RecipeShape.DEFICITS ? 50 : (shape == RecipeShape.DEPTH ? 20 : 10)));
 				for (int itemId = 11; itemId <= highest; itemId++)
 				{
 					items.add(new ItemFact(itemId, ItemCategory.ETC, "NONE", itemId, true, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
@@ -1063,6 +1274,19 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 					}
 					case NODES -> recipes.add(recipe(10, 7, java.util.stream.IntStream.rangeClosed(11, 59).mapToObj(item -> new IngredientFact(item, 1)).toList()));
 					case DEFICITS -> recipes.add(recipe(10, 7, java.util.stream.IntStream.rangeClosed(11, 43).mapToObj(item -> new IngredientFact(item, 1)).toList()));
+					case ALTERNATIVE_UNION ->
+					{
+						for (int alternative = 0; alternative < 4; alternative++)
+						{
+							final int first = 11 + (alternative * 40);
+							recipes.add(recipe(10 + alternative, 7, java.util.stream.IntStream.range(first, first + 40).mapToObj(item -> new IngredientFact(item, 1)).toList()));
+						}
+					}
+					case ALTERNATIVES ->
+					{
+						recipes.add(recipe(10, 7, List.of(new IngredientFact(1, 2), new IngredientFact(2, 1))));
+						recipes.add(recipe(11, 7, List.of(new IngredientFact(1, 1), new IngredientFact(2, 2))));
+					}
 				}
 				return new BackendData(items, base.npcs(), base.drops(), base.spawns(), recipes, base.classes(), base.completeClassSkills());
 			}
@@ -1272,6 +1496,17 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			return _service.activeAdvance(profileId(), _goal, PhantomActivityState.ACTIVE, 1, sequence, 1_000_000 + sequence, sequence, () -> false);
 		}
 
+		private PhantomAcquisitionService.OperationResult plan(long sequence)
+		{
+			return _service.plan(profileId(), _goal, PhantomActivityState.ACTIVE, 1_000_000 + sequence, sequence, () -> false);
+		}
+
+		private void forcePhase(Phase phase)
+		{
+			final StoredState stored = _store.load(profileId()).orElseThrow();
+			_store.replace(profileId(), stored.rowVersion(), stored.state().withPhase(phase, 200, 100, 0, stored.state().phaseAttempt(), stored.state().logicalMinute() + 1));
+		}
+
 		private PhantomCombatRequest request(int targetObjectId)
 		{
 			return new PhantomCombatRequest(profileId(), targetObjectId, PhantomCombatMode.MELEE_PHYSICAL, true, state().selectedSource().method() == Method.DEATH_DROP, 30_000, () -> false);
@@ -1318,6 +1553,10 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		private AcquisitionTargetSnapshot target = liveAcquisitionTarget();
 		private ActionOutcome castOutcome = ActionOutcome.ISSUED;
 		private long inventoryCount;
+		private int castCalls;
+		private boolean invalidateTargetOnRejectedCast;
+		private final Map<Integer, Long> inventoryCounts = new HashMap<>();
+		private List<Integer> lastInventoryRequest = List.of();
 
 		private static ActorSnapshot liveActor()
 		{
@@ -1329,9 +1568,19 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			return new ActorSnapshot(10, 117, 0, 100, 100, 100, 100, 50, 100, false, false, false, true, false, 200, "CAST", skillId, skillLevel);
 		}
 
+		private ActorSnapshot actorForClass(int classId)
+		{
+			return new ActorSnapshot(10, classId, 0, 100, 100, 100, 100, 50, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
+		}
+
 		private static AcquisitionTargetSnapshot liveAcquisitionTarget()
 		{
 			return new AcquisitionTargetSnapshot(200, 100, 0, 10, false, false, true, true, false, true, true, false, true, false, 0, false, false);
+		}
+
+		private AcquisitionTargetSnapshot liveTarget(int objectId)
+		{
+			return new AcquisitionTargetSnapshot(objectId, 100, 0, 10, false, false, true, true, false, true, true, false, true, false, 0, false, false);
 		}
 
 		private AcquisitionTargetSnapshot spoilObservedTarget()
@@ -1359,19 +1608,26 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		@Override
 		public AcquisitionTargetSnapshot acquisitionTargetSnapshot(int targetObjectId)
 		{
-			return target.objectId() == targetObjectId ? target : null;
+			return (target != null) && (target.objectId() == targetObjectId) ? target : null;
 		}
 
 		@Override
 		public List<AcquisitionTargetSnapshot> acquisitionTargets(int npcId, int limit, int maximumDistance)
 		{
-			return target.npcId() == npcId ? List.of(target) : List.of();
+			return (target != null) && (target.npcId() == npcId) ? List.of(target) : List.of();
 		}
 
 		@Override
 		public long acquisitionInventoryCount(int itemId)
 		{
-			return inventoryCount;
+			return inventoryCounts.getOrDefault(itemId, inventoryCount);
+		}
+
+		@Override
+		public Map<Integer, Long> acquisitionInventoryCounts(List<Integer> exactItemIds)
+		{
+			lastInventoryRequest = List.copyOf(exactItemIds);
+			return PhantomCombatActorLease.super.acquisitionInventoryCounts(exactItemIds);
 		}
 
 		@Override
@@ -1389,7 +1645,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		@Override
 		public int knownSkillLevel(int skillId)
 		{
-			return skillId == 254 ? 11 : (skillId == 42 ? 1 : 0);
+			return skillId == 254 ? 11 : (skillId == 42 ? 1 : (skillId == 172 ? 10 : 0));
 		}
 
 		@Override
@@ -1437,6 +1693,11 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		@Override
 		public ActionOutcome castAcquisition(int targetObjectId, SelectedSkill skill, AcquisitionSkillKind kind)
 		{
+			castCalls++;
+			if (invalidateTargetOnRejectedCast && (castOutcome == ActionOutcome.REJECTED))
+			{
+				target = new AcquisitionTargetSnapshot(target.objectId(), target.npcId(), target.instanceId(), target.distance(), true, true, target.targetable(), target.attackable(), target.invulnerable(), target.normalMonster(), target.knowledgeMonster(), target.peaceRestricted(), target.surroundingRegion(), false, 0, false, false);
+			}
 			return castOutcome;
 		}
 
@@ -1502,7 +1763,9 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		CYCLE,
 		DEPTH,
 		NODES,
-		DEFICITS
+		DEFICITS,
+		ALTERNATIVE_UNION,
+		ALTERNATIVES
 	}
 
 	private record PlannedSource(int itemId, PhantomAcquisitionSourcePlanner planner, PhantomAcquisitionSourcePlanner.Request request, PhantomAcquisitionSourcePlanner.Result result)

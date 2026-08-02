@@ -70,6 +70,9 @@ import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionRecipePlanner;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionRecipePlanner.CraftEvidence;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Candidate;
@@ -122,6 +125,10 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultPoint;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.Result;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.Status;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
@@ -147,10 +154,12 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.RecipeFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalogBuilder;
@@ -250,7 +259,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			}
-			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY))
+			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
 			{
 				_production = ProductionAuthorityFixture.start();
 				context.record("background.productionKnowledgeHash", _production.knowledge().snapshot().combinedHash());
@@ -330,6 +339,11 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		if ("operation-identity".equals(focus))
 		{
 			registry.add("01-versioned-operation-identity-and-goal015-digest", _ -> testAcquisitionOperationIdentity());
+			return;
+		}
+		if ("recipe-inventory".equals(focus))
+		{
+			registry.add("01-exact-background-recipe-inventory-read-boundary", this::testAcquisitionInventoryReadBoundary);
 			return;
 		}
 		registry.add("01-precommit-fault-matrix-is-atomic", _ -> testAcquisitionPrecommitFaults());
@@ -2748,6 +2762,124 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				statement.setInt(1, subclassCharacterId);
 				statement.executeUpdate();
 			}
+		}
+	}
+
+	private void testAcquisitionInventoryReadBoundary(PhantomTestContext context) throws Exception
+	{
+		try (AcquisitionAtomicFixture fixture = createAcquisitionAtomicFixture(new PhantomBackgroundTransaction()))
+		{
+			final AcquisitionAtomicSnapshot before = acquisitionAtomicSnapshot(fixture);
+			final List<Integer> exactIds = List.of(57, 99999);
+			final var result = fixture.transaction().readAcquisitionInventoryCounts(fixture.profileId(), fixture.characterObjectId(), fixture.ready().identity().classIndex(), fixture.ready().identity().activeClassId(), exactIds, fixture.ready().hashes());
+			PhantomAssertions.assertEquals(Status.SUCCESS, result.status(), "Exact background inventory read failed.");
+			PhantomAssertions.assertEquals(fixture.baselineCount(), result.snapshot().counts().get(57), "Background target item count was not canonical.");
+			PhantomAssertions.assertEquals(0L, result.snapshot().counts().get(99999), "Absent background inventory item was not reported as zero.");
+			PhantomAssertions.assertThrows(UnsupportedOperationException.class, () -> result.snapshot().counts().put(57, 1L), "Background inventory count map was mutable.");
+			PhantomAssertions.assertEquals(Status.PROGRESSION_CONFLICT, fixture.transaction().readAcquisitionInventoryCounts(fixture.profileId(), fixture.characterObjectId(), fixture.ready().identity().classIndex(), fixture.ready().identity().activeClassId(), List.of(2, 1), fixture.ready().hashes()).status(), "Unsorted background inventory IDs were admitted.");
+			PhantomAssertions.assertEquals(Status.PROGRESSION_CONFLICT, fixture.transaction().readAcquisitionInventoryCounts(fixture.profileId(), fixture.characterObjectId(), fixture.ready().identity().classIndex(), fixture.ready().identity().activeClassId(), java.util.stream.IntStream.rangeClosed(1, 129).boxed().toList(), fixture.ready().hashes()).status(), "129 background inventory IDs were admitted.");
+			final PhantomBackgroundState.Hashes stale = new PhantomBackgroundState.Hashes("f".repeat(64), fixture.ready().hashes().topology(), fixture.ready().hashes().progression(), fixture.ready().hashes().commerce());
+			PhantomAssertions.assertEquals(Status.PROGRESSION_CONFLICT, fixture.transaction().readAcquisitionInventoryCounts(fixture.profileId(), fixture.characterObjectId(), fixture.ready().identity().classIndex(), fixture.ready().identity().activeClassId(), exactIds, stale).status(), "Stale background inventory hash was admitted.");
+			final PhantomBackgroundService service = new PhantomBackgroundService(_repository, fixture.goals(), PhantomIdentityLeaseRegistry.getInstance(), fixture.transaction(), _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), () -> null);
+			PhantomAssertions.assertTrue(service.acquisitionInventoryCounts(fixture.profileId(), fixture.ready(), exactIds).isEmpty(), "Background service admitted durable hashes stale against current authority.");
+			PhantomAssertions.assertEquals(before, acquisitionAtomicSnapshot(fixture), "Background inventory read mutated item/background/Goal/acquisition state.");
+		}
+
+		final int characterObjectId = _environment.primary().objectId();
+		final PhantomAcquisitionCatalog catalog = PhantomAcquisitionCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/acquisition/high-five-acquisition-v1.xml"));
+		final PhantomAcquisitionRecipePlanner recipePlanner = new PhantomAcquisitionRecipePlanner(_production.knowledge(), catalog.limits());
+		RecipeFact selectedRecipe = null;
+		int selectedIngredientId = 0;
+		long selectedZeroDeficit = 0;
+		for (RecipeFact recipe : _production.knowledge().snapshot().recipeByListId().values().stream().sorted(Comparator.comparingInt(RecipeFact::recipeListId)).toList())
+		{
+			final var probe = recipePlanner.probe(recipe.productItemId(), 1);
+			final var empty = recipePlanner.plan(recipe.productItemId(), 1, Map.of(), new CraftEvidence(0, 0, false));
+			if (!probe.successful() || !empty.planned() || (scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=" + recipe.productItemId() + " AND loc='INVENTORY'", characterObjectId) != 0))
+			{
+				continue;
+			}
+			final long zeroDeficit = empty.plan().deficits().stream().mapToLong(deficit -> deficit.count()).sum();
+			for (int ingredientId : probe.exactItemIds())
+			{
+				final var partial = recipePlanner.plan(recipe.productItemId(), 1, Map.of(ingredientId, 1L), new CraftEvidence(0, 0, false));
+				if (partial.planned() && partial.plan().nodes().stream().anyMatch(node -> (node.itemId() == ingredientId) && (node.inventoryUsed() > 0)) && (partial.plan().deficits().stream().mapToLong(deficit -> deficit.count()).sum() < zeroDeficit))
+				{
+					selectedRecipe = recipe;
+					selectedIngredientId = ingredientId;
+					selectedZeroDeficit = zeroDeficit;
+					break;
+				}
+			}
+			if (selectedRecipe != null)
+			{
+				break;
+			}
+		}
+		PhantomAssertions.assertTrue(selectedRecipe != null, "No bounded production recipe supports partial background ingredient evidence.");
+		final RecipeFact recipe = selectedRecipe;
+		final int ingredientItemId = selectedIngredientId;
+		final long zeroDeficit = selectedZeroDeficit;
+		final List<Integer> exactIds = recipePlanner.probe(recipe.productItemId(), 1).exactItemIds();
+		final int ingredientObjectId = IdManager.getInstance().getNextId();
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("INSERT INTO items (owner_id,item_id,count,loc,loc_data,enchant_level,object_id,custom_type1,custom_type2,mana_left,time) VALUES (?,?,1,'INVENTORY',0,0,?,0,0,-1,-1)"))
+		{
+			statement.setInt(1, characterObjectId);
+			statement.setInt(2, ingredientItemId);
+			statement.setInt(3, ingredientObjectId);
+			statement.executeUpdate();
+		}
+		final Canonical canonical = canonical(characterObjectId);
+		final PhantomProfile profile = _repository.create(characterObjectId);
+		PhantomCombatService combat = null;
+		PhantomAcquisitionService acquisition = null;
+		try
+		{
+			final PhantomGoal goal = new PhantomGoal(21, PhantomAcquisitionGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("item", Integer.toString(recipe.productItemId())), 1, 0, PhantomAcquisitionCatalog.Method.RECIPE_PREPARATION.key(), List.of(new PhantomDomainRef(PhantomAcquisitionGoalSpec.SOURCE_NAMESPACE, PhantomAcquisitionCatalog.Method.RECIPE_PREPARATION.key())), null, PhantomAcquisitionGoalSpec.PURPOSE_KEY, 500, 0, 0, 0, Map.of(PhantomAcquisitionGoalSpec.BASELINE_CONSTRAINT, 0L, PhantomAcquisitionGoalSpec.MAXIMUM_SWITCHES_CONSTRAINT, 4L), "acquisition.background.recipe.inventory.test", 0);
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_repository);
+			goals.insert(profile.profileId(), goal);
+			final Identity identity = new Identity(profile.profileId(), characterObjectId, 0, canonical.classId(), canonical.race());
+			final List<AutoGetSkill> skills = exactAutoGetSkills(identity, canonical.level());
+			ensureAutoGetSkills(identity, skills);
+			final Hashes hashes = _production.authority().hashes();
+			final PhantomBackgroundTransaction transaction = new PhantomBackgroundTransaction();
+			final PhantomBackgroundState materialized = new PhantomBackgroundState(State.MATERIALIZED, identity, new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()), new Vitals(canonical.currentHp(), canonical.maximumHp(), canonical.currentMp(), canonical.maximumMp(), canonical.currentCp(), canonical.maximumCp()), new Position(0, canonical.x(), canonical.y(), canonical.z(), canonical.heading(), _production.topology().snapshot().anchors().getFirst().id()), combat(ModelKind.MELEE, 1, 1, 100), Loadout.none(), new InventoryFacts(List.of(57, ingredientItemId, recipe.productItemId()).stream().distinct().sorted().toList(), List.of(), "", 0, 1_000_000, 0, 100), skills, new Clock(ACQUISITION_SEED, 0, 0), Receipt.empty(), hashes);
+			final Result captured = transaction.captureBaseline(materialized, goal);
+			PhantomAssertions.assertEquals(Status.SUCCESS, captured.status(), "Background recipe service fixture capture failed.");
+			final PhantomBackgroundState backgroundBefore = captured.state();
+			final PhantomBackgroundService background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), () -> null);
+			combat = new PhantomCombatService(PhantomCombatBackend.inert(), new PhantomCombatCapabilityResolver(_ -> List.of()), PhantomCombatPolicy.productionDefaults(1));
+			combat.start();
+			final PhantomAcquisitionStore store = new PhantomAcquisitionStore(_repository, goals);
+			acquisition = new PhantomAcquisitionService(catalog, store, goals, new PhantomAcquisitionSourcePlanner(catalog, _production.knowledge(), _production.topology(), _production.progression()), _production.knowledge(), _production.topology(), _production.progression(), combat, background, new PhantomNavigationService(new PhantomMetrics()));
+			PhantomAssertions.assertTrue(acquisition.start(), "Background recipe acquisition service did not start.");
+			final PhantomAcquisitionService.OperationResult result = acquisition.plan(profile.profileId(), goal, PhantomActivityState.BACKGROUND, 1_000_000, 1, () -> false);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, result.status(), "Background recipe service plan failed.");
+			final PhantomAcquisitionState state = store.load(profile.profileId()).orElseThrow().state();
+			PhantomAssertions.assertEquals(PhantomAcquisitionCatalog.Method.RECIPE_PREPARATION, state.selectedSource().method(), "Background recipe service selected a different method.");
+			PhantomAssertions.assertEquals(exactIds, recipePlanner.probe(state.targetItemId(), state.requiredAmount()).exactItemIds(), "Background recipe service did not use the canonical exact probe set.");
+			PhantomAssertions.assertTrue(state.recipePlan().nodes().stream().anyMatch(node -> (node.itemId() == ingredientItemId) && (node.inventoryUsed() > 0)), "Background DB ingredient evidence was not consumed by the final service plan.");
+			PhantomAssertions.assertTrue(state.recipePlan().deficits().stream().mapToLong(deficit -> deficit.count()).sum() < zeroDeficit, "Background partial ingredients did not lower the final deficit.");
+			PhantomAssertions.assertEquals(backgroundBefore, transaction.load(profile.profileId()).state(), "Background recipe planning mutated background state.");
+			PhantomAssertions.assertEquals(1L, scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=" + ingredientItemId + " AND loc='INVENTORY'", characterObjectId), "Background recipe planning consumed an ingredient.");
+			PhantomAssertions.assertEquals(0L, scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=" + recipe.productItemId() + " AND loc='INVENTORY'", characterObjectId), "Background recipe planning crafted the target item.");
+			PhantomAssertions.assertEquals(0, acquisition.snapshot().externalClaims(), "Background recipe planning retained an active actor lease.");
+		}
+		finally
+		{
+			if (acquisition != null)
+			{
+				acquisition.beginStop();
+				PhantomAssertions.assertTrue(acquisition.finishStop(), "Background recipe acquisition service retained claims.");
+			}
+			if (combat != null)
+			{
+				combat.beginStop();
+				PhantomAssertions.assertTrue(combat.finishStop(), "Background recipe Combat service retained claims.");
+			}
+			_repository.find(profile.profileId()).ifPresent(current -> _repository.delete(current.profileId(), current.rowVersion()));
+			restorePrimaryInventoryAndSkills(characterObjectId);
 		}
 	}
 

@@ -434,6 +434,21 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return result.successful() ? Optional.of(result.snapshot()) : Optional.empty();
 	}
 
+	public Optional<Map<Integer, Long>> acquisitionInventoryCounts(long profileId, PhantomBackgroundState state, List<Integer> exactItemIds)
+	{
+		if ((state == null) || (state.identity().profileId() != profileId))
+		{
+			return Optional.empty();
+		}
+		final PhantomBackgroundState.Hashes authorityHashes = _authority.hashes();
+		if (!state.hashes().equals(authorityHashes))
+		{
+			return Optional.empty();
+		}
+		final var result = transaction(() -> _transactions.readAcquisitionInventoryCounts(profileId, state.identity().characterObjectId(), state.identity().classIndex(), state.identity().activeClassId(), exactItemIds, authorityHashes));
+		return result.successful() && result.snapshot().backgroundHashes().equals(authorityHashes) ? Optional.of(result.snapshot().counts()) : Optional.empty();
+	}
+
 	public PhantomBackgroundState.Hashes authorityHashes()
 	{
 		return _authority.hashes();

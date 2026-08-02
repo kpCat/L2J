@@ -8,7 +8,7 @@
 		<method key="manor_crop" status="DEFERRED_CHECKPOINT_2" preference="0" />
 		<method key="quest_collection" status="DEFERRED_CHECKPOINT_2" preference="0" />
 	</methods>
-	<sourceScoring methodPreference="100" topologyCost="5" levelGap="10" chanceUtility="25" spawnCapacity="5" resourceReserve="10" failurePenalty="100" switchPenalty="50" recipeLeafReuse="20" ambiguityThreshold="5" />
+	<sourceScoring methodPreference="100" preferredMethodBonus="20000" topologyCost="5" levelGap="10" chanceUtility="25" spawnCapacity="5" resourceReserve="10" failurePenalty="100" switchPenalty="50" recipeLeafReuse="20" ambiguityThreshold="5" />
 	<switchPolicy failureThreshold="3" cooldownMinutes="5" />
 	<recipePlanning preferCraftEligible="true" preferLeafReuse="true" deferManor="true" deferQuest="true" />
 	<reasonKeys>

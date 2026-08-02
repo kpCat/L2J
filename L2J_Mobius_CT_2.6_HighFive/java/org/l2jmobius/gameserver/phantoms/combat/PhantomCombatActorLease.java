@@ -4,6 +4,8 @@
 package org.l2jmobius.gameserver.phantoms.combat;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
@@ -22,6 +24,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSki
 
 public interface PhantomCombatActorLease extends AutoCloseable
 {
+	int MAX_ACQUISITION_INVENTORY_ITEM_IDS = 128;
 	ActorSnapshot actorSnapshot();
 
 	TargetSnapshot targetSnapshot(int targetObjectId);
@@ -39,6 +42,30 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	default long acquisitionInventoryCount(int itemId)
 	{
 		return -1;
+	}
+
+	default Map<Integer, Long> acquisitionInventoryCounts(List<Integer> exactItemIds)
+	{
+		validateAcquisitionInventoryItemIds(exactItemIds);
+		final Map<Integer, Long> result = new LinkedHashMap<>();
+		for (int itemId : exactItemIds)
+		{
+			final long count = acquisitionInventoryCount(itemId);
+			if (count < 0)
+			{
+				throw new IllegalStateException("Acquisition inventory count is unavailable.");
+			}
+			result.put(itemId, count);
+		}
+		return Map.copyOf(result);
+	}
+
+	static void validateAcquisitionInventoryItemIds(List<Integer> exactItemIds)
+	{
+		if ((exactItemIds == null) || exactItemIds.isEmpty() || (exactItemIds.size() > MAX_ACQUISITION_INVENTORY_ITEM_IDS) || exactItemIds.stream().anyMatch(itemId -> itemId == null || itemId <= 0) || !exactItemIds.equals(exactItemIds.stream().distinct().sorted().toList()))
+		{
+			throw new IllegalArgumentException("Acquisition inventory item IDs must be positive, unique, sorted and bounded.");
+		}
 	}
 
 	default int acquisitionLevel()

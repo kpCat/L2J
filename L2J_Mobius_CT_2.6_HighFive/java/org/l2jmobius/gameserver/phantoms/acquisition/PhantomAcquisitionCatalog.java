@@ -190,8 +190,8 @@ public final class PhantomAcquisitionCatalog
 
 	private static SourceScoring parseSourceScoring(Element element)
 	{
-		require(element, "sourceScoring", Set.of("methodPreference", "topologyCost", "levelGap", "chanceUtility", "spawnCapacity", "resourceReserve", "failurePenalty", "switchPenalty", "recipeLeafReuse", "ambiguityThreshold"));
-		return new SourceScoring(integer(element, "methodPreference"), integer(element, "topologyCost"), integer(element, "levelGap"), integer(element, "chanceUtility"), integer(element, "spawnCapacity"), integer(element, "resourceReserve"), integer(element, "failurePenalty"), integer(element, "switchPenalty"), integer(element, "recipeLeafReuse"), integer(element, "ambiguityThreshold"));
+		require(element, "sourceScoring", Set.of("methodPreference", "preferredMethodBonus", "topologyCost", "levelGap", "chanceUtility", "spawnCapacity", "resourceReserve", "failurePenalty", "switchPenalty", "recipeLeafReuse", "ambiguityThreshold"));
+		return new SourceScoring(integer(element, "methodPreference"), integer(element, "preferredMethodBonus"), integer(element, "topologyCost"), integer(element, "levelGap"), integer(element, "chanceUtility"), integer(element, "spawnCapacity"), integer(element, "resourceReserve"), integer(element, "failurePenalty"), integer(element, "switchPenalty"), integer(element, "recipeLeafReuse"), integer(element, "ambiguityThreshold"));
 	}
 
 	private static SwitchPolicy parseSwitchPolicy(Element element)
@@ -346,11 +346,11 @@ public final class PhantomAcquisitionCatalog
 		}
 	}
 
-	public record SourceScoring(int methodPreference, int topologyCost, int levelGap, int chanceUtility, int spawnCapacity, int resourceReserve, int failurePenalty, int switchPenalty, int recipeLeafReuse, int ambiguityThreshold)
+	public record SourceScoring(int methodPreference, int preferredMethodBonus, int topologyCost, int levelGap, int chanceUtility, int spawnCapacity, int resourceReserve, int failurePenalty, int switchPenalty, int recipeLeafReuse, int ambiguityThreshold)
 	{
 		public SourceScoring
 		{
-			if ((methodPreference < 0) || (topologyCost < 0) || (levelGap < 0) || (chanceUtility < 0) || (spawnCapacity < 0) || (resourceReserve < 0) || (failurePenalty < 0) || (switchPenalty < 0) || (recipeLeafReuse < 0) || (ambiguityThreshold < 0))
+			if ((methodPreference < 0) || (preferredMethodBonus < 0) || (topologyCost < 0) || (levelGap < 0) || (chanceUtility < 0) || (spawnCapacity < 0) || (resourceReserve < 0) || (failurePenalty < 0) || (switchPenalty < 0) || (recipeLeafReuse < 0) || (ambiguityThreshold < 0))
 			{
 				throw new IllegalArgumentException("Invalid acquisition source scoring policy.");
 			}

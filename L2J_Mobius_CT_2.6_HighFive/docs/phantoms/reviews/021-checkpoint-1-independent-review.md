@@ -1,60 +1,45 @@
 # Goal 021 Checkpoint 1 — review package
 
 - Статус реализации: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
-- Required parent: `d48dccb42dcfe5993f1c852e021086e498c0622d`.
+- Terminal closure: `PARTIAL_AGGREGATE_RERUN_REQUIRED`; пакет нельзя принимать до нового разрешённого aggregate rerun финального дерева.
 - Ветка: `feature/phantom-world`.
 - Seed: `21002101`.
-- Checkpoint: первый из двух заранее запланированных checkpoint Goal 021.
+- Accepted parent: `d48dccb42dcfe5993f1c852e021086e498c0622d`.
+- Foundation: `bf0cc37b2af7023f3709f635ae4350306b892597`.
+- Safety completion: `c764382485d27391a6449aa4843d4f684efc1f12`.
+- Final closure subject: `fix(phantoms): close acquisition recovery and recipe truth`.
 
-## Проверяемое решение
+Это первый из двух заранее запланированных checkpoint Goal 021, не Goal 021A/021B.
 
-Реализация ограничена `acquire.item` kernel: strict policy/codec/store,
-authoritative source planner, bounded recipe ingredient DAG, deterministic
-switching, active spoil через существующий Combat и background parity через
-существующую atomic Background transaction.
+## Что проверять
 
-Критические отрицательные границы закреплены тестами: нет прямого item grant из
-acquisition package, нет второго combat loop, неизвестная capability/source/
-target/instance/distance/ownership отклоняется, uncertain dispatch не
-повторяется вслепую, а capacity/failure не создаёт background progress.
+- `REJECTED` spoil/sweep: dispatch persisted до cast; один exact failure на rejection; lease release; threshold 3; no blind recast; deterministic switch/retarget с сохранением baseline-derived progress.
+- `COMBAT_SUBMITTED`: exact derived owner и target проверяются до observation/consume; foreign session неизменна; missing session восстанавливается только по live target, owned spoiled corpse или inventory growth; недостаточная evidence ограничена и завершается `UNCERTAIN/BLOCKED`.
+- Recipe truth: bounded probe до exact active/background inventory read, затем один final plan; максимум 4 alternatives, depth 6, 48 nodes на alternative и 128 exact IDs; absent item равен нулю; maps immutable; shared inventory не расходуется дважды.
+- Preferred method: bonus входит в score до ambiguity, не обходит eligibility/cooldown и сохраняет deterministic canonical order.
+- Aggregate: должен зависеть от исходных восьми routes, safety routes и final closure routes; Goal routes используют только `phantom.goal021c1.seed`.
+- Exact commit graph: foundation → safety → один ordinary closure commit; future HEAD допустим только как descendant closure.
 
-## Findings
+## Жёсткие границы
 
-- Блокирующих findings на момент формирования review package нет.
-- `Player.java`, `Party.java`, skill/quest handlers и schema не изменены.
+- Нет второго Combat loop и direct inventory mutation из acquisition package.
+- Background item/state/Goal/acquisition mutation остаётся одной существующей transaction.
+- `Player.java`, `Party.java`, schema, skill/quest handlers и другие хроники не меняются.
 - Manor/quest остаются `DEFERRED_CHECKPOINT_2`.
-- Recipe path только планирует; craft/trade/private store/enchant execution
-  отсутствует и остаётся Goal 022.
-- Phantom World остаётся выключенным по умолчанию.
-- Независимое принятие этого checkpoint этим документом не выполняется.
+- Craft/trade/private stores/enchant execution отсутствует и относится к Goal 022.
+- Только test DB; global seed override для plain `ant verify` запрещён.
 
 ## Независимый gate
 
-Ревьюер должен повторно проверить exact commit graph/subject/scope verifier-ом
-`021c1`, восемь focused modes, affected regressions, единственный final
-aggregate, `ant verify`, `ant jar` и byte-identical post-commit verifier output.
-Только отдельное решение ревьюера может изменить статус checkpoint на `ACCEPT`.
+До freeze подтверждены:
 
-## Safety completion к foundation bf0cc37
+- 18 изменённых файлов, из них 11 production/data и 0 new production;
+- ordered focused и affected routes — PASS;
+- historical verifier 020c2 и working verifier 021c1 — PASS в PowerShell 5.1 и 7.6;
+- первый final acquisition aggregate — PASS за 6:37;
+- после реального stale-authority fix второй и последний разрешённый aggregate — FAIL на недействительном test-only Spoil level override;
+- исправленный test-owned Monster сохраняет canonical NPC/drop template, гарантирует Spoil cast и восстанавливает template level до kill/drop calculation; focused active-spoil после исправления — PASS 3/3;
+- второй plain `ant verify` — PASS за 13:44, standalone `ant jar` — PASS за 17 секунд;
+- третьего aggregate нет: verification authority его прямо запрещает.
 
-Для independent review foundation дополнен одним bounded direct child с subject
-`fix(phantoms): complete acquisition eligibility and recovery`.
-
-- Capability truth покрывает exact Dwarf active-class lineage и canonical skills
-  254/42/172; eligibility основана на actual known level, а не на минимуме rule.
-- Background learned-skill evidence читается bounded из `character_skills` и
-  повторно проверяется внутри существующей atomic transaction; `autoGetSkills`
-  сохранил прежнюю семантику.
-- Dispatch и Combat получили persisted prepared/verification boundaries, exact
-  restart observation и bounded terminal release без второго combat loop.
-- Acquisition operation identity versioned по source ID и acquisition row version;
-  ordinary Goal 015 digest и поведение сохранены.
-- Ambiguity теперь едина для разных methods; все ненулевые policy weights получают
-  bounded evidence либо conservative penalty. Quest evidence без authority не
-  выдумывается, stale source очищается из Goal.
-
-Completion scope: 22 файла, 15 production/data, 0 новых production-файлов. Focused,
-affected, atomic, parity, Goal 015, lifecycle gates и working verifiers прошли на
-test DB с seed `21002101`. Финальные frozen aggregate/full verify/jar и два
-post-commit verifier runs должны быть подтверждены из финального handoff и exact
-completion commit.
+До независимого review требуется новая явная authority на один aggregate rerun. После его PASS review должен повторно проверить scope/verifier, plain `ant verify`, `ant jar`, pushed closure commit и два byte-identical post-commit verifier outputs. Точный closure SHA фиксируется post-commit verifier и terminal handoff, а не self-referential amend отчёта. Только отдельное решение reviewer может заменить pending status на `ACCEPT`.

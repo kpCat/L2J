@@ -41,6 +41,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 /** Deterministic bounded ingredient-DAG planning only; it performs no crafting. */
 public final class PhantomAcquisitionRecipePlanner
 {
+	private static final int MAX_INVENTORY_ITEM_IDS = 128;
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomAcquisitionCatalog.Limits _limits;
 
@@ -79,6 +80,68 @@ public final class PhantomAcquisitionRecipePlanner
 		}
 		planned.sort(Comparator.comparing((Planned value) -> !value.craftEligible()).thenComparingLong(Planned::missingUnits).thenComparingInt(value -> value.plan().nodes().stream().mapToInt(RecipeNode::depth).max().orElse(0)).thenComparingInt(value -> value.plan().nodes().size()).thenComparingInt(value -> value.plan().recipeListId()));
 		return new Result(planned.getFirst().plan(), "recipe.planned");
+	}
+
+	public Probe probe(int itemId, long requested)
+	{
+		if ((itemId <= 0) || (requested <= 0))
+		{
+			return Probe.blocked("recipe.invalid_request");
+		}
+		final List<RecipeFact> alternatives = _knowledge.recipesProducing(itemId, new PageRequest(_limits.recipesPerProduct(), null)).values().stream().filter(this::validRecipe).sorted(Comparator.comparingInt(RecipeFact::recipeListId)).toList();
+		if (alternatives.isEmpty())
+		{
+			return Probe.blocked("recipe.missing");
+		}
+		final Set<Integer> inventoryItemIds = new java.util.TreeSet<>();
+		try
+		{
+			for (RecipeFact alternative : alternatives)
+			{
+				final Set<Integer> nodes = new HashSet<>();
+				probeExpand(alternative.productItemId(), 0, alternative, nodes, new HashSet<>());
+				nodes.remove(itemId);
+				inventoryItemIds.addAll(nodes);
+				if (inventoryItemIds.size() > MAX_INVENTORY_ITEM_IDS)
+				{
+					throw new BoundFailure();
+				}
+			}
+		}
+		catch (BoundFailure failure)
+		{
+			return Probe.blocked("recipe.bounds");
+		}
+		return new Probe(List.copyOf(inventoryItemIds), "recipe.probed");
+	}
+
+	private void probeExpand(int itemId, int depth, RecipeFact forcedRecipe, Set<Integer> nodes, Set<Integer> path)
+	{
+		if ((depth > _limits.recipeDepth()) || !path.add(itemId) || (!nodes.contains(itemId) && (nodes.size() >= _limits.recipeNodes())))
+		{
+			throw new BoundFailure();
+		}
+		nodes.add(itemId);
+		try
+		{
+			final RecipeFact recipe = forcedRecipe != null ? forcedRecipe : chooseRecipe(itemId);
+			if (recipe == null)
+			{
+				return;
+			}
+			if ((depth >= _limits.recipeDepth()) || (recipe.productItemId() != itemId))
+			{
+				throw new BoundFailure();
+			}
+			for (var ingredient : recipe.ingredients())
+			{
+				probeExpand(ingredient.itemId(), depth + 1, null, nodes, path);
+			}
+		}
+		finally
+		{
+			path.remove(itemId);
+		}
 	}
 
 	private Planned build(RecipeFact root, long requested, Map<Integer, Long> inventory, CraftEvidence craft)
@@ -205,6 +268,29 @@ public final class PhantomAcquisitionRecipePlanner
 		public boolean planned()
 		{
 			return plan != null;
+		}
+	}
+
+	public record Probe(List<Integer> exactItemIds, String reasonKey)
+	{
+		public Probe
+		{
+			exactItemIds = List.copyOf(exactItemIds);
+			reasonKey = Objects.requireNonNull(reasonKey, "reasonKey");
+			if ((exactItemIds.size() > MAX_INVENTORY_ITEM_IDS) || exactItemIds.stream().anyMatch(itemId -> itemId <= 0) || !exactItemIds.equals(exactItemIds.stream().distinct().sorted().toList()))
+			{
+				throw new IllegalArgumentException("Invalid acquisition recipe inventory probe.");
+			}
+		}
+
+		public static Probe blocked(String reason)
+		{
+			return new Probe(List.of(), reason);
+		}
+
+		public boolean successful()
+		{
+			return "recipe.probed".equals(reasonKey);
 		}
 	}
 

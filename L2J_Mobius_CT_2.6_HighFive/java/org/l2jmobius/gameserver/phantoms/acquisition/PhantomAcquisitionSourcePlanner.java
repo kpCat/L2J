@@ -77,6 +77,7 @@ public final class PhantomAcquisitionSourcePlanner
 			return Result.blocked("source.ineligible");
 		}
 		final List<RankedSource> ranked = new ArrayList<>();
+		String recipeReason = "";
 		if (request.allowedMethods().contains(Method.DEATH_DROP) && (_catalog.method(Method.DEATH_DROP).status() == MethodStatus.EXECUTABLE))
 		{
 			addDropPages(ranked, request, Method.DEATH_DROP, DropSourceKind.DEATH_DROP, null, null);
@@ -104,29 +105,28 @@ public final class PhantomAcquisitionSourcePlanner
 				final Source source = new Source(sourceId, Method.RECIPE_PREPARATION, 0, request.itemId(), factKey, "planning", "planning", 0, 0, 0, 0, 0);
 				ranked.add(new RankedSource(source, score(request, Method.RECIPE_PREPARATION, 0, 0, 0, sourceId, source.anchorId(), recipe.plan()), recipe.plan()));
 			}
+			else
+			{
+				recipeReason = recipe.reasonKey();
+			}
 		}
 		ranked.sort(RankedSource.ORDER);
 		final List<RankedSource> bounded = ranked.stream().limit(_catalog.limits().sourceCandidates()).toList();
 		if (bounded.isEmpty())
 		{
 			final boolean deferred = request.allowedMethods().stream().anyMatch(method -> _catalog.method(method).status() == MethodStatus.DEFERRED_CHECKPOINT_2);
-			return deferred ? Result.deferredCheckpoint() : Result.blocked("source.exhausted");
+			return deferred ? Result.deferredCheckpoint() : Result.blocked(recipeReason.isEmpty() ? "source.exhausted" : recipeReason);
 		}
-		if ((bounded.size() > 1) && ((long) bounded.getFirst().score() - bounded.get(1).score() <= _catalog.sourceScoring().ambiguityThreshold()))
+		if ((bounded.size() > 1) && (bounded.getFirst().source().method() != bounded.get(1).source().method()) && ((long) bounded.getFirst().score() - bounded.get(1).score() <= _catalog.sourceScoring().ambiguityThreshold()))
 		{
 			return new Result(List.copyOf(bounded), null, "source.ambiguous", false);
 		}
-		RankedSource selected = bounded.getFirst();
-		if (request.preferredMethod() != null)
-		{
-			final RankedSource preferred = bounded.stream().filter(value -> value.source().method() == request.preferredMethod()).findFirst().orElse(null);
-			final RankedSource other = bounded.stream().filter(value -> value.source().method() != request.preferredMethod()).findFirst().orElse(null);
-			if ((preferred != null) && ((other == null) || ((long) preferred.score() - other.score() > _catalog.sourceScoring().ambiguityThreshold())))
-			{
-				selected = preferred;
-			}
-		}
-		return new Result(List.copyOf(bounded), selected, "source.ready", false);
+		return new Result(List.copyOf(bounded), bounded.getFirst(), "source.ready", false);
+	}
+
+	public PhantomAcquisitionRecipePlanner.Probe probeRecipeInventory(int itemId, long requested)
+	{
+		return _recipes.probe(itemId, requested);
 	}
 
 	private void addDropPages(List<RankedSource> output, Request request, Method method, DropSourceKind expectedKind, SkillRef spoil, SkillRef sweep)
@@ -191,6 +191,10 @@ public final class PhantomAcquisitionSourcePlanner
 	{
 		final var weights = _catalog.sourceScoring();
 		long score = (long) _catalog.method(method).preference() * weights.methodPreference();
+		if (request.preferredMethod() == method)
+		{
+			score += weights.preferredMethodBonus();
+		}
 		score -= (long) topologyCost(request.currentAnchorId(), sourceAnchorId, method) * weights.topologyCost();
 		score -= (long) Math.abs(request.level() - npcLevel) * weights.levelGap();
 		score += (long) chance * weights.chanceUtility();

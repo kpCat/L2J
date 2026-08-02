@@ -169,6 +169,72 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
+	public AcquisitionInventoryResult readAcquisitionInventoryCounts(long profileId, int characterObjectId, int classIndex, int activeClassId, List<Integer> exactItemIds, PhantomBackgroundState.Hashes expectedBackgroundHashes)
+	{
+		final List<Integer> requested = exactItemIds == null ? List.of() : List.copyOf(exactItemIds);
+		if ((profileId <= 0) || (characterObjectId <= 0) || (classIndex < 0) || (activeClassId < 0) || requested.isEmpty() || (requested.size() > 128) || requested.stream().anyMatch(itemId -> itemId == null || itemId <= 0) || !requested.equals(requested.stream().distinct().sorted().toList()) || (expectedBackgroundHashes == null))
+		{
+			return AcquisitionInventoryResult.rejected(Status.PROGRESSION_CONFLICT);
+		}
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, profileId), characterObjectId);
+				final LockedComponent component = requireStateComponent(lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE));
+				final PhantomBackgroundState state = decodeState(component);
+				final Identity identity = state.identity();
+				if ((identity.characterObjectId() != characterObjectId) || (identity.classIndex() != classIndex) || (identity.activeClassId() != activeClassId) || !state.hashes().equals(expectedBackgroundHashes))
+				{
+					throw new StateConflict(Status.PROGRESSION_CONFLICT);
+				}
+				lockCanonical(connection, identity);
+				final Map<Integer, Long> counts = readExactInventoryCounts(connection, characterObjectId, requested);
+				connection.rollback();
+				return new AcquisitionInventoryResult(Status.SUCCESS, new AcquisitionInventorySnapshot(profileId, characterObjectId, classIndex, activeClassId, counts, state.hashes()));
+			}
+			catch (Throwable failure)
+			{
+				rollback(connection, failure);
+				return AcquisitionInventoryResult.rejected(failure instanceof StateConflict conflict ? conflict._status : Status.BACKEND_FAILURE);
+			}
+		}
+		catch (SQLException | RuntimeException failure)
+		{
+			return AcquisitionInventoryResult.rejected(Status.BACKEND_FAILURE);
+		}
+	}
+
+	private Map<Integer, Long> readExactInventoryCounts(Connection connection, int characterObjectId, List<Integer> requested) throws SQLException
+	{
+		final String placeholders = String.join(",", java.util.Collections.nCopies(requested.size(), "?"));
+		final String sql = "SELECT item_id, SUM(count) AS item_count FROM items WHERE owner_id = ? AND loc = 'INVENTORY' AND item_id IN (" + placeholders + ") GROUP BY item_id ORDER BY item_id";
+		final Map<Integer, Long> counts = new LinkedHashMap<>();
+		requested.forEach(itemId -> counts.put(itemId, 0L));
+		try (PreparedStatement statement = prepare(connection, sql))
+		{
+			statement.setInt(1, characterObjectId);
+			for (int index = 0; index < requested.size(); index++)
+			{
+				statement.setInt(index + 2, requested.get(index));
+			}
+			try (ResultSet result = statement.executeQuery())
+			{
+				while (result.next())
+				{
+					final int itemId = result.getInt("item_id");
+					if (!counts.containsKey(itemId))
+					{
+						throw new SQLException("Inventory query returned an unrequested item.");
+					}
+					counts.put(itemId, result.getLong("item_count"));
+				}
+			}
+		}
+		return Map.copyOf(counts);
+	}
+
 	public Result captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal)
 	{
 		Objects.requireNonNull(materializedState, "materializedState");
@@ -1579,6 +1645,28 @@ public final class PhantomBackgroundTransaction
 			skillLevels = Map.copyOf(skillLevels);
 			Objects.requireNonNull(progressionHash, "progressionHash");
 			Objects.requireNonNull(backgroundHashes, "backgroundHashes");
+		}
+	}
+
+	public record AcquisitionInventorySnapshot(long profileId, int characterObjectId, int classIndex, int activeClassId, Map<Integer, Long> counts, PhantomBackgroundState.Hashes backgroundHashes)
+	{
+		public AcquisitionInventorySnapshot
+		{
+			counts = Map.copyOf(counts);
+			Objects.requireNonNull(backgroundHashes, "backgroundHashes");
+		}
+	}
+
+	public record AcquisitionInventoryResult(Status status, AcquisitionInventorySnapshot snapshot)
+	{
+		public static AcquisitionInventoryResult rejected(Status status)
+		{
+			return new AcquisitionInventoryResult(status, null);
+		}
+
+		public boolean successful()
+		{
+			return (status == Status.SUCCESS) && (snapshot != null);
 		}
 	}
 
