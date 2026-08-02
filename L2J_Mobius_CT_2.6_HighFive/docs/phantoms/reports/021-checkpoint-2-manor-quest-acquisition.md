@@ -8,10 +8,11 @@ Checkpoint 1 зафиксирован как `ACCEPT` на baseline
 `0045f60417f4605f46e3058b9a694278283b1456`; verifier 021c1 переведён в
 historical/descendant-compatible режим и прошёл PowerShell 5.1/7.x.
 
-Checkpoint 2 нельзя честно закрыть даже после разрешения bounded topology slice:
-loaded `NpcSpawnTerritory` не публикует immutable vertices, low Z и source path,
-а completion task прямо запрещает менять `Spawn.java` и `NpcSpawnTerritory.java`
-или изобретать geometry. Goal 022+ не начат.
+Loaded territory boundary точечно разрешён, но final completion нельзя
+честно закрыть: 20 из 35 unique factual target territories не имеют
+допустимого anchor по обязательному `activeTargetDistance=2000`. Contract
+прямо требует не публиковать такую territory и зафиксировать `BLOCKED`,
+а не расширять distance. Goal 022+ не начат.
 
 ## Summary
 
@@ -154,6 +155,35 @@ parse в Game Knowledge, random samples, centroid или reflection не явл�
 проверка через `javap`. Production/topology/tests не менялись; compile, affected,
 aggregate, freeze, verify, jar и verifier 021c2 не запускались после terminal gate.
 
+## Final loaded-territory completion audit
+
+Required parent `130a08a90c729dd94c13d782416bc0f1f727e6c7`, clean branch и
+new loaded-boundary permission подтверждены. До production edits повторно
+просчитаны exact candidates только из shipped vertices в заданном
+порядке: polygon centroid, bounding-box center, edge midpoints, vertices.
+
+- Loader totals совпали: `20013` = 20/50, `20019` = 17/49, `20016` = 8/27.
+- 45 NPC-territory occurrences сводятся к 35 unique source/name/Z/vertex identities.
+- Feasible: 15 unique territories; impossible under distance gate: 20.
+- По NPC feasible occurrences: `20013` 9/20, `20019` 7/17, `20016` 1/8.
+- Ближайший rejected polygon имеет minimum maximum distance `2174.35`;
+  наиболее широкий из rejected требует `5564.83`.
+
+Rejected exact territories:
+
+- Elven: `oren04_2019_02`, `oren04_2019_03`, `oren04_2019_07`,
+  `oren04_2019_08`, `oren04_2019_09`, `oren04_2019_10`, `oren04_2019_11`,
+  `oren04_2019_15`, `oren04_2019_16`, `oren04_2019_17`, `oren04_2019_19`,
+  `oren04_2019_20`, `oren06_2120_05`;
+- Talking Island: `gludio31_1624_01`, `gludio31_1624_02`,
+  `gludio31_1624_03`, `gludio31_1624_04`, `gludio31_1625_11`,
+  `gludio31_1625_12`, `gludio31_1625_13`.
+
+Calculation used 2D Euclidean vertex distance; adding Z cannot make any rejected
+candidate pass. No topology nodes/anchors, loaded snapshot API or partial mapping
+were published. This is the explicit terminal condition from the final completion
+contract, not an implementation failure.
+
 ## Performance
 
 Lifecycle smoke прошёл 100k manor planning formulas, 100k quest rule checks,
@@ -162,8 +192,8 @@ Lifecycle smoke прошёл 100k manor planning formulas, 100k quest rule check
 
 ## Deviations, limitations, risks
 
-- Bounded topology permission получено, но loaded immutable territory geometry
-  недоступна через разрешённый API; это единственный terminal blocker.
+- Loaded-boundary permission получено; единственный terminal blocker теперь
+  factual anchor feasibility: 20 unique polygons объективно шире лимита.
 - Не добавлялись произвольные anchors, runtime-random territory authority или третий checkpoint.
 - Active real delayed quest path не достигнут, потому что fixture намеренно требует тот же topology precondition, что production source planning.
 - Частичная C2 production поверхность должна пройти повторный full gate после разрешённого topology slice.
@@ -173,15 +203,15 @@ Lifecycle smoke прошёл 100k manor planning formulas, 100k quest rule check
 - Branch/upstream: `feature/phantom-world` / `origin/feature/phantom-world`.
 - Accepted C1 parent: `0045f60417f4605f46e3058b9a694278283b1456`.
 - Blocked foundation: `365c014a48c7998eb880352b00503a28b2f27a2c`.
-- Bounded completion subject: `fix(phantoms): complete manor quest topology and causality`.
+- Loaded-boundary audit: `130a08a90c729dd94c13d782416bc0f1f727e6c7`.
+- Final child subject: `fix(phantoms): expose territory geometry and finalize acquisition`.
 - Child commit SHA и push result фиксируются final handoff; amend/force-push не используется.
 - Разрешённые git-команды использовались только для baseline/scope/diff проверки и обязательного commit/push workflow.
 
 ## Next step
 
-Нужно новое точечное разрешение изменить loaded territory boundary так, чтобы
-`NpcSpawnTerritory` или loader-owned immutable snapshot публиковал 3–32 factual
-vertices, exact low/high Z и stable source identity. Без этого full-containment
-mapping запрещён самим completion task. После такого разрешения повторяются
-topology/knowledge/active quest gates, manor causality review, aggregate, freeze,
-plain verify, jar и verifier 021c2. До этого Goal 022+ не начинать.
+Нужно изменение completion contract: либо снять требование, чтобы anchor
+был не дальше `2000` от каждой vertex, либо явно ограничить required
+coverage 15 feasible territories. Делить factual polygons, расширять distance
+или публиковать invented anchors текущая задача запрещает. Goal 022+
+до решения этого gate не начинать.
