@@ -14,7 +14,9 @@ $AnchorCommit = "83b22f2338c297151a9b0881fdf566963ee5d571"
 $AnchorSubject = "fix(phantoms): expose territory geometry and finalize acquisition"
 $NearFinalCommit = "81e4d2a7044f8c1bafc7db6b5d3c66ce4df050aa"
 $NearFinalSubject = "fix(phantoms): finalize feasible manor quest acquisition"
-$RequiredSubject = "fix(phantoms): close manor attribution and quest service recovery"
+$TerminalCommit = "906b8a043320deb955da02276cf27797e0c5fadd"
+$TerminalSubject = "fix(phantoms): close manor attribution and quest service recovery"
+$RequiredSubject = "fix(phantoms): enforce exact quest callback item delta"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "21002102"
 $TargetSourceIds = @(20013, 20019, 20016)
@@ -148,17 +150,12 @@ function Is-CumulativeAllowedPath([string] $path)
 function Is-FinalAllowedPath([string] $path)
 {
 	return $path -in @(
-		'PHANTOM_DEVELOPMENT_MASTER_PLAN.md',
 		'build.xml',
-		'docs/PHANTOM_BOTS_ROADMAP.md',
 		'docs/phantoms/reports/021-checkpoint-2-manor-quest-acquisition.md',
 		'docs/phantoms/reviews/021-checkpoint-2-independent-review.md',
 		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionService.java',
 		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionState.java',
-		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionStateCodec.java',
-		'test/java/org/l2jmobius/tests/phantoms/PhantomAcquisitionManorSuite.java',
 		'test/java/org/l2jmobius/tests/phantoms/PhantomAcquisitionQuestSuite.java',
-		'test/java/org/l2jmobius/tests/phantoms/PhantomAcquisitionSuite.java',
 		'test/java/org/l2jmobius/tests/phantoms/PhantomCombatServerIntegrationSuite.java',
 		'tools/phantoms/verify-task-021c2.ps1'
 	)
@@ -202,24 +199,26 @@ try
 	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $AnchorCommit) | Select-Object -First 1) -eq $AnchorSubject) "Goal 021c2 anchor subject changed."
 	Assert-True ((Git-Lines @("rev-parse", "$NearFinalCommit^" ) | Select-Object -First 1) -eq $AnchorCommit) "Goal 021c2 near-final parent changed."
 	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $NearFinalCommit) | Select-Object -First 1) -eq $NearFinalSubject) "Goal 021c2 near-final subject changed."
+	Assert-True ((Git-Lines @("rev-parse", "$TerminalCommit^" ) | Select-Object -First 1) -eq $NearFinalCommit) "Goal 021c2 terminal parent changed."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $TerminalCommit) | Select-Object -First 1) -eq $TerminalSubject) "Goal 021c2 terminal subject changed."
 	& git merge-base --is-ancestor $AcceptedCheckpoint1 $head
 	Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 021c1 checkpoint is not an ancestor of HEAD."
-	& git merge-base --is-ancestor $NearFinalCommit $head
-	Assert-True ($LASTEXITCODE -eq 0) "Goal 021c2 near-final foundation is not an ancestor of HEAD."
+	& git merge-base --is-ancestor $TerminalCommit $head
+	Assert-True ($LASTEXITCODE -eq 0) "Goal 021c2 terminal foundation is not an ancestor of HEAD."
 
 	if ($WorkingTree)
 	{
-		Assert-True ($head -eq $NearFinalCommit) "Working Goal 021c2 verifier requires the exact near-final parent."
+		Assert-True ($head -eq $TerminalCommit) "Working Goal 021c2 verifier requires the exact terminal parent."
 		$script:Mode = "working"
 		$script:TargetCommit = $head
 	}
 	else
 	{
-		$descendants = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$NearFinalCommit..$head"))
+		$descendants = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$TerminalCommit..$head"))
 		Assert-True ($descendants.Count -gt 0) "Accepted Goal 021c2 child is absent."
 		$script:TargetCommit = $descendants[0]
 		$script:Mode = "accepted"
-		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $NearFinalCommit) "Goal 021c2 completion is not one ordinary child of the near-final foundation."
+		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $TerminalCommit) "Goal 021c2 exact-delta completion is not one ordinary child of the terminal foundation."
 		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 021c2 completion subject changed."
 	}
 
@@ -228,19 +227,19 @@ try
 	if ($script:Mode -eq "working")
 	{
 		Add-ChangedPaths $cumulative @("diff", "--name-only", $AcceptedCheckpoint1, "--")
-		Add-ChangedPaths $final @("diff", "--name-only", $NearFinalCommit, "--")
+		Add-ChangedPaths $final @("diff", "--name-only", $TerminalCommit, "--")
 		Add-WorkingUntracked $cumulative
 		Add-WorkingUntracked $final
 	}
 	else
 	{
 		Add-ChangedPaths $cumulative @("diff", "--name-only", $AcceptedCheckpoint1, $script:TargetCommit, "--")
-		Add-ChangedPaths $final @("diff", "--name-only", $NearFinalCommit, $script:TargetCommit, "--")
+		Add-ChangedPaths $final @("diff", "--name-only", $TerminalCommit, $script:TargetCommit, "--")
 	}
 	$cumulativePaths = @($cumulative | Sort-Object)
 	$finalPaths = @($final | Sort-Object)
 	Assert-True (($cumulativePaths.Count -gt 0) -and ($cumulativePaths.Count -le 58)) "Cumulative Goal 021c2 scope exceeds 58 files."
-	Assert-True (($finalPaths.Count -gt 0) -and ($finalPaths.Count -le 10)) "Terminal Goal 021c2 child scope exceeds 10 files."
+	Assert-True (($finalPaths.Count -gt 0) -and ($finalPaths.Count -le 7)) "Final exact-delta Goal 021c2 child scope exceeds 7 files."
 	foreach ($path in $cumulativePaths)
 	{
 		Assert-True (Is-CumulativeAllowedPath $path) "Out-of-scope cumulative Goal 021c2 path: $path"
@@ -253,11 +252,11 @@ try
 	$cumulativeProduction = @($cumulativePaths | Where-Object { Is-ProductionPath $_ })
 	$finalProduction = @($finalPaths | Where-Object { Is-ProductionPath $_ })
 	Assert-True ($cumulativeProduction.Count -le 34) "Cumulative Goal 021c2 exceeds 34 production/data/config files."
-	Assert-True ($finalProduction.Count -le 3) "Terminal Goal 021c2 child exceeds 3 production/data/config files."
+	Assert-True ($finalProduction.Count -le 2) "Final exact-delta Goal 021c2 child exceeds 2 production/data/config files."
 	$finalNewProduction = @()
 	foreach ($path in $finalProduction)
 	{
-		$existing = @(Git-Lines @("-C", $repositoryRoot, "ls-tree", "--name-only", $NearFinalCommit, "--", ($script:ModulePrefix + $path)))
+		$existing = @(Git-Lines @("-C", $repositoryRoot, "ls-tree", "--name-only", $TerminalCommit, "--", ($script:ModulePrefix + $path)))
 		if ($existing.Count -eq 0) { $finalNewProduction += $path }
 	}
 	Assert-True ($finalNewProduction.Count -eq 0) "Terminal Goal 021c2 child adds a production/data file."
@@ -265,8 +264,6 @@ try
 		'docs/phantoms/reports/021-checkpoint-2-manor-quest-acquisition.md',
 		'docs/phantoms/reviews/021-checkpoint-2-independent-review.md',
 		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionService.java',
-		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionState.java',
-		'test/java/org/l2jmobius/tests/phantoms/PhantomAcquisitionManorSuite.java',
 		'test/java/org/l2jmobius/tests/phantoms/PhantomCombatServerIntegrationSuite.java',
 		'tools/phantoms/verify-task-021c2.ps1'
 	))
@@ -411,6 +408,19 @@ try
 	$harvesterDispatch = $service.IndexOf('lease.useExactHarvester', $dispatchGuard)
 	Assert-True (($externalObservation -ge 0) -and ($dispatchGuard -ge 0) -and ($harvesterDispatch -gt $dispatchGuard) -and $service.Contains('kind == ReceiptKind.ACTIVE_MANOR_HARVEST ? binding.cropCountBeforeDispatch() : current.state().lastObservedCount()') -and $service.Contains('manor.inventory_inconsistent')) "External crop observation, pre-dispatch drift guard or handler-bound manor attribution is incomplete."
 	Assert-True ($service.Contains('LongSupplier epochMillis') -and $service.Contains('System::currentTimeMillis') -and $service.Contains('_epochMillis.getAsLong()') -and $service.Contains('saturatingAdd(nowMillis, wait)') -and $service.Contains('remaining > 0') -and $service.Contains('remaining <= wait') -and ($service -notmatch 'logicalNowNanos\s*/\s*1_000_000')) "Restart-safe injected epoch callback deadline is incomplete."
+	$callbackStart = $service.IndexOf('private OperationResult observeQuestCallback(')
+	$callbackEnd = $service.IndexOf('private boolean exactQuestState(', $callbackStart)
+	$callbackBody = if (($callbackStart -ge 0) -and ($callbackEnd -gt $callbackStart)) { $service.Substring($callbackStart, $callbackEnd - $callbackStart) } else { '' }
+	$observationStart = $service.IndexOf('private OperationResult observeQuestCollection(')
+	$observationEnd = $service.IndexOf('private static QuestBinding questBinding(', $observationStart)
+	$observationBody = if (($observationStart -ge 0) -and ($observationEnd -gt $observationStart)) { $service.Substring($observationStart, $observationEnd - $observationStart) } else { '' }
+	$verificationStart = $service.IndexOf('private OperationResult verifyCurrent(')
+	$verificationEnd = $service.IndexOf('private OperationResult uncertain(', $verificationStart)
+	$verificationBody = if (($verificationStart -ge 0) -and ($verificationEnd -gt $verificationStart)) { $service.Substring($verificationStart, $verificationEnd - $verificationStart) } else { '' }
+	Assert-True ($callbackBody.Contains('observeQuestCollection(current, quest, rule, count, logicalMinute)') -and !$callbackBody.Contains('advanceToVerify(') -and !$callbackBody.Contains('uncertain(') -and $callbackBody.Contains('count > quest.itemCap()') -and $callbackBody.Contains('quest.item_cap')) "Successful or invalid quest callback still uses generic verification/uncertainty."
+	Assert-True ($observationBody.Contains('binding.itemCountBeforeKill()') -and $observationBody.Contains('delta < rule.minimumCount()') -and $observationBody.Contains('delta > rule.maximumCount()') -and $observationBody.Contains('ReceiptKind.ACTIVE_QUEST_COLLECTION, before, count, TerminalResult.OBSERVED') -and $observationBody.Contains('observeBound(count, Status.READY, Phase.TARGET_REQUIRED, 0, 0, 0') -and $observationBody.Contains('_store.mutateWithGoal')) "Dedicated exact quest observation/min-max/receipt boundary is incomplete."
+	Assert-True ($verificationBody.Contains('current.state().selectedSource().method() == Method.QUEST_COLLECTION') -and $verificationBody.Contains('exactQuestRule(quest)') -and $verificationBody.Contains('exactQuestState(lease, quest, rule)') -and $verificationBody.Contains('observeQuestCollection(current, quest, rule, count, logicalMinute)')) "Legacy QUEST_COLLECTION/VERIFYING does not use exact curated validation."
+	Assert-True ($service.Contains('count != quest.itemCountBeforeKill()') -and $service.Contains('quest.item_count_changed') -and $service.Contains('count >= quest.itemCap()') -and $service.IndexOf('count != quest.itemCountBeforeKill()') -lt $service.IndexOf('_combat.startAcquisitionSession')) "Quest pre-combat item baseline/cap revalidation is absent or occurs after Combat submission."
 	Assert-True ($background.Contains('_acquisitionLimits.manorAttemptsPerTarget()') -and $background.Contains('_acquisitionLimits.harvestAttemptsPerCorpse()') -and !$background.Contains('projection.harvestPayload(), 3, 3')) "Background manor attempt policy is not catalog-driven."
 	Assert-True ($transaction.Contains('LOCK_QUEST_ROWS') -and $transaction.Contains('ORDER BY var FOR UPDATE') -and $transaction.Contains('expectedQuestRows()') -and $transaction.Contains('AFTER_QUEST_LOCKS') -and $transaction.Contains('AFTER_GOAL_STATE_WRITE') -and $transaction.Contains('AFTER_ACQUISITION_STATE_WRITE') -and $transaction.Contains('connection.commit()')) "Atomic exact-row quest background ownership is incomplete."
 	Assert-True ($transaction -notmatch '(?i)(?:UPDATE|INSERT|DELETE)\s+character_quests') "Background quest path mutates quest state/cond/vars."
@@ -424,8 +434,12 @@ try
 	Assert-True ($manorTests.Contains('observeBound(') -and $manorTests.Contains('ReceiptKind.VERIFY') -and $manorTests.Contains('ReceiptKind.ACTIVE_MANOR_HARVEST') -and $manorTests.Contains('cropCountBeforeDispatch()') -and $manorTests.Contains('manor.variantSowAttempts') -and $manorTests.Contains('manor.variantHarvestAttempts')) "Manor refreshed overall/binding truth or policy-variant evidence is incomplete."
 	Assert-True ($activeTests.Contains('runManorServiceAttribution') -and $activeTests.Contains('External crop delta was misattributed to Harvester') -and $activeTests.Contains('Successful Harvester receipt is absent') -and $activeTests.Contains('Service Harvester produced no bounded crop delta')) "Full acquisition-service manor attribution gate is absent."
 	Assert-True ($activeTests.Contains('new PhantomAcquisitionService(') -and $activeTests.Contains('_acquisition.activeAdvance(') -and $activeTests.Contains('matchesAcquisitionSession') -and $activeTests.Contains('QUEST_COMBAT_PREPARED') -and $activeTests.Contains('QUEST_COMBAT_SUBMITTED') -and $activeTests.Contains('QUEST_COMBAT_TERMINAL') -and $activeTests.Contains('QUEST_CALLBACK_WAIT')) "Full acquisition-owned quest service phase chain is absent."
-	Assert-True ($activeTests.Contains('_epochMillis::get') -and $activeTests.Contains('restartAcquisitionService()') -and $activeTests.Contains('Clock rollback beyond the wait window') -and $activeTests.Contains('Legacy/small deadline') -and $activeTests.Contains('Observed quest item was not checked before an expired deadline')) "Quest callback restart/rollback/legacy deadline gate is incomplete."
+	Assert-True ($activeTests.Contains('_epochMillis::get') -and $activeTests.Contains('restartAcquisitionService()') -and $activeTests.Contains('Clock rollback beyond the wait window') -and $activeTests.Contains('Legacy/small deadline') -and $activeTests.Contains('Observed quest item was not committed before an expired deadline')) "Quest callback restart/rollback/legacy deadline gate is incomplete."
 	Assert-True ($activeTests.Contains('01-real-delayed-on-attackable-kill') -and $activeTests.Contains('03-full-service-owned-combat-and-epoch-recovery')) "Direct Combat control replaced or obscured the full acquisition-service gate."
+	foreach ($evidence in @('04-full-service-exact-delta-and-legacy-verifying', 'Below-cap +2 callback was accepted', 'Above-cap callback was accepted', 'Decreased callback count was accepted', 'Legacy VERIFYING +2 was accepted', 'Pre-combat quest item drift was accepted', 'A later inventory delta was absorbed by a second quest verification read', 'Acquisition changed curated quest state/cond/vars', 'Blocked pre-combat drift acquired a Combat session'))
+	{
+		Assert-True ($activeTests.Contains($evidence)) "Exact quest delta full-service evidence is absent: $evidence"
+	}
 	Assert-True ($knowledgeTests.Contains('35') -and $knowledgeTests.Contains('15') -and $knowledgeTests.Contains('20') -and $knowledgeTests.Contains('additionalUnmappedTerritories')) "Game Knowledge 35/15/20 partial-coverage evidence is incomplete."
 	Assert-True ($topologyTests.Contains('9') -and $topologyTests.Contains('7') -and $topologyTests.Contains('1') -and $topologyTests.Contains('4_000_000L')) "Topology 9/7/1 or distance evidence is incomplete."
 
@@ -440,9 +454,9 @@ try
 
 	$report = Read-TargetUtf8Strict 'docs/phantoms/reports/021-checkpoint-2-manor-quest-acquisition.md'
 	Assert-True (($report -split "`r?`n").Count -le 240) "Goal 021c2 report exceeds 240 lines."
-	Assert-True ($report.Contains('COMPLETED_PENDING_INDEPENDENT_REVIEW') -and $report.Contains($AcceptedCheckpoint1) -and $report.Contains($AnchorCommit) -and $report.Contains($NearFinalCommit) -and $report.Contains($RequiredSubject) -and $report.Contains('35') -and $report.Contains('15') -and $report.Contains('20')) "Goal 021c2 report/history/coverage handoff is incomplete."
+	Assert-True ($report.Contains('COMPLETED_PENDING_INDEPENDENT_REVIEW') -and $report.Contains($AcceptedCheckpoint1) -and $report.Contains($AnchorCommit) -and $report.Contains($NearFinalCommit) -and $report.Contains($TerminalCommit) -and $report.Contains($RequiredSubject) -and $report.Contains('35') -and $report.Contains('15') -and $report.Contains('20')) "Goal 021c2 report/history/coverage handoff is incomplete."
 	$reviewC2 = Read-TargetUtf8Strict 'docs/phantoms/reviews/021-checkpoint-2-independent-review.md'
-	Assert-True ($reviewC2.Contains('IMPLEMENTED_PENDING_INDEPENDENT_REVIEW') -and $reviewC2.Contains($NearFinalCommit) -and $reviewC2.Contains($RequiredSubject) -and $reviewC2.Contains('independent')) "Goal 021c2 independent-review handoff is incomplete."
+	Assert-True ($reviewC2.Contains('IMPLEMENTED_PENDING_INDEPENDENT_REVIEW') -and $reviewC2.Contains($TerminalCommit) -and $reviewC2.Contains($RequiredSubject) -and $reviewC2.Contains('independent')) "Goal 021c2 independent-review handoff is incomplete."
 
 	$mojibakePairs = @(
 		@(0x0420, 0x045F), @(0x0420, 0x045C), @(0x0420, 0x045B), @(0x0420, 0x2022), @(0x0420, 0x040E), @(0x0420, 0x203A), @(0x0420, 0x00A4), @(0x0420, 0x045A),
@@ -464,7 +478,7 @@ try
 
 	if ($script:Mode -eq "working")
 	{
-		& git -c core.safecrlf=false diff --check $NearFinalCommit --
+		& git -c core.safecrlf=false diff --check $TerminalCommit --
 		Assert-True ($LASTEXITCODE -eq 0) "Working git diff --check failed."
 	}
 	else
@@ -484,14 +498,14 @@ try
 			Assert-True ($jarEntries -contains $entry) "GameServer.jar lacks Goal 021c2 entry: $entry"
 		}
 		Assert-True ($jarEntries -notcontains 'data/phantoms/topology/high-five-core.xml') "Topology datapack must remain outside GameServer.jar."
-		& git -c core.safecrlf=false diff --check $NearFinalCommit $script:TargetCommit --
+		& git -c core.safecrlf=false diff --check $TerminalCommit $script:TargetCommit --
 		Assert-True ($LASTEXITCODE -eq 0) "Committed git diff --check failed."
 	}
 
 	Write-Output 'TASK021C2_VERIFIER_OK'
 	Write-Output "mode=$($script:Mode)"
 	Write-Output "implementation_commit=$($script:TargetCommit)"
-	Write-Output "accepted_parent=$NearFinalCommit"
+	Write-Output "accepted_parent=$TerminalCommit"
 	Write-Output "topology_sha256=$(Get-TargetSha256 'dist/game/data/phantoms/topology/high-five-core.xml')"
 	Write-Output "quest_catalog_sha256=$(Get-TargetSha256 'dist/game/data/phantoms/acquisition/high-five-quest-collection-v1.xml')"
 	Write-Output "territories=35"

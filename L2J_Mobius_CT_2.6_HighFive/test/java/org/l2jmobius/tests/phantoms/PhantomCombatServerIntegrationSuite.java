@@ -386,6 +386,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			registry.add("01-real-delayed-on-attackable-kill", _ -> testCanonicalQuestChain());
 			registry.add("02-exact-state-cond-target-and-cap-controls", _ -> testQuestControls());
 			registry.add("03-full-service-owned-combat-and-epoch-recovery", _ -> testQuestServiceLifecycle());
+			registry.add("04-full-service-exact-delta-and-legacy-verifying", _ -> testQuestExactDeltaBoundaries());
 			return;
 		}
 		registry.add("01-exact-world-player-action-lease", _ -> testExactActorLease());
@@ -526,8 +527,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void prepareQuestActor()
 	{
-		_player.setPlayerClass(MELEE_CLASS_ID);
-		_player.getStat().setLevel((byte) 85);
+		if (_player.getPlayerClass().getId() != MELEE_CLASS_ID)
+		{
+			_player.setPlayerClass(MELEE_CLASS_ID);
+		}
+		if (_player.getLevel() != 85)
+		{
+			_player.getStat().setLevel((byte) 85);
+		}
 		_player.setInvul(true);
 		ensureWeapon();
 		final var quest = ScriptManager.getInstance().getQuest(_questRule.questId());
@@ -855,6 +862,131 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertEquals(0, _acquisition.snapshot().navigationClaims(), "Terminal quest service retained navigation ownership.");
 	}
 
+	private void testQuestExactDeltaBoundaries()
+	{
+		for (Rule rule : _questCatalog.rules())
+		{
+			final QuestSource source = _questSources.stream().filter(value -> value.rule().id().equals(rule.id())).findFirst().orElseThrow();
+			selectQuestSource(source);
+			prepareQuestActor();
+			final String initialQuestTruth = questTruth(rule);
+
+			QuestDeltaScenario scenario = prepareQuestDeltaScenario(source, 0, 1, 1, Phase.QUEST_CALLBACK_WAIT);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.COMPLETE_GOAL, advanceAcquisition(scenario.goal(), 10 + _acquisitionRevision).status(), "Exact +1 callback did not complete " + rule.id() + ".");
+			PhantomAcquisitionState observed = acquisitionState();
+			PhantomAssertions.assertEquals(Status.COMPLETED, observed.status(), "Exact +1 callback did not complete acquisition state.");
+			PhantomAssertions.assertEquals(Phase.NONE, observed.phase(), "Exact +1 callback retained an intermediate phase.");
+			PhantomAssertions.assertEquals(0, observed.targetObjectId(), "Exact +1 callback retained its old target.");
+			PhantomAssertions.assertEquals(1L, observed.progress(), "Exact +1 callback did not update baseline-derived progress.");
+			PhantomAssertions.assertEquals(1L, observed.receipts().stream().filter(receipt -> receipt.kind() == ReceiptKind.ACTIVE_QUEST_COLLECTION).count(), "Exact +1 callback did not create exactly one quest receipt.");
+			final var exactReceipt = observed.receipts().getLast();
+			PhantomAssertions.assertEquals(0L, exactReceipt.beforeCount(), "Exact quest receipt did not use itemCountBeforeKill.");
+			PhantomAssertions.assertEquals(1L, exactReceipt.afterCount(), "Exact quest receipt lost the validated current count.");
+			PhantomAssertions.assertEquals(TerminalResult.OBSERVED, exactReceipt.result(), "Exact quest receipt is not authoritative observation.");
+			PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, _acquisitionGoals.load(_profile.profileId()).orElseThrow().goal().status(), "Exact +1 callback did not atomically complete Goal.");
+			assertQuestTruth(rule, initialQuestTruth);
+
+			scenario = prepareQuestDeltaScenario(source, 0, 1, 2, Phase.QUEST_CALLBACK_WAIT);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, advanceAcquisition(scenario.goal(), 20 + _acquisitionRevision).status(), "Exact +1 partial callback failed for " + rule.id() + ".");
+			observed = acquisitionState();
+			PhantomAssertions.assertEquals(Status.READY, observed.status(), "Partial exact callback did not return to READY.");
+			PhantomAssertions.assertEquals(Phase.TARGET_REQUIRED, observed.phase(), "Partial exact callback did not require a new target.");
+			PhantomAssertions.assertEquals(0, observed.targetObjectId(), "Partial exact callback retained its callback target.");
+			PhantomAssertions.assertEquals(1L, observed.progress(), "Partial exact callback did not preserve one unit of progress.");
+			setQuestItemCount(rule.questItemId(), 2);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, advanceAcquisition(scenario.goal(), 21 + _acquisitionRevision).status(), "Post-observation target preparation failed.");
+			final PhantomAcquisitionState preparedAfterExtra = acquisitionState();
+			PhantomAssertions.assertEquals(1L, preparedAfterExtra.progress(), "A later inventory delta was absorbed by a second quest verification read.");
+			PhantomAssertions.assertEquals(1L, preparedAfterExtra.receipts().stream().filter(receipt -> receipt.kind() == ReceiptKind.ACTIVE_QUEST_COLLECTION).count(), "A later inventory delta created a second quest receipt.");
+			PhantomAssertions.assertEquals(2L, ((QuestBinding) preparedAfterExtra.methodBinding()).itemCountBeforeKill(), "New quest target did not bind the independent current baseline.");
+			assertQuestTruth(rule, initialQuestTruth);
+
+			assertInvalidQuestDelta(prepareQuestDeltaScenario(source, 0, 2, 1, Phase.QUEST_CALLBACK_WAIT), "quest.invalid_delta", "Below-cap +2 callback was accepted for " + rule.id() + ".");
+			assertInvalidQuestDelta(prepareQuestDeltaScenario(source, 0, rule.itemCap() + 1L, 1, Phase.QUEST_CALLBACK_WAIT), "quest.item_cap", "Above-cap callback was accepted for " + rule.id() + ".");
+			assertInvalidQuestDelta(prepareQuestDeltaScenario(source, 1, 0, 1, Phase.QUEST_CALLBACK_WAIT), "quest.item_count_decreased", "Decreased callback count was accepted for " + rule.id() + ".");
+			assertQuestTruth(rule, initialQuestTruth);
+
+			scenario = prepareQuestDeltaScenario(source, 0, 1, 1, Phase.VERIFYING);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.COMPLETE_GOAL, advanceAcquisition(scenario.goal(), 30 + _acquisitionRevision).status(), "Legacy VERIFYING exact +1 did not recover for " + rule.id() + ".");
+			PhantomAssertions.assertEquals(1L, acquisitionState().receipts().stream().filter(receipt -> receipt.kind() == ReceiptKind.ACTIVE_QUEST_COLLECTION).count(), "Legacy VERIFYING exact +1 lacks its dedicated receipt.");
+			assertInvalidQuestDelta(prepareQuestDeltaScenario(source, 0, 2, 1, Phase.VERIFYING), "quest.invalid_delta", "Legacy VERIFYING +2 was accepted for " + rule.id() + ".");
+
+			scenario = prepareQuestDeltaScenario(source, 0, 0, 1, Phase.QUEST_COMBAT_PREPARED);
+			final PhantomAcquisitionState beforeSubmission = acquisitionState();
+			final String owner = "acquisition:" + canonicalDigest(beforeSubmission.goalId(), beforeSubmission.goalRevision(), beforeSubmission.selectedSource().sourceId(), beforeSubmission.targetObjectId()).substring(0, 48);
+			setQuestItemCount(rule.questItemId(), 1);
+			final PhantomAcquisitionService.OperationResult drift = advanceAcquisition(scenario.goal(), 40 + _acquisitionRevision);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.REPLAN, drift.status(), "Pre-combat quest item drift was accepted for " + rule.id() + ".");
+			PhantomAssertions.assertEquals("quest.item_count_changed", drift.reasonKey(), "Pre-combat quest item drift lost its typed failure.");
+			PhantomAssertions.assertFalse(acquisitionState().phase() == Phase.QUEST_COMBAT_SUBMITTED, "Pre-combat quest item drift advanced to submitted Combat.");
+			PhantomAssertions.assertEquals(0L, acquisitionState().progress(), "Pre-combat quest item drift was recorded as progress.");
+			PhantomAssertions.assertTrue(acquisitionState().receipts().isEmpty(), "Pre-combat quest item drift created a quest receipt.");
+			PhantomAssertions.assertFalse(_combat.matchesAcquisitionSession(_profile.profileId(), beforeSubmission.targetObjectId(), owner), "Blocked pre-combat drift acquired a Combat session.");
+			PhantomAssertions.assertTrue(_combat.find(_profile.profileId()).isEmpty(), "Blocked pre-combat drift retained Combat ownership.");
+			assertQuestTruth(rule, initialQuestTruth);
+		}
+		PhantomAssertions.assertEquals(0, _acquisition.snapshot().currentClaims(), "Exact-delta terminal paths retained a state claim.");
+		PhantomAssertions.assertEquals(0, _acquisition.snapshot().externalClaims(), "Exact-delta terminal paths retained an external claim.");
+		PhantomAssertions.assertEquals(0, _acquisition.snapshot().navigationClaims(), "Exact-delta terminal paths retained navigation ownership.");
+	}
+
+	private QuestDeltaScenario prepareQuestDeltaScenario(QuestSource source, long before, long after, long required, Phase phase)
+	{
+		clearWorldFixtures();
+		selectQuestSource(source);
+		relocateToCombatPoint();
+		prepareQuestActor();
+		final var planned = planQuest(source, before);
+		final RankedSource selected = exactRanked(planned, source.npcId(), source.combatPoint().topologyNodeId());
+		selectQuestSource(plannerQuestSource(source.rule(), selected));
+		relocateToCombatPoint();
+		prepareQuestActor();
+		setQuestItemCount(source.rule().questItemId(), after);
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		final QuestBinding plannedBinding = (QuestBinding) selected.methodBinding();
+		final long deadline = phase == Phase.QUEST_CALLBACK_WAIT ? _epochMillis.get() + _acquisitionCatalog.limits().questCallbackWaitMillis() : 0;
+		final QuestBinding binding = new QuestBinding(plannedBinding.ruleId(), plannedBinding.ruleHash(), plannedBinding.questId(), plannedBinding.questName(), plannedBinding.scriptHash(), plannedBinding.expectedState(), plannedBinding.expectedCond(), plannedBinding.questItemId(), plannedBinding.itemCap(), plannedBinding.targetNpcId(), before, deadline, plannedBinding.authorityHash());
+		return new QuestDeltaScenario(installAcquisition(selected, planned.ranked(), binding, before, required, phase, target.getObjectId()), target);
+	}
+
+	private void assertInvalidQuestDelta(QuestDeltaScenario scenario, String reason, String message)
+	{
+		final PhantomAcquisitionService.OperationResult result = advanceAcquisition(scenario.goal(), 50 + _acquisitionRevision);
+		PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.REPLAN, result.status(), message);
+		PhantomAssertions.assertEquals(reason, result.reasonKey(), "Invalid quest delta lost its typed failure.");
+		PhantomAssertions.assertEquals(0L, acquisitionState().progress(), "Invalid quest delta changed acquisition progress.");
+		PhantomAssertions.assertTrue(acquisitionState().receipts().stream().noneMatch(receipt -> receipt.kind() == ReceiptKind.ACTIVE_QUEST_COLLECTION), "Invalid quest delta created a quest receipt.");
+		PhantomAssertions.assertFalse(acquisitionState().status() == Status.COMPLETED, "Invalid quest delta completed acquisition state.");
+		PhantomAssertions.assertEquals(PhantomGoalStatus.ACTIVE, _acquisitionGoals.load(_profile.profileId()).orElseThrow().goal().status(), "Invalid quest delta completed Goal.");
+	}
+
+	private void setQuestItemCount(int itemId, long count)
+	{
+		final long current = _player.getInventory().getInventoryItemCount(itemId, -1);
+		destroyInventoryCount(_player, itemId, current);
+		if (count > 0)
+		{
+			ensureInventoryItem(itemId, count);
+		}
+		PhantomAssertions.assertEquals(count, _player.getInventory().getInventoryItemCount(itemId, -1), "Could not establish exact quest item test count.");
+	}
+
+	private String questTruth(Rule rule)
+	{
+		final QuestState state = _player.getQuestState(rule.questName());
+		final List<String> variables = rule.expectedVars().stream().sorted().map(name -> name + "=" + state.get(name)).toList();
+		return state.getState() + "|" + state.getCond() + "|" + state.get("cond") + "|" + variables;
+	}
+
+	private void assertQuestTruth(Rule rule, String expected)
+	{
+		PhantomAssertions.assertEquals(expected, questTruth(rule), "Acquisition changed curated quest state/cond/vars for " + rule.id() + ".");
+	}
+
+	private record QuestDeltaScenario(PhantomGoal goal, Monster target)
+	{
+	}
+
 	private boolean runQuestServiceAttempt(QuestSource source, boolean restartEveryPhase) throws Exception
 	{
 		clearWorldFixtures();
@@ -928,10 +1060,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		if (callbackCount == 1)
 		{
 			_epochMillis.set(deadline + 1_000_000L);
-			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, advanceAcquisition(goal, 500 + _acquisitionRevision).status(), "Observed quest item was not checked before an expired deadline.");
-			PhantomAssertions.assertEquals(Phase.VERIFYING, acquisitionState().phase(), "Observed quest item did not advance to verification.");
-			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.COMPLETE_GOAL, advanceAcquisition(goal, 600 + _acquisitionRevision).status(), "Real quest item did not complete the acquisition Goal.");
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.COMPLETE_GOAL, advanceAcquisition(goal, 500 + _acquisitionRevision).status(), "Observed quest item was not committed before an expired deadline.");
 			PhantomAssertions.assertEquals(Status.COMPLETED, acquisitionState().status(), "Real quest item did not persist completed acquisition truth.");
+			PhantomAssertions.assertEquals(Phase.NONE, acquisitionState().phase(), "Successful quest callback retained an intermediate verification phase.");
 			PhantomAssertions.assertTrue(acquisitionState().receipts().stream().anyMatch(receipt -> (receipt.kind() == ReceiptKind.ACTIVE_QUEST_COLLECTION) && (receipt.beforeCount() == 0) && (receipt.afterCount() == 1)), "Real delayed callback lacks an active quest receipt.");
 		}
 		else

@@ -53,6 +53,7 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore.Sto
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority;
 import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog.Rule;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
@@ -880,20 +881,25 @@ public final class PhantomAcquisitionService
 		{
 			return retry("acquisition.actor.unavailable");
 		}
-		if (!exactQuestState(lease, quest))
+		final Rule rule = exactQuestRule(quest);
+		if ((rule == null) || !exactQuestState(lease, quest, rule))
 		{
 			releaseExternal(current.profileId());
 			return failSource(current, "quest.cond_ineligible", logicalMinute);
 		}
 		final long count = lease.acquisitionInventoryCount(quest.questItemId());
 		releaseExternal(current.profileId());
-		if ((count > quest.itemCountBeforeKill()) && (count <= quest.itemCap()))
+		if (count < quest.itemCountBeforeKill())
 		{
-			return advanceToVerify(current, logicalMinute);
+			return failSource(current, "quest.item_count_decreased", logicalMinute);
 		}
-		if ((count < 0) || (count > quest.itemCap()))
+		if (count > quest.itemCap())
 		{
-			return uncertain(current, ReceiptKind.ACTIVE_QUEST_COLLECTION, logicalMinute, count);
+			return failSource(current, "quest.item_cap", logicalMinute);
+		}
+		if (count > quest.itemCountBeforeKill())
+		{
+			return observeQuestCollection(current, quest, rule, count, logicalMinute);
 		}
 		final long nowMillis = Math.max(0, _epochMillis.getAsLong());
 		final long wait = _catalog.limits().questCallbackWaitMillis();
@@ -913,17 +919,52 @@ public final class PhantomAcquisitionService
 
 	private boolean exactQuestState(ExternalActionLease lease, QuestBinding binding)
 	{
+		final Rule rule = exactQuestRule(binding);
+		return (rule != null) && exactQuestState(lease, binding, rule);
+	}
+
+	private Rule exactQuestRule(QuestBinding binding)
+	{
 		if ((_quests == null) || !_quests.current() || !binding.authorityHash().equals(_quests.authorityHash()))
 		{
-			return false;
+			return null;
 		}
-		final var rule = _quests.rule(binding.ruleId()).filter(value -> value.ruleHash().equals(binding.ruleHash()) && value.scriptHash().equals(binding.scriptHash()) && value.questId() == binding.questId() && value.questName().equals(binding.questName()) && value.questItemId() == binding.questItemId() && value.targetNpcIds().contains(binding.targetNpcId())).orElse(null);
-		if (rule == null)
-		{
-			return false;
-		}
+		return _quests.rule(binding.ruleId()).filter(value -> value.ruleHash().equals(binding.ruleHash()) && value.scriptHash().equals(binding.scriptHash()) && (value.questId() == binding.questId()) && value.questName().equals(binding.questName()) && value.requiredState().equals(binding.expectedState()) && value.allowedConds().contains(binding.expectedCond()) && (value.questItemId() == binding.questItemId()) && (value.itemCap() == binding.itemCap()) && value.targetNpcIds().contains(binding.targetNpcId())).orElse(null);
+	}
+
+	private static boolean exactQuestState(ExternalActionLease lease, QuestBinding binding, Rule rule)
+	{
 		final var snapshot = lease.questState(binding.questName(), rule.expectedVars().stream().sorted().toList());
 		return (snapshot != null) && binding.expectedState().equals(snapshot.state()) && (binding.expectedCond() == snapshot.cond()) && rule.allowedConds().contains(snapshot.cond()) && snapshot.variables().keySet().equals(java.util.Set.copyOf(rule.expectedVars()));
+	}
+
+	private OperationResult observeQuestCollection(Current current, QuestBinding binding, Rule rule, long count, long logicalMinute)
+	{
+		final long before = binding.itemCountBeforeKill();
+		if (count < before)
+		{
+			return failSource(current, "quest.item_count_decreased", logicalMinute);
+		}
+		if (count > binding.itemCap())
+		{
+			return failSource(current, "quest.item_cap", logicalMinute);
+		}
+		final long delta = count - before;
+		if ((delta < rule.minimumCount()) || (delta > rule.maximumCount()))
+		{
+			return failSource(current, "quest.invalid_delta", logicalMinute);
+		}
+		final Receipt proof = receipt(current.state(), ReceiptKind.ACTIVE_QUEST_COLLECTION, before, count, TerminalResult.OBSERVED, logicalMinute);
+		final QuestBinding observedBinding = questBinding(binding, count, 0);
+		final PhantomAcquisitionState observed = current.state().observeBound(count, Status.READY, Phase.TARGET_REQUIRED, 0, 0, 0, observedBinding, 0, proof, logicalMinute);
+		final PhantomGoal projected = PhantomAcquisitionGoalSpec.project(current.goal().goal(), observed.progress(), observed.status() == Status.COMPLETED ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.ACTIVE, observed.selectedSource());
+		_store.mutateWithGoal(current.profileId(), current.acquisition().rowVersion(), observed, current.goal().rowVersion(), projected);
+		if (observed.status() == Status.COMPLETED)
+		{
+			_completed.incrementAndGet();
+			return OperationResult.complete("acquisition.complete");
+		}
+		return OperationResult.success("acquisition.quest.collection_observed");
 	}
 
 	private static QuestBinding questBinding(QuestBinding binding, long itemCount, long deadline)
@@ -1024,10 +1065,32 @@ public final class PhantomAcquisitionService
 			}
 			final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(current.state().targetObjectId());
 			final boolean valid = (target != null) && sourceOwnsTarget(current.state().selectedSource(), target) && target.liveValidFor(lease.actorSnapshot(), current.state().selectedSource().npcId(), MAXIMUM_TARGET_DISTANCE);
-			releaseExternal(current.profileId());
 			if (!valid)
 			{
+				releaseExternal(current.profileId());
 				return OperationResult.replan("source.target_unavailable");
+			}
+			if (current.state().selectedSource().method() == Method.QUEST_COLLECTION)
+			{
+				if (!(current.state().methodBinding() instanceof QuestBinding quest) || !exactQuestState(lease, quest))
+				{
+					releaseExternal(current.profileId());
+					return failSource(current, "quest.cond_ineligible", logicalMinute);
+				}
+				final long count = lease.acquisitionInventoryCount(quest.questItemId());
+				releaseExternal(current.profileId());
+				if (count >= quest.itemCap())
+				{
+					return failSource(current, "quest.item_cap", logicalMinute);
+				}
+				if (count != quest.itemCountBeforeKill())
+				{
+					return failSource(current, "quest.item_count_changed", logicalMinute);
+				}
+			}
+			else
+			{
+				releaseExternal(current.profileId());
 			}
 		}
 		final PhantomCombatService.StartResult started = _combat.startAcquisitionSession(new PhantomCombatRequest(current.profileId(), current.state().targetObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, loot, COMBAT_TIMEOUT_MILLIS, token), owner);
@@ -1091,13 +1154,33 @@ public final class PhantomAcquisitionService
 		}
 		final long count = lease.acquisitionInventoryCount(current.state().targetItemId());
 		final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(current.state().targetObjectId());
-		if (count > current.state().lastObservedCount())
+		final Source source = current.state().selectedSource();
+		if (source.method() == Method.QUEST_COLLECTION)
+		{
+			if (!(current.state().methodBinding() instanceof QuestBinding quest))
+			{
+				releaseExternal(current.profileId());
+				return OperationResult.replan("acquisition.quest.binding");
+			}
+			if (count != quest.itemCountBeforeKill())
+			{
+				if (count < quest.itemCountBeforeKill())
+				{
+					releaseExternal(current.profileId());
+					return failSource(current, "quest.item_count_decreased", logicalMinute);
+				}
+				final Rule rule = exactQuestRule(quest);
+				final boolean exact = (rule != null) && exactQuestState(lease, quest, rule);
+				releaseExternal(current.profileId());
+				return exact ? observeQuestCollection(current, quest, rule, count, logicalMinute) : failSource(current, "quest.cond_ineligible", logicalMinute);
+			}
+		}
+		else if (count > current.state().lastObservedCount())
 		{
 			releaseExternal(current.profileId());
 			return advanceToVerify(current, logicalMinute);
 		}
 		final var actor = lease.actorSnapshot();
-		final Source source = current.state().selectedSource();
 		if ((target != null) && (actor != null) && sourceOwnsTarget(source, target) && target.liveValidFor(actor, source.npcId(), MAXIMUM_TARGET_DISTANCE))
 		{
 			releaseExternal(current.profileId());
@@ -1143,6 +1226,10 @@ public final class PhantomAcquisitionService
 			case QUEST_COLLECTION -> ReceiptKind.ACTIVE_QUEST_COLLECTION;
 			default -> ReceiptKind.ACTIVE_SPOIL;
 		};
+		if (current.state().selectedSource().method() == Method.QUEST_COLLECTION)
+		{
+			return failSource(current, "acquisition.combat.missing_session", logicalMinute);
+		}
 		return uncertain(current, kind, logicalMinute, observedCount);
 	}
 
@@ -1335,6 +1422,27 @@ public final class PhantomAcquisitionService
 
 	private OperationResult verifyCurrent(Current current, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
 	{
+		if (current.state().selectedSource().method() == Method.QUEST_COLLECTION)
+		{
+			if (!(current.state().methodBinding() instanceof QuestBinding quest))
+			{
+				return OperationResult.replan("acquisition.quest.binding");
+			}
+			final ExternalActionLease lease = external(current, logicalNowNanos, token);
+			if (lease == null)
+			{
+				return retry("acquisition.actor.unavailable");
+			}
+			final Rule rule = exactQuestRule(quest);
+			if ((rule == null) || !exactQuestState(lease, quest, rule))
+			{
+				releaseExternal(current.profileId());
+				return failSource(current, "quest.cond_ineligible", logicalMinute);
+			}
+			final long count = lease.acquisitionInventoryCount(quest.questItemId());
+			releaseExternal(current.profileId());
+			return observeQuestCollection(current, quest, rule, count, logicalMinute);
+		}
 		final ExternalActionLease lease = external(current, logicalNowNanos, token);
 		if (lease == null)
 		{
@@ -1349,7 +1457,6 @@ public final class PhantomAcquisitionService
 		final ReceiptKind kind = switch (current.state().selectedSource().method())
 		{
 			case MANOR_CROP -> ReceiptKind.ACTIVE_MANOR_HARVEST;
-			case QUEST_COLLECTION -> ReceiptKind.ACTIVE_QUEST_COLLECTION;
 			default -> ReceiptKind.VERIFY;
 		};
 		final Receipt receipt = receipt(current.state(), kind, current.state().lastObservedCount(), count, count > current.state().lastObservedCount() ? TerminalResult.OBSERVED : TerminalResult.NO_PROGRESS, logicalMinute);

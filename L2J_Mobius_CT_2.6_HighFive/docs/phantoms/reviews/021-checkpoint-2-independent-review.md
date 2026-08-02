@@ -7,20 +7,25 @@
 - C2 foundation: `365c014a48c7998eb880352b00503a28b2f27a2c`.
 - Loaded-boundary audit: `130a08a90c729dd94c13d782416bc0f1f727e6c7`.
 - Anchor audit: `83b22f2338c297151a9b0881fdf566963ee5d571`.
-- Near-final foundation и terminal parent:
+- Near-final foundation:
   `81e4d2a7044f8c1bafc7db6b5d3c66ce4df050aa`.
-- Terminal child subject:
+- Terminal foundation:
+  `906b8a043320deb955da02276cf27797e0c5fadd`.
+- Terminal foundation subject:
   `fix(phantoms): close manor attribution and quest service recovery`.
+- Final exact-delta child subject:
+  `fix(phantoms): enforce exact quest callback item delta`.
 
 Это второй и последний заранее запланированный checkpoint Goal 021, не 021A/021B.
 Только независимый reviewer может заменить pending-статус на `ACCEPT`.
 
 ## Что проверить
 
-- Exact ordinary ancestry и subjects всей цепочки C1/C2; terminal completion должен
-  быть ровно одним прямым child `81e4d2…`, verifier — descendant-compatible.
-- Cumulative C2 scope считается от accepted C1, terminal scope — отдельно:
-  не более 10 файлов, не более 3 production/data/config, 0 новых production/data.
+- Exact ordinary ancestry и subjects всей цепочки C1/C2; exact-delta completion
+  должен быть ровно одним прямым child `906b8a04…`, verifier —
+  descendant-compatible.
+- Cumulative C2 scope считается от accepted C1, final micro scope — отдельно:
+  не более 7 файлов, не более 2 production/data/config, 0 новых production/data.
 - Immutable loaded `NpcSpawnTerritory` geometry, canonical SpawnData identity,
   topology dataset 2 и точные `35/15/20` territory facts не изменены.
 - `MANOR_CROP`: внешний delta создаёт только `VERIFY`, обновляет overall progress и
@@ -30,6 +35,15 @@
 - `QUEST_COLLECTION`: absolute injected epoch deadline переживает restart; deadline,
   rollback, forward jump и legacy values ограничены; уже наблюдаемый item имеет
   приоритет над timeout.
+- Callback receipt допускается только для exact current rule/state/cond/vars и
+  delta `minimumCount..maximumCount` от persisted `itemCountBeforeKill`; shipped
+  Q00102/Q00152 принимают только `+1`. `+2`, decrease и cap violation не создают
+  receipt/progress и не завершают Goal.
+- Valid callback одной state/Goal mutation сразу завершает Goal либо переходит в
+  `TARGET_REQUIRED`; generic `VERIFYING` reread отсутствует. Persisted legacy
+  `QUEST_COLLECTION/VERIFYING` проходит тот же exact validator.
+- Перед `startAcquisitionSession` item count обязан совпасть с binding baseline и
+  быть ниже cap; drift не запускает Combat и остаётся typed/bounded.
 - Для NPC `20013`, `20019`, `20016` full service идёт через real planner,
   `activeAdvance`, acquisition-owned existing Combat, real death и delayed
   `OnAttackableKill`; foreign Combat не наследуется.
