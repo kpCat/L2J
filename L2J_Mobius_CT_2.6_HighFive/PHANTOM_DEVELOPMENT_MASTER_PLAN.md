@@ -703,8 +703,9 @@ Checkpoint 2 (action/outbound): `ACCEPT`; final Goal 020 baseline
 
 ### 021. Spoil, manor, quest drop и craft acquisition chains
 
-Status: `BLOCKED`; Checkpoint 1 `ACCEPT`, Checkpoint 2 `BLOCKED` из-за
-отсутствия разрешённого topology coverage для двух строго аудированных quest targets.
+Status: `BLOCKED`; Checkpoint 1 `ACCEPT`, Checkpoint 2 `BLOCKED`: bounded topology
+разрешён, но loaded territory API не публикует immutable vertices/low Z/source
+identity, а изменение `Spawn`/`NpcSpawnTerritory` запрещено completion scope.
 
 - eligibility и source selection;
 - spoil/manor/quest collection;

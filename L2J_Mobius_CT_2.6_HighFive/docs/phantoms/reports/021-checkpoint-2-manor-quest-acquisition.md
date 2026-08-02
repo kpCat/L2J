@@ -8,9 +8,10 @@ Checkpoint 1 зафиксирован как `ACCEPT` на baseline
 `0045f60417f4605f46e3058b9a694278283b1456`; verifier 021c1 переведён в
 historical/descendant-compatible режим и прошёл PowerShell 5.1/7.x.
 
-Checkpoint 2 нельзя честно закрыть: два доказанно безопасных quest script-а не
-имеют instance-0 topology-mapped spawn/anchor в текущем разрешённом topology
-snapshot. Task запрещает менять topology data. Goal 022+ не начат.
+Checkpoint 2 нельзя честно закрыть даже после разрешения bounded topology slice:
+loaded `NpcSpawnTerritory` не публикует immutable vertices, low Z и source path,
+а completion task прямо запрещает менять `Spawn.java` и `NpcSpawnTerritory.java`
+или изобретать geometry. Goal 022+ не начат.
 
 ## Summary
 
@@ -116,6 +117,43 @@ BLOCKED gate:
 plain `ant verify`, `ant jar`, verifier 021c2. Freeze не объявлялся. Лимит full
 verify не израсходован.
 
+## Bounded topology-and-causality completion audit
+
+Required parent `365c014a48c7998eb880352b00503a28b2f27a2c` и clean
+`feature/phantom-world` подтверждены. Independent review разрешил factual topology
+slice, но установил terminal gate: без stable bounded geometry в текущем
+`NpcSpawnTerritory` API нужно остановиться с `BLOCKED`.
+
+Public loaded-data boundary:
+
+- `Spawn` публикует amount, instance/location IDs, territory object и текущую
+  spawn location, но не source XML path и не immutable territory geometry;
+- `NpcSpawnTerritory` публикует name, random point, containment predicate и
+  high Z, но не vertices, low Z, underlying `ZoneForm` или source identity;
+- `ZoneForm` имеет low/high Z и predicates, но territory его не возвращает;
+- `ZoneNPoly` хранит `Polygon` и Z bounds приватно и не имеет geometry getter.
+
+Factual shipped source inventory, проверенный без внешних координат:
+
+- NPC `20013`: `dist/game/data/spawns/ElvenTerritory/ElvenStarting.xml`, 20
+  polygon territories, configured amount 50, 4–6 vertices, source Z range
+  от `-3812` до `-3140`;
+- NPC `20019`: тот же exact source, 17 polygon territories, configured amount
+  49, 4–6 vertices, source Z range от `-3812` до `-3168`;
+- NPC `20016`: `dist/game/data/spawns/TalkingIsland/TalkingIslandMonsters.xml`,
+  8 polygon territories, configured amount 27, 4–5 vertices, source Z range
+  от `-3830` до `-2782`.
+
+`SpawnData` фактически строит `ZoneNPoly` из source vertices/minZ/maxZ и затем
+передаёт только `NpcSpawnTerritory` в `Spawn`. Поэтому exact source XML содержит
+geometry, но loaded authority boundary её необратимо скрывает. Повторный XML
+parse в Game Knowledge, random samples, centroid или reflection не являются
+разрешённой заменой `SERVER_LOADER_FACT`.
+
+Команды аудита: source inspection, read-only XML enumeration и public API
+проверка через `javap`. Production/topology/tests не менялись; compile, affected,
+aggregate, freeze, verify, jar и verifier 021c2 не запускались после terminal gate.
+
 ## Performance
 
 Lifecycle smoke прошёл 100k manor planning formulas, 100k quest rule checks,
@@ -124,7 +162,8 @@ Lifecycle smoke прошёл 100k manor planning formulas, 100k quest rule check
 
 ## Deviations, limitations, risks
 
-- Required topology condition не выполнено для accepted scripts; это единственный terminal blocker.
+- Bounded topology permission получено, но loaded immutable territory geometry
+  недоступна через разрешённый API; это единственный terminal blocker.
 - Не добавлялись произвольные anchors, runtime-random territory authority или третий checkpoint.
 - Active real delayed quest path не достигнут, потому что fixture намеренно требует тот же topology precondition, что production source planning.
 - Частичная C2 production поверхность должна пройти повторный full gate после разрешённого topology slice.
@@ -132,14 +171,17 @@ Lifecycle smoke прошёл 100k manor planning formulas, 100k quest rule check
 ## Git
 
 - Branch/upstream: `feature/phantom-world` / `origin/feature/phantom-world`.
-- Required parent: `0045f60417f4605f46e3058b9a694278283b1456`.
-- Commit subject: `feat(phantoms): add manor and quest acquisition chains`.
-- Commit SHA и push result: фиксируются final handoff для commit, содержащего этот report; amend/force-push не используется.
+- Accepted C1 parent: `0045f60417f4605f46e3058b9a694278283b1456`.
+- Blocked foundation: `365c014a48c7998eb880352b00503a28b2f27a2c`.
+- Bounded completion subject: `fix(phantoms): complete manor quest topology and causality`.
+- Child commit SHA и push result фиксируются final handoff; amend/force-push не используется.
 - Разрешённые git-команды использовались только для baseline/scope/diff проверки и обязательного commit/push workflow.
 
 ## Next step
 
-Нужно явное расширение scope на bounded topology nodes/anchors для natural spawn
-areas targets `20013`, `20019`, `20016` (без изменения quest scripts), после
-чего повторяются active quest, affected/final aggregates, freeze, plain verify,
-jar и два byte-identical verifier 021c2. До этого Goal 022+ не начинать.
+Нужно новое точечное разрешение изменить loaded territory boundary так, чтобы
+`NpcSpawnTerritory` или loader-owned immutable snapshot публиковал 3–32 factual
+vertices, exact low/high Z и stable source identity. Без этого full-containment
+mapping запрещён самим completion task. После такого разрешения повторяются
+topology/knowledge/active quest gates, manor causality review, aggregate, freeze,
+plain verify, jar и verifier 021c2. До этого Goal 022+ не начинать.

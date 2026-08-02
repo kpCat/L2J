@@ -147,8 +147,8 @@ truth; Goal 017 ожидает независимого review. Goal 018 при�
 activation gates в Goal 020 Checkpoint 1; Goal 019 принята с явными будущими
 контрактами; Checkpoint 1 имеет `ACCEPT_WITH_ACTIVATION_GATE`, а Checkpoint 2 —
 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Goal 021 Checkpoint 1 принят,
-Checkpoint 2 заблокирован отсутствием разрешённого topology coverage для строго
-аудированных quest targets; Goal 025 не начат.
+Checkpoint 2 заблокирован отсутствием immutable loaded territory geometry в
+разрешённой API boundary; Goal 025 не начат.
 
 ---
 
@@ -856,8 +856,9 @@ semantic acts.
 
 Checkpoint 1: `ACCEPT`; pinned baseline
 `0045f60417f4605f46e3058b9a694278283b1456`.
-Checkpoint 2 (manor/quest): `BLOCKED`; текущий exact scope запрещает добавить
-topology nodes/anchors для targets `20013`, `20019` и `20016`.
+Checkpoint 2 (manor/quest): `BLOCKED`; bounded topology slice разрешён, но
+`NpcSpawnTerritory` не публикует vertices/low Z/source identity, а менять
+`Spawn.java`/`NpcSpawnTerritory.java` completion scope запрещает.
 
 **Назначение:** предметные способы получения ресурсов.  
 **Зависимости:** 011–015, 019.  
