@@ -1,0 +1,48 @@
+# Goal 021 Checkpoint 2 — independent review package
+
+- Статус реализации: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+- Ветка: `feature/phantom-world`.
+- Seed: `21002102`.
+- Accepted Checkpoint 1: `0045f60417f4605f46e3058b9a694278283b1456`.
+- C2 foundation: `365c014a48c7998eb880352b00503a28b2f27a2c`.
+- Loaded-boundary audit: `130a08a90c729dd94c13d782416bc0f1f727e6c7`.
+- Anchor audit: `83b22f2338c297151a9b0881fdf566963ee5d571`.
+- Near-final foundation и terminal parent:
+  `81e4d2a7044f8c1bafc7db6b5d3c66ce4df050aa`.
+- Terminal child subject:
+  `fix(phantoms): close manor attribution and quest service recovery`.
+
+Это второй и последний заранее запланированный checkpoint Goal 021, не 021A/021B.
+Только независимый reviewer может заменить pending-статус на `ACCEPT`.
+
+## Что проверить
+
+- Exact ordinary ancestry и subjects всей цепочки C1/C2; terminal completion должен
+  быть ровно одним прямым child `81e4d2…`, verifier — descendant-compatible.
+- Cumulative C2 scope считается от accepted C1, terminal scope — отдельно:
+  не более 10 файлов, не более 3 production/data/config, 0 новых production/data.
+- Immutable loaded `NpcSpawnTerritory` geometry, canonical SpawnData identity,
+  topology dataset 2 и точные `35/15/20` territory facts не изменены.
+- `MANOR_CROP`: внешний delta создаёт только `VERIFY`, обновляет overall progress и
+  binding baseline одной mutation; handler receipt начинается с refreshed baseline;
+  pre-dispatch drift не вызывает Harvester; decrease и no-op fail closed без ложного
+  manor receipt; restart сохраняет обе истины.
+- `QUEST_COLLECTION`: absolute injected epoch deadline переживает restart; deadline,
+  rollback, forward jump и legacy values ограничены; уже наблюдаемый item имеет
+  приоритет над timeout.
+- Для NPC `20013`, `20019`, `20016` full service идёт через real planner,
+  `activeAdvance`, acquisition-owned existing Combat, real death и delayed
+  `OnAttackableKill`; foreign Combat не наследуется.
+- `STARTED/state/cond/vars` quest rows не меняются; background остаётся одной atomic
+  item/background/Goal/acquisition transaction с exact read-only quest validation.
+- Нет direct `setSeeded`, `takeHarvest`, `addItem`, `destroyItem`, `Quest.onKill`,
+  crop procurement/reward exchange, нового interpreter или worker.
+
+## Terminal evidence
+
+Проверить один final `phantom-acquisition-checkpoint2-test`, один plain `ant verify`,
+standalone `ant jar`, ordinary commit/push и два byte-identical accepted запуска
+`verify-task-021c2.ps1` в PowerShell 5.1 и 7.x. Exact commit SHA и verifier output
+передаются terminal handoff без self-referential amend отчёта.
+
+Goal 022–027 не начинались.

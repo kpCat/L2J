@@ -20,8 +20,10 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Can
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Hashes;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ManorBinding;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Phase;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ReceiptKind;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Status;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.TerminalResult;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStateCodec;
 import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority;
 import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority.Projection;
@@ -142,6 +144,7 @@ public final class PhantomAcquisitionManorSuite implements PhantomTestSuite
 			{
 				registry.add("01-schema3-binding-roundtrip-and-4096-bound", this::testRestartCodec);
 				registry.add("02-dispatch-transition-invariants", this::testTransitions);
+				registry.add("03-bound-observation-attribution-and-completion", this::testBoundObservation);
 			}
 			case LIFECYCLE_PERFORMANCE ->
 			{
@@ -306,8 +309,38 @@ public final class PhantomAcquisitionManorSuite implements PhantomTestSuite
 		final int refresh = service.indexOf("final ManorBinding refreshed");
 		final int store = service.indexOf("withBinding(refreshed, Phase.HARVEST_PREPARED", refresh);
 		final int release = service.indexOf("releaseExternal(current.profileId())", store);
-		PhantomAssertions.assertTrue((refresh >= 0) && (store > refresh) && (release > store) && service.contains("inventory.cropCount() == manor.cropCountBeforeDispatch()"), "Pre-harvest baseline/store/release or pre-dispatch crop guard is missing.");
+		PhantomAssertions.assertTrue((refresh >= 0) && (store > refresh) && (release > store) && service.contains("cropCount != manor.cropCountBeforeDispatch()") && service.contains("manor.inventory_inconsistent"), "Pre-harvest baseline/store/release or pre-dispatch crop guard is missing.");
 		context.record("manor.persistedTransitions", 9);
+	}
+
+	private void testBoundObservation(PhantomTestContext context)
+	{
+		final PhantomAcquisitionState initial = manorState(Phase.HARVEST_PREPARED, 0);
+		final ManorBinding zero = (ManorBinding) initial.methodBinding();
+		final ManorBinding five = new ManorBinding(zero.castleId(), zero.seedItemId(), zero.cropItemId(), zero.matureItemId(), zero.reward1ItemId(), zero.reward2ItemId(), zero.seedLevel(), zero.alternative(), zero.rawSeedLimit(), zero.rawCropLimit(), zero.seedObjectId(), zero.harvesterObjectId(), zero.seedCountBeforeDispatch(), 5, zero.authorityHash());
+		final PhantomAcquisitionState.Receipt external = new PhantomAcquisitionState.Receipt("1".repeat(64), initial.selectedSource().sourceId(), ReceiptKind.VERIFY, 0, 5, TerminalResult.OBSERVED, 2);
+		final PhantomAcquisitionState prepared = initial.observeBound(5, Status.ACTIVE, Phase.HARVEST_PREPARED, initial.targetObjectId(), initial.targetNpcId(), initial.targetInstanceId(), five, 0, external, 2);
+		PhantomAssertions.assertEquals(5L, prepared.lastObservedCount(), "Bound observation did not update overall count.");
+		PhantomAssertions.assertEquals(5L, prepared.progress(), "Bound observation did not derive progress from the immutable baseline.");
+		PhantomAssertions.assertEquals(initial.targetObjectId(), prepared.targetObjectId(), "Bound observation lost the exact corpse.");
+		PhantomAssertions.assertEquals(ReceiptKind.VERIFY, prepared.receipts().getLast().kind(), "External delta was not kept generic.");
+
+		final ManorBinding seven = new ManorBinding(five.castleId(), five.seedItemId(), five.cropItemId(), five.matureItemId(), five.reward1ItemId(), five.reward2ItemId(), five.seedLevel(), five.alternative(), five.rawSeedLimit(), five.rawCropLimit(), five.seedObjectId(), five.harvesterObjectId(), five.seedCountBeforeDispatch(), 7, five.authorityHash());
+		final PhantomAcquisitionState.Receipt harvest = new PhantomAcquisitionState.Receipt("2".repeat(64), initial.selectedSource().sourceId(), ReceiptKind.ACTIVE_MANOR_HARVEST, 5, 7, TerminalResult.OBSERVED, 3);
+		final PhantomAcquisitionState observed = prepared.observeBound(7, Status.READY, Phase.TARGET_REQUIRED, 0, 0, 0, seven, 0, harvest, 3);
+		PhantomAssertions.assertEquals(7L, observed.lastObservedCount(), "Harvester observation did not update overall count.");
+		PhantomAssertions.assertEquals(List.of(ReceiptKind.VERIFY, ReceiptKind.ACTIVE_MANOR_HARVEST), observed.receipts().stream().map(PhantomAcquisitionState.Receipt::kind).toList(), "External and Harvester receipts merged.");
+		PhantomAssertions.assertEquals(5L, observed.receipts().getLast().beforeCount(), "Harvester receipt absorbed external progress.");
+
+		final ManorBinding ten = new ManorBinding(zero.castleId(), zero.seedItemId(), zero.cropItemId(), zero.matureItemId(), zero.reward1ItemId(), zero.reward2ItemId(), zero.seedLevel(), zero.alternative(), zero.rawSeedLimit(), zero.rawCropLimit(), zero.seedObjectId(), zero.harvesterObjectId(), zero.seedCountBeforeDispatch(), 10, zero.authorityHash());
+		final PhantomAcquisitionState completed = initial.observeBound(10, Status.ACTIVE, Phase.HARVEST_PREPARED, initial.targetObjectId(), initial.targetNpcId(), initial.targetInstanceId(), ten, 0, new PhantomAcquisitionState.Receipt("3".repeat(64), initial.selectedSource().sourceId(), ReceiptKind.VERIFY, 0, 10, TerminalResult.OBSERVED, 4), 4);
+		PhantomAssertions.assertEquals(Status.COMPLETED, completed.status(), "External delta satisfying the Goal did not complete.");
+		PhantomAssertions.assertEquals(Phase.NONE, completed.phase(), "Completed bound observation retained a phase.");
+		PhantomAssertions.assertEquals(0, completed.targetObjectId(), "Completed bound observation retained a target.");
+		final byte[] payload = new PhantomAcquisitionStateCodec().encode(observed);
+		PhantomAssertions.assertEquals(observed, new PhantomAcquisitionStateCodec().decode(payload), "Separated manor observation receipts did not restart exactly.");
+		PhantomAssertions.assertTrue(payload.length <= 4096, "Separated manor observation receipts exceeded 4096 bytes.");
+		context.record("manor.boundObservationReceipts", observed.receipts().size());
 	}
 
 	private void testPlanningPerformance(PhantomTestContext context)

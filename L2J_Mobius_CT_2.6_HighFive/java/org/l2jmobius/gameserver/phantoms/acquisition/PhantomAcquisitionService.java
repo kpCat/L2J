@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner.RankedSource;
@@ -115,6 +116,7 @@ public final class PhantomAcquisitionService
 	private final PhantomNavigationService _navigation;
 	private final PhantomAcquisitionManorAuthority _manor;
 	private final PhantomAcquisitionQuestCatalog _quests;
+	private final LongSupplier _epochMillis;
 	private final ConcurrentHashMap<Long, Boolean> _claims = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ExternalActionLease> _external = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, TravelOperation> _travels = new ConcurrentHashMap<>();
@@ -130,10 +132,15 @@ public final class PhantomAcquisitionService
 
 	public PhantomAcquisitionService(PhantomAcquisitionCatalog catalog, PhantomAcquisitionStore store, PhantomGoalStateStore goals, PhantomAcquisitionSourcePlanner planner, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomProgressionCatalog progression, PhantomCombatService combat, PhantomBackgroundService background, PhantomNavigationService navigation)
 	{
-		this(catalog, store, goals, planner, knowledge, topology, progression, combat, background, navigation, null, null);
+		this(catalog, store, goals, planner, knowledge, topology, progression, combat, background, navigation, null, null, System::currentTimeMillis);
 	}
 
 	public PhantomAcquisitionService(PhantomAcquisitionCatalog catalog, PhantomAcquisitionStore store, PhantomGoalStateStore goals, PhantomAcquisitionSourcePlanner planner, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomProgressionCatalog progression, PhantomCombatService combat, PhantomBackgroundService background, PhantomNavigationService navigation, PhantomAcquisitionManorAuthority manor, PhantomAcquisitionQuestCatalog quests)
+	{
+		this(catalog, store, goals, planner, knowledge, topology, progression, combat, background, navigation, manor, quests, System::currentTimeMillis);
+	}
+
+	public PhantomAcquisitionService(PhantomAcquisitionCatalog catalog, PhantomAcquisitionStore store, PhantomGoalStateStore goals, PhantomAcquisitionSourcePlanner planner, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomProgressionCatalog progression, PhantomCombatService combat, PhantomBackgroundService background, PhantomNavigationService navigation, PhantomAcquisitionManorAuthority manor, PhantomAcquisitionQuestCatalog quests, LongSupplier epochMillis)
 	{
 		_catalog = Objects.requireNonNull(catalog, "catalog");
 		_store = Objects.requireNonNull(store, "store");
@@ -147,6 +154,7 @@ public final class PhantomAcquisitionService
 		_navigation = Objects.requireNonNull(navigation, "navigation");
 		_manor = manor;
 		_quests = quests;
+		_epochMillis = Objects.requireNonNull(epochMillis, "epochMillis");
 	}
 
 	public synchronized boolean start()
@@ -712,13 +720,33 @@ public final class PhantomAcquisitionService
 		final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(current.state().targetObjectId());
 		final var actor = lease.actorSnapshot();
 		final var inventory = lease.manorInventory(manor.seedItemId(), manor.cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
+		final long cropCount = inventory == null ? -1 : inventory.cropCount();
+		if (!sow)
+		{
+			if ((cropCount < current.state().lastObservedCount()) || (cropCount < manor.cropCountBeforeDispatch()))
+			{
+				releaseExternal(current.profileId());
+				return failSource(current, "manor.inventory_inconsistent", logicalMinute);
+			}
+			if (cropCount > current.state().lastObservedCount())
+			{
+				releaseExternal(current.profileId());
+				return observeManor(current, manor, cropCount, ReceiptKind.VERIFY, Phase.HARVEST_PREPARED, current.state().phaseAttempt(), logicalMinute, "acquisition.manor.external_crop_observed");
+			}
+			if (cropCount != manor.cropCountBeforeDispatch())
+			{
+				final ManorBinding refreshed = manorWithCropBaseline(manor, cropCount);
+				_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withBinding(refreshed, Phase.HARVEST_PREPARED, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), current.state().phaseAttempt(), logicalMinute));
+				releaseExternal(current.profileId());
+				return retry("acquisition.manor.harvest_reprepared");
+			}
+		}
 		final boolean targetValid = (target != null) && (actor != null) && sourceOwnsTarget(current.state().selectedSource(), target) && (sow ? target.manorLiveValidFor(actor, current.state().selectedSource().npcId(), MAXIMUM_TARGET_DISTANCE) : target.harvestValidFor(actor, current.state().selectedSource().npcId(), manor.seedItemId(), MAXIMUM_TARGET_DISTANCE));
-		final boolean inventoryValid = (inventory != null) && (inventory.harvesterObjectId() == manor.harvesterObjectId()) && (inventory.harvesterCount() > 0) && (sow ? ((inventory.seedObjectId() == manor.seedObjectId()) && (inventory.seedCount() == manor.seedCountBeforeDispatch()) && (inventory.seedCount() > 0)) : (inventory.cropCount() == manor.cropCountBeforeDispatch()));
+		final boolean inventoryValid = (inventory != null) && (inventory.harvesterObjectId() == manor.harvesterObjectId()) && (inventory.harvesterCount() > 0) && (sow ? ((inventory.seedObjectId() == manor.seedObjectId()) && (inventory.seedCount() == manor.seedCountBeforeDispatch()) && (inventory.seedCount() > 0)) : true);
 		if (!targetValid || !inventoryValid)
 		{
-			final long count = inventory == null ? -1 : inventory.cropCount();
 			releaseExternal(current.profileId());
-			return uncertain(current, sow ? ReceiptKind.ACTIVE_MANOR_SOW : ReceiptKind.ACTIVE_MANOR_HARVEST, logicalMinute, count);
+			return sow ? uncertain(current, ReceiptKind.ACTIVE_MANOR_SOW, logicalMinute, cropCount) : failSource(current, "source.target_unavailable", logicalMinute);
 		}
 		final Phase dispatching = sow ? Phase.SOW_DISPATCHING : Phase.HARVEST_DISPATCHING;
 		final StoredState dispatched = _store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(dispatching, target.objectId(), target.npcId(), target.instanceId(), current.state().phaseAttempt(), logicalMinute));
@@ -786,7 +814,12 @@ public final class PhantomAcquisitionService
 		if (cropCount > manor.cropCountBeforeDispatch())
 		{
 			releaseExternal(current.profileId());
-			return advanceToVerify(current, logicalMinute);
+			return observeManor(current, manor, cropCount, ReceiptKind.ACTIVE_MANOR_HARVEST, Phase.TARGET_REQUIRED, 0, logicalMinute, "acquisition.manor.harvest_observed");
+		}
+		if ((cropCount < manor.cropCountBeforeDispatch()) || (cropCount < current.state().lastObservedCount()))
+		{
+			releaseExternal(current.profileId());
+			return failSource(current, "manor.inventory_inconsistent", logicalMinute);
 		}
 		if (exactManorCastActive(lease, current.state(), false))
 		{
@@ -795,7 +828,7 @@ public final class PhantomAcquisitionService
 		final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(current.state().targetObjectId());
 		final boolean recoverable = (target != null) && sourceOwnsTarget(current.state().selectedSource(), target) && target.harvestValidFor(lease.actorSnapshot(), current.state().selectedSource().npcId(), manor.seedItemId(), MAXIMUM_TARGET_DISTANCE);
 		releaseExternal(current.profileId());
-		return recoverable ? retryManor(current, false, logicalMinute, cropCount) : uncertain(current, ReceiptKind.ACTIVE_MANOR_HARVEST, logicalMinute, cropCount);
+		return recoverable ? retryManor(current, false, logicalMinute, cropCount) : failSource(current, "source.target_unavailable", logicalMinute);
 	}
 
 	private OperationResult retryManor(Current current, boolean sow, long logicalMinute, long observedCount)
@@ -808,7 +841,7 @@ public final class PhantomAcquisitionService
 			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(prepared, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), attempt, logicalMinute));
 			return retry(sow ? "acquisition.manor.sow_recovery_retry" : "acquisition.manor.harvest_recovery_retry");
 		}
-		return uncertain(current, sow ? ReceiptKind.ACTIVE_MANOR_SOW : ReceiptKind.ACTIVE_MANOR_HARVEST, logicalMinute, observedCount);
+		return sow ? uncertain(current, ReceiptKind.ACTIVE_MANOR_SOW, logicalMinute, observedCount) : failSource(current, "manor.harvest_no_progress", logicalMinute);
 	}
 
 	private boolean exactManorCastActive(ExternalActionLease lease, PhantomAcquisitionState state, boolean sow)
@@ -828,9 +861,9 @@ public final class PhantomAcquisitionService
 		{
 			return OperationResult.replan("acquisition.quest.binding");
 		}
-		final long nowMillis = Math.max(0, logicalNowNanos / 1_000_000L);
+		final long nowMillis = Math.max(0, _epochMillis.getAsLong());
 		final long wait = _catalog.limits().questCallbackWaitMillis();
-		final long deadline = nowMillis > (Long.MAX_VALUE - wait) ? Long.MAX_VALUE : nowMillis + wait;
+		final long deadline = saturatingAdd(nowMillis, wait);
 		final QuestBinding waiting = questBinding(quest, quest.itemCountBeforeKill(), deadline);
 		_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withBinding(waiting, Phase.QUEST_CALLBACK_WAIT, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), 0, logicalMinute));
 		return OperationResult.success("acquisition.quest.callback_wait");
@@ -862,8 +895,10 @@ public final class PhantomAcquisitionService
 		{
 			return uncertain(current, ReceiptKind.ACTIVE_QUEST_COLLECTION, logicalMinute, count);
 		}
-		final long nowMillis = Math.max(0, logicalNowNanos / 1_000_000L);
-		if (nowMillis < quest.callbackDeadlineMillis())
+		final long nowMillis = Math.max(0, _epochMillis.getAsLong());
+		final long wait = _catalog.limits().questCallbackWaitMillis();
+		final long remaining = quest.callbackDeadlineMillis() > nowMillis ? quest.callbackDeadlineMillis() - nowMillis : 0;
+		if ((remaining > 0) && (remaining <= wait))
 		{
 			return retry("acquisition.quest.callback_pending");
 		}
@@ -969,6 +1004,17 @@ public final class PhantomAcquisitionService
 
 	private OperationResult submitCombat(Current current, boolean loot, Phase submittedPhase, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
 	{
+		final String owner = combatOwner(current.state());
+		final var existing = _combat.find(current.profileId()).orElse(null);
+		if (existing != null)
+		{
+			if (!_combat.matchesAcquisitionSession(current.profileId(), current.state().targetObjectId(), owner))
+			{
+				return OperationResult.replan("acquisition.combat.foreign_session");
+			}
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(submittedPhase, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), logicalMinute));
+			return OperationResult.success("acquisition.combat.reconciled");
+		}
 		if ((current.state().selectedSource().method() == Method.MANOR_CROP) || (current.state().selectedSource().method() == Method.QUEST_COLLECTION))
 		{
 			final ExternalActionLease lease = external(current, logicalNowNanos, token);
@@ -983,17 +1029,6 @@ public final class PhantomAcquisitionService
 			{
 				return OperationResult.replan("source.target_unavailable");
 			}
-		}
-		final String owner = combatOwner(current.state());
-		final var existing = _combat.find(current.profileId()).orElse(null);
-		if (existing != null)
-		{
-			if (!_combat.matchesAcquisitionSession(current.profileId(), current.state().targetObjectId(), owner))
-			{
-				return OperationResult.replan("acquisition.combat.foreign_session");
-			}
-			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(submittedPhase, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), logicalMinute));
-			return OperationResult.success("acquisition.combat.reconciled");
 		}
 		final PhantomCombatService.StartResult started = _combat.startAcquisitionSession(new PhantomCombatRequest(current.profileId(), current.state().targetObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, loot, COMBAT_TIMEOUT_MILLIS, token), owner);
 		if (started.accepted() && (started.session() != null) && (started.session().targetObjectId() == current.state().targetObjectId()) && _combat.matchesAcquisitionSession(current.profileId(), current.state().targetObjectId(), owner))
@@ -1127,13 +1162,23 @@ public final class PhantomAcquisitionService
 			}
 			final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(current.state().targetObjectId());
 			final var inventory = lease.manorInventory(manor.seedItemId(), manor.cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
-			if ((target == null) || !sourceOwnsTarget(current.state().selectedSource(), target) || !target.harvestValidFor(lease.actorSnapshot(), current.state().selectedSource().npcId(), manor.seedItemId(), MAXIMUM_TARGET_DISTANCE) || (inventory == null) || (inventory.harvesterObjectId() != manor.harvesterObjectId()) || (inventory.harvesterCount() <= 0))
+			final long cropCount = inventory == null ? -1 : inventory.cropCount();
+			if (cropCount < current.state().lastObservedCount())
 			{
-				final long count = inventory == null ? -1 : inventory.cropCount();
 				releaseExternal(current.profileId());
-				return uncertain(current, ReceiptKind.ACTIVE_MANOR_HARVEST, logicalMinute, count);
+				return failSource(current, "manor.inventory_inconsistent", logicalMinute);
 			}
-			final ManorBinding refreshed = new ManorBinding(manor.castleId(), manor.seedItemId(), manor.cropItemId(), manor.matureItemId(), manor.reward1ItemId(), manor.reward2ItemId(), manor.seedLevel(), manor.alternative(), manor.rawSeedLimit(), manor.rawCropLimit(), manor.seedObjectId(), inventory.harvesterObjectId(), manor.seedCountBeforeDispatch(), inventory.cropCount(), manor.authorityHash());
+			if (cropCount > current.state().lastObservedCount())
+			{
+				releaseExternal(current.profileId());
+				return observeManor(current, manor, cropCount, ReceiptKind.VERIFY, Phase.HARVEST_PREPARED, 0, logicalMinute, "acquisition.manor.external_crop_observed");
+			}
+			if ((target == null) || !sourceOwnsTarget(current.state().selectedSource(), target) || !target.harvestValidFor(lease.actorSnapshot(), current.state().selectedSource().npcId(), manor.seedItemId(), MAXIMUM_TARGET_DISTANCE) || (inventory.harvesterObjectId() != manor.harvesterObjectId()) || (inventory.harvesterCount() <= 0))
+			{
+				releaseExternal(current.profileId());
+				return failSource(current, "source.target_unavailable", logicalMinute);
+			}
+			final ManorBinding refreshed = manorWithCropBaseline(manor, cropCount);
 			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withBinding(refreshed, Phase.HARVEST_PREPARED, target.objectId(), target.npcId(), target.instanceId(), 0, logicalMinute));
 			releaseExternal(current.profileId());
 			return OperationResult.success("acquisition.manor.harvest_prepared");
@@ -1152,6 +1197,27 @@ public final class PhantomAcquisitionService
 		}
 		_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.SWEEP_PREPARED, target.objectId(), target.npcId(), target.instanceId(), logicalMinute));
 		return OperationResult.success("acquisition.sweep.prepared");
+	}
+
+	private OperationResult observeManor(Current current, ManorBinding binding, long count, ReceiptKind kind, Phase nextPhase, int nextAttempt, long logicalMinute, String reason)
+	{
+		final long before = kind == ReceiptKind.ACTIVE_MANOR_HARVEST ? binding.cropCountBeforeDispatch() : current.state().lastObservedCount();
+		final Receipt proof = receipt(current.state(), kind, before, count, TerminalResult.OBSERVED, logicalMinute);
+		final boolean retainTarget = nextPhase == Phase.HARVEST_PREPARED;
+		final PhantomAcquisitionState observed = current.state().observeBound(count, Status.ACTIVE, nextPhase, retainTarget ? current.state().targetObjectId() : 0, retainTarget ? current.state().targetNpcId() : 0, retainTarget ? current.state().targetInstanceId() : 0, manorWithCropBaseline(binding, count), nextAttempt, proof, logicalMinute);
+		final PhantomGoal projected = PhantomAcquisitionGoalSpec.project(current.goal().goal(), observed.progress(), observed.status() == Status.COMPLETED ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.ACTIVE, observed.selectedSource());
+		_store.mutateWithGoal(current.profileId(), current.acquisition().rowVersion(), observed, current.goal().rowVersion(), projected);
+		if (observed.status() == Status.COMPLETED)
+		{
+			_completed.incrementAndGet();
+			return OperationResult.complete("acquisition.complete");
+		}
+		return OperationResult.success(reason);
+	}
+
+	private static ManorBinding manorWithCropBaseline(ManorBinding binding, long cropCount)
+	{
+		return new ManorBinding(binding.castleId(), binding.seedItemId(), binding.cropItemId(), binding.matureItemId(), binding.reward1ItemId(), binding.reward2ItemId(), binding.seedLevel(), binding.alternative(), binding.rawSeedLimit(), binding.rawCropLimit(), binding.seedObjectId(), binding.harvesterObjectId(), binding.seedCountBeforeDispatch(), cropCount, binding.authorityHash());
 	}
 
 	private OperationResult observeSweep(Current current, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
@@ -1724,6 +1790,11 @@ public final class PhantomAcquisitionService
 		{
 			throw new IllegalStateException("SHA-256 is unavailable.", exception);
 		}
+	}
+
+	private static long saturatingAdd(long left, long right)
+	{
+		return left > (Long.MAX_VALUE - right) ? Long.MAX_VALUE : left + right;
 	}
 
 	private static OperationResult map(PhantomBackgroundService.OperationResult result)

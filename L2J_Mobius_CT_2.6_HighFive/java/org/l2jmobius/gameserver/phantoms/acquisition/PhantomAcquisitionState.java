@@ -192,6 +192,14 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, authoritativeCount, nextProgress, effectiveStatus, selectedSource, candidates, sourceCursor, switchCount, nextProgress == requiredAmount ? Phase.NONE : nextPhase, 0, 0, 0, recipePlan, methodBinding, nextReceipts, 0, minute);
 	}
 
+	/** Records one authoritative active observation while retaining its exact bound target when incomplete. */
+	public PhantomAcquisitionState observeBound(long authoritativeCount, Status nextStatus, Phase nextPhase, int objectId, int npcId, int instanceId, MethodBinding nextBinding, int nextAttempt, Receipt receipt, long minute)
+	{
+		final long nextProgress = observedProgress(baselineCount, authoritativeCount, requiredAmount);
+		final boolean completed = nextProgress == requiredAmount;
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, authoritativeCount, nextProgress, completed ? Status.COMPLETED : nextStatus, selectedSource, candidates, sourceCursor, switchCount, completed ? Phase.NONE : nextPhase, completed ? 0 : objectId, completed ? 0 : npcId, completed ? 0 : instanceId, recipePlan, nextBinding, appendReceipt(receipts, receipt), completed ? 0 : nextAttempt, minute);
+	}
+
 	public PhantomAcquisitionState failSource(String reasonKey, long minute)
 	{
 		if (selectedSource == null)

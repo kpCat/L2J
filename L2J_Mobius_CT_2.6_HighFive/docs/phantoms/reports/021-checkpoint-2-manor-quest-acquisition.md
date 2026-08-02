@@ -14,8 +14,10 @@
 - loaded-boundary audit: `130a08a90c729dd94c13d782416bc0f1f727e6c7`;
 - anchor-feasibility audit и required parent:
   `83b22f2338c297151a9b0881fdf566963ee5d571`;
-- final ordinary child subject:
-  `fix(phantoms): finalize feasible manor quest acquisition`.
+- near-final foundation и required parent terminal completion:
+  `81e4d2a7044f8c1bafc7db6b5d3c66ce4df050aa`;
+- terminal ordinary child subject:
+  `fix(phantoms): close manor attribution and quest service recovery`.
 
 Checkpoint 1 зафиксирован как `ACCEPT`. Verifier 021c1 читает исторические blobs
 accepted commit и остаётся descendant-compatible.
@@ -31,10 +33,25 @@ accepted commit и остаётся descendant-compatible.
 - Pre-harvest crop baseline обновляется после terminal Combat под exact actor lease,
   сохраняется вместе с `HARVEST_PREPARED` до release и повторно проверяется перед
   вызовом Harvester.
+- Независимый crop delta между Combat и Harvester записывается только generic
+  `VERIFY` receipt и одной state/Goal mutation обновляет overall count/progress и
+  handler binding baseline. Успешный handler получает отдельный
+  `ACTIVE_MANOR_HARVEST` receipt строго от refreshed baseline.
+- Drift до handler не вызывает Harvester, уменьшение inventory fail closed, а
+  completion внешним delta очищает phase/target без handler call.
 - `QUEST_COLLECTION` ограничен двумя source-hashed rules для уже запущенных
   Q00102 и Q00152 и тремя exact target NPC: `20013`, `20019`, `20016`.
 - Active quest path использует existing Combat и реальный delayed
   `OnAttackableKill`; `Quest.onKill` вручную не вызывается.
+- Full-service active gate проходит реальный planner-selected lifecycle для
+  Q00102/NPC 20013, Q00102/NPC 20019 и Q00152/NPC 20016 через
+  `PhantomAcquisitionService.activeAdvance`, exact acquisition Combat owner и
+  persisted restarts в `QUEST_COMBAT_SUBMITTED`, `QUEST_COMBAT_TERMINAL` и
+  `QUEST_CALLBACK_WAIT`.
+- Callback deadline хранится как absolute epoch milliseconds через injected
+  `LongSupplier`; restart его не сбрасывает, clock rollback/forward и legacy
+  monotonic values завершаются bounded timeout, а уже появившийся item проверяется
+  до deadline.
 - Background quest path выполняет exact `character_quests` row validation под
   `FOR UPDATE` и одну atomic item/background/Goal/acquisition transaction.
 - Quests не запускаются и не сдаются; `state`, `cond`, `vars` не изменяются.
@@ -114,8 +131,8 @@ planners, active manor, active Q00102/Q00152, manor background/restart и
 catalog-driven policy variant. Active tests доказали grant/no-grant branches и
 negative source ownership controls. Итоги C2 focused routes:
 
-- manor catalog/source: `3/3`, active: `2/2`, background: `3/3`, restart: `2/2`;
-- quest active: `2/2`, background: `3/3`;
+- manor catalog/source: `3/3`, active: `2/2`, background: `3/3`, restart: `3/3`;
+- quest active: `3/3`, background: `3/3`;
 - checkpoint2 lifecycle/performance: `5/5`;
 - все combined focused команды завершились `BUILD SUCCESSFUL` после устранения
   bounded async flake штатного Seed/Sow handler path.
@@ -130,26 +147,33 @@ tests: exact `none` method-binding hash/resource count в atomic fixture и boun
 Decision persistence `23/23` и shutdown handoff `7/7` завершились
 `BUILD SUCCESSFUL`.
 
-Обязательная terminal последовательность выполняется без изменения frozen
+Pre-commit terminal последовательность завершена без изменения frozen
 production/data/test/build/verifier artifacts:
 
-1. verifier 021c1 в PowerShell 5.1 и 7.x;
-2. verifier 021c2 working в PowerShell 5.1 и 7.x;
-3. affected Goal 009/010/011/015/021c1 regressions;
-4. ровно один final `phantom-acquisition-checkpoint2-test`;
-5. ровно один plain `ant verify`;
-6. standalone `ant jar`;
-7. ordinary commit/push;
-8. два byte-identical accepted verifier 021c2 runs.
+- verifier 021c1: PASS в PowerShell 5.1 и 7.6.3;
+- verifier 021c2 working: PASS в PowerShell 5.1 и 7.6.3 с одинаковыми scope/hash
+  значениями;
+- combined affected batch, включая Goal 015 и полный Checkpoint 1 aggregate:
+  `BUILD SUCCESSFUL` за 9:17;
+- ровно один final `phantom-acquisition-checkpoint2-test`:
+  `BUILD SUCCESSFUL` за 2:45;
+- ровно один plain `ant verify` без global seed override:
+  `BUILD SUCCESSFUL` за 13:27;
+- standalone `ant jar`: `BUILD SUCCESSFUL` за 16 секунд;
+- SHA-256 frozen build/authority/production/test/verifier artifacts до и после
+  plain verify byte-identical.
+
+После report-only terminal update остаются ordinary commit/push и два
+byte-identical accepted verifier 021c2 runs.
 
 Финальный handoff содержит фактические результаты terminal команд; verifier output
 является детерминированным acceptance artifact.
 
 ## Scope и ограничения
 
-- final child: `15` production/data/config и `24` total;
+- terminal child: `2` production/data/config и `7` total;
 - new production/data: `0`;
-- cumulative Checkpoint 2: `28` production/data/config и `52` unique total;
+- cumulative Checkpoint 2: `28` production/data/config и `53` unique total;
 - не изменены `Player.java`, `Party.java`, `Attackable.java`, `Spawn.java`,
   `CastleManorManager`, handlers, quest scripts и schema;
 - не добавлены worker/thread/executor/Future/task;

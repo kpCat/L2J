@@ -23,13 +23,16 @@ package org.l2jmobius.tests.phantoms;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
@@ -60,14 +63,32 @@ import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner.QuestEvidence;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner.RankedSource;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner.ResourceEvidence;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Hashes;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ManorBinding;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.MethodBinding;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Phase;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.QuestBinding;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ReceiptKind;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Status;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.TerminalResult;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore;
 import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority;
 import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority.Candidate;
 import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog;
 import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog.Rule;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatActorLease;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
@@ -94,6 +115,10 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalAct
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSessionSnapshot;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
@@ -109,6 +134,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
@@ -120,6 +146,7 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalogBuilder;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyMetrics;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
@@ -176,6 +203,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private Rule _questRule;
 	private PhantomTopologyQuery _topology;
 	private NpcSpawnTerritory _sourceTerritory;
+	private PhantomBackgroundSuite.ProductionAuthorityFixture _backgroundProduction;
+	private PhantomAcquisitionCatalog _acquisitionCatalog;
+	private PhantomAcquisitionSourcePlanner _acquisitionPlanner;
+	private PhantomGoalStateStore _acquisitionGoals;
+	private PhantomAcquisitionStore _acquisitionStore;
+	private PhantomBackgroundService _background;
+	private PhantomNavigationService _navigation;
+	private PhantomAcquisitionService _acquisition;
+	private final AtomicLong _epochMillis = new AtomicLong(1_800_000_000_000L);
+	private long _acquisitionRevision;
 
 	public PhantomCombatServerIntegrationSuite()
 	{
@@ -282,6 +319,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_backend = new L2jCombatBackend(_materialization, () -> _query, () -> _progression);
 			_combat = new PhantomCombatService(_backend, PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query), PhantomCombatPolicy.productionDefaults(1));
 			_combat.start();
+			if ((_mode == Mode.MANOR) || (_mode == Mode.QUEST))
+			{
+				_backgroundProduction = PhantomBackgroundSuite.ProductionAuthorityFixture.start();
+				_acquisitionCatalog = PhantomAcquisitionCatalog.load(Path.of("data/phantoms/acquisition/high-five-acquisition-v1.xml"));
+				_acquisitionPlanner = new PhantomAcquisitionSourcePlanner(_acquisitionCatalog, _query, _topology, _progression, _manorAuthority, _questCatalog);
+				_acquisitionGoals = new PhantomGoalStateStore(_repository);
+				_acquisitionStore = new PhantomAcquisitionStore(_repository, _acquisitionGoals);
+				_background = new PhantomBackgroundService(_repository, _acquisitionGoals, PhantomIdentityLeaseRegistry.getInstance(), new PhantomBackgroundTransaction(), _backgroundProduction.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), () -> _materialization);
+				_navigation = new PhantomNavigationService(new PhantomMetrics());
+				_acquisition = new PhantomAcquisitionService(_acquisitionCatalog, _acquisitionStore, _acquisitionGoals, _acquisitionPlanner, _query, _topology, _progression, _combat, _background, _navigation, _manorAuthority, _questCatalog, _epochMillis::get);
+				PhantomAssertions.assertTrue(_acquisition.start(), "Full acquisition integration service did not start.");
+			}
 
 			context.record("combatIntegration.database", PhantomTestDatabaseGuard.TARGET_DATABASE);
 			context.record("combatIntegration.profileId", _profile.profileId());
@@ -336,6 +385,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		{
 			registry.add("01-real-delayed-on-attackable-kill", _ -> testCanonicalQuestChain());
 			registry.add("02-exact-state-cond-target-and-cap-controls", _ -> testQuestControls());
+			registry.add("03-full-service-owned-combat-and-epoch-recovery", _ -> testQuestServiceLifecycle());
 			return;
 		}
 		registry.add("01-exact-world-player-action-lease", _ -> testExactActorLease());
@@ -457,6 +507,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		_player.setPlayerClass(MELEE_CLASS_ID);
 		_player.getStat().setLevel((byte) _manorPlayerLevel);
 		_player.setInvul(true);
+		_player.getItemReuseTimeStamps().clear();
 		ensureWeapon();
 		ensureInventoryItem(_manorCandidate.fact().seedItemId(), 64);
 		ensureInventoryItem(PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID, 1);
@@ -483,6 +534,77 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(quest != null, "Curated quest was not loaded.");
 		final QuestState state = _player.getQuestState(_questRule.questName()) == null ? new QuestState(quest, _player, State.STARTED) : _player.getQuestState(_questRule.questName());
 		state.setCond(_questRule.allowedConds().getFirst(), false);
+		_player.setCurrentHp(_player.getMaxHp());
+		_player.setCurrentMp(_player.getMaxMp());
+		_player.setCurrentCp(_player.getMaxCp());
+	}
+
+	private PhantomGoal installAcquisition(RankedSource selected, List<RankedSource> ranked, MethodBinding binding, long baseline, long required, Phase phase, int targetObjectId)
+	{
+		final long revision = ++_acquisitionRevision;
+		final Source source = selected.source();
+		final PhantomGoal goal = new PhantomGoal(21, PhantomAcquisitionGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("item", Integer.toString(source.itemId())), required, 0, source.method().key(), List.of(new PhantomDomainRef(PhantomAcquisitionGoalSpec.SOURCE_NAMESPACE, source.method().key())), new PhantomDomainRef(PhantomAcquisitionGoalSpec.ANCHOR_NAMESPACE, source.anchorId()), PhantomAcquisitionGoalSpec.PURPOSE_KEY, 500, 0, 0, 0, Map.of(PhantomAcquisitionGoalSpec.BASELINE_CONSTRAINT, baseline, PhantomAcquisitionGoalSpec.MAXIMUM_SWITCHES_CONSTRAINT, 4L), "acquisition.checkpoint2.service", revision);
+		final List<PhantomAcquisitionState.Candidate> candidates = ranked.stream().map(value -> new PhantomAcquisitionState.Candidate(value.source().sourceId(), value.source().method(), value.score(), 0, 0, "")).toList();
+		final int cursor = java.util.stream.IntStream.range(0, ranked.size()).filter(index -> ranked.get(index).source().sourceId().equals(source.sourceId())).findFirst().orElseThrow();
+		final PhantomBackgroundState.Hashes background = _background.authorityHashes();
+		final Hashes hashes = new Hashes(_acquisitionCatalog.hash(), _query.snapshot().combinedHash(), _topology.snapshot().canonicalHash(), _progression.combinedHash().toLowerCase(java.util.Locale.ROOT), canonicalDigest(background.knowledge(), background.topology(), background.progression(), background.commerce()));
+		final boolean targeted = phase != Phase.TARGET_REQUIRED;
+		final PhantomAcquisitionState state = new PhantomAcquisitionState(hashes, goal.goalId(), goal.revision(), source.itemId(), required, baseline, baseline, 0, targeted ? Status.ACTIVE : Status.READY, source, candidates, cursor, 0, phase, targeted ? targetObjectId : 0, targeted ? source.npcId() : 0, 0, null, binding, List.of(), 0, revision);
+		final var storedGoal = _acquisitionGoals.load(_profile.profileId());
+		final var storedState = _acquisitionStore.load(_profile.profileId());
+		if (storedGoal.isEmpty() && storedState.isEmpty())
+		{
+			_acquisitionGoals.insert(_profile.profileId(), goal);
+			_acquisitionStore.insert(_profile.profileId(), state);
+		}
+		else
+		{
+			PhantomAssertions.assertTrue(storedGoal.isPresent() && storedState.isPresent(), "Acquisition Goal/state setup became partial.");
+			_acquisitionStore.mutateWithGoal(_profile.profileId(), storedState.orElseThrow().rowVersion(), state, storedGoal.orElseThrow().rowVersion(), goal);
+		}
+		return goal;
+	}
+
+	private PhantomAcquisitionService.OperationResult advanceAcquisition(PhantomGoal goal, long sequence)
+	{
+		return _acquisition.activeAdvance(_profile.profileId(), goal, PhantomActivityState.ACTIVE, 1, sequence, 1_000_000 + sequence, sequence, () -> false);
+	}
+
+	private void restartAcquisitionService()
+	{
+		_acquisition.beginStop();
+		PhantomAssertions.assertTrue(_acquisition.finishStop(), "Acquisition restart retained an owned claim.");
+		_acquisition = new PhantomAcquisitionService(_acquisitionCatalog, _acquisitionStore, _acquisitionGoals, _acquisitionPlanner, _query, _topology, _progression, _combat, _background, _navigation, _manorAuthority, _questCatalog, _epochMillis::get);
+		PhantomAssertions.assertTrue(_acquisition.start(), "Acquisition restart did not start.");
+	}
+
+	private PhantomAcquisitionState acquisitionState()
+	{
+		return _acquisitionStore.load(_profile.profileId()).orElseThrow().state();
+	}
+
+	private PhantomAcquisitionSourcePlanner.Result planManor(long baseline, long required)
+	{
+		final Map<Integer, Long> inventory = Map.of(_manorCandidate.fact().seedItemId(), _player.getInventory().getInventoryItemCount(_manorCandidate.fact().seedItemId(), -1), _manorCandidate.fact().cropItemId(), baseline, PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID, _player.getInventory().getInventoryItemCount(PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID, -1));
+		return _acquisitionPlanner.plan(new PhantomAcquisitionSourcePlanner.Request(_profile.profileId(), _manorCandidate.fact().cropItemId(), required, PhantomActivityState.ACTIVE, MELEE_CLASS_ID, _player.getLevel(), inventory, Map.of(), Set.of(Method.MANOR_CROP), Method.MANOR_CROP, _manorCandidate.anchorId(), "", ResourceEvidence.unavailable(), Map.of(), 1));
+	}
+
+	private PhantomAcquisitionSourcePlanner.Result planQuest(QuestSource questSource, long baseline)
+	{
+		final Rule rule = questSource.rule();
+		final QuestEvidence evidence = new QuestEvidence("STARTED", rule.allowedConds().getFirst(), Map.of(), baseline);
+		return _acquisitionPlanner.plan(new PhantomAcquisitionSourcePlanner.Request(_profile.profileId(), rule.questItemId(), 1, PhantomActivityState.ACTIVE, MELEE_CLASS_ID, _player.getLevel(), Map.of(rule.questItemId(), baseline), Map.of(), Set.of(Method.QUEST_COLLECTION), Method.QUEST_COLLECTION, "", "", ResourceEvidence.unavailable(), Map.of(), 1, Map.of(rule.id(), evidence)));
+	}
+
+	private static RankedSource exactRanked(PhantomAcquisitionSourcePlanner.Result result, int npcId, String nodeId)
+	{
+		return result.ranked().stream().filter(value -> (value.source().npcId() == npcId) && value.source().topologyNodeId().equals(nodeId)).findFirst().or(() -> result.ranked().stream().filter(value -> value.source().npcId() == npcId).findFirst()).orElseThrow(() -> new AssertionError("Planner did not expose the exact production source."));
+	}
+
+	private QuestSource plannerQuestSource(Rule rule, RankedSource ranked)
+	{
+		final Source source = ranked.source();
+		return new QuestSource(rule, source.npcId(), sourceCombatPoint(source.npcId(), source.topologyNodeId(), source.anchorId()), sourceTerritory(source.npcId(), source.topologyNodeId()));
 	}
 
 	private Item ensureInventoryItem(int itemId, long count)
@@ -540,40 +662,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var inventory = recovered.manorInventory(_manorCandidate.fact().seedItemId(), _manorCandidate.fact().cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
 			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, recovered.useExactSeed(inventory.seedObjectId(), _manorCandidate.fact().seedItemId(), harvestTarget.getObjectId()), "Observed sow was blindly dispatched twice.");
 		}
-		harvestTarget.setCurrentHp(1);
-		harvestTarget.getStatus().stopHpMpRegeneration();
-		final var started = _combat.startSession(request(harvestTarget, PhantomCombatMode.MELEE_PHYSICAL, false, false));
-		PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Existing Combat did not accept the seeded Monster.");
-		awaitCombatOutcome(harvestTarget, "Seeded existing Combat");
-		PhantomAssertions.assertTrue(harvestTarget.isDead() || harvestTarget.isAlikeDead(), "Existing Combat did not kill the seeded Monster.");
-		awaitTerminal();
-		consumeTerminal();
-		final long cropBefore = _player.getInventory().getInventoryItemCount(_manorCandidate.fact().cropItemId(), -1);
-		final long matureBefore = _player.getInventory().getInventoryItemCount(_manorCandidate.fact().matureItemId(), -1);
-		final long reward1Before = _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward1ItemId(), -1);
-		final long reward2Before = _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward2ItemId(), -1);
-		try (ExternalActionLease lease = acquireAcquisition("manor-harvest"))
-		{
-			final var inventory = lease.manorInventory(_manorCandidate.fact().seedItemId(), _manorCandidate.fact().cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
-			final AcquisitionTargetSnapshot corpse = lease.acquisitionTargetSnapshot(harvestTarget.getObjectId());
-			PhantomAssertions.assertTrue((corpse != null) && corpse.harvestValidFor(lease.actorSnapshot(), _manorCandidate.npcId(), _manorCandidate.fact().seedItemId(), 2000), "Exact seeded corpse was not harvest-eligible.");
-			boolean harvested = false;
-			for (int attempt = 0; (attempt < 3) && !harvested; attempt++)
-			{
-				final ActionOutcome outcome = lease.useExactHarvester(inventory.harvesterObjectId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID, harvestTarget.getObjectId());
-				PhantomAssertions.assertTrue((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED), "Canonical Harvester handler was not issued.");
-				harvested = waitFor(() -> _player.getInventory().getInventoryItemCount(_manorCandidate.fact().cropItemId(), -1) > cropBefore, 3000);
-			}
-			PhantomAssertions.assertTrue(harvested, "Canonical harvest produced no crop delta.");
-		}
-		PhantomAssertions.assertEquals(matureBefore, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().matureItemId(), -1), "Manor acquisition credited mature seed.");
-		PhantomAssertions.assertEquals(reward1Before, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward1ItemId(), -1), "Manor acquisition performed reward exchange 1.");
-		PhantomAssertions.assertEquals(reward2Before, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward2ItemId(), -1), "Manor acquisition performed reward exchange 2.");
-		try (ExternalActionLease recovered = acquireAcquisition("manor-harvest-recovery"))
-		{
-			final var inventory = recovered.manorInventory(_manorCandidate.fact().seedItemId(), _manorCandidate.fact().cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
-			PhantomAssertions.assertTrue(inventory.cropCount() > cropBefore, "Canonical crop delta was not observable through a recovered lease.");
-		}
+		runManorServiceAttribution(harvestTarget);
 		// A normal seed has a high canonical chance; the explicit formula suite supplies deterministic failed-attempt coverage.
 		PhantomAssertions.assertTrue(observedFailure || (_manorCandidate.sowChance() >= 1), "Canonical sow failure evidence became inconsistent.");
 	}
@@ -593,6 +682,73 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final AcquisitionTargetSnapshot forbidden = new AcquisitionTargetSnapshot(base.objectId(), base.npcId(), base.instanceId(), base.distance(), false, false, true, true, false, true, true, false, true, false, 0, false, false, base.level(), true, true, false, false, 0, 0, base.onKillDelayMillis());
 			PhantomAssertions.assertFalse(forbidden.manorLiveValidFor(actor, _manorCandidate.npcId(), 2000), "Raid manor target was admitted.");
 		}
+	}
+
+	private void runManorServiceAttribution(Monster target) throws Exception
+	{
+		final int cropItemId = _manorCandidate.fact().cropItemId();
+		final long existingCrop = _player.getInventory().getInventoryItemCount(cropItemId, -1);
+		destroyInventoryCount(_player, cropItemId, existingCrop);
+		target.setCurrentHp(1);
+		target.getStatus().stopHpMpRegeneration();
+		final long matureBefore = _player.getInventory().getInventoryItemCount(_manorCandidate.fact().matureItemId(), -1);
+		final long reward1Before = _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward1ItemId(), -1);
+		final long reward2Before = _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward2ItemId(), -1);
+
+		final var planned = planManor(0, 100);
+		final RankedSource selected = planned.ranked().stream().filter(value -> value.source().sourceId().equals(_manorCandidate.sourceId())).findFirst().orElseThrow(() -> new AssertionError("Planner lost the selected current manor source."));
+		final ManorBinding plannedBinding = (ManorBinding) selected.methodBinding();
+		final ManorBinding exact;
+		try (ExternalActionLease lease = acquireAcquisition("manor-service-binding"))
+		{
+			final var inventory = lease.manorInventory(plannedBinding.seedItemId(), plannedBinding.cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
+			exact = new ManorBinding(plannedBinding.castleId(), plannedBinding.seedItemId(), plannedBinding.cropItemId(), plannedBinding.matureItemId(), plannedBinding.reward1ItemId(), plannedBinding.reward2ItemId(), plannedBinding.seedLevel(), plannedBinding.alternative(), plannedBinding.rawSeedLimit(), plannedBinding.rawCropLimit(), inventory.seedObjectId(), inventory.harvesterObjectId(), inventory.seedCount(), 0, plannedBinding.authorityHash());
+		}
+		final PhantomGoal goal = installAcquisition(selected, planned.ranked(), exact, 0, 100, Phase.COMBAT_PREPARED, target.getObjectId());
+		PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, advanceAcquisition(goal, 1).status(), "Service manor Combat was not submitted.");
+		PhantomAssertions.assertEquals(Phase.COMBAT_SUBMITTED, acquisitionState().phase(), "Service manor did not persist COMBAT_SUBMITTED.");
+		final String owner = "acquisition:" + canonicalDigest(acquisitionState().goalId(), acquisitionState().goalRevision(), acquisitionState().selectedSource().sourceId(), target.getObjectId()).substring(0, 48);
+		PhantomAssertions.assertTrue(_combat.matchesAcquisitionSession(_profile.profileId(), target.getObjectId(), owner), "Service manor Combat lost exact acquisition ownership.");
+		ensureInventoryItem(cropItemId, 5);
+		awaitCombatOutcome(target, "Service manor existing Combat");
+		awaitTerminal();
+		PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, advanceAcquisition(goal, 2).status(), "Service manor terminal Combat was not consumed.");
+		PhantomAssertions.assertEquals(Phase.COMBAT_TERMINAL, acquisitionState().phase(), "Service manor terminal phase was not durable.");
+		PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, advanceAcquisition(goal, 3).status(), "External crop observation did not prepare harvest.");
+		final PhantomAcquisitionState prepared = acquisitionState();
+		PhantomAssertions.assertEquals(Phase.HARVEST_PREPARED, prepared.phase(), "External crop observation did not retain the exact corpse.");
+		PhantomAssertions.assertEquals(5L, prepared.lastObservedCount(), "External crop observation did not update overall truth.");
+		PhantomAssertions.assertEquals(5L, prepared.progress(), "External crop observation did not update baseline-derived progress.");
+		PhantomAssertions.assertEquals(ReceiptKind.VERIFY, prepared.receipts().getLast().kind(), "External crop delta was misattributed to Harvester.");
+		PhantomAssertions.assertEquals(0L, prepared.receipts().getLast().beforeCount(), "External crop receipt before-count drifted.");
+		PhantomAssertions.assertEquals(5L, prepared.receipts().getLast().afterCount(), "External crop receipt after-count drifted.");
+		PhantomAssertions.assertEquals(5L, ((ManorBinding) prepared.methodBinding()).cropCountBeforeDispatch(), "Harvester baseline did not rebase to the observed crop count.");
+		restartAcquisitionService();
+		PhantomAssertions.assertEquals(prepared, acquisitionState(), "Prepared manor restart changed overall or handler-bound truth.");
+		_player.getItemReuseTimeStamps().clear();
+
+		long cropAfter = 5;
+		for (int attempt = 0; (attempt < 3) && (cropAfter == 5); attempt++)
+		{
+			advanceAcquisition(goal, 4 + (attempt * 2L));
+			waitFor(() -> _player.getInventory().getInventoryItemCount(cropItemId, -1) > 5, 4000);
+			advanceAcquisition(goal, 5 + (attempt * 2L));
+			cropAfter = _player.getInventory().getInventoryItemCount(cropItemId, -1);
+		}
+		cropAfter = _player.getInventory().getInventoryItemCount(cropItemId, -1);
+		PhantomAssertions.assertTrue(cropAfter > 5, "Service Harvester produced no bounded crop delta.");
+		final PhantomAcquisitionState harvested = acquisitionState();
+		PhantomAssertions.assertEquals(cropAfter, harvested.lastObservedCount(), "Successful Harvester did not update overall truth.");
+		final var harvestReceipt = harvested.receipts().stream().filter(receipt -> receipt.kind() == ReceiptKind.ACTIVE_MANOR_HARVEST).findFirst().orElseThrow(() -> new AssertionError("Successful Harvester receipt is absent."));
+		PhantomAssertions.assertEquals(5L, harvestReceipt.beforeCount(), "Harvester receipt absorbed the external crop delta.");
+		PhantomAssertions.assertEquals(cropAfter, harvestReceipt.afterCount(), "Harvester receipt lost its exact crop delta.");
+		PhantomAssertions.assertEquals(TerminalResult.OBSERVED, harvestReceipt.result(), "Harvester receipt was not authoritative evidence.");
+		PhantomAssertions.assertEquals(1L, harvested.receipts().stream().filter(receipt -> receipt.kind() == ReceiptKind.VERIFY).count(), "External and Harvester receipts were not kept separate.");
+		PhantomAssertions.assertEquals(matureBefore, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().matureItemId(), -1), "Manor acquisition credited mature seed.");
+		PhantomAssertions.assertEquals(reward1Before, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward1ItemId(), -1), "Manor acquisition performed reward exchange 1.");
+		PhantomAssertions.assertEquals(reward2Before, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward2ItemId(), -1), "Manor acquisition performed reward exchange 2.");
+		PhantomAssertions.assertEquals(0, _acquisition.snapshot().currentClaims(), "Terminal manor service retained a state claim.");
+		PhantomAssertions.assertEquals(0, _acquisition.snapshot().externalClaims(), "Terminal manor service retained an external claim.");
 	}
 
 	private void testCanonicalQuestChain() throws Exception
@@ -675,6 +831,168 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 		}
 		PhantomAssertions.assertTrue(mappedTerritoryNegativeObserved, "No same-NPC alternate mapped territory negative control was exercised.");
+	}
+
+	private void testQuestServiceLifecycle() throws Exception
+	{
+		testQuestForeignSession();
+		boolean observedGrant = false;
+		boolean observedNoGrant = false;
+		final Set<Integer> coveredTargets = new java.util.HashSet<>();
+		for (int attempt = 0; (attempt < 24) && ((coveredTargets.size() < 3) || !observedGrant || !observedNoGrant); attempt++)
+		{
+			final QuestSource source = _questSources.get(attempt % _questSources.size());
+			final boolean granted = runQuestServiceAttempt(source, attempt < _questSources.size());
+			coveredTargets.add(source.npcId());
+			observedGrant |= granted;
+			observedNoGrant |= !granted;
+		}
+		PhantomAssertions.assertEquals(Set.of(20013, 20019, 20016), coveredTargets, "Full service quest coverage lost Q102/Q152 targets.");
+		PhantomAssertions.assertTrue(observedGrant, "Full service delayed callbacks produced no real quest item.");
+		PhantomAssertions.assertTrue(observedNoGrant, "Full service delayed callbacks produced no bounded no-grant path.");
+		PhantomAssertions.assertEquals(0, _acquisition.snapshot().currentClaims(), "Terminal quest service retained a state claim.");
+		PhantomAssertions.assertEquals(0, _acquisition.snapshot().externalClaims(), "Terminal quest service retained an external claim.");
+		PhantomAssertions.assertEquals(0, _acquisition.snapshot().navigationClaims(), "Terminal quest service retained navigation ownership.");
+	}
+
+	private boolean runQuestServiceAttempt(QuestSource source, boolean restartEveryPhase) throws Exception
+	{
+		clearWorldFixtures();
+		selectQuestSource(source);
+		relocateToCombatPoint();
+		prepareQuestActor();
+		final Rule rule = source.rule();
+		final long existing = _player.getInventory().getInventoryItemCount(rule.questItemId(), -1);
+		destroyInventoryCount(_player, rule.questItemId(), existing);
+		final QuestState questState = _player.getQuestState(rule.questName());
+		final int originalCond = questState.getCond();
+		final byte originalState = questState.getState();
+		_epochMillis.addAndGet(_acquisitionCatalog.limits().questCallbackWaitMillis() + 10_000L);
+
+		final var planned = planQuest(source, 0);
+		final RankedSource selected = exactRanked(planned, source.npcId(), source.combatPoint().topologyNodeId());
+		selectQuestSource(plannerQuestSource(rule, selected));
+		relocateToCombatPoint();
+		prepareQuestActor();
+		final PhantomGoal goal = installAcquisition(selected, planned.ranked(), selected.methodBinding(), 0, 1, Phase.TARGET_REQUIRED, 0);
+		PhantomAssertions.assertEquals(0L, ((QuestBinding) acquisitionState().methodBinding()).callbackDeadlineMillis(), "Quest deadline existed before callback preparation.");
+		final Monster fixtureTarget = spawnNormalMonster(1);
+		fixtureTarget.setOnKillDelay(100);
+		PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, advanceAcquisition(goal, 100 + _acquisitionRevision).status(), "Full service quest target selection failed.");
+		PhantomAssertions.assertEquals(Phase.QUEST_COMBAT_PREPARED, acquisitionState().phase(), "Full service quest did not persist QUEST_COMBAT_PREPARED.");
+		final var selectedObject = World.getInstance().findObject(acquisitionState().targetObjectId());
+		PhantomAssertions.assertTrue(selectedObject instanceof Monster, "Planner-owned exact quest target is not a real Monster.");
+		final Monster target = (Monster) selectedObject;
+		// Loaded territories can already contain an older object id than the controlled fixture. Keep the selected
+		// production target local so this test exercises Combat and the delayed quest callback, not navigation variance.
+		target.setXYZ(_player.getX() + 20, _player.getY(), _player.getZ());
+		target.setCurrentHp(1);
+		target.getStatus().stopHpMpRegeneration();
+		target.setOnKillDelay(100);
+		PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, advanceAcquisition(goal, 200 + _acquisitionRevision).status(), "Full service quest Combat submission failed.");
+		PhantomAssertions.assertEquals(Phase.QUEST_COMBAT_SUBMITTED, acquisitionState().phase(), "Full service quest did not persist QUEST_COMBAT_SUBMITTED.");
+		final String owner = "acquisition:" + canonicalDigest(acquisitionState().goalId(), acquisitionState().goalRevision(), acquisitionState().selectedSource().sourceId(), target.getObjectId()).substring(0, 48);
+		PhantomAssertions.assertTrue(_combat.matchesAcquisitionSession(_profile.profileId(), target.getObjectId(), owner), "Full service quest session lost exact acquisition ownership.");
+		if (restartEveryPhase)
+		{
+			restartAcquisitionService();
+			PhantomAssertions.assertEquals(Phase.QUEST_COMBAT_SUBMITTED, acquisitionState().phase(), "Submitted quest restart changed its durable phase.");
+			PhantomAssertions.assertTrue(_combat.matchesAcquisitionSession(_profile.profileId(), target.getObjectId(), owner), "Submitted quest restart lost its Combat owner.");
+		}
+		awaitCombatOutcome(target, "Full service curated quest Combat " + source.npcId());
+		final PhantomCombatSessionSnapshot terminal = awaitTerminal();
+		PhantomAssertions.assertEquals(PhantomCombatResult.VICTORY, terminal.result(), "Full service quest Combat did not terminate with a real kill.");
+		final PhantomAcquisitionService.OperationResult terminalResult = advanceAcquisition(goal, 300 + _acquisitionRevision);
+		PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, terminalResult.status(), "Full service quest terminal was not consumed: " + terminalResult.reasonKey());
+		PhantomAssertions.assertEquals(Phase.QUEST_COMBAT_TERMINAL, acquisitionState().phase(), "Full service quest did not persist QUEST_COMBAT_TERMINAL.");
+		if (restartEveryPhase)
+		{
+			restartAcquisitionService();
+			PhantomAssertions.assertEquals(Phase.QUEST_COMBAT_TERMINAL, acquisitionState().phase(), "Terminal quest restart changed its durable phase.");
+		}
+		Thread.sleep(300);
+		final long callbackCount = _player.getInventory().getInventoryItemCount(rule.questItemId(), -1);
+		PhantomAssertions.assertTrue((callbackCount == 0) || (callbackCount == 1), "Real delayed quest callback produced an invalid delta.");
+		PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, advanceAcquisition(goal, 400 + _acquisitionRevision).status(), "Full service quest callback wait was not prepared.");
+		final PhantomAcquisitionState waiting = acquisitionState();
+		PhantomAssertions.assertEquals(Phase.QUEST_CALLBACK_WAIT, waiting.phase(), "Full service quest did not persist QUEST_CALLBACK_WAIT.");
+		final QuestBinding binding = (QuestBinding) waiting.methodBinding();
+		final long deadline = binding.callbackDeadlineMillis();
+		PhantomAssertions.assertTrue(deadline > _epochMillis.get(), "Quest callback deadline is not an absolute future epoch millisecond.");
+		PhantomAssertions.assertEquals(waiting, new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStateCodec().decode(new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStateCodec().encode(waiting)), "Quest callback deadline did not survive schema-3 restart encoding.");
+		if (restartEveryPhase)
+		{
+			restartAcquisitionService();
+			PhantomAssertions.assertEquals(waiting, acquisitionState(), "Callback-wait restart reset its deadline or attempt.");
+		}
+		if (callbackCount == 1)
+		{
+			_epochMillis.set(deadline + 1_000_000L);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, advanceAcquisition(goal, 500 + _acquisitionRevision).status(), "Observed quest item was not checked before an expired deadline.");
+			PhantomAssertions.assertEquals(Phase.VERIFYING, acquisitionState().phase(), "Observed quest item did not advance to verification.");
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.COMPLETE_GOAL, advanceAcquisition(goal, 600 + _acquisitionRevision).status(), "Real quest item did not complete the acquisition Goal.");
+			PhantomAssertions.assertEquals(Status.COMPLETED, acquisitionState().status(), "Real quest item did not persist completed acquisition truth.");
+			PhantomAssertions.assertTrue(acquisitionState().receipts().stream().anyMatch(receipt -> (receipt.kind() == ReceiptKind.ACTIVE_QUEST_COLLECTION) && (receipt.beforeCount() == 0) && (receipt.afterCount() == 1)), "Real delayed callback lacks an active quest receipt.");
+		}
+		else
+		{
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.RETRY, advanceAcquisition(goal, 500 + _acquisitionRevision).status(), "No-grant callback did not remain pending before its deadline.");
+			PhantomAssertions.assertEquals(0, acquisitionState().phaseAttempt(), "Restart/pending observation reset or consumed a callback attempt.");
+			_epochMillis.set(deadline - _acquisitionCatalog.limits().questCallbackWaitMillis() - 1);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.RETRY, advanceAcquisition(goal, 600 + _acquisitionRevision).status(), "Clock rollback beyond the wait window did not expire conservatively.");
+			PhantomAssertions.assertEquals(1, acquisitionState().phaseAttempt(), "Clock rollback did not consume one bounded timeout attempt.");
+			_epochMillis.set(deadline);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.RETRY, advanceAcquisition(goal, 700 + _acquisitionRevision).status(), "Exact callback deadline did not consume a bounded attempt.");
+			PhantomAssertions.assertEquals(2, acquisitionState().phaseAttempt(), "Exact callback deadline attempt was not durable.");
+			final var stored = _acquisitionStore.load(_profile.profileId()).orElseThrow();
+			final QuestBinding legacy = new QuestBinding(binding.ruleId(), binding.ruleHash(), binding.questId(), binding.questName(), binding.scriptHash(), binding.expectedState(), binding.expectedCond(), binding.questItemId(), binding.itemCap(), binding.targetNpcId(), binding.itemCountBeforeKill(), 1, binding.authorityHash());
+			_acquisitionStore.replace(_profile.profileId(), stored.rowVersion(), stored.state().withBinding(legacy, Phase.QUEST_CALLBACK_WAIT, stored.state().targetObjectId(), stored.state().targetNpcId(), stored.state().targetInstanceId(), stored.state().phaseAttempt(), stored.state().logicalMinute() + 1));
+			_epochMillis.set(deadline + 10_000_000L);
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.REPLAN, advanceAcquisition(goal, 800 + _acquisitionRevision).status(), "Legacy/small deadline did not fail the source after the bounded limit.");
+			PhantomAssertions.assertFalse(acquisitionState().phase() == Phase.QUEST_CALLBACK_WAIT, "Legacy/small deadline retained callback ownership.");
+			PhantomAssertions.assertTrue(acquisitionState().receipts().stream().noneMatch(receipt -> receipt.kind() == ReceiptKind.ACTIVE_QUEST_COLLECTION), "No-grant timeout fabricated a quest receipt.");
+		}
+		PhantomAssertions.assertEquals(originalState, questState.getState(), "Acquisition service changed the already-started quest state.");
+		PhantomAssertions.assertEquals(originalCond, questState.getCond(), "Acquisition service changed the already-started quest cond.");
+		PhantomAssertions.assertTrue(_combat.find(_profile.profileId()).isEmpty(), "Terminal quest attempt retained Combat ownership.");
+		return callbackCount == 1;
+	}
+
+	private void testQuestForeignSession()
+	{
+		clearWorldFixtures();
+		final QuestSource source = _questSources.getFirst();
+		selectQuestSource(source);
+		relocateToCombatPoint();
+		prepareQuestActor();
+		final long existing = _player.getInventory().getInventoryItemCount(source.rule().questItemId(), -1);
+		destroyInventoryCount(_player, source.rule().questItemId(), existing);
+		final var planned = planQuest(source, 0);
+		final RankedSource selected = exactRanked(planned, source.npcId(), source.combatPoint().topologyNodeId());
+		selectQuestSource(plannerQuestSource(source.rule(), selected));
+		relocateToCombatPoint();
+		prepareQuestActor();
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		final PhantomGoal goal = installAcquisition(selected, planned.ranked(), selected.methodBinding(), 0, 1, Phase.QUEST_COMBAT_PREPARED, target.getObjectId());
+		PhantomAssertions.assertTrue(_combat.startSession(request(target, PhantomCombatMode.MELEE_PHYSICAL, false, false)).accepted(), "Foreign quest Combat fixture was not established.");
+		final var result = advanceAcquisition(goal, 50);
+		PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.REPLAN, result.status(), "Full service quest inherited a foreign Combat session.");
+		PhantomAssertions.assertEquals("acquisition.combat.foreign_session", result.reasonKey(), "Foreign quest Combat lost its typed rejection.");
+		PhantomAssertions.assertEquals(Phase.QUEST_COMBAT_PREPARED, acquisitionState().phase(), "Foreign quest Combat advanced acquisition state.");
+		_combat.cancel(_profile.profileId());
+		consumeTerminal();
+	}
+
+	private void clearWorldFixtures()
+	{
+		for (Monster fixture : List.copyOf(_worldFixtures))
+		{
+			if (fixture.isSpawned())
+			{
+				fixture.deleteMe();
+			}
+		}
+		_worldFixtures.clear();
 	}
 
 	private Source questAcquisitionSource(QuestSource source)
@@ -1550,6 +1868,42 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		return condition.getAsBoolean();
 	}
 
+	private static PhantomRelevanceSignalPort noSignals()
+	{
+		return new PhantomRelevanceSignalPort()
+		{
+			@Override
+			public SignalDelivery submit(long profileId, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal)
+			{
+				return SignalDelivery.ACCEPTED;
+			}
+
+			@Override
+			public SignalDelivery withdraw(long profileId, String sourceKey, long sequence)
+			{
+				return SignalDelivery.ACCEPTED;
+			}
+		};
+	}
+
+	private static String canonicalDigest(Object... values)
+	{
+		try
+		{
+			final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			for (Object value : values)
+			{
+				digest.update(String.valueOf(value).getBytes(StandardCharsets.UTF_8));
+				digest.update((byte) 0);
+			}
+			return HexFormat.of().formatHex(digest.digest());
+		}
+		catch (Exception exception)
+		{
+			throw new IllegalStateException("SHA-256 is unavailable.", exception);
+		}
+	}
+
 	private static final class DeterministicSpoilMonster extends Monster
 	{
 		private int _effectiveLevel = 1;
@@ -1580,6 +1934,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		Throwable failure = null;
 		try
 		{
+			if (_acquisition != null)
+			{
+				_acquisition.beginStop();
+				PhantomAssertions.assertTrue(_acquisition.finishStop(), "Acquisition integration service did not stop cleanly.");
+			}
 			if (_combat != null)
 			{
 				_combat.beginStop();
@@ -1615,6 +1974,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			{
 				_knowledge.beginStop();
 				PhantomAssertions.assertTrue(_knowledge.finishStop(), "Game Knowledge service did not stop.");
+			}
+			if (_backgroundProduction != null)
+			{
+				_backgroundProduction.close();
+				_backgroundProduction = null;
 			}
 			if (_player != null)
 			{
