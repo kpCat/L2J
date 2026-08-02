@@ -18,8 +18,10 @@
   `81e4d2a7044f8c1bafc7db6b5d3c66ce4df050aa`;
 - terminal foundation: `906b8a043320deb955da02276cf27797e0c5fadd`, subject:
   `fix(phantoms): close manor attribution and quest service recovery`.
-- final exact-delta child subject:
-  `fix(phantoms): enforce exact quest callback item delta`.
+- exact-delta child: `0c41280632617f50d4bd133b59b81326e3b6d3f6`, subject:
+  `fix(phantoms): enforce exact quest callback item delta`;
+- final cap-boundary child subject:
+  `fix(phantoms): close quest collection cap boundary`.
 
 Checkpoint 1 зафиксирован как `ACCEPT`. Verifier 021c1 читает исторические blobs
 accepted commit и остаётся descendant-compatible.
@@ -60,11 +62,17 @@ accepted commit и остаётся descendant-compatible.
 - Dedicated quest observation одной atomic state/Goal mutation создаёт
   `ACTIVE_QUEST_COLLECTION` receipt от `itemCountBeforeKill`, обновляет progress и
   сразу завершает Goal либо возвращает `TARGET_REQUIRED` без старого target.
+- Exact active cap `8→9`/`3→4` сохраняет исторический deadline-cleared binding с
+  baseline `cap−1`; completion завершает Goal, partial сохраняет progress и блокирует
+  исчерпанный source с `quest.item_cap` без нового Combat.
 - Quest Combat submission повторно проверяет exact item baseline/cap под actor
   lease. Legacy `QUEST_COLLECTION/VERIFYING` использует тот же exact validator;
   successful callback больше не создаёт промежуточный `VERIFYING`.
 - Background quest path выполняет exact `character_quests` row validation под
   `FOR UPDATE` и одну atomic item/background/Goal/acquisition transaction.
+- Exact background cap использует тот же historical-binding contract: completion и
+  partial state byte-identical реконструируются при replay, а `after > cap` даёт
+  acquisition conflict с полным rollback.
 - Quests не запускаются и не сдаются; `state`, `cond`, `vars` не изменяются.
 - Прямые `setSeeded`, `takeHarvest`, `addItem`, `destroyItem` в production C2 paths
   отсутствуют. Crop procurement/reward exchange не добавлялись.
@@ -158,25 +166,6 @@ tests: exact `none` method-binding hash/resource count в atomic fixture и boun
 Decision persistence `23/23` и shutdown handoff `7/7` завершились
 `BUILD SUCCESSFUL`.
 
-Pre-commit terminal последовательность завершена без изменения frozen
-production/data/test/build/verifier artifacts:
-
-- verifier 021c1: PASS в PowerShell 5.1 и 7.6.3;
-- verifier 021c2 working: PASS в PowerShell 5.1 и 7.6.3 с одинаковыми scope/hash
-  значениями;
-- combined affected batch, включая Goal 015 и полный Checkpoint 1 aggregate:
-  `BUILD SUCCESSFUL` за 9:17;
-- ровно один final `phantom-acquisition-checkpoint2-test`:
-  `BUILD SUCCESSFUL` за 2:45;
-- ровно один plain `ant verify` без global seed override:
-  `BUILD SUCCESSFUL` за 13:27;
-- standalone `ant jar`: `BUILD SUCCESSFUL` за 16 секунд;
-- SHA-256 frozen build/authority/production/test/verifier artifacts до и после
-  plain verify byte-identical.
-
-После report-only terminal update остаются ordinary commit/push и два
-byte-identical accepted verifier 021c2 runs.
-
 Exact-delta focused evidence: `compile-tests` и
 `phantom-acquisition-quest-active-test` прошли; full-service suite `4/4` покрыла
 обе curated rules, real delayed callback, partial/completion, `+2`, cap, decrease,
@@ -185,29 +174,24 @@ pre-combat drift, legacy `VERIFYING`, state/cond/vars identity и zero claims.
 повторный `setPlayerClass`, оставивший `_skillListTask`; setup сделан идемпотентным,
 повторный focused route завершился полностью зелёным.
 
-Final exact-delta terminal sequence:
-
-- historical verifier 021c1: PASS в PowerShell 5.1/7.6.3;
-- working verifier 021c2: PASS в PowerShell 5.1/7.6.3, одинаковые
-  `53/28` cumulative и `5/1/0` final scope/hash outputs;
-- manor active + полный Checkpoint 1 affected batch: `BUILD SUCCESSFUL`, 6:31;
-- единственный final `phantom-acquisition-checkpoint2-test`:
-  `BUILD SUCCESSFUL`, 2:53;
-- единственный plain `ant verify`: `BUILD SUCCESSFUL`, 13:31;
-- standalone `ant jar`: `BUILD SUCCESSFUL`, 18 секунд; service class присутствует;
-- frozen build/service/test/verifier/catalog/topology SHA-256 до и после terminal
-  verify/jar byte-identical.
-
-После этого report-only update остаются ordinary commit/push и два byte-identical
-accepted verifier 021c2 runs.
-
-Финальный handoff содержит фактические результаты terminal команд; verifier output
-является детерминированным acceptance artifact.
+Cap-boundary focused evidence: exact compile прошёл; active cap route `4/4` покрыла
+completion/partial и legacy `VERIFYING` для обеих rules; background cap route прошла
+unit `3/3` и real model/transaction `1/1`, включая replay, unchanged quest rows и
+`after > cap` rollback. Manor active regression прошёл `2/2`; полный Checkpoint 1
+regression завершился `BUILD SUCCESSFUL` за `5:53`, а historical verifier 021c1
+вернул `GOAL_021C1_VERIFIED` в PowerShell 5.1 и 7.x. Working verifier 021c2 в обеих
+оболочках вернул одинаковые scope/fact values (`53/28`, final `8/2/0`). Ровно один
+final `phantom-acquisition-checkpoint2-test` завершился `BUILD SUCCESSFUL` за
+`3:06`: active quest `4/4`, background unit `3/3`, real transaction `1/1`,
+lifecycle/performance `5/5`. Результаты post-freeze plain `verify`, standalone
+`jar`, push и accepted verifier передаются terminal handoff без self-referential
+amend отчёта.
 
 ## Scope и ограничения
 
 - terminal foundation child: `2` production/data/config и `7` total;
 - final exact-delta child: `1` production и `5` total, new production `0`;
+- final cap-boundary child: `2` production и `8` total, new production `0`;
 - new production/data: `0`;
 - cumulative Checkpoint 2: `28` production/data/config и `53` unique total;
 - не изменены `Player.java`, `Party.java`, `Attackable.java`, `Spawn.java`,
@@ -225,8 +209,8 @@ gate не начинать.
 ## Git
 
 - Branch/upstream: `feature/phantom-world` / `origin/feature/phantom-world`.
-- Exact-delta commit/push выполняются одним ordinary child
-  `906b8a043320deb955da02276cf27797e0c5fadd` без amend/rebase/squash/merge/reset
+- Cap-boundary commit/push выполняются одним ordinary child
+  `0c41280632617f50d4bd133b59b81326e3b6d3f6` без amend/rebase/squash/merge/reset
   и без force push/force-with-lease.
 - Разрешённые git-команды используются для обязательных baseline, scope, diff,
   commit и push checks этой задачи.

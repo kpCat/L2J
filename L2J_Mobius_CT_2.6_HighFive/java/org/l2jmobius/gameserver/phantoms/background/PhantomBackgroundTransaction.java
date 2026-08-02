@@ -834,7 +834,18 @@ public final class PhantomBackgroundTransaction
 		}
 		if (state.methodBinding() instanceof PhantomAcquisitionState.QuestBinding quest)
 		{
-			return state.withMethodBinding(new PhantomAcquisitionState.QuestBinding(quest.ruleId(), quest.ruleHash(), quest.questId(), quest.questName(), quest.scriptHash(), quest.expectedState(), quest.expectedCond(), quest.questItemId(), quest.itemCap(), quest.targetNpcId(), counts.getOrDefault(quest.questItemId(), state.lastObservedCount()), 0, quest.authorityHash()));
+			final long count = counts.getOrDefault(quest.questItemId(), state.lastObservedCount());
+			if (count > quest.itemCap())
+			{
+				throw new StateConflict(Status.ACQUISITION_CONFLICT);
+			}
+			final long bindingCount = count == quest.itemCap() ? quest.itemCountBeforeKill() : count;
+			PhantomAcquisitionState advanced = state.withMethodBinding(new PhantomAcquisitionState.QuestBinding(quest.ruleId(), quest.ruleHash(), quest.questId(), quest.questName(), quest.scriptHash(), quest.expectedState(), quest.expectedCond(), quest.questItemId(), quest.itemCap(), quest.targetNpcId(), bindingCount, 0, quest.authorityHash()));
+			if ((count == quest.itemCap()) && (advanced.status() != PhantomAcquisitionState.Status.COMPLETED))
+			{
+				advanced = advanced.failSource("quest.item_cap", state.logicalMinute());
+			}
+			return advanced;
 		}
 		return state;
 	}

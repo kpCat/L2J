@@ -16,7 +16,9 @@ $NearFinalCommit = "81e4d2a7044f8c1bafc7db6b5d3c66ce4df050aa"
 $NearFinalSubject = "fix(phantoms): finalize feasible manor quest acquisition"
 $TerminalCommit = "906b8a043320deb955da02276cf27797e0c5fadd"
 $TerminalSubject = "fix(phantoms): close manor attribution and quest service recovery"
-$RequiredSubject = "fix(phantoms): enforce exact quest callback item delta"
+$ExactDeltaCommit = "0c41280632617f50d4bd133b59b81326e3b6d3f6"
+$ExactDeltaSubject = "fix(phantoms): enforce exact quest callback item delta"
+$RequiredSubject = "fix(phantoms): close quest collection cap boundary"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "21002102"
 $TargetSourceIds = @(20013, 20019, 20016)
@@ -154,8 +156,10 @@ function Is-FinalAllowedPath([string] $path)
 		'docs/phantoms/reports/021-checkpoint-2-manor-quest-acquisition.md',
 		'docs/phantoms/reviews/021-checkpoint-2-independent-review.md',
 		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionService.java',
-		'java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionState.java',
+		'java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java',
+		'java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java',
 		'test/java/org/l2jmobius/tests/phantoms/PhantomAcquisitionQuestSuite.java',
+		'test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java',
 		'test/java/org/l2jmobius/tests/phantoms/PhantomCombatServerIntegrationSuite.java',
 		'tools/phantoms/verify-task-021c2.ps1'
 	)
@@ -201,24 +205,26 @@ try
 	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $NearFinalCommit) | Select-Object -First 1) -eq $NearFinalSubject) "Goal 021c2 near-final subject changed."
 	Assert-True ((Git-Lines @("rev-parse", "$TerminalCommit^" ) | Select-Object -First 1) -eq $NearFinalCommit) "Goal 021c2 terminal parent changed."
 	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $TerminalCommit) | Select-Object -First 1) -eq $TerminalSubject) "Goal 021c2 terminal subject changed."
+	Assert-True ((Git-Lines @("rev-parse", "$ExactDeltaCommit^" ) | Select-Object -First 1) -eq $TerminalCommit) "Goal 021c2 exact-delta parent changed."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $ExactDeltaCommit) | Select-Object -First 1) -eq $ExactDeltaSubject) "Goal 021c2 exact-delta subject changed."
 	& git merge-base --is-ancestor $AcceptedCheckpoint1 $head
 	Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 021c1 checkpoint is not an ancestor of HEAD."
-	& git merge-base --is-ancestor $TerminalCommit $head
-	Assert-True ($LASTEXITCODE -eq 0) "Goal 021c2 terminal foundation is not an ancestor of HEAD."
+	& git merge-base --is-ancestor $ExactDeltaCommit $head
+	Assert-True ($LASTEXITCODE -eq 0) "Goal 021c2 exact-delta foundation is not an ancestor of HEAD."
 
 	if ($WorkingTree)
 	{
-		Assert-True ($head -eq $TerminalCommit) "Working Goal 021c2 verifier requires the exact terminal parent."
+		Assert-True ($head -eq $ExactDeltaCommit) "Working Goal 021c2 verifier requires the exact cap-boundary parent."
 		$script:Mode = "working"
 		$script:TargetCommit = $head
 	}
 	else
 	{
-		$descendants = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$TerminalCommit..$head"))
+		$descendants = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$ExactDeltaCommit..$head"))
 		Assert-True ($descendants.Count -gt 0) "Accepted Goal 021c2 child is absent."
 		$script:TargetCommit = $descendants[0]
 		$script:Mode = "accepted"
-		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $TerminalCommit) "Goal 021c2 exact-delta completion is not one ordinary child of the terminal foundation."
+		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $ExactDeltaCommit) "Goal 021c2 cap-boundary completion is not one ordinary child of the exact-delta foundation."
 		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 021c2 completion subject changed."
 	}
 
@@ -227,19 +233,19 @@ try
 	if ($script:Mode -eq "working")
 	{
 		Add-ChangedPaths $cumulative @("diff", "--name-only", $AcceptedCheckpoint1, "--")
-		Add-ChangedPaths $final @("diff", "--name-only", $TerminalCommit, "--")
+		Add-ChangedPaths $final @("diff", "--name-only", $ExactDeltaCommit, "--")
 		Add-WorkingUntracked $cumulative
 		Add-WorkingUntracked $final
 	}
 	else
 	{
 		Add-ChangedPaths $cumulative @("diff", "--name-only", $AcceptedCheckpoint1, $script:TargetCommit, "--")
-		Add-ChangedPaths $final @("diff", "--name-only", $TerminalCommit, $script:TargetCommit, "--")
+		Add-ChangedPaths $final @("diff", "--name-only", $ExactDeltaCommit, $script:TargetCommit, "--")
 	}
 	$cumulativePaths = @($cumulative | Sort-Object)
 	$finalPaths = @($final | Sort-Object)
 	Assert-True (($cumulativePaths.Count -gt 0) -and ($cumulativePaths.Count -le 58)) "Cumulative Goal 021c2 scope exceeds 58 files."
-	Assert-True (($finalPaths.Count -gt 0) -and ($finalPaths.Count -le 7)) "Final exact-delta Goal 021c2 child scope exceeds 7 files."
+	Assert-True (($finalPaths.Count -gt 0) -and ($finalPaths.Count -le 9)) "Final cap-boundary Goal 021c2 child scope exceeds 9 files."
 	foreach ($path in $cumulativePaths)
 	{
 		Assert-True (Is-CumulativeAllowedPath $path) "Out-of-scope cumulative Goal 021c2 path: $path"
@@ -252,11 +258,11 @@ try
 	$cumulativeProduction = @($cumulativePaths | Where-Object { Is-ProductionPath $_ })
 	$finalProduction = @($finalPaths | Where-Object { Is-ProductionPath $_ })
 	Assert-True ($cumulativeProduction.Count -le 34) "Cumulative Goal 021c2 exceeds 34 production/data/config files."
-	Assert-True ($finalProduction.Count -le 2) "Final exact-delta Goal 021c2 child exceeds 2 production/data/config files."
+	Assert-True ($finalProduction.Count -le 3) "Final cap-boundary Goal 021c2 child exceeds 3 production/data/config files."
 	$finalNewProduction = @()
 	foreach ($path in $finalProduction)
 	{
-		$existing = @(Git-Lines @("-C", $repositoryRoot, "ls-tree", "--name-only", $TerminalCommit, "--", ($script:ModulePrefix + $path)))
+		$existing = @(Git-Lines @("-C", $repositoryRoot, "ls-tree", "--name-only", $ExactDeltaCommit, "--", ($script:ModulePrefix + $path)))
 		if ($existing.Count -eq 0) { $finalNewProduction += $path }
 	}
 	Assert-True ($finalNewProduction.Count -eq 0) "Terminal Goal 021c2 child adds a production/data file."
@@ -418,14 +424,17 @@ try
 	$verificationEnd = $service.IndexOf('private OperationResult uncertain(', $verificationStart)
 	$verificationBody = if (($verificationStart -ge 0) -and ($verificationEnd -gt $verificationStart)) { $service.Substring($verificationStart, $verificationEnd - $verificationStart) } else { '' }
 	Assert-True ($callbackBody.Contains('observeQuestCollection(current, quest, rule, count, logicalMinute)') -and !$callbackBody.Contains('advanceToVerify(') -and !$callbackBody.Contains('uncertain(') -and $callbackBody.Contains('count > quest.itemCap()') -and $callbackBody.Contains('quest.item_cap')) "Successful or invalid quest callback still uses generic verification/uncertainty."
-	Assert-True ($observationBody.Contains('binding.itemCountBeforeKill()') -and $observationBody.Contains('delta < rule.minimumCount()') -and $observationBody.Contains('delta > rule.maximumCount()') -and $observationBody.Contains('ReceiptKind.ACTIVE_QUEST_COLLECTION, before, count, TerminalResult.OBSERVED') -and $observationBody.Contains('observeBound(count, Status.READY, Phase.TARGET_REQUIRED, 0, 0, 0') -and $observationBody.Contains('_store.mutateWithGoal')) "Dedicated exact quest observation/min-max/receipt boundary is incomplete."
+	Assert-True ($observationBody.Contains('binding.itemCountBeforeKill()') -and $observationBody.Contains('delta < rule.minimumCount()') -and $observationBody.Contains('delta > rule.maximumCount()') -and $observationBody.Contains('ReceiptKind.ACTIVE_QUEST_COLLECTION, before, count, TerminalResult.OBSERVED') -and $observationBody.Contains('observeBound(count, Status.READY') -and $observationBody.Contains('_store.mutateWithGoal')) "Dedicated exact quest observation/min-max/receipt boundary is incomplete."
+	Assert-True ($state.Contains('(itemCountBeforeKill < 0) || (itemCountBeforeKill >= itemCap)') -and $observationBody.Contains('final boolean capReached = count == binding.itemCap()') -and $observationBody.Contains('capReached ? before : count') -and $observationBody.Contains('capReached ? Phase.NONE : Phase.TARGET_REQUIRED') -and $observationBody.Contains('observed.failSource("quest.item_cap", logicalMinute)') -and !$observationBody.Contains('questBinding(binding, count, 0)')) "Active quest cap boundary weakens the binding invariant or rebuilds an executable binding at cap."
 	Assert-True ($verificationBody.Contains('current.state().selectedSource().method() == Method.QUEST_COLLECTION') -and $verificationBody.Contains('exactQuestRule(quest)') -and $verificationBody.Contains('exactQuestState(lease, quest, rule)') -and $verificationBody.Contains('observeQuestCollection(current, quest, rule, count, logicalMinute)')) "Legacy QUEST_COLLECTION/VERIFYING does not use exact curated validation."
 	Assert-True ($service.Contains('count != quest.itemCountBeforeKill()') -and $service.Contains('quest.item_count_changed') -and $service.Contains('count >= quest.itemCap()') -and $service.IndexOf('count != quest.itemCountBeforeKill()') -lt $service.IndexOf('_combat.startAcquisitionSession')) "Quest pre-combat item baseline/cap revalidation is absent or occurs after Combat submission."
 	Assert-True ($background.Contains('_acquisitionLimits.manorAttemptsPerTarget()') -and $background.Contains('_acquisitionLimits.harvestAttemptsPerCorpse()') -and !$background.Contains('projection.harvestPayload(), 3, 3')) "Background manor attempt policy is not catalog-driven."
 	Assert-True ($transaction.Contains('LOCK_QUEST_ROWS') -and $transaction.Contains('ORDER BY var FOR UPDATE') -and $transaction.Contains('expectedQuestRows()') -and $transaction.Contains('AFTER_QUEST_LOCKS') -and $transaction.Contains('AFTER_GOAL_STATE_WRITE') -and $transaction.Contains('AFTER_ACQUISITION_STATE_WRITE') -and $transaction.Contains('connection.commit()')) "Atomic exact-row quest background ownership is incomplete."
+	Assert-True ($transaction.Contains('if (count > quest.itemCap())') -and $transaction.Contains('throw new StateConflict(Status.ACQUISITION_CONFLICT)') -and $transaction.Contains('count == quest.itemCap() ? quest.itemCountBeforeKill() : count') -and $transaction.Contains('advanced.failSource("quest.item_cap", state.logicalMinute())') -and (($transaction -split 'advanceAcquisitionBinding').Count -ge 4)) "Background cap completion/partial/conflict or post-commit reconstruction is incomplete."
 	Assert-True ($transaction -notmatch '(?i)(?:UPDATE|INSERT|DELETE)\s+character_quests') "Background quest path mutates quest state/cond/vars."
 
 	$activeTests = Read-TargetUtf8Strict 'test/java/org/l2jmobius/tests/phantoms/PhantomCombatServerIntegrationSuite.java'
+	$backgroundTests = Read-TargetUtf8Strict 'test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java'
 	$manorTests = Read-TargetUtf8Strict 'test/java/org/l2jmobius/tests/phantoms/PhantomAcquisitionManorSuite.java'
 	$knowledgeTests = Read-TargetUtf8Strict 'test/java/org/l2jmobius/tests/phantoms/PhantomGameKnowledgeParitySuite.java'
 	$topologyTests = Read-TargetUtf8Strict 'test/java/org/l2jmobius/tests/phantoms/PhantomTopologyProductionCorpusSuite.java'
@@ -440,11 +449,19 @@ try
 	{
 		Assert-True ($activeTests.Contains($evidence)) "Exact quest delta full-service evidence is absent: $evidence"
 	}
+	foreach ($evidence in @('assertQuestCapBoundary(source, Phase.QUEST_CALLBACK_WAIT, 1, true)', 'assertQuestCapBoundary(source, Phase.QUEST_CALLBACK_WAIT, 2, false)', 'assertQuestCapBoundary(source, Phase.VERIFYING, 1, true)', 'assertQuestCapBoundary(source, Phase.VERIFYING, 2, false)', 'Completion exactly at cap', 'Partial completion at cap', 'Exact cap schema-3 acquisition state did not round-trip', 'DirectiveKind.SWITCH', 'A subsequent active advance executed the exhausted quest source'))
+	{
+		Assert-True ($activeTests.Contains($evidence)) "Active quest cap-boundary evidence is absent: $evidence"
+	}
+	foreach ($evidence in @('01-real-model-transaction-quest-cap-boundaries', 'testQuestCapCommit(catalog, rule, 1, true)', 'testQuestCapCommit(catalog, rule, 2, false)', 'Post-commit verifier reconstruction is not byte-identical at the quest cap', 'Background partial completion at cap did not block the exhausted source', 'Exact background quest cap replay was not idempotent', 'Explicit background after > cap was not an acquisition conflict', 'changed audited quest rows'))
+	{
+		Assert-True ($backgroundTests.Contains($evidence)) "Background quest cap-boundary evidence is absent: $evidence"
+	}
 	Assert-True ($knowledgeTests.Contains('35') -and $knowledgeTests.Contains('15') -and $knowledgeTests.Contains('20') -and $knowledgeTests.Contains('additionalUnmappedTerritories')) "Game Knowledge 35/15/20 partial-coverage evidence is incomplete."
 	Assert-True ($topologyTests.Contains('9') -and $topologyTests.Contains('7') -and $topologyTests.Contains('1') -and $topologyTests.Contains('4_000_000L')) "Topology 9/7/1 or distance evidence is incomplete."
 
 	$build = Read-TargetUtf8Strict 'build.xml'
-	Assert-True ($build.Contains('name="phantom.goal021c2.seed" value="21002102"') -and $build.Contains('name="phantom-acquisition-checkpoint2-test"')) "Goal 021c2 seed or final aggregate is absent."
+	Assert-True ($build.Contains('name="phantom.goal021c2.seed" value="21002102"') -and $build.Contains('name="phantom-acquisition-checkpoint2-test"') -and $build.Contains('-Dphantom.acquisition.focus=quest-cap') -and $build.Contains('acquisition-atomic-restart')) "Goal 021c2 seed, cap transaction route or final aggregate is absent."
 	foreach ($dependency in @('phantom-topology-production-corpus-test', 'phantom-game-knowledge-parity-test', 'phantom-acquisition-manor-catalog-source-test', 'phantom-acquisition-manor-active-test', 'phantom-acquisition-manor-background-test', 'phantom-acquisition-manor-restart-transition-test', 'phantom-acquisition-quest-catalog-source-test', 'phantom-acquisition-quest-active-test', 'phantom-acquisition-quest-background-test', 'phantom-acquisition-checkpoint2-lifecycle-performance-smoke'))
 	{
 		Assert-True ($build.Contains($dependency)) "Final Goal 021c2 aggregate dependency is absent: $dependency"
@@ -454,9 +471,9 @@ try
 
 	$report = Read-TargetUtf8Strict 'docs/phantoms/reports/021-checkpoint-2-manor-quest-acquisition.md'
 	Assert-True (($report -split "`r?`n").Count -le 240) "Goal 021c2 report exceeds 240 lines."
-	Assert-True ($report.Contains('COMPLETED_PENDING_INDEPENDENT_REVIEW') -and $report.Contains($AcceptedCheckpoint1) -and $report.Contains($AnchorCommit) -and $report.Contains($NearFinalCommit) -and $report.Contains($TerminalCommit) -and $report.Contains($RequiredSubject) -and $report.Contains('35') -and $report.Contains('15') -and $report.Contains('20')) "Goal 021c2 report/history/coverage handoff is incomplete."
+	Assert-True ($report.Contains('COMPLETED_PENDING_INDEPENDENT_REVIEW') -and $report.Contains($AcceptedCheckpoint1) -and $report.Contains($AnchorCommit) -and $report.Contains($NearFinalCommit) -and $report.Contains($TerminalCommit) -and $report.Contains($ExactDeltaCommit) -and $report.Contains($RequiredSubject) -and $report.Contains('35') -and $report.Contains('15') -and $report.Contains('20') -and $report.Contains('active cap') -and $report.Contains('background cap')) "Goal 021c2 report/history/coverage handoff is incomplete."
 	$reviewC2 = Read-TargetUtf8Strict 'docs/phantoms/reviews/021-checkpoint-2-independent-review.md'
-	Assert-True ($reviewC2.Contains('IMPLEMENTED_PENDING_INDEPENDENT_REVIEW') -and $reviewC2.Contains($TerminalCommit) -and $reviewC2.Contains($RequiredSubject) -and $reviewC2.Contains('independent')) "Goal 021c2 independent-review handoff is incomplete."
+	Assert-True ($reviewC2.Contains('IMPLEMENTED_PENDING_INDEPENDENT_REVIEW') -and $reviewC2.Contains($TerminalCommit) -and $reviewC2.Contains($ExactDeltaCommit) -and $reviewC2.Contains($RequiredSubject) -and $reviewC2.Contains('independent')) "Goal 021c2 independent-review handoff is incomplete."
 
 	$mojibakePairs = @(
 		@(0x0420, 0x045F), @(0x0420, 0x045C), @(0x0420, 0x045B), @(0x0420, 0x2022), @(0x0420, 0x040E), @(0x0420, 0x203A), @(0x0420, 0x00A4), @(0x0420, 0x045A),
@@ -478,7 +495,7 @@ try
 
 	if ($script:Mode -eq "working")
 	{
-		& git -c core.safecrlf=false diff --check $TerminalCommit --
+		& git -c core.safecrlf=false diff --check $ExactDeltaCommit --
 		Assert-True ($LASTEXITCODE -eq 0) "Working git diff --check failed."
 	}
 	else
@@ -498,14 +515,14 @@ try
 			Assert-True ($jarEntries -contains $entry) "GameServer.jar lacks Goal 021c2 entry: $entry"
 		}
 		Assert-True ($jarEntries -notcontains 'data/phantoms/topology/high-five-core.xml') "Topology datapack must remain outside GameServer.jar."
-		& git -c core.safecrlf=false diff --check $TerminalCommit $script:TargetCommit --
+		& git -c core.safecrlf=false diff --check $ExactDeltaCommit $script:TargetCommit --
 		Assert-True ($LASTEXITCODE -eq 0) "Committed git diff --check failed."
 	}
 
 	Write-Output 'TASK021C2_VERIFIER_OK'
 	Write-Output "mode=$($script:Mode)"
 	Write-Output "implementation_commit=$($script:TargetCommit)"
-	Write-Output "accepted_parent=$TerminalCommit"
+	Write-Output "accepted_parent=$ExactDeltaCommit"
 	Write-Output "topology_sha256=$(Get-TargetSha256 'dist/game/data/phantoms/topology/high-five-core.xml')"
 	Write-Output "quest_catalog_sha256=$(Get-TargetSha256 'dist/game/data/phantoms/acquisition/high-five-quest-collection-v1.xml')"
 	Write-Output "territories=35"

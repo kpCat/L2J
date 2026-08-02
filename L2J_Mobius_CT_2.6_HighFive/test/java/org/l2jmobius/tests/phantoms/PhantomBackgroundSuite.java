@@ -26,12 +26,15 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,9 +80,14 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePla
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Candidate;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Phase;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.QuestBinding;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ReceiptKind;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.TerminalResult;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStateCodec;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog.Rule;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority;
@@ -97,6 +105,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DropD
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DropOrigin;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.ExperienceTable;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.LevelForExperience;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.QuestFormula;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.RewardPolicy;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Target;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey;
@@ -215,6 +224,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private static final long SEED = 15001501L;
 	private static final long PRODUCTION_LOOT_UNBLOCK_SEED = 15001502L;
 	private static final long ACQUISITION_SEED = 21002101L;
+	private static final long QUEST_CAP_SEED = 21002102L;
 	private static final int TARGET_NPC_ID = 100;
 	private static final String ANCHOR_ID = "test.anchor";
 	private static final int PRODUCTION_TARGET_NPC_ID = 22859;
@@ -246,7 +256,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		final long expectedSeed = (_mode == Mode.ACQUISITION_PARITY) || (_mode == Mode.ACQUISITION_ATOMIC_RESTART) ? ACQUISITION_SEED : ((_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.POSITION_CANONICALIZATION) ? PRODUCTION_LOOT_UNBLOCK_SEED : SEED);
+		final boolean questCap = (_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "quest-cap".equals(System.getProperty("phantom.acquisition.focus", ""));
+		final long expectedSeed = questCap ? QUEST_CAP_SEED : (_mode == Mode.ACQUISITION_PARITY) || (_mode == Mode.ACQUISITION_ATOMIC_RESTART) ? ACQUISITION_SEED : ((_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.POSITION_CANONICALIZATION) ? PRODUCTION_LOOT_UNBLOCK_SEED : SEED);
 		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Goal 015 mode seed changed.");
 		if (_mode._database)
 		{
@@ -345,6 +356,11 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		if ("recipe-inventory".equals(focus))
 		{
 			registry.add("01-exact-background-recipe-inventory-read-boundary", this::testAcquisitionInventoryReadBoundary);
+			return;
+		}
+		if ("quest-cap".equals(focus))
+		{
+			registry.add("01-real-model-transaction-quest-cap-boundaries", this::testQuestCapBoundaries);
 			return;
 		}
 		registry.add("01-precommit-fault-matrix-is-atomic", _ -> testAcquisitionPrecommitFaults());
@@ -2885,6 +2901,231 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		}
 	}
 
+	private void testQuestCapBoundaries(PhantomTestContext context) throws Exception
+	{
+		final PhantomAcquisitionQuestCatalog catalog = PhantomAcquisitionQuestCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/acquisition/high-five-quest-collection-v1.xml"), context.moduleRoot().resolve("dist/game/data/scripts"));
+		PhantomAssertions.assertEquals(2, catalog.rules().size(), "Quest cap transaction route did not load exactly the curated Q00102/Q00152 rules.");
+		for (Rule rule : catalog.rules())
+		{
+			testQuestCapCommit(catalog, rule, 1, true);
+			testQuestCapCommit(catalog, rule, 2, false);
+		}
+		context.record("quest.capTransactionRules", catalog.rules().size());
+		context.record("quest.capTransactionSeed", QUEST_CAP_SEED);
+	}
+
+	private void testQuestCapCommit(PhantomAcquisitionQuestCatalog catalog, Rule rule, long required, boolean completes) throws Exception
+	{
+		try (QuestCapFixture fixture = createQuestCapFixture(new PhantomBackgroundTransaction(), catalog, rule, required))
+		{
+			final BatchResult batch = questCapBatch(fixture.ready(), rule);
+			PhantomAssertions.assertEquals(1L, batch.acquisitionTargetDelta(), "Real background model did not produce exact +1 at the quest cap boundary for " + rule.id() + ".");
+			PhantomAssertions.assertEquals(1L, batch.inventoryDelta().itemDeltas().get(rule.questItemId()), "Real background model lost the exact curated quest item delta.");
+			final PhantomBackgroundTransaction.Command command = questCommand(fixture, fixture.ready(), fixture.goal(), fixture.goalRowVersion(), fixture.acquisitionState(), fixture.stateRowVersion(), batch.progress(), batch.vitals(), new Clock(batch.nextRngState(), 0, 0), batch.inventoryDelta().itemDeltas(), 1);
+			final QuestAtomicSnapshot before = questAtomicSnapshot(fixture);
+			final Result result = fixture.transaction().execute(command);
+			PhantomAssertions.assertEquals(Status.SUCCESS, result.status(), "Exact quest cap transaction failed for " + rule.id() + "/required=" + required + ".");
+			final QuestAtomicSnapshot committed = questAtomicSnapshot(fixture);
+			final PhantomAcquisitionState acquisition = committed.acquisition().state();
+			PhantomAssertions.assertEquals((long) rule.itemCap(), committed.itemCount(), "Committed quest item count did not reach the exact cap.");
+			PhantomAssertions.assertEquals((long) rule.itemCap(), acquisition.lastObservedCount(), "Background cap transaction lost authoritative lastObservedCount.");
+			PhantomAssertions.assertEquals(1L, acquisition.progress(), "Background cap transaction lost exact partial progress.");
+			PhantomAssertions.assertEquals(Phase.NONE, acquisition.phase(), "Background cap transaction retained an executable phase.");
+			PhantomAssertions.assertEquals(0, acquisition.targetObjectId(), "Background cap transaction retained a target.");
+			PhantomAssertions.assertEquals(1L, acquisition.receipts().stream().filter(receipt -> receipt.kind() == ReceiptKind.BACKGROUND_QUEST_COLLECTION).count(), "Background cap transaction did not retain exactly one quest receipt.");
+			final var receipt = acquisition.receipts().getLast();
+			PhantomAssertions.assertEquals((long) rule.itemCap() - 1, receipt.beforeCount(), "Background quest cap receipt lost the pre-kill count.");
+			PhantomAssertions.assertEquals((long) rule.itemCap(), receipt.afterCount(), "Background quest cap receipt lost the committed cap count.");
+			PhantomAssertions.assertEquals(TerminalResult.COMMITTED, receipt.result(), "Background quest cap receipt is not committed.");
+			final QuestBinding historical = (QuestBinding) acquisition.methodBinding();
+			PhantomAssertions.assertEquals((long) rule.itemCap() - 1, historical.itemCountBeforeKill(), "Background cap transaction did not retain the valid historical binding.");
+			PhantomAssertions.assertTrue(historical.itemCountBeforeKill() < historical.itemCap(), "Background cap binding violates the executable baseline invariant.");
+			PhantomAssertions.assertEquals(0L, historical.callbackDeadlineMillis(), "Background cap binding retained a callback deadline.");
+			PhantomAssertions.assertEquals(before.questRows(), committed.questRows(), "Background cap transaction changed audited quest rows.");
+			final PhantomAcquisitionStateCodec codec = new PhantomAcquisitionStateCodec();
+			PhantomAssertions.assertTrue(Arrays.equals(codec.encode(result.acquisitionState()), codec.encode(acquisition)), "Post-commit verifier reconstruction is not byte-identical at the quest cap.");
+			if (completes)
+			{
+				PhantomAssertions.assertEquals(PhantomAcquisitionState.Status.COMPLETED, acquisition.status(), "Background completion exactly at cap did not complete acquisition state.");
+				PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, committed.goal().goal().status(), "Background completion exactly at cap did not atomically complete Goal.");
+			}
+			else
+			{
+				PhantomAssertions.assertEquals(PhantomAcquisitionState.Status.BLOCKED, acquisition.status(), "Background partial completion at cap did not block the exhausted source.");
+				PhantomAssertions.assertEquals(PhantomGoalStatus.ACTIVE, committed.goal().goal().status(), "Background partial completion at cap completed Goal.");
+				PhantomAssertions.assertEquals("quest.item_cap", acquisition.candidates().get(acquisition.sourceCursor()).lastFailureReason(), "Background partial completion at cap lost the typed candidate failure.");
+			}
+			PhantomAssertions.assertEquals(Status.IDEMPOTENT, fixture.transaction().execute(command).status(), "Exact background quest cap replay was not idempotent.");
+			PhantomAssertions.assertEquals(committed, questAtomicSnapshot(fixture), "Exact background quest cap replay changed item/background/Goal/acquisition/quest-row truth.");
+			if (!completes)
+			{
+				final PhantomBackgroundState currentBackground = fixture.transaction().load(fixture.profileId()).state();
+				final var currentGoal = fixture.goals().load(fixture.profileId()).orElseThrow();
+				final var currentAcquisition = fixture.acquisition().load(fixture.profileId()).orElseThrow();
+				final PhantomBackgroundTransaction.Command overCap = questCommand(fixture, currentBackground, currentGoal.goal(), currentGoal.rowVersion(), currentAcquisition.state(), currentAcquisition.rowVersion(), currentBackground.progress(), currentBackground.vitals(), new Clock(currentBackground.clock().rngState() + 1, 0, 0), Map.of(rule.questItemId(), 1L), 2);
+				final QuestAtomicSnapshot beforeConflict = questAtomicSnapshot(fixture);
+				PhantomAssertions.assertEquals(Status.ACQUISITION_CONFLICT, fixture.transaction().execute(overCap).status(), "Explicit background after > cap was not an acquisition conflict.");
+				PhantomAssertions.assertEquals(beforeConflict, questAtomicSnapshot(fixture), "Explicit background after > cap escaped atomic rollback or changed quest rows.");
+			}
+		}
+	}
+
+	private QuestCapFixture createQuestCapFixture(PhantomBackgroundTransaction transaction, PhantomAcquisitionQuestCatalog catalog, Rule rule, long required) throws Exception
+	{
+		final int characterObjectId = _environment.primary().objectId();
+		final Canonical canonical = canonical(characterObjectId);
+		final Map<String, String> originalQuestRows = questRows(characterObjectId, rule.questName());
+		final Map<String, String> expectedQuestRows = Map.of("<state>", "Started", "cond", Integer.toString(rule.allowedConds().getFirst()));
+		PhantomAssertions.assertTrue(rule.expectedVars().isEmpty(), "Quest cap fixture only supports the strictly audited pure kill-collection rows.");
+		PhantomAssertions.assertEquals(0L, scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=" + rule.questItemId() + " AND loc='INVENTORY'", characterObjectId), "Quest cap fixture started with a non-empty quest item stack.");
+		replaceQuestRows(characterObjectId, rule.questName(), expectedQuestRows);
+		final int itemObjectId = IdManager.getInstance().getNextId();
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("INSERT INTO items (owner_id,item_id,count,loc,loc_data,enchant_level,object_id,custom_type1,custom_type2,mana_left,time) VALUES (?,?,?,'INVENTORY',0,0,?,0,0,-1,-1)"))
+		{
+			statement.setInt(1, characterObjectId);
+			statement.setInt(2, rule.questItemId());
+			statement.setLong(3, rule.itemCap() - 1);
+			statement.setInt(4, itemObjectId);
+			statement.executeUpdate();
+		}
+		final PhantomProfile profile = _repository.create(characterObjectId);
+		Fixture background = null;
+		try
+		{
+			final long baseline = rule.itemCap() - 1;
+			final PhantomGoal goal = new PhantomGoal(21, PhantomAcquisitionGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("item", Integer.toString(rule.questItemId())), required, 0, PhantomAcquisitionCatalog.Method.QUEST_COLLECTION.key(), List.of(new PhantomDomainRef(PhantomAcquisitionGoalSpec.SOURCE_NAMESPACE, PhantomAcquisitionCatalog.Method.QUEST_COLLECTION.key())), new PhantomDomainRef(PhantomAcquisitionGoalSpec.ANCHOR_NAMESPACE, ANCHOR_ID), PhantomAcquisitionGoalSpec.PURPOSE_KEY, 500, 0, 0, 0, Map.of(PhantomAcquisitionGoalSpec.BASELINE_CONSTRAINT, baseline, PhantomAcquisitionGoalSpec.MAXIMUM_SWITCHES_CONSTRAINT, 4L), "acquisition.quest.cap.transaction", 0);
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_repository);
+			final var storedGoal = goals.insert(profile.profileId(), goal);
+			final Identity identity = new Identity(profile.profileId(), characterObjectId, 0, canonical.classId(), canonical.race());
+			final List<AutoGetSkill> skills = exactAutoGetSkills(identity, canonical.level());
+			ensureAutoGetSkills(identity, skills);
+			final PhantomBackgroundState materialized = new PhantomBackgroundState(State.MATERIALIZED, identity, new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()), new Vitals(canonical.currentHp(), canonical.maximumHp(), canonical.currentMp(), canonical.maximumMp(), canonical.currentCp(), canonical.maximumCp()), new Position(0, canonical.x(), canonical.y(), canonical.z(), canonical.heading(), ANCHOR_ID), combat(ModelKind.MELEE, 1, 1, 100), Loadout.none(), new InventoryFacts(List.of(rule.questItemId()), List.of(), "", 0, 1_000_000, 0, 100), skills, new Clock(QUEST_CAP_SEED, 0, 0), Receipt.empty(), HASHES);
+			Result captured = transaction.captureBaseline(materialized, goal);
+			PhantomAssertions.assertEquals(Status.SUCCESS, captured.status(), "Quest cap fixture background capture failed.");
+			final long grantRng = questGrantRng(captured.state(), rule);
+			if (grantRng != captured.state().clock().rngState())
+			{
+				captured = transaction.captureBaseline(withQuestClock(captured.state(), State.MATERIALIZED, grantRng), goal);
+				PhantomAssertions.assertEquals(Status.SUCCESS, captured.status(), "Quest cap fixture deterministic RNG recapture failed.");
+			}
+			final int targetNpcId = rule.targetNpcIds().getFirst();
+			final Source source = new Source(rule.ruleHash(), PhantomAcquisitionCatalog.Method.QUEST_COLLECTION, targetNpcId, rule.questItemId(), "quest:" + rule.id(), "quest.cap.node", ANCHOR_ID, 0, 0, 0, 0, 0);
+			final Candidate candidate = new Candidate(source.sourceId(), source.method(), 100, 0, 0, "");
+			final PhantomAcquisitionState.Hashes acquisitionHashes = new PhantomAcquisitionState.Hashes("a".repeat(64), "b".repeat(64), "c".repeat(64), "d".repeat(64), "e".repeat(64));
+			final QuestBinding binding = new QuestBinding(rule.id(), rule.ruleHash(), rule.questId(), rule.questName(), rule.scriptHash(), rule.requiredState(), rule.allowedConds().getFirst(), rule.questItemId(), rule.itemCap(), targetNpcId, baseline, 0, catalog.authorityHash());
+			final PhantomAcquisitionState state = new PhantomAcquisitionState(acquisitionHashes, goal.goalId(), goal.revision(), rule.questItemId(), required, baseline, baseline, 0, PhantomAcquisitionState.Status.READY, source, List.of(candidate), 0, 0, Phase.TARGET_REQUIRED, 0, 0, 0, null, binding, List.of(), 0, 1);
+			final PhantomAcquisitionStore acquisition = new PhantomAcquisitionStore(_repository, goals);
+			final var storedState = acquisition.insert(profile.profileId(), state);
+			background = new Fixture(profile.profileId(), characterObjectId, goal, transaction, captured.state(), canonical);
+			return new QuestCapFixture(new AcquisitionAtomicFixture(background, goals, acquisition, storedGoal.rowVersion(), storedState.rowVersion(), baseline, required), rule, expectedQuestRows, originalQuestRows);
+		}
+		catch (Exception | Error failure)
+		{
+			if (background != null)
+			{
+				background.close();
+			}
+			else
+			{
+				_repository.find(profile.profileId()).ifPresent(current -> _repository.delete(current.profileId(), current.rowVersion()));
+				restorePrimaryInventoryAndSkills(characterObjectId);
+			}
+			replaceQuestRows(characterObjectId, rule.questName(), originalQuestRows);
+			throw failure;
+		}
+	}
+
+	private static BatchResult questCapBatch(PhantomBackgroundState state, Rule rule)
+	{
+		final ItemTemplate item = ItemData.getInstance().getTemplate(rule.questItemId());
+		PhantomAssertions.assertTrue(item != null, "Curated quest item template is absent: " + rule.questItemId());
+		final Target target = new Target(rule.targetNpcIds().getFirst(), Math.max(1, state.progress().level()), true, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, List.of(), 0);
+		final QuestFormula formula = new QuestFormula(rule.rollBound(), rule.rollThreshold(), rule.maximumCount(), rule.itemCap() - 1, rule.itemCap());
+		return new PhantomBackgroundModel().evaluate(new BatchRequest(state, target, new RewardPolicy(11, 0, 0), deathPolicy(), experienceTable(), levelForExperience(), false, BatchMode.ACQUISITION_QUEST_COLLECTION, rule.questItemId(), 1, true, null, formula, 1, item.isStackable(), item.getWeight()));
+	}
+
+	private static long questGrantRng(PhantomBackgroundState state, Rule rule)
+	{
+		for (long rng = 1; rng <= 10_000; rng++)
+		{
+			if (questCapBatch(withQuestClock(state, State.READY, rng), rule).acquisitionTargetDelta() == 1)
+			{
+				return rng;
+			}
+		}
+		throw new AssertionError("No deterministic exact +1 quest cap grant was found for " + rule.id() + ".");
+	}
+
+	private static PhantomBackgroundState withQuestClock(PhantomBackgroundState state, State nextState, long rng)
+	{
+		return new PhantomBackgroundState(nextState, state.identity(), state.progress(), state.vitals(), state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), new Clock(rng, 0, 0), state.receipt(), state.hashes());
+	}
+
+	private static PhantomBackgroundTransaction.Command questCommand(QuestCapFixture fixture, PhantomBackgroundState background, PhantomGoal goal, long goalRowVersion, PhantomAcquisitionState acquisition, long stateRowVersion, Progress progress, Vitals vitals, Clock clock, Map<Integer, Long> itemDeltas, long tickSequence) throws Exception
+	{
+		final QuestBinding binding = (QuestBinding) acquisition.methodBinding();
+		final Source source = acquisition.selectedSource();
+		final AcquisitionIdentity identity = new AcquisitionIdentity(source.sourceId(), stateRowVersion, acquisition.targetItemId(), acquisition.hashes().catalog(), acquisition.hashes().background(), HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(binding.toString().getBytes(StandardCharsets.UTF_8))), binding.itemCountBeforeKill());
+		final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(fixture.profileId(), fixture.characterObjectId(), goal.goalId(), goal.revision(), 1, tickSequence, ActionKind.ACQUISITION_QUEST_COLLECTION, source.npcId(), source.anchorId(), PhantomBackgroundState.MODEL_VERSION, background.hashes(), identity);
+		final var mutation = new PhantomBackgroundTransaction.AcquisitionMutation(acquisition, stateRowVersion, goalRowVersion, ReceiptKind.BACKGROUND_QUEST_COLLECTION, tickSequence, Map.of(), fixture.expectedQuestRows());
+		return new PhantomBackgroundTransaction.Command(background, goal, key, progress, vitals, background.position(), clock, itemDeltas, background.autoGetSkills(), List.of(acquisition.targetItemId()), mutation);
+	}
+
+	private QuestAtomicSnapshot questAtomicSnapshot(QuestCapFixture fixture) throws Exception
+	{
+		return new QuestAtomicSnapshot(fixture.transaction().load(fixture.profileId()).state(), fixture.goals().load(fixture.profileId()).orElseThrow(), fixture.acquisition().load(fixture.profileId()).orElseThrow(), scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=" + fixture.rule().questItemId() + " AND loc='INVENTORY'", fixture.characterObjectId()), questRows(fixture.characterObjectId(), fixture.rule().questName()));
+	}
+
+	private static Map<String, String> questRows(int characterObjectId, String questName) throws Exception
+	{
+		final Map<String, String> result = new LinkedHashMap<>();
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("SELECT var,value FROM character_quests WHERE charId=? AND name=? ORDER BY var"))
+		{
+			statement.setInt(1, characterObjectId);
+			statement.setString(2, questName);
+			try (ResultSet rows = statement.executeQuery())
+			{
+				while (rows.next())
+				{
+					result.put(rows.getString(1), rows.getString(2));
+				}
+			}
+		}
+		return Map.copyOf(result);
+	}
+
+	private static void replaceQuestRows(int characterObjectId, String questName, Map<String, String> rows) throws Exception
+	{
+		try (Connection connection = DatabaseFactory.getConnection())
+		{
+			connection.setAutoCommit(false);
+			try (PreparedStatement delete = connection.prepareStatement("DELETE FROM character_quests WHERE charId=? AND name=?");
+				PreparedStatement insert = connection.prepareStatement("INSERT INTO character_quests (charId,name,var,value) VALUES (?,?,?,?)"))
+			{
+				delete.setInt(1, characterObjectId);
+				delete.setString(2, questName);
+				delete.executeUpdate();
+				for (var entry : rows.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList())
+				{
+					insert.setInt(1, characterObjectId);
+					insert.setString(2, questName);
+					insert.setString(3, entry.getKey());
+					insert.setString(4, entry.getValue());
+					insert.addBatch();
+				}
+				insert.executeBatch();
+				connection.commit();
+			}
+			catch (Exception | Error failure)
+			{
+				connection.rollback();
+				throw failure;
+			}
+		}
+	}
+
 	private void testAcquisitionOperationIdentity()
 	{
 		final PhantomBackgroundOperationKey ordinary = new PhantomBackgroundOperationKey(1, 2, 3, 4, 5, 6, ActionKind.FARM, 7, "anchor", 3, HASHES);
@@ -3727,6 +3968,14 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	{
 	}
 
+	private record QuestAtomicSnapshot(PhantomBackgroundState background, PhantomGoalStateStore.StoredGoal goal, PhantomAcquisitionStore.StoredState acquisition, long itemCount, Map<String, String> questRows)
+	{
+		private QuestAtomicSnapshot
+		{
+			questRows = Map.copyOf(questRows);
+		}
+	}
+
 	private record AcquisitionAtomicFixture(Fixture background, PhantomGoalStateStore goals, PhantomAcquisitionStore acquisition, long goalRowVersion, long stateRowVersion, long baselineCount, long requiredAmount) implements AutoCloseable
 	{
 		private long profileId()
@@ -3758,6 +4007,78 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		public void close() throws Exception
 		{
 			background.close();
+		}
+	}
+
+	private record QuestCapFixture(AcquisitionAtomicFixture atomic, Rule rule, Map<String, String> expectedQuestRows, Map<String, String> originalQuestRows) implements AutoCloseable
+	{
+		private QuestCapFixture
+		{
+			expectedQuestRows = Map.copyOf(expectedQuestRows);
+			originalQuestRows = Map.copyOf(originalQuestRows);
+		}
+
+		private long profileId()
+		{
+			return atomic.profileId();
+		}
+
+		private int characterObjectId()
+		{
+			return atomic.characterObjectId();
+		}
+
+		private PhantomGoal goal()
+		{
+			return atomic.goal();
+		}
+
+		private PhantomBackgroundTransaction transaction()
+		{
+			return atomic.transaction();
+		}
+
+		private PhantomBackgroundState ready()
+		{
+			return atomic.ready();
+		}
+
+		private PhantomGoalStateStore goals()
+		{
+			return atomic.goals();
+		}
+
+		private PhantomAcquisitionStore acquisition()
+		{
+			return atomic.acquisition();
+		}
+
+		private long goalRowVersion()
+		{
+			return atomic.goalRowVersion();
+		}
+
+		private long stateRowVersion()
+		{
+			return atomic.stateRowVersion();
+		}
+
+		private PhantomAcquisitionState acquisitionState()
+		{
+			return acquisition().load(profileId()).orElseThrow().state();
+		}
+
+		@Override
+		public void close() throws Exception
+		{
+			try
+			{
+				atomic.close();
+			}
+			finally
+			{
+				replaceQuestRows(characterObjectId(), rule.questName(), originalQuestRows);
+			}
 		}
 	}
 

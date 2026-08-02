@@ -1558,10 +1558,23 @@
 	</target>
 
 	<target name="phantom-acquisition-quest-background-test" depends="compile-tests" description="Run deterministic quest projection, restart and atomic ownership tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
 			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
 			<arg value="acquisition-quest-background" />
+			<arg value="${phantom.goal021c2.seed}" />
+		</java>
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<jvmarg value="-Dphantom.acquisition.focus=quest-cap" />
+			<arg value="acquisition-atomic-restart" />
 			<arg value="${phantom.goal021c2.seed}" />
 		</java>
 	</target>

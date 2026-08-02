@@ -955,14 +955,24 @@ public final class PhantomAcquisitionService
 			return failSource(current, "quest.invalid_delta", logicalMinute);
 		}
 		final Receipt proof = receipt(current.state(), ReceiptKind.ACTIVE_QUEST_COLLECTION, before, count, TerminalResult.OBSERVED, logicalMinute);
-		final QuestBinding observedBinding = questBinding(binding, count, 0);
-		final PhantomAcquisitionState observed = current.state().observeBound(count, Status.READY, Phase.TARGET_REQUIRED, 0, 0, 0, observedBinding, 0, proof, logicalMinute);
+		final boolean capReached = count == binding.itemCap();
+		final QuestBinding observedBinding = questBinding(binding, capReached ? before : count, 0);
+		PhantomAcquisitionState observed = current.state().observeBound(count, Status.READY, capReached ? Phase.NONE : Phase.TARGET_REQUIRED, 0, 0, 0, observedBinding, 0, proof, logicalMinute);
+		if (capReached && (observed.status() != Status.COMPLETED))
+		{
+			observed = observed.failSource("quest.item_cap", logicalMinute);
+		}
 		final PhantomGoal projected = PhantomAcquisitionGoalSpec.project(current.goal().goal(), observed.progress(), observed.status() == Status.COMPLETED ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.ACTIVE, observed.selectedSource());
 		_store.mutateWithGoal(current.profileId(), current.acquisition().rowVersion(), observed, current.goal().rowVersion(), projected);
 		if (observed.status() == Status.COMPLETED)
 		{
 			_completed.incrementAndGet();
 			return OperationResult.complete("acquisition.complete");
+		}
+		if (capReached)
+		{
+			_blocked.incrementAndGet();
+			return OperationResult.replan("quest.item_cap");
 		}
 		return OperationResult.success("acquisition.quest.collection_observed");
 	}

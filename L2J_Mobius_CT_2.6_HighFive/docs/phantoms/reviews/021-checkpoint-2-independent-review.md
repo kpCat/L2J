@@ -13,19 +13,27 @@
   `906b8a043320deb955da02276cf27797e0c5fadd`.
 - Terminal foundation subject:
   `fix(phantoms): close manor attribution and quest service recovery`.
-- Final exact-delta child subject:
+- Exact-delta child:
+  `0c41280632617f50d4bd133b59b81326e3b6d3f6`.
+- Exact-delta child subject:
   `fix(phantoms): enforce exact quest callback item delta`.
+- Final cap-boundary child subject:
+  `fix(phantoms): close quest collection cap boundary`.
 
 Это второй и последний заранее запланированный checkpoint Goal 021, не 021A/021B.
 Только независимый reviewer может заменить pending-статус на `ACCEPT`.
 
 ## Что проверить
 
-- Exact ordinary ancestry и subjects всей цепочки C1/C2; exact-delta completion
-  должен быть ровно одним прямым child `906b8a04…`, verifier —
+- Exact ordinary ancestry и subjects всей цепочки C1/C2; cap-boundary completion
+  должен быть ровно одним прямым child `0c412806…`, verifier —
   descendant-compatible.
+- Active `8→9`/`3→4`: completion/partial и legacy `VERIFYING` сохраняют exact
+  receipt, valid historical binding и schema-3 round-trip; partial блокирует source.
+- Background real model/transaction `8→9`/`3→4`: exact rows неизменны, replay и
+  post-commit reconstruction byte-identical, partial blocked, `after > cap` rollback.
 - Cumulative C2 scope считается от accepted C1, final micro scope — отдельно:
-  не более 7 файлов, не более 2 production/data/config, 0 новых production/data.
+  не более 9 файлов, не более 3 production/data/config, 0 новых production/data.
 - Immutable loaded `NpcSpawnTerritory` geometry, canonical SpawnData identity,
   topology dataset 2 и точные `35/15/20` territory facts не изменены.
 - `MANOR_CROP`: внешний delta создаёт только `VERIFY`, обновляет overall progress и

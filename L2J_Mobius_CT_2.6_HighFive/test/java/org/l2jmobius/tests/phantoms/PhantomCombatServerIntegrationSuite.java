@@ -911,6 +911,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertEquals(1L, acquisitionState().receipts().stream().filter(receipt -> receipt.kind() == ReceiptKind.ACTIVE_QUEST_COLLECTION).count(), "Legacy VERIFYING exact +1 lacks its dedicated receipt.");
 			assertInvalidQuestDelta(prepareQuestDeltaScenario(source, 0, 2, 1, Phase.VERIFYING), "quest.invalid_delta", "Legacy VERIFYING +2 was accepted for " + rule.id() + ".");
 
+			assertQuestCapBoundary(source, Phase.QUEST_CALLBACK_WAIT, 1, true);
+			assertQuestCapBoundary(source, Phase.QUEST_CALLBACK_WAIT, 2, false);
+			assertQuestCapBoundary(source, Phase.VERIFYING, 1, true);
+			assertQuestCapBoundary(source, Phase.VERIFYING, 2, false);
+			assertQuestTruth(rule, initialQuestTruth);
+
 			scenario = prepareQuestDeltaScenario(source, 0, 0, 1, Phase.QUEST_COMBAT_PREPARED);
 			final PhantomAcquisitionState beforeSubmission = acquisitionState();
 			final String owner = "acquisition:" + canonicalDigest(beforeSubmission.goalId(), beforeSubmission.goalRevision(), beforeSubmission.selectedSource().sourceId(), beforeSubmission.targetObjectId()).substring(0, 48);
@@ -928,6 +934,51 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertEquals(0, _acquisition.snapshot().currentClaims(), "Exact-delta terminal paths retained a state claim.");
 		PhantomAssertions.assertEquals(0, _acquisition.snapshot().externalClaims(), "Exact-delta terminal paths retained an external claim.");
 		PhantomAssertions.assertEquals(0, _acquisition.snapshot().navigationClaims(), "Exact-delta terminal paths retained navigation ownership.");
+	}
+
+	private void assertQuestCapBoundary(QuestSource source, Phase phase, long required, boolean completes)
+	{
+		final Rule rule = source.rule();
+		final long before = rule.itemCap() - 1;
+		final QuestDeltaScenario scenario = prepareQuestDeltaScenario(source, before, rule.itemCap(), required, phase);
+		final PhantomAcquisitionService.OperationResult result = advanceAcquisition(scenario.goal(), 45 + _acquisitionRevision);
+		PhantomAssertions.assertEquals(completes ? PhantomAcquisitionService.OperationStatus.COMPLETE_GOAL : PhantomAcquisitionService.OperationStatus.REPLAN, result.status(), "Exact cap boundary returned the wrong operation status for " + rule.id() + "/" + phase + "/required=" + required + ".");
+		final PhantomAcquisitionState observed = acquisitionState();
+		PhantomAssertions.assertEquals((long) rule.itemCap(), observed.lastObservedCount(), "Exact cap boundary lost the authoritative cap count.");
+		PhantomAssertions.assertEquals(1L, observed.progress(), "Exact cap boundary lost its single-item progress.");
+		PhantomAssertions.assertEquals(Phase.NONE, observed.phase(), "Exact cap boundary retained an executable phase.");
+		PhantomAssertions.assertEquals(0, observed.targetObjectId(), "Exact cap boundary retained its target object.");
+		PhantomAssertions.assertEquals(0, observed.targetNpcId(), "Exact cap boundary retained its target NPC.");
+		PhantomAssertions.assertEquals(0, observed.targetInstanceId(), "Exact cap boundary retained its target instance.");
+		PhantomAssertions.assertEquals(1L, observed.receipts().stream().filter(receipt -> receipt.kind() == ReceiptKind.ACTIVE_QUEST_COLLECTION).count(), "Exact cap boundary did not retain exactly one ACTIVE_QUEST_COLLECTION receipt.");
+		final var receipt = observed.receipts().getLast();
+		PhantomAssertions.assertEquals(before, receipt.beforeCount(), "Exact cap receipt lost its persisted pre-kill baseline.");
+		PhantomAssertions.assertEquals((long) rule.itemCap(), receipt.afterCount(), "Exact cap receipt lost its authoritative after-count.");
+		PhantomAssertions.assertEquals(TerminalResult.OBSERVED, receipt.result(), "Exact cap receipt is not an observed active grant.");
+		final QuestBinding historical = (QuestBinding) observed.methodBinding();
+		PhantomAssertions.assertEquals(before, historical.itemCountBeforeKill(), "Persisted cap binding is not the valid historical pre-kill binding.");
+		PhantomAssertions.assertTrue(historical.itemCountBeforeKill() < historical.itemCap(), "Persisted cap binding violates the executable baseline invariant.");
+		PhantomAssertions.assertEquals(0L, historical.callbackDeadlineMillis(), "Persisted cap binding retained a callback deadline.");
+		final var codec = new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStateCodec();
+		PhantomAssertions.assertEquals(observed, codec.decode(codec.encode(observed)), "Exact cap schema-3 acquisition state did not round-trip.");
+		if (completes)
+		{
+			PhantomAssertions.assertEquals(Status.COMPLETED, observed.status(), "Completion exactly at cap did not complete acquisition state.");
+			PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, _acquisitionGoals.load(_profile.profileId()).orElseThrow().goal().status(), "Completion exactly at cap did not atomically complete Goal.");
+		}
+		else
+		{
+			PhantomAssertions.assertEquals("quest.item_cap", result.reasonKey(), "Partial exact cap boundary lost its typed source-exhaustion reason.");
+			PhantomAssertions.assertEquals(Status.BLOCKED, observed.status(), "Partial completion at cap did not block the exhausted quest source.");
+			PhantomAssertions.assertEquals(PhantomGoalStatus.ACTIVE, _acquisitionGoals.load(_profile.profileId()).orElseThrow().goal().status(), "Partial completion at cap completed Goal.");
+			PhantomAssertions.assertEquals("quest.item_cap", observed.candidates().get(observed.sourceCursor()).lastFailureReason(), "Partial completion at cap did not record the candidate failure.");
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.DirectiveKind.SWITCH, _acquisition.directive(_profile.profileId(), scenario.goal(), PhantomActivityState.ACTIVE).kind(), "Partial completion at cap did not direct a source switch.");
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.REPLAN, advanceAcquisition(scenario.goal(), 46 + _acquisitionRevision).status(), "A subsequent active advance executed the exhausted quest source.");
+			PhantomAssertions.assertTrue(_combat.find(_profile.profileId()).isEmpty(), "Blocked cap boundary retained or started Combat.");
+		}
+		PhantomAssertions.assertEquals(0, _acquisition.snapshot().currentClaims(), "Exact cap boundary retained a state claim.");
+		PhantomAssertions.assertEquals(0, _acquisition.snapshot().externalClaims(), "Exact cap boundary retained an external claim.");
+		PhantomAssertions.assertEquals(0, _acquisition.snapshot().navigationClaims(), "Exact cap boundary retained navigation ownership.");
 	}
 
 	private QuestDeltaScenario prepareQuestDeltaScenario(QuestSource source, long before, long after, long required, Phase phase)
