@@ -58,6 +58,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Clock;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Limits;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ManorBinding;
@@ -103,6 +104,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private final PhantomPartyParticipationPort _partyParticipation;
 	private volatile PhantomAcquisitionManorAuthority _manor;
 	private volatile PhantomAcquisitionQuestCatalog _quests;
+	private volatile Limits _acquisitionLimits;
 	private final ConcurrentHashMap<Long, Boolean> _operations = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, TransitionKind> _transitions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Integer, Lease> _retainedIdentityLeases = new ConcurrentHashMap<>();
@@ -188,16 +190,18 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return true;
 	}
 
-	public synchronized boolean installAcquisitionAuthorities(PhantomAcquisitionManorAuthority manor, PhantomAcquisitionQuestCatalog quests)
+	public synchronized boolean installAcquisitionAuthorities(PhantomAcquisitionManorAuthority manor, PhantomAcquisitionQuestCatalog quests, Limits acquisitionLimits)
 	{
 		Objects.requireNonNull(manor, "manor");
 		Objects.requireNonNull(quests, "quests");
-		if ((_state != ServiceState.RUNNING) || (_manor != null) || (_quests != null))
+		Objects.requireNonNull(acquisitionLimits, "acquisitionLimits");
+		if ((_state != ServiceState.RUNNING) || (_manor != null) || (_quests != null) || (_acquisitionLimits != null))
 		{
 			return false;
 		}
 		_manor = manor;
 		_quests = quests;
+		_acquisitionLimits = acquisitionLimits;
 		return true;
 	}
 
@@ -374,7 +378,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				input = _authority.acquisitionInput(background, acquisitionState.selectedSource(), eligibilitySkills);
 				if (acquisitionState.methodBinding() instanceof ManorBinding manor)
 				{
-					if ((_manor == null) || !manor.authorityHash().equals(_manor.authorityHash()))
+					if ((_manor == null) || (_acquisitionLimits == null) || !manor.authorityHash().equals(_manor.authorityHash()))
 					{
 						return OperationResult.replan("acquisition.manor.authority_stale");
 					}
@@ -384,7 +388,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 						return OperationResult.replan("acquisition.manor.inventory_stale");
 					}
 					final var projection = _manor.projection(manor, acquisitionState.selectedSource().npcId(), background.progress().level(), input.target().level());
-					manorFormula = new ManorFormula(manor.seedItemId(), manor.cropItemId(), manor.seedCountBeforeDispatch(), projection.sowChance(), projection.harvestChance(), projection.harvestPayload(), 3, 3);
+					manorFormula = new ManorFormula(manor.seedItemId(), manor.cropItemId(), manor.seedCountBeforeDispatch(), projection.sowChance(), projection.harvestChance(), projection.harvestPayload(), _acquisitionLimits.manorAttemptsPerTarget(), _acquisitionLimits.harvestAttemptsPerCorpse());
 				}
 				else if (acquisitionState.methodBinding() instanceof QuestBinding quest)
 				{

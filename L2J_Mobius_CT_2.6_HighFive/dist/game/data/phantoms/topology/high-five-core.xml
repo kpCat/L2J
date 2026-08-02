@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="1">
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="2">
 	<node id="giran.region" kind="WORLD_REGION" instanceId="0" form="CUBOID" minX="73000" maxX="93000" minY="138000" maxY="158000" minZ="-5000" maxZ="0" tags="city-cluster">
 		<source path="data/mapregion/giran_castle_town.xml" />
 	</node>
@@ -16,6 +16,113 @@
 	<node id="giran.farming.22859" kind="FARMING_AREA" instanceId="0" form="POINT_RADIUS" x="87439" y="121072" z="-3061" radius="500" tags="outdoor-farming">
 		<source path="data/stats/npcs/22800-22899.xml" />
 		<source path="data/spawns/Others/22_21.xml" />
+	</node>
+	<node id="elven.farming.oren04-2019-02s" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3621" maxZ="-3321" tags="outdoor-farming">
+		<vertex x="23468" y="49748" />
+		<vertex x="25588" y="50092" />
+		<vertex x="26440" y="51980" />
+		<vertex x="24172" y="51904" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren04-2019-03s" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3728" maxZ="-3528" tags="outdoor-farming">
+		<vertex x="22492" y="45432" />
+		<vertex x="23736" y="46732" />
+		<vertex x="22692" y="48136" />
+		<vertex x="21628" y="46656" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren04-2019-07s" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3772" maxZ="-3572" tags="outdoor-farming">
+		<vertex x="18060" y="42996" />
+		<vertex x="18964" y="42428" />
+		<vertex x="20436" y="43088" />
+		<vertex x="19040" y="44252" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren04-2019-08s" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3764" maxZ="-3364" tags="outdoor-farming">
+		<vertex x="16536" y="44676" />
+		<vertex x="18188" y="45872" />
+		<vertex x="17952" y="47556" />
+		<vertex x="16056" y="46308" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren04-2019-10s" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3728" maxZ="-3428" tags="outdoor-farming">
+		<vertex x="14508" y="51192" />
+		<vertex x="16772" y="51340" />
+		<vertex x="17776" y="53036" />
+		<vertex x="15304" y="53352" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren04-2019-11s" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3712" maxZ="-3412" tags="outdoor-farming">
+		<vertex x="9892" y="54772" />
+		<vertex x="11104" y="53684" />
+		<vertex x="12000" y="54848" />
+		<vertex x="10868" y="56616" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren04-2019-15s" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3764" maxZ="-3464" tags="outdoor-farming">
+		<vertex x="5484" y="52472" />
+		<vertex x="7124" y="51316" />
+		<vertex x="9028" y="52224" />
+		<vertex x="6924" y="53820" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren04-2019-16s" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3784" maxZ="-3584" tags="outdoor-farming">
+		<vertex x="9388" y="48492" />
+		<vertex x="10436" y="49160" />
+		<vertex x="10492" y="50664" />
+		<vertex x="8980" y="50620" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren04-2019-19s" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3652" maxZ="-3352" tags="outdoor-farming">
+		<vertex x="23300" y="58256" />
+		<vertex x="25180" y="58048" />
+		<vertex x="26728" y="59872" />
+		<vertex x="24956" y="60272" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren04-2019-21" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3676" maxZ="-3276" tags="outdoor-farming">
+		<vertex x="12588" y="58332" />
+		<vertex x="13904" y="58872" />
+		<vertex x="12968" y="61688" />
+		<vertex x="11192" y="60712" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren04-2019-241s" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3540" maxZ="-3140" tags="outdoor-farming">
+		<vertex x="26612" y="57152" />
+		<vertex x="28340" y="56928" />
+		<vertex x="29132" y="57744" />
+		<vertex x="28316" y="59252" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren06-2120-04" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3700" maxZ="-3200" tags="outdoor-farming">
+		<vertex x="53316" y="74393" />
+		<vertex x="54333" y="74550" />
+		<vertex x="55121" y="75617" />
+		<vertex x="53217" y="75174" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren06-2120-06" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3760" maxZ="-3260" tags="outdoor-farming">
+		<vertex x="56917" y="82638" />
+		<vertex x="57718" y="83510" />
+		<vertex x="56735" y="84849" />
+		<vertex x="54852" y="85111" />
+		<vertex x="55620" y="83715" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="elven.farming.oren06-2120-07" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3812" maxZ="-3312" tags="outdoor-farming">
+		<vertex x="54901" y="85087" />
+		<vertex x="56548" y="84867" />
+		<vertex x="56490" y="87879" />
+		<vertex x="54520" y="87832" />
+		<vertex x="55152" y="86055" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="talking-island.farming.gludio31-1624-11s" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3814" maxZ="-3314" tags="outdoor-farming">
+		<vertex x="-104681" y="226275" />
+		<vertex x="-102189" y="226251" />
+		<vertex x="-102039" y="228239" />
+		<vertex x="-105068" y="227850" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
 	</node>
 	<node id="ssq.necropolis.past" kind="DUNGEON" instanceId="0" form="CUBOID" minX="-90200" maxX="-88000" minY="217500" maxY="221000" minZ="-7800" maxZ="-7300" tags="instance-template">
 		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />
@@ -45,6 +152,51 @@
 	<anchor id="giran.farming.22859" role="FARMING" nodeId="giran.farming.22859" x="87439" y="121072" z="-3061" instanceId="0" npcId="22859" tolerance="5" tags="monster-spawn">
 		<source path="data/stats/npcs/22800-22899.xml" />
 		<source path="data/spawns/Others/22_21.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren04-2019-02s" role="FARMING" nodeId="elven.farming.oren04-2019-02s" x="24954" y="50864" z="-3400" instanceId="0" tolerance="71" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren04-2019-03s" role="FARMING" nodeId="elven.farming.oren04-2019-03s" x="22682" y="46784" z="-3624" instanceId="0" tolerance="4" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren04-2019-07s" role="FARMING" nodeId="elven.farming.oren04-2019-07s" x="19248" y="43340" z="-3712" instanceId="0" tolerance="40" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren04-2019-08s" role="FARMING" nodeId="elven.farming.oren04-2019-08s" x="17170" y="46114" z="-3568" instanceId="0" tolerance="4" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren04-2019-10s" role="FARMING" nodeId="elven.farming.oren04-2019-10s" x="16057" y="52260" z="-3544" instanceId="0" tolerance="34" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren04-2019-11s" role="FARMING" nodeId="elven.farming.oren04-2019-11s" x="10946" y="55150" z="-3472" instanceId="0" tolerance="90" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren04-2019-15s" role="FARMING" nodeId="elven.farming.oren04-2019-15s" x="7256" y="52568" z="-3576" instanceId="0" tolerance="38" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren04-2019-16s" role="FARMING" nodeId="elven.farming.oren04-2019-16s" x="9736" y="49578" z="-3664" instanceId="0" tolerance="20" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren04-2019-19s" role="FARMING" nodeId="elven.farming.oren04-2019-19s" x="25030" y="59118" z="-3456" instanceId="0" tolerance="46" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren04-2019-21" role="FARMING" nodeId="elven.farming.oren04-2019-21" x="12638" y="59980" z="-3440" instanceId="0" tolerance="36" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren04-2019-241s" role="FARMING" nodeId="elven.farming.oren04-2019-241s" x="28022" y="57840" z="-3376" instanceId="0" tolerance="36" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren06-2120-04" role="FARMING" nodeId="elven.farming.oren06-2120-04" x="54169" y="75005" z="-3544" instanceId="0" tolerance="94" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren06-2120-06" role="FARMING" nodeId="elven.farming.oren06-2120-06" x="56378" y="84000" z="-3560" instanceId="0" tolerance="50" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="elven.farming.oren06-2120-07" role="FARMING" nodeId="elven.farming.oren06-2120-07" x="55713" y="86477" z="-3600" instanceId="0" tolerance="38" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="talking-island.farming.gludio31-1624-11s" role="FARMING" nodeId="talking-island.farming.gludio31-1624-11s" x="-103448" y="227187" z="-3672" instanceId="0" tolerance="108" tags="monster-spawn">
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
 	</anchor>
 	<anchor id="ssq.necropolis.past.room.first.center" role="ROOM_CENTER" nodeId="ssq.necropolis.past.room.first" x="-89300" y="217920" z="-7490" instanceId="0" tolerance="0" tags="room">
 		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />

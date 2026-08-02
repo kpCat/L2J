@@ -48,6 +48,13 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Ski
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnAreaFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnPointKind;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TerritoryGeometry;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TerritoryVertex;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNode;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNodeKind;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 
@@ -57,6 +64,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
  */
 public final class PhantomGameKnowledgeBuilder
 {
+	private static final int ACTIVE_TARGET_DISTANCE = 2000;
 	public static final Set<String> REQUIRED_CAPABILITIES = Set.of(
 		"combat.tank",
 		"combat.heal",
@@ -122,6 +130,10 @@ public final class PhantomGameKnowledgeBuilder
 				final String nodeId = _topology.mostSpecificNode(new PhantomTopologyPoint(fact.x(), fact.y(), fact.z(), fact.instanceId())).map(node -> node.id()).orElse(null);
 				result.add(fact.withTopology(nodeId));
 			}
+			else if (fact.pointKind() == SpawnPointKind.TERRITORY_POLYGON)
+			{
+				result.add(fact.withTopology(exactTerritoryNode(fact)));
+			}
 			else
 			{
 				result.add(fact);
@@ -129,6 +141,61 @@ public final class PhantomGameKnowledgeBuilder
 		}
 		result.sort(Comparator.comparingInt(SpawnFact::npcId).thenComparingInt(SpawnFact::spawnOrdinal));
 		return List.copyOf(result);
+	}
+
+	private String exactTerritoryNode(SpawnFact fact)
+	{
+		final TerritoryGeometry geometry = fact.territoryGeometry();
+		final List<PhantomTopologyNode> matches = _topology.snapshot().nodes().stream().filter(node -> (node.kind() == PhantomTopologyNodeKind.FARMING_AREA) && (node.instanceId() == fact.instanceId()) && (node.area().form() == PhantomTopologyArea.Form.POLYGON) && (node.area().minZ() == geometry.main().lowZ()) && (node.area().maxZ() == geometry.main().highZ()) && node.sourceRefs().contains(geometry.sourcePath()) && sameCycle(geometry.main().vertices(), node.area().vertices()) && hasFeasibleAnchor(node)).toList();
+		return matches.size() == 1 ? matches.getFirst().id() : null;
+	}
+
+	private boolean hasFeasibleAnchor(PhantomTopologyNode node)
+	{
+		final long maximumSquared = (long) ACTIVE_TARGET_DISTANCE * ACTIVE_TARGET_DISTANCE;
+		return _topology.snapshot().anchorsByNode().getOrDefault(node.id(), List.of()).stream().filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.FARMING).anyMatch(anchor -> maximumVertexDistanceSquared(anchor, node.area().vertices()) <= maximumSquared);
+	}
+
+	private static long maximumVertexDistanceSquared(PhantomTopologyAnchor anchor, List<PhantomTopologyArea.Vertex> vertices)
+	{
+		long maximum = 0;
+		for (PhantomTopologyArea.Vertex vertex : vertices)
+		{
+			final long dx = (long) anchor.point().x() - vertex.x();
+			final long dy = (long) anchor.point().y() - vertex.y();
+			maximum = Math.max(maximum, (dx * dx) + (dy * dy));
+		}
+		return maximum;
+	}
+
+	private static boolean sameCycle(List<TerritoryVertex> loaded, List<PhantomTopologyArea.Vertex> topology)
+	{
+		if (loaded.size() != topology.size())
+		{
+			return false;
+		}
+		for (int start = 0; start < topology.size(); start++)
+		{
+			if (sameCycle(loaded, topology, start, 1) || sameCycle(loaded, topology, start, -1))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean sameCycle(List<TerritoryVertex> loaded, List<PhantomTopologyArea.Vertex> topology, int start, int direction)
+	{
+		for (int index = 0; index < loaded.size(); index++)
+		{
+			final TerritoryVertex first = loaded.get(index);
+			final PhantomTopologyArea.Vertex second = topology.get(Math.floorMod(start + (direction * index), topology.size()));
+			if ((first.x() != second.x()) || (first.y() != second.y()))
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static boolean isWithinWorldBounds(SpawnFact fact)
@@ -139,6 +206,7 @@ public final class PhantomGameKnowledgeBuilder
 	private List<SpawnAreaFact> aggregateSpawnAreas(List<SpawnFact> spawns)
 	{
 		final HashMap<AreaKey, AreaAccumulator> mutable = new HashMap<>();
+		final Set<Integer> withUnmappedTerritories = spawns.stream().filter(spawn -> (spawn.pointKind() == SpawnPointKind.TERRITORY_POLYGON) && (spawn.topologyNodeId() == null)).map(SpawnFact::npcId).collect(java.util.stream.Collectors.toUnmodifiableSet());
 		for (SpawnFact spawn : spawns)
 		{
 			mutable.computeIfAbsent(new AreaKey(spawn.npcId(), spawn.instanceId(), spawn.topologyNodeId(), spawn.mapRegionLocId()), _ -> new AreaAccumulator()).add(spawn, _policy.maximumSpawnSamples());
@@ -149,7 +217,7 @@ public final class PhantomGameKnowledgeBuilder
 			final AreaKey key = entry.getKey();
 			final AreaAccumulator value = entry.getValue();
 			final PhantomGameKnowledgeAuthority authority = key._topologyNodeId == null ? PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT : PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT;
-			result.add(new SpawnAreaFact(key._npcId, key._instanceId, key._topologyNodeId, key._mapRegionLocId, value._count, value._amount, value._representativePoints, authority));
+			result.add(new SpawnAreaFact(key._npcId, key._instanceId, key._topologyNodeId, key._mapRegionLocId, value._count, value._amount, value._representativePoints, authority, withUnmappedTerritories.contains(key._npcId)));
 		}
 		result.sort(Comparator.comparing(SpawnAreaFact::stableKey));
 		return List.copyOf(result);

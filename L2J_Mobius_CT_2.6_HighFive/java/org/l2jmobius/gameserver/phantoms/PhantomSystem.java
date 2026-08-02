@@ -287,7 +287,7 @@ public final class PhantomSystem
 				final File questCollectionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-quest-collection-v1.xml");
 				final PhantomAcquisitionQuestCatalog questCollectionCatalog = PhantomAcquisitionQuestCatalog.load(questCollectionCatalogFile.toPath(), new File(ServerConfig.DATAPACK_ROOT, "data/scripts").toPath());
 				final PhantomAcquisitionManorAuthority manorAuthority = new PhantomAcquisitionManorAuthority(_gameKnowledgeService.query(), _topologyService.query(), new File(ServerConfig.DATAPACK_ROOT, "data/mapregion").toPath());
-				if (!_backgroundService.installAcquisitionAuthorities(manorAuthority, questCollectionCatalog))
+				if (!_backgroundService.installAcquisitionAuthorities(manorAuthority, questCollectionCatalog, acquisitionCatalog.limits()))
 				{
 					throw new IllegalStateException("Phantom background acquisition authorities could not be installed.");
 				}

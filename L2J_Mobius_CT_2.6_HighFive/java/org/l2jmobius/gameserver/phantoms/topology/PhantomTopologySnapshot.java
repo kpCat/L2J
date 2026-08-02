@@ -248,7 +248,10 @@ public final class PhantomTopologySnapshot
 			}
 			if ((anchor.role() == PhantomTopologyAnchorRole.FARMING) && (anchor.npcId() == null))
 			{
-				throw failure("npc", "Topology farming anchor requires a factual Monster NPC.");
+				if ((node.kind() != PhantomTopologyNodeKind.FARMING_AREA) || (node.area().form() != PhantomTopologyArea.Form.POLYGON) || anchor.sourceRefs().isEmpty())
+				{
+					throw failure("evidence", "Shared topology farming anchor lacks polygon source evidence.");
+				}
 			}
 		}
 	}

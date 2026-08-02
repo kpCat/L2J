@@ -2,216 +2,170 @@
 
 ## Status
 
-`BLOCKED`
+`COMPLETED_PENDING_INDEPENDENT_REVIEW`
 
-Checkpoint 1 зафиксирован как `ACCEPT` на baseline
-`0045f60417f4605f46e3058b9a694278283b1456`; verifier 021c1 переведён в
-historical/descendant-compatible режим и прошёл PowerShell 5.1/7.x.
+Это второй и последний заранее запланированный checkpoint Goal 021. Реализовано
+финальное bounded покрытие feasible territories; Goal 022–027 не начинались.
 
-Loaded territory boundary точечно разрешён, но final completion нельзя
-честно закрыть: 20 из 35 unique factual target territories не имеют
-допустимого anchor по обязательному `activeTargetDistance=2000`. Contract
-прямо требует не публиковать такую territory и зафиксировать `BLOCKED`,
-а не расширять distance. Goal 022+ не начат.
+## История
 
-## Summary
+- accepted Checkpoint 1: `0045f60417f4605f46e3058b9a694278283b1456`;
+- blocked Checkpoint 2 foundation: `365c014a48c7998eb880352b00503a28b2f27a2c`;
+- loaded-boundary audit: `130a08a90c729dd94c13d782416bc0f1f727e6c7`;
+- anchor-feasibility audit и required parent:
+  `83b22f2338c297151a9b0881fdf566963ee5d571`;
+- final ordinary child subject:
+  `fix(phantoms): finalize feasible manor quest acquisition`.
 
-- MANOR_CROP реализован через canonical Seed/Sow → existing Combat →
-  Harvester/Harvesting, schema-3 binding и persisted dispatch/recovery.
-- Active/background manor используют одинаковые текущие формулы и manor rate;
-  procurement/reward exchange отсутствуют.
-- QUEST_COLLECTION ограничен двумя source-hashed rules, exact STARTED/cond/item
-  evidence, delayed callback lifecycle и atomic background transaction.
-- Source planner fail-closed отклоняет оба rules как `quest.target_unavailable`,
-  потому что их territory spawns не связаны с текущим topology snapshot.
-- Production остаётся компилируемым и безопасным: невозможный quest source не
-  планируется и не создаёт item.
+Checkpoint 1 зафиксирован как `ACCEPT`. Verifier 021c1 читает исторические blobs
+accepted commit и остаётся descendant-compatible.
 
-## Quest audit — ровно 12 scripts
+## Результат
 
-Accepted:
+- `MANOR_CROP` использует только штатную цепочку Seed/Sow → existing Combat →
+  Harvester/Harvesting.
+- Schema-3 method binding, persisted dispatch/recovery и active/background formula
+  parity сохранены.
+- Background attempts берутся из `PhantomAcquisitionCatalog.Limits`; literals
+  `3, 3` удалены из формулы, вариант `2/2` покрыт тестом.
+- Pre-harvest crop baseline обновляется после terminal Combat под exact actor lease,
+  сохраняется вместе с `HARVEST_PREPARED` до release и повторно проверяется перед
+  вызовом Harvester.
+- `QUEST_COLLECTION` ограничен двумя source-hashed rules для уже запущенных
+  Q00102 и Q00152 и тремя exact target NPC: `20013`, `20019`, `20016`.
+- Active quest path использует existing Combat и реальный delayed
+  `OnAttackableKill`; `Quest.onKill` вручную не вызывается.
+- Background quest path выполняет exact `character_quests` row validation под
+  `FOR UPDATE` и одну atomic item/background/Goal/acquisition transaction.
+- Quests не запускаются и не сдаются; `state`, `cond`, `vars` не изменяются.
+- Прямые `setSeeded`, `takeHarvest`, `addItem`, `destroyItem` в production C2 paths
+  отсутствуют. Crop procurement/reward exchange не добавлялись.
 
-1. `dist/game/data/scripts/quests/Q00102_SeaOfSporesFever/Q00102_SeaOfSporesFever.java` — exact targets `20013/20019`, item `966`, cond `2`, one bounded roll/grant; cap `9` исключает cond mutation branch.
-2. `dist/game/data/scripts/quests/Q00152_ShardsOfGolem/Q00152_ShardsOfGolem.java` — exact target `20016`, item `1010`, cond `2`, one bounded roll/grant; cap `4` исключает cond mutation branch.
+## Loaded territory boundary
 
-Rejected:
+`NpcSpawnTerritory.GeometrySnapshot` публикует immutable source-authoritative
+копию уже загруженной polygon geometry: canonical relative source path, main и
+bounded banned polygons, Z bounds и canonical SHA-256. Mutable `ZoneForm`,
+`Polygon`, arrays и lists наружу не выдаются. Unsupported/legacy forms fail closed.
 
-3. `dist/game/data/scripts/quests/Q00105_SkirmishWithOrcs/Q00105_SkirmishWithOrcs.java` — grant неотделим от `setCond` и order-item state.
-4. `dist/game/data/scripts/quests/Q00107_MercilessPunishment/Q00107_MercilessPunishment.java` — kill branches меняют cond и зависят от нескольких orders.
-5. `dist/game/data/scripts/quests/Q00113_StatusOfTheBeaconTower/Q00113_StatusOfTheBeaconTower.java` — отсутствует поддерживаемый kill-collection branch.
-6. `dist/game/data/scripts/quests/Q00158_SeedOfEvil/Q00158_SeedOfEvil.java` — kill меняет cond и имеет NPC broadcast/script state.
-7. `dist/game/data/scripts/quests/Q00354_ConquestOfAlligatorIsland/Q00354_ConquestOfAlligatorIsland.java` — party selection и multi-branch effects.
-8. `dist/game/data/scripts/quests/Q00357_WarehouseKeepersAmbition/Q00357_WarehouseKeepersAmbition.java` — random party-member grant.
-9. `dist/game/data/scripts/quests/Q00358_IllegitimateChildOfTheGoddess/Q00358_IllegitimateChildOfTheGoddess.java` — party selection и completion cond mutation.
-10. `dist/game/data/scripts/quests/Q00360_PlunderTheirSupplies/Q00360_PlunderTheirSupplies.java` — независимые дополнительные item mutations в том же kill.
-11. `dist/game/data/scripts/quests/Q00369_CollectorOfJewels/Q00369_CollectorOfJewels.java` — party/variable/cond side effects.
-12. `dist/game/data/scripts/quests/Q00370_AnElderSowsSeeds/Q00370_AnElderSowsSeeds.java` — random party recipient и несколько random branches.
+`SpawnData` передаёт полный relative datapack path. Production Game Knowledge
+использует loaded snapshot без повторного XML parse и без reflection. `Spawn.java`
+не изменялся.
 
-Accepted source hashes:
+## Feasible coverage
 
-- Q00102: `cc3c1a893e6fe0763b806a17aa01e1d59a4c3f4743c3a577b2597bec07978d1f`;
-- Q00152: `e086d06935b0515142f431486ded1f71b8caa4843f69605296e64a4e8ffdf378`.
+Factual loader inventory сохранён полностью:
 
-## Дополнительный bounded read pass — 16 paths/symbols
+| NPC | Territory occurrences | Configured amount | Feasible occurrences |
+| --- | ---: | ---: | ---: |
+| 20013 | 20 | 50 | 9 |
+| 20019 | 17 | 49 | 7 |
+| 20016 | 8 | 27 | 1 |
 
-1. `dist/game/data/scripts/handlers/items/Seed.java` — подтверждён штатный item-handler вход в посев.
-2. `dist/game/data/scripts/handlers/items/Harvester.java` — подтверждены canonical harvest checks и exhausted-result semantics.
-3. `dist/game/data/scripts/handlers/skill/effects/Sow.java` — подтверждены шанс посева, расход seed и manor state transition.
-4. `dist/game/data/scripts/handlers/skill/effects/Harvesting.java` — подтверждены crop formula и штатный grant path.
-5. `java/org/l2jmobius/gameserver/model/actor/Attackable.java` — подтверждены существующие seeded/harvest runtime fields; файл не менялся.
-6. `java/org/l2jmobius/gameserver/managers/CastleManorManager.java` — подтверждён manor catalog/rate authority; файл не менялся.
-7. `java/org/l2jmobius/gameserver/model/script/Quest.java` — подтверждён delayed `OnAttackableKill` dispatch contract.
-8. `java/org/l2jmobius/gameserver/model/script/QuestState.java` — подтверждены STARTED/cond/item read semantics и запрещённые mutations.
-9. `java/org/l2jmobius/gameserver/managers/ScriptManager.java` — подтверждена runtime identity загруженного quest script.
-10. `java/org/l2jmobius/gameserver/model/events/holders/actor/npc/attackable/OnAttackableKill.java` — подтверждён реальный kill event payload.
-11. `java/org/l2jmobius/gameserver/data/xml/MapRegionData.java` — подтверждена normal-world region authority.
-12. `java/org/l2jmobius/gameserver/model/spawns/Spawn.java` — подтверждён runtime spawn location contract.
-13. `java/org/l2jmobius/gameserver/data/SpawnTable.java` — проверено фактическое наличие target NPC spawns.
-14. `java/org/l2jmobius/gameserver/model/zone/type/NpcSpawnTerritory.java` — подтверждена territory-based spawn модель без стабильной точки.
-15. `java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomGameKnowledgeBuilder.java` — подтверждено намеренное unresolved topology evidence для territory spawns.
-16. `dist/game/data/phantoms/topology/high-five-core.xml` — подтверждено отсутствие узлов/anchors для Elven Territory и Talking Island.
+- unique factual territory identities: `35`;
+- mapped feasible territories: `15`;
+- unmapped distance-infeasible territories: `20`;
+- unsupported target facts: `0`.
 
-## Architecture decisions
+Все 35 identities остаются immutable Game Knowledge facts. Ровно 15 factual
+polygons получили общие NPC-anonymous FARMING nodes/anchors. Для 20 too-wide
+polygons не создавались invented anchors, split/merge geometry или expanded bounds.
+Новых topology edges нет. `activeTargetDistance=2000` не изменён.
 
-- Schema versions 1/2/3 читаются, writer выдаёт только schema 3; payload остаётся <=4096 bytes.
-- Manor и quest имеют mutually-exclusive typed bindings, owning phases, bounded attempts и receipts.
-- Canonical item handlers/skills и Quest runtime identity проверяются без reflection/interpreter.
-- Active quest ждёт текущий delayed `OnAttackableKill`; production не вызывает `Quest.onKill`.
-- Background quest lock/read ограничен exact quest name, `state`, `cond`, <=4 declared vars и item row.
-- Background item/background/Goal/acquisition mutation выполняется одной transaction; quest rows не меняются.
-- Runtime catalog validation выполняется при использовании после загрузки scripts, а disabled Phantom World его не загружает.
+Mapping требует exact polygon с rotation/reverse equivalence, exact Z, instance,
+source ref, единственный node и feasible anchor. Partial overlap, wrong Z/source,
+duplicate node, exact-point Spawn и unsupported territory fail closed. Mapped
+source сохраняет evidence о дополнительных unmapped natural territories.
 
-## Changed files
+## Exact target ownership
 
-Production/data/config: 20 files, из них 3 новых (`manor` authority, quest catalog, quest XML). Изменены только разрешённые Phantom acquisition/background/combat/System paths и acquisition XML. Schema, handlers, quest scripts, `Player.java`, `Party.java`, `Attackable.java`, `CastleManorManager` и topology data не менялись.
+Active manor/quest target принимается только при совпадении NPC, instance,
+source path, territory name и geometry hash выбранного factual source. Один NPC из
+другой mapped territory, из unmapped territory и из exact-point Spawn отвергается.
+Object replacement требует нового target claim. Exact source identity сохраняет
+ownership при допустимом wandering внутри обычной live target validity.
 
-Tests/build/tools/docs: task package, two focused suites, server integration/launcher/build extensions, historical verifier 021c1, C1 review, master/roadmap, architecture contract и этот report. Общий scope остаётся ниже лимитов 18/34/58.
+## Quest audit
 
-## DB/migrations/config
+Аудировано ровно 12 уже существующих scripts. Приняты только:
 
-- Только `l2jmobiush5_phantom_test`; production DB не использовалась.
-- Миграций/schema changes нет.
-- Seed: `21002102` через `phantom.goal021c2.seed`.
-- Добавлены только C2 retry/formula/catalog limits; Phantom World остаётся disabled by default.
+1. `Q00102_SeaOfSporesFever` — NPC `20013/20019`, item `966`, STARTED/cond 2,
+   cap 9, source SHA-256
+   `cc3c1a893e6fe0763b806a17aa01e1d59a4c3f4743c3a577b2597bec07978d1f`;
+2. `Q00152_ShardsOfGolem` — NPC `20016`, item `1010`, STARTED/cond 2, cap 4,
+   source SHA-256
+   `e086d06935b0515142f431486ded1f71b8caa4843f69605296e64a4e8ffdf378`.
 
-## Commands and test results
+Остальные десять отклонены из-за cond/vars/party/completion/дополнительных item
+side effects. Generic quest interpreter не создавался; quest scripts не менялись.
 
-PASS:
+## DB, schema и config
 
-- `verify-task-021c1.ps1` — PowerShell 5.1 и 7.x, byte-identical `GOAL_021C1_VERIFIED`.
-- `phantom-acquisition-manor-catalog-source-test` — 3/3.
-- `phantom-acquisition-manor-active-test` — 2/2 после исправления тестового ожидания canonical Harvester evidence.
-- `phantom-acquisition-manor-background-test` — 2/2.
-- `phantom-acquisition-manor-restart-transition-test` — 2/2.
-- `phantom-acquisition-quest-catalog-source-test` — 3/3.
-- `phantom-acquisition-quest-background-test` — 3/3.
-- `phantom-acquisition-checkpoint2-lifecycle-performance-smoke` — 5/5.
-- Production/test compilation: 2119/82 sources.
-- Mojibake-маркеры в изменённых файлах проверены: совпадений нет.
-- Escaped Cyrillic в изменённых файлах проверены: совпадений нет.
+- Используется только `l2jmobiush5_phantom_test`.
+- Seed: `phantom.goal021c2.seed=21002102`.
+- Schema/migrations отсутствуют.
+- Phantom World остаётся disabled by default.
+- Production DB не использовалась.
 
-BLOCKED gate:
+## Проверки
 
-- `phantom-acquisition-quest-active-test` — before-all: `No curated quest target has a bounded normal-world topology anchor.`
+До freeze выполнены focused проверки loaded topology/Game Knowledge, source
+planners, active manor, active Q00102/Q00152, manor background/restart и
+catalog-driven policy variant. Active tests доказали grant/no-grant branches и
+negative source ownership controls. Итоги C2 focused routes:
 
-Не запускались после blocker: affected aggregate, final checkpoint2 aggregate,
-plain `ant verify`, `ant jar`, verifier 021c2. Freeze не объявлялся. Лимит full
-verify не израсходован.
+- manor catalog/source: `3/3`, active: `2/2`, background: `3/3`, restart: `2/2`;
+- quest active: `2/2`, background: `3/3`;
+- checkpoint2 lifecycle/performance: `5/5`;
+- все combined focused команды завершились `BUILD SUCCESSFUL` после устранения
+  bounded async flake штатного Seed/Sow handler path.
 
-## Bounded topology-and-causality completion audit
+Affected Goal 009/010/011 прошли. Goal 015 production audit был обновлён с одного
+FARMING anchor до точного корпуса `16` (`1` прежний explicit + `15` новых
+anonymous), сохранив exact проверку прежней production pair; полный Goal 015
+aggregate прошёл. Schema-3 потребовала двух descendant-compatible обновлений C1
+tests: exact `none` method-binding hash/resource count в atomic fixture и bounded
+лимит `<=33` declared state fields при неизменном payload envelope `<=4096`.
+После этого полный `phantom-acquisition-checkpoint1-test`, Decision core `35/35`,
+Decision persistence `23/23` и shutdown handoff `7/7` завершились
+`BUILD SUCCESSFUL`.
 
-Required parent `365c014a48c7998eb880352b00503a28b2f27a2c` и clean
-`feature/phantom-world` подтверждены. Independent review разрешил factual topology
-slice, но установил terminal gate: без stable bounded geometry в текущем
-`NpcSpawnTerritory` API нужно остановиться с `BLOCKED`.
+Обязательная terminal последовательность выполняется без изменения frozen
+production/data/test/build/verifier artifacts:
 
-Public loaded-data boundary:
+1. verifier 021c1 в PowerShell 5.1 и 7.x;
+2. verifier 021c2 working в PowerShell 5.1 и 7.x;
+3. affected Goal 009/010/011/015/021c1 regressions;
+4. ровно один final `phantom-acquisition-checkpoint2-test`;
+5. ровно один plain `ant verify`;
+6. standalone `ant jar`;
+7. ordinary commit/push;
+8. два byte-identical accepted verifier 021c2 runs.
 
-- `Spawn` публикует amount, instance/location IDs, territory object и текущую
-  spawn location, но не source XML path и не immutable territory geometry;
-- `NpcSpawnTerritory` публикует name, random point, containment predicate и
-  high Z, но не vertices, low Z, underlying `ZoneForm` или source identity;
-- `ZoneForm` имеет low/high Z и predicates, но territory его не возвращает;
-- `ZoneNPoly` хранит `Polygon` и Z bounds приватно и не имеет geometry getter.
+Финальный handoff содержит фактические результаты terminal команд; verifier output
+является детерминированным acceptance artifact.
 
-Factual shipped source inventory, проверенный без внешних координат:
+## Scope и ограничения
 
-- NPC `20013`: `dist/game/data/spawns/ElvenTerritory/ElvenStarting.xml`, 20
-  polygon territories, configured amount 50, 4–6 vertices, source Z range
-  от `-3812` до `-3140`;
-- NPC `20019`: тот же exact source, 17 polygon territories, configured amount
-  49, 4–6 vertices, source Z range от `-3812` до `-3168`;
-- NPC `20016`: `dist/game/data/spawns/TalkingIsland/TalkingIslandMonsters.xml`,
-  8 polygon territories, configured amount 27, 4–5 vertices, source Z range
-  от `-3830` до `-2782`.
+- final child: `15` production/data/config и `24` total;
+- new production/data: `0`;
+- cumulative Checkpoint 2: `28` production/data/config и `52` unique total;
+- не изменены `Player.java`, `Party.java`, `Attackable.java`, `Spawn.java`,
+  `CastleManorManager`, handlers, quest scripts и schema;
+- не добавлены worker/thread/executor/Future/task;
+- другие хроники не затронуты.
 
-`SpawnData` фактически строит `ZoneNPoly` из source vertices/minZ/maxZ и затем
-передаёт только `NpcSpawnTerritory` в `Spawn`. Поэтому exact source XML содержит
-geometry, но loaded authority boundary её необратимо скрывает. Повторный XML
-parse в Game Knowledge, random samples, centroid или reflection не являются
-разрешённой заменой `SERVER_LOADER_FACT`.
+## Риски и следующий шаг
 
-Команды аудита: source inspection, read-only XML enumeration и public API
-проверка через `javap`. Production/topology/tests не менялись; compile, affected,
-aggregate, freeze, verify, jar и verifier 021c2 не запускались после terminal gate.
-
-## Final loaded-territory completion audit
-
-Required parent `130a08a90c729dd94c13d782416bc0f1f727e6c7`, clean branch и
-new loaded-boundary permission подтверждены. До production edits повторно
-просчитаны exact candidates только из shipped vertices в заданном
-порядке: polygon centroid, bounding-box center, edge midpoints, vertices.
-
-- Loader totals совпали: `20013` = 20/50, `20019` = 17/49, `20016` = 8/27.
-- 45 NPC-territory occurrences сводятся к 35 unique source/name/Z/vertex identities.
-- Feasible: 15 unique territories; impossible under distance gate: 20.
-- По NPC feasible occurrences: `20013` 9/20, `20019` 7/17, `20016` 1/8.
-- Ближайший rejected polygon имеет minimum maximum distance `2174.35`;
-  наиболее широкий из rejected требует `5564.83`.
-
-Rejected exact territories:
-
-- Elven: `oren04_2019_02`, `oren04_2019_03`, `oren04_2019_07`,
-  `oren04_2019_08`, `oren04_2019_09`, `oren04_2019_10`, `oren04_2019_11`,
-  `oren04_2019_15`, `oren04_2019_16`, `oren04_2019_17`, `oren04_2019_19`,
-  `oren04_2019_20`, `oren06_2120_05`;
-- Talking Island: `gludio31_1624_01`, `gludio31_1624_02`,
-  `gludio31_1624_03`, `gludio31_1624_04`, `gludio31_1625_11`,
-  `gludio31_1625_12`, `gludio31_1625_13`.
-
-Calculation used 2D Euclidean vertex distance; adding Z cannot make any rejected
-candidate pass. No topology nodes/anchors, loaded snapshot API or partial mapping
-were published. This is the explicit terminal condition from the final completion
-contract, not an implementation failure.
-
-## Performance
-
-Lifecycle smoke прошёл 100k manor planning formulas, 100k quest rule checks,
-10k manor background batches и 10k quest background batches без новых workers.
-Числа latency не используются как acceptance при BLOCKED status.
-
-## Deviations, limitations, risks
-
-- Loaded-boundary permission получено; единственный terminal blocker теперь
-  factual anchor feasibility: 20 unique polygons объективно шире лимита.
-- Не добавлялись произвольные anchors, runtime-random territory authority или третий checkpoint.
-- Active real delayed quest path не достигнут, потому что fixture намеренно требует тот же topology precondition, что production source planning.
-- Частичная C2 production поверхность должна пройти повторный full gate после разрешённого topology slice.
+Двадцать too-wide territories намеренно недоступны source planner при текущем
+distance contract; это bounded partial coverage, а не потеря factual knowledge.
+Следующий шаг — только независимый review этого checkpoint. Goal 022+ до принятия
+gate не начинать.
 
 ## Git
 
 - Branch/upstream: `feature/phantom-world` / `origin/feature/phantom-world`.
-- Accepted C1 parent: `0045f60417f4605f46e3058b9a694278283b1456`.
-- Blocked foundation: `365c014a48c7998eb880352b00503a28b2f27a2c`.
-- Loaded-boundary audit: `130a08a90c729dd94c13d782416bc0f1f727e6c7`.
-- Final child subject: `fix(phantoms): expose territory geometry and finalize acquisition`.
-- Child commit SHA и push result фиксируются final handoff; amend/force-push не используется.
-- Разрешённые git-команды использовались только для baseline/scope/diff проверки и обязательного commit/push workflow.
-
-## Next step
-
-Нужно изменение completion contract: либо снять требование, чтобы anchor
-был не дальше `2000` от каждой vertex, либо явно ограничить required
-coverage 15 feasible territories. Делить factual polygons, расширять distance
-или публиковать invented anchors текущая задача запрещает. Goal 022+
-до решения этого gate не начинать.
+- Commit/push выполняются одним ordinary child без amend/rebase/squash/merge/reset
+  и без force push/force-with-lease.
+- Разрешённые git-команды используются для обязательных baseline, scope, diff,
+  commit и push checks этой задачи.

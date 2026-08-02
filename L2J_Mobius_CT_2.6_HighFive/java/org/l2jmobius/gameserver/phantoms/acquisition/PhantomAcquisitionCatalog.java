@@ -328,7 +328,7 @@ public final class PhantomAcquisitionCatalog
 	{
 		public Limits
 		{
-			if ((sourceCandidates != 8) || (areasPerSource != 4) || (recipesPerProduct != 4) || (recipeDepth != 6) || (recipeNodes != 48) || (deficits != 32) || (receipts != 8) || (failuresPerSource != 8) || (sourceSwitches != 4) || (operationsPerStep != 8) || (payloadBytes != 4096) || (activeTargetDistance != 2000) || (verificationAttempts != 3) || (manorAttemptsPerTarget != 3) || (harvestAttemptsPerCorpse != 3) || (questCallbackWaitMillis != 6000) || (questRules != 8) || (questScripts != 4) || (questTargetNpcsPerRule != 8) || (questExpectedVarsPerRule != 4) || (questItemIdsPerRead != 16) || (methodBindings != 1))
+			if ((sourceCandidates != 8) || (areasPerSource != 4) || (recipesPerProduct != 4) || (recipeDepth != 6) || (recipeNodes != 48) || (deficits != 32) || (receipts != 8) || (failuresPerSource != 8) || (sourceSwitches != 4) || (operationsPerStep != 8) || (payloadBytes != 4096) || (activeTargetDistance != 2000) || (verificationAttempts != 3) || (manorAttemptsPerTarget < 1) || (manorAttemptsPerTarget > 3) || (harvestAttemptsPerCorpse < 1) || (harvestAttemptsPerCorpse > 3) || (questCallbackWaitMillis != 6000) || (questRules != 8) || (questScripts != 4) || (questTargetNpcsPerRule != 8) || (questExpectedVarsPerRule != 4) || (questItemIdsPerRead != 16) || (methodBindings != 1))
 			{
 				throw new IllegalArgumentException("Acquisition policy limits must match the checkpoint contract.");
 			}

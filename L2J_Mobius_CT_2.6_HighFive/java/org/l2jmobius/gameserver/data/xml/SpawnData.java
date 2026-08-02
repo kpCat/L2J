@@ -23,6 +23,7 @@ package org.l2jmobius.gameserver.data.xml;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.nio.file.Path;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.ArrayList;
@@ -122,6 +123,7 @@ public class SpawnData implements IXmlReader
 	@Override
 	public void parseDocument(Document document, File file)
 	{
+		final String sourcePath = spawnSourcePath(file);
 		NamedNodeMap attrs;
 		for (Node list = document.getFirstChild(); list != null; list = list.getNextSibling())
 		{
@@ -293,7 +295,7 @@ public class SpawnData implements IXmlReader
 									LOGGER.log(Level.WARNING, getClass().getSimpleName() + ": SpawnTable: Failed to load territory " + territoryName + " coordinates: " + e.getMessage(), e);
 								}
 								
-								ZoneManager.getInstance().addSpawnTerritory(territoryName, new NpcSpawnTerritory(territoryName, zoneForm));
+								ZoneManager.getInstance().addSpawnTerritory(territoryName, new NpcSpawnTerritory(territoryName, zoneForm, sourcePath));
 							}
 							// Check for NPC banned spawn territories.
 							else if (npctag.getNodeName().equalsIgnoreCase("banned_territory"))
@@ -482,6 +484,22 @@ public class SpawnData implements IXmlReader
 				}
 			}
 		}
+	}
+
+	private static String spawnSourcePath(File file)
+	{
+		final Path root = ServerConfig.DATAPACK_ROOT.toPath().toAbsolutePath().normalize();
+		final Path source = file.toPath().toAbsolutePath().normalize();
+		if (source.equals(root) || !source.startsWith(root))
+		{
+			throw new IllegalArgumentException("Spawn source is outside the datapack root.");
+		}
+		final String result = root.relativize(source).toString().replace(File.separatorChar, '/');
+		if (result.isBlank() || result.startsWith("../") || result.contains("/../"))
+		{
+			throw new IllegalArgumentException("Spawn source path is not canonical.");
+		}
+		return result;
 	}
 	
 	/**

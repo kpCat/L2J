@@ -26,6 +26,8 @@ import java.util.List;
 import org.l2jmobius.gameserver.data.xml.DoorData;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea.Form;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
@@ -92,15 +94,16 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 		registry.add("04-door-room-passage-facts", _ -> testDoorPassage());
 		registry.add("05-source-evidence-complete", _ -> testSources());
 		registry.add("06-representative-roles-and-modes", _ -> testCoverage());
+		registry.add("07-exact-feasible-territory-polygons", _ -> testFeasibleTerritories());
 	}
 
 	private void testDataset()
 	{
 		PhantomAssertions.assertEquals("high-five-core", _snapshot.datasetId(), "Production topology dataset ID changed.");
 		PhantomAssertions.assertEquals(1, _snapshot.schemaVersion(), "Production topology schema version changed.");
-		PhantomAssertions.assertEquals(1, _snapshot.datasetVersion(), "Production topology dataset version changed.");
-		PhantomAssertions.assertEquals(8, _snapshot.nodes().size(), "Production topology node count changed.");
-		PhantomAssertions.assertEquals(8, _snapshot.anchors().size(), "Production topology anchor count changed.");
+		PhantomAssertions.assertEquals(2, _snapshot.datasetVersion(), "Production topology dataset version changed.");
+		PhantomAssertions.assertEquals(23, _snapshot.nodes().size(), "Production topology node count changed.");
+		PhantomAssertions.assertEquals(23, _snapshot.anchors().size(), "Production topology anchor count changed.");
 		PhantomAssertions.assertEquals(3, _snapshot.edges().size(), "Production topology edge count changed.");
 		PhantomAssertions.assertEquals(64, _snapshot.canonicalHash().length(), "Production topology canonical SHA-256 length changed.");
 	}
@@ -151,5 +154,37 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 			PhantomAssertions.assertTrue(roles.contains(role), "Production topology role coverage is missing: " + role + ".");
 		}
 		PhantomAssertions.assertTrue(_snapshot.edges().stream().anyMatch(edge -> edge.backgroundEligible() && (edge.mode() == PhantomTopologyEdgeMode.BACKGROUND)), "Production topology lacks a background-eligible edge.");
+	}
+
+	private void testFeasibleTerritories()
+	{
+		final var nodes = _snapshot.nodes().stream().filter(node -> (node.kind() == PhantomTopologyNodeKind.FARMING_AREA) && (node.area().form() == Form.POLYGON)).toList();
+		final var anchors = _snapshot.anchors().stream().filter(anchor -> (anchor.role() == PhantomTopologyAnchorRole.FARMING) && (_snapshot.nodeById().get(anchor.nodeId()).area().form() == Form.POLYGON)).toList();
+		final StringBuilder zDrift = new StringBuilder();
+		PhantomAssertions.assertEquals(15, nodes.size(), "Feasible factual territory node count changed.");
+		PhantomAssertions.assertEquals(15, anchors.size(), "Feasible factual territory anchor count changed.");
+		for (var node : nodes)
+		{
+			final var matching = anchors.stream().filter(anchor -> anchor.nodeId().equals(node.id())).toList();
+			PhantomAssertions.assertEquals(1, matching.size(), "Feasible territory does not have exactly one shared anchor.");
+			final var anchor = matching.getFirst();
+			PhantomAssertions.assertTrue(node.area().contains(anchor.point()), "Feasible territory anchor is outside the exact polygon.");
+			final int normalizedZ = GeoEngine.getInstance().getHeight(anchor.point().x(), anchor.point().y(), anchor.point().z());
+			if (normalizedZ != anchor.point().z())
+			{
+				zDrift.append(node.id()).append('=').append(normalizedZ).append(';');
+			}
+			final int factualZ = node.area().minZ() + ((node.area().maxZ() - node.area().minZ()) / 2);
+			PhantomAssertions.assertEquals(Math.abs(anchor.point().z() - factualZ), anchor.validationTolerance(), "Feasible territory anchor tolerance differs from the exact GeoEngine Z delta.");
+			final long maximumSquared = node.area().vertices().stream().mapToLong(vertex ->
+			{
+				final long dx = (long) anchor.point().x() - vertex.x();
+				final long dy = (long) anchor.point().y() - vertex.y();
+				return (dx * dx) + (dy * dy);
+			}).max().orElseThrow();
+			PhantomAssertions.assertTrue(maximumSquared <= 4_000_000L, "Feasible territory anchor exceeds activeTargetDistance=2000.");
+			PhantomAssertions.assertEquals(node.sourceRefs(), anchor.sourceRefs(), "Feasible node/anchor source identity differs.");
+		}
+		PhantomAssertions.assertEquals("", zDrift.toString(), "Feasible territory anchor Z is not GeoEngine-normalized.");
 	}
 }

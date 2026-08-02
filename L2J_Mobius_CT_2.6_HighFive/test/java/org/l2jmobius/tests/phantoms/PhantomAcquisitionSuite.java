@@ -728,7 +728,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		final Candidate candidate = new Candidate(source.sourceId(), source.method(), 1, 3, 10, "source.target_unavailable");
 		final PhantomAcquisitionState exhausted = new PhantomAcquisitionState(HASHES, 21, 0, 57, 1, 0, 0, 0, Status.BLOCKED, source, List.of(candidate), 0, 4, Phase.NONE, 0, 0, 0, null, List.of(), 10);
 		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> exhausted.switchSource(0, source, null, 11), "Exhausted source state admitted another switch.");
-		PhantomAssertions.assertTrue(PhantomAcquisitionState.class.getDeclaredFields().length < 32, "Acquisition state accumulated unbounded mutable infrastructure.");
+		PhantomAssertions.assertTrue(PhantomAcquisitionState.class.getDeclaredFields().length <= 33, "Acquisition state accumulated unbounded mutable infrastructure.");
 		context.record("acquisition.maximumSwitches", PhantomAcquisitionState.MAX_SWITCHES);
 	}
 

@@ -3,15 +3,18 @@
  */
 package org.l2jmobius.tests.phantoms;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.l2jmobius.gameserver.config.GeneralConfig;
 import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.managers.CastleManorManager;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Limits;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Candidate;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Hashes;
@@ -133,6 +136,7 @@ public final class PhantomAcquisitionManorSuite implements PhantomTestSuite
 			{
 				registry.add("01-seed-crop-and-ordinary-drop-conservation", this::testBackgroundConservation);
 				registry.add("02-failed-sow-and-harvest-bounds", this::testBackgroundFailures);
+				registry.add("03-catalog-driven-non-default-attempt-parity", this::testAttemptPolicyVariant);
 			}
 			case RESTART_TRANSITION ->
 			{
@@ -241,6 +245,39 @@ public final class PhantomAcquisitionManorSuite implements PhantomTestSuite
 		context.record("manor.failedSowAttempts", failedSow.manorSowAttempts());
 	}
 
+	private void testAttemptPolicyVariant(PhantomTestContext context) throws Exception
+	{
+		final Limits limits = new Limits(8, 4, 4, 6, 48, 32, 8, 8, 4, 8, 4096, 2000, 3, 2, 2, 6000, 8, 4, 8, 4, 16, 1);
+		final PhantomBackgroundModel model = new PhantomBackgroundModel();
+		BatchResult failedSow = null;
+		BatchResult failedHarvest = null;
+		for (long rng = 1; (rng < 10000) && ((failedSow == null) || (failedHarvest == null)); rng++)
+		{
+			if (failedSow == null)
+			{
+				final BatchResult result = model.evaluate(request(state(rng), BatchMode.ACQUISITION_MANOR_CROP, 5072, new ManorFormula(5016, 5072, 8, 1, 100, 3, limits.manorAttemptsPerTarget(), limits.harvestAttemptsPerCorpse())));
+				if (result.encounters() == 0)
+				{
+					failedSow = result;
+				}
+			}
+			if (failedHarvest == null)
+			{
+				final BatchResult result = model.evaluate(request(state(rng), BatchMode.ACQUISITION_MANOR_CROP, 5072, new ManorFormula(5016, 5072, 8, 100, 1, 3, limits.manorAttemptsPerTarget(), limits.harvestAttemptsPerCorpse())));
+				if ((result.encounters() == 1) && (result.acquisitionTargetDelta() == 0))
+				{
+					failedHarvest = result;
+				}
+			}
+		}
+		PhantomAssertions.assertTrue((failedSow != null) && (failedSow.manorSowAttempts() == 2), "Background manor ignored non-default catalog sow attempts.");
+		PhantomAssertions.assertTrue((failedHarvest != null) && (failedHarvest.manorHarvestAttempts() == 2), "Background manor ignored non-default catalog harvest attempts.");
+		final String service = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java"));
+		PhantomAssertions.assertTrue(service.contains("_acquisitionLimits.manorAttemptsPerTarget()") && service.contains("_acquisitionLimits.harvestAttemptsPerCorpse()") && !service.contains("projection.harvestPayload(), 3, 3"), "Background manor formula is not catalog-driven.");
+		context.record("manor.variantSowAttempts", limits.manorAttemptsPerTarget());
+		context.record("manor.variantHarvestAttempts", limits.harvestAttemptsPerCorpse());
+	}
+
 	private void testRestartCodec(PhantomTestContext context)
 	{
 		final PhantomAcquisitionStateCodec codec = new PhantomAcquisitionStateCodec();
@@ -253,13 +290,23 @@ public final class PhantomAcquisitionManorSuite implements PhantomTestSuite
 		context.record("manor.schema3Bytes", payload.length);
 	}
 
-	private void testTransitions(PhantomTestContext context)
+	private void testTransitions(PhantomTestContext context) throws Exception
 	{
 		for (Phase phase : List.of(Phase.SOW_PREPARED, Phase.SOW_DISPATCHING, Phase.SOW_OBSERVED, Phase.COMBAT_PREPARED, Phase.COMBAT_SUBMITTED, Phase.COMBAT_TERMINAL, Phase.HARVEST_PREPARED, Phase.HARVEST_DISPATCHING, Phase.VERIFYING))
 		{
 			final PhantomAcquisitionState state = manorState(phase, phase == Phase.SOW_DISPATCHING || phase == Phase.HARVEST_DISPATCHING || phase == Phase.COMBAT_SUBMITTED ? 1 : 0);
 			PhantomAssertions.assertEquals(Method.MANOR_CROP, state.methodBinding().method(), "Manor transition lost schema-3 method ownership.");
 		}
+		final PhantomAcquisitionState terminal = manorState(Phase.COMBAT_TERMINAL, 0);
+		final ManorBinding previous = (ManorBinding) terminal.methodBinding();
+		final ManorBinding refreshed = new ManorBinding(previous.castleId(), previous.seedItemId(), previous.cropItemId(), previous.matureItemId(), previous.reward1ItemId(), previous.reward2ItemId(), previous.seedLevel(), previous.alternative(), previous.rawSeedLimit(), previous.rawCropLimit(), previous.seedObjectId(), previous.harvesterObjectId(), previous.seedCountBeforeDispatch(), 9, previous.authorityHash());
+		final PhantomAcquisitionState prepared = terminal.withBinding(refreshed, Phase.HARVEST_PREPARED, terminal.targetObjectId(), terminal.targetNpcId(), terminal.targetInstanceId(), 0, 2);
+		PhantomAssertions.assertEquals(9L, ((ManorBinding) new PhantomAcquisitionStateCodec().decode(new PhantomAcquisitionStateCodec().encode(prepared)).methodBinding()).cropCountBeforeDispatch(), "Refreshed pre-harvest baseline was not durable.");
+		final String service = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionService.java"));
+		final int refresh = service.indexOf("final ManorBinding refreshed");
+		final int store = service.indexOf("withBinding(refreshed, Phase.HARVEST_PREPARED", refresh);
+		final int release = service.indexOf("releaseExternal(current.profileId())", store);
+		PhantomAssertions.assertTrue((refresh >= 0) && (store > refresh) && (release > store) && service.contains("inventory.cropCount() == manor.cropCountBeforeDispatch()"), "Pre-harvest baseline/store/release or pre-dispatch crop guard is missing.");
 		context.record("manor.persistedTransitions", 9);
 	}
 
@@ -333,13 +380,18 @@ public final class PhantomAcquisitionManorSuite implements PhantomTestSuite
 
 	private org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority.Candidate currentCandidate()
 	{
-		for (int cropItemId : _production.knowledge().snapshot().manorFacts().stream().map(fact -> fact.cropItemId()).distinct().sorted().toList())
+		final var snapshot = _production.knowledge().snapshot();
+		final List<Integer> mappedTargetLevels = snapshot.spawnFacts().stream().filter(fact -> fact.topologyNodeId() != null).map(fact -> snapshot.npcById().get(fact.npcId())).filter(Objects::nonNull).filter(fact -> fact.canBeSown() && fact.attackable() && fact.targetable()).map(fact -> fact.level()).distinct().sorted().toList();
+		for (int playerLevel : mappedTargetLevels)
 		{
-			final Map<Integer, Long> inventory = _authority.probe(cropItemId).requiredItemIds().stream().collect(java.util.stream.Collectors.toMap(itemId -> itemId, _ -> 64L));
-			final var result = _authority.candidates(cropItemId, 85, inventory);
-			if (!result.candidates().isEmpty())
+			for (int cropItemId : snapshot.manorFacts().stream().map(fact -> fact.cropItemId()).distinct().sorted().toList())
 			{
-				return result.candidates().getFirst();
+				final Map<Integer, Long> inventory = _authority.probe(cropItemId).requiredItemIds().stream().collect(java.util.stream.Collectors.toMap(itemId -> itemId, _ -> 64L));
+				final var result = _authority.candidates(cropItemId, playerLevel, inventory);
+				if (!result.candidates().isEmpty())
+				{
+					return result.candidates().getFirst();
+				}
 			}
 		}
 		throw new AssertionError("No bounded current manor candidate is available.");

@@ -33,6 +33,7 @@ import org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType;
 import org.l2jmobius.gameserver.model.item.Weapon;
 import org.l2jmobius.gameserver.model.item.EtcItem;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
+import org.l2jmobius.gameserver.model.spawns.Spawn;
 import org.l2jmobius.gameserver.model.item.enums.ShotType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
@@ -323,7 +324,14 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return null;
 			}
 			final var seed = monster.getSeed();
-			return new AcquisitionTargetSnapshot(target.objectId(), target.npcId(), target.instanceId(), target.distance(), target.dead(), target.alikeDead(), target.targetable(), target.attackable(), target.invulnerable(), target.normalMonster(), target.knowledgeMonster(), target.peaceRestricted(), target.surroundingRegion(), monster.isSpoiled(), monster.getSpoilerObjectId(), monster.isSweepActive(), monster.checkSpoilOwner(_player, false), monster.getLevel(), monster.getTemplate().canBeSown(), monster.isRaid(), monster instanceof Chest, monster.isSeeded(), monster.getSeederId(), seed == null ? 0 : seed.getSeedId(), monster.getOnKillDelay());
+			final Spawn spawn = monster.getSpawn();
+			final var territory = spawn == null ? null : spawn.getSpawnTerritory();
+			final var geometry = territory == null ? null : territory.geometrySnapshot().orElse(null);
+			final Location loaded = spawn == null ? null : spawn.getSpawnLocation();
+			final int loadedX = spawn == null ? 0 : loaded == null ? spawn.getX() : loaded.getX();
+			final int loadedY = spawn == null ? 0 : loaded == null ? spawn.getY() : loaded.getY();
+			final boolean exactPoint = (spawn != null) && (territory == null) && (spawn.getLocationId() == 0) && ((loadedX != 0) || (loadedY != 0));
+			return new AcquisitionTargetSnapshot(target.objectId(), target.npcId(), target.instanceId(), target.distance(), target.dead(), target.alikeDead(), target.targetable(), target.attackable(), target.invulnerable(), target.normalMonster(), target.knowledgeMonster(), target.peaceRestricted(), target.surroundingRegion(), monster.isSpoiled(), monster.getSpoilerObjectId(), monster.isSweepActive(), monster.checkSpoilOwner(_player, false), monster.getLevel(), monster.getTemplate().canBeSown(), monster.isRaid(), monster instanceof Chest, monster.isSeeded(), monster.getSeederId(), seed == null ? 0 : seed.getSeedId(), monster.getOnKillDelay(), monster.getX(), monster.getY(), monster.getZ(), spawn != null, geometry != null, exactPoint, geometry == null ? "" : geometry.territoryName(), geometry == null ? "" : geometry.sourcePath(), geometry == null ? "" : geometry.hash());
 		}
 
 		@Override

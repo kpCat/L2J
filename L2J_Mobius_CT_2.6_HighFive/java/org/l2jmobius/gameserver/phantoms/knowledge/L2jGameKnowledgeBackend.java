@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,6 +52,7 @@ import org.l2jmobius.gameserver.model.item.Weapon;
 import org.l2jmobius.gameserver.model.item.recipe.RecipeList;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
 import org.l2jmobius.gameserver.model.spawns.Spawn;
+import org.l2jmobius.gameserver.model.zone.type.NpcSpawnTerritory;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ChanceModel;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ClassIntrinsicFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropFact;
@@ -64,6 +66,9 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Rec
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SkillEvidence;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnPointKind;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TerritoryGeometry;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TerritoryPolygon;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TerritoryVertex;
 
 /**
  * Read-only copying adapter over already loaded High Five data. Mutable loader
@@ -169,6 +174,8 @@ public final class L2jGameKnowledgeBackend implements PhantomGameKnowledgeBacken
 	private static List<SpawnFact> copySpawns(PhantomGameKnowledgePolicy policy)
 	{
 		final ArrayList<RawSpawn> raw = new ArrayList<>();
+		final HashMap<RawTerritorySpawn, Integer> territoryAmounts = new HashMap<>();
+		final IdentityHashMap<NpcSpawnTerritory, TerritoryGeometry> geometries = new IdentityHashMap<>();
 		for (Map.Entry<Integer, Set<Spawn>> entry : SpawnTable.getInstance().getSpawnTable().entrySet())
 		{
 			for (Spawn spawn : entry.getValue())
@@ -181,14 +188,32 @@ public final class L2jGameKnowledgeBackend implements PhantomGameKnowledgeBacken
 				final int loadedX = spawnLocation == null ? spawn.getX() : spawnLocation.getX();
 				final int loadedY = spawnLocation == null ? spawn.getY() : spawnLocation.getY();
 				final int loadedZ = spawnLocation == null ? spawn.getZ() : spawnLocation.getZ();
-				final boolean exact = (spawn.getSpawnTerritory() == null) && (spawn.getLocationId() == 0) && ((loadedX != 0) || (loadedY != 0));
-				final SpawnPointKind pointKind = exact ? SpawnPointKind.EXACT : SpawnPointKind.TERRITORY_OR_UNRESOLVED;
+				final NpcSpawnTerritory territory = spawn.getSpawnTerritory();
+				final TerritoryGeometry geometry = territory == null ? null : geometries.computeIfAbsent(territory, L2jGameKnowledgeBackend::copyGeometry);
+				final boolean exact = (territory == null) && (spawn.getLocationId() == 0) && ((loadedX != 0) || (loadedY != 0));
+				final SpawnPointKind pointKind = exact ? SpawnPointKind.EXACT : geometry == null ? SpawnPointKind.TERRITORY_OR_UNRESOLVED : SpawnPointKind.TERRITORY_POLYGON;
 				final int x = exact ? loadedX : 0;
 				final int y = exact ? loadedY : 0;
 				final int z = exact ? loadedZ : 0;
 				final Integer mapRegion = exact ? MapRegionData.getInstance().getMapRegionLocId(x, y) : null;
-				raw.add(new RawSpawn(entry.getKey(), spawn.getInstanceId(), x, y, z, spawn.getAmount(), spawn.getLocationId(), pointKind, mapRegion));
+				if (geometry == null)
+				{
+					raw.add(new RawSpawn(entry.getKey(), spawn.getInstanceId(), x, y, z, spawn.getAmount(), spawn.getLocationId(), pointKind, mapRegion, null));
+				}
+				else
+				{
+					territoryAmounts.merge(new RawTerritorySpawn(entry.getKey(), spawn.getInstanceId(), spawn.getLocationId(), geometry), spawn.getAmount(), Math::addExact);
+				}
 			}
+		}
+		for (Map.Entry<RawTerritorySpawn, Integer> entry : territoryAmounts.entrySet())
+		{
+			final RawTerritorySpawn spawn = entry.getKey();
+			raw.add(new RawSpawn(spawn._npcId, spawn._instanceId, 0, 0, 0, entry.getValue(), spawn._locationId, SpawnPointKind.TERRITORY_POLYGON, null, spawn._territoryGeometry));
+		}
+		if (raw.size() > policy.maximumSpawnFacts())
+		{
+			throw failure("count", "Loaded spawn fact count exceeds policy.");
 		}
 		raw.sort(RawSpawn.ORDER);
 		final ArrayList<SpawnFact> result = new ArrayList<>(raw.size());
@@ -201,9 +226,19 @@ public final class L2jGameKnowledgeBackend implements PhantomGameKnowledgeBacken
 				currentNpcId = spawn._npcId;
 				ordinal = 0;
 			}
-			result.add(new SpawnFact(spawn._npcId, ordinal++, spawn._instanceId, spawn._x, spawn._y, spawn._z, spawn._amount, spawn._locationId, spawn._pointKind, null, spawn._mapRegionLocId, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
+			result.add(new SpawnFact(spawn._npcId, ordinal++, spawn._instanceId, spawn._x, spawn._y, spawn._z, spawn._amount, spawn._locationId, spawn._pointKind, null, spawn._mapRegionLocId, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT, spawn._territoryGeometry));
 		}
 		return List.copyOf(result);
+	}
+
+	private static TerritoryGeometry copyGeometry(NpcSpawnTerritory territory)
+	{
+		return territory.geometrySnapshot().map(snapshot -> new TerritoryGeometry(snapshot.territoryName(), snapshot.sourcePath(), copyPolygon(snapshot.main()), snapshot.banned().stream().map(L2jGameKnowledgeBackend::copyPolygon).toList(), snapshot.hash())).orElse(null);
+	}
+
+	private static TerritoryPolygon copyPolygon(NpcSpawnTerritory.PolygonGeometry polygon)
+	{
+		return new TerritoryPolygon(polygon.vertices().stream().map(vertex -> new TerritoryVertex(vertex.x(), vertex.y())).toList(), polygon.lowZ(), polygon.highZ());
 	}
 
 	private static List<RecipeFact> copyRecipes(PhantomGameKnowledgePolicy policy)
@@ -370,8 +405,12 @@ public final class L2jGameKnowledgeBackend implements PhantomGameKnowledgeBacken
 		return new PhantomGameKnowledgeValidationException(category, message);
 	}
 
-	private record RawSpawn(int _npcId, int _instanceId, int _x, int _y, int _z, int _amount, int _locationId, SpawnPointKind _pointKind, Integer _mapRegionLocId)
+	private record RawSpawn(int _npcId, int _instanceId, int _x, int _y, int _z, int _amount, int _locationId, SpawnPointKind _pointKind, Integer _mapRegionLocId, TerritoryGeometry _territoryGeometry)
 	{
-		private static final Comparator<RawSpawn> ORDER = Comparator.comparingInt(RawSpawn::_npcId).thenComparingInt(RawSpawn::_instanceId).thenComparingInt(RawSpawn::_x).thenComparingInt(RawSpawn::_y).thenComparingInt(RawSpawn::_z).thenComparingInt(RawSpawn::_amount).thenComparingInt(RawSpawn::_locationId).thenComparing(RawSpawn::_pointKind);
+		private static final Comparator<RawSpawn> ORDER = Comparator.comparingInt(RawSpawn::_npcId).thenComparingInt(RawSpawn::_instanceId).thenComparingInt(RawSpawn::_x).thenComparingInt(RawSpawn::_y).thenComparingInt(RawSpawn::_z).thenComparingInt(RawSpawn::_amount).thenComparingInt(RawSpawn::_locationId).thenComparing(RawSpawn::_pointKind).thenComparing(spawn -> spawn._territoryGeometry == null ? "" : spawn._territoryGeometry.geometryHash());
+	}
+
+	private record RawTerritorySpawn(int _npcId, int _instanceId, int _locationId, TerritoryGeometry _territoryGeometry)
+	{
 	}
 }

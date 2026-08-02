@@ -63,7 +63,75 @@ public final class PhantomGameKnowledgeModel
 	public enum SpawnPointKind
 	{
 		EXACT,
+		TERRITORY_POLYGON,
 		TERRITORY_OR_UNRESOLVED
+	}
+
+	public record TerritoryVertex(int x, int y)
+	{
+	}
+
+	public record TerritoryPolygon(List<TerritoryVertex> vertices, int lowZ, int highZ)
+	{
+		public TerritoryPolygon
+		{
+			vertices = List.copyOf(Objects.requireNonNull(vertices, "vertices"));
+			if ((vertices.size() < 3) || (vertices.size() > 32) || (Set.copyOf(vertices).size() != vertices.size()) || (lowZ > highZ))
+			{
+				throw new IllegalArgumentException("Invalid territory polygon.");
+			}
+		}
+	}
+
+	public record TerritoryGeometry(String territoryName, String sourcePath, TerritoryPolygon main, List<TerritoryPolygon> banned, String geometryHash)
+	{
+		public TerritoryGeometry
+		{
+			if ((territoryName == null) || territoryName.isBlank() || (sourcePath == null) || sourcePath.isBlank() || (geometryHash == null) || !geometryHash.matches("[0-9a-f]{64}"))
+			{
+				throw new IllegalArgumentException("Invalid territory geometry identity.");
+			}
+			Objects.requireNonNull(main, "main");
+			banned = List.copyOf(Objects.requireNonNull(banned, "banned"));
+		}
+
+		public boolean contains(int x, int y, int z)
+		{
+			if (!contains(main, x, y, z))
+			{
+				return false;
+			}
+			return banned.stream().noneMatch(polygon -> contains(polygon, x, y, z));
+		}
+
+		private static boolean contains(TerritoryPolygon polygon, int x, int y, int z)
+		{
+			if ((z < polygon.lowZ()) || (z > polygon.highZ()))
+			{
+				return false;
+			}
+			boolean inside = false;
+			for (int current = 0, previous = polygon.vertices().size() - 1; current < polygon.vertices().size(); previous = current++)
+			{
+				final TerritoryVertex a = polygon.vertices().get(current);
+				final TerritoryVertex b = polygon.vertices().get(previous);
+				if (onSegment(a, b, x, y))
+				{
+					return true;
+				}
+				if (((a.y() > y) != (b.y() > y)) && (x < (((long) (b.x() - a.x()) * (y - a.y())) / (double) (b.y() - a.y())) + a.x()))
+				{
+					inside = !inside;
+				}
+			}
+			return inside;
+		}
+
+		private static boolean onSegment(TerritoryVertex a, TerritoryVertex b, int x, int y)
+		{
+			final long cross = (((long) b.x() - a.x()) * ((long) y - a.y())) - (((long) b.y() - a.y()) * ((long) x - a.x()));
+			return (cross == 0) && (x >= Math.min(a.x(), b.x())) && (x <= Math.max(a.x(), b.x())) && (y >= Math.min(a.y(), b.y())) && (y <= Math.max(a.y(), b.y()));
+		}
 	}
 
 	public enum ManorItemRole
@@ -145,8 +213,13 @@ public final class PhantomGameKnowledgeModel
 		}
 	}
 
-	public record SpawnFact(int npcId, int spawnOrdinal, int instanceId, int x, int y, int z, int amount, int locationId, SpawnPointKind pointKind, String topologyNodeId, Integer mapRegionLocId, PhantomGameKnowledgeAuthority authority)
+	public record SpawnFact(int npcId, int spawnOrdinal, int instanceId, int x, int y, int z, int amount, int locationId, SpawnPointKind pointKind, String topologyNodeId, Integer mapRegionLocId, PhantomGameKnowledgeAuthority authority, TerritoryGeometry territoryGeometry)
 	{
+		public SpawnFact(int npcId, int spawnOrdinal, int instanceId, int x, int y, int z, int amount, int locationId, SpawnPointKind pointKind, String topologyNodeId, Integer mapRegionLocId, PhantomGameKnowledgeAuthority authority)
+		{
+			this(npcId, spawnOrdinal, instanceId, x, y, z, amount, locationId, pointKind, topologyNodeId, mapRegionLocId, authority, null);
+		}
+
 		public SpawnFact
 		{
 			if ((npcId <= 0) || (spawnOrdinal < 0) || (instanceId < 0) || (amount < 0) || ((authority != PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT) && (authority != PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT)))
@@ -154,6 +227,10 @@ public final class PhantomGameKnowledgeModel
 				throw new IllegalArgumentException("Invalid spawn fact.");
 			}
 			Objects.requireNonNull(pointKind, "pointKind");
+			if (((pointKind == SpawnPointKind.TERRITORY_POLYGON) != (territoryGeometry != null)) || ((territoryGeometry != null) && ((x != 0) || (y != 0) || (z != 0))))
+			{
+				throw new IllegalArgumentException("Spawn territory geometry does not match its point kind.");
+			}
 			if ((topologyNodeId != null) && topologyNodeId.isBlank())
 			{
 				throw new IllegalArgumentException("Invalid topology node identity.");
@@ -166,7 +243,7 @@ public final class PhantomGameKnowledgeModel
 
 		public SpawnFact withTopology(String nodeId)
 		{
-			return new SpawnFact(npcId, spawnOrdinal, instanceId, x, y, z, amount, locationId, pointKind, nodeId, mapRegionLocId, nodeId == null ? PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT : PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT);
+			return new SpawnFact(npcId, spawnOrdinal, instanceId, x, y, z, amount, locationId, pointKind, nodeId, mapRegionLocId, nodeId == null ? PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT : PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT, territoryGeometry);
 		}
 
 		public String stableKey()
@@ -175,8 +252,13 @@ public final class PhantomGameKnowledgeModel
 		}
 	}
 
-	public record SpawnAreaFact(int npcId, int instanceId, String topologyNodeId, Integer mapRegionLocId, int spawnCount, long totalConfiguredAmount, List<SpawnFact> representativePoints, PhantomGameKnowledgeAuthority authority)
+	public record SpawnAreaFact(int npcId, int instanceId, String topologyNodeId, Integer mapRegionLocId, int spawnCount, long totalConfiguredAmount, List<SpawnFact> representativePoints, PhantomGameKnowledgeAuthority authority, boolean additionalUnmappedTerritories)
 	{
+		public SpawnAreaFact(int npcId, int instanceId, String topologyNodeId, Integer mapRegionLocId, int spawnCount, long totalConfiguredAmount, List<SpawnFact> representativePoints, PhantomGameKnowledgeAuthority authority)
+		{
+			this(npcId, instanceId, topologyNodeId, mapRegionLocId, spawnCount, totalConfiguredAmount, representativePoints, authority, false);
+		}
+
 		public SpawnAreaFact
 		{
 			if ((npcId <= 0) || (instanceId < 0) || (spawnCount < 1) || (totalConfiguredAmount < 0))
@@ -193,8 +275,13 @@ public final class PhantomGameKnowledgeModel
 		}
 	}
 
-	public record SpawnAreaSummary(int npcId, int instanceId, String topologyNodeId, Integer mapRegionLocId, int spawnCount, long totalConfiguredAmount, PhantomGameKnowledgeAuthority authority)
+	public record SpawnAreaSummary(int npcId, int instanceId, String topologyNodeId, Integer mapRegionLocId, int spawnCount, long totalConfiguredAmount, PhantomGameKnowledgeAuthority authority, boolean additionalUnmappedTerritories)
 	{
+		public SpawnAreaSummary(int npcId, int instanceId, String topologyNodeId, Integer mapRegionLocId, int spawnCount, long totalConfiguredAmount, PhantomGameKnowledgeAuthority authority)
+		{
+			this(npcId, instanceId, topologyNodeId, mapRegionLocId, spawnCount, totalConfiguredAmount, authority, false);
+		}
+
 		public SpawnAreaSummary
 		{
 			if ((npcId <= 0) || (instanceId < 0) || (spawnCount < 1) || (totalConfiguredAmount < 0))
@@ -207,7 +294,7 @@ public final class PhantomGameKnowledgeModel
 		public static SpawnAreaSummary from(SpawnAreaFact fact)
 		{
 			Objects.requireNonNull(fact, "fact");
-			return new SpawnAreaSummary(fact.npcId(), fact.instanceId(), fact.topologyNodeId(), fact.mapRegionLocId(), fact.spawnCount(), fact.totalConfiguredAmount(), fact.authority());
+			return new SpawnAreaSummary(fact.npcId(), fact.instanceId(), fact.topologyNodeId(), fact.mapRegionLocId(), fact.spawnCount(), fact.totalConfiguredAmount(), fact.authority(), fact.additionalUnmappedTerritories());
 		}
 
 		public String stableKey()

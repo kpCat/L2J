@@ -52,6 +52,9 @@ import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.Weapon;
 import org.l2jmobius.gameserver.model.item.recipe.RecipeList;
 import org.l2jmobius.gameserver.model.spawns.Spawn;
+import org.l2jmobius.gameserver.model.zone.form.ZoneCuboid;
+import org.l2jmobius.gameserver.model.zone.form.ZoneNPoly;
+import org.l2jmobius.gameserver.model.zone.type.NpcSpawnTerritory;
 import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBackend;
@@ -158,6 +161,7 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 		registry.add("19-component-counts-within-policy", _ -> testBounds());
 		registry.add("20-service-component-hashes-exact", _ -> testServiceHashes());
 		registry.add("21-query-source-seam-stable", _ -> testNoQuerySourceAccess());
+		registry.add("22-loaded-territory-boundary-and-feasible-coverage", this::testTerritoryCoverage);
 	}
 
 	private void testItems()
@@ -319,6 +323,7 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 	private void testSpawns()
 	{
 		final ArrayList<DirectSpawn> direct = new ArrayList<>();
+		final Map<DirectTerritorySpawn, Integer> territoryAmounts = new HashMap<>();
 		for (Map.Entry<Integer, Set<Spawn>> entry : SpawnTable.getInstance().getSpawnTable().entrySet())
 		{
 			for (Spawn spawn : entry.getValue())
@@ -327,15 +332,24 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 				final int loadedX = location == null ? spawn.getX() : location.getX();
 				final int loadedY = location == null ? spawn.getY() : location.getY();
 				final int loadedZ = location == null ? spawn.getZ() : location.getZ();
+				final var geometry = spawn.getSpawnTerritory() == null ? null : spawn.getSpawnTerritory().geometrySnapshot().orElse(null);
 				final boolean exact = (spawn.getSpawnTerritory() == null) && (spawn.getLocationId() == 0) && ((loadedX != 0) || (loadedY != 0));
-				final SpawnPointKind pointKind = exact ? SpawnPointKind.EXACT : SpawnPointKind.TERRITORY_OR_UNRESOLVED;
+				final SpawnPointKind pointKind = exact ? SpawnPointKind.EXACT : geometry == null ? SpawnPointKind.TERRITORY_OR_UNRESOLVED : SpawnPointKind.TERRITORY_POLYGON;
 				final int x = exact ? loadedX : 0;
 				final int y = exact ? loadedY : 0;
 				final int z = exact ? loadedZ : 0;
 				final Integer mapRegion = exact ? MapRegionData.getInstance().getMapRegionLocId(x, y) : null;
-				direct.add(new DirectSpawn(entry.getKey(), spawn.getInstanceId(), x, y, z, spawn.getAmount(), spawn.getLocationId(), pointKind, mapRegion));
+				if (geometry == null)
+				{
+					direct.add(new DirectSpawn(entry.getKey(), spawn.getInstanceId(), x, y, z, spawn.getAmount(), spawn.getLocationId(), pointKind, mapRegion, ""));
+				}
+				else
+				{
+					territoryAmounts.merge(new DirectTerritorySpawn(entry.getKey(), spawn.getInstanceId(), spawn.getLocationId(), geometry.hash()), spawn.getAmount(), Math::addExact);
+				}
 			}
 		}
+		territoryAmounts.forEach((spawn, amount) -> direct.add(new DirectSpawn(spawn.npcId(), spawn.instanceId(), 0, 0, 0, amount, spawn.locationId(), SpawnPointKind.TERRITORY_POLYGON, null, spawn.geometryHash())));
 		direct.sort(DirectSpawn.ORDER);
 		PhantomAssertions.assertEquals(direct.size(), _fixture.snapshot().spawnFacts().size(), "Direct SpawnTable count changed.");
 		final Map<String, SpawnFact> actual = new HashMap<>();
@@ -361,6 +375,7 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(expected.locationId(), fact.locationId(), "Loaded spawn location id changed.");
 			PhantomAssertions.assertEquals(expected.pointKind(), fact.pointKind(), "Loaded spawn point semantics changed.");
 			PhantomAssertions.assertEquals(expected.mapRegionLocId(), fact.mapRegionLocId(), "Loaded spawn map region changed.");
+			PhantomAssertions.assertEquals(expected.geometryHash(), fact.territoryGeometry() == null ? "" : fact.territoryGeometry().geometryHash(), "Loaded spawn territory geometry identity changed.");
 			if (fact.pointKind() == SpawnPointKind.TERRITORY_OR_UNRESOLVED)
 			{
 				PhantomAssertions.assertEquals(0, fact.x(), "Unresolved spawn retained a runtime-random X coordinate.");
@@ -368,6 +383,55 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(0, fact.z(), "Unresolved spawn retained a runtime-random Z coordinate.");
 			}
 		}
+	}
+
+	private void testTerritoryCoverage(PhantomTestContext context)
+	{
+		final Set<Integer> targetNpcs = Set.of(20013, 20019, 20016);
+		final List<SpawnFact> facts = _fixture.snapshot().spawnFacts().stream().filter(fact -> targetNpcs.contains(fact.npcId()) && (fact.pointKind() == SpawnPointKind.TERRITORY_POLYGON) && ((fact.npcId() == 20016) ? fact.territoryGeometry().sourcePath().equals("data/spawns/TalkingIsland/TalkingIslandMonsters.xml") : fact.territoryGeometry().sourcePath().equals("data/spawns/ElvenTerritory/ElvenStarting.xml"))).toList();
+		PhantomAssertions.assertEquals(20L, facts.stream().filter(fact -> fact.npcId() == 20013).count(), "NPC 20013 territory occurrence count changed.");
+		PhantomAssertions.assertEquals(50L, facts.stream().filter(fact -> fact.npcId() == 20013).mapToLong(SpawnFact::amount).sum(), "NPC 20013 configured amount changed.");
+		PhantomAssertions.assertEquals(17L, facts.stream().filter(fact -> fact.npcId() == 20019).count(), "NPC 20019 territory occurrence count changed.");
+		PhantomAssertions.assertEquals(49L, facts.stream().filter(fact -> fact.npcId() == 20019).mapToLong(SpawnFact::amount).sum(), "NPC 20019 configured amount changed.");
+		PhantomAssertions.assertEquals(8L, facts.stream().filter(fact -> fact.npcId() == 20016).count(), "NPC 20016 territory occurrence count changed.");
+		PhantomAssertions.assertEquals(27L, facts.stream().filter(fact -> fact.npcId() == 20016).mapToLong(SpawnFact::amount).sum(), "NPC 20016 configured amount changed.");
+		final long unique = facts.stream().map(fact -> fact.territoryGeometry().sourcePath() + ':' + fact.territoryGeometry().territoryName()).distinct().count();
+		final long mapped = facts.stream().filter(fact -> fact.topologyNodeId() != null).map(fact -> fact.territoryGeometry().sourcePath() + ':' + fact.territoryGeometry().territoryName()).distinct().count();
+		PhantomAssertions.assertEquals(35L, unique, "Curated factual territory identity count changed.");
+		PhantomAssertions.assertEquals(15L, mapped, "Mapped feasible factual territory count changed.");
+		PhantomAssertions.assertEquals(20L, unique - mapped, "Distance-infeasible factual territory count changed.");
+		PhantomAssertions.assertEquals(9L, facts.stream().filter(fact -> (fact.npcId() == 20013) && (fact.topologyNodeId() != null)).count(), "NPC 20013 feasible occurrence count changed.");
+		PhantomAssertions.assertEquals(7L, facts.stream().filter(fact -> (fact.npcId() == 20019) && (fact.topologyNodeId() != null)).count(), "NPC 20019 feasible occurrence count changed.");
+		PhantomAssertions.assertEquals(1L, facts.stream().filter(fact -> (fact.npcId() == 20016) && (fact.topologyNodeId() != null)).count(), "NPC 20016 feasible occurrence count changed.");
+		PhantomAssertions.assertTrue(_fixture.snapshot().spawnAreas().stream().filter(area -> targetNpcs.contains(area.npcId()) && (area.topologyNodeId() != null)).allMatch(area -> area.additionalUnmappedTerritories()), "Mapped source lost partial factual coverage evidence.");
+		for (var group : facts.stream().collect(java.util.stream.Collectors.groupingBy(fact -> fact.territoryGeometry().geometryHash())).values())
+		{
+			final var shared = group.getFirst().territoryGeometry();
+			PhantomAssertions.assertTrue(group.stream().allMatch(fact -> fact.territoryGeometry() == shared), "One loaded territory was deep-copied per NPC occurrence.");
+		}
+
+		final ZoneNPoly polygon = new ZoneNPoly(new int[]
+		{
+			0,
+			10,
+			0
+		}, new int[]
+		{
+			0,
+			0,
+			10
+		}, -10, 10);
+		final NpcSpawnTerritory authoritative = new NpcSpawnTerritory("test", polygon, "data/spawns/test.xml");
+		final var before = authoritative.geometrySnapshot().orElseThrow();
+		polygon.getX()[0] = 99;
+		PhantomAssertions.assertEquals(before, authoritative.geometrySnapshot().orElseThrow(), "Mutable legacy polygon arrays changed the immutable snapshot.");
+		PhantomAssertions.assertTrue(new NpcSpawnTerritory("legacy", polygon).geometrySnapshot().isEmpty(), "Legacy territory constructor became source-authoritative.");
+		PhantomAssertions.assertTrue(new NpcSpawnTerritory("unsupported", new ZoneCuboid(0, 10, 0, 10, -10, 10), "data/spawns/test.xml").geometrySnapshot().isEmpty(), "Unsupported territory form did not fail closed.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new NpcSpawnTerritory("bad", polygon, "../outside.xml"), "Traversal territory source was accepted.");
+		context.record("knowledge.loadedTerritoryFacts", facts.size());
+		context.record("knowledge.mappedFeasibleTerritories", mapped);
+		context.record("knowledge.unmappedDistanceInfeasibleTerritories", unique - mapped);
+		context.record("knowledge.unmappedUnsupportedTerritories", 0);
 	}
 
 	private void testRecipes()
@@ -526,9 +590,13 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 		return NpcData.getInstance().getTemplates(_ -> true).stream().sorted(Comparator.comparingInt(NpcTemplate::getId)).toList();
 	}
 
-	private record DirectSpawn(int npcId, int instanceId, int x, int y, int z, int amount, int locationId, SpawnPointKind pointKind, Integer mapRegionLocId)
+	private record DirectSpawn(int npcId, int instanceId, int x, int y, int z, int amount, int locationId, SpawnPointKind pointKind, Integer mapRegionLocId, String geometryHash)
 	{
-		private static final Comparator<DirectSpawn> ORDER = Comparator.comparingInt(DirectSpawn::npcId).thenComparingInt(DirectSpawn::instanceId).thenComparingInt(DirectSpawn::x).thenComparingInt(DirectSpawn::y).thenComparingInt(DirectSpawn::z).thenComparingInt(DirectSpawn::amount).thenComparingInt(DirectSpawn::locationId).thenComparing(DirectSpawn::pointKind);
+		private static final Comparator<DirectSpawn> ORDER = Comparator.comparingInt(DirectSpawn::npcId).thenComparingInt(DirectSpawn::instanceId).thenComparingInt(DirectSpawn::x).thenComparingInt(DirectSpawn::y).thenComparingInt(DirectSpawn::z).thenComparingInt(DirectSpawn::amount).thenComparingInt(DirectSpawn::locationId).thenComparing(DirectSpawn::pointKind).thenComparing(DirectSpawn::geometryHash);
+	}
+
+	private record DirectTerritorySpawn(int npcId, int instanceId, int locationId, String geometryHash)
+	{
 	}
 
 	static final class ProductionFixture

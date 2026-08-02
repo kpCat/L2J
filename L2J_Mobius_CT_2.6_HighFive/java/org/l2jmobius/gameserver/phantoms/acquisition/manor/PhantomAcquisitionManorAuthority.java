@@ -52,7 +52,6 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Man
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
-import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnPointKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
@@ -161,10 +160,10 @@ public final class PhantomAcquisitionManorAuthority
 				{
 					continue;
 				}
-				final List<SpawnFact> spawns = _knowledge.snapshot().spawnFactsByNpc().getOrDefault(target.npc().npcId(), List.of()).stream().filter(spawn -> (spawn.instanceId() == 0) && (spawn.amount() > 0) && (spawn.pointKind() == SpawnPointKind.EXACT)).sorted(Comparator.comparing(SpawnFact::stableKey)).limit(64).toList();
+				final List<SpawnFact> spawns = _knowledge.snapshot().spawnFactsByNpc().getOrDefault(target.npc().npcId(), List.of()).stream().filter(spawn -> (spawn.instanceId() == 0) && (spawn.amount() > 0) && (spawn.topologyNodeId() != null) && (spawn.territoryGeometry() != null)).sorted(Comparator.comparing(SpawnFact::stableKey)).limit(64).toList();
 				for (SpawnFact spawn : spawns)
 				{
-					final List<PhantomTopologyAnchor> anchors = _topology.snapshot().anchors().stream().filter(anchor -> (anchor.point().instanceId() == 0) && (castleForAnchor(anchor) == fact.castleId()) && withinActiveDistance(anchor, spawn)).sorted(Comparator.comparing(PhantomTopologyAnchor::id)).limit(4).toList();
+					final List<PhantomTopologyAnchor> anchors = _topology.snapshot().anchorsByNode().getOrDefault(spawn.topologyNodeId(), List.of()).stream().filter(anchor -> (anchor.point().instanceId() == spawn.instanceId()) && (castleForAnchor(anchor) == fact.castleId())).sorted(Comparator.comparing(PhantomTopologyAnchor::id)).limit(1).toList();
 					for (PhantomTopologyAnchor anchor : anchors)
 					{
 						final int multiplier = strongMultiplier(target.npc().npcId());
@@ -261,13 +260,6 @@ public final class PhantomAcquisitionManorAuthority
 	private int castleForPoint(int x, int y)
 	{
 		return _castleByMapCell.getOrDefault(new MapCell(MapRegionData.getInstance().getMapRegionX(x), MapRegionData.getInstance().getMapRegionY(y)), 0);
-	}
-
-	private static boolean withinActiveDistance(PhantomTopologyAnchor anchor, SpawnFact spawn)
-	{
-		final long dx = (long) anchor.point().x() - spawn.x();
-		final long dy = (long) anchor.point().y() - spawn.y();
-		return ((dx * dx) + (dy * dy)) <= (2000L * 2000L);
 	}
 
 	private List<ManorFact> manorFacts(int cropItemId)

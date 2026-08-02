@@ -332,11 +332,19 @@ public final class PhantomGameKnowledgeSnapshot
 		for (SpawnFact fact : spawns)
 		{
 			hash.integer(fact.npcId()).integer(fact.spawnOrdinal()).integer(fact.instanceId()).integer(fact.x()).integer(fact.y()).integer(fact.z()).integer(fact.amount()).integer(fact.locationId()).enumeration(fact.pointKind()).nullableString(fact.topologyNodeId()).nullableInteger(fact.mapRegionLocId()).enumeration(fact.authority());
+			if (fact.territoryGeometry() == null)
+			{
+				hash.nullableString(null);
+			}
+			else
+			{
+				hash.string(fact.territoryGeometry().territoryName()).string(fact.territoryGeometry().sourcePath()).string(fact.territoryGeometry().geometryHash());
+			}
 		}
 		hash.integer(areas.size());
 		for (SpawnAreaFact fact : areas)
 		{
-			hash.integer(fact.npcId()).integer(fact.instanceId()).nullableString(fact.topologyNodeId()).nullableInteger(fact.mapRegionLocId()).integer(fact.spawnCount()).longValue(fact.totalConfiguredAmount()).enumeration(fact.authority()).integer(fact.representativePoints().size());
+			hash.integer(fact.npcId()).integer(fact.instanceId()).nullableString(fact.topologyNodeId()).nullableInteger(fact.mapRegionLocId()).integer(fact.spawnCount()).longValue(fact.totalConfiguredAmount()).enumeration(fact.authority()).bool(fact.additionalUnmappedTerritories()).integer(fact.representativePoints().size());
 			for (SpawnFact point : fact.representativePoints())
 			{
 				hash.integer(point.spawnOrdinal());
@@ -651,6 +659,19 @@ public final class PhantomGameKnowledgeSnapshot
 	public Counts counts()
 	{
 		return _counts;
+	}
+
+	public TerritoryCoverage territoryCoverage()
+	{
+		final List<SpawnFact> loaded = _spawnFacts.stream().filter(fact -> fact.pointKind() == PhantomGameKnowledgeModel.SpawnPointKind.TERRITORY_POLYGON).toList();
+		final int mapped = (int) loaded.stream().filter(fact -> fact.topologyNodeId() != null).map(fact -> fact.territoryGeometry().sourcePath() + ':' + fact.territoryGeometry().territoryName()).distinct().count();
+		final int total = (int) loaded.stream().map(fact -> fact.territoryGeometry().sourcePath() + ':' + fact.territoryGeometry().territoryName()).distinct().count();
+		final int unsupported = (int) _spawnFacts.stream().filter(fact -> fact.pointKind() == PhantomGameKnowledgeModel.SpawnPointKind.TERRITORY_OR_UNRESOLVED).count();
+		return new TerritoryCoverage(loaded.size(), total, mapped, total - mapped, unsupported);
+	}
+
+	public record TerritoryCoverage(int loadedFacts, int loadedTerritories, int mappedFeasibleTerritories, int unmappedDistanceInfeasibleTerritories, int unmappedUnsupportedFacts)
+	{
 	}
 
 	public record Hashes(String itemsHash, String npcDropSpoilHash, String spawnHash, String recipeHash, String manorHash, String classCapabilityHash, String contentRequirementHash, String topologyHash, String combinedHash)

@@ -75,11 +75,16 @@ public interface PhantomCombatBackend
 		}
 	}
 
-	record AcquisitionTargetSnapshot(int objectId, int npcId, int instanceId, double distance, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean normalMonster, boolean knowledgeMonster, boolean peaceRestricted, boolean surroundingRegion, boolean spoiled, int spoilerObjectId, boolean sweepActive, boolean sweepOwnerEligible, int level, boolean canBeSown, boolean raid, boolean chest, boolean seeded, int seederObjectId, int seedItemId, int onKillDelayMillis)
+	record AcquisitionTargetSnapshot(int objectId, int npcId, int instanceId, double distance, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean normalMonster, boolean knowledgeMonster, boolean peaceRestricted, boolean surroundingRegion, boolean spoiled, int spoilerObjectId, boolean sweepActive, boolean sweepOwnerEligible, int level, boolean canBeSown, boolean raid, boolean chest, boolean seeded, int seederObjectId, int seedItemId, int onKillDelayMillis, int x, int y, int z, boolean spawnPresent, boolean spawnTerritoryPresent, boolean exactPointSpawn, String territoryName, String territorySourcePath, String territoryGeometryHash)
 	{
 		public AcquisitionTargetSnapshot(int objectId, int npcId, int instanceId, double distance, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean normalMonster, boolean knowledgeMonster, boolean peaceRestricted, boolean surroundingRegion, boolean spoiled, int spoilerObjectId, boolean sweepActive, boolean sweepOwnerEligible)
 		{
 			this(objectId, npcId, instanceId, distance, dead, alikeDead, targetable, attackable, invulnerable, normalMonster, knowledgeMonster, peaceRestricted, surroundingRegion, spoiled, spoilerObjectId, sweepActive, sweepOwnerEligible, 1, false, false, false, false, 0, 0, 5000);
+		}
+
+		public AcquisitionTargetSnapshot(int objectId, int npcId, int instanceId, double distance, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean normalMonster, boolean knowledgeMonster, boolean peaceRestricted, boolean surroundingRegion, boolean spoiled, int spoilerObjectId, boolean sweepActive, boolean sweepOwnerEligible, int level, boolean canBeSown, boolean raid, boolean chest, boolean seeded, int seederObjectId, int seedItemId, int onKillDelayMillis)
+		{
+			this(objectId, npcId, instanceId, distance, dead, alikeDead, targetable, attackable, invulnerable, normalMonster, knowledgeMonster, peaceRestricted, surroundingRegion, spoiled, spoilerObjectId, sweepActive, sweepOwnerEligible, level, canBeSown, raid, chest, seeded, seederObjectId, seedItemId, onKillDelayMillis, 0, 0, 0, false, false, false, "", "", "");
 		}
 
 		public AcquisitionTargetSnapshot
@@ -87,6 +92,14 @@ public interface PhantomCombatBackend
 			if ((objectId <= 0) || (npcId <= 0) || (instanceId < 0) || !Double.isFinite(distance) || (distance < 0) || (spoilerObjectId < 0) || (level < 0) || (seederObjectId < 0) || (seedItemId < 0) || (onKillDelayMillis < 0) || (onKillDelayMillis > 60000) || (seeded && ((seederObjectId <= 0) || (seedItemId <= 0))))
 			{
 				throw new IllegalArgumentException("Invalid acquisition target snapshot.");
+			}
+			territoryName = java.util.Objects.requireNonNull(territoryName, "territoryName");
+			territorySourcePath = java.util.Objects.requireNonNull(territorySourcePath, "territorySourcePath");
+			territoryGeometryHash = java.util.Objects.requireNonNull(territoryGeometryHash, "territoryGeometryHash");
+			final boolean exactTerritoryIdentity = !territoryGeometryHash.isEmpty() && territoryGeometryHash.matches("[0-9a-f]{64}") && !territoryName.isBlank() && !territorySourcePath.isBlank();
+			if ((spawnTerritoryPresent != exactTerritoryIdentity) || (spawnTerritoryPresent && (!spawnPresent || exactPointSpawn)) || (exactPointSpawn && (!spawnPresent || spawnTerritoryPresent)))
+			{
+				throw new IllegalArgumentException("Invalid acquisition target spawn identity.");
 			}
 		}
 

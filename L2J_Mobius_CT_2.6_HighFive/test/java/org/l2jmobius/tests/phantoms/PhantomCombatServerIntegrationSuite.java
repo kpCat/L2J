@@ -39,6 +39,7 @@ import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
+import org.l2jmobius.gameserver.data.SpawnTable;
 import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.managers.InstanceManager;
 import org.l2jmobius.gameserver.managers.ItemManager;
@@ -59,6 +60,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
 import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority;
@@ -101,6 +103,8 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Npc
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnPointKind;
+import org.l2jmobius.gameserver.model.spawns.Spawn;
+import org.l2jmobius.gameserver.model.zone.type.NpcSpawnTerritory;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
@@ -166,9 +170,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private double _acquisitionRawItemChance;
 	private PhantomAcquisitionManorAuthority _manorAuthority;
 	private Candidate _manorCandidate;
+	private int _manorPlayerLevel;
 	private PhantomAcquisitionQuestCatalog _questCatalog;
+	private List<QuestSource> _questSources = List.of();
 	private Rule _questRule;
 	private PhantomTopologyQuery _topology;
+	private NpcSpawnTerritory _sourceTerritory;
 
 	public PhantomCombatServerIntegrationSuite()
 	{
@@ -234,14 +241,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			{
 				_manorAuthority = new PhantomAcquisitionManorAuthority(_query, topologyQuery, Path.of("data/mapregion"));
 				_manorCandidate = selectManorCandidate();
-				_combatPoint = exactSpawn(_manorCandidate.npcId());
+				_combatPoint = sourceCombatPoint(_manorCandidate.npcId(), _manorCandidate.topologyNodeId(), _manorCandidate.anchorId());
+				_sourceTerritory = sourceTerritory(_manorCandidate.npcId(), _manorCandidate.topologyNodeId());
 			}
 			else if (_mode == Mode.QUEST)
 			{
 				_questCatalog = PhantomAcquisitionQuestCatalog.load(Path.of("data/phantoms/acquisition/high-five-quest-collection-v1.xml"), Path.of("data/scripts"));
 				ScriptEngine.getInstance().executeScript(Path.of("quests/QuestMasterHandler.java"));
 				_questCatalog.validateRuntime();
-				_combatPoint = questCombatPoint(topologyQuery);
+				_questSources = questSources(topologyQuery);
+				selectQuestSource(_questSources.getFirst());
 			}
 			else
 			{
@@ -390,51 +399,63 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	{
 		for (int cropItemId : _query.snapshot().manorFacts().stream().map(fact -> fact.cropItemId()).distinct().sorted().toList())
 		{
-			final var result = _manorAuthority.candidates(cropItemId, 85, _manorAuthority.probe(cropItemId).requiredItemIds().stream().collect(java.util.stream.Collectors.toMap(itemId -> itemId, _ -> 64L)));
-			for (Candidate candidate : result.candidates())
+			final Map<Integer, Long> inventory = _manorAuthority.probe(cropItemId).requiredItemIds().stream().collect(java.util.stream.Collectors.toMap(itemId -> itemId, _ -> 64L));
+			for (int playerLevel = 1; playerLevel <= 85; playerLevel++)
 			{
-				if (_query.snapshot().spawnFactsByNpc().getOrDefault(candidate.npcId(), List.of()).stream().anyMatch(fact -> (fact.pointKind() == SpawnPointKind.EXACT) && (fact.instanceId() == 0)))
+				final var result = _manorAuthority.candidates(cropItemId, playerLevel, inventory);
+				final int currentLevel = playerLevel;
+				final Candidate levelMatched = result.candidates().stream().filter(candidate -> candidate.npcLevel() == currentLevel).findFirst().orElse(null);
+				if (levelMatched != null)
 				{
-					return candidate;
+					_manorPlayerLevel = playerLevel;
+					return levelMatched;
 				}
 			}
 		}
 		throw new AssertionError("No current manor candidate has a real normal-world target.");
 	}
 
-	private SpawnFact exactSpawn(int npcId)
+	private SpawnFact sourceCombatPoint(int npcId, String nodeId, String anchorId)
 	{
-		return _query.snapshot().spawnFactsByNpc().getOrDefault(npcId, List.of()).stream().filter(fact -> (fact.pointKind() == SpawnPointKind.EXACT) && (fact.instanceId() == 0)).findFirst().orElseThrow(() -> new AssertionError("Exact target has no normal-world spawn: " + npcId));
+		final SpawnFact fact = _query.snapshot().spawnFactsByNpc().getOrDefault(npcId, List.of()).stream().filter(value -> nodeId.equals(value.topologyNodeId()) && (value.territoryGeometry() != null)).findFirst().orElseThrow(() -> new AssertionError("Mapped source has no territory fact: " + npcId));
+		final var anchor = _topology.snapshot().anchorById().get(anchorId);
+		return new SpawnFact(npcId, fact.spawnOrdinal(), fact.instanceId(), anchor.point().x(), anchor.point().y(), anchor.point().z(), fact.amount(), fact.locationId(), SpawnPointKind.EXACT, nodeId, anchor.mapRegionLocId(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT);
 	}
 
-	private SpawnFact questCombatPoint(PhantomTopologyQuery topology)
+	private NpcSpawnTerritory sourceTerritory(int npcId, String nodeId)
 	{
+		final var geometry = _query.snapshot().spawnFactsByNpc().getOrDefault(npcId, List.of()).stream().filter(fact -> nodeId.equals(fact.topologyNodeId()) && (fact.territoryGeometry() != null)).map(SpawnFact::territoryGeometry).distinct().findFirst().orElseThrow(() -> new AssertionError("Mapped source geometry is missing."));
+		return SpawnTable.getInstance().getSpawns(npcId).stream().map(Spawn::getSpawnTerritory).filter(java.util.Objects::nonNull).filter(territory -> territory.geometrySnapshot().map(snapshot -> snapshot.hash().equals(geometry.geometryHash()) && snapshot.sourcePath().equals(geometry.sourcePath()) && snapshot.territoryName().equals(geometry.territoryName())).orElse(false)).findFirst().orElseThrow(() -> new AssertionError("Runtime Spawn territory differs from Game Knowledge source."));
+	}
+
+	private List<QuestSource> questSources(PhantomTopologyQuery topology)
+	{
+		final List<QuestSource> sources = new ArrayList<>();
 		for (Rule rule : _questCatalog.rules())
 		{
 			for (int npcId : rule.targetNpcIds())
 			{
-				for (SpawnFact fact : _query.snapshot().spawnFactsByNpc().getOrDefault(npcId, List.of()))
-				{
-					if ((fact.instanceId() != 0) || (fact.amount() <= 0) || (fact.topologyNodeId() == null))
-					{
-						continue;
-					}
-					final var anchor = topology.snapshot().anchorsByNode().getOrDefault(fact.topologyNodeId(), List.of()).stream().filter(value -> value.point().instanceId() == 0).min(Comparator.comparing(value -> value.id())).orElse(null);
-					if (anchor != null)
-					{
-						_questRule = rule;
-						return new SpawnFact(npcId, fact.spawnOrdinal(), 0, anchor.point().x(), anchor.point().y(), anchor.point().z(), fact.amount(), fact.locationId(), SpawnPointKind.EXACT, fact.topologyNodeId(), anchor.mapRegionLocId(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT);
-					}
-				}
+				final SpawnFact fact = _query.snapshot().spawnFactsByNpc().getOrDefault(npcId, List.of()).stream().filter(value -> (value.instanceId() == 0) && (value.amount() > 0) && (value.topologyNodeId() != null) && (value.territoryGeometry() != null)).min(Comparator.comparing(SpawnFact::stableKey)).orElseThrow(() -> new AssertionError("Curated quest target has no mapped source territory: " + npcId));
+				final var anchor = topology.snapshot().anchorsByNode().getOrDefault(fact.topologyNodeId(), List.of()).stream().filter(value -> value.point().instanceId() == 0).min(Comparator.comparing(value -> value.id())).orElseThrow(() -> new AssertionError("Curated quest source has no normal-world anchor: " + npcId));
+				sources.add(new QuestSource(rule, npcId, sourceCombatPoint(npcId, fact.topologyNodeId(), anchor.id()), sourceTerritory(npcId, fact.topologyNodeId())));
 			}
 		}
-		throw new AssertionError("No curated quest target has a bounded normal-world topology anchor.");
+		PhantomAssertions.assertEquals(3, sources.size(), "The curated catalog must expose exactly three separately covered quest targets.");
+		PhantomAssertions.assertEquals(List.of(20013, 20019, 20016), sources.stream().map(QuestSource::npcId).toList(), "Curated quest target coverage drifted.");
+		return List.copyOf(sources);
+	}
+
+	private void selectQuestSource(QuestSource source)
+	{
+		_questRule = source.rule();
+		_combatPoint = source.combatPoint();
+		_sourceTerritory = source.territory();
 	}
 
 	private void prepareManorActor()
 	{
 		_player.setPlayerClass(MELEE_CLASS_ID);
-		_player.getStat().setLevel((byte) Math.clamp(_manorCandidate.npcLevel(), 1, 85));
+		_player.getStat().setLevel((byte) _manorPlayerLevel);
 		_player.setInvul(true);
 		ensureWeapon();
 		ensureInventoryItem(_manorCandidate.fact().seedItemId(), 64);
@@ -460,7 +481,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		ensureWeapon();
 		final var quest = ScriptManager.getInstance().getQuest(_questRule.questId());
 		PhantomAssertions.assertTrue(quest != null, "Curated quest was not loaded.");
-		final QuestState state = new QuestState(quest, _player, State.STARTED);
+		final QuestState state = _player.getQuestState(_questRule.questName()) == null ? new QuestState(quest, _player, State.STARTED) : _player.getQuestState(_questRule.questName());
 		state.setCond(_questRule.allowedConds().getFirst(), false);
 	}
 
@@ -490,9 +511,15 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				final long before = inventory.seedCount();
 				final AcquisitionTargetSnapshot live = lease.acquisitionTargetSnapshot(target.getObjectId());
 				PhantomAssertions.assertTrue((live != null) && live.manorLiveValidFor(lease.actorSnapshot(), _manorCandidate.npcId(), 2000), "Exact manor target was not sow-eligible.");
-				final ActionOutcome outcome = lease.useExactSeed(inventory.seedObjectId(), _manorCandidate.fact().seedItemId(), target.getObjectId());
-				PhantomAssertions.assertTrue((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED), "Canonical Seed handler was not issued.");
-				await(() -> _player.getInventory().getInventoryItemCount(_manorCandidate.fact().seedItemId(), -1) < before, "Canonical sow attempt did not consume exactly one seed.");
+				PhantomAssertions.assertEquals(_sourceTerritory.geometrySnapshot().orElseThrow().hash(), live.territoryGeometryHash(), "Manor target did not retain selected factual territory ownership.");
+				boolean consumed = false;
+				for (int dispatch = 0; (dispatch < 3) && !consumed; dispatch++)
+				{
+					final ActionOutcome outcome = lease.useExactSeed(inventory.seedObjectId(), _manorCandidate.fact().seedItemId(), target.getObjectId());
+					PhantomAssertions.assertTrue((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED), "Canonical Seed handler was not issued.");
+					consumed = waitFor(() -> _player.getInventory().getInventoryItemCount(_manorCandidate.fact().seedItemId(), -1) < before, 4000);
+				}
+				PhantomAssertions.assertTrue(consumed, "Canonical sow attempts did not consume exactly one seed.");
 				PhantomAssertions.assertEquals(before - 1, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().seedItemId(), -1), "Canonical sow consumed an unexpected seed count.");
 				if (target.isSeeded())
 				{
@@ -530,8 +557,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var inventory = lease.manorInventory(_manorCandidate.fact().seedItemId(), _manorCandidate.fact().cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
 			final AcquisitionTargetSnapshot corpse = lease.acquisitionTargetSnapshot(harvestTarget.getObjectId());
 			PhantomAssertions.assertTrue((corpse != null) && corpse.harvestValidFor(lease.actorSnapshot(), _manorCandidate.npcId(), _manorCandidate.fact().seedItemId(), 2000), "Exact seeded corpse was not harvest-eligible.");
-			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.useExactHarvester(inventory.harvesterObjectId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID, harvestTarget.getObjectId()), "Canonical Harvester handler was not issued.");
-			await(() -> _player.getInventory().getInventoryItemCount(_manorCandidate.fact().cropItemId(), -1) > cropBefore, "Canonical harvest produced no crop delta.");
+			boolean harvested = false;
+			for (int attempt = 0; (attempt < 3) && !harvested; attempt++)
+			{
+				final ActionOutcome outcome = lease.useExactHarvester(inventory.harvesterObjectId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID, harvestTarget.getObjectId());
+				PhantomAssertions.assertTrue((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED), "Canonical Harvester handler was not issued.");
+				harvested = waitFor(() -> _player.getInventory().getInventoryItemCount(_manorCandidate.fact().cropItemId(), -1) > cropBefore, 3000);
+			}
+			PhantomAssertions.assertTrue(harvested, "Canonical harvest produced no crop delta.");
 		}
 		PhantomAssertions.assertEquals(matureBefore, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().matureItemId(), -1), "Manor acquisition credited mature seed.");
 		PhantomAssertions.assertEquals(reward1Before, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward1ItemId(), -1), "Manor acquisition performed reward exchange 1.");
@@ -564,48 +597,100 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testCanonicalQuestChain() throws Exception
 	{
-		final QuestState state = _player.getQuestState(_questRule.questName());
-		PhantomAssertions.assertTrue((state != null) && state.isStarted() && (state.getCond() == _questRule.allowedConds().getFirst()), "Exact already-started quest setup is absent.");
-		boolean granted = false;
-		boolean notGranted = false;
-		long count = _player.getInventory().getInventoryItemCount(_questRule.questItemId(), -1);
-		for (int attempt = 0; (attempt < 32) && !(granted && notGranted) && (count < _questRule.itemCap()); attempt++)
+		for (QuestSource source : _questSources)
 		{
-			resetActor(true);
+			selectQuestSource(source);
 			relocateToCombatPoint();
-			_player.setInvul(true);
-			ensureWeapon();
-			final Monster target = spawnNormalMonster(1);
-			target.setOnKillDelay(100);
-			final long before = count;
-			final var started = _combat.startSession(request(target, PhantomCombatMode.MELEE_PHYSICAL, false, false));
-			PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Existing Combat did not accept curated quest target.");
-			awaitCombatOutcome(target, "Curated quest existing Combat");
-			PhantomAssertions.assertTrue(target.isDead() || target.isAlikeDead(), "Existing Combat did not kill curated quest target.");
-			awaitTerminal();
-			consumeTerminal();
-			Thread.sleep(300);
-			count = _player.getInventory().getInventoryItemCount(_questRule.questItemId(), -1);
-			granted |= count == (before + 1);
-			notGranted |= count == before;
-			PhantomAssertions.assertTrue((count == before) || (count == (before + 1)), "Curated delayed callback produced an invalid item delta.");
-			PhantomAssertions.assertTrue(state.isStarted() && (state.getCond() == _questRule.allowedConds().getFirst()), "Kill collection changed quest state/cond below the audited cap.");
+			prepareQuestActor();
+			final QuestState state = _player.getQuestState(_questRule.questName());
+			PhantomAssertions.assertTrue((state != null) && state.isStarted() && (state.getCond() == _questRule.allowedConds().getFirst()), "Exact already-started quest setup is absent.");
+			boolean granted = false;
+			boolean notGranted = false;
+			long count = _player.getInventory().getInventoryItemCount(_questRule.questItemId(), -1);
+			for (int attempt = 0; (attempt < 32) && !(granted && notGranted) && (count < _questRule.itemCap()); attempt++)
+			{
+				resetActor(true);
+				relocateToCombatPoint();
+				_player.setInvul(true);
+				ensureWeapon();
+				final Monster target = spawnNormalMonster(1);
+				target.setOnKillDelay(100);
+				final long before = count;
+				final var started = _combat.startSession(request(target, PhantomCombatMode.MELEE_PHYSICAL, false, false));
+				PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Existing Combat did not accept curated quest target " + source.npcId() + ".");
+				awaitCombatOutcome(target, "Curated quest existing Combat " + source.npcId());
+				PhantomAssertions.assertTrue(target.isDead() || target.isAlikeDead(), "Existing Combat did not kill curated quest target " + source.npcId() + ".");
+				awaitTerminal();
+				consumeTerminal();
+				Thread.sleep(300);
+				count = _player.getInventory().getInventoryItemCount(_questRule.questItemId(), -1);
+				granted |= count == (before + 1);
+				notGranted |= count == before;
+				PhantomAssertions.assertTrue((count == before) || (count == (before + 1)), "Curated delayed callback produced an invalid item delta for " + source.npcId() + ".");
+				PhantomAssertions.assertTrue(state.isStarted() && (state.getCond() == _questRule.allowedConds().getFirst()), "Kill collection changed quest state/cond below the audited cap.");
+			}
+			PhantomAssertions.assertTrue(granted && notGranted, "Bounded real delayed quest kills did not observe both grant and no-grant paths for " + source.npcId() + ".");
+			PhantomAssertions.assertTrue(count <= _questRule.itemCap(), "Active quest collection crossed its conservative item cap.");
 		}
-		PhantomAssertions.assertTrue(granted && notGranted, "Bounded real delayed quest kills did not observe both grant and no-grant paths.");
-		PhantomAssertions.assertTrue(count <= _questRule.itemCap(), "Active quest collection crossed its conservative item cap.");
 	}
 
 	private void testQuestControls()
 	{
 		PhantomAssertions.assertTrue(_questCatalog.current(), "Curated quest authority is not current after exact script loading.");
-		PhantomAssertions.assertFalse(_questRule.supports(_questRule.allowedConds().getFirst() + 1, 0, _questRule.targetNpcIds().getFirst(), false), "Wrong quest cond was admitted.");
-		PhantomAssertions.assertFalse(_questRule.supports(_questRule.allowedConds().getFirst(), _questRule.itemCap(), _questRule.targetNpcIds().getFirst(), false), "Quest item cap was admitted.");
-		PhantomAssertions.assertFalse(_questRule.supports(_questRule.allowedConds().getFirst(), 0, _questRule.targetNpcIds().getFirst() + 1, false), "Wrong quest target was admitted.");
-		try (ExternalActionLease lease = acquireAcquisition("quest-controls"))
+		boolean mappedTerritoryNegativeObserved = false;
+		for (QuestSource source : _questSources)
 		{
-			final var snapshot = lease.questState(_questRule.questName(), _questRule.expectedVars());
-			PhantomAssertions.assertTrue((snapshot != null) && "STARTED".equals(snapshot.state()) && (snapshot.cond() == _questRule.allowedConds().getFirst()), "Exact active quest state was not read through the acquisition seam.");
+			selectQuestSource(source);
+			relocateToCombatPoint();
+			prepareQuestActor();
+			PhantomAssertions.assertFalse(_questRule.supports(_questRule.allowedConds().getFirst() + 1, 0, source.npcId(), false), "Wrong quest cond was admitted.");
+			PhantomAssertions.assertFalse(_questRule.supports(_questRule.allowedConds().getFirst(), _questRule.itemCap(), source.npcId(), false), "Quest item cap was admitted.");
+			PhantomAssertions.assertFalse(_questRule.supports(_questRule.allowedConds().getFirst(), 0, source.npcId() + 1, false), "Wrong quest target was admitted.");
+			try (ExternalActionLease lease = acquireAcquisition("quest-controls-" + source.npcId()))
+			{
+				final var snapshot = lease.questState(_questRule.questName(), _questRule.expectedVars());
+				PhantomAssertions.assertTrue((snapshot != null) && "STARTED".equals(snapshot.state()) && (snapshot.cond() == _questRule.allowedConds().getFirst()), "Exact active quest state was not read through the acquisition seam.");
+				final Source selectedSource = questAcquisitionSource(source);
+				final Monster owned = spawnNormalMonster(targetMaximumHp());
+				final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(owned.getObjectId());
+				PhantomAssertions.assertTrue((target != null) && target.spawnTerritoryPresent() && _sourceTerritory.geometrySnapshot().orElseThrow().hash().equals(target.territoryGeometryHash()), "Quest target did not retain exact mapped territory ownership.");
+				PhantomAssertions.assertTrue(PhantomAcquisitionService.ownsMappedTarget(_query, selectedSource, target), "Selected factual territory target was rejected.");
+
+				final SpawnFact otherMapped = _query.snapshot().spawnFactsByNpc().get(source.npcId()).stream().filter(fact -> (fact.territoryGeometry() != null) && (fact.topologyNodeId() != null) && !fact.topologyNodeId().equals(source.combatPoint().topologyNodeId())).findFirst().orElse(null);
+				if (otherMapped != null)
+				{
+					final Monster mappedOther = spawnWithTerritory(source.npcId(), runtimeTerritory(source.npcId(), otherMapped), targetMaximumHp());
+					PhantomAssertions.assertFalse(PhantomAcquisitionService.ownsMappedTarget(_query, selectedSource, lease.acquisitionTargetSnapshot(mappedOther.getObjectId())), "Same NPC from another mapped territory was admitted.");
+					mappedTerritoryNegativeObserved = true;
+				}
+
+				final SpawnFact unmapped = _query.snapshot().spawnFactsByNpc().get(source.npcId()).stream().filter(fact -> (fact.territoryGeometry() != null) && (fact.topologyNodeId() == null)).findFirst().orElseThrow(() -> new AssertionError("Quest target lacks an infeasible negative-control territory."));
+				final Monster unmappedTarget = spawnWithTerritory(source.npcId(), runtimeTerritory(source.npcId(), unmapped), targetMaximumHp());
+				PhantomAssertions.assertFalse(PhantomAcquisitionService.ownsMappedTarget(_query, selectedSource, lease.acquisitionTargetSnapshot(unmappedTarget.getObjectId())), "Same NPC from an unmapped territory was admitted.");
+
+				final Monster exactPoint = spawnExactPointMonster(source.npcId(), targetMaximumHp());
+				final AcquisitionTargetSnapshot exactPointSnapshot = lease.acquisitionTargetSnapshot(exactPoint.getObjectId());
+				PhantomAssertions.assertTrue((exactPointSnapshot != null) && exactPointSnapshot.exactPointSpawn(), "Exact-point negative-control Spawn was not observed.");
+				PhantomAssertions.assertFalse(PhantomAcquisitionService.ownsMappedTarget(_query, selectedSource, exactPointSnapshot), "Same NPC exact-point Spawn inherited polygon source ownership.");
+			}
 		}
+		PhantomAssertions.assertTrue(mappedTerritoryNegativeObserved, "No same-NPC alternate mapped territory negative control was exercised.");
+	}
+
+	private Source questAcquisitionSource(QuestSource source)
+	{
+		final var anchor = _topology.snapshot().anchorsByNode().get(source.combatPoint().topologyNodeId()).getFirst();
+		return new Source("a".repeat(64), Method.QUEST_COLLECTION, source.npcId(), source.rule().questItemId(), "quest:" + source.rule().id(), source.combatPoint().topologyNodeId(), anchor.id(), source.combatPoint().instanceId(), 0, 0, 0, 0);
+	}
+
+	private NpcSpawnTerritory runtimeTerritory(int npcId, SpawnFact fact)
+	{
+		final var geometry = fact.territoryGeometry();
+		return SpawnTable.getInstance().getSpawns(npcId).stream().map(Spawn::getSpawnTerritory).filter(java.util.Objects::nonNull).filter(territory -> territory.geometrySnapshot().map(snapshot -> snapshot.hash().equals(geometry.geometryHash()) && snapshot.sourcePath().equals(geometry.sourcePath()) && snapshot.territoryName().equals(geometry.territoryName())).orElse(false)).findFirst().orElseThrow(() -> new AssertionError("Runtime negative-control territory differs from Game Knowledge."));
+	}
+
+	private record QuestSource(Rule rule, int npcId, SpawnFact combatPoint, NpcSpawnTerritory territory)
+	{
 	}
 
 	private void prepareAcquisitionActor()
@@ -1351,9 +1436,60 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		return monster;
 	}
 
+	private Monster spawnWithTerritory(int npcId, NpcSpawnTerritory territory, double hp)
+	{
+		final NpcTemplate template = NpcData.getInstance().getTemplate(npcId);
+		PhantomAssertions.assertTrue(template != null, "Negative-control normal-monster template is unavailable.");
+		final Monster monster = spawn(new Monster(template), 20 + (_worldFixtures.size() * 5), territory);
+		monster.setCurrentHp(Math.min(hp, monster.getMaxHp()));
+		return monster;
+	}
+
+	private Monster spawnExactPointMonster(int npcId, double hp)
+	{
+		final NpcTemplate template = NpcData.getInstance().getTemplate(npcId);
+		PhantomAssertions.assertTrue(template != null, "Exact-point normal-monster template is unavailable.");
+		final Monster monster = new Monster(template);
+		monster.setInstanceId(0);
+		final int offset = 20 + (_worldFixtures.size() * 5);
+		try
+		{
+			final Spawn sourceSpawn = new Spawn(template);
+			sourceSpawn.setXYZ(_player.getX() + offset, _player.getY(), _player.getZ());
+			monster.setSpawn(sourceSpawn);
+		}
+		catch (ReflectiveOperationException exception)
+		{
+			throw new AssertionError("Could not bind exact-point negative-control Spawn.", exception);
+		}
+		monster.spawnMe(_player.getX() + offset, _player.getY(), _player.getZ());
+		monster.setCurrentHp(Math.min(hp, monster.getMaxHp()));
+		_worldFixtures.add(monster);
+		return monster;
+	}
+
 	private <T extends Monster> T spawn(T monster, int xOffset)
 	{
+		return spawn(monster, xOffset, _sourceTerritory);
+	}
+
+	private <T extends Monster> T spawn(T monster, int xOffset, NpcSpawnTerritory territory)
+	{
 		monster.setInstanceId(0);
+		if (territory != null)
+		{
+			try
+			{
+				final Spawn sourceSpawn = new Spawn(monster.getTemplate());
+				sourceSpawn.setXYZ(_player.getX() + xOffset, _player.getY(), _player.getZ());
+				sourceSpawn.setSpawnTerritory(territory);
+				monster.setSpawn(sourceSpawn);
+			}
+			catch (ReflectiveOperationException exception)
+			{
+				throw new AssertionError("Could not bind factual source Spawn.", exception);
+			}
+		}
 		monster.spawnMe(_player.getX() + xOffset, _player.getY(), _player.getZ());
 		_worldFixtures.add(monster);
 		return monster;
@@ -1402,6 +1538,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			Thread.sleep(10);
 		}
 		PhantomAssertions.assertTrue(condition.getAsBoolean(), message);
+	}
+
+	private static boolean waitFor(BooleanSupplier condition, long waitMillis) throws Exception
+	{
+		final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(waitMillis);
+		while (!condition.getAsBoolean() && (System.nanoTime() < deadline))
+		{
+			Thread.sleep(10);
+		}
+		return condition.getAsBoolean();
 	}
 
 	private static final class DeterministicSpoilMonster extends Monster

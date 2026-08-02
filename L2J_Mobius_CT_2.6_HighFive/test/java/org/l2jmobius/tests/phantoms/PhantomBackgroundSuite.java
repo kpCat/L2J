@@ -219,6 +219,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private static final String ANCHOR_ID = "test.anchor";
 	private static final int PRODUCTION_TARGET_NPC_ID = 22859;
 	private static final String PRODUCTION_FARM_ANCHOR_ID = "giran.farming.22859";
+	private static final String NO_METHOD_BINDING_HASH = "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe";
 	private static final String PARENT_PRODUCTION_TOPOLOGY_HASH = "f8046ed902f024a9181f39b3247d8a6697279db4921ec0a69231c1e9b47cae7f";
 	private static final int NO_GRADE_WEAPON_ITEM_ID = 6;
 	private static final int NO_GRADE_SOULSHOT_ITEM_ID = 1835;
@@ -875,9 +876,10 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				supported.add(npcId + "@" + anchor.id());
 			}
 		}
-		PhantomAssertions.assertEquals(1, audited.size(), "Deterministic FARMING anchor audit cardinality changed.");
-		PhantomAssertions.assertTrue(audited.getFirst().contains(":leaveOnGround=" + PRODUCTION_GROUND_LOSS_ITEM_IDS + ":"), "Shipped production ground-loss corpus changed.");
-		PhantomAssertions.assertTrue(audited.getFirst().contains(":autoAcquiredUnsupported=[]:supported=true"), "Shipped production pair is no longer fail-closed supported.");
+		PhantomAssertions.assertEquals(16, audited.size(), "Deterministic FARMING anchor audit cardinality changed.");
+		final String productionEvidence = audited.stream().filter(value -> value.startsWith(PRODUCTION_TARGET_NPC_ID + "@" + PRODUCTION_FARM_ANCHOR_ID + ":")).findFirst().orElseThrow(() -> new AssertionError("Shipped production farm pair is absent from the audit."));
+		PhantomAssertions.assertTrue(productionEvidence.contains(":leaveOnGround=" + PRODUCTION_GROUND_LOSS_ITEM_IDS + ":"), "Shipped production ground-loss corpus changed.");
+		PhantomAssertions.assertTrue(productionEvidence.contains(":autoAcquiredUnsupported=[]:supported=true"), "Shipped production pair is no longer fail-closed supported.");
 		PhantomAssertions.assertEquals(List.of(PRODUCTION_TARGET_NPC_ID + "@" + PRODUCTION_FARM_ANCHOR_ID), supported, "Exact supported production farm pair changed.");
 		context.record("background.productionLootAudit", String.join("|", audited));
 	}
@@ -2947,7 +2949,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		final Source source = fixture.acquisition().load(fixture.profileId()).orElseThrow().state().selectedSource();
 		final PhantomAcquisitionState expected = fixture.acquisition().load(fixture.profileId()).orElseThrow().state();
 		final ActionKind actionKind = source.method() == PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? ActionKind.ACQUISITION_SPOIL_SWEEP : ActionKind.ACQUISITION_DEATH_DROP;
-		final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(fixture.profileId(), fixture.characterObjectId(), goal.goalId(), goal.revision(), 1, 1, actionKind, source.npcId(), source.anchorId(), PhantomBackgroundState.MODEL_VERSION, hashes, new AcquisitionIdentity(source.sourceId(), stateRowVersion, expected.targetItemId(), expected.hashes().catalog(), expected.hashes().background()));
+		final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(fixture.profileId(), fixture.characterObjectId(), goal.goalId(), goal.revision(), 1, 1, actionKind, source.npcId(), source.anchorId(), PhantomBackgroundState.MODEL_VERSION, hashes, new AcquisitionIdentity(source.sourceId(), stateRowVersion, expected.targetItemId(), expected.hashes().catalog(), expected.hashes().background(), NO_METHOD_BINDING_HASH, 0));
 		final ReceiptKind receiptKind = source.method() == PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? ReceiptKind.BACKGROUND_SPOIL_SWEEP : ReceiptKind.BACKGROUND_DEATH_DROP;
 		final var mutation = new PhantomBackgroundTransaction.AcquisitionMutation(expected, stateRowVersion, goalRowVersion, receiptKind, 1);
 		return new PhantomBackgroundTransaction.Command(ready, goal, key, ready.progress(), ready.vitals(), ready.position(), new Clock(ACQUISITION_SEED + 1, 0, 0), Map.of(expected.targetItemId(), fixture.requiredAmount()), ready.autoGetSkills(), List.of(expected.targetItemId()), mutation);

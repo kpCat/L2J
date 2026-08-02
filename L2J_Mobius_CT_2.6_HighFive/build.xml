@@ -1575,7 +1575,7 @@
 		</java>
 	</target>
 
-	<target name="phantom-acquisition-checkpoint2-test" depends="phantom-acquisition-manor-catalog-source-test,phantom-acquisition-manor-active-test,phantom-acquisition-manor-background-test,phantom-acquisition-manor-restart-transition-test,phantom-acquisition-quest-catalog-source-test,phantom-acquisition-quest-active-test,phantom-acquisition-quest-background-test,phantom-acquisition-checkpoint2-lifecycle-performance-smoke" description="Run the final Goal 021 Checkpoint 2 manor/quest acquisition aggregate." />
+	<target name="phantom-acquisition-checkpoint2-test" depends="phantom-topology-production-corpus-test,phantom-game-knowledge-parity-test,phantom-acquisition-manor-catalog-source-test,phantom-acquisition-manor-active-test,phantom-acquisition-manor-background-test,phantom-acquisition-manor-restart-transition-test,phantom-acquisition-quest-catalog-source-test,phantom-acquisition-quest-active-test,phantom-acquisition-quest-background-test,phantom-acquisition-checkpoint2-lifecycle-performance-smoke" description="Run the final Goal 021 Checkpoint 2 loaded-territory, manor and quest acquisition aggregate." />
 
 	<target name="phantom-acquisition-capability-test" depends="compile-tests" description="Run exact Goal 021 acquisition profession capability lineage tests.">
 		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
