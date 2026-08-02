@@ -144,6 +144,20 @@ public abstract class AbstractEnchantItem
 		
 		return true;
 	}
+
+	/** Packet-independent validation over the same immutable template facts. */
+	public boolean isValid(ItemTemplate template, int enchantLevel)
+	{
+		if ((template == null) || (enchantLevel < 0) || !template.isEnchantable())
+		{
+			return false;
+		}
+		if (!isValidItemType(template.getType2()) || ((_maxEnchantLevel != 0) && (enchantLevel >= _maxEnchantLevel)))
+		{
+			return false;
+		}
+		return _grade == template.getCrystalTypePlus();
+	}
 	
 	/**
 	 * @param type2

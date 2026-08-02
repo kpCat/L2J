@@ -310,6 +310,14 @@ public final class PhantomTestLauncher
 			case "acquisition-quest-active" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.QUEST);
 			case "acquisition-quest-background" -> new PhantomAcquisitionQuestSuite(PhantomAcquisitionQuestSuite.Mode.BACKGROUND);
 			case "acquisition-checkpoint2-lifecycle-performance" -> new PhantomAcquisitionManorSuite(PhantomAcquisitionManorSuite.Mode.LIFECYCLE_PERFORMANCE);
+			case "economy-reservation-schema" -> new PhantomEconomySuite(PhantomEconomySuite.Mode.RESERVATION_SCHEMA);
+			case "economy-reservation-concurrency" -> new PhantomEconomySuite(PhantomEconomySuite.Mode.RESERVATION_CONCURRENCY);
+			case "economy-self-craft-active" -> new PhantomEconomySuite(PhantomEconomySuite.Mode.SELF_CRAFT_ACTIVE);
+			case "economy-self-craft-background" -> new PhantomEconomySuite(PhantomEconomySuite.Mode.SELF_CRAFT_BACKGROUND);
+			case "economy-enchant-active" -> new PhantomEconomySuite(PhantomEconomySuite.Mode.ENCHANT_ACTIVE);
+			case "economy-enchant-background" -> new PhantomEconomySuite(PhantomEconomySuite.Mode.ENCHANT_BACKGROUND);
+			case "economy-restart-transition" -> new PhantomEconomySuite(PhantomEconomySuite.Mode.RESTART_TRANSITION);
+			case "economy-lifecycle-performance" -> new PhantomEconomySuite(PhantomEconomySuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

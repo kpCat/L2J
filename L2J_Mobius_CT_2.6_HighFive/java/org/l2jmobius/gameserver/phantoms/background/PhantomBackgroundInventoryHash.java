@@ -32,13 +32,13 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.ItemL
 /**
  * Deterministic digest over every locked canonical INVENTORY/PAPERDOLL row.
  */
-final class PhantomBackgroundInventoryHash
+public final class PhantomBackgroundInventoryHash
 {
 	private PhantomBackgroundInventoryHash()
 	{
 	}
 
-	static String compute(List<CanonicalItem> items)
+	public static String compute(List<CanonicalItem> items)
 	{
 		try
 		{
@@ -64,9 +64,9 @@ final class PhantomBackgroundInventoryHash
 		digest.update((byte) 0);
 	}
 
-	record CanonicalItem(int objectId, int itemId, long count, ItemLocation location)
+	public record CanonicalItem(int objectId, int itemId, long count, ItemLocation location)
 	{
-		CanonicalItem
+		public CanonicalItem
 		{
 			if ((objectId <= 0) || (itemId <= 0) || (count <= 0) || (location == null))
 			{

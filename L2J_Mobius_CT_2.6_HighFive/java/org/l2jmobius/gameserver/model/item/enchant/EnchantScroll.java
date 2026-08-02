@@ -29,6 +29,7 @@ import org.l2jmobius.gameserver.data.xml.EnchantItemData;
 import org.l2jmobius.gameserver.data.xml.EnchantItemGroupsData;
 import org.l2jmobius.gameserver.model.StatSet;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.EtcItemType;
 import org.l2jmobius.gameserver.model.item.type.ItemType;
@@ -139,6 +140,33 @@ public class EnchantScroll extends AbstractEnchantItem
 		
 		return super.isValid(itemToEnchant, supportItem);
 	}
+
+	/** Exact background validation over immutable template and enchant facts. */
+	public boolean isValid(ItemTemplate itemToEnchant, int enchantLevel, EnchantSupportItem supportItem)
+	{
+		if (!_items.isEmpty() && !_items.containsKey(itemToEnchant.getId()))
+		{
+			return false;
+		}
+		if (supportItem != null)
+		{
+			if (_isBlessed || !supportItem.isValid(itemToEnchant, enchantLevel) || (supportItem.isWeapon() != isWeapon()))
+			{
+				return false;
+			}
+		}
+		if (_items.isEmpty())
+		{
+			for (EnchantScroll scroll : EnchantItemData.getInstance().getScrolls())
+			{
+				if ((scroll.getId() != getId()) && !scroll.getItems().isEmpty() && scroll.getItems().contains(itemToEnchant.getId()))
+				{
+					return false;
+				}
+			}
+		}
+		return super.isValid(itemToEnchant, enchantLevel);
+	}
 	
 	/**
 	 * @param player
@@ -168,6 +196,21 @@ public class EnchantScroll extends AbstractEnchantItem
 		
 		return group.getChance(enchantItem.getEnchantLevel());
 	}
+
+	public double getChance(ItemTemplate enchantItem, int enchantLevel)
+	{
+		if ((enchantItem == null) || (enchantLevel < 0))
+		{
+			return -1;
+		}
+		final int scrollGroupId = _items.getOrDefault(enchantItem.getId(), _scrollGroupId);
+		if (EnchantItemGroupsData.getInstance().getScrollGroup(scrollGroupId) == null)
+		{
+			return -1;
+		}
+		final EnchantItemGroup group = EnchantItemGroupsData.getInstance().getItemGroup(enchantItem, scrollGroupId);
+		return group == null ? -1 : group.getChance(enchantLevel);
+	}
 	
 	/**
 	 * @param player
@@ -194,5 +237,20 @@ public class EnchantScroll extends AbstractEnchantItem
 		final double random = 100 * Rnd.nextDouble();
 		final boolean success = (random < finalChance);
 		return success ? EnchantResultType.SUCCESS : EnchantResultType.FAILURE;
+	}
+
+	public EnchantResultType calculateSuccess(ItemTemplate enchantItem, int enchantLevel, EnchantSupportItem supportItem, double randomPercent)
+	{
+		if (!isValid(enchantItem, enchantLevel, supportItem) || !Double.isFinite(randomPercent) || (randomPercent < 0) || (randomPercent >= 100))
+		{
+			return EnchantResultType.ERROR;
+		}
+		final double chance = getChance(enchantItem, enchantLevel);
+		if (chance < 0)
+		{
+			return EnchantResultType.ERROR;
+		}
+		final double supportBonusRate = supportItem == null ? 0 : supportItem.getBonusRate();
+		return randomPercent < Math.min(chance + getBonusRate() + supportBonusRate, 100) ? EnchantResultType.SUCCESS : EnchantResultType.FAILURE;
 	}
 }

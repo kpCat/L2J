@@ -115,7 +115,15 @@ Goal 020: ACCEPT
 
 Goal 021 Checkpoint 1: ACCEPT
 
-Goal 021 Checkpoint 2: BLOCKED
+Goal 021 Checkpoint 2: ACCEPT
+
+Goal 021: ACCEPT
+
+Goal 022 Checkpoint 1: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
+Goal 022 Checkpoint 2: NOT_STARTED
+
+Goal 022: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 025: NOT_STARTED
 ```
@@ -146,10 +154,10 @@ Goal 016 принята с явными будущими контрактами 
 truth; Goal 017 ожидает независимого review. Goal 018 принята после закрытия
 activation gates в Goal 020 Checkpoint 1; Goal 019 принята с явными будущими
 контрактами; Checkpoint 1 имеет `ACCEPT_WITH_ACTIVATION_GATE`, а Checkpoint 2 —
-`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Goal 021 Checkpoint 1 принят,
-Checkpoint 2 заблокирован factual anchor gate: 20 из 35 target
-territories не имеют кандидата с maximum vertex distance `<=2000`; Goal 025
-не начат.
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Goal 021 Checkpoint 1 и Checkpoint 2
+приняты; overall baseline закреплён на
+`043844c0fd7a0bfcac0d5f58461a21633b032332`. Goal 022 Checkpoint 1 реализован и
+ожидает независимого review; Checkpoint 2 не начат. Goal 025 не начат.
 
 ---
 
@@ -397,7 +405,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `ACCEPT`; Goal 016 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 017 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 018 — `ACCEPT`; Goal 019 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 020 — `ACCEPT`; Goal 020 Checkpoint 1 — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 020 Checkpoint 2 — `ACCEPT`; Goal 021 Checkpoint 1 — `ACCEPT`; Goal 021 Checkpoint 2 — `BLOCKED`; Goal 025 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `ACCEPT`; Goal 016 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 017 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 018 — `ACCEPT`; Goal 019 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 020 — `ACCEPT`; Goal 020 Checkpoint 1 — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 020 Checkpoint 2 — `ACCEPT`; Goal 021 — `ACCEPT`; Goal 022 Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 022 Checkpoint 2 — `NOT_STARTED`; Goal 025 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -853,14 +861,13 @@ semantic acts.
 
 **GOAL:** 021–027
 
-## Goal 021 — Spoil, manor, quest drop и craft acquisition chains — `BLOCKED`
+## Goal 021 — Spoil, manor, quest drop и craft acquisition chains — `ACCEPT`
 
 Checkpoint 1: `ACCEPT`; pinned baseline
 `0045f60417f4605f46e3058b9a694278283b1456`.
-Checkpoint 2 (manor/quest): `BLOCKED`; loaded territory boundary разрешён,
-но консервативный factual topology gate отклоняет 20 из 35 unique
-target territories: ни один разрешённый candidate не находится не дальше
-`2000` от каждой vertex.
+Checkpoint 2 (manor/quest): `ACCEPT`; pinned baseline
+`043844c0fd7a0bfcac0d5f58461a21633b032332`. Консервативное factual coverage
+остаётся `15` mapped и `20` distance-infeasible territories без invented anchors.
 
 **Назначение:** предметные способы получения ресурсов.  
 **Зависимости:** 011–015, 019.  
@@ -871,7 +878,11 @@ recipe ingredient planning and craft preparation.
 **Gate:** ресурс не появляется без допустимого метода/capability/source.  
 **Follow-up risk:** `HIGH` — multi-source rules and active/background parity.
 
-## Goal 022 — Economy transaction kernel, trade, crafting и enchant
+## Goal 022 — Economy transaction kernel, trade, crafting и enchant — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+
+Checkpoint 1: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+
+Checkpoint 2: `NOT_STARTED`.
 
 **Назначение:** безопасные multi-party/item/adena operations.  
 **Зависимости:** 005, 006, 014, 021.  
@@ -1217,8 +1228,9 @@ Next:
    `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 018 — `ACCEPT`; Goal 019 —
    `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 020 Checkpoint 1 —
    `ACCEPT_WITH_ACTIVATION_GATE`; Checkpoint 2 —
-   `ACCEPT`; Goal 021 Checkpoint 1 — `ACCEPT`; Goal 021 Checkpoint 2 —
-   `BLOCKED`; Goal 025 — `NOT_STARTED`.
+   `ACCEPT`; Goal 021 — `ACCEPT`; Goal 022 Checkpoint 1 —
+   `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 022 Checkpoint 2 —
+   `NOT_STARTED`; Goal 025 — `NOT_STARTED`.
 
 Stage gate:
 - Stage I COMPLETE
@@ -1267,8 +1279,9 @@ Overall:
   Goal 019 ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS;
   Goal 020 Checkpoint 1 ACCEPT_WITH_ACTIVATION_GATE;
   Goal 020 Checkpoint 2 ACCEPT;
-  Goal 021 Checkpoint 1 ACCEPT;
-  Goal 021 Checkpoint 2 BLOCKED;
+  Goal 021 ACCEPT;
+  Goal 022 Checkpoint 1 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 022 Checkpoint 2 NOT_STARTED;
   Goal 025 NOT_STARTED
 ```
 

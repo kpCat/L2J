@@ -69,6 +69,13 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyBackgroundTransaction;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyDecision;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyMaterializationLifecycle;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyPolicy;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService;
 import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
@@ -87,6 +94,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyParticipationPort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
@@ -135,6 +143,8 @@ public final class PhantomSystem
 	private PhantomProgressionService _progressionService;
 	private PhantomCombatService _combatService;
 	private PhantomCommerceService _commerceService;
+	private PhantomEconomyReservationService _economyReservations;
+	private PhantomEconomyService _economyService;
 	private PhantomBackgroundService _backgroundService;
 	private PhantomAcquisitionService _acquisitionService;
 	private PhantomPopulationManager _populationManager;
@@ -253,6 +263,7 @@ public final class PhantomSystem
 			{
 				final PhantomProfileRepository productionProfiles = Objects.requireNonNull(profileRepository);
 				final PhantomGoalStateStore productionGoals = Objects.requireNonNull(goalStateStore);
+				final PhantomAcquisitionStore acquisitionStore = new PhantomAcquisitionStore(productionProfiles, productionGoals);
 				final PhantomMaterializationLifecycleBridge productionLifecycle = Objects.requireNonNull(lifecycleBridge);
 				final PhantomActivityWorkSinkBridge productionWorkSink = Objects.requireNonNull(workSinkBridge);
 				_progressionService = new PhantomProgressionService(new L2jProgressionBackend(_materializationService, ServerConfig.DATAPACK_ROOT.toPath(), _gameKnowledgeService::query), PhantomProgressionPolicy.productionDefaults());
@@ -260,6 +271,15 @@ public final class PhantomSystem
 				final L2jCombatBackend combatBackend = new L2jCombatBackend(_materializationService, _gameKnowledgeService::query, () -> _progressionService.findCatalog().orElse(null));
 				_combatService = new PhantomCombatService(combatBackend, PhantomCombatCapabilityResolver.fromProgression(() -> _progressionService.findCatalog().orElse(null)), combatPolicy);
 				_combatService.start();
+				final File economyPolicyFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/economy/high-five-economy-v1.xml");
+				final PhantomEconomyPolicy economyPolicy = PhantomEconomyPolicy.load(economyPolicyFile.toPath());
+				_economyReservations = new PhantomEconomyReservationService(economyPolicy);
+				if (!_economyReservations.start())
+				{
+					throw new IllegalStateException("Phantom economy reservation service could not enter the running state.");
+				}
+				PhantomEconomyConflictPort.install(_economyReservations);
+				_economyService = new PhantomEconomyService(economyPolicy, _economyReservations, new PhantomEconomyBackgroundTransaction(_economyReservations, economyPolicy), _materializationService, acquisitionStore, productionGoals, productionProfiles);
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
 				_commerceService = new PhantomCommerceService(commerceCatalog, new PhantomCommerceReceiptStore(productionProfiles), productionGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
 				if (!_commerceService.start())
@@ -281,7 +301,7 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom background service could not enter the running state.");
 				}
-				productionLifecycle.install(_backgroundService);
+				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, Clock.systemUTC()), _backgroundService));
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
 				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
 				final File questCollectionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-quest-collection-v1.xml");
@@ -291,7 +311,6 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom background acquisition authorities could not be installed.");
 				}
-				final PhantomAcquisitionStore acquisitionStore = new PhantomAcquisitionStore(productionProfiles, productionGoals);
 				_acquisitionService = new PhantomAcquisitionService(acquisitionCatalog, acquisitionStore, productionGoals, new PhantomAcquisitionSourcePlanner(acquisitionCatalog, _gameKnowledgeService.query(), _topologyService.query(), _progressionService.catalog(), manorAuthority, questCollectionCatalog), _gameKnowledgeService.query(), _topologyService.query(), _progressionService.catalog(), _combatService, _backgroundService, _navigationService, manorAuthority, questCollectionCatalog);
 				if (!_acquisitionService.start())
 				{
@@ -300,6 +319,7 @@ public final class PhantomSystem
 				final PhantomCommerceDecision commerceDecision = new PhantomCommerceDecision(_commerceService);
 				final PhantomBackgroundDecision backgroundDecision = new PhantomBackgroundDecision(_backgroundService);
 				final PhantomAcquisitionDecision acquisitionDecision = new PhantomAcquisitionDecision(_acquisitionService);
+				final PhantomEconomyDecision economyDecision = new PhantomEconomyDecision(_economyService);
 				final File populationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-population-v1.xml");
 				final PhantomPopulationCatalog populationCatalog = PhantomPopulationCatalog.load(populationCatalogFile.toPath(), _settings.populationTimeZone());
 				_populationManager = new PhantomPopulationManager(
@@ -365,6 +385,7 @@ public final class PhantomSystem
 				final PhantomPartyDecision partyDecision = new PhantomPartyDecision(_partyCoordinator);
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
 				acquisitionDecision.registerCandidates(candidateRegistry);
+				economyDecision.registerCandidates(candidateRegistry);
 				commerceDecision.registerCandidates(candidateRegistry);
 				backgroundDecision.registerCandidates(candidateRegistry);
 				populationDecision.registerCandidates(candidateRegistry);
@@ -374,6 +395,7 @@ public final class PhantomSystem
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
 				new PhantomCombatStepHandlers(_combatService, combatPolicy).register(handlerRegistry);
 				acquisitionDecision.registerHandlers(handlerRegistry);
+				economyDecision.registerHandlers(handlerRegistry);
 				commerceDecision.registerHandlers(handlerRegistry);
 				backgroundDecision.registerHandlers(handlerRegistry);
 				populationDecision.registerHandlers(handlerRegistry);
@@ -523,6 +545,10 @@ public final class PhantomSystem
 
 		if (_state == State.RUNNING)
 		{
+			if (_economyReservations != null)
+			{
+				_economyReservations.shutdown(System.currentTimeMillis());
+			}
 			if (_conversationService != null)
 			{
 				_conversationService.beginStop();
@@ -694,6 +720,7 @@ public final class PhantomSystem
 				return false;
 			}
 			_metrics.recordLifecycleStop();
+			PhantomEconomyConflictPort.uninstall(_economyReservations);
 			_state = State.STOPPED;
 			return true;
 		}
@@ -827,6 +854,7 @@ public final class PhantomSystem
 				return false;
 			}
 			_metrics.recordLifecycleStop();
+			PhantomEconomyConflictPort.uninstall(_economyReservations);
 			_state = State.STOPPED;
 			return true;
 		}

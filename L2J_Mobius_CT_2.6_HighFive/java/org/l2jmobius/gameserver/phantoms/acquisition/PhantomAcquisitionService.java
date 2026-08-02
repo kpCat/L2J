@@ -73,6 +73,9 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Reservation;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.ResourceKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TerritoryGeometry;
@@ -441,31 +444,53 @@ public final class PhantomAcquisitionService
 			{
 				return OperationResult.replan("acquisition.active.stale");
 			}
-			_active.incrementAndGet();
-			return switch (current.state().phase())
+			if (!PhantomEconomyConflictPort.isInstalled())
 			{
-				case TARGET_REQUIRED -> target(current, logicalNowNanos, logicalMinute, token);
-				case SPOIL_PREPARED -> dispatch(current, AcquisitionSkillKind.SPOIL, Phase.SPOIL_DISPATCHING, logicalNowNanos, logicalMinute, token);
-				case SPOIL_DISPATCHING -> observeSpoil(current, logicalNowNanos, logicalMinute, token);
-				case SPOIL_OBSERVED -> prepareCombat(current, logicalMinute);
-				case SOW_PREPARED -> dispatchManor(current, true, logicalNowNanos, logicalMinute, token);
-				case SOW_DISPATCHING -> observeSow(current, logicalNowNanos, logicalMinute, token);
-				case SOW_OBSERVED -> prepareCombat(current, logicalMinute);
-				case COMBAT_PREPARED -> submitCombat(current, current.state().selectedSource().method() == Method.DEATH_DROP, Phase.COMBAT_SUBMITTED, logicalNowNanos, logicalMinute, token);
-				case COMBAT_SUBMITTED -> observeCombat(current, logicalNowNanos, logicalMinute, token);
-				case COMBAT_TERMINAL -> prepareSweepOrVerify(current, logicalNowNanos, logicalMinute, token);
-				case HARVEST_PREPARED -> dispatchManor(current, false, logicalNowNanos, logicalMinute, token);
-				case HARVEST_DISPATCHING -> observeHarvest(current, logicalNowNanos, logicalMinute, token);
-				case QUEST_COMBAT_PREPARED -> submitCombat(current, false, Phase.QUEST_COMBAT_SUBMITTED, logicalNowNanos, logicalMinute, token);
-				case QUEST_COMBAT_SUBMITTED -> observeCombat(current, logicalNowNanos, logicalMinute, token);
-				case QUEST_COMBAT_TERMINAL -> prepareQuestCallback(current, logicalNowNanos, logicalMinute);
-				case QUEST_CALLBACK_WAIT -> observeQuestCallback(current, logicalNowNanos, logicalMinute, token);
-				case SWEEP_PREPARED -> dispatch(current, AcquisitionSkillKind.SWEEP, Phase.SWEEP_DISPATCHING, logicalNowNanos, logicalMinute, token);
-				case SWEEP_DISPATCHING -> observeSweep(current, logicalNowNanos, logicalMinute, token);
-				case VERIFYING -> verifyCurrent(current, logicalNowNanos, logicalMinute, token);
-				default -> OperationResult.replan("acquisition.active.phase");
-			};
+				return advanceActive(current, logicalNowNanos, logicalMinute, token);
+			}
+			final PhantomBackgroundState background = _background.acquisitionSnapshot(profileId).orElse(null);
+			if (background == null)
+			{
+				return retry("acquisition.background.state_unavailable");
+			}
+			final Reservation targetResource = new Reservation(profileId, background.identity().characterObjectId(), background.identity().classIndex(), ResourceKind.ITEM_COUNT, 0, current.state().targetItemId(), 1, current.state().lastObservedCount(), 0, "INVENTORY");
+			try (PhantomEconomyConflictPort.Claim economyClaim = PhantomEconomyConflictPort.claim(profileId, null, List.of(targetResource)))
+			{
+				if (!economyClaim.acquired())
+				{
+					return retry("acquisition.economy.reserved");
+				}
+				return advanceActive(current, logicalNowNanos, logicalMinute, token);
+			}
 		}
+	}
+
+	private OperationResult advanceActive(Current current, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
+	{
+		_active.incrementAndGet();
+		return switch (current.state().phase())
+		{
+			case TARGET_REQUIRED -> target(current, logicalNowNanos, logicalMinute, token);
+			case SPOIL_PREPARED -> dispatch(current, AcquisitionSkillKind.SPOIL, Phase.SPOIL_DISPATCHING, logicalNowNanos, logicalMinute, token);
+			case SPOIL_DISPATCHING -> observeSpoil(current, logicalNowNanos, logicalMinute, token);
+			case SPOIL_OBSERVED -> prepareCombat(current, logicalMinute);
+			case SOW_PREPARED -> dispatchManor(current, true, logicalNowNanos, logicalMinute, token);
+			case SOW_DISPATCHING -> observeSow(current, logicalNowNanos, logicalMinute, token);
+			case SOW_OBSERVED -> prepareCombat(current, logicalMinute);
+			case COMBAT_PREPARED -> submitCombat(current, current.state().selectedSource().method() == Method.DEATH_DROP, Phase.COMBAT_SUBMITTED, logicalNowNanos, logicalMinute, token);
+			case COMBAT_SUBMITTED -> observeCombat(current, logicalNowNanos, logicalMinute, token);
+			case COMBAT_TERMINAL -> prepareSweepOrVerify(current, logicalNowNanos, logicalMinute, token);
+			case HARVEST_PREPARED -> dispatchManor(current, false, logicalNowNanos, logicalMinute, token);
+			case HARVEST_DISPATCHING -> observeHarvest(current, logicalNowNanos, logicalMinute, token);
+			case QUEST_COMBAT_PREPARED -> submitCombat(current, false, Phase.QUEST_COMBAT_SUBMITTED, logicalNowNanos, logicalMinute, token);
+			case QUEST_COMBAT_SUBMITTED -> observeCombat(current, logicalNowNanos, logicalMinute, token);
+			case QUEST_COMBAT_TERMINAL -> prepareQuestCallback(current, logicalNowNanos, logicalMinute);
+			case QUEST_CALLBACK_WAIT -> observeQuestCallback(current, logicalNowNanos, logicalMinute, token);
+			case SWEEP_PREPARED -> dispatch(current, AcquisitionSkillKind.SWEEP, Phase.SWEEP_DISPATCHING, logicalNowNanos, logicalMinute, token);
+			case SWEEP_DISPATCHING -> observeSweep(current, logicalNowNanos, logicalMinute, token);
+			case VERIFYING -> verifyCurrent(current, logicalNowNanos, logicalMinute, token);
+			default -> OperationResult.replan("acquisition.active.phase");
+		};
 	}
 
 	public OperationResult verify(long profileId, PhantomGoal contextGoal, PhantomActivityState activityState, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)

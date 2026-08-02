@@ -23,6 +23,8 @@ package org.l2jmobius.gameserver.phantoms.commerce;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -56,6 +58,9 @@ import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService.ActorLe
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService.OperationIntent;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService.Quote;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService.Reason;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Reservation;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.ResourceKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 
@@ -80,7 +85,7 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 	@Override
 	public Optional<ActorLease> tryAcquire(long profileId)
 	{
-		return _materializationService.tryAcquireAction(profileId).map(lease -> new L2jActorLease(lease, _catalog, _clock));
+		return _materializationService.tryAcquireAction(profileId).map(lease -> new L2jActorLease(profileId, lease, _catalog, _clock));
 	}
 
 	private static final class L2jActorLease implements ActorLease
@@ -89,9 +94,12 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 		private final Player _player;
 		private final PhantomCommerceCatalog _catalog;
 		private final Clock _clock;
+		private final long _profileId;
+		private PhantomEconomyConflictPort.Claim _economyClaim;
 
-		private L2jActorLease(ActionLease lease, PhantomCommerceCatalog catalog, Clock clock)
+		private L2jActorLease(long profileId, ActionLease lease, PhantomCommerceCatalog catalog, Clock clock)
 		{
+			_profileId = profileId;
 			_lease = lease;
 			_player = lease.player();
 			_catalog = catalog;
@@ -298,12 +306,42 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 		@Override
 		public boolean applyFirst(OperationRequest request)
 		{
+			if ((request.kind() != OperationKind.TELEPORT) && !claimEconomyWriter(request))
+			{
+				return false;
+			}
 			return switch (request.kind())
 			{
 				case BUY -> applyBuyPayment(request);
 				case SELL -> applySellRemoval(request);
 				case TELEPORT -> applyTeleportFee(request);
 			};
+		}
+
+		private boolean claimEconomyWriter(OperationRequest request)
+		{
+			if (_economyClaim != null)
+			{
+				return _economyClaim.acquired();
+			}
+			final List<Reservation> resources = new ArrayList<>();
+			if (request.kind() == OperationKind.BUY)
+			{
+				resources.add(new Reservation(_profileId, _player.getObjectId(), _player.getClassIndex(), ResourceKind.ADENA, 0, Inventory.ADENA_ID, request.amount(), _player.getAdena(), 0, "INVENTORY"));
+				resources.add(new Reservation(_profileId, _player.getObjectId(), _player.getClassIndex(), ResourceKind.ITEM_COUNT, 0, request.itemId(), request.count(), itemCount(request.itemId()), 0, "INVENTORY"));
+			}
+			else
+			{
+				final Item item = _player.getInventory().getItemByObjectId(request.itemObjectId());
+				if (item == null)
+				{
+					return false;
+				}
+				resources.add(new Reservation(_profileId, _player.getObjectId(), _player.getClassIndex(), ResourceKind.ITEM_OBJECT, item.getObjectId(), item.getId(), 0, item.getCount(), item.getEnchantLevel(), item.getItemLocation().name()));
+				resources.add(new Reservation(_profileId, _player.getObjectId(), _player.getClassIndex(), ResourceKind.ADENA, 0, Inventory.ADENA_ID, request.amount(), _player.getAdena(), 0, "INVENTORY"));
+			}
+			_economyClaim = PhantomEconomyConflictPort.claim(_profileId, null, resources);
+			return _economyClaim.acquired();
 		}
 
 		@Override
@@ -594,7 +632,17 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 		@Override
 		public void close()
 		{
-			_lease.close();
+			try
+			{
+				if (_economyClaim != null)
+				{
+					_economyClaim.close();
+				}
+			}
+			finally
+			{
+				_lease.close();
+			}
 		}
 	}
 }

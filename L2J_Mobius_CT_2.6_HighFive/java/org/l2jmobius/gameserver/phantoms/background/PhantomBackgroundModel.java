@@ -44,6 +44,11 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Vital
  */
 public final class PhantomBackgroundModel
 {
+	public static RandomStep randomStep(long state)
+	{
+		final DeterministicRandom random = new DeterministicRandom(state);
+		return new RandomStep(random.nextDouble(), random.state());
+	}
 	public static final int MAX_ENCOUNTERS = 32;
 	public static final long MAX_ELAPSED_MILLIS = 60_000;
 	public static final int MAX_CHANGED_ITEM_OBJECTS = 16;
@@ -824,6 +829,17 @@ public final class PhantomBackgroundModel
 		public boolean mutated()
 		{
 			return (encounters > 0) || (manorSowAttempts > 0);
+		}
+	}
+
+	public record RandomStep(double value, long nextState)
+	{
+		public RandomStep
+		{
+			if (!Double.isFinite(value) || (value < 0) || (value >= 1))
+			{
+				throw new IllegalArgumentException("Invalid deterministic random step.");
+			}
 		}
 	}
 

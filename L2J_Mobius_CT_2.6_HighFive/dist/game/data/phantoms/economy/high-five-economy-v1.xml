@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<economyPolicy id="high-five-economy-v1" version="1">
+    <limits payloadBytes="4096" reservationsPerOperation="32" itemIdsPerRead="24" participantsPerOperation="4" activeOperationsPerProfile="1" retainedNonterminalOperations="100000" reservationTtlSeconds="120" observationTimeoutSeconds="120" craftAttempts="32" enchantAttempts="16" scrollCandidates="16" supportCandidates="8" reconciliationAttempts="3" auditRowsPerProfile="256" />
+    <craft enabled="true" allowAltGameCreation="false" />
+    <enchant enabled="true" requireExplicitDestructionPermission="true" equippedBackground="ACTIVE_REQUIRED" />
+    <risk maximumExpensePercent="100" replacementReservePercent="100" />
+    <reasonKeys>
+        <reason key="authority.stale" />
+        <reason key="background.active_required" />
+        <reason key="dispatch.ambiguous" />
+        <reason key="goal.invalid" />
+        <reason key="operation.conflict" />
+        <reason key="operation.expired" />
+        <reason key="operation.shutdown" />
+        <reason key="resource.drift" />
+        <reason key="result.blessed_reset" />
+        <reason key="result.craft_failed" />
+        <reason key="result.destroyed" />
+        <reason key="result.safe_failure" />
+        <reason key="result.success" />
+    </reasonKeys>
+</economyPolicy>

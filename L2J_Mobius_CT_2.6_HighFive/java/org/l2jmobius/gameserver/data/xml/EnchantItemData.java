@@ -166,6 +166,11 @@ public class EnchantItemData implements IXmlReader
 		
 		return _supports.get(item.getId());
 	}
+
+	public EnchantSupportItem getSupportItemById(int itemId)
+	{
+		return _supports.get(itemId);
+	}
 	
 	public static EnchantItemData getInstance()
 	{

@@ -703,9 +703,8 @@ Checkpoint 2 (action/outbound): `ACCEPT`; final Goal 020 baseline
 
 ### 021. Spoil, manor, quest drop и craft acquisition chains
 
-Status: `BLOCKED`; Checkpoint 1 `ACCEPT`, Checkpoint 2 `BLOCKED`: loaded
-territory boundary теперь разрешён, но 20 из 35 factual target territories не
-имеют допустимого anchor при обязательном maximum vertex distance `<=2000`.
+Status: `ACCEPT`; Checkpoint 1 `ACCEPT`, Checkpoint 2 `ACCEPT`; overall baseline
+`043844c0fd7a0bfcac0d5f58461a21633b032332`.
 
 - eligibility и source selection;
 - spoil/manor/quest collection;
@@ -714,6 +713,9 @@ territory boundary теперь разрешён, но 20 из 35 factual target
 - craft preparation без transaction execution.
 
 ### 022. Economy transaction kernel, trade, crafting и enchant
+
+Status: Checkpoint 1 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 2
+`NOT_STARTED`; overall `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 - reservation ledger и expiration;
 - direct trade и private stores;

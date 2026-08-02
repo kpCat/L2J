@@ -148,7 +148,7 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		{
 			throw new IllegalArgumentException("Acquisition recipe source and plan disagree.");
 		}
-		if ((recipePlan != null) && (!receipts.isEmpty() || (progress != 0)))
+		if ((recipePlan != null) && (status == Status.PLANNING_ONLY) && (!receipts.isEmpty() || (progress != 0)))
 		{
 			throw new IllegalArgumentException("Planning-only recipe state cannot contain execution receipts or progress.");
 		}
@@ -333,7 +333,9 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		ACTIVE_MANOR_HARVEST,
 		BACKGROUND_MANOR_CROP,
 		ACTIVE_QUEST_COLLECTION,
-		BACKGROUND_QUEST_COLLECTION
+		BACKGROUND_QUEST_COLLECTION,
+		ACTIVE_SELF_CRAFT,
+		BACKGROUND_SELF_CRAFT
 	}
 
 	public enum TerminalResult

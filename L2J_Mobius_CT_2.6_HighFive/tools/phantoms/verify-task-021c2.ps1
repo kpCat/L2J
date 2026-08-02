@@ -18,6 +18,7 @@ $TerminalCommit = "906b8a043320deb955da02276cf27797e0c5fadd"
 $TerminalSubject = "fix(phantoms): close manor attribution and quest service recovery"
 $ExactDeltaCommit = "0c41280632617f50d4bd133b59b81326e3b6d3f6"
 $ExactDeltaSubject = "fix(phantoms): enforce exact quest callback item delta"
+$AcceptedCheckpoint2 = "043844c0fd7a0bfcac0d5f58461a21633b032332"
 $RequiredSubject = "fix(phantoms): close quest collection cap boundary"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "21002102"
@@ -211,37 +212,17 @@ try
 	Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 021c1 checkpoint is not an ancestor of HEAD."
 	& git merge-base --is-ancestor $ExactDeltaCommit $head
 	Assert-True ($LASTEXITCODE -eq 0) "Goal 021c2 exact-delta foundation is not an ancestor of HEAD."
-
-	if ($WorkingTree)
-	{
-		Assert-True ($head -eq $ExactDeltaCommit) "Working Goal 021c2 verifier requires the exact cap-boundary parent."
-		$script:Mode = "working"
-		$script:TargetCommit = $head
-	}
-	else
-	{
-		$descendants = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$ExactDeltaCommit..$head"))
-		Assert-True ($descendants.Count -gt 0) "Accepted Goal 021c2 child is absent."
-		$script:TargetCommit = $descendants[0]
-		$script:Mode = "accepted"
-		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $ExactDeltaCommit) "Goal 021c2 cap-boundary completion is not one ordinary child of the exact-delta foundation."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 021c2 completion subject changed."
-	}
+	Assert-True ((Git-Lines @("show", "-s", "--format=%P", $AcceptedCheckpoint2) | Select-Object -First 1) -eq $ExactDeltaCommit) "Accepted Goal 021c2 is not one ordinary child of the exact-delta foundation."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $AcceptedCheckpoint2) | Select-Object -First 1) -eq $RequiredSubject) "Accepted Goal 021c2 subject changed."
+	& git merge-base --is-ancestor $AcceptedCheckpoint2 $head
+	Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 021c2 baseline is not an ancestor of HEAD."
+	$script:TargetCommit = $AcceptedCheckpoint2
+	$script:Mode = "historical"
 
 	$cumulative = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
 	$final = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
-	if ($script:Mode -eq "working")
-	{
-		Add-ChangedPaths $cumulative @("diff", "--name-only", $AcceptedCheckpoint1, "--")
-		Add-ChangedPaths $final @("diff", "--name-only", $ExactDeltaCommit, "--")
-		Add-WorkingUntracked $cumulative
-		Add-WorkingUntracked $final
-	}
-	else
-	{
-		Add-ChangedPaths $cumulative @("diff", "--name-only", $AcceptedCheckpoint1, $script:TargetCommit, "--")
-		Add-ChangedPaths $final @("diff", "--name-only", $ExactDeltaCommit, $script:TargetCommit, "--")
-	}
+	Add-ChangedPaths $cumulative @("diff", "--name-only", $AcceptedCheckpoint1, $script:TargetCommit, "--")
+	Add-ChangedPaths $final @("diff", "--name-only", $ExactDeltaCommit, $script:TargetCommit, "--")
 	$cumulativePaths = @($cumulative | Sort-Object)
 	$finalPaths = @($final | Sort-Object)
 	Assert-True (($cumulativePaths.Count -gt 0) -and ($cumulativePaths.Count -le 58)) "Cumulative Goal 021c2 scope exceeds 58 files."
@@ -249,6 +230,7 @@ try
 	foreach ($path in $cumulativePaths)
 	{
 		Assert-True (Is-CumulativeAllowedPath $path) "Out-of-scope cumulative Goal 021c2 path: $path"
+		Assert-True ($path -notmatch '022-checkpoint-1-economy-craft-enchant|phantoms/economy|verify-task-022c1') "Goal 022 path leaked into historical Goal 021c2 scope: $path"
 		Assert-True ($path -notmatch '(^|/)(?:Player|Party|Attackable|Spawn|CastleManorManager)\.java$|(^|/)(?:sql|schema|migrations?)/|L2J_Mobius_CT_(?!2\.6_HighFive)|^dist/game/data/scripts/(?:handlers|quests)/') "Forbidden Goal 021c2 path: $path"
 	}
 	foreach ($path in $finalPaths)
@@ -493,31 +475,23 @@ try
 		}
 	}
 
-	if ($script:Mode -eq "working")
+	$remote = (Git-Lines @("rev-parse", "origin/feature/phantom-world") | Select-Object -First 1)
+	& git merge-base --is-ancestor $script:TargetCommit $remote
+	Assert-True ($LASTEXITCODE -eq 0) "Remote feature/phantom-world does not contain accepted Goal 021c2."
+	$jarEntries = & jar tf (Join-Path $script:ModuleRoot 'dist/libs/GameServer.jar')
+	Assert-True ($LASTEXITCODE -eq 0) "Could not inspect GameServer.jar."
+	foreach ($entry in @(
+		'org/l2jmobius/gameserver/model/zone/type/NpcSpawnTerritory$GeometrySnapshot.class',
+		'org/l2jmobius/gameserver/phantoms/acquisition/manor/PhantomAcquisitionManorAuthority.class',
+		'org/l2jmobius/gameserver/phantoms/acquisition/quest/PhantomAcquisitionQuestCatalog.class',
+		'org/l2jmobius/gameserver/phantoms/knowledge/PhantomGameKnowledgeModel$TerritoryGeometry.class'
+	))
 	{
-		& git -c core.safecrlf=false diff --check $ExactDeltaCommit --
-		Assert-True ($LASTEXITCODE -eq 0) "Working git diff --check failed."
+		Assert-True ($jarEntries -contains $entry) "GameServer.jar lacks Goal 021c2 entry: $entry"
 	}
-	else
-	{
-		$remote = (Git-Lines @("rev-parse", "origin/feature/phantom-world") | Select-Object -First 1)
-		& git merge-base --is-ancestor $script:TargetCommit $remote
-		Assert-True ($LASTEXITCODE -eq 0) "Remote feature/phantom-world does not contain accepted Goal 021c2."
-		$jarEntries = & jar tf (Join-Path $script:ModuleRoot 'dist/libs/GameServer.jar')
-		Assert-True ($LASTEXITCODE -eq 0) "Could not inspect GameServer.jar."
-		foreach ($entry in @(
-			'org/l2jmobius/gameserver/model/zone/type/NpcSpawnTerritory$GeometrySnapshot.class',
-			'org/l2jmobius/gameserver/phantoms/acquisition/manor/PhantomAcquisitionManorAuthority.class',
-			'org/l2jmobius/gameserver/phantoms/acquisition/quest/PhantomAcquisitionQuestCatalog.class',
-			'org/l2jmobius/gameserver/phantoms/knowledge/PhantomGameKnowledgeModel$TerritoryGeometry.class'
-		))
-		{
-			Assert-True ($jarEntries -contains $entry) "GameServer.jar lacks Goal 021c2 entry: $entry"
-		}
-		Assert-True ($jarEntries -notcontains 'data/phantoms/topology/high-five-core.xml') "Topology datapack must remain outside GameServer.jar."
-		& git -c core.safecrlf=false diff --check $ExactDeltaCommit $script:TargetCommit --
-		Assert-True ($LASTEXITCODE -eq 0) "Committed git diff --check failed."
-	}
+	Assert-True ($jarEntries -notcontains 'data/phantoms/topology/high-five-core.xml') "Topology datapack must remain outside GameServer.jar."
+	& git -c core.safecrlf=false diff --check $ExactDeltaCommit $script:TargetCommit --
+	Assert-True ($LASTEXITCODE -eq 0) "Committed git diff --check failed."
 
 	Write-Output 'TASK021C2_VERIFIER_OK'
 	Write-Output "mode=$($script:Mode)"

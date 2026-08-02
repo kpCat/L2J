@@ -41,6 +41,54 @@ public interface PhantomMaterializationLifecyclePort
 
 	void afterStore(long profileId, Player player);
 
+	static PhantomMaterializationLifecyclePort chain(PhantomMaterializationLifecyclePort first, PhantomMaterializationLifecyclePort second)
+	{
+		return new PhantomMaterializationLifecyclePort()
+		{
+			@Override
+			public void beforeMaterialize(long profileId, int characterObjectId)
+			{
+				first.beforeMaterialize(profileId, characterObjectId);
+				second.beforeMaterialize(profileId, characterObjectId);
+			}
+
+			@Override
+			public void afterPlayerLoad(long profileId, Player player)
+			{
+				first.afterPlayerLoad(profileId, player);
+				second.afterPlayerLoad(profileId, player);
+			}
+
+			@Override
+			public void materializeSucceeded(long profileId, int characterObjectId)
+			{
+				first.materializeSucceeded(profileId, characterObjectId);
+				second.materializeSucceeded(profileId, characterObjectId);
+			}
+
+			@Override
+			public void materializeAborted(long profileId, int characterObjectId)
+			{
+				second.materializeAborted(profileId, characterObjectId);
+				first.materializeAborted(profileId, characterObjectId);
+			}
+
+			@Override
+			public void beforeStore(long profileId, Player player)
+			{
+				first.beforeStore(profileId, player);
+				second.beforeStore(profileId, player);
+			}
+
+			@Override
+			public void afterStore(long profileId, Player player)
+			{
+				second.afterStore(profileId, player);
+				first.afterStore(profileId, player);
+			}
+		};
+	}
+
 	static PhantomMaterializationLifecyclePort none()
 	{
 		return new PhantomMaterializationLifecyclePort()

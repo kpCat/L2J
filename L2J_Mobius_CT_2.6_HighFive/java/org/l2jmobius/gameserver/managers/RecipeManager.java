@@ -82,7 +82,11 @@ public class RecipeManager
 	
 	public void requestMakeItemAbort(Player player)
 	{
-		_activeMakers.remove(player.getObjectId()); // TODO: anything else here?
+		final RecipeItemMaker maker = _activeMakers.remove(player.getObjectId()); // TODO: anything else here?
+		if (maker != null)
+		{
+			maker.observeAbort();
+		}
 	}
 	
 	public void requestManufactureItem(Player manufacturer, int recipeListId, Player player)
@@ -123,6 +127,11 @@ public class RecipeManager
 	
 	public void requestMakeItem(Player player, int recipeListId)
 	{
+		requestMakeItem(player, recipeListId, RecipeCraftObserver.NONE);
+	}
+
+	public void requestMakeItem(Player player, int recipeListId, RecipeCraftObserver observer)
+	{
 		// Check if player is trying to operate a private store or private workshop while engaged in combat.
 		if (player.isInCombat() || player.isInDuel())
 		{
@@ -152,9 +161,10 @@ public class RecipeManager
 			return;
 		}
 		
-		final RecipeItemMaker maker = new RecipeItemMaker(player, recipeList, player);
+		final RecipeItemMaker maker = new RecipeItemMaker(player, recipeList, player, observer);
 		if (maker._isValid)
 		{
+			maker.observe(RecipeCraftObserver.Type.ACCEPTED, List.of());
 			if (PlayerConfig.ALT_GAME_CREATION)
 			{
 				_activeMakers.put(player.getObjectId(), maker);
@@ -185,12 +195,22 @@ public class RecipeManager
 		protected long _price;
 		protected int _totalItems;
 		protected int _delay;
+		private final RecipeCraftObserver _observer;
+		private double _consumedHp;
+		private double _consumedMp;
+		private boolean _terminalObserved;
 		
 		public RecipeItemMaker(Player pPlayer, RecipeList pRecipeList, Player pTarget)
+		{
+			this(pPlayer, pRecipeList, pTarget, RecipeCraftObserver.NONE);
+		}
+
+		public RecipeItemMaker(Player pPlayer, RecipeList pRecipeList, Player pTarget, RecipeCraftObserver observer)
 		{
 			_player = pPlayer;
 			_target = pTarget;
 			_recipeList = pRecipeList;
+			_observer = observer == null ? RecipeCraftObserver.NONE : observer;
 			_isValid = false;
 			_skillId = _recipeList.isDwarvenRecipe() ? CommonSkill.CREATE_DWARVEN.getId() : CommonSkill.CREATE_COMMON.getId();
 			_skillLevel = _player.getSkillLevel(_skillId);
@@ -395,6 +415,7 @@ public class RecipeManager
 			_items = listItems(true); // this line actually takes materials from inventory
 			if (_items != null)
 			{
+				observe(RecipeCraftObserver.Type.INGREDIENTS_CONSUMED, _items.stream().map(item -> new RecipeCraftObserver.ItemDelta(item.getItemId(), item.getQuantity())).toList());
 				if (Rnd.get(100) < _recipeList.getSuccessRate())
 				{
 					rewardPlayer();
@@ -402,6 +423,7 @@ public class RecipeManager
 				}
 				else
 				{
+					observe(RecipeCraftObserver.Type.CRAFT_FAILED, List.of());
 					if (_target != _player)
 					{
 						SystemMessage msg = new SystemMessage(SystemMessageId.YOUR_ATTEMPT_TO_CREATE_S2_FOR_C1_AT_THE_PRICE_OF_S3_ADENA_HAS_FAILED);
@@ -547,6 +569,7 @@ public class RecipeManager
 					else if (isReduce)
 					{
 						_player.reduceCurrentHp(modifiedValue, _player, _skill);
+						_consumedHp += modifiedValue;
 					}
 				}
 				else if (statUse.getType() == StatType.MP)
@@ -570,6 +593,7 @@ public class RecipeManager
 					else if (isReduce)
 					{
 						_player.reduceCurrentMp(modifiedValue);
+						_consumedMp += modifiedValue;
 					}
 				}
 				else
@@ -640,6 +664,7 @@ public class RecipeManager
 		
 		private void abort()
 		{
+			observeAbort();
 			updateMakeInfo(false);
 			_player.setCrafting(false);
 			_activeMakers.remove(_player.getObjectId());
@@ -663,6 +688,7 @@ public class RecipeManager
 			}
 			
 			_target.getInventory().addItem(ItemProcessType.CRAFT, itemId, itemCount, _target, _player);
+			observe(itemId == rareProdId ? RecipeCraftObserver.Type.RARE_PRODUCT : RecipeCraftObserver.Type.SUCCESS_PRODUCT, List.of(new RecipeCraftObserver.ItemDelta(itemId, itemCount)));
 			
 			// inform customer of earned item
 			SystemMessage sm = null;
@@ -757,6 +783,31 @@ public class RecipeManager
 			}
 			
 			updateMakeInfo(true); // success
+		}
+
+		private void observeAbort()
+		{
+			observe(RecipeCraftObserver.Type.ABORTED, List.of());
+		}
+
+		private void observe(RecipeCraftObserver.Type type, List<RecipeCraftObserver.ItemDelta> items)
+		{
+			if (_terminalObserved)
+			{
+				return;
+			}
+			if ((type == RecipeCraftObserver.Type.SUCCESS_PRODUCT) || (type == RecipeCraftObserver.Type.RARE_PRODUCT) || (type == RecipeCraftObserver.Type.CRAFT_FAILED) || (type == RecipeCraftObserver.Type.ABORTED))
+			{
+				_terminalObserved = true;
+			}
+			try
+			{
+				_observer.onEvent(new RecipeCraftObserver.Event(type, _recipeList.getId(), _recipeList.getRecipeId(), _player.getObjectId(), _target.getObjectId(), items, _consumedHp, _consumedMp));
+			}
+			catch (RuntimeException exception)
+			{
+				LOGGER.warning("Recipe craft observer rejected an immutable event: " + exception.getMessage());
+			}
 		}
 	}
 	

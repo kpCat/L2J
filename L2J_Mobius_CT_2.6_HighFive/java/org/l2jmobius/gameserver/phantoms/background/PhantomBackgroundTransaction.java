@@ -69,6 +69,9 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Reservation;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.ResourceKind;
 
 /**
  * The only writer for durable background farming state. One MariaDB transaction
@@ -411,7 +414,22 @@ public final class PhantomBackgroundTransaction
 		final List<Integer> reservedIds = new ArrayList<>();
 		final List<Integer> releasedIds = new ArrayList<>();
 		boolean commitAttempted = false;
-		try (Connection connection = _connections.open())
+		final PhantomEconomyConflictPort.Claim economyClaim;
+		if (command.itemDeltas().isEmpty())
+		{
+			economyClaim = null;
+		}
+		else
+		{
+			final PhantomBackgroundState expected = command.expectedState();
+			final List<Reservation> resources = command.itemDeltas().keySet().stream().sorted().map(itemId -> new Reservation(expected.identity().profileId(), expected.identity().characterObjectId(), expected.identity().classIndex(), ResourceKind.ITEM_COUNT, 0, itemId, Math.max(1, Math.abs(command.itemDeltas().get(itemId))), expected.inventory().itemCount(itemId), 0, "INVENTORY")).toList();
+			economyClaim = PhantomEconomyConflictPort.claim(expected.identity().profileId(), null, resources);
+			if (!economyClaim.acquired())
+			{
+				return new Result(Status.ITEM_CONFLICT, null);
+			}
+		}
+		try (economyClaim; Connection connection = _connections.open())
 		{
 			connection.setAutoCommit(false);
 			try
