@@ -88,7 +88,7 @@ public final class PhantomAcquisitionStore
 
 	private StoredState decode(PhantomProfileComponent component)
 	{
-		if ((component.componentSchemaVersion() != PhantomAcquisitionState.LEGACY_SCHEMA_VERSION) && (component.componentSchemaVersion() != PhantomAcquisitionState.SCHEMA_VERSION))
+		if ((component.componentSchemaVersion() != PhantomAcquisitionState.LEGACY_SCHEMA_VERSION) && (component.componentSchemaVersion() != PhantomAcquisitionState.DISPATCH_SCHEMA_VERSION) && (component.componentSchemaVersion() != PhantomAcquisitionState.SCHEMA_VERSION))
 		{
 			throw new IllegalArgumentException("Unknown acquisition.state component schema version.");
 		}

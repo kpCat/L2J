@@ -37,17 +37,20 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.M
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Candidate;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Deficit;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Hashes;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ManorBinding;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.MethodBinding;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Phase;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ReceiptKind;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.RecipeNode;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.RecipePlan;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.QuestBinding;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Status;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.TerminalResult;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 
-/** Canonical binary codec for {@code acquisition.state} schema versions 1 and 2. */
+/** Canonical binary codec for {@code acquisition.state} schema versions 1, 2 and 3. */
 public final class PhantomAcquisitionStateCodec
 {
 	private static final int MAGIC = 0x50415131;
@@ -55,7 +58,7 @@ public final class PhantomAcquisitionStateCodec
 	private static final int MAX_FACT_KEY_BYTES = 160;
 	private static final int MAX_TOPOLOGY_ID_BYTES = 96;
 	private static final int MAX_REASON_BYTES = 64;
-	private static final int DECLARED_WORST_CASE_BYTES = 3825;
+	private static final int DECLARED_WORST_CASE_BYTES = 4096;
 
 	public int declaredWorstCaseBytes()
 	{
@@ -69,6 +72,10 @@ public final class PhantomAcquisitionStateCodec
 
 	private byte[] encode(PhantomAcquisitionState state, int schemaVersion)
 	{
+		if ((schemaVersion < PhantomAcquisitionState.SCHEMA_VERSION) && (state.methodBinding() != null))
+		{
+			throw new IllegalArgumentException("Legacy acquisition.state cannot encode a method binding.");
+		}
 		try
 		{
 			final ByteArrayOutputStream bytes = new ByteArrayOutputStream(1024);
@@ -111,6 +118,10 @@ public final class PhantomAcquisitionStateCodec
 				if (state.recipePlan() != null)
 				{
 					writeRecipe(output, state.recipePlan());
+				}
+				if (schemaVersion >= PhantomAcquisitionState.SCHEMA_VERSION)
+				{
+					writeBinding(output, state.methodBinding());
 				}
 				output.writeByte(state.receipts().size());
 				for (Receipt receipt : state.receipts())
@@ -158,7 +169,7 @@ public final class PhantomAcquisitionStateCodec
 					throw new IllegalArgumentException("Unknown acquisition.state version.");
 				}
 				final int schemaVersion = input.readUnsignedShort();
-				if ((schemaVersion != PhantomAcquisitionState.LEGACY_SCHEMA_VERSION) && (schemaVersion != PhantomAcquisitionState.SCHEMA_VERSION))
+				if ((schemaVersion != PhantomAcquisitionState.LEGACY_SCHEMA_VERSION) && (schemaVersion != PhantomAcquisitionState.DISPATCH_SCHEMA_VERSION) && (schemaVersion != PhantomAcquisitionState.SCHEMA_VERSION))
 				{
 					throw new IllegalArgumentException("Unknown acquisition.state version.");
 				}
@@ -189,6 +200,7 @@ public final class PhantomAcquisitionStateCodec
 				final int targetNpcId = input.readInt();
 				final int targetInstanceId = input.readInt();
 				final RecipePlan recipe = input.readBoolean() ? readRecipe(input, bytes) : null;
+				final MethodBinding binding = schemaVersion >= PhantomAcquisitionState.SCHEMA_VERSION ? readBinding(input, bytes) : null;
 				final int receiptCount = input.readUnsignedByte();
 				if (receiptCount > PhantomAcquisitionState.MAX_RECEIPTS)
 				{
@@ -200,7 +212,7 @@ public final class PhantomAcquisitionStateCodec
 					receipts.add(new Receipt(readHash(input), readHash(input), enumValue(ReceiptKind.values(), input.readUnsignedByte(), "receipt kind"), input.readLong(), input.readLong(), enumValue(TerminalResult.values(), input.readUnsignedByte(), "terminal result"), input.readLong()));
 				}
 				final int phaseAttempt = schemaVersion >= 2 ? input.readUnsignedByte() : 0;
-				final PhantomAcquisitionState result = new PhantomAcquisitionState(hashes, goalId, goalRevision, itemId, required, baseline, observed, progress, status, selected, candidates, cursor, switches, phase, targetObjectId, targetNpcId, targetInstanceId, recipe, receipts, phaseAttempt, input.readLong());
+				final PhantomAcquisitionState result = new PhantomAcquisitionState(hashes, goalId, goalRevision, itemId, required, baseline, observed, progress, status, selected, candidates, cursor, switches, phase, targetObjectId, targetNpcId, targetInstanceId, recipe, binding, receipts, phaseAttempt, input.readLong());
 				if ((bytes.available() != 0) || !Arrays.equals(payload, encode(result, schemaVersion)))
 				{
 					throw new IllegalArgumentException("Non-canonical or trailing acquisition.state payload.");
@@ -251,6 +263,65 @@ public final class PhantomAcquisitionStateCodec
 	private static Source readSource(DataInputStream input, ByteArrayInputStream bytes) throws IOException
 	{
 		return new Source(readHash(input), Method.fromCode(input.readUnsignedByte()), input.readInt(), input.readInt(), readString(input, bytes, MAX_FACT_KEY_BYTES), readString(input, bytes, MAX_TOPOLOGY_ID_BYTES), readString(input, bytes, MAX_TOPOLOGY_ID_BYTES), input.readInt(), input.readInt(), input.readUnsignedShort(), input.readInt(), input.readUnsignedShort());
+	}
+
+	private static void writeBinding(DataOutputStream output, MethodBinding binding) throws IOException
+	{
+		output.writeBoolean(binding != null);
+		if (binding instanceof ManorBinding manor)
+		{
+			output.writeByte(1);
+			output.writeInt(manor.castleId());
+			output.writeInt(manor.seedItemId());
+			output.writeInt(manor.cropItemId());
+			output.writeInt(manor.matureItemId());
+			output.writeInt(manor.reward1ItemId());
+			output.writeInt(manor.reward2ItemId());
+			output.writeShort(manor.seedLevel());
+			output.writeBoolean(manor.alternative());
+			output.writeInt(manor.rawSeedLimit());
+			output.writeInt(manor.rawCropLimit());
+			output.writeInt(manor.seedObjectId());
+			output.writeInt(manor.harvesterObjectId());
+			output.writeLong(manor.seedCountBeforeDispatch());
+			output.writeLong(manor.cropCountBeforeDispatch());
+			writeHash(output, manor.authorityHash());
+		}
+		else if (binding instanceof QuestBinding quest)
+		{
+			output.writeByte(2);
+			writeString(output, quest.ruleId(), 64);
+			writeHash(output, quest.ruleHash());
+			output.writeInt(quest.questId());
+			writeString(output, quest.questName(), 96);
+			writeHash(output, quest.scriptHash());
+			writeString(output, quest.expectedState(), 16);
+			output.writeByte(quest.expectedCond());
+			output.writeInt(quest.questItemId());
+			output.writeLong(quest.itemCap());
+			output.writeInt(quest.targetNpcId());
+			output.writeLong(quest.itemCountBeforeKill());
+			output.writeLong(quest.callbackDeadlineMillis());
+			writeHash(output, quest.authorityHash());
+		}
+		else if (binding != null)
+		{
+			throw new IllegalArgumentException("Unknown acquisition method binding.");
+		}
+	}
+
+	private static MethodBinding readBinding(DataInputStream input, ByteArrayInputStream bytes) throws IOException
+	{
+		if (!input.readBoolean())
+		{
+			return null;
+		}
+		return switch (input.readUnsignedByte())
+		{
+			case 1 -> new ManorBinding(input.readInt(), input.readInt(), input.readInt(), input.readInt(), input.readInt(), input.readInt(), input.readUnsignedShort(), input.readBoolean(), input.readInt(), input.readInt(), input.readInt(), input.readInt(), input.readLong(), input.readLong(), readHash(input));
+			case 2 -> new QuestBinding(readString(input, bytes, 64), readHash(input), input.readInt(), readString(input, bytes, 96), readHash(input), readString(input, bytes, 16), input.readUnsignedByte(), input.readInt(), input.readLong(), input.readInt(), input.readLong(), input.readLong(), readHash(input));
+			default -> throw new IllegalArgumentException("Unknown acquisition method binding.");
+		};
 	}
 
 	private static void writeRecipe(DataOutputStream output, RecipePlan plan) throws IOException

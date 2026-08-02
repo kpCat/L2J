@@ -44,7 +44,7 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 		Objects.requireNonNull(actionKind, "actionKind");
 		Objects.requireNonNull(anchorId, "anchorId");
 		Objects.requireNonNull(hashes, "hashes");
-		if ((acquisition != null) && (actionKind != ActionKind.ACQUISITION_DEATH_DROP) && (actionKind != ActionKind.ACQUISITION_SPOIL_SWEEP) && (actionKind != ActionKind.ACQUISITION_TRAVEL))
+		if ((acquisition != null) && (actionKind != ActionKind.ACQUISITION_DEATH_DROP) && (actionKind != ActionKind.ACQUISITION_SPOIL_SWEEP) && (actionKind != ActionKind.ACQUISITION_MANOR_CROP) && (actionKind != ActionKind.ACQUISITION_QUEST_COLLECTION) && (actionKind != ActionKind.ACQUISITION_TRAVEL))
 		{
 			throw new IllegalArgumentException("Acquisition operation identity has a non-acquisition action.");
 		}
@@ -62,7 +62,7 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 			}
 			else
 			{
-				canonical = "ACQUISITION_BACKGROUND_V2|" + profileId + "|" + characterObjectId + "|" + goalId + "|" + goalRevision + "|" + activityGeneration + "|" + tickSequence + "|" + actionKind + "|" + targetNpcId + "|" + anchorId + "|" + modelVersion + "|" + acquisition.sourceId() + "|" + acquisition.expectedAcquisitionRowVersion() + "|" + acquisition.targetItemId() + "|" + acquisition.catalogHash() + "|" + acquisition.backgroundHash() + "|" + hashes.knowledge() + "|" + hashes.topology() + "|" + hashes.progression() + "|" + hashes.commerce();
+				canonical = "ACQUISITION_BACKGROUND_V3|" + profileId + "|" + characterObjectId + "|" + goalId + "|" + goalRevision + "|" + activityGeneration + "|" + tickSequence + "|" + actionKind + "|" + targetNpcId + "|" + anchorId + "|" + modelVersion + "|" + acquisition.sourceId() + "|" + acquisition.expectedAcquisitionRowVersion() + "|" + acquisition.targetItemId() + "|" + acquisition.catalogHash() + "|" + acquisition.backgroundHash() + "|" + acquisition.methodBindingHash() + "|" + acquisition.expectedResourceCount() + "|" + hashes.knowledge() + "|" + hashes.topology() + "|" + hashes.progression() + "|" + hashes.commerce();
 			}
 			return HexFormat.of().formatHex(digest.digest(canonical.getBytes(StandardCharsets.UTF_8)));
 		}
@@ -72,11 +72,16 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 		}
 	}
 
-	public record AcquisitionIdentity(String sourceId, long expectedAcquisitionRowVersion, int targetItemId, String catalogHash, String backgroundHash)
+	public record AcquisitionIdentity(String sourceId, long expectedAcquisitionRowVersion, int targetItemId, String catalogHash, String backgroundHash, String methodBindingHash, long expectedResourceCount)
 	{
+		public AcquisitionIdentity(String sourceId, long expectedAcquisitionRowVersion, int targetItemId, String catalogHash, String backgroundHash)
+		{
+			this(sourceId, expectedAcquisitionRowVersion, targetItemId, catalogHash, backgroundHash, "0".repeat(64), 0);
+		}
+
 		public AcquisitionIdentity
 		{
-			if ((sourceId == null) || !sourceId.matches("[0-9a-f]{64}") || (expectedAcquisitionRowVersion < 0) || (targetItemId <= 0) || (catalogHash == null) || !catalogHash.matches("[0-9a-f]{64}") || (backgroundHash == null) || !backgroundHash.matches("[0-9a-f]{64}"))
+			if ((sourceId == null) || !sourceId.matches("[0-9a-f]{64}") || (expectedAcquisitionRowVersion < 0) || (targetItemId <= 0) || (catalogHash == null) || !catalogHash.matches("[0-9a-f]{64}") || (backgroundHash == null) || !backgroundHash.matches("[0-9a-f]{64}") || (methodBindingHash == null) || !methodBindingHash.matches("[0-9a-f]{64}") || (expectedResourceCount < 0))
 			{
 				throw new IllegalArgumentException("Invalid acquisition background operation identity.");
 			}
@@ -90,6 +95,8 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 		RECOVER,
 		ACQUISITION_DEATH_DROP,
 		ACQUISITION_SPOIL_SWEEP,
+		ACQUISITION_MANOR_CROP,
+		ACQUISITION_QUEST_COLLECTION,
 		ACQUISITION_TRAVEL
 	}
 }

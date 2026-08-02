@@ -34,9 +34,11 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Candidate;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Deficit;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Hashes;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ManorBinding;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Phase;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ReceiptKind;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.QuestBinding;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.RecipeNode;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.RecipePlan;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
@@ -297,7 +299,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		final PhantomAcquisitionCatalog second = PhantomAcquisitionCatalog.load(xml);
 		PhantomAssertions.assertEquals(first.hash(), second.hash(), "Acquisition policy hash is not content deterministic.");
 		PhantomAssertions.assertEquals(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(source)), first.hash(), "Acquisition policy hash is not the raw UTF-8 SHA-256.");
-		PhantomAssertions.assertEquals(List.of(Method.DEATH_DROP, Method.SPOIL_SWEEP, Method.RECIPE_PREPARATION, Method.MANOR_CROP, Method.QUEST_COLLECTION).stream().map(first::method).map(PhantomAcquisitionCatalog.MethodPolicy::status).toList(), List.of(MethodStatus.EXECUTABLE, MethodStatus.EXECUTABLE, MethodStatus.PLANNING_ONLY, MethodStatus.DEFERRED_CHECKPOINT_2, MethodStatus.DEFERRED_CHECKPOINT_2), "Checkpoint method statuses changed.");
+		PhantomAssertions.assertEquals(List.of(Method.DEATH_DROP, Method.SPOIL_SWEEP, Method.RECIPE_PREPARATION, Method.MANOR_CROP, Method.QUEST_COLLECTION).stream().map(first::method).map(PhantomAcquisitionCatalog.MethodPolicy::status).toList(), List.of(MethodStatus.EXECUTABLE, MethodStatus.EXECUTABLE, MethodStatus.PLANNING_ONLY, MethodStatus.EXECUTABLE, MethodStatus.EXECUTABLE), "Checkpoint method statuses changed.");
 		PhantomAssertions.assertEquals(4096, first.limits().payloadBytes(), "acquisition.state hard payload bound changed.");
 		PhantomAssertions.assertEquals(8, first.limits().sourceCandidates(), "Source candidate bound changed.");
 		PhantomAssertions.assertEquals(48, first.limits().recipeNodes(), "Recipe node bound changed.");
@@ -363,16 +365,26 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 	{
 		final PhantomAcquisitionStateCodec codec = new PhantomAcquisitionStateCodec();
 		final PhantomAcquisitionState dispatching = phaseState(Phase.SPOIL_DISPATCHING).withPhase(Phase.SPOIL_DISPATCHING, 1000, 100, 0, 2, 9);
-		PhantomAssertions.assertEquals(2, codec.decode(codec.encode(dispatching)).phaseAttempt(), "Schema v2 lost the persisted dispatch attempt.");
-		final byte[] current = codec.encode(phaseState(Phase.SPOIL_DISPATCHING));
-		final byte[] legacy = new byte[current.length - 1];
-		System.arraycopy(current, 0, legacy, 0, current.length - 9);
-		System.arraycopy(current, current.length - 8, legacy, legacy.length - 8, 8);
-		legacy[7] = 1;
+		PhantomAssertions.assertEquals(2, codec.decode(encodeSchema(codec, dispatching, 2)).phaseAttempt(), "Schema v2 lost the persisted dispatch attempt.");
+		final byte[] legacy = encodeSchema(codec, phaseState(Phase.SPOIL_DISPATCHING), 1);
 		final PhantomAcquisitionState recovered = codec.decode(legacy);
 		PhantomAssertions.assertEquals(Phase.SPOIL_DISPATCHING, recovered.phase(), "Legacy DISPATCHING phase changed during recovery.");
 		PhantomAssertions.assertEquals(0, recovered.phaseAttempt(), "Legacy schema did not recover with attempt zero.");
 		context.record("acquisition.legacySchemaBytes", legacy.length);
+	}
+
+	private static byte[] encodeSchema(PhantomAcquisitionStateCodec codec, PhantomAcquisitionState state, int version)
+	{
+		try
+		{
+			final var method = PhantomAcquisitionStateCodec.class.getDeclaredMethod("encode", PhantomAcquisitionState.class, int.class);
+			method.setAccessible(true);
+			return (byte[]) method.invoke(codec, state, version);
+		}
+		catch (ReflectiveOperationException exception)
+		{
+			throw new AssertionError("Could not exercise a supported acquisition schema.", exception);
+		}
 	}
 
 	private void testProductionSource(PhantomTestContext context, Method method)
@@ -1443,9 +1455,9 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		final Source source = source(method, 0);
 		final Candidate candidate = new Candidate(source.sourceId(), method, 100, 0, 0, "");
 		final RecipePlan recipe = method == Method.RECIPE_PREPARATION ? smallRecipe() : null;
-		final Status status = (method == Method.DEATH_DROP) || (method == Method.SPOIL_SWEEP) ? Status.READY : Status.DEFERRED_CHECKPOINT_2;
+		final Status status = method == Method.RECIPE_PREPARATION ? Status.PLANNING_ONLY : Status.READY;
 		final Phase phase = status == Status.READY ? Phase.TARGET_REQUIRED : Phase.NONE;
-		return new PhantomAcquisitionState(HASHES, 1, 0, 57, 10, 5, 5, 0, status, source, List.of(candidate), 0, 0, phase, 0, 0, 0, recipe, List.of(), 1);
+		return new PhantomAcquisitionState(HASHES, 1, 0, 57, 10, 5, 5, 0, status, source, List.of(candidate), 0, 0, phase, 0, 0, 0, recipe, binding(method), List.of(), 0, 1);
 	}
 
 	private static PhantomAcquisitionState statusState(Status status)
@@ -1471,10 +1483,13 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			return statusState(Status.PLANNING);
 		}
 		final boolean spoil = Set.of(Phase.SPOIL_PREPARED, Phase.SPOIL_DISPATCHING, Phase.SPOIL_OBSERVED, Phase.SWEEP_PREPARED, Phase.SWEEP_DISPATCHING).contains(phase);
-		final Source source = source(spoil ? Method.SPOIL_SWEEP : Method.DEATH_DROP, 0);
+		final boolean manor = Set.of(Phase.SOW_PREPARED, Phase.SOW_DISPATCHING, Phase.SOW_OBSERVED, Phase.HARVEST_PREPARED, Phase.HARVEST_DISPATCHING).contains(phase);
+		final boolean quest = Set.of(Phase.QUEST_COMBAT_PREPARED, Phase.QUEST_COMBAT_SUBMITTED, Phase.QUEST_COMBAT_TERMINAL, Phase.QUEST_CALLBACK_WAIT).contains(phase);
+		final Method method = spoil ? Method.SPOIL_SWEEP : manor ? Method.MANOR_CROP : quest ? Method.QUEST_COLLECTION : Method.DEATH_DROP;
+		final Source source = source(method, 0);
 		final Candidate candidate = new Candidate(source.sourceId(), source.method(), 100, 0, 0, "");
 		final boolean target = !Set.of(Phase.TRAVEL_REQUIRED, Phase.TARGET_REQUIRED).contains(phase);
-		return new PhantomAcquisitionState(HASHES, 1, 0, 57, 1, 0, 0, 0, phase == Phase.TARGET_REQUIRED || phase == Phase.TRAVEL_REQUIRED ? Status.READY : Status.ACTIVE, source, List.of(candidate), 0, 0, phase, target ? 1000 : 0, target ? source.npcId() : 0, 0, null, List.of(), 1);
+		return new PhantomAcquisitionState(HASHES, 1, 0, 57, 1, 0, 0, 0, phase == Phase.TARGET_REQUIRED || phase == Phase.TRAVEL_REQUIRED ? Status.READY : Status.ACTIVE, source, List.of(candidate), 0, 0, phase, target ? 1000 : 0, target ? source.npcId() : 0, 0, null, binding(method), List.of(), phase == Phase.SOW_DISPATCHING || phase == Phase.HARVEST_DISPATCHING || phase == Phase.QUEST_CALLBACK_WAIT ? 1 : 0, 1);
 	}
 
 	private static PhantomAcquisitionState maximumExecutionState()
@@ -1506,9 +1521,14 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 
 	private static Source source(Method method, int variant)
 	{
-		final int npcId = (method == Method.DEATH_DROP) || (method == Method.SPOIL_SWEEP) ? 100 + variant : 0;
-		final String fact = method == Method.RECIPE_PREPARATION ? "recipe:1:57" : method.key() + ":fact";
+		final int npcId = method == Method.RECIPE_PREPARATION ? 0 : 100 + variant;
+		final String fact = method == Method.RECIPE_PREPARATION ? "recipe:1:57" : method == Method.MANOR_CROP ? "manor:fact" : method == Method.QUEST_COLLECTION ? "quest:rule" : method.key() + ":fact";
 		return new Source(hash(method.code() * 100 + variant), method, npcId, 57, fact, method == Method.RECIPE_PREPARATION ? "planning" : "node", method == Method.RECIPE_PREPARATION ? "planning" : "anchor", 0, method == Method.SPOIL_SWEEP ? 254 : 0, method == Method.SPOIL_SWEEP ? 11 : 0, method == Method.SPOIL_SWEEP ? 42 : 0, method == Method.SPOIL_SWEEP ? 1 : 0);
+	}
+
+	private static PhantomAcquisitionState.MethodBinding binding(Method method)
+	{
+		return method == Method.MANOR_CROP ? new ManorBinding(1, 1, 57, 2, 3, 4, 10, false, 100, 100, 0, 0, 1, 5, "1".repeat(64)) : method == Method.QUEST_COLLECTION ? new QuestBinding("rule", "2".repeat(64), 102, "Q00102_SeaOfSporesFever", "3".repeat(64), "STARTED", 2, 57, 9, 100, 5, 0, "4".repeat(64)) : null;
 	}
 
 	private static String hash(int value)

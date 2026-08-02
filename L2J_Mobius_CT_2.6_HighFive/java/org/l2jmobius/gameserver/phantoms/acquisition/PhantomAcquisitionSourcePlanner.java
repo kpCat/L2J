@@ -31,14 +31,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.MethodStatus;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionRecipePlanner.CraftEvidence;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Candidate;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.MethodBinding;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.QuestBinding;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.RecipePlan;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog.Rule;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropSourceKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
@@ -59,14 +63,23 @@ public final class PhantomAcquisitionSourcePlanner
 	private final PhantomTopologyQuery _topology;
 	private final PhantomProgressionCatalog _progression;
 	private final PhantomAcquisitionRecipePlanner _recipes;
+	private final PhantomAcquisitionManorAuthority _manor;
+	private final PhantomAcquisitionQuestCatalog _quests;
 
 	public PhantomAcquisitionSourcePlanner(PhantomAcquisitionCatalog catalog, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomProgressionCatalog progression)
+	{
+		this(catalog, knowledge, topology, progression, null, null);
+	}
+
+	public PhantomAcquisitionSourcePlanner(PhantomAcquisitionCatalog catalog, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomProgressionCatalog progression, PhantomAcquisitionManorAuthority manor, PhantomAcquisitionQuestCatalog quests)
 	{
 		_catalog = Objects.requireNonNull(catalog, "catalog");
 		_knowledge = Objects.requireNonNull(knowledge, "knowledge");
 		_topology = Objects.requireNonNull(topology, "topology");
 		_progression = Objects.requireNonNull(progression, "progression");
 		_recipes = new PhantomAcquisitionRecipePlanner(knowledge, catalog.limits());
+		_manor = manor;
+		_quests = quests;
 	}
 
 	public Result plan(Request request)
@@ -78,6 +91,7 @@ public final class PhantomAcquisitionSourcePlanner
 		}
 		final List<RankedSource> ranked = new ArrayList<>();
 		String recipeReason = "";
+		String methodReason = "";
 		if (request.allowedMethods().contains(Method.DEATH_DROP) && (_catalog.method(Method.DEATH_DROP).status() == MethodStatus.EXECUTABLE))
 		{
 			addDropPages(ranked, request, Method.DEATH_DROP, DropSourceKind.DEATH_DROP, null, null);
@@ -103,19 +117,47 @@ public final class PhantomAcquisitionSourcePlanner
 				final String factKey = "recipe:" + recipe.plan().recipeListId() + ':' + request.itemId();
 				final String sourceId = sourceId(Method.RECIPE_PREPARATION, 0, request.itemId(), factKey, "planning", "planning", 0, 0, 0, 0, 0);
 				final Source source = new Source(sourceId, Method.RECIPE_PREPARATION, 0, request.itemId(), factKey, "planning", "planning", 0, 0, 0, 0, 0);
-				ranked.add(new RankedSource(source, score(request, Method.RECIPE_PREPARATION, 0, 0, 0, sourceId, source.anchorId(), recipe.plan()), recipe.plan()));
+				ranked.add(new RankedSource(source, score(request, Method.RECIPE_PREPARATION, 0, 0, 0, sourceId, source.anchorId(), recipe.plan()), recipe.plan(), null));
 			}
 			else
 			{
 				recipeReason = recipe.reasonKey();
 			}
 		}
+		if (request.allowedMethods().contains(Method.MANOR_CROP) && (_catalog.method(Method.MANOR_CROP).status() == MethodStatus.EXECUTABLE))
+		{
+			if (_manor == null)
+			{
+				methodReason = "source.ineligible";
+			}
+			else
+			{
+				final var manor = _manor.candidates(request.itemId(), request.level(), request.inventory());
+				methodReason = manor.reasonKey();
+				for (var candidate : manor.candidates())
+				{
+					if (!retryEligible(request, candidate.sourceId()))
+					{
+						continue;
+					}
+					final var fact = candidate.fact();
+					final Source source = new Source(candidate.sourceId(), Method.MANOR_CROP, candidate.npcId(), fact.cropItemId(), "manor:" + fact.stableKey(), candidate.topologyNodeId(), candidate.anchorId(), 0, 0, 0, 0, 0);
+					final MethodBinding binding = _manor.binding(candidate, request.inventory().getOrDefault(fact.seedItemId(), 0L), request.inventory().getOrDefault(fact.cropItemId(), 0L));
+					ranked.add(new RankedSource(source, score(request, Method.MANOR_CROP, candidate.npcLevel(), candidate.sowChance(), Math.max(1, candidate.harvestPayload()), source.sourceId(), source.anchorId(), null), null, binding));
+				}
+			}
+		}
+		if (request.allowedMethods().contains(Method.QUEST_COLLECTION) && (_catalog.method(Method.QUEST_COLLECTION).status() == MethodStatus.EXECUTABLE))
+		{
+			methodReason = addQuestSources(ranked, request, methodReason);
+		}
 		ranked.sort(RankedSource.ORDER);
 		final List<RankedSource> bounded = ranked.stream().limit(_catalog.limits().sourceCandidates()).toList();
 		if (bounded.isEmpty())
 		{
 			final boolean deferred = request.allowedMethods().stream().anyMatch(method -> _catalog.method(method).status() == MethodStatus.DEFERRED_CHECKPOINT_2);
-			return deferred ? Result.deferredCheckpoint() : Result.blocked(recipeReason.isEmpty() ? "source.exhausted" : recipeReason);
+			final String reason = !methodReason.isEmpty() ? methodReason : !recipeReason.isEmpty() ? recipeReason : "source.exhausted";
+			return deferred ? Result.deferredCheckpoint() : Result.blocked(reason);
 		}
 		if ((bounded.size() > 1) && ((long) bounded.getFirst().score() - bounded.get(1).score() <= _catalog.sourceScoring().ambiguityThreshold()))
 		{
@@ -127,6 +169,11 @@ public final class PhantomAcquisitionSourcePlanner
 	public PhantomAcquisitionRecipePlanner.Probe probeRecipeInventory(int itemId, long requested)
 	{
 		return _recipes.probe(itemId, requested);
+	}
+
+	public List<Integer> probeManorInventory(int itemId)
+	{
+		return _manor == null ? List.of() : _manor.probe(itemId).requiredItemIds();
 	}
 
 	private void addDropPages(List<RankedSource> output, Request request, Method method, DropSourceKind expectedKind, SkillRef spoil, SkillRef sweep)
@@ -171,10 +218,74 @@ public final class PhantomAcquisitionSourcePlanner
 					continue;
 				}
 				final Source source = new Source(id, method, fact.npcId(), fact.itemId(), fact.stableKey(), area.topologyNodeId(), anchor.id(), area.instanceId(), spoilId, spoilLevel, sweepId, sweepLevel);
-				output.add(new RankedSource(source, score(request, method, _knowledge.findNpc(fact.npcId()).orElseThrow().level(), chanceUtility(fact), (int) Math.min(32, area.totalConfiguredAmount()), id, anchor.id(), null), null));
+				output.add(new RankedSource(source, score(request, method, _knowledge.findNpc(fact.npcId()).orElseThrow().level(), chanceUtility(fact), (int) Math.min(32, area.totalConfiguredAmount()), id, anchor.id(), null), null, null));
 				break;
 			}
 		}
+	}
+
+	private String addQuestSources(List<RankedSource> output, Request request, String previousReason)
+	{
+		if ((_quests == null) || !_quests.current())
+		{
+			return "quest.script_stale";
+		}
+		String reason = previousReason;
+		for (Rule rule : _quests.rulesForItem(request.itemId()))
+		{
+			final QuestEvidence evidence = request.questEvidence().get(rule.id());
+			if (evidence == null || !"STARTED".equals(evidence.state()))
+			{
+				reason = "quest.not_started";
+				continue;
+			}
+			if (!rule.allowedConds().contains(evidence.cond()) || !evidence.variables().keySet().equals(Set.copyOf(rule.expectedVars())))
+			{
+				reason = "quest.cond_ineligible";
+				continue;
+			}
+			if (evidence.itemCount() >= rule.itemCap())
+			{
+				reason = "quest.item_cap";
+				continue;
+			}
+			for (int npcId : rule.targetNpcIds())
+			{
+				final var npc = _knowledge.findNpc(npcId).filter(value -> (value.kind() == NpcKind.MONSTER) && value.attackable() && value.targetable()).orElse(null);
+				if (npc == null)
+				{
+					reason = "quest.target_unavailable";
+					continue;
+				}
+				final var areas = _knowledge.spawnAreas(npcId, PageRequest.first(_catalog.limits().areasPerSource()));
+				for (SpawnAreaSummary area : areas.values().stream().filter(value -> (value.instanceId() == 0) && (value.totalConfiguredAmount() > 0) && (value.topologyNodeId() != null)).sorted(Comparator.comparing(SpawnAreaSummary::stableKey)).toList())
+				{
+					final PhantomTopologyAnchor anchor = _topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()).stream().filter(value -> value.point().instanceId() == 0).min(Comparator.comparing(PhantomTopologyAnchor::id)).orElse(null);
+					if (anchor == null)
+					{
+						continue;
+					}
+					final String sourceId = digest("QUEST_COLLECTION_V1", rule.ruleHash(), rule.scriptHash(), rule.questId(), rule.questName(), npcId, rule.questItemId(), area.topologyNodeId(), anchor.id(), _quests.authorityHash(), _knowledge.snapshot().combinedHash(), _topology.snapshot().canonicalHash());
+					if (!retryEligible(request, sourceId))
+					{
+						continue;
+					}
+					final Source source = new Source(sourceId, Method.QUEST_COLLECTION, npcId, rule.questItemId(), "quest:" + rule.id(), area.topologyNodeId(), anchor.id(), 0, 0, 0, 0, 0);
+					final QuestBinding binding = new QuestBinding(rule.id(), rule.ruleHash(), rule.questId(), rule.questName(), rule.scriptHash(), rule.requiredState(), evidence.cond(), rule.questItemId(), rule.itemCap(), npcId, evidence.itemCount(), 0, _quests.authorityHash());
+					final int chance = rule.chanceKind() == PhantomAcquisitionQuestCatalog.ChanceKind.NONE ? 100 : Math.max(1, (rule.rollThreshold() * 100) / rule.rollBound());
+					output.add(new RankedSource(source, score(request, Method.QUEST_COLLECTION, npc.level(), chance, (int) Math.min(32, area.totalConfiguredAmount()), sourceId, anchor.id(), null), null, binding));
+					break;
+				}
+			}
+		}
+		return output.stream().anyMatch(value -> value.source().method() == Method.QUEST_COLLECTION) ? "" : reason.isEmpty() ? "quest.rule_unsupported" : reason;
+	}
+
+
+	private boolean retryEligible(Request request, String sourceId)
+	{
+		final Candidate previous = request.previousCandidates().get(sourceId);
+		return (previous == null) || (previous.failures() < _catalog.switchPolicy().failureThreshold()) || ((request.logicalMinute() - previous.lastFailureMinute()) >= _catalog.switchPolicy().cooldownMinutes());
 	}
 
 	private SkillRef capability(Request request, String key, int canonicalSkillId)
@@ -270,11 +381,16 @@ public final class PhantomAcquisitionSourcePlanner
 		}
 	}
 
-	public record Request(long profileId, int itemId, long remainingAmount, PhantomActivityState activityState, int classId, int level, Map<Integer, Long> inventory, Map<Integer, Integer> knownSkills, Set<Method> allowedMethods, Method preferredMethod, String currentAnchorId, String currentSourceId, ResourceEvidence resources, Map<String, Candidate> previousCandidates, long logicalMinute)
+	public record Request(long profileId, int itemId, long remainingAmount, PhantomActivityState activityState, int classId, int level, Map<Integer, Long> inventory, Map<Integer, Integer> knownSkills, Set<Method> allowedMethods, Method preferredMethod, String currentAnchorId, String currentSourceId, ResourceEvidence resources, Map<String, Candidate> previousCandidates, long logicalMinute, Map<String, QuestEvidence> questEvidence)
 	{
+		public Request(long profileId, int itemId, long remainingAmount, PhantomActivityState activityState, int classId, int level, Map<Integer, Long> inventory, Map<Integer, Integer> knownSkills, Set<Method> allowedMethods, Method preferredMethod, String currentAnchorId, String currentSourceId, ResourceEvidence resources, Map<String, Candidate> previousCandidates, long logicalMinute)
+		{
+			this(profileId, itemId, remainingAmount, activityState, classId, level, inventory, knownSkills, allowedMethods, preferredMethod, currentAnchorId, currentSourceId, resources, previousCandidates, logicalMinute, Map.of());
+		}
+
 		public Request(long profileId, int itemId, long remainingAmount, PhantomActivityState activityState, int classId, int level, Map<Integer, Long> inventory, Map<Integer, Integer> knownSkills, Set<Method> allowedMethods, Method preferredMethod, String currentAnchorId, Map<String, Candidate> previousCandidates, long logicalMinute)
 		{
-			this(profileId, itemId, remainingAmount, activityState, classId, level, inventory, knownSkills, allowedMethods, preferredMethod, currentAnchorId, "", ResourceEvidence.unavailable(), previousCandidates, logicalMinute);
+			this(profileId, itemId, remainingAmount, activityState, classId, level, inventory, knownSkills, allowedMethods, preferredMethod, currentAnchorId, "", ResourceEvidence.unavailable(), previousCandidates, logicalMinute, Map.of());
 		}
 
 		public Request
@@ -286,9 +402,23 @@ public final class PhantomAcquisitionSourcePlanner
 			currentSourceId = Objects.requireNonNullElse(currentSourceId, "");
 			Objects.requireNonNull(resources, "resources");
 			previousCandidates = Map.copyOf(previousCandidates);
+			questEvidence = Map.copyOf(questEvidence);
 			if ((profileId <= 0) || (itemId <= 0) || (remainingAmount <= 0) || (activityState == null) || (classId < 0) || (level < 1) || allowedMethods.isEmpty() || (logicalMinute < 0))
 			{
 				throw new IllegalArgumentException("Invalid acquisition source planning request.");
+			}
+		}
+	}
+
+	public record QuestEvidence(String state, int cond, Map<String, String> variables, long itemCount)
+	{
+		public QuestEvidence
+		{
+			state = Objects.requireNonNullElse(state, "");
+			variables = Map.copyOf(variables);
+			if ((state.length() > 16) || (cond < 0) || (cond > 255) || (variables.size() > 4) || (itemCount < 0))
+			{
+				throw new IllegalArgumentException("Invalid quest acquisition evidence.");
 			}
 		}
 	}
@@ -318,9 +448,14 @@ public final class PhantomAcquisitionSourcePlanner
 		}
 	}
 
-	public record RankedSource(Source source, int score, RecipePlan recipePlan)
+	public record RankedSource(Source source, int score, RecipePlan recipePlan, MethodBinding methodBinding)
 	{
 		private static final Comparator<RankedSource> ORDER = Comparator.comparingInt(RankedSource::score).reversed().thenComparing(value -> value.source().sourceId());
+
+		public RankedSource(Source source, int score, RecipePlan recipePlan)
+		{
+			this(source, score, recipePlan, null);
+		}
 
 		public Candidate candidate()
 		{

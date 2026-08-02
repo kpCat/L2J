@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<questCollectionCatalog id="high-five-quest-collection-v1" version="1">
+	<rule id="q00102-dryads-tear" questId="102" questName="Q00102_SeaOfSporesFever" script="quests/Q00102_SeaOfSporesFever/Q00102_SeaOfSporesFever.java" scriptSha256="cc3c1a893e6fe0763b806a17aa01e1d59a4c3f4743c3a577b2597bec07978d1f" state="STARTED" conds="2" questItemId="966" grantShape="SINGLE_BOUNDED_ROLL" chanceKind="RND_LT" rollBound="10" rollThreshold="3" minimumCount="1" maximumCount="1" itemCap="9" summonPolicy="INCLUDE" partyPolicy="SELF_ONLY" registeredQuestItem="true">
+		<targets>
+			<target npcId="20013" />
+			<target npcId="20019" />
+		</targets>
+		<expectedVars />
+		<sourceRefs>
+			<ref value="Q00102_SeaOfSporesFever.java:onKill cond=2,count&lt;10,Rnd(10)&lt;3" />
+			<ref value="supported subset caps pre-kill count at 8; cond-changing terminal branch is unreachable" />
+		</sourceRefs>
+	</rule>
+	<rule id="q00152-golem-shard" questId="152" questName="Q00152_ShardsOfGolem" script="quests/Q00152_ShardsOfGolem/Q00152_ShardsOfGolem.java" scriptSha256="e086d06935b0515142f431486ded1f71b8caa4843f69605296e64a4e8ffdf378" state="STARTED" conds="2" questItemId="1010" grantShape="SINGLE_BOUNDED_ROLL" chanceKind="RND_LT" rollBound="100" rollThreshold="30" minimumCount="1" maximumCount="1" itemCap="4" summonPolicy="INCLUDE" partyPolicy="SELF_ONLY" registeredQuestItem="true">
+		<targets>
+			<target npcId="20016" />
+		</targets>
+		<expectedVars />
+		<sourceRefs>
+			<ref value="Q00152_ShardsOfGolem.java:onKill cond=2,count&lt;5,Rnd(100)&lt;30" />
+			<ref value="supported subset caps pre-kill count at 3; cond-changing terminal branch is unreachable" />
+		</sourceRefs>
+	</rule>
+</questCollectionCatalog>

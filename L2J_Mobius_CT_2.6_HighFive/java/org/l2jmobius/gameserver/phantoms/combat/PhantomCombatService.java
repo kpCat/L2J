@@ -1753,6 +1753,44 @@ public final class PhantomCombatService
 			return active() && (kind() == ExternalActionKind.ACQUISITION) ? _actorLease.knownSkillLevel(skillId) : 0;
 		}
 
+		public PhantomCombatBackend.ManorInventorySnapshot manorInventory(int seedItemId, int cropItemId, int harvesterItemId)
+		{
+			return active() && (kind() == ExternalActionKind.ACQUISITION) ? _actorLease.manorInventory(seedItemId, cropItemId, harvesterItemId) : null;
+		}
+
+		public PhantomCombatBackend.QuestStateSnapshot questState(String questName, List<String> expectedVariables)
+		{
+			return active() && (kind() == ExternalActionKind.ACQUISITION) ? _actorLease.questState(questName, expectedVariables) : null;
+		}
+
+		public ActionOutcome useExactSeed(int seedObjectId, int seedItemId, int targetObjectId)
+		{
+			if (!active() || (kind() != ExternalActionKind.ACQUISITION))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final ActionOutcome outcome = _actorLease.useExactSeed(seedObjectId, seedItemId, targetObjectId);
+			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
+			{
+				_ownedAction = new ExternalOwnedAction(kind(), targetObjectId, null, 0, 0, 0, 0);
+			}
+			return outcome;
+		}
+
+		public ActionOutcome useExactHarvester(int harvesterObjectId, int harvesterItemId, int targetObjectId)
+		{
+			if (!active() || (kind() != ExternalActionKind.ACQUISITION))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final ActionOutcome outcome = _actorLease.useExactHarvester(harvesterObjectId, harvesterItemId, targetObjectId);
+			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
+			{
+				_ownedAction = new ExternalOwnedAction(kind(), targetObjectId, null, 0, 0, 0, 0);
+			}
+			return outcome;
+		}
+
 		public ActionOutcome castAcquisition(int targetObjectId, SelectedSkill skill, AcquisitionSkillKind acquisitionKind)
 		{
 			if (!active() || (kind() != ExternalActionKind.ACQUISITION) || (skill == null) || (acquisitionKind == null))

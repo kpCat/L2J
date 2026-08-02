@@ -38,6 +38,8 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionDecision;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore;
+import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog;
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision;
@@ -282,8 +284,15 @@ public final class PhantomSystem
 				productionLifecycle.install(_backgroundService);
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
 				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
+				final File questCollectionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-quest-collection-v1.xml");
+				final PhantomAcquisitionQuestCatalog questCollectionCatalog = PhantomAcquisitionQuestCatalog.load(questCollectionCatalogFile.toPath(), new File(ServerConfig.DATAPACK_ROOT, "data/scripts").toPath());
+				final PhantomAcquisitionManorAuthority manorAuthority = new PhantomAcquisitionManorAuthority(_gameKnowledgeService.query(), _topologyService.query(), new File(ServerConfig.DATAPACK_ROOT, "data/mapregion").toPath());
+				if (!_backgroundService.installAcquisitionAuthorities(manorAuthority, questCollectionCatalog))
+				{
+					throw new IllegalStateException("Phantom background acquisition authorities could not be installed.");
+				}
 				final PhantomAcquisitionStore acquisitionStore = new PhantomAcquisitionStore(productionProfiles, productionGoals);
-				_acquisitionService = new PhantomAcquisitionService(acquisitionCatalog, acquisitionStore, productionGoals, new PhantomAcquisitionSourcePlanner(acquisitionCatalog, _gameKnowledgeService.query(), _topologyService.query(), _progressionService.catalog()), _gameKnowledgeService.query(), _topologyService.query(), _progressionService.catalog(), _combatService, _backgroundService, _navigationService);
+				_acquisitionService = new PhantomAcquisitionService(acquisitionCatalog, acquisitionStore, productionGoals, new PhantomAcquisitionSourcePlanner(acquisitionCatalog, _gameKnowledgeService.query(), _topologyService.query(), _progressionService.catalog(), manorAuthority, questCollectionCatalog), _gameKnowledgeService.query(), _topologyService.query(), _progressionService.catalog(), _combatService, _backgroundService, _navigationService, manorAuthority, questCollectionCatalog);
 				if (!_acquisitionService.start())
 				{
 					throw new IllegalStateException("Phantom acquisition service could not enter the running state.");

@@ -703,8 +703,8 @@ Checkpoint 2 (action/outbound): `ACCEPT`; final Goal 020 baseline
 
 ### 021. Spoil, manor, quest drop и craft acquisition chains
 
-Status: `IN_PROGRESS`; Checkpoint 1 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`,
-Checkpoint 2 `NOT_STARTED`.
+Status: `BLOCKED`; Checkpoint 1 `ACCEPT`, Checkpoint 2 `BLOCKED` из-за
+отсутствия разрешённого topology coverage для двух строго аудированных quest targets.
 
 - eligibility и source selection;
 - spoil/manor/quest collection;

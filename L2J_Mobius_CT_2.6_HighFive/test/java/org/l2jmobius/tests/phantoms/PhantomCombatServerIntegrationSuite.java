@@ -42,6 +42,7 @@ import org.l2jmobius.gameserver.data.xml.SpawnData;
 import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.managers.InstanceManager;
 import org.l2jmobius.gameserver.managers.ItemManager;
+import org.l2jmobius.gameserver.managers.ScriptManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.GrandBoss;
@@ -51,6 +52,8 @@ import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.enums.ShotType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
+import org.l2jmobius.gameserver.model.script.QuestState;
+import org.l2jmobius.gameserver.model.script.State;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
@@ -58,6 +61,10 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
+import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority;
+import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority.Candidate;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog.Rule;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatActorLease;
@@ -88,6 +95,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSessionSnapshot;
 import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeAuthority;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
@@ -120,10 +128,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	public enum Mode
 	{
 		BASELINE,
-		ACQUISITION
+		ACQUISITION,
+		MANOR,
+		QUEST
 	}
 
 	private static final long ACQUISITION_SEED = 21002101L;
+	private static final long CHECKPOINT_2_SEED = 21002102L;
 	private static final int MELEE_CLASS_ID = 88;
 	private static final int MAGIC_CLASS_ID = 94;
 	private static final int MAGIC_SKILL_ID = 1339;
@@ -153,6 +164,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private Path _moduleRoot;
 	private float _spoilChanceRateBaseline;
 	private double _acquisitionRawItemChance;
+	private PhantomAcquisitionManorAuthority _manorAuthority;
+	private Candidate _manorCandidate;
+	private PhantomAcquisitionQuestCatalog _questCatalog;
+	private Rule _questRule;
+	private PhantomTopologyQuery _topology;
 
 	public PhantomCombatServerIntegrationSuite()
 	{
@@ -167,7 +183,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public String id()
 	{
-		return _mode == Mode.ACQUISITION ? "acquisition-active-spoil" : "combat-server-integration";
+		return switch (_mode)
+		{
+			case ACQUISITION -> "acquisition-active-spoil";
+			case MANOR -> "acquisition-manor-active";
+			case QUEST -> "acquisition-quest-active";
+			default -> "combat-server-integration";
+		};
 	}
 
 	@Override
@@ -176,6 +198,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		if (_mode == Mode.ACQUISITION)
 		{
 			PhantomAssertions.assertEquals(ACQUISITION_SEED, context.seed(), "Active acquisition mode used the wrong seed.");
+		}
+		else if ((_mode == Mode.MANOR) || (_mode == Mode.QUEST))
+		{
+			PhantomAssertions.assertEquals(CHECKPOINT_2_SEED, context.seed(), "Goal 021 Checkpoint 2 active mode used the wrong seed.");
 		}
 		_moduleRoot = context.moduleRoot();
 		_environment.initialize(context);
@@ -189,6 +215,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final L2jTopologyValidationBackend topologyBackend = new L2jTopologyValidationBackend();
 			final PhantomTopologySnapshot topology = new PhantomTopologyLoader(Path.of("data/phantoms/topology"), topologyBackend, PhantomTopologyPolicy.productionDefaults()).load(1);
 			final PhantomTopologyQuery topologyQuery = new PhantomTopologyQuery(topology, topologyBackend, new PhantomTopologyMetrics());
+			_topology = topologyQuery;
 			final PhantomGameKnowledgePolicy knowledgePolicy = PhantomGameKnowledgePolicy.productionDefaults();
 			final PhantomGameKnowledgeBuilder builder = new PhantomGameKnowledgeBuilder(new L2jGameKnowledgeBackend(), new PhantomStaticManorParser(Path.of("data/Seeds.xml"), knowledgePolicy), new PhantomCuratedKnowledgeParser(Path.of("data/phantoms/knowledge"), new L2jGameKnowledgeBackend(), knowledgePolicy), topologyQuery, knowledgePolicy);
 			_knowledge = new PhantomGameKnowledgeService(builder);
@@ -202,6 +229,19 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				_combatPoint = _query.snapshot().spawnFactsByNpc().getOrDefault(_acquisitionSource.npcId(), List.of()).stream().filter(fact -> (fact.pointKind() == SpawnPointKind.EXACT) && (fact.instanceId() == 0)).findFirst().orElseThrow(() -> new AssertionError("Acquisition source has no exact normal-world spawn."));
 				_spoilChanceRateBaseline = RatesConfig.RATE_SPOIL_DROP_CHANCE_MULTIPLIER;
 				RatesConfig.RATE_SPOIL_DROP_CHANCE_MULTIPLIER = Math.max(_spoilChanceRateBaseline, (float) Math.ceil(100 / _acquisitionRawItemChance));
+			}
+			else if (_mode == Mode.MANOR)
+			{
+				_manorAuthority = new PhantomAcquisitionManorAuthority(_query, topologyQuery, Path.of("data/mapregion"));
+				_manorCandidate = selectManorCandidate();
+				_combatPoint = exactSpawn(_manorCandidate.npcId());
+			}
+			else if (_mode == Mode.QUEST)
+			{
+				_questCatalog = PhantomAcquisitionQuestCatalog.load(Path.of("data/phantoms/acquisition/high-five-quest-collection-v1.xml"), Path.of("data/scripts"));
+				ScriptEngine.getInstance().executeScript(Path.of("quests/QuestMasterHandler.java"));
+				_questCatalog.validateRuntime();
+				_combatPoint = questCombatPoint(topologyQuery);
 			}
 			else
 			{
@@ -221,6 +261,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				prepareAcquisitionActor();
 			}
 			relocateToCombatPoint();
+			if (_mode == Mode.MANOR)
+			{
+				prepareManorActor();
+			}
+			else if (_mode == Mode.QUEST)
+			{
+				prepareQuestActor();
+			}
 
 			_backend = new L2jCombatBackend(_materialization, () -> _query, () -> _progression);
 			_combat = new PhantomCombatService(_backend, PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query), PhantomCombatPolicy.productionDefaults(1));
@@ -234,6 +282,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			{
 				context.record("acquisition.activeItemId", _acquisitionSource.itemId());
 				context.record("acquisition.activeSourceId", _acquisitionSource.sourceId());
+			}
+			else if (_mode == Mode.MANOR)
+			{
+				context.record("acquisition.manorSourceId", _manorCandidate.sourceId());
+				context.record("acquisition.manorSeedItemId", _manorCandidate.fact().seedItemId());
+			}
+			else if (_mode == Mode.QUEST)
+			{
+				context.record("acquisition.questRule", _questRule.id());
+				context.record("acquisition.questScriptHash", _questRule.scriptHash());
 			}
 		}
 		catch (Throwable throwable)
@@ -257,6 +315,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			registry.add("01-exact-target-skill-distance-instance-and-ownership", _ -> testAcquisitionControls());
 			registry.add("02-canonical-spoil-existing-combat-sweep-inventory", _ -> testCanonicalAcquisitionChain());
 			registry.add("03-dispatch-crash-recovery-never-blind-repeats", _ -> testAcquisitionDispatchRecovery());
+			return;
+		}
+		if (_mode == Mode.MANOR)
+		{
+			registry.add("01-real-seed-combat-harvester-chain", _ -> testCanonicalManorChain());
+			registry.add("02-manor-controls-and-dispatch-recovery", _ -> testManorControls());
+			return;
+		}
+		if (_mode == Mode.QUEST)
+		{
+			registry.add("01-real-delayed-on-attackable-kill", _ -> testCanonicalQuestChain());
+			registry.add("02-exact-state-cond-target-and-cap-controls", _ -> testQuestControls());
 			return;
 		}
 		registry.add("01-exact-world-player-action-lease", _ -> testExactActorLease());
@@ -314,6 +384,228 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		context.record("acquisition.activeRawItemChance", bestChance);
 		_acquisitionRawItemChance = bestChance;
 		return best;
+	}
+
+	private Candidate selectManorCandidate()
+	{
+		for (int cropItemId : _query.snapshot().manorFacts().stream().map(fact -> fact.cropItemId()).distinct().sorted().toList())
+		{
+			final var result = _manorAuthority.candidates(cropItemId, 85, _manorAuthority.probe(cropItemId).requiredItemIds().stream().collect(java.util.stream.Collectors.toMap(itemId -> itemId, _ -> 64L)));
+			for (Candidate candidate : result.candidates())
+			{
+				if (_query.snapshot().spawnFactsByNpc().getOrDefault(candidate.npcId(), List.of()).stream().anyMatch(fact -> (fact.pointKind() == SpawnPointKind.EXACT) && (fact.instanceId() == 0)))
+				{
+					return candidate;
+				}
+			}
+		}
+		throw new AssertionError("No current manor candidate has a real normal-world target.");
+	}
+
+	private SpawnFact exactSpawn(int npcId)
+	{
+		return _query.snapshot().spawnFactsByNpc().getOrDefault(npcId, List.of()).stream().filter(fact -> (fact.pointKind() == SpawnPointKind.EXACT) && (fact.instanceId() == 0)).findFirst().orElseThrow(() -> new AssertionError("Exact target has no normal-world spawn: " + npcId));
+	}
+
+	private SpawnFact questCombatPoint(PhantomTopologyQuery topology)
+	{
+		for (Rule rule : _questCatalog.rules())
+		{
+			for (int npcId : rule.targetNpcIds())
+			{
+				for (SpawnFact fact : _query.snapshot().spawnFactsByNpc().getOrDefault(npcId, List.of()))
+				{
+					if ((fact.instanceId() != 0) || (fact.amount() <= 0) || (fact.topologyNodeId() == null))
+					{
+						continue;
+					}
+					final var anchor = topology.snapshot().anchorsByNode().getOrDefault(fact.topologyNodeId(), List.of()).stream().filter(value -> value.point().instanceId() == 0).min(Comparator.comparing(value -> value.id())).orElse(null);
+					if (anchor != null)
+					{
+						_questRule = rule;
+						return new SpawnFact(npcId, fact.spawnOrdinal(), 0, anchor.point().x(), anchor.point().y(), anchor.point().z(), fact.amount(), fact.locationId(), SpawnPointKind.EXACT, fact.topologyNodeId(), anchor.mapRegionLocId(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT);
+					}
+				}
+			}
+		}
+		throw new AssertionError("No curated quest target has a bounded normal-world topology anchor.");
+	}
+
+	private void prepareManorActor()
+	{
+		_player.setPlayerClass(MELEE_CLASS_ID);
+		_player.getStat().setLevel((byte) Math.clamp(_manorCandidate.npcLevel(), 1, 85));
+		_player.setInvul(true);
+		ensureWeapon();
+		ensureInventoryItem(_manorCandidate.fact().seedItemId(), 64);
+		ensureInventoryItem(PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID, 1);
+		final var anchor = _topology.snapshot().anchorById().get(_manorCandidate.anchorId());
+		PhantomAssertions.assertTrue(anchor != null, "Selected manor anchor disappeared.");
+		if (_player.isSpawned())
+		{
+			_player.decayMe();
+		}
+		_player.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z());
+		_player.spawnMe();
+		_player.revalidateZone(true);
+		_player.setCurrentHp(_player.getMaxHp());
+		_player.setCurrentMp(_player.getMaxMp());
+	}
+
+	private void prepareQuestActor()
+	{
+		_player.setPlayerClass(MELEE_CLASS_ID);
+		_player.getStat().setLevel((byte) 85);
+		_player.setInvul(true);
+		ensureWeapon();
+		final var quest = ScriptManager.getInstance().getQuest(_questRule.questId());
+		PhantomAssertions.assertTrue(quest != null, "Curated quest was not loaded.");
+		final QuestState state = new QuestState(quest, _player, State.STARTED);
+		state.setCond(_questRule.allowedConds().getFirst(), false);
+	}
+
+	private Item ensureInventoryItem(int itemId, long count)
+	{
+		Item item = _player.getInventory().getItemByItemId(itemId);
+		final long current = item == null ? 0 : item.getCount();
+		if (current < count)
+		{
+			item = _player.getInventory().addItem(ItemProcessType.REWARD, itemId, count - current, _player, this);
+		}
+		PhantomAssertions.assertTrue(item != null, "Could not create test-owned inventory item: " + itemId);
+		return item;
+	}
+
+	private void testCanonicalManorChain() throws Exception
+	{
+		prepareManorActor();
+		Monster seededTarget = null;
+		boolean observedFailure = false;
+		for (int attempt = 0; (attempt < 32) && (seededTarget == null); attempt++)
+		{
+			final Monster target = spawnNormalMonster(targetMaximumHp());
+			try (ExternalActionLease lease = acquireAcquisition("manor-sow-" + attempt))
+			{
+				final var inventory = lease.manorInventory(_manorCandidate.fact().seedItemId(), _manorCandidate.fact().cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
+				final long before = inventory.seedCount();
+				final AcquisitionTargetSnapshot live = lease.acquisitionTargetSnapshot(target.getObjectId());
+				PhantomAssertions.assertTrue((live != null) && live.manorLiveValidFor(lease.actorSnapshot(), _manorCandidate.npcId(), 2000), "Exact manor target was not sow-eligible.");
+				final ActionOutcome outcome = lease.useExactSeed(inventory.seedObjectId(), _manorCandidate.fact().seedItemId(), target.getObjectId());
+				PhantomAssertions.assertTrue((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED), "Canonical Seed handler was not issued.");
+				await(() -> _player.getInventory().getInventoryItemCount(_manorCandidate.fact().seedItemId(), -1) < before, "Canonical sow attempt did not consume exactly one seed.");
+				PhantomAssertions.assertEquals(before - 1, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().seedItemId(), -1), "Canonical sow consumed an unexpected seed count.");
+				if (target.isSeeded())
+				{
+					PhantomAssertions.assertEquals(_player.getObjectId(), target.getSeederId(), "Canonical sow recorded the wrong seeder.");
+					PhantomAssertions.assertEquals(_manorCandidate.fact().seedItemId(), target.getSeed().getSeedId(), "Canonical sow recorded the wrong seed.");
+					seededTarget = target;
+				}
+				else
+				{
+					observedFailure = true;
+				}
+			}
+		}
+		PhantomAssertions.assertTrue(seededTarget != null, "Bounded canonical sow attempts produced no successful seeded target.");
+		final Monster harvestTarget = seededTarget;
+		try (ExternalActionLease recovered = acquireAcquisition("manor-sow-recovery"))
+		{
+			final var inventory = recovered.manorInventory(_manorCandidate.fact().seedItemId(), _manorCandidate.fact().cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
+			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, recovered.useExactSeed(inventory.seedObjectId(), _manorCandidate.fact().seedItemId(), harvestTarget.getObjectId()), "Observed sow was blindly dispatched twice.");
+		}
+		harvestTarget.setCurrentHp(1);
+		harvestTarget.getStatus().stopHpMpRegeneration();
+		final var started = _combat.startSession(request(harvestTarget, PhantomCombatMode.MELEE_PHYSICAL, false, false));
+		PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Existing Combat did not accept the seeded Monster.");
+		awaitCombatOutcome(harvestTarget, "Seeded existing Combat");
+		PhantomAssertions.assertTrue(harvestTarget.isDead() || harvestTarget.isAlikeDead(), "Existing Combat did not kill the seeded Monster.");
+		awaitTerminal();
+		consumeTerminal();
+		final long cropBefore = _player.getInventory().getInventoryItemCount(_manorCandidate.fact().cropItemId(), -1);
+		final long matureBefore = _player.getInventory().getInventoryItemCount(_manorCandidate.fact().matureItemId(), -1);
+		final long reward1Before = _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward1ItemId(), -1);
+		final long reward2Before = _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward2ItemId(), -1);
+		try (ExternalActionLease lease = acquireAcquisition("manor-harvest"))
+		{
+			final var inventory = lease.manorInventory(_manorCandidate.fact().seedItemId(), _manorCandidate.fact().cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
+			final AcquisitionTargetSnapshot corpse = lease.acquisitionTargetSnapshot(harvestTarget.getObjectId());
+			PhantomAssertions.assertTrue((corpse != null) && corpse.harvestValidFor(lease.actorSnapshot(), _manorCandidate.npcId(), _manorCandidate.fact().seedItemId(), 2000), "Exact seeded corpse was not harvest-eligible.");
+			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.useExactHarvester(inventory.harvesterObjectId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID, harvestTarget.getObjectId()), "Canonical Harvester handler was not issued.");
+			await(() -> _player.getInventory().getInventoryItemCount(_manorCandidate.fact().cropItemId(), -1) > cropBefore, "Canonical harvest produced no crop delta.");
+		}
+		PhantomAssertions.assertEquals(matureBefore, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().matureItemId(), -1), "Manor acquisition credited mature seed.");
+		PhantomAssertions.assertEquals(reward1Before, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward1ItemId(), -1), "Manor acquisition performed reward exchange 1.");
+		PhantomAssertions.assertEquals(reward2Before, _player.getInventory().getInventoryItemCount(_manorCandidate.fact().reward2ItemId(), -1), "Manor acquisition performed reward exchange 2.");
+		try (ExternalActionLease recovered = acquireAcquisition("manor-harvest-recovery"))
+		{
+			final var inventory = recovered.manorInventory(_manorCandidate.fact().seedItemId(), _manorCandidate.fact().cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
+			PhantomAssertions.assertTrue(inventory.cropCount() > cropBefore, "Canonical crop delta was not observable through a recovered lease.");
+		}
+		// A normal seed has a high canonical chance; the explicit formula suite supplies deterministic failed-attempt coverage.
+		PhantomAssertions.assertTrue(observedFailure || (_manorCandidate.sowChance() >= 1), "Canonical sow failure evidence became inconsistent.");
+	}
+
+	private void testManorControls()
+	{
+		prepareManorActor();
+		final Monster liveTarget = spawnNormalMonster(targetMaximumHp());
+		try (ExternalActionLease lease = acquireAcquisition("manor-controls"))
+		{
+			final var inventory = lease.manorInventory(_manorCandidate.fact().seedItemId(), _manorCandidate.fact().cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
+			PhantomAssertions.assertTrue((inventory.seedObjectId() > 0) && (inventory.harvesterObjectId() > 0), "Exact seed/harvester ownership was not observed.");
+			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.useExactSeed(inventory.seedObjectId() + 1, _manorCandidate.fact().seedItemId(), liveTarget.getObjectId()), "Wrong seed object was admitted.");
+			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.useExactSeed(inventory.seedObjectId(), _manorCandidate.fact().seedItemId(), liveTarget.getObjectId() + 1), "Wrong manor target was admitted.");
+			final ActorSnapshot actor = lease.actorSnapshot();
+			final AcquisitionTargetSnapshot base = lease.acquisitionTargetSnapshot(liveTarget.getObjectId());
+			final AcquisitionTargetSnapshot forbidden = new AcquisitionTargetSnapshot(base.objectId(), base.npcId(), base.instanceId(), base.distance(), false, false, true, true, false, true, true, false, true, false, 0, false, false, base.level(), true, true, false, false, 0, 0, base.onKillDelayMillis());
+			PhantomAssertions.assertFalse(forbidden.manorLiveValidFor(actor, _manorCandidate.npcId(), 2000), "Raid manor target was admitted.");
+		}
+	}
+
+	private void testCanonicalQuestChain() throws Exception
+	{
+		final QuestState state = _player.getQuestState(_questRule.questName());
+		PhantomAssertions.assertTrue((state != null) && state.isStarted() && (state.getCond() == _questRule.allowedConds().getFirst()), "Exact already-started quest setup is absent.");
+		boolean granted = false;
+		boolean notGranted = false;
+		long count = _player.getInventory().getInventoryItemCount(_questRule.questItemId(), -1);
+		for (int attempt = 0; (attempt < 32) && !(granted && notGranted) && (count < _questRule.itemCap()); attempt++)
+		{
+			resetActor(true);
+			relocateToCombatPoint();
+			_player.setInvul(true);
+			ensureWeapon();
+			final Monster target = spawnNormalMonster(1);
+			target.setOnKillDelay(100);
+			final long before = count;
+			final var started = _combat.startSession(request(target, PhantomCombatMode.MELEE_PHYSICAL, false, false));
+			PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Existing Combat did not accept curated quest target.");
+			awaitCombatOutcome(target, "Curated quest existing Combat");
+			PhantomAssertions.assertTrue(target.isDead() || target.isAlikeDead(), "Existing Combat did not kill curated quest target.");
+			awaitTerminal();
+			consumeTerminal();
+			Thread.sleep(300);
+			count = _player.getInventory().getInventoryItemCount(_questRule.questItemId(), -1);
+			granted |= count == (before + 1);
+			notGranted |= count == before;
+			PhantomAssertions.assertTrue((count == before) || (count == (before + 1)), "Curated delayed callback produced an invalid item delta.");
+			PhantomAssertions.assertTrue(state.isStarted() && (state.getCond() == _questRule.allowedConds().getFirst()), "Kill collection changed quest state/cond below the audited cap.");
+		}
+		PhantomAssertions.assertTrue(granted && notGranted, "Bounded real delayed quest kills did not observe both grant and no-grant paths.");
+		PhantomAssertions.assertTrue(count <= _questRule.itemCap(), "Active quest collection crossed its conservative item cap.");
+	}
+
+	private void testQuestControls()
+	{
+		PhantomAssertions.assertTrue(_questCatalog.current(), "Curated quest authority is not current after exact script loading.");
+		PhantomAssertions.assertFalse(_questRule.supports(_questRule.allowedConds().getFirst() + 1, 0, _questRule.targetNpcIds().getFirst(), false), "Wrong quest cond was admitted.");
+		PhantomAssertions.assertFalse(_questRule.supports(_questRule.allowedConds().getFirst(), _questRule.itemCap(), _questRule.targetNpcIds().getFirst(), false), "Quest item cap was admitted.");
+		PhantomAssertions.assertFalse(_questRule.supports(_questRule.allowedConds().getFirst(), 0, _questRule.targetNpcIds().getFirst() + 1, false), "Wrong quest target was admitted.");
+		try (ExternalActionLease lease = acquireAcquisition("quest-controls"))
+		{
+			final var snapshot = lease.questState(_questRule.questName(), _questRule.expectedVars());
+			PhantomAssertions.assertTrue((snapshot != null) && "STARTED".equals(snapshot.state()) && (snapshot.cond() == _questRule.allowedConds().getFirst()), "Exact active quest state was not read through the acquisition seam.");
+		}
 	}
 
 	private void prepareAcquisitionActor()

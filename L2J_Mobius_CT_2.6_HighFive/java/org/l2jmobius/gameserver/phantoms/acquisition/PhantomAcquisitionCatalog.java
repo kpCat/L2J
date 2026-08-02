@@ -47,7 +47,7 @@ import org.w3c.dom.Node;
 public final class PhantomAcquisitionCatalog
 {
 	private static final int MAX_BYTES = 64 * 1024;
-	private static final List<String> REQUIRED_REASONS = List.of("goal.invalid", "source.ambiguous", "source.authority_stale", "source.exhausted", "source.ineligible", "source.inventory_capacity", "source.repeated_failure", "source.resource_reserve", "source.target_unavailable");
+	private static final List<String> REQUIRED_REASONS = List.of("goal.invalid", "manor.harvester_missing", "manor.seed_missing", "quest.callback_timeout", "quest.cond_ineligible", "quest.item_cap", "quest.not_started", "quest.rule_unsupported", "quest.script_stale", "quest.target_unavailable", "source.ambiguous", "source.authority_stale", "source.exhausted", "source.ineligible", "source.inventory_capacity", "source.repeated_failure", "source.resource_reserve", "source.target_unavailable");
 	private final String _hash;
 	private final Limits _limits;
 	private final Map<Method, MethodPolicy> _methods;
@@ -155,8 +155,8 @@ public final class PhantomAcquisitionCatalog
 
 	private static Limits parseLimits(Element element)
 	{
-		require(element, "limits", Set.of("sourceCandidates", "areasPerSource", "recipesPerProduct", "recipeDepth", "recipeNodes", "deficits", "receipts", "failuresPerSource", "sourceSwitches", "operationsPerStep", "payloadBytes", "activeTargetDistance", "verificationAttempts"));
-		return new Limits(integer(element, "sourceCandidates"), integer(element, "areasPerSource"), integer(element, "recipesPerProduct"), integer(element, "recipeDepth"), integer(element, "recipeNodes"), integer(element, "deficits"), integer(element, "receipts"), integer(element, "failuresPerSource"), integer(element, "sourceSwitches"), integer(element, "operationsPerStep"), integer(element, "payloadBytes"), integer(element, "activeTargetDistance"), integer(element, "verificationAttempts"));
+		require(element, "limits", Set.of("sourceCandidates", "areasPerSource", "recipesPerProduct", "recipeDepth", "recipeNodes", "deficits", "receipts", "failuresPerSource", "sourceSwitches", "operationsPerStep", "payloadBytes", "activeTargetDistance", "verificationAttempts", "manorAttemptsPerTarget", "harvestAttemptsPerCorpse", "questCallbackWaitMillis", "questRules", "questScripts", "questTargetNpcsPerRule", "questExpectedVarsPerRule", "questItemIdsPerRead", "methodBindings"));
+		return new Limits(integer(element, "sourceCandidates"), integer(element, "areasPerSource"), integer(element, "recipesPerProduct"), integer(element, "recipeDepth"), integer(element, "recipeNodes"), integer(element, "deficits"), integer(element, "receipts"), integer(element, "failuresPerSource"), integer(element, "sourceSwitches"), integer(element, "operationsPerStep"), integer(element, "payloadBytes"), integer(element, "activeTargetDistance"), integer(element, "verificationAttempts"), integer(element, "manorAttemptsPerTarget"), integer(element, "harvestAttemptsPerCorpse"), integer(element, "questCallbackWaitMillis"), integer(element, "questRules"), integer(element, "questScripts"), integer(element, "questTargetNpcsPerRule"), integer(element, "questExpectedVarsPerRule"), integer(element, "questItemIdsPerRead"), integer(element, "methodBindings"));
 	}
 
 	private static EnumMap<Method, MethodPolicy> parseMethods(Element element)
@@ -181,9 +181,9 @@ public final class PhantomAcquisitionCatalog
 		{
 			throw new IllegalArgumentException("Acquisition methods are incomplete.");
 		}
-		if ((result.get(Method.DEATH_DROP).status() != MethodStatus.EXECUTABLE) || (result.get(Method.SPOIL_SWEEP).status() != MethodStatus.EXECUTABLE) || (result.get(Method.RECIPE_PREPARATION).status() != MethodStatus.PLANNING_ONLY) || (result.get(Method.MANOR_CROP).status() != MethodStatus.DEFERRED_CHECKPOINT_2) || (result.get(Method.QUEST_COLLECTION).status() != MethodStatus.DEFERRED_CHECKPOINT_2))
+		if ((result.get(Method.DEATH_DROP).status() != MethodStatus.EXECUTABLE) || (result.get(Method.SPOIL_SWEEP).status() != MethodStatus.EXECUTABLE) || (result.get(Method.RECIPE_PREPARATION).status() != MethodStatus.PLANNING_ONLY) || (result.get(Method.MANOR_CROP).status() != MethodStatus.EXECUTABLE) || (result.get(Method.QUEST_COLLECTION).status() != MethodStatus.EXECUTABLE))
 		{
-			throw new IllegalArgumentException("Acquisition method statuses do not match Checkpoint 1.");
+			throw new IllegalArgumentException("Acquisition method statuses do not match Checkpoint 2.");
 		}
 		return result;
 	}
@@ -324,11 +324,11 @@ public final class PhantomAcquisitionCatalog
 		DEFERRED_CHECKPOINT_2
 	}
 
-	public record Limits(int sourceCandidates, int areasPerSource, int recipesPerProduct, int recipeDepth, int recipeNodes, int deficits, int receipts, int failuresPerSource, int sourceSwitches, int operationsPerStep, int payloadBytes, int activeTargetDistance, int verificationAttempts)
+	public record Limits(int sourceCandidates, int areasPerSource, int recipesPerProduct, int recipeDepth, int recipeNodes, int deficits, int receipts, int failuresPerSource, int sourceSwitches, int operationsPerStep, int payloadBytes, int activeTargetDistance, int verificationAttempts, int manorAttemptsPerTarget, int harvestAttemptsPerCorpse, int questCallbackWaitMillis, int questRules, int questScripts, int questTargetNpcsPerRule, int questExpectedVarsPerRule, int questItemIdsPerRead, int methodBindings)
 	{
 		public Limits
 		{
-			if ((sourceCandidates != 8) || (areasPerSource != 4) || (recipesPerProduct != 4) || (recipeDepth != 6) || (recipeNodes != 48) || (deficits != 32) || (receipts != 8) || (failuresPerSource != 8) || (sourceSwitches != 4) || (operationsPerStep != 8) || (payloadBytes != 4096) || (activeTargetDistance != 2000) || (verificationAttempts != 3))
+			if ((sourceCandidates != 8) || (areasPerSource != 4) || (recipesPerProduct != 4) || (recipeDepth != 6) || (recipeNodes != 48) || (deficits != 32) || (receipts != 8) || (failuresPerSource != 8) || (sourceSwitches != 4) || (operationsPerStep != 8) || (payloadBytes != 4096) || (activeTargetDistance != 2000) || (verificationAttempts != 3) || (manorAttemptsPerTarget != 3) || (harvestAttemptsPerCorpse != 3) || (questCallbackWaitMillis != 6000) || (questRules != 8) || (questScripts != 4) || (questTargetNpcsPerRule != 8) || (questExpectedVarsPerRule != 4) || (questItemIdsPerRead != 16) || (methodBindings != 1))
 			{
 				throw new IllegalArgumentException("Acquisition policy limits must match the checkpoint contract.");
 			}
@@ -372,9 +372,9 @@ public final class PhantomAcquisitionCatalog
 	{
 		public RecipePlanning
 		{
-			if (!deferManor || !deferQuest)
+			if (deferManor || deferQuest)
 			{
-				throw new IllegalArgumentException("Checkpoint 1 must defer manor and quest collection.");
+				throw new IllegalArgumentException("Checkpoint 2 must execute manor and quest collection.");
 			}
 		}
 	}

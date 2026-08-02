@@ -20,6 +20,10 @@
  */
 package org.l2jmobius.gameserver.phantoms.background;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,6 +36,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
+import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -45,6 +50,8 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Batch
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchMode;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchResult;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DropDisposition;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.ManorFormula;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.QuestFormula;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.ActionKind;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.AcquisitionIdentity;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.AcquisitionEligibilitySnapshot;
@@ -53,7 +60,11 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ManorBinding;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.QuestBinding;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ReceiptKind;
+import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
@@ -90,6 +101,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private final PhantomRelevanceSignalPort _signals;
 	private final Supplier<PhantomMaterializationService> _materialization;
 	private final PhantomPartyParticipationPort _partyParticipation;
+	private volatile PhantomAcquisitionManorAuthority _manor;
+	private volatile PhantomAcquisitionQuestCatalog _quests;
 	private final ConcurrentHashMap<Long, Boolean> _operations = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, TransitionKind> _transitions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Integer, Lease> _retainedIdentityLeases = new ConcurrentHashMap<>();
@@ -124,6 +137,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	public PhantomBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomIdentityLeaseRegistry identities, PhantomBackgroundTransaction transactions, PhantomBackgroundAuthority authority, PhantomBackgroundModel model, PhantomBackgroundCompetitionRegistry competition, PhantomRelevanceSignalPort signals, Supplier<PhantomMaterializationService> materialization, PhantomPartyParticipationPort partyParticipation)
 	{
+		this(profiles, goals, identities, transactions, authority, model, competition, signals, materialization, partyParticipation, null, null);
+	}
+
+	public PhantomBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomIdentityLeaseRegistry identities, PhantomBackgroundTransaction transactions, PhantomBackgroundAuthority authority, PhantomBackgroundModel model, PhantomBackgroundCompetitionRegistry competition, PhantomRelevanceSignalPort signals, Supplier<PhantomMaterializationService> materialization, PhantomPartyParticipationPort partyParticipation, PhantomAcquisitionManorAuthority manor, PhantomAcquisitionQuestCatalog quests)
+	{
 		_profiles = Objects.requireNonNull(profiles, "profiles");
 		_goals = Objects.requireNonNull(goals, "goals");
 		_identities = Objects.requireNonNull(identities, "identities");
@@ -134,6 +152,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		_signals = Objects.requireNonNull(signals, "signals");
 		_materialization = Objects.requireNonNull(materialization, "materialization");
 		_partyParticipation = Objects.requireNonNull(partyParticipation, "partyParticipation");
+		_manor = manor;
+		_quests = quests;
 	}
 
 	public synchronized boolean start()
@@ -165,6 +185,19 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			_state = ServiceState.STOPPING;
 		}
+		return true;
+	}
+
+	public synchronized boolean installAcquisitionAuthorities(PhantomAcquisitionManorAuthority manor, PhantomAcquisitionQuestCatalog quests)
+	{
+		Objects.requireNonNull(manor, "manor");
+		Objects.requireNonNull(quests, "quests");
+		if ((_state != ServiceState.RUNNING) || (_manor != null) || (_quests != null))
+		{
+			return false;
+		}
+		_manor = manor;
+		_quests = quests;
 		return true;
 	}
 
@@ -324,6 +357,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			}
 			final FarmInput input;
 			Map<Integer, Integer> eligibilitySkills = Map.of();
+			Map<String, String> expectedQuestRows = Map.of();
+			ManorFormula manorFormula = null;
+			QuestFormula questFormula = null;
 			try
 			{
 				if (acquisitionState.selectedSource().method() == Method.SPOIL_SWEEP)
@@ -336,16 +372,71 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					eligibilitySkills = eligibility.snapshot().skillLevels();
 				}
 				input = _authority.acquisitionInput(background, acquisitionState.selectedSource(), eligibilitySkills);
+				if (acquisitionState.methodBinding() instanceof ManorBinding manor)
+				{
+					if ((_manor == null) || !manor.authorityHash().equals(_manor.authorityHash()))
+					{
+						return OperationResult.replan("acquisition.manor.authority_stale");
+					}
+					final var inventory = transaction(() -> _transactions.readAcquisitionInventoryCounts(profileId, claim.characterObjectId(), background.identity().classIndex(), background.identity().activeClassId(), List.of(manor.seedItemId(), manor.cropItemId()).stream().distinct().sorted().toList(), _authority.hashes()));
+					if (!inventory.successful() || (inventory.snapshot().counts().getOrDefault(manor.seedItemId(), 0L) != manor.seedCountBeforeDispatch()) || (inventory.snapshot().counts().getOrDefault(manor.cropItemId(), 0L) != manor.cropCountBeforeDispatch()))
+					{
+						return OperationResult.replan("acquisition.manor.inventory_stale");
+					}
+					final var projection = _manor.projection(manor, acquisitionState.selectedSource().npcId(), background.progress().level(), input.target().level());
+					manorFormula = new ManorFormula(manor.seedItemId(), manor.cropItemId(), manor.seedCountBeforeDispatch(), projection.sowChance(), projection.harvestChance(), projection.harvestPayload(), 3, 3);
+				}
+				else if (acquisitionState.methodBinding() instanceof QuestBinding quest)
+				{
+					if ((_quests == null) || !_quests.current() || !quest.authorityHash().equals(_quests.authorityHash()))
+					{
+						return OperationResult.replan("quest.script_stale");
+					}
+					final var rule = _quests.rule(quest.ruleId()).filter(value -> value.ruleHash().equals(quest.ruleHash()) && value.scriptHash().equals(quest.scriptHash()) && value.questId() == quest.questId() && value.questName().equals(quest.questName()) && value.questItemId() == quest.questItemId() && value.supports(quest.expectedCond(), quest.itemCountBeforeKill(), quest.targetNpcId(), false)).orElse(null);
+					if (rule == null || (background.inventory().itemCount(quest.questItemId()) != quest.itemCountBeforeKill()))
+					{
+						return OperationResult.replan("quest.rule_unsupported");
+					}
+					final var questRowsResult = transaction(() -> _transactions.readAcquisitionQuestRows(profileId, claim.characterObjectId(), background.identity().classIndex(), background.identity().activeClassId(), List.of(quest.questName()), _authority.hashes()));
+					expectedQuestRows = questRowsResult.successful() ? questRowsResult.snapshot().rows().getOrDefault(quest.questName(), Map.of()) : Map.of();
+					if ((expectedQuestRows.size() != (2 + rule.expectedVars().size())) || !"Started".equals(expectedQuestRows.get("<state>")) || !Integer.toString(quest.expectedCond()).equals(expectedQuestRows.get("cond")) || !expectedQuestRows.keySet().equals(java.util.stream.Stream.concat(java.util.stream.Stream.of("<state>", "cond"), rule.expectedVars().stream()).collect(java.util.stream.Collectors.toSet())))
+					{
+						return OperationResult.replan("quest.cond_ineligible");
+					}
+					questFormula = new QuestFormula(rule.chanceKind() == PhantomAcquisitionQuestCatalog.ChanceKind.NONE ? 0 : rule.rollBound(), rule.chanceKind() == PhantomAcquisitionQuestCatalog.ChanceKind.NONE ? 0 : rule.rollThreshold(), rule.maximumCount(), quest.itemCountBeforeKill(), quest.itemCap());
+				}
 			}
 			catch (RuntimeException exception)
 			{
 				return OperationResult.replan("acquisition.authority.unsupported");
 			}
 			final Method method = acquisitionState.selectedSource().method();
-			final BatchMode mode = method == Method.DEATH_DROP ? BatchMode.ACQUISITION_DEATH_DROP : BatchMode.ACQUISITION_SPOIL_SWEEP;
-			final ActionKind actionKind = method == Method.DEATH_DROP ? ActionKind.ACQUISITION_DEATH_DROP : ActionKind.ACQUISITION_SPOIL_SWEEP;
-			final ReceiptKind receiptKind = method == Method.DEATH_DROP ? ReceiptKind.BACKGROUND_DEATH_DROP : ReceiptKind.BACKGROUND_SPOIL_SWEEP;
-			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, actionKind, acquisitionState.selectedSource().npcId(), acquisitionState.selectedSource().anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), new AcquisitionIdentity(acquisitionState.selectedSource().sourceId(), acquisitionRowVersion, acquisitionState.targetItemId(), acquisitionState.hashes().catalog(), acquisitionState.hashes().background()));
+			final BatchMode mode = switch (method)
+			{
+				case DEATH_DROP -> BatchMode.ACQUISITION_DEATH_DROP;
+				case SPOIL_SWEEP -> BatchMode.ACQUISITION_SPOIL_SWEEP;
+				case MANOR_CROP -> BatchMode.ACQUISITION_MANOR_CROP;
+				case QUEST_COLLECTION -> BatchMode.ACQUISITION_QUEST_COLLECTION;
+				default -> throw new IllegalArgumentException("Planning-only acquisition method cannot execute in background.");
+			};
+			final ActionKind actionKind = switch (method)
+			{
+				case DEATH_DROP -> ActionKind.ACQUISITION_DEATH_DROP;
+				case SPOIL_SWEEP -> ActionKind.ACQUISITION_SPOIL_SWEEP;
+				case MANOR_CROP -> ActionKind.ACQUISITION_MANOR_CROP;
+				case QUEST_COLLECTION -> ActionKind.ACQUISITION_QUEST_COLLECTION;
+				default -> throw new IllegalArgumentException("Planning-only acquisition method cannot execute in background.");
+			};
+			final ReceiptKind receiptKind = switch (method)
+			{
+				case DEATH_DROP -> ReceiptKind.BACKGROUND_DEATH_DROP;
+				case SPOIL_SWEEP -> ReceiptKind.BACKGROUND_SPOIL_SWEEP;
+				case MANOR_CROP -> ReceiptKind.BACKGROUND_MANOR_CROP;
+				case QUEST_COLLECTION -> ReceiptKind.BACKGROUND_QUEST_COLLECTION;
+				default -> throw new IllegalArgumentException("Planning-only acquisition method cannot execute in background.");
+			};
+			final long resourceCount = acquisitionState.methodBinding() instanceof ManorBinding manor ? manor.seedCountBeforeDispatch() : acquisitionState.methodBinding() instanceof QuestBinding quest ? quest.itemCountBeforeKill() : 0;
+			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, actionKind, acquisitionState.selectedSource().npcId(), acquisitionState.selectedSource().anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), new AcquisitionIdentity(acquisitionState.selectedSource().sourceId(), acquisitionRowVersion, acquisitionState.targetItemId(), acquisitionState.hashes().catalog(), acquisitionState.hashes().background(), bindingHash(acquisitionState.methodBinding()), resourceCount));
 			try (PhantomBackgroundCompetitionRegistry.Reservation reservation = _competition.tryReserve(input.topologyNodeId(), acquisitionState.selectedSource().npcId(), input.spawnCapacity()))
 			{
 				if (reservation == null)
@@ -353,7 +444,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					return retry("competition.capacity");
 				}
 				final long remaining = acquisitionState.requiredAmount() - acquisitionState.progress();
-				final BatchResult batch = _model.evaluate(new BatchRequest(background, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false, mode, acquisitionState.targetItemId(), remaining, true));
+				final var item = ItemData.getInstance().getTemplate(acquisitionState.targetItemId());
+				if (item == null)
+				{
+					return OperationResult.replan("acquisition.item_stale");
+				}
+				final BatchResult batch = _model.evaluate(new BatchRequest(background, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false, mode, acquisitionState.targetItemId(), remaining, true, manorFormula, questFormula, (method == Method.MANOR_CROP) || (method == Method.QUEST_COLLECTION) ? 1 : PhantomBackgroundModel.MAX_ENCOUNTERS, item.isStackable(), item.getWeight()));
 				if (!batch.mutated())
 				{
 					return switch (batch.reason())
@@ -364,8 +460,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				}
 				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = _authority.autoGetSkills(background.identity(), batch.progress().level());
 				final Clock clock = new Clock(batch.nextRngState(), 0, 0);
-				final List<Integer> mutableItems = input.target().drops().stream().filter(drop -> drop.disposition() == DropDisposition.ACQUIRE).map(drop -> drop.itemId()).distinct().sorted().toList();
-				final PhantomBackgroundTransaction.AcquisitionMutation acquisition = new PhantomBackgroundTransaction.AcquisitionMutation(acquisitionState, acquisitionRowVersion, goalRowVersion, receiptKind, logicalMinute, eligibilitySkills);
+				final List<Integer> mutableItems = java.util.stream.Stream.concat(input.target().drops().stream().filter(drop -> drop.disposition() == DropDisposition.ACQUIRE).map(drop -> drop.itemId()), java.util.stream.Stream.of(acquisitionState.targetItemId(), acquisitionState.methodBinding() instanceof ManorBinding manor ? manor.seedItemId() : acquisitionState.targetItemId())).distinct().sorted().toList();
+				final PhantomBackgroundTransaction.AcquisitionMutation acquisition = new PhantomBackgroundTransaction.AcquisitionMutation(acquisitionState, acquisitionRowVersion, goalRowVersion, receiptKind, logicalMinute, eligibilitySkills, expectedQuestRows);
 				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(background, goal, key, batch.progress(), batch.vitals(), background.position(), clock, batch.inventoryDelta().itemDeltas(), autoSkills, mutableItems, acquisition);
 				return commit(claim, command).withModel(batch.encounters(), batch.elapsedMillis(), batch.dead());
 			}
@@ -447,6 +543,16 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		final var result = transaction(() -> _transactions.readAcquisitionInventoryCounts(profileId, state.identity().characterObjectId(), state.identity().classIndex(), state.identity().activeClassId(), exactItemIds, authorityHashes));
 		return result.successful() && result.snapshot().backgroundHashes().equals(authorityHashes) ? Optional.of(result.snapshot().counts()) : Optional.empty();
+	}
+
+	public Optional<Map<String, Map<String, String>>> acquisitionQuestRows(long profileId, PhantomBackgroundState state, List<String> exactQuestNames)
+	{
+		if ((state == null) || (state.identity().profileId() != profileId) || !state.hashes().equals(_authority.hashes()))
+		{
+			return Optional.empty();
+		}
+		final var result = transaction(() -> _transactions.readAcquisitionQuestRows(profileId, state.identity().characterObjectId(), state.identity().classIndex(), state.identity().activeClassId(), exactQuestNames, _authority.hashes()));
+		return result.successful() && result.snapshot().backgroundHashes().equals(_authority.hashes()) ? Optional.of(result.snapshot().rows()) : Optional.empty();
 	}
 
 	public PhantomBackgroundState.Hashes authorityHashes()
@@ -989,6 +1095,18 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			_failedOperations.incrementAndGet();
 		}
 		return failure;
+	}
+
+	private static String bindingHash(PhantomAcquisitionState.MethodBinding binding)
+	{
+		try
+		{
+			return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Objects.toString(binding, "none").getBytes(StandardCharsets.UTF_8)));
+		}
+		catch (Exception exception)
+		{
+			throw new IllegalStateException("SHA-256 is unavailable.", exception);
+		}
 	}
 
 	private OperationResult mapTransactionFailure(PhantomBackgroundTransaction.Status status)

@@ -14,9 +14,11 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.Acquisition
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ManorInventorySnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ExternalOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PlayableSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.QuestStateSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
@@ -81,6 +83,26 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	default int knownSkillLevel(int skillId)
 	{
 		return 0;
+	}
+
+	default ManorInventorySnapshot manorInventory(int seedItemId, int cropItemId, int harvesterItemId)
+	{
+		return null;
+	}
+
+	default ActionOutcome useExactSeed(int seedObjectId, int seedItemId, int targetObjectId)
+	{
+		return ActionOutcome.REJECTED;
+	}
+
+	default ActionOutcome useExactHarvester(int harvesterObjectId, int harvesterItemId, int targetObjectId)
+	{
+		return ActionOutcome.REJECTED;
+	}
+
+	default QuestStateSnapshot questState(String questName, List<String> expectedVariables)
+	{
+		return null;
 	}
 
 	default PlayableSnapshot playableSnapshot(int objectId)

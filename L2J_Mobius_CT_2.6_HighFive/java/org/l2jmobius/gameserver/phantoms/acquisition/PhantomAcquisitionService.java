@@ -37,16 +37,21 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner.RankedSource;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner.ResourceEvidence;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner.QuestEvidence;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Candidate;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Hashes;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ManorBinding;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Phase;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.ReceiptKind;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.QuestBinding;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Status;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.TerminalResult;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore.StoredState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
@@ -106,6 +111,8 @@ public final class PhantomAcquisitionService
 	private final PhantomCombatService _combat;
 	private final PhantomBackgroundService _background;
 	private final PhantomNavigationService _navigation;
+	private final PhantomAcquisitionManorAuthority _manor;
+	private final PhantomAcquisitionQuestCatalog _quests;
 	private final ConcurrentHashMap<Long, Boolean> _claims = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ExternalActionLease> _external = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, TravelOperation> _travels = new ConcurrentHashMap<>();
@@ -121,6 +128,11 @@ public final class PhantomAcquisitionService
 
 	public PhantomAcquisitionService(PhantomAcquisitionCatalog catalog, PhantomAcquisitionStore store, PhantomGoalStateStore goals, PhantomAcquisitionSourcePlanner planner, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomProgressionCatalog progression, PhantomCombatService combat, PhantomBackgroundService background, PhantomNavigationService navigation)
 	{
+		this(catalog, store, goals, planner, knowledge, topology, progression, combat, background, navigation, null, null);
+	}
+
+	public PhantomAcquisitionService(PhantomAcquisitionCatalog catalog, PhantomAcquisitionStore store, PhantomGoalStateStore goals, PhantomAcquisitionSourcePlanner planner, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomProgressionCatalog progression, PhantomCombatService combat, PhantomBackgroundService background, PhantomNavigationService navigation, PhantomAcquisitionManorAuthority manor, PhantomAcquisitionQuestCatalog quests)
+	{
 		_catalog = Objects.requireNonNull(catalog, "catalog");
 		_store = Objects.requireNonNull(store, "store");
 		_goals = Objects.requireNonNull(goals, "goals");
@@ -131,6 +143,8 @@ public final class PhantomAcquisitionService
 		_combat = Objects.requireNonNull(combat, "combat");
 		_background = Objects.requireNonNull(background, "background");
 		_navigation = Objects.requireNonNull(navigation, "navigation");
+		_manor = manor;
+		_quests = quests;
 	}
 
 	public synchronized boolean start()
@@ -212,7 +226,7 @@ public final class PhantomAcquisitionService
 		{
 			return new Directive(DirectiveKind.COMPLETE, "acquisition.complete", sourceId, generation);
 		}
-		if ((state.status() == Status.DEFERRED_CHECKPOINT_2) || (state.status() == Status.FAILED) || (state.status() == Status.INCONSISTENT))
+		if ((state.status() == Status.DEFERRED_CHECKPOINT_2) || (state.status() == Status.PLANNING_ONLY) || (state.status() == Status.FAILED) || (state.status() == Status.INCONSISTENT))
 		{
 			return new Directive(DirectiveKind.BLOCKED, state.status().name().toLowerCase(), sourceId, generation);
 		}
@@ -285,14 +299,32 @@ public final class PhantomAcquisitionService
 					planningObservation = observation.withInventory(inventory);
 				}
 			}
+			if (effectiveMethods.contains(Method.MANOR_CROP))
+			{
+				final List<Integer> itemIds = _planner.probeManorInventory(spec.itemId());
+				if (itemIds.isEmpty() || (itemIds.size() > _catalog.limits().questItemIdsPerRead()))
+				{
+					effectiveMethods.remove(Method.MANOR_CROP);
+				}
+				else
+				{
+					final Map<Integer, Long> inventory = recipeInventory(profileId, storedGoal, previous, spec, planningObservation, activityState, itemIds, logicalNowNanos, token);
+					if (inventory == null)
+					{
+						return retry("acquisition.manor.inventory_unavailable");
+					}
+					planningObservation = planningObservation.withInventory(inventory);
+				}
+			}
+			final Map<String, QuestEvidence> questEvidence = effectiveMethods.contains(Method.QUEST_COLLECTION) ? questEvidence(profileId, storedGoal, previous, spec, planningObservation, activityState, logicalNowNanos, token) : Map.of();
 			final Map<String, Candidate> previousCandidates = candidates(previous);
-			final PhantomAcquisitionSourcePlanner.Result planned = effectiveMethods.isEmpty() ? PhantomAcquisitionSourcePlanner.Result.blocked(recipeProbeReason) : _planner.plan(new PhantomAcquisitionSourcePlanner.Request(profileId, spec.itemId(), spec.requiredAmount() - progress, activityState, planningObservation.classId(), planningObservation.level(), planningObservation.inventory(), planningObservation.knownSkills(), java.util.Set.copyOf(effectiveMethods), spec.preferredMethod(), planningObservation.anchorId(), previous == null || previous.selectedSource() == null ? "" : previous.selectedSource().sourceId(), planningObservation.resources(), previousCandidates, logicalMinute));
+			final PhantomAcquisitionSourcePlanner.Result planned = effectiveMethods.isEmpty() ? PhantomAcquisitionSourcePlanner.Result.blocked(recipeProbeReason.isEmpty() ? "source.ineligible" : recipeProbeReason) : _planner.plan(new PhantomAcquisitionSourcePlanner.Request(profileId, spec.itemId(), spec.requiredAmount() - progress, activityState, planningObservation.classId(), planningObservation.level(), planningObservation.inventory(), planningObservation.knownSkills(), java.util.Set.copyOf(effectiveMethods), spec.preferredMethod(), planningObservation.anchorId(), previous == null || previous.selectedSource() == null ? "" : previous.selectedSource().sourceId(), planningObservation.resources(), previousCandidates, logicalMinute, questEvidence));
 			final List<Candidate> candidates = planned.ranked().stream().map(ranked -> merge(ranked, previousCandidates.get(ranked.source().sourceId()))).toList();
 			final RankedSource selected = planned.selected();
 			final Source source = selected == null ? null : selected.source();
-			final Status status = selected == null ? (planned.deferred() ? Status.DEFERRED_CHECKPOINT_2 : Status.BLOCKED) : (source.method() == Method.RECIPE_PREPARATION ? Status.DEFERRED_CHECKPOINT_2 : Status.READY);
+			final Status status = selected == null ? (planned.deferred() ? Status.DEFERRED_CHECKPOINT_2 : Status.BLOCKED) : (source.method() == Method.RECIPE_PREPARATION ? Status.PLANNING_ONLY : Status.READY);
 			final Phase phase = (source == null) || (source.method() == Method.RECIPE_PREPARATION) ? Phase.NONE : (!source.anchorId().equals(observation.anchorId()) ? Phase.TRAVEL_REQUIRED : Phase.TARGET_REQUIRED);
-			final PhantomAcquisitionState next = new PhantomAcquisitionState(hashes(), goal.goalId(), goal.revision(), spec.itemId(), spec.requiredAmount(), spec.baselineCount(), observation.itemCount(), progress, status, source, candidates, source == null ? 0 : indexOf(candidates, source.sourceId()), previous == null ? 0 : previous.switchCount(), phase, 0, 0, 0, selected == null ? null : selected.recipePlan(), previous == null ? List.of() : previous.receipts(), logicalMinute);
+			final PhantomAcquisitionState next = new PhantomAcquisitionState(hashes(), goal.goalId(), goal.revision(), spec.itemId(), spec.requiredAmount(), spec.baselineCount(), observation.itemCount(), progress, status, source, candidates, source == null ? 0 : indexOf(candidates, source.sourceId()), previous == null ? 0 : previous.switchCount(), phase, 0, 0, 0, selected == null ? null : selected.recipePlan(), selected == null ? null : selected.methodBinding(), previous == null ? List.of() : previous.receipts(), 0, logicalMinute);
 			final PhantomGoal projected = PhantomAcquisitionGoalSpec.project(goal, progress, PhantomGoalStatus.ACTIVE, source);
 			if (existing.isEmpty())
 			{
@@ -405,9 +437,18 @@ public final class PhantomAcquisitionService
 				case SPOIL_PREPARED -> dispatch(current, AcquisitionSkillKind.SPOIL, Phase.SPOIL_DISPATCHING, logicalNowNanos, logicalMinute, token);
 				case SPOIL_DISPATCHING -> observeSpoil(current, logicalNowNanos, logicalMinute, token);
 				case SPOIL_OBSERVED -> prepareCombat(current, logicalMinute);
-				case COMBAT_PREPARED -> submitCombat(current, current.state().selectedSource().method() == Method.DEATH_DROP, logicalMinute, token);
+				case SOW_PREPARED -> dispatchManor(current, true, logicalNowNanos, logicalMinute, token);
+				case SOW_DISPATCHING -> observeSow(current, logicalNowNanos, logicalMinute, token);
+				case SOW_OBSERVED -> prepareCombat(current, logicalMinute);
+				case COMBAT_PREPARED -> submitCombat(current, current.state().selectedSource().method() == Method.DEATH_DROP, Phase.COMBAT_SUBMITTED, logicalMinute, token);
 				case COMBAT_SUBMITTED -> observeCombat(current, logicalNowNanos, logicalMinute, token);
 				case COMBAT_TERMINAL -> prepareSweepOrVerify(current, logicalNowNanos, logicalMinute, token);
+				case HARVEST_PREPARED -> dispatchManor(current, false, logicalNowNanos, logicalMinute, token);
+				case HARVEST_DISPATCHING -> observeHarvest(current, logicalNowNanos, logicalMinute, token);
+				case QUEST_COMBAT_PREPARED -> submitCombat(current, false, Phase.QUEST_COMBAT_SUBMITTED, logicalMinute, token);
+				case QUEST_COMBAT_SUBMITTED -> observeCombat(current, logicalNowNanos, logicalMinute, token);
+				case QUEST_COMBAT_TERMINAL -> prepareQuestCallback(current, logicalNowNanos, logicalMinute);
+				case QUEST_CALLBACK_WAIT -> observeQuestCallback(current, logicalNowNanos, logicalMinute, token);
 				case SWEEP_PREPARED -> dispatch(current, AcquisitionSkillKind.SWEEP, Phase.SWEEP_DISPATCHING, logicalNowNanos, logicalMinute, token);
 				case SWEEP_DISPATCHING -> observeSweep(current, logicalNowNanos, logicalMinute, token);
 				case VERIFYING -> verifyCurrent(current, logicalNowNanos, logicalMinute, token);
@@ -446,19 +487,33 @@ public final class PhantomAcquisitionService
 				persistTerminal(current, Status.FAILED, logicalMinute);
 				return OperationResult.fail("source.exhausted");
 			}
-			final Observation observation = observe(profileId, current.goal().goal(), spec, activityState, logicalNowNanos, token);
+			Observation observation = observe(profileId, current.goal().goal(), spec, activityState, logicalNowNanos, token);
 			if (observation == null)
 			{
 				return retry("acquisition.observation.unavailable");
 			}
+			final java.util.Set<Method> methods = planningMethods(spec, current.state().progress());
+			if (methods.contains(Method.MANOR_CROP))
+			{
+				final List<Integer> itemIds = _planner.probeManorInventory(spec.itemId());
+				if (!itemIds.isEmpty() && (itemIds.size() <= _catalog.limits().questItemIdsPerRead()))
+				{
+					final Map<Integer, Long> inventory = recipeInventory(profileId, current.goal(), current.state(), spec, observation, activityState, itemIds, logicalNowNanos, token);
+					if (inventory != null)
+					{
+						observation = observation.withInventory(inventory);
+					}
+				}
+			}
+			final Map<String, QuestEvidence> evidence = methods.contains(Method.QUEST_COLLECTION) ? questEvidence(profileId, current.goal(), current.state(), spec, observation, activityState, logicalNowNanos, token) : Map.of();
 			final Map<String, Candidate> previous = authorityStale ? Map.of() : candidates(current.state());
-			final PhantomAcquisitionSourcePlanner.Result replanned = _planner.plan(new PhantomAcquisitionSourcePlanner.Request(profileId, spec.itemId(), spec.requiredAmount() - current.state().progress(), activityState, observation.classId(), observation.level(), observation.inventory(), observation.knownSkills(), planningMethods(spec, current.state().progress()), spec.preferredMethod(), observation.anchorId(), current.state().selectedSource().sourceId(), observation.resources(), previous, logicalMinute));
+			final PhantomAcquisitionSourcePlanner.Result replanned = _planner.plan(new PhantomAcquisitionSourcePlanner.Request(profileId, spec.itemId(), spec.requiredAmount() - current.state().progress(), activityState, observation.classId(), observation.level(), observation.inventory(), observation.knownSkills(), methods, spec.preferredMethod(), observation.anchorId(), current.state().selectedSource().sourceId(), observation.resources(), previous, logicalMinute, evidence));
 			final List<Candidate> ranked = replanned.ranked().stream().map(value -> merge(value, previous.get(value.source().sourceId()))).toList();
 			final RankedSource next = authorityStale ? replanned.selected() : replanned.ranked().stream().filter(value -> !value.source().sourceId().equals(current.state().selectedSource().sourceId())).findFirst().orElse(null);
 			if (next == null)
 			{
 				final Status terminalStatus = replanned.deferred() ? Status.DEFERRED_CHECKPOINT_2 : Status.FAILED;
-				final PhantomAcquisitionState exhausted = new PhantomAcquisitionState(hashes(), current.state().goalId(), current.state().goalRevision(), current.state().targetItemId(), current.state().requiredAmount(), current.state().baselineCount(), current.state().lastObservedCount(), current.state().progress(), terminalStatus, null, ranked, 0, current.state().switchCount(), Phase.NONE, 0, 0, 0, null, current.state().receipts(), logicalMinute);
+				final PhantomAcquisitionState exhausted = new PhantomAcquisitionState(hashes(), current.state().goalId(), current.state().goalRevision(), current.state().targetItemId(), current.state().requiredAmount(), current.state().baselineCount(), current.state().lastObservedCount(), current.state().progress(), terminalStatus, null, ranked, 0, current.state().switchCount(), Phase.NONE, 0, 0, 0, null, null, current.state().receipts(), 0, logicalMinute);
 				final PhantomGoal projected = PhantomAcquisitionGoalSpec.project(current.goal().goal(), exhausted.progress(), PhantomGoalStatus.ACTIVE, null);
 				_store.mutateWithGoal(profileId, current.acquisition().rowVersion(), exhausted, current.goal().rowVersion(), projected);
 				return OperationResult.fail("source.exhausted");
@@ -470,9 +525,9 @@ public final class PhantomAcquisitionService
 				return OperationResult.fail("source.exhausted");
 			}
 			final int cursor = indexOf(ranked, next.source().sourceId());
-			final Status status = next.source().method() == Method.RECIPE_PREPARATION ? Status.DEFERRED_CHECKPOINT_2 : Status.READY;
+			final Status status = next.source().method() == Method.RECIPE_PREPARATION ? Status.PLANNING_ONLY : Status.READY;
 			final Phase phase = next.source().method() == Method.RECIPE_PREPARATION ? Phase.NONE : (!next.source().anchorId().equals(observation.anchorId()) ? Phase.TRAVEL_REQUIRED : Phase.TARGET_REQUIRED);
-			final PhantomAcquisitionState switched = new PhantomAcquisitionState(hashes(), current.state().goalId(), current.state().goalRevision(), current.state().targetItemId(), current.state().requiredAmount(), current.state().baselineCount(), observation.itemCount(), PhantomAcquisitionState.observedProgress(current.state().baselineCount(), observation.itemCount(), current.state().requiredAmount()), status, next.source(), ranked, cursor, current.state().switchCount() + (changedSource ? 1 : 0), phase, 0, 0, 0, next.source().method() == Method.RECIPE_PREPARATION ? next.recipePlan() : null, current.state().receipts(), logicalMinute);
+			final PhantomAcquisitionState switched = new PhantomAcquisitionState(hashes(), current.state().goalId(), current.state().goalRevision(), current.state().targetItemId(), current.state().requiredAmount(), current.state().baselineCount(), observation.itemCount(), PhantomAcquisitionState.observedProgress(current.state().baselineCount(), observation.itemCount(), current.state().requiredAmount()), status, next.source(), ranked, cursor, current.state().switchCount() + (changedSource ? 1 : 0), phase, 0, 0, 0, next.source().method() == Method.RECIPE_PREPARATION ? next.recipePlan() : null, next.methodBinding(), current.state().receipts(), 0, logicalMinute);
 			final PhantomGoal projected = PhantomAcquisitionGoalSpec.project(current.goal().goal(), switched.progress(), PhantomGoalStatus.ACTIVE, switched.selectedSource());
 			_store.mutateWithGoal(profileId, current.acquisition().rowVersion(), switched, current.goal().rowVersion(), projected);
 			if (changedSource)
@@ -501,12 +556,50 @@ public final class PhantomAcquisitionService
 			releaseExternal(current.profileId());
 			return failSource(current, "source.target_unavailable", logicalMinute);
 		}
-		final Phase next = source.method() == Method.SPOIL_SWEEP ? Phase.SPOIL_PREPARED : Phase.COMBAT_PREPARED;
-		final PhantomAcquisitionState prepared = current.state().withPhase(next, target.objectId(), target.npcId(), target.instanceId(), logicalMinute);
-		_store.replace(current.profileId(), current.acquisition().rowVersion(), prepared);
-		if (source.method() == Method.SPOIL_SWEEP)
+		Phase next = source.method() == Method.SPOIL_SWEEP ? Phase.SPOIL_PREPARED : Phase.COMBAT_PREPARED;
+		PhantomAcquisitionState prepared;
+		if (source.method() == Method.MANOR_CROP)
 		{
-			return OperationResult.success("acquisition.spoil.prepared");
+			if (!(current.state().methodBinding() instanceof ManorBinding manor) || (target.instanceId() != 0) || (target.seeded()) || !target.manorLiveValidFor(lease.actorSnapshot(), source.npcId(), MAXIMUM_TARGET_DISTANCE))
+			{
+				releaseExternal(current.profileId());
+				return failSource(current, "source.target_unavailable", logicalMinute);
+			}
+			final var inventory = lease.manorInventory(manor.seedItemId(), manor.cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
+			if ((inventory == null) || (inventory.seedObjectId() <= 0) || (inventory.harvesterObjectId() <= 0) || (inventory.seedCount() <= 0) || (inventory.harvesterCount() <= 0))
+			{
+				releaseExternal(current.profileId());
+				return failSource(current, (inventory == null) || (inventory.harvesterObjectId() <= 0) ? "manor.harvester_missing" : "manor.seed_missing", logicalMinute);
+			}
+			final ManorBinding exact = new ManorBinding(manor.castleId(), manor.seedItemId(), manor.cropItemId(), manor.matureItemId(), manor.reward1ItemId(), manor.reward2ItemId(), manor.seedLevel(), manor.alternative(), manor.rawSeedLimit(), manor.rawCropLimit(), inventory.seedObjectId(), inventory.harvesterObjectId(), inventory.seedCount(), inventory.cropCount(), manor.authorityHash());
+			next = Phase.SOW_PREPARED;
+			prepared = current.state().withBinding(exact, next, target.objectId(), target.npcId(), target.instanceId(), 0, logicalMinute);
+		}
+		else if (source.method() == Method.QUEST_COLLECTION)
+		{
+			if (!(current.state().methodBinding() instanceof QuestBinding quest) || (target.instanceId() != 0) || !target.liveValidFor(lease.actorSnapshot(), source.npcId(), MAXIMUM_TARGET_DISTANCE) || (target.onKillDelayMillis() > _catalog.limits().questCallbackWaitMillis()) || !exactQuestState(lease, quest))
+			{
+				releaseExternal(current.profileId());
+				return failSource(current, "quest.cond_ineligible", logicalMinute);
+			}
+			final long count = lease.acquisitionInventoryCount(quest.questItemId());
+			if ((count < 0) || (count >= quest.itemCap()))
+			{
+				releaseExternal(current.profileId());
+				return failSource(current, count >= quest.itemCap() ? "quest.item_cap" : "quest.cond_ineligible", logicalMinute);
+			}
+			final QuestBinding exact = questBinding(quest, count, 0);
+			next = Phase.QUEST_COMBAT_PREPARED;
+			prepared = current.state().withBinding(exact, next, target.objectId(), target.npcId(), target.instanceId(), 0, logicalMinute);
+		}
+		else
+		{
+			prepared = current.state().withPhase(next, target.objectId(), target.npcId(), target.instanceId(), logicalMinute);
+		}
+		_store.replace(current.profileId(), current.acquisition().rowVersion(), prepared);
+		if ((source.method() == Method.SPOIL_SWEEP) || (source.method() == Method.MANOR_CROP))
+		{
+			return OperationResult.success(source.method() == Method.SPOIL_SWEEP ? "acquisition.spoil.prepared" : "acquisition.manor.sow_prepared");
 		}
 		releaseExternal(current.profileId());
 		return OperationResult.success("acquisition.combat.prepared");
@@ -603,6 +696,204 @@ public final class PhantomAcquisitionService
 		};
 	}
 
+	private OperationResult dispatchManor(Current current, boolean sow, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
+	{
+		if (!(current.state().methodBinding() instanceof ManorBinding manor) || (_manor == null) || !_manor.current() || !manor.authorityHash().equals(_manor.authorityHash()))
+		{
+			return failSource(current, "source.authority_stale", logicalMinute);
+		}
+		final ExternalActionLease lease = external(current, logicalNowNanos, token);
+		if (lease == null)
+		{
+			return retry("acquisition.actor.unavailable");
+		}
+		final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(current.state().targetObjectId());
+		final var actor = lease.actorSnapshot();
+		final var inventory = lease.manorInventory(manor.seedItemId(), manor.cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
+		final boolean targetValid = (target != null) && (actor != null) && (sow ? target.manorLiveValidFor(actor, current.state().selectedSource().npcId(), MAXIMUM_TARGET_DISTANCE) : target.harvestValidFor(actor, current.state().selectedSource().npcId(), manor.seedItemId(), MAXIMUM_TARGET_DISTANCE));
+		final boolean inventoryValid = (inventory != null) && (inventory.harvesterObjectId() == manor.harvesterObjectId()) && (inventory.harvesterCount() > 0) && (!sow || ((inventory.seedObjectId() == manor.seedObjectId()) && (inventory.seedCount() == manor.seedCountBeforeDispatch()) && (inventory.seedCount() > 0)));
+		if (!targetValid || !inventoryValid)
+		{
+			final long count = inventory == null ? -1 : inventory.cropCount();
+			releaseExternal(current.profileId());
+			return uncertain(current, sow ? ReceiptKind.ACTIVE_MANOR_SOW : ReceiptKind.ACTIVE_MANOR_HARVEST, logicalMinute, count);
+		}
+		final Phase dispatching = sow ? Phase.SOW_DISPATCHING : Phase.HARVEST_DISPATCHING;
+		final StoredState dispatched = _store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(dispatching, target.objectId(), target.npcId(), target.instanceId(), current.state().phaseAttempt(), logicalMinute));
+		final Current persisted = new Current(current.profileId(), current.goal(), dispatched);
+		final ActionOutcome outcome = sow ? lease.useExactSeed(manor.seedObjectId(), manor.seedItemId(), target.objectId()) : lease.useExactHarvester(manor.harvesterObjectId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID, target.objectId());
+		return switch (outcome)
+		{
+			case ISSUED, ALREADY_OWNED -> OperationResult.success(sow ? "acquisition.manor.sow_dispatched" : "acquisition.manor.harvest_dispatched");
+			case UNAVAILABLE -> retry(sow ? "acquisition.manor.sow_pending_observation" : "acquisition.manor.harvest_pending_observation");
+			case REJECTED ->
+			{
+				releaseExternal(current.profileId());
+				yield failSource(persisted, "source.ineligible", logicalMinute);
+			}
+		};
+	}
+
+	private OperationResult observeSow(Current current, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
+	{
+		if (!(current.state().methodBinding() instanceof ManorBinding manor))
+		{
+			return OperationResult.replan("acquisition.manor.binding");
+		}
+		final ExternalActionLease lease = external(current, logicalNowNanos, token);
+		if (lease == null)
+		{
+			return retryManor(current, true, logicalMinute, -1);
+		}
+		final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(current.state().targetObjectId());
+		final var inventory = lease.manorInventory(manor.seedItemId(), manor.cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
+		final var actor = lease.actorSnapshot();
+		if ((target != null) && (actor != null) && target.seeded() && (target.seederObjectId() == actor.objectId()) && (target.seedItemId() == manor.seedItemId()) && (target.objectId() == current.state().targetObjectId()) && (target.npcId() == current.state().targetNpcId()) && (target.instanceId() == current.state().targetInstanceId()))
+		{
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.SOW_OBSERVED, target.objectId(), target.npcId(), target.instanceId(), logicalMinute));
+			releaseExternal(current.profileId());
+			return OperationResult.success("acquisition.manor.sow_observed");
+		}
+		if (exactManorCastActive(lease, current.state(), true))
+		{
+			return retry("acquisition.manor.sow_casting");
+		}
+		final long seedCount = inventory == null ? -1 : inventory.seedCount();
+		final long cropCount = inventory == null ? -1 : inventory.cropCount();
+		releaseExternal(current.profileId());
+		if ((seedCount >= 0) && (seedCount < manor.seedCountBeforeDispatch()))
+		{
+			return uncertain(current, ReceiptKind.ACTIVE_MANOR_SOW, logicalMinute, cropCount);
+		}
+		return retryManor(current, true, logicalMinute, cropCount);
+	}
+
+	private OperationResult observeHarvest(Current current, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
+	{
+		if (!(current.state().methodBinding() instanceof ManorBinding manor))
+		{
+			return OperationResult.replan("acquisition.manor.binding");
+		}
+		final ExternalActionLease lease = external(current, logicalNowNanos, token);
+		if (lease == null)
+		{
+			return retryManor(current, false, logicalMinute, -1);
+		}
+		final var inventory = lease.manorInventory(manor.seedItemId(), manor.cropItemId(), PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID);
+		final long cropCount = inventory == null ? -1 : inventory.cropCount();
+		if (cropCount > manor.cropCountBeforeDispatch())
+		{
+			releaseExternal(current.profileId());
+			return advanceToVerify(current, logicalMinute);
+		}
+		if (exactManorCastActive(lease, current.state(), false))
+		{
+			return retry("acquisition.manor.harvest_casting");
+		}
+		final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(current.state().targetObjectId());
+		final boolean recoverable = (target != null) && target.harvestValidFor(lease.actorSnapshot(), current.state().selectedSource().npcId(), manor.seedItemId(), MAXIMUM_TARGET_DISTANCE);
+		releaseExternal(current.profileId());
+		return recoverable ? retryManor(current, false, logicalMinute, cropCount) : uncertain(current, ReceiptKind.ACTIVE_MANOR_HARVEST, logicalMinute, cropCount);
+	}
+
+	private OperationResult retryManor(Current current, boolean sow, long logicalMinute, long observedCount)
+	{
+		final int attempt = current.state().phaseAttempt() + 1;
+		final int maximum = sow ? _catalog.limits().manorAttemptsPerTarget() : _catalog.limits().harvestAttemptsPerCorpse();
+		if (attempt < maximum)
+		{
+			final Phase prepared = sow ? Phase.SOW_PREPARED : Phase.HARVEST_PREPARED;
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(prepared, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), attempt, logicalMinute));
+			return retry(sow ? "acquisition.manor.sow_recovery_retry" : "acquisition.manor.harvest_recovery_retry");
+		}
+		return uncertain(current, sow ? ReceiptKind.ACTIVE_MANOR_SOW : ReceiptKind.ACTIVE_MANOR_HARVEST, logicalMinute, observedCount);
+	}
+
+	private boolean exactManorCastActive(ExternalActionLease lease, PhantomAcquisitionState state, boolean sow)
+	{
+		if ((_manor == null) || !(state.methodBinding() instanceof ManorBinding manor))
+		{
+			return false;
+		}
+		final var identity = sow ? _manor.seedHandler(manor.seedItemId()) : _manor.harvesterHandler();
+		final var actor = lease.actorSnapshot();
+		return (actor != null) && actor.casting() && "CAST".equals(actor.intention()) && (actor.currentTargetObjectId() == state.targetObjectId()) && (actor.currentSkillId() == identity.skillId()) && (actor.currentSkillLevel() == identity.skillLevel());
+	}
+
+	private OperationResult prepareQuestCallback(Current current, long logicalNowNanos, long logicalMinute)
+	{
+		if (!(current.state().methodBinding() instanceof QuestBinding quest))
+		{
+			return OperationResult.replan("acquisition.quest.binding");
+		}
+		final long nowMillis = Math.max(0, logicalNowNanos / 1_000_000L);
+		final long wait = _catalog.limits().questCallbackWaitMillis();
+		final long deadline = nowMillis > (Long.MAX_VALUE - wait) ? Long.MAX_VALUE : nowMillis + wait;
+		final QuestBinding waiting = questBinding(quest, quest.itemCountBeforeKill(), deadline);
+		_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withBinding(waiting, Phase.QUEST_CALLBACK_WAIT, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), 0, logicalMinute));
+		return OperationResult.success("acquisition.quest.callback_wait");
+	}
+
+	private OperationResult observeQuestCallback(Current current, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
+	{
+		if (!(current.state().methodBinding() instanceof QuestBinding quest) || (_quests == null))
+		{
+			return OperationResult.replan("acquisition.quest.binding");
+		}
+		final ExternalActionLease lease = external(current, logicalNowNanos, token);
+		if (lease == null)
+		{
+			return retry("acquisition.actor.unavailable");
+		}
+		if (!exactQuestState(lease, quest))
+		{
+			releaseExternal(current.profileId());
+			return failSource(current, "quest.cond_ineligible", logicalMinute);
+		}
+		final long count = lease.acquisitionInventoryCount(quest.questItemId());
+		releaseExternal(current.profileId());
+		if ((count > quest.itemCountBeforeKill()) && (count <= quest.itemCap()))
+		{
+			return advanceToVerify(current, logicalMinute);
+		}
+		if ((count < 0) || (count > quest.itemCap()))
+		{
+			return uncertain(current, ReceiptKind.ACTIVE_QUEST_COLLECTION, logicalMinute, count);
+		}
+		final long nowMillis = Math.max(0, logicalNowNanos / 1_000_000L);
+		if (nowMillis < quest.callbackDeadlineMillis())
+		{
+			return retry("acquisition.quest.callback_pending");
+		}
+		final int attempt = current.state().phaseAttempt() + 1;
+		if (attempt < _catalog.limits().verificationAttempts())
+		{
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.QUEST_CALLBACK_WAIT, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), attempt, logicalMinute));
+			return retry("quest.callback_timeout");
+		}
+		return failSource(current, "quest.callback_timeout", logicalMinute);
+	}
+
+	private boolean exactQuestState(ExternalActionLease lease, QuestBinding binding)
+	{
+		if ((_quests == null) || !_quests.current() || !binding.authorityHash().equals(_quests.authorityHash()))
+		{
+			return false;
+		}
+		final var rule = _quests.rule(binding.ruleId()).filter(value -> value.ruleHash().equals(binding.ruleHash()) && value.scriptHash().equals(binding.scriptHash()) && value.questId() == binding.questId() && value.questName().equals(binding.questName()) && value.questItemId() == binding.questItemId() && value.targetNpcIds().contains(binding.targetNpcId())).orElse(null);
+		if (rule == null)
+		{
+			return false;
+		}
+		final var snapshot = lease.questState(binding.questName(), rule.expectedVars().stream().sorted().toList());
+		return (snapshot != null) && binding.expectedState().equals(snapshot.state()) && (binding.expectedCond() == snapshot.cond()) && rule.allowedConds().contains(snapshot.cond()) && snapshot.variables().keySet().equals(java.util.Set.copyOf(rule.expectedVars()));
+	}
+
+	private static QuestBinding questBinding(QuestBinding binding, long itemCount, long deadline)
+	{
+		return new QuestBinding(binding.ruleId(), binding.ruleHash(), binding.questId(), binding.questName(), binding.scriptHash(), binding.expectedState(), binding.expectedCond(), binding.questItemId(), binding.itemCap(), binding.targetNpcId(), itemCount, deadline, binding.authorityHash());
+	}
+
 	private OperationResult dispatch(Current current, AcquisitionSkillKind kind, Phase dispatching, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
 	{
 		final ExternalActionLease lease = external(current, logicalNowNanos, token);
@@ -674,7 +965,7 @@ public final class PhantomAcquisitionService
 		return OperationResult.success("acquisition.combat.prepared");
 	}
 
-	private OperationResult submitCombat(Current current, boolean loot, long logicalMinute, PhantomCancellationToken token)
+	private OperationResult submitCombat(Current current, boolean loot, Phase submittedPhase, long logicalMinute, PhantomCancellationToken token)
 	{
 		final String owner = combatOwner(current.state());
 		final var existing = _combat.find(current.profileId()).orElse(null);
@@ -684,13 +975,13 @@ public final class PhantomAcquisitionService
 			{
 				return OperationResult.replan("acquisition.combat.foreign_session");
 			}
-			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.COMBAT_SUBMITTED, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), logicalMinute));
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(submittedPhase, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), logicalMinute));
 			return OperationResult.success("acquisition.combat.reconciled");
 		}
 		final PhantomCombatService.StartResult started = _combat.startAcquisitionSession(new PhantomCombatRequest(current.profileId(), current.state().targetObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, loot, COMBAT_TIMEOUT_MILLIS, token), owner);
 		if (started.accepted() && (started.session() != null) && (started.session().targetObjectId() == current.state().targetObjectId()) && _combat.matchesAcquisitionSession(current.profileId(), current.state().targetObjectId(), owner))
 		{
-			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.COMBAT_SUBMITTED, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), logicalMinute));
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(submittedPhase, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), logicalMinute));
 			return OperationResult.success("acquisition.combat.submitted");
 		}
 		return switch (started.status())
@@ -734,7 +1025,8 @@ public final class PhantomAcquisitionService
 		{
 			return terminal != null && terminal.result() == PhantomCombatResult.CANCELLED ? OperationResult.replan("acquisition.combat.cancelled") : failSource(current, "source.repeated_failure", logicalMinute);
 		}
-		_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.COMBAT_TERMINAL, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), logicalMinute));
+		final Phase terminalPhase = current.state().selectedSource().method() == Method.QUEST_COLLECTION ? Phase.QUEST_COMBAT_TERMINAL : Phase.COMBAT_TERMINAL;
+		_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(terminalPhase, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), logicalMinute));
 		return OperationResult.success("acquisition.combat.terminal");
 	}
 
@@ -757,8 +1049,21 @@ public final class PhantomAcquisitionService
 		if ((target != null) && (actor != null) && target.liveValidFor(actor, source.npcId(), MAXIMUM_TARGET_DISTANCE))
 		{
 			releaseExternal(current.profileId());
-			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.COMBAT_PREPARED, target.objectId(), target.npcId(), target.instanceId(), logicalMinute));
+			final Phase prepared = source.method() == Method.QUEST_COLLECTION ? Phase.QUEST_COMBAT_PREPARED : Phase.COMBAT_PREPARED;
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(prepared, target.objectId(), target.npcId(), target.instanceId(), logicalMinute));
 			return OperationResult.success("acquisition.combat.recovered_live_target");
+		}
+		if ((source.method() == Method.MANOR_CROP) && (current.state().methodBinding() instanceof ManorBinding manor) && (target != null) && (actor != null) && target.harvestValidFor(actor, source.npcId(), manor.seedItemId(), MAXIMUM_TARGET_DISTANCE))
+		{
+			releaseExternal(current.profileId());
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.COMBAT_TERMINAL, target.objectId(), target.npcId(), target.instanceId(), logicalMinute));
+			return OperationResult.success("acquisition.combat.recovered_seeded_corpse");
+		}
+		if ((source.method() == Method.QUEST_COLLECTION) && (target != null) && (target.dead() || target.alikeDead()))
+		{
+			releaseExternal(current.profileId());
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.QUEST_COMBAT_TERMINAL, target.objectId(), target.npcId(), target.instanceId(), logicalMinute));
+			return OperationResult.success("acquisition.quest.recovered_kill");
 		}
 		if ((source.method() == Method.SPOIL_SWEEP) && (target != null) && (actor != null) && (target.spoilerObjectId() == actor.objectId()) && target.sweepValidFor(actor, source.npcId(), MAXIMUM_TARGET_DISTANCE))
 		{
@@ -775,10 +1080,17 @@ public final class PhantomAcquisitionService
 		final int attempt = current.state().phaseAttempt() + 1;
 		if (attempt < _catalog.limits().verificationAttempts())
 		{
-			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.COMBAT_SUBMITTED, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), attempt, logicalMinute));
+			final Phase submitted = current.state().selectedSource().method() == Method.QUEST_COLLECTION ? Phase.QUEST_COMBAT_SUBMITTED : Phase.COMBAT_SUBMITTED;
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(submitted, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), attempt, logicalMinute));
 			return retry("acquisition.combat.missing_session");
 		}
-		final ReceiptKind kind = current.state().selectedSource().method() == Method.DEATH_DROP ? ReceiptKind.ACTIVE_DEATH_DROP : ReceiptKind.ACTIVE_SPOIL;
+		final ReceiptKind kind = switch (current.state().selectedSource().method())
+		{
+			case DEATH_DROP -> ReceiptKind.ACTIVE_DEATH_DROP;
+			case MANOR_CROP -> ReceiptKind.ACTIVE_MANOR_HARVEST;
+			case QUEST_COLLECTION -> ReceiptKind.ACTIVE_QUEST_COLLECTION;
+			default -> ReceiptKind.ACTIVE_SPOIL;
+		};
 		return uncertain(current, kind, logicalMinute, observedCount);
 	}
 
@@ -788,6 +1100,23 @@ public final class PhantomAcquisitionService
 		{
 			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.VERIFYING, current.state().targetObjectId(), current.state().targetNpcId(), current.state().targetInstanceId(), logicalMinute));
 			return OperationResult.success("acquisition.death_drop.verify");
+		}
+		if (current.state().selectedSource().method() == Method.MANOR_CROP)
+		{
+			final ExternalActionLease lease = external(current, logicalNowNanos, token);
+			if ((lease == null) || !(current.state().methodBinding() instanceof ManorBinding manor))
+			{
+				return retry("acquisition.actor.unavailable");
+			}
+			final AcquisitionTargetSnapshot target = lease.acquisitionTargetSnapshot(current.state().targetObjectId());
+			if ((target == null) || !target.harvestValidFor(lease.actorSnapshot(), current.state().selectedSource().npcId(), manor.seedItemId(), MAXIMUM_TARGET_DISTANCE))
+			{
+				final long count = lease.acquisitionInventoryCount(manor.cropItemId());
+				releaseExternal(current.profileId());
+				return count > current.state().lastObservedCount() ? advanceToVerify(current, logicalMinute) : uncertain(current, ReceiptKind.ACTIVE_MANOR_HARVEST, logicalMinute, count);
+			}
+			_store.replace(current.profileId(), current.acquisition().rowVersion(), current.state().withPhase(Phase.HARVEST_PREPARED, target.objectId(), target.npcId(), target.instanceId(), logicalMinute));
+			return OperationResult.success("acquisition.manor.harvest_prepared");
 		}
 		final ExternalActionLease lease = external(current, logicalNowNanos, token);
 		if (lease == null)
@@ -895,7 +1224,13 @@ public final class PhantomAcquisitionService
 		{
 			return uncertain(current, ReceiptKind.VERIFY, logicalMinute, count);
 		}
-		final Receipt receipt = receipt(current.state(), ReceiptKind.VERIFY, current.state().lastObservedCount(), count, count > current.state().lastObservedCount() ? TerminalResult.OBSERVED : TerminalResult.NO_PROGRESS, logicalMinute);
+		final ReceiptKind kind = switch (current.state().selectedSource().method())
+		{
+			case MANOR_CROP -> ReceiptKind.ACTIVE_MANOR_HARVEST;
+			case QUEST_COLLECTION -> ReceiptKind.ACTIVE_QUEST_COLLECTION;
+			default -> ReceiptKind.VERIFY;
+		};
+		final Receipt receipt = receipt(current.state(), kind, current.state().lastObservedCount(), count, count > current.state().lastObservedCount() ? TerminalResult.OBSERVED : TerminalResult.NO_PROGRESS, logicalMinute);
 		PhantomAcquisitionState observed = current.state().observe(count, Status.READY, Phase.TARGET_REQUIRED, receipt, logicalMinute);
 		if (observed.status() != Status.COMPLETED && (count <= current.state().lastObservedCount()))
 		{
@@ -945,7 +1280,7 @@ public final class PhantomAcquisitionService
 			final PhantomAcquisitionState failed = current.state().failSource(reason, logicalMinute);
 			final Candidate selected = failed.candidates().get(failed.sourceCursor());
 			final boolean thresholdReached = selected.failures() >= _catalog.switchPolicy().failureThreshold();
-			final PhantomAcquisitionState next = thresholdReached ? failed : new PhantomAcquisitionState(failed.hashes(), failed.goalId(), failed.goalRevision(), failed.targetItemId(), failed.requiredAmount(), failed.baselineCount(), failed.lastObservedCount(), failed.progress(), Status.READY, failed.selectedSource(), failed.candidates(), failed.sourceCursor(), failed.switchCount(), Phase.TARGET_REQUIRED, 0, 0, 0, failed.recipePlan(), failed.receipts(), logicalMinute);
+			final PhantomAcquisitionState next = thresholdReached ? failed : new PhantomAcquisitionState(failed.hashes(), failed.goalId(), failed.goalRevision(), failed.targetItemId(), failed.requiredAmount(), failed.baselineCount(), failed.lastObservedCount(), failed.progress(), Status.READY, failed.selectedSource(), failed.candidates(), failed.sourceCursor(), failed.switchCount(), Phase.TARGET_REQUIRED, 0, 0, 0, failed.recipePlan(), failed.methodBinding(), failed.receipts(), 0, logicalMinute);
 			_store.replace(current.profileId(), current.acquisition().rowVersion(), next);
 			if (thresholdReached)
 			{
@@ -1082,6 +1417,79 @@ public final class PhantomAcquisitionService
 		}
 	}
 
+	private Map<String, QuestEvidence> questEvidence(long profileId, PhantomGoalStateStore.StoredGoal goal, PhantomAcquisitionState previous, PhantomAcquisitionGoalSpec spec, Observation observation, PhantomActivityState activityState, long logicalNowNanos, PhantomCancellationToken token)
+	{
+		if (_quests == null)
+		{
+			return Map.of();
+		}
+		if (activityState == PhantomActivityState.BACKGROUND)
+		{
+			if (observation.backgroundState() == null)
+			{
+				return Map.of();
+			}
+			final List<String> names = _quests.rulesForItem(spec.itemId()).stream().map(rule -> rule.questName()).distinct().sorted().toList();
+			if (names.isEmpty())
+			{
+				return Map.of();
+			}
+			final Map<String, Map<String, String>> rows = _background.acquisitionQuestRows(profileId, observation.backgroundState(), names).orElse(Map.of());
+			final Map<String, QuestEvidence> result = new LinkedHashMap<>();
+			for (var rule : _quests.rulesForItem(spec.itemId()))
+			{
+				final Map<String, String> questRows = rows.get(rule.questName());
+				if ((questRows == null) || (questRows.size() != (2 + rule.expectedVars().size())) || !"Started".equals(questRows.get("<state>")))
+				{
+					continue;
+				}
+				try
+				{
+					final int cond = Integer.parseInt(questRows.getOrDefault("cond", "-1"));
+					final Map<String, String> variables = new LinkedHashMap<>();
+					for (String name : rule.expectedVars())
+					{
+						if (!questRows.containsKey(name))
+						{
+							throw new IllegalArgumentException("Missing curated quest variable.");
+						}
+						variables.put(name, questRows.get(name));
+					}
+					result.put(rule.id(), new QuestEvidence("STARTED", cond, variables, observation.itemCount()));
+				}
+				catch (RuntimeException ignored)
+				{
+					// Exact malformed rows are ineligible; background never repairs quest state.
+				}
+			}
+			return Map.copyOf(result);
+		}
+		final PhantomAcquisitionState leaseState = previous != null ? previous : new PhantomAcquisitionState(hashes(), goal.goal().goalId(), goal.goal().revision(), spec.itemId(), spec.requiredAmount(), spec.baselineCount(), observation.itemCount(), PhantomAcquisitionState.observedProgress(spec.baselineCount(), observation.itemCount(), spec.requiredAmount()), Status.PLANNING, null, List.of(), 0, 0, Phase.NONE, 0, 0, 0, null, List.of(), 0);
+		final Current current = new Current(profileId, goal, new StoredState(leaseState, -1));
+		final ExternalActionLease lease = external(current, logicalNowNanos, token);
+		if (lease == null)
+		{
+			return Map.of();
+		}
+		try
+		{
+			final Map<String, QuestEvidence> result = new LinkedHashMap<>();
+			for (var rule : _quests.rulesForItem(spec.itemId()))
+			{
+				final var snapshot = lease.questState(rule.questName(), rule.expectedVars().stream().sorted().toList());
+				if (snapshot != null)
+				{
+					result.put(rule.id(), new QuestEvidence(snapshot.state(), snapshot.cond(), snapshot.variables(), observation.itemCount()));
+				}
+			}
+			return Map.copyOf(result);
+		}
+		finally
+		{
+			releaseExternal(profileId);
+		}
+	}
+
 	private List<Integer> requestedCapabilitySkillIds(int classId)
 	{
 		return _progression.capabilities(classId).stream().filter(rule -> "profession.spoil".equals(rule.capabilityKey()) || "profession.sweep".equals(rule.capabilityKey()) || "profession.craft".equals(rule.capabilityKey())).flatMap(rule -> rule.evidenceSkills().stream()).map(skill -> skill.skillId()).distinct().sorted().limit(8).toList();
@@ -1130,7 +1538,19 @@ public final class PhantomAcquisitionService
 
 	private boolean stale(Current current)
 	{
-		return !current.state().hashes().equals(hashes());
+		if (!current.state().hashes().equals(hashes()))
+		{
+			return true;
+		}
+		if (current.state().methodBinding() instanceof ManorBinding manor)
+		{
+			return (_manor == null) || !_manor.current() || !manor.authorityHash().equals(_manor.authorityHash());
+		}
+		if (current.state().methodBinding() instanceof QuestBinding quest)
+		{
+			return (_quests == null) || !_quests.current() || !quest.authorityHash().equals(_quests.authorityHash()) || _quests.rule(quest.ruleId()).filter(rule -> rule.ruleHash().equals(quest.ruleHash()) && rule.scriptHash().equals(quest.scriptHash())).isEmpty();
+		}
+		return false;
 	}
 
 	private Hashes hashes()
@@ -1147,7 +1567,7 @@ public final class PhantomAcquisitionService
 	private void persistTerminal(Current current, Status status, long logicalMinute)
 	{
 		final PhantomAcquisitionState state = current.state();
-		final PhantomAcquisitionState next = new PhantomAcquisitionState(state.hashes(), state.goalId(), state.goalRevision(), state.targetItemId(), state.requiredAmount(), state.baselineCount(), state.lastObservedCount(), state.progress(), status, state.selectedSource(), state.candidates(), state.sourceCursor(), state.switchCount(), Phase.NONE, 0, 0, 0, state.recipePlan(), state.receipts(), logicalMinute);
+		final PhantomAcquisitionState next = new PhantomAcquisitionState(state.hashes(), state.goalId(), state.goalRevision(), state.targetItemId(), state.requiredAmount(), state.baselineCount(), state.lastObservedCount(), state.progress(), status, state.selectedSource(), state.candidates(), state.sourceCursor(), state.switchCount(), Phase.NONE, 0, 0, 0, state.recipePlan(), state.methodBinding(), state.receipts(), 0, logicalMinute);
 		_store.replace(current.profileId(), current.acquisition().rowVersion(), next);
 	}
 

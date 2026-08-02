@@ -24,12 +24,14 @@ import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.WorldRegion;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.instance.Chest;
 import org.l2jmobius.gameserver.model.actor.instance.EventMonster;
 import org.l2jmobius.gameserver.model.actor.instance.GrandBoss;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.actor.instance.RaidBoss;
 import org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType;
 import org.l2jmobius.gameserver.model.item.Weapon;
+import org.l2jmobius.gameserver.model.item.EtcItem;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
 import org.l2jmobius.gameserver.model.item.enums.ShotType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
@@ -37,6 +39,7 @@ import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillUseHolder;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
+import org.l2jmobius.gameserver.model.script.QuestState;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
@@ -46,8 +49,10 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapsh
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ExternalOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ManorInventorySnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PlayableSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.QuestStateSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
@@ -202,6 +207,90 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public ManorInventorySnapshot manorInventory(int seedItemId, int cropItemId, int harvesterItemId)
+		{
+			if ((seedItemId <= 0) || (cropItemId <= 0) || (harvesterItemId <= 0))
+			{
+				return null;
+			}
+			final Item seed = exactInventoryItem(seedItemId);
+			final Item harvester = exactInventoryItem(harvesterItemId);
+			return new ManorInventorySnapshot(seed == null ? 0 : seed.getObjectId(), seed == null ? 0 : seed.getCount(), harvester == null ? 0 : harvester.getObjectId(), harvester == null ? 0 : harvester.getCount(), _player.getInventory().getInventoryItemCount(cropItemId, -1));
+		}
+
+		@Override
+		public ActionOutcome useExactSeed(int seedObjectId, int seedItemId, int targetObjectId)
+		{
+			return useExactManorItem(seedObjectId, seedItemId, targetObjectId, "Seed", false);
+		}
+
+		@Override
+		public ActionOutcome useExactHarvester(int harvesterObjectId, int harvesterItemId, int targetObjectId)
+		{
+			return useExactManorItem(harvesterObjectId, harvesterItemId, targetObjectId, "Harvester", true);
+		}
+
+		@Override
+		public QuestStateSnapshot questState(String questName, List<String> expectedVariables)
+		{
+			if ((questName == null) || questName.isBlank() || (expectedVariables == null) || (expectedVariables.size() > 4) || !expectedVariables.equals(expectedVariables.stream().distinct().sorted().toList()))
+			{
+				return null;
+			}
+			final QuestState state = _player.getQuestState(questName);
+			if (state == null)
+			{
+				return null;
+			}
+			final Map<String, String> variables = new LinkedHashMap<>();
+			for (String name : expectedVariables)
+			{
+				variables.put(name, Objects.toString(state.get(name), ""));
+			}
+			final String stateName = state.isStarted() ? "STARTED" : state.isCompleted() ? "COMPLETED" : "CREATED";
+			return new QuestStateSnapshot(questName, stateName, state.getCond(), variables);
+		}
+
+		private Item exactInventoryItem(int itemId)
+		{
+			return _player.getInventory().getAllItemsByItemId(itemId, false).stream().filter(item -> item.getItemLocation() == ItemLocation.INVENTORY).sorted(Comparator.comparingInt(Item::getObjectId)).findFirst().orElse(null);
+		}
+
+		private ActionOutcome useExactManorItem(int objectId, int itemId, int targetObjectId, String expectedHandler, boolean harvest)
+		{
+			final Item item = _player.getInventory().getItemByObjectId(objectId);
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if (!(object instanceof Monster target) || (item == null) || (item.getId() != itemId) || (item.getItemLocation() != ItemLocation.INVENTORY) || !(item.getTemplate() instanceof EtcItem etcItem) || !expectedHandler.equals(etcItem.getHandlerName()))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final IItemHandler handler = ItemHandler.getInstance().getHandler(etcItem);
+			if ((handler == null) || !expectedHandler.equals(handler.getClass().getSimpleName()))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final AcquisitionTargetSnapshot snapshot = acquisitionSnapshot(target);
+			final ActorSnapshot actor = actorSnapshot();
+			final boolean valid = harvest ? snapshot.harvestValidFor(actor, target.getId(), snapshot.seedItemId(), MAXIMUM_ACQUISITION_DISTANCE) : snapshot.manorLiveValidFor(actor, target.getId(), MAXIMUM_ACQUISITION_DISTANCE);
+			if (!valid)
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final var skills = item.getTemplate().getSkills();
+			if ((skills == null) || (skills.length != 1))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final SkillUseHolder current = _player.getCurrentSkill();
+			if (_player.isCastingNow() && (current != null) && (current.getSkillId() == skills[0].getSkillId()) && (current.getSkillLevel() == skills[0].getSkillLevel()) && (_player.getAI().getCastTarget() == target))
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			_player.setTarget(target);
+			return handler.onItemUse(_player, item, false) ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
+		}
+
+		@Override
 		public PlayableSnapshot playableSnapshot(int objectId)
 		{
 			final WorldObject object = World.getInstance().findObject(objectId);
@@ -233,7 +322,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return null;
 			}
-			return new AcquisitionTargetSnapshot(target.objectId(), target.npcId(), target.instanceId(), target.distance(), target.dead(), target.alikeDead(), target.targetable(), target.attackable(), target.invulnerable(), target.normalMonster(), target.knowledgeMonster(), target.peaceRestricted(), target.surroundingRegion(), monster.isSpoiled(), monster.getSpoilerObjectId(), monster.isSweepActive(), monster.checkSpoilOwner(_player, false));
+			final var seed = monster.getSeed();
+			return new AcquisitionTargetSnapshot(target.objectId(), target.npcId(), target.instanceId(), target.distance(), target.dead(), target.alikeDead(), target.targetable(), target.attackable(), target.invulnerable(), target.normalMonster(), target.knowledgeMonster(), target.peaceRestricted(), target.surroundingRegion(), monster.isSpoiled(), monster.getSpoilerObjectId(), monster.isSweepActive(), monster.checkSpoilOwner(_player, false), monster.getLevel(), monster.getTemplate().canBeSown(), monster.isRaid(), monster instanceof Chest, monster.isSeeded(), monster.getSeederId(), seed == null ? 0 : seed.getSeedId(), monster.getOnKillDelay());
 		}
 
 		@Override

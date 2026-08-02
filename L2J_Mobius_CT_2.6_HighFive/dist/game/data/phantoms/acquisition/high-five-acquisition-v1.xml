@@ -1,18 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <acquisitionPolicy id="high-five-acquisition-v1" version="1">
-	<limits sourceCandidates="8" areasPerSource="4" recipesPerProduct="4" recipeDepth="6" recipeNodes="48" deficits="32" receipts="8" failuresPerSource="8" sourceSwitches="4" operationsPerStep="8" payloadBytes="4096" activeTargetDistance="2000" verificationAttempts="3" />
+	<limits sourceCandidates="8" areasPerSource="4" recipesPerProduct="4" recipeDepth="6" recipeNodes="48" deficits="32" receipts="8" failuresPerSource="8" sourceSwitches="4" operationsPerStep="8" payloadBytes="4096" activeTargetDistance="2000" verificationAttempts="3" manorAttemptsPerTarget="3" harvestAttemptsPerCorpse="3" questCallbackWaitMillis="6000" questRules="8" questScripts="4" questTargetNpcsPerRule="8" questExpectedVarsPerRule="4" questItemIdsPerRead="16" methodBindings="1" />
 	<methods>
 		<method key="death_drop" status="EXECUTABLE" preference="700" />
 		<method key="spoil_sweep" status="EXECUTABLE" preference="800" />
 		<method key="recipe_preparation" status="PLANNING_ONLY" preference="400" />
-		<method key="manor_crop" status="DEFERRED_CHECKPOINT_2" preference="0" />
-		<method key="quest_collection" status="DEFERRED_CHECKPOINT_2" preference="0" />
+		<method key="manor_crop" status="EXECUTABLE" preference="650" />
+		<method key="quest_collection" status="EXECUTABLE" preference="600" />
 	</methods>
 	<sourceScoring methodPreference="100" preferredMethodBonus="20000" topologyCost="5" levelGap="10" chanceUtility="25" spawnCapacity="5" resourceReserve="10" failurePenalty="100" switchPenalty="50" recipeLeafReuse="20" ambiguityThreshold="5" />
 	<switchPolicy failureThreshold="3" cooldownMinutes="5" />
-	<recipePlanning preferCraftEligible="true" preferLeafReuse="true" deferManor="true" deferQuest="true" />
+	<recipePlanning preferCraftEligible="true" preferLeafReuse="true" deferManor="false" deferQuest="false" />
 	<reasonKeys>
 		<reason key="goal.invalid" />
+		<reason key="manor.harvester_missing" />
+		<reason key="manor.seed_missing" />
+		<reason key="quest.callback_timeout" />
+		<reason key="quest.cond_ineligible" />
+		<reason key="quest.item_cap" />
+		<reason key="quest.not_started" />
+		<reason key="quest.rule_unsupported" />
+		<reason key="quest.script_stale" />
+		<reason key="quest.target_unavailable" />
 		<reason key="source.ambiguous" />
 		<reason key="source.authority_stale" />
 		<reason key="source.exhausted" />

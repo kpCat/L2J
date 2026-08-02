@@ -76,6 +76,10 @@ public final class PhantomBackgroundModel
 
 		final DeterministicRandom random = new DeterministicRandom(state.clock().rngState());
 		final Map<Integer, Long> counts = itemCounts(state.inventory());
+		if (request.manorFormula() != null)
+		{
+			counts.put(request.manorFormula().seedItemId(), request.manorFormula().expectedSeedCount());
+		}
 		final Map<Integer, Long> deltas = new LinkedHashMap<>();
 		final Map<Integer, Long> groundLosses = new LinkedHashMap<>();
 		double hp = state.vitals().currentHp();
@@ -88,12 +92,44 @@ public final class PhantomBackgroundModel
 		int addedSlots = 0;
 		int newNonStackable = 0;
 		int encounters = 0;
+		int manorSowAttempts = 0;
+		int manorHarvestAttempts = 0;
 		long acquisitionTargetDelta = 0;
 		boolean dead = false;
 		ResultReason reason = ResultReason.TIME_BUDGET;
 
-		while ((encounters < MAX_ENCOUNTERS) && (elapsed < MAX_ELAPSED_MILLIS))
+		while ((encounters < request.maximumEncounters()) && (elapsed < MAX_ELAPSED_MILLIS))
 		{
+			long consumedSeeds = 0;
+			if (request.mode() == BatchMode.ACQUISITION_MANOR_CROP)
+			{
+				final ManorFormula manor = request.manorFormula();
+				boolean sown = false;
+				while ((manorSowAttempts < manor.maximumSowAttempts()) && (counts.getOrDefault(manor.seedItemId(), 0L) > consumedSeeds))
+				{
+					consumedSeeds++;
+					manorSowAttempts++;
+					if (random.nextInt(99) < manor.sowChance())
+					{
+						sown = true;
+						break;
+					}
+				}
+				if (!sown)
+				{
+					if (consumedSeeds > 0)
+					{
+						consume(counts, deltas, manor.seedItemId(), consumedSeeds);
+						elapsed = Math.min(MAX_ELAPSED_MILLIS, elapsed + (consumedSeeds * MIN_ENCOUNTER_MILLIS));
+						reason = ResultReason.COMPLETED;
+					}
+					else
+					{
+						reason = ResultReason.RESOURCE_RESERVE;
+					}
+					break;
+				}
+			}
 			final long encounterMillis = encounterMillis(state.combat(), target, random);
 			if ((elapsed + encounterMillis) > MAX_ELAPSED_MILLIS)
 			{
@@ -118,33 +154,59 @@ public final class PhantomBackgroundModel
 			{
 				roll = rollDrops(target, random);
 			}
+			long methodTargetDelta = 0;
+			if (request.mode() == BatchMode.ACQUISITION_MANOR_CROP)
+			{
+				final ManorFormula manor = request.manorFormula();
+				while (manorHarvestAttempts < manor.maximumHarvestAttempts())
+				{
+					manorHarvestAttempts++;
+					if (random.nextInt(99) < manor.harvestChance())
+					{
+						methodTargetDelta = manor.harvestPayload();
+						break;
+					}
+				}
+			}
+			else if (request.mode() == BatchMode.ACQUISITION_QUEST_COLLECTION)
+			{
+				final QuestFormula quest = request.questFormula();
+				final boolean granted = (quest.rollBound() == 0) || (random.nextInt(quest.rollBound()) < quest.rollThreshold());
+				methodTargetDelta = granted ? Math.min(quest.maximumGrant(), quest.itemCap() - quest.expectedItemCount()) : 0;
+			}
+			final DropRoll effectiveRoll = methodTargetDelta > 0 ? addAcquisitionAward(roll, request.targetItemId(), methodTargetDelta, request.itemStackable(), request.itemWeight()) : roll;
 			final Map<Integer, Long> prospectiveDeltas = new LinkedHashMap<>(deltas);
+			if (consumedSeeds > 0)
+			{
+				mergeDelta(prospectiveDeltas, request.manorFormula().seedItemId(), -consumedSeeds);
+			}
 			mergeDelta(prospectiveDeltas, loadout.shotItemId(), -loadout.shotsPerEncounter());
 			mergeDelta(prospectiveDeltas, loadout.summonResourceItemId(), -loadout.summonResourcesPerEncounter());
-			for (Map.Entry<Integer, Long> drop : roll.acquiredItemCounts().entrySet())
+			for (Map.Entry<Integer, Long> drop : effectiveRoll.acquiredItemCounts().entrySet())
 			{
 				mergeDelta(prospectiveDeltas, drop.getKey(), drop.getValue());
 			}
-			final InventoryCheck inventoryCheck = inventoryCheck(state.inventory(), counts, roll, prospectiveDeltas, addedWeight, addedSlots, newNonStackable);
+			final InventoryCheck inventoryCheck = inventoryCheck(state.inventory(), counts, effectiveRoll, prospectiveDeltas, addedWeight, addedSlots, newNonStackable);
 			if (!inventoryCheck.accepted())
 			{
 				reason = inventoryCheck.reason();
 				break;
 			}
-			acquisitionTargetDelta = Math.addExact(acquisitionTargetDelta, roll.acquisitionCounts().getOrDefault(request.targetItemId(), 0L));
+			acquisitionTargetDelta = Math.addExact(acquisitionTargetDelta, effectiveRoll.acquisitionCounts().getOrDefault(request.targetItemId(), 0L));
 
+			consume(counts, deltas, request.manorFormula() == null ? 0 : request.manorFormula().seedItemId(), consumedSeeds);
 			consume(counts, deltas, loadout.shotItemId(), loadout.shotsPerEncounter());
 			consume(counts, deltas, loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter());
 			mp -= loadout.skillMpPerEncounter();
 			final double seconds = encounterMillis / 1000d;
 			mp = Math.min(state.vitals().maximumMp(), mp + (state.combat().mpRegenPerSecond() * seconds));
 
-			for (Map.Entry<Integer, Long> drop : roll.acquiredItemCounts().entrySet())
+			for (Map.Entry<Integer, Long> drop : effectiveRoll.acquiredItemCounts().entrySet())
 			{
 				counts.merge(drop.getKey(), drop.getValue(), Math::addExact);
 				deltas.merge(drop.getKey(), drop.getValue(), Math::addExact);
 			}
-			for (Map.Entry<Integer, Long> loss : roll.groundLosses().entrySet())
+			for (Map.Entry<Integer, Long> loss : effectiveRoll.groundLosses().entrySet())
 			{
 				groundLosses.merge(loss.getKey(), loss.getValue(), Math::addExact);
 			}
@@ -179,7 +241,18 @@ public final class PhantomBackgroundModel
 		final Progress progress = new Progress(nextLevel, experience, skillPoints, experienceBeforeDeath);
 		final Vitals vitals = new Vitals(hp, state.vitals().maximumHp(), mp, state.vitals().maximumMp(), dead ? 0 : state.vitals().currentCp(), state.vitals().maximumCp());
 		final InventoryDelta inventoryDelta = new InventoryDelta(Map.copyOf(deltas), addedWeight, addedSlots, newNonStackable);
-		return new BatchResult(reason, encounters, elapsed, progress, vitals, inventoryDelta, Map.copyOf(groundLosses), random.state(), dead, acquisitionTargetDelta);
+		return new BatchResult(reason, encounters, elapsed, progress, vitals, inventoryDelta, Map.copyOf(groundLosses), random.state(), dead, acquisitionTargetDelta, manorSowAttempts, manorHarvestAttempts);
+	}
+
+	private static DropRoll addAcquisitionAward(DropRoll roll, int itemId, long count, boolean stackable, int weight)
+	{
+		final Map<Integer, Long> items = new LinkedHashMap<>(roll.acquiredItemCounts());
+		items.merge(itemId, count, Math::addExact);
+		final Map<Integer, Long> acquisition = new LinkedHashMap<>(roll.acquisitionCounts());
+		acquisition.merge(itemId, count, Math::addExact);
+		final Map<Integer, Drop> facts = new LinkedHashMap<>(roll.facts());
+		facts.put(itemId, new Drop(itemId, -1, Integer.MAX_VALUE, 100, 100, count, count, 1, null, 1, 100, stackable, weight, DropDisposition.ACQUIRE, DropOrigin.ACQUISITION_TARGET));
+		return new DropRoll(Map.copyOf(items), Map.copyOf(acquisition), roll.groundLosses(), Map.copyOf(facts));
 	}
 
 	public static Rewards calculateRewards(int actorLevel, Target target, RewardPolicy policy, CombatFacts combat)
@@ -580,14 +653,21 @@ public final class PhantomBackgroundModel
 	{
 		ORDINARY_DEATH_DROP,
 		ACQUISITION_DEATH_DROP,
-		ACQUISITION_SPOIL_SWEEP
+		ACQUISITION_SPOIL_SWEEP,
+		ACQUISITION_MANOR_CROP,
+		ACQUISITION_QUEST_COLLECTION
 	}
 
-	public record BatchRequest(PhantomBackgroundState state, Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, boolean unsupportedContext, BatchMode mode, int targetItemId, long maximumTargetAmount, boolean acquisitionEligible)
+	public record BatchRequest(PhantomBackgroundState state, Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, boolean unsupportedContext, BatchMode mode, int targetItemId, long maximumTargetAmount, boolean acquisitionEligible, ManorFormula manorFormula, QuestFormula questFormula, int maximumEncounters, boolean itemStackable, int itemWeight)
 	{
 		public BatchRequest(PhantomBackgroundState state, Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, boolean unsupportedContext)
 		{
-			this(state, target, rewardPolicy, deathPolicy, experienceTable, levelForExperience, unsupportedContext, BatchMode.ORDINARY_DEATH_DROP, 0, 0, true);
+			this(state, target, rewardPolicy, deathPolicy, experienceTable, levelForExperience, unsupportedContext, BatchMode.ORDINARY_DEATH_DROP, 0, 0, true, null, null, MAX_ENCOUNTERS, true, 0);
+		}
+
+		public BatchRequest(PhantomBackgroundState state, Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, boolean unsupportedContext, BatchMode mode, int targetItemId, long maximumTargetAmount, boolean acquisitionEligible)
+		{
+			this(state, target, rewardPolicy, deathPolicy, experienceTable, levelForExperience, unsupportedContext, mode, targetItemId, maximumTargetAmount, acquisitionEligible, null, null, MAX_ENCOUNTERS, true, 0);
 		}
 
 		public BatchRequest
@@ -599,9 +679,33 @@ public final class PhantomBackgroundModel
 			Objects.requireNonNull(experienceTable, "experienceTable");
 			Objects.requireNonNull(levelForExperience, "levelForExperience");
 			Objects.requireNonNull(mode, "mode");
-			if ((mode == BatchMode.ORDINARY_DEATH_DROP) != (targetItemId == 0) || (targetItemId < 0) || (maximumTargetAmount < 0) || ((targetItemId > 0) && (maximumTargetAmount == 0)))
+			final boolean manor = mode == BatchMode.ACQUISITION_MANOR_CROP;
+			final boolean quest = mode == BatchMode.ACQUISITION_QUEST_COLLECTION;
+			if ((mode == BatchMode.ORDINARY_DEATH_DROP) != (targetItemId == 0) || (targetItemId < 0) || (maximumTargetAmount < 0) || ((targetItemId > 0) && (maximumTargetAmount == 0)) || (manor != (manorFormula != null)) || (quest != (questFormula != null)) || (manor && (questFormula != null)) || (quest && (manorFormula != null)) || (maximumEncounters < 1) || (maximumEncounters > MAX_ENCOUNTERS) || (itemWeight < 0))
 			{
 				throw new IllegalArgumentException("Invalid background acquisition batch contract.");
+			}
+		}
+	}
+
+	public record ManorFormula(int seedItemId, int cropItemId, long expectedSeedCount, int sowChance, int harvestChance, long harvestPayload, int maximumSowAttempts, int maximumHarvestAttempts)
+	{
+		public ManorFormula
+		{
+			if ((seedItemId <= 0) || (cropItemId <= 0) || (expectedSeedCount <= 0) || (sowChance <= 0) || (harvestChance < 1) || (harvestPayload < 0) || (maximumSowAttempts < 1) || (maximumSowAttempts > 3) || (maximumHarvestAttempts < 1) || (maximumHarvestAttempts > 3))
+			{
+				throw new IllegalArgumentException("Invalid background manor formula.");
+			}
+		}
+	}
+
+	public record QuestFormula(int rollBound, int rollThreshold, long maximumGrant, long expectedItemCount, long itemCap)
+	{
+		public QuestFormula
+		{
+			if ((rollBound < 0) || (rollThreshold < 0) || (rollThreshold > rollBound) || ((rollBound == 0) != (rollThreshold == 0)) || (maximumGrant <= 0) || (expectedItemCount < 0) || (itemCap <= expectedItemCount))
+			{
+				throw new IllegalArgumentException("Invalid background quest formula.");
 			}
 		}
 	}
@@ -691,17 +795,22 @@ public final class PhantomBackgroundModel
 		}
 	}
 
-	public record BatchResult(ResultReason reason, int encounters, long elapsedMillis, Progress progress, Vitals vitals, InventoryDelta inventoryDelta, Map<Integer, Long> groundLosses, long nextRngState, boolean dead, long acquisitionTargetDelta)
+	public record BatchResult(ResultReason reason, int encounters, long elapsedMillis, Progress progress, Vitals vitals, InventoryDelta inventoryDelta, Map<Integer, Long> groundLosses, long nextRngState, boolean dead, long acquisitionTargetDelta, int manorSowAttempts, int manorHarvestAttempts)
 	{
 		public BatchResult(ResultReason reason, int encounters, long elapsedMillis, Progress progress, Vitals vitals, InventoryDelta inventoryDelta, Map<Integer, Long> groundLosses, long nextRngState, boolean dead)
 		{
-			this(reason, encounters, elapsedMillis, progress, vitals, inventoryDelta, groundLosses, nextRngState, dead, 0);
+			this(reason, encounters, elapsedMillis, progress, vitals, inventoryDelta, groundLosses, nextRngState, dead, 0, 0, 0);
+		}
+
+		public BatchResult(ResultReason reason, int encounters, long elapsedMillis, Progress progress, Vitals vitals, InventoryDelta inventoryDelta, Map<Integer, Long> groundLosses, long nextRngState, boolean dead, long acquisitionTargetDelta)
+		{
+			this(reason, encounters, elapsedMillis, progress, vitals, inventoryDelta, groundLosses, nextRngState, dead, acquisitionTargetDelta, 0, 0);
 		}
 
 		public BatchResult
 		{
 			groundLosses = Map.copyOf(groundLosses);
-			if ((groundLosses.size() > MAX_GROUND_LOSS_ITEM_IDS) || groundLosses.entrySet().stream().anyMatch(entry -> (entry.getKey() <= 0) || (entry.getValue() <= 0)) || (acquisitionTargetDelta < 0))
+			if ((groundLosses.size() > MAX_GROUND_LOSS_ITEM_IDS) || groundLosses.entrySet().stream().anyMatch(entry -> (entry.getKey() <= 0) || (entry.getValue() <= 0)) || (acquisitionTargetDelta < 0) || (manorSowAttempts < 0) || (manorSowAttempts > 3) || (manorHarvestAttempts < 0) || (manorHarvestAttempts > 3))
 			{
 				throw new IllegalArgumentException("Invalid bounded ground-loss evidence.");
 			}
@@ -709,12 +818,12 @@ public final class PhantomBackgroundModel
 
 		public static BatchResult retry(ResultReason reason, long rngState)
 		{
-			return new BatchResult(reason, 0, 0, null, null, new InventoryDelta(Map.of(), 0, 0, 0), Map.of(), rngState, false, 0);
+			return new BatchResult(reason, 0, 0, null, null, new InventoryDelta(Map.of(), 0, 0, 0), Map.of(), rngState, false, 0, 0, 0);
 		}
 
 		public boolean mutated()
 		{
-			return encounters > 0;
+			return (encounters > 0) || (manorSowAttempts > 0);
 		}
 	}
 
@@ -751,6 +860,15 @@ public final class PhantomBackgroundModel
 		double nextDouble()
 		{
 			return (nextLong() >>> 11) * 0x1.0p-53;
+		}
+
+		int nextInt(int bound)
+		{
+			if (bound <= 0)
+			{
+				throw new IllegalArgumentException("Random bound must be positive.");
+			}
+			return Math.floorMod(nextLong(), bound);
 		}
 
 		double variance()

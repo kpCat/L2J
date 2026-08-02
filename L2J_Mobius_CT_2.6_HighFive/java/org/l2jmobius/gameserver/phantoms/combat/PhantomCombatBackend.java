@@ -75,11 +75,16 @@ public interface PhantomCombatBackend
 		}
 	}
 
-	record AcquisitionTargetSnapshot(int objectId, int npcId, int instanceId, double distance, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean normalMonster, boolean knowledgeMonster, boolean peaceRestricted, boolean surroundingRegion, boolean spoiled, int spoilerObjectId, boolean sweepActive, boolean sweepOwnerEligible)
+	record AcquisitionTargetSnapshot(int objectId, int npcId, int instanceId, double distance, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean normalMonster, boolean knowledgeMonster, boolean peaceRestricted, boolean surroundingRegion, boolean spoiled, int spoilerObjectId, boolean sweepActive, boolean sweepOwnerEligible, int level, boolean canBeSown, boolean raid, boolean chest, boolean seeded, int seederObjectId, int seedItemId, int onKillDelayMillis)
 	{
+		public AcquisitionTargetSnapshot(int objectId, int npcId, int instanceId, double distance, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean normalMonster, boolean knowledgeMonster, boolean peaceRestricted, boolean surroundingRegion, boolean spoiled, int spoilerObjectId, boolean sweepActive, boolean sweepOwnerEligible)
+		{
+			this(objectId, npcId, instanceId, distance, dead, alikeDead, targetable, attackable, invulnerable, normalMonster, knowledgeMonster, peaceRestricted, surroundingRegion, spoiled, spoilerObjectId, sweepActive, sweepOwnerEligible, 1, false, false, false, false, 0, 0, 5000);
+		}
+
 		public AcquisitionTargetSnapshot
 		{
-			if ((objectId <= 0) || (npcId <= 0) || (instanceId < 0) || !Double.isFinite(distance) || (distance < 0) || (spoilerObjectId < 0))
+			if ((objectId <= 0) || (npcId <= 0) || (instanceId < 0) || !Double.isFinite(distance) || (distance < 0) || (spoilerObjectId < 0) || (level < 0) || (seederObjectId < 0) || (seedItemId < 0) || (onKillDelayMillis < 0) || (onKillDelayMillis > 60000) || (seeded && ((seederObjectId <= 0) || (seedItemId <= 0))))
 			{
 				throw new IllegalArgumentException("Invalid acquisition target snapshot.");
 			}
@@ -93,6 +98,39 @@ public interface PhantomCombatBackend
 		public boolean sweepValidFor(ActorSnapshot actor, int expectedNpcId, int maximumDistance)
 		{
 			return (npcId == expectedNpcId) && (instanceId == actor.instanceId()) && (dead || alikeDead) && targetable && normalMonster && knowledgeMonster && !peaceRestricted && surroundingRegion && spoiled && sweepActive && sweepOwnerEligible && (distance <= maximumDistance);
+		}
+
+		public boolean manorLiveValidFor(ActorSnapshot actor, int expectedNpcId, int maximumDistance)
+		{
+			return liveValidFor(actor, expectedNpcId, maximumDistance) && canBeSown && !raid && !chest && !seeded;
+		}
+
+		public boolean harvestValidFor(ActorSnapshot actor, int expectedNpcId, int expectedSeedItemId, int maximumDistance)
+		{
+			return (npcId == expectedNpcId) && (instanceId == actor.instanceId()) && (dead || alikeDead) && targetable && normalMonster && knowledgeMonster && !peaceRestricted && surroundingRegion && seeded && (seederObjectId == actor.objectId()) && (seedItemId == expectedSeedItemId) && (distance <= maximumDistance);
+		}
+	}
+
+	record ManorInventorySnapshot(int seedObjectId, long seedCount, int harvesterObjectId, long harvesterCount, long cropCount)
+	{
+		public ManorInventorySnapshot
+		{
+			if ((seedObjectId < 0) || (seedCount < 0) || (harvesterObjectId < 0) || (harvesterCount < 0) || (cropCount < 0) || ((seedObjectId == 0) != (seedCount == 0)) || ((harvesterObjectId == 0) != (harvesterCount == 0)))
+			{
+				throw new IllegalArgumentException("Invalid manor inventory snapshot.");
+			}
+		}
+	}
+
+	record QuestStateSnapshot(String questName, String state, int cond, java.util.Map<String, String> variables)
+	{
+		public QuestStateSnapshot
+		{
+			variables = java.util.Map.copyOf(variables);
+			if ((questName == null) || questName.isBlank() || (state == null) || state.isBlank() || (cond < 0) || (cond > 255) || (variables.size() > 4))
+			{
+				throw new IllegalArgumentException("Invalid quest state snapshot.");
+			}
 		}
 	}
 

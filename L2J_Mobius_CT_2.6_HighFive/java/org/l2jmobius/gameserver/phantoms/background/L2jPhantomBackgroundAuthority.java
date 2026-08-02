@@ -261,7 +261,9 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	public FarmInput acquisitionInput(PhantomBackgroundState state, Source source, Map<Integer, Integer> learnedSkills)
 	{
 		learnedSkills = Map.copyOf(learnedSkills);
-		if (!state.hashes().equals(hashes()) || (source.instanceId() != 0) || (source.itemId() <= 0) || ((source.method() != Method.DEATH_DROP) && (source.method() != Method.SPOIL_SWEEP)))
+		final boolean ordinaryAcquisition = (source.method() == Method.DEATH_DROP) || (source.method() == Method.SPOIL_SWEEP);
+		final boolean specializedAcquisition = (source.method() == Method.MANOR_CROP) || (source.method() == Method.QUEST_COLLECTION);
+		if (!state.hashes().equals(hashes()) || (source.instanceId() != 0) || (source.itemId() <= 0) || (!ordinaryAcquisition && !specializedAcquisition))
 		{
 			throw new IllegalStateException("Acquisition background authority generation or source is invalid.");
 		}
@@ -283,8 +285,8 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			throw new IllegalArgumentException("Acquisition source has no authoritative spawn at its anchor.");
 		}
 		final DropSourceKind expectedKind = source.method() == Method.DEATH_DROP ? DropSourceKind.DEATH_DROP : DropSourceKind.SPOIL;
-		final List<DropFact> selectedFacts = source.method() == Method.DEATH_DROP ? knowledge.dropFactsByNpc().getOrDefault(source.npcId(), List.of()) : knowledge.spoilFactsByNpc().getOrDefault(source.npcId(), List.of());
-		final DropFact selected = selectedFacts.stream().filter(fact -> (fact.itemId() == source.itemId()) && (fact.sourceKind() == expectedKind) && fact.stableKey().equals(source.factKey())).findFirst().orElseThrow(() -> new IllegalArgumentException("Acquisition source fact is stale."));
+		final List<DropFact> selectedFacts = source.method() == Method.DEATH_DROP ? knowledge.dropFactsByNpc().getOrDefault(source.npcId(), List.of()) : source.method() == Method.SPOIL_SWEEP ? knowledge.spoilFactsByNpc().getOrDefault(source.npcId(), List.of()) : List.of();
+		final DropFact selected = ordinaryAcquisition ? selectedFacts.stream().filter(fact -> (fact.itemId() == source.itemId()) && (fact.sourceKind() == expectedKind) && fact.stableKey().equals(source.factKey())).findFirst().orElseThrow(() -> new IllegalArgumentException("Acquisition source fact is stale.")) : null;
 		if ((source.method() == Method.SPOIL_SWEEP) && !durableSpoilEligible(state, source, learnedSkills))
 		{
 			throw new IllegalArgumentException("Durable acquisition spoil capability evidence is absent.");

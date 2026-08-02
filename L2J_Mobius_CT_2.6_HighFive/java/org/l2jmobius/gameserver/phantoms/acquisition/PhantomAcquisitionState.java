@@ -31,11 +31,12 @@ import java.util.Set;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
 
 /** Durable bounded acquisition state; authoritative item counts remain external. */
-public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevision, int targetItemId, long requiredAmount, long baselineCount, long lastObservedCount, long progress, Status status, Source selectedSource, List<Candidate> candidates, int sourceCursor, int switchCount, Phase phase, int targetObjectId, int targetNpcId, int targetInstanceId, RecipePlan recipePlan, List<Receipt> receipts, int phaseAttempt, long logicalMinute)
+public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevision, int targetItemId, long requiredAmount, long baselineCount, long lastObservedCount, long progress, Status status, Source selectedSource, List<Candidate> candidates, int sourceCursor, int switchCount, Phase phase, int targetObjectId, int targetNpcId, int targetInstanceId, RecipePlan recipePlan, MethodBinding methodBinding, List<Receipt> receipts, int phaseAttempt, long logicalMinute)
 {
 	public static final String COMPONENT_TYPE = "acquisition.state";
-	public static final int SCHEMA_VERSION = 2;
+	public static final int SCHEMA_VERSION = 3;
 	public static final int LEGACY_SCHEMA_VERSION = 1;
+	public static final int DISPATCH_SCHEMA_VERSION = 2;
 	public static final int MAX_CANDIDATES = 8;
 	public static final int MAX_RECEIPTS = 8;
 	public static final int MAX_FAILURES_PER_SOURCE = 8;
@@ -46,7 +47,12 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 
 	public PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevision, int targetItemId, long requiredAmount, long baselineCount, long lastObservedCount, long progress, Status status, Source selectedSource, List<Candidate> candidates, int sourceCursor, int switchCount, Phase phase, int targetObjectId, int targetNpcId, int targetInstanceId, RecipePlan recipePlan, List<Receipt> receipts, long logicalMinute)
 	{
-		this(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, status, selectedSource, candidates, sourceCursor, switchCount, phase, targetObjectId, targetNpcId, targetInstanceId, recipePlan, receipts, 0, logicalMinute);
+		this(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, status, selectedSource, candidates, sourceCursor, switchCount, phase, targetObjectId, targetNpcId, targetInstanceId, recipePlan, null, receipts, 0, logicalMinute);
+	}
+
+	public PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevision, int targetItemId, long requiredAmount, long baselineCount, long lastObservedCount, long progress, Status status, Source selectedSource, List<Candidate> candidates, int sourceCursor, int switchCount, Phase phase, int targetObjectId, int targetNpcId, int targetInstanceId, RecipePlan recipePlan, List<Receipt> receipts, int phaseAttempt, long logicalMinute)
+	{
+		this(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, status, selectedSource, candidates, sourceCursor, switchCount, phase, targetObjectId, targetNpcId, targetInstanceId, recipePlan, null, receipts, phaseAttempt, logicalMinute);
 	}
 
 	public PhantomAcquisitionState
@@ -86,12 +92,12 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		{
 			throw new IllegalArgumentException("Acquisition phase cannot retain a target claim.");
 		}
-		final boolean phaseRequiresTarget = (phase == Phase.SPOIL_PREPARED) || (phase == Phase.SPOIL_DISPATCHING) || (phase == Phase.SPOIL_OBSERVED) || (phase == Phase.COMBAT_PREPARED) || (phase == Phase.COMBAT_SUBMITTED) || (phase == Phase.COMBAT_TERMINAL) || (phase == Phase.SWEEP_PREPARED) || (phase == Phase.SWEEP_DISPATCHING) || (phase == Phase.VERIFYING);
+		final boolean phaseRequiresTarget = (phase == Phase.SPOIL_PREPARED) || (phase == Phase.SPOIL_DISPATCHING) || (phase == Phase.SPOIL_OBSERVED) || (phase == Phase.COMBAT_PREPARED) || (phase == Phase.COMBAT_SUBMITTED) || (phase == Phase.COMBAT_TERMINAL) || (phase == Phase.SWEEP_PREPARED) || (phase == Phase.SWEEP_DISPATCHING) || (phase == Phase.VERIFYING) || (phase == Phase.SOW_PREPARED) || (phase == Phase.SOW_DISPATCHING) || (phase == Phase.SOW_OBSERVED) || (phase == Phase.HARVEST_PREPARED) || (phase == Phase.HARVEST_DISPATCHING) || (phase == Phase.QUEST_COMBAT_PREPARED) || (phase == Phase.QUEST_COMBAT_SUBMITTED) || (phase == Phase.QUEST_COMBAT_TERMINAL) || (phase == Phase.QUEST_CALLBACK_WAIT);
 		if (phaseRequiresTarget != (targetObjectId > 0))
 		{
 			throw new IllegalArgumentException("Acquisition phase and exact target claim disagree.");
 		}
-		if ((phaseAttempt > 0) && (phase != Phase.SPOIL_PREPARED) && (phase != Phase.SPOIL_DISPATCHING) && (phase != Phase.SWEEP_PREPARED) && (phase != Phase.SWEEP_DISPATCHING) && (phase != Phase.COMBAT_SUBMITTED))
+		if ((phaseAttempt > 0) && (phase != Phase.SPOIL_PREPARED) && (phase != Phase.SPOIL_DISPATCHING) && (phase != Phase.SWEEP_PREPARED) && (phase != Phase.SWEEP_DISPATCHING) && (phase != Phase.COMBAT_SUBMITTED) && (phase != Phase.SOW_PREPARED) && (phase != Phase.SOW_DISPATCHING) && (phase != Phase.HARVEST_PREPARED) && (phase != Phase.HARVEST_DISPATCHING) && (phase != Phase.QUEST_COMBAT_SUBMITTED) && (phase != Phase.QUEST_CALLBACK_WAIT))
 		{
 			throw new IllegalArgumentException("Acquisition phase attempt has no dispatch owner.");
 		}
@@ -99,7 +105,38 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		{
 			throw new IllegalArgumentException("Spoil acquisition phase requires a spoil/sweep source.");
 		}
-		if (((status == Status.BLOCKED) || (status == Status.COMPLETED) || (status == Status.FAILED) || (status == Status.STALE_AUTHORITY) || (status == Status.DEFERRED_CHECKPOINT_2) || (status == Status.INCONSISTENT)) && (phase != Phase.NONE))
+		final Method selectedMethod = selectedSource == null ? null : selectedSource.method();
+		if ((selectedMethod == Method.MANOR_CROP) != (methodBinding instanceof ManorBinding))
+		{
+			throw new IllegalArgumentException("Manor acquisition source and binding disagree.");
+		}
+		if ((selectedMethod == Method.QUEST_COLLECTION) != (methodBinding instanceof QuestBinding))
+		{
+			throw new IllegalArgumentException("Quest acquisition source and binding disagree.");
+		}
+		if ((methodBinding != null) && (selectedSource == null))
+		{
+			throw new IllegalArgumentException("Acquisition binding has no selected source.");
+		}
+		if ((methodBinding instanceof ManorBinding manor) && ((selectedSource.itemId() != manor.cropItemId()) || (selectedSource.npcId() <= 0)))
+		{
+			throw new IllegalArgumentException("Manor source and binding identity disagree.");
+		}
+		if ((methodBinding instanceof QuestBinding quest) && ((selectedSource.itemId() != quest.questItemId()) || (selectedSource.npcId() != quest.targetNpcId())))
+		{
+			throw new IllegalArgumentException("Quest source and binding identity disagree.");
+		}
+		final boolean manorPhase = (phase == Phase.SOW_PREPARED) || (phase == Phase.SOW_DISPATCHING) || (phase == Phase.SOW_OBSERVED) || (phase == Phase.HARVEST_PREPARED) || (phase == Phase.HARVEST_DISPATCHING);
+		final boolean questPhase = (phase == Phase.QUEST_COMBAT_PREPARED) || (phase == Phase.QUEST_COMBAT_SUBMITTED) || (phase == Phase.QUEST_COMBAT_TERMINAL) || (phase == Phase.QUEST_CALLBACK_WAIT);
+		if (manorPhase && (selectedMethod != Method.MANOR_CROP))
+		{
+			throw new IllegalArgumentException("Manor acquisition phase requires a manor binding.");
+		}
+		if (questPhase && (selectedMethod != Method.QUEST_COLLECTION))
+		{
+			throw new IllegalArgumentException("Quest acquisition phase requires a quest binding.");
+		}
+		if (((status == Status.BLOCKED) || (status == Status.COMPLETED) || (status == Status.FAILED) || (status == Status.STALE_AUTHORITY) || (status == Status.DEFERRED_CHECKPOINT_2) || (status == Status.INCONSISTENT) || (status == Status.PLANNING_ONLY)) && (phase != Phase.NONE))
 		{
 			throw new IllegalArgumentException("Terminal or non-executable acquisition state retains an active phase.");
 		}
@@ -119,7 +156,12 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 
 	public PhantomAcquisitionState withPlan(Status nextStatus, Source source, List<Candidate> ranked, RecipePlan plan, Phase nextPhase, long minute)
 	{
-		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, nextStatus, source, ranked, source == null ? 0 : indexOf(ranked, source.sourceId()), switchCount, nextPhase, 0, 0, 0, plan, receipts, 0, minute);
+		return withPlan(nextStatus, source, ranked, plan, null, nextPhase, minute);
+	}
+
+	public PhantomAcquisitionState withPlan(Status nextStatus, Source source, List<Candidate> ranked, RecipePlan plan, MethodBinding binding, Phase nextPhase, long minute)
+	{
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, nextStatus, source, ranked, source == null ? 0 : indexOf(ranked, source.sourceId()), switchCount, nextPhase, 0, 0, 0, plan, binding, receipts, 0, minute);
 	}
 
 	public PhantomAcquisitionState withPhase(Phase nextPhase, int objectId, int npcId, int instanceId, long minute)
@@ -129,7 +171,17 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 
 	public PhantomAcquisitionState withPhase(Phase nextPhase, int objectId, int npcId, int instanceId, int nextAttempt, long minute)
 	{
-		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, status == Status.READY ? Status.ACTIVE : status, selectedSource, candidates, sourceCursor, switchCount, nextPhase, objectId, npcId, instanceId, recipePlan, receipts, nextAttempt, minute);
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, status == Status.READY ? Status.ACTIVE : status, selectedSource, candidates, sourceCursor, switchCount, nextPhase, objectId, npcId, instanceId, recipePlan, methodBinding, receipts, nextAttempt, minute);
+	}
+
+	public PhantomAcquisitionState withBinding(MethodBinding nextBinding, Phase nextPhase, int objectId, int npcId, int instanceId, int nextAttempt, long minute)
+	{
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, status == Status.READY ? Status.ACTIVE : status, selectedSource, candidates, sourceCursor, switchCount, nextPhase, objectId, npcId, instanceId, recipePlan, nextBinding, receipts, nextAttempt, minute);
+	}
+
+	public PhantomAcquisitionState withMethodBinding(MethodBinding nextBinding)
+	{
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, status, selectedSource, candidates, sourceCursor, switchCount, phase, targetObjectId, targetNpcId, targetInstanceId, recipePlan, nextBinding, receipts, phaseAttempt, logicalMinute);
 	}
 
 	public PhantomAcquisitionState observe(long authoritativeCount, Status nextStatus, Phase nextPhase, Receipt receipt, long minute)
@@ -137,7 +189,7 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		final long nextProgress = observedProgress(baselineCount, authoritativeCount, requiredAmount);
 		final Status effectiveStatus = nextProgress == requiredAmount ? Status.COMPLETED : nextStatus;
 		final List<Receipt> nextReceipts = appendReceipt(receipts, receipt);
-		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, authoritativeCount, nextProgress, effectiveStatus, selectedSource, candidates, sourceCursor, switchCount, nextProgress == requiredAmount ? Phase.NONE : nextPhase, 0, 0, 0, recipePlan, nextReceipts, 0, minute);
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, authoritativeCount, nextProgress, effectiveStatus, selectedSource, candidates, sourceCursor, switchCount, nextProgress == requiredAmount ? Phase.NONE : nextPhase, 0, 0, 0, recipePlan, methodBinding, nextReceipts, 0, minute);
 	}
 
 	public PhantomAcquisitionState failSource(String reasonKey, long minute)
@@ -151,17 +203,22 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		{
 			next.add(candidate.sourceId().equals(selectedSource.sourceId()) ? candidate.failed(reasonKey, minute) : candidate);
 		}
-		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, Status.BLOCKED, selectedSource, next, sourceCursor, switchCount, Phase.NONE, 0, 0, 0, recipePlan, receipts, 0, minute);
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, Status.BLOCKED, selectedSource, next, sourceCursor, switchCount, Phase.NONE, 0, 0, 0, recipePlan, methodBinding, receipts, 0, minute);
 	}
 
 	public PhantomAcquisitionState switchSource(int nextCursor, Source nextSource, RecipePlan nextRecipePlan, long minute)
+	{
+		return switchSource(nextCursor, nextSource, nextRecipePlan, null, minute);
+	}
+
+	public PhantomAcquisitionState switchSource(int nextCursor, Source nextSource, RecipePlan nextRecipePlan, MethodBinding nextBinding, long minute)
 	{
 		if ((nextCursor < 0) || (nextCursor >= candidates.size()) || (nextCursor == sourceCursor) || (switchCount >= MAX_SWITCHES) || !candidates.get(nextCursor).sourceId().equals(nextSource.sourceId()))
 		{
 			throw new IllegalArgumentException("Invalid acquisition source switch.");
 		}
 		final Candidate next = candidates.get(nextCursor);
-		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, Status.READY, nextSource, candidates, nextCursor, switchCount + 1, Phase.TRAVEL_REQUIRED, 0, 0, 0, next.method() == Method.RECIPE_PREPARATION ? nextRecipePlan : null, receipts, 0, minute);
+		return new PhantomAcquisitionState(hashes, goalId, goalRevision, targetItemId, requiredAmount, baselineCount, lastObservedCount, progress, Status.READY, nextSource, candidates, nextCursor, switchCount + 1, Phase.TRAVEL_REQUIRED, 0, 0, 0, next.method() == Method.RECIPE_PREPARATION ? nextRecipePlan : null, nextBinding, receipts, 0, minute);
 	}
 
 	public static long observedProgress(long baseline, long current, long required)
@@ -227,7 +284,8 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		FAILED,
 		STALE_AUTHORITY,
 		DEFERRED_CHECKPOINT_2,
-		INCONSISTENT
+		INCONSISTENT,
+		PLANNING_ONLY
 	}
 
 	public enum Phase
@@ -243,7 +301,16 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		SWEEP_PREPARED,
 		SWEEP_DISPATCHING,
 		VERIFYING,
-		COMBAT_PREPARED
+		COMBAT_PREPARED,
+		SOW_PREPARED,
+		SOW_DISPATCHING,
+		SOW_OBSERVED,
+		HARVEST_PREPARED,
+		HARVEST_DISPATCHING,
+		QUEST_COMBAT_PREPARED,
+		QUEST_COMBAT_SUBMITTED,
+		QUEST_COMBAT_TERMINAL,
+		QUEST_CALLBACK_WAIT
 	}
 
 	public enum ReceiptKind
@@ -253,7 +320,12 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		ACTIVE_SWEEP,
 		BACKGROUND_DEATH_DROP,
 		BACKGROUND_SPOIL_SWEEP,
-		VERIFY
+		VERIFY,
+		ACTIVE_MANOR_SOW,
+		ACTIVE_MANOR_HARVEST,
+		BACKGROUND_MANOR_CROP,
+		ACTIVE_QUEST_COLLECTION,
+		BACKGROUND_QUEST_COLLECTION
 	}
 
 	public enum TerminalResult
@@ -294,9 +366,17 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 			{
 				throw new IllegalArgumentException("Acquisition spoil capability identity is incomplete.");
 			}
-			if (((method == Method.DEATH_DROP) || (method == Method.SPOIL_SWEEP)) && ((npcId <= 0) || (instanceId != 0)))
+			if (((method == Method.DEATH_DROP) || (method == Method.SPOIL_SWEEP) || (method == Method.MANOR_CROP) || (method == Method.QUEST_COLLECTION)) && ((npcId <= 0) || (instanceId != 0)))
 			{
 				throw new IllegalArgumentException("Executable acquisition source is not an instance-zero monster source.");
+			}
+			if ((method == Method.MANOR_CROP) && !factKey.startsWith("manor:"))
+			{
+				throw new IllegalArgumentException("Manor acquisition source identity is invalid.");
+			}
+			if ((method == Method.QUEST_COLLECTION) && !factKey.startsWith("quest:"))
+			{
+				throw new IllegalArgumentException("Quest acquisition source identity is invalid.");
 			}
 			if ((method == Method.RECIPE_PREPARATION) && ((npcId != 0) || (instanceId != 0) || !factKey.startsWith("recipe:")))
 			{
@@ -359,6 +439,51 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 			{
 				throw new IllegalArgumentException("Invalid acquisition recipe plan.");
 			}
+		}
+	}
+
+	public sealed interface MethodBinding permits ManorBinding, QuestBinding
+	{
+		Method method();
+	}
+
+	public record ManorBinding(int castleId, int seedItemId, int cropItemId, int matureItemId, int reward1ItemId, int reward2ItemId, int seedLevel, boolean alternative, int rawSeedLimit, int rawCropLimit, int seedObjectId, int harvesterObjectId, long seedCountBeforeDispatch, long cropCountBeforeDispatch, String authorityHash) implements MethodBinding
+	{
+		public ManorBinding
+		{
+			if ((castleId <= 0) || (seedItemId <= 0) || (cropItemId <= 0) || (matureItemId <= 0) || (reward1ItemId <= 0) || (reward2ItemId <= 0) || (seedLevel < 0) || (rawSeedLimit < 0) || (rawCropLimit < 0) || (seedObjectId < 0) || (harvesterObjectId < 0) || (seedCountBeforeDispatch < 0) || (cropCountBeforeDispatch < 0) || ((seedObjectId == 0) != (harvesterObjectId == 0)))
+			{
+				throw new IllegalArgumentException("Invalid manor acquisition binding.");
+			}
+			requireHash(authorityHash, "manor authority");
+		}
+
+		@Override
+		public Method method()
+		{
+			return Method.MANOR_CROP;
+		}
+	}
+
+	public record QuestBinding(String ruleId, String ruleHash, int questId, String questName, String scriptHash, String expectedState, int expectedCond, int questItemId, long itemCap, int targetNpcId, long itemCountBeforeKill, long callbackDeadlineMillis, String authorityHash) implements MethodBinding
+	{
+		public QuestBinding
+		{
+			requireText(ruleId, 64, "quest rule ID");
+			requireHash(ruleHash, "quest rule");
+			requireText(questName, 96, "quest name");
+			requireHash(scriptHash, "quest script");
+			if ((questId <= 0) || !"STARTED".equals(expectedState) || (expectedCond < 0) || (expectedCond > 255) || (questItemId <= 0) || (itemCap <= 0) || (targetNpcId <= 0) || (itemCountBeforeKill < 0) || (itemCountBeforeKill >= itemCap) || (callbackDeadlineMillis < 0))
+			{
+				throw new IllegalArgumentException("Invalid quest acquisition binding.");
+			}
+			requireHash(authorityHash, "quest authority");
+		}
+
+		@Override
+		public Method method()
+		{
+			return Method.QUEST_COLLECTION;
 		}
 	}
 

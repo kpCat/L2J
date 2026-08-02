@@ -302,6 +302,14 @@ public final class PhantomTestLauncher
 			case "acquisition-active-spoil" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.ACQUISITION);
 			case "acquisition-source-switching" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.SOURCE_SWITCHING);
 			case "acquisition-lifecycle-performance" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.LIFECYCLE_PERFORMANCE);
+			case "acquisition-manor-catalog-source" -> new PhantomAcquisitionManorSuite(PhantomAcquisitionManorSuite.Mode.CATALOG_SOURCE);
+			case "acquisition-manor-active" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.MANOR);
+			case "acquisition-manor-background" -> new PhantomAcquisitionManorSuite(PhantomAcquisitionManorSuite.Mode.BACKGROUND);
+			case "acquisition-manor-restart-transition" -> new PhantomAcquisitionManorSuite(PhantomAcquisitionManorSuite.Mode.RESTART_TRANSITION);
+			case "acquisition-quest-catalog-source" -> new PhantomAcquisitionQuestSuite(PhantomAcquisitionQuestSuite.Mode.CATALOG_SOURCE);
+			case "acquisition-quest-active" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.QUEST);
+			case "acquisition-quest-background" -> new PhantomAcquisitionQuestSuite(PhantomAcquisitionQuestSuite.Mode.BACKGROUND);
+			case "acquisition-checkpoint2-lifecycle-performance" -> new PhantomAcquisitionManorSuite(PhantomAcquisitionManorSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

@@ -44,6 +44,7 @@
 	<property name="phantom.goal020c1.seed" value="20002001" />
 	<property name="phantom.goal020c2.seed" value="20002002" />
 	<property name="phantom.goal021c1.seed" value="21002101" />
+	<property name="phantom.goal021c2.seed" value="21002102" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -1477,6 +1478,104 @@
 	</target>
 
 	<target name="phantom-acquisition-checkpoint1-test" depends="phantom-acquisition-catalog-codec-test,phantom-acquisition-source-planner-test,phantom-acquisition-recipe-planning-test,phantom-acquisition-active-spoil-test,phantom-acquisition-background-parity-test,phantom-acquisition-atomic-restart-test,phantom-acquisition-source-switching-test,phantom-acquisition-lifecycle-performance-smoke,phantom-acquisition-capability-test,phantom-acquisition-learned-eligibility-test,phantom-acquisition-dispatch-recovery-test,phantom-acquisition-combat-recovery-test,phantom-acquisition-operation-identity-test,phantom-acquisition-scoring-evidence-test,phantom-acquisition-goal015-regression-test,phantom-acquisition-rejected-recovery-test,phantom-acquisition-combat-submitted-recovery-test,phantom-acquisition-recipe-inventory-test,phantom-acquisition-preferred-method-test" description="Run the final Goal 021 Checkpoint 1 acquisition aggregate." />
+
+	<target name="phantom-acquisition-manor-catalog-source-test" depends="compile-tests" description="Run current Seed, handler, castle and crop-only manor source authority tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="acquisition-manor-catalog-source" />
+			<arg value="${phantom.goal021c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-manor-active-test" depends="compile-tests" description="Run real headless Seed, existing Combat and Harvester manor chain tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="acquisition-manor-active" />
+			<arg value="${phantom.goal021c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-manor-background-test" depends="compile-tests" description="Run deterministic manor background formula and conservation tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="acquisition-manor-background" />
+			<arg value="${phantom.goal021c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-manor-restart-transition-test" depends="compile-tests" description="Run schema-3 manor binding restart and transition tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="acquisition-manor-restart-transition" />
+			<arg value="${phantom.goal021c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-quest-catalog-source-test" depends="compile-tests" description="Run strict source-hashed curated quest runtime authority tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="acquisition-quest-catalog-source" />
+			<arg value="${phantom.goal021c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-quest-active-test" depends="compile-tests" description="Run real delayed OnAttackableKill curated quest collection tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="acquisition-quest-active" />
+			<arg value="${phantom.goal021c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-quest-background-test" depends="compile-tests" description="Run deterministic quest projection, restart and atomic ownership tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="acquisition-quest-background" />
+			<arg value="${phantom.goal021c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-checkpoint2-lifecycle-performance-smoke" depends="compile-tests" description="Run 100k manor/quest planning and 10k manor/quest background lifecycle smoke.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="acquisition-checkpoint2-lifecycle-performance" />
+			<arg value="${phantom.goal021c2.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-acquisition-checkpoint2-test" depends="phantom-acquisition-manor-catalog-source-test,phantom-acquisition-manor-active-test,phantom-acquisition-manor-background-test,phantom-acquisition-manor-restart-transition-test,phantom-acquisition-quest-catalog-source-test,phantom-acquisition-quest-active-test,phantom-acquisition-quest-background-test,phantom-acquisition-checkpoint2-lifecycle-performance-smoke" description="Run the final Goal 021 Checkpoint 2 manor/quest acquisition aggregate." />
 
 	<target name="phantom-acquisition-capability-test" depends="compile-tests" description="Run exact Goal 021 acquisition profession capability lineage tests.">
 		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />

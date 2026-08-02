@@ -95,6 +95,7 @@ public final class PhantomBackgroundTransaction
 	private static final String UPDATE_ITEM = "UPDATE items SET count = ? WHERE object_id = ? AND owner_id = ? AND item_id = ? AND loc = ? AND count = ?";
 	private static final String DELETE_ITEM = "DELETE FROM items WHERE object_id = ? AND owner_id = ? AND item_id = ? AND loc = ? AND count = ?";
 	private static final String INSERT_ITEM = "INSERT INTO items (owner_id, item_id, count, loc, loc_data, enchant_level, object_id, custom_type1, custom_type2, mana_left, time) VALUES (?, ?, ?, 'INVENTORY', 0, 0, ?, 0, 0, ?, -1)";
+	private static final String LOCK_QUEST_ROWS = "SELECT var, value FROM character_quests WHERE charId = ? AND name = ? ORDER BY var FOR UPDATE";
 
 	private final ConnectionProvider _connections;
 	private final ObjectIdAllocator _ids;
@@ -203,6 +204,46 @@ public final class PhantomBackgroundTransaction
 		catch (SQLException | RuntimeException failure)
 		{
 			return AcquisitionInventoryResult.rejected(Status.BACKEND_FAILURE);
+		}
+	}
+
+	public AcquisitionQuestRowsResult readAcquisitionQuestRows(long profileId, int characterObjectId, int classIndex, int activeClassId, List<String> exactQuestNames, PhantomBackgroundState.Hashes expectedBackgroundHashes)
+	{
+		final List<String> requested = exactQuestNames == null ? List.of() : List.copyOf(exactQuestNames);
+		if ((profileId <= 0) || (characterObjectId <= 0) || (classIndex < 0) || (activeClassId < 0) || requested.isEmpty() || (requested.size() > 4) || requested.stream().anyMatch(name -> (name == null) || name.isBlank() || (name.length() > 96)) || !requested.equals(requested.stream().distinct().sorted().toList()) || (expectedBackgroundHashes == null))
+		{
+			return AcquisitionQuestRowsResult.rejected(Status.ACQUISITION_CONFLICT);
+		}
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, profileId), characterObjectId);
+				final PhantomBackgroundState state = decodeState(requireStateComponent(lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE)));
+				final Identity identity = state.identity();
+				if ((identity.characterObjectId() != characterObjectId) || (identity.classIndex() != classIndex) || (identity.activeClassId() != activeClassId) || !state.hashes().equals(expectedBackgroundHashes))
+				{
+					throw new StateConflict(Status.ACQUISITION_CONFLICT);
+				}
+				lockCanonical(connection, identity);
+				final Map<String, Map<String, String>> rows = new LinkedHashMap<>();
+				for (String questName : requested)
+				{
+					rows.put(questName, lockQuestRows(connection, characterObjectId, questName));
+				}
+				connection.rollback();
+				return new AcquisitionQuestRowsResult(Status.SUCCESS, new AcquisitionQuestRowsSnapshot(profileId, characterObjectId, classIndex, activeClassId, rows, state.hashes()));
+			}
+			catch (Throwable failure)
+			{
+				rollback(connection, failure);
+				return AcquisitionQuestRowsResult.rejected(failure instanceof StateConflict conflict ? conflict._status : Status.BACKEND_FAILURE);
+			}
+		}
+		catch (SQLException | RuntimeException failure)
+		{
+			return AcquisitionQuestRowsResult.rejected(Status.BACKEND_FAILURE);
 		}
 	}
 
@@ -397,7 +438,7 @@ public final class PhantomBackgroundTransaction
 				{
 					if (command.acquisition() != null)
 					{
-						validateCommittedAcquisition(command, lockedGoal, acquisitionComponent);
+						validateCommittedAcquisition(connection, command, lockedGoal, acquisitionComponent);
 					}
 					connection.rollback();
 					final Result verification = reconcileVerifyPending(expected.identity().profileId(), expected.identity().characterObjectId());
@@ -411,6 +452,7 @@ public final class PhantomBackgroundTransaction
 				{
 					validateExpectedAcquisitionGoal(lockedGoal, command.goal(), command.acquisition());
 					validateExpectedAcquisitionComponent(acquisitionComponent, command.acquisition());
+					validateAcquisitionOperationIdentity(command);
 				}
 				if (!Arrays.equals(_stateCodec.encode(stored), _stateCodec.encode(expected)))
 				{
@@ -431,6 +473,17 @@ public final class PhantomBackgroundTransaction
 				}
 				final List<ItemRow> itemRows = lockItems(connection, expected.identity().characterObjectId());
 				_faultInjector.inject(FaultPoint.AFTER_ITEM_LOCKS);
+				Map<String, String> questRows = Map.of();
+				if ((command.acquisition() != null) && !command.acquisition().expectedQuestRows().isEmpty())
+				{
+					questRows = lockQuestRows(connection, expected.identity().characterObjectId(), ((PhantomAcquisitionState.QuestBinding) command.acquisition().expectedState().methodBinding()).questName());
+					if (!questRows.equals(command.acquisition().expectedQuestRows()))
+					{
+						throw new StateConflict(Status.ACQUISITION_CONFLICT);
+					}
+					_faultInjector.inject(FaultPoint.AFTER_QUEST_LOCKS);
+				}
+				validateAcquisitionResources(command.acquisition(), itemRows);
 				if (!durableMatches(expected, canonical, itemRows, skillRows))
 				{
 					throw new StateConflict(Status.CANONICAL_MISMATCH);
@@ -459,12 +512,16 @@ public final class PhantomBackgroundTransaction
 					final long beforeCount = expected.inventory().itemCount(acquisition.expectedState().targetItemId());
 					final long afterCount = nextInventory.itemCount(acquisition.expectedState().targetItemId());
 					final var acquisitionReceipt = new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt(command.operationKey().digest(), acquisition.expectedState().selectedSource().sourceId(), acquisition.receiptKind(), beforeCount, afterCount, TerminalResult.COMMITTED, acquisition.logicalMinute());
-					nextAcquisition = acquisition.expectedState().observe(afterCount, PhantomAcquisitionState.Status.READY, Phase.NONE, acquisitionReceipt, acquisition.logicalMinute());
+					nextAcquisition = advanceAcquisitionBinding(acquisition.expectedState().observe(afterCount, PhantomAcquisitionState.Status.READY, Phase.NONE, acquisitionReceipt, acquisition.logicalMinute()), nextInventory);
 					nextGoal = PhantomAcquisitionGoalSpec.project(lockedGoal.goal(), nextAcquisition.progress(), nextAcquisition.status() == PhantomAcquisitionState.Status.COMPLETED ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.ACTIVE, nextAcquisition.selectedSource());
 					writeRawComponent(connection, lockedGoal.component(), expected.identity().profileId(), PhantomGoalStateStore.COMPONENT_TYPE, PhantomGoalStateStore.COMPONENT_SCHEMA_VERSION, _goalCodec.encode(nextGoal));
 					_faultInjector.inject(FaultPoint.AFTER_GOAL_STATE_WRITE);
 					writeRawComponent(connection, acquisitionComponent, expected.identity().profileId(), PhantomAcquisitionState.COMPONENT_TYPE, PhantomAcquisitionState.SCHEMA_VERSION, _acquisitionCodec.encode(nextAcquisition));
 					_faultInjector.inject(FaultPoint.AFTER_ACQUISITION_STATE_WRITE);
+					if (!questRows.isEmpty() && !questRows.equals(lockQuestRows(connection, expected.identity().characterObjectId(), ((PhantomAcquisitionState.QuestBinding) acquisition.expectedState().methodBinding()).questName())))
+					{
+						throw new StateConflict(Status.ACQUISITION_CONFLICT);
+					}
 				}
 				_faultInjector.inject(FaultPoint.BEFORE_OPERATION_COMMIT);
 				commitAttempted = true;
@@ -622,7 +679,7 @@ public final class PhantomBackgroundTransaction
 	private LockedComponent lockAcquisitionComponent(Connection connection, long profileId) throws SQLException
 	{
 		final LockedComponent component = lockComponent(connection, profileId, PhantomAcquisitionState.COMPONENT_TYPE);
-		if ((component == null) || ((component.schemaVersion() != PhantomAcquisitionState.LEGACY_SCHEMA_VERSION) && (component.schemaVersion() != PhantomAcquisitionState.SCHEMA_VERSION)))
+		if ((component == null) || ((component.schemaVersion() != PhantomAcquisitionState.LEGACY_SCHEMA_VERSION) && (component.schemaVersion() != PhantomAcquisitionState.DISPATCH_SCHEMA_VERSION) && (component.schemaVersion() != PhantomAcquisitionState.SCHEMA_VERSION)))
 		{
 			throw new StateConflict(Status.ACQUISITION_CONFLICT);
 		}
@@ -661,6 +718,33 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
+	private static void validateAcquisitionOperationIdentity(Command command)
+	{
+		final var identity = command.operationKey().acquisition();
+		final PhantomAcquisitionState state = command.acquisition().expectedState();
+		if ((identity == null) || !identity.sourceId().equals(state.selectedSource().sourceId()) || (identity.expectedAcquisitionRowVersion() != command.acquisition().expectedStateRowVersion()) || (identity.targetItemId() != state.targetItemId()) || !identity.catalogHash().equals(state.hashes().catalog()) || !identity.backgroundHash().equals(state.hashes().background()) || !identity.methodBindingHash().equals(bindingHash(state.methodBinding())))
+		{
+			throw new StateConflict(Status.ACQUISITION_CONFLICT);
+		}
+		final long expectedResource = state.methodBinding() instanceof PhantomAcquisitionState.ManorBinding manor ? manor.seedCountBeforeDispatch() : state.methodBinding() instanceof PhantomAcquisitionState.QuestBinding quest ? quest.itemCountBeforeKill() : 0;
+		if (identity.expectedResourceCount() != expectedResource)
+		{
+			throw new StateConflict(Status.ACQUISITION_CONFLICT);
+		}
+	}
+
+	private static String bindingHash(PhantomAcquisitionState.MethodBinding binding)
+	{
+		try
+		{
+			return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Objects.toString(binding, "none").getBytes(StandardCharsets.UTF_8)));
+		}
+		catch (NoSuchAlgorithmException exception)
+		{
+			throw new IllegalStateException("SHA-256 is unavailable.", exception);
+		}
+	}
+
 	private static void validateAcquisitionEligibility(AcquisitionMutation acquisition, Map<Integer, Integer> lockedSkills)
 	{
 		final PhantomAcquisitionState.Source source = acquisition.expectedState().selectedSource();
@@ -686,7 +770,7 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
-	private void validateCommittedAcquisition(Command command, LockedGoal lockedGoal, LockedComponent component)
+	private void validateCommittedAcquisition(Connection connection, Command command, LockedGoal lockedGoal, LockedComponent component) throws SQLException
 	{
 		final AcquisitionMutation acquisition = command.acquisition();
 		try
@@ -699,7 +783,13 @@ public final class PhantomBackgroundTransaction
 			final long beforeCount = command.expectedState().inventory().itemCount(expected.targetItemId());
 			final long afterCount = Math.addExact(beforeCount, command.itemDeltas().getOrDefault(expected.targetItemId(), 0L));
 			final var receipt = new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt(command.operationKey().digest(), expected.selectedSource().sourceId(), acquisition.receiptKind(), beforeCount, afterCount, TerminalResult.COMMITTED, acquisition.logicalMinute());
-			final PhantomAcquisitionState expectedCommitted = expected.observe(afterCount, PhantomAcquisitionState.Status.READY, Phase.NONE, receipt, acquisition.logicalMinute());
+			final Map<Integer, Long> resultingCounts = new LinkedHashMap<>();
+			resultingCounts.put(expected.targetItemId(), afterCount);
+			if (expected.methodBinding() instanceof PhantomAcquisitionState.ManorBinding manor)
+			{
+				resultingCounts.put(manor.seedItemId(), Math.addExact(manor.seedCountBeforeDispatch(), command.itemDeltas().getOrDefault(manor.seedItemId(), 0L)));
+			}
+			final PhantomAcquisitionState expectedCommitted = advanceAcquisitionBinding(expected.observe(afterCount, PhantomAcquisitionState.Status.READY, Phase.NONE, receipt, acquisition.logicalMinute()), resultingCounts);
 			final PhantomAcquisitionState actual = _acquisitionCodec.decode(component.payload());
 			if (!Arrays.equals(_acquisitionCodec.encode(expectedCommitted), _acquisitionCodec.encode(actual)))
 			{
@@ -710,6 +800,10 @@ public final class PhantomBackgroundTransaction
 			{
 				throw new StateConflict(Status.GOAL_STALE);
 			}
+			if (!acquisition.expectedQuestRows().isEmpty() && !acquisition.expectedQuestRows().equals(lockQuestRows(connection, command.expectedState().identity().characterObjectId(), ((PhantomAcquisitionState.QuestBinding) expected.methodBinding()).questName())))
+			{
+				throw new StateConflict(Status.ACQUISITION_CONFLICT);
+			}
 		}
 		catch (RuntimeException failure)
 		{
@@ -719,6 +813,64 @@ public final class PhantomBackgroundTransaction
 			}
 			throw new StateConflict(Status.ACQUISITION_CONFLICT);
 		}
+	}
+
+	private static PhantomAcquisitionState advanceAcquisitionBinding(PhantomAcquisitionState state, InventoryFacts inventory)
+	{
+		final Map<Integer, Long> counts = new LinkedHashMap<>();
+		counts.put(state.targetItemId(), inventory.itemCount(state.targetItemId()));
+		if (state.methodBinding() instanceof PhantomAcquisitionState.ManorBinding manor)
+		{
+			counts.put(manor.seedItemId(), inventory.itemCount(manor.seedItemId()));
+		}
+		return advanceAcquisitionBinding(state, counts);
+	}
+
+	private static PhantomAcquisitionState advanceAcquisitionBinding(PhantomAcquisitionState state, Map<Integer, Long> counts)
+	{
+		if (state.methodBinding() instanceof PhantomAcquisitionState.ManorBinding manor)
+		{
+			return state.withMethodBinding(new PhantomAcquisitionState.ManorBinding(manor.castleId(), manor.seedItemId(), manor.cropItemId(), manor.matureItemId(), manor.reward1ItemId(), manor.reward2ItemId(), manor.seedLevel(), manor.alternative(), manor.rawSeedLimit(), manor.rawCropLimit(), 0, 0, counts.getOrDefault(manor.seedItemId(), 0L), counts.getOrDefault(manor.cropItemId(), state.lastObservedCount()), manor.authorityHash()));
+		}
+		if (state.methodBinding() instanceof PhantomAcquisitionState.QuestBinding quest)
+		{
+			return state.withMethodBinding(new PhantomAcquisitionState.QuestBinding(quest.ruleId(), quest.ruleHash(), quest.questId(), quest.questName(), quest.scriptHash(), quest.expectedState(), quest.expectedCond(), quest.questItemId(), quest.itemCap(), quest.targetNpcId(), counts.getOrDefault(quest.questItemId(), state.lastObservedCount()), 0, quest.authorityHash()));
+		}
+		return state;
+	}
+
+	private static void validateAcquisitionResources(AcquisitionMutation acquisition, List<ItemRow> itemRows)
+	{
+		if ((acquisition == null) || !(acquisition.expectedState().methodBinding() instanceof PhantomAcquisitionState.ManorBinding manor))
+		{
+			return;
+		}
+		final long count = itemRows.stream().filter(row -> (row.location() == ItemLocation.INVENTORY) && (row.itemId() == manor.seedItemId())).mapToLong(ItemRow::count).sum();
+		if ((count != manor.seedCountBeforeDispatch()) || (count <= 0))
+		{
+			throw new StateConflict(Status.ITEM_CONFLICT);
+		}
+	}
+
+	private Map<String, String> lockQuestRows(Connection connection, int characterObjectId, String questName) throws SQLException
+	{
+		final Map<String, String> rows = new LinkedHashMap<>();
+		try (PreparedStatement statement = prepare(connection, LOCK_QUEST_ROWS))
+		{
+			statement.setInt(1, characterObjectId);
+			statement.setString(2, questName);
+			try (ResultSet result = statement.executeQuery())
+			{
+				while (result.next())
+				{
+					if ((rows.size() >= 6) || (rows.putIfAbsent(result.getString("var"), result.getString("value")) != null))
+					{
+						throw new StateConflict(Status.ACQUISITION_CONFLICT);
+					}
+				}
+			}
+		}
+		return Map.copyOf(rows);
 	}
 
 	private Status operationIdentityStatus(PhantomBackgroundState stored, Command command)
@@ -1534,6 +1686,7 @@ public final class PhantomBackgroundTransaction
 		AFTER_CHARACTER_LOCK,
 		AFTER_SKILL_LOCKS,
 		AFTER_ITEM_LOCKS,
+		AFTER_QUEST_LOCKS,
 		AFTER_CANONICAL_WRITES,
 		AFTER_BACKGROUND_STATE_WRITE,
 		AFTER_GOAL_STATE_WRITE,
@@ -1619,11 +1772,16 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
-	public record AcquisitionMutation(PhantomAcquisitionState expectedState, long expectedStateRowVersion, long expectedGoalRowVersion, ReceiptKind receiptKind, long logicalMinute, Map<Integer, Integer> eligibilitySkills)
+	public record AcquisitionMutation(PhantomAcquisitionState expectedState, long expectedStateRowVersion, long expectedGoalRowVersion, ReceiptKind receiptKind, long logicalMinute, Map<Integer, Integer> eligibilitySkills, Map<String, String> expectedQuestRows)
 	{
 		public AcquisitionMutation(PhantomAcquisitionState expectedState, long expectedStateRowVersion, long expectedGoalRowVersion, ReceiptKind receiptKind, long logicalMinute)
 		{
-			this(expectedState, expectedStateRowVersion, expectedGoalRowVersion, receiptKind, logicalMinute, expectedState.selectedSource() != null && expectedState.selectedSource().method() == org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? Map.of(expectedState.selectedSource().spoilSkillId(), expectedState.selectedSource().spoilSkillLevel(), expectedState.selectedSource().sweepSkillId(), expectedState.selectedSource().sweepSkillLevel()) : Map.of());
+			this(expectedState, expectedStateRowVersion, expectedGoalRowVersion, receiptKind, logicalMinute, expectedState.selectedSource() != null && expectedState.selectedSource().method() == org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? Map.of(expectedState.selectedSource().spoilSkillId(), expectedState.selectedSource().spoilSkillLevel(), expectedState.selectedSource().sweepSkillId(), expectedState.selectedSource().sweepSkillLevel()) : Map.of(), Map.of());
+		}
+
+		public AcquisitionMutation(PhantomAcquisitionState expectedState, long expectedStateRowVersion, long expectedGoalRowVersion, ReceiptKind receiptKind, long logicalMinute, Map<Integer, Integer> eligibilitySkills)
+		{
+			this(expectedState, expectedStateRowVersion, expectedGoalRowVersion, receiptKind, logicalMinute, eligibilitySkills, Map.of());
 		}
 
 		public AcquisitionMutation
@@ -1631,7 +1789,11 @@ public final class PhantomBackgroundTransaction
 			Objects.requireNonNull(expectedState, "expectedState");
 			Objects.requireNonNull(receiptKind, "receiptKind");
 			eligibilitySkills = Map.copyOf(eligibilitySkills);
-			if ((expectedStateRowVersion < 0) || (expectedGoalRowVersion < 0) || (logicalMinute < 0) || (expectedState.selectedSource() == null) || (eligibilitySkills.size() > 8) || eligibilitySkills.entrySet().stream().anyMatch(entry -> (entry.getKey() <= 0) || (entry.getValue() <= 0)) || ((receiptKind != ReceiptKind.BACKGROUND_DEATH_DROP) && (receiptKind != ReceiptKind.BACKGROUND_SPOIL_SWEEP)))
+			expectedQuestRows = Map.copyOf(expectedQuestRows);
+			final var method = expectedState.selectedSource() == null ? null : expectedState.selectedSource().method();
+			final boolean quest = method == org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method.QUEST_COLLECTION;
+			final boolean receiptMatches = (method == org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method.DEATH_DROP) ? receiptKind == ReceiptKind.BACKGROUND_DEATH_DROP : (method == org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method.SPOIL_SWEEP) ? receiptKind == ReceiptKind.BACKGROUND_SPOIL_SWEEP : (method == org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method.MANOR_CROP) ? receiptKind == ReceiptKind.BACKGROUND_MANOR_CROP : quest && (receiptKind == ReceiptKind.BACKGROUND_QUEST_COLLECTION);
+			if ((expectedStateRowVersion < 0) || (expectedGoalRowVersion < 0) || (logicalMinute < 0) || (method == null) || !receiptMatches || (eligibilitySkills.size() > 8) || eligibilitySkills.entrySet().stream().anyMatch(entry -> (entry.getKey() <= 0) || (entry.getValue() <= 0)) || (quest != !expectedQuestRows.isEmpty()) || (expectedQuestRows.size() > 6) || expectedQuestRows.entrySet().stream().anyMatch(entry -> (entry.getKey() == null) || entry.getKey().isBlank() || (entry.getValue() == null)))
 			{
 				throw new IllegalArgumentException("Invalid acquisition background mutation.");
 			}
@@ -1667,6 +1829,28 @@ public final class PhantomBackgroundTransaction
 		public boolean successful()
 		{
 			return (status == Status.SUCCESS) && (snapshot != null);
+		}
+	}
+
+	public record AcquisitionQuestRowsSnapshot(long profileId, int characterObjectId, int classIndex, int activeClassId, Map<String, Map<String, String>> rows, PhantomBackgroundState.Hashes backgroundHashes)
+	{
+		public AcquisitionQuestRowsSnapshot
+		{
+			rows = rows.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> Map.copyOf(entry.getValue())));
+			Objects.requireNonNull(backgroundHashes, "backgroundHashes");
+		}
+	}
+
+	public record AcquisitionQuestRowsResult(Status status, AcquisitionQuestRowsSnapshot snapshot)
+	{
+		public static AcquisitionQuestRowsResult rejected(Status status)
+		{
+			return new AcquisitionQuestRowsResult(status, null);
+		}
+
+		public boolean successful()
+		{
+			return status == Status.SUCCESS;
 		}
 	}
 

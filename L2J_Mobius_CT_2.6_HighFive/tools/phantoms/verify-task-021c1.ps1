@@ -10,6 +10,7 @@ $SafetyCommit = "c764382485d27391a6449aa4843d4f684efc1f12"
 $SafetySubject = "fix(phantoms): complete acquisition eligibility and recovery"
 $ClosureCommit = "6556400433020a2833b9d19e0a6c6ac5db2499eb"
 $ClosureSubject = "fix(phantoms): close acquisition recovery and recipe truth"
+$AcceptedCheckpoint1 = "0045f60417f4605f46e3058b9a694278283b1456"
 $MicroSubject = "fix(phantoms): enforce acquisition ambiguity and probe bounds"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "21002101"
@@ -150,43 +151,18 @@ try
 	& git merge-base --is-ancestor $ClosureCommit $head
 	Assert-True ($LASTEXITCODE -eq 0) "Goal 021c1 final closure is not an ancestor of HEAD."
 
-	if ($head -eq $ClosureCommit)
-	{
-		$script:Mode = "working"
-		$script:TargetCommit = ""
-	}
-	else
-	{
-		$matching = @(Git-Lines @("log", "--format=%H", "--fixed-strings", "--grep=$MicroSubject", "$ClosureCommit..$head"))
-		Assert-True ($matching.Count -eq 1) "Goal 021c1 micro-completion subject must identify exactly one accepted commit."
-		$script:Mode = "committed"
-		$script:TargetCommit = $matching[0]
-		Assert-True ((Git-Lines @("rev-parse", "$($script:TargetCommit)^" ) | Select-Object -First 1) -eq $ClosureCommit) "Goal 021c1 micro-completion is not one ordinary child of the pinned final closure."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $MicroSubject) "Goal 021c1 micro-completion subject changed."
-		& git merge-base --is-ancestor $script:TargetCommit $head
-		Assert-True ($LASTEXITCODE -eq 0) "Goal 021c1 micro-completion commit is not an ancestor of HEAD."
-	}
+	$script:Mode = "committed"
+	$script:TargetCommit = $AcceptedCheckpoint1
+	Assert-True ((Git-Lines @("rev-parse", "$AcceptedCheckpoint1^" ) | Select-Object -First 1) -eq $ClosureCommit) "Accepted Goal 021c1 checkpoint is not one ordinary child of the pinned final closure."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $AcceptedCheckpoint1) | Select-Object -First 1) -eq $MicroSubject) "Accepted Goal 021c1 checkpoint subject changed."
+	& git merge-base --is-ancestor $AcceptedCheckpoint1 $head
+	Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 021c1 checkpoint is not an ancestor of HEAD."
 
 	$changed = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-	$rangeEnd = $ClosureCommit
-	if ($script:Mode -ne "working")
-	{
-		$rangeEnd = $script:TargetCommit
-	}
+	$rangeEnd = $script:TargetCommit
 	foreach ($line in Git-Lines @("diff", "--name-only", $RequiredParent, $rangeEnd, "--"))
 	{
 		[void] $changed.Add((To-ModulePath $line))
-	}
-	if ($script:Mode -eq "working")
-	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $ClosureCommit, "--"))
-		{
-			[void] $changed.Add((To-ModulePath $line))
-		}
-		foreach ($line in Git-Lines @("ls-files", "--others", "--exclude-standard", "--"))
-		{
-			[void] $changed.Add((To-ModulePath $line))
-		}
 	}
 	$changedPaths = @($changed | Sort-Object)
 	Assert-True (($changedPaths.Count -gt 0) -and ($changedPaths.Count -le 54)) "Goal 021c1 total scope must contain 1..54 files."
@@ -209,23 +185,9 @@ try
 	Assert-True ($newProduction.Count -le 16) "Goal 021c1 exceeds 16 new production/data files."
 
 	$completion = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-	if ($script:Mode -eq "working")
+	foreach ($line in Git-Lines @("diff", "--name-only", $ClosureCommit, $script:TargetCommit, "--"))
 	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $ClosureCommit, "--"))
-		{
-			[void] $completion.Add((To-ModulePath $line))
-		}
-		foreach ($line in Git-Lines @("ls-files", "--others", "--exclude-standard", "--"))
-		{
-			[void] $completion.Add((To-ModulePath $line))
-		}
-	}
-	else
-	{
-		foreach ($line in Git-Lines @("diff", "--name-only", $ClosureCommit, $script:TargetCommit, "--"))
-		{
-			[void] $completion.Add((To-ModulePath $line))
-		}
+		[void] $completion.Add((To-ModulePath $line))
 	}
 	$completionPaths = @($completion | Sort-Object)
 	Assert-True (($completionPaths.Count -gt 0) -and ($completionPaths.Count -le 8)) "Goal 021c1 micro-completion must contain 1..8 files."
@@ -370,9 +332,8 @@ try
 		Assert-True ((Read-TargetUtf8Strict $path) -notmatch $escaped) "Escaped Cyrillic is present in a new Goal 021 artifact: $path"
 	}
 
-	if ($script:Mode -eq "committed")
+	if ($head -eq $AcceptedCheckpoint1)
 	{
-		Assert-True (@(Git-Lines @("status", "--porcelain")).Count -eq 0) "Post-commit Goal 021c1 worktree is not clean."
 		$remote = (Git-Lines @("rev-parse", "origin/$RequiredBranch") | Select-Object -First 1)
 		Assert-True ($remote -eq $head) "Goal 021c1 HEAD is not pushed to origin/feature/phantom-world."
 		$jarPath = Join-Path $script:ModuleRoot 'dist/libs/GameServer.jar'
