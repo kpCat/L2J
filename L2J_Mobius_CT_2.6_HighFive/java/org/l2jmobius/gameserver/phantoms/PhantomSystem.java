@@ -73,9 +73,13 @@ import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyBackgroundTransac
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyDecision;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyMaterializationLifecycle;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOfferService;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyPolicy;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyDecision;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomStoreService;
 import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
@@ -145,6 +149,9 @@ public final class PhantomSystem
 	private PhantomCommerceService _commerceService;
 	private PhantomEconomyReservationService _economyReservations;
 	private PhantomEconomyService _economyService;
+	private PhantomEconomyOfferService _economyOffers;
+	private PhantomMultipartyEconomyService _multipartyEconomyService;
+	private PhantomStoreService _phantomStoreService;
 	private PhantomBackgroundService _backgroundService;
 	private PhantomAcquisitionService _acquisitionService;
 	private PhantomPopulationManager _populationManager;
@@ -279,7 +286,11 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom economy reservation service could not enter the running state.");
 				}
 				PhantomEconomyConflictPort.install(_economyReservations);
+				_economyOffers = new PhantomEconomyOfferService();
 				_economyService = new PhantomEconomyService(economyPolicy, _economyReservations, new PhantomEconomyBackgroundTransaction(_economyReservations, economyPolicy), _materializationService, acquisitionStore, productionGoals, productionProfiles);
+				_multipartyEconomyService = new PhantomMultipartyEconomyService(economyPolicy, _economyReservations, _economyOffers, _materializationService, productionGoals, productionProfiles);
+				_multipartyEconomyService.reconcileStartup(System.currentTimeMillis());
+				_phantomStoreService = new PhantomStoreService(productionProfiles, _materializationService);
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
 				_commerceService = new PhantomCommerceService(commerceCatalog, new PhantomCommerceReceiptStore(productionProfiles), productionGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
 				if (!_commerceService.start())
@@ -301,7 +312,7 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom background service could not enter the running state.");
 				}
-				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, Clock.systemUTC()), _backgroundService));
+				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService));
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
 				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
 				final File questCollectionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-quest-collection-v1.xml");
@@ -320,6 +331,7 @@ public final class PhantomSystem
 				final PhantomBackgroundDecision backgroundDecision = new PhantomBackgroundDecision(_backgroundService);
 				final PhantomAcquisitionDecision acquisitionDecision = new PhantomAcquisitionDecision(_acquisitionService);
 				final PhantomEconomyDecision economyDecision = new PhantomEconomyDecision(_economyService);
+				final PhantomMultipartyEconomyDecision multipartyEconomyDecision = new PhantomMultipartyEconomyDecision(_multipartyEconomyService);
 				final File populationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-population-v1.xml");
 				final PhantomPopulationCatalog populationCatalog = PhantomPopulationCatalog.load(populationCatalogFile.toPath(), _settings.populationTimeZone());
 				_populationManager = new PhantomPopulationManager(
@@ -386,6 +398,7 @@ public final class PhantomSystem
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
 				acquisitionDecision.registerCandidates(candidateRegistry);
 				economyDecision.registerCandidates(candidateRegistry);
+				multipartyEconomyDecision.registerCandidates(candidateRegistry);
 				commerceDecision.registerCandidates(candidateRegistry);
 				backgroundDecision.registerCandidates(candidateRegistry);
 				populationDecision.registerCandidates(candidateRegistry);
@@ -396,6 +409,7 @@ public final class PhantomSystem
 				new PhantomCombatStepHandlers(_combatService, combatPolicy).register(handlerRegistry);
 				acquisitionDecision.registerHandlers(handlerRegistry);
 				economyDecision.registerHandlers(handlerRegistry);
+				multipartyEconomyDecision.registerHandlers(handlerRegistry);
 				commerceDecision.registerHandlers(handlerRegistry);
 				backgroundDecision.registerHandlers(handlerRegistry);
 				populationDecision.registerHandlers(handlerRegistry);
@@ -545,6 +559,14 @@ public final class PhantomSystem
 
 		if (_state == State.RUNNING)
 		{
+			if (_multipartyEconomyService != null)
+			{
+				_multipartyEconomyService.shutdown(System.currentTimeMillis());
+			}
+			if (_phantomStoreService != null)
+			{
+				_phantomStoreService.shutdown();
+			}
 			if (_economyReservations != null)
 			{
 				_economyReservations.shutdown(System.currentTimeMillis());

@@ -1,51 +1,44 @@
 /*
  * Copyright (c) 2013 L2jMobius
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * 
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
- * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 package org.l2jmobius.gameserver.network.clientpackets;
-
-import static org.l2jmobius.gameserver.model.actor.Npc.INTERACTION_DISTANCE;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import org.l2jmobius.gameserver.config.GeneralConfig;
 import org.l2jmobius.gameserver.config.PlayerConfig;
-import org.l2jmobius.gameserver.config.custom.OfflineTradeConfig;
-import org.l2jmobius.gameserver.data.sql.OfflineTraderTable;
 import org.l2jmobius.gameserver.managers.PunishmentManager;
-import org.l2jmobius.gameserver.model.World;
-import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Player;
-import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
-import org.l2jmobius.gameserver.network.PacketLogger;
 import org.l2jmobius.gameserver.network.holders.RequestTrade;
-import org.l2jmobius.gameserver.network.holders.TradeList;
 import org.l2jmobius.gameserver.network.serverpackets.ActionFailed;
+import org.l2jmobius.gameserver.services.PrivateStoreService;
 
+/** Client parsing, flood protection and package-cheat punishment adapter. */
 public class RequestPrivateStoreBuy extends ClientPacket
 {
-	private static final int BATCH_LENGTH = 20; // length of the one item
-	
+	private static final int BATCH_LENGTH = 20;
 	private int _storePlayerId;
-	private Set<RequestTrade> _items = null;
-	
+	private Set<RequestTrade> _items;
+
 	@Override
 	protected void readImpl()
 	{
@@ -55,23 +48,21 @@ public class RequestPrivateStoreBuy extends ClientPacket
 		{
 			return;
 		}
-		
 		_items = new HashSet<>();
 		for (int i = 0; i < count; i++)
 		{
 			final int objectId = readInt();
-			final long cnt = readLong();
+			final long itemCount = readLong();
 			final long price = readLong();
-			if ((objectId < 1) || (cnt < 1) || (price < 0))
+			if ((objectId < 1) || (itemCount < 1) || (price < 0))
 			{
 				_items = null;
 				return;
 			}
-			
-			_items.add(new RequestTrade(objectId, cnt, price));
+			_items.add(new RequestTrade(objectId, itemCount, price));
 		}
 	}
-	
+
 	@Override
 	protected void runImpl()
 	{
@@ -80,87 +71,19 @@ public class RequestPrivateStoreBuy extends ClientPacket
 		{
 			return;
 		}
-		
 		if (_items == null)
 		{
 			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
-		
 		if (!getClient().getFloodProtectors().canPerformTransaction())
 		{
 			player.sendMessage("You are buying items too fast.");
 			return;
 		}
-		
-		final WorldObject object = World.getInstance().getPlayer(_storePlayerId);
-		if (object == null)
+		if (PrivateStoreService.getInstance().buy(player, _storePlayerId, _items) == PrivateStoreService.Result.PACKAGE_VIOLATION)
 		{
-			return;
-		}
-		
-		if (player.isCursedWeaponEquipped())
-		{
-			return;
-		}
-		
-		final Player storePlayer = object.asPlayer();
-		if (!player.isInsideRadius3D(storePlayer, INTERACTION_DISTANCE))
-		{
-			return;
-		}
-		
-		if ((player.getInstanceId() != storePlayer.getInstanceId()) && (player.getInstanceId() != -1))
-		{
-			return;
-		}
-		
-		if (!((storePlayer.getPrivateStoreType() == PrivateStoreType.SELL) || (storePlayer.getPrivateStoreType() == PrivateStoreType.PACKAGE_SELL)))
-		{
-			return;
-		}
-		
-		final TradeList storeList = storePlayer.getSellList();
-		if (storeList == null)
-		{
-			return;
-		}
-		
-		if (!player.getAccessLevel().allowTransaction())
-		{
-			player.sendMessage("Transactions are disabled for your Access Level.");
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
-		
-		if ((storePlayer.getPrivateStoreType() == PrivateStoreType.PACKAGE_SELL) && (storeList.getItemCount() > _items.size()))
-		{
-			final String msgErr = "[RequestPrivateStoreBuy] " + player + " tried to buy less items than sold by package-sell, ban this player for bot usage!";
-			PunishmentManager.handleIllegalPlayerAction(player, msgErr, GeneralConfig.DEFAULT_PUNISH);
-			return;
-		}
-		
-		final int result = storeList.privateStoreBuy(player, _items);
-		if (result > 0)
-		{
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			if (result > 1)
-			{
-				PacketLogger.warning("PrivateStore buy has failed due to invalid list or request. Player: " + player.getName() + ", Private store of: " + storePlayer.getName());
-			}
-			return;
-		}
-		
-		// Update offline trade record, if realtime saving is enabled
-		if (OfflineTradeConfig.OFFLINE_TRADE_ENABLE && OfflineTradeConfig.STORE_OFFLINE_TRADE_IN_REALTIME && ((storePlayer.getClient() == null) || storePlayer.getClient().isDetached()))
-		{
-			OfflineTraderTable.getInstance().onTransaction(storePlayer, storeList.getItemCount() == 0, false);
-		}
-		
-		if (storeList.getItemCount() == 0)
-		{
-			storePlayer.setPrivateStoreType(PrivateStoreType.NONE);
-			storePlayer.broadcastUserInfo();
+			PunishmentManager.handleIllegalPlayerAction(player, "[RequestPrivateStoreBuy] " + player + " tried to buy less items than sold by package-sell, ban this player for bot usage!", GeneralConfig.DEFAULT_PUNISH);
 		}
 	}
 }

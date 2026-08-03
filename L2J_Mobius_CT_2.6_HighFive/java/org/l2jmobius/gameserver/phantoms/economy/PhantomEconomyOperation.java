@@ -102,7 +102,11 @@ public record PhantomEconomyOperation(Identity identity, Kind kind, State state,
 	public enum Kind
 	{
 		SELF_CRAFT,
-		ITEM_ENCHANT
+		ITEM_ENCHANT,
+		DIRECT_TRADE,
+		PRIVATE_STORE_BUY,
+		PRIVATE_STORE_SELL,
+		PLAYER_MANUFACTURE
 	}
 
 	public enum State
@@ -193,7 +197,7 @@ public record PhantomEconomyOperation(Identity identity, Kind kind, State state,
 		public Reservation
 		{
 			Objects.requireNonNull(kind);
-			if ((profileId <= 0) || (ownerObjectId <= 0) || (ownerClassIndex < 0) || (ownerClassIndex > 3) || (objectId < 0) || (itemId < 0) || (count < 0) || (expectedCount < 0) || (expectedEnchantLevel < 0) || (expectedLocation == null) || (expectedLocation.length() > 16))
+			if ((profileId < 0) || (ownerObjectId <= 0) || (ownerClassIndex < 0) || (ownerClassIndex > 3) || (objectId < 0) || (itemId < 0) || (count < 0) || (expectedCount < 0) || (expectedEnchantLevel < 0) || (expectedLocation == null) || (expectedLocation.length() > 16))
 			{
 				throw new IllegalArgumentException("Invalid economy reservation.");
 			}

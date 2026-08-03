@@ -162,7 +162,9 @@ public final class PhantomEconomyReservationService
 				final StoredOperation existing = lockOperation(connection, operation.operationId());
 				if (existing != null)
 				{
-					if (existing.matches(operation))
+					final List<Reservation> existingReservations = readReservations(connection, operation.operationId(), true);
+					final ParticipantSet existingParticipants = participantSet(existing, existingReservations);
+					if (existing.matches(operation) && existingReservations.equals(reservations) && existingParticipants.equals(participants) && existingParticipants.matchesLinks(participantLinks))
 					{
 						connection.commit();
 						return new ReserveResult(Status.IDEMPOTENT, existing.state(), operation.operationId());
@@ -246,6 +248,14 @@ public final class PhantomEconomyReservationService
 					return new TransitionResult(Status.NOT_FOUND, null);
 				}
 				final StoredOperation locked = lifecycle.operation();
+				if (!lifecycle.participantsValid())
+				{
+					final State terminal = participantDriftTerminal(locked.state());
+					final int releasedReservations = terminalize(connection, locked, terminal, participantDriftAudit(terminal), nowEpochMillis);
+					connection.commit();
+					recordTerminalMutation(terminal, releasedReservations);
+					return new TransitionResult(Status.TRANSITIONED, terminal);
+				}
 				if (locked.state() == next)
 				{
 					connection.commit();
@@ -255,14 +265,6 @@ public final class PhantomEconomyReservationService
 				{
 					connection.rollback();
 					return new TransitionResult(Status.STATE_CONFLICT, locked.state());
-				}
-				if (!lifecycle.participantsValid())
-				{
-					final State terminal = participantDriftTerminal(locked.state());
-					final int releasedReservations = terminalize(connection, locked, terminal, participantDriftAudit(terminal), nowEpochMillis);
-					connection.commit();
-					recordTerminalMutation(terminal, releasedReservations);
-					return new TransitionResult(Status.TRANSITIONED, terminal);
 				}
 				transition(connection, operationId, expected, next, nowEpochMillis);
 				int releasedReservations = 0;
@@ -738,17 +740,28 @@ public final class PhantomEconomyReservationService
 
 	private ParticipantSet participantSet(PhantomEconomyOperation operation, List<Reservation> reservations)
 	{
+		return participantSet(operation.identity().profileId(), operation.identity().characterObjectId(), reservations);
+	}
+
+	private ParticipantSet participantSet(StoredOperation operation, List<Reservation> reservations)
+	{
+		return participantSet(operation.profileId(), operation.characterObjectId(), reservations);
+	}
+
+	private ParticipantSet participantSet(long initiatorProfileId, int initiatorCharacterObjectId, List<Reservation> reservations)
+	{
 		final Map<Long, Integer> links = new TreeMap<>();
-		addParticipantLink(links, operation.identity().profileId(), operation.identity().characterObjectId());
+		final java.util.SortedSet<Integer> characterObjectIds = new java.util.TreeSet<>();
+		addParticipant(links, characterObjectIds, initiatorProfileId, initiatorCharacterObjectId);
 		for (Reservation reservation : reservations)
 		{
-			addParticipantLink(links, reservation.profileId(), reservation.ownerObjectId());
+			addParticipant(links, characterObjectIds, reservation.profileId(), reservation.ownerObjectId());
 		}
-		if (links.size() > _policy.limits().participantsPerOperation())
+		if (characterObjectIds.size() > _policy.limits().participantsPerOperation())
 		{
 			throw new IllegalArgumentException("Economy participant bound exceeded.");
 		}
-		return new ParticipantSet(List.copyOf(links.keySet()), links);
+		return new ParticipantSet(List.copyOf(links.keySet()), List.copyOf(characterObjectIds), links);
 	}
 
 	private Map<Long, Integer> lockProfiles(Connection connection, List<Long> profileIds) throws SQLException
@@ -807,7 +820,8 @@ public final class PhantomEconomyReservationService
 			return null;
 		}
 		final Map<Long, Integer> links = new TreeMap<>();
-		addParticipantLink(links, operation.profileId(), operation.characterObjectId());
+		final java.util.SortedSet<Integer> characterObjectIds = new java.util.TreeSet<>();
+		addParticipant(links, characterObjectIds, operation.profileId(), operation.characterObjectId());
 		try (PreparedStatement statement = connection.prepareStatement("SELECT profile_id,owner_object_id FROM phantom_economy_reservations WHERE operation_id=? ORDER BY profile_id,canonical_resource_key"))
 		{
 			statement.setString(1, operationId);
@@ -815,42 +829,25 @@ public final class PhantomEconomyReservationService
 			{
 				while (rows.next())
 				{
-					addParticipantLink(links, rows.getLong(1), rows.getInt(2));
+					addParticipant(links, characterObjectIds, rows.getLong(1), rows.getInt(2));
 				}
 			}
 		}
-		if (links.size() > _policy.limits().participantsPerOperation())
+		if (characterObjectIds.size() > _policy.limits().participantsPerOperation())
 		{
 			throw new EconomyConflictException("Economy operation participant bound is corrupt.");
 		}
-		return new ParticipantSet(List.copyOf(links.keySet()), links);
+		return new ParticipantSet(List.copyOf(links.keySet()), List.copyOf(characterObjectIds), links);
 	}
 
 	private List<String> findActiveOperationIdsForParticipant(Connection connection, long profileId) throws SQLException
 	{
-		int characterObjectId = -1;
-		try (PreparedStatement statement = connection.prepareStatement("SELECT character_object_id FROM phantom_profiles WHERE profile_id=?"))
-		{
-			statement.setLong(1, profileId);
-			try (ResultSet row = statement.executeQuery())
-			{
-				if (row.next())
-				{
-					characterObjectId = row.getInt(1);
-					if (row.wasNull())
-					{
-						characterObjectId = -1;
-					}
-				}
-			}
-		}
 		final List<String> result = new ArrayList<>(2);
-		final String sql = "SELECT operation_id FROM (SELECT o.operation_id FROM phantom_economy_operations o FORCE INDEX (idx_phantom_economy_operations_profile_state) WHERE o.profile_id=? AND o.operation_state IN (" + ACTIVE_STATES + ") UNION SELECT r.operation_id FROM phantom_economy_reservations r FORCE INDEX (idx_phantom_economy_reservations_owner) JOIN phantom_economy_operations o ON o.operation_id=r.operation_id WHERE r.owner_object_id=? AND r.profile_id=? AND o.operation_state IN (" + ACTIVE_STATES + ")) participant_operations ORDER BY operation_id LIMIT 2";
+		final String sql = "SELECT operation_id FROM (SELECT o.operation_id FROM phantom_economy_operations o FORCE INDEX (idx_phantom_economy_operations_profile_state) WHERE o.profile_id=? AND o.operation_state IN (" + ACTIVE_STATES + ") UNION SELECT r.operation_id FROM phantom_economy_reservations r FORCE INDEX (idx_phantom_economy_reservations_profile_operation) JOIN phantom_economy_operations o ON o.operation_id=r.operation_id WHERE r.profile_id=? AND o.operation_state IN (" + ACTIVE_STATES + ")) participant_operations ORDER BY operation_id LIMIT 2";
 		try (PreparedStatement statement = connection.prepareStatement(sql))
 		{
 			statement.setLong(1, profileId);
-			statement.setInt(2, characterObjectId);
-			statement.setLong(3, profileId);
+			statement.setLong(2, profileId);
 			try (ResultSet rows = statement.executeQuery())
 			{
 				while (rows.next())
@@ -862,13 +859,39 @@ public final class PhantomEconomyReservationService
 		return List.copyOf(result);
 	}
 
-	private static void addParticipantLink(Map<Long, Integer> links, long profileId, int characterObjectId)
+	private static void addParticipant(Map<Long, Integer> links, java.util.SortedSet<Integer> characterObjectIds, long profileId, int characterObjectId)
 	{
+		if (characterObjectId <= 0)
+		{
+			throw new EconomyConflictException("Economy participant has an invalid character identity.");
+		}
+		characterObjectIds.add(characterObjectId);
+		if (profileId == 0)
+		{
+			return;
+		}
 		final Integer previous = links.putIfAbsent(profileId, characterObjectId);
 		if ((previous != null) && (previous.intValue() != characterObjectId))
 		{
 			throw new EconomyConflictException("Economy participant has conflicting character links.");
 		}
+	}
+
+	private static List<Reservation> readReservations(Connection connection, String operationId, boolean lock) throws SQLException
+	{
+		final List<Reservation> result = new ArrayList<>();
+		try (PreparedStatement statement = connection.prepareStatement("SELECT profile_id,owner_object_id,owner_class_index,resource_kind,object_id,item_id,reserved_count,expected_count,expected_enchant_level,expected_location FROM phantom_economy_reservations WHERE operation_id=? ORDER BY canonical_resource_key" + (lock ? " FOR UPDATE" : "")))
+		{
+			statement.setString(1, operationId);
+			try (ResultSet rows = statement.executeQuery())
+			{
+				while (rows.next())
+				{
+					result.add(new Reservation(rows.getLong(1), rows.getInt(2), rows.getInt(3), PhantomEconomyOperation.ResourceKind.valueOf(rows.getString(4)), rows.getInt(5), rows.getInt(6), rows.getLong(7), rows.getLong(8), rows.getInt(9), rows.getString(10)));
+				}
+			}
+		}
+		return List.copyOf(result);
 	}
 
 	private StoredOperation readOperation(Connection connection, String operationId) throws SQLException
@@ -1278,11 +1301,16 @@ public final class PhantomEconomyReservationService
 		}
 	}
 
-	public record ParticipantSet(List<Long> profileIds, Map<Long, Integer> characterLinks)
+	public record ParticipantSet(List<Long> profileIds, List<Integer> characterObjectIds, Map<Long, Integer> characterLinks)
 	{
 		public ParticipantSet
 		{
 			profileIds = profileIds.stream().distinct().sorted().toList();
+			characterObjectIds = characterObjectIds.stream().distinct().sorted().toList();
+			if (characterObjectIds.stream().anyMatch(characterObjectId -> characterObjectId <= 0))
+			{
+				throw new IllegalArgumentException("Economy participant snapshot has an invalid character identity.");
+			}
 			final Map<Long, Integer> orderedLinks = new LinkedHashMap<>();
 			for (long profileId : profileIds)
 			{
@@ -1293,7 +1321,7 @@ public final class PhantomEconomyReservationService
 				}
 				orderedLinks.put(profileId, characterObjectId);
 			}
-			if (orderedLinks.size() != characterLinks.size())
+			if ((orderedLinks.size() != characterLinks.size()) || !characterObjectIds.containsAll(orderedLinks.values()))
 			{
 				throw new IllegalArgumentException("Economy participant snapshot contains an unknown profile link.");
 			}

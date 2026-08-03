@@ -12,6 +12,7 @@ $LifecycleCommit = "9e2bd551ecc03647641c16e393694b9a0cb51e60"
 $LifecycleSubject = "fix(phantoms): close economy craft lifecycle and reservation ownership"
 $AuthorityCommit = "20fe8daccfb5000b5b970bff7b3555a4051e5dbc"
 $AuthoritySubject = "fix(phantoms): close economy resume authority and risk gates"
+$AcceptedCheckpointCommit = "feb569efa787917411cfb5c419f0e8646c3ee84f"
 $RequiredSubject = "fix(phantoms): close participant economy lifecycle ordering"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "22002201"
@@ -172,23 +173,12 @@ try
 	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $LifecycleCommit) | Select-Object -First 1) -eq $LifecycleSubject) "Goal 022c1 lifecycle completion subject changed."
 	Assert-True ((Git-Lines @("show", "-s", "--format=%P", $AuthorityCommit) | Select-Object -First 1) -eq $LifecycleCommit) "Goal 022c1 authority completion is not the direct child of its lifecycle completion."
 	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $AuthorityCommit) | Select-Object -First 1) -eq $AuthoritySubject) "Goal 022c1 authority completion subject changed."
-	if ($WorkingTree)
-	{
-		Assert-True ($head -eq $AuthorityCommit) "Working Goal 022c1 terminal completion must start at the accepted authority completion."
-		$script:Mode = "working"
-		$script:TargetCommit = "WORKING_TREE"
-	}
-	else
-	{
-		& git merge-base --is-ancestor $AuthorityCommit $head
-		Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 022c1 authority completion is not an ancestor of HEAD."
-		$children = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$AuthorityCommit..$head"))
-		Assert-True ($children.Count -ge 1) "Goal 022c1 terminal completion child is absent."
-		$script:TargetCommit = $children[0]
-		$script:Mode = "historical"
-		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $AuthorityCommit) "Goal 022c1 terminal completion is not one ordinary child of the authority completion."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 022c1 terminal completion subject changed."
-	}
+	& git merge-base --is-ancestor $AcceptedCheckpointCommit $head
+	Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 022c1 checkpoint is not an ancestor of HEAD."
+	$script:TargetCommit = $AcceptedCheckpointCommit
+	$script:Mode = "historical"
+	Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $AuthorityCommit) "Goal 022c1 terminal completion is not the accepted ordinary child of the authority completion."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 022c1 terminal completion subject changed."
 
 	$foundationChanged = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
 	Add-Paths $foundationChanged @("diff", "--name-only", $AcceptedGoal021, $FoundationCommit, "--")

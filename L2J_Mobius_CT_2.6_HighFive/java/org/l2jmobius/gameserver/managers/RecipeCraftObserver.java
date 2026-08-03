@@ -37,6 +37,7 @@ public interface RecipeCraftObserver
 	enum Type
 	{
 		ACCEPTED,
+		FEE_TRANSFERRED,
 		INGREDIENTS_CONSUMED,
 		SUCCESS_PRODUCT,
 		RARE_PRODUCT,
@@ -55,13 +56,13 @@ public interface RecipeCraftObserver
 		}
 	}
 
-	record Event(Type type, int recipeListId, int recipeItemId, int crafterObjectId, int targetObjectId, List<ItemDelta> items, double hpConsumed, double mpConsumed)
+	record Event(Type type, int recipeListId, int recipeItemId, int crafterObjectId, int targetObjectId, List<ItemDelta> items, long feeTransferred, long crafterAdenaDelta, long targetAdenaDelta, long expConsequence, long spConsequence, double hpConsumed, double mpConsumed)
 	{
 		public Event
 		{
 			Objects.requireNonNull(type);
 			items = List.copyOf(items);
-			if ((recipeListId <= 0) || (recipeItemId <= 0) || (crafterObjectId <= 0) || (targetObjectId <= 0) || (items.size() > 32) || !Double.isFinite(hpConsumed) || !Double.isFinite(mpConsumed) || (hpConsumed < 0) || (mpConsumed < 0))
+			if ((recipeListId <= 0) || (recipeItemId <= 0) || (crafterObjectId <= 0) || (targetObjectId <= 0) || (items.size() > 32) || (feeTransferred < 0) || (expConsequence < 0) || (spConsequence < 0) || !Double.isFinite(hpConsumed) || !Double.isFinite(mpConsumed) || (hpConsumed < 0) || (mpConsumed < 0))
 			{
 				throw new IllegalArgumentException("Invalid craft observation event.");
 			}

@@ -318,6 +318,14 @@ public final class PhantomTestLauncher
 			case "economy-enchant-background" -> new PhantomEconomySuite(PhantomEconomySuite.Mode.ENCHANT_BACKGROUND);
 			case "economy-restart-transition" -> new PhantomEconomySuite(PhantomEconomySuite.Mode.RESTART_TRANSITION);
 			case "economy-lifecycle-performance" -> new PhantomEconomySuite(PhantomEconomySuite.Mode.LIFECYCLE_PERFORMANCE);
+			case "economy-participant-index-c2" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.PARTICIPANT_INDEX);
+			case "economy-offer-lifecycle" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.OFFER_LIFECYCLE);
+			case "economy-direct-trade" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.DIRECT_TRADE);
+			case "economy-private-store-buy" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.PRIVATE_STORE_BUY);
+			case "economy-private-store-sell" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.PRIVATE_STORE_SELL);
+			case "economy-manufacture" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.MANUFACTURE);
+			case "economy-multiparty-restart-fault" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.RESTART_FAULT);
+			case "economy-checkpoint2-performance" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

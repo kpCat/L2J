@@ -25,17 +25,25 @@ import java.time.Clock;
 import java.util.Objects;
 
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 
 /** Blocks lifecycle crossings while canonical economy dispatch is uncertain. */
 public final class PhantomEconomyMaterializationLifecycle implements PhantomMaterializationLifecyclePort
 {
 	private final PhantomEconomyReservationService _reservations;
+	private final PhantomEconomyOfferService _offers;
 	private final Clock _clock;
 
 	public PhantomEconomyMaterializationLifecycle(PhantomEconomyReservationService reservations, Clock clock)
 	{
+		this(reservations, null, clock);
+	}
+
+	public PhantomEconomyMaterializationLifecycle(PhantomEconomyReservationService reservations, PhantomEconomyOfferService offers, Clock clock)
+	{
 		_reservations = Objects.requireNonNull(reservations);
+		_offers = offers;
 		_clock = Objects.requireNonNull(clock);
 	}
 
@@ -63,6 +71,10 @@ public final class PhantomEconomyMaterializationLifecycle implements PhantomMate
 	@Override
 	public void beforeStore(long profileId, Player player)
 	{
+		if (((_offers != null) && _offers.blocksMaterialization(profileId)) || (player.getPrivateStoreType() != PrivateStoreType.NONE))
+		{
+			throw new PhantomEconomyReservationService.EconomyConflictException("A visible economy interaction blocks dematerialization.");
+		}
 		_reservations.beforeBoundary(profileId, _clock.millis());
 	}
 

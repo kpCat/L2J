@@ -91,6 +91,11 @@ public class RecipeManager
 	
 	public void requestManufactureItem(Player manufacturer, int recipeListId, Player player)
 	{
+		requestManufactureItem(manufacturer, recipeListId, player, RecipeCraftObserver.NONE);
+	}
+
+	public void requestManufactureItem(Player manufacturer, int recipeListId, Player player, RecipeCraftObserver observer)
+	{
 		final RecipeList recipeList = RecipeData.getInstance().getValidRecipeList(player, recipeListId);
 		if (recipeList == null)
 		{
@@ -110,9 +115,10 @@ public class RecipeManager
 			return;
 		}
 		
-		final RecipeItemMaker maker = new RecipeItemMaker(manufacturer, recipeList, player);
+		final RecipeItemMaker maker = new RecipeItemMaker(manufacturer, recipeList, player, observer);
 		if (maker._isValid)
 		{
+			maker.observe(RecipeCraftObserver.Type.ACCEPTED, List.of());
 			if (PlayerConfig.ALT_GAME_CREATION)
 			{
 				_activeMakers.put(manufacturer.getObjectId(), maker);
@@ -410,6 +416,10 @@ public class RecipeManager
 				_target.sendPacket(SystemMessageId.YOU_DO_NOT_HAVE_ENOUGH_ADENA);
 				abort();
 				return;
+			}
+			if ((_target != _player) && (_price > 0))
+			{
+				observe(RecipeCraftObserver.Type.FEE_TRANSFERRED, List.of());
 			}
 			
 			_items = listItems(true); // this line actually takes materials from inventory
@@ -802,7 +812,10 @@ public class RecipeManager
 			}
 			try
 			{
-				_observer.onEvent(new RecipeCraftObserver.Event(type, _recipeList.getId(), _recipeList.getRecipeId(), _player.getObjectId(), _target.getObjectId(), items, _consumedHp, _consumedMp));
+				final long fee = type == RecipeCraftObserver.Type.FEE_TRANSFERRED ? _price : 0;
+				final long exp = ((type == RecipeCraftObserver.Type.SUCCESS_PRODUCT) || (type == RecipeCraftObserver.Type.RARE_PRODUCT)) && (_exp > 0) ? _exp : 0;
+				final long sp = ((type == RecipeCraftObserver.Type.SUCCESS_PRODUCT) || (type == RecipeCraftObserver.Type.RARE_PRODUCT)) && (_sp > 0) ? _sp : 0;
+				_observer.onEvent(new RecipeCraftObserver.Event(type, _recipeList.getId(), _recipeList.getRecipeId(), _player.getObjectId(), _target.getObjectId(), items, fee, fee, -fee, exp, sp, _consumedHp, _consumedMp));
 			}
 			catch (RuntimeException exception)
 			{

@@ -372,6 +372,13 @@ public class TradeList
 	 */
 	public boolean confirm()
 	{
+		return confirm(ExchangeObserver.NONE);
+	}
+
+	/** Confirms this list while exposing immutable transfer boundaries to a server-owned service. */
+	public boolean confirm(ExchangeObserver observer)
+	{
+		observer = observer == null ? ExchangeObserver.NONE : observer;
 		if (_confirmed)
 		{
 			return true; // Already confirmed
@@ -415,7 +422,11 @@ public class TradeList
 							return false;
 						}
 						
-						doExchange(partnerList);
+						if (!observer.beforeExchange(this, partnerList))
+						{
+							return false;
+						}
+						doExchange(partnerList, observer);
 					}
 					else
 					{
@@ -474,7 +485,7 @@ public class TradeList
 	 * @param partnerIU
 	 * @return
 	 */
-	private boolean TransferItems(Player partner, InventoryUpdate ownerIU, InventoryUpdate partnerIU)
+	private boolean TransferItems(Player partner, InventoryUpdate ownerIU, InventoryUpdate partnerIU, ExchangeObserver observer)
 	{
 		for (TradeItem titem : _items)
 		{
@@ -489,6 +500,7 @@ public class TradeList
 			{
 				return false;
 			}
+			observer.afterTransfer(_owner.getObjectId(), partner.getObjectId(), titem.getObjectId(), titem.getItem().getId(), titem.getCount());
 			
 			// Add changes to inventory update packets
 			if (ownerIU != null)
@@ -581,7 +593,7 @@ public class TradeList
 	 * Proceeds with trade
 	 * @param partnerList
 	 */
-	private void doExchange(TradeList partnerList)
+	private void doExchange(TradeList partnerList, ExchangeObserver observer)
 	{
 		boolean success = false;
 		
@@ -603,8 +615,8 @@ public class TradeList
 			final InventoryUpdate partnerIU = new InventoryUpdate();
 			
 			// Transfer items
-			partnerList.TransferItems(_owner, partnerIU, ownerIU);
-			TransferItems(partnerList.getOwner(), ownerIU, partnerIU);
+			final boolean partnerTransferred = partnerList.TransferItems(_owner, partnerIU, ownerIU, observer);
+			final boolean ownerTransferred = partnerTransferred && TransferItems(partnerList.getOwner(), ownerIU, partnerIU, observer);
 			_owner.sendInventoryUpdate(ownerIU);
 			_partner.sendInventoryUpdate(partnerIU);
 			
@@ -616,12 +628,34 @@ public class TradeList
 			playerSU.addAttribute(StatusUpdate.CUR_LOAD, _partner.getCurrentLoad());
 			_partner.sendPacket(playerSU);
 			
-			success = true;
+			success = partnerTransferred && ownerTransferred;
 		}
 		
 		// Finish the trade
 		partnerList.getOwner().onTradeFinish(success);
 		_owner.onTradeFinish(success);
+		observer.afterExchange(this, partnerList, success);
+	}
+
+	/** Observer has no Player or Item references and is invoked under the canonical list locks. */
+	public interface ExchangeObserver
+	{
+		ExchangeObserver NONE = new ExchangeObserver()
+		{
+		};
+
+		default boolean beforeExchange(TradeList first, TradeList second)
+		{
+			return true;
+		}
+
+		default void afterTransfer(int ownerObjectId, int receiverObjectId, int objectId, int itemId, long count)
+		{
+		}
+
+		default void afterExchange(TradeList first, TradeList second, boolean successful)
+		{
+		}
 	}
 	
 	/**
@@ -643,7 +677,7 @@ public class TradeList
 			return 1;
 		}
 		
-		if (!_owner.isOnline() || !player.isOnline())
+		if ((!_owner.isOnline() && !_owner.hasHeadlessOutboundSession()) || (!player.isOnline() && !player.hasHeadlessOutboundSession()))
 		{
 			return 1;
 		}
@@ -845,6 +879,20 @@ public class TradeList
 		player.sendInventoryUpdate(playerIU);
 		return ok ? 0 : 2;
 	}
+
+	/** Exact Phantom/store path: reject stale quantities instead of applying the ordinary client clamp. */
+	public synchronized int privateStoreBuyExact(Player player, Set<RequestTrade> items)
+	{
+		for (RequestTrade request : items)
+		{
+			final TradeItem listed = _items.stream().filter(item -> item.getObjectId() == request.getObjectId()).findFirst().orElse(null);
+			if ((listed == null) || (request.getCount() <= 0) || (listed.getCount() < request.getCount()) || (listed.getPrice() != request.getPrice()) || ((request.getItemId() > 0) && (listed.getItem().getId() != request.getItemId())))
+			{
+				return 2;
+			}
+		}
+		return privateStoreBuy(player, items);
+	}
 	
 	/**
 	 * Sell items to this PrivateStore list
@@ -854,7 +902,7 @@ public class TradeList
 	 */
 	public synchronized boolean privateStoreSell(Player player, RequestTrade[] items)
 	{
-		if (_locked || !_owner.isOnline() || !player.isOnline())
+		if (_locked || (!_owner.isOnline() && !_owner.hasHeadlessOutboundSession()) || (!player.isOnline() && !player.hasHeadlessOutboundSession()))
 		{
 			return false;
 		}
@@ -1035,5 +1083,22 @@ public class TradeList
 		}
 		
 		return ok;
+	}
+
+	/** Exact Phantom/store path: validate every line before the canonical mutation can begin. */
+	public synchronized boolean privateStoreSellExact(Player player, RequestTrade[] items)
+	{
+		long total = 0;
+		for (RequestTrade request : items)
+		{
+			final TradeItem listed = _items.stream().filter(item -> item.getItem().getId() == request.getItemId()).findFirst().orElse(null);
+			final Item item = player.getInventory().getItemByObjectId(request.getObjectId());
+			if ((listed == null) || (item == null) || (item.getId() != request.getItemId()) || (request.getCount() <= 0) || (item.getCount() < request.getCount()) || (listed.getCount() < request.getCount()) || (listed.getPrice() != request.getPrice()))
+			{
+				return false;
+			}
+			total = Math.addExact(total, Math.multiplyExact(request.getCount(), request.getPrice()));
+		}
+		return (total <= _owner.getAdena()) && privateStoreSell(player, items);
 	}
 }
