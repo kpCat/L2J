@@ -5,9 +5,10 @@
 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 Foundation принят как `d02dc8429e88ef507347fc2e3860b0528844ae68` поверх
-Goal 021 baseline `043844c0fd7a0bfcac0d5f58461a21633b032332`. C1 completion
+Goal 021 baseline `043844c0fd7a0bfcac0d5f58461a21633b032332`. Lifecycle
+completion принят как `9e2bd551ecc03647641c16e393694b9a0cb51e60`. Final completion
 должен быть его обычным единственным ребёнком с subject
-`fix(phantoms): close economy craft lifecycle and reservation ownership`.
+`fix(phantoms): close economy resume authority and risk gates`.
 
 ## Что проверять независимо
 
@@ -29,6 +30,18 @@ Goal 021 baseline `043844c0fd7a0bfcac0d5f58461a21633b032332`. C1 completion
   в active-operation exclusivity;
 - active effect-before-Goal и Goal-before-audit windows не redispatch canonical
   mutation после restart.
+- новый plan возобновляет exact `RESERVED`/`DISPATCHING`, но никогда не
+  redispatch `OBSERVING`; cancellation/shutdown terminalize operation без claims;
+- craft/enchant authority перечисляет все outcome/cost/eligibility facts с
+  explicit serialization, и изменение каждого meaningful fact меняет hash;
+- active authority drift A→B fail-stops до RecipeManager/EnchantItemService и
+  не меняет resources;
+- `EnchantItemService` владеет transaction/store/ownership/validity guards до
+  consumption, ordinary packet остаётся byte-identical lifecycle completion;
+- canonical Adena является replacement evidence и отдельным reservation,
+  destructive risk/expense gates не подменяются declared Goal reserve;
+- normal/rare output stacks резервируются и сверяются exact, а distinct
+  non-stackable object IDs одного item template не конфликтуют друг с другом.
 
 Этот файл не содержит self-accept. Независимый reviewer должен записать
 отдельный verdict; Goal 022 Checkpoint 2 до этого не начинается.

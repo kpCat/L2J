@@ -41,6 +41,7 @@ import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.data.xml.RecipeData;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.recipe.RecipeList;
+import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Phase;
@@ -165,12 +166,12 @@ public final class PhantomEconomyBackgroundTransaction
 				final PhantomBackgroundState nextBackground = command.background().after(command.background().progress(), nextVitals, command.background().position(), nextInventory, command.background().autoGetSkills(), new Clock(outcome.nextRngState(), command.background().clock().residualTravelMillis(), command.background().clock().residualEncounterMillis()), backgroundReceipt);
 				final long afterProduct = nextInventory.itemCount(command.acquisition().targetItemId());
 				final boolean targetAttributed = (outcome.result() == Result.SUCCESS) && (outcome.productItemId() == command.acquisition().targetItemId()) && (outcome.productCount() > 0);
-				final String sourceFailure = outcome.result() == Result.CRAFT_FAILED ? "craft.canonical_failure" : targetAttributed ? "" : "craft.target_not_produced";
+				final String sourceFailure = outcome.result() == Result.CRAFT_FAILED ? "craft.canonical_failure" : "";
 				if (!targetAttributed && (afterProduct != command.acquisition().lastObservedCount()))
 				{
 					throw new Conflict("Craft without target attribution changed the target count.");
 				}
-				final org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt acquisitionReceipt = new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt(command.operationId(), command.acquisition().selectedSource().sourceId(), ReceiptKind.BACKGROUND_SELF_CRAFT, command.acquisition().lastObservedCount(), afterProduct, targetAttributed ? TerminalResult.COMMITTED : TerminalResult.FAILED, command.logicalMinute());
+				final org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt acquisitionReceipt = new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt(command.operationId(), command.acquisition().selectedSource().sourceId(), ReceiptKind.BACKGROUND_SELF_CRAFT, command.acquisition().lastObservedCount(), afterProduct, outcome.result() == Result.SUCCESS ? TerminalResult.COMMITTED : TerminalResult.FAILED, command.logicalMinute());
 				PhantomAcquisitionState nextAcquisition = command.acquisition().observe(afterProduct, PhantomAcquisitionState.Status.PLANNING_ONLY, Phase.NONE, acquisitionReceipt, command.logicalMinute());
 				if (!sourceFailure.isEmpty())
 				{
@@ -182,7 +183,7 @@ public final class PhantomEconomyBackgroundTransaction
 				writeComponent(connection, acquisitionComponent, profileId, PhantomAcquisitionState.COMPONENT_TYPE, PhantomAcquisitionState.SCHEMA_VERSION, _acquisitionCodec.encode(nextAcquisition));
 				writeComponent(connection, goalComponent, profileId, PhantomGoalStateStore.COMPONENT_TYPE, PhantomGoalStateStore.COMPONENT_SCHEMA_VERSION, _goalCodec.encode(nextGoal));
 				_faultInjector.inject(FaultPoint.AFTER_ACQUISITION_OR_GOAL_WRITE);
-				final String reason = outcome.result() == Result.SUCCESS ? targetAttributed ? "result.success" : sourceFailure : "result.craft_failed";
+				final String reason = outcome.result() == Result.SUCCESS ? targetAttributed ? "result.success" : "result.rare_product" : "result.craft_failed";
 				final long consumed = outcome.itemDeltas().values().stream().filter(value -> value < 0).mapToLong(value -> -value).sum();
 				final long produced = outcome.itemDeltas().values().stream().filter(value -> value > 0).mapToLong(Long::longValue).sum();
 				_reservations.commitDispatchInTransaction(connection, dispatch, new Audit(outcome.result(), reason, consequence("result=" + outcome.result(), "productItemId=" + outcome.productItemId(), "productCount=" + outcome.productCount(), "rare=" + outcome.rare(), "sourceFailure=" + sourceFailure, "hpConsumed=" + outcome.hpConsumed(), "mpConsumed=" + outcome.mpConsumed()), consumed, produced, 0, 0, 0, 0), command.nowEpochMillis());
@@ -263,7 +264,13 @@ public final class PhantomEconomyBackgroundTransaction
 				{
 					ingredientCounts.merge(ingredient.getItemId(), (long) ingredient.getQuantity(), Math::addExact);
 				}
-				for (Map.Entry<Integer, Long> ingredient : ingredientCounts.entrySet())
+				final Map<Integer, Long> reservedCounts = new java.util.TreeMap<>(ingredientCounts);
+				reservedCounts.putIfAbsent(recipe.getItemId(), 1L);
+				if ((recipe.getRareItemId() > 0) && (recipe.getRareItemId() != recipe.getItemId()))
+				{
+					reservedCounts.putIfAbsent(recipe.getRareItemId(), 1L);
+				}
+				for (Map.Entry<Integer, Long> ingredient : reservedCounts.entrySet())
 				{
 					resources.add(new Reservation(background.identity().profileId(), background.identity().characterObjectId(), background.identity().classIndex(), ResourceKind.ITEM_COUNT, 0, ingredient.getKey(), ingredient.getValue(), counts.getOrDefault(ingredient.getKey(), 0L), 0, "INVENTORY"));
 				}
@@ -326,7 +333,7 @@ public final class PhantomEconomyBackgroundTransaction
 				final boolean augmented = hasRow(connection, "SELECT 1 FROM item_attributes WHERE itemId=? LIMIT 1 FOR UPDATE", target.objectId());
 				final boolean elemented = hasRow(connection, "SELECT 1 FROM item_elementals WHERE itemId=? ORDER BY elemType LIMIT 1 FOR UPDATE", target.objectId());
 				final PhantomEnchantGoalSpec goal = PhantomEnchantGoalSpec.parse(command.goal());
-				final EnchantOutcome outcome = PhantomEconomyProjection.enchant(new EnchantRequest(goal, targetTemplate, target.objectId(), target.enchantLevel(), target.location(), scroll.objectId(), scroll.itemId(), support == null ? 0 : support.objectId(), support == null ? 0 : support.itemId(), augmented, elemented, (target.time() > 0) || (target.timeOfUse() > 0), (target.customType1() != 0) || (target.customType2() != 0) || (target.manaLeft() >= 0), command.replacementEvidence(), command.goal().expenseBudget(), command.background().clock().rngState(), _policy));
+				final EnchantOutcome outcome = PhantomEconomyProjection.enchant(new EnchantRequest(goal, targetTemplate, target.objectId(), target.enchantLevel(), target.location(), scroll.objectId(), scroll.itemId(), support == null ? 0 : support.objectId(), support == null ? 0 : support.itemId(), augmented, elemented, (target.time() > 0) || (target.timeOfUse() > 0), (target.customType1() != 0) || (target.customType2() != 0) || (target.manaLeft() >= 0), itemCounts(items).getOrDefault(Inventory.ADENA_ID, 0L), command.goal().riskBudget(), command.goal().expenseBudget(), command.background().clock().rngState(), _policy));
 				if (!outcome.executable() || !dispatch.operation().authorityHash().equals(outcome.authorityHash()))
 				{
 					throw new Conflict("Enchant authority, risk or resources changed before dispatch.");
@@ -402,7 +409,7 @@ public final class PhantomEconomyBackgroundTransaction
 		}
 	}
 
-	public EnchantQuote quoteEnchant(PhantomBackgroundState background, PhantomGoal goal, long replacementEvidence)
+	public EnchantQuote quoteEnchant(PhantomBackgroundState background, PhantomGoal goal)
 	{
 		try (Connection connection = _connections.open())
 		{
@@ -433,7 +440,7 @@ public final class PhantomEconomyBackgroundTransaction
 					final List<ItemRow> supportChoices = supports.isEmpty() ? java.util.Collections.singletonList(null) : supports;
 					for (ItemRow support : supportChoices)
 					{
-						final EnchantOutcome candidate = PhantomEconomyProjection.enchant(new EnchantRequest(spec, template, target.objectId(), target.enchantLevel(), target.location(), scroll.objectId(), scroll.itemId(), support == null ? 0 : support.objectId(), support == null ? 0 : support.itemId(), augmented, elemented, (target.time() > 0) || (target.timeOfUse() > 0), (target.customType1() != 0) || (target.customType2() != 0) || (target.manaLeft() >= 0), replacementEvidence, goal.expenseBudget(), background.clock().rngState(), _policy));
+						final EnchantOutcome candidate = PhantomEconomyProjection.enchant(new EnchantRequest(spec, template, target.objectId(), target.enchantLevel(), target.location(), scroll.objectId(), scroll.itemId(), support == null ? 0 : support.objectId(), support == null ? 0 : support.itemId(), augmented, elemented, (target.time() > 0) || (target.timeOfUse() > 0), (target.customType1() != 0) || (target.customType2() != 0) || (target.manaLeft() >= 0), itemCounts(items).getOrDefault(Inventory.ADENA_ID, 0L), goal.riskBudget(), goal.expenseBudget(), background.clock().rngState(), _policy));
 						if (candidate.executable())
 						{
 							selected = candidate;
@@ -453,6 +460,7 @@ public final class PhantomEconomyBackgroundTransaction
 					return EnchantQuote.rejected(target.location() == ItemLocation.PAPERDOLL ? Result.ACTIVE_REQUIRED : Result.CONFLICT);
 				}
 				final List<Reservation> resources = new ArrayList<>();
+				resources.add(new Reservation(background.identity().profileId(), background.identity().characterObjectId(), background.identity().classIndex(), ResourceKind.ADENA, 0, Inventory.ADENA_ID, spec.replacementReserve(), itemCounts(items).getOrDefault(Inventory.ADENA_ID, 0L), 0, "INVENTORY"));
 				resources.add(new Reservation(background.identity().profileId(), background.identity().characterObjectId(), background.identity().classIndex(), ResourceKind.ITEM_OBJECT, target.objectId(), target.itemId(), 0, target.count(), target.enchantLevel(), target.location().name()));
 				resources.add(new Reservation(background.identity().profileId(), background.identity().characterObjectId(), background.identity().classIndex(), ResourceKind.ITEM_OBJECT, selectedScroll.objectId(), selectedScroll.itemId(), 0, selectedScroll.count(), selectedScroll.enchantLevel(), selectedScroll.location().name()));
 				if (selectedSupport != null)
@@ -893,6 +901,11 @@ public final class PhantomEconomyBackgroundTransaction
 		{
 			requireKey(keys, reservation(background, ResourceKind.ITEM_COUNT, 0, ingredient.getItemId()).canonicalKey());
 		}
+		requireKey(keys, reservation(background, ResourceKind.ITEM_COUNT, 0, recipe.getItemId()).canonicalKey());
+		if ((recipe.getRareItemId() > 0) && (recipe.getRareItemId() != recipe.getItemId()))
+		{
+			requireKey(keys, reservation(background, ResourceKind.ITEM_COUNT, 0, recipe.getRareItemId()).canonicalKey());
+		}
 		requireKey(keys, reservation(background, ResourceKind.RECIPE, 0, recipe.getId()).canonicalKey());
 		requireKey(keys, reservation(background, ResourceKind.SKILL, 0, recipe.isDwarvenRecipe() ? org.l2jmobius.gameserver.model.skill.CommonSkill.CREATE_DWARVEN.getId() : org.l2jmobius.gameserver.model.skill.CommonSkill.CREATE_COMMON.getId()).canonicalKey());
 		requireKey(keys, reservation(background, ResourceKind.CAPACITY, 0, 0).canonicalKey());
@@ -901,6 +914,7 @@ public final class PhantomEconomyBackgroundTransaction
 	private static void requireEnchantReservations(DispatchLock dispatch, PhantomBackgroundState background, ItemRow target, ItemRow scroll, ItemRow support, EnchantOutcome outcome)
 	{
 		final Set<String> keys = Set.copyOf(dispatch.canonicalResourceKeys());
+		requireKey(keys, reservation(background, ResourceKind.ADENA, 0, Inventory.ADENA_ID).canonicalKey());
 		requireKey(keys, reservation(background, ResourceKind.ITEM_OBJECT, target.objectId(), target.itemId()).canonicalKey());
 		requireKey(keys, reservation(background, ResourceKind.ITEM_OBJECT, scroll.objectId(), scroll.itemId()).canonicalKey());
 		if (support != null)
@@ -1028,7 +1042,7 @@ public final class PhantomEconomyBackgroundTransaction
 	{
 	}
 
-	public record EnchantCommand(String operationId, PhantomBackgroundState background, long backgroundRowVersion, PhantomGoal goal, long goalRowVersion, int targetObjectId, int targetItemId, int scrollObjectId, int scrollItemId, int supportObjectId, int supportItemId, long replacementEvidence, long nowEpochMillis)
+	public record EnchantCommand(String operationId, PhantomBackgroundState background, long backgroundRowVersion, PhantomGoal goal, long goalRowVersion, int targetObjectId, int targetItemId, int scrollObjectId, int scrollItemId, int supportObjectId, int supportItemId, long nowEpochMillis)
 	{
 	}
 

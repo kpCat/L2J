@@ -96,7 +96,13 @@ public final class PhantomEconomyDecision
 	{
 		if (context.cancellationToken().isCancelled())
 		{
-			return PhantomStepResult.of(Type.CANCELLED, "economy.operation.cancelled");
+			final StepResult cancellation = _service.cancel(context.profileId(), context.goal(), context.activityGeneration(), System.currentTimeMillis());
+			return switch (cancellation.status())
+			{
+				case SUCCESS -> PhantomStepResult.of(Type.CANCELLED, cancellation.reason());
+				case RETRY -> PhantomStepResult.retry(RETRY_DELAY_MILLIS, cancellation.reason());
+				case REPLAN -> PhantomStepResult.of(Type.REPLAN, cancellation.reason());
+			};
 		}
 		if (!Objects.equals(context.goal().target(), context.step().target()) || !arguments(context.goal().goalId(), context.goal().revision(), context.activityGeneration()).equals(context.step().numericArguments()))
 		{

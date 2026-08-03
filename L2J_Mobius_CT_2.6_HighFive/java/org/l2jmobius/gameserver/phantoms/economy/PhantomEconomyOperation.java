@@ -135,7 +135,7 @@ public record PhantomEconomyOperation(Identity identity, Kind kind, State state,
 				case PREPARED -> (next == RESERVED) || (next == ABORTED) || (next == EXPIRED);
 				case RESERVED -> (next == DISPATCHING) || (next == ABORTED) || (next == EXPIRED);
 				case DISPATCHING -> (next == OBSERVING) || (next == COMMITTED) || (next == ABORTED) || (next == INCONSISTENT);
-				case OBSERVING -> (next == COMMITTED) || (next == INCONSISTENT);
+				case OBSERVING -> (next == COMMITTED) || (next == ABORTED) || (next == INCONSISTENT);
 				case COMMITTED, ABORTED, EXPIRED, INCONSISTENT -> false;
 			};
 		}
@@ -197,10 +197,25 @@ public record PhantomEconomyOperation(Identity identity, Kind kind, State state,
 			{
 				throw new IllegalArgumentException("Invalid economy reservation.");
 			}
-			if (((kind == ResourceKind.ITEM_OBJECT) && (objectId == 0)) || (((kind == ResourceKind.ITEM_COUNT) || (kind == ResourceKind.ADENA)) && ((itemId == 0) || (count == 0))))
+			if (((kind == ResourceKind.ITEM_OBJECT) && ((objectId == 0) || (itemId == 0))) || ((kind == ResourceKind.ITEM_COUNT) && ((itemId == 0) || (count == 0))) || ((kind == ResourceKind.ADENA) && (itemId == 0)))
 			{
 				throw new IllegalArgumentException("Incomplete economy reservation resource.");
 			}
+		}
+
+		public boolean overlaps(Reservation other)
+		{
+			Objects.requireNonNull(other);
+			if (ownerObjectId != other.ownerObjectId)
+			{
+				return false;
+			}
+			if ((kind == ResourceKind.ITEM_OBJECT) && (other.kind == ResourceKind.ITEM_OBJECT))
+			{
+				return objectId == other.objectId;
+			}
+			final boolean itemCountObject = ((kind == ResourceKind.ITEM_COUNT) && (other.kind == ResourceKind.ITEM_OBJECT)) || ((kind == ResourceKind.ITEM_OBJECT) && (other.kind == ResourceKind.ITEM_COUNT)) || ((kind == ResourceKind.ITEM_COUNT) && (other.kind == ResourceKind.ITEM_COUNT));
+			return itemCountObject ? itemId == other.itemId : canonicalKey().equals(other.canonicalKey());
 		}
 
 		public String canonicalKey()

@@ -49,11 +49,14 @@ import org.l2jmobius.gameserver.managers.RecipeCraftObserver;
 import org.l2jmobius.gameserver.managers.RecipeManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.enchant.EnchantScroll;
+import org.l2jmobius.gameserver.model.item.enchant.EnchantSupportItem;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.recipe.RecipeList;
+import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.model.skill.CommonSkill;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
@@ -219,6 +222,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 				registry.add("participant-busy-from-reservation", this::testParticipantBusyFromReservation);
 				registry.add("participant-busy-as-initiator", this::testParticipantBusyAsInitiator);
 				registry.add("item-count-object-overlap", this::testItemCountObjectOverlap);
+				registry.add("item-object-overlap-matrix", this::testItemObjectOverlapMatrix);
 				registry.add("adena-overlap-and-item-disjoint", this::testAdenaItemOverlap);
 				registry.add("recipe-class-isolation", this::testRecipeClassIsolation);
 				registry.add("skill-class-isolation", this::testSkillClassIsolation);
@@ -232,6 +236,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			case SELF_CRAFT_BACKGROUND ->
 			{
 				registry.add("exact-recipe-projection", this::testBackgroundCraft);
+				registry.add("craft-authority-facts", this::testCraftAuthorityFacts);
 				registry.add("decision-service-atomic-transaction", this::testBackgroundCraftServiceLifecycle);
 				registry.add("actual-outcome-attribution", this::testBackgroundCraftOutcomeAttribution);
 				registry.add("atomic-fault-matrix", this::testBackgroundCraftFaultMatrix);
@@ -239,6 +244,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			case ENCHANT_ACTIVE ->
 			{
 				registry.add("canonical-service", this::testActiveEnchant);
+				registry.add("canonical-actor-guards", this::testEnchantActorGuards);
 				registry.add("decision-service-full-chain", this::testActiveEnchantServiceLifecycle);
 				registry.add("non-atomic-restart-windows", this::testActiveEnchantRestartWindows);
 				registry.add("ordinary-packet-parity-matrix", this::testPacketParityMatrix);
@@ -246,11 +252,16 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			case ENCHANT_BACKGROUND ->
 			{
 				registry.add("deterministic-branches", this::testBackgroundEnchant);
+				registry.add("enchant-authority-and-risk", this::testEnchantAuthorityAndRisk);
 				registry.add("decision-service-atomic-transaction", this::testBackgroundEnchantServiceLifecycle);
 				registry.add("actual-outcome-matrix", this::testBackgroundEnchantOutcomeMatrix);
 				registry.add("atomic-fault-matrix", this::testBackgroundEnchantFaultMatrix);
 			}
-			case RESTART_TRANSITION -> registry.add("expiry-and-fail-stop", this::testRestartAndExpiry);
+			case RESTART_TRANSITION ->
+			{
+				registry.add("expiry-and-fail-stop", this::testRestartAndExpiry);
+				registry.add("shutdown-terminalizes-claims", this::testShutdownTerminalization);
+			}
 			case LIFECYCLE_PERFORMANCE ->
 			{
 				registry.add("materialization-boundary", this::testBoundary);
@@ -300,7 +311,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(State.PREPARED.canTransitionTo(State.RESERVED), "PREPARED must reserve.");
 		PhantomAssertions.assertTrue(State.RESERVED.canTransitionTo(State.DISPATCHING), "RESERVED must dispatch.");
 		PhantomAssertions.assertFalse(State.DISPATCHING.canTransitionTo(State.EXPIRED), "Dispatched work must never expire.");
-		PhantomAssertions.assertFalse(State.OBSERVING.canTransitionTo(State.ABORTED), "Observed work must fail stop.");
+		PhantomAssertions.assertTrue(State.OBSERVING.canTransitionTo(State.ABORTED), "Exactly observed pre-effect rejection must be abortable.");
 		final Reservation classZero = new Reservation(1, 7, 0, ResourceKind.RECIPE, 0, 100, 0, 0, 0, "");
 		final Reservation classOne = new Reservation(1, 7, 1, ResourceKind.RECIPE, 0, 100, 0, 0, 0, "");
 		PhantomAssertions.assertFalse(classZero.canonicalKey().equals(classOne.canonicalKey()), "Class-specific recipe locks collided.");
@@ -546,6 +557,32 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 		}
 	}
 
+	private void testItemObjectOverlapMatrix(PhantomTestContext context) throws Exception
+	{
+		final PhantomProfile profile = createProfile(940071);
+		final PhantomEconomyReservationService service = new PhantomEconomyReservationService(_policy);
+		try
+		{
+			service.start();
+			final Reservation first = new Reservation(profile.profileId(), 940071, ResourceKind.ITEM_OBJECT, 840071, 57, 0, 1, 0, "INVENTORY");
+			final Reservation second = new Reservation(profile.profileId(), 940071, ResourceKind.ITEM_OBJECT, 840072, 57, 0, 1, 0, "INVENTORY");
+			final Reservation duplicate = new Reservation(profile.profileId(), 940071, ResourceKind.ITEM_OBJECT, 840071, 58, 0, 1, 0, "INVENTORY");
+			final Reservation count = itemCount(profile.profileId(), 940071, 57);
+			PhantomAssertions.assertFalse(first.overlaps(second) || second.overlaps(first), "Distinct non-stackable object IDs collided by template ID.");
+			PhantomAssertions.assertTrue(first.overlaps(duplicate) && duplicate.overlaps(first), "Duplicate object identity was not symmetric.");
+			PhantomAssertions.assertTrue(first.overlaps(count) && count.overlaps(first), "ITEM_OBJECT/ITEM_COUNT overlap was not symmetric.");
+			final PhantomEconomyOperation operation = operation(profile.profileId(), 940071, 50, Kind.ITEM_ENCHANT, 1, System.currentTimeMillis());
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.RESERVED, service.reserve(operation, List.of(second, first)).status(), "Distinct object IDs for one item were rejected within an operation.");
+			service.transition(operation.operationId(), State.RESERVED, State.ABORTED, System.currentTimeMillis(), audit(Result.ERROR, "operation.conflict"));
+			context.record("economy.itemObjectOverlapMatrix", true);
+		}
+		finally
+		{
+			service.shutdown(System.currentTimeMillis());
+			deleteProfile(profile.profileId());
+		}
+	}
+
 	private void testRecipeClassIsolation(PhantomTestContext context) throws Exception
 	{
 		testClassIsolation(context, ResourceKind.RECIPE, 49);
@@ -713,6 +750,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, materialization.materialize(profile.profileId()).status(), "Repeatable craft Phantom did not materialize.");
 			player = World.getInstance().getPlayer(_environment.primary().objectId());
 			PhantomAssertions.assertTrue(player != null, "Repeatable craft Player is absent.");
+			final Player activePlayer = player;
 			hpBaseline = player.getCurrentHp();
 			mpBaseline = player.getCurrentMp();
 			final int skillId = recipe.isDwarvenRecipe() ? CommonSkill.CREATE_DWARVEN.getId() : CommonSkill.CREATE_COMMON.getId();
@@ -757,9 +795,53 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			final PhantomGoal cancellationGoal = goals.load(profile.profileId()).orElseThrow().goal();
 			final DecisionHarness cancelled = decisionHarness(service, profile.profileId(), cancellationGoal, PhantomActivityState.ACTIVE, 1, 1, 1);
 			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, cancelled.execute(0, false).type(), "Cancellation fixture did not reserve.");
-			PhantomAssertions.assertEquals(PhantomStepResult.Type.CANCELLED, cancelled.execute(1, true).type(), "Cancelled economy dispatch was not stopped.");
-			reservations.beforeBoundary(profile.profileId(), System.currentTimeMillis());
-			PhantomAssertions.assertTrue(reservations.findActive(profile.profileId()).isEmpty(), "Cancellation boundary retained a reservation.");
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, cancelled.execute(1, false).type(), "Cancellation fixture did not dispatch.");
+			final String cancelledOperationId = reservations.findActive(profile.profileId()).orElseThrow().operationId();
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.CANCELLED, cancelled.execute(2, true).type(), "DISPATCHING cancellation was not terminalized.");
+			PhantomAssertions.assertEquals(State.ABORTED, reservations.find(cancelledOperationId).orElseThrow().state(), "DISPATCHING cancellation did not abort before the canonical action.");
+			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "DISPATCHING cancellation retained claims.");
+
+			final DecisionHarness observingCancelled = decisionHarness(service, profile.profileId(), cancellationGoal, PhantomActivityState.ACTIVE, 1, 2, 2);
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, observingCancelled.execute(0, false).type(), "OBSERVING cancellation fixture did not reserve.");
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, observingCancelled.execute(1, false).type(), "OBSERVING cancellation fixture did not dispatch.");
+			final String observingOperationId = reservations.findActive(profile.profileId()).orElseThrow().operationId();
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.TRANSITIONED, reservations.transition(observingOperationId, State.DISPATCHING, State.OBSERVING, System.currentTimeMillis(), null).status(), "Cancellation fixture did not cross the action-issued boundary.");
+			final Map<Integer, Long> beforeObservingCancel = reservations.findReservations(observingOperationId).stream().filter(resource -> resource.kind() == ResourceKind.ITEM_COUNT).collect(java.util.stream.Collectors.toMap(Reservation::itemId, resource -> activePlayer.getInventory().getInventoryItemCount(resource.itemId(), -1)));
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.CANCELLED, observingCancelled.execute(2, true).type(), "OBSERVING cancellation did not use service-owned fail-stop.");
+			PhantomAssertions.assertEquals(State.INCONSISTENT, reservations.find(observingOperationId).orElseThrow().state(), "OBSERVING cancellation was blindly aborted.");
+			beforeObservingCancel.forEach((itemId, count) -> PhantomAssertions.assertEquals(count.longValue(), activePlayer.getInventory().getInventoryItemCount(itemId, -1), "OBSERVING cancellation invoked the canonical craft action."));
+			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "OBSERVING cancellation retained claims.");
+
+			final DecisionHarness staleAuthority = decisionHarness(service, profile.profileId(), cancellationGoal, PhantomActivityState.ACTIVE, 1, 3, 3);
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, staleAuthority.execute(0, false).type(), "Craft authority-drift fixture did not reserve.");
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, staleAuthority.execute(1, false).type(), "Craft authority-drift fixture did not dispatch.");
+			final String staleOperationId = reservations.findActive(profile.profileId()).orElseThrow().operationId();
+			final Map<Integer, Long> beforeAuthorityDrift = reservations.findReservations(staleOperationId).stream().filter(resource -> resource.kind() == ResourceKind.ITEM_COUNT).collect(java.util.stream.Collectors.toMap(Reservation::itemId, resource -> activePlayer.getInventory().getInventoryItemCount(resource.itemId(), -1)));
+			final boolean masterwork = PlayerConfig.CRAFT_MASTERWORK;
+			try
+			{
+				PlayerConfig.CRAFT_MASTERWORK = !masterwork;
+				PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, staleAuthority.execute(2, false).type(), "Craft authority drift did not reach a stale terminal result.");
+			}
+			finally
+			{
+				PlayerConfig.CRAFT_MASTERWORK = masterwork;
+			}
+			PhantomAssertions.assertEquals(State.ABORTED, reservations.find(staleOperationId).orElseThrow().state(), "Craft authority drift was not fail-stopped before action.");
+			beforeAuthorityDrift.forEach((itemId, count) -> PhantomAssertions.assertEquals(count.longValue(), activePlayer.getInventory().getInventoryItemCount(itemId, -1), "Craft authority drift mutated canonical inventory."));
+			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "Craft authority drift retained claims.");
+
+			final DecisionHarness outputDrift = decisionHarness(service, profile.profileId(), cancellationGoal, PhantomActivityState.ACTIVE, 1, 4, 4);
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, outputDrift.execute(0, false).type(), "Craft output-drift fixture did not reserve.");
+			final String outputDriftOperationId = reservations.findActive(profile.profileId()).orElseThrow().operationId();
+			final long outputBeforeExternalWrite = player.getInventory().getInventoryItemCount(recipe.getItemId(), -1);
+			PhantomAssertions.assertTrue(player.getInventory().addItem(ItemProcessType.REWARD, recipe.getItemId(), 1, player, this) != null, "Could not inject an external craft target delta.");
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, outputDrift.execute(1, false).type(), "Craft output-drift fixture did not dispatch.");
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, outputDrift.execute(2, false).type(), "Craft output drift did not reach a stale terminal result.");
+			PhantomAssertions.assertEquals(State.ABORTED, reservations.find(outputDriftOperationId).orElseThrow().state(), "External craft output delta was attributed to the reserved operation.");
+			PhantomAssertions.assertEquals(0L, acquisitions.load(profile.profileId()).orElseThrow().state().progress(), "External craft output delta advanced acquisition progress.");
+			restoreItemCount(player, recipe.getItemId(), outputBeforeExternalWrite);
+			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "Craft output drift retained claims.");
 
 			final List<String> committedOperationIds = new ArrayList<>();
 			for (int attempt = 0; attempt < 3; attempt++)
@@ -767,7 +849,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 				player.setCurrentHp(player.getMaxHp());
 				player.setCurrentMp(player.getMaxMp());
 				final PhantomGoal currentGoal = goals.load(profile.profileId()).orElseThrow().goal();
-				DecisionHarness harness = decisionHarness(service, profile.profileId(), currentGoal, PhantomActivityState.ACTIVE, 1, attempt + 2, attempt + 2);
+				DecisionHarness harness = decisionHarness(service, profile.profileId(), currentGoal, PhantomActivityState.ACTIVE, 1, attempt + 5, attempt + 5);
 				PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(0, false).type(), "Repeatable craft reserve failed at attempt " + attempt + ".");
 				PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(0, false).type(), "Repeatable craft reserve was not idempotent at attempt " + attempt + ".");
 				if (attempt == 0)
@@ -777,12 +859,24 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 					reservationServices.add(restarted);
 					reservations = restarted;
 					service = economyService(reservations, materialization, acquisitions, goals, repository);
-					harness = decisionHarness(service, profile.profileId(), currentGoal, PhantomActivityState.ACTIVE, 1, attempt + 2, attempt + 2);
+					harness = decisionHarness(service, profile.profileId(), currentGoal, PhantomActivityState.ACTIVE, 1, attempt + 5, attempt + 5);
 				}
 				PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(1, false).type(), "Repeatable craft dispatch failed at attempt " + attempt + ".");
-				PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(1, false).type(), "Repeatable craft dispatch was not idempotent at attempt " + attempt + ".");
+				harness = decisionHarness(service, profile.profileId(), currentGoal, PhantomActivityState.ACTIVE, 1, attempt + 5, attempt + 5);
+				PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(0, false).type(), "New craft plan did not resume DISPATCHING at attempt " + attempt + ".");
+				PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(1, false).type(), "New craft plan did not dispatch idempotently at attempt " + attempt + ".");
 				committedOperationIds.add(reservations.findActive(profile.profileId()).orElseThrow().operationId());
 				PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(2, false).type(), "Repeatable craft reconciliation failed at attempt " + attempt + ".");
+				if (attempt == 0)
+				{
+					final Map<Integer, Long> afterEffect = new HashMap<>();
+					for (int itemId : baselines.keySet())
+					{
+						afterEffect.put(itemId, player.getInventory().getInventoryItemCount(itemId, -1));
+					}
+					PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, harness.execute(2, false).type(), "Process-local retry after craft effect did not terminate without redispatch.");
+					afterEffect.forEach((itemId, count) -> PhantomAssertions.assertEquals(count.longValue(), activePlayer.getInventory().getInventoryItemCount(itemId, -1), "Process-local craft retry consumed or produced an item twice."));
+				}
 				final PhantomAcquisitionState current = acquisitions.load(profile.profileId()).orElseThrow().state();
 				PhantomAssertions.assertEquals(Math.multiplyExact(attempt + 1L, recipe.getCount()), current.progress(), "Repeatable craft progress did not advance exactly once.");
 				PhantomAssertions.assertEquals(attempt + 1, current.receipts().size(), "Repeatable craft receipt count drifted.");
@@ -876,6 +970,30 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			PlayerConfig.ALT_GAME_CREATION = alt;
 		}
 		context.record("economy.backgroundCraftAuthority", success.authorityHash());
+	}
+
+	private void testCraftAuthorityFacts(PhantomTestContext context)
+	{
+		final RecipeList recipe = selectAuthorityRecipeWithStatUse();
+		final PhantomAcquisitionState acquisition = acquisition(recipe);
+		final PhantomEconomyProjection.AuthorityFacts facts = PhantomEconomyProjection.craftAuthorityFacts(acquisition, recipe, _policy);
+		PhantomAssertions.assertEquals(PhantomEconomyProjection.craftAuthority(acquisition, recipe, _policy), facts.hash(), "Craft authority facts and public hash diverged.");
+		final Set<String> keys = facts.facts().stream().map(PhantomEconomyProjection.AuthorityFact::key).collect(java.util.stream.Collectors.toSet());
+		for (String required : List.of("policy.hash", "acquisition.catalog_hash", "acquisition.knowledge_hash", "acquisition.progression_hash", "acquisition.selected_source_id", "plan.recipe_list_id", "plan.node_count", "plan.deficit_count", "recipe.recipe_id", "recipe.level", "recipe.dwarven", "recipe.product_item_id", "recipe.product_count", "recipe.success_rate", "recipe.rare_item_id", "recipe.rare_count", "recipe.rarity", "recipe.ingredient_count", "recipe.stat_count", "recipe.stat.0.type", "recipe.stat.0.value", "recipe.craft_skill_id", "recipe.craft_skill_level", "recipe.normal_output.stackable", "recipe.normal_output.time", "recipe.normal_output.weight", "config.alt_game_creation", "config.crafting_enabled", "config.craft_masterwork", "config.craft_masterwork_chance_rate"))
+		{
+			PhantomAssertions.assertTrue(keys.contains(required), "Craft authority omitted " + required + ".");
+		}
+		PhantomAssertions.assertFalse(facts.canonical().contains("RecipePlan[") || facts.canonical().contains("RecipeHolder@"), "Craft authority used default object serialization.");
+		assertEveryAuthorityFactChangesHash(facts);
+		final RecipeList rareRecipe = selectCraftOutcomeRecipe(true);
+		final PhantomEconomyProjection.AuthorityFacts rareFacts = PhantomEconomyProjection.craftAuthorityFacts(acquisition(rareRecipe), rareRecipe, _policy);
+		final Set<String> rareKeys = rareFacts.facts().stream().map(PhantomEconomyProjection.AuthorityFact::key).collect(java.util.stream.Collectors.toSet());
+		for (String required : List.of("recipe.rare_output.present", "recipe.rare_output.item_id", "recipe.rare_output.stackable", "recipe.rare_output.time", "recipe.rare_output.weight"))
+		{
+			PhantomAssertions.assertTrue(rareKeys.contains(required), "Rare craft authority omitted " + required + ".");
+		}
+		assertEveryAuthorityFactChangesHash(rareFacts);
+		context.record("economy.craftAuthorityFacts", facts.facts().size() + rareFacts.facts().size());
 	}
 
 	private void testBackgroundCraftServiceLifecycle(PhantomTestContext context) throws Exception
@@ -1019,9 +1137,19 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 				final PhantomEconomyBackgroundTransaction transaction = new PhantomEconomyBackgroundTransaction(reservations, _policy);
 				final var quote = transaction.quoteCraft(background, acquisition.state());
 				PhantomAssertions.assertTrue(quote.executable(), "Actual background craft outcome quote was rejected.");
+				PhantomAssertions.assertEquals(1L, quote.reservations().stream().filter(resource -> (resource.kind() == ResourceKind.ITEM_COUNT) && (resource.itemId() == recipe.getItemId())).count(), "Craft normal output was not reserved exactly once or was not merged with its ingredient lock.");
+				if ((recipe.getRareItemId() > 0) && (recipe.getRareItemId() != recipe.getItemId()))
+				{
+					PhantomAssertions.assertEquals(1L, quote.reservations().stream().filter(resource -> (resource.kind() == ResourceKind.ITEM_COUNT) && (resource.itemId() == recipe.getRareItemId())).count(), "Craft rare output was not reserved exactly once.");
+				}
 				final long now = System.currentTimeMillis();
 				final PhantomEconomyOperation operation = backgroundOperation(fixture.profile().profileId(), fixture.characterObjectId(), goal.goal(), Kind.SELF_CRAFT, 1, quote.authorityHash(), now);
 				PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.RESERVED, reservations.reserve(operation, quote.reservations()).status(), "Actual background craft outcome reservation failed.");
+				final Reservation output = quote.reservations().stream().filter(resource -> (resource.kind() == ResourceKind.ITEM_COUNT) && (resource.itemId() == (rare ? recipe.getRareItemId() : recipe.getItemId()))).findFirst().orElseThrow();
+				try (var conflict = reservations.claimWriter(fixture.profile().profileId(), null, List.of(output)))
+				{
+					PhantomAssertions.assertFalse(conflict.acquired(), "External writer bypassed a possible craft output reservation.");
+				}
 				PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.TRANSITIONED, reservations.transition(operation.operationId(), State.RESERVED, State.DISPATCHING, now, null).status(), "Actual background craft outcome dispatch failed.");
 				final TransactionResult result = transaction.executeCraft(new PhantomEconomyBackgroundTransaction.CraftCommand(operation.operationId(), background, backgroundRowVersion, acquisition.state(), acquisition.rowVersion(), goal.goal(), goal.rowVersion(), 1, now));
 				PhantomAssertions.assertEquals(PhantomEconomyBackgroundTransaction.Status.COMMITTED, result.status(), "Actual background craft outcome transaction did not commit.");
@@ -1029,17 +1157,17 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(rare, result.rareCraft(), "Actual background craft rare attribution drifted.");
 				final PhantomAcquisitionState after = fixture.acquisitions().load(fixture.profile().profileId()).orElseThrow().state();
 				PhantomAssertions.assertEquals(0L, after.progress(), "Non-target craft outcome advanced target progress.");
-				PhantomAssertions.assertEquals(PhantomAcquisitionState.TerminalResult.FAILED, after.receipts().getLast().result(), "Non-target craft outcome claimed a committed target receipt.");
+				PhantomAssertions.assertEquals(rare ? PhantomAcquisitionState.TerminalResult.COMMITTED : PhantomAcquisitionState.TerminalResult.FAILED, after.receipts().getLast().result(), "Craft receipt did not preserve the canonical terminal result.");
 				PhantomAssertions.assertEquals(PhantomGoalStatus.ACTIVE, fixture.goals().load(fixture.profile().profileId()).orElseThrow().goal().status(), "Non-target craft outcome completed the Goal.");
 				PhantomAssertions.assertEquals(fixture.targetBaseline(), inventoryCount(fixture.characterObjectId(), recipe.getItemId()), "Non-target craft outcome changed the target item count.");
 				for (RecipeHolder ingredient : recipe.getRecipes())
 				{
 					PhantomAssertions.assertEquals(fixture.baselines().get(ingredient.getItemId()).longValue(), inventoryCount(fixture.characterObjectId(), ingredient.getItemId()), "Actual background craft outcome ingredient consumption drifted.");
 				}
-				final String expectedReason = rare ? "craft.target_not_produced" : "result.craft_failed";
+				final String expectedReason = rare ? "result.rare_product" : "result.craft_failed";
 				PhantomAssertions.assertEquals(expectedReason, scalarString("SELECT reason_key FROM phantom_economy_audit WHERE operation_id=?", operation.operationId()), "Craft outcome audit reason drifted.");
 				final String consequence = scalarString("SELECT CAST(consequence_payload AS CHAR) FROM phantom_economy_audit WHERE operation_id=?", operation.operationId());
-				PhantomAssertions.assertTrue(consequence.contains("rare=" + rare) && consequence.contains("sourceFailure=" + (rare ? "craft.target_not_produced" : "craft.canonical_failure")), "Craft outcome audit attribution is incomplete.");
+				PhantomAssertions.assertTrue(consequence.contains("rare=" + rare) && consequence.contains("sourceFailure=" + (rare ? "" : "craft.canonical_failure")), "Craft outcome audit attribution is incomplete.");
 				if (rare)
 				{
 					PhantomAssertions.assertTrue(recipe.getRareItemId() != recipe.getItemId(), "Rare attribution fixture did not use a different product ID.");
@@ -1123,6 +1251,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 		Player player = null;
 		long targetBaseline = 0;
 		long scrollBaseline = 0;
+		long adenaBaseline = 0;
 		try
 		{
 			materialization.start();
@@ -1131,26 +1260,89 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(player != null, "Full-chain enchant Player is absent.");
 			targetBaseline = player.getInventory().getInventoryItemCount(candidate.target().getId(), -1);
 			scrollBaseline = player.getInventory().getInventoryItemCount(candidate.scroll().getId(), -1);
+			adenaBaseline = player.getAdena();
+			final long replacementReserve = Math.max(0, candidate.target().getReferencePrice());
+			if (adenaBaseline < replacementReserve)
+			{
+				player.getInventory().addItem(ItemProcessType.REWARD, Inventory.ADENA_ID, replacementReserve - adenaBaseline, player, this);
+			}
 			final Item target = player.getInventory().addItem(ItemProcessType.REWARD, candidate.target().getId(), 1, player, this);
 			PhantomAssertions.assertTrue(player.getInventory().addItem(ItemProcessType.REWARD, candidate.scroll().getId(), 1, player, this) != null, "Could not fund full-chain enchant scroll.");
 			PhantomAssertions.assertTrue(target != null, "Could not create full-chain enchant target.");
-			final PhantomGoal goal = enchantGoal(2200220201L, 1, target.getObjectId(), target.getEnchantLevel() + 1, candidate.scroll().getId(), false, 0);
+			final PhantomGoal goal = enchantGoal(2200220201L, 1, target.getObjectId(), target.getEnchantLevel() + 1, candidate.scroll().getId(), false, replacementReserve);
 			goals.insert(profile.profileId(), goal);
 			reservations.start();
 			final PhantomEconomyService service = economyService(reservations, materialization, acquisitions, goals, repository);
-			final DecisionHarness harness = decisionHarness(service, profile.profileId(), goal, PhantomActivityState.ACTIVE, 2, 1, 1);
+
+			final DecisionHarness cancelled = decisionHarness(service, profile.profileId(), goal, PhantomActivityState.ACTIVE, 2, 1, 1);
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, cancelled.execute(0, false).type(), "Enchant cancellation fixture did not reserve.");
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, cancelled.execute(1, false).type(), "Enchant cancellation fixture did not dispatch.");
+			final String cancelledOperationId = reservations.findActive(profile.profileId()).orElseThrow().operationId();
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.CANCELLED, cancelled.execute(2, true).type(), "DISPATCHING enchant cancellation was not terminalized.");
+			PhantomAssertions.assertEquals(State.ABORTED, reservations.find(cancelledOperationId).orElseThrow().state(), "DISPATCHING enchant cancellation did not abort.");
+			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "DISPATCHING enchant cancellation retained claims.");
+
+			final DecisionHarness observingCancelled = decisionHarness(service, profile.profileId(), goal, PhantomActivityState.ACTIVE, 2, 2, 2);
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, observingCancelled.execute(0, false).type(), "OBSERVING enchant cancellation fixture did not reserve.");
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, observingCancelled.execute(1, false).type(), "OBSERVING enchant cancellation fixture did not dispatch.");
+			final String observingOperationId = reservations.findActive(profile.profileId()).orElseThrow().operationId();
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.TRANSITIONED, reservations.transition(observingOperationId, State.DISPATCHING, State.OBSERVING, System.currentTimeMillis(), null).status(), "Enchant cancellation fixture did not cross OBSERVING.");
+			final long scrollBeforeObservingCancel = player.getInventory().getInventoryItemCount(candidate.scroll().getId(), -1);
+			final String targetBeforeObservingCancel = activeItemEvidence(player, target.getObjectId(), candidate.target().getId());
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.CANCELLED, observingCancelled.execute(2, true).type(), "OBSERVING enchant cancellation did not fail stop.");
+			PhantomAssertions.assertEquals(State.INCONSISTENT, reservations.find(observingOperationId).orElseThrow().state(), "OBSERVING enchant cancellation was blindly aborted.");
+			PhantomAssertions.assertEquals(scrollBeforeObservingCancel, player.getInventory().getInventoryItemCount(candidate.scroll().getId(), -1), "OBSERVING cancellation consumed a scroll.");
+			PhantomAssertions.assertEquals(targetBeforeObservingCancel, activeItemEvidence(player, target.getObjectId(), candidate.target().getId()), "OBSERVING cancellation mutated the target.");
+			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "OBSERVING enchant cancellation retained claims.");
+
+			final DecisionHarness staleAuthority = decisionHarness(service, profile.profileId(), goal, PhantomActivityState.ACTIVE, 2, 3, 3);
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, staleAuthority.execute(0, false).type(), "Enchant authority-drift fixture did not reserve.");
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, staleAuthority.execute(1, false).type(), "Enchant authority-drift fixture did not dispatch.");
+			final String staleOperationId = reservations.findActive(profile.profileId()).orElseThrow().operationId();
+			final long scrollBeforeAuthorityDrift = player.getInventory().getInventoryItemCount(candidate.scroll().getId(), -1);
+			final String targetBeforeAuthorityDrift = activeItemEvidence(player, target.getObjectId(), candidate.target().getId());
+			final boolean disableOverEnchanting = PlayerConfig.DISABLE_OVER_ENCHANTING;
+			try
+			{
+				PlayerConfig.DISABLE_OVER_ENCHANTING = !disableOverEnchanting;
+				PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, staleAuthority.execute(2, false).type(), "Enchant authority drift did not reach a stale terminal result.");
+			}
+			finally
+			{
+				PlayerConfig.DISABLE_OVER_ENCHANTING = disableOverEnchanting;
+			}
+			PhantomAssertions.assertEquals(State.ABORTED, reservations.find(staleOperationId).orElseThrow().state(), "Enchant authority drift was not fail-stopped before action.");
+			PhantomAssertions.assertEquals(scrollBeforeAuthorityDrift, player.getInventory().getInventoryItemCount(candidate.scroll().getId(), -1), "Enchant authority drift consumed a scroll.");
+			PhantomAssertions.assertEquals(targetBeforeAuthorityDrift, activeItemEvidence(player, target.getObjectId(), candidate.target().getId()), "Enchant authority drift mutated the target.");
+			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "Enchant authority drift retained claims.");
+
+			DecisionHarness harness = decisionHarness(service, profile.profileId(), goal, PhantomActivityState.ACTIVE, 2, 4, 4);
 			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(0, false).type(), "Full-chain enchant reserve failed.");
-			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(0, false).type(), "Full-chain enchant reserve was not idempotent.");
+			harness = decisionHarness(service, profile.profileId(), goal, PhantomActivityState.ACTIVE, 2, 4, 4);
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(0, false).type(), "New enchant plan did not resume RESERVED.");
 			final var active = reservations.findActive(profile.profileId()).orElseThrow();
 			final List<Reservation> exact = reservations.findReservations(active.operationId());
 			PhantomAssertions.assertTrue(exact.stream().anyMatch(resource -> (resource.kind() == ResourceKind.ITEM_OBJECT) && (resource.objectId() == target.getObjectId())), "Full-chain enchant did not reserve the exact target object.");
 			PhantomAssertions.assertEquals(1L, exact.stream().filter(resource -> (resource.kind() == ResourceKind.ITEM_OBJECT) && (resource.itemId() == candidate.scroll().getId())).count(), "Full-chain enchant did not reserve one exact scroll object.");
+			final Reservation adena = exact.stream().filter(resource -> resource.kind() == ResourceKind.ADENA).findFirst().orElseThrow();
+			PhantomAssertions.assertTrue((adena.itemId() == Inventory.ADENA_ID) && (adena.count() == replacementReserve) && (adena.expectedCount() == player.getAdena()), "Enchant ADENA reservation did not bind the Goal reserve to canonical inventory evidence.");
+			try (var npcBuyConflict = reservations.claimWriter(profile.profileId(), null, List.of(new Reservation(profile.profileId(), player.getObjectId(), player.getClassIndex(), ResourceKind.ADENA, 0, Inventory.ADENA_ID, 1, player.getAdena(), 0, "INVENTORY"))))
+			{
+				PhantomAssertions.assertFalse(npcBuyConflict.acquired(), "Accepted NPC BUY Adena writer bypassed the enchant replacement reservation.");
+			}
 			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(1, false).type(), "Full-chain enchant dispatch failed.");
-			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(1, false).type(), "Full-chain enchant dispatch was not idempotent.");
+			harness = decisionHarness(service, profile.profileId(), goal, PhantomActivityState.ACTIVE, 2, 4, 4);
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(0, false).type(), "New enchant plan did not resume DISPATCHING.");
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(1, false).type(), "New enchant plan did not dispatch idempotently.");
 			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(2, false).type(), "Full-chain enchant reconcile failed.");
 			PhantomAssertions.assertEquals(State.COMMITTED, reservations.find(active.operationId()).orElseThrow().state(), "Full-chain enchant operation was not committed.");
 			PhantomAssertions.assertEquals(1L, scalarLong("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", active.operationId()), "Full-chain enchant audit row is absent.");
 			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "Full-chain enchant retained claims.");
+			final long scrollAfterEffect = player.getInventory().getInventoryItemCount(candidate.scroll().getId(), -1);
+			final String targetAfterEffect = activeItemEvidence(player, target.getObjectId(), candidate.target().getId());
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, harness.execute(2, false).type(), "Process-local retry after enchant effect did not terminate without redispatch.");
+			PhantomAssertions.assertEquals(scrollAfterEffect, player.getInventory().getInventoryItemCount(candidate.scroll().getId(), -1), "Process-local enchant retry consumed a second scroll.");
+			PhantomAssertions.assertEquals(targetAfterEffect, activeItemEvidence(player, target.getObjectId(), candidate.target().getId()), "Process-local enchant retry mutated the target twice.");
 			context.record("economy.activeEnchantOperation", active.operationId());
 		}
 		finally
@@ -1160,7 +1352,73 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			{
 				restoreItemCount(player, candidate.target().getId(), targetBaseline);
 				restoreItemCount(player, candidate.scroll().getId(), scrollBaseline);
+				restoreItemCount(player, Inventory.ADENA_ID, adenaBaseline);
 				player.setActiveEnchantItemId(Player.ID_NONE);
+			}
+			if (materialization.snapshot().state() != PhantomMaterializationService.ServiceState.STOPPED)
+			{
+				materialization.shutdown();
+			}
+			deleteProfile(profile.profileId());
+			if (player != null)
+			{
+				_environment.assertClean(_environment.primary(), player);
+			}
+		}
+	}
+
+	private void testEnchantActorGuards(PhantomTestContext context) throws Exception
+	{
+		final EnchantCandidate candidate = selectEnchantCandidate(Boolean.TRUE, false);
+		final PhantomProfileRepository repository = PhantomProfileRepository.open();
+		final PhantomProfile profile = repository.create(_environment.primary().objectId());
+		final PhantomMetrics metrics = new PhantomMetrics();
+		final PhantomMaterializationService materialization = new PhantomMaterializationService(repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
+		Player player = null;
+		long targetBaseline = 0;
+		long scrollBaseline = 0;
+		try
+		{
+			materialization.start();
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, materialization.materialize(profile.profileId()).status(), "Actor-guard Phantom did not materialize.");
+			player = World.getInstance().getPlayer(_environment.primary().objectId());
+			PhantomAssertions.assertTrue(player != null, "Actor-guard Player is absent.");
+			targetBaseline = player.getInventory().getInventoryItemCount(candidate.target().getId(), -1);
+			scrollBaseline = player.getInventory().getInventoryItemCount(candidate.scroll().getId(), -1);
+			final Item target = player.getInventory().addItem(ItemProcessType.REWARD, candidate.target().getId(), 1, player, this);
+			final Item scroll = player.getInventory().addItem(ItemProcessType.REWARD, candidate.scroll().getId(), 2, player, this);
+			PhantomAssertions.assertTrue((target != null) && (scroll != null), "Actor-guard resources are absent.");
+			final long targetCount = target.getCount();
+			final long scrollCount = scroll.getCount();
+			player.onTransactionRequest(player);
+			PhantomAssertions.assertEquals(EnchantItemService.Outcome.ERROR, EnchantItemService.getInstance().execute(new EnchantItemService.Request(player, target.getObjectId(), scroll.getObjectId(), 0, false, null)), "Direct canonical enchant bypassed transaction state.");
+			PhantomAssertions.assertEquals(scrollCount, scroll.getCount(), "Transaction-state rejection consumed a scroll.");
+			player.setActiveRequester(null);
+			player.onTransactionResponse();
+			player.setPrivateStoreType(PrivateStoreType.SELL);
+			PhantomAssertions.assertEquals(EnchantItemService.Outcome.ERROR, EnchantItemService.getInstance().execute(new EnchantItemService.Request(player, target.getObjectId(), scroll.getObjectId(), 0, false, null)), "Direct canonical enchant bypassed store state.");
+			PhantomAssertions.assertEquals(scrollCount, scroll.getCount(), "Store-state rejection consumed a scroll.");
+			player.setPrivateStoreType(PrivateStoreType.NONE);
+			PhantomAssertions.assertEquals(EnchantItemService.Outcome.ERROR, EnchantItemService.getInstance().execute(new EnchantItemService.Request(player, target.getObjectId(), scroll.getObjectId(), 999999999, false, null)), "Missing support ownership was accepted.");
+			PhantomAssertions.assertEquals(scrollCount, scroll.getCount(), "Missing-support rejection consumed a scroll.");
+			PhantomAssertions.assertEquals(EnchantItemService.Outcome.ERROR, EnchantItemService.getInstance().execute(new EnchantItemService.Request(player, target.getObjectId(), target.getObjectId(), 0, false, null)), "Invalid target/scroll identity was accepted.");
+			final int previousEnchant = target.getEnchantLevel();
+			target.setEnchantLevel(candidate.scroll().getMaxEnchantLevel());
+			PhantomAssertions.assertEquals(EnchantItemService.Outcome.ERROR, EnchantItemService.getInstance().execute(new EnchantItemService.Request(player, target.getObjectId(), scroll.getObjectId(), 0, false, null)), "Over-enchant guard was bypassed.");
+			target.setEnchantLevel(previousEnchant);
+			PhantomAssertions.assertEquals(targetCount, target.getCount(), "Actor validation mutated the target.");
+			PhantomAssertions.assertEquals(scrollCount, scroll.getCount(), "Actor validation consumed resources.");
+			context.record("economy.enchantActorGuards", 5);
+		}
+		finally
+		{
+			if (player != null)
+			{
+				player.setActiveRequester(null);
+				player.onTransactionResponse();
+				player.setPrivateStoreType(PrivateStoreType.NONE);
+				restoreItemCount(player, candidate.target().getId(), targetBaseline);
+				restoreItemCount(player, candidate.scroll().getId(), scrollBaseline);
 			}
 			if (materialization.snapshot().state() != PhantomMaterializationService.ServiceState.STOPPED)
 			{
@@ -1220,6 +1478,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 		Player player = null;
 		long targetBaseline = 0;
 		long scrollBaseline = 0;
+		long adenaBaseline = 0;
 		try
 		{
 			materialization.start();
@@ -1228,11 +1487,17 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(player != null, "Restart-window enchant Player is absent.");
 			targetBaseline = player.getInventory().getInventoryItemCount(candidate.target().getId(), -1);
 			scrollBaseline = player.getInventory().getInventoryItemCount(candidate.scroll().getId(), -1);
+			adenaBaseline = player.getAdena();
+			final long replacementReserve = Math.max(0, candidate.target().getReferencePrice());
+			if (adenaBaseline < replacementReserve)
+			{
+				player.getInventory().addItem(ItemProcessType.REWARD, Inventory.ADENA_ID, replacementReserve - adenaBaseline, player, this);
+			}
 			final Item target = player.getInventory().addItem(ItemProcessType.REWARD, candidate.target().getId(), 1, player, this);
 			final Item scroll = player.getInventory().addItem(ItemProcessType.REWARD, candidate.scroll().getId(), 1, player, this);
 			PhantomAssertions.assertTrue((target != null) && (scroll != null), "Restart-window enchant resources could not be created.");
 			target.setEnchantLevel(candidate.enchantLevel());
-			final PhantomGoal goal = enchantGoal(writeGoalBeforeRestart ? 2200220502L : 2200220501L, 1, target.getObjectId(), target.getEnchantLevel() + 1, candidate.scroll().getId(), false, 0);
+			final PhantomGoal goal = enchantGoal(writeGoalBeforeRestart ? 2200220502L : 2200220501L, 1, target.getObjectId(), target.getEnchantLevel() + 1, candidate.scroll().getId(), false, replacementReserve);
 			goals.insert(profile.profileId(), goal);
 			first.start();
 			final PhantomEconomyService service = economyService(first, materialization, acquisitions, goals, repository);
@@ -1240,6 +1505,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(0, false).type(), "Restart-window enchant reserve failed.");
 			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, harness.execute(1, false).type(), "Restart-window enchant dispatch failed.");
 			final String operationId = first.findActive(profile.profileId()).orElseThrow().operationId();
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.TRANSITIONED, first.transition(operationId, State.DISPATCHING, State.OBSERVING, System.currentTimeMillis(), null).status(), "Restart-window enchant did not cross the action-issued boundary.");
 			final AtomicReference<EnchantItemService.Event> observed = new AtomicReference<>();
 			final EnchantItemService.Outcome outcome = EnchantItemService.getInstance().execute(new EnchantItemService.Request(player, target.getObjectId(), scroll.getObjectId(), 0, false, observed::set));
 			PhantomAssertions.assertFalse(outcome == EnchantItemService.Outcome.ERROR, "Restart-window canonical enchant did not commit its effect.");
@@ -1277,6 +1543,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			{
 				restoreItemCount(player, candidate.target().getId(), targetBaseline);
 				restoreItemCount(player, candidate.scroll().getId(), scrollBaseline);
+				restoreItemCount(player, Inventory.ADENA_ID, adenaBaseline);
 				player.setActiveEnchantItemId(Player.ID_NONE);
 			}
 			if (materialization.snapshot().state() != PhantomMaterializationService.ServiceState.STOPPED)
@@ -1338,6 +1605,45 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 		}
 	}
 
+	private void testEnchantAuthorityAndRisk(PhantomTestContext context)
+	{
+		final EnchantCandidate ordinary = selectEnchantCandidate(Boolean.FALSE, false);
+		final EnchantSupportItem support = selectEnchantSupport(ordinary);
+		PhantomAssertions.assertTrue(support != null, "Production enchant data exposes no valid support authority fixture.");
+		final PhantomEconomyProjection.AuthorityFacts facts = PhantomEconomyProjection.enchantAuthorityFacts(ordinary.target(), ordinary.enchantLevel(), ordinary.scroll(), support, _policy);
+		final Set<String> keys = facts.facts().stream().map(PhantomEconomyProjection.AuthorityFact::key).collect(java.util.stream.Collectors.toSet());
+		for (String required : List.of("policy.hash", "target.item_id", "target.enchant_level", "target.type2", "target.crystal_grade", "target.enchantable", "target.crystallizable", "target.crystal_item_id", "target.crystal_count", "target.crystal_count_at_level", "target.crystal_destruction_consequence", "target.reference_price", "scroll.item_id", "scroll.grade", "scroll.maximum_enchant", "scroll.bonus_rate", "scroll.weapon", "scroll.safe", "scroll.blessed", "scroll.base_chance", "support.item_id", "support.grade", "support.maximum_enchant", "support.bonus_rate", "support.weapon", "combination.valid", "config.disable_over_enchanting"))
+		{
+			PhantomAssertions.assertTrue(keys.contains(required), "Enchant authority omitted " + required + ".");
+		}
+		assertEveryAuthorityFactChangesHash(facts);
+		final String withoutSupport = PhantomEconomyProjection.enchantAuthority(ordinary.target(), ordinary.enchantLevel(), ordinary.scroll(), null, _policy);
+		PhantomAssertions.assertFalse(withoutSupport.equals(facts.hash()), "Support bonus/stat family did not change enchant authority.");
+		final Identity identity = new Identity(1, 1, 1, 1, 1, "authority.enchant", 1, 1);
+		PhantomAssertions.assertFalse(identity.operationId(Kind.ITEM_ENCHANT, withoutSupport, "a".repeat(64)).equals(identity.operationId(Kind.ITEM_ENCHANT, facts.hash(), "a".repeat(64))), "Support authority did not change the operation ID.");
+
+		final PhantomEnchantGoalSpec goal = enchantGoal(ordinary);
+		final long reserve = goal.replacementReserve();
+		final long targetPrice = Math.max(0, ordinary.target().getReferencePrice());
+		final long expense = Math.addExact(Math.max(0, ordinary.scroll().getItem().getReferencePrice()), 0);
+		final EnchantRequest accepted = enchantRequest(goal, ordinary, ItemLocation.INVENTORY, 1);
+		PhantomAssertions.assertTrue(PhantomEconomyProjection.enchant(accepted).executable(), "Fully funded ordinary enchant was rejected.");
+		PhantomAssertions.assertEquals(Result.CONFLICT, PhantomEconomyProjection.enchant(enchantRequest(accepted, Math.max(0, reserve - 1), targetPrice, Long.MAX_VALUE, _policy)).result(), "Insufficient current Adena evidence was accepted.");
+		PhantomAssertions.assertEquals(Result.CONFLICT, PhantomEconomyProjection.enchant(enchantRequest(accepted, reserve, Math.max(0, targetPrice - 1), Long.MAX_VALUE, _policy)).result(), "Low Goal risk budget was accepted.");
+		PhantomAssertions.assertEquals(Result.CONFLICT, PhantomEconomyProjection.enchant(enchantRequest(accepted, reserve, targetPrice, Math.max(0, expense - 1), _policy)).result(), "Low remaining expense budget was accepted.");
+		final PhantomEnchantGoalSpec noDestruction = new PhantomEnchantGoalSpec(goal.targetObjectId(), goal.desiredLevel(), goal.maximumAttempts(), goal.attemptsUsed(), goal.expenseUsed(), false, goal.replacementReserve(), goal.allowedScrollItemIds(), goal.allowedSupportItemIds());
+		PhantomAssertions.assertEquals(Result.CONFLICT, PhantomEconomyProjection.enchant(new EnchantRequest(noDestruction, accepted.target(), accepted.targetObjectId(), accepted.enchantLevel(), accepted.targetLocation(), accepted.scrollObjectId(), accepted.scrollItemId(), 0, 0, false, false, false, false, reserve, targetPrice, Long.MAX_VALUE, accepted.rngState(), _policy)).result(), "Ordinary destruction without permission was accepted.");
+		final PhantomEconomyPolicy restrictive = new PhantomEconomyPolicy("0".repeat(64), _policy.limits(), _policy.craft(), _policy.enchant(), new PhantomEconomyPolicy.Risk(0, _policy.risk().replacementReservePercent()), _policy.reasonKeys());
+		PhantomAssertions.assertEquals(Result.CONFLICT, PhantomEconomyProjection.enchant(enchantRequest(accepted, reserve, targetPrice, Long.MAX_VALUE, restrictive)).result(), "Maximum expense percentage was bypassed.");
+		for (EnchantCandidate protectedCandidate : List.of(selectEnchantCandidate(Boolean.TRUE, false), selectEnchantCandidate(Boolean.FALSE, true)))
+		{
+			final PhantomEnchantGoalSpec protectedGoal = enchantGoal(protectedCandidate);
+			final EnchantRequest protectedRequest = enchantRequest(protectedGoal, protectedCandidate, ItemLocation.INVENTORY, 1);
+			PhantomAssertions.assertTrue(PhantomEconomyProjection.enchant(enchantRequest(protectedRequest, protectedGoal.replacementReserve(), Long.MAX_VALUE, Long.MAX_VALUE, restrictive)).executable(), "Safe/blessed enchant was incorrectly subjected to destructive risk gates.");
+		}
+		context.record("economy.enchantAuthorityFacts", facts.facts().size());
+	}
+
 	private void testBackgroundEnchantOutcomeMatrix(PhantomTestContext context) throws Exception
 	{
 		final List<EnchantOutcomeFixture> outcomes = List.of(
@@ -1357,7 +1663,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 					final long backgroundRowVersion = fixture.repository().findComponent(fixture.profile().profileId(), PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().rowVersion();
 					final var goal = fixture.goals().load(fixture.profile().profileId()).orElseThrow();
 					final PhantomEconomyBackgroundTransaction transaction = new PhantomEconomyBackgroundTransaction(reservations, _policy);
-					final var quote = transaction.quoteEnchant(background, goal.goal(), fixture.replacementEvidence());
+					final var quote = transaction.quoteEnchant(background, goal.goal());
 					PhantomAssertions.assertTrue(quote.executable(), "Actual background enchant quote was rejected for " + requested.result() + ".");
 					final long now = System.currentTimeMillis();
 					final PhantomEconomyOperation operation = backgroundOperation(fixture.profile().profileId(), fixture.characterObjectId(), goal.goal(), Kind.ITEM_ENCHANT, 1, quote.authorityHash(), now);
@@ -1404,7 +1710,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 					final long backgroundRowVersion = fixture.repository().findComponent(fixture.profile().profileId(), PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().rowVersion();
 					final var goal = fixture.goals().load(fixture.profile().profileId()).orElseThrow();
 					final PhantomEconomyBackgroundTransaction quoting = new PhantomEconomyBackgroundTransaction(reservations, _policy);
-					final var quote = quoting.quoteEnchant(background, goal.goal(), fixture.replacementEvidence());
+					final var quote = quoting.quoteEnchant(background, goal.goal());
 					PhantomAssertions.assertTrue(quote.executable(), "Enchant fault quote was not executable: " + faultPoint);
 					final long now = System.currentTimeMillis();
 					final PhantomEconomyOperation operation = backgroundOperation(fixture.profile().profileId(), fixture.characterObjectId(), goal.goal(), Kind.ITEM_ENCHANT, attempt++, quote.authorityHash(), now);
@@ -1448,6 +1754,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 		final PhantomProfile expiringProfile = createProfile(920002);
 		final PhantomEconomyReservationService first = new PhantomEconomyReservationService(_policy);
 		final PhantomEconomyReservationService restarted = new PhantomEconomyReservationService(_policy);
+		final PhantomEconomyReservationService observingRestart = new PhantomEconomyReservationService(_policy);
 		try
 		{
 			final long now = System.currentTimeMillis();
@@ -1456,20 +1763,60 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			first.reserve(dispatched, List.of(itemObject(dispatchedProfile.profileId(), 920001, 881001, 1)));
 			first.transition(dispatched.operationId(), State.RESERVED, State.DISPATCHING, now + 1, null);
 			PhantomAssertions.assertTrue(restarted.start(), "Restarted economy service did not start.");
-			PhantomAssertions.assertEquals(State.INCONSISTENT, restarted.find(dispatched.operationId()).orElseThrow().state(), "Ambiguous dispatch was redispatched instead of failing stop.");
+			PhantomAssertions.assertEquals(State.DISPATCHING, restarted.find(dispatched.operationId()).orElseThrow().state(), "Pre-action dispatch was not resumable after restart.");
+			restarted.transition(dispatched.operationId(), State.DISPATCHING, State.OBSERVING, now + 2, null);
+			PhantomAssertions.assertTrue(observingRestart.start(), "Observing restart economy service did not start.");
+			PhantomAssertions.assertEquals(State.INCONSISTENT, observingRestart.find(dispatched.operationId()).orElseThrow().state(), "Action-issued observing state did not fail stop after restart.");
 			final PhantomEconomyOperation expiring = operation(expiringProfile.profileId(), 920002, 22, Kind.SELF_CRAFT, 1, now);
-			restarted.reserve(expiring, List.of(itemCount(expiringProfile.profileId(), 920002, 77)));
-			PhantomAssertions.assertEquals(1, restarted.expireDue(now + 1_000_000, 8), "Predispatch reservation did not expire exactly once.");
-			PhantomAssertions.assertEquals(State.EXPIRED, restarted.find(expiring.operationId()).orElseThrow().state(), "Expired operation retained a nonterminal state.");
-			PhantomAssertions.assertTrue(restarted.findReservations(expiring.operationId()).isEmpty(), "Expiry retained reservations.");
-			context.record("economy.restartInconsistent", restarted.snapshot().inconsistent());
+			observingRestart.reserve(expiring, List.of(itemCount(expiringProfile.profileId(), 920002, 77)));
+			PhantomAssertions.assertEquals(1, observingRestart.expireDue(now + 1_000_000, 8), "Predispatch reservation did not expire exactly once.");
+			PhantomAssertions.assertEquals(State.EXPIRED, observingRestart.find(expiring.operationId()).orElseThrow().state(), "Expired operation retained a nonterminal state.");
+			PhantomAssertions.assertTrue(observingRestart.findReservations(expiring.operationId()).isEmpty(), "Expiry retained reservations.");
+			context.record("economy.restartInconsistent", observingRestart.snapshot().inconsistent());
 		}
 		finally
 		{
 			first.shutdown(System.currentTimeMillis());
 			restarted.shutdown(System.currentTimeMillis());
+			observingRestart.shutdown(System.currentTimeMillis());
 			deleteProfile(dispatchedProfile.profileId());
 			deleteProfile(expiringProfile.profileId());
+		}
+	}
+
+	private void testShutdownTerminalization(PhantomTestContext context) throws Exception
+	{
+		final PhantomProfile reservedProfile = createProfile(925001);
+		final PhantomProfile dispatchingProfile = createProfile(925002);
+		final PhantomProfile observingProfile = createProfile(925003);
+		final PhantomEconomyReservationService service = new PhantomEconomyReservationService(_policy);
+		try
+		{
+			final long now = System.currentTimeMillis();
+			service.start();
+			final PhantomEconomyOperation reserved = operation(reservedProfile.profileId(), 925001, 25, Kind.SELF_CRAFT, 1, now);
+			final PhantomEconomyOperation dispatching = operation(dispatchingProfile.profileId(), 925002, 26, Kind.ITEM_ENCHANT, 1, now);
+			final PhantomEconomyOperation observing = operation(observingProfile.profileId(), 925003, 27, Kind.ITEM_ENCHANT, 1, now);
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.RESERVED, service.reserve(reserved, List.of(itemCount(reservedProfile.profileId(), 925001, 925101))).status(), "Shutdown RESERVED fixture failed.");
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.RESERVED, service.reserve(dispatching, List.of(itemObject(dispatchingProfile.profileId(), 925002, 925102, 0))).status(), "Shutdown DISPATCHING fixture failed.");
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.TRANSITIONED, service.transition(dispatching.operationId(), State.RESERVED, State.DISPATCHING, now + 1, null).status(), "Shutdown DISPATCHING fixture did not dispatch.");
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.RESERVED, service.reserve(observing, List.of(itemObject(observingProfile.profileId(), 925003, 925103, 0))).status(), "Shutdown OBSERVING fixture failed.");
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.TRANSITIONED, service.transition(observing.operationId(), State.RESERVED, State.DISPATCHING, now + 1, null).status(), "Shutdown OBSERVING fixture did not dispatch.");
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.TRANSITIONED, service.transition(observing.operationId(), State.DISPATCHING, State.OBSERVING, now + 2, null).status(), "Shutdown OBSERVING fixture did not cross the action-issued boundary.");
+			service.shutdown(now + 3);
+			PhantomAssertions.assertEquals(State.ABORTED, service.find(reserved.operationId()).orElseThrow().state(), "Shutdown did not abort RESERVED.");
+			PhantomAssertions.assertEquals(State.ABORTED, service.find(dispatching.operationId()).orElseThrow().state(), "Shutdown did not abort pre-action DISPATCHING.");
+			PhantomAssertions.assertEquals(State.INCONSISTENT, service.find(observing.operationId()).orElseThrow().state(), "Shutdown did not fail stop OBSERVING.");
+			PhantomAssertions.assertEquals(0L, service.snapshot().currentOperations(), "Shutdown retained executable economy operations.");
+			PhantomAssertions.assertEquals(0L, service.snapshot().currentReservations(), "Shutdown retained economy claims.");
+			context.record("economy.shutdownTerminalStates", List.of(State.ABORTED, State.ABORTED, State.INCONSISTENT));
+		}
+		finally
+		{
+			service.shutdown(System.currentTimeMillis());
+			deleteProfile(reservedProfile.profileId());
+			deleteProfile(dispatchingProfile.profileId());
+			deleteProfile(observingProfile.profileId());
 		}
 	}
 
@@ -1518,12 +1865,12 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 		{
 			checksum += first.canonicalKey().equals(second.canonicalKey()) ? 1 : 0;
 			checksum += PhantomEconomyProjection.craft(new CraftRequest(acquisition, recipe, true, recipe.getLevel(), inventory, 100000, 100000, i, _policy)).nextRngState();
-			checksum += PhantomEconomyProjection.enchant(new EnchantRequest(enchantRequest.goal(), enchantRequest.target(), enchantRequest.targetObjectId(), enchantRequest.enchantLevel(), enchantRequest.targetLocation(), enchantRequest.scrollObjectId(), enchantRequest.scrollItemId(), enchantRequest.supportObjectId(), enchantRequest.supportItemId(), enchantRequest.augmented(), enchantRequest.elemented(), enchantRequest.timeLimited(), enchantRequest.leased(), enchantRequest.replacementEvidence(), enchantRequest.expenseBudget(), i, _policy)).nextRngState();
+			checksum += PhantomEconomyProjection.enchant(new EnchantRequest(enchantRequest.goal(), enchantRequest.target(), enchantRequest.targetObjectId(), enchantRequest.enchantLevel(), enchantRequest.targetLocation(), enchantRequest.scrollObjectId(), enchantRequest.scrollItemId(), enchantRequest.supportObjectId(), enchantRequest.supportItemId(), enchantRequest.augmented(), enchantRequest.elemented(), enchantRequest.timeLimited(), enchantRequest.leased(), enchantRequest.replacementEvidence(), enchantRequest.riskBudget(), enchantRequest.expenseBudget(), i, _policy)).nextRngState();
 		}
 		for (int i = 0; i < 10000; i++)
 		{
 			checksum += PhantomEconomyProjection.craft(new CraftRequest(acquisition, recipe, true, recipe.getLevel(), inventory, 100000, 100000, i, _policy)).nextRngState();
-			checksum += PhantomEconomyProjection.enchant(new EnchantRequest(enchantRequest.goal(), enchantRequest.target(), enchantRequest.targetObjectId(), enchantRequest.enchantLevel(), enchantRequest.targetLocation(), enchantRequest.scrollObjectId(), enchantRequest.scrollItemId(), enchantRequest.supportObjectId(), enchantRequest.supportItemId(), enchantRequest.augmented(), enchantRequest.elemented(), enchantRequest.timeLimited(), enchantRequest.leased(), enchantRequest.replacementEvidence(), enchantRequest.expenseBudget(), i, _policy)).nextRngState();
+			checksum += PhantomEconomyProjection.enchant(new EnchantRequest(enchantRequest.goal(), enchantRequest.target(), enchantRequest.targetObjectId(), enchantRequest.enchantLevel(), enchantRequest.targetLocation(), enchantRequest.scrollObjectId(), enchantRequest.scrollItemId(), enchantRequest.supportObjectId(), enchantRequest.supportItemId(), enchantRequest.augmented(), enchantRequest.elemented(), enchantRequest.timeLimited(), enchantRequest.leased(), enchantRequest.replacementEvidence(), enchantRequest.riskBudget(), enchantRequest.expenseBudget(), i, _policy)).nextRngState();
 			final PhantomEconomyOperation replay = operation(1, 999001, 100 + i, Kind.SELF_CRAFT, 1, i);
 			checksum += replay.operationId().equals(operation(1, 999001, 100 + i, Kind.SELF_CRAFT, 1, i).operationId()) ? 1 : 0;
 		}
@@ -1568,7 +1915,25 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 
 	private EnchantRequest enchantRequest(PhantomEnchantGoalSpec goal, EnchantCandidate candidate, ItemLocation location, long rngState)
 	{
-		return new EnchantRequest(goal, candidate.target(), goal.targetObjectId(), candidate.enchantLevel(), location, 880002, candidate.scroll().getId(), 0, 0, false, false, false, false, Long.MAX_VALUE, Long.MAX_VALUE, rngState, _policy);
+		return new EnchantRequest(goal, candidate.target(), goal.targetObjectId(), candidate.enchantLevel(), location, 880002, candidate.scroll().getId(), 0, 0, false, false, false, false, Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE, rngState, _policy);
+	}
+
+	private static EnchantRequest enchantRequest(EnchantRequest source, long replacementEvidence, long riskBudget, long expenseBudget, PhantomEconomyPolicy policy)
+	{
+		return new EnchantRequest(source.goal(), source.target(), source.targetObjectId(), source.enchantLevel(), source.targetLocation(), source.scrollObjectId(), source.scrollItemId(), source.supportObjectId(), source.supportItemId(), source.augmented(), source.elemented(), source.timeLimited(), source.leased(), replacementEvidence, riskBudget, expenseBudget, source.rngState(), policy);
+	}
+
+	private static EnchantSupportItem selectEnchantSupport(EnchantCandidate candidate)
+	{
+		for (int itemId = 1; itemId <= 50000; itemId++)
+		{
+			final EnchantSupportItem support = EnchantItemData.getInstance().getSupportItemById(itemId);
+			if ((support != null) && candidate.scroll().isValid(candidate.target(), candidate.enchantLevel(), support))
+			{
+				return support;
+			}
+		}
+		return null;
 	}
 
 	private static EnchantCandidate selectEnchantCandidate(Boolean safe, boolean blessed)
@@ -1602,6 +1967,11 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 	private static RecipeList selectRecipe()
 	{
 		return Arrays.stream(RecipeData.getInstance().getAllItemIds()).mapToObj(RecipeData.getInstance()::getRecipeByItemId).filter(recipe -> (recipe != null) && (recipe.getLevel() > 0) && (recipe.getLevel() <= 1) && (recipe.getSuccessRate() > 0) && (recipe.getRecipes().length > 0) && (recipe.getRecipes().length <= 8) && Arrays.stream(recipe.getRecipes()).allMatch(ingredient -> (ingredient.getQuantity() > 0) && (ingredient.getQuantity() <= 1000) && (ingredient.getItemId() != recipe.getItemId())) && Arrays.stream(recipe.getRecipes()).map(RecipeHolder::getItemId).distinct().count() == recipe.getRecipes().length && Arrays.stream(recipe.getStatUse()).allMatch(stat -> (stat.getType() == StatType.HP) || (stat.getType() == StatType.MP)) && (ItemData.getInstance().getTemplate(recipe.getItemId()) != null) && (ItemData.getInstance().getTemplate(recipe.getItemId()).getTime() == -1)).sorted(Comparator.comparingInt(RecipeList::getId)).findFirst().orElseThrow(() -> new AssertionError("No bounded production recipe is available."));
+	}
+
+	private static RecipeList selectAuthorityRecipeWithStatUse()
+	{
+		return Arrays.stream(RecipeData.getInstance().getAllItemIds()).mapToObj(RecipeData.getInstance()::getRecipeByItemId).filter(recipe -> (recipe != null) && (recipe.getRecipes().length > 0) && (recipe.getStatUse().length > 0) && Arrays.stream(recipe.getStatUse()).allMatch(stat -> (stat.getType() == StatType.HP) || (stat.getType() == StatType.MP)) && (ItemData.getInstance().getTemplate(recipe.getItemId()) != null)).sorted(Comparator.comparingInt(RecipeList::getId)).findFirst().orElseThrow(() -> new AssertionError("No production recipe with stat-use authority is available."));
 	}
 
 	private static RecipeList selectRepeatableRecipe()
@@ -1798,6 +2168,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			mpBaseline = player.getCurrentMp();
 			baselines.put(candidate.target().getId(), player.getInventory().getInventoryItemCount(candidate.target().getId(), -1));
 			baselines.put(candidate.scroll().getId(), player.getInventory().getInventoryItemCount(candidate.scroll().getId(), -1));
+			baselines.put(Inventory.ADENA_ID, player.getAdena());
 			if (candidate.target().getCrystalItemId() > 0)
 			{
 				baselines.put(candidate.target().getCrystalItemId(), player.getInventory().getInventoryItemCount(candidate.target().getCrystalItemId(), -1));
@@ -1806,14 +2177,18 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(target != null, "Could not create background enchant target.");
 			target.setEnchantLevel(candidate.enchantLevel());
 			PhantomAssertions.assertTrue(player.getInventory().addItem(ItemProcessType.REWARD, candidate.scroll().getId(), 1, player, this) != null, "Could not fund background enchant scroll.");
+			final long replacementEvidence = Math.max(0, candidate.target().getReferencePrice());
+			if (player.getAdena() < replacementEvidence)
+			{
+				player.getInventory().addItem(ItemProcessType.REWARD, Inventory.ADENA_ID, replacementEvidence - player.getAdena(), player, this);
+			}
 			final int maximumLoad = Math.max(player.getMaxLoad(), 1);
 			final int maximumSlots = Math.max(player.getInventoryLimit(), 1);
 			materialization.shutdown();
-			final Set<Integer> mutable = new java.util.TreeSet<>(Set.of(candidate.target().getId(), candidate.scroll().getId()));
+			final Set<Integer> mutable = new java.util.TreeSet<>(Set.of(candidate.target().getId(), candidate.scroll().getId(), Inventory.ADENA_ID));
 			final PhantomBackgroundState background = backgroundState(profile.profileId(), _environment.primary().objectId(), mutable, rngState, maximumLoad, maximumSlots);
 			repository.insertComponent(profile.profileId(), PhantomBackgroundState.COMPONENT_TYPE, PhantomBackgroundState.SCHEMA_VERSION, new PhantomBackgroundStateCodec().encode(background));
 			final int scrollObjectId = inventoryObjectId(_environment.primary().objectId(), candidate.scroll().getId());
-			final long replacementEvidence = Math.max(0, candidate.target().getReferencePrice());
 			final PhantomGoal goal = enchantGoal(2200220401L, 1, target.getObjectId(), target.getEnchantLevel() + 1, candidate.scroll().getId(), true, replacementEvidence);
 			goals.insert(profile.profileId(), goal);
 			return new BackgroundEnchantFixture(_environment, profile, repository, goals, acquisitions, materialization, goal, candidate.target().getId(), candidate.scroll().getId(), target.getObjectId(), scrollObjectId, replacementEvidence, Map.copyOf(baselines), hpBaseline, mpBaseline, _environment.primary().objectId());
@@ -1940,7 +2315,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 
 	private static PhantomEconomyBackgroundTransaction.EnchantCommand enchantCommand(BackgroundEnchantFixture fixture, String operationId, PhantomBackgroundState background, long backgroundRowVersion, PhantomGoal goal, long goalRowVersion, long now)
 	{
-		return new PhantomEconomyBackgroundTransaction.EnchantCommand(operationId, background, backgroundRowVersion, goal, goalRowVersion, fixture.targetObjectId(), fixture.targetItemId(), fixture.scrollObjectId(), fixture.scrollItemId(), 0, 0, fixture.replacementEvidence(), now);
+		return new PhantomEconomyBackgroundTransaction.EnchantCommand(operationId, background, backgroundRowVersion, goal, goalRowVersion, fixture.targetObjectId(), fixture.targetItemId(), fixture.scrollObjectId(), fixture.scrollItemId(), 0, 0, now);
 	}
 
 	private static long inventoryCount(int characterObjectId, int itemId) throws Exception
@@ -2048,7 +2423,18 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 
 	private static Reservation itemObject(long profileId, int ownerObjectId, int objectId, int enchantLevel)
 	{
-		return new Reservation(profileId, ownerObjectId, ResourceKind.ITEM_OBJECT, objectId, 0, 0, 1, enchantLevel, "INVENTORY");
+		return new Reservation(profileId, ownerObjectId, ResourceKind.ITEM_OBJECT, objectId, objectId, 0, 1, enchantLevel, "INVENTORY");
+	}
+
+	private static void assertEveryAuthorityFactChangesHash(PhantomEconomyProjection.AuthorityFacts authority)
+	{
+		for (int index = 0; index < authority.facts().size(); index++)
+		{
+			final List<PhantomEconomyProjection.AuthorityFact> changed = new ArrayList<>(authority.facts());
+			final PhantomEconomyProjection.AuthorityFact original = changed.get(index);
+			changed.set(index, new PhantomEconomyProjection.AuthorityFact(original.key(), original.value() + "#"));
+			PhantomAssertions.assertFalse(authority.hash().equals(new PhantomEconomyProjection.AuthorityFacts(changed).hash()), "Authority fact did not affect the hash: " + original.key());
+		}
 	}
 
 	private static Audit audit(Result result, String reason)

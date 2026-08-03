@@ -102,7 +102,7 @@ public final class PhantomEconomyReservationService
 		}
 		for (int page = 0; page < 391; page++)
 		{
-			final List<StoredOperation> uncertain = findUncertain(256);
+			final List<StoredOperation> uncertain = findObserving(256);
 			if (uncertain.isEmpty())
 			{
 				return true;
@@ -539,9 +539,9 @@ public final class PhantomEconomyReservationService
 	public void shutdown(long nowEpochMillis)
 	{
 		_admissionOpen.set(false);
-		for (int i = 0; i < 256; i++)
+		for (int i = 0; i < 391; i++)
 		{
-			final List<String> candidates = findPredispatch(256);
+			final List<String> candidates = findShutdownCandidates(256);
 			if (candidates.isEmpty())
 			{
 				break;
@@ -549,9 +549,13 @@ public final class PhantomEconomyReservationService
 			for (String operationId : candidates)
 			{
 				final Optional<StoredOperation> stored = find(operationId);
-				if (stored.isPresent() && ((stored.get().state() == State.PREPARED) || (stored.get().state() == State.RESERVED)))
+				if (stored.isPresent() && ((stored.get().state() == State.PREPARED) || (stored.get().state() == State.RESERVED) || (stored.get().state() == State.DISPATCHING)))
 				{
 					transition(operationId, stored.get().state(), State.ABORTED, nowEpochMillis, new Audit(PhantomEconomyOperation.Result.ERROR, "operation.shutdown", new byte[0]));
+				}
+				else if (stored.isPresent() && (stored.get().state() == State.OBSERVING))
+				{
+					transition(operationId, State.OBSERVING, State.INCONSISTENT, nowEpochMillis, new Audit(PhantomEconomyOperation.Result.INCONSISTENT, "operation.shutdown.observing", new byte[0]));
 				}
 			}
 		}
@@ -913,12 +917,13 @@ public final class PhantomEconomyReservationService
 	{
 		for (Reservation resource : resources.stream().sorted(Reservation.CANONICAL_ORDER).toList())
 		{
-			final boolean itemResource = (resource.kind() == PhantomEconomyOperation.ResourceKind.ITEM_COUNT) || (resource.kind() == PhantomEconomyOperation.ResourceKind.ITEM_OBJECT);
-			final String sql = itemResource ? "SELECT operation_id FROM phantom_economy_reservations WHERE canonical_resource_key=? OR (owner_object_id=? AND item_id=? AND resource_kind IN ('ITEM_COUNT','ITEM_OBJECT')) ORDER BY canonical_resource_key FOR UPDATE" : "SELECT operation_id FROM phantom_economy_reservations WHERE canonical_resource_key=? FOR UPDATE";
+			final boolean itemCount = resource.kind() == PhantomEconomyOperation.ResourceKind.ITEM_COUNT;
+			final boolean itemObject = resource.kind() == PhantomEconomyOperation.ResourceKind.ITEM_OBJECT;
+			final String sql = itemCount ? "SELECT operation_id FROM phantom_economy_reservations WHERE canonical_resource_key=? OR (owner_object_id=? AND item_id=? AND resource_kind='ITEM_OBJECT') ORDER BY canonical_resource_key FOR UPDATE" : itemObject ? "SELECT operation_id FROM phantom_economy_reservations WHERE canonical_resource_key=? OR (owner_object_id=? AND item_id=? AND resource_kind='ITEM_COUNT') ORDER BY canonical_resource_key FOR UPDATE" : "SELECT operation_id FROM phantom_economy_reservations WHERE canonical_resource_key=? FOR UPDATE";
 			try (PreparedStatement statement = connection.prepareStatement(sql))
 			{
 				statement.setString(1, resource.canonicalKey());
-				if (itemResource)
+				if (itemCount || itemObject)
 				{
 					statement.setInt(2, resource.ownerObjectId());
 					statement.setInt(3, resource.itemId());
@@ -943,18 +948,10 @@ public final class PhantomEconomyReservationService
 		for (int left = 0; left < resources.size(); left++)
 		{
 			final Reservation first = resources.get(left);
-			final boolean firstAdena = first.kind() == PhantomEconomyOperation.ResourceKind.ADENA;
-			final boolean firstItem = (first.kind() == PhantomEconomyOperation.ResourceKind.ITEM_COUNT) || (first.kind() == PhantomEconomyOperation.ResourceKind.ITEM_OBJECT);
-			if (!firstAdena && !firstItem)
-			{
-				continue;
-			}
 			for (int right = left + 1; right < resources.size(); right++)
 			{
 				final Reservation second = resources.get(right);
-				final boolean secondAdena = second.kind() == PhantomEconomyOperation.ResourceKind.ADENA;
-				final boolean secondItem = (second.kind() == PhantomEconomyOperation.ResourceKind.ITEM_COUNT) || (second.kind() == PhantomEconomyOperation.ResourceKind.ITEM_OBJECT);
-				if ((first.ownerObjectId() == second.ownerObjectId()) && ((firstAdena && secondAdena) || (firstItem && secondItem && (first.itemId() == second.itemId()))))
+				if (first.overlaps(second))
 				{
 					return true;
 				}
@@ -963,10 +960,10 @@ public final class PhantomEconomyReservationService
 		return false;
 	}
 
-	private List<String> findPredispatch(int maximum)
+	private List<String> findShutdownCandidates(int maximum)
 	{
 		final List<String> result = new ArrayList<>();
-		try (Connection connection = _connections.open(); PreparedStatement statement = connection.prepareStatement("SELECT operation_id FROM phantom_economy_operations WHERE operation_state IN ('PREPARED','RESERVED') ORDER BY profile_id,operation_id LIMIT ?"))
+		try (Connection connection = _connections.open(); PreparedStatement statement = connection.prepareStatement("SELECT operation_id FROM phantom_economy_operations WHERE operation_state IN ('PREPARED','RESERVED','DISPATCHING','OBSERVING') ORDER BY profile_id,operation_id LIMIT ?"))
 		{
 			statement.setInt(1, maximum);
 			try (ResultSet rows = statement.executeQuery())
@@ -980,14 +977,14 @@ public final class PhantomEconomyReservationService
 		}
 		catch (SQLException exception)
 		{
-			throw persistenceFailure("find pre-dispatch economy operations", exception);
+			throw persistenceFailure("find shutdown economy operations", exception);
 		}
 	}
 
-	private List<StoredOperation> findUncertain(int maximum)
+	private List<StoredOperation> findObserving(int maximum)
 	{
 		final List<StoredOperation> result = new ArrayList<>();
-		try (Connection connection = _connections.open(); PreparedStatement statement = connection.prepareStatement("SELECT operation_id,profile_id,character_object_id,goal_id,goal_revision,operation_kind,operation_state,attempt_no,intent_id,authority_hash,intent_hash,activity_generation,activity_tick,row_version FROM phantom_economy_operations WHERE operation_state IN ('DISPATCHING','OBSERVING') ORDER BY profile_id,operation_id LIMIT ?"))
+		try (Connection connection = _connections.open(); PreparedStatement statement = connection.prepareStatement("SELECT operation_id,profile_id,character_object_id,goal_id,goal_revision,operation_kind,operation_state,attempt_no,intent_id,authority_hash,intent_hash,activity_generation,activity_tick,row_version FROM phantom_economy_operations WHERE operation_state='OBSERVING' ORDER BY profile_id,operation_id LIMIT ?"))
 		{
 			statement.setInt(1, maximum);
 			try (ResultSet rows = statement.executeQuery())

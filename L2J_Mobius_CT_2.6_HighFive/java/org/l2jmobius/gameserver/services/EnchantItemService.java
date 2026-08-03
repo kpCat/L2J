@@ -56,6 +56,12 @@ public final class EnchantItemService
 	{
 		Objects.requireNonNull(request);
 		final Player player = request.actor();
+		if (player.isProcessingTransaction() || player.isInStoreMode())
+		{
+			player.sendPacket(SystemMessageId.YOU_CANNOT_ENCHANT_WHILE_OPERATING_A_PRIVATE_STORE_OR_PRIVATE_WORKSHOP);
+			player.setActiveEnchantItemId(Player.ID_NONE);
+			return observe(request, Outcome.ERROR, null, 0, 0, 0);
+		}
 		final Item item = player.getInventory().getItemByObjectId(request.targetObjectId());
 		final Item scroll = player.getInventory().getItemByObjectId(request.scrollObjectId());
 		final Item support = request.supportObjectId() == 0 ? null : player.getInventory().getItemByObjectId(request.supportObjectId());
@@ -67,7 +73,7 @@ public final class EnchantItemService
 
 		final EnchantScroll scrollTemplate = EnchantItemData.getInstance().getEnchantScroll(scroll);
 		final EnchantSupportItem supportTemplate = support == null ? null : EnchantItemData.getInstance().getSupportItem(support);
-		if ((scrollTemplate == null) || ((support != null) && (supportTemplate == null)) || !scrollTemplate.isValid(item, supportTemplate) || (PlayerConfig.DISABLE_OVER_ENCHANTING && (item.getEnchantLevel() == scrollTemplate.getMaxEnchantLevel())))
+		if ((item.getOwnerId() != player.getObjectId()) || (scroll.getOwnerId() != player.getObjectId()) || ((support != null) && (support.getOwnerId() != player.getObjectId())) || (item == scroll) || (item == support) || (scroll == support) || !item.isEnchantable() || (scrollTemplate == null) || ((support != null) && (supportTemplate == null)) || !scrollTemplate.isValid(item, supportTemplate) || (PlayerConfig.DISABLE_OVER_ENCHANTING && (item.getEnchantLevel() == scrollTemplate.getMaxEnchantLevel())))
 		{
 			player.sendPacket(SystemMessageId.INAPPROPRIATE_ENCHANT_CONDITIONS);
 			player.setActiveEnchantItemId(Player.ID_NONE);

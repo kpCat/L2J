@@ -41,6 +41,7 @@ import org.l2jmobius.gameserver.model.item.enchant.EnchantScroll;
 import org.l2jmobius.gameserver.model.item.enchant.EnchantSupportItem;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.recipe.RecipeList;
+import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
@@ -145,7 +146,7 @@ public final class PhantomEconomyService
 		final Optional<StoredOperation> active = _reservations.findActive(profileId);
 		if (active.isPresent())
 		{
-			return matches(active.get(), goal, activityGeneration) && (active.get().state() == State.RESERVED) ? StepResult.success(active.get().operationId(), "economy.reserve.idempotent") : StepResult.replan(Result.CONFLICT, "economy.reserve.conflict");
+			return matches(active.get(), goal, activityGeneration) && ((active.get().state() == State.RESERVED) || (active.get().state() == State.DISPATCHING) || (active.get().state() == State.OBSERVING)) ? StepResult.success(active.get().operationId(), "economy.reserve.idempotent") : StepResult.replan(Result.CONFLICT, "economy.reserve.conflict");
 		}
 		final PhantomProfile profile = _profiles.find(profileId).orElse(null);
 		if ((profile == null) || (profile.characterObjectId() == null))
@@ -186,7 +187,7 @@ public final class PhantomEconomyService
 		{
 			return StepResult.replan(Result.STALE_AUTHORITY, "economy.dispatch.stale");
 		}
-		if (operation.state() == State.DISPATCHING)
+		if ((operation.state() == State.DISPATCHING) || (operation.state() == State.OBSERVING))
 		{
 			return StepResult.success(operation.operationId(), "economy.dispatch.idempotent");
 		}
@@ -201,9 +202,17 @@ public final class PhantomEconomyService
 	public StepResult reconcile(long profileId, PhantomGoal goal, PhantomActivityState state, long activityGeneration, long nowEpochMillis)
 	{
 		final StoredOperation operation = _reservations.findActive(profileId).orElse(null);
-		if ((operation == null) || !matches(operation, goal, activityGeneration) || (operation.state() != State.DISPATCHING))
+		if ((operation == null) || !matches(operation, goal, activityGeneration))
 		{
 			return StepResult.replan(Result.STALE_AUTHORITY, "economy.reconcile.stale");
+		}
+		if (operation.state() == State.OBSERVING)
+		{
+			return failStop(operation, nowEpochMillis, "economy.reconcile.observing");
+		}
+		if (operation.state() != State.DISPATCHING)
+		{
+			return StepResult.replan(Result.STALE_AUTHORITY, "economy.reconcile.state");
 		}
 		final Result result;
 		if (state.requiresMaterialization())
@@ -232,7 +241,7 @@ public final class PhantomEconomyService
 				{
 					return failStop(operation, nowEpochMillis, "economy.enchant.reservation_stale");
 				}
-				result = executeActiveEnchant(identity, target.objectId(), scroll.objectId(), support == null ? 0 : support.objectId(), spec.replacementReserve(), nowEpochMillis).result();
+				result = executeActiveEnchant(identity, target.objectId(), scroll.objectId(), support == null ? 0 : support.objectId(), nowEpochMillis).result();
 			}
 		}
 		else if (state == PhantomActivityState.BACKGROUND)
@@ -250,6 +259,30 @@ public final class PhantomEconomyService
 			return result == Result.INCONSISTENT ? StepResult.replan(result, "economy.reconcile.inconsistent") : StepResult.success(operation.operationId(), "economy.reconcile.complete");
 		}
 		return failStop(operation, nowEpochMillis, "economy.reconcile.ambiguous");
+	}
+
+	public StepResult cancel(long profileId, PhantomGoal goal, long activityGeneration, long nowEpochMillis)
+	{
+		final StoredOperation operation = _reservations.findActive(profileId).orElse(null);
+		if (operation == null)
+		{
+			return StepResult.success(null, "economy.cancel.empty");
+		}
+		if (!matches(operation, goal, activityGeneration))
+		{
+			return StepResult.replan(Result.STALE_AUTHORITY, "economy.cancel.stale");
+		}
+		if (operation.state() == State.OBSERVING)
+		{
+			_reservations.reconcile(operation.operationId(), PhantomEconomyReservationService.Evidence.AMBIGUOUS, nowEpochMillis, null);
+			return StepResult.success(operation.operationId(), "economy.cancel.observing_fail_stop");
+		}
+		if ((operation.state() == State.PREPARED) || (operation.state() == State.RESERVED) || (operation.state() == State.DISPATCHING))
+		{
+			final var transition = _reservations.transition(operation.operationId(), operation.state(), State.ABORTED, nowEpochMillis, new Audit(Result.ERROR, "operation.cancelled", new byte[0]));
+			return (transition.status() == PhantomEconomyReservationService.Status.TRANSITIONED) || (transition.status() == PhantomEconomyReservationService.Status.IDEMPOTENT) ? StepResult.success(operation.operationId(), "economy.cancel.complete") : StepResult.replan(Result.CONFLICT, "economy.cancel.conflict");
+		}
+		return StepResult.success(operation.operationId(), "economy.cancel.terminal");
 	}
 
 	private Quote quoteActive(Identity identity, PhantomGoal goal, long nowEpochMillis)
@@ -310,11 +343,11 @@ public final class PhantomEconomyService
 						continue;
 					}
 					final long expense = Math.addExact(Math.max(0, scrollItem.getReferencePrice()), supportItem == null ? 0 : Math.max(0, supportItem.getReferencePrice()));
-					if (!spec.accepts(target.getEnchantLevel(), scrollItem.getId(), supportItem == null ? 0 : supportItem.getId(), expense) || ((spec.expenseUsed() + expense) > goal.expenseBudget()) || (!scroll.isSafe() && !scroll.isBlessed() && (!spec.destructionPermitted() || (spec.replacementReserve() < requiredReplacement(target)))))
+					if (!enchantRiskAccepted(goal, spec, target, scrollItem, supportItem, scroll, player.getAdena()))
 					{
 						continue;
 					}
-					final List<Reservation> resources = enchantReservations(identity, player, target, scrollItem, supportItem);
+					final List<Reservation> resources = enchantReservations(identity, player, target, scrollItem, supportItem, spec.replacementReserve());
 					final byte[] before = (target.getObjectId() + "|" + target.getId() + "|" + target.getEnchantLevel() + "|" + scrollItem.getObjectId() + "|" + scrollItem.getCount() + "|" + (supportItem == null ? 0 : supportItem.getObjectId()) + "|" + (supportItem == null ? 0 : supportItem.getCount())).getBytes(StandardCharsets.US_ASCII);
 					final PhantomEconomyOperation operation = operation(identity, Kind.ITEM_ENCHANT, PhantomEconomyProjection.enchantAuthority(target.getTemplate(), target.getEnchantLevel(), scroll, support, _policy), PhantomEconomyOperation.sha256(identity.intentId() + "|" + new String(before, StandardCharsets.US_ASCII)), before, ("target=" + target.getObjectId()).getBytes(StandardCharsets.US_ASCII), nowEpochMillis);
 					return new Quote(operation, resources, Result.SUCCESS);
@@ -347,7 +380,7 @@ public final class PhantomEconomyService
 			final PhantomEconomyOperation operation = operation(identity, Kind.SELF_CRAFT, quote.authorityHash(), PhantomEconomyOperation.sha256(identity.intentId() + "|" + java.util.HexFormat.of().formatHex(before)), before, ("recipe=" + acquisition.state().recipePlan().recipeListId()).getBytes(StandardCharsets.US_ASCII), nowEpochMillis);
 			return new Quote(operation, quote.reservations(), quote.result());
 		}
-		final EnchantQuote quote = _background.quoteEnchant(stored.state(), goal, PhantomEnchantGoalSpec.parse(goal).replacementReserve());
+		final EnchantQuote quote = _background.quoteEnchant(stored.state(), goal);
 		if (!quote.executable())
 		{
 			return Quote.rejected(quote.result());
@@ -359,16 +392,17 @@ public final class PhantomEconomyService
 
 	public ActiveResult executeActiveCraft(Identity identity, long nowEpochMillis)
 	{
+		final StoredOperation durable = _reservations.findActive(identity.profileId()).orElse(null);
 		final var storedAcquisition = _acquisition.load(identity.profileId()).orElse(null);
 		final var storedGoal = _goals.load(identity.profileId()).orElse(null);
-		if ((storedAcquisition == null) || (storedGoal == null) || !matches(identity, storedGoal.goal()) || !validCraftHandoff(storedAcquisition.state()))
+		if ((durable == null) || (durable.kind() != Kind.SELF_CRAFT) || (durable.state() != State.DISPATCHING) || !sameIdentity(durable, identity) || (storedAcquisition == null) || (storedGoal == null) || !matches(identity, storedGoal.goal()) || !validCraftHandoff(storedAcquisition.state()))
 		{
 			return ActiveResult.rejected(Result.STALE_AUTHORITY);
 		}
 		final RecipeList recipe = RecipeData.getInstance().getRecipeList(storedAcquisition.state().recipePlan().recipeListId());
 		if ((recipe == null) || PlayerConfig.ALT_GAME_CREATION || !PlayerConfig.IS_CRAFTING_ENABLED)
 		{
-			return ActiveResult.rejected(Result.STALE_AUTHORITY);
+			return abortBeforeAction(durable, nowEpochMillis, Result.STALE_AUTHORITY, "craft.authority.stale");
 		}
 		try (ActionLease lease = _materialization.tryAcquireAction(identity.profileId()).orElse(null))
 		{
@@ -380,23 +414,25 @@ public final class PhantomEconomyService
 			final Player player = lease.player();
 			if ((player.getObjectId() != identity.characterObjectId()) || !player.hasRecipeList(recipe.getId()) || (player.getSkillLevel(storedAcquisition.state().recipePlan().craftSkillId()) != storedAcquisition.state().recipePlan().craftSkillLevel()))
 			{
-				return ActiveResult.rejected(Result.STALE_AUTHORITY);
+				return abortBeforeAction(durable, nowEpochMillis, Result.STALE_AUTHORITY, "craft.player.stale");
 			}
 			final List<Reservation> resources = craftReservations(identity, player, recipe);
 			if (resources == null)
 			{
-				return ActiveResult.rejected(Result.CONFLICT);
+				return abortBeforeAction(durable, nowEpochMillis, Result.CONFLICT, "craft.resources.stale");
 			}
 			final String authority = PhantomEconomyProjection.craftAuthority(storedAcquisition.state(), recipe, _policy);
 			final byte[] before = craftBefore(player, recipe);
 			final PhantomEconomyOperation operation = operation(identity, Kind.SELF_CRAFT, authority, PhantomEconomyOperation.sha256(identity.intentId() + "|" + recipe.getId() + "|" + java.util.HexFormat.of().formatHex(before)), before, ("recipe=" + recipe.getId()).getBytes(StandardCharsets.US_ASCII), nowEpochMillis);
-			final PhantomEconomyReservationService.ReserveResult reservation = _reservations.reserve(operation, resources);
-			if ((reservation.status() != PhantomEconomyReservationService.Status.RESERVED) && !((reservation.status() == PhantomEconomyReservationService.Status.IDEMPOTENT) && (reservation.state() == State.DISPATCHING)))
+			final List<Reservation> durableResources = _reservations.findReservations(durable.operationId());
+			if (!durable.operationId().equals(operation.operationId()) || !durable.authorityHash().equals(authority) || !durableResources.equals(PhantomEconomyOperation.canonicalReservations(resources, _policy.limits().reservationsPerOperation())))
 			{
-				_conflicts.increment();
-				return ActiveResult.rejected(Result.CONFLICT);
+				return abortBeforeAction(durable, nowEpochMillis, Result.STALE_AUTHORITY, "craft.authority.drift");
 			}
-			if ((reservation.state() == State.RESERVED) && (_reservations.transition(operation.operationId(), State.RESERVED, State.DISPATCHING, nowEpochMillis, null).status() != PhantomEconomyReservationService.Status.TRANSITIONED))
+			final Map<Integer, Long> beforeCounts = itemCountEvidence(player, durableResources);
+			final double beforeHp = player.getCurrentHp();
+			final double beforeMp = player.getCurrentMp();
+			if (_reservations.transition(operation.operationId(), State.DISPATCHING, State.OBSERVING, nowEpochMillis, null).status() != PhantomEconomyReservationService.Status.TRANSITIONED)
 			{
 				return ActiveResult.rejected(Result.CONFLICT);
 			}
@@ -405,17 +441,17 @@ public final class PhantomEconomyService
 			final RecipeCraftObserver.Event terminal = events.stream().filter(event -> (event.type() == RecipeCraftObserver.Type.SUCCESS_PRODUCT) || (event.type() == RecipeCraftObserver.Type.RARE_PRODUCT) || (event.type() == RecipeCraftObserver.Type.CRAFT_FAILED) || (event.type() == RecipeCraftObserver.Type.ABORTED)).findFirst().orElse(null);
 			if (terminal == null)
 			{
-				_reservations.transition(operation.operationId(), State.DISPATCHING, State.INCONSISTENT, nowEpochMillis, new Audit(Result.INCONSISTENT, "dispatch.ambiguous", new byte[0]));
+				inconsistent(durable, nowEpochMillis, "craft.observation.missing");
 				return ActiveResult.rejected(Result.INCONSISTENT);
 			}
 			final boolean ingredientsConsumed = events.stream().anyMatch(event -> event.type() == RecipeCraftObserver.Type.INGREDIENTS_CONSUMED);
 			if (terminal.type() == RecipeCraftObserver.Type.ABORTED)
 			{
-				final boolean effectObserved = ingredientsConsumed || (terminal.hpConsumed() > 0) || (terminal.mpConsumed() > 0);
+				final boolean effectObserved = ingredientsConsumed || (terminal.hpConsumed() > 0) || (terminal.mpConsumed() > 0) || !beforeCounts.equals(itemCountEvidence(player, durableResources)) || (Double.compare(beforeHp, player.getCurrentHp()) != 0) || (Double.compare(beforeMp, player.getCurrentMp()) != 0);
 				final State terminalState = effectObserved ? State.INCONSISTENT : State.ABORTED;
 				final Result abortResult = effectObserved ? Result.INCONSISTENT : Result.ERROR;
 				final String reason = effectObserved ? "dispatch.ambiguous" : "craft.pre_effect_aborted";
-				_reservations.transition(operation.operationId(), State.DISPATCHING, terminalState, nowEpochMillis, new Audit(abortResult, reason, terminal.toString().getBytes(StandardCharsets.US_ASCII)));
+				_reservations.transition(operation.operationId(), State.OBSERVING, terminalState, nowEpochMillis, new Audit(abortResult, reason, craftConsequence(terminal, 0, "")));
 				return new ActiveResult(abortResult, operation.operationId());
 			}
 			final Result result = switch (terminal.type())
@@ -427,16 +463,20 @@ public final class PhantomEconomyService
 			};
 			try
 			{
+				if (!exactCraftObservation(player, recipe, events, terminal, beforeCounts, beforeHp, beforeMp))
+				{
+					throw new IllegalStateException("Craft evidence did not match its canonical terminal branch.");
+				}
 				final long minute = Math.max(0, nowEpochMillis / 60000);
 				final long afterCount = player.getInventory().getInventoryItemCount(storedAcquisition.state().targetItemId(), -1);
 				final long targetProduced = terminal.items().stream().filter(item -> item.itemId() == storedAcquisition.state().targetItemId()).mapToLong(RecipeCraftObserver.ItemDelta::count).sum();
 				final boolean targetAttributed = result == Result.SUCCESS && (targetProduced > 0);
-				final String sourceFailure = result == Result.CRAFT_FAILED ? "craft.canonical_failure" : targetAttributed ? "" : "craft.target_not_produced";
+				final String sourceFailure = result == Result.CRAFT_FAILED ? "craft.canonical_failure" : "";
 				if (!targetAttributed && (afterCount != storedAcquisition.state().lastObservedCount()))
 				{
 					throw new IllegalStateException("Craft without target attribution changed the target count.");
 				}
-				final var receipt = new PhantomAcquisitionState.Receipt(operation.operationId(), storedAcquisition.state().selectedSource().sourceId(), ReceiptKind.ACTIVE_SELF_CRAFT, storedAcquisition.state().lastObservedCount(), afterCount, targetAttributed ? TerminalResult.COMMITTED : TerminalResult.FAILED, minute);
+				final var receipt = new PhantomAcquisitionState.Receipt(operation.operationId(), storedAcquisition.state().selectedSource().sourceId(), ReceiptKind.ACTIVE_SELF_CRAFT, storedAcquisition.state().lastObservedCount(), afterCount, result == Result.SUCCESS ? TerminalResult.COMMITTED : TerminalResult.FAILED, minute);
 				PhantomAcquisitionState nextAcquisition = storedAcquisition.state().observe(afterCount, PhantomAcquisitionState.Status.PLANNING_ONLY, Phase.NONE, receipt, minute);
 				if (!sourceFailure.isEmpty())
 				{
@@ -444,27 +484,28 @@ public final class PhantomEconomyService
 				}
 				final PhantomGoal nextGoal = PhantomAcquisitionGoalSpec.project(storedGoal.goal(), nextAcquisition.progress(), nextAcquisition.status() == PhantomAcquisitionState.Status.COMPLETED ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.ACTIVE, nextAcquisition.selectedSource());
 				_acquisition.mutateWithGoal(identity.profileId(), storedAcquisition.rowVersion(), nextAcquisition, storedGoal.rowVersion(), nextGoal);
-				final String reason = result == Result.SUCCESS ? targetAttributed ? "result.success" : sourceFailure : "result.craft_failed";
-				final byte[] consequence = (terminal.type() + "|" + terminal.items() + "|rare=" + (terminal.type() == RecipeCraftObserver.Type.RARE_PRODUCT) + "|targetProduced=" + targetProduced + "|sourceFailure=" + sourceFailure + "|" + terminal.hpConsumed() + "|" + terminal.mpConsumed()).getBytes(StandardCharsets.US_ASCII);
+				final String reason = result == Result.SUCCESS ? targetAttributed ? "result.success" : "result.rare_product" : "result.craft_failed";
+				final byte[] consequence = craftConsequence(terminal, targetProduced, sourceFailure);
 				final long consumed = events.stream().filter(event -> event.type() == RecipeCraftObserver.Type.INGREDIENTS_CONSUMED).flatMap(event -> event.items().stream()).mapToLong(RecipeCraftObserver.ItemDelta::count).sum();
 				final long produced = terminal.items().stream().mapToLong(RecipeCraftObserver.ItemDelta::count).sum();
-				_reservations.transition(operation.operationId(), State.DISPATCHING, State.COMMITTED, nowEpochMillis, new Audit(result, reason, consequence, consumed, produced, 0, 0, 0, 0));
+				_reservations.transition(operation.operationId(), State.OBSERVING, State.COMMITTED, nowEpochMillis, new Audit(result, reason, consequence, consumed, produced, 0, 0, 0, 0));
 				_committed.increment();
 				recordResult(result, Kind.SELF_CRAFT, terminal.type() == RecipeCraftObserver.Type.RARE_PRODUCT);
 				return new ActiveResult(result, operation.operationId());
 			}
 			catch (RuntimeException exception)
 			{
-				_reservations.transition(operation.operationId(), State.DISPATCHING, State.INCONSISTENT, nowEpochMillis, new Audit(Result.INCONSISTENT, "dispatch.ambiguous", new byte[0]));
+				inconsistent(durable, nowEpochMillis, "craft.attribution.ambiguous");
 				return ActiveResult.rejected(Result.INCONSISTENT);
 			}
 		}
 	}
 
-	public ActiveResult executeActiveEnchant(Identity identity, int targetObjectId, int scrollObjectId, int supportObjectId, long replacementEvidence, long nowEpochMillis)
+	public ActiveResult executeActiveEnchant(Identity identity, int targetObjectId, int scrollObjectId, int supportObjectId, long nowEpochMillis)
 	{
+		final StoredOperation durable = _reservations.findActive(identity.profileId()).orElse(null);
 		final var storedGoal = _goals.load(identity.profileId()).orElse(null);
-		if ((storedGoal == null) || !matches(identity, storedGoal.goal()))
+		if ((durable == null) || (durable.kind() != Kind.ITEM_ENCHANT) || (durable.state() != State.DISPATCHING) || !sameIdentity(durable, identity) || (storedGoal == null) || !matches(identity, storedGoal.goal()))
 		{
 			return ActiveResult.rejected(Result.STALE_AUTHORITY);
 		}
@@ -475,7 +516,7 @@ public final class PhantomEconomyService
 		}
 		catch (IllegalArgumentException exception)
 		{
-			return ActiveResult.rejected(Result.STALE_AUTHORITY);
+			return abortBeforeAction(durable, nowEpochMillis, Result.STALE_AUTHORITY, "enchant.goal.stale");
 		}
 		try (ActionLease lease = _materialization.tryAcquireAction(identity.profileId()).orElse(null))
 		{
@@ -492,23 +533,23 @@ public final class PhantomEconomyService
 			final EnchantSupportItem support = supportItem == null ? null : EnchantItemData.getInstance().getSupportItem(supportItem);
 			if ((target == null) || (scroll == null) || ((supportObjectId != 0) && (support == null)) || (goal.targetObjectId() != targetObjectId) || !scroll.isValid(target, support))
 			{
-				return ActiveResult.rejected(Result.STALE_AUTHORITY);
+				return abortBeforeAction(durable, nowEpochMillis, Result.STALE_AUTHORITY, "enchant.resources.stale");
 			}
 			final long expense = Math.addExact(Math.max(0, scrollItem.getReferencePrice()), supportItem == null ? 0 : Math.max(0, supportItem.getReferencePrice()));
-			if (!goal.accepts(target.getEnchantLevel(), scrollItem.getId(), supportItem == null ? 0 : supportItem.getId(), expense) || ((goal.expenseUsed() + expense) > storedGoal.goal().expenseBudget()) || (!scroll.isSafe() && !scroll.isBlessed() && (!goal.destructionPermitted() || (goal.replacementReserve() < requiredReplacement(target)) || (goal.replacementReserve() > replacementEvidence))))
+			if (!enchantRiskAccepted(storedGoal.goal(), goal, target, scrollItem, supportItem, scroll, player.getAdena()))
 			{
-				return ActiveResult.rejected(Result.CONFLICT);
+				return abortBeforeAction(durable, nowEpochMillis, Result.CONFLICT, "enchant.risk.stale");
 			}
 			final String authority = PhantomEconomyProjection.enchantAuthority(target.getTemplate(), target.getEnchantLevel(), scroll, support, _policy);
-			final List<Reservation> resources = enchantReservations(identity, player, target, scrollItem, supportItem);
+			final List<Reservation> resources = enchantReservations(identity, player, target, scrollItem, supportItem, goal.replacementReserve());
 			final byte[] before = (targetObjectId + "|" + target.getId() + "|" + target.getEnchantLevel() + "|" + scrollObjectId + "|" + scrollItem.getCount() + "|" + supportObjectId + "|" + (supportItem == null ? 0 : supportItem.getCount())).getBytes(StandardCharsets.US_ASCII);
 			final PhantomEconomyOperation operation = operation(identity, Kind.ITEM_ENCHANT, authority, PhantomEconomyOperation.sha256(identity.intentId() + "|" + new String(before, StandardCharsets.US_ASCII)), before, ("target=" + targetObjectId).getBytes(StandardCharsets.US_ASCII), nowEpochMillis);
-			final PhantomEconomyReservationService.ReserveResult reservation = _reservations.reserve(operation, resources);
-			if ((reservation.status() != PhantomEconomyReservationService.Status.RESERVED) && !((reservation.status() == PhantomEconomyReservationService.Status.IDEMPOTENT) && (reservation.state() == State.DISPATCHING)))
+			final List<Reservation> durableResources = _reservations.findReservations(durable.operationId());
+			if (!durable.operationId().equals(operation.operationId()) || !durable.authorityHash().equals(authority) || !durableResources.equals(PhantomEconomyOperation.canonicalReservations(resources, _policy.limits().reservationsPerOperation())))
 			{
-				return ActiveResult.rejected(Result.CONFLICT);
+				return abortBeforeAction(durable, nowEpochMillis, Result.STALE_AUTHORITY, "enchant.authority.drift");
 			}
-			if ((reservation.state() == State.RESERVED) && (_reservations.transition(operation.operationId(), State.RESERVED, State.DISPATCHING, nowEpochMillis, null).status() != PhantomEconomyReservationService.Status.TRANSITIONED))
+			if (_reservations.transition(operation.operationId(), State.DISPATCHING, State.OBSERVING, nowEpochMillis, null).status() != PhantomEconomyReservationService.Status.TRANSITIONED)
 			{
 				return ActiveResult.rejected(Result.CONFLICT);
 			}
@@ -517,8 +558,9 @@ public final class PhantomEconomyService
 			final Event event = events.isEmpty() ? null : events.getFirst();
 			if ((event == null) || (canonical == Outcome.ERROR))
 			{
-				_reservations.transition(operation.operationId(), State.DISPATCHING, State.INCONSISTENT, nowEpochMillis, new Audit(Result.INCONSISTENT, "dispatch.ambiguous", new byte[0]));
-				return ActiveResult.rejected(Result.INCONSISTENT);
+				final boolean unchanged = exactReservationEvidence(player, durableResources);
+				_reservations.transition(operation.operationId(), State.OBSERVING, unchanged ? State.ABORTED : State.INCONSISTENT, nowEpochMillis, new Audit(unchanged ? Result.ERROR : Result.INCONSISTENT, unchanged ? "enchant.pre_effect_rejected" : "dispatch.ambiguous", new byte[0]));
+				return ActiveResult.rejected(unchanged ? Result.ERROR : Result.INCONSISTENT);
 			}
 			final Result result = switch (canonical)
 			{
@@ -538,17 +580,21 @@ public final class PhantomEconomyService
 			};
 			try
 			{
+				if (!exactEnchantObservation(player, durableResources, target, scrollItem, supportItem, event, result))
+				{
+					throw new IllegalStateException("Enchant evidence did not match its canonical terminal branch.");
+				}
 				final PhantomGoal nextGoal = goal.project(storedGoal.goal(), event.afterEnchantLevel(), result != Result.DESTROYED_WITH_CRYSTALS, expense, reason);
 				_goals.replace(identity.profileId(), storedGoal.rowVersion(), nextGoal);
 				final byte[] consequence = (result + "|" + event.beforeEnchantLevel() + "|" + event.afterEnchantLevel() + "|" + event.crystalItemId() + "|" + event.crystalCount()).getBytes(StandardCharsets.US_ASCII);
-				_reservations.transition(operation.operationId(), State.DISPATCHING, State.COMMITTED, nowEpochMillis, new Audit(result, reason, consequence, supportItem == null ? 1 : 2, event.crystalCount(), 0, 0, event.crystalCount(), result == Result.DESTROYED_WITH_CRYSTALS ? 1 : 0));
+				_reservations.transition(operation.operationId(), State.OBSERVING, State.COMMITTED, nowEpochMillis, new Audit(result, reason, consequence, supportItem == null ? 1 : 2, event.crystalCount(), 0, 0, event.crystalCount(), result == Result.DESTROYED_WITH_CRYSTALS ? 1 : 0));
 				_committed.increment();
 				recordResult(result, Kind.ITEM_ENCHANT, false);
 				return new ActiveResult(result, operation.operationId());
 			}
 			catch (RuntimeException exception)
 			{
-				_reservations.transition(operation.operationId(), State.DISPATCHING, State.INCONSISTENT, nowEpochMillis, new Audit(Result.INCONSISTENT, "dispatch.ambiguous", new byte[0]));
+				inconsistent(durable, nowEpochMillis, "enchant.attribution.ambiguous");
 				return ActiveResult.rejected(Result.INCONSISTENT);
 			}
 		}
@@ -621,7 +667,7 @@ public final class PhantomEconomyService
 			{
 				return Result.STALE_AUTHORITY;
 			}
-			result = _background.executeEnchant(new EnchantCommand(operation.operationId(), background.state(), background.rowVersion(), storedGoal.goal(), storedGoal.rowVersion(), target.objectId(), target.itemId(), scroll.objectId(), scroll.itemId(), support == null ? 0 : support.objectId(), support == null ? 0 : support.itemId(), spec.replacementReserve(), nowEpochMillis));
+			result = _background.executeEnchant(new EnchantCommand(operation.operationId(), background.state(), background.rowVersion(), storedGoal.goal(), storedGoal.rowVersion(), target.objectId(), target.itemId(), scroll.objectId(), scroll.itemId(), support == null ? 0 : support.objectId(), support == null ? 0 : support.itemId(), nowEpochMillis));
 		}
 		if (result.status() == PhantomEconomyBackgroundTransaction.Status.COMMITTED)
 		{
@@ -640,6 +686,220 @@ public final class PhantomEconomyService
 			_reservations.reconcile(operation.operationId(), PhantomEconomyReservationService.Evidence.AMBIGUOUS, nowEpochMillis, null);
 		}
 		return StepResult.replan(Result.INCONSISTENT, reason);
+	}
+
+	private ActiveResult abortBeforeAction(StoredOperation operation, long nowEpochMillis, Result result, String reason)
+	{
+		if (operation != null)
+		{
+			_reservations.transition(operation.operationId(), State.DISPATCHING, State.ABORTED, nowEpochMillis, new Audit(result, reason, new byte[0]));
+		}
+		return ActiveResult.rejected(result);
+	}
+
+	private void inconsistent(StoredOperation operation, long nowEpochMillis, String reason)
+	{
+		final StoredOperation current = _reservations.find(operation.operationId()).orElse(null);
+		if ((current != null) && ((current.state() == State.DISPATCHING) || (current.state() == State.OBSERVING)))
+		{
+			_reservations.transition(current.operationId(), current.state(), State.INCONSISTENT, nowEpochMillis, new Audit(Result.INCONSISTENT, reason, new byte[0]));
+		}
+	}
+
+	private static boolean sameIdentity(StoredOperation operation, Identity identity)
+	{
+		return (operation.profileId() == identity.profileId()) && (operation.characterObjectId() == identity.characterObjectId()) && (operation.goalId() == identity.goalId()) && (operation.goalRevision() == identity.goalRevision()) && (operation.attempt() == identity.attempt()) && operation.intentId().equals(identity.intentId()) && (operation.activityGeneration() == identity.activityGeneration()) && (operation.activityTick() == identity.activityTick());
+	}
+
+	private static Map<Integer, Long> itemCountEvidence(Player player, List<Reservation> resources)
+	{
+		final Map<Integer, Long> result = new java.util.TreeMap<>();
+		for (Reservation resource : resources)
+		{
+			if (resource.kind() == ResourceKind.ITEM_COUNT)
+			{
+				result.put(resource.itemId(), player.getInventory().getInventoryItemCount(resource.itemId(), -1));
+			}
+		}
+		return Map.copyOf(result);
+	}
+
+	private static boolean exactReservationEvidence(Player player, List<Reservation> resources)
+	{
+		for (Reservation resource : resources)
+		{
+			if (resource.ownerObjectId() != player.getObjectId())
+			{
+				return false;
+			}
+			switch (resource.kind())
+			{
+				case ADENA:
+					if (player.getAdena() != resource.expectedCount())
+					{
+						return false;
+					}
+					break;
+				case ITEM_COUNT:
+					if (player.getInventory().getInventoryItemCount(resource.itemId(), -1) != resource.expectedCount())
+					{
+						return false;
+					}
+					break;
+				case ITEM_OBJECT:
+					final Item item = player.getInventory().getItemByObjectId(resource.objectId());
+					if ((item == null) || (item.getId() != resource.itemId()) || (item.getCount() != resource.expectedCount()) || (item.getEnchantLevel() != resource.expectedEnchantLevel()) || !item.getItemLocation().name().equals(resource.expectedLocation()))
+					{
+						return false;
+					}
+					break;
+				case RECIPE:
+					if ((player.getClassIndex() != resource.ownerClassIndex()) || !player.hasRecipeList(resource.itemId()))
+					{
+						return false;
+					}
+					break;
+				case SKILL:
+					if ((player.getClassIndex() != resource.ownerClassIndex()) || (player.getSkillLevel(resource.itemId()) <= 0))
+					{
+						return false;
+					}
+					break;
+				case CAPACITY:
+					break;
+			}
+		}
+		return true;
+	}
+
+	private static boolean exactCraftObservation(Player player, RecipeList recipe, List<RecipeCraftObserver.Event> events, RecipeCraftObserver.Event terminal, Map<Integer, Long> beforeCounts, double beforeHp, double beforeMp)
+	{
+		if ((events.size() != 3) || (events.stream().filter(event -> event.type() == RecipeCraftObserver.Type.ACCEPTED).count() != 1) || (events.stream().filter(event -> event.type() == RecipeCraftObserver.Type.INGREDIENTS_CONSUMED).count() != 1) || (events.stream().filter(event -> event == terminal).count() != 1) || events.stream().anyMatch(event -> (event.recipeListId() != recipe.getId()) || (event.recipeItemId() != recipe.getRecipeId()) || (event.crafterObjectId() != player.getObjectId()) || (event.targetObjectId() != player.getObjectId())))
+		{
+			return false;
+		}
+		final Map<Integer, Long> expectedConsumed = new java.util.TreeMap<>();
+		for (RecipeHolder ingredient : recipe.getRecipes())
+		{
+			expectedConsumed.merge(ingredient.getItemId(), (long) ingredient.getQuantity(), Math::addExact);
+		}
+		final Map<Integer, Long> observedConsumed = new java.util.TreeMap<>();
+		events.stream().filter(event -> event.type() == RecipeCraftObserver.Type.INGREDIENTS_CONSUMED).flatMap(event -> event.items().stream()).forEach(item -> observedConsumed.merge(item.itemId(), item.count(), Math::addExact));
+		if (!expectedConsumed.equals(observedConsumed))
+		{
+			return false;
+		}
+		final Map<Integer, Long> expectedProduced = new java.util.TreeMap<>();
+		if (terminal.type() == RecipeCraftObserver.Type.SUCCESS_PRODUCT)
+		{
+			expectedProduced.put(recipe.getItemId(), (long) recipe.getCount());
+		}
+		else if (terminal.type() == RecipeCraftObserver.Type.RARE_PRODUCT)
+		{
+			expectedProduced.put(recipe.getRareItemId(), (long) recipe.getRareCount());
+		}
+		else if (terminal.type() != RecipeCraftObserver.Type.CRAFT_FAILED)
+		{
+			return false;
+		}
+		final Map<Integer, Long> observedProduced = new java.util.TreeMap<>();
+		terminal.items().forEach(item -> observedProduced.merge(item.itemId(), item.count(), Math::addExact));
+		if (!expectedProduced.equals(observedProduced))
+		{
+			return false;
+		}
+		final Map<Integer, Long> expectedAfter = new java.util.TreeMap<>(beforeCounts);
+		expectedConsumed.forEach((itemId, count) -> expectedAfter.merge(itemId, -count, Math::addExact));
+		expectedProduced.forEach((itemId, count) -> expectedAfter.merge(itemId, count, Math::addExact));
+		for (Map.Entry<Integer, Long> expected : expectedAfter.entrySet())
+		{
+			if (player.getInventory().getInventoryItemCount(expected.getKey(), -1) != expected.getValue())
+			{
+				return false;
+			}
+		}
+		return (Double.compare(player.getCurrentHp(), beforeHp - terminal.hpConsumed()) == 0) && (Double.compare(player.getCurrentMp(), beforeMp - terminal.mpConsumed()) == 0);
+	}
+
+	private static byte[] craftConsequence(RecipeCraftObserver.Event terminal, long targetProduced, String sourceFailure)
+	{
+		final StringBuilder value = new StringBuilder(terminal.type().name()).append('|').append(terminal.recipeListId()).append('|').append(terminal.recipeItemId()).append('|').append(targetProduced).append('|').append(sourceFailure).append('|').append(Double.toHexString(terminal.hpConsumed())).append('|').append(Double.toHexString(terminal.mpConsumed()));
+		for (RecipeCraftObserver.ItemDelta item : terminal.items())
+		{
+			value.append('|').append(item.itemId()).append(':').append(item.count());
+		}
+		return value.toString().getBytes(StandardCharsets.US_ASCII);
+	}
+
+	private static boolean exactEnchantObservation(Player player, List<Reservation> resources, Item targetBefore, Item scrollBefore, Item supportBefore, Event event, Result result)
+	{
+		final Result observedResult = switch (event.outcome())
+		{
+			case SUCCESS -> Result.SUCCESS;
+			case SAFE_FAILURE -> Result.SAFE_FAILURE;
+			case BLESSED_RESET -> Result.BLESSED_RESET;
+			case DESTROYED_WITH_CRYSTALS -> Result.DESTROYED_WITH_CRYSTALS;
+			case ERROR -> Result.ERROR;
+		};
+		if (observedResult != result)
+		{
+			return false;
+		}
+		if ((event.actorObjectId() != player.getObjectId()) || (event.targetObjectId() != targetBefore.getObjectId()) || (event.scrollObjectId() != scrollBefore.getObjectId()) || (event.supportObjectId() != (supportBefore == null ? 0 : supportBefore.getObjectId())) || (event.targetItemId() != targetBefore.getId()) || (event.beforeEnchantLevel() != resources.stream().filter(resource -> resource.objectId() == targetBefore.getObjectId()).findFirst().orElseThrow().expectedEnchantLevel()))
+		{
+			return false;
+		}
+		final boolean targetDestroyed = result == Result.DESTROYED_WITH_CRYSTALS;
+		if ((result == Result.SUCCESS) && ((event.afterEnchantLevel() < event.beforeEnchantLevel()) || (event.afterEnchantLevel() > (event.beforeEnchantLevel() + 1))))
+		{
+			return false;
+		}
+		if (((result == Result.SAFE_FAILURE) && (event.afterEnchantLevel() != event.beforeEnchantLevel())) || ((result == Result.BLESSED_RESET) && (event.afterEnchantLevel() != 0)) || (targetDestroyed && (event.afterEnchantLevel() != 0)))
+		{
+			return false;
+		}
+		for (Reservation resource : resources)
+		{
+			switch (resource.kind())
+			{
+				case ADENA:
+					if (player.getAdena() != resource.expectedCount())
+					{
+						return false;
+					}
+					break;
+				case ITEM_COUNT:
+					final long produced = (resource.itemId() == event.crystalItemId()) ? event.crystalCount() : 0;
+					if (player.getInventory().getInventoryItemCount(resource.itemId(), -1) != Math.addExact(resource.expectedCount(), produced))
+					{
+						return false;
+					}
+					break;
+				case ITEM_OBJECT:
+					final Item after = player.getInventory().getItemByObjectId(resource.objectId());
+					if (resource.objectId() == targetBefore.getObjectId())
+					{
+						if (targetDestroyed ? after != null : (after == null) || (after.getId() != resource.itemId()) || (after.getCount() != resource.expectedCount()) || (after.getEnchantLevel() != event.afterEnchantLevel()))
+						{
+							return false;
+						}
+					}
+					else
+					{
+						final long expected = resource.expectedCount() - 1;
+						if ((expected == 0) ? after != null : (after == null) || (after.getId() != resource.itemId()) || (after.getCount() != expected))
+						{
+							return false;
+						}
+					}
+					break;
+				case RECIPE, SKILL, CAPACITY:
+					break;
+			}
+		}
+		final int expectedCrystalItemId = targetDestroyed && targetBefore.getTemplate().isCrystallizable() ? targetBefore.getTemplate().getCrystalItemId() : 0;
+		final int expectedCrystalCount = expectedCrystalItemId == 0 ? 0 : Math.max(1, targetBefore.getTemplate().getCrystalCount(event.beforeEnchantLevel()) - ((targetBefore.getTemplate().getCrystalCount() + 1) / 2));
+		return (event.crystalItemId() == expectedCrystalItemId) && (event.crystalCount() == expectedCrystalCount);
 	}
 
 	private StoredBackground loadBackground(long profileId)
@@ -686,6 +946,21 @@ public final class PhantomEconomyService
 	private static boolean supportedState(PhantomActivityState state)
 	{
 		return (state == PhantomActivityState.ACTIVE) || (state == PhantomActivityState.NEARBY_PERCEPTIBLE) || (state == PhantomActivityState.BACKGROUND);
+	}
+
+	private boolean enchantRiskAccepted(PhantomGoal storedGoal, PhantomEnchantGoalSpec goal, Item target, Item scrollItem, Item supportItem, EnchantScroll scroll, long currentAdena)
+	{
+		final long expense = Math.addExact(Math.max(0, scrollItem.getReferencePrice()), supportItem == null ? 0 : Math.max(0, supportItem.getReferencePrice()));
+		if (!goal.accepts(target.getEnchantLevel(), scrollItem.getId(), supportItem == null ? 0 : supportItem.getId(), expense) || (goal.expenseUsed() > storedGoal.expenseBudget()) || (expense > (storedGoal.expenseBudget() - goal.expenseUsed())) || (goal.replacementReserve() < requiredReplacement(target)) || (currentAdena < goal.replacementReserve()))
+		{
+			return false;
+		}
+		if (scroll.isSafe() || scroll.isBlessed())
+		{
+			return true;
+		}
+		final long maximumExpense = Math.floorDiv(Math.multiplyExact((long) Math.max(0, target.getReferencePrice()), _policy.risk().maximumExpensePercent()), 100);
+		return goal.destructionPermitted() && (target.getReferencePrice() <= storedGoal.riskBudget()) && (expense <= maximumExpense);
 	}
 
 	private long requiredReplacement(Item target)
@@ -750,10 +1025,16 @@ public final class PhantomEconomyService
 		{
 			ingredientCounts.merge(ingredient.getItemId(), (long) ingredient.getQuantity(), Math::addExact);
 		}
-		for (Map.Entry<Integer, Long> ingredient : ingredientCounts.entrySet())
+		final Map<Integer, Long> reservedCounts = new java.util.TreeMap<>(ingredientCounts);
+		reservedCounts.putIfAbsent(recipe.getItemId(), 1L);
+		if ((recipe.getRareItemId() > 0) && (recipe.getRareItemId() != recipe.getItemId()))
+		{
+			reservedCounts.putIfAbsent(recipe.getRareItemId(), 1L);
+		}
+		for (Map.Entry<Integer, Long> ingredient : reservedCounts.entrySet())
 		{
 			final long count = player.getInventory().getInventoryItemCount(ingredient.getKey(), -1);
-			if (count < ingredient.getValue())
+			if ((count < ingredientCounts.getOrDefault(ingredient.getKey(), 0L)))
 			{
 				return null;
 			}
@@ -767,17 +1048,25 @@ public final class PhantomEconomyService
 
 	private static byte[] craftBefore(Player player, RecipeList recipe)
 	{
-		final StringBuilder value = new StringBuilder(recipe.getId()).append('|').append(player.getCurrentHp()).append('|').append(player.getCurrentMp());
+		final java.util.SortedSet<Integer> itemIds = new java.util.TreeSet<>();
 		for (RecipeHolder ingredient : recipe.getRecipes())
 		{
-			value.append('|').append(ingredient.getItemId()).append(':').append(player.getInventory().getInventoryItemCount(ingredient.getItemId(), -1));
+			itemIds.add(ingredient.getItemId());
 		}
+		itemIds.add(recipe.getItemId());
+		if (recipe.getRareItemId() > 0)
+		{
+			itemIds.add(recipe.getRareItemId());
+		}
+		final StringBuilder value = new StringBuilder(recipe.getId()).append('|').append(recipe.getRecipeId()).append('|').append(Double.toHexString(player.getCurrentHp())).append('|').append(Double.toHexString(player.getCurrentMp()));
+		itemIds.forEach(itemId -> value.append('|').append(itemId).append(':').append(player.getInventory().getInventoryItemCount(itemId, -1)));
 		return value.toString().getBytes(StandardCharsets.US_ASCII);
 	}
 
-	private static List<Reservation> enchantReservations(Identity identity, Player player, Item target, Item scroll, Item support)
+	private static List<Reservation> enchantReservations(Identity identity, Player player, Item target, Item scroll, Item support, long replacementReserve)
 	{
 		final List<Reservation> result = new ArrayList<>();
+		result.add(new Reservation(identity.profileId(), identity.characterObjectId(), player.getClassIndex(), ResourceKind.ADENA, 0, Inventory.ADENA_ID, replacementReserve, player.getAdena(), 0, "INVENTORY"));
 		result.add(new Reservation(identity.profileId(), identity.characterObjectId(), player.getClassIndex(), ResourceKind.ITEM_OBJECT, target.getObjectId(), target.getId(), 0, target.getCount(), target.getEnchantLevel(), target.getItemLocation().name()));
 		result.add(new Reservation(identity.profileId(), identity.characterObjectId(), player.getClassIndex(), ResourceKind.ITEM_OBJECT, scroll.getObjectId(), scroll.getId(), 0, scroll.getCount(), scroll.getEnchantLevel(), scroll.getItemLocation().name()));
 		if (support != null)

@@ -6,11 +6,12 @@
 
 Goal 021 accepted baseline: `043844c0fd7a0bfcac0d5f58461a21633b032332`.
 Goal 022 C1 foundation: `d02dc8429e88ef507347fc2e3860b0528844ae68`.
+Goal 022 C1 lifecycle completion: `9e2bd551ecc03647641c16e393694b9a0cb51e60`.
 Branch: `feature/phantom-world`.
-C1 completion subject:
-`fix(phantoms): close economy craft lifecycle and reservation ownership`.
-Completion SHA определяется post-commit verifier как единственный ordinary
-child foundation commit.
+Final authority/resume/risk completion subject:
+`fix(phantoms): close economy resume authority and risk gates`.
+Final SHA определяется post-commit verifier как единственный ordinary child
+lifecycle completion commit.
 
 ## Summary
 
@@ -51,7 +52,33 @@ Bounded completion закрывает найденные review gaps без sche
   освобождает committed object IDs;
 - active effect-before-Goal и Goal-before-audit windows после restart переходят
   в fail-stop `INCONSISTENT` и не повторяют canonical enchant;
-- ordinary `RequestEnchantItem.java` byte-identical foundation commit.
+- ordinary `RequestEnchantItem.java` byte-identical lifecycle completion.
+
+## Final authority/resume/risk completion
+
+Bounded final completion закрывает последние authority и resume gates без
+изменения принятой schema, policy XML или packet adapter:
+
+- matching `RESERVED`, `DISPATCHING` и `OBSERVING` возобновляются новым plan;
+  action-issued boundary durable `DISPATCHING → OBSERVING` запрещает повторный
+  вызов canonical craft/enchant, а cancellation и shutdown всегда дают terminal
+  state и освобождают claims;
+- craft authority использует ordered length-prefixed facts для exact source,
+  полного `RecipePlan`, recipe ingredients/stat-use/normal/rare templates,
+  current config и policy; enchant authority включает target/scroll/support,
+  crystal consequence, current chance/validity/config и policy;
+- active dispatch повторно вычисляет authority и exact reservations; drift
+  завершается до canonical action без item/vital/Goal mutation;
+- `EnchantItemService` самостоятельно отклоняет transaction/store, ownership,
+  identity, validity и over-enchant violations до расходования ресурсов;
+- replacement evidence берётся только из canonical Adena; резервируется exact
+  `ADENA` на Goal replacement reserve, а destructive branch дополнительно
+  проверяет risk budget, expense budget, maximum expense и permission;
+- normal/rare craft outputs входят в active/background reservations и exact
+  before/after attribution; output, совпавший с ingredient, использует один
+  merged `ITEM_COUNT` resource;
+- `ITEM_OBJECT` конфликтует с другим exact object только по одинаковому
+  object ID; cross `ITEM_COUNT`/`ITEM_OBJECT` остаётся item-ID conflict.
 
 ## Changed files
 
@@ -119,16 +146,17 @@ Phantom World сохраняет существующий disabled-by-default st
 Seed всех новых modes: `22002201`.
 
 - `economy-reservation-schema`: 2/2 PASS;
-- `economy-reservation-concurrency`: 12/12 PASS;
+- `economy-reservation-concurrency`: 13/13 PASS;
 - `economy-self-craft-active`: 2/2 PASS, real materialized Phantom и три
   successive service operations;
-- `economy-self-craft-background`: 4/4 PASS, actual transaction outcomes,
+- `economy-self-craft-background`: 5/5 PASS, actual transaction outcomes,
   three-attempt lifecycle и 12-point fault matrix;
-- `economy-enchant-active`: 4/4 PASS, full service chain, packet parity и две
+- `economy-enchant-active`: 5/5 PASS, full service chain, actor validation,
+  packet parity и две
   non-atomic restart windows;
-- `economy-enchant-background`: 4/4 PASS, четыре actual canonical outcomes и
+- `economy-enchant-background`: 5/5 PASS, authority/risk variants, четыре actual canonical outcomes и
   12-point fault matrix;
-- `economy-restart-transition`: 1/1 PASS;
+- `economy-restart-transition`: 2/2 PASS, включая shutdown terminalization;
 - `economy-lifecycle-performance`: 2/2 PASS.
 
 Fresh-schema defect, найденный первым provisioning run: migration имя
@@ -194,26 +222,26 @@ terminal section ниже.
   output byte-identical, accepted implementation
   `043844c0fd7a0bfcac0d5f58461a21633b032332`.
 - Working-tree verifier 022c1: PASS под Windows PowerShell 5.1 и PowerShell 7;
-  output byte-identical, completion scope 10, completion production 6,
+  output byte-identical, final scope 11, final production 7,
   new production 0, SQL 0, cumulative scope 47, policy SHA-256
   `52ed0748b1919a8736d857fa80ee318e4e1e385827cb6b8038fbda65776598d9`.
 - Final `phantom-economy-checkpoint1-test`: PASS: все восемь свежих suite reports
-  имеют `failed=0`; seed `22002201`.
-- Один plain `ant verify`: PASS; обновлён 121 suite report, финальные
-  DB/scenario/performance routes завершены, после чего прошли static verifiers и
-  Ant завершился. Intentional negative controls дали ожидаемые non-zero
-  результаты внутри зелёного gate.
-- Один standalone `ant jar`: PASS, `BUILD SUCCESSFUL`, 0:18.
+  имеют `failed=0`; seed `22002201`; 1:28.
+- Один plain `ant verify`: PASS; обновлены 120 XML suite reports, финальный
+  `performance.xml` создан через 14:37 после первого suite report. Intentional
+  negative controls `negative` и `lifecycle-control` дали ожидаемые non-zero
+  результаты внутри зелёного gate; остальных ошибок/failures нет.
+- Один standalone `ant jar`: PASS, `BUILD SUCCESSFUL`, 0:19.
 - Mojibake-маркеры в изменённых файлах проверены отдельно: совпадений нет.
 - Escaped Cyrillic в изменённых файлах проверены отдельно: совпадений нет.
-- `RequestEnchantItem.java` byte-identical foundation
-  `d02dc8429e88ef507347fc2e3860b0528844ae68`.
-- `git diff --check d02dc8429e88ef507347fc2e3860b0528844ae68 --`: PASS;
+- `RequestEnchantItem.java` byte-identical lifecycle completion
+  `9e2bd551ecc03647641c16e393694b9a0cb51e60`.
+- `git diff --check 9e2bd551ecc03647641c16e393694b9a0cb51e60 --`: PASS;
   whitespace errors отсутствуют.
 - Freeze production/data/test/build/verifier соблюдён после final aggregate;
   после freeze изменялась только эта terminal section отчёта.
-- C1 completion входит в единственный ordinary child foundation с subject
-  `fix(phantoms): close economy craft lifecycle and reservation ownership`; exact SHA,
+- Final completion создаётся единственным ordinary direct child lifecycle completion
+  с subject `fix(phantoms): close economy resume authority and risk gates`; exact SHA,
   push containment и два byte-identical historical verifier runs фиксируются
   неизменяемым post-commit verifier и финальным сообщением, поскольку их нельзя
   записать в этот commit без второго commit/amend.
