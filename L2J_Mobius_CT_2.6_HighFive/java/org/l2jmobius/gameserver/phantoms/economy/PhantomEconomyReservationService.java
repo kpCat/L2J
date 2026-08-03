@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -123,6 +124,11 @@ public final class PhantomEconomyReservationService
 			return ReserveResult.rejected(Status.ADMISSION_CLOSED);
 		}
 		final List<Reservation> reservations = PhantomEconomyOperation.canonicalReservations(requested, _policy.limits().reservationsPerOperation());
+		if (hasSemanticOverlap(reservations))
+		{
+			_conflicts.increment();
+			return ReserveResult.rejected(Status.RESOURCE_CONFLICT);
+		}
 		if (reservations.stream().map(Reservation::itemId).filter(itemId -> itemId > 0).distinct().count() > _policy.limits().itemIdsPerRead())
 		{
 			throw new IllegalArgumentException("Economy distinct item ID bound exceeded.");
@@ -136,7 +142,13 @@ public final class PhantomEconomyReservationService
 			begin(connection);
 			try
 			{
-				lockProfiles(connection, profileIds);
+				final Map<Long, Integer> participantLinks = lockProfiles(connection, profileIds);
+				if (!Objects.equals(participantLinks.get(operation.identity().profileId()), operation.identity().characterObjectId()) || reservations.stream().anyMatch(reservation -> !Objects.equals(participantLinks.get(reservation.profileId()), reservation.ownerObjectId())))
+				{
+					connection.rollback();
+					_conflicts.increment();
+					return ReserveResult.rejected(Status.IDENTITY_CONFLICT);
+				}
 				final StoredOperation existing = lockOperation(connection, operation.operationId());
 				if (existing != null)
 				{
@@ -148,7 +160,12 @@ public final class PhantomEconomyReservationService
 					connection.rollback();
 					return ReserveResult.rejected(Status.IDENTITY_CONFLICT);
 				}
-				if (hasAnotherActiveOperation(connection, operation.identity().profileId(), operation.operationId()))
+				boolean participantBusy = false;
+				for (long profileId : profileIds)
+				{
+					participantBusy |= hasAnotherActiveOperation(connection, profileId, operation.operationId());
+				}
+				if (participantBusy)
 				{
 					connection.rollback();
 					_conflicts.increment();
@@ -158,6 +175,12 @@ public final class PhantomEconomyReservationService
 				{
 					connection.rollback();
 					return ReserveResult.rejected(Status.LIMIT_REACHED);
+				}
+				if (hasReservationConflict(connection, operation.operationId(), reservations))
+				{
+					connection.rollback();
+					_conflicts.increment();
+					return ReserveResult.rejected(Status.RESOURCE_CONFLICT);
 				}
 				insertOperation(connection, operation);
 				for (int i = 0; i < reservations.size(); i++)
@@ -648,12 +671,13 @@ public final class PhantomEconomyReservationService
 		return profiles.stream().sorted().toList();
 	}
 
-	private void lockProfiles(Connection connection, List<Long> profileIds) throws SQLException
+	private Map<Long, Integer> lockProfiles(Connection connection, List<Long> profileIds) throws SQLException
 	{
 		final List<Long> ordered = profileIds.stream().distinct().sorted().toList();
+		final Map<Long, Integer> links = new java.util.LinkedHashMap<>();
 		for (long profileId : ordered)
 		{
-			try (PreparedStatement statement = connection.prepareStatement("SELECT profile_id FROM phantom_profiles WHERE profile_id=? FOR UPDATE"))
+			try (PreparedStatement statement = connection.prepareStatement("SELECT character_object_id FROM phantom_profiles WHERE profile_id=? FOR UPDATE"))
 			{
 				statement.setLong(1, profileId);
 				try (ResultSet result = statement.executeQuery())
@@ -662,9 +686,12 @@ public final class PhantomEconomyReservationService
 					{
 						throw new IllegalStateException("Economy participant profile does not exist.");
 					}
+					final int characterObjectId = result.getInt(1);
+					links.put(profileId, result.wasNull() ? null : characterObjectId);
 				}
 			}
 		}
+		return links;
 	}
 
 	private StoredOperation readOperation(Connection connection, String operationId) throws SQLException
@@ -696,10 +723,11 @@ public final class PhantomEconomyReservationService
 
 	private boolean hasAnotherActiveOperation(Connection connection, long profileId, String operationId) throws SQLException
 	{
-		try (PreparedStatement statement = connection.prepareStatement("SELECT operation_id FROM phantom_economy_operations WHERE profile_id=? AND operation_state IN (" + ACTIVE_STATES + ") AND operation_id<>? ORDER BY operation_id LIMIT 1 FOR UPDATE"))
+		try (PreparedStatement statement = connection.prepareStatement("SELECT o.operation_id FROM phantom_economy_operations o WHERE o.operation_state IN (" + ACTIVE_STATES + ") AND o.operation_id<>? AND (o.profile_id=? OR EXISTS (SELECT 1 FROM phantom_economy_reservations r WHERE r.operation_id=o.operation_id AND r.profile_id=?)) ORDER BY o.operation_id LIMIT 1 FOR UPDATE"))
 		{
-			statement.setLong(1, profileId);
-			statement.setString(2, operationId);
+			statement.setString(1, operationId);
+			statement.setLong(2, profileId);
+			statement.setLong(3, profileId);
 			try (ResultSet result = statement.executeQuery())
 			{
 				return result.next();
@@ -885,8 +913,8 @@ public final class PhantomEconomyReservationService
 	{
 		for (Reservation resource : resources.stream().sorted(Reservation.CANONICAL_ORDER).toList())
 		{
-			final boolean itemResource = (resource.kind() == PhantomEconomyOperation.ResourceKind.ADENA) || (resource.kind() == PhantomEconomyOperation.ResourceKind.ITEM_COUNT) || (resource.kind() == PhantomEconomyOperation.ResourceKind.ITEM_OBJECT);
-			final String sql = itemResource ? "SELECT operation_id FROM phantom_economy_reservations WHERE canonical_resource_key=? OR (owner_object_id=? AND item_id=? AND resource_kind IN ('ADENA','ITEM_COUNT','ITEM_OBJECT')) ORDER BY canonical_resource_key FOR UPDATE" : "SELECT operation_id FROM phantom_economy_reservations WHERE canonical_resource_key=? FOR UPDATE";
+			final boolean itemResource = (resource.kind() == PhantomEconomyOperation.ResourceKind.ITEM_COUNT) || (resource.kind() == PhantomEconomyOperation.ResourceKind.ITEM_OBJECT);
+			final String sql = itemResource ? "SELECT operation_id FROM phantom_economy_reservations WHERE canonical_resource_key=? OR (owner_object_id=? AND item_id=? AND resource_kind IN ('ITEM_COUNT','ITEM_OBJECT')) ORDER BY canonical_resource_key FOR UPDATE" : "SELECT operation_id FROM phantom_economy_reservations WHERE canonical_resource_key=? FOR UPDATE";
 			try (PreparedStatement statement = connection.prepareStatement(sql))
 			{
 				statement.setString(1, resource.canonicalKey());
@@ -904,6 +932,31 @@ public final class PhantomEconomyReservationService
 							return true;
 						}
 					}
+				}
+			}
+		}
+		return false;
+	}
+
+	private static boolean hasSemanticOverlap(List<Reservation> resources)
+	{
+		for (int left = 0; left < resources.size(); left++)
+		{
+			final Reservation first = resources.get(left);
+			final boolean firstAdena = first.kind() == PhantomEconomyOperation.ResourceKind.ADENA;
+			final boolean firstItem = (first.kind() == PhantomEconomyOperation.ResourceKind.ITEM_COUNT) || (first.kind() == PhantomEconomyOperation.ResourceKind.ITEM_OBJECT);
+			if (!firstAdena && !firstItem)
+			{
+				continue;
+			}
+			for (int right = left + 1; right < resources.size(); right++)
+			{
+				final Reservation second = resources.get(right);
+				final boolean secondAdena = second.kind() == PhantomEconomyOperation.ResourceKind.ADENA;
+				final boolean secondItem = (second.kind() == PhantomEconomyOperation.ResourceKind.ITEM_COUNT) || (second.kind() == PhantomEconomyOperation.ResourceKind.ITEM_OBJECT);
+				if ((first.ownerObjectId() == second.ownerObjectId()) && ((firstAdena && secondAdena) || (firstItem && secondItem && (first.itemId() == second.itemId()))))
+				{
+					return true;
 				}
 			}
 		}

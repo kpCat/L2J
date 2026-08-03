@@ -134,7 +134,7 @@ public record PhantomEconomyOperation(Identity identity, Kind kind, State state,
 			{
 				case PREPARED -> (next == RESERVED) || (next == ABORTED) || (next == EXPIRED);
 				case RESERVED -> (next == DISPATCHING) || (next == ABORTED) || (next == EXPIRED);
-				case DISPATCHING -> (next == OBSERVING) || (next == COMMITTED) || (next == INCONSISTENT);
+				case DISPATCHING -> (next == OBSERVING) || (next == COMMITTED) || (next == ABORTED) || (next == INCONSISTENT);
 				case OBSERVING -> (next == COMMITTED) || (next == INCONSISTENT);
 				case COMMITTED, ABORTED, EXPIRED, INCONSISTENT -> false;
 			};

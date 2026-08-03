@@ -5,8 +5,10 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-$RequiredParent = "043844c0fd7a0bfcac0d5f58461a21633b032332"
-$RequiredSubject = "feat(phantoms): add economy reservations craft and enchant"
+$AcceptedGoal021 = "043844c0fd7a0bfcac0d5f58461a21633b032332"
+$FoundationCommit = "d02dc8429e88ef507347fc2e3860b0528844ae68"
+$FoundationSubject = "feat(phantoms): add economy reservations craft and enchant"
+$RequiredSubject = "fix(phantoms): close economy craft lifecycle and reservation ownership"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "22002201"
 
@@ -160,36 +162,49 @@ try
 	$script:ModulePrefix = (Split-Path $script:ModuleRoot -Leaf) + "/"
 	Assert-True ((Git-Lines @("branch", "--show-current") | Select-Object -First 1) -eq $RequiredBranch) "Goal 022c1 must remain on feature/phantom-world."
 	$head = (Git-Lines @("rev-parse", "HEAD") | Select-Object -First 1)
+	Assert-True ((Git-Lines @("show", "-s", "--format=%P", $FoundationCommit) | Select-Object -First 1) -eq $AcceptedGoal021) "Goal 022c1 foundation is not the direct child of the accepted Goal 021 baseline."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $FoundationCommit) | Select-Object -First 1) -eq $FoundationSubject) "Goal 022c1 foundation subject changed."
 	if ($WorkingTree)
 	{
-		Assert-True ($head -eq $RequiredParent) "Working Goal 022c1 must start at the required parent."
+		Assert-True ($head -eq $FoundationCommit) "Working Goal 022c1 completion must start at the accepted foundation."
 		$script:Mode = "working"
 		$script:TargetCommit = "WORKING_TREE"
 	}
 	else
 	{
-		& git merge-base --is-ancestor $RequiredParent $head
-		Assert-True ($LASTEXITCODE -eq 0) "Required Goal 021 baseline is not an ancestor of HEAD."
-		$children = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$RequiredParent..$head"))
-		Assert-True ($children.Count -ge 1) "Goal 022c1 implementation child is absent."
+		& git merge-base --is-ancestor $FoundationCommit $head
+		Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 022c1 foundation is not an ancestor of HEAD."
+		$children = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$FoundationCommit..$head"))
+		Assert-True ($children.Count -ge 1) "Goal 022c1 completion child is absent."
 		$script:TargetCommit = $children[0]
 		$script:Mode = "historical"
-		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredParent) "Goal 022c1 is not one ordinary child of the required parent."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 022c1 commit subject changed."
+		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $FoundationCommit) "Goal 022c1 completion is not one ordinary child of the foundation."
+		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 022c1 completion subject changed."
+	}
+
+	$foundationChanged = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+	Add-Paths $foundationChanged @("diff", "--name-only", $AcceptedGoal021, $FoundationCommit, "--")
+	$foundationPaths = @($foundationChanged | Sort-Object)
+	Assert-True (($foundationPaths.Count -gt 0) -and ($foundationPaths.Count -le 65)) "Goal 022c1 foundation scope exceeds its accepted bound."
+	$foundationProduction = @($foundationPaths | Where-Object { Is-Production $_ })
+	Assert-True ($foundationProduction.Count -le 38) "Goal 022c1 foundation production scope exceeds its accepted bound."
+	foreach ($path in $foundationPaths)
+	{
+		Assert-True (Is-Allowed $path) "Out-of-scope Goal 022c1 foundation path: $path"
 	}
 
 	$changed = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
 	if ($script:Mode -eq "working")
 	{
-		Add-Paths $changed @("diff", "--name-only", $RequiredParent, "--")
+		Add-Paths $changed @("diff", "--name-only", $FoundationCommit, "--")
 		Add-Untracked $changed
 	}
 	else
 	{
-		Add-Paths $changed @("diff", "--name-only", $RequiredParent, $script:TargetCommit, "--")
+		Add-Paths $changed @("diff", "--name-only", $FoundationCommit, $script:TargetCommit, "--")
 	}
 	$paths = @($changed | Sort-Object)
-	Assert-True (($paths.Count -gt 0) -and ($paths.Count -le 65)) "Goal 022c1 scope exceeds 65 files."
+	Assert-True (($paths.Count -gt 0) -and ($paths.Count -le 16)) "Goal 022c1 completion scope exceeds 16 files."
 	foreach ($path in $paths)
 	{
 		Assert-True (Is-Allowed $path) "Out-of-scope Goal 022c1 path: $path"
@@ -200,28 +215,43 @@ try
 	$newPaths = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
 	if ($script:Mode -eq "working")
 	{
-		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $RequiredParent, "--")
+		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $FoundationCommit, "--")
 		Add-Untracked $newPaths
 	}
 	else
 	{
-		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $RequiredParent, $script:TargetCommit, "--")
+		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $FoundationCommit, $script:TargetCommit, "--")
 	}
 	$newProduction = @($newPaths | Where-Object { Is-Production $_ })
 	$changedProduction = @($paths | Where-Object { Is-Production $_ })
 	$sql = @($paths | Where-Object { $_ -match '^dist/db_installer/sql/' })
-	Assert-True ($newProduction.Count -le 24) "New production/data scope exceeds 24 files."
-	Assert-True ($changedProduction.Count -le 38) "Changed production/data scope exceeds 38 files."
-	Assert-True ($sql.Count -le 2) "Goal 022c1 exceeds two SQL migrations."
+	Assert-True ($newProduction.Count -eq 0) "Goal 022c1 completion added production/data files."
+	Assert-True ($changedProduction.Count -le 9) "Goal 022c1 completion exceeds nine production files."
+	Assert-True ($sql.Count -eq 0) "Goal 022c1 completion changed the accepted schema."
+
+	$cumulativeChanged = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+	if ($script:Mode -eq "working")
+	{
+		Add-Paths $cumulativeChanged @("diff", "--name-only", $AcceptedGoal021, "--")
+		Add-Untracked $cumulativeChanged
+	}
+	else
+	{
+		Add-Paths $cumulativeChanged @("diff", "--name-only", $AcceptedGoal021, $script:TargetCommit, "--")
+	}
+	$cumulativePaths = @($cumulativeChanged | Sort-Object)
+	Assert-True ($cumulativePaths.Count -le 65) "Goal 022c1 cumulative foundation+completion scope exceeds 65 files."
 
 	$operation = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomEconomyOperation.java'
 	Contains-All $operation @('SELF_CRAFT', 'ITEM_ENCHANT', 'PREPARED', 'RESERVED', 'DISPATCHING', 'OBSERVING', 'COMMITTED', 'ABORTED', 'EXPIRED', 'INCONSISTENT', 'canonicalKey()', 'ownerClassIndex', 'MAX_PAYLOAD_BYTES = 4096') 'Economy operation contract'
 	Assert-True ($operation.Contains('((state == State.PREPARED) || (state == State.RESERVED))') -and !$operation.Contains('case DISPATCHING -> (next == EXPIRED)')) "Economy expiry is not restricted to predispatch."
+	Assert-True ($operation.Contains('case DISPATCHING -> (next == OBSERVING) || (next == COMMITTED) || (next == ABORTED) || (next == INCONSISTENT)')) "Predispatch-effect abort cannot terminate exactly."
 
 	$reservations = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomEconomyReservationService.java'
 	Contains-All $reservations @('lockProfiles(connection, profileIds)', 'lockOperation(connection, operation.operationId())', 'lockReservationKeys(connection, operationId)', 'RESOURCE_CONFLICT', 'IDENTITY_CONFLICT', 'PROFILE_BUSY', 'retainedNonterminalOperations()', 'dispatch.ambiguous', 'EconomyConflictException', 'findReservations', 'nextAttempt') 'Reservation kernel'
 	Assert-True ($reservations.IndexOf('lockProfiles(connection, profileIds)') -lt $reservations.IndexOf('lockOperation(connection, operation.operationId())')) "Profile/operation DB lock order drifted."
 	Assert-True ($reservations.Contains('(operation.state() == State.DISPATCHING) || (operation.state() == State.OBSERVING)') -and $reservations.Contains('throw new EconomyConflictException')) "Materialization boundary does not fail stop after dispatch."
+	Contains-All $reservations @('SELECT character_object_id FROM phantom_profiles', 'participantLinks.get(operation.identity().profileId())', 'participantLinks.get(reservation.profileId())', 'for (long profileId : profileIds)', 'hasAnotherActiveOperation(connection, profileId', 'hasReservationConflict(connection, operation.operationId(), reservations)', 'hasSemanticOverlap(reservations)') 'Participant-neutral ownership and semantic conflicts'
 
 	$schema = Read-TargetUtf8 'dist/db_installer/sql/game/phantom_reservations.sql'
 	Contains-All $schema @('CREATE TABLE IF NOT EXISTS `phantom_economy_operations`', 'CREATE TABLE IF NOT EXISTS `phantom_economy_reservations`', 'CREATE TABLE IF NOT EXISTS `phantom_economy_audit`', '`canonical_resource_key`', '`owner_class_index`', '`terminal_result`', '`items_consumed`', '`items_produced`', '`crystals_produced`', '`target_items_destroyed`', 'ENGINE=InnoDB') 'Economy migration'
@@ -244,6 +274,8 @@ try
 	Contains-All $enchantService @('public final class EnchantItemService', 'destroyItem(ItemProcessType.FEE', 'calculateSuccess(player, item, supportTemplate)', 'scrollTemplate.isSafe()', 'scrollTemplate.isBlessed()', 'destroyItem(ItemProcessType.DESTROY', 'getCrystalItemId()', 'setActiveEnchantItemId(Player.ID_NONE)', 'broadcastUserInfo()', 'record Event') 'Canonical enchant service'
 	Contains-All $packet @('EnchantItemService.getInstance().execute', 'new Request(player, _objectId, scrollObjectId, supportObjectId, true', 'getActiveEnchantItemId()', 'getActiveEnchantTimestamp()') 'Ordinary enchant packet adapter'
 	Assert-True (!$packet.Contains('calculateSuccess(') -and !$packet.Contains('destroyItem(ItemProcessType.DESTROY')) "Ordinary packet retained canonical enchant mutation."
+	$foundationPacketBytes = Read-CommitBytes $FoundationCommit 'java/org/l2jmobius/gameserver/network/clientpackets/RequestEnchantItem.java'
+	Assert-True ([Convert]::ToBase64String($foundationPacketBytes) -eq [Convert]::ToBase64String((Read-TargetBytes 'java/org/l2jmobius/gameserver/network/clientpackets/RequestEnchantItem.java'))) "Ordinary enchant packet differs byte-for-byte from the accepted foundation."
 
 	$economyFiles = @($paths | Where-Object { $_ -match '^java/org/l2jmobius/gameserver/phantoms/economy/.*\.java$' })
 	foreach ($path in $economyFiles)
@@ -253,7 +285,7 @@ try
 	}
 
 	$background = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomEconomyBackgroundTransaction.java'
-	Contains-All $background @('connection.setAutoCommit(false)', 'ORDER BY object_id LIMIT', 'FOR UPDATE', 'lockDispatchInTransaction', 'commitDispatchInTransaction', 'writeComponent', 'updateVitals', 'connection.commit()', 'connection.rollback()', 'setQueryTimeout') 'Atomic background economy transaction'
+	Contains-All $background @('connection.setAutoCommit(false)', 'ORDER BY object_id LIMIT', 'FOR UPDATE', 'lockDispatchInTransaction', 'commitDispatchInTransaction', 'writeComponent', 'updateVitals', 'connection.commit()', 'connection.rollback()', 'setQueryTimeout', 'interface FaultInjector', 'FaultInjector.none()', 'AFTER_PROFILE_LOCK', 'AFTER_DISPATCH_LOCK', 'AFTER_COMPONENT_LOCKS', 'AFTER_CHARACTER_RECIPE_SKILL_LOCKS', 'AFTER_ITEM_LOCKS', 'AFTER_ITEM_WRITES', 'AFTER_VITAL_WRITES', 'AFTER_BACKGROUND_WRITE', 'AFTER_ACQUISITION_OR_GOAL_WRITE', 'AFTER_OPERATION_AUDIT_WRITE', 'BEFORE_COMMIT', 'AFTER_COMMIT', 'rare=" + outcome.rare()', 'sourceFailure=') 'Atomic background economy transaction'
 	Assert-True ($background -notmatch '(?i)(?:UPDATE|INSERT|DELETE)\s+(?:character_quests|clan_data|items?\s+SET\s+owner_id)') "Background economy crossed forbidden ownership."
 
 	$commerce = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/commerce/L2jCommerceBackend.java'
@@ -272,10 +304,11 @@ try
 	Contains-All $decision @('economy.reserve', 'economy.dispatch', 'economy.reconcile', 'PhantomAcquisitionGoalSpec.GOAL_TYPE', 'PhantomEnchantGoalSpec.GOAL_TYPE') 'Economy Decision steps'
 	$economyService = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomEconomyService.java'
 	Contains-All $economyService @('target.getItemLocation().name()', 'scroll.getItemLocation().name()', 'support.getItemLocation().name()') 'Active enchant reservation location'
+	Contains-All $economyService @('acquisition.progress() < acquisition.requiredAmount()', 'craft.pre_effect_aborted', 'craft.canonical_failure', 'craft.target_not_produced', 'targetProduced=', 'State.INCONSISTENT') 'Repeatable active craft attribution'
 	Assert-True (!$economyService.Contains('getLocation().toString()')) "Active enchant reservation captured world coordinates as item location."
 
 	$tests = Read-TargetUtf8 'test/java/org/l2jmobius/tests/phantoms/PhantomEconomySuite.java'
-	foreach ($evidence in @('materialization.materialize(profile.profileId())', 'World.getInstance().getPlayer', 'RecipeManager.getInstance().requestMakeItem', 'EnchantItemService.getInstance().execute', 'PhantomEconomyConflictPort.install', 'foreign.acquired()', 'owner.acquired()', 'Result.SAFE_FAILURE', 'Result.BLESSED_RESET', 'Result.DESTROYED_WITH_CRYSTALS', 'State.INCONSISTENT', 'expireDue', '100000', '10000', 'beforeBoundary', 'TEST_DATABASE'))
+	foreach ($evidence in @('materialization.materialize(profile.profileId())', 'World.getInstance().getPlayer', 'RecipeManager.getInstance().requestMakeItem', 'EnchantItemService.getInstance().execute', 'PhantomEconomyConflictPort.install', 'foreign.acquired()', 'owner.acquired()', 'Result.SAFE_FAILURE', 'Result.BLESSED_RESET', 'Result.DESTROYED_WITH_CRYSTALS', 'State.INCONSISTENT', 'expireDue', '100000', '10000', 'beforeBoundary', 'TEST_DATABASE', 'decision-service-repeatable-lifecycle', 'actual-outcome-attribution', 'actual-outcome-matrix', 'non-atomic-restart-windows', 'atomic-fault-matrix', 'FaultPoint.values()', 'operationIds.stream().distinct().count()', 'craft.target_not_produced', 'participant-link-mismatch', 'item-count-object-overlap', 'economy.backgroundEnchantFaultPoints'))
 	{
 		Assert-True ($tests.Contains($evidence)) "Goal 022c1 test evidence is absent: $evidence"
 	}
@@ -287,11 +320,11 @@ try
 	}
 
 	$goal021 = Read-TargetUtf8 'docs/phantoms/reviews/021-final-review.md'
-	Contains-All $goal021 @('Goal 021 Checkpoint 1: `ACCEPT`', 'Goal 021 Checkpoint 2: `ACCEPT`', 'Goal 021 overall: `ACCEPT`', $RequiredParent) 'Goal 021 final review'
+	Contains-All $goal021 @('Goal 021 Checkpoint 1: `ACCEPT`', 'Goal 021 Checkpoint 2: `ACCEPT`', 'Goal 021 overall: `ACCEPT`', $AcceptedGoal021) 'Goal 021 final review'
 	$report = Read-TargetUtf8 'docs/phantoms/reports/022-checkpoint-1-economy-craft-enchant.md'
 	$review = Read-TargetUtf8 'docs/phantoms/reviews/022-checkpoint-1-independent-review.md'
 	Assert-True (($report -split "`r?`n").Count -le 300) "Goal 022c1 report exceeds 300 lines."
-	Contains-All $report @('COMPLETED_PENDING_INDEPENDENT_REVIEW', $RequiredParent, $RequiredSubject, 'Goal 022', 'Checkpoint 2', '## Terminal section') 'Goal 022c1 report'
+	Contains-All $report @('COMPLETED_PENDING_INDEPENDENT_REVIEW', $AcceptedGoal021, $FoundationCommit, $RequiredSubject, 'Goal 022', 'Checkpoint 2', '## Terminal section', 'C1 completion') 'Goal 022c1 report'
 	Contains-All $review @('IMPLEMENTED_PENDING_INDEPENDENT_REVIEW', 'self-accept', 'Checkpoint 2') 'Independent-review handoff'
 
 	$mojibakePairs = @(
@@ -324,7 +357,7 @@ try
 		{
 			Assert-True (Test-Path -LiteralPath (Join-Path $script:ModuleRoot $class) -PathType Leaf) "Compiled Goal 022c1 class is absent: $class"
 		}
-		& git -c core.safecrlf=false diff --check $RequiredParent --
+		& git -c core.safecrlf=false diff --check $FoundationCommit --
 		Assert-True ($LASTEXITCODE -eq 0) "Working git diff --check failed."
 	}
 	else
@@ -345,17 +378,21 @@ try
 			Assert-True ($jarEntries -contains $entry) "GameServer.jar lacks Goal 022c1 entry: $entry"
 		}
 		Assert-True ($jarEntries -notcontains 'data/phantoms/economy/high-five-economy-v1.xml') "Economy datapack must remain outside GameServer.jar."
-		& git -c core.safecrlf=false diff --check $RequiredParent $script:TargetCommit --
+		& git -c core.safecrlf=false diff --check $FoundationCommit $script:TargetCommit --
 		Assert-True ($LASTEXITCODE -eq 0) "Committed git diff --check failed."
 	}
 
 	Write-Output 'TASK022C1_VERIFIER_OK'
 	Write-Output "mode=$($script:Mode)"
 	Write-Output "implementation_commit=$($script:TargetCommit)"
-	Write-Output "required_parent=$RequiredParent"
+	Write-Output "accepted_goal021=$AcceptedGoal021"
+	Write-Output "foundation_commit=$FoundationCommit"
 	Write-Output "seed=$RequiredSeed"
-	Write-Output "scope=$($paths.Count)"
-	Write-Output "production=$($changedProduction.Count)"
+	Write-Output "foundation_scope=$($foundationPaths.Count)"
+	Write-Output "foundation_production=$($foundationProduction.Count)"
+	Write-Output "completion_scope=$($paths.Count)"
+	Write-Output "cumulative_scope=$($cumulativePaths.Count)"
+	Write-Output "completion_production=$($changedProduction.Count)"
 	Write-Output "new_production=$($newProduction.Count)"
 	Write-Output "sql=$($sql.Count)"
 	Write-Output "policy_sha256=$(Target-Sha256 'dist/game/data/phantoms/economy/high-five-economy-v1.xml')"

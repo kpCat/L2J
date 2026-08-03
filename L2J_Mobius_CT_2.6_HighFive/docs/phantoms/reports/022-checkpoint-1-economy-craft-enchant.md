@@ -4,11 +4,13 @@
 
 `COMPLETED_PENDING_INDEPENDENT_REVIEW`.
 
-Required parent: `043844c0fd7a0bfcac0d5f58461a21633b032332`.
+Goal 021 accepted baseline: `043844c0fd7a0bfcac0d5f58461a21633b032332`.
+Goal 022 C1 foundation: `d02dc8429e88ef507347fc2e3860b0528844ae68`.
 Branch: `feature/phantom-world`.
-Commit subject: `feat(phantoms): add economy reservations craft and enchant`.
-Commit SHA определяется post-commit verifier как единственный ordinary child
-required parent.
+C1 completion subject:
+`fix(phantoms): close economy craft lifecycle and reservation ownership`.
+Completion SHA определяется post-commit verifier как единственный ordinary
+child foundation commit.
 
 ## Summary
 
@@ -30,6 +32,26 @@ Current enchant mutation извлечена в `EnchantItemService`; ordinary pa
 тонким adapter. Active/background `ITEM_ENCHANT` используют exact objects,
 canonical success/safe/blessed/destruction/crystal branches и explicit risk
 policy. Equipped background target даёт `ACTIVE_REQUIRED`.
+
+## C1 completion
+
+Bounded completion закрывает найденные review gaps без schema/config change:
+
+- immutable Goal 021 `RecipePlan` повторно допускается после partial receipt;
+  active и background выполняют output=1 тремя distinct operations, сохраняют
+  progress/receipts/source history и завершают Goal только на третьей попытке;
+- canonical failure и rare different-ID остаются committed economy outcomes,
+  но не создают target progress; audit содержит exact consumption, `rare` и
+  typed source failure;
+- reservation admission проверяет linked character каждого participant,
+  active-operation exclusivity каждого participant и cross-kind semantic
+  overlap при стабильном profile-first lock order;
+- actual background craft/enchant transactions покрыты полным fault matrix в
+  12 точках до/после commit; pre-commit mutation откатывается, AFTER_COMMIT не
+  освобождает committed object IDs;
+- active effect-before-Goal и Goal-before-audit windows после restart переходят
+  в fail-stop `INCONSISTENT` и не повторяют canonical enchant;
+- ordinary `RequestEnchantItem.java` byte-identical foundation commit.
 
 ## Changed files
 
@@ -97,11 +119,15 @@ Phantom World сохраняет существующий disabled-by-default st
 Seed всех новых modes: `22002201`.
 
 - `economy-reservation-schema`: 2/2 PASS;
-- `economy-reservation-concurrency`: 2/2 PASS;
-- `economy-self-craft-active`: 1/1 PASS, real materialized Phantom;
-- `economy-self-craft-background`: 1/1 PASS;
-- `economy-enchant-active`: 1/1 PASS, real materialized Phantom;
-- `economy-enchant-background`: 1/1 PASS, четыре canonical branches;
+- `economy-reservation-concurrency`: 12/12 PASS;
+- `economy-self-craft-active`: 2/2 PASS, real materialized Phantom и три
+  successive service operations;
+- `economy-self-craft-background`: 4/4 PASS, actual transaction outcomes,
+  three-attempt lifecycle и 12-point fault matrix;
+- `economy-enchant-active`: 4/4 PASS, full service chain, packet parity и две
+  non-atomic restart windows;
+- `economy-enchant-background`: 4/4 PASS, четыре actual canonical outcomes и
+  12-point fault matrix;
 - `economy-restart-transition`: 1/1 PASS;
 - `economy-lifecycle-performance`: 2/2 PASS.
 
@@ -144,8 +170,8 @@ Focused smoke выполнил:
 ## Deviations / limitations / risks
 
 - Active branch outcomes используют canonical server RNG; deterministic полное
-  branch покрытие выполняет background projection с seed. Active smoke доказывает
-  реальную mutation/consumption/observer cleanup на compatible objects.
+  branch покрытие выполняют actual background transactions с seed. Active tests
+  доказывают реальную mutation/consumption/observer cleanup и restart fail-stop.
 - ALT creation остаётся current active-only scheduled behavior;
   background deliberately возвращает `ACTIVE_REQUIRED`.
 - Direct trade, private stores, player manufacture, mail и clan warehouse
@@ -154,33 +180,40 @@ Focused smoke выполнил:
 
 ## Commands and terminal gates
 
-До freeze выполнены `ant compile-tests`, isolated test-DB provisioning, восемь
-focused modes, bounded affected route и working-tree verifier 022c1 под Windows
-PowerShell 5.1 и PowerShell 7 с byte-identical output. Final aggregate, final
-plain `ant verify`, standalone `ant jar`, commit/push и два post-commit verifier
-runs записываются только в terminal section ниже.
+До freeze выполняются `ant compile-tests`, восемь focused modes, bounded
+affected routes и working-tree verifier 022c1 под Windows PowerShell 5.1 и
+PowerShell 7 с byte-identical output. Final aggregate, final plain `ant verify`,
+standalone `ant jar`, commit/push и два post-commit verifier runs фиксируются в
+terminal section ниже.
 
 ## Terminal section
 
 - Test DB: только `l2jmobiush5_phantom_test`; production DB не использовалась.
 - Bounded affected route: PASS.
+- Historical verifier 021c2: PASS под Windows PowerShell 5.1 и PowerShell 7;
+  output byte-identical, accepted implementation
+  `043844c0fd7a0bfcac0d5f58461a21633b032332`.
 - Working-tree verifier 022c1: PASS под Windows PowerShell 5.1 и PowerShell 7;
-  output byte-identical, scope 47, production 26, new production 13, SQL 1,
-  policy SHA-256
+  output byte-identical, completion scope 10, completion production 6,
+  new production 0, SQL 0, cumulative scope 47, policy SHA-256
   `52ed0748b1919a8736d857fa80ee318e4e1e385827cb6b8038fbda65776598d9`.
-- Final `phantom-economy-checkpoint1-test`: PASS, `BUILD SUCCESSFUL`, 1:31,
-  seed `22002201`.
-- Один plain `ant verify`: PASS, `BUILD SUCCESSFUL`, 16:09. Intentional
-  negative controls дали ожидаемые non-zero результаты внутри зелёного gate.
+- Final `phantom-economy-checkpoint1-test`: PASS: все восемь свежих suite reports
+  имеют `failed=0`; seed `22002201`.
+- Один plain `ant verify`: PASS; обновлён 121 suite report, финальные
+  DB/scenario/performance routes завершены, после чего прошли static verifiers и
+  Ant завершился. Intentional negative controls дали ожидаемые non-zero
+  результаты внутри зелёного gate.
 - Один standalone `ant jar`: PASS, `BUILD SUCCESSFUL`, 0:18.
 - Mojibake-маркеры в изменённых файлах проверены отдельно: совпадений нет.
 - Escaped Cyrillic в изменённых файлах проверены отдельно: совпадений нет.
-- `git diff --check 043844c0fd7a0bfcac0d5f58461a21633b032332 --`: PASS;
-  присутствуют только Git safe-CRLF warnings, whitespace errors отсутствуют.
+- `RequestEnchantItem.java` byte-identical foundation
+  `d02dc8429e88ef507347fc2e3860b0528844ae68`.
+- `git diff --check d02dc8429e88ef507347fc2e3860b0528844ae68 --`: PASS;
+  whitespace errors отсутствуют.
 - Freeze production/data/test/build/verifier соблюдён после final aggregate;
   после freeze изменялась только эта terminal section отчёта.
-- Отчёт входит в единственный ordinary child required parent с subject
-  `feat(phantoms): add economy reservations craft and enchant`; exact SHA,
+- C1 completion входит в единственный ordinary child foundation с subject
+  `fix(phantoms): close economy craft lifecycle and reservation ownership`; exact SHA,
   push containment и два byte-identical historical verifier runs фиксируются
   неизменяемым post-commit verifier и финальным сообщением, поскольку их нельзя
   записать в этот commit без второго commit/amend.

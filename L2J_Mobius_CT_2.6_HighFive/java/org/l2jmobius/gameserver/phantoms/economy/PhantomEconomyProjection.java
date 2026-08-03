@@ -58,7 +58,7 @@ public final class PhantomEconomyProjection
 		final PhantomAcquisitionState acquisition = request.acquisition();
 		final RecipePlan plan = acquisition.recipePlan();
 		final RecipeList recipe = request.recipe();
-		if ((acquisition.status() != PhantomAcquisitionState.Status.PLANNING_ONLY) || (acquisition.selectedSource() == null) || (acquisition.selectedSource().method() != Method.RECIPE_PREPARATION) || (plan == null) || !plan.deficits().isEmpty() || !acquisition.receipts().isEmpty() || (acquisition.progress() != 0))
+		if ((acquisition.status() != PhantomAcquisitionState.Status.PLANNING_ONLY) || (acquisition.selectedSource() == null) || (acquisition.selectedSource().method() != Method.RECIPE_PREPARATION) || (plan == null) || !plan.deficits().isEmpty() || (acquisition.progress() >= acquisition.requiredAmount()))
 		{
 			return CraftOutcome.rejected(Result.STALE_AUTHORITY);
 		}
@@ -133,7 +133,7 @@ public final class PhantomEconomyProjection
 
 	public static String craftAuthority(PhantomAcquisitionState acquisition, RecipeList recipe, PhantomEconomyPolicy policy)
 	{
-		return PhantomEconomyOperation.sha256(policy.hash() + "|" + acquisition.hashes().catalog() + "|" + acquisition.hashes().knowledge() + "|" + acquisition.hashes().progression() + "|" + recipeFacts(recipe) + "|" + PlayerConfig.ALT_GAME_CREATION + "|" + PlayerConfig.IS_CRAFTING_ENABLED + "|" + PlayerConfig.CRAFT_MASTERWORK + "|" + PlayerConfig.CRAFT_MASTERWORK_CHANCE_RATE);
+		return PhantomEconomyOperation.sha256(policy.hash() + "|" + acquisition.hashes().catalog() + "|" + acquisition.hashes().knowledge() + "|" + acquisition.hashes().progression() + "|" + acquisition.selectedSource().sourceId() + "|" + acquisition.recipePlan() + "|" + recipeFacts(recipe) + "|" + PlayerConfig.ALT_GAME_CREATION + "|" + PlayerConfig.IS_CRAFTING_ENABLED + "|" + PlayerConfig.CRAFT_MASTERWORK + "|" + PlayerConfig.CRAFT_MASTERWORK_CHANCE_RATE);
 	}
 
 	public static String enchantAuthority(ItemTemplate target, int enchantLevel, EnchantScroll scroll, EnchantSupportItem support, PhantomEconomyPolicy policy)

@@ -148,10 +148,6 @@ public record PhantomAcquisitionState(Hashes hashes, long goalId, long goalRevis
 		{
 			throw new IllegalArgumentException("Acquisition recipe source and plan disagree.");
 		}
-		if ((recipePlan != null) && (status == Status.PLANNING_ONLY) && (!receipts.isEmpty() || (progress != 0)))
-		{
-			throw new IllegalArgumentException("Planning-only recipe state cannot contain execution receipts or progress.");
-		}
 	}
 
 	public PhantomAcquisitionState withPlan(Status nextStatus, Source source, List<Candidate> ranked, RecipePlan plan, Phase nextPhase, long minute)

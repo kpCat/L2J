@@ -81,6 +81,7 @@ public final class PhantomEconomyBackgroundTransaction
 	private final ObjectIdAllocator _ids;
 	private final PhantomEconomyReservationService _reservations;
 	private final PhantomEconomyPolicy _policy;
+	private final FaultInjector _faultInjector;
 	private final PhantomBackgroundStateCodec _backgroundCodec = new PhantomBackgroundStateCodec();
 	private final PhantomGoalStateCodec _goalCodec = new PhantomGoalStateCodec();
 	private final PhantomAcquisitionStateCodec _acquisitionCodec = new PhantomAcquisitionStateCodec();
@@ -92,10 +93,16 @@ public final class PhantomEconomyBackgroundTransaction
 
 	public PhantomEconomyBackgroundTransaction(ConnectionProvider connections, ObjectIdAllocator ids, PhantomEconomyReservationService reservations, PhantomEconomyPolicy policy)
 	{
+		this(connections, ids, reservations, policy, FaultInjector.none());
+	}
+
+	public PhantomEconomyBackgroundTransaction(ConnectionProvider connections, ObjectIdAllocator ids, PhantomEconomyReservationService reservations, PhantomEconomyPolicy policy, FaultInjector faultInjector)
+	{
 		_connections = Objects.requireNonNull(connections);
 		_ids = Objects.requireNonNull(ids);
 		_reservations = Objects.requireNonNull(reservations);
 		_policy = Objects.requireNonNull(policy);
+		_faultInjector = Objects.requireNonNull(faultInjector);
 	}
 
 	public TransactionResult executeCraft(CraftCommand command)
@@ -103,6 +110,10 @@ public final class PhantomEconomyBackgroundTransaction
 		Objects.requireNonNull(command);
 		final List<Integer> reservedIds = new ArrayList<>();
 		final List<Integer> releasedIds = new ArrayList<>();
+		boolean committed = false;
+		boolean completionPublished = false;
+		DispatchLock committedDispatch = null;
+		TransactionResult committedResult = null;
 		try (Connection connection = _connections.open())
 		{
 			connection.setAutoCommit(false);
@@ -110,11 +121,14 @@ public final class PhantomEconomyBackgroundTransaction
 			{
 				final long profileId = command.background().identity().profileId();
 				lockProfile(connection, profileId, command.background().identity().characterObjectId());
+				_faultInjector.inject(FaultPoint.AFTER_PROFILE_LOCK);
 				final DispatchLock dispatch = _reservations.lockDispatchInTransaction(connection, command.operationId(), profileId);
 				requireOperation(dispatch, Kind.SELF_CRAFT, command.goal());
+				_faultInjector.inject(FaultPoint.AFTER_DISPATCH_LOCK);
 				final Component acquisitionComponent = lockComponent(connection, profileId, PhantomAcquisitionState.COMPONENT_TYPE);
 				final Component backgroundComponent = lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE);
 				final Component goalComponent = lockComponent(connection, profileId, PhantomGoalStateStore.COMPONENT_TYPE);
+				_faultInjector.inject(FaultPoint.AFTER_COMPONENT_LOCKS);
 				validateComponent(acquisitionComponent, PhantomAcquisitionState.SCHEMA_VERSION, command.acquisitionRowVersion(), _acquisitionCodec.encode(command.acquisition()));
 				validateComponent(backgroundComponent, PhantomBackgroundState.SCHEMA_VERSION, command.backgroundRowVersion(), _backgroundCodec.encode(command.background()));
 				validateComponent(goalComponent, PhantomGoalStateStore.COMPONENT_SCHEMA_VERSION, command.goalRowVersion(), _goalCodec.encode(command.goal()));
@@ -131,7 +145,9 @@ public final class PhantomEconomyBackgroundTransaction
 				}
 				final boolean knownRecipe = lockKnownRecipe(connection, command.background(), recipe);
 				final int craftSkillLevel = lockSkill(connection, command.background(), command.acquisition().recipePlan().craftSkillId());
+				_faultInjector.inject(FaultPoint.AFTER_CHARACTER_RECIPE_SKILL_LOCKS);
 				final List<ItemRow> items = lockItems(connection, command.background().identity().characterObjectId());
+				_faultInjector.inject(FaultPoint.AFTER_ITEM_LOCKS);
 				validateBackgroundInventory(command.background(), items);
 				final CraftOutcome outcome = PhantomEconomyProjection.craft(new CraftRequest(command.acquisition(), recipe, knownRecipe, craftSkillLevel, itemCounts(items), character.currentHp(), character.currentMp(), command.background().clock().rngState(), _policy));
 				if (!outcome.executable() || !dispatch.operation().authorityHash().equals(outcome.authorityHash()))
@@ -140,30 +156,57 @@ public final class PhantomEconomyBackgroundTransaction
 				}
 				requireCraftReservations(dispatch, command.background(), recipe);
 				final List<ItemRow> nextRows = applyCountDeltas(connection, command.background().identity().characterObjectId(), items, outcome.itemDeltas(), reservedIds, releasedIds);
+				_faultInjector.inject(FaultPoint.AFTER_ITEM_WRITES);
 				final Vitals nextVitals = new Vitals(character.currentHp() - outcome.hpConsumed(), command.background().vitals().maximumHp(), character.currentMp() - outcome.mpConsumed(), command.background().vitals().maximumMp(), character.currentCp(), command.background().vitals().maximumCp());
 				updateVitals(connection, command.background(), nextVitals);
+				_faultInjector.inject(FaultPoint.AFTER_VITAL_WRITES);
 				final InventoryFacts nextInventory = inventoryFacts(command.background().inventory(), nextRows, outcome.itemDeltas().keySet());
 				final Receipt backgroundReceipt = new Receipt(command.operationId(), dispatch.operation().activityGeneration(), dispatch.operation().activityTick(), dispatch.operation().intentHash());
 				final PhantomBackgroundState nextBackground = command.background().after(command.background().progress(), nextVitals, command.background().position(), nextInventory, command.background().autoGetSkills(), new Clock(outcome.nextRngState(), command.background().clock().residualTravelMillis(), command.background().clock().residualEncounterMillis()), backgroundReceipt);
 				final long afterProduct = nextInventory.itemCount(command.acquisition().targetItemId());
-				final org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt acquisitionReceipt = new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt(command.operationId(), command.acquisition().selectedSource().sourceId(), ReceiptKind.BACKGROUND_SELF_CRAFT, command.acquisition().lastObservedCount(), afterProduct, TerminalResult.COMMITTED, command.logicalMinute());
-				final PhantomAcquisitionState.Status nextAcquisitionStatus = outcome.result() == Result.SUCCESS ? PhantomAcquisitionState.Status.READY : PhantomAcquisitionState.Status.BLOCKED;
-				final PhantomAcquisitionState nextAcquisition = command.acquisition().observe(afterProduct, nextAcquisitionStatus, Phase.NONE, acquisitionReceipt, command.logicalMinute());
+				final boolean targetAttributed = (outcome.result() == Result.SUCCESS) && (outcome.productItemId() == command.acquisition().targetItemId()) && (outcome.productCount() > 0);
+				final String sourceFailure = outcome.result() == Result.CRAFT_FAILED ? "craft.canonical_failure" : targetAttributed ? "" : "craft.target_not_produced";
+				if (!targetAttributed && (afterProduct != command.acquisition().lastObservedCount()))
+				{
+					throw new Conflict("Craft without target attribution changed the target count.");
+				}
+				final org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt acquisitionReceipt = new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Receipt(command.operationId(), command.acquisition().selectedSource().sourceId(), ReceiptKind.BACKGROUND_SELF_CRAFT, command.acquisition().lastObservedCount(), afterProduct, targetAttributed ? TerminalResult.COMMITTED : TerminalResult.FAILED, command.logicalMinute());
+				PhantomAcquisitionState nextAcquisition = command.acquisition().observe(afterProduct, PhantomAcquisitionState.Status.PLANNING_ONLY, Phase.NONE, acquisitionReceipt, command.logicalMinute());
+				if (!sourceFailure.isEmpty())
+				{
+					nextAcquisition = nextAcquisition.failSource(sourceFailure, command.logicalMinute());
+				}
 				final PhantomGoal nextGoal = PhantomAcquisitionGoalSpec.project(command.goal(), nextAcquisition.progress(), nextAcquisition.status() == PhantomAcquisitionState.Status.COMPLETED ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.ACTIVE, nextAcquisition.selectedSource());
-				writeComponent(connection, acquisitionComponent, profileId, PhantomAcquisitionState.COMPONENT_TYPE, PhantomAcquisitionState.SCHEMA_VERSION, _acquisitionCodec.encode(nextAcquisition));
 				writeComponent(connection, backgroundComponent, profileId, PhantomBackgroundState.COMPONENT_TYPE, PhantomBackgroundState.SCHEMA_VERSION, _backgroundCodec.encode(nextBackground));
+				_faultInjector.inject(FaultPoint.AFTER_BACKGROUND_WRITE);
+				writeComponent(connection, acquisitionComponent, profileId, PhantomAcquisitionState.COMPONENT_TYPE, PhantomAcquisitionState.SCHEMA_VERSION, _acquisitionCodec.encode(nextAcquisition));
 				writeComponent(connection, goalComponent, profileId, PhantomGoalStateStore.COMPONENT_TYPE, PhantomGoalStateStore.COMPONENT_SCHEMA_VERSION, _goalCodec.encode(nextGoal));
-				final String reason = outcome.result() == Result.SUCCESS ? "result.success" : "result.craft_failed";
+				_faultInjector.inject(FaultPoint.AFTER_ACQUISITION_OR_GOAL_WRITE);
+				final String reason = outcome.result() == Result.SUCCESS ? targetAttributed ? "result.success" : sourceFailure : "result.craft_failed";
 				final long consumed = outcome.itemDeltas().values().stream().filter(value -> value < 0).mapToLong(value -> -value).sum();
 				final long produced = outcome.itemDeltas().values().stream().filter(value -> value > 0).mapToLong(Long::longValue).sum();
-				_reservations.commitDispatchInTransaction(connection, dispatch, new Audit(outcome.result(), reason, consequence(outcome.result(), outcome.productItemId(), outcome.productCount(), outcome.hpConsumed(), outcome.mpConsumed()), consumed, produced, 0, 0, 0, 0), command.nowEpochMillis());
+				_reservations.commitDispatchInTransaction(connection, dispatch, new Audit(outcome.result(), reason, consequence("result=" + outcome.result(), "productItemId=" + outcome.productItemId(), "productCount=" + outcome.productCount(), "rare=" + outcome.rare(), "sourceFailure=" + sourceFailure, "hpConsumed=" + outcome.hpConsumed(), "mpConsumed=" + outcome.mpConsumed()), consumed, produced, 0, 0, 0, 0), command.nowEpochMillis());
+				_faultInjector.inject(FaultPoint.AFTER_OPERATION_AUDIT_WRITE);
+				committedDispatch = dispatch;
+				committedResult = new TransactionResult(Status.COMMITTED, outcome.result(), nextBackground, nextAcquisition, nextGoal, outcome.rare());
+				_faultInjector.inject(FaultPoint.BEFORE_COMMIT);
 				connection.commit();
+				committed = true;
+				_faultInjector.inject(FaultPoint.AFTER_COMMIT);
 				_reservations.dispatchCommitted(dispatch.canonicalResourceKeys().size());
 				releasedIds.forEach(_ids::release);
-				return new TransactionResult(Status.COMMITTED, outcome.result(), nextBackground, nextAcquisition, nextGoal, outcome.rare());
+				completionPublished = true;
+				return committedResult;
 			}
 			catch (Throwable failure)
 			{
+				if (committed)
+				{
+					_reservations.dispatchCommitted(committedDispatch.canonicalResourceKeys().size());
+					releasedIds.forEach(_ids::release);
+					completionPublished = true;
+					return committedResult;
+				}
 				rollback(connection, failure);
 				reservedIds.forEach(_ids::release);
 				return failed(failure);
@@ -171,7 +214,19 @@ public final class PhantomEconomyBackgroundTransaction
 		}
 		catch (SQLException exception)
 		{
-			reservedIds.forEach(_ids::release);
+			if (committed)
+			{
+				if (!completionPublished)
+				{
+					_reservations.dispatchCommitted(committedDispatch.canonicalResourceKeys().size());
+					releasedIds.forEach(_ids::release);
+				}
+				return committedResult;
+			}
+			else
+			{
+				reservedIds.forEach(_ids::release);
+			}
 			return failed(exception);
 		}
 	}
@@ -235,6 +290,10 @@ public final class PhantomEconomyBackgroundTransaction
 		Objects.requireNonNull(command);
 		final List<Integer> reservedIds = new ArrayList<>();
 		final List<Integer> releasedIds = new ArrayList<>();
+		boolean committed = false;
+		boolean completionPublished = false;
+		DispatchLock committedDispatch = null;
+		TransactionResult committedResult = null;
 		try (Connection connection = _connections.open())
 		{
 			connection.setAutoCommit(false);
@@ -242,10 +301,13 @@ public final class PhantomEconomyBackgroundTransaction
 			{
 				final long profileId = command.background().identity().profileId();
 				lockProfile(connection, profileId, command.background().identity().characterObjectId());
+				_faultInjector.inject(FaultPoint.AFTER_PROFILE_LOCK);
 				final DispatchLock dispatch = _reservations.lockDispatchInTransaction(connection, command.operationId(), profileId);
 				requireOperation(dispatch, Kind.ITEM_ENCHANT, command.goal());
+				_faultInjector.inject(FaultPoint.AFTER_DISPATCH_LOCK);
 				final Component backgroundComponent = lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE);
 				final Component goalComponent = lockComponent(connection, profileId, PhantomGoalStateStore.COMPONENT_TYPE);
+				_faultInjector.inject(FaultPoint.AFTER_COMPONENT_LOCKS);
 				validateComponent(backgroundComponent, PhantomBackgroundState.SCHEMA_VERSION, command.backgroundRowVersion(), _backgroundCodec.encode(command.background()));
 				validateComponent(goalComponent, PhantomGoalStateStore.COMPONENT_SCHEMA_VERSION, command.goalRowVersion(), _goalCodec.encode(command.goal()));
 				if (!command.background().acceptsBackgroundWork())
@@ -253,7 +315,9 @@ public final class PhantomEconomyBackgroundTransaction
 					throw new Conflict("Background state is not ready for enchant.");
 				}
 				lockCharacter(connection, command.background());
+				_faultInjector.inject(FaultPoint.AFTER_CHARACTER_RECIPE_SKILL_LOCKS);
 				final List<ItemRow> items = lockItems(connection, command.background().identity().characterObjectId());
+				_faultInjector.inject(FaultPoint.AFTER_ITEM_LOCKS);
 				validateBackgroundInventory(command.background(), items);
 				final ItemRow target = exactItem(items, command.targetObjectId(), command.targetItemId());
 				final ItemRow scroll = exactItem(items, command.scrollObjectId(), command.scrollItemId());
@@ -269,6 +333,8 @@ public final class PhantomEconomyBackgroundTransaction
 				}
 				requireEnchantReservations(dispatch, command.background(), target, scroll, support, outcome);
 				final List<ItemRow> nextRows = applyEnchant(connection, command.background().identity().characterObjectId(), items, target, scroll, support, outcome, reservedIds, releasedIds);
+				_faultInjector.inject(FaultPoint.AFTER_ITEM_WRITES);
+				_faultInjector.inject(FaultPoint.AFTER_VITAL_WRITES);
 				final TreeSet<Integer> changedItemIds = new TreeSet<>(Set.of(target.itemId(), scroll.itemId()));
 				if (outcome.crystalItemId() != 0)
 				{
@@ -287,15 +353,31 @@ public final class PhantomEconomyBackgroundTransaction
 				};
 				final PhantomGoal nextGoal = goal.project(command.goal(), outcome.nextEnchantLevel(), outcome.targetSurvives(), outcome.expense(), reason);
 				writeComponent(connection, backgroundComponent, profileId, PhantomBackgroundState.COMPONENT_TYPE, PhantomBackgroundState.SCHEMA_VERSION, _backgroundCodec.encode(nextBackground));
+				_faultInjector.inject(FaultPoint.AFTER_BACKGROUND_WRITE);
 				writeComponent(connection, goalComponent, profileId, PhantomGoalStateStore.COMPONENT_TYPE, PhantomGoalStateStore.COMPONENT_SCHEMA_VERSION, _goalCodec.encode(nextGoal));
+				_faultInjector.inject(FaultPoint.AFTER_ACQUISITION_OR_GOAL_WRITE);
 				_reservations.commitDispatchInTransaction(connection, dispatch, new Audit(outcome.result(), reason, consequence(outcome.result(), target.objectId(), outcome.nextEnchantLevel(), outcome.crystalItemId(), outcome.crystalCount()), support == null ? 1 : 2, outcome.crystalCount(), 0, 0, outcome.crystalCount(), outcome.targetSurvives() ? 0 : 1), command.nowEpochMillis());
+				_faultInjector.inject(FaultPoint.AFTER_OPERATION_AUDIT_WRITE);
+				committedDispatch = dispatch;
+				committedResult = new TransactionResult(Status.COMMITTED, outcome.result(), nextBackground, null, nextGoal, false);
+				_faultInjector.inject(FaultPoint.BEFORE_COMMIT);
 				connection.commit();
+				committed = true;
+				_faultInjector.inject(FaultPoint.AFTER_COMMIT);
 				_reservations.dispatchCommitted(dispatch.canonicalResourceKeys().size());
 				releasedIds.forEach(_ids::release);
-				return new TransactionResult(Status.COMMITTED, outcome.result(), nextBackground, null, nextGoal, false);
+				completionPublished = true;
+				return committedResult;
 			}
 			catch (Throwable failure)
 			{
+				if (committed)
+				{
+					_reservations.dispatchCommitted(committedDispatch.canonicalResourceKeys().size());
+					releasedIds.forEach(_ids::release);
+					completionPublished = true;
+					return committedResult;
+				}
 				rollback(connection, failure);
 				reservedIds.forEach(_ids::release);
 				return failed(failure);
@@ -303,7 +385,19 @@ public final class PhantomEconomyBackgroundTransaction
 		}
 		catch (SQLException exception)
 		{
-			reservedIds.forEach(_ids::release);
+			if (committed)
+			{
+				if (!completionPublished)
+				{
+					_reservations.dispatchCommitted(committedDispatch.canonicalResourceKeys().size());
+					releasedIds.forEach(_ids::release);
+				}
+				return committedResult;
+			}
+			else
+			{
+				reservedIds.forEach(_ids::release);
+			}
 			return failed(exception);
 		}
 	}
@@ -892,6 +986,35 @@ public final class PhantomEconomyBackgroundTransaction
 	public interface ConnectionProvider
 	{
 		Connection open() throws SQLException;
+	}
+
+	public enum FaultPoint
+	{
+		AFTER_PROFILE_LOCK,
+		AFTER_DISPATCH_LOCK,
+		AFTER_COMPONENT_LOCKS,
+		AFTER_CHARACTER_RECIPE_SKILL_LOCKS,
+		AFTER_ITEM_LOCKS,
+		AFTER_ITEM_WRITES,
+		AFTER_VITAL_WRITES,
+		AFTER_BACKGROUND_WRITE,
+		AFTER_ACQUISITION_OR_GOAL_WRITE,
+		AFTER_OPERATION_AUDIT_WRITE,
+		BEFORE_COMMIT,
+		AFTER_COMMIT
+	}
+
+	@FunctionalInterface
+	public interface FaultInjector
+	{
+		void inject(FaultPoint point);
+
+		static FaultInjector none()
+		{
+			return _ ->
+			{
+			};
+		}
 	}
 
 	public enum Status

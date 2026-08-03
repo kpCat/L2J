@@ -405,24 +405,47 @@ public final class PhantomEconomyService
 			final RecipeCraftObserver.Event terminal = events.stream().filter(event -> (event.type() == RecipeCraftObserver.Type.SUCCESS_PRODUCT) || (event.type() == RecipeCraftObserver.Type.RARE_PRODUCT) || (event.type() == RecipeCraftObserver.Type.CRAFT_FAILED) || (event.type() == RecipeCraftObserver.Type.ABORTED)).findFirst().orElse(null);
 			if (terminal == null)
 			{
+				_reservations.transition(operation.operationId(), State.DISPATCHING, State.INCONSISTENT, nowEpochMillis, new Audit(Result.INCONSISTENT, "dispatch.ambiguous", new byte[0]));
 				return ActiveResult.rejected(Result.INCONSISTENT);
+			}
+			final boolean ingredientsConsumed = events.stream().anyMatch(event -> event.type() == RecipeCraftObserver.Type.INGREDIENTS_CONSUMED);
+			if (terminal.type() == RecipeCraftObserver.Type.ABORTED)
+			{
+				final boolean effectObserved = ingredientsConsumed || (terminal.hpConsumed() > 0) || (terminal.mpConsumed() > 0);
+				final State terminalState = effectObserved ? State.INCONSISTENT : State.ABORTED;
+				final Result abortResult = effectObserved ? Result.INCONSISTENT : Result.ERROR;
+				final String reason = effectObserved ? "dispatch.ambiguous" : "craft.pre_effect_aborted";
+				_reservations.transition(operation.operationId(), State.DISPATCHING, terminalState, nowEpochMillis, new Audit(abortResult, reason, terminal.toString().getBytes(StandardCharsets.US_ASCII)));
+				return new ActiveResult(abortResult, operation.operationId());
 			}
 			final Result result = switch (terminal.type())
 			{
 				case SUCCESS_PRODUCT, RARE_PRODUCT -> Result.SUCCESS;
 				case CRAFT_FAILED -> Result.CRAFT_FAILED;
-				case ABORTED -> Result.ERROR;
+				case ABORTED -> throw new IllegalStateException("Craft abort was not classified before attribution.");
 				default -> throw new IllegalStateException("Unexpected craft terminal event.");
 			};
 			try
 			{
+				final long minute = Math.max(0, nowEpochMillis / 60000);
 				final long afterCount = player.getInventory().getInventoryItemCount(storedAcquisition.state().targetItemId(), -1);
-				final var receipt = new PhantomAcquisitionState.Receipt(operation.operationId(), storedAcquisition.state().selectedSource().sourceId(), ReceiptKind.ACTIVE_SELF_CRAFT, storedAcquisition.state().lastObservedCount(), afterCount, TerminalResult.COMMITTED, Math.max(0, nowEpochMillis / 60000));
-				final PhantomAcquisitionState nextAcquisition = storedAcquisition.state().observe(afterCount, result == Result.CRAFT_FAILED ? PhantomAcquisitionState.Status.BLOCKED : PhantomAcquisitionState.Status.READY, Phase.NONE, receipt, Math.max(0, nowEpochMillis / 60000));
+				final long targetProduced = terminal.items().stream().filter(item -> item.itemId() == storedAcquisition.state().targetItemId()).mapToLong(RecipeCraftObserver.ItemDelta::count).sum();
+				final boolean targetAttributed = result == Result.SUCCESS && (targetProduced > 0);
+				final String sourceFailure = result == Result.CRAFT_FAILED ? "craft.canonical_failure" : targetAttributed ? "" : "craft.target_not_produced";
+				if (!targetAttributed && (afterCount != storedAcquisition.state().lastObservedCount()))
+				{
+					throw new IllegalStateException("Craft without target attribution changed the target count.");
+				}
+				final var receipt = new PhantomAcquisitionState.Receipt(operation.operationId(), storedAcquisition.state().selectedSource().sourceId(), ReceiptKind.ACTIVE_SELF_CRAFT, storedAcquisition.state().lastObservedCount(), afterCount, targetAttributed ? TerminalResult.COMMITTED : TerminalResult.FAILED, minute);
+				PhantomAcquisitionState nextAcquisition = storedAcquisition.state().observe(afterCount, PhantomAcquisitionState.Status.PLANNING_ONLY, Phase.NONE, receipt, minute);
+				if (!sourceFailure.isEmpty())
+				{
+					nextAcquisition = nextAcquisition.failSource(sourceFailure, minute);
+				}
 				final PhantomGoal nextGoal = PhantomAcquisitionGoalSpec.project(storedGoal.goal(), nextAcquisition.progress(), nextAcquisition.status() == PhantomAcquisitionState.Status.COMPLETED ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.ACTIVE, nextAcquisition.selectedSource());
 				_acquisition.mutateWithGoal(identity.profileId(), storedAcquisition.rowVersion(), nextAcquisition, storedGoal.rowVersion(), nextGoal);
-				final String reason = result == Result.SUCCESS ? "result.success" : result == Result.CRAFT_FAILED ? "result.craft_failed" : "operation.conflict";
-				final byte[] consequence = (terminal.type() + "|" + terminal.items() + "|" + terminal.hpConsumed() + "|" + terminal.mpConsumed()).getBytes(StandardCharsets.US_ASCII);
+				final String reason = result == Result.SUCCESS ? targetAttributed ? "result.success" : sourceFailure : "result.craft_failed";
+				final byte[] consequence = (terminal.type() + "|" + terminal.items() + "|rare=" + (terminal.type() == RecipeCraftObserver.Type.RARE_PRODUCT) + "|targetProduced=" + targetProduced + "|sourceFailure=" + sourceFailure + "|" + terminal.hpConsumed() + "|" + terminal.mpConsumed()).getBytes(StandardCharsets.US_ASCII);
 				final long consumed = events.stream().filter(event -> event.type() == RecipeCraftObserver.Type.INGREDIENTS_CONSUMED).flatMap(event -> event.items().stream()).mapToLong(RecipeCraftObserver.ItemDelta::count).sum();
 				final long produced = terminal.items().stream().mapToLong(RecipeCraftObserver.ItemDelta::count).sum();
 				_reservations.transition(operation.operationId(), State.DISPATCHING, State.COMMITTED, nowEpochMillis, new Audit(result, reason, consequence, consumed, produced, 0, 0, 0, 0));
@@ -716,7 +739,7 @@ public final class PhantomEconomyService
 
 	private static boolean validCraftHandoff(PhantomAcquisitionState acquisition)
 	{
-		return (acquisition.status() == PhantomAcquisitionState.Status.PLANNING_ONLY) && (acquisition.selectedSource() != null) && (acquisition.selectedSource().method() == Method.RECIPE_PREPARATION) && (acquisition.recipePlan() != null) && acquisition.recipePlan().deficits().isEmpty() && acquisition.receipts().isEmpty() && (acquisition.progress() == 0);
+		return (acquisition.status() == PhantomAcquisitionState.Status.PLANNING_ONLY) && (acquisition.selectedSource() != null) && (acquisition.selectedSource().method() == Method.RECIPE_PREPARATION) && (acquisition.recipePlan() != null) && acquisition.recipePlan().deficits().isEmpty() && (acquisition.progress() < acquisition.requiredAmount());
 	}
 
 	private static List<Reservation> craftReservations(Identity identity, Player player, RecipeList recipe)
