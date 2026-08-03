@@ -6,13 +6,24 @@
 
 Foundation принят как `d02dc8429e88ef507347fc2e3860b0528844ae68` поверх
 Goal 021 baseline `043844c0fd7a0bfcac0d5f58461a21633b032332`. Lifecycle
-completion принят как `9e2bd551ecc03647641c16e393694b9a0cb51e60`. Final completion
-должен быть его обычным единственным ребёнком с subject
-`fix(phantoms): close economy resume authority and risk gates`.
+completion принят как `9e2bd551ecc03647641c16e393694b9a0cb51e60`, authority completion —
+как `20fe8daccfb5000b5b970bff7b3555a4051e5dbc`. Terminal completion должен быть
+его обычным единственным ребёнком с subject
+`fix(phantoms): close participant economy lifecycle ordering`.
 
 ## Что проверять независимо
 
 - participant-neutral operation/reservation/audit schema и stable lock order;
+- authoritative participant set = initiator union reservation profiles,
+  sorted/distinct/bounded 4, с exact immutable profile-to-character links;
+- единый lifecycle lock order profiles ascending → operation → canonical
+  reservations → participant/link re-read для transition/renew/reconcile/
+  expiry/cancel/shutdown/materialization/dispatch;
+- background dispatch не pre-lock инициатора, а participant drift fail-stop
+  завершается до item/vital/Goal mutation;
+- reservation-only participant пересекает real `beforeMaterialize`/`beforeStore`
+  boundary; DISPATCHING/OBSERVING и multiple active fail closed без mutation;
+- обе противоположные concurrent lock orders проходят по 100 итераций;
 - отсутствие expiry/re-dispatch после canonical dispatch;
 - exact Goal 021 `RecipePlan` handoff и `RecipeManager` observer ownership;
 - ordinary `RequestEnchantItem` parity после делегирования в canonical service;

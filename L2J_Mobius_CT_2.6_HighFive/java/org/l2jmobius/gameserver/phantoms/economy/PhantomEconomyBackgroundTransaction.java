@@ -121,9 +121,15 @@ public final class PhantomEconomyBackgroundTransaction
 			try
 			{
 				final long profileId = command.background().identity().profileId();
-				lockProfile(connection, profileId, command.background().identity().characterObjectId());
-				_faultInjector.inject(FaultPoint.AFTER_PROFILE_LOCK);
 				final DispatchLock dispatch = _reservations.lockDispatchInTransaction(connection, command.operationId(), profileId);
+				_faultInjector.inject(FaultPoint.AFTER_PROFILE_LOCK);
+				if (!dispatch.ready())
+				{
+					connection.commit();
+					_reservations.dispatchAborted(dispatch.releasedReservations());
+					return failed(new Conflict("Craft participant link changed before dispatch."));
+				}
+				requireInitiator(dispatch, profileId, command.background().identity().characterObjectId());
 				requireOperation(dispatch, Kind.SELF_CRAFT, command.goal());
 				_faultInjector.inject(FaultPoint.AFTER_DISPATCH_LOCK);
 				final Component acquisitionComponent = lockComponent(connection, profileId, PhantomAcquisitionState.COMPONENT_TYPE);
@@ -307,9 +313,15 @@ public final class PhantomEconomyBackgroundTransaction
 			try
 			{
 				final long profileId = command.background().identity().profileId();
-				lockProfile(connection, profileId, command.background().identity().characterObjectId());
-				_faultInjector.inject(FaultPoint.AFTER_PROFILE_LOCK);
 				final DispatchLock dispatch = _reservations.lockDispatchInTransaction(connection, command.operationId(), profileId);
+				_faultInjector.inject(FaultPoint.AFTER_PROFILE_LOCK);
+				if (!dispatch.ready())
+				{
+					connection.commit();
+					_reservations.dispatchAborted(dispatch.releasedReservations());
+					return failed(new Conflict("Enchant participant link changed before dispatch."));
+				}
+				requireInitiator(dispatch, profileId, command.background().identity().characterObjectId());
 				requireOperation(dispatch, Kind.ITEM_ENCHANT, command.goal());
 				_faultInjector.inject(FaultPoint.AFTER_DISPATCH_LOCK);
 				final Component backgroundComponent = lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE);
@@ -492,6 +504,14 @@ public final class PhantomEconomyBackgroundTransaction
 		if ((dispatch.operation().kind() != kind) || (dispatch.operation().goalId() != goal.goalId()) || (dispatch.operation().goalRevision() != goal.revision()))
 		{
 			throw new Conflict("Economy operation does not match exact Goal authority.");
+		}
+	}
+
+	private static void requireInitiator(DispatchLock dispatch, long profileId, int characterObjectId)
+	{
+		if ((dispatch.operation().profileId() != profileId) || (dispatch.operation().characterObjectId() != characterObjectId) || (dispatch.participants().characterObjectId(profileId) != characterObjectId))
+		{
+			throw new Conflict("Economy dispatch initiator link changed.");
 		}
 	}
 

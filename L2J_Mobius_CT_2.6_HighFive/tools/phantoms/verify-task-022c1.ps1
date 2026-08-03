@@ -10,7 +10,9 @@ $FoundationCommit = "d02dc8429e88ef507347fc2e3860b0528844ae68"
 $FoundationSubject = "feat(phantoms): add economy reservations craft and enchant"
 $LifecycleCommit = "9e2bd551ecc03647641c16e393694b9a0cb51e60"
 $LifecycleSubject = "fix(phantoms): close economy craft lifecycle and reservation ownership"
-$RequiredSubject = "fix(phantoms): close economy resume authority and risk gates"
+$AuthorityCommit = "20fe8daccfb5000b5b970bff7b3555a4051e5dbc"
+$AuthoritySubject = "fix(phantoms): close economy resume authority and risk gates"
+$RequiredSubject = "fix(phantoms): close participant economy lifecycle ordering"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "22002201"
 
@@ -168,22 +170,24 @@ try
 	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $FoundationCommit) | Select-Object -First 1) -eq $FoundationSubject) "Goal 022c1 foundation subject changed."
 	Assert-True ((Git-Lines @("show", "-s", "--format=%P", $LifecycleCommit) | Select-Object -First 1) -eq $FoundationCommit) "Goal 022c1 lifecycle completion is not the direct child of its foundation."
 	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $LifecycleCommit) | Select-Object -First 1) -eq $LifecycleSubject) "Goal 022c1 lifecycle completion subject changed."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%P", $AuthorityCommit) | Select-Object -First 1) -eq $LifecycleCommit) "Goal 022c1 authority completion is not the direct child of its lifecycle completion."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $AuthorityCommit) | Select-Object -First 1) -eq $AuthoritySubject) "Goal 022c1 authority completion subject changed."
 	if ($WorkingTree)
 	{
-		Assert-True ($head -eq $LifecycleCommit) "Working Goal 022c1 final completion must start at the accepted lifecycle completion."
+		Assert-True ($head -eq $AuthorityCommit) "Working Goal 022c1 terminal completion must start at the accepted authority completion."
 		$script:Mode = "working"
 		$script:TargetCommit = "WORKING_TREE"
 	}
 	else
 	{
-		& git merge-base --is-ancestor $LifecycleCommit $head
-		Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 022c1 lifecycle completion is not an ancestor of HEAD."
-		$children = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$LifecycleCommit..$head"))
-		Assert-True ($children.Count -ge 1) "Goal 022c1 final completion child is absent."
+		& git merge-base --is-ancestor $AuthorityCommit $head
+		Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 022c1 authority completion is not an ancestor of HEAD."
+		$children = @(Git-Lines @("rev-list", "--ancestry-path", "--reverse", "$AuthorityCommit..$head"))
+		Assert-True ($children.Count -ge 1) "Goal 022c1 terminal completion child is absent."
 		$script:TargetCommit = $children[0]
 		$script:Mode = "historical"
-		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $LifecycleCommit) "Goal 022c1 final completion is not one ordinary child of the lifecycle completion."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 022c1 final completion subject changed."
+		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $AuthorityCommit) "Goal 022c1 terminal completion is not one ordinary child of the authority completion."
+		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 022c1 terminal completion subject changed."
 	}
 
 	$foundationChanged = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
@@ -206,19 +210,29 @@ try
 	{
 		Assert-True (Is-Allowed $path) "Out-of-scope Goal 022c1 lifecycle path: $path"
 	}
+	$authorityChanged = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+	Add-Paths $authorityChanged @("diff", "--name-only", $LifecycleCommit, $AuthorityCommit, "--")
+	$authorityPaths = @($authorityChanged | Sort-Object)
+	Assert-True (($authorityPaths.Count -gt 0) -and ($authorityPaths.Count -le 19)) "Goal 022c1 authority completion scope exceeds its accepted bound."
+	$authorityProduction = @($authorityPaths | Where-Object { Is-Production $_ })
+	Assert-True ($authorityProduction.Count -le 12) "Goal 022c1 authority completion production scope exceeds its accepted bound."
+	foreach ($path in $authorityPaths)
+	{
+		Assert-True (Is-Allowed $path) "Out-of-scope Goal 022c1 authority path: $path"
+	}
 
 	$changed = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
 	if ($script:Mode -eq "working")
 	{
-		Add-Paths $changed @("diff", "--name-only", $LifecycleCommit, "--")
+		Add-Paths $changed @("diff", "--name-only", $AuthorityCommit, "--")
 		Add-Untracked $changed
 	}
 	else
 	{
-		Add-Paths $changed @("diff", "--name-only", $LifecycleCommit, $script:TargetCommit, "--")
+		Add-Paths $changed @("diff", "--name-only", $AuthorityCommit, $script:TargetCommit, "--")
 	}
 	$paths = @($changed | Sort-Object)
-	Assert-True (($paths.Count -gt 0) -and ($paths.Count -le 19)) "Goal 022c1 final completion scope exceeds 19 files."
+	Assert-True (($paths.Count -gt 0) -and ($paths.Count -le 8)) "Goal 022c1 terminal completion scope exceeds 8 files."
 	foreach ($path in $paths)
 	{
 		Assert-True (Is-Allowed $path) "Out-of-scope Goal 022c1 path: $path"
@@ -229,21 +243,21 @@ try
 	$newPaths = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
 	if ($script:Mode -eq "working")
 	{
-		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $LifecycleCommit, "--")
+		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $AuthorityCommit, "--")
 		Add-Untracked $newPaths
 	}
 	else
 	{
-		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $LifecycleCommit, $script:TargetCommit, "--")
+		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $AuthorityCommit, $script:TargetCommit, "--")
 	}
 	$newProduction = @($newPaths | Where-Object { Is-Production $_ })
 	$changedProduction = @($paths | Where-Object { Is-Production $_ })
 	$sql = @($paths | Where-Object { $_ -match '^dist/db_installer/sql/' })
 	$economyXml = @($paths | Where-Object { $_ -match '^dist/game/data/phantoms/economy/.*\.xml$' })
-	Assert-True ($newProduction.Count -eq 0) "Goal 022c1 final completion added production/data files."
-	Assert-True ($changedProduction.Count -le 12) "Goal 022c1 final completion exceeds twelve production files."
-	Assert-True ($sql.Count -eq 0) "Goal 022c1 final completion changed the accepted schema."
-	Assert-True ($economyXml.Count -eq 0) "Goal 022c1 final completion changed accepted economy XML."
+	Assert-True ($newProduction.Count -eq 0) "Goal 022c1 terminal completion added production/data files."
+	Assert-True ($changedProduction.Count -le 3) "Goal 022c1 terminal completion exceeds three production files."
+	Assert-True ($sql.Count -eq 0) "Goal 022c1 terminal completion changed the accepted schema."
+	Assert-True ($economyXml.Count -eq 0) "Goal 022c1 terminal completion changed accepted economy XML."
 
 	$cumulativeChanged = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
 	if ($script:Mode -eq "working")
@@ -268,7 +282,15 @@ try
 	Contains-All $reservations @('lockProfiles(connection, profileIds)', 'lockOperation(connection, operation.operationId())', 'lockReservationKeys(connection, operationId)', 'RESOURCE_CONFLICT', 'IDENTITY_CONFLICT', 'PROFILE_BUSY', 'retainedNonterminalOperations()', 'dispatch.ambiguous', 'EconomyConflictException', 'findReservations', 'nextAttempt') 'Reservation kernel'
 	Assert-True ($reservations.IndexOf('lockProfiles(connection, profileIds)') -lt $reservations.IndexOf('lockOperation(connection, operation.operationId())')) "Profile/operation DB lock order drifted."
 	Assert-True ($reservations.Contains('(operation.state() == State.DISPATCHING) || (operation.state() == State.OBSERVING)') -and $reservations.Contains('throw new EconomyConflictException')) "Materialization boundary does not fail stop after dispatch."
-	Contains-All $reservations @('SELECT character_object_id FROM phantom_profiles', 'participantLinks.get(operation.identity().profileId())', 'participantLinks.get(reservation.profileId())', 'for (long profileId : profileIds)', 'hasAnotherActiveOperation(connection, profileId', 'hasReservationConflict(connection, operation.operationId(), reservations)', 'hasSemanticOverlap(reservations)', "resource_kind='ITEM_OBJECT'", "resource_kind='ITEM_COUNT'", 'findObserving(256)', 'findShutdownCandidates(256)', 'State.OBSERVING, State.INCONSISTENT') 'Participant-neutral ownership, exact overlap and shutdown conflicts'
+	Contains-All $reservations @('SELECT character_object_id FROM phantom_profiles', 'addParticipantLink(links, operation.profileId(), operation.characterObjectId())', 'addParticipantLink(links, rows.getLong(1), rows.getInt(2))', 'for (long profileId : profileIds)', 'hasAnotherActiveOperation(connection, profileId', 'hasReservationConflict(connection, operation.operationId(), reservations)', 'hasSemanticOverlap(reservations)', "resource_kind='ITEM_OBJECT'", "resource_kind='ITEM_COUNT'", 'findObserving(256)', 'findShutdownCandidates(256)', 'State.OBSERVING, State.INCONSISTENT') 'Participant-neutral ownership, exact overlap and shutdown conflicts'
+	Contains-All $reservations @('record ParticipantSet', 'profileIds.stream().distinct().sorted().toList()', 'Collections.unmodifiableMap(orderedLinks)', 'lockLifecycle(connection, operationId)', 'discoverParticipantSet(connection, operationId)', 'findActiveOperationIdsForParticipant', 'UNION SELECT r.operation_id', 'r.profile_id=?', 'FORCE INDEX (idx_phantom_economy_reservations_owner)', 'ORDER BY operation_id LIMIT 2', 'participantDriftTerminal', 'participantDriftAudit', 'lockDispatchInTransaction', 'DispatchLock', 'dispatchAborted') 'Immutable participant snapshot, participant lookup and lifecycle ordering'
+	$lockLifecycleStart = $reservations.IndexOf('private LifecycleLock lockLifecycle')
+	$lockLifecycleProfiles = $reservations.IndexOf('lockProfiles(connection, discovered.profileIds())', $lockLifecycleStart)
+	$lockLifecycleOperation = $reservations.IndexOf('lockOperation(connection, operationId)', $lockLifecycleProfiles)
+	$lockLifecycleReservations = $reservations.IndexOf('lockReservationKeys(connection, operationId)', $lockLifecycleOperation)
+	$lockLifecycleReread = $reservations.IndexOf('discoverParticipantSet(connection, operationId)', $lockLifecycleReservations)
+	Assert-True (($lockLifecycleStart -ge 0) -and ($lockLifecycleProfiles -gt $lockLifecycleStart) -and ($lockLifecycleOperation -gt $lockLifecycleProfiles) -and ($lockLifecycleReservations -gt $lockLifecycleOperation) -and ($lockLifecycleReread -gt $lockLifecycleReservations)) "Participant lifecycle DB lock order drifted."
+	Assert-True ($reservations.Contains('(operation.state() == State.DISPATCHING) || (operation.state() == State.OBSERVING)') -and $reservations.Contains('A participant belongs to multiple active economy operations.')) "Participant boundary no longer fails closed for dispatched or multiple active operations."
 
 	$schema = Read-TargetUtf8 'dist/db_installer/sql/game/phantom_reservations.sql'
 	Contains-All $schema @('CREATE TABLE IF NOT EXISTS `phantom_economy_operations`', 'CREATE TABLE IF NOT EXISTS `phantom_economy_reservations`', 'CREATE TABLE IF NOT EXISTS `phantom_economy_audit`', '`canonical_resource_key`', '`owner_class_index`', '`terminal_result`', '`items_consumed`', '`items_produced`', '`crystals_produced`', '`target_items_destroyed`', 'ENGINE=InnoDB') 'Economy migration'
@@ -293,8 +315,8 @@ try
 	Contains-All $enchantService @('player.isProcessingTransaction()', 'player.isInStoreMode()', 'item.getOwnerId() != player.getObjectId()', 'scroll.getOwnerId() != player.getObjectId()', 'support.getOwnerId() != player.getObjectId()', 'item == scroll', '!item.isEnchantable()', 'DISABLE_OVER_ENCHANTING') 'Canonical enchant actor validation'
 	Contains-All $packet @('EnchantItemService.getInstance().execute', 'new Request(player, _objectId, scrollObjectId, supportObjectId, true', 'getActiveEnchantItemId()', 'getActiveEnchantTimestamp()') 'Ordinary enchant packet adapter'
 	Assert-True (!$packet.Contains('calculateSuccess(') -and !$packet.Contains('destroyItem(ItemProcessType.DESTROY')) "Ordinary packet retained canonical enchant mutation."
-	$lifecyclePacketBytes = Read-CommitBytes $LifecycleCommit 'java/org/l2jmobius/gameserver/network/clientpackets/RequestEnchantItem.java'
-	Assert-True ([Convert]::ToBase64String($lifecyclePacketBytes) -eq [Convert]::ToBase64String((Read-TargetBytes 'java/org/l2jmobius/gameserver/network/clientpackets/RequestEnchantItem.java'))) "Ordinary enchant packet differs byte-for-byte from the accepted lifecycle completion."
+	$authorityPacketBytes = Read-CommitBytes $AuthorityCommit 'java/org/l2jmobius/gameserver/network/clientpackets/RequestEnchantItem.java'
+	Assert-True ([Convert]::ToBase64String($authorityPacketBytes) -eq [Convert]::ToBase64String((Read-TargetBytes 'java/org/l2jmobius/gameserver/network/clientpackets/RequestEnchantItem.java'))) "Ordinary enchant packet differs byte-for-byte from the accepted authority completion."
 
 	$economyFiles = @($paths | Where-Object { $_ -match '^java/org/l2jmobius/gameserver/phantoms/economy/.*\.java$' })
 	foreach ($path in $economyFiles)
@@ -306,6 +328,13 @@ try
 	$background = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomEconomyBackgroundTransaction.java'
 	Contains-All $background @('connection.setAutoCommit(false)', 'ORDER BY object_id LIMIT', 'FOR UPDATE', 'lockDispatchInTransaction', 'commitDispatchInTransaction', 'writeComponent', 'updateVitals', 'connection.commit()', 'connection.rollback()', 'setQueryTimeout', 'interface FaultInjector', 'FaultInjector.none()', 'AFTER_PROFILE_LOCK', 'AFTER_DISPATCH_LOCK', 'AFTER_COMPONENT_LOCKS', 'AFTER_CHARACTER_RECIPE_SKILL_LOCKS', 'AFTER_ITEM_LOCKS', 'AFTER_ITEM_WRITES', 'AFTER_VITAL_WRITES', 'AFTER_BACKGROUND_WRITE', 'AFTER_ACQUISITION_OR_GOAL_WRITE', 'AFTER_OPERATION_AUDIT_WRITE', 'BEFORE_COMMIT', 'AFTER_COMMIT', 'rare=" + outcome.rare()', 'sourceFailure=') 'Atomic background economy transaction'
 	Contains-All $background @('itemCounts(items).getOrDefault(Inventory.ADENA_ID, 0L)', 'goal.riskBudget()', 'ResourceKind.ADENA', 'spec.replacementReserve()', 'reservedCounts.putIfAbsent(recipe.getItemId()', 'reservedCounts.putIfAbsent(recipe.getRareItemId()', 'requireKey(keys, reservation(background, ResourceKind.ITEM_COUNT, 0, recipe.getItemId())', 'result.rare_product') 'Background authority, Adena and craft output reservations'
+	Contains-All $background @('if (!dispatch.ready())', '_reservations.dispatchAborted(dispatch.releasedReservations())', 'dispatch.participants().characterObjectId(profileId)') 'Participant-aware background dispatch'
+	$craftStart = $background.IndexOf('public TransactionResult executeCraft')
+	$craftDispatch = $background.IndexOf('lockDispatchInTransaction', $craftStart)
+	$enchantStart = $background.IndexOf('public TransactionResult executeEnchant')
+	$enchantDispatch = $background.IndexOf('lockDispatchInTransaction', $enchantStart)
+	Assert-True (($craftStart -ge 0) -and ($craftDispatch -gt $craftStart) -and !$background.Substring($craftStart, $craftDispatch - $craftStart).Contains('lockProfile(')) "Background craft pre-locked the initiator before participant dispatch."
+	Assert-True (($enchantStart -ge 0) -and ($enchantDispatch -gt $enchantStart) -and !$background.Substring($enchantStart, $enchantDispatch - $enchantStart).Contains('lockProfile(')) "Background enchant pre-locked the initiator before participant dispatch."
 	Assert-True ($background -notmatch '(?i)(?:UPDATE|INSERT|DELETE)\s+(?:character_quests|clan_data|items?\s+SET\s+owner_id)') "Background economy crossed forbidden ownership."
 
 	$commerce = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/commerce/L2jCommerceBackend.java'
@@ -328,7 +357,7 @@ try
 	Assert-True (!$economyService.Contains('getLocation().toString()')) "Active enchant reservation captured world coordinates as item location."
 
 	$tests = Read-TargetUtf8 'test/java/org/l2jmobius/tests/phantoms/PhantomEconomySuite.java'
-	foreach ($evidence in @('materialization.materialize(profile.profileId())', 'World.getInstance().getPlayer', 'RecipeManager.getInstance().requestMakeItem', 'EnchantItemService.getInstance().execute', 'PhantomEconomyConflictPort.install', 'foreign.acquired()', 'owner.acquired()', 'Result.SAFE_FAILURE', 'Result.BLESSED_RESET', 'Result.DESTROYED_WITH_CRYSTALS', 'State.INCONSISTENT', 'expireDue', '100000', '10000', 'beforeBoundary', 'TEST_DATABASE', 'decision-service-repeatable-lifecycle', 'actual-outcome-attribution', 'actual-outcome-matrix', 'non-atomic-restart-windows', 'atomic-fault-matrix', 'FaultPoint.values()', 'operationIds.stream().distinct().count()', 'result.rare_product', 'participant-link-mismatch', 'item-count-object-overlap', 'item-object-overlap-matrix', 'canonical-actor-guards', 'craft-authority-facts', 'enchant-authority-and-risk', 'shutdown-terminalizes-claims', 'New craft plan did not resume DISPATCHING', 'New enchant plan did not resume DISPATCHING', 'OBSERVING cancellation', 'authority drift', 'NPC BUY Adena writer', 'assertEveryAuthorityFactChangesHash', 'recipe.stat.0.value', 'recipe.rare_output.stackable', 'economy.backgroundEnchantFaultPoints'))
+	foreach ($evidence in @('materialization.materialize(profile.profileId())', 'World.getInstance().getPlayer', 'RecipeManager.getInstance().requestMakeItem', 'EnchantItemService.getInstance().execute', 'PhantomEconomyConflictPort.install', 'foreign.acquired()', 'owner.acquired()', 'Result.SAFE_FAILURE', 'Result.BLESSED_RESET', 'Result.DESTROYED_WITH_CRYSTALS', 'State.INCONSISTENT', 'expireDue', '100000', '10000', 'beforeBoundary', 'TEST_DATABASE', 'decision-service-repeatable-lifecycle', 'actual-outcome-attribution', 'actual-outcome-matrix', 'non-atomic-restart-windows', 'atomic-fault-matrix', 'FaultPoint.values()', 'operationIds.stream().distinct().count()', 'result.rare_product', 'participant-link-mismatch', 'item-count-object-overlap', 'item-object-overlap-matrix', 'canonical-actor-guards', 'craft-authority-facts', 'enchant-authority-and-risk', 'shutdown-terminalizes-claims', 'New craft plan did not resume DISPATCHING', 'New enchant plan did not resume DISPATCHING', 'OBSERVING cancellation', 'authority drift', 'NPC BUY Adena writer', 'assertEveryAuthorityFactChangesHash', 'recipe.stat.0.value', 'recipe.rare_output.stackable', 'economy.backgroundEnchantFaultPoints', 'participant-boundary-lifecycle', 'participant-transition-renew-drift', 'participant-reverse-order-stress', 'participant-dispatch-lock-order', 'iteration < 100', 'beforeMaterialize(adapterParticipant.profileId()', 'beforeStore(adapterParticipant.profileId()'))
 	{
 		Assert-True ($tests.Contains($evidence)) "Goal 022c1 test evidence is absent: $evidence"
 	}
@@ -377,7 +406,7 @@ try
 		{
 			Assert-True (Test-Path -LiteralPath (Join-Path $script:ModuleRoot $class) -PathType Leaf) "Compiled Goal 022c1 class is absent: $class"
 		}
-		& git -c core.safecrlf=false diff --check $LifecycleCommit --
+		& git -c core.safecrlf=false diff --check $AuthorityCommit --
 		Assert-True ($LASTEXITCODE -eq 0) "Working git diff --check failed."
 	}
 	else
@@ -398,7 +427,7 @@ try
 			Assert-True ($jarEntries -contains $entry) "GameServer.jar lacks Goal 022c1 entry: $entry"
 		}
 		Assert-True ($jarEntries -notcontains 'data/phantoms/economy/high-five-economy-v1.xml') "Economy datapack must remain outside GameServer.jar."
-		& git -c core.safecrlf=false diff --check $LifecycleCommit $script:TargetCommit --
+		& git -c core.safecrlf=false diff --check $AuthorityCommit $script:TargetCommit --
 		Assert-True ($LASTEXITCODE -eq 0) "Committed git diff --check failed."
 	}
 
@@ -408,14 +437,17 @@ try
 	Write-Output "accepted_goal021=$AcceptedGoal021"
 	Write-Output "foundation_commit=$FoundationCommit"
 	Write-Output "lifecycle_commit=$LifecycleCommit"
+	Write-Output "authority_commit=$AuthorityCommit"
 	Write-Output "seed=$RequiredSeed"
 	Write-Output "foundation_scope=$($foundationPaths.Count)"
 	Write-Output "foundation_production=$($foundationProduction.Count)"
 	Write-Output "lifecycle_scope=$($lifecyclePaths.Count)"
 	Write-Output "lifecycle_production=$($lifecycleProduction.Count)"
-	Write-Output "final_scope=$($paths.Count)"
+	Write-Output "authority_scope=$($authorityPaths.Count)"
+	Write-Output "authority_production=$($authorityProduction.Count)"
+	Write-Output "terminal_scope=$($paths.Count)"
 	Write-Output "cumulative_scope=$($cumulativePaths.Count)"
-	Write-Output "final_production=$($changedProduction.Count)"
+	Write-Output "terminal_production=$($changedProduction.Count)"
 	Write-Output "new_production=$($newProduction.Count)"
 	Write-Output "sql=$($sql.Count)"
 	Write-Output "economy_xml=$($economyXml.Count)"

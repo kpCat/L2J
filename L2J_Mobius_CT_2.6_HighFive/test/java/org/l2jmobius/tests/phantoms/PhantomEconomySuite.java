@@ -21,11 +21,15 @@
  */
 package org.l2jmobius.tests.phantoms;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -103,6 +107,7 @@ import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyBackgroundTransac
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyBackgroundTransaction.TransactionResult;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyDecision;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyMaterializationLifecycle;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Audit;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Identity;
@@ -118,6 +123,7 @@ import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyProjection.CraftR
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyProjection.EnchantOutcome;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyProjection.EnchantRequest;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService.DispatchLock;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService.EconomyConflictException;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService.ReserveResult;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService;
@@ -227,6 +233,10 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 				registry.add("recipe-class-isolation", this::testRecipeClassIsolation);
 				registry.add("skill-class-isolation", this::testSkillClassIsolation);
 				registry.add("participant-bound", this::testParticipantBound);
+				registry.add("participant-boundary-lifecycle", this::testParticipantBoundaryLifecycle);
+				registry.add("participant-transition-renew-drift", this::testParticipantTransitionRenewDrift);
+				registry.add("participant-reverse-order-stress", this::testParticipantReverseOrderStress);
+				registry.add("participant-dispatch-lock-order", this::testParticipantDispatchLockOrder);
 			}
 			case SELF_CRAFT_ACTIVE ->
 			{
@@ -622,7 +632,17 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 		try
 		{
 			service.start();
-			final PhantomEconomyOperation operation = operation(profiles.getFirst().profileId(), 940081, 51, Kind.SELF_CRAFT, 1, System.currentTimeMillis());
+			final long now = System.currentTimeMillis();
+			final PhantomEconomyOperation accepted = operation(profiles.getFirst().profileId(), 940081, 51, Kind.SELF_CRAFT, 1, now);
+			final List<Reservation> acceptedResources = new ArrayList<>();
+			for (int index = 1; index < 4; index++)
+			{
+				acceptedResources.add(itemCount(profiles.get(index).profileId(), 940081 + index, 57 + index));
+			}
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.RESERVED, service.reserve(accepted, acceptedResources).status(), "Four economy participants were rejected.");
+			service.transition(accepted.operationId(), State.RESERVED, State.ABORTED, now + 1, audit(Result.ERROR, "operation.conflict"));
+
+			final PhantomEconomyOperation operation = operation(profiles.getFirst().profileId(), 940081, 52, Kind.SELF_CRAFT, 1, now + 2);
 			final List<Reservation> resources = new ArrayList<>();
 			for (int index = 1; index < profiles.size(); index++)
 			{
@@ -638,6 +658,231 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			{
 				deleteProfile(profile.profileId());
 			}
+		}
+	}
+
+	private void testParticipantBoundaryLifecycle(PhantomTestContext context) throws Exception
+	{
+		final PhantomProfile initiator = createProfile(941001);
+		final PhantomProfile participant = createProfile(941002);
+		final PhantomEconomyReservationService service = new PhantomEconomyReservationService(_policy);
+		try
+		{
+			service.start();
+			final long now = System.currentTimeMillis();
+			final PhantomEconomyOperation reserved = operation(initiator.profileId(), 941001, 60, Kind.SELF_CRAFT, 1, now);
+			final List<Reservation> resources = List.of(itemCount(initiator.profileId(), 941001, 57), itemCount(participant.profileId(), 941002, 58));
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.RESERVED, service.reserve(reserved, resources).status(), "Participant boundary fixture was not reserved.");
+			service.beforeBoundary(participant.profileId(), now + 1);
+			PhantomAssertions.assertEquals(State.ABORTED, service.find(reserved.operationId()).orElseThrow().state(), "Reservation participant did not abort the whole operation.");
+			PhantomAssertions.assertTrue(service.findReservations(reserved.operationId()).isEmpty(), "Participant boundary retained one side of the operation.");
+			PhantomAssertions.assertEquals(1L, scalarLong("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", reserved.operationId()), "Participant boundary did not create exactly one audit row.");
+			PhantomAssertions.assertEquals(0L, service.snapshot().currentOperations(), "Participant boundary retained a current operation.");
+			PhantomAssertions.assertEquals(0L, service.snapshot().currentReservations(), "Participant boundary retained current reservations.");
+
+			final PhantomEconomyOperation dispatching = operation(initiator.profileId(), 941001, 61, Kind.ITEM_ENCHANT, 1, now + 2);
+			service.reserve(dispatching, resources);
+			service.transition(dispatching.operationId(), State.RESERVED, State.DISPATCHING, now + 3, null);
+			PhantomAssertions.assertThrows(EconomyConflictException.class, () -> service.beforeBoundary(participant.profileId(), now + 4), "Reservation participant crossed a DISPATCHING operation.");
+			PhantomAssertions.assertEquals(State.DISPATCHING, service.find(dispatching.operationId()).orElseThrow().state(), "Participant boundary mutated DISPATCHING state.");
+			PhantomAssertions.assertEquals(2, service.findReservations(dispatching.operationId()).size(), "Participant boundary released DISPATCHING reservations.");
+			service.transition(dispatching.operationId(), State.DISPATCHING, State.ABORTED, now + 5, audit(Result.ERROR, "operation.conflict"));
+
+			final PhantomEconomyOperation observing = operation(initiator.profileId(), 941001, 62, Kind.ITEM_ENCHANT, 1, now + 6);
+			service.reserve(observing, resources);
+			service.transition(observing.operationId(), State.RESERVED, State.DISPATCHING, now + 7, null);
+			service.transition(observing.operationId(), State.DISPATCHING, State.OBSERVING, now + 8, null);
+			PhantomAssertions.assertThrows(EconomyConflictException.class, () -> service.beforeBoundary(participant.profileId(), now + 9), "Reservation participant crossed an OBSERVING operation.");
+			PhantomAssertions.assertEquals(State.OBSERVING, service.find(observing.operationId()).orElseThrow().state(), "Participant boundary mutated OBSERVING state.");
+			PhantomAssertions.assertEquals(2, service.findReservations(observing.operationId()).size(), "Participant boundary released OBSERVING reservations.");
+			service.transition(observing.operationId(), State.OBSERVING, State.INCONSISTENT, now + 10, audit(Result.INCONSISTENT, "dispatch.ambiguous"));
+			PhantomAssertions.assertEquals(0L, service.snapshot().currentOperations(), "Participant lifecycle retained operations.");
+			PhantomAssertions.assertEquals(0L, service.snapshot().currentReservations(), "Participant lifecycle retained reservations.");
+			context.record("economy.participantBoundary", List.of(State.ABORTED, State.DISPATCHING, State.OBSERVING));
+		}
+		finally
+		{
+			service.shutdown(System.currentTimeMillis());
+			deleteProfile(initiator.profileId());
+			deleteProfile(participant.profileId());
+		}
+	}
+
+	private void testParticipantTransitionRenewDrift(PhantomTestContext context) throws Exception
+	{
+		final PhantomProfile initiator = createProfile(942001);
+		final PhantomProfile participant = createProfile(942002);
+		final PhantomEconomyReservationService service = new PhantomEconomyReservationService(_policy);
+		boolean participantDeleted = false;
+		try
+		{
+			service.start();
+			final long now = System.currentTimeMillis();
+			final List<Reservation> resources = List.of(itemCount(initiator.profileId(), 942001, 61), itemCount(participant.profileId(), 942002, 62));
+			final PhantomEconomyOperation renewal = operation(initiator.profileId(), 942001, 70, Kind.SELF_CRAFT, 1, now);
+			service.reserve(renewal, resources);
+			PhantomAssertions.assertEquals(State.RESERVED, service.renew(renewal.operationId(), now + 1, now + 60000).state(), "Participant renewal did not preserve RESERVED.");
+			updateProfileCharacter(participant.profileId(), 942099);
+			PhantomAssertions.assertEquals(State.ABORTED, service.renew(renewal.operationId(), now + 2, now + 60001).state(), "Participant link drift did not safely abort renewal.");
+			PhantomAssertions.assertTrue(service.findReservations(renewal.operationId()).isEmpty(), "Drifted renewal retained reservations.");
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.IDEMPOTENT, service.transition(renewal.operationId(), State.RESERVED, State.ABORTED, now + 3, audit(Result.ERROR, "operation.conflict")).status(), "Drifted renewal terminal replay was not idempotent.");
+			PhantomAssertions.assertEquals(1L, scalarLong("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", renewal.operationId()), "Drifted renewal duplicated its audit.");
+
+			updateProfileCharacter(participant.profileId(), 942002);
+			final PhantomEconomyOperation committed = operation(initiator.profileId(), 942001, 71, Kind.SELF_CRAFT, 1, now + 4);
+			service.reserve(committed, resources);
+			service.transition(committed.operationId(), State.RESERVED, State.DISPATCHING, now + 5, null);
+			PhantomAssertions.assertEquals(State.COMMITTED, service.transition(committed.operationId(), State.DISPATCHING, State.COMMITTED, now + 6, audit(Result.SUCCESS, "result.success")).state(), "Participant operation did not commit.");
+			PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.IDEMPOTENT, service.transition(committed.operationId(), State.DISPATCHING, State.COMMITTED, now + 7, audit(Result.SUCCESS, "result.success")).status(), "Participant commit replay was not idempotent.");
+			PhantomAssertions.assertEquals(1L, scalarLong("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", committed.operationId()), "Participant commit duplicated its audit.");
+
+			final PhantomEconomyOperation observing = operation(initiator.profileId(), 942001, 72, Kind.ITEM_ENCHANT, 1, now + 8);
+			service.reserve(observing, resources);
+			service.transition(observing.operationId(), State.RESERVED, State.DISPATCHING, now + 9, null);
+			service.transition(observing.operationId(), State.DISPATCHING, State.OBSERVING, now + 10, null);
+			updateProfileCharacter(participant.profileId(), null);
+			PhantomAssertions.assertEquals(State.INCONSISTENT, service.reconcile(observing.operationId(), PhantomEconomyReservationService.Evidence.EXACT_AFTER, now + 11, audit(Result.SUCCESS, "result.success")).state(), "OBSERVING participant drift did not fail stop.");
+			PhantomAssertions.assertTrue(service.findReservations(observing.operationId()).isEmpty(), "OBSERVING participant drift retained reservations.");
+
+			updateProfileCharacter(participant.profileId(), 942002);
+			final PhantomEconomyOperation issued = operation(initiator.profileId(), 942001, 73, Kind.ITEM_ENCHANT, 1, now + 12);
+			service.reserve(issued, resources);
+			service.transition(issued.operationId(), State.RESERVED, State.DISPATCHING, now + 13, null);
+			updateProfileCharacter(participant.profileId(), 942099);
+			PhantomAssertions.assertEquals(State.INCONSISTENT, service.reconcile(issued.operationId(), PhantomEconomyReservationService.Evidence.EXACT_AFTER, now + 14, audit(Result.SUCCESS, "result.success")).state(), "Action-issued DISPATCHING participant drift was incorrectly treated as a safe abort.");
+			PhantomAssertions.assertTrue(service.findReservations(issued.operationId()).isEmpty(), "Action-issued participant drift retained reservations.");
+
+			updateProfileCharacter(participant.profileId(), 942002);
+			final PhantomEconomyOperation deleted = operation(initiator.profileId(), 942001, 74, Kind.SELF_CRAFT, 1, now + 15);
+			service.reserve(deleted, resources);
+			deleteProfile(participant.profileId());
+			participantDeleted = true;
+			PhantomAssertions.assertEquals(State.ABORTED, service.renew(deleted.operationId(), now + 16, now + 60016).state(), "Deleted participant left an eternal reservation.");
+			PhantomAssertions.assertTrue(service.findReservations(deleted.operationId()).isEmpty(), "Deleted participant retained economy claims.");
+			PhantomAssertions.assertEquals(0L, service.snapshot().currentOperations(), "Participant drift tests retained current operations.");
+			PhantomAssertions.assertEquals(0L, service.snapshot().currentReservations(), "Participant drift tests retained current reservations.");
+			context.record("economy.participantDrift", List.of(State.ABORTED, State.INCONSISTENT));
+		}
+		finally
+		{
+			service.shutdown(System.currentTimeMillis());
+			deleteProfile(initiator.profileId());
+			if (!participantDeleted)
+			{
+				deleteProfile(participant.profileId());
+			}
+		}
+	}
+
+	private void testParticipantReverseOrderStress(PhantomTestContext context) throws Exception
+	{
+		final PhantomProfile first = createProfile(943001);
+		final PhantomProfile second = createProfile(943002);
+		final PhantomEconomyReservationService service = new PhantomEconomyReservationService(_policy);
+		try
+		{
+			service.start();
+			for (int order = 0; order < 2; order++)
+			{
+				for (int iteration = 0; iteration < 100; iteration++)
+				{
+					final PhantomProfile initiator = order == 0 ? first : second;
+					final PhantomProfile participant = order == 0 ? second : first;
+					final int initiatorObjectId = order == 0 ? 943001 : 943002;
+					final int participantObjectId = order == 0 ? 943002 : 943001;
+					final long now = System.currentTimeMillis();
+					final PhantomEconomyOperation operation = operation(initiator.profileId(), initiatorObjectId, 8000 + (order * 100) + iteration, Kind.SELF_CRAFT, 1, now);
+					final List<Reservation> resources = List.of(itemCount(participant.profileId(), participantObjectId, 71), itemCount(initiator.profileId(), initiatorObjectId, 72));
+					PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.RESERVED, service.reserve(operation, resources).status(), "Participant stress reservation failed at iteration " + iteration + ".");
+					final AtomicReference<Throwable> failure = new AtomicReference<>();
+					final CountDownLatch ready = new CountDownLatch(2);
+					final CountDownLatch start = new CountDownLatch(1);
+					final Thread terminal = reservationThread("economy-participant-terminal", ready, start, failure, () -> service.transition(operation.operationId(), State.RESERVED, State.ABORTED, now + 1, audit(Result.ERROR, "operation.conflict")));
+					final Thread boundary = reservationThread("economy-participant-boundary", ready, start, failure, () -> service.beforeBoundary(participant.profileId(), now + 2));
+					terminal.start();
+					boundary.start();
+					PhantomAssertions.assertTrue(ready.await(5, TimeUnit.SECONDS), "Participant stress threads did not become ready.");
+					start.countDown();
+					terminal.join(10000);
+					boundary.join(10000);
+					PhantomAssertions.assertFalse(terminal.isAlive() || boundary.isAlive(), "Participant stress deadlocked or timed out.");
+					if (failure.get() != null)
+					{
+						throw new AssertionError("Participant stress failed at order " + order + ", iteration " + iteration + ": " + failureSummary(failure.get()), failure.get());
+					}
+					PhantomAssertions.assertEquals(State.ABORTED, service.find(operation.operationId()).orElseThrow().state(), "Participant stress produced a nonterminal result.");
+					PhantomAssertions.assertTrue(service.findReservations(operation.operationId()).isEmpty(), "Participant stress retained reservations.");
+					PhantomAssertions.assertEquals(1L, scalarLong("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", operation.operationId()), "Participant stress duplicated terminal audit.");
+					PhantomAssertions.assertEquals(0L, service.snapshot().currentOperations(), "Participant stress retained current operations.");
+					PhantomAssertions.assertEquals(0L, service.snapshot().currentReservations(), "Participant stress retained current reservations.");
+				}
+			}
+			context.record("economy.participantConcurrencyIterations", 200);
+		}
+		finally
+		{
+			service.shutdown(System.currentTimeMillis());
+			deleteProfile(first.profileId());
+			deleteProfile(second.profileId());
+		}
+	}
+
+	private void testParticipantDispatchLockOrder(PhantomTestContext context) throws Exception
+	{
+		final PhantomProfile initiator = createProfile(944001);
+		final PhantomProfile participant = createProfile(944002);
+		final PhantomEconomyReservationService service = new PhantomEconomyReservationService(_policy);
+		try
+		{
+			service.start();
+			final long now = System.currentTimeMillis();
+			final List<Reservation> resources = List.of(itemCount(initiator.profileId(), 944001, 81), itemCount(participant.profileId(), 944002, 82), itemCount(participant.profileId(), 944002, 83));
+			final PhantomEconomyOperation operation = operation(initiator.profileId(), 944001, 90, Kind.SELF_CRAFT, 1, now);
+			service.reserve(operation, resources);
+			service.transition(operation.operationId(), State.RESERVED, State.DISPATCHING, now + 1, null);
+			final List<String> statements = new ArrayList<>();
+			try (Connection connection = DatabaseFactory.getConnection())
+			{
+				connection.setAutoCommit(false);
+				final Connection observed = observedConnection(connection, statements);
+				final DispatchLock dispatch = service.lockDispatchInTransaction(observed, operation.operationId(), initiator.profileId());
+				PhantomAssertions.assertTrue(dispatch.ready(), "Participant dispatch lock unexpectedly terminalized.");
+				PhantomAssertions.assertEquals(List.of(initiator.profileId(), participant.profileId()).stream().sorted().toList(), dispatch.participants().profileIds(), "Dispatch participant set is not distinct and sorted.");
+				PhantomAssertions.assertEquals(944001, dispatch.participants().characterObjectId(initiator.profileId()), "Dispatch initiator character link drifted.");
+				PhantomAssertions.assertEquals(944002, dispatch.participants().characterObjectId(participant.profileId()), "Dispatch participant character link drifted.");
+				PhantomAssertions.assertEquals(3, dispatch.canonicalResourceKeys().size(), "Duplicate participant rows were not deduplicated into one participant with all resources.");
+				PhantomAssertions.assertEquals(dispatch.canonicalResourceKeys().stream().sorted().toList(), dispatch.canonicalResourceKeys(), "Dispatch resource keys are not canonical.");
+				final int lastProfileLock = lastSqlIndex(statements, "SELECT character_object_id FROM phantom_profiles WHERE profile_id=? FOR UPDATE");
+				final int operationLock = firstSqlIndex(statements, "FROM phantom_economy_operations WHERE operation_id=? FOR UPDATE");
+				final int reservationLock = firstSqlIndex(statements, "SELECT canonical_resource_key FROM phantom_economy_reservations WHERE operation_id=? ORDER BY canonical_resource_key FOR UPDATE");
+				PhantomAssertions.assertTrue((lastProfileLock >= 1) && (lastProfileLock < operationLock) && (operationLock < reservationLock), "Dispatch lock order is not all-profiles then operation then reservations.");
+				connection.rollback();
+			}
+			service.transition(operation.operationId(), State.DISPATCHING, State.ABORTED, now + 2, audit(Result.ERROR, "operation.conflict"));
+
+			final PhantomEconomyOperation drift = operation(initiator.profileId(), 944001, 91, Kind.ITEM_ENCHANT, 1, now + 3);
+			service.reserve(drift, resources);
+			service.transition(drift.operationId(), State.RESERVED, State.DISPATCHING, now + 4, null);
+			updateProfileCharacter(participant.profileId(), 944099);
+			try (Connection connection = DatabaseFactory.getConnection())
+			{
+				connection.setAutoCommit(false);
+				final DispatchLock dispatch = service.lockDispatchInTransaction(connection, drift.operationId(), initiator.profileId());
+				PhantomAssertions.assertFalse(dispatch.ready(), "Dispatch participant link drift was not rejected.");
+				PhantomAssertions.assertEquals(3, dispatch.releasedReservations(), "Dispatch drift did not release the whole participant operation.");
+				connection.commit();
+				service.dispatchAborted(dispatch.releasedReservations());
+			}
+			PhantomAssertions.assertEquals(State.ABORTED, service.find(drift.operationId()).orElseThrow().state(), "Dispatch drift did not safely abort before action.");
+			PhantomAssertions.assertTrue(service.findReservations(drift.operationId()).isEmpty(), "Dispatch drift retained reservations.");
+			updateProfileCharacter(participant.profileId(), 944002);
+			context.record("economy.participantDispatchLock", statements.size());
+		}
+		finally
+		{
+			service.shutdown(System.currentTimeMillis());
+			deleteProfile(initiator.profileId());
+			deleteProfile(participant.profileId());
 		}
 	}
 
@@ -1824,11 +2069,18 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 	{
 		final PhantomProfile reservedProfile = createProfile(930001);
 		final PhantomProfile dispatchedProfile = createProfile(930002);
+		final PhantomProfile adapterInitiator = createProfile(930003);
+		final PhantomProfile adapterParticipant = createProfile(_environment.primary().objectId());
 		final PhantomEconomyReservationService service = new PhantomEconomyReservationService(_policy);
+		final PhantomProfileRepository repository = PhantomProfileRepository.open();
+		final PhantomMetrics metrics = new PhantomMetrics();
+		final PhantomMaterializationService materialization = new PhantomMaterializationService(repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
+		Player participantPlayer = null;
 		try
 		{
 			final long now = System.currentTimeMillis();
 			service.start();
+			final PhantomEconomyMaterializationLifecycle lifecycle = new PhantomEconomyMaterializationLifecycle(service, java.time.Clock.fixed(Instant.ofEpochMilli(now + 10), ZoneOffset.UTC));
 			final PhantomEconomyOperation reserved = operation(reservedProfile.profileId(), 930001, 31, Kind.SELF_CRAFT, 1, now);
 			service.reserve(reserved, List.of(itemCount(reservedProfile.profileId(), 930001, 88)));
 			service.beforeBoundary(reservedProfile.profileId(), now + 1);
@@ -1838,14 +2090,43 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			service.transition(dispatched.operationId(), State.RESERVED, State.DISPATCHING, now + 1, null);
 			PhantomAssertions.assertThrows(EconomyConflictException.class, () -> service.beforeBoundary(dispatchedProfile.profileId(), now + 2), "Dispatch boundary did not fail closed.");
 			service.transition(dispatched.operationId(), State.DISPATCHING, State.INCONSISTENT, now + 3, audit(Result.INCONSISTENT, "dispatch.ambiguous"));
+
+			final List<Reservation> participantResources = List.of(itemCount(adapterInitiator.profileId(), 930003, 89), itemCount(adapterParticipant.profileId(), _environment.primary().objectId(), 90));
+			final PhantomEconomyOperation beforeMaterialize = operation(adapterInitiator.profileId(), 930003, 33, Kind.SELF_CRAFT, 1, now + 4);
+			service.reserve(beforeMaterialize, participantResources);
+			lifecycle.beforeMaterialize(adapterParticipant.profileId(), _environment.primary().objectId());
+			PhantomAssertions.assertEquals(State.ABORTED, service.find(beforeMaterialize.operationId()).orElseThrow().state(), "Real lifecycle beforeMaterialize ignored a reservation-only participant.");
+
+			materialization.start();
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, materialization.materialize(adapterParticipant.profileId()).status(), "Participant lifecycle Player did not materialize.");
+			participantPlayer = World.getInstance().getPlayer(_environment.primary().objectId());
+			PhantomAssertions.assertTrue(participantPlayer != null, "Participant lifecycle Player is absent.");
+			final PhantomEconomyOperation beforeStore = operation(adapterInitiator.profileId(), 930003, 34, Kind.ITEM_ENCHANT, 1, now + 5);
+			service.reserve(beforeStore, participantResources);
+			service.transition(beforeStore.operationId(), State.RESERVED, State.DISPATCHING, now + 6, null);
+			final Player storedPlayer = participantPlayer;
+			PhantomAssertions.assertThrows(EconomyConflictException.class, () -> lifecycle.beforeStore(adapterParticipant.profileId(), storedPlayer), "Real lifecycle beforeStore crossed a participant DISPATCHING operation.");
+			PhantomAssertions.assertEquals(State.DISPATCHING, service.find(beforeStore.operationId()).orElseThrow().state(), "Real lifecycle beforeStore mutated participant dispatch.");
+			PhantomAssertions.assertEquals(2, service.findReservations(beforeStore.operationId()).size(), "Real lifecycle beforeStore released participant dispatch claims.");
+			service.transition(beforeStore.operationId(), State.DISPATCHING, State.ABORTED, now + 7, audit(Result.ERROR, "operation.conflict"));
 			PhantomAssertions.assertEquals(0L, service.snapshot().currentReservations(), "Lifecycle retained reservations.");
-			context.record("economy.boundaryDispatchBlocked", true);
+			context.record("economy.boundaryDispatchBlocked", List.of("initiator", "reservation-participant", "beforeMaterialize", "beforeStore"));
 		}
 		finally
 		{
+			if (materialization.snapshot().state() != PhantomMaterializationService.ServiceState.STOPPED)
+			{
+				materialization.shutdown();
+			}
 			service.shutdown(System.currentTimeMillis());
 			deleteProfile(reservedProfile.profileId());
 			deleteProfile(dispatchedProfile.profileId());
+			deleteProfile(adapterInitiator.profileId());
+			deleteProfile(adapterParticipant.profileId());
+			if (participantPlayer != null)
+			{
+				_environment.assertClean(_environment.primary(), participantPlayer);
+			}
 		}
 	}
 
@@ -2460,6 +2741,80 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			statement.setLong(1, profileId);
 			statement.executeUpdate();
 		}
+	}
+
+	private static void updateProfileCharacter(long profileId, Integer characterObjectId) throws Exception
+	{
+		try (Connection connection = DatabaseFactory.getConnection(); PreparedStatement statement = connection.prepareStatement("UPDATE phantom_profiles SET character_object_id=? WHERE profile_id=?"))
+		{
+			PhantomAssertions.assertEquals(TEST_DATABASE, connection.getCatalog(), "Economy profile-link fixture touched a non-test database.");
+			if (characterObjectId == null)
+			{
+				statement.setNull(1, java.sql.Types.INTEGER);
+			}
+			else
+			{
+				statement.setInt(1, characterObjectId);
+			}
+			statement.setLong(2, profileId);
+			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Economy profile-link fixture is absent.");
+		}
+	}
+
+	private static Connection observedConnection(Connection delegate, List<String> statements)
+	{
+		return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[]
+		{
+			Connection.class
+		}, (_, method, arguments) ->
+		{
+			if (method.getName().equals("prepareStatement") && (arguments != null) && (arguments.length > 0) && (arguments[0] instanceof String sql))
+			{
+				statements.add(sql);
+			}
+			try
+			{
+				return method.invoke(delegate, arguments);
+			}
+			catch (InvocationTargetException exception)
+			{
+				throw exception.getCause();
+			}
+		});
+	}
+
+	private static int firstSqlIndex(List<String> statements, String token)
+	{
+		for (int index = 0; index < statements.size(); index++)
+		{
+			if (statements.get(index).contains(token))
+			{
+				return index;
+			}
+		}
+		return -1;
+	}
+
+	private static int lastSqlIndex(List<String> statements, String token)
+	{
+		for (int index = statements.size() - 1; index >= 0; index--)
+		{
+			if (statements.get(index).contains(token))
+			{
+				return index;
+			}
+		}
+		return -1;
+	}
+
+	private static String failureSummary(Throwable failure)
+	{
+		final List<String> result = new ArrayList<>();
+		for (Throwable current = failure; (current != null) && (result.size() < 8); current = current.getCause())
+		{
+			result.add(current.getClass().getSimpleName() + ":" + current.getMessage());
+		}
+		return String.join(" <- ", result);
 	}
 
 	private static long scalarLong(String sql, Object parameter) throws Exception

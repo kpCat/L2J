@@ -7,11 +7,12 @@
 Goal 021 accepted baseline: `043844c0fd7a0bfcac0d5f58461a21633b032332`.
 Goal 022 C1 foundation: `d02dc8429e88ef507347fc2e3860b0528844ae68`.
 Goal 022 C1 lifecycle completion: `9e2bd551ecc03647641c16e393694b9a0cb51e60`.
+Goal 022 C1 authority completion: `20fe8daccfb5000b5b970bff7b3555a4051e5dbc`.
 Branch: `feature/phantom-world`.
-Final authority/resume/risk completion subject:
-`fix(phantoms): close economy resume authority and risk gates`.
+Terminal participant-lifecycle completion subject:
+`fix(phantoms): close participant economy lifecycle ordering`.
 Final SHA определяется post-commit verifier как единственный ordinary child
-lifecycle completion commit.
+authority completion commit.
 
 ## Summary
 
@@ -80,6 +81,29 @@ Bounded final completion закрывает последние authority и resu
 - `ITEM_OBJECT` конфликтует с другим exact object только по одинаковому
   object ID; cross `ITEM_COUNT`/`ITEM_OBJECT` остаётся item-ID conflict.
 
+## Terminal participant-lifecycle completion
+
+Bounded terminal completion закрывает participant ordering без schema, policy,
+packet, adapter или materialization production changes:
+
+- authoritative participant snapshot объединяет initiating profile и все
+  reservation profiles, дедуплицируется и сортируется, хранит exact immutable
+  profile-to-character links и соблюдает accepted bound 4;
+- transition, renewal, reconciliation, expiry, cancel, shutdown и dispatch
+  сначала без row locks обнаруживают participant set, затем блокируют все
+  profiles по возрастанию, operation и canonical reservations и повторно
+  сверяют set/links перед mutation;
+- background craft/enchant больше не pre-lock инициатора: generic dispatch seam
+  первым получает participant locks, а link drift атомарно завершает operation
+  до item/vital/Goal mutation;
+- materialization boundary учитывает initiator и reservation-only participant:
+  `PREPARED`/`RESERVED` abort всей operation, `DISPATCHING`/`OBSERVING` fail
+  closed без mutation, multiple active operations также fail closed;
+- real lifecycle adapter покрыт `beforeMaterialize` и `beforeStore`, а две
+  противоположные concurrent lock orders проходят по 100 итераций без deadlock;
+- authority/risk, exact RecipePlan, observer, canonical enchant, reservations,
+  restart/cancellation и single-participant paths сохранены.
+
 ## Changed files
 
 Новые production/data artifacts:
@@ -146,7 +170,8 @@ Phantom World сохраняет существующий disabled-by-default st
 Seed всех новых modes: `22002201`.
 
 - `economy-reservation-schema`: 2/2 PASS;
-- `economy-reservation-concurrency`: 13/13 PASS;
+- `economy-reservation-concurrency`: 17/17 PASS, включая participant lifecycle,
+  drift, dispatch lock order и 200 reverse-order iterations;
 - `economy-self-craft-active`: 2/2 PASS, real materialized Phantom и три
   successive service operations;
 - `economy-self-craft-background`: 5/5 PASS, actual transaction outcomes,
@@ -216,32 +241,38 @@ terminal section ниже.
 
 ## Terminal section
 
+- Terminal gate status: `PARTIAL` из-за одного unrelated historical timing-flake
+  в обязательном plain `ant verify`; C1 implementation gates зелёные.
 - Test DB: только `l2jmobiush5_phantom_test`; production DB не использовалась.
-- Bounded affected route: PASS.
+- Exact `compile-tests`: PASS; bounded Goal 014/021 affected route: PASS во всех
+  семи reports (`5/5`, `5/5`, `4/4`, `7/7`, `4/4`, `20/20`, `7/7`).
 - Historical verifier 021c2: PASS под Windows PowerShell 5.1 и PowerShell 7;
   output byte-identical, accepted implementation
   `043844c0fd7a0bfcac0d5f58461a21633b032332`.
 - Working-tree verifier 022c1: PASS под Windows PowerShell 5.1 и PowerShell 7;
-  output byte-identical, final scope 11, final production 7,
-  new production 0, SQL 0, cumulative scope 47, policy SHA-256
+  output byte-identical; terminal scope 6, production 2, cumulative scope 47,
+  new production 0, SQL/XML 0; policy SHA-256
   `52ed0748b1919a8736d857fa80ee318e4e1e385827cb6b8038fbda65776598d9`.
 - Final `phantom-economy-checkpoint1-test`: PASS: все восемь свежих suite reports
-  имеют `failed=0`; seed `22002201`; 1:28.
-- Один plain `ant verify`: PASS; обновлены 120 XML suite reports, финальный
-  `performance.xml` создан через 14:37 после первого suite report. Intentional
-  negative controls `negative` и `lifecycle-control` дали ожидаемые non-zero
-  результаты внутри зелёного gate; остальных ошибок/failures нет.
-- Один standalone `ant jar`: PASS, `BUILD SUCCESSFUL`, 0:19.
+  имеют `failed=0`: `2/2`, `17/17`, `2/2`, `5/5`, `5/5`, `5/5`, `2/2`,
+  `2/2`; seed `22002201`; 1:45.
+- Единственный plain `ant verify`: FAIL через 3:40 на старом
+  `combat-server-integration.02` (`Victory cleanup retained the exact dead
+  combat target`) до запуска economy modes. Точный isolated diagnostic сразу
+  прошёл `20/20` за 0:51 без правок, подтверждая timing-flake. Второй full
+  verify не запускался: terminal task разрешает его только после relevant fix,
+  а combat suite вне exact scope.
+- Один standalone `ant jar`: PASS, `BUILD SUCCESSFUL`, 0:20.
 - Mojibake-маркеры в изменённых файлах проверены отдельно: совпадений нет.
 - Escaped Cyrillic в изменённых файлах проверены отдельно: совпадений нет.
-- `RequestEnchantItem.java` byte-identical lifecycle completion
-  `9e2bd551ecc03647641c16e393694b9a0cb51e60`.
-- `git diff --check 9e2bd551ecc03647641c16e393694b9a0cb51e60 --`: PASS;
+- `RequestEnchantItem.java` byte-identical authority completion
+  `20fe8daccfb5000b5b970bff7b3555a4051e5dbc`.
+- `git diff --check 20fe8daccfb5000b5b970bff7b3555a4051e5dbc --`: PASS;
   whitespace errors отсутствуют.
 - Freeze production/data/test/build/verifier соблюдён после final aggregate;
   после freeze изменялась только эта terminal section отчёта.
-- Final completion создаётся единственным ordinary direct child lifecycle completion
-  с subject `fix(phantoms): close economy resume authority and risk gates`; exact SHA,
+- Terminal completion создаётся единственным ordinary direct child authority completion
+  с subject `fix(phantoms): close participant economy lifecycle ordering`; exact SHA,
   push containment и два byte-identical historical verifier runs фиксируются
   неизменяемым post-commit verifier и финальным сообщением, поскольку их нельзя
   записать в этот commit без второго commit/amend.

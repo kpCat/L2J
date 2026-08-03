@@ -28,13 +28,13 @@ import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
@@ -133,7 +133,17 @@ public final class PhantomEconomyReservationService
 		{
 			throw new IllegalArgumentException("Economy distinct item ID bound exceeded.");
 		}
-		final List<Long> profileIds = participantProfiles(operation, reservations);
+		final ParticipantSet participants;
+		try
+		{
+			participants = participantSet(operation, reservations);
+		}
+		catch (EconomyConflictException exception)
+		{
+			_conflicts.increment();
+			return ReserveResult.rejected(Status.IDENTITY_CONFLICT);
+		}
+		final List<Long> profileIds = participants.profileIds();
 		final ReentrantLock writerLock = writerLock(operation.identity().profileId());
 		_admissionLock.lock();
 		writerLock.lock();
@@ -143,7 +153,7 @@ public final class PhantomEconomyReservationService
 			try
 			{
 				final Map<Long, Integer> participantLinks = lockProfiles(connection, profileIds);
-				if (!Objects.equals(participantLinks.get(operation.identity().profileId()), operation.identity().characterObjectId()) || reservations.stream().anyMatch(reservation -> !Objects.equals(participantLinks.get(reservation.profileId()), reservation.ownerObjectId())))
+				if (!participants.matchesLinks(participantLinks))
 				{
 					connection.rollback();
 					_conflicts.increment();
@@ -229,14 +239,13 @@ public final class PhantomEconomyReservationService
 			begin(connection);
 			try
 			{
-				final StoredOperation snapshot = readOperation(connection, operationId);
-				if (snapshot == null)
+				final LifecycleLock lifecycle = lockLifecycle(connection, operationId);
+				if (lifecycle == null)
 				{
 					connection.rollback();
 					return new TransitionResult(Status.NOT_FOUND, null);
 				}
-				lockProfiles(connection, List.of(snapshot.profileId()));
-				final StoredOperation locked = lockOperation(connection, operationId);
+				final StoredOperation locked = lifecycle.operation();
 				if (locked.state() == next)
 				{
 					connection.commit();
@@ -247,9 +256,13 @@ public final class PhantomEconomyReservationService
 					connection.rollback();
 					return new TransitionResult(Status.STATE_CONFLICT, locked.state());
 				}
-				if (next.terminal())
+				if (!lifecycle.participantsValid())
 				{
-					lockReservationKeys(connection, operationId);
+					final State terminal = participantDriftTerminal(locked.state());
+					final int releasedReservations = terminalize(connection, locked, terminal, participantDriftAudit(terminal), nowEpochMillis);
+					connection.commit();
+					recordTerminalMutation(terminal, releasedReservations);
+					return new TransitionResult(Status.TRANSITIONED, terminal);
 				}
 				transition(connection, operationId, expected, next, nowEpochMillis);
 				int releasedReservations = 0;
@@ -267,9 +280,7 @@ public final class PhantomEconomyReservationService
 				connection.commit();
 				if (next.terminal())
 				{
-					_currentReservations.addAndGet(-releasedReservations);
-					_currentOperations.decrementAndGet();
-					recordTerminal(next);
+					recordTerminalMutation(next, releasedReservations);
 				}
 				if (next == State.DISPATCHING)
 				{
@@ -300,18 +311,24 @@ public final class PhantomEconomyReservationService
 			begin(connection);
 			try
 			{
-				final StoredOperation snapshot = readOperation(connection, operationId);
-				if (snapshot == null)
+				final LifecycleLock lifecycle = lockLifecycle(connection, operationId);
+				if (lifecycle == null)
 				{
 					connection.rollback();
 					return new TransitionResult(Status.NOT_FOUND, null);
 				}
-				lockProfiles(connection, List.of(snapshot.profileId()));
-				final StoredOperation locked = lockOperation(connection, operationId);
+				final StoredOperation locked = lifecycle.operation();
 				if (locked.state() != State.RESERVED)
 				{
 					connection.rollback();
 					return new TransitionResult(Status.STATE_CONFLICT, locked.state());
+				}
+				if (!lifecycle.participantsValid())
+				{
+					final int releasedReservations = terminalize(connection, locked, State.ABORTED, participantDriftAudit(State.ABORTED), nowEpochMillis);
+					connection.commit();
+					recordTerminalMutation(State.ABORTED, releasedReservations);
+					return new TransitionResult(Status.TRANSITIONED, State.ABORTED);
 				}
 				try (PreparedStatement statement = connection.prepareStatement("UPDATE phantom_economy_operations SET expires_at=?, updated_at=?, row_version=row_version+1 WHERE operation_id=? AND operation_state='RESERVED'"))
 				{
@@ -365,7 +382,7 @@ public final class PhantomEconomyReservationService
 			if (stored.isPresent() && ((stored.get().state() == State.PREPARED) || (stored.get().state() == State.RESERVED)))
 			{
 				final TransitionResult result = transition(operationId, stored.get().state(), State.EXPIRED, nowEpochMillis, new Audit(PhantomEconomyOperation.Result.ERROR, "operation.expired", new byte[0]));
-				if (result.status() == Status.TRANSITIONED)
+				if ((result.status() == Status.TRANSITIONED) && (result.state() == State.EXPIRED))
 				{
 					count++;
 				}
@@ -377,35 +394,64 @@ public final class PhantomEconomyReservationService
 	public ReconcileResult reconcile(String operationId, Evidence evidence, long nowEpochMillis, Audit terminalAudit)
 	{
 		Objects.requireNonNull(evidence);
-		final Optional<StoredOperation> stored = find(operationId);
-		if (stored.isEmpty())
+		try (Connection connection = _connections.open())
 		{
-			return new ReconcileResult(Status.NOT_FOUND, null, false);
+			begin(connection);
+			try
+			{
+				final LifecycleLock lifecycle = lockLifecycle(connection, operationId);
+				if (lifecycle == null)
+				{
+					connection.rollback();
+					return new ReconcileResult(Status.NOT_FOUND, null, false);
+				}
+				final StoredOperation operation = lifecycle.operation();
+				final State state = operation.state();
+				if ((state != State.DISPATCHING) && (state != State.OBSERVING))
+				{
+					connection.rollback();
+					return new ReconcileResult(Status.STATE_CONFLICT, state, false);
+				}
+				if (!lifecycle.participantsValid())
+				{
+					final State terminal = ((state == State.DISPATCHING) && (evidence == Evidence.EXACT_BEFORE_ACTION_NOT_ISSUED)) ? State.ABORTED : State.INCONSISTENT;
+					final int releasedReservations = terminalize(connection, operation, terminal, participantDriftAudit(terminal), nowEpochMillis);
+					connection.commit();
+					recordTerminalMutation(terminal, releasedReservations);
+					return new ReconcileResult(Status.TRANSITIONED, terminal, false);
+				}
+				if ((evidence == Evidence.EXACT_BEFORE_ACTION_NOT_ISSUED) && (state == State.DISPATCHING))
+				{
+					connection.commit();
+					return new ReconcileResult(Status.REDISPATCH_ALLOWED, state, true);
+				}
+				final State terminal;
+				final Audit audit;
+				if (evidence == Evidence.EXACT_AFTER)
+				{
+					terminal = State.COMMITTED;
+					audit = Objects.requireNonNull(terminalAudit);
+				}
+				else
+				{
+					terminal = State.INCONSISTENT;
+					audit = new Audit(PhantomEconomyOperation.Result.INCONSISTENT, "dispatch.ambiguous", new byte[0]);
+				}
+				final int releasedReservations = terminalize(connection, operation, terminal, audit, nowEpochMillis);
+				connection.commit();
+				recordTerminalMutation(terminal, releasedReservations);
+				return new ReconcileResult(Status.TRANSITIONED, terminal, false);
+			}
+			catch (Throwable failure)
+			{
+				rollback(connection, failure);
+				throw persistenceFailure("reconcile economy operation", failure);
+			}
 		}
-		final State state = stored.get().state();
-		if ((state != State.DISPATCHING) && (state != State.OBSERVING))
+		catch (SQLException exception)
 		{
-			return new ReconcileResult(Status.STATE_CONFLICT, state, false);
+			throw persistenceFailure("open economy reconciliation transaction", exception);
 		}
-		return switch (evidence)
-		{
-			case EXACT_AFTER ->
-			{
-				final TransitionResult result = transition(operationId, state, State.COMMITTED, nowEpochMillis, Objects.requireNonNull(terminalAudit));
-				yield new ReconcileResult(result.status(), result.state(), false);
-			}
-			case AMBIGUOUS, PARTIAL ->
-			{
-				final TransitionResult result = transition(operationId, state, State.INCONSISTENT, nowEpochMillis, new Audit(PhantomEconomyOperation.Result.INCONSISTENT, "dispatch.ambiguous", new byte[0]));
-				yield new ReconcileResult(result.status(), result.state(), false);
-			}
-			case EXACT_BEFORE_ACTION_NOT_ISSUED -> new ReconcileResult(Status.REDISPATCH_ALLOWED, state, true);
-			case EXACT_BEFORE_ACTION_ISSUED ->
-			{
-				final TransitionResult result = transition(operationId, state, State.INCONSISTENT, nowEpochMillis, new Audit(PhantomEconomyOperation.Result.INCONSISTENT, "dispatch.ambiguous", new byte[0]));
-				yield new ReconcileResult(result.status(), result.state(), false);
-			}
-		};
 	}
 
 	public WriterClaim claimWriter(long profileId, String ownOperationId, List<Reservation> resources)
@@ -443,36 +489,35 @@ public final class PhantomEconomyReservationService
 		}
 	}
 
-	public DispatchLock lockDispatchInTransaction(Connection connection, String operationId, long profileId) throws SQLException
+	public DispatchLock lockDispatchInTransaction(Connection connection, String operationId, long expectedInitiatorProfileId) throws SQLException
 	{
-		final StoredOperation operation = lockOperation(connection, operationId);
-		if ((operation == null) || (operation.profileId() != profileId) || (operation.state() != State.DISPATCHING))
+		final LifecycleLock lifecycle = lockLifecycle(connection, operationId);
+		if ((lifecycle == null) || (lifecycle.operation().profileId() != expectedInitiatorProfileId) || (lifecycle.operation().state() != State.DISPATCHING))
 		{
 			throw new EconomyConflictException("Economy operation is not in exact DISPATCHING state.");
 		}
-		final List<String> resources = new ArrayList<>();
-		try (PreparedStatement statement = connection.prepareStatement("SELECT canonical_resource_key FROM phantom_economy_reservations WHERE operation_id=? ORDER BY canonical_resource_key FOR UPDATE"))
-		{
-			statement.setString(1, operationId);
-			try (ResultSet rows = statement.executeQuery())
-			{
-				while (rows.next())
-				{
-					resources.add(rows.getString(1));
-				}
-			}
-		}
+		final StoredOperation operation = lifecycle.operation();
+		final List<String> resources = lifecycle.canonicalResourceKeys();
 		if (resources.isEmpty() || (resources.size() > _policy.limits().reservationsPerOperation()))
 		{
 			throw new EconomyConflictException("Economy dispatch has invalid reservation evidence.");
 		}
-		return new DispatchLock(operation, List.copyOf(resources));
+		if (!lifecycle.participantsValid())
+		{
+			final int releasedReservations = terminalize(connection, operation, State.ABORTED, participantDriftAudit(State.ABORTED), System.currentTimeMillis());
+			return new DispatchLock(operation, resources, lifecycle.lockedParticipants(), false, releasedReservations);
+		}
+		return new DispatchLock(operation, resources, lifecycle.lockedParticipants(), true, 0);
 	}
 
 	public void commitDispatchInTransaction(Connection connection, DispatchLock dispatch, Audit audit, long nowEpochMillis) throws SQLException
 	{
 		Objects.requireNonNull(dispatch);
 		Objects.requireNonNull(audit);
+		if (!dispatch.ready())
+		{
+			throw new IllegalArgumentException("Economy dispatch lock is terminalized.");
+		}
 		transition(connection, dispatch.operation().operationId(), State.DISPATCHING, State.COMMITTED, nowEpochMillis);
 		setTerminal(connection, dispatch.operation().operationId(), audit);
 		insertAudit(connection, dispatch.operation(), State.COMMITTED, audit);
@@ -491,34 +536,62 @@ public final class PhantomEconomyReservationService
 		_committed.increment();
 	}
 
+	public void dispatchAborted(int releasedReservations)
+	{
+		if ((releasedReservations < 1) || (releasedReservations > _policy.limits().reservationsPerOperation()))
+		{
+			throw new IllegalArgumentException("Invalid aborted reservation count.");
+		}
+		recordTerminalMutation(State.ABORTED, releasedReservations);
+	}
+
 	public void beforeBoundary(long profileId, long nowEpochMillis)
 	{
 		try (Connection connection = _connections.open())
 		{
+			final List<String> operationIds = findActiveOperationIdsForParticipant(connection, profileId);
+			if (operationIds.isEmpty())
+			{
+				return;
+			}
+			if (operationIds.size() != 1)
+			{
+				throw new EconomyConflictException("A participant belongs to multiple active economy operations.");
+			}
+			final String operationId = operationIds.getFirst();
+			final ParticipantSet discovered = discoverParticipantSet(connection, operationId);
+			if ((discovered == null) || !discovered.profileIds().contains(profileId))
+			{
+				throw new EconomyConflictException("Economy participant evidence changed before lifecycle lock.");
+			}
 			begin(connection);
 			try
 			{
-				lockProfiles(connection, List.of(profileId));
-				final List<StoredOperation> active = lockActiveOperations(connection, profileId);
-				int releasedReservations = 0;
-				for (StoredOperation operation : active)
+				final Map<Long, Integer> links = lockProfiles(connection, discovered.profileIds());
+				final StoredOperation operation = lockOperation(connection, operationId);
+				lockReservationKeys(connection, operationId);
+				if ((operation == null) || operation.state().terminal())
 				{
-					if ((operation.state() == State.DISPATCHING) || (operation.state() == State.OBSERVING))
-					{
-						throw new EconomyConflictException("Economy dispatch is awaiting exact reconciliation.");
-					}
-					lockReservationKeys(connection, operation.operationId());
-					transition(connection, operation.operationId(), operation.state(), State.ABORTED, nowEpochMillis);
-					final Audit audit = new Audit(PhantomEconomyOperation.Result.ERROR, "operation.conflict", new byte[0]);
-					setTerminal(connection, operation.operationId(), audit);
-					insertAudit(connection, operation, State.ABORTED, audit);
-					releasedReservations += deleteReservations(connection, operation.operationId());
+					connection.commit();
+					return;
 				}
-				trimAudit(connection, profileId);
+				final ParticipantSet locked = discoverParticipantSet(connection, operationId);
+				if ((locked == null) || !discovered.equals(locked) || !locked.profileIds().contains(profileId))
+				{
+					throw new EconomyConflictException("Economy participant evidence changed across lifecycle lock.");
+				}
+				if ((operation.state() == State.DISPATCHING) || (operation.state() == State.OBSERVING))
+				{
+					throw new EconomyConflictException("Economy dispatch is awaiting exact reconciliation.");
+				}
+				if ((operation.state() != State.PREPARED) && (operation.state() != State.RESERVED))
+				{
+					throw new EconomyConflictException("Economy lifecycle state cannot cross materialization.");
+				}
+				final Audit audit = locked.matchesLinks(links) ? new Audit(PhantomEconomyOperation.Result.ERROR, "operation.conflict", new byte[0]) : participantDriftAudit(State.ABORTED);
+				final int releasedReservations = terminalize(connection, operation, State.ABORTED, audit, nowEpochMillis);
 				connection.commit();
-				_currentReservations.addAndGet(-releasedReservations);
-				_currentOperations.addAndGet(-active.size());
-				_aborted.add(active.size());
+				recordTerminalMutation(State.ABORTED, releasedReservations);
 			}
 			catch (Throwable failure)
 			{
@@ -663,22 +736,25 @@ public final class PhantomEconomyReservationService
 		return new Snapshot(_admissionOpen.get(), _prepared.sum(), _reserved.sum(), _dispatched.sum(), _committed.sum(), _aborted.sum(), _conflicts.sum(), _expired.sum(), _inconsistent.sum(), _currentOperations.get(), _currentReservations.get());
 	}
 
-	private List<Long> participantProfiles(PhantomEconomyOperation operation, List<Reservation> reservations)
+	private ParticipantSet participantSet(PhantomEconomyOperation operation, List<Reservation> reservations)
 	{
-		final Set<Long> profiles = new HashSet<>();
-		profiles.add(operation.identity().profileId());
-		reservations.forEach(reservation -> profiles.add(reservation.profileId()));
-		if (profiles.size() > _policy.limits().participantsPerOperation())
+		final Map<Long, Integer> links = new TreeMap<>();
+		addParticipantLink(links, operation.identity().profileId(), operation.identity().characterObjectId());
+		for (Reservation reservation : reservations)
+		{
+			addParticipantLink(links, reservation.profileId(), reservation.ownerObjectId());
+		}
+		if (links.size() > _policy.limits().participantsPerOperation())
 		{
 			throw new IllegalArgumentException("Economy participant bound exceeded.");
 		}
-		return profiles.stream().sorted().toList();
+		return new ParticipantSet(List.copyOf(links.keySet()), links);
 	}
 
 	private Map<Long, Integer> lockProfiles(Connection connection, List<Long> profileIds) throws SQLException
 	{
 		final List<Long> ordered = profileIds.stream().distinct().sorted().toList();
-		final Map<Long, Integer> links = new java.util.LinkedHashMap<>();
+		final Map<Long, Integer> links = new LinkedHashMap<>();
 		for (long profileId : ordered)
 		{
 			try (PreparedStatement statement = connection.prepareStatement("SELECT character_object_id FROM phantom_profiles WHERE profile_id=? FOR UPDATE"))
@@ -686,16 +762,113 @@ public final class PhantomEconomyReservationService
 				statement.setLong(1, profileId);
 				try (ResultSet result = statement.executeQuery())
 				{
-					if (!result.next())
+					if (result.next())
 					{
-						throw new IllegalStateException("Economy participant profile does not exist.");
+						final int characterObjectId = result.getInt(1);
+						links.put(profileId, result.wasNull() ? null : characterObjectId);
 					}
-					final int characterObjectId = result.getInt(1);
-					links.put(profileId, result.wasNull() ? null : characterObjectId);
+					else
+					{
+						links.put(profileId, null);
+					}
 				}
 			}
 		}
-		return links;
+		return Collections.unmodifiableMap(links);
+	}
+
+	private LifecycleLock lockLifecycle(Connection connection, String operationId) throws SQLException
+	{
+		final ParticipantSet discovered;
+		try (Connection discovery = _connections.open())
+		{
+			discovered = discoverParticipantSet(discovery, operationId);
+		}
+		if (discovered == null)
+		{
+			return null;
+		}
+		final Map<Long, Integer> links = lockProfiles(connection, discovered.profileIds());
+		final StoredOperation operation = lockOperation(connection, operationId);
+		if (operation == null)
+		{
+			return null;
+		}
+		final List<String> resources = lockReservationKeys(connection, operationId);
+		final ParticipantSet locked = discoverParticipantSet(connection, operationId);
+		return new LifecycleLock(operation, resources, discovered, locked, links);
+	}
+
+	private ParticipantSet discoverParticipantSet(Connection connection, String operationId) throws SQLException
+	{
+		final StoredOperation operation = readOperation(connection, operationId);
+		if (operation == null)
+		{
+			return null;
+		}
+		final Map<Long, Integer> links = new TreeMap<>();
+		addParticipantLink(links, operation.profileId(), operation.characterObjectId());
+		try (PreparedStatement statement = connection.prepareStatement("SELECT profile_id,owner_object_id FROM phantom_economy_reservations WHERE operation_id=? ORDER BY profile_id,canonical_resource_key"))
+		{
+			statement.setString(1, operationId);
+			try (ResultSet rows = statement.executeQuery())
+			{
+				while (rows.next())
+				{
+					addParticipantLink(links, rows.getLong(1), rows.getInt(2));
+				}
+			}
+		}
+		if (links.size() > _policy.limits().participantsPerOperation())
+		{
+			throw new EconomyConflictException("Economy operation participant bound is corrupt.");
+		}
+		return new ParticipantSet(List.copyOf(links.keySet()), links);
+	}
+
+	private List<String> findActiveOperationIdsForParticipant(Connection connection, long profileId) throws SQLException
+	{
+		int characterObjectId = -1;
+		try (PreparedStatement statement = connection.prepareStatement("SELECT character_object_id FROM phantom_profiles WHERE profile_id=?"))
+		{
+			statement.setLong(1, profileId);
+			try (ResultSet row = statement.executeQuery())
+			{
+				if (row.next())
+				{
+					characterObjectId = row.getInt(1);
+					if (row.wasNull())
+					{
+						characterObjectId = -1;
+					}
+				}
+			}
+		}
+		final List<String> result = new ArrayList<>(2);
+		final String sql = "SELECT operation_id FROM (SELECT o.operation_id FROM phantom_economy_operations o FORCE INDEX (idx_phantom_economy_operations_profile_state) WHERE o.profile_id=? AND o.operation_state IN (" + ACTIVE_STATES + ") UNION SELECT r.operation_id FROM phantom_economy_reservations r FORCE INDEX (idx_phantom_economy_reservations_owner) JOIN phantom_economy_operations o ON o.operation_id=r.operation_id WHERE r.owner_object_id=? AND r.profile_id=? AND o.operation_state IN (" + ACTIVE_STATES + ")) participant_operations ORDER BY operation_id LIMIT 2";
+		try (PreparedStatement statement = connection.prepareStatement(sql))
+		{
+			statement.setLong(1, profileId);
+			statement.setInt(2, characterObjectId);
+			statement.setLong(3, profileId);
+			try (ResultSet rows = statement.executeQuery())
+			{
+				while (rows.next())
+				{
+					result.add(rows.getString(1));
+				}
+			}
+		}
+		return List.copyOf(result);
+	}
+
+	private static void addParticipantLink(Map<Long, Integer> links, long profileId, int characterObjectId)
+	{
+		final Integer previous = links.putIfAbsent(profileId, characterObjectId);
+		if ((previous != null) && (previous.intValue() != characterObjectId))
+		{
+			throw new EconomyConflictException("Economy participant has conflicting character links.");
+		}
 	}
 
 	private StoredOperation readOperation(Connection connection, String operationId) throws SQLException
@@ -737,23 +910,6 @@ public final class PhantomEconomyReservationService
 				return result.next();
 			}
 		}
-	}
-
-	private List<StoredOperation> lockActiveOperations(Connection connection, long profileId) throws SQLException
-	{
-		final List<StoredOperation> result = new ArrayList<>();
-		try (PreparedStatement statement = connection.prepareStatement("SELECT operation_id,profile_id,character_object_id,goal_id,goal_revision,operation_kind,operation_state,attempt_no,intent_id,authority_hash,intent_hash,activity_generation,activity_tick,row_version FROM phantom_economy_operations WHERE profile_id=? AND operation_state IN (" + ACTIVE_STATES + ") ORDER BY operation_id FOR UPDATE"))
-		{
-			statement.setLong(1, profileId);
-			try (ResultSet rows = statement.executeQuery())
-			{
-				while (rows.next())
-				{
-					result.add(storedOperation(rows));
-				}
-			}
-		}
-		return result;
 	}
 
 	private void insertOperation(Connection connection, PhantomEconomyOperation operation) throws SQLException
@@ -820,6 +976,26 @@ public final class PhantomEconomyReservationService
 			}
 		}
 		return List.copyOf(keys);
+	}
+
+	private int terminalize(Connection connection, StoredOperation operation, State terminal, Audit audit, long nowEpochMillis) throws SQLException
+	{
+		transition(connection, operation.operationId(), operation.state(), terminal, nowEpochMillis);
+		setTerminal(connection, operation.operationId(), audit);
+		insertAudit(connection, operation, terminal, audit);
+		final int releasedReservations = deleteReservations(connection, operation.operationId());
+		trimAudit(connection, operation.profileId());
+		return releasedReservations;
+	}
+
+	private static State participantDriftTerminal(State state)
+	{
+		return state == State.OBSERVING ? State.INCONSISTENT : State.ABORTED;
+	}
+
+	private static Audit participantDriftAudit(State terminal)
+	{
+		return new Audit(terminal == State.INCONSISTENT ? PhantomEconomyOperation.Result.INCONSISTENT : PhantomEconomyOperation.Result.ERROR, "participant.link.drift", new byte[0]);
 	}
 
 	private static void transition(Connection connection, String operationId, State expected, State next, long nowEpochMillis) throws SQLException
@@ -900,6 +1076,13 @@ public final class PhantomEconomyReservationService
 			case INCONSISTENT -> _inconsistent.increment();
 			default -> throw new IllegalArgumentException("State is not terminal.");
 		}
+	}
+
+	private void recordTerminalMutation(State state, int releasedReservations)
+	{
+		_currentReservations.addAndGet(-releasedReservations);
+		_currentOperations.decrementAndGet();
+		recordTerminal(state);
 	}
 
 	private void trimAudit(Connection connection, long profileId) throws SQLException
@@ -1095,8 +1278,76 @@ public final class PhantomEconomyReservationService
 		}
 	}
 
-	public record DispatchLock(StoredOperation operation, List<String> canonicalResourceKeys)
+	public record ParticipantSet(List<Long> profileIds, Map<Long, Integer> characterLinks)
 	{
+		public ParticipantSet
+		{
+			profileIds = profileIds.stream().distinct().sorted().toList();
+			final Map<Long, Integer> orderedLinks = new LinkedHashMap<>();
+			for (long profileId : profileIds)
+			{
+				final Integer characterObjectId = characterLinks.get(profileId);
+				if ((characterObjectId == null) || (characterObjectId <= 0))
+				{
+					throw new IllegalArgumentException("Economy participant snapshot has an invalid character link.");
+				}
+				orderedLinks.put(profileId, characterObjectId);
+			}
+			if (orderedLinks.size() != characterLinks.size())
+			{
+				throw new IllegalArgumentException("Economy participant snapshot contains an unknown profile link.");
+			}
+			characterLinks = Collections.unmodifiableMap(orderedLinks);
+		}
+
+		public int characterObjectId(long profileId)
+		{
+			return characterLinks.getOrDefault(profileId, -1);
+		}
+
+		private boolean matchesLinks(Map<Long, Integer> links)
+		{
+			if (links.size() != characterLinks.size())
+			{
+				return false;
+			}
+			for (Map.Entry<Long, Integer> expected : characterLinks.entrySet())
+			{
+				if (!Objects.equals(expected.getValue(), links.get(expected.getKey())))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+	}
+
+	public record DispatchLock(StoredOperation operation, List<String> canonicalResourceKeys, ParticipantSet participants, boolean ready, int releasedReservations)
+	{
+		public DispatchLock
+		{
+			Objects.requireNonNull(operation);
+			canonicalResourceKeys = List.copyOf(canonicalResourceKeys);
+			Objects.requireNonNull(participants);
+			if (ready == (releasedReservations != 0))
+			{
+				throw new IllegalArgumentException("Invalid economy dispatch-lock terminal evidence.");
+			}
+		}
+	}
+
+	private record LifecycleLock(StoredOperation operation, List<String> canonicalResourceKeys, ParticipantSet discoveredParticipants, ParticipantSet lockedParticipants, Map<Long, Integer> lockedProfileLinks)
+	{
+		private LifecycleLock
+		{
+			canonicalResourceKeys = List.copyOf(canonicalResourceKeys);
+			lockedProfileLinks = Collections.unmodifiableMap(new LinkedHashMap<>(lockedProfileLinks));
+		}
+
+		private boolean participantsValid()
+		{
+			return (lockedParticipants != null) && discoveredParticipants.equals(lockedParticipants) && lockedParticipants.matchesLinks(lockedProfileLinks);
+		}
 	}
 
 	public static final class WriterClaim implements AutoCloseable
