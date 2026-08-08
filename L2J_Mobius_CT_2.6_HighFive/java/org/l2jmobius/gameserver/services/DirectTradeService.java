@@ -296,21 +296,27 @@ public final class DirectTradeService
 			{
 				return trade.confirm() ? Result.CONFIRMED : Result.REJECTED;
 			}
-			if (!entry.started && !entry.observer.beforeExecute(trade, partnerList))
-			{
-				return Result.REJECTED;
-			}
-			entry.started = true;
-			final Bridge bridge = new Bridge(entry.observer);
+			final Bridge bridge = new Bridge(entry);
 			try
 			{
 				final boolean confirmed = trade.confirm(bridge);
-				entry.observer.afterExecute(trade, partnerList, bridge.completed && bridge.successful);
+				if (bridge.beforeAttempted && !bridge.accepted)
+				{
+					player.cancelActiveTrade();
+					return Result.REJECTED;
+				}
+				if (bridge.accepted)
+				{
+					entry.observer.afterExecute(trade, partnerList, bridge.completed && bridge.successful);
+				}
 				return confirmed && bridge.successful ? Result.COMMITTED : Result.REJECTED;
 			}
 			catch (RuntimeException exception)
 			{
-				entry.observer.afterExecute(trade, partnerList, false);
+				if (bridge.accepted)
+				{
+					entry.observer.afterExecute(trade, partnerList, false);
+				}
 				throw exception;
 			}
 		}
@@ -364,19 +370,30 @@ public final class DirectTradeService
 
 	private static final class Bridge implements TradeList.ExchangeObserver
 	{
-		private final Observer _observer;
+		private final Entry _entry;
+		private boolean beforeAttempted;
+		private boolean accepted;
 		private boolean completed;
 		private boolean successful;
 
-		private Bridge(Observer observer)
+		private Bridge(Entry entry)
 		{
-			_observer = observer;
+			_entry = entry;
+		}
+
+		@Override
+		public boolean beforeExchange(TradeList first, TradeList second)
+		{
+			beforeAttempted = true;
+			accepted = !_entry.started && _entry.observer.beforeExecute(first, second);
+			_entry.started = accepted;
+			return accepted;
 		}
 
 		@Override
 		public void afterTransfer(int ownerObjectId, int receiverObjectId, int objectId, int itemId, long count)
 		{
-			_observer.afterTransfer(ownerObjectId, receiverObjectId, objectId, itemId, count);
+			_entry.observer.afterTransfer(ownerObjectId, receiverObjectId, objectId, itemId, count);
 		}
 
 		@Override

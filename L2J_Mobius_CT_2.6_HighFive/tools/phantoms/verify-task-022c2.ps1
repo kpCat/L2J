@@ -6,7 +6,9 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $AcceptedCheckpoint1 = "feb569efa787917411cfb5c419f0e8646c3ee84f"
-$RequiredSubject = "feat(phantoms): add multiparty trade stores and manufacture"
+$FoundationCommit = "5fd8dcfc1b294e234cc55aaabc0cbfbbd134e1f7"
+$FoundationSubject = "feat(phantoms): add multiparty trade stores and manufacture"
+$RequiredSubject = "fix(phantoms): close multiparty economy causality and lifecycle"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "22002202"
 $RequiredWaiver = "ACCEPT_WITH_EXPLICIT_UNRELATED_TIMING_FLAKE_WAIVER"
@@ -118,11 +120,11 @@ function Read-AddedText([string] $relativePath)
 	$repositoryPath = $script:ModulePrefix + $relativePath
 	if ($script:Mode -eq "working")
 	{
-		$lines = & git -c core.safecrlf=false diff --unified=0 $AcceptedCheckpoint1 -- $repositoryPath
+		$lines = & git -c core.safecrlf=false diff --unified=0 $FoundationCommit -- $repositoryPath
 	}
 	else
 	{
-		$lines = & git -c core.safecrlf=false diff --unified=0 $AcceptedCheckpoint1 $script:TargetCommit -- $repositoryPath
+		$lines = & git -c core.safecrlf=false diff --unified=0 $FoundationCommit $script:TargetCommit -- $repositoryPath
 	}
 	Assert-True ($LASTEXITCODE -eq 0) "Could not inspect added lines for $relativePath"
 	return (($lines | Where-Object { $_.StartsWith('+') -and !$_.StartsWith('+++') }) -join "`n")
@@ -136,36 +138,22 @@ function Is-ProductionData([string] $path)
 function Is-Allowed([string] $path)
 {
 	return ($path -in @(
-		'build.xml',
-		'dist/db_installer/sql/game/phantom_reservations_checkpoint2.sql',
-		'docs/phantoms/architecture/MULTIPARTY_ECONOMY_CONTRACT.md',
 		'docs/phantoms/reports/022-checkpoint-2-multiparty-trade-stores-manufacture.md',
-		'docs/phantoms/reviews/022-checkpoint-1-final-review.md',
 		'docs/phantoms/reviews/022-checkpoint-2-independent-review.md',
 		'java/org/l2jmobius/gameserver/managers/RecipeCraftObserver.java',
 		'java/org/l2jmobius/gameserver/managers/RecipeManager.java',
-		'java/org/l2jmobius/gameserver/network/clientpackets/AddTradeItem.java',
-		'java/org/l2jmobius/gameserver/network/clientpackets/AnswerTradeRequest.java',
-		'java/org/l2jmobius/gameserver/network/clientpackets/RequestPrivateStoreBuy.java',
-		'java/org/l2jmobius/gameserver/network/clientpackets/RequestPrivateStoreSell.java',
-		'java/org/l2jmobius/gameserver/network/clientpackets/RequestRecipeShopMakeItem.java',
-		'java/org/l2jmobius/gameserver/network/clientpackets/TradeDone.java',
-		'java/org/l2jmobius/gameserver/network/clientpackets/TradeRequest.java',
 		'java/org/l2jmobius/gameserver/network/holders/TradeList.java',
 		'java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java',
-		'java/org/l2jmobius/gameserver/phantoms/economy/PhantomEconomyMaterializationLifecycle.java',
-		'java/org/l2jmobius/gameserver/phantoms/economy/PhantomEconomyOperation.java',
 		'java/org/l2jmobius/gameserver/phantoms/economy/PhantomEconomyReservationService.java',
+		'java/org/l2jmobius/gameserver/phantoms/economy/PhantomMultipartyEconomyService.java',
+		'java/org/l2jmobius/gameserver/phantoms/economy/PhantomStoreService.java',
 		'java/org/l2jmobius/gameserver/services/DirectTradeService.java',
 		'java/org/l2jmobius/gameserver/services/ManufactureService.java',
 		'java/org/l2jmobius/gameserver/services/PrivateStoreService.java',
+		'test/java/org/l2jmobius/tests/phantoms/PhantomEconomySuite.java',
 		'test/java/org/l2jmobius/tests/phantoms/PhantomMultipartyEconomySuite.java',
-		'test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java',
-		'tools/phantoms/verify-task-022c1.ps1',
 		'tools/phantoms/verify-task-022c2.ps1'
-	)) -or
-		($path -match '^java/org/l2jmobius/gameserver/phantoms/economy/(?:PhantomEconomyOffer|PhantomEconomyOfferService|PhantomMultipartyEconomyDecision|PhantomMultipartyEconomyService|PhantomSocialEconomyGoalSpec|PhantomStorePlan|PhantomStoreService)\.java$') -or
-		($path -match '^docs/phantoms/tasks/022-checkpoint-2-multiparty-trade-stores-manufacture/')
+	))
 }
 
 $script:ModuleRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
@@ -175,36 +163,45 @@ try
 	$script:ModulePrefix = (Split-Path $script:ModuleRoot -Leaf) + "/"
 	Assert-True ((Git-Lines @("branch", "--show-current") | Select-Object -First 1) -eq $RequiredBranch) "Goal 022c2 must remain on feature/phantom-world."
 	$head = (Git-Lines @("rev-parse", "HEAD") | Select-Object -First 1)
-	& git merge-base --is-ancestor $AcceptedCheckpoint1 $head
-	Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 022 Checkpoint 1 is not an ancestor of HEAD."
+	& git merge-base --is-ancestor $AcceptedCheckpoint1 $FoundationCommit
+	Assert-True ($LASTEXITCODE -eq 0) "C2 foundation does not descend from accepted Checkpoint 1."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%P", $FoundationCommit) | Select-Object -First 1) -eq $AcceptedCheckpoint1) "C2 foundation is not the ordinary direct child of accepted Checkpoint 1."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $FoundationCommit) | Select-Object -First 1) -eq $FoundationSubject) "C2 foundation subject changed."
+	& git merge-base --is-ancestor $FoundationCommit $head
+	Assert-True ($LASTEXITCODE -eq 0) "C2 foundation is not an ancestor of HEAD."
 	if ($WorkingTree)
 	{
-		Assert-True ($head -eq $AcceptedCheckpoint1) "Working Goal 022c2 must start at the exact accepted C1 parent."
+		Assert-True ($head -eq $FoundationCommit) "Working completion must start at the exact C2 foundation."
 		$script:Mode = "working"
-		$script:TargetCommit = $AcceptedCheckpoint1
+		$script:TargetCommit = $FoundationCommit
 	}
 	else
 	{
-		$descendants = Git-Lines @("rev-list", "--reverse", "--ancestry-path", "$AcceptedCheckpoint1..$head")
-		Assert-True ($descendants.Count -gt 0) "Goal 022c2 implementation commit is absent."
+		$descendants = @(Git-Lines @("rev-list", "--reverse", "--ancestry-path", "$FoundationCommit..$head"))
+		Assert-True ($descendants.Count -eq 1) "Goal 022c2 completion must be exactly one ordinary child of the foundation."
 		$script:TargetCommit = $descendants[0]
 		$script:Mode = "historical"
-		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $AcceptedCheckpoint1) "Goal 022c2 is not one ordinary direct child of accepted C1."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 022c2 commit subject changed."
+		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $FoundationCommit) "Goal 022c2 completion is not a direct foundation child."
+		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 022c2 completion subject changed."
 	}
+
+	$foundationChanged = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+	Add-Paths $foundationChanged @("diff", "--name-only", $AcceptedCheckpoint1, $FoundationCommit, "--")
+	$foundationPaths = @($foundationChanged | Sort-Object)
+	Assert-True (($foundationPaths.Count -gt 0) -and ($foundationPaths.Count -le 78)) "Accepted C2 foundation scope exceeds its frozen 78-file bound."
 
 	$changed = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
 	if ($script:Mode -eq "working")
 	{
-		Add-Paths $changed @("diff", "--name-only", $AcceptedCheckpoint1, "--")
+		Add-Paths $changed @("diff", "--name-only", $FoundationCommit, "--")
 		Add-Untracked $changed
 	}
 	else
 	{
-		Add-Paths $changed @("diff", "--name-only", $AcceptedCheckpoint1, $script:TargetCommit, "--")
+		Add-Paths $changed @("diff", "--name-only", $FoundationCommit, $script:TargetCommit, "--")
 	}
 	$paths = @($changed | Sort-Object)
-	Assert-True (($paths.Count -gt 0) -and ($paths.Count -le 78)) "Goal 022c2 total scope exceeds 78 files."
+	Assert-True (($paths.Count -gt 0) -and ($paths.Count -le 17)) "Goal 022c2 completion scope exceeds 17 files."
 	foreach ($path in $paths)
 	{
 		Assert-True (Is-Allowed $path) "Out-of-scope Goal 022c2 path: $path"
@@ -215,19 +212,21 @@ try
 	$newPaths = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
 	if ($script:Mode -eq "working")
 	{
-		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $AcceptedCheckpoint1, "--")
+		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $FoundationCommit, "--")
 		Add-Untracked $newPaths
 	}
 	else
 	{
-		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $AcceptedCheckpoint1, $script:TargetCommit, "--")
+		Add-Paths $newPaths @("diff", "--name-only", "--diff-filter=A", $FoundationCommit, $script:TargetCommit, "--")
 	}
-	$production = @($paths | Where-Object { Is-ProductionData $_ })
-	$newProduction = @($newPaths | Where-Object { Is-ProductionData $_ })
+	$production = @($paths | Where-Object { $_ -match '^java/org/l2jmobius/gameserver/.*\.java$' })
+	$newProductionData = @($newPaths | Where-Object { Is-ProductionData $_ })
 	$sql = @($paths | Where-Object { $_ -match '^dist/db_installer/sql/.*\.sql$' })
-	Assert-True ($production.Count -le 48) "Goal 022c2 production/data/config scope exceeds 48 files."
-	Assert-True ($newProduction.Count -le 28) "Goal 022c2 new production/data scope exceeds 28 files."
-	Assert-True ($sql.Count -le 2) "Goal 022c2 added more than two SQL migrations."
+	$policyXml = @($paths | Where-Object { $_ -match '(?i)(?:policy|policies).*\.xml$' })
+	Assert-True ($production.Count -le 11) "Goal 022c2 completion production scope exceeds 11 files."
+	Assert-True ($newProductionData.Count -eq 0) "Goal 022c2 completion added production/data files."
+	Assert-True ($sql.Count -eq 0) "Goal 022c2 completion changed SQL/schema."
+	Assert-True ($policyXml.Count -eq 0) "Goal 022c2 completion changed policy XML."
 
 	$c1Review = Read-TargetUtf8 'docs/phantoms/reviews/022-checkpoint-1-final-review.md'
 	Contains-All $c1Review @($AcceptedCheckpoint1, $RequiredWaiver, 'Goal 022 Checkpoint 2: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`', 'Goal 022 overall: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`', 'does not claim that the C1 plain verify', 'passed.') 'C1 waiver review'
@@ -237,7 +236,7 @@ try
 	$migration = Read-TargetUtf8 'dist/db_installer/sql/game/phantom_reservations_checkpoint2.sql'
 	Contains-All $migration @('CREATE INDEX IF NOT EXISTS idx_phantom_economy_reservations_profile_operation', '(profile_id, operation_id)', 'CREATE TABLE IF NOT EXISTS `phantom_economy_offers`', '`offer_payload` VARBINARY(4096)', '`counterparty_profile_id`', '`row_version`', 'ENGINE=InnoDB', 'ON DELETE CASCADE') 'C2 migration'
 	$reservations = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomEconomyReservationService.java'
-	Contains-All $reservations @('findActiveOperationIdsForParticipant', 'idx_phantom_economy_reservations_profile_operation', 'r.profile_id=?', 'UNION SELECT r.operation_id', 'profileId == 0', 'lockProfiles(connection, discovered.profileIds())', 'lockOperation(connection, operationId)', 'lockReservationKeys(connection, operationId)', 'discoverParticipantSet(connection, operationId)', 'participantsValid()', 'participantDriftTerminal') 'Indexed participant lifecycle'
+	Contains-All $reservations @('findActiveOperationIdsForParticipant', 'idx_phantom_economy_reservations_profile_operation', 'r.profile_id=?', 'UNION SELECT r.operation_id', 'profileId == 0', 'lockProfiles(connection, discovered.profileIds())', 'lockOperation(connection, operationId)', 'lockReservationKeys(connection, operationId)', 'discoverParticipantSet(connection, operationId)', 'participantsValid()', 'participantDriftTerminal', 'A terminal transition may remove participant reservations after the indexed lookup.', 'raced.state().terminal()') 'Indexed participant lifecycle and terminal race'
 	$lookupStart = $reservations.IndexOf('private List<String> findActiveOperationIdsForParticipant')
 	$lookupEnd = $reservations.IndexOf('private static void addParticipant', $lookupStart)
 	Assert-True (($lookupStart -ge 0) -and ($lookupEnd -gt $lookupStart) -and !$reservations.Substring($lookupStart, $lookupEnd - $lookupStart).Contains('character_object_id=')) "Participant lookup still depends on the current character link."
@@ -250,14 +249,14 @@ try
 	Contains-All $offerService @("offer_state='OFFERED'", 'State.OFFERED, State.EXPIRED', 'SELECT 1 FROM phantom_economy_offers', 'bindOperation', 'consume', 'inconsistent', 'findActiveAfter', 'FOR UPDATE') 'Durable offer lifecycle'
 
 	$direct = Read-TargetUtf8 'java/org/l2jmobius/gameserver/services/DirectTradeService.java'
-	Contains-All $direct @('public Result request', 'public Result answer', 'public Result addItem', 'public Result finish', 'public void cancel', 'beforeExecute', 'afterTransfer', 'afterExecute', 'Pair.of', 'first < second') 'Canonical direct-trade service'
+	Contains-All $direct @('public Result request', 'public Result answer', 'public Result addItem', 'public Result finish', 'public void cancel', 'beforeExchange', '_entry.observer.beforeExecute(first, second)', 'afterTransfer', 'afterExecute', 'Pair.of', 'first < second') 'Canonical direct-trade service under TradeList locks'
 	$tradeList = Read-TargetUtf8 'java/org/l2jmobius/gameserver/network/holders/TradeList.java'
-	Contains-All $tradeList @('confirm(ExchangeObserver observer)', 'beforeExchange', 'afterTransfer', 'afterExchange', 'privateStoreBuyExact', 'privateStoreSellExact') 'Canonical TradeList seams'
+	Contains-All $tradeList @('confirm(ExchangeObserver observer)', 'beforeExchange', 'afterTransfer', 'afterExchange', 'privateStoreBuyExact', 'privateStoreSellExact', 'enum MutationMode', 'ORDINARY_COMPATIBLE', 'STRICT_EXACT_OBJECT') 'Canonical TradeList seams and explicit mutation modes'
 	$privateStore = Read-TargetUtf8 'java/org/l2jmobius/gameserver/services/PrivateStoreService.java'
-	Contains-All $privateStore @('public Result buy', 'public Result sell', 'listingHash', 'requestHash', 'privateStoreBuyExact', 'privateStoreSellExact', 'beforeMutation', 'afterMutation', 'OfflineTraderTable.getInstance().onTransaction', 'owner.setPrivateStoreType(PrivateStoreType.NONE)') 'Canonical private-store service'
+	Contains-All $privateStore @('public Result buy', 'public Result sell', 'public Result buyExact', 'public Result sellExact', 'listingHash', 'requestHash', 'expectedListingHash', 'expectedRequestHash', 'MutationMode.ORDINARY_COMPATIBLE', 'MutationMode.STRICT_EXACT_OBJECT', 'beforeMutation', 'afterMutation', 'OfflineTraderTable.getInstance().onTransaction', 'owner.setPrivateStoreType(PrivateStoreType.NONE)') 'Canonical private-store authority service'
 	Assert-True ($privateStore.IndexOf('observer.afterMutation(direction, actor, owner, list, beforeHash, listingHash(list), true)') -lt $privateStore.IndexOf('owner.setPrivateStoreType(PrivateStoreType.NONE)')) "Empty-store cleanup precedes exact economy observation."
 	$manufacture = Read-TargetUtf8 'java/org/l2jmobius/gameserver/services/ManufactureService.java'
-	Contains-All $manufacture @('public Result manufacture', 'PrivateStoreType.MANUFACTURE', 'customer.isCrafting()', 'manufacturer.isCrafting()', 'LocationUtil.checkIfInRange(150', 'RecipeManager.getInstance().requestManufactureItem') 'Canonical manufacture service'
+	Contains-All $manufacture @('public Result manufacture', 'PrivateStoreType.MANUFACTURE', 'customer.isCrafting()', 'manufacturer.isCrafting()', 'LocationUtil.checkIfInRange(150', 'ManufactureStartResult.STARTED', 'STARTED', 'REJECTED_BEFORE_EFFECT') 'Structured canonical manufacture service'
 
 	$packetChecks = @(
 		@('TradeRequest.java', 'DirectTradeService.getInstance().request', 'onTransactionRequest('),
@@ -271,38 +270,44 @@ try
 	foreach ($check in $packetChecks)
 	{
 		$text = Read-TargetUtf8 ("java/org/l2jmobius/gameserver/network/clientpackets/" + $check[0])
+		$packetPath = "java/org/l2jmobius/gameserver/network/clientpackets/" + $check[0]
+		Assert-True ([Convert]::ToBase64String((Read-CommitBytes $FoundationCommit $packetPath)) -ceq [Convert]::ToBase64String((Read-TargetBytes $packetPath))) "Ordinary packet changed from the accepted C2 foundation: $($check[0])"
 		Assert-True ($text.Contains($check[1])) "Ordinary packet does not delegate: $($check[0])"
 		Assert-True (!$text.Contains($check[2])) "Ordinary packet retained a second mutation path: $($check[0])"
 	}
 
 	$recipeObserver = Read-TargetUtf8 'java/org/l2jmobius/gameserver/managers/RecipeCraftObserver.java'
 	$recipeManager = Read-TargetUtf8 'java/org/l2jmobius/gameserver/managers/RecipeManager.java'
-	Contains-All $recipeObserver @('FEE_TRANSFERRED', 'INGREDIENTS_CONSUMED', 'SUCCESS_PRODUCT', 'RARE_PRODUCT', 'CRAFT_FAILED', 'ABORTED', 'crafterObjectId', 'targetObjectId', 'List.copyOf(items)') 'Multi-party recipe evidence'
-	Contains-All $recipeManager @('requestManufactureItem', 'RecipeCraftObserver observer', 'FEE_TRANSFERRED', 'INGREDIENTS_CONSUMED', 'SUCCESS_PRODUCT', 'RARE_PRODUCT', 'CRAFT_FAILED') 'RecipeManager formula ownership'
+	Contains-All $recipeObserver @('record Authority', 'requiredIngredients', 'FEE_TRANSFERRED', 'INGREDIENTS_CONSUMED', 'SUCCESS_PRODUCT', 'RARE_PRODUCT', 'CRAFT_FAILED', 'ABORTED', 'expConsequence', 'spConsequence', 'hpConsumed', 'mpConsumed', 'List.copyOf(items)') 'Multi-party recipe authority and consequence evidence'
+	Contains-All $recipeManager @('ManufactureStartResult', 'STARTED', 'REJECTED_BEFORE_EFFECT', 'RecipeCraftObserver observer', 'authority()', 'FEE_TRANSFERRED', 'INGREDIENTS_CONSUMED', 'SUCCESS_PRODUCT', 'RARE_PRODUCT', 'CRAFT_FAILED', 'isManufactureActive') 'RecipeManager structured start and formula ownership'
 
 	$goalSpec = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomSocialEconomyGoalSpec.java'
 	Contains-All $goalSpec @('trade.exchange', 'private.store.buy', 'private.store.sell', 'manufacture.item', 'record DirectTrade', 'record StoreBuy', 'record StoreSell', 'record Manufacture') 'Strict C2 Goals'
 	$decision = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomMultipartyEconomyDecision.java'
 	Contains-All $decision @('DISCOVER_OR_LOAD_OFFER', 'OFFER_OR_ACCEPT', 'RESERVE', 'DISPATCH', 'OBSERVE_RECONCILE', 'CLOSE', 'new PhantomPlanStep(5') 'Six-step C2 Decision'
 	$orchestrator = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomMultipartyEconomyService.java'
-	Contains-All $orchestrator @('!activityState.requiresMaterialization()', 'StepResult.activeRequired', 'State.DISPATCHING, PhantomEconomyOperation.State.OBSERVING', 'globallyConserved', 'exactTransfer', 'State.INCONSISTENT', 'AFTER_OFFER_ACCEPTED', 'AFTER_RESERVATIONS', 'AFTER_DISPATCHING', 'AFTER_OBSERVING', 'AFTER_FIRST_ADENA_MUTATION', 'AFTER_FIRST_ITEM_TRANSFER', 'AFTER_EACH_TRANSFER_LINE', 'AFTER_RECIPE_INGREDIENTS', 'AFTER_PRODUCT_OR_FAILURE', 'AFTER_GOAL_WRITE', 'AFTER_OPERATION_AUDIT') 'Active fail-stop orchestration'
+	Contains-All $orchestrator @('acquireParticipants', 'new TreeMap<>()', 'admittedActionCount() != 0', 'admittedActionCount() != 1', 'participants.retain()', 'directAuthority', 'exactTradeList', 'expectedTransfers', 'STRICT_EXACT_OBJECT', 'manufactureAuthority', '|stat-use:', '|alt-stat-change:', '|craft-config:', '|customer-capacity:', '|economy-policy:', 'manufacture.authority.changed', 'manufacture.callback_missing_before_effect', 'manufacture.callback_missing_after_effect', 'exactProgress', 'exactVitals', 'StepResult.activeRequired', 'State.DISPATCHING, PhantomEconomyOperation.State.OBSERVING', 'globallyConserved', 'exactTransfer', 'State.INCONSISTENT') 'Completion causality, leases, authority and fail-stop orchestration'
 	Assert-True ($orchestrator -notmatch 'ClientPacket|GameClient|sendPacket\s*\(|new\s+Thread\s*\(|ThreadPool|Executor|ScheduledFuture|\bFuture\b') "Multiparty orchestrator gained a forbidden packet/client/worker dependency."
 
 	$storePlan = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomStorePlan.java'
 	$storeService = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomStoreService.java'
 	Contains-All $storePlan @('SELL', 'PACKAGE_SELL', 'BUY', 'MANUFACTURE', 'contentHash', 'expiresEpochMillis', 'SCHEMA_VERSION') 'Durable store plan'
-	Contains-All $storeService @('Result.ACTIVE_REQUIRED', 'tryAcquireAction', 'installOwnerObserver', 'PrivateStoreType.PACKAGE_SELL', 'PrivateStoreType.MANUFACTURE', 'closeOwnerObserver', 'remaining.isEmpty()') 'Visible Phantom store lifecycle'
+	Contains-All $storeService @('acquireExclusive', 'admittedActionCount() != 0', 'admittedActionCount() != 1', 'Result.RETRY', 'Result.INCONSISTENT', 'record ShutdownResult', 'retryProfileIds', 'inconsistentProfileIds', 'deleteComponent', 'closeOwnerObserver') 'Truthful visible Phantom store close and shutdown'
 	$lifecycle = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/economy/PhantomEconomyMaterializationLifecycle.java'
 	Contains-All $lifecycle @('_offers.blocksMaterialization(profileId)', '_reservations.beforeBoundary(profileId', 'player.getPrivateStoreType() != PrivateStoreType.NONE') 'Offer/store materialization boundary'
 
 	$system = Read-TargetUtf8 'java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java'
-	Contains-All $system @('new PhantomEconomyOfferService', 'new PhantomMultipartyEconomyService', 'new PhantomStoreService', 'new PhantomMultipartyEconomyDecision', 'reconcileStartup', '_multipartyEconomyService.shutdown', '_phantomStoreService.shutdown') 'C2 system composition'
+	Contains-All $system @('new PhantomEconomyOfferService', 'new PhantomMultipartyEconomyService', 'new PhantomStoreService', 'new PhantomMultipartyEconomyDecision', 'reconcileStartup', '_multipartyEconomyService.shutdown', '_phantomStoreService.shutdown().successful()', '_metrics.recordShutdownFailure()', '_state = State.FAILED') 'C2 system composition and honest store shutdown propagation'
 
 	$tests = Read-TargetUtf8 'test/java/org/l2jmobius/tests/phantoms/PhantomMultipartyEconomySuite.java'
-	foreach ($evidence in @('SEED = 22002202L', 'idx_phantom_economy_reservations_profile_operation', 'indexed-link-drift-and-idempotent-revalidation', 'updateProfileCharacter(participant.profileId(), null)', 'deleteProfile(participant.profileId())', 'State.INCONSISTENT', 'PhantomActivityState.BACKGROUND', 'Background direct-trade execution was admitted', 'Background private-store BUY execution was admitted', 'Background private-store SELL execution was admitted', 'Background manufacture execution was admitted', 'six-step-durable-orchestration', 'Private-store SELL operation did not commit', 'Manufacture observer did not commit', 'Empty visible package store did not close', '100000', '10000', 'TEST_DATABASE'))
+	foreach ($evidence in @('SEED = 22002202L', 'idx_phantom_economy_reservations_profile_operation', 'indexed-link-drift-and-idempotent-revalidation', 'updateProfileCharacter(participant.profileId(), null)', 'deleteProfile(participant.profileId())', 'State.INCONSISTENT', 'PhantomActivityState.BACKGROUND', 'Counterparty ActionLease conflict was not fail closed.', 'Background direct-trade execution was admitted', 'buyExact', 'sellExact', 'Background private-store BUY execution was admitted', 'Background private-store SELL execution was admitted', 'ManufactureService.Result.STARTED', 'Background manufacture execution was admitted', 'PhantomStoreService.Result.RETRY', 'shutdown.successful()', 'six-step-durable-orchestration', 'Private-store SELL operation did not commit', 'Manufacture observer did not commit', '100000', '10000', 'TEST_DATABASE'))
 	{
 		Assert-True ($tests.Contains($evidence)) "Goal 022c2 test evidence is absent: $evidence"
 	}
+	$economyTests = Read-TargetUtf8 'test/java/org/l2jmobius/tests/phantoms/PhantomEconomySuite.java'
+	Contains-All $economyTests @('for (int order = 0; order < 2; order++)', 'for (int iteration = 0; iteration < 1000; iteration++)', 'economy.participantConcurrencyIterations", 2000', 'Action-issued DISPATCHING participant drift') 'Deterministic participant terminal/boundary race and true corruption rejection'
+	$verifier = Read-TargetUtf8 'tools/phantoms/verify-task-022c2.ps1'
+	Contains-All $verifier @('$descendants = @(Git-Lines @(', '$descendants.Count -eq 1', '[Convert]::ToBase64String((Read-CommitBytes $FoundationCommit $packetPath))') 'Descendant-compatible completion and packet parity verifier'
 	$build = Read-TargetUtf8 'build.xml'
 	Contains-All $build @('name="phantom.goal022c2.seed" value="22002202"', 'name="phantom-economy-checkpoint2-test"', 'name="phantom-economy-checkpoint2-affected-test"', 'name="phantom-static-verify-022c2"', 'phantom-economy-checkpoint2-test,phantom-economy-checkpoint2-affected-test', 'phantom-static-verify-022c2" description="Run Goal 022 Checkpoint 2') 'C2 Ant release routes'
 	foreach ($testMode in @('economy-participant-index-c2', 'economy-offer-lifecycle', 'economy-direct-trade', 'economy-private-store-buy', 'economy-private-store-sell', 'economy-manufacture', 'economy-multiparty-restart-fault', 'economy-checkpoint2-performance'))
@@ -315,8 +320,8 @@ try
 	$review = Read-TargetUtf8 'docs/phantoms/reviews/022-checkpoint-2-independent-review.md'
 	Assert-True (($report -split "`r?`n").Count -le 350) "Goal 022c2 report exceeds 350 lines."
 	Contains-All $contract @('DIRECT_TRADE', 'PRIVATE_STORE_BUY', 'PRIVATE_STORE_SELL', 'PLAYER_MANUFACTURE', 'OBSERVING', 'ACTIVE_REQUIRED', 'INCONSISTENT') 'C2 architecture contract'
-	Contains-All $report @('IMPLEMENTED_PENDING_INDEPENDENT_REVIEW', $AcceptedCheckpoint1, $RequiredSubject, $RequiredSeed, $RequiredWaiver, '## Terminal release evidence') 'C2 report'
-	Contains-All $review @('Goal 022 Checkpoint 2: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`', 'Goal 022 overall: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`', 'self-accept', 'Goal 023') 'C2 independent review handoff'
+	Contains-All $report @('IMPLEMENTED_PENDING_INDEPENDENT_REVIEW', $AcceptedCheckpoint1, $FoundationCommit, $RequiredSubject, $RequiredSeed, $RequiredWaiver, '## Terminal release evidence', '2000', 'byte-identical') 'C2 completion report'
+	Contains-All $review @('Goal 022 Checkpoint 2: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`', 'Goal 022 overall: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`', $FoundationCommit, $RequiredSubject, 'self-accept', 'Goal 023') 'C2 independent review handoff'
 
 	$mojibakePairs = @(
 		@(0x0420, 0x045F), @(0x0420, 0x045C), @(0x0420, 0x045B), @(0x0420, 0x2022), @(0x0420, 0x040E), @(0x0420, 0x203A), @(0x0420, 0x00A4), @(0x0420, 0x045A),
@@ -357,7 +362,7 @@ try
 		{
 			Assert-True (Test-Path -LiteralPath (Join-Path $script:ModuleRoot $class) -PathType Leaf) "Compiled Goal 022c2 class is absent: $class"
 		}
-		& git -c core.safecrlf=false diff --check $AcceptedCheckpoint1 --
+		& git -c core.safecrlf=false diff --check $FoundationCommit --
 		Assert-True ($LASTEXITCODE -eq 0) "Working git diff --check failed."
 	}
 	else
@@ -378,19 +383,22 @@ try
 		{
 			Assert-True ($jarEntries -contains $entry) "GameServer.jar lacks Goal 022c2 entry: $entry"
 		}
-		& git -c core.safecrlf=false diff --check $AcceptedCheckpoint1 $script:TargetCommit --
+		& git -c core.safecrlf=false diff --check $FoundationCommit $script:TargetCommit --
 		Assert-True ($LASTEXITCODE -eq 0) "Committed git diff --check failed."
 	}
 
 	Write-Output 'TASK022C2_VERIFIER_OK'
 	Write-Output "mode=$($script:Mode)"
-	Write-Output "implementation_commit=$($script:TargetCommit)"
+	Write-Output "completion_commit=$($script:TargetCommit)"
 	Write-Output "accepted_checkpoint1=$AcceptedCheckpoint1"
+	Write-Output "foundation_commit=$FoundationCommit"
 	Write-Output "seed=$RequiredSeed"
-	Write-Output "scope=$($paths.Count)"
-	Write-Output "production_data=$($production.Count)"
-	Write-Output "new_production_data=$($newProduction.Count)"
+	Write-Output "foundation_scope=$($foundationPaths.Count)"
+	Write-Output "completion_scope=$($paths.Count)"
+	Write-Output "completion_production=$($production.Count)"
+	Write-Output "new_production_data=$($newProductionData.Count)"
 	Write-Output "sql=$($sql.Count)"
+	Write-Output "policy_xml=$($policyXml.Count)"
 	Write-Output "schema_sha256=$(Target-Sha256 'dist/db_installer/sql/game/phantom_reservations_checkpoint2.sql')"
 }
 finally

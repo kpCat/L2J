@@ -94,25 +94,25 @@ public class RecipeManager
 		requestManufactureItem(manufacturer, recipeListId, player, RecipeCraftObserver.NONE);
 	}
 
-	public void requestManufactureItem(Player manufacturer, int recipeListId, Player player, RecipeCraftObserver observer)
+	public ManufactureStartResult requestManufactureItem(Player manufacturer, int recipeListId, Player player, RecipeCraftObserver observer)
 	{
 		final RecipeList recipeList = RecipeData.getInstance().getValidRecipeList(player, recipeListId);
 		if (recipeList == null)
 		{
-			return;
+			return ManufactureStartResult.REJECTED_BEFORE_EFFECT;
 		}
 		
 		if (!manufacturer.getDwarvenRecipeBook().contains(recipeList) && !manufacturer.getCommonRecipeBook().contains(recipeList))
 		{
 			PunishmentManager.handleIllegalPlayerAction(player, "Warning!! Character " + player.getName() + " of account " + player.getAccountName() + " sent a false recipe id.", GeneralConfig.DEFAULT_PUNISH);
-			return;
+			return ManufactureStartResult.REJECTED_BEFORE_EFFECT;
 		}
 		
 		// Check if manufacturer is under manufacturing store or private store.
 		if (PlayerConfig.ALT_GAME_CREATION && _activeMakers.containsKey(manufacturer.getObjectId()))
 		{
 			player.sendPacket(SystemMessageId.PLEASE_CLOSE_THE_SETUP_WINDOW_FOR_YOUR_PRIVATE_MANUFACTURING_STORE_OR_PRIVATE_STORE_AND_TRY_AGAIN);
-			return;
+			return ManufactureStartResult.REJECTED_BEFORE_EFFECT;
 		}
 		
 		final RecipeItemMaker maker = new RecipeItemMaker(manufacturer, recipeList, player, observer);
@@ -128,7 +128,9 @@ public class RecipeManager
 			{
 				maker.run();
 			}
+			return ManufactureStartResult.STARTED;
 		}
+		return ManufactureStartResult.REJECTED_BEFORE_EFFECT;
 	}
 	
 	public void requestMakeItem(Player player, int recipeListId)
@@ -204,6 +206,8 @@ public class RecipeManager
 		private final RecipeCraftObserver _observer;
 		private double _consumedHp;
 		private double _consumedMp;
+		private long _observedExp;
+		private long _observedSp;
 		private boolean _terminalObserved;
 		
 		public RecipeItemMaker(Player pPlayer, RecipeList pRecipeList, Player pTarget)
@@ -686,6 +690,8 @@ public class RecipeManager
 			int itemId = _recipeList.getItemId();
 			int itemCount = _recipeList.getCount();
 			final ItemTemplate template = ItemData.getInstance().getTemplate(itemId);
+			final long crafterExpBefore = _player.getExp();
+			final long crafterSpBefore = _player.getSp();
 			
 			// check that the current recipe has a rare production or not
 			if ((rareProdId != -1) && ((rareProdId == itemId) || PlayerConfig.CRAFT_MASTERWORK))
@@ -698,7 +704,6 @@ public class RecipeManager
 			}
 			
 			_target.getInventory().addItem(ItemProcessType.CRAFT, itemId, itemCount, _target, _player);
-			observe(itemId == rareProdId ? RecipeCraftObserver.Type.RARE_PRODUCT : RecipeCraftObserver.Type.SUCCESS_PRODUCT, List.of(new RecipeCraftObserver.ItemDelta(itemId, itemCount)));
 			
 			// inform customer of earned item
 			SystemMessage sm = null;
@@ -792,12 +797,25 @@ public class RecipeManager
 				_player.addExpAndSp((int) _player.calcStat(Stat.EXPSP_RATE, _exp * PlayerConfig.ALT_GAME_CREATION_XP_RATE * PlayerConfig.ALT_GAME_CREATION_SPEED, null, null), (int) _player.calcStat(Stat.EXPSP_RATE, _sp * PlayerConfig.ALT_GAME_CREATION_SP_RATE * PlayerConfig.ALT_GAME_CREATION_SPEED, null, null));
 			}
 			
+			_observedExp = Math.max(0, _player.getExp() - crafterExpBefore);
+			_observedSp = Math.max(0, _player.getSp() - crafterSpBefore);
+			observe(itemId == rareProdId ? RecipeCraftObserver.Type.RARE_PRODUCT : RecipeCraftObserver.Type.SUCCESS_PRODUCT, List.of(new RecipeCraftObserver.ItemDelta(itemId, itemCount)));
 			updateMakeInfo(true); // success
 		}
 
 		private void observeAbort()
 		{
 			observe(RecipeCraftObserver.Type.ABORTED, List.of());
+		}
+
+		private RecipeCraftObserver.Authority authority()
+		{
+			final List<RecipeCraftObserver.ItemDelta> ingredients = new ArrayList<>();
+			for (RecipeHolder ingredient : _recipeList.getRecipes())
+			{
+				ingredients.add(new RecipeCraftObserver.ItemDelta(ingredient.getItemId(), ingredient.getQuantity()));
+			}
+			return new RecipeCraftObserver.Authority(_recipeList.getId(), _recipeList.getRecipeId(), _recipeList.getItemId(), _recipeList.getCount(), _recipeList.getRareItemId(), _recipeList.getRareItemId() > 0 ? _recipeList.getRareCount() : 0, _recipeList.getRarity(), _recipeList.getLevel(), _recipeList.getSuccessRate(), _recipeList.isDwarvenRecipe(), _skillId, _skillLevel, _price, ingredients);
 		}
 
 		private void observe(RecipeCraftObserver.Type type, List<RecipeCraftObserver.ItemDelta> items)
@@ -813,9 +831,10 @@ public class RecipeManager
 			try
 			{
 				final long fee = type == RecipeCraftObserver.Type.FEE_TRANSFERRED ? _price : 0;
-				final long exp = ((type == RecipeCraftObserver.Type.SUCCESS_PRODUCT) || (type == RecipeCraftObserver.Type.RARE_PRODUCT)) && (_exp > 0) ? _exp : 0;
-				final long sp = ((type == RecipeCraftObserver.Type.SUCCESS_PRODUCT) || (type == RecipeCraftObserver.Type.RARE_PRODUCT)) && (_sp > 0) ? _sp : 0;
-				_observer.onEvent(new RecipeCraftObserver.Event(type, _recipeList.getId(), _recipeList.getRecipeId(), _player.getObjectId(), _target.getObjectId(), items, fee, fee, -fee, exp, sp, _consumedHp, _consumedMp));
+				final boolean product = (type == RecipeCraftObserver.Type.SUCCESS_PRODUCT) || (type == RecipeCraftObserver.Type.RARE_PRODUCT);
+				final long exp = product ? _observedExp : 0;
+				final long sp = product ? _observedSp : 0;
+				_observer.onEvent(new RecipeCraftObserver.Event(type, _recipeList.getId(), _recipeList.getRecipeId(), _player.getObjectId(), _target.getObjectId(), authority(), items, fee, fee, -fee, exp, sp, _consumedHp, _consumedMp));
 			}
 			catch (RuntimeException exception)
 			{
@@ -824,6 +843,17 @@ public class RecipeManager
 		}
 	}
 	
+	public boolean isManufactureActive(int manufacturerObjectId)
+	{
+		return _activeMakers.containsKey(manufacturerObjectId);
+	}
+
+	public enum ManufactureStartResult
+	{
+		STARTED,
+		REJECTED_BEFORE_EFFECT
+	}
+
 	public static RecipeManager getInstance()
 	{
 		return SingletonHolder.INSTANCE;

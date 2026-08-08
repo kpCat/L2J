@@ -48,34 +48,33 @@ public final class ManufactureService
 		final Player manufacturer = World.getInstance().getPlayer(manufacturerObjectId);
 		if ((manufacturer == null) || ((manufacturer.getInstanceId() != customer.getInstanceId()) && (customer.getInstanceId() != -1)))
 		{
-			return Result.REJECTED;
+			return Result.REJECTED_BEFORE_EFFECT;
 		}
 		if (customer.isInStoreMode())
 		{
 			customer.sendMessage("You cannot create items while trading.");
-			return Result.REJECTED;
+			return Result.REJECTED_BEFORE_EFFECT;
 		}
 		if (manufacturer.getPrivateStoreType() != PrivateStoreType.MANUFACTURE)
 		{
-			return Result.REJECTED;
+			return Result.REJECTED_BEFORE_EFFECT;
 		}
 		if (customer.isCrafting() || manufacturer.isCrafting())
 		{
 			customer.sendMessage("You are currently in Craft Mode.");
-			return Result.REJECTED;
+			return Result.REJECTED_BEFORE_EFFECT;
 		}
 		if (!LocationUtil.checkIfInRange(150, customer, manufacturer, true))
 		{
-			return Result.REJECTED;
+			return Result.REJECTED_BEFORE_EFFECT;
 		}
-		RecipeManager.getInstance().requestManufactureItem(manufacturer, recipeListId, customer, observer == null ? RecipeCraftObserver.NONE : observer);
-		return Result.ACCEPTED;
+		return RecipeManager.getInstance().requestManufactureItem(manufacturer, recipeListId, customer, observer == null ? RecipeCraftObserver.NONE : observer) == RecipeManager.ManufactureStartResult.STARTED ? Result.STARTED : Result.REJECTED_BEFORE_EFFECT;
 	}
 
 	public enum Result
 	{
-		ACCEPTED,
-		REJECTED
+		STARTED,
+		REJECTED_BEFORE_EFFECT
 	}
 
 	private static final class SingletonHolder

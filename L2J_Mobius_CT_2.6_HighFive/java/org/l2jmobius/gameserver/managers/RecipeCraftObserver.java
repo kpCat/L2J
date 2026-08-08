@@ -56,13 +56,30 @@ public interface RecipeCraftObserver
 		}
 	}
 
-	record Event(Type type, int recipeListId, int recipeItemId, int crafterObjectId, int targetObjectId, List<ItemDelta> items, long feeTransferred, long crafterAdenaDelta, long targetAdenaDelta, long expConsequence, long spConsequence, double hpConsumed, double mpConsumed)
+	record Authority(int recipeListId, int recipeItemId, int productItemId, long productCount, int rareProductItemId, long rareProductCount, int rarity, int craftLevel, int successRate, boolean dwarven, int skillId, int skillLevel, long listingPrice, List<ItemDelta> requiredIngredients)
+	{
+		public Authority
+		{
+			requiredIngredients = List.copyOf(requiredIngredients);
+			if ((recipeListId <= 0) || (recipeItemId <= 0) || (productItemId <= 0) || (productCount <= 0) || (rareProductItemId < -1) || (rareProductCount < 0) || (rarity < 0) || (craftLevel <= 0) || (successRate < 0) || (successRate > 100) || (skillId <= 0) || (skillLevel < 0) || (listingPrice < 0) || requiredIngredients.isEmpty() || (requiredIngredients.size() > 32))
+			{
+				throw new IllegalArgumentException("Invalid craft authority.");
+			}
+			if ((rareProductItemId <= 0) && (rareProductCount != 0))
+			{
+				throw new IllegalArgumentException("Invalid rare craft authority.");
+			}
+		}
+	}
+
+	record Event(Type type, int recipeListId, int recipeItemId, int crafterObjectId, int targetObjectId, Authority authority, List<ItemDelta> items, long feeTransferred, long crafterAdenaDelta, long targetAdenaDelta, long expConsequence, long spConsequence, double hpConsumed, double mpConsumed)
 	{
 		public Event
 		{
 			Objects.requireNonNull(type);
+			Objects.requireNonNull(authority);
 			items = List.copyOf(items);
-			if ((recipeListId <= 0) || (recipeItemId <= 0) || (crafterObjectId <= 0) || (targetObjectId <= 0) || (items.size() > 32) || (feeTransferred < 0) || (expConsequence < 0) || (spConsequence < 0) || !Double.isFinite(hpConsumed) || !Double.isFinite(mpConsumed) || (hpConsumed < 0) || (mpConsumed < 0))
+			if ((recipeListId <= 0) || (recipeItemId <= 0) || (recipeListId != authority.recipeListId()) || (recipeItemId != authority.recipeItemId()) || (crafterObjectId <= 0) || (targetObjectId <= 0) || (items.size() > 32) || (feeTransferred < 0) || (expConsequence < 0) || (spConsequence < 0) || !Double.isFinite(hpConsumed) || !Double.isFinite(mpConsumed) || (hpConsumed < 0) || (mpConsumed < 0))
 			{
 				throw new IllegalArgumentException("Invalid craft observation event.");
 			}

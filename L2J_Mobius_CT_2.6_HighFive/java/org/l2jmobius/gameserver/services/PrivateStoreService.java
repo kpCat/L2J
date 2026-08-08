@@ -38,6 +38,7 @@ import org.l2jmobius.gameserver.network.PacketLogger;
 import org.l2jmobius.gameserver.network.holders.RequestTrade;
 import org.l2jmobius.gameserver.network.holders.TradeItem;
 import org.l2jmobius.gameserver.network.holders.TradeList;
+import org.l2jmobius.gameserver.network.holders.TradeList.MutationMode;
 import org.l2jmobius.gameserver.network.serverpackets.ActionFailed;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation;
 
@@ -58,6 +59,16 @@ public final class PrivateStoreService
 	}
 
 	public Result buy(Player buyer, int ownerObjectId, Set<RequestTrade> items)
+	{
+		return buy(buyer, ownerObjectId, items, MutationMode.ORDINARY_COMPATIBLE, null, null);
+	}
+
+	public Result buyExact(Player buyer, int ownerObjectId, Set<RequestTrade> items, String expectedListingHash, String expectedRequestHash)
+	{
+		return buy(buyer, ownerObjectId, items, MutationMode.STRICT_EXACT_OBJECT, Objects.requireNonNull(expectedListingHash), Objects.requireNonNull(expectedRequestHash));
+	}
+
+	private Result buy(Player buyer, int ownerObjectId, Set<RequestTrade> items, MutationMode mode, String expectedListingHash, String expectedRequestHash)
 	{
 		Objects.requireNonNull(buyer);
 		Objects.requireNonNull(items);
@@ -81,10 +92,20 @@ public final class PrivateStoreService
 		{
 			return Result.PACKAGE_VIOLATION;
 		}
-		return mutate(Direction.BUY_FROM_SELL_STORE, buyer, owner, list, () -> (_observers.containsKey(new Key(Direction.BUY_FROM_SELL_STORE, buyer.getObjectId(), owner.getObjectId())) ? list.privateStoreBuyExact(buyer, items) : list.privateStoreBuy(buyer, items)) == 0);
+		return mutate(Direction.BUY_FROM_SELL_STORE, buyer, owner, list, requestHash(items), mode, expectedListingHash, expectedRequestHash, () -> list.privateStoreBuy(buyer, items, mode) == 0);
 	}
 
 	public Result sell(Player seller, int ownerObjectId, RequestTrade[] items)
+	{
+		return sell(seller, ownerObjectId, items, MutationMode.ORDINARY_COMPATIBLE, null, null);
+	}
+
+	public Result sellExact(Player seller, int ownerObjectId, RequestTrade[] items, String expectedListingHash, String expectedRequestHash)
+	{
+		return sell(seller, ownerObjectId, items, MutationMode.STRICT_EXACT_OBJECT, Objects.requireNonNull(expectedListingHash), Objects.requireNonNull(expectedRequestHash));
+	}
+
+	private Result sell(Player seller, int ownerObjectId, RequestTrade[] items, MutationMode mode, String expectedListingHash, String expectedRequestHash)
 	{
 		Objects.requireNonNull(seller);
 		Objects.requireNonNull(items);
@@ -104,16 +125,20 @@ public final class PrivateStoreService
 			seller.sendPacket(ActionFailed.STATIC_PACKET);
 			return Result.REJECTED;
 		}
-		return mutate(Direction.SELL_TO_BUY_STORE, seller, owner, list, () -> _observers.containsKey(new Key(Direction.SELL_TO_BUY_STORE, seller.getObjectId(), owner.getObjectId())) ? list.privateStoreSellExact(seller, items) : list.privateStoreSell(seller, items));
+		return mutate(Direction.SELL_TO_BUY_STORE, seller, owner, list, requestHash(items), mode, expectedListingHash, expectedRequestHash, () -> list.privateStoreSell(seller, items, mode));
 	}
 
-	private Result mutate(Direction direction, Player actor, Player owner, TradeList list, Mutation mutation)
+	private Result mutate(Direction direction, Player actor, Player owner, TradeList list, String requestHash, MutationMode mode, String expectedListingHash, String expectedRequestHash, Mutation mutation)
 	{
 		synchronized (list)
 		{
 			final String beforeHash = listingHash(list);
+			if ((expectedListingHash != null) && (!expectedListingHash.equals(beforeHash) || !expectedRequestHash.equals(requestHash)))
+			{
+				return Result.REJECTED;
+			}
 			final Observer observer = _observers.get(new Key(direction, actor.getObjectId(), owner.getObjectId()));
-			if ((observer != null) && !observer.beforeMutation(direction, actor, owner, list, beforeHash))
+			if ((observer != null) && !observer.beforeMutation(direction, actor, owner, list, beforeHash, requestHash, mode))
 			{
 				return Result.REJECTED;
 			}
@@ -213,6 +238,11 @@ public final class PrivateStoreService
 	public interface Observer
 	{
 		boolean beforeMutation(Direction direction, Player actor, Player owner, TradeList list, String listingHash);
+
+		default boolean beforeMutation(Direction direction, Player actor, Player owner, TradeList list, String listingHash, String requestHash, MutationMode mode)
+		{
+			return beforeMutation(direction, actor, owner, list, listingHash);
+		}
 
 		void afterMutation(Direction direction, Player actor, Player owner, TradeList list, String beforeListingHash, String afterListingHash, boolean successful);
 	}

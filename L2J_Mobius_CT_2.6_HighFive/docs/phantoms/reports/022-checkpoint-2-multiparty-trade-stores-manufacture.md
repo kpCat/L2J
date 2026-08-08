@@ -197,3 +197,53 @@ Git использовался только для обязательных bran
 
 Независимый review должен оценить C2 implementation и незакрытый plain-verify
 gate. Goal 023 не начинать.
+
+## Terminal completion authority (supersedes the earlier PARTIAL handoff)
+
+Этот bounded completion выполняется direct ordinary child от foundation
+`5fd8dcfc1b294e234cc55aaabc0cbfbbd134e1f7` с exact subject
+`fix(phantoms): close multiparty economy causality and lifecycle`. Предыдущий
+PARTIAL-раздел сохранён как historical evidence и не является текущим статусом.
+
+Текущий completion status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Accepted C1: `feb569efa787917411cfb5c419f0e8646c3ee84f`.
+C1 review authority: `ACCEPT_WITH_EXPLICIT_UNRELATED_TIMING_FLAKE_WAIVER`.
+Deterministic seed: `22002202`.
+
+Production completion закрывает exact direct-trade offer под canonical locks,
+ActionLease всех Phantom participants, strict private-store listing/object
+authority, structured manufacture admission и полную craft authority, terminal
+manufacture recovery, truthful store close/shutdown и deterministic terminal
+participant race. Regression выполняет 2000 deterministic terminal-boundary
+итераций в обоих caller orders с одной terminal state/audit и без retained
+reservations. Parent/current packet matrix сохраняет byte-identical adapters для
+семи ordinary trade/store/manufacture packets; Phantom packet calls отсутствуют.
+
+Focused C2 routes, полный C1 aggregate, Goal 014/021 affected regressions и
+C2 affected target прошли. Historical verifiers 021c2 и 022c1 прошли под
+PowerShell 5.1 и 7.x с byte-identical output. Working verifier 022c2 и final
+release commands фиксируются следующим terminal amendment без production, test
+или verifier изменений.
+
+## Final successful terminal amendment
+
+- Final `phantom-economy-checkpoint2-test`: PASS, восемь suite summaries
+  `3/3`, `2/2`, `2/2`, `2/2`, `1/1`, `1/1`, `1/1`, `1/1`; seed
+  `22002202`; `BUILD SUCCESSFUL`; 1:18.
+- После aggregate production/data/test/build/verifier были frozen; дальнейшее
+  изменение — только этот terminal report.
+- Третий и последний разрешённый plain `ant verify`: PASS,
+  `BUILD SUCCESSFUL`; 17:02. Expected negative controls завершились ожидаемыми
+  non-zero Java Result, итоговый Ant gate зелёный. Четвёртый verify не запускался.
+- Standalone `ant jar`: PASS, `BUILD SUCCESSFUL`; 0:17; `GameServer.jar` и
+  `LoginServer.jar` собраны и скопированы в `dist/libs`.
+- Working verifier 022c2 прошёл под PowerShell 5.1 и 7.x с byte-identical
+  output SHA-256
+  `157445e3ecd1af8e7cba1bd6885ec1424354e39275a212d41280dc07ce2ded9f`.
+- Final status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Commit/push и два
+  accepted byte-identical verifier runs выполняются после freeze; exact commit
+  является единственным direct child foundation и идентифицируется Git history.
+- Mojibake-маркеры в изменённых файлах проверены.
+- Escaped Cyrillic в изменённых файлах проверены.
+
+Следующий шаг — только независимый review Goal 022; Goal 023 не начат.

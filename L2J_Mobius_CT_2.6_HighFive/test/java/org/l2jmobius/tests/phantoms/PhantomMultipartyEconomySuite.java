@@ -79,6 +79,7 @@ import org.l2jmobius.gameserver.phantoms.economy.PhantomStoreService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.services.DirectTradeService;
@@ -455,6 +456,12 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 			final PhantomEconomyOfferService offers = new PhantomEconomyOfferService();
 			final PhantomMultipartyEconomyService service = new PhantomMultipartyEconomyService(_policy, reservations, offers, _materialization, goals, _profiles);
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.discoverOrLoad(_firstProfile.profileId(), goal, now).status(), "Six-step discovery failed.");
+			try (ActionLease busyCounterparty = _materialization.tryAcquireAction(_secondProfile.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.ACTIVE_REQUIRED, service.offerOrAccept(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 1).status(), "Counterparty ActionLease conflict was not fail closed.");
+				PhantomAssertions.assertTrue((_first.getActiveTradeList() == null) && (_second.getActiveTradeList() == null), "Lease-unavailable offer mutated direct-trade state.");
+			}
+			PhantomAssertions.assertEquals(0, _materialization.find(_firstProfile.profileId()).orElseThrow().admittedActionCount(), "Lease conflict leaked initiator admission.");
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.offerOrAccept(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 1).status(), "Six-step consent failed.");
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.reserve(_firstProfile.profileId(), goal, 1, 1, now + 2).status(), "Six-step reservation failed.");
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.dispatch(_firstProfile.profileId(), goal, now + 3).status(), "Six-step dispatch failed.");
@@ -503,7 +510,7 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 		try (AutoCloseable ignored = PrivateStoreService.getInstance().observe(PrivateStoreService.Direction.BUY_FROM_SELL_STORE, _first.getObjectId(), _second.getObjectId(), observer))
 		{
 			final Set<RequestTrade> request = Set.of(new RequestTrade(listed.getObjectId(), listed.getId(), 2, 5));
-			final PrivateStoreService.Result result = PrivateStoreService.getInstance().buy(_first, _second.getObjectId(), request);
+			final PrivateStoreService.Result result = PrivateStoreService.getInstance().buyExact(_first, _second.getObjectId(), request, PrivateStoreService.listingHash(_second.getSellList()), PrivateStoreService.requestHash(request));
 			PhantomAssertions.assertTrue(observer.before, "SELL store mutation was rejected before observer dispatch: " + result);
 			PhantomAssertions.assertTrue(observer.after, "SELL store mutation did not reach the canonical completion callback: " + result);
 			PhantomAssertions.assertTrue(observer.successful, "SELL store canonical holder mutation failed: " + result);
@@ -552,7 +559,7 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 		try (AutoCloseable ignored = PrivateStoreService.getInstance().observe(PrivateStoreService.Direction.BUY_FROM_SELL_STORE, _first.getObjectId(), _second.getObjectId(), new AcceptingStoreObserver()))
 		{
 			final Set<RequestTrade> stale = Set.of(new RequestTrade(remainder.getObjectId(), remainder.getId(), 2, 5));
-			PhantomAssertions.assertEquals(PrivateStoreService.Result.REJECTED, PrivateStoreService.getInstance().buy(_first, _second.getObjectId(), stale), "Stale package quantity was clamped instead of rejected.");
+			PhantomAssertions.assertEquals(PrivateStoreService.Result.REJECTED, PrivateStoreService.getInstance().buyExact(_first, _second.getObjectId(), stale, PrivateStoreService.listingHash(_second.getSellList()), PrivateStoreService.requestHash(stale)), "Stale package quantity was clamped instead of rejected.");
 		}
 	}
 
@@ -573,6 +580,21 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 		}
 		PhantomAssertions.assertEquals(PrivateStoreType.NONE, _second.getPrivateStoreType(), "Empty visible package store did not close.");
 		PhantomAssertions.assertEquals(0, stores.snapshot().retainedOwnerObservers(), "Store lifecycle retained an owner observer.");
+		fund(_second, _tradeItemId, 1);
+		final Item retryItem = _second.getInventory().getItemByItemId(_tradeItemId);
+		final long retryNow = System.currentTimeMillis();
+		final PhantomStorePlan retryPlan = new PhantomStorePlan(PhantomStorePlan.Type.PACKAGE_SELL, PhantomStorePlan.State.REQUESTED, _second.getStoreName(), List.of(new PhantomStorePlan.Line(retryItem.getObjectId(), retryItem.getId(), 1, 5)), retryNow + 60000);
+		PhantomAssertions.assertEquals(PhantomStoreService.Result.OPENED, stores.open(_secondProfile.profileId(), PhantomActivityState.ACTIVE, retryPlan, retryNow), "Retry store fixture did not open.");
+		try (ActionLease busy = _materialization.tryAcquireAction(_secondProfile.profileId()).orElseThrow())
+		{
+			PhantomAssertions.assertEquals(PhantomStoreService.Result.RETRY, stores.close(_secondProfile.profileId()), "Lease-unavailable store close did not request retry.");
+			PhantomAssertions.assertEquals(PrivateStoreType.PACKAGE_SELL, _second.getPrivateStoreType(), "Retry close mutated the visible store.");
+		}
+		PhantomAssertions.assertEquals(PhantomStoreService.Result.OPENED, stores.restore(_secondProfile.profileId(), PhantomActivityState.ACTIVE, retryNow + 1), "Retry close discarded the durable store plan.");
+		final PhantomStoreService.ShutdownResult shutdown = stores.shutdown();
+		PhantomAssertions.assertTrue(shutdown.successful() && shutdown.retryProfileIds().isEmpty() && shutdown.inconsistentProfileIds().isEmpty(), "Bounded store shutdown did not report exact closure.");
+		PhantomAssertions.assertEquals(PrivateStoreType.NONE, _second.getPrivateStoreType(), "Successful store shutdown left the visible store open.");
+		PhantomAssertions.assertEquals(0, stores.snapshot().retainedOwnerObservers(), "Successful store shutdown retained an owner observer.");
 	}
 
 	private void testPrivateStoreSell(PhantomTestContext context) throws Exception
@@ -590,7 +612,7 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 			{
 				new RequestTrade(sold.getObjectId(), sold.getId(), 2, 6)
 			};
-			PhantomAssertions.assertEquals(PrivateStoreService.Result.COMMITTED, PrivateStoreService.getInstance().sell(_first, _second.getObjectId(), request), "Exact BUY store sale failed.");
+			PhantomAssertions.assertEquals(PrivateStoreService.Result.COMMITTED, PrivateStoreService.getInstance().sellExact(_first, _second.getObjectId(), request, PrivateStoreService.listingHash(_second.getBuyList()), PrivateStoreService.requestHash(request)), "Exact BUY store sale failed.");
 		}
 		PhantomAssertions.assertEquals(sellerBefore - 2, itemCount(_first, sold.getId()), "BUY store sale applied the wrong quantity.");
 		_second.getBuyList().clear();
@@ -680,7 +702,7 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 					terminal.countDown();
 				}
 			};
-			PhantomAssertions.assertEquals(ManufactureService.Result.ACCEPTED, ManufactureService.getInstance().manufacture(_first, _second.getObjectId(), recipe.getId(), observer), "Canonical manufacture request was rejected.");
+			PhantomAssertions.assertEquals(ManufactureService.Result.STARTED, ManufactureService.getInstance().manufacture(_first, _second.getObjectId(), recipe.getId(), observer), "Canonical manufacture request was rejected.");
 			PhantomAssertions.assertTrue(terminal.await(10, TimeUnit.SECONDS), "Canonical manufacture did not emit a terminal event.");
 			PhantomAssertions.assertTrue(events.stream().anyMatch(event -> event.type() == RecipeCraftObserver.Type.FEE_TRANSFERRED), "Manufacture observer missed the exact fee transfer.");
 			PhantomAssertions.assertTrue(events.stream().anyMatch(event -> event.type() == RecipeCraftObserver.Type.INGREDIENTS_CONSUMED), "Manufacture observer missed exact ingredients.");

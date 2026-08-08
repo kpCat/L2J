@@ -565,7 +565,12 @@ public final class PhantomSystem
 			}
 			if (_phantomStoreService != null)
 			{
-				_phantomStoreService.shutdown();
+				if (!_phantomStoreService.shutdown().successful())
+				{
+					_metrics.recordShutdownFailure();
+					_state = State.FAILED;
+					return false;
+				}
 			}
 			if (_economyReservations != null)
 			{

@@ -666,6 +666,11 @@ public class TradeList
 	 */
 	public synchronized int privateStoreBuy(Player player, Set<RequestTrade> items)
 	{
+		return privateStoreBuy(player, items, MutationMode.ORDINARY_COMPATIBLE);
+	}
+
+	public synchronized int privateStoreBuy(Player player, Set<RequestTrade> items, MutationMode mode)
+	{
 		if (_locked)
 		{
 			return 1;
@@ -699,6 +704,10 @@ public class TradeList
 					{
 						if (ti.getCount() < item.getCount())
 						{
+							if (mode == MutationMode.STRICT_EXACT_OBJECT)
+							{
+								return 2;
+							}
 							item.setCount(ti.getCount());
 						}
 						
@@ -711,6 +720,10 @@ public class TradeList
 			// item with this objectId and price not found in tradelist
 			if (!found)
 			{
+				if (mode == MutationMode.STRICT_EXACT_OBJECT)
+				{
+					return 2;
+				}
 				if (_packaged)
 				{
 					PunishmentManager.handleIllegalPlayerAction(player, "[TradeList.privateStoreBuy()] " + player + " tried to cheat the package sell and buy only a part of the package! Ban this player for bot usage!", GeneralConfig.DEFAULT_PUNISH);
@@ -751,6 +764,10 @@ public class TradeList
 			final ItemTemplate template = ItemData.getInstance().getTemplate(item.getItemId());
 			if (template == null)
 			{
+				if (mode == MutationMode.STRICT_EXACT_OBJECT)
+				{
+					return 2;
+				}
 				continue;
 			}
 			
@@ -891,7 +908,7 @@ public class TradeList
 				return 2;
 			}
 		}
-		return privateStoreBuy(player, items);
+		return privateStoreBuy(player, items, MutationMode.STRICT_EXACT_OBJECT);
 	}
 	
 	/**
@@ -901,6 +918,11 @@ public class TradeList
 	 * @return : boolean true if success
 	 */
 	public synchronized boolean privateStoreSell(Player player, RequestTrade[] items)
+	{
+		return privateStoreSell(player, items, MutationMode.ORDINARY_COMPATIBLE);
+	}
+
+	public synchronized boolean privateStoreSell(Player player, RequestTrade[] items, MutationMode mode)
 	{
 		if (_locked || (!_owner.isOnline() && !_owner.hasHeadlessOutboundSession()) || (!player.isOnline() && !player.hasHeadlessOutboundSession()))
 		{
@@ -930,6 +952,10 @@ public class TradeList
 						// if requesting more than available - decrease count
 						if (ti.getCount() < item.getCount())
 						{
+							if (mode == MutationMode.STRICT_EXACT_OBJECT)
+							{
+								return false;
+							}
 							item.setCount(ti.getCount());
 						}
 						
@@ -943,6 +969,10 @@ public class TradeList
 			// maybe another player already sold this item ?
 			if (!found)
 			{
+				if (mode == MutationMode.STRICT_EXACT_OBJECT)
+				{
+					return false;
+				}
 				continue;
 			}
 			
@@ -964,6 +994,10 @@ public class TradeList
 			
 			if (ownerInventory.getAdena() < _totalPrice)
 			{
+				if (mode == MutationMode.STRICT_EXACT_OBJECT)
+				{
+					return false;
+				}
 				continue;
 			}
 			
@@ -973,6 +1007,10 @@ public class TradeList
 			// private store - buy use same objectId for buying several non-stackable items
 			if (oldItem == null)
 			{
+				if (mode == MutationMode.STRICT_EXACT_OBJECT)
+				{
+					return false;
+				}
 				// searching other items using same itemId
 				oldItem = playerInventory.getItemByItemId(item.getItemId());
 				if (oldItem == null)
@@ -996,6 +1034,10 @@ public class TradeList
 			
 			if (!oldItem.isTradeable())
 			{
+				if (mode == MutationMode.STRICT_EXACT_OBJECT)
+				{
+					return false;
+				}
 				continue;
 			}
 			
@@ -1003,6 +1045,10 @@ public class TradeList
 			final Item newItem = playerInventory.transferItem(ItemProcessType.TRANSFER, objectId, item.getCount(), ownerInventory, player, _owner);
 			if (newItem == null)
 			{
+				if (mode == MutationMode.STRICT_EXACT_OBJECT)
+				{
+					return false;
+				}
 				continue;
 			}
 			
@@ -1099,6 +1145,12 @@ public class TradeList
 			}
 			total = Math.addExact(total, Math.multiplyExact(request.getCount(), request.getPrice()));
 		}
-		return (total <= _owner.getAdena()) && privateStoreSell(player, items);
+		return (total <= _owner.getAdena()) && privateStoreSell(player, items, MutationMode.STRICT_EXACT_OBJECT);
+	}
+
+	public enum MutationMode
+	{
+		ORDINARY_COMPATIBLE,
+		STRICT_EXACT_OBJECT
 	}
 }

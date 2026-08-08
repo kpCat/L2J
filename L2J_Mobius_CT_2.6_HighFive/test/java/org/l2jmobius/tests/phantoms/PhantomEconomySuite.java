@@ -784,7 +784,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 			service.start();
 			for (int order = 0; order < 2; order++)
 			{
-				for (int iteration = 0; iteration < 100; iteration++)
+				for (int iteration = 0; iteration < 1000; iteration++)
 				{
 					final PhantomProfile initiator = order == 0 ? first : second;
 					final PhantomProfile participant = order == 0 ? second : first;
@@ -817,7 +817,7 @@ public final class PhantomEconomySuite implements PhantomTestSuite
 					PhantomAssertions.assertEquals(0L, service.snapshot().currentReservations(), "Participant stress retained current reservations.");
 				}
 			}
-			context.record("economy.participantConcurrencyIterations", 200);
+			context.record("economy.participantConcurrencyIterations", 2000);
 		}
 		finally
 		{

@@ -250,6 +250,12 @@ public final class PhantomEconomyReservationService
 				final StoredOperation locked = lifecycle.operation();
 				if (!lifecycle.participantsValid())
 				{
+				if (locked.state().terminal())
+				{
+					connection.commit();
+					return new TransitionResult(locked.state() == next ? Status.IDEMPOTENT : Status.STATE_CONFLICT, locked.state());
+				}
+				// Nonterminal idempotent replay still revalidates participant evidence below.
 					final State terminal = participantDriftTerminal(locked.state());
 					final int releasedReservations = terminalize(connection, locked, terminal, participantDriftAudit(terminal), nowEpochMillis);
 					connection.commit();
@@ -564,6 +570,16 @@ public final class PhantomEconomyReservationService
 			final ParticipantSet discovered = discoverParticipantSet(connection, operationId);
 			if ((discovered == null) || !discovered.profileIds().contains(profileId))
 			{
+				// A terminal transition may remove participant reservations after the indexed lookup.
+				// Lock only the operation for this terminal gate; no lifecycle mutation follows this lock order.
+				begin(connection);
+				final StoredOperation raced = lockOperation(connection, operationId);
+				if ((raced == null) || raced.state().terminal())
+				{
+					connection.commit();
+					return;
+				}
+				connection.rollback();
 				throw new EconomyConflictException("Economy participant evidence changed before lifecycle lock.");
 			}
 			begin(connection);

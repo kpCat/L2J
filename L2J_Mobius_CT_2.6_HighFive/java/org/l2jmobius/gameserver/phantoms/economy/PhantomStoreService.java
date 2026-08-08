@@ -72,7 +72,7 @@ public final class PhantomStoreService
 			return Result.ACTIVE_REQUIRED;
 		}
 		final VersionedPlan saved = save(profileId, plan.withState(PhantomStorePlan.State.REQUESTED));
-		try (ActionLease lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		try (ActionLease lease = acquireExclusive(profileId))
 		{
 			if (lease == null)
 			{
@@ -98,45 +98,86 @@ public final class PhantomStoreService
 
 	public Result close(long profileId)
 	{
-		try (ActionLease lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		final VersionedPlan current = find(profileId);
+		if (current == null)
 		{
-			if (lease != null)
+			closeOwnerObserver(profileId);
+			return Result.CLOSED;
+		}
+		try (ActionLease lease = acquireExclusive(profileId))
+		{
+			if (lease == null)
 			{
-				final Player player = lease.player();
-				player.getSellList().clear();
-				player.getBuyList().clear();
-				player.getManufactureItems().clear();
-				player.setPrivateStoreType(PrivateStoreType.NONE);
-				player.broadcastUserInfo();
+				return Result.RETRY;
+			}
+			final Player player = lease.player();
+			player.getSellList().clear();
+			player.getBuyList().clear();
+			player.getManufactureItems().clear();
+			player.setPrivateStoreType(PrivateStoreType.NONE);
+			player.broadcastUserInfo();
+			if ((player.getPrivateStoreType() != PrivateStoreType.NONE) || (player.getSellList().getItemCount() != 0) || (player.getBuyList().getItemCount() != 0) || !player.getManufactureItems().isEmpty())
+			{
+				return Result.INCONSISTENT;
 			}
 		}
-		closeOwnerObserver(profileId);
-		final VersionedPlan current = find(profileId);
-		if (current != null)
+		catch (RuntimeException exception)
 		{
-			_profiles.deleteComponent(profileId, PhantomStorePlan.COMPONENT_TYPE, current.rowVersion());
+			return Result.INCONSISTENT;
 		}
+		closeOwnerObserver(profileId);
+		_profiles.deleteComponent(profileId, PhantomStorePlan.COMPONENT_TYPE, current.rowVersion());
 		_closed.increment();
 		return Result.CLOSED;
 	}
 
-	public void shutdown()
+	public ShutdownResult shutdown()
 	{
+		final List<Long> retry = new ArrayList<>();
+		final List<Long> inconsistent = new ArrayList<>();
 		long cursor = 0;
 		for (int page = 0; page < 1000; page++)
 		{
 			final List<PhantomProfileRepository.ManagedProfile> plans = _profiles.listManagedAfter(PhantomStorePlan.COMPONENT_TYPE, cursor, 100);
 			if (plans.isEmpty())
 			{
-				return;
+				return new ShutdownResult(retry.isEmpty() && inconsistent.isEmpty(), retry, inconsistent);
 			}
 			for (PhantomProfileRepository.ManagedProfile managed : plans)
 			{
 				cursor = managed.profile().profileId();
-				close(cursor);
+				final Result result = close(cursor);
+				if (result == Result.RETRY)
+				{
+					retry.add(cursor);
+				}
+				else if (result == Result.INCONSISTENT)
+				{
+					inconsistent.add(cursor);
+				}
 			}
 		}
-		throw new IllegalStateException("Phantom store shutdown exceeded its bounded profile scan.");
+		return new ShutdownResult(false, retry, inconsistent);
+	}
+
+	private ActionLease acquireExclusive(long profileId)
+	{
+		final var before = _materialization.find(profileId).orElse(null);
+		if ((before == null) || (before.admittedActionCount() != 0))
+		{
+			return null;
+		}
+		final ActionLease lease = _materialization.tryAcquireAction(profileId).orElse(null);
+		final var after = _materialization.find(profileId).orElse(null);
+		if ((lease == null) || (after == null) || (after.admittedActionCount() != 1))
+		{
+			if (lease != null)
+			{
+				lease.close();
+			}
+			return null;
+		}
+		return lease;
 	}
 
 	public Snapshot snapshot()
@@ -381,11 +422,23 @@ public final class PhantomStoreService
 		OPENED,
 		CLOSED,
 		ACTIVE_REQUIRED,
+		RETRY,
+		INCONSISTENT,
 		REJECTED
 	}
 
 	private record VersionedPlan(long rowVersion, PhantomStorePlan plan)
 	{
+	}
+
+
+	public record ShutdownResult(boolean successful, List<Long> retryProfileIds, List<Long> inconsistentProfileIds)
+	{
+		public ShutdownResult
+		{
+			retryProfileIds = List.copyOf(retryProfileIds);
+			inconsistentProfileIds = List.copyOf(inconsistentProfileIds);
+		}
 	}
 
 	public record Snapshot(long opened, long closed, int retainedOwnerObservers)
