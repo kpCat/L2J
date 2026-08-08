@@ -38,6 +38,7 @@ import org.l2jmobius.commons.util.Rnd;
 import org.l2jmobius.gameserver.config.GeneralConfig;
 import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.data.SpawnTable;
+import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.groups.Party;
@@ -436,6 +437,43 @@ public class DimensionalRiftManager
 			{
 				throw new IndexOutOfBoundsException();
 			}
+		}
+	}
+
+	/**
+	 * Side-effect-free entry authority used by readiness observers.
+	 * @param type the canonical Rift type, 1..6
+	 * @return immutable current entry facts, or an unsupported snapshot
+	 */
+	public EntryReadinessSnapshot entryReadiness(byte type)
+	{
+		if ((type < 1) || (type > 6))
+		{
+			return EntryReadinessSnapshot.unsupported(type);
+		}
+		final DimensionalRiftRoom waitingRoom = getRoom((byte) 0, (byte) 0);
+		final Map<Byte, DimensionalRiftRoom> rooms = _rooms.get(type);
+		if ((waitingRoom == null) || (rooms == null) || rooms.isEmpty())
+		{
+			return EntryReadinessSnapshot.unsupported(type);
+		}
+		final Location destination = waitingRoom.getTeleportCoorinates();
+		final List<Byte> bossRooms = rooms.values().stream().filter(DimensionalRiftRoom::isBossRoom).map(DimensionalRiftRoom::getRoom).sorted().toList();
+		final int occupiedRooms = (int) rooms.values().stream().filter(DimensionalRiftRoom::isPartyInside).count();
+		final int capacity = Math.max(0, rooms.size() - 1);
+		return new EntryReadinessSnapshot(type, true, DIMENSIONAL_FRAGMENT_ITEM_ID, getNeededItems(type), GeneralConfig.RIFT_MIN_PARTY_SIZE, destination.getX(), destination.getY(), destination.getZ(), 0, bossRooms, occupiedRooms, capacity, occupiedRooms < capacity);
+	}
+
+	public record EntryReadinessSnapshot(byte type, boolean supported, int entryItemId, int entryItemCount, int minimumPartySize, int destinationX, int destinationY, int destinationZ, int destinationInstanceId, List<Byte> bossRoomIds, int occupiedRooms, int capacity, boolean entryCapacityAvailable)
+	{
+		public EntryReadinessSnapshot
+		{
+			bossRoomIds = List.copyOf(bossRoomIds);
+		}
+
+		private static EntryReadinessSnapshot unsupported(byte type)
+		{
+			return new EntryReadinessSnapshot(type, false, 0, 0, 0, 0, 0, 0, 0, List.of(), 0, 0, false);
 		}
 	}
 	

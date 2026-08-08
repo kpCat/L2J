@@ -1,0 +1,30 @@
+# Goal 023 acceptance
+
+- [ ] exact parent `1c8c99f83ebc9f32ac2c3bc670aec506b8efcccb`;
+- [ ] one ordinary child subject `feat(phantoms): add rift readiness and advanced party recruitment`;
+- [ ] Goal 022 final review ACCEPT;
+- [ ] Goal 024+ untouched;
+- [ ] current Rift source/config audited;
+- [ ] six factual tiers indexed;
+- [ ] no invented entry resource/level/anchor;
+- [ ] current canonical Party is roster authority;
+- [ ] Goal 017 RoleMatcher is composition authority;
+- [ ] mixed real/Phantom roster supported;
+- [ ] full-party detection exact;
+- [ ] one-invite policy;
+- [ ] real-player acceptance never forged;
+- [ ] supply checks read-only;
+- [ ] travel delegates to Goal 017;
+- [ ] READY_TO_ENTER performs no Rift side effect;
+- [ ] restart does not duplicate invite;
+- [ ] no global online-player scan;
+- [ ] no new worker/task;
+- [ ] eight focused modes pass;
+- [ ] Goal 017/020 affected regressions pass;
+- [ ] verifier 022c2 historical PS5/PS7;
+- [ ] verifier 023 PS5/PS7;
+- [ ] final aggregate;
+- [ ] plain ant verify;
+- [ ] ant jar;
+- [ ] two byte-identical post-commit verifier runs;
+- [ ] success token `GOAL_023_RIFT_ADVANCED_PARTY_RECRUITMENT_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW` only after all gates.

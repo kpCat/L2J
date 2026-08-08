@@ -714,8 +714,9 @@ Status: `ACCEPT`; Checkpoint 1 `ACCEPT`, Checkpoint 2 `ACCEPT`; overall baseline
 
 ### 022. Economy transaction kernel, trade, crafting и enchant
 
-Status: Checkpoint 1 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 2
-`NOT_STARTED`; overall `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Status: Checkpoint 1 `ACCEPT_WITH_EXPLICIT_UNRELATED_TIMING_FLAKE_WAIVER`;
+Checkpoint 2 `ACCEPT`; Goal 022 overall `ACCEPT` на baseline
+`1c8c99f83ebc9f32ac2c3bc670aec506b8efcccb`.
 
 - reservation ledger и expiration;
 - direct trade и private stores;
@@ -726,6 +727,8 @@ Status: Checkpoint 1 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 2
 - anti-dup и lock order.
 
 ### 023. Rift и advanced party recruitment
+
+Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 - Rift destination/requirements;
 - content-specific composition;

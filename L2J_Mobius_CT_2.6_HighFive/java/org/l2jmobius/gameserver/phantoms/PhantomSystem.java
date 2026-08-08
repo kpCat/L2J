@@ -91,6 +91,7 @@ import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyDecision;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleMatcher;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
@@ -100,8 +101,17 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Own
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
-import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
+import org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftBackend;
+import org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftPartyPort;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftCatalog;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftDecision;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftPolicy;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftReadinessService;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftStore;
+
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationDecision;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
@@ -375,6 +385,14 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
 				}
 				partyParticipation.install(_partyCoordinator);
+				final L2jPhantomRiftBackend riftBackend = new L2jPhantomRiftBackend(partyBackend, productionProfiles, _materializationService, _progressionService, commerceCatalog.catalog());
+				final PhantomRiftCatalog riftCatalog = PhantomRiftCatalog.load(new File(ServerConfig.DATAPACK_ROOT, "data/DimensionalRift.xml").toPath(), riftBackend);
+				final PhantomRiftPolicy riftPolicy = PhantomRiftPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/rift/high-five-rift-policy-v1.xml").toPath(), riftCatalog, partyRoleCatalog);
+				final PhantomPartyRoleMatcher riftRoles = new PhantomPartyRoleMatcher(partyRoleCatalog);
+				final PhantomRiftReadinessService riftReadiness = new PhantomRiftReadinessService(riftBackend, riftCatalog, riftPolicy, riftRoles);
+				final PhantomRiftService riftService = new PhantomRiftService(riftBackend, riftCatalog, riftPolicy, riftReadiness, new PhantomRiftStore(productionProfiles), new L2jPhantomRiftPartyPort(_partyCoordinator), System::currentTimeMillis);
+				final PhantomRiftDecision riftDecision = new PhantomRiftDecision(riftService);
+
 				final File conversationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-v1.xml");
 				final File conversationCorpusFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv");
 				final PhantomConversationCatalog conversationCatalog = PhantomConversationCatalog.load(conversationCatalogFile.toPath(), conversationCorpusFile.toPath());
@@ -383,7 +401,7 @@ public final class PhantomSystem
 				final PhantomConversationExecutionStore conversationExecutionStore = new PhantomConversationExecutionStore(productionProfiles, conversationExecutionCatalog);
 				final PhantomConversationPlanSink.Bridge conversationExecutionSignal = PhantomConversationPlanSink.bridge();
 				_conversationService = new PhantomConversationService(conversationCatalog, new PhantomConversationStore(productionProfiles, conversationExecutionStore), new L2jPhantomConversationContextPort(_materializationService, _topologyService.query()), _semanticUnderstandingService, _socialService, conversationExecutionSignal, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance());
-				_conversationExecutionService = new PhantomConversationExecutionService(conversationExecutionCatalog, conversationExecutionStore, productionGoals, new L2jPhantomConversationExecutionPort(conversationExecutionCatalog, _gameKnowledgeService, _topologyService.query(), _partyCoordinator, _materializationService, ChatObservationService.getInstance()));
+				_conversationExecutionService = new PhantomConversationExecutionService(conversationExecutionCatalog, conversationExecutionStore, productionGoals, new L2jPhantomConversationExecutionPort(conversationExecutionCatalog, _gameKnowledgeService, _topologyService.query(), _partyCoordinator, _materializationService, ChatObservationService.getInstance(), riftService));
 				conversationExecutionSignal.install(_conversationExecutionService);
 				if (!_conversationExecutionService.start())
 				{
@@ -403,6 +421,7 @@ public final class PhantomSystem
 				backgroundDecision.registerCandidates(candidateRegistry);
 				populationDecision.registerCandidates(candidateRegistry);
 				partyDecision.registerCandidates(candidateRegistry);
+				riftDecision.registerCandidates(candidateRegistry);
 				candidateRegistry.seal();
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
@@ -414,6 +433,7 @@ public final class PhantomSystem
 				backgroundDecision.registerHandlers(handlerRegistry);
 				populationDecision.registerHandlers(handlerRegistry);
 				partyDecision.registerHandlers(handlerRegistry);
+				riftDecision.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
 				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
 				_decisionEngine.start();

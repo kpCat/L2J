@@ -237,6 +237,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	public CommandOutcome form(long leaderProfileId, long goalId, long goalRevision, ObjectiveMode objective, PhantomDomainRef objectiveRef, List<RoleRequirement> requirements)
 	{
+		return formForGoal(leaderProfileId, goalId, goalRevision, FORM_GOAL, objective, objectiveRef, requirements);
+	}
+
+	public CommandOutcome formForGoal(long leaderProfileId, long goalId, long goalRevision, String expectedGoalType, ObjectiveMode objective, PhantomDomainRef objectiveRef, List<RoleRequirement> requirements)
+	{
 		final OperationClaim control = beginOperation();
 		if (control == null)
 		{
@@ -244,7 +249,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		}
 		try (control)
 		{
-			if (!exactGoal(leaderProfileId, goalId, goalRevision, FORM_GOAL, null))
+			if ((expectedGoalType == null) || !exactGoal(leaderProfileId, goalId, goalRevision, expectedGoalType, null))
 			{
 				return CommandOutcome.GOAL_MISMATCH;
 			}

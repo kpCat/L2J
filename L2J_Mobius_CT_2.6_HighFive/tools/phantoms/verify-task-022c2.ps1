@@ -10,6 +10,7 @@ $FoundationCommit = "5fd8dcfc1b294e234cc55aaabc0cbfbbd134e1f7"
 $FoundationSubject = "feat(phantoms): add multiparty trade stores and manufacture"
 $CausalityCommit = "988ca85e91fb0e3aa2f58dc2aaa1e4277290e1a2"
 $CausalitySubject = "fix(phantoms): close multiparty economy causality and lifecycle"
+$AcceptedBaseline = "1c8c99f83ebc9f32ac2c3bc670aec506b8efcccb"
 $RequiredSubject = "fix(phantoms): close external trade and manufacture observer lifetime"
 $RequiredBranch = "feature/phantom-world"
 $RequiredSeed = "22002202"
@@ -193,21 +194,12 @@ try
 	Assert-True (($causalityLineage.Count -eq 1) -and ($causalityLineage[0] -eq $CausalityCommit)) "Frozen C2 foundation-to-causality ancestry changed."
 	& git merge-base --is-ancestor $CausalityCommit $head
 	Assert-True ($LASTEXITCODE -eq 0) "C2 causality completion is not an ancestor of HEAD."
-	if ($WorkingTree)
-	{
-		Assert-True ($head -eq $CausalityCommit) "Working terminal completion must start at the exact C2 causality commit."
-		$script:Mode = "working"
-		$script:TargetCommit = $CausalityCommit
-	}
-	else
-	{
-		$descendants = @(Git-Lines @("rev-list", "--reverse", "--ancestry-path", "$CausalityCommit..$head"))
-		Assert-True ($descendants.Count -eq 1) "Goal 022c2 terminal completion must be exactly one ordinary child of the causality commit."
-		$script:TargetCommit = $descendants[0]
-		$script:Mode = "historical"
-		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $CausalityCommit) "Goal 022c2 terminal completion is not a direct causality child."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 022c2 terminal completion subject changed."
-	}
+	& git merge-base --is-ancestor $AcceptedBaseline $head
+	Assert-True ($LASTEXITCODE -eq 0) "Accepted Goal 022 baseline is not an ancestor of HEAD."
+	$script:TargetCommit = $AcceptedBaseline
+	$script:Mode = "historical"
+	Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $CausalityCommit) "Accepted Goal 022 baseline is not the direct causality child."
+	Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Accepted Goal 022 baseline subject changed."
 
 	$foundationChanged = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
 	Add-Paths $foundationChanged @("diff", "--name-only", $AcceptedCheckpoint1, $FoundationCommit, "--")

@@ -265,6 +265,14 @@ public final class PhantomTestLauncher
 			case "party-lifecycle" -> new PhantomPartySuite(PhantomPartySuite.Mode.LIFECYCLE);
 			case "party-server-integration" -> new PhantomPartyServerIntegrationSuite();
 			case "party-performance" -> new PhantomPartySuite(PhantomPartySuite.Mode.PERFORMANCE);
+			case "rift-catalog-authority" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.CATALOG_AUTHORITY);
+			case "rift-roster-readiness" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.ROSTER_READINESS);
+			case "rift-role-composition" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.ROLE_COMPOSITION);
+			case "rift-recruitment" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.RECRUITMENT);
+			case "rift-real-player-invite" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.REAL_PLAYER_INVITE);
+			case "rift-travel-readiness" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.TRAVEL_READINESS);
+			case "rift-restart-reconciliation" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.RESTART_RECONCILIATION);
+			case "rift-performance" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.PERFORMANCE);
 			case "social-catalog" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.CATALOG);
 			case "social-codec" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.CODEC);
 			case "social-personality" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.PERSONALITY);

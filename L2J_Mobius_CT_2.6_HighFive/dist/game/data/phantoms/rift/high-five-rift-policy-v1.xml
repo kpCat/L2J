@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<riftPolicy version="1" candidateLimit="32" candidateRange="2500" inviteTimeoutMillis="30000" refusalCooldownMillis="600000" maximumSeatAttempts="8" maximumTotalAttempts="32" regroupDistance="300" minimumHpPercent="60" minimumMpPercent="20" minimumCpPercent="0" levelOffsetBelowMobMinimum="2" minimumEquippedItems="2" requireWeapon="true" physicalShotCount="100" magicShotCount="100">
+	<tier type="1">
+		<vacancy key="frontline" role="frontline.guardian" required="true" minimumScore="100" count="1" priority="1000"/>
+		<vacancy key="healer" role="support.healer" required="true" minimumScore="100" count="1" priority="950"/>
+		<vacancy key="damage" role="damage.melee" required="true" minimumScore="100" count="1" priority="900"/>
+		<vacancy key="enhancement" role="support.enhancement" required="false" minimumScore="100" count="1" priority="300"/>
+	</tier>
+	<tier type="2">
+		<vacancy key="frontline" role="frontline.guardian" required="true" minimumScore="100" count="1" priority="1000"/>
+		<vacancy key="healer" role="support.healer" required="true" minimumScore="100" count="1" priority="950"/>
+		<vacancy key="damage" role="damage.ranged" required="true" minimumScore="100" count="1" priority="900"/>
+		<vacancy key="recharge" role="support.recharge" required="false" minimumScore="100" count="1" priority="350"/>
+	</tier>
+	<tier type="3">
+		<vacancy key="frontline" role="frontline.guardian" required="true" minimumScore="100" count="1" priority="1000"/>
+		<vacancy key="healer" role="support.healer" required="true" minimumScore="100" count="1" priority="950"/>
+		<vacancy key="damage" role="damage.ranged" required="true" minimumScore="100" count="1" priority="900"/>
+		<vacancy key="enhancement" role="support.enhancement" required="false" minimumScore="100" count="1" priority="400"/>
+	</tier>
+	<tier type="4">
+		<vacancy key="frontline" role="frontline.guardian" required="true" minimumScore="100" count="1" priority="1000"/>
+		<vacancy key="healer" role="support.healer" required="true" minimumScore="100" count="1" priority="950"/>
+		<vacancy key="melee" role="damage.melee" required="true" minimumScore="100" count="1" priority="900"/>
+		<vacancy key="ranged" role="damage.ranged" required="true" minimumScore="100" count="1" priority="850"/>
+		<vacancy key="enhancement" role="support.enhancement" required="false" minimumScore="100" count="1" priority="400"/>
+	</tier>
+	<tier type="5">
+		<vacancy key="frontline" role="frontline.guardian" required="true" minimumScore="100" count="1" priority="1000"/>
+		<vacancy key="healer" role="support.healer" required="true" minimumScore="100" count="1" priority="950"/>
+		<vacancy key="damage" role="damage.ranged" required="true" minimumScore="100" count="1" priority="900"/>
+		<vacancy key="recharge" role="support.recharge" required="true" minimumScore="100" count="1" priority="850"/>
+		<vacancy key="control" role="control.specialist" required="false" minimumScore="100" count="1" priority="450"/>
+	</tier>
+	<tier type="6">
+		<vacancy key="frontline" role="frontline.guardian" required="true" minimumScore="100" count="1" priority="1000"/>
+		<vacancy key="healer" role="support.healer" required="true" minimumScore="100" count="1" priority="950"/>
+		<vacancy key="melee" role="damage.melee" required="true" minimumScore="100" count="1" priority="900"/>
+		<vacancy key="ranged" role="damage.ranged" required="true" minimumScore="100" count="1" priority="850"/>
+		<vacancy key="enhancement" role="support.enhancement" required="true" minimumScore="100" count="1" priority="800"/>
+		<vacancy key="recharge" role="support.recharge" required="false" minimumScore="100" count="1" priority="450"/>
+		<vacancy key="control" role="control.specialist" required="false" minimumScore="100" count="1" priority="400"/>
+	</tier>
+</riftPolicy>

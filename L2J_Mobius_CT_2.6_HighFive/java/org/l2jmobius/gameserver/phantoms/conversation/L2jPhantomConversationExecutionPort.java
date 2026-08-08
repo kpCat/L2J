@@ -36,6 +36,8 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.PendingRe
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStatus;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftConversationFacts;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftModel.SemanticFactType;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 
@@ -49,8 +51,14 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 	private final PhantomPartyCoordinator _party;
 	private final PhantomMaterializationService _materialization;
 	private final ChatObservationService _observation;
+	private final PhantomRiftConversationFacts _riftFacts;
 
 	public L2jPhantomConversationExecutionPort(PhantomConversationExecutionCatalog catalog, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomPartyCoordinator party, PhantomMaterializationService materialization, ChatObservationService observation)
+	{
+		this(catalog, knowledge, topology, party, materialization, observation, PhantomRiftConversationFacts.NONE);
+	}
+
+	public L2jPhantomConversationExecutionPort(PhantomConversationExecutionCatalog catalog, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomPartyCoordinator party, PhantomMaterializationService materialization, ChatObservationService observation, PhantomRiftConversationFacts riftFacts)
 	{
 		_catalog = Objects.requireNonNull(catalog);
 		_knowledge = Objects.requireNonNull(knowledge);
@@ -58,6 +66,7 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		_party = Objects.requireNonNull(party);
 		_materialization = Objects.requireNonNull(materialization);
 		_observation = Objects.requireNonNull(observation);
+		_riftFacts = Objects.requireNonNull(riftFacts);
 	}
 
 	@Override
@@ -288,6 +297,33 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 			0
 		};
 		claim.state().requirements().stream().filter(requirement -> !assigned.contains(requirement.vacancyKey())).limit(2).forEach(requirement -> facts.add(new QueryFact("party.vacancy." + index[0]++, null, null, requirement.roleKey(), "party.claim")));
+		for (var fact : _riftFacts.latest(profileId))
+		{
+			if (fact.type() == SemanticFactType.RIFT_PREP_STATUS)
+			{
+				facts.add(new QueryFact("rift.status", null, null, fact.slots().get("status"), "rift.readiness"));
+			}
+			else if (fact.type() == SemanticFactType.RIFT_MISSING_ROLE)
+			{
+				facts.add(new QueryFact("rift.missing_role", null, null, fact.slots().get("missingRoleKey"), "rift.readiness"));
+			}
+			else if (fact.type() == SemanticFactType.RIFT_MEMBER_NOT_READY)
+			{
+				final String characterId = fact.slots().get("memberCharacterId");
+				if (characterId != null)
+				{
+					facts.add(new QueryFact("rift.member_not_ready", new PhantomDomainRef("character.object", characterId), null, fact.slots().get("reasonKey"), "rift.readiness"));
+				}
+			}
+			else if (fact.type() == SemanticFactType.RIFT_PARTY_FULL)
+			{
+				facts.add(new QueryFact("rift.party_full", null, Long.parseLong(fact.slots().get("partySize")), null, "rift.readiness"));
+			}
+			else if (fact.type() == SemanticFactType.RIFT_READY)
+			{
+				facts.add(new QueryFact("rift.ready", null, 1L, null, "rift.readiness"));
+			}
+		}
 		return new QueryResult(ResultStatus.COMPLETED, facts);
 	}
 

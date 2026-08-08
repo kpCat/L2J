@@ -47,6 +47,7 @@
 	<property name="phantom.goal021c2.seed" value="21002102" />
 	<property name="phantom.goal022c1.seed" value="22002201" />
 	<property name="phantom.goal022c2.seed" value="22002202" />
+	<property name="phantom.goal023.seed" value="23002301" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -2305,20 +2306,106 @@
 		</exec>
 	</target>
 
-	<target name="phantom-static-verify-022c2" description="Run the working-tree Goal 022 Checkpoint 2 verifier.">
+	<target name="phantom-rift-catalog-authority-test" depends="compile-tests" description="Run strict current High Five Rift source and runtime authority tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="rift-catalog-authority" />
+			<arg value="${phantom.goal023.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-rift-roster-readiness-test" depends="compile-tests" description="Run canonical mixed roster and readiness tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="rift-roster-readiness" />
+			<arg value="${phantom.goal023.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-rift-role-composition-test" depends="compile-tests" description="Run Goal 017 RoleMatcher Rift composition tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="rift-role-composition" />
+			<arg value="${phantom.goal023.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-rift-recruitment-test" depends="compile-tests" description="Run deterministic bounded Rift recruitment tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="rift-recruitment" />
+			<arg value="${phantom.goal023.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-rift-real-player-invite-test" depends="compile-tests" description="Run ordinary real-player consent and terminal invitation tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="rift-real-player-invite" />
+			<arg value="${phantom.goal023.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-rift-travel-readiness-test" depends="compile-tests" description="Run shared party route handoff and arrival readiness tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="rift-travel-readiness" />
+			<arg value="${phantom.goal023.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-rift-restart-reconciliation-test" depends="compile-tests" description="Run durable Rift state and pending invite restart reconciliation tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="rift-restart-reconciliation" />
+			<arg value="${phantom.goal023.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-rift-performance-smoke" depends="compile-tests" description="Run bounded Goal 023 lookup, readiness, matching, candidate and restart performance proof.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="rift-performance" />
+			<arg value="${phantom.goal023.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-rift-goal023-affected-test" depends="phantom-party-role-vacancy-test,phantom-party-canonical-invitation-test,phantom-party-state-recovery-test,phantom-party-route-test,phantom-conversation-party-actions-test,phantom-conversation-query-execution-test" description="Run exact Goal 017 and Goal 020 affected regressions for Goal 023." />
+
+	<target name="phantom-rift-goal023-test" depends="phantom-rift-catalog-authority-test,phantom-rift-roster-readiness-test,phantom-rift-role-composition-test,phantom-rift-recruitment-test,phantom-rift-real-player-invite-test,phantom-rift-travel-readiness-test,phantom-rift-restart-reconciliation-test,phantom-rift-performance-smoke,phantom-rift-goal023-affected-test,phantom-static-verify-022c2,phantom-static-verify-023" description="Run the final Goal 023 Rift readiness and advanced party recruitment aggregate." />
+
+	<target name="phantom-static-verify-022c2" description="Run the historical descendant-compatible Goal 022 Checkpoint 2 verifier.">
 		<exec executable="powershell" dir="${basedir}" failonerror="true">
 			<arg value="-NoProfile" />
 			<arg value="-ExecutionPolicy" />
 			<arg value="Bypass" />
 			<arg value="-File" />
 			<arg value="${basedir}/tools/phantoms/verify-task-022c2.ps1" />
+		</exec>
+	</target>
+	<target name="phantom-static-verify-023" description="Run the working-tree Goal 023 verifier before its ordinary commit.">
+		<exec executable="powershell" dir="${basedir}" failonerror="true">
+			<arg value="-NoProfile" />
+			<arg value="-ExecutionPolicy" />
+			<arg value="Bypass" />
+			<arg value="-File" />
+			<arg value="${basedir}/tools/phantoms/verify-task-023.ps1" />
 			<arg value="-WorkingTree" />
 		</exec>
 	</target>
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->
-	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-profile-persistence-test,phantom-production-materialization-test,phantom-production-materialization-performance-smoke,phantom-server-shutdown-handoff-test,phantom-activity-scheduler-test,phantom-activity-scheduler-performance-smoke,phantom-decision-core-test,phantom-decision-persistence-test,phantom-decision-performance-smoke,phantom-navigation-core-test,phantom-navigation-performance-smoke,phantom-topology-core-test,phantom-topology-perception-test,phantom-topology-scheduler-signal-integration-test,phantom-topology-signal-ledger-test,phantom-topology-generation-test,phantom-topology-production-corpus-test,phantom-topology-performance-smoke,phantom-game-knowledge-core-test,phantom-game-knowledge-query-truth-test,phantom-game-knowledge-parity-test,phantom-game-knowledge-content-test,phantom-game-knowledge-performance-smoke,phantom-combat-core-test,phantom-combat-ownership-test,phantom-combat-action-ownership-test,phantom-combat-server-integration-test,phantom-combat-performance-smoke,phantom-progression-catalog-test,phantom-progression-parity-test,phantom-capability-runtime-test,phantom-progression-operations-test,phantom-progression-server-integration-test,phantom-progression-durability-test,phantom-progression-performance-smoke,phantom-progression-extensibility-test,phantom-progression-production-composition-test,phantom-commerce-test,phantom-commerce-hardening-test,phantom-background-test,phantom-population-test,phantom-party-test,phantom-social-test,phantom-semantic-test,phantom-social-activation-test,phantom-semantic-activation-test,phantom-chat-observation-test,phantom-conversation-catalog-codec-test,phantom-conversation-understanding-test,phantom-conversation-social-style-test,phantom-conversation-chat-integration-test,phantom-conversation-lifecycle-performance-smoke,phantom-economy-checkpoint1-test,phantom-economy-checkpoint1-affected-test,phantom-economy-checkpoint2-test,phantom-economy-checkpoint2-affected-test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004,phantom-static-verify-004a,phantom-static-verify-004b,phantom-static-verify-005,phantom-static-verify-006,phantom-static-verify-006a,phantom-static-verify-006b,phantom-static-verify-007,phantom-static-verify-014a,phantom-static-verify-015,phantom-static-verify-016,phantom-static-verify-017,phantom-static-verify-018,phantom-static-verify-019,phantom-static-verify-020c1,phantom-static-verify-020c2,phantom-static-verify-022c1,phantom-static-verify-022c2" description="Run Goal 022 Checkpoint 2 and all prior Phantom verification gates." />
+	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-profile-persistence-test,phantom-production-materialization-test,phantom-production-materialization-performance-smoke,phantom-server-shutdown-handoff-test,phantom-activity-scheduler-test,phantom-activity-scheduler-performance-smoke,phantom-decision-core-test,phantom-decision-persistence-test,phantom-decision-performance-smoke,phantom-navigation-core-test,phantom-navigation-performance-smoke,phantom-topology-core-test,phantom-topology-perception-test,phantom-topology-scheduler-signal-integration-test,phantom-topology-signal-ledger-test,phantom-topology-generation-test,phantom-topology-production-corpus-test,phantom-topology-performance-smoke,phantom-game-knowledge-core-test,phantom-game-knowledge-query-truth-test,phantom-game-knowledge-parity-test,phantom-game-knowledge-content-test,phantom-game-knowledge-performance-smoke,phantom-combat-core-test,phantom-combat-ownership-test,phantom-combat-action-ownership-test,phantom-combat-server-integration-test,phantom-combat-performance-smoke,phantom-progression-catalog-test,phantom-progression-parity-test,phantom-capability-runtime-test,phantom-progression-operations-test,phantom-progression-server-integration-test,phantom-progression-durability-test,phantom-progression-performance-smoke,phantom-progression-extensibility-test,phantom-progression-production-composition-test,phantom-commerce-test,phantom-commerce-hardening-test,phantom-background-test,phantom-population-test,phantom-party-test,phantom-social-test,phantom-semantic-test,phantom-social-activation-test,phantom-semantic-activation-test,phantom-chat-observation-test,phantom-conversation-catalog-codec-test,phantom-conversation-understanding-test,phantom-conversation-social-style-test,phantom-conversation-chat-integration-test,phantom-conversation-lifecycle-performance-smoke,phantom-economy-checkpoint1-test,phantom-economy-checkpoint1-affected-test,phantom-economy-checkpoint2-test,phantom-economy-checkpoint2-affected-test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004,phantom-static-verify-004a,phantom-static-verify-004b,phantom-static-verify-005,phantom-static-verify-006,phantom-static-verify-006a,phantom-static-verify-006b,phantom-static-verify-007,phantom-static-verify-014a,phantom-static-verify-015,phantom-static-verify-016,phantom-static-verify-017,phantom-static-verify-018,phantom-static-verify-019,phantom-static-verify-020c1,phantom-static-verify-020c2,phantom-static-verify-022c1,phantom-static-verify-022c2,phantom-rift-goal023-test" description="Run Goal 023 and all prior Phantom verification gates." />
 
 	<target name="jar" depends="compile" description="Create the jar files.">
 		<tstamp>
