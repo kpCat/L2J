@@ -409,15 +409,18 @@ public final class PhantomRiftSuite implements PhantomTestSuite
 
 	private static void advanceUntil(Fixture fixture, Stage stage, int maximum)
 	{
+		String lastReason = "none";
+		final List<String> reasons = new java.util.ArrayList<>();
 		for (int i = 0; i < maximum; i++)
 		{
-			fixture.service.advance(1, 23, 0, 1);
+			lastReason = fixture.service.advance(1, 23, 0, 1).reasonKey();
+			reasons.add(lastReason);
 			if (fixture.service.load(1).orElseThrow().preparation().stage() == stage)
 			{
 				return;
 			}
 		}
-		throw new AssertionError("Rift service did not reach stage " + stage + ".");
+		throw new AssertionError("Rift service did not reach stage " + stage + ", reasons=" + reasons + ", lastReason=" + lastReason + ": " + fixture.service.load(1).orElseThrow().preparation());
 	}
 
 	private static Preparation preparation(Stage stage, MemberRef pending)
@@ -616,6 +619,11 @@ public final class PhantomRiftSuite implements PhantomTestSuite
 		public List<MemberFacts> nearbyCandidates(MemberRef observer, Set<Integer> requestedItemIds, int range, int limit)
 		{
 			return candidates.stream().sorted(Comparator.comparing(value -> value.member().ref().stableKey())).limit(limit).toList();
+		}
+		@Override
+		public Optional<MemberFacts> candidateFacts(MemberRef observer, MemberRef candidate, Set<Integer> requestedItemIds, int range)
+		{
+			return candidates.stream().filter(value -> value.member().ref().equals(candidate)).findFirst();
 		}
 
 		@Override

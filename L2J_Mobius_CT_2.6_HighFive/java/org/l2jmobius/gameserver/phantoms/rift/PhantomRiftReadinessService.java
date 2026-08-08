@@ -28,6 +28,7 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RoleMatch
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RoleRequirement;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.VacancyStatus;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftBackend.MemberFacts;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftBackend.RelationshipEvidence;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftBackend.ShotSupply;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftCatalog.EntryFacts;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftCatalog.TierFact;
@@ -159,6 +160,11 @@ public final class PhantomRiftReadinessService
 
 	public Optional<CandidateScore> candidate(MemberFacts candidate, RoleRequirement requirement, int tierType, int originX, int originY, int originZ)
 	{
+		return candidate(candidate, requirement, tierType, originX, originY, originZ, RelationshipEvidence.neutral("social.not_requested"));
+	}
+
+	public Optional<CandidateScore> candidate(MemberFacts candidate, RoleRequirement requirement, int tierType, int originX, int originY, int originZ, RelationshipEvidence relationship)
+	{
 		if (candidate.member().dead())
 		{
 			return Optional.empty();
@@ -177,8 +183,8 @@ public final class PhantomRiftReadinessService
 		readiness += candidate.member().mpPercent() >= limits.minimumMpPercent() ? 1000 : 0;
 		readiness += (!limits.requireWeapon() || (candidate.activeWeaponItemId() > 0)) && (candidate.equipment().size() >= limits.minimumEquippedItems()) ? 2000 : 0;
 		readiness += candidate.requestedItemCounts().getOrDefault(tier.entry().itemId(), 0L) >= tier.entry().itemCount() ? 2500 : 0;
-		final String evidence = PhantomPartyModel.sha256(candidate.evidenceHash() + '|' + requirement + '|' + assignment.score() + '|' + readiness);
-		return Optional.of(new CandidateScore(candidate.member().ref(), requirement.vacancyKey(), assignment.score(), readiness, candidate.distanceSquared(originX, originY, originZ), candidate.member().ref().kind() == MemberKind.REAL, evidence));
+		final String evidence = PhantomPartyModel.sha256(candidate.evidenceHash() + '|' + requirement + '|' + assignment.score() + '|' + readiness + '|' + relationship.modifierBasisPoints() + '|' + relationship.evidenceHash() + '|' + relationship.reasonKey());
+		return Optional.of(new CandidateScore(candidate.member().ref(), requirement.vacancyKey(), assignment.score(), readiness, relationship.modifierBasisPoints(), candidate.distanceSquared(originX, originY, originZ), candidate.member().ref().kind() == MemberKind.REAL, relationship.evidenceHash(), evidence));
 	}
 
 	public List<SemanticFact> semanticFacts(PartyReadiness readiness)

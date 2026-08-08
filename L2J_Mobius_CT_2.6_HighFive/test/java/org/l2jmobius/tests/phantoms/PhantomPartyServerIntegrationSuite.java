@@ -9,6 +9,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -32,9 +34,19 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService.Response;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.ObjectiveMode;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.OperationKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.OperationPhase;
@@ -47,6 +59,9 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftPartyPort;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftModel;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService;
 
 /**
  * Real test-DB, materialized Player, ordinary outbound-session and canonical
@@ -85,6 +100,7 @@ public final class PhantomPartyServerIntegrationSuite implements PhantomTestSuit
 		registry.add("02-real-party-state-persists-and-reloads-from-db", _ -> testPartyPersistence());
 		registry.add("03-canonical-transfer-expel-and-leave-postconditions", _ -> testMembershipCommands());
 		registry.add("04-both-managed-identities-reach-prepare-and-terminal", _ -> testBothManagedCallbacks());
+		registry.add("05-rift-production-port-canonical-managed-accept", this::testRiftProductionPort);
 	}
 
 	private void testCancelRetry() throws Exception
@@ -245,6 +261,72 @@ public final class PhantomPartyServerIntegrationSuite implements PhantomTestSuit
 		}
 	}
 
+	private void testRiftProductionPort(PhantomTestContext context) throws Exception
+	{
+		final PhantomProfile leaderProfile = _profiles.create(_environment.primary().objectId());
+		final PhantomProfile inviteeProfile = _profiles.create(_environment.observer().objectId());
+		final PhantomMetrics metrics = new PhantomMetrics();
+		final PhantomMaterializationService materialization = new PhantomMaterializationService(_profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 2);
+		PhantomPartyCoordinator coordinator = null;
+		Player leaderPlayer = null;
+		Player inviteePlayer = null;
+		try
+		{
+			PhantomAssertions.assertTrue(materialization.start(), "Rift acceptance materialization did not start.");
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, materialization.materialize(leaderProfile.profileId()).status(), "Rift leader did not materialize.");
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, materialization.materialize(inviteeProfile.profileId()).status(), "Rift invitee did not materialize.");
+			leaderPlayer = World.getInstance().getPlayer(_environment.primary().objectId());
+			inviteePlayer = World.getInstance().getPlayer(_environment.observer().objectId());
+			final MemberRef leader = MemberRef.phantom(leaderProfile.profileId(), leaderPlayer.getObjectId());
+			final MemberRef invitee = MemberRef.phantom(inviteeProfile.profileId(), inviteePlayer.getObjectId());
+			final CanonicalPartyBackend backend = new CanonicalPartyBackend(Map.of(leaderProfile.profileId(), leader, inviteeProfile.profileId(), invitee), Map.of(leader, leaderPlayer, invitee, inviteePlayer));
+			final MemoryGoalStore goals = new MemoryGoalStore();
+			final long goalId = 23002311L;
+			goals.put(leaderProfile.profileId(), new PhantomGoal(goalId, PhantomRiftService.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(leaderProfile.profileId())), new PhantomDomainRef("rift.tier", "1"), 1, 0, null, List.of(), null, "rift.acceptance", 500, 0, 0, 0, Map.of(), "rift.acceptance", 0));
+			coordinator = new PhantomPartyCoordinator(new PhantomPartyStore(_profiles), goals, backend, PhantomPartyRoleCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(null, null), new PhantomPartyTactics(null, backend), () -> ZERO, System::nanoTime, 64);
+			PhantomAssertions.assertTrue(coordinator.start(), "Rift acceptance coordinator did not start.");
+			coordinator.installManagedInvitationPolicy(PhantomRiftService.GOAL_TYPE, ignored -> PhantomPartyCoordinator.ManagedInvitationDecision.ACCEPT);
+			final L2jPhantomRiftPartyPort port = new L2jPhantomRiftPartyPort(coordinator);
+			final String rosterHash = PhantomPartyModel.sha256("rift.acceptance.roster|" + leader.stableKey());
+			final PhantomRiftModel.CanonicalRoster roster = new PhantomRiftModel.CanonicalRoster(leader, List.of(leader), PartyDistributionType.FINDERS_KEEPERS, false, false, rosterHash);
+			final var binding = port.bind(leaderProfile.profileId(), goalId, 0, new PhantomDomainRef("rift.tier", "1"), List.of(), roster);
+			PhantomAssertions.assertTrue(binding.stable(), "Real coordinator did not bind the exact Rift goal.");
+			final var invitation = port.invite(leaderProfile.profileId(), invitee, PartyDistributionType.FINDERS_KEEPERS);
+			PhantomAssertions.assertEquals(PhantomRiftService.InviteStatus.PENDING, invitation.status(), "Canonical managed invitation was not pending with full identity.");
+			PhantomAssertions.assertEquals(leader.characterObjectId(), invitation.requesterObjectId(), "Canonical invitation requester identity changed.");
+			PhantomAssertions.assertEquals(invitee.characterObjectId(), invitation.inviteeObjectId(), "Canonical invitation invitee identity changed.");
+			PhantomAssertions.assertTrue(invitation.canonicalExpiresAtGameTick() > 0, "Canonical invitation expiry was not exposed.");
+			for (int i = 0; i < 8; i++)
+			{
+				coordinator.onPulse();
+			}
+			PhantomAssertions.assertTrue(leaderPlayer.isInParty() && leaderPlayer.getParty().containsPlayer(inviteePlayer), "Target-side policy did not reach canonical ACCEPT membership.");
+			PhantomAssertions.assertEquals(PhantomRiftService.InviteStatus.ACCEPTED, port.observeInvite(leaderProfile.profileId(), invitee, invitation.sequence()).status(), "L2j Rift port did not observe canonical ACCEPTED.");
+			context.record("rift023a.canonicalInvitationSequence", invitation.sequence());
+			context.record("rift023a.canonicalExpiry", invitation.canonicalExpiresAtGameTick());
+		}
+		finally
+		{
+			if (coordinator != null)
+			{
+				coordinator.beginStop();
+				coordinator.finishStop();
+			}
+			if ((leaderPlayer != null) && leaderPlayer.isInParty())
+			{
+				PartyInvitationService.getInstance().leave(leaderPlayer);
+			}
+			if ((inviteePlayer != null) && inviteePlayer.isInParty())
+			{
+				PartyInvitationService.getInstance().leave(inviteePlayer);
+			}
+			materialization.shutdown();
+			deleteProfile(leaderProfile.profileId());
+			deleteProfile(inviteeProfile.profileId());
+			_environment.assertClean(_environment.primary(), leaderPlayer);
+			_environment.assertClean(_environment.observer(), inviteePlayer);
+		}
+	}
 	private PartyFixture openPartyFixture() throws Exception
 	{
 		final PhantomProfile profile = _profiles.create(_environment.primary().objectId());
@@ -368,6 +450,63 @@ public final class PhantomPartyServerIntegrationSuite implements PhantomTestSuit
 		}
 	}
 
+	private static final class MemoryGoalStore implements PhantomGoalStore
+	{
+		private final Map<Long, StoredGoal> _goals = new TreeMap<>();
+
+		private void put(long profileId, PhantomGoal goal)
+		{
+			final StoredGoal current = _goals.get(profileId);
+			_goals.put(profileId, new StoredGoal(goal, current == null ? 0 : current.rowVersion() + 1));
+		}
+
+		@Override public boolean profileExists(long profileId) { return profileId > 0; }
+		@Override public Optional<StoredGoal> load(long profileId) { return Optional.ofNullable(_goals.get(profileId)); }
+		@Override public StoredGoal insert(long profileId, PhantomGoal goal) { put(profileId, goal); return _goals.get(profileId); }
+		@Override public StoredGoal replace(long profileId, long expectedRowVersion, PhantomGoal goal)
+		{
+			final StoredGoal current = _goals.get(profileId);
+			if ((current == null) || (current.rowVersion() != expectedRowVersion)) { throw new IllegalStateException("Goal conflict."); }
+			put(profileId, goal);
+			return _goals.get(profileId);
+		}
+		@Override public void delete(long profileId, long expectedRowVersion) { _goals.remove(profileId); }
+	}
+
+	private static final class CanonicalPartyBackend implements PhantomPartyBackend
+	{
+		private final Map<Long, MemberRef> _members;
+		private final Map<MemberRef, Player> _players;
+
+		private CanonicalPartyBackend(Map<Long, MemberRef> members, Map<MemberRef, Player> players)
+		{
+			_members = members;
+			_players = players;
+		}
+
+		@Override public OptionalLong managedProfileId(int characterObjectId) { return _members.values().stream().filter(member -> member.characterObjectId() == characterObjectId).mapToLong(MemberRef::profileId).findFirst(); }
+		@Override public Optional<MemberRef> currentMember(long profileId) { return Optional.ofNullable(_members.get(profileId)); }
+		@Override public InviteResult invite(MemberRef requester, MemberRef target, PartyDistributionType distribution) { return PartyInvitationService.getInstance().invite(_players.get(requester), _players.get(target), distribution.getId()); }
+		@Override public PartyInvitationService.RespondResult respond(MemberRef invitee, Response response, InvitationIdentity identity) { return PartyInvitationService.getInstance().respond(_players.get(invitee), response, identity); }
+		@Override public MembershipOutcome leave(MemberRef member) { return PartyInvitationService.getInstance().leave(_players.get(member)); }
+		@Override public MembershipOutcome expel(MemberRef requester, MemberRef member) { return PartyInvitationService.getInstance().expel(_players.get(requester), _players.get(member)); }
+		@Override public MembershipOutcome transferLeader(MemberRef requester, MemberRef member) { return PartyInvitationService.getInstance().transferLeader(_players.get(requester), _players.get(member)); }
+		@Override public Optional<PartySnapshot> observe(MemberRef member)
+		{
+			final Player player = _players.get(member);
+			if ((player == null) || (player.getParty() == null)) { return Optional.empty(); }
+			final List<MemberRef> roster = player.getParty().getMembers().stream().map(this::reference).toList();
+			return Optional.of(new PartySnapshot(reference(player.getParty().getLeader()), roster, player.getParty().getDistributionType()));
+		}
+		@Override public Optional<MemberSnapshot> memberSnapshot(MemberRef member)
+		{
+			final Player player = _players.get(member);
+			return player == null ? Optional.empty() : Optional.of(new MemberSnapshot(member, player.getActiveClass(), player.getInstanceId(), player.getX(), player.getY(), player.getZ(), 100, 100, 100, player.isDead(), false, false, false, 0, List.of(), List.of(), ZERO));
+		}
+		@Override public List<PhantomPartyModel.MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId) { return List.of(); }
+		@Override public boolean materialize(long profileId) { return _members.containsKey(profileId); }
+		private MemberRef reference(Player player) { return _members.values().stream().filter(member -> member.characterObjectId() == player.getObjectId()).findFirst().orElse(MemberRef.real(player.getObjectId())); }
+	}
 	private static final class ManagedDeliveryProbe implements PartyInvitationDelivery
 	{
 		private final long _profileId;

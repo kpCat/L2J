@@ -728,7 +728,7 @@ Checkpoint 2 `ACCEPT`; Goal 022 overall `ACCEPT` на baseline
 
 ### 023. Rift и advanced party recruitment
 
-Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Status: `CORRECTIVE_023A_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 - Rift destination/requirements;
 - content-specific composition;
@@ -738,6 +738,8 @@ Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 - invite/refuse policy.
 
 ### 024. Party farming и катакомбы
+
+Status: NOT_STARTED. Goal 024 не начат.
 
 - follow/assist;
 - target assignment;

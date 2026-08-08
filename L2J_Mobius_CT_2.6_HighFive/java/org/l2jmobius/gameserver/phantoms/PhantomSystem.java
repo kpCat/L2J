@@ -385,12 +385,13 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
 				}
 				partyParticipation.install(_partyCoordinator);
-				final L2jPhantomRiftBackend riftBackend = new L2jPhantomRiftBackend(partyBackend, productionProfiles, _materializationService, _progressionService, commerceCatalog.catalog());
+				final L2jPhantomRiftBackend riftBackend = new L2jPhantomRiftBackend(partyBackend, productionProfiles, _materializationService, _progressionService, commerceCatalog.catalog(), _socialService);
 				final PhantomRiftCatalog riftCatalog = PhantomRiftCatalog.load(new File(ServerConfig.DATAPACK_ROOT, "data/DimensionalRift.xml").toPath(), riftBackend);
 				final PhantomRiftPolicy riftPolicy = PhantomRiftPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/rift/high-five-rift-policy-v1.xml").toPath(), riftCatalog, partyRoleCatalog);
 				final PhantomPartyRoleMatcher riftRoles = new PhantomPartyRoleMatcher(partyRoleCatalog);
 				final PhantomRiftReadinessService riftReadiness = new PhantomRiftReadinessService(riftBackend, riftCatalog, riftPolicy, riftRoles);
 				final PhantomRiftService riftService = new PhantomRiftService(riftBackend, riftCatalog, riftPolicy, riftReadiness, new PhantomRiftStore(productionProfiles), new L2jPhantomRiftPartyPort(_partyCoordinator), System::currentTimeMillis);
+				_partyCoordinator.installManagedInvitationPolicy(PhantomRiftService.GOAL_TYPE, riftService::evaluateManagedInvitation);
 				final PhantomRiftDecision riftDecision = new PhantomRiftDecision(riftService);
 
 				final File conversationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-v1.xml");

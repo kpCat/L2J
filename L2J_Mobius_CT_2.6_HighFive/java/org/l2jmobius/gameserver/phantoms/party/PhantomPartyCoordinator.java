@@ -132,7 +132,75 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		NOT_PHANTOM_LEADER,
 		UNAVAILABLE
 	}
+	public enum ContentBindingOutcome
+	{
+		BOUND,
+		IDEMPOTENT,
+		NOT_RUNNING,
+		GOAL_MISMATCH,
+		CANONICAL_MISMATCH,
+		CLAIM_CONFLICT,
+		OPERATION_CONFLICT,
+		PERSISTENCE_CONFLICT
+	}
 
+	public enum OperationStability
+	{
+		STABLE,
+		PENDING,
+		CONFLICT
+	}
+
+	public enum ManagedInvitationDecision
+	{
+		ACCEPT,
+		REFUSE,
+		DEFER,
+		UNSUPPORTED
+	}
+
+	public record ContentBindingRequest(long leaderProfileId, long goalId, long goalRevision, String goalType, ObjectiveMode objectiveMode, PhantomDomainRef objectiveRef, List<RoleRequirement> requirements, MemberRef expectedLeader, List<MemberRef> expectedRoster, PartyDistributionType distribution, String rosterEvidenceHash)
+	{
+		public ContentBindingRequest
+		{
+			if ((leaderProfileId <= 0) || (goalId <= 0) || (goalRevision < 0) || !"rift.prepare".equals(goalType))
+			{
+				throw new IllegalArgumentException("Invalid content binding identity.");
+			}
+			Objects.requireNonNull(objectiveMode);
+			Objects.requireNonNull(objectiveRef);
+			requirements = List.copyOf(requirements);
+			Objects.requireNonNull(expectedLeader);
+			expectedRoster = List.copyOf(expectedRoster);
+			Objects.requireNonNull(distribution);
+			PhantomPartyModel.requireHash(rosterEvidenceHash, "Content binding roster evidence");
+		}
+	}
+
+	public record ContentBindingResult(ContentBindingOutcome outcome, String groupId, long groupGeneration, long membershipRevision, MemberRef leader, String rosterEvidenceHash, String manifestHash, OperationStability stability, String reasonKey)
+	{
+		public boolean bound()
+		{
+			return (outcome == ContentBindingOutcome.BOUND) || (outcome == ContentBindingOutcome.IDEMPOTENT);
+		}
+	}
+
+	public record ManagedInvitationContext(PartyInvitation invitation, long requesterProfileId, long inviteeProfileId, PartyState leaderClaim, PartyState inviteeClaim, PhantomGoal inviteeGoal, MemberSnapshot inviteeSnapshot)
+	{
+	}
+
+	@FunctionalInterface
+	public interface ManagedInvitationPolicy
+	{
+		ManagedInvitationDecision evaluate(ManagedInvitationContext context);
+	}
+
+	@FunctionalInterface
+	public interface ManagedInvitationPolicyRegistration extends AutoCloseable
+	{
+		@Override
+		void close();
+	}
 	private final PhantomPartyPersistencePort _store;
 	private final PhantomGoalStore _goals;
 	private final PhantomPartyBackend _backend;
@@ -147,6 +215,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final int _operationBudget;
 	private final ArrayBlockingQueue<ManagedInvitation> _inbound = new ArrayBlockingQueue<>(MAX_INBOUND_INVITES);
 	private final Map<Long, PartyInvitation> _pendingManagedInvitations = new ConcurrentHashMap<>();
+	private final Map<String, ManagedInvitationPolicy> _managedInvitationPolicies = new ConcurrentHashMap<>();
 	private final LinkedHashMap<ConversationResponseKey, PendingResponseOutcome> _conversationResponses = new LinkedHashMap<>();
 	private final ArrayBlockingQueue<TerminalEvent> _terminalEvents = new ArrayBlockingQueue<>(MAX_TERMINAL_EVENTS);
 	private final ArrayBlockingQueue<Long> _tacticalReleases = new ArrayBlockingQueue<>(MAX_INBOUND_INVITES);
@@ -235,6 +304,186 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		}
 	}
 
+	public ManagedInvitationPolicyRegistration installManagedInvitationPolicy(String goalType, ManagedInvitationPolicy policy)
+	{
+		Objects.requireNonNull(goalType);
+		Objects.requireNonNull(policy);
+		if (_state == State.STOPPING || _state == State.STOPPED)
+		{
+			throw new IllegalStateException("Party coordinator is stopping.");
+		}
+		if (_managedInvitationPolicies.putIfAbsent(goalType, policy) != null)
+		{
+			throw new IllegalStateException("Managed invitation policy already installed for " + goalType + '.');
+		}
+		return () -> _managedInvitationPolicies.remove(goalType, policy);
+	}
+
+	public ContentBindingResult bindContentGoal(ContentBindingRequest request)
+	{
+		Objects.requireNonNull(request);
+		final OperationClaim control = beginOperation();
+		if (control == null)
+		{
+			return bindingFailure(ContentBindingOutcome.NOT_RUNNING, request, "party.binding.not_running");
+		}
+		try (control)
+		{
+			if (!exactGoal(request.leaderProfileId(), request.goalId(), request.goalRevision(), request.goalType(), null))
+			{
+				return bindingFailure(ContentBindingOutcome.GOAL_MISMATCH, request, "party.binding.goal_mismatch");
+			}
+			final MemberRef leader = _backend.currentMember(request.leaderProfileId()).orElse(null);
+			if ((leader == null) || !leader.equals(request.expectedLeader()))
+			{
+				return bindingFailure(ContentBindingOutcome.CANONICAL_MISMATCH, request, "party.binding.leader_changed");
+			}
+			final PartySnapshot observed = _backend.observe(leader).orElse(new PartySnapshot(leader, List.of(leader), request.distribution()));
+			if (!observed.leader().equals(request.expectedLeader()) || !sameRoster(observed.members(), request.expectedRoster()) || (observed.distribution() != request.distribution()))
+			{
+				return bindingFailure(ContentBindingOutcome.CANONICAL_MISMATCH, request, "party.binding.roster_changed");
+			}
+			final List<MemberRef> phantoms = observed.members().stream().filter(member -> member.kind() == MemberKind.PHANTOM).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
+			final List<MemberRef> reals = observed.members().stream().filter(member -> member.kind() == MemberKind.REAL).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
+			final Map<MemberRef, MemberSnapshot> snapshots = snapshots(observed.members());
+			if (snapshots.size() != observed.members().size())
+			{
+				return bindingFailure(ContentBindingOutcome.CANONICAL_MISMATCH, request, "party.binding.snapshot_stale");
+			}
+			final StoredPartyState leaderClaim = _claims.get(request.leaderProfileId());
+			String groupId = PhantomPartyModel.stableGroupId(request.leaderProfileId(), request.goalId(), request.goalRevision());
+			long generation = 1;
+			long membershipRevision = 0;
+			if (leaderClaim != null)
+			{
+				final PartyState state = leaderClaim.state();
+				if (pendingMembership(state.operation()))
+				{
+					return bindingFailure(ContentBindingOutcome.OPERATION_CONFLICT, request, "party.binding.operation_pending");
+				}
+				if (committedClaim(leaderClaim))
+				{
+					if (!state.leader().equals(observed.leader()) || !sameRoster(roster(state), observed.members()))
+					{
+						return bindingFailure(ContentBindingOutcome.CLAIM_CONFLICT, request, "party.binding.claim_roster_conflict");
+					}
+					groupId = state.groupId();
+					generation = state.groupGeneration();
+					membershipRevision = state.membershipRevision();
+				}
+				else if (state.status() == StateStatus.SOLO)
+				{
+					generation = state.groupGeneration() + 1;
+					membershipRevision = state.membershipRevision() + 1;
+				}
+				else
+				{
+					return bindingFailure(ContentBindingOutcome.CLAIM_CONFLICT, request, "party.binding.claim_conflict");
+				}
+			}
+			for (MemberRef member : phantoms)
+			{
+				final StoredPartyState claim = _claims.get(member.profileId());
+				if ((claim != null) && pendingMembership(claim.state().operation()))
+				{
+					return bindingFailure(ContentBindingOutcome.OPERATION_CONFLICT, request, "party.binding.member_operation_pending");
+				}
+				if ((claim != null) && committedClaim(claim) && (!claim.state().groupId().equals(groupId) || (claim.state().groupGeneration() != generation) || !sameRoster(roster(claim.state()), observed.members())))
+				{
+					return bindingFailure(ContentBindingOutcome.CLAIM_CONFLICT, request, "party.binding.member_claim_conflict");
+				}
+				if ((claim != null) && !committedClaim(claim) && (claim.state().status() != StateStatus.SOLO))
+				{
+					return bindingFailure(ContentBindingOutcome.CLAIM_CONFLICT, request, "party.binding.member_claim_conflict");
+				}
+			}
+			final RoleMatchResult roles = _roles.match(request.objectiveMode(), request.requirements(), new ArrayList<>(snapshots.values()));
+			final PartyState draft = state(groupId, generation, membershipRevision, StateStatus.LEADER, leader, phantoms, reals, request.objectiveMode(), request.objectiveRef(), request.requirements(), roles.assignments(), null, null, progressionEvidence(snapshots), "");
+			final String manifest = draft.canonicalManifestHash();
+			final PartyOperation operation = new PartyOperation(PhantomPartyModel.stableOperationId(groupId, generation, membershipRevision, OperationKind.SUPPORT, leader, null, request.goalId(), request.goalRevision(), manifest), OperationKind.SUPPORT, OperationPhase.COMMITTED, leader, null, request.goalId(), request.goalRevision(), manifest, 0, deadline(), "");
+			boolean idempotent = true;
+			for (MemberRef member : phantoms)
+			{
+				idempotent &= exactBoundClaim(_claims.get(member.profileId()), member, leader, groupId, generation, membershipRevision, manifest, request.goalId(), request.goalRevision());
+			}
+			if (!idempotent)
+			{
+				for (MemberRef member : phantoms)
+				{
+					final StoredPartyState current = _claims.get(member.profileId());
+					final String ownRole = roles.assignments().stream().filter(assignment -> assignment.member().equals(member)).map(RoleAssignment::roleKey).findFirst().orElse("");
+					final PartyState next = new PartyState(groupId, generation, membershipRevision, member.equals(leader) ? StateStatus.LEADER : StateStatus.MEMBER, leader, ownRole, manifest, phantoms, reals, request.objectiveMode(), request.objectiveRef(), request.requirements(), roles.assignments(), null, operation, draft.progressionHash(), draft.topologyHash(), "");
+					try
+					{
+						putClaim(save(member.profileId(), current == null ? -1 : current.rowVersion(), next));
+					}
+					catch (RuntimeException e)
+					{
+						_metrics.conflict();
+						return bindingFailure(ContentBindingOutcome.PERSISTENCE_CONFLICT, request, "party.binding.persistence_conflict");
+					}
+				}
+				ensureGroup(groupId);
+			}
+			return new ContentBindingResult(idempotent ? ContentBindingOutcome.IDEMPOTENT : ContentBindingOutcome.BOUND, groupId, generation, membershipRevision, leader, request.rosterEvidenceHash(), manifest, OperationStability.STABLE, idempotent ? "party.binding.idempotent" : "party.binding.bound");
+		}
+	}
+
+	public ContentBindingResult observeContentBinding(ContentBindingRequest request)
+	{
+		Objects.requireNonNull(request);
+		final MemberRef leader = _backend.currentMember(request.leaderProfileId()).orElse(null);
+		final PartySnapshot party = leader == null ? null : _backend.observe(leader).orElse(new PartySnapshot(leader, List.of(leader), request.distribution()));
+		if ((leader == null) || (party == null) || !party.leader().equals(request.expectedLeader()) || !sameRoster(party.members(), request.expectedRoster()) || (party.distribution() != request.distribution()))
+		{
+			return bindingFailure(ContentBindingOutcome.CANONICAL_MISMATCH, request, "party.binding.roster_changed");
+		}
+		final StoredPartyState claim = _claims.get(request.leaderProfileId());
+		if ((claim == null) || !committedClaim(claim) || !claim.state().leader().equals(leader) || !sameRoster(roster(claim.state()), party.members()))
+		{
+			return bindingFailure(ContentBindingOutcome.CLAIM_CONFLICT, request, "party.binding.claim_conflict");
+		}
+		if (pendingMembership(claim.state().operation()))
+		{
+			return new ContentBindingResult(ContentBindingOutcome.OPERATION_CONFLICT, claim.state().groupId(), claim.state().groupGeneration(), claim.state().membershipRevision(), leader, request.rosterEvidenceHash(), claim.state().leaderManifestHash(), OperationStability.PENDING, "party.binding.operation_pending");
+		}
+		final PartyOperation operation = claim.state().operation();
+		if ((operation == null) || (operation.leaderGoalId() != request.goalId()) || (operation.leaderGoalRevision() != request.goalRevision()) || !claim.state().objectiveRef().equals(request.objectiveRef()))
+		{
+			return bindingFailure(ContentBindingOutcome.CLAIM_CONFLICT, request, "party.binding.identity_changed");
+		}
+		return new ContentBindingResult(ContentBindingOutcome.IDEMPOTENT, claim.state().groupId(), claim.state().groupGeneration(), claim.state().membershipRevision(), leader, request.rosterEvidenceHash(), claim.state().leaderManifestHash(), OperationStability.STABLE, "party.binding.stable");
+	}
+
+	private static ContentBindingResult bindingFailure(ContentBindingOutcome outcome, ContentBindingRequest request, String reason)
+	{
+		return new ContentBindingResult(outcome, ZERO_HASH, 0, 0, request.expectedLeader(), request.rosterEvidenceHash(), ZERO_HASH, outcome == ContentBindingOutcome.OPERATION_CONFLICT ? OperationStability.PENDING : OperationStability.CONFLICT, reason);
+	}
+
+	private static boolean exactBoundClaim(StoredPartyState stored, MemberRef member, MemberRef leader, String groupId, long generation, long membershipRevision, String manifest, long goalId, long goalRevision)
+	{
+		if ((stored == null) || !committedClaim(stored))
+		{
+			return false;
+		}
+		final PartyOperation operation = stored.state().operation();
+		return stored.state().groupId().equals(groupId) && (stored.state().groupGeneration() == generation) && (stored.state().membershipRevision() == membershipRevision) && stored.state().leader().equals(leader) && stored.state().leaderManifestHash().equals(manifest) && (operation != null) && (operation.kind() == OperationKind.SUPPORT) && (operation.phase() == OperationPhase.COMMITTED) && (operation.leaderGoalId() == goalId) && (operation.leaderGoalRevision() == goalRevision) && roster(stored.state()).contains(member);
+	}
+
+	private static boolean pendingMembership(PartyOperation operation)
+	{
+		return (operation != null) && Set.of(OperationKind.JOIN, OperationKind.LEAVE, OperationKind.EXPEL, OperationKind.TRANSFER_LEADER, OperationKind.ROUTE).contains(operation.kind()) && Set.of(OperationPhase.PREPARED, OperationPhase.CANONICAL_PENDING, OperationPhase.CANONICAL_OBSERVED).contains(operation.phase());
+	}
+
+	private static List<MemberRef> roster(PartyState state)
+	{
+		return java.util.stream.Stream.concat(state.phantomMembers().stream(), state.realMembers().stream()).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
+	}
+
+	private static boolean sameRoster(List<MemberRef> left, List<MemberRef> right)
+	{
+		return left.stream().sorted(Comparator.comparing(MemberRef::stableKey)).toList().equals(right.stream().sorted(Comparator.comparing(MemberRef::stableKey)).toList());
+	}
 	public CommandOutcome form(long leaderProfileId, long goalId, long goalRevision, ObjectiveMode objective, PhantomDomainRef objectiveRef, List<RoleRequirement> requirements)
 	{
 		return formForGoal(leaderProfileId, goalId, goalRevision, FORM_GOAL, objective, objectiveRef, requirements);
@@ -757,6 +1006,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		}
 		_inbound.clear();
 		_pendingManagedInvitations.clear();
+		_managedInvitationPolicies.clear();
 		_routes.beginStop();
 		_tacticalActions.values().forEach(ExternalActionLease::close);
 		_tacticalActions.clear();
@@ -939,24 +1189,61 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return;
 		}
 		final boolean explicitConsent = (storedGoal != null) && (storedGoal.goal().status() == PhantomGoalStatus.ACTIVE) && JOIN_GOAL.equals(storedGoal.goal().goalType()) && goalTargets(storedGoal.goal(), invitation.requesterObjectId());
-		if (!explicitConsent)
+		if (explicitConsent)
 		{
-			if ((storedGoal != null) && JOIN_GOAL.equals(storedGoal.goal().goalType()))
-			{
-				_backend.respond(invitee, Response.REFUSE, invitation.identity());
-				_metrics.inviteRefused();
-			}
+			respondManaged(invitee, invitation, ManagedInvitationDecision.ACCEPT);
 			return;
 		}
-		final PartyInvitationService.RespondResult response = _backend.respond(invitee, Response.ACCEPT, invitation.identity());
-		if (!response.accepted())
+		if ((storedGoal != null) && JOIN_GOAL.equals(storedGoal.goal().goalType()))
 		{
-			_metrics.inviteRefused();
+			respondManaged(invitee, invitation, ManagedInvitationDecision.REFUSE);
 			return;
 		}
-		_metrics.inviteAccepted();
+		final OptionalLong requesterProfile = _backend.managedProfileId(invitation.requesterObjectId());
+		if (requesterProfile.isEmpty())
+		{
+			return;
+		}
+		final StoredGoal requesterGoal = _goals.load(requesterProfile.getAsLong()).orElse(null);
+		if ((requesterGoal == null) || (requesterGoal.goal().status() != PhantomGoalStatus.ACTIVE))
+		{
+			return;
+		}
+		final ManagedInvitationPolicy policy = _managedInvitationPolicies.get(requesterGoal.goal().goalType());
+		if (policy == null)
+		{
+			return;
+		}
+		final StoredPartyState leaderClaim = _claims.get(requesterProfile.getAsLong());
+		final StoredPartyState inviteeClaim = _claims.get(managed.profileId());
+		final MemberSnapshot inviteeSnapshot = _backend.memberSnapshot(invitee).orElse(null);
+		final ManagedInvitationDecision decision;
+		try
+		{
+			decision = Objects.requireNonNullElse(policy.evaluate(new ManagedInvitationContext(invitation, requesterProfile.getAsLong(), managed.profileId(), leaderClaim == null ? null : leaderClaim.state(), inviteeClaim == null ? null : inviteeClaim.state(), storedGoal == null ? null : storedGoal.goal(), inviteeSnapshot)), ManagedInvitationDecision.DEFER);
+		}
+		catch (RuntimeException e)
+		{
+			return;
+		}
+		if ((decision == ManagedInvitationDecision.ACCEPT) || (decision == ManagedInvitationDecision.REFUSE))
+		{
+			respondManaged(invitee, invitation, decision);
+		}
 	}
 
+	private void respondManaged(MemberRef invitee, PartyInvitation invitation, ManagedInvitationDecision decision)
+	{
+		final PartyInvitationService.RespondResult response = _backend.respond(invitee, decision == ManagedInvitationDecision.ACCEPT ? Response.ACCEPT : Response.REFUSE, invitation.identity());
+		if ((decision == ManagedInvitationDecision.ACCEPT) && response.accepted())
+		{
+			_metrics.inviteAccepted();
+		}
+		else
+		{
+			_metrics.inviteRefused();
+		}
+	}
 	private static boolean conversationOwnsAccept(PhantomGoal goal)
 	{
 		if ((goal.status() != PhantomGoalStatus.ACTIVE) || !JOIN_GOAL.equals(goal.goalType()) || !goal.purposeKey().equals("conversation.action") || !goal.reasonKey().equals("conversation.party.accept"))
@@ -1491,6 +1778,19 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		}
 		final PartyState before = current.state();
 		final PartyOperation aborted = before.operation().withPhase(OperationPhase.ABORTED, identity.sequence(), failure);
+		final StoredGoal activeGoal = _goals.load(current.profileId()).orElse(null);
+		if ((activeGoal != null) && (activeGoal.goal().status() == PhantomGoalStatus.ACTIVE) && (activeGoal.goal().goalId() == aborted.leaderGoalId()) && (activeGoal.goal().revision() == aborted.leaderGoalRevision()) && !FORM_GOAL.equals(activeGoal.goal().goalType()))
+		{
+			try
+			{
+				putClaim(save(current.profileId(), current.rowVersion(), before.withOperation(StateStatus.LEADER, aborted, failure)));
+			}
+			catch (RuntimeException e)
+			{
+				_metrics.conflict();
+			}
+			return;
+		}
 		final MemberRef self = before.phantomMembers().stream().filter(member -> (member.kind() == MemberKind.PHANTOM) && (member.profileId() == current.profileId())).findFirst().orElseGet(() -> _backend.currentMember(current.profileId()).orElse(MemberRef.phantom(current.profileId(), 0)));
 		final PartyState solo = state(PhantomPartyModel.sha256("party.solo|" + current.profileId() + '|' + (before.groupGeneration() + 1)), before.groupGeneration() + 1, before.membershipRevision() + 1, StateStatus.SOLO, self, List.of(self), List.of(), before.objectiveMode(), before.objectiveRef(), List.of(), List.of(), null, aborted, before.progressionHash(), failure);
 		try

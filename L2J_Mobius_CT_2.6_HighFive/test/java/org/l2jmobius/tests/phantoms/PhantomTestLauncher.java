@@ -273,6 +273,16 @@ public final class PhantomTestLauncher
 			case "rift-travel-readiness" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.TRAVEL_READINESS);
 			case "rift-restart-reconciliation" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.RESTART_RECONCILIATION);
 			case "rift-performance" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.PERFORMANCE);
+			case "rift023a-party-binding" -> new PhantomRiftCorrectionsSuite(PhantomRiftCorrectionsSuite.Mode.PARTY_BINDING);
+			case "rift023a-managed-consent" -> new PhantomRiftCorrectionsSuite(PhantomRiftCorrectionsSuite.Mode.MANAGED_CONSENT);
+			case "rift023a-preinvite-revalidation" -> new PhantomRiftCorrectionsSuite(PhantomRiftCorrectionsSuite.Mode.PREINVITE_REVALIDATION);
+			case "rift023a-invitation-authority" -> new PhantomRiftCorrectionsSuite(PhantomRiftCorrectionsSuite.Mode.INVITATION_AUTHORITY);
+			case "rift023a-restart-migration" -> new PhantomRiftCorrectionsSuite(PhantomRiftCorrectionsSuite.Mode.RESTART_MIGRATION);
+			case "rift023a-semantic-facts" -> new PhantomRiftCorrectionsSuite(PhantomRiftCorrectionsSuite.Mode.SEMANTIC_FACTS);
+			case "rift023a-candidate-ordering" -> new PhantomRiftCorrectionsSuite(PhantomRiftCorrectionsSuite.Mode.CANDIDATE_ORDERING);
+			case "rift023a-route-binding" -> new PhantomRiftCorrectionsSuite(PhantomRiftCorrectionsSuite.Mode.ROUTE_BINDING);
+			case "rift023a-performance" -> new PhantomRiftCorrectionsSuite(PhantomRiftCorrectionsSuite.Mode.PERFORMANCE);
+			case "rift023a-all" -> new PhantomRiftCorrectionsSuite(PhantomRiftCorrectionsSuite.Mode.ALL);
 			case "social-catalog" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.CATALOG);
 			case "social-codec" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.CODEC);
 			case "social-personality" -> new PhantomSocialSuite(PhantomSocialSuite.Mode.PERSONALITY);

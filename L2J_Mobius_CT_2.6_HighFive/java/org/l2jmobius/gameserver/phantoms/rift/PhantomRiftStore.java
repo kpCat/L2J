@@ -38,7 +38,7 @@ public final class PhantomRiftStore implements PhantomRiftPersistencePort
 
 	private StoredPreparation decode(PhantomProfileComponent component)
 	{
-		if (component.componentSchemaVersion() != PhantomRiftModel.SCHEMA_VERSION)
+		if ((component.componentSchemaVersion() != 1) && (component.componentSchemaVersion() != PhantomRiftModel.SCHEMA_VERSION))
 		{
 			throw new IllegalArgumentException("Unknown rift.preparation schema version.");
 		}

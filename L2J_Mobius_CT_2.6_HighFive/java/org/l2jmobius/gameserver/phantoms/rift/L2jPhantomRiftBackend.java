@@ -31,6 +31,8 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
@@ -39,6 +41,8 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftCatalog.ConfigFacts;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftCatalog.EntryFacts;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
 
 /**
  * Bounded live High Five adapter. Nearby discovery walks only visible objects
@@ -50,14 +54,21 @@ public final class L2jPhantomRiftBackend implements PhantomRiftBackend
 	private final PhantomProfileRepository _profiles;
 	private final PhantomMaterializationService _materialization;
 	private final PhantomProgressionService _progression;
+	private final PhantomSocialService _social;
 	private final List<Integer> _shotItemIds;
 
 	public L2jPhantomRiftBackend(PhantomPartyBackend party, PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomProgressionService progression, PhantomCommerceCatalog commerce)
+	{
+		this(party, profiles, materialization, progression, commerce, null);
+	}
+
+	public L2jPhantomRiftBackend(PhantomPartyBackend party, PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomProgressionService progression, PhantomCommerceCatalog commerce, PhantomSocialService social)
 	{
 		_party = party;
 		_profiles = profiles;
 		_materialization = materialization;
 		_progression = progression;
+		_social = social;
 		_shotItemIds = commerce.supplies().stream().filter(supply -> supply.kinds().contains(SupplyKind.SHOT)).map(PhantomCommerceCatalog.SupplyFact::itemId).distinct().sorted().toList();
 	}
 
@@ -154,7 +165,7 @@ public final class L2jPhantomRiftBackend implements PhantomRiftBackend
 			final Player player = acquired.player();
 			references = World.getInstance().getVisibleObjectsInRange(player, Player.class, range).stream()
 				.filter(candidate -> (candidate != player) && (candidate.getInstanceId() == player.getInstanceId()))
-				.sorted(Comparator.comparingInt(Player::getObjectId))
+				.sorted(Comparator.<Player>comparingInt(candidate -> PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(candidate.getObjectId()) == OwnerKind.PHANTOM ? 0 : 1).thenComparingInt(Player::getObjectId))
 				.limit(limit)
 				.map(this::reference)
 				.toList();
@@ -167,6 +178,46 @@ public final class L2jPhantomRiftBackend implements PhantomRiftBackend
 		return List.copyOf(result);
 	}
 
+	@Override
+	public Optional<MemberFacts> candidateFacts(MemberRef observer, MemberRef candidate, Set<Integer> requestedItemIds, int range)
+	{
+		if ((range < 1) || (range > 10000))
+		{
+			throw new IllegalArgumentException("Rift candidate refresh range is invalid.");
+		}
+		try (AcquiredPlayer acquired = acquire(observer))
+		{
+			if (acquired == null)
+			{
+				return Optional.empty();
+			}
+			final Player player = acquired.player();
+			final Player visible = World.getInstance().getVisibleObjectsInRange(player, Player.class, range).stream().filter(value -> (value.getObjectId() == candidate.characterObjectId()) && (value.getInstanceId() == player.getInstanceId())).findFirst().orElse(null);
+			if ((visible == null) || !reference(visible).equals(candidate))
+			{
+				return Optional.empty();
+			}
+		}
+		return memberFacts(candidate, requestedItemIds);
+	}
+
+	@Override
+	public RelationshipEvidence relationship(long ownerProfileId, MemberRef candidate)
+	{
+		if (_social == null)
+		{
+			return RelationshipEvidence.neutral("social.not_configured");
+		}
+		final SubjectRef subject = candidate.kind() == MemberKind.PHANTOM ? SubjectRef.phantom(candidate.profileId()) : SubjectRef.character(candidate.characterObjectId());
+		final var result = _social.modifier(ownerProfileId, subject, "party.invite.preference", System.currentTimeMillis() / 60000L);
+		if (!result.available() || (result.value() == null))
+		{
+			return RelationshipEvidence.neutral(result.detail().isBlank() ? "social.unavailable" : result.detail());
+		}
+		final var value = result.value();
+		final String evidence = PhantomPartyModel.sha256(subject.stableKey() + '|' + value.modifierKey() + '|' + value.deltaBasisPoints() + '|' + value.evidenceKeys() + '|' + value.authorityHash());
+		return new RelationshipEvidence(value.deltaBasisPoints(), evidence, "social.modifier.ready", true);
+	}
 	@Override
 	public OptionalInt npcLevel(int npcId)
 	{

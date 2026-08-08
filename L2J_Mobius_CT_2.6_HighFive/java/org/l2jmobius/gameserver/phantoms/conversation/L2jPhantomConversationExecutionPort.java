@@ -315,7 +315,22 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 					facts.add(new QueryFact("rift.member_not_ready", new PhantomDomainRef("character.object", characterId), null, fact.slots().get("reasonKey"), "rift.readiness"));
 				}
 			}
-			else if (fact.type() == SemanticFactType.RIFT_PARTY_FULL)
+			else if (fact.type() == SemanticFactType.RIFT_INVITE_REQUEST)
+			{
+				final String characterId = fact.slots().get("candidateCharacterId");
+				if (characterId != null)
+				{
+					facts.add(new QueryFact("rift.invite_request", new PhantomDomainRef("character.object", characterId), Long.parseLong(fact.slots().getOrDefault("partySize", "0")), fact.slots().get("vacancy"), "rift.readiness"));
+				}
+			}
+			else if (fact.type() == SemanticFactType.RIFT_INVITE_REFUSED)
+			{
+				final String characterId = fact.slots().get("candidateCharacterId");
+				if (characterId != null)
+				{
+					facts.add(new QueryFact("rift.invite_refused", new PhantomDomainRef("character.object", characterId), null, fact.slots().get("reasonKey"), "rift.readiness"));
+				}
+			}			else if (fact.type() == SemanticFactType.RIFT_PARTY_FULL)
 			{
 				facts.add(new QueryFact("rift.party_full", null, Long.parseLong(fact.slots().get("partySize")), null, "rift.readiness"));
 			}

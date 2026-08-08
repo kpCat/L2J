@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<riftPolicy version="1" candidateLimit="32" candidateRange="2500" inviteTimeoutMillis="30000" refusalCooldownMillis="600000" maximumSeatAttempts="8" maximumTotalAttempts="32" regroupDistance="300" minimumHpPercent="60" minimumMpPercent="20" minimumCpPercent="0" levelOffsetBelowMobMinimum="2" minimumEquippedItems="2" requireWeapon="true" physicalShotCount="100" magicShotCount="100">
+<riftPolicy version="1" candidateLimit="32" candidateRange="2500" inviteTimeoutMillis="15000" refusalCooldownMillis="600000" maximumSeatAttempts="8" maximumTotalAttempts="32" regroupDistance="300" minimumHpPercent="60" minimumMpPercent="20" minimumCpPercent="0" levelOffsetBelowMobMinimum="2" minimumEquippedItems="2" requireWeapon="true" physicalShotCount="100" magicShotCount="100">
 	<tier type="1">
 		<vacancy key="frontline" role="frontline.guardian" required="true" minimumScore="100" count="1" priority="1000"/>
 		<vacancy key="healer" role="support.healer" required="true" minimumScore="100" count="1" priority="950"/>

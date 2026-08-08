@@ -26,6 +26,34 @@ public interface PhantomRiftBackend extends PhantomRiftCatalog.Authority
 
 	List<MemberFacts> nearbyCandidates(MemberRef observer, Set<Integer> requestedItemIds, int range, int limit);
 
+	default Optional<MemberFacts> candidateFacts(MemberRef observer, MemberRef candidate, Set<Integer> requestedItemIds, int range)
+	{
+		return memberFacts(candidate, requestedItemIds);
+	}
+
+	default RelationshipEvidence relationship(long ownerProfileId, MemberRef candidate)
+	{
+		return RelationshipEvidence.neutral("social.unavailable");
+	}
+
+	record RelationshipEvidence(int modifierBasisPoints, String evidenceHash, String reasonKey, boolean available)
+	{
+		public RelationshipEvidence
+		{
+			if ((modifierBasisPoints < -3000) || (modifierBasisPoints > 3000))
+			{
+				throw new IllegalArgumentException("Rift relationship modifier is outside bounds.");
+			}
+			evidenceHash = PhantomRiftModel.requireHash(evidenceHash, "Rift relationship evidence");
+			reasonKey = PhantomRiftModel.requireKey(reasonKey, "Rift relationship reason");
+		}
+
+		public static RelationshipEvidence neutral(String reasonKey)
+		{
+			return new RelationshipEvidence(0, "0".repeat(64), reasonKey, false);
+		}
+	}
+
 	record EquipmentFact(int objectId, int itemId, int paperdollSlot, String family, String grade)
 	{
 		public EquipmentFact

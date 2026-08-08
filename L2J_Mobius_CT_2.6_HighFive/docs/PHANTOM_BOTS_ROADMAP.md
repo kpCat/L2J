@@ -894,7 +894,7 @@ conservation.
 **Gate:** no item/adena duplication across injected failures and restart.  
 **Follow-up risk:** `VERY_HIGH` — transaction/anti-dup/deadlock boundary.
 
-## Goal 023 — Rift и advanced party recruitment
+## Goal 023 — Rift и advanced party recruitment — `CORRECTIVE_023A_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** дополнить базовую Goal 017 content-specific composition.  
 **Зависимости:** 010, 013, 017, 020.  
@@ -905,7 +905,7 @@ invite/refuse policy.
 **Gate:** ответы о недостающей роли следуют из реального состава.  
 **Follow-up risk:** `HIGH` — instance/content and composition edge cases.
 
-## Goal 024 — Farming spot negotiation и resource conflict
+## Goal 024 — Farming spot negotiation и resource conflict — `NOT_STARTED`
 
 **Назначение:** согласование реальных целей в perceptible topology.  
 **Зависимости:** 010, 018, 020, 021, 023.  

@@ -15,7 +15,7 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RoleMatch
 public final class PhantomRiftModel
 {
 	public static final String COMPONENT_TYPE = "rift.preparation";
-	public static final int SCHEMA_VERSION = 1;
+	public static final int SCHEMA_VERSION = 2;
 	public static final int MAX_REFUSALS = 32;
 	public static final int MAX_CANDIDATES = 32;
 	public static final int MAX_PAYLOAD_BYTES = 4096;
@@ -39,6 +39,7 @@ public final class PhantomRiftModel
 		SNAPSHOT_ROSTER,
 		EVALUATE_READINESS,
 		SELECT_CANDIDATE,
+		ENSURE_PARTY_BINDING,
 		REQUEST_INVITE,
 		OBSERVE_INVITE,
 		REQUEST_PARTY_ROUTE,
@@ -152,16 +153,22 @@ public final class PhantomRiftModel
 		}
 	}
 
-	public record CandidateScore(MemberRef member, String vacancyKey, int roleScore, int readinessScore, long distanceSquared, boolean ordinaryRealPlayer, String evidenceHash)
+	public record CandidateScore(MemberRef member, String vacancyKey, int roleScore, int readinessScore, int relationshipModifier, long distanceSquared, boolean ordinaryRealPlayer, String relationshipEvidenceHash, String evidenceHash)
 	{
+		public CandidateScore(MemberRef member, String vacancyKey, int roleScore, int readinessScore, long distanceSquared, boolean ordinaryRealPlayer, String evidenceHash)
+		{
+			this(member, vacancyKey, roleScore, readinessScore, 0, distanceSquared, ordinaryRealPlayer, "0".repeat(64), evidenceHash);
+		}
+
 		public CandidateScore
 		{
 			Objects.requireNonNull(member);
 			vacancyKey = requireKey(vacancyKey, "Rift candidate vacancy");
-			if ((roleScore < 1) || (roleScore > 10000) || (readinessScore < 0) || (readinessScore > 10000) || (distanceSquared < 0))
+			if ((roleScore < 1) || (roleScore > 10000) || (readinessScore < 0) || (readinessScore > 10000) || (relationshipModifier < -10000) || (relationshipModifier > 10000) || (distanceSquared < 0))
 			{
 				throw new IllegalArgumentException("Invalid Rift candidate score.");
 			}
+			relationshipEvidenceHash = requireHash(relationshipEvidenceHash, "Rift relationship evidence");
 			evidenceHash = requireHash(evidenceHash, "Rift candidate evidence");
 		}
 	}
@@ -198,8 +205,74 @@ public final class PhantomRiftModel
 		}
 	}
 
-	public record Preparation(long leaderProfileId, long goalId, long goalRevision, int tierType, Stage stage, Status status, String rosterHash, String catalogHash, String policyHash, String configHash, String roleHash, String missingVacancyKey, MemberRef pendingCandidate, long pendingInvitationSequence, int totalAttempts, int seatAttempts, List<Refusal> refusals, String routeHash, long updatedEpochMillis)
+	public enum BindingStability
 	{
+		NONE,
+		STABLE,
+		PENDING,
+		CONFLICT
+	}
+
+	public enum InvitationStatus
+	{
+		NONE,
+		PENDING,
+		ACCEPTED,
+		REFUSED,
+		EXPIRED,
+		CANCELLED,
+		REJECTED,
+		STALE
+	}
+
+	public record PartyBindingReceipt(String groupId, long groupGeneration, long membershipRevision, MemberRef leader, String rosterHash, String manifestHash, BindingStability stability)
+	{
+		public PartyBindingReceipt
+		{
+			groupId = requireHash(groupId, "Rift party group ID");
+			if ((groupGeneration < 1) || (membershipRevision < 0))
+			{
+				throw new IllegalArgumentException("Invalid Rift party binding generation.");
+			}
+			Objects.requireNonNull(leader);
+			rosterHash = requireHash(rosterHash, "Rift binding roster hash");
+			manifestHash = requireHash(manifestHash, "Rift binding manifest hash");
+			Objects.requireNonNull(stability);
+		}
+	}
+
+	public record CandidateReceipt(String vacancyKey, MemberRef candidate, String candidateEvidenceHash, String selectedRosterHash, String relationshipEvidenceHash)
+	{
+		public CandidateReceipt
+		{
+			vacancyKey = requireKey(vacancyKey, "Rift candidate receipt vacancy");
+			Objects.requireNonNull(candidate);
+			candidateEvidenceHash = requireHash(candidateEvidenceHash, "Rift candidate receipt evidence");
+			selectedRosterHash = requireHash(selectedRosterHash, "Rift candidate receipt roster");
+			relationshipEvidenceHash = requireHash(relationshipEvidenceHash, "Rift candidate relationship evidence");
+		}
+	}
+
+	public record PendingInvitationReceipt(long sequence, int requesterObjectId, int inviteeObjectId, long requestedAtEpochMillis, long canonicalExpiresAtGameTick, InvitationStatus status, String reasonKey)
+	{
+		public PendingInvitationReceipt
+		{
+			if ((sequence <= 0) || (requesterObjectId <= 0) || (inviteeObjectId <= 0) || (requestedAtEpochMillis < 0) || (canonicalExpiresAtGameTick <= 0))
+			{
+				throw new IllegalArgumentException("Invalid Rift invitation identity or expiry.");
+			}
+			Objects.requireNonNull(status);
+			reasonKey = requireKey(reasonKey, "Rift invitation reason");
+		}
+	}
+
+	public record Preparation(long leaderProfileId, long goalId, long goalRevision, int tierType, Stage stage, Status status, String rosterHash, String catalogHash, String policyHash, String configHash, String roleHash, String missingVacancyKey, MemberRef pendingCandidate, long pendingInvitationSequence, int totalAttempts, int seatAttempts, List<Refusal> refusals, String routeHash, long updatedEpochMillis, PartyBindingReceipt partyBinding, CandidateReceipt candidateReceipt, PendingInvitationReceipt invitationReceipt, boolean legacyUntrusted)
+	{
+		public Preparation(long leaderProfileId, long goalId, long goalRevision, int tierType, Stage stage, Status status, String rosterHash, String catalogHash, String policyHash, String configHash, String roleHash, String missingVacancyKey, MemberRef pendingCandidate, long pendingInvitationSequence, int totalAttempts, int seatAttempts, List<Refusal> refusals, String routeHash, long updatedEpochMillis)
+		{
+			this(leaderProfileId, goalId, goalRevision, tierType, stage, status, rosterHash, catalogHash, policyHash, configHash, roleHash, missingVacancyKey, pendingCandidate, pendingInvitationSequence, totalAttempts, seatAttempts, refusals, routeHash, updatedEpochMillis, null, null, null, false);
+		}
+
 		public Preparation
 		{
 			if ((leaderProfileId <= 0) || (goalId <= 0) || (goalRevision < 0) || (tierType < 1) || (tierType > 6) || (pendingInvitationSequence < 0) || (totalAttempts < 0) || (totalAttempts > 32) || (seatAttempts < 0) || (seatAttempts > 8) || (updatedEpochMillis < 0))
@@ -220,9 +293,16 @@ public final class PhantomRiftModel
 				throw new IllegalArgumentException("Rift refusal history bound exceeded.");
 			}
 			routeHash = requireHash(routeHash, "Rift preparation route hash");
+			if ((candidateReceipt != null) && ((pendingCandidate == null) || !candidateReceipt.candidate().equals(pendingCandidate)))
+			{
+				throw new IllegalArgumentException("Rift candidate receipt identity mismatch.");
+			}
+			if ((invitationReceipt != null) && ((pendingCandidate == null) || (pendingInvitationSequence != invitationReceipt.sequence()) || (pendingCandidate.characterObjectId() != invitationReceipt.inviteeObjectId())))
+			{
+				throw new IllegalArgumentException("Rift invitation receipt identity mismatch.");
+			}
 		}
 	}
-
 	public record SemanticFact(SemanticFactType type, Map<String, String> slots, String rosterEvidenceHash)
 	{
 		public SemanticFact
