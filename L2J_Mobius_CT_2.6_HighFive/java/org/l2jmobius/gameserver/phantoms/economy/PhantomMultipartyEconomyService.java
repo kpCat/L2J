@@ -361,11 +361,17 @@ public final class PhantomMultipartyEconomyService
 			final Player counterparty = World.getInstance().getPlayer(spec.counterpartyCharacterObjectId());
 			if (counterparty == null)
 			{
+				if (spec instanceof DirectTrade)
+				{
+					final TradeList active = initiator.getActiveTradeList();
+					final Player expected = active == null ? initiator.getActiveRequester() : active.getPartner();
+					return (expected != null) && (expected.getObjectId() == spec.counterpartyCharacterObjectId()) ? abortDirectBeforeEffect(operation, offer, goal, initiator, expected, now, "trade.counterparty.absent") : StepResult.retry("economy.social.trade.cleanup.retry");
+				}
 				return abortBeforeEffect(operation, offer, now, "counterparty.absent");
 			}
 			return switch (spec)
 			{
-				case DirectTrade trade -> executeDirectTrade(initiator, counterparty, trade, operation, offer, goal, now);
+				case DirectTrade trade -> executeDirectTrade(initiator, counterparty, trade, operation, offer, goal, participants, now);
 				case StoreBuy buy -> executeStoreBuy(initiator, counterparty, buy, operation, offer, goal, now);
 				case StoreSell sell -> executeStoreSell(initiator, counterparty, sell, operation, offer, goal, now);
 				case Manufacture manufacture -> executeManufacture(initiator, counterparty, manufacture, operation, offer, goal, participants, now);
@@ -389,17 +395,63 @@ public final class PhantomMultipartyEconomyService
 		final StoredOperation operation = operation(offer);
 		if ((operation != null) && !operation.state().terminal())
 		{
-			final PhantomEconomyOperation.State terminal = operation.state() == PhantomEconomyOperation.State.OBSERVING ? PhantomEconomyOperation.State.INCONSISTENT : PhantomEconomyOperation.State.ABORTED;
-			_reservations.transition(operation.operationId(), operation.state(), terminal, now, new Audit(terminal == PhantomEconomyOperation.State.INCONSISTENT ? Result.INCONSISTENT : Result.ERROR, "operation.cancelled", new byte[0]));
-			closeObserver(operation.operationId());
+			final AutoCloseable retained = _observerLeases.get(operation.operationId());
+			if (retained instanceof ManufactureObserver observer)
+			{
+				final StepResult result = observer.cancel(now);
+				final StoredOperation current = _reservations.find(operation.operationId()).orElse(operation);
+				if (!current.state().terminal())
+				{
+					return result;
+				}
+			}
+			else
+			{
+				final PhantomSocialEconomyGoalSpec spec = parse(goal);
+				if (spec instanceof DirectTrade)
+				{
+					try (ParticipantLeases participants = acquireParticipants(profileId, spec))
+					{
+						if ((participants == null) || !participants.exclusive())
+						{
+							return StepResult.retry("economy.social.trade.cleanup.retry");
+						}
+						final Player initiator = participants.player(profileId);
+						Player counterparty = World.getInstance().getPlayer(spec.counterpartyCharacterObjectId());
+						if (counterparty == null)
+						{
+							final TradeList active = initiator.getActiveTradeList();
+							counterparty = active == null ? initiator.getActiveRequester() : active.getPartner();
+						}
+						if ((counterparty == null) || !DirectTradeService.getInstance().cancel(initiator, counterparty))
+						{
+							return StepResult.retry("economy.social.trade.cleanup.retry");
+						}
+						final StoredOperation current = _reservations.find(operation.operationId()).orElse(operation);
+						if (!current.state().terminal())
+						{
+							terminal(operation, offer, goal, PhantomEconomyOperation.State.ABORTED, Result.ERROR, "operation.cancelled", 0, 0, 0, now);
+						}
+					}
+				}
+				else
+				{
+					final PhantomEconomyOperation.State terminalState = operation.state() == PhantomEconomyOperation.State.OBSERVING ? PhantomEconomyOperation.State.INCONSISTENT : PhantomEconomyOperation.State.ABORTED;
+					terminal(operation, offer, goal, terminalState, terminalState == PhantomEconomyOperation.State.INCONSISTENT ? Result.INCONSISTENT : Result.ERROR, "operation.cancelled", 0, 0, 0, now);
+				}
+			}
 		}
-		final PhantomEconomyOffer refreshed = _offers.find(offer.offerId()).orElseThrow();
-		_offers.cancel(refreshed.offerId(), refreshed.rowVersion(), now, "offer.cancelled");
+		final PhantomEconomyOffer refreshed = _offers.find(offer.offerId()).orElse(null);
+		if ((refreshed != null) && (refreshed.state() == State.ACCEPTED))
+		{
+			_offers.cancel(refreshed.offerId(), refreshed.rowVersion(), now, "offer.cancelled");
+		}
 		return StepResult.success(offer.offerId(), operation == null ? "" : operation.operationId(), "economy.social.cancelled");
 	}
 
-	public void shutdown(long now)
+	public ShutdownResult shutdown(long now)
 	{
+		final java.util.TreeSet<String> pending = new java.util.TreeSet<>();
 		String cursor = "";
 		for (int page = 0; page < 1000; page++)
 		{
@@ -408,17 +460,129 @@ public final class PhantomMultipartyEconomyService
 			{
 				for (String operationId : List.copyOf(_observerLeases.keySet()))
 				{
-					closeObserver(operationId);
+					final StoredOperation operation = _reservations.find(operationId).orElse(null);
+					if ((operation == null) || operation.state().terminal())
+					{
+						closeObserver(operationId);
+					}
+					else
+					{
+						pending.add(operationId);
+					}
 				}
-				return;
+				return new ShutdownResult(pending.isEmpty(), List.copyOf(pending));
 			}
 			for (PhantomEconomyOffer offer : active)
 			{
 				cursor = offer.offerId();
-				reconcileOffer(offer, now, true);
+				try
+				{
+					if (!shutdownOffer(offer, now))
+					{
+						pending.add(offer.operationId().isEmpty() ? offer.offerId() : offer.operationId());
+					}
+				}
+				catch (RuntimeException exception)
+				{
+					final PhantomEconomyOffer current = _offers.find(offer.offerId()).orElse(offer);
+					if (!reconcileOffer(current, now, true) && !_offers.find(offer.offerId()).map(value -> value.state().terminal()).orElse(false))
+					{
+						pending.add(offer.operationId().isEmpty() ? offer.offerId() : offer.operationId());
+					}
+				}
 			}
 		}
-		throw new IllegalStateException("Multiparty economy shutdown exceeded its bounded offer scan.");
+		pending.add("bounded-offer-scan");
+		return new ShutdownResult(false, List.copyOf(pending));
+	}
+
+	private boolean shutdownOffer(PhantomEconomyOffer offer, long now)
+	{
+		if (offer.state() != State.ACCEPTED)
+		{
+			reconcileOffer(offer, now, true);
+			return _offers.find(offer.offerId()).map(value -> value.state().terminal()).orElse(false);
+		}
+		StoredOperation operation = operation(offer);
+		if (operation == null)
+		{
+			final StoredOperation candidate = _reservations.findActive(offer.initiatingProfileId()).orElse(null);
+			if ((candidate != null) && (candidate.goalId() == offer.goalId()) && (candidate.goalRevision() == offer.goalRevision()) && (candidate.kind() == offer.operationKind()) && candidate.intentHash().equals(offer.contentHash()))
+			{
+				operation = candidate;
+			}
+		}
+		if ((operation != null) && operation.state().terminal())
+		{
+			reconcileOffer(offer, now, true);
+			return _offers.find(offer.offerId()).map(value -> value.state().terminal()).orElse(false);
+		}
+		final PhantomGoalStateStore.StoredGoal storedGoal = _goals.load(offer.initiatingProfileId()).orElse(null);
+		if ((storedGoal == null) || (storedGoal.goal().goalId() != offer.goalId()) || (storedGoal.goal().revision() != offer.goalRevision()))
+		{
+			return false;
+		}
+		final PhantomGoal goal = storedGoal.goal();
+		final PhantomSocialEconomyGoalSpec spec = parse(goal);
+		if (operation == null)
+		{
+			if ((spec instanceof DirectTrade) && !cancelDirectForShutdown(offer, spec))
+			{
+				return false;
+			}
+			reconcileOffer(offer, now, true);
+			return _offers.find(offer.offerId()).map(value -> value.state().terminal()).orElse(false);
+		}
+		final AutoCloseable retained = _observerLeases.get(operation.operationId());
+		if (retained instanceof ManufactureObserver observer)
+		{
+			observer.cancel(now);
+			final StoredOperation current = _reservations.find(operation.operationId()).orElse(operation);
+			if (!current.state().terminal())
+			{
+				return false;
+			}
+			reconcileOffer(_offers.find(offer.offerId()).orElse(offer), now, true);
+			return _offers.find(offer.offerId()).map(value -> value.state().terminal()).orElse(false);
+		}
+		if (spec instanceof DirectTrade)
+		{
+			if (!cancelDirectForShutdown(offer, spec))
+			{
+				return false;
+			}
+				final StoredOperation current = _reservations.find(operation.operationId()).orElse(operation);
+				if (!current.state().terminal())
+				{
+					terminal(operation, offer, goal, PhantomEconomyOperation.State.ABORTED, Result.ERROR, "operation.shutdown", 0, 0, 0, now);
+				}
+		}
+		else
+		{
+			final PhantomEconomyOperation.State terminalState = operation.state() == PhantomEconomyOperation.State.OBSERVING ? PhantomEconomyOperation.State.INCONSISTENT : PhantomEconomyOperation.State.ABORTED;
+			terminal(operation, offer, goal, terminalState, terminalState == PhantomEconomyOperation.State.INCONSISTENT ? Result.INCONSISTENT : Result.ERROR, "operation.shutdown", 0, 0, 0, now);
+		}
+		reconcileOffer(_offers.find(offer.offerId()).orElse(offer), now, true);
+		return _offers.find(offer.offerId()).map(value -> value.state().terminal()).orElse(false);
+	}
+
+	private boolean cancelDirectForShutdown(PhantomEconomyOffer offer, PhantomSocialEconomyGoalSpec spec)
+	{
+		try (ParticipantLeases participants = acquireParticipants(offer.initiatingProfileId(), spec))
+		{
+			if ((participants == null) || !participants.exclusive())
+			{
+				return false;
+			}
+			final Player initiator = participants.player(offer.initiatingProfileId());
+			Player counterparty = World.getInstance().getPlayer(spec.counterpartyCharacterObjectId());
+			if (counterparty == null)
+			{
+				final TradeList active = initiator.getActiveTradeList();
+				counterparty = active == null ? initiator.getActiveRequester() : active.getPartner();
+			}
+			return (counterparty != null) && DirectTradeService.getInstance().cancel(initiator, counterparty);
+		}
 	}
 
 	public int reconcileStartup(long now)
@@ -498,48 +662,113 @@ public final class PhantomMultipartyEconomyService
 		return (result == PhantomEconomyOfferService.Status.TRANSITIONED) || (result == PhantomEconomyOfferService.Status.IDEMPOTENT);
 	}
 
-	private StepResult executeDirectTrade(Player initiator, Player counterparty, DirectTrade spec, StoredOperation operation, PhantomEconomyOffer offer, PhantomGoal goal, long now)
+	private StepResult executeDirectTrade(Player initiator, Player counterparty, DirectTrade spec, StoredOperation operation, PhantomEconomyOffer offer, PhantomGoal goal, ParticipantLeases participants, long now)
 	{
 		final TradeList initiatorList = initiator.getActiveTradeList();
 		final TradeList counterpartyList = counterparty.getActiveTradeList();
-		if ((initiatorList == null) || (counterpartyList == null) || (initiatorList.getPartner() != counterparty) || (counterpartyList.getPartner() != initiator))
+		if ((now >= offer.expiresEpochMillis()) || !directPairCurrent(initiator, counterparty, spec, initiatorList, counterpartyList))
 		{
-			return abortBeforeEffect(operation, offer, now, "trade.consent.lost");
+			return abortDirectBeforeEffect(operation, offer, goal, initiator, counterparty, now, now >= offer.expiresEpochMillis() ? "trade.external.expired" : "trade.consent.lost");
 		}
-		for (Line line : spec.offeredLines())
+		if (!populateExactTradeList(initiator, initiatorList, spec.offeredLines(), spec.offeredAdena()))
 		{
-			DirectTradeService.getInstance().addItem(initiator, 0, line.objectId(), line.count());
-		}
-		if (spec.offeredAdena() > 0)
-		{
-			DirectTradeService.getInstance().addItem(initiator, 0, initiator.getInventory().getAdenaInstance().getObjectId(), spec.offeredAdena());
+			return abortDirectBeforeEffect(operation, offer, goal, initiator, counterparty, now, "trade.initiator.lines.stale");
 		}
 		if (spec.counterpartyProfileId() > 0)
 		{
-			for (Line line : spec.requestedLines())
+			if (!populateExactTradeList(counterparty, counterpartyList, spec.requestedLines(), spec.requestedAdena()))
 			{
-				DirectTradeService.getInstance().addItem(counterparty, 0, line.objectId(), line.count());
+				return abortDirectBeforeEffect(operation, offer, goal, initiator, counterparty, now, "trade.counterparty.lines.stale");
 			}
-			if (spec.requestedAdena() > 0)
-			{
-				DirectTradeService.getInstance().addItem(counterparty, 0, counterparty.getInventory().getAdenaInstance().getObjectId(), spec.requestedAdena());
-			}
+		}
+		else if (!exactTradeList(counterpartyList, spec.requestedLines(), spec.requestedAdena()))
+		{
+			return abortDirectBeforeEffect(operation, offer, goal, initiator, counterparty, now, "trade.external.lines.stale");
 		}
 		if (!exactTradeList(initiatorList, spec.offeredLines(), spec.offeredAdena()) || !exactTradeList(counterpartyList, spec.requestedLines(), spec.requestedAdena()))
 		{
-			return StepResult.retry("economy.social.trade.lines.awaiting");
+			return abortDirectBeforeEffect(operation, offer, goal, initiator, counterparty, now, "trade.accepted.lines.stale");
 		}
-		if (!_observerLeases.containsKey(operation.operationId()))
+		if (spec.counterpartyProfileId() == 0)
 		{
-			installObserver(operation.operationId(), DirectTradeService.getInstance().observe(initiator.getObjectId(), counterparty.getObjectId(), new DirectObserver(operation, offer, goal, initiator, counterparty, spec, _reservations.findReservations(operation.operationId()), now)));
+			if (initiatorList.isConfirmed())
+			{
+				return abortDirectBeforeEffect(operation, offer, goal, initiator, counterparty, now, "trade.phantom.confirmed_early");
+			}
+			if (!counterpartyList.isConfirmed())
+			{
+				return StepResult.retry("economy.social.trade.external_confirmation.awaiting");
+			}
 		}
+		if (!participants.exclusive() || _observerLeases.containsKey(operation.operationId()))
+		{
+			return StepResult.retry("economy.social.trade.lease_boundary.retry");
+		}
+		final AutoCloseable registration = DirectTradeService.getInstance().observe(initiator.getObjectId(), counterparty.getObjectId(), new DirectObserver(operation, offer, goal, initiator, counterparty, spec, _reservations.findReservations(operation.operationId()), participants, now));
+		participants.retain();
+		installObserver(operation.operationId(), () -> { close(registration); participants.release(); });
 		DirectTradeService.getInstance().finish(initiator, true);
 		if (spec.counterpartyProfileId() > 0)
 		{
 			DirectTradeService.getInstance().finish(counterparty, true);
 		}
-		final StoredOperation after = _reservations.find(operation.operationId()).orElse(operation);
-		return after.state().terminal() ? StepResult.success(offer.offerId(), operation.operationId(), "economy.social.trade.complete") : StepResult.retry("economy.social.trade.confirm.awaiting");
+		StoredOperation after = _reservations.find(operation.operationId()).orElse(operation);
+		if (!after.state().terminal())
+		{
+			if (!DirectTradeService.getInstance().cancel(initiator, counterparty))
+			{
+				return StepResult.retry("economy.social.trade.cleanup.retry");
+			}
+			after = _reservations.find(operation.operationId()).orElse(after);
+			if (!after.state().terminal())
+			{
+				terminal(operation, offer, goal, PhantomEconomyOperation.State.INCONSISTENT, Result.INCONSISTENT, "trade.synchronous_terminal_missing", 0, 0, 0, now);
+			}
+		}
+		return StepResult.success(offer.offerId(), operation.operationId(), "economy.social.trade.complete");
+	}
+
+	private boolean directPairCurrent(Player initiator, Player counterparty, DirectTrade spec, TradeList initiatorList, TradeList counterpartyList)
+	{
+		return (World.getInstance().getPlayer(counterparty.getObjectId()) == counterparty) && counterparty.isOnline() && (initiator.getInstanceId() == counterparty.getInstanceId()) && (initiator.calculateDistance3D(counterparty) <= Math.min(150, spec.maximumDistance())) && (initiatorList != null) && (counterpartyList != null) && (initiatorList.getPartner() == counterparty) && (counterpartyList.getPartner() == initiator);
+	}
+
+	private boolean populateExactTradeList(Player owner, TradeList list, List<Line> lines, long adena)
+	{
+		if (exactTradeList(list, lines, adena))
+		{
+			return true;
+		}
+		if (list.isConfirmed() || !list.getItems().isEmpty())
+		{
+			return false;
+		}
+		for (Line line : lines)
+		{
+			if (DirectTradeService.getInstance().addItem(owner, 0, line.objectId(), line.count()) != DirectTradeService.Result.UPDATED)
+			{
+				return false;
+			}
+		}
+		if ((adena > 0) && (DirectTradeService.getInstance().addItem(owner, 0, owner.getInventory().getAdenaInstance().getObjectId(), adena) != DirectTradeService.Result.UPDATED))
+		{
+			return false;
+		}
+		return exactTradeList(list, lines, adena);
+	}
+
+	private StepResult abortDirectBeforeEffect(StoredOperation operation, PhantomEconomyOffer offer, PhantomGoal goal, Player initiator, Player counterparty, long now, String reason)
+	{
+		if (!DirectTradeService.getInstance().cancel(initiator, counterparty))
+		{
+			return StepResult.retry("economy.social.trade.cleanup.retry");
+		}
+		final StoredOperation current = _reservations.find(operation.operationId()).orElse(operation);
+		if (!current.state().terminal())
+		{
+			terminal(operation, offer, goal, PhantomEconomyOperation.State.ABORTED, Result.ERROR, reason, 0, 0, 0, now);
+		}
+		return StepResult.replan("economy.social." + reason);
 	}
 
 	private StepResult executeStoreBuy(Player buyer, Player owner, StoreBuy spec, StoredOperation operation, PhantomEconomyOffer offer, PhantomGoal goal, long now)
@@ -607,7 +836,14 @@ public final class PhantomMultipartyEconomyService
 		{
 			return StepResult.replan("economy.social.observe.conflict");
 		}
-		_faults.inject(FaultPoint.AFTER_OBSERVING);
+		try
+		{
+			_faults.inject(FaultPoint.AFTER_OBSERVING);
+		}
+		catch (RuntimeException exception)
+		{
+			return abortBeforeEffect(operation, offer, now, "manufacture.fault_after_observing");
+		}
 		participants.retain();
 		final ManufactureObserver observer = new ManufactureObserver(operation, offer, goal, customer, manufacturer, spec, before, acceptedReservations, participants, now);
 		installObserver(operation.operationId(), observer);
@@ -917,29 +1153,39 @@ public final class PhantomMultipartyEconomyService
 		}
 		final PhantomEconomyOperation.State expected = _reservations.find(operation.operationId()).map(StoredOperation::state).orElse(operation.state());
 		final var transitioned = _reservations.transition(operation.operationId(), expected, finalState, now, new Audit(finalResult, finalReason, conservationPayload(operation, consumed, produced, adena), consumed, produced, adena, adena, 0, 0));
-		if ((transitioned.status() == PhantomEconomyReservationService.Status.TRANSITIONED) || (transitioned.status() == PhantomEconomyReservationService.Status.IDEMPOTENT))
+		final boolean durableTerminal = (transitioned.status() == PhantomEconomyReservationService.Status.TRANSITIONED) || (transitioned.status() == PhantomEconomyReservationService.Status.IDEMPOTENT);
+		try
 		{
-			_faults.inject(FaultPoint.AFTER_OPERATION_AUDIT);
-			final PhantomEconomyOffer current = _offers.find(offer.offerId()).orElse(null);
-			if ((current != null) && (current.state() == State.ACCEPTED))
+			if (durableTerminal)
 			{
-				if (finalState == PhantomEconomyOperation.State.COMMITTED)
+				_faults.inject(FaultPoint.AFTER_OPERATION_AUDIT);
+				final PhantomEconomyOffer current = _offers.find(offer.offerId()).orElse(null);
+				if ((current != null) && (current.state() == State.ACCEPTED))
 				{
-					_offers.consume(current.offerId(), operation.operationId(), current.rowVersion(), now);
-					_committed.increment();
-				}
-				else if (finalState == PhantomEconomyOperation.State.INCONSISTENT)
-				{
-					_offers.inconsistent(current.offerId(), operation.operationId(), current.rowVersion(), now, finalReason);
-					_inconsistent.increment();
-				}
-				else
-				{
-					_offers.cancel(current.offerId(), current.rowVersion(), now, finalReason);
+					if (finalState == PhantomEconomyOperation.State.COMMITTED)
+					{
+						_offers.consume(current.offerId(), operation.operationId(), current.rowVersion(), now);
+						_committed.increment();
+					}
+					else if (finalState == PhantomEconomyOperation.State.INCONSISTENT)
+					{
+						_offers.inconsistent(current.offerId(), operation.operationId(), current.rowVersion(), now, finalReason);
+						_inconsistent.increment();
+					}
+					else
+					{
+						_offers.cancel(current.offerId(), current.rowVersion(), now, finalReason);
+					}
 				}
 			}
 		}
-		closeObserver(operation.operationId());
+		finally
+		{
+			if (durableTerminal)
+			{
+				closeObserver(operation.operationId());
+			}
+		}
 	}
 
 	private StepResult abortBeforeEffect(StoredOperation operation, PhantomEconomyOffer offer, long now, String reason)
@@ -1162,12 +1408,15 @@ public final class PhantomMultipartyEconomyService
 		private final Player _second;
 		private final DirectTrade _spec;
 		private final List<Reservation> _acceptedReservations;
+		private final ParticipantLeases _participants;
 		private final List<String> _actualTransfers = new ArrayList<>();
 		private final long _now;
 		private Conservation _before;
-		private int _transfers;
+		private boolean _firstAdenaObserved;
+		private boolean _firstItemObserved;
+		private String _preEffectReason = "trade.before_execute_rejected";
 
-		private DirectObserver(StoredOperation operation, PhantomEconomyOffer offer, PhantomGoal goal, Player first, Player second, DirectTrade spec, List<Reservation> acceptedReservations, long now)
+		private DirectObserver(StoredOperation operation, PhantomEconomyOffer offer, PhantomGoal goal, Player first, Player second, DirectTrade spec, List<Reservation> acceptedReservations, ParticipantLeases participants, long now)
 		{
 			_operation = operation;
 			_offer = offer;
@@ -1176,6 +1425,7 @@ public final class PhantomMultipartyEconomyService
 			_second = second;
 			_spec = spec;
 			_acceptedReservations = List.copyOf(acceptedReservations);
+			_participants = participants;
 			_now = now;
 		}
 
@@ -1186,10 +1436,10 @@ public final class PhantomMultipartyEconomyService
 			final TradeList secondList = first.getOwner() == _second ? first : second.getOwner() == _second ? second : null;
 			final StoredOperation current = _reservations.find(_operation.operationId()).orElse(null);
 			final List<Reservation> liveReservations = _reservations.findReservations(_operation.operationId());
-			final boolean exact = (firstList != null) && (secondList != null) && (firstList.getPartner() == _second) && (secondList.getPartner() == _first) && firstList.isConfirmed() && secondList.isConfirmed() && exactTradeList(firstList, _spec.offeredLines(), _spec.offeredAdena()) && exactTradeList(secondList, _spec.requestedLines(), _spec.requestedAdena()) && (current != null) && (current.state() == PhantomEconomyOperation.State.DISPATCHING) && (current.kind() == PhantomEconomyOperation.Kind.DIRECT_TRADE) && current.intentHash().equals(_offer.contentHash()) && current.authorityHash().equals(directAuthority(_offer, _spec, _acceptedReservations)) && liveReservations.equals(_acceptedReservations) && reservationsMatchRuntime(_acceptedReservations);
+			final boolean exact = _participants.exclusive() && (firstList != null) && (secondList != null) && (firstList.getPartner() == _second) && (secondList.getPartner() == _first) && firstList.isConfirmed() && secondList.isConfirmed() && exactTradeList(firstList, _spec.offeredLines(), _spec.offeredAdena()) && exactTradeList(secondList, _spec.requestedLines(), _spec.requestedAdena()) && (current != null) && (current.state() == PhantomEconomyOperation.State.DISPATCHING) && (current.kind() == PhantomEconomyOperation.Kind.DIRECT_TRADE) && current.intentHash().equals(_offer.contentHash()) && current.authorityHash().equals(directAuthority(_offer, _spec, _acceptedReservations)) && liveReservations.equals(_acceptedReservations) && reservationsMatchRuntime(_acceptedReservations);
 			if (!exact)
 			{
-				terminal(_operation, _offer, _goal, PhantomEconomyOperation.State.ABORTED, Result.CONFLICT, "trade.accepted_spec_mismatch", 0, 0, 0, _now);
+				_preEffectReason = "trade.accepted_spec_mismatch";
 				return false;
 			}
 			final Set<Integer> ids = new HashSet<>();
@@ -1199,7 +1449,19 @@ public final class PhantomMultipartyEconomyService
 			final boolean ready = (transitioned.status() == PhantomEconomyReservationService.Status.TRANSITIONED) || (transitioned.status() == PhantomEconomyReservationService.Status.IDEMPOTENT);
 			if (ready)
 			{
-				_faults.inject(FaultPoint.AFTER_OBSERVING);
+				try
+				{
+					_faults.inject(FaultPoint.AFTER_OBSERVING);
+				}
+				catch (RuntimeException exception)
+				{
+					_preEffectReason = "trade.fault_after_observing";
+					return false;
+				}
+			}
+			else
+			{
+				_preEffectReason = "trade.observe.conflict";
 			}
 			return ready;
 		}
@@ -1208,9 +1470,15 @@ public final class PhantomMultipartyEconomyService
 		public void afterTransfer(int ownerObjectId, int receiverObjectId, int objectId, int itemId, long count)
 		{
 			_actualTransfers.add(transferKey(ownerObjectId, receiverObjectId, objectId, itemId, count));
-			if (++_transfers == 1)
+			if ((itemId == Inventory.ADENA_ID) && !_firstAdenaObserved)
 			{
-				_faults.inject(itemId == Inventory.ADENA_ID ? FaultPoint.AFTER_FIRST_ADENA_MUTATION : FaultPoint.AFTER_FIRST_ITEM_TRANSFER);
+				_firstAdenaObserved = true;
+				_faults.inject(FaultPoint.AFTER_FIRST_ADENA_MUTATION);
+			}
+			else if ((itemId != Inventory.ADENA_ID) && !_firstItemObserved)
+			{
+				_firstItemObserved = true;
+				_faults.inject(FaultPoint.AFTER_FIRST_ITEM_TRANSFER);
 			}
 			_faults.inject(FaultPoint.AFTER_EACH_TRANSFER_LINE);
 		}
@@ -1245,7 +1513,8 @@ public final class PhantomMultipartyEconomyService
 			final StoredOperation current = _reservations.find(_operation.operationId()).orElse(null);
 			if ((current != null) && !current.state().terminal())
 			{
-				terminal(_operation, _offer, _goal, current.state() == PhantomEconomyOperation.State.OBSERVING ? PhantomEconomyOperation.State.INCONSISTENT : PhantomEconomyOperation.State.ABORTED, current.state() == PhantomEconomyOperation.State.OBSERVING ? Result.INCONSISTENT : Result.ERROR, reason, 0, 0, 0, _now);
+				final boolean beforeEffect = _before == null;
+				terminal(_operation, _offer, _goal, beforeEffect ? PhantomEconomyOperation.State.ABORTED : PhantomEconomyOperation.State.INCONSISTENT, beforeEffect ? Result.ERROR : Result.INCONSISTENT, beforeEffect ? _preEffectReason : reason, 0, 0, 0, _now);
 			}
 		}
 	}
@@ -1356,6 +1625,8 @@ public final class PhantomMultipartyEconomyService
 		private long _fee;
 		private long _consumed;
 		private Map<Integer, Long> _consumedItems = Map.of();
+		private boolean _tainted;
+		private String _firstTaintReason = "";
 		private boolean _terminal;
 
 		private ManufactureObserver(StoredOperation operation, PhantomEconomyOffer offer, PhantomGoal goal, Player customer, Player manufacturer, Manufacture spec, Conservation before, List<Reservation> acceptedReservations, ParticipantLeases participants, long now)
@@ -1387,14 +1658,12 @@ public final class PhantomMultipartyEconomyService
 			}
 			if (!manufactureAuthorityMatches(event))
 			{
-				_terminal = true;
-				terminal(_operation, _offer, _goal, PhantomEconomyOperation.State.INCONSISTENT, Result.INCONSISTENT, "manufacture.observer.authority", 0, 0, 0, _now);
+				taint("manufacture.observer.authority");
 				return;
 			}
 			if ((event.crafterObjectId() != _manufacturer.getObjectId()) || (event.targetObjectId() != _customer.getObjectId()) || (event.recipeListId() != _spec.recipeListId()))
 			{
-				_terminal = true;
-				terminal(_operation, _offer, _goal, PhantomEconomyOperation.State.INCONSISTENT, Result.INCONSISTENT, "manufacture.observer.identity", 0, 0, 0, _now);
+				taint("manufacture.observer.identity");
 				return;
 			}
 			if (!_accepted)
@@ -1403,8 +1672,7 @@ public final class PhantomMultipartyEconomyService
 				final boolean exactAcceptance = (event.type() == RecipeCraftObserver.Type.ACCEPTED) && event.items().isEmpty() && (event.feeTransferred() == 0) && (event.expConsequence() == 0) && (event.spConsequence() == 0) && (current != null) && (current.state() == PhantomEconomyOperation.State.OBSERVING) && current.intentHash().equals(_offer.contentHash()) && current.authorityHash().equals(_operation.authorityHash()) && _reservations.findReservations(_operation.operationId()).equals(_acceptedReservations) && reservationsMatchRuntime(_acceptedReservations) && _participants.exclusive();
 				if (!exactAcceptance)
 				{
-					_terminal = true;
-					terminal(_operation, _offer, _goal, PhantomEconomyOperation.State.INCONSISTENT, Result.INCONSISTENT, "manufacture.accepted_spec_mismatch", 0, 0, 0, _now);
+					taint("manufacture.accepted_spec_mismatch");
 					return;
 				}
 				_accepted = true;
@@ -1414,8 +1682,7 @@ public final class PhantomMultipartyEconomyService
 			{
 				if ((_fee != 0) || (event.feeTransferred() != _spec.listingPrice()) || (event.crafterAdenaDelta() != _spec.listingPrice()) || (event.targetAdenaDelta() != -_spec.listingPrice()) || !event.items().isEmpty())
 				{
-					_terminal = true;
-					terminal(_operation, _offer, _goal, PhantomEconomyOperation.State.INCONSISTENT, Result.INCONSISTENT, "manufacture.fee_evidence", 0, 0, 0, _now);
+					taint("manufacture.fee_evidence");
 					return;
 				}
 				_fee = Math.addExact(_fee, event.feeTransferred());
@@ -1426,8 +1693,7 @@ public final class PhantomMultipartyEconomyService
 				final RecipeList currentRecipe = RecipeData.getInstance().getRecipeList(_spec.recipeListId());
 				if ((currentRecipe == null) || !eventItems(event).equals(manufactureIngredientCounts(currentRecipe)) || (event.feeTransferred() != 0))
 				{
-					_terminal = true;
-					terminal(_operation, _offer, _goal, PhantomEconomyOperation.State.INCONSISTENT, Result.INCONSISTENT, "manufacture.ingredient_evidence", 0, 0, _fee, _now);
+					taint("manufacture.ingredient_evidence");
 					return;
 				}
 				_consumedItems = eventItems(event);
@@ -1461,15 +1727,20 @@ public final class PhantomMultipartyEconomyService
 				final boolean exactInventory = _before.exactDeltas(after, expectedInventoryDeltas);
 				final boolean exactProgress = (event.expConsequence() == (_manufacturer.getExp() - _manufacturerExpBefore)) && (event.spConsequence() == (_manufacturer.getSp() - _manufacturerSpBefore)) && (_customer.getExp() == _customerExpBefore) && (_customer.getSp() == _customerSpBefore);
 				final boolean exactVitals = (Double.compare(_manufacturer.getCurrentHp(), _manufacturerHpBefore - event.hpConsumed()) == 0) && (Double.compare(_manufacturer.getCurrentMp(), _manufacturerMpBefore - event.mpConsumed()) == 0);
-				final boolean exact = (recipe != null) && exactFee && conservedAdena && exactIngredients && exactProduct && exactInventory && exactProgress && exactVitals;
-				terminal(_operation, _offer, _goal, exact ? PhantomEconomyOperation.State.COMMITTED : PhantomEconomyOperation.State.INCONSISTENT, exact ? event.type() == RecipeCraftObserver.Type.CRAFT_FAILED ? Result.CRAFT_FAILED : Result.SUCCESS : Result.INCONSISTENT, exact ? event.type() == RecipeCraftObserver.Type.CRAFT_FAILED ? "result.craft_failed" : "result.success" : "dispatch.ambiguous", _consumed, produced, _fee, _now);
+				final boolean exact = !_tainted && (recipe != null) && exactFee && conservedAdena && exactIngredients && exactProduct && exactInventory && exactProgress && exactVitals;
+				final String reason = exact ? event.type() == RecipeCraftObserver.Type.CRAFT_FAILED ? "result.craft_failed" : "result.success" : _tainted ? _firstTaintReason : "dispatch.ambiguous";
+				terminal(_operation, _offer, _goal, exact ? PhantomEconomyOperation.State.COMMITTED : PhantomEconomyOperation.State.INCONSISTENT, exact ? event.type() == RecipeCraftObserver.Type.CRAFT_FAILED ? Result.CRAFT_FAILED : Result.SUCCESS : Result.INCONSISTENT, reason, _consumed, produced, _fee, _now);
 			}
 			else if (event.type() == RecipeCraftObserver.Type.ABORTED)
 			{
 				_terminal = true;
 				final Conservation after = Conservation.capture(_customer, _manufacturer, _before.itemCounts().keySet());
-				final boolean unchanged = _before.equals(after);
-				terminal(_operation, _offer, _goal, unchanged ? PhantomEconomyOperation.State.ABORTED : PhantomEconomyOperation.State.INCONSISTENT, unchanged ? Result.ERROR : Result.INCONSISTENT, unchanged ? "manufacture.pre_effect_aborted" : "dispatch.ambiguous", _consumed, 0, _fee, _now);
+				final boolean exactAbort = !_tainted && unchangedSinceBefore(after);
+				terminal(_operation, _offer, _goal, exactAbort ? PhantomEconomyOperation.State.ABORTED : PhantomEconomyOperation.State.INCONSISTENT, exactAbort ? Result.ERROR : Result.INCONSISTENT, exactAbort ? "manufacture.pre_effect_aborted" : _tainted ? _firstTaintReason : "dispatch.ambiguous", _consumed, 0, _fee, _now);
+			}
+			else
+			{
+				taint("manufacture.observer.sequence");
 			}
 		}
 
@@ -1496,17 +1767,61 @@ public final class PhantomMultipartyEconomyService
 			}
 			if (RecipeManager.getInstance().isManufactureActive(_manufacturer.getObjectId()))
 			{
-				if (now > _goal.deadlineEpochMillis())
+				if (now <= _goal.deadlineEpochMillis())
 				{
-					RecipeManager.getInstance().requestMakeItemAbort(_manufacturer);
+					return StepResult.retry("economy.social.manufacture.observing");
 				}
-				return _terminal ? StepResult.success(_offer.offerId(), _operation.operationId(), "economy.social.manufacture.timeout") : StepResult.retry("economy.social.manufacture.observing");
+				RecipeManager.getInstance().requestMakeItemAbort(_manufacturer);
+				if (_terminal)
+				{
+					return StepResult.success(_offer.offerId(), _operation.operationId(), "economy.social.manufacture.timeout");
+				}
+				if (RecipeManager.getInstance().isManufactureActive(_manufacturer.getObjectId()))
+				{
+					return StepResult.retry("economy.social.manufacture.abort.retry");
+				}
 			}
 			final Conservation after = Conservation.capture(_customer, _manufacturer, _before.itemCounts().keySet());
-			final boolean unchanged = _before.equals(after) && (_manufacturer.getExp() == _manufacturerExpBefore) && (_manufacturer.getSp() == _manufacturerSpBefore) && (Double.compare(_manufacturer.getCurrentHp(), _manufacturerHpBefore) == 0) && (Double.compare(_manufacturer.getCurrentMp(), _manufacturerMpBefore) == 0) && (_customer.getExp() == _customerExpBefore) && (_customer.getSp() == _customerSpBefore);
+			final boolean unchanged = unchangedSinceBefore(after);
+			final boolean exactAbort = !_tainted && unchanged;
 			_terminal = true;
-			terminal(_operation, _offer, _goal, unchanged ? PhantomEconomyOperation.State.ABORTED : PhantomEconomyOperation.State.INCONSISTENT, unchanged ? Result.ERROR : Result.INCONSISTENT, unchanged ? "manufacture.callback_missing_before_effect" : "manufacture.callback_missing_after_effect", _consumed, 0, _fee, now);
+			terminal(_operation, _offer, _goal, exactAbort ? PhantomEconomyOperation.State.ABORTED : PhantomEconomyOperation.State.INCONSISTENT, exactAbort ? Result.ERROR : Result.INCONSISTENT, exactAbort ? "manufacture.callback_missing_before_effect" : _tainted ? _firstTaintReason : "manufacture.callback_missing_after_effect", _consumed, 0, _fee, now);
 			return StepResult.success(_offer.offerId(), _operation.operationId(), "economy.social.manufacture.reconciled");
+		}
+
+		private synchronized StepResult cancel(long now)
+		{
+			if (_terminal)
+			{
+				return StepResult.success(_offer.offerId(), _operation.operationId(), "economy.social.manufacture.terminal");
+			}
+			if (RecipeManager.getInstance().isManufactureActive(_manufacturer.getObjectId()))
+			{
+				RecipeManager.getInstance().requestMakeItemAbort(_manufacturer);
+			}
+			if (_terminal)
+			{
+				return StepResult.success(_offer.offerId(), _operation.operationId(), "economy.social.manufacture.cancelled");
+			}
+			if (RecipeManager.getInstance().isManufactureActive(_manufacturer.getObjectId()))
+			{
+				return StepResult.retry("economy.social.manufacture.abort.retry");
+			}
+			return recover(now);
+		}
+
+		private boolean unchangedSinceBefore(Conservation after)
+		{
+			return _before.equals(after) && (_manufacturer.getExp() == _manufacturerExpBefore) && (_manufacturer.getSp() == _manufacturerSpBefore) && (Double.compare(_manufacturer.getCurrentHp(), _manufacturerHpBefore) == 0) && (Double.compare(_manufacturer.getCurrentMp(), _manufacturerMpBefore) == 0) && (_customer.getExp() == _customerExpBefore) && (_customer.getSp() == _customerSpBefore);
+		}
+
+		private void taint(String reason)
+		{
+			if (!_tainted)
+			{
+				_tainted = true;
+				_firstTaintReason = reason;
+			}
 		}
 
 		@Override
@@ -1523,9 +1838,7 @@ public final class PhantomMultipartyEconomyService
 			}
 			catch (RuntimeException exception)
 			{
-				_terminal = true;
-				terminal(_operation, _offer, _goal, PhantomEconomyOperation.State.INCONSISTENT, Result.INCONSISTENT, reason, _consumed, 0, _fee, _now);
-				throw exception;
+				taint(reason);
 			}
 		}
 	}
@@ -1720,6 +2033,14 @@ public final class PhantomMultipartyEconomyService
 			return point ->
 			{
 			};
+		}
+	}
+
+	public record ShutdownResult(boolean successful, List<String> pendingOperationIds)
+	{
+		public ShutdownResult
+		{
+			pendingOperationIds = List.copyOf(pendingOperationIds);
 		}
 	}
 

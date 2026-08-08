@@ -19,6 +19,9 @@ package org.l2jmobius.gameserver.network.holders;
 import static org.l2jmobius.gameserver.model.itemcontainer.Inventory.MAX_ADENA;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -686,6 +689,10 @@ public class TradeList
 		{
 			return 1;
 		}
+		if ((mode == MutationMode.STRICT_EXACT_OBJECT) && !strictBuyFromSellStorePreflight(items))
+		{
+			return 2;
+		}
 		
 		int slots = 0;
 		int weight = 0;
@@ -928,6 +935,10 @@ public class TradeList
 		{
 			return false;
 		}
+		if ((mode == MutationMode.STRICT_EXACT_OBJECT) && !strictSellToBuyStorePreflight(player, items))
+		{
+			return false;
+		}
 		
 		boolean ok = false;
 		
@@ -1127,8 +1138,114 @@ public class TradeList
 			_owner.sendInventoryUpdate(ownerIU);
 			player.sendInventoryUpdate(playerIU);
 		}
-		
 		return ok;
+	}
+
+	private boolean strictBuyFromSellStorePreflight(Set<RequestTrade> requests)
+	{
+		if (requests.isEmpty())
+		{
+			return false;
+		}
+		final Map<Integer, RequestTrade> byObject = new HashMap<>();
+		long totalPrice = 0;
+		try
+		{
+			for (RequestTrade request : requests)
+			{
+				if ((request.getObjectId() <= 0) || (request.getItemId() <= 0) || (request.getCount() <= 0) || (request.getPrice() < 0) || (byObject.putIfAbsent(request.getObjectId(), request) != null))
+				{
+					return false;
+				}
+				final TradeItem listed = _items.stream().filter(item -> item.getObjectId() == request.getObjectId()).findFirst().orElse(null);
+				final Item owned = _owner.getInventory().getItemByObjectId(request.getObjectId());
+				if ((listed == null) || (owned == null) || (owned.getId() != request.getItemId()) || !owned.isTradeable() || (owned.getCount() < request.getCount()) || (listed.getItem().getId() != request.getItemId()) || (listed.getPrice() != request.getPrice()) || (listed.getCount() < request.getCount()))
+				{
+					return false;
+				}
+				totalPrice = Math.addExact(totalPrice, Math.multiplyExact(request.getCount(), request.getPrice()));
+			}
+		}
+		catch (ArithmeticException exception)
+		{
+			return false;
+		}
+		if ((totalPrice < 0) || (totalPrice > MAX_ADENA))
+		{
+			return false;
+		}
+		if (_packaged)
+		{
+			if (byObject.size() != _items.size())
+			{
+				return false;
+			}
+			for (TradeItem listed : _items)
+			{
+				final RequestTrade request = byObject.get(listed.getObjectId());
+				if ((request == null) || (request.getCount() != listed.getCount()) || (request.getItemId() != listed.getItem().getId()) || (request.getPrice() != listed.getPrice()))
+				{
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	private boolean strictSellToBuyStorePreflight(Player seller, RequestTrade[] requests)
+	{
+		if (requests.length == 0)
+		{
+			return false;
+		}
+		final Set<Integer> exactObjects = new HashSet<>();
+		final Map<StrictDemand, Long> aggregateDemand = new HashMap<>();
+		long totalPrice = 0;
+		try
+		{
+			for (RequestTrade request : requests)
+			{
+				if ((request.getObjectId() <= 0) || (request.getItemId() <= 0) || (request.getCount() <= 0) || (request.getPrice() < 0) || !exactObjects.add(request.getObjectId()))
+				{
+					return false;
+				}
+				final Item item = seller.getInventory().getItemByObjectId(request.getObjectId());
+				if ((item == null) || (item.getId() != request.getItemId()) || !item.isTradeable() || (item.getCount() < request.getCount()))
+				{
+					return false;
+				}
+				aggregateDemand.merge(new StrictDemand(request.getItemId(), request.getPrice()), request.getCount(), Math::addExact);
+				totalPrice = Math.addExact(totalPrice, Math.multiplyExact(request.getCount(), request.getPrice()));
+			}
+		}
+		catch (ArithmeticException exception)
+		{
+			return false;
+		}
+		if ((totalPrice < 0) || (totalPrice > _owner.getAdena()))
+		{
+			return false;
+		}
+		for (Map.Entry<StrictDemand, Long> demand : aggregateDemand.entrySet())
+		{
+			long available = 0;
+			for (TradeItem listed : _items)
+			{
+				if ((listed.getItem().getId() == demand.getKey().itemId()) && (listed.getPrice() == demand.getKey().price()))
+				{
+					available = Math.addExact(available, listed.getCount());
+				}
+			}
+			if (available < demand.getValue())
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private record StrictDemand(int itemId, long price)
+	{
 	}
 
 	/** Exact Phantom/store path: validate every line before the canonical mutation can begin. */

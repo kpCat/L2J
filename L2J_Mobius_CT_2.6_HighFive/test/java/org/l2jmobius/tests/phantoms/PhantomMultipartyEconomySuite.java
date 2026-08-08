@@ -30,11 +30,13 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.data.enums.StatType;
@@ -220,6 +222,8 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 			{
 				registry.add("phantom-phantom-exact-conservation", this::testDirectTrade);
 				registry.add("six-step-durable-orchestration", this::testDirectTradeOrchestration);
+				registry.add("external-confirmation-timeout-cleanup", this::testExternalDirectTradeLifetime);
+				registry.add("full-direct-fault-cleanup-matrix", this::testDirectFaultCleanupMatrix);
 			}
 			case PRIVATE_STORE_BUY ->
 			{
@@ -490,6 +494,290 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 		}
 	}
 
+	private void testExternalDirectTradeLifetime(PhantomTestContext context) throws Exception
+	{
+		fund(_first, _tradeItemId, 2);
+		fund(_second, _tradeItemId, 2);
+		final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
+		final PhantomEconomyReservationService reservations = new PhantomEconomyReservationService(_policy);
+		final PhantomEconomyOfferService offers = new PhantomEconomyOfferService();
+		final PhantomMultipartyEconomyService service = new PhantomMultipartyEconomyService(_policy, reservations, offers, _materialization, goals, _profiles);
+		final long now = System.currentTimeMillis();
+		try
+		{
+			reservations.start();
+			final Item offered = _first.getInventory().getItemByItemId(_tradeItemId);
+			final Item requested = _second.getInventory().getItemByItemId(_tradeItemId);
+			final long expiry = now + 60000;
+			final long goalId = 2200220295L;
+			final String key = _second.getObjectId() + ";0;" + expiry + ";150;0;0;c2-external;O:" + offered.getObjectId() + ":1;R:" + requested.getObjectId() + ":1";
+			final PhantomGoal goal = new PhantomGoal(goalId, PhantomSocialEconomyGoalSpec.DIRECT_TRADE_GOAL, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef(PhantomSocialEconomyGoalSpec.TARGET_NAMESPACE, key), 1, 0, null, List.of(), null, PhantomSocialEconomyGoalSpec.DIRECT_TRADE_GOAL, 500, 0, 0, expiry, Map.of(), "economy.c2.external", 0);
+			final PhantomGoalStateStore.StoredGoal previous = goals.load(_firstProfile.profileId()).orElse(null);
+			if (previous == null)
+			{
+				goals.insert(_firstProfile.profileId(), goal);
+			}
+			else
+			{
+				goals.replace(_firstProfile.profileId(), previous.rowVersion(), goal);
+			}
+			final PhantomMultipartyEconomyService.StepResult discovered = service.discoverOrLoad(_firstProfile.profileId(), goal, now);
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, discovered.status(), "External direct offer discovery failed.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.RETRY, service.offerOrAccept(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 1).status(), "External consent was synthesized by the Phantom path.");
+			PhantomAssertions.assertEquals(_first, _second.getActiveRequester(), "Canonical external trade request was not retained for ordinary consent.");
+			PhantomAssertions.assertEquals(DirectTradeService.Result.ACCEPTED, DirectTradeService.getInstance().answer(_second, true), "Ordinary external consent failed.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.offerOrAccept(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 2).status(), "Accepted external consent was not observed.");
+			final PhantomMultipartyEconomyService.StepResult reserved = service.reserve(_firstProfile.profileId(), goal, 1, 1, now + 3);
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, reserved.status(), "External direct reservation failed.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.dispatch(_firstProfile.profileId(), goal, now + 4).status(), "External direct dispatch failed.");
+			PhantomAssertions.assertEquals(DirectTradeService.Result.UPDATED, DirectTradeService.getInstance().addItem(_second, 0, requested.getObjectId(), 1), "Ordinary external requested line failed.");
+			try (ActionLease externalBusy = _materialization.tryAcquireAction(_secondProfile.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.RETRY, service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 5).status(), "Phantom confirmed before ordinary external confirmation.");
+				PhantomAssertions.assertEquals(0, service.snapshot().retainedObservers(), "External confirmation wait retained a direct observer.");
+				PhantomAssertions.assertEquals(1, _materialization.find(_secondProfile.profileId()).orElseThrow().admittedActionCount(), "External Player was incorrectly acquired as a Phantom participant.");
+				PhantomAssertions.assertEquals(0, _materialization.find(_firstProfile.profileId()).orElseThrow().admittedActionCount(), "External confirmation wait leaked initiator admission.");
+			}
+			PhantomAssertions.assertEquals(DirectTradeService.Result.CONFIRMED, DirectTradeService.getInstance().finish(_second, true), "Ordinary external confirmation did not remain pending.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 6).status(), "Confirmed external direct trade did not commit.");
+			PhantomAssertions.assertEquals(State.COMMITTED, reservations.find(reserved.operationId()).orElseThrow().state(), "External direct operation did not commit.");
+			PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, goals.load(_firstProfile.profileId()).orElseThrow().goal().status(), "External direct operation did not complete exact Goal authority.");
+			PhantomAssertions.assertEquals(0, service.snapshot().retainedObservers(), "External direct terminal audit retained an observer.");
+			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "External direct terminal audit retained reservations.");
+			PhantomAssertions.assertEquals(1L, scalar("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", reserved.operationId()), "External direct terminal audit was not exactly once.");
+
+			final Item timeoutOffered = _first.getInventory().getItemByItemId(_tradeItemId);
+			final Item timeoutRequested = _second.getInventory().getItemByItemId(_tradeItemId);
+			final long timeoutNow = now + 100;
+			final long timeoutExpiry = timeoutNow + 1000;
+			final long timeoutGoalId = 2200220296L;
+			final String timeoutKey = _second.getObjectId() + ";0;" + timeoutExpiry + ";150;0;0;c2-timeout;O:" + timeoutOffered.getObjectId() + ":1;R:" + timeoutRequested.getObjectId() + ":1";
+			final PhantomGoal timeoutGoal = new PhantomGoal(timeoutGoalId, PhantomSocialEconomyGoalSpec.DIRECT_TRADE_GOAL, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef(PhantomSocialEconomyGoalSpec.TARGET_NAMESPACE, timeoutKey), 1, 0, null, List.of(), null, PhantomSocialEconomyGoalSpec.DIRECT_TRADE_GOAL, 500, 0, 0, timeoutExpiry, Map.of(), "economy.c2.external.timeout", 0);
+			final PhantomGoalStateStore.StoredGoal completed = goals.load(_firstProfile.profileId()).orElseThrow();
+			goals.replace(_firstProfile.profileId(), completed.rowVersion(), timeoutGoal);
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.discoverOrLoad(_firstProfile.profileId(), timeoutGoal, timeoutNow).status(), "Timeout offer discovery failed.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.RETRY, service.offerOrAccept(_firstProfile.profileId(), timeoutGoal, PhantomActivityState.ACTIVE, timeoutNow + 1).status(), "Timeout fixture synthesized external consent.");
+			PhantomAssertions.assertEquals(DirectTradeService.Result.ACCEPTED, DirectTradeService.getInstance().answer(_second, true), "Timeout fixture ordinary consent failed.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.offerOrAccept(_firstProfile.profileId(), timeoutGoal, PhantomActivityState.ACTIVE, timeoutNow + 2).status(), "Timeout fixture consent observation failed.");
+			final PhantomMultipartyEconomyService.StepResult timeoutReserved = service.reserve(_firstProfile.profileId(), timeoutGoal, 2, 2, timeoutNow + 3);
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, timeoutReserved.status(), "Timeout fixture reservation failed.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.dispatch(_firstProfile.profileId(), timeoutGoal, timeoutNow + 4).status(), "Timeout fixture dispatch failed.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.REPLAN, service.observeReconcile(_firstProfile.profileId(), timeoutGoal, PhantomActivityState.ACTIVE, timeoutExpiry + 1).status(), "Expired external direct operation was not cancelled before effect.");
+			PhantomAssertions.assertEquals(State.ABORTED, reservations.find(timeoutReserved.operationId()).orElseThrow().state(), "Expired external direct operation did not abort.");
+			PhantomAssertions.assertEquals(PhantomGoalStatus.ACTIVE, goals.load(_firstProfile.profileId()).orElseThrow().goal().status(), "Expired external direct operation completed its Goal.");
+			PhantomAssertions.assertTrue(DirectTradeService.getInstance().canonicalPairCleared(_first, _second), "Expired external direct operation retained canonical request/list state.");
+			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "Expired external direct operation retained reservations.");
+			PhantomAssertions.assertEquals(0, service.snapshot().retainedObservers(), "Expired external direct operation retained observers.");
+			final long refusalNow = timeoutExpiry + 100;
+			final ExternalDirectFixture refusal = stageExternalDirect(service, goals, refusalNow, 2200220321L, 11, "refusal");
+			PhantomAssertions.assertEquals(DirectTradeService.Result.CANCELLED, DirectTradeService.getInstance().finish(_second, false), "External ordinary confirmation refusal was not canonical.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.REPLAN, service.observeReconcile(_firstProfile.profileId(), refusal.goal(), PhantomActivityState.ACTIVE, refusalNow + 6).status(), "External confirmation refusal was not aborted before effect.");
+			assertExternalAbort(refusal, reservations, offers, goals, service, "refusal");
+
+			final long disconnectNow = refusalNow + 100;
+			final ExternalDirectFixture disconnect = stageExternalDirect(service, goals, disconnectNow, 2200220322L, 12, "disconnect");
+			_second.setOnlineStatus(false, false);
+			try
+			{
+				PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.REPLAN, service.observeReconcile(_firstProfile.profileId(), disconnect.goal(), PhantomActivityState.ACTIVE, disconnectNow + 6).status(), "Disconnected external counterparty was not aborted before effect.");
+			}
+			finally
+			{
+				_second.setOnlineStatus(true, false);
+			}
+			assertExternalAbort(disconnect, reservations, offers, goals, service, "disconnect");
+
+			final long cancellationNow = disconnectNow + 100;
+			final ExternalDirectFixture cancellation = stageExternalDirect(service, goals, cancellationNow, 2200220323L, 13, "cancellation");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.cancel(_firstProfile.profileId(), cancellation.goal(), cancellationNow + 6).status(), "External direct cancellation did not complete.");
+			assertExternalAbort(cancellation, reservations, offers, goals, service, "cancellation");
+
+			final long shutdownNow = cancellationNow + 100;
+			final ExternalDirectFixture shutdown = stageExternalDirect(service, goals, shutdownNow, 2200220324L, 14, "shutdown");
+			final PhantomMultipartyEconomyService.ShutdownResult externalShutdown = service.shutdown(shutdownNow + 6);
+			PhantomAssertions.assertTrue(externalShutdown.successful() && externalShutdown.pendingOperationIds().isEmpty(), "External direct shutdown retained protected work: " + externalShutdown.pendingOperationIds());
+			assertExternalAbort(shutdown, reservations, offers, goals, service, "shutdown");
+
+			final long staleNow = shutdownNow + 100;
+			final ExternalDirectFixture stale = stageExternalDirect(service, goals, staleNow, 2200220325L, 15, "stale-line");
+			final var staleLine = _second.getActiveTradeList().getItems().stream().filter(item -> item.getObjectId() == stale.requestedObjectId()).findFirst().orElseThrow();
+			staleLine.setCount(2);
+			PhantomAssertions.assertEquals(DirectTradeService.Result.CONFIRMED, DirectTradeService.getInstance().finish(_second, true), "External stale-line ordinary confirmation failed.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.REPLAN, service.observeReconcile(_firstProfile.profileId(), stale.goal(), PhantomActivityState.ACTIVE, staleNow + 6).status(), "Stale external line after ordinary confirmation was not aborted before effect.");
+			assertExternalAbort(stale, reservations, offers, goals, service, "stale line");
+			final Item auditOffered = _first.getInventory().getItemByItemId(_tradeItemId);
+			final Item auditRequested = _second.getInventory().getItemByItemId(_tradeItemId);
+			final long auditNow = timeoutExpiry + 100;
+			final long auditExpiry = auditNow + 60000;
+			final long auditGoalId = 2200220298L;
+			final String auditKey = _second.getObjectId() + ";" + _secondProfile.profileId() + ";" + auditExpiry + ";150;0;0;c2-audit;O:" + auditOffered.getObjectId() + ":1;R:" + auditRequested.getObjectId() + ":1";
+			final PhantomGoal auditGoal = new PhantomGoal(auditGoalId, PhantomSocialEconomyGoalSpec.DIRECT_TRADE_GOAL, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef(PhantomSocialEconomyGoalSpec.TARGET_NAMESPACE, auditKey), 1, 0, null, List.of(), null, PhantomSocialEconomyGoalSpec.DIRECT_TRADE_GOAL, 500, 0, 0, auditExpiry, Map.of(), "economy.c2.audit.finally", 0);
+			final PhantomGoalStateStore.StoredGoal timedOut = goals.load(_firstProfile.profileId()).orElseThrow();
+			goals.replace(_firstProfile.profileId(), timedOut.rowVersion(), auditGoal);
+			final AtomicBoolean auditFault = new AtomicBoolean();
+			final PhantomMultipartyEconomyService faultService = new PhantomMultipartyEconomyService(_policy, reservations, offers, _materialization, goals, _profiles, point ->
+			{
+				if ((point == PhantomMultipartyEconomyService.FaultPoint.AFTER_OPERATION_AUDIT) && auditFault.compareAndSet(false, true))
+				{
+					throw new IllegalStateException("after-operation-audit-fixture");
+				}
+			});
+			final PhantomMultipartyEconomyService.StepResult auditDiscovered = faultService.discoverOrLoad(_firstProfile.profileId(), auditGoal, auditNow);
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, auditDiscovered.status(), "Audit-fault offer discovery failed.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, faultService.offerOrAccept(_firstProfile.profileId(), auditGoal, PhantomActivityState.ACTIVE, auditNow + 1).status(), "Audit-fault direct consent failed.");
+			final PhantomMultipartyEconomyService.StepResult auditReserved = faultService.reserve(_firstProfile.profileId(), auditGoal, 3, 3, auditNow + 2);
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, auditReserved.status(), "Audit-fault reservation failed.");
+			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, faultService.dispatch(_firstProfile.profileId(), auditGoal, auditNow + 3).status(), "Audit-fault dispatch failed.");
+			PhantomAssertions.assertThrows(IllegalStateException.class, () -> faultService.observeReconcile(_firstProfile.profileId(), auditGoal, PhantomActivityState.ACTIVE, auditNow + 4), "AFTER_OPERATION_AUDIT fault was not propagated.");
+			PhantomAssertions.assertTrue(auditFault.get(), "AFTER_OPERATION_AUDIT fault was not injected.");
+			PhantomAssertions.assertEquals(State.COMMITTED, reservations.find(auditReserved.operationId()).orElseThrow().state(), "Audit-fault durable operation was not committed.");
+			PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, goals.load(_firstProfile.profileId()).orElseThrow().goal().status(), "Audit-fault exact Goal write was lost.");
+			PhantomAssertions.assertTrue(DirectTradeService.getInstance().canonicalPairCleared(_first, _second), "Audit-fault direct operation retained canonical trade state.");
+			PhantomAssertions.assertEquals(0, faultService.snapshot().retainedObservers(), "AFTER_OPERATION_AUDIT finally leaked observer registration.");
+			PhantomAssertions.assertEquals(0, _materialization.find(_firstProfile.profileId()).orElseThrow().admittedActionCount(), "AFTER_OPERATION_AUDIT finally leaked initiator lease.");
+			PhantomAssertions.assertEquals(0, _materialization.find(_secondProfile.profileId()).orElseThrow().admittedActionCount(), "AFTER_OPERATION_AUDIT finally leaked counterparty lease.");
+			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "Audit-fault durable terminal retained reservations.");
+			PhantomAssertions.assertEquals(1L, scalar("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", auditReserved.operationId()), "Audit-fault terminal audit was not exactly once.");
+			PhantomAssertions.assertTrue(faultService.reconcileStartup(auditNow + 5) > 0, "Audit-fault accepted offer was not reconciled from durable terminal state.");
+			PhantomAssertions.assertEquals(PhantomEconomyOffer.State.CONSUMED, offers.find(auditDiscovered.offerId()).orElseThrow().state(), "Audit-fault offer did not reconcile to consumed.");
+			PhantomAssertions.assertTrue(faultService.shutdown(auditNow + 6).successful(), "Audit-fault cleanup blocked shutdown.");
+			PhantomAssertions.assertTrue(service.shutdown(timeoutExpiry + 2).successful(), "Clean external direct shutdown reported a false failure.");
+			context.record("economy.c2.externalLifetime", true);
+		}
+		finally
+		{
+			DirectTradeService.getInstance().cancel(_first, _second);
+			goals.load(_firstProfile.profileId()).ifPresent(stored -> goals.delete(_firstProfile.profileId(), stored.rowVersion()));
+			service.shutdown(now + 70000);
+			reservations.shutdown(now + 70001);
+		}
+	}
+
+	private ExternalDirectFixture stageExternalDirect(PhantomMultipartyEconomyService service, PhantomGoalStateStore goals, long now, long goalId, long generation, String suffix) throws Exception
+	{
+		DirectTradeService.getInstance().cancel(_first, _second);
+		fund(_first, _tradeItemId, 2);
+		fund(_second, _tradeItemId, 2);
+		final Item offered = _first.getInventory().getItemByItemId(_tradeItemId);
+		final Item requested = _second.getInventory().getItemByItemId(_tradeItemId);
+		final long globalItems = itemCount(_first, _tradeItemId) + itemCount(_second, _tradeItemId);
+		final long globalAdena = _first.getAdena() + _second.getAdena();
+		final long expiry = now + 60000;
+		final String key = _second.getObjectId() + ";0;" + expiry + ";150;0;0;c2-external-" + suffix + ";O:" + offered.getObjectId() + ":1;R:" + requested.getObjectId() + ":1";
+		final PhantomGoal goal = new PhantomGoal(goalId, PhantomSocialEconomyGoalSpec.DIRECT_TRADE_GOAL, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef(PhantomSocialEconomyGoalSpec.TARGET_NAMESPACE, key), 1, 0, null, List.of(), null, PhantomSocialEconomyGoalSpec.DIRECT_TRADE_GOAL, 500, 0, 0, expiry, Map.of(), "economy.c2.external." + suffix, 0);
+		final PhantomGoalStateStore.StoredGoal previous = goals.load(_firstProfile.profileId()).orElse(null);
+		if (previous == null)
+		{
+			goals.insert(_firstProfile.profileId(), goal);
+		}
+		else
+		{
+			goals.replace(_firstProfile.profileId(), previous.rowVersion(), goal);
+		}
+		final PhantomMultipartyEconomyService.StepResult discovered = service.discoverOrLoad(_firstProfile.profileId(), goal, now);
+		PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, discovered.status(), "External " + suffix + " offer discovery failed.");
+		PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.RETRY, service.offerOrAccept(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 1).status(), "External " + suffix + " consent was synthesized.");
+		PhantomAssertions.assertEquals(_first, _second.getActiveRequester(), "External " + suffix + " canonical request was not retained.");
+		PhantomAssertions.assertEquals(DirectTradeService.Result.ACCEPTED, DirectTradeService.getInstance().answer(_second, true), "External " + suffix + " ordinary acceptance failed.");
+		PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.offerOrAccept(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 2).status(), "External " + suffix + " accepted consent was not observed.");
+		final PhantomMultipartyEconomyService.StepResult reserved = service.reserve(_firstProfile.profileId(), goal, generation, generation, now + 3);
+		PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, reserved.status(), "External " + suffix + " reservation failed.");
+		PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.dispatch(_firstProfile.profileId(), goal, now + 4).status(), "External " + suffix + " dispatch failed.");
+		PhantomAssertions.assertEquals(DirectTradeService.Result.UPDATED, DirectTradeService.getInstance().addItem(_second, 0, requested.getObjectId(), 1), "External " + suffix + " ordinary requested line failed.");
+		PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.RETRY, service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 5).status(), "External " + suffix + " did not wait for ordinary confirmation.");
+		PhantomAssertions.assertTrue(!_first.getActiveTradeList().isConfirmed() && !_second.getActiveTradeList().isConfirmed(), "External " + suffix + " forged confirmation while waiting.");
+		PhantomAssertions.assertEquals(0, service.snapshot().retainedObservers(), "External " + suffix + " wait retained an observer.");
+		PhantomAssertions.assertEquals(0, _materialization.find(_firstProfile.profileId()).orElseThrow().admittedActionCount(), "External " + suffix + " wait retained a Phantom lease.");
+		return new ExternalDirectFixture(goal, discovered.offerId(), reserved.operationId(), requested.getObjectId(), globalItems, globalAdena);
+	}
+
+	private void assertExternalAbort(ExternalDirectFixture fixture, PhantomEconomyReservationService reservations, PhantomEconomyOfferService offers, PhantomGoalStateStore goals, PhantomMultipartyEconomyService service, String label) throws Exception
+	{
+		PhantomAssertions.assertEquals(State.ABORTED, reservations.find(fixture.operationId()).orElseThrow().state(), "External " + label + " operation did not abort.");
+		PhantomAssertions.assertEquals(PhantomEconomyOffer.State.CANCELLED, offers.find(fixture.offerId()).orElseThrow().state(), "External " + label + " offer did not cancel.");
+		PhantomAssertions.assertEquals(PhantomGoalStatus.ACTIVE, goals.load(_firstProfile.profileId()).orElseThrow().goal().status(), "External " + label + " completed its Goal.");
+		PhantomAssertions.assertTrue(DirectTradeService.getInstance().canonicalPairCleared(_first, _second), "External " + label + " retained canonical trade state.");
+		PhantomAssertions.assertEquals(fixture.globalItems(), itemCount(_first, _tradeItemId) + itemCount(_second, _tradeItemId), "External " + label + " violated item conservation.");
+		PhantomAssertions.assertEquals(fixture.globalAdena(), _first.getAdena() + _second.getAdena(), "External " + label + " violated Adena conservation.");
+		PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "External " + label + " retained reservations.");
+		PhantomAssertions.assertEquals(0, service.snapshot().retainedObservers(), "External " + label + " retained an observer.");
+		PhantomAssertions.assertEquals(0, _materialization.find(_firstProfile.profileId()).orElseThrow().admittedActionCount(), "External " + label + " retained the Phantom lease.");
+		PhantomAssertions.assertEquals(1L, scalar("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", fixture.operationId()), "External " + label + " audit was not exactly once.");
+	}
+
+	private record ExternalDirectFixture(PhantomGoal goal, String offerId, String operationId, int requestedObjectId, long globalItems, long globalAdena)
+	{
+	}
+	private void testDirectFaultCleanupMatrix(PhantomTestContext context) throws Exception
+	{
+		final List<PhantomMultipartyEconomyService.FaultPoint> matrix = List.of(PhantomMultipartyEconomyService.FaultPoint.AFTER_OFFER_ACCEPTED, PhantomMultipartyEconomyService.FaultPoint.AFTER_RESERVATIONS, PhantomMultipartyEconomyService.FaultPoint.AFTER_DISPATCHING, PhantomMultipartyEconomyService.FaultPoint.AFTER_OBSERVING, PhantomMultipartyEconomyService.FaultPoint.AFTER_FIRST_ADENA_MUTATION, PhantomMultipartyEconomyService.FaultPoint.AFTER_FIRST_ITEM_TRANSFER, PhantomMultipartyEconomyService.FaultPoint.AFTER_EACH_TRANSFER_LINE, PhantomMultipartyEconomyService.FaultPoint.AFTER_GOAL_WRITE, PhantomMultipartyEconomyService.FaultPoint.AFTER_OPERATION_AUDIT);
+		int index = 0;
+		for (PhantomMultipartyEconomyService.FaultPoint faultPoint : matrix)
+		{
+			DirectTradeService.getInstance().cancel(_first, _second);
+			fund(_first, _tradeItemId, 2);
+			fund(_second, _tradeItemId, 2);
+			fund(_first, Inventory.ADENA_ID, 2);
+			final Item offered = _first.getInventory().getItemByItemId(_tradeItemId);
+			final Item requested = _second.getInventory().getItemByItemId(_tradeItemId);
+			final long globalItems = itemCount(_first, _tradeItemId) + itemCount(_second, _tradeItemId);
+			final long globalAdena = _first.getAdena() + _second.getAdena();
+			final long now = System.currentTimeMillis() + (++index * 100L);
+			final long expiry = now + 60000;
+			final long goalId = 2200220300L + index;
+			final String key = _second.getObjectId() + ";" + _secondProfile.profileId() + ";" + expiry + ";150;1;0;c2-fault-" + faultPoint.name() + ";O:" + offered.getObjectId() + ":1;R:" + requested.getObjectId() + ":1";
+			final PhantomGoal goal = new PhantomGoal(goalId, PhantomSocialEconomyGoalSpec.DIRECT_TRADE_GOAL, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef(PhantomSocialEconomyGoalSpec.TARGET_NAMESPACE, key), 1, 0, null, List.of(), null, PhantomSocialEconomyGoalSpec.DIRECT_TRADE_GOAL, 500, 0, 1, expiry, Map.of(), "economy.c2.fault.matrix", 0);
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
+			final PhantomEconomyReservationService reservations = new PhantomEconomyReservationService(_policy);
+			final PhantomEconomyOfferService offers = new PhantomEconomyOfferService();
+			final AtomicBoolean injected = new AtomicBoolean();
+			final PhantomMultipartyEconomyService service = new PhantomMultipartyEconomyService(_policy, reservations, offers, _materialization, goals, _profiles, point ->
+			{
+				if ((point == faultPoint) && injected.compareAndSet(false, true))
+				{
+					throw new IllegalStateException("direct-fault-matrix-" + faultPoint);
+				}
+			});
+			try
+			{
+				reservations.start();
+				goals.insert(_firstProfile.profileId(), goal);
+				final PhantomMultipartyEconomyService.StepResult discovered = service.discoverOrLoad(_firstProfile.profileId(), goal, now);
+				PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, discovered.status(), "Fault-matrix discovery failed: " + faultPoint);
+				try
+				{
+					service.offerOrAccept(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 1);
+					service.reserve(_firstProfile.profileId(), goal, index, index, now + 2);
+					service.dispatch(_firstProfile.profileId(), goal, now + 3);
+					service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 4);
+				}
+				catch (IllegalStateException expected)
+				{
+				}
+				PhantomAssertions.assertTrue(injected.get(), "Direct fault point was not reached: " + faultPoint);
+				final PhantomMultipartyEconomyService.ShutdownResult shutdown = service.shutdown(now + 5);
+				PhantomAssertions.assertTrue(shutdown.successful() && shutdown.pendingOperationIds().isEmpty(), "Fault cleanup shutdown failed: " + faultPoint + " pending=" + shutdown.pendingOperationIds());
+				PhantomAssertions.assertTrue(offers.find(discovered.offerId()).orElseThrow().state().terminal(), "Fault cleanup retained active offer: " + faultPoint);
+				PhantomAssertions.assertTrue(DirectTradeService.getInstance().canonicalPairCleared(_first, _second), "Fault cleanup retained canonical trade pair: " + faultPoint);
+				PhantomAssertions.assertEquals(globalItems, itemCount(_first, _tradeItemId) + itemCount(_second, _tradeItemId), "Fault cleanup violated item conservation: " + faultPoint);
+				PhantomAssertions.assertEquals(globalAdena, _first.getAdena() + _second.getAdena(), "Fault cleanup violated Adena conservation: " + faultPoint);
+				PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "Fault cleanup retained reservations: " + faultPoint);
+				PhantomAssertions.assertEquals(0, service.snapshot().retainedObservers(), "Fault cleanup retained observer registration: " + faultPoint);
+				PhantomAssertions.assertEquals(0, _materialization.find(_firstProfile.profileId()).orElseThrow().admittedActionCount(), "Fault cleanup retained initiator lease: " + faultPoint);
+				PhantomAssertions.assertEquals(0, _materialization.find(_secondProfile.profileId()).orElseThrow().admittedActionCount(), "Fault cleanup retained counterparty lease: " + faultPoint);
+			}
+			finally
+			{
+				DirectTradeService.getInstance().cancel(_first, _second);
+				service.shutdown(now + 6);
+				reservations.shutdown(now + 7);
+				goals.load(_firstProfile.profileId()).ifPresent(stored -> goals.delete(_firstProfile.profileId(), stored.rowVersion()));
+			}
+		}
+		PhantomAssertions.assertEquals(9, matrix.size(), "Direct multiparty fault matrix drifted.");
+		context.record("economy.c2.directFaultMatrix", matrix.size());
+	}
+
 	private void testPrivateStoreBuy(PhantomTestContext context) throws Exception
 	{
 		fund(_second, _tradeItemId, 5);
@@ -534,7 +822,14 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 		{
 			reservations.start();
 			final PhantomEconomyOfferService offers = new PhantomEconomyOfferService();
-			final PhantomMultipartyEconomyService service = new PhantomMultipartyEconomyService(_policy, reservations, offers, _materialization, goals, _profiles);
+			final AtomicBoolean auditFault = new AtomicBoolean();
+			final PhantomMultipartyEconomyService service = new PhantomMultipartyEconomyService(_policy, reservations, offers, _materialization, goals, _profiles, point ->
+			{
+				if ((point == PhantomMultipartyEconomyService.FaultPoint.AFTER_OPERATION_AUDIT) && auditFault.compareAndSet(false, true))
+				{
+					throw new IllegalStateException("store-buy-audit-fault");
+				}
+			});
 			final PhantomMultipartyEconomyService.StepResult discovered = service.discoverOrLoad(_firstProfile.profileId(), goal, now);
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, discovered.status(), "Private-store offer discovery failed.");
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.offerOrAccept(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 1).status(), "Private-store standing-offer acceptance failed.");
@@ -542,10 +837,18 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, reserved.status(), "Private-store reservation failed.");
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.dispatch(_firstProfile.profileId(), goal, now + 3).status(), "Private-store dispatch failed.");
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.ACTIVE_REQUIRED, service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.BACKGROUND, now + 4).status(), "Background private-store BUY execution was admitted.");
-			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 4).status(), "Private-store canonical observation failed.");
+			PhantomAssertions.assertThrows(IllegalStateException.class, () -> service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 4), "Private-store BUY audit fault was not propagated.");
+			PhantomAssertions.assertTrue(auditFault.get(), "Private-store BUY audit fault was not injected.");
 			PhantomAssertions.assertEquals(PhantomEconomyOperation.State.COMMITTED, reservations.find(reserved.operationId()).orElseThrow().state(), "Private-store operation did not commit.");
-			PhantomAssertions.assertEquals(PhantomEconomyOffer.State.CONSUMED, offers.find(discovered.offerId()).orElseThrow().state(), "Private-store offer was not consumed.");
+			PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, goals.load(_firstProfile.profileId()).orElseThrow().goal().status(), "Private-store BUY audit fault lost the Goal write.");
+			PhantomAssertions.assertEquals(PhantomEconomyOffer.State.ACCEPTED, offers.find(discovered.offerId()).orElseThrow().state(), "Private-store BUY audit fault did not preserve the accepted offer for reconciliation.");
+			PhantomAssertions.assertEquals(1L, scalar("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", reserved.operationId()), "Private-store BUY audit was not exactly once.");
+			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "Private-store BUY audit terminal retained reservations.");
 			PhantomAssertions.assertEquals(0, service.snapshot().retainedObservers(), "Private-store completion retained an observer.");
+			PhantomAssertions.assertEquals(0, _materialization.find(_firstProfile.profileId()).orElseThrow().admittedActionCount(), "Private-store BUY audit terminal retained initiator lease.");
+			PhantomAssertions.assertEquals(0, _materialization.find(_secondProfile.profileId()).orElseThrow().admittedActionCount(), "Private-store BUY audit terminal retained owner lease.");
+			PhantomAssertions.assertTrue(service.reconcileStartup(now + 5) > 0, "Private-store BUY accepted offer was not reconciled from terminal operation.");
+			PhantomAssertions.assertEquals(PhantomEconomyOffer.State.CONSUMED, offers.find(discovered.offerId()).orElseThrow().state(), "Private-store BUY offer was not consumed after reconciliation.");
 		}
 		finally
 		{
@@ -553,6 +856,24 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 		}
 		_second.getSellList().clear();
 		final Item remainder = _second.getInventory().getItemByItemId(listed.getId());
+		_second.getSellList().setPackaged(false);
+		_second.getSellList().addItem(remainder.getObjectId(), 2, 5);
+		_second.setPrivateStoreType(PrivateStoreType.SELL);
+		final long aggregateBuyerItems = itemCount(_first, remainder.getId());
+		final long aggregateBuyerAdena = _first.getAdena();
+		final String aggregateListing = PrivateStoreService.listingHash(_second.getSellList());
+		final Set<RequestTrade> aggregate = new HashSet<>();
+		aggregate.add(new RequestTrade(remainder.getObjectId(), remainder.getId(), 2, 5));
+		aggregate.add(new RequestTrade(remainder.getObjectId(), remainder.getId(), 1, 5));
+		PhantomAssertions.assertEquals(2, aggregate.size(), "Duplicate exact-object aggregate fixture collapsed.");
+		try (AutoCloseable ignored = PrivateStoreService.getInstance().observe(PrivateStoreService.Direction.BUY_FROM_SELL_STORE, _first.getObjectId(), _second.getObjectId(), new AcceptingStoreObserver()))
+		{
+			PhantomAssertions.assertEquals(PrivateStoreService.Result.REJECTED, PrivateStoreService.getInstance().buyExact(_first, _second.getObjectId(), aggregate, aggregateListing, PrivateStoreService.requestHash(aggregate)), "Strict SELL-store aggregate overdraw mutated before full preflight.");
+		}
+		PhantomAssertions.assertEquals(aggregateBuyerItems, itemCount(_first, remainder.getId()), "Rejected strict SELL-store aggregate changed buyer items.");
+		PhantomAssertions.assertEquals(aggregateBuyerAdena, _first.getAdena(), "Rejected strict SELL-store aggregate changed buyer Adena.");
+		PhantomAssertions.assertEquals(aggregateListing, PrivateStoreService.listingHash(_second.getSellList()), "Rejected strict SELL-store aggregate changed listing.");
+		_second.getSellList().clear();
 		_second.getSellList().addItem(remainder.getObjectId(), 1, 5);
 		_second.getSellList().setPackaged(true);
 		_second.setPrivateStoreType(PrivateStoreType.PACKAGE_SELL);
@@ -616,6 +937,25 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 		}
 		PhantomAssertions.assertEquals(sellerBefore - 2, itemCount(_first, sold.getId()), "BUY store sale applied the wrong quantity.");
 		_second.getBuyList().clear();
+		_second.getBuyList().addItemByItemId(sold.getId(), 3, 6);
+		_second.setPrivateStoreType(PrivateStoreType.BUY);
+		final Item aggregateSold = _first.getInventory().getItemByItemId(sold.getId());
+		final long aggregateSellerItems = itemCount(_first, sold.getId());
+		final long aggregateOwnerAdena = _second.getAdena();
+		final String aggregateListing = PrivateStoreService.listingHash(_second.getBuyList());
+		final RequestTrade[] aggregate =
+		{
+			new RequestTrade(aggregateSold.getObjectId(), aggregateSold.getId(), 2, 6),
+			new RequestTrade(aggregateSold.getObjectId(), aggregateSold.getId(), 2, 6)
+		};
+		try (AutoCloseable ignored = PrivateStoreService.getInstance().observe(PrivateStoreService.Direction.SELL_TO_BUY_STORE, _first.getObjectId(), _second.getObjectId(), new AcceptingStoreObserver()))
+		{
+			PhantomAssertions.assertEquals(PrivateStoreService.Result.REJECTED, PrivateStoreService.getInstance().sellExact(_first, _second.getObjectId(), aggregate, aggregateListing, PrivateStoreService.requestHash(aggregate)), "Strict BUY-store aggregate overdraw mutated before full preflight.");
+		}
+		PhantomAssertions.assertEquals(aggregateSellerItems, itemCount(_first, sold.getId()), "Rejected strict BUY-store aggregate changed seller items.");
+		PhantomAssertions.assertEquals(aggregateOwnerAdena, _second.getAdena(), "Rejected strict BUY-store aggregate changed owner Adena.");
+		PhantomAssertions.assertEquals(aggregateListing, PrivateStoreService.listingHash(_second.getBuyList()), "Rejected strict BUY-store aggregate changed listing.");
+		_second.getBuyList().clear();
 		_second.getBuyList().addItemByItemId(sold.getId(), 2, 6);
 		_second.setPrivateStoreType(PrivateStoreType.BUY);
 		final Item orchestrationItem = _first.getInventory().getItemByItemId(sold.getId());
@@ -631,7 +971,14 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 		{
 			reservations.start();
 			final PhantomEconomyOfferService offers = new PhantomEconomyOfferService();
-			final PhantomMultipartyEconomyService service = new PhantomMultipartyEconomyService(_policy, reservations, offers, _materialization, goals, _profiles);
+			final AtomicBoolean auditFault = new AtomicBoolean();
+			final PhantomMultipartyEconomyService service = new PhantomMultipartyEconomyService(_policy, reservations, offers, _materialization, goals, _profiles, point ->
+			{
+				if ((point == PhantomMultipartyEconomyService.FaultPoint.AFTER_OPERATION_AUDIT) && auditFault.compareAndSet(false, true))
+				{
+					throw new IllegalStateException("store-sell-audit-fault");
+				}
+			});
 			final PhantomMultipartyEconomyService.StepResult discovered = service.discoverOrLoad(_firstProfile.profileId(), goal, now);
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, discovered.status(), "Private-store SELL offer discovery failed.");
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.offerOrAccept(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 1).status(), "Private-store SELL standing-offer acceptance failed.");
@@ -639,12 +986,18 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, reserved.status(), "Private-store SELL reservation failed.");
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.dispatch(_firstProfile.profileId(), goal, now + 3).status(), "Private-store SELL dispatch failed.");
 			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.ACTIVE_REQUIRED, service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.BACKGROUND, now + 4).status(), "Background private-store SELL execution was admitted.");
-			PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 4).status(), "Private-store SELL canonical observation failed.");
+			PhantomAssertions.assertThrows(IllegalStateException.class, () -> service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 4), "Private-store SELL audit fault was not propagated.");
+			PhantomAssertions.assertTrue(auditFault.get(), "Private-store SELL audit fault was not injected.");
 			PhantomAssertions.assertEquals(PhantomEconomyOperation.State.COMMITTED, reservations.find(reserved.operationId()).orElseThrow().state(), "Private-store SELL operation did not commit.");
 			PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, goals.load(_firstProfile.profileId()).orElseThrow().goal().status(), "Private-store SELL operation did not complete the exact Goal.");
-			PhantomAssertions.assertEquals(PhantomEconomyOffer.State.CONSUMED, offers.find(discovered.offerId()).orElseThrow().state(), "Private-store SELL offer was not consumed.");
+			PhantomAssertions.assertEquals(PhantomEconomyOffer.State.ACCEPTED, offers.find(discovered.offerId()).orElseThrow().state(), "Private-store SELL audit fault did not preserve the accepted offer for reconciliation.");
+			PhantomAssertions.assertEquals(1L, scalar("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", reserved.operationId()), "Private-store SELL audit was not exactly once.");
 			PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "Private-store SELL completion retained reservations.");
 			PhantomAssertions.assertEquals(0, service.snapshot().retainedObservers(), "Private-store SELL completion retained an observer.");
+			PhantomAssertions.assertEquals(0, _materialization.find(_firstProfile.profileId()).orElseThrow().admittedActionCount(), "Private-store SELL audit terminal retained initiator lease.");
+			PhantomAssertions.assertEquals(0, _materialization.find(_secondProfile.profileId()).orElseThrow().admittedActionCount(), "Private-store SELL audit terminal retained owner lease.");
+			PhantomAssertions.assertTrue(service.reconcileStartup(now + 5) > 0, "Private-store SELL accepted offer was not reconciled from terminal operation.");
+			PhantomAssertions.assertEquals(PhantomEconomyOffer.State.CONSUMED, offers.find(discovered.offerId()).orElseThrow().state(), "Private-store SELL offer was not consumed after reconciliation.");
 		}
 		finally
 		{
@@ -723,7 +1076,14 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 			{
 				reservations.start();
 				final PhantomEconomyOfferService offers = new PhantomEconomyOfferService();
-				final PhantomMultipartyEconomyService service = new PhantomMultipartyEconomyService(_policy, reservations, offers, _materialization, goals, _profiles);
+				final AtomicBoolean auditFault = new AtomicBoolean();
+				final PhantomMultipartyEconomyService service = new PhantomMultipartyEconomyService(_policy, reservations, offers, _materialization, goals, _profiles, point ->
+				{
+					if ((point == PhantomMultipartyEconomyService.FaultPoint.AFTER_OPERATION_AUDIT) && auditFault.compareAndSet(false, true))
+					{
+						throw new IllegalStateException("manufacture-audit-fault");
+					}
+				});
 				final PhantomMultipartyEconomyService.StepResult discovered = service.discoverOrLoad(_firstProfile.profileId(), goal, now);
 				PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, discovered.status(), "Manufacture offer discovery failed.");
 				PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.offerOrAccept(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 1).status(), "Manufacture standing-offer acceptance failed.");
@@ -732,10 +1092,73 @@ public final class PhantomMultipartyEconomySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, service.dispatch(_firstProfile.profileId(), goal, now + 3).status(), "Manufacture dispatch failed.");
 				PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.ACTIVE_REQUIRED, service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.BACKGROUND, now + 4).status(), "Background manufacture execution was admitted.");
 				service.observeReconcile(_firstProfile.profileId(), goal, PhantomActivityState.ACTIVE, now + 4);
+				final long auditWaitUntil = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+				while (!reservations.find(reserved.operationId()).orElseThrow().state().terminal() && (System.nanoTime() < auditWaitUntil))
+				{
+					Thread.sleep(10);
+				}
+				PhantomAssertions.assertTrue(auditFault.get(), "Manufacture audit fault was not injected.");
 				PhantomAssertions.assertEquals(PhantomEconomyOperation.State.COMMITTED, reservations.find(reserved.operationId()).orElseThrow().state(), "Manufacture observer did not commit exact canonical consequences.");
 				PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, goals.load(_firstProfile.profileId()).orElseThrow().goal().status(), "Manufacture observer did not complete the exact Goal.");
-				PhantomAssertions.assertEquals(PhantomEconomyOffer.State.CONSUMED, offers.find(discovered.offerId()).orElseThrow().state(), "Manufacture offer was not consumed.");
+				PhantomAssertions.assertEquals(PhantomEconomyOffer.State.ACCEPTED, offers.find(discovered.offerId()).orElseThrow().state(), "Manufacture audit fault did not preserve the accepted offer for reconciliation.");
+				PhantomAssertions.assertEquals(1L, scalar("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", reserved.operationId()), "Manufacture audit was not exactly once.");
+				PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "Manufacture audit terminal retained reservations.");
 				PhantomAssertions.assertEquals(0, service.snapshot().retainedObservers(), "Manufacture completion retained an observer.");
+				PhantomAssertions.assertEquals(0, _materialization.find(_firstProfile.profileId()).orElseThrow().admittedActionCount(), "Manufacture audit terminal retained customer lease.");
+				PhantomAssertions.assertEquals(0, _materialization.find(_secondProfile.profileId()).orElseThrow().admittedActionCount(), "Manufacture audit terminal retained maker lease.");
+				PhantomAssertions.assertTrue(service.reconcileStartup(now + 5) > 0, "Manufacture accepted offer was not reconciled from terminal operation.");
+				PhantomAssertions.assertEquals(PhantomEconomyOffer.State.CONSUMED, offers.find(discovered.offerId()).orElseThrow().state(), "Manufacture offer was not consumed after reconciliation.");
+				final List<PhantomMultipartyEconomyService.FaultPoint> manufactureFaults = List.of(PhantomMultipartyEconomyService.FaultPoint.AFTER_FIRST_ADENA_MUTATION, PhantomMultipartyEconomyService.FaultPoint.AFTER_RECIPE_INGREDIENTS, PhantomMultipartyEconomyService.FaultPoint.AFTER_PRODUCT_OR_FAILURE);
+				int manufactureFaultIndex = 0;
+				for (PhantomMultipartyEconomyService.FaultPoint faultPoint : manufactureFaults)
+				{
+					_second.setCurrentHp(_second.getMaxHp());
+					_second.setCurrentMp(_second.getMaxMp());
+					for (RecipeHolder ingredient : recipe.getRecipes())
+					{
+						fund(_first, ingredient.getItemId(), ingredient.getQuantity());
+					}
+					fund(_first, Inventory.ADENA_ID, 100);
+					final long taintNow = now + (++manufactureFaultIndex * 100L);
+					final long taintGoalId = 2200220296L + manufactureFaultIndex;
+					final String taintKey = _second.getObjectId() + ";" + _secondProfile.profileId() + ";" + recipe.getId() + ";10;" + recipe.getItemId() + ";" + recipe.getCount() + ";1;10";
+					final PhantomGoal taintGoal = new PhantomGoal(taintGoalId, PhantomSocialEconomyGoalSpec.MANUFACTURE_GOAL, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef(PhantomSocialEconomyGoalSpec.TARGET_NAMESPACE, taintKey), 1, 0, null, List.of(), null, PhantomSocialEconomyGoalSpec.MANUFACTURE_GOAL, 500, 0, 10, taintNow + 60000, Map.of(), "economy.c2.manufacture.taint", 0);
+					final PhantomGoalStateStore.StoredGoal completed = goals.load(_firstProfile.profileId()).orElseThrow();
+					goals.replace(_firstProfile.profileId(), completed.rowVersion(), taintGoal);
+					final AtomicBoolean faultInjected = new AtomicBoolean();
+					final PhantomMultipartyEconomyService taintedService = new PhantomMultipartyEconomyService(_policy, reservations, offers, _materialization, goals, _profiles, point ->
+					{
+						if ((point == faultPoint) && faultInjected.compareAndSet(false, true))
+						{
+							throw new IllegalStateException("manufacture-taint-fixture-" + faultPoint);
+						}
+					});
+					final PhantomMultipartyEconomyService.StepResult taintDiscovered = taintedService.discoverOrLoad(_firstProfile.profileId(), taintGoal, taintNow);
+					PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, taintDiscovered.status(), "Tainted manufacture offer discovery failed.");
+					PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, taintedService.offerOrAccept(_firstProfile.profileId(), taintGoal, PhantomActivityState.ACTIVE, taintNow + 1).status(), "Tainted manufacture acceptance failed.");
+					final PhantomMultipartyEconomyService.StepResult taintReserved = taintedService.reserve(_firstProfile.profileId(), taintGoal, 2, 2, taintNow + 2);
+					PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, taintReserved.status(), "Tainted manufacture reservation failed.");
+					PhantomAssertions.assertEquals(PhantomMultipartyEconomyService.StepStatus.SUCCESS, taintedService.dispatch(_firstProfile.profileId(), taintGoal, taintNow + 3).status(), "Tainted manufacture dispatch failed.");
+					taintedService.observeReconcile(_firstProfile.profileId(), taintGoal, PhantomActivityState.ACTIVE, taintNow + 4);
+					final long waitUntil = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+					while (!reservations.find(taintReserved.operationId()).orElseThrow().state().terminal() && (System.nanoTime() < waitUntil))
+					{
+						taintedService.observeReconcile(_firstProfile.profileId(), taintGoal, PhantomActivityState.ACTIVE, taintNow + 5);
+						Thread.sleep(10);
+					}
+					PhantomAssertions.assertTrue(faultInjected.get(), "Manufacture fault was not injected: " + faultPoint);
+					PhantomAssertions.assertEquals(State.INCONSISTENT, reservations.find(taintReserved.operationId()).orElseThrow().state(), "Tainted manufacture terminal callback did not fail stop.");
+					PhantomAssertions.assertEquals(PhantomGoalStatus.ACTIVE, goals.load(_firstProfile.profileId()).orElseThrow().goal().status(), "Tainted manufacture completed its Goal.");
+					PhantomAssertions.assertEquals(PhantomEconomyOffer.State.INCONSISTENT, offers.find(taintDiscovered.offerId()).orElseThrow().state(), "Tainted manufacture offer was not terminal inconsistent.");
+					PhantomAssertions.assertEquals(0L, reservations.snapshot().currentReservations(), "Tainted manufacture terminal callback retained reservations.");
+					PhantomAssertions.assertEquals(0, taintedService.snapshot().retainedObservers(), "Tainted manufacture terminal callback retained observer protection.");
+					PhantomAssertions.assertEquals(0, _materialization.find(_firstProfile.profileId()).orElseThrow().admittedActionCount(), "Tainted manufacture retained customer participant lease.");
+					PhantomAssertions.assertEquals(0, _materialization.find(_secondProfile.profileId()).orElseThrow().admittedActionCount(), "Tainted manufacture retained manufacturer participant lease.");
+					PhantomAssertions.assertEquals(1L, scalar("SELECT COUNT(*) FROM phantom_economy_audit WHERE operation_id=?", taintReserved.operationId()), "Tainted manufacture audit was not exactly once.");
+					PhantomAssertions.assertTrue(taintedService.shutdown(taintNow + 60001).successful(), "Terminal tainted manufacture blocked clean shutdown.");
+				}
+				PhantomAssertions.assertEquals(3, manufactureFaults.size(), "Manufacture fault matrix drifted.");
+				context.record("economy.c2.manufactureFaultMatrix", manufactureFaults.size());
 			}
 			finally
 			{

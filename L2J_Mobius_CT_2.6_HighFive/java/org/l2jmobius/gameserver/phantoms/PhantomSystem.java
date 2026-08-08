@@ -561,7 +561,12 @@ public final class PhantomSystem
 		{
 			if (_multipartyEconomyService != null)
 			{
-				_multipartyEconomyService.shutdown(System.currentTimeMillis());
+				if (!_multipartyEconomyService.shutdown(System.currentTimeMillis()).successful())
+				{
+					_metrics.recordShutdownFailure();
+					_state = State.FAILED;
+					return false;
+				}
 			}
 			if (_phantomStoreService != null)
 			{

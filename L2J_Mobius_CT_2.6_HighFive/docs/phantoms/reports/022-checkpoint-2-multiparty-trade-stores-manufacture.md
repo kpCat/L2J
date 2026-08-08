@@ -247,3 +247,62 @@ release commands фиксируются следующим terminal amendment б
 - Escaped Cyrillic в изменённых файлах проверены.
 
 Следующий шаг — только независимый review Goal 022; Goal 023 не начат.
+
+## Final external-trade/manufacture lifetime completion
+
+Этот раздел явно supersedes предыдущий terminal handoff. Required causality parent:
+`988ca85e91fb0e3aa2f58dc2aaa1e4277290e1a2`. Exact child subject:
+`fix(phantoms): close external trade and manufacture observer lifetime`.
+
+Текущий статус Goal 022 Checkpoint 2 и Goal 022 overall:
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Self-accept не выполнялся, Goal 023 не начат.
+
+Закрытые lifetime-инварианты:
+
+- внешний ordinary Player подтверждает direct trade первым; Phantom не подделывает
+  consent и не устанавливает исполняющий observer до canonical confirmation;
+- synchronous exchange выполняется только при удерживаемом exact Phantom ActionLease;
+- timeout/refusal/stale/cancel/shutdown сначала очищают exact canonical trade pair,
+  затем завершают durable operation/offer;
+- manufacture intermediate mismatch/fault только taint-ит observer и сохраняет
+  OBSERVING, reservations и participant leases до canonical terminal event;
+- canonical manufacture abort принадлежит `RecipeManager.requestMakeItemAbort`;
+- durable terminal transition освобождает observer/leases в `finally`, включая
+  `AFTER_OPERATION_AUDIT`, а accepted offer восстанавливается из terminal operation;
+- strict private-store path выполняет полный aggregate preflight до первой mutation;
+- bounded shutdown возвращает честный `ShutdownResult`, а `PhantomSystem` fail-stop-ит
+  при незавершённой protection ownership.
+
+Focused dynamic evidence до terminal freeze: direct fault matrix достигла 9 applicable
+points и прошла `4/4`; manufacture matrix достигла fee/ingredients/product boundaries
+и прошла `1/1`; strict BUY/SELL aggregate preflight и external delayed-confirmation
+lifetime regressions прошли. Seed: `22002202`, DB только `l2jmobiush5_phantom_test`.
+
+Verifier 022c2 отдельно фиксирует foundation, causality completion и единственный
+terminal child; packet adapters сравниваются byte-identical с causality commit.
+Итоговые aggregate/plain-verify/jar/commit/push/post-commit verifier evidence
+добавляются ниже только после фактического выполнения terminal release sequence.
+
+## Final terminal release evidence
+
+- `compile-tests`: `BUILD SUCCESSFUL`, 2141 production и 84 test sources.
+- Focused external/direct route: `4/4`; дополнительно динамически проверены refusal,
+  disconnect, cancel, active shutdown и stale line после ordinary confirmation.
+- Все восемь original C2 modes: `BUILD SUCCESSFUL`, seed `22002202`.
+- C1 aggregate: `BUILD SUCCESSFUL`, seed `22002201`.
+- Goal 014/021 affected aggregate: `BUILD SUCCESSFUL`.
+- Historical verifier 021c2 и 022c1: PS5/PS7 зелёные и descendant-compatible.
+- Working verifier 022c2: PS5/PS7 зелёные с одинаковым normalized output.
+- Единственный final `phantom-economy-checkpoint2-test`: `BUILD SUCCESSFUL`, 1:10.
+- Freeze: 8 файлов, 4 production, 0 новых файлов; SQL/policy/packet changes = 0;
+  восемь packet adapters byte-identical к `988ca85e91fb0e3aa2f58dc2aaa1e4277290e1a2`.
+- Четвёртый и последний plain `ant verify`: `BUILD SUCCESSFUL`, 16:34.
+  Пятый plain verify не запускался.
+- Standalone `ant jar`: `BUILD SUCCESSFUL`, 0:16; GameServer/LoginServer jars
+  пересобраны штатной целью.
+- Production/test/verifier freeze SHA-256 зафиксированы в terminal handoff;
+  post-freeze изменён только этот report evidence.
+- Mojibake-маркеры в изменённых файлах проверены: совпадений нет.
+- Escaped Cyrillic в добавленных строках изменённых файлов проверены: совпадений нет.
+
+Commit/push и два accepted byte-identical verifier запускаются после создания

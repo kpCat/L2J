@@ -303,6 +303,7 @@ public final class DirectTradeService
 				if (bridge.beforeAttempted && !bridge.accepted)
 				{
 					player.cancelActiveTrade();
+					entry.observer.cancel("trade.before_execute_rejected");
 					return Result.REJECTED;
 				}
 				if (bridge.accepted)
@@ -313,9 +314,16 @@ public final class DirectTradeService
 			}
 			catch (RuntimeException exception)
 			{
-				if (bridge.accepted)
+				if (bridge.accepted && !bridge.completed)
 				{
-					entry.observer.afterExecute(trade, partnerList, false);
+					try
+					{
+						entry.observer.afterExecute(trade, partnerList, false);
+					}
+					finally
+					{
+						cancel(player, partner);
+					}
 				}
 				throw exception;
 			}
@@ -326,15 +334,66 @@ public final class DirectTradeService
 	{
 		final TradeList trade = player.getActiveTradeList();
 		final Player partner = trade == null ? null : trade.getPartner();
-		if (partner != null)
-		{
-			final Entry entry = _observers.get(Pair.of(player.getObjectId(), partner.getObjectId()));
-			if (entry != null)
-			{
-				entry.observer.cancel("trade.cancelled");
-			}
-		}
+		final Entry entry = partner == null ? null : _observers.get(Pair.of(player.getObjectId(), partner.getObjectId()));
 		player.cancelActiveTrade();
+		if (entry != null)
+		{
+			entry.observer.cancel("trade.cancelled");
+		}
+	}
+
+	/** Clears only the expected canonical pair and reports exact request/list cleanup. */
+	public boolean cancel(Player player, Player expectedPartner)
+	{
+		Objects.requireNonNull(player);
+		Objects.requireNonNull(expectedPartner);
+		if (player == expectedPartner)
+		{
+			return false;
+		}
+		final Pair pair = Pair.of(player.getObjectId(), expectedPartner.getObjectId());
+		final Entry entry = _observers.get(pair);
+		final TradeList playerList = player.getActiveTradeList();
+		final TradeList partnerList = expectedPartner.getActiveTradeList();
+		if ((playerList != null) && (playerList.getPartner() != expectedPartner))
+		{
+			return false;
+		}
+		if ((partnerList != null) && (partnerList.getPartner() != player))
+		{
+			return false;
+		}
+		if (playerList != null)
+		{
+			player.cancelActiveTrade();
+		}
+		else if (partnerList != null)
+		{
+			expectedPartner.cancelActiveTrade();
+		}
+		if (player.getActiveRequester() == expectedPartner)
+		{
+			player.setActiveRequester(null);
+		}
+		if (expectedPartner.getActiveRequester() == player)
+		{
+			expectedPartner.setActiveRequester(null);
+		}
+		player.onTransactionResponse();
+		expectedPartner.onTransactionResponse();
+		final boolean cleared = canonicalPairCleared(player, expectedPartner);
+		if (cleared && (entry != null))
+		{
+			entry.observer.cancel("trade.cancelled");
+		}
+		return cleared;
+	}
+
+	public boolean canonicalPairCleared(Player first, Player second)
+	{
+		Objects.requireNonNull(first);
+		Objects.requireNonNull(second);
+		return (first.getActiveTradeList() == null) && (second.getActiveTradeList() == null) && (first.getActiveRequester() != second) && (second.getActiveRequester() != first) && !first.isProcessingTransaction() && !second.isProcessingTransaction();
 	}
 
 	public AutoCloseable observe(int firstObjectId, int secondObjectId, Observer observer)

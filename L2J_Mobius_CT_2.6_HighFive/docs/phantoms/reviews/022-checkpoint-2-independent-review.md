@@ -26,3 +26,25 @@ Goal 022 overall: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 
 Независимый review обязан проверить final child и terminal evidence; этот
 handoff не выполняет self-accept. Goal 023 не начат.
+
+## Final lifetime review authority
+
+Этот раздел supersedes предыдущий bounded completion authority.
+
+Causality completion: `988ca85e91fb0e3aa2f58dc2aaa1e4277290e1a2`.
+Required direct-child subject:
+`fix(phantoms): close external trade and manufacture observer lifetime`.
+
+Независимый review должен дополнительно проверить:
+
+- ordinary external Player confirmation предшествует Phantom observer dispatch;
+- direct exchange удерживает exact Phantom ActionLease до terminal callback;
+- cancel/timeout/shutdown очищает canonical direct pair до durable terminal;
+- manufacture taint удерживает reservations/observer/leases до terminal event;
+- RecipeManager владеет abort, а shutdown честно fail-stop-ит незавершённый maker;
+- `AFTER_OPERATION_AUDIT` закрывает in-memory ownership через `finally`;
+- strict private-store aggregate preflight имеет zero-effect rejection;
+- dynamic direct/manufacture fault matrices и packet byte parity подтверждены.
+
+Goal 022 Checkpoint 2 и Goal 022 overall остаются
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; это не self-accept. Goal 023 не начат.
