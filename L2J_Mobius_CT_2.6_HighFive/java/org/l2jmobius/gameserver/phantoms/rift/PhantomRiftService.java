@@ -478,7 +478,7 @@ public final class PhantomRiftService implements PhantomRiftConversationFacts
 		final PhantomNavigationPoint point = new PhantomNavigationPoint(entry.destinationX(), entry.destinationY(), entry.destinationZ(), entry.destinationInstanceId());
 		final RouteObservation route = _party.requestRoute(current.leaderProfileId(), destination, point);
 		_metrics.routeRequest();
-		if (route.status() == RouteStatus.REJECTED)
+		if (route.status() != RouteStatus.PENDING)
 		{
 			return saved(stored, fromReadiness(current, readiness, Stage.EVALUATE_READINESS, null, 0, current.totalAttempts(), current.seatAttempts(), activeRefusals(current.refusals()), current.routeHash()), readiness, route.reasonKey());
 		}

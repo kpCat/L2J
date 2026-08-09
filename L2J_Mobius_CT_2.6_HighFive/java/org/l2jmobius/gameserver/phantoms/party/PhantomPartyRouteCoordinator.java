@@ -6,7 +6,9 @@ package org.l2jmobius.gameserver.phantoms.party;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -35,12 +37,14 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
  */
 public final class PhantomPartyRouteCoordinator
 {
+	private static final int MAX_TERMINAL_RECEIPTS = 4096;
 	private final PhantomNavigationService _navigation;
 	private final PhantomCombatService _combat;
 	private final Object _stateLock = new Object();
 	private final Map<String, PendingRoute> _pending = new HashMap<>();
 	private final Map<String, String> _routeByGroup = new HashMap<>();
 	private final Map<String, Long> _routeDeadlines = new HashMap<>();
+	private final LinkedHashMap<String, RouteAttempt> _terminalByGroup = new LinkedHashMap<>();
 	private final Map<Long, MovementLease> _movement = new HashMap<>();
 	private final Set<Long> _movementReservations = new HashSet<>();
 
@@ -57,32 +61,39 @@ public final class PhantomPartyRouteCoordinator
 			final PendingRoute pending = _pending.get(groupId);
 			if (pending != null)
 			{
-				return new RouteActivity(ActivityStatus.PLANNING, pending._routeId, pending._generation, pending._destination, true, false, false);
+				return new RouteActivity(ActivityStatus.PLANNING, pending._routeId, pending._generation, pending._destination, true, false, false, null, "party.route.pending");
 			}
 			if (persisted == null)
 			{
-				return RouteActivity.none();
+				final RouteAttempt terminal = _terminalByGroup.get(groupId);
+				return terminal == null ? RouteActivity.none() : RouteActivity.terminal(terminal);
 			}
 			final boolean routeOwned = persisted.routeId().equals(_routeByGroup.get(groupId));
 			final boolean movementOwned = roster.stream().filter(member -> member.kind() == MemberKind.PHANTOM).map(member -> _movement.get(member.profileId())).anyMatch(movement -> (movement != null) && persisted.routeId().equals(movement._routeId));
-			return new RouteActivity(ActivityStatus.valueOf(persisted.status().name()), persisted.routeId(), persisted.generation(), persisted.destination(), false, routeOwned, movementOwned);
+			return new RouteActivity(ActivityStatus.valueOf(persisted.status().name()), persisted.routeId(), persisted.generation(), persisted.destination(), false, routeOwned, movementOwned, null, "party.route." + persisted.status().name().toLowerCase(Locale.ROOT));
 		}
 	}
 
-	public Optional<RouteManifest> request(String groupId, long generation, MemberSnapshot leader, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destinationRef, PhantomNavigationPoint destination, String topologyHash, long now, long deadline)
+	public RouteAttempt request(String groupId, long generation, MemberSnapshot leader, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destinationRef, PhantomNavigationPoint destination, String topologyHash, long now, long deadline)
 	{
-		if ((leader.ref().kind() != MemberKind.PHANTOM) || (destination.instanceId() != leader.instanceId()))
-		{
-			return Optional.empty();
-		}
 		final String routeId = PhantomPartyModel.sha256(groupId + '|' + generation + '|' + destinationRef.namespace() + ':' + destinationRef.key() + '|' + topologyHash);
+		if ((_navigation == null) || (leader.ref().kind() != MemberKind.PHANTOM) || (destination.instanceId() != leader.instanceId()))
+		{
+			return RouteAttempt.unavailable(routeId, generation, destinationRef, "party.route.unavailable");
+		}
 		final PendingRoute pending = new PendingRoute(leader.ref().profileId(), routeId, generation, destinationRef, topologyHash, deadline);
 		synchronized (_stateLock)
 		{
-			if (_pending.containsKey(groupId) || _routeByGroup.containsKey(groupId))
+			final PendingRoute current = _pending.get(groupId);
+			if (current != null)
 			{
-				return Optional.empty();
+				return RouteAttempt.pending(current._routeId, current._generation, current._destination);
 			}
+			if (_routeByGroup.containsKey(groupId))
+			{
+				return RouteAttempt.unavailable(routeId, generation, destinationRef, "party.route.already_owned");
+			}
+			_terminalByGroup.remove(groupId);
 			_pending.put(groupId, pending);
 		}
 		final PhantomNavigationPoint origin = new PhantomNavigationPoint(leader.x(), leader.y(), leader.z(), leader.instanceId());
@@ -106,47 +117,63 @@ public final class PhantomPartyRouteCoordinator
 			{
 				_navigation.cancel(leader.ref().profileId(), submission.requestId());
 			}
-			return Optional.empty();
+			return RouteAttempt.unavailable(routeId, generation, destinationRef, "party.route.ownership_changed");
 		}
 		if (submission.status() == SubmissionStatus.REJECTED)
 		{
-			return Optional.empty();
+			return RouteAttempt.rejected(routeId, generation, destinationRef, submission.immediateResult());
 		}
 		if (submission.status() == SubmissionStatus.COMPLETED)
 		{
-			final Optional<RouteManifest> result = manifest(routeId, generation, destinationRef, submission.immediateResult(), topologyHash);
-			result.ifPresent(_ -> rememberRoute(groupId, routeId, deadline));
+			_navigation.consume(submission.requestId());
+			final RouteAttempt result = completed(routeId, generation, destinationRef, submission.immediateResult(), topologyHash);
+			if (result.status() == AttemptStatus.READY)
+			{
+				rememberRoute(groupId, routeId, deadline);
+			}
 			return result;
 		}
-		return Optional.empty();
+		return RouteAttempt.pending(routeId, generation, destinationRef);
 	}
 
-	public Optional<RouteManifest> poll(String groupId)
+	public RouteAttempt poll(String groupId)
 	{
 		final PendingRoute pending;
 		synchronized (_stateLock)
 		{
 			pending = _pending.get(groupId);
 		}
-		if ((pending == null) || (pending._requestId == 0))
+		if (pending == null)
 		{
-			return Optional.empty();
+			return RouteAttempt.none();
+		}
+		if (pending._requestId == 0)
+		{
+			return RouteAttempt.pending(pending._routeId, pending._generation, pending._destination);
 		}
 		final Optional<PhantomNavigationResult> result = _navigation.consume(pending._requestId);
 		if (result.isEmpty())
 		{
-			return Optional.empty();
+			return RouteAttempt.pending(pending._routeId, pending._generation, pending._destination);
 		}
+		final RouteAttempt attempt = completed(pending._routeId, pending._generation, pending._destination, result.get(), pending._topologyHash);
 		synchronized (_stateLock)
 		{
 			if (!_pending.remove(groupId, pending))
 			{
-				return Optional.empty();
+				return RouteAttempt.none();
 			}
-			_routeByGroup.put(groupId, pending._routeId);
-			_routeDeadlines.put(groupId, pending._deadline);
+			if (attempt.status() == AttemptStatus.READY)
+			{
+				_routeByGroup.put(groupId, pending._routeId);
+				_routeDeadlines.put(groupId, pending._deadline);
+			}
+			else
+			{
+				rememberTerminalLocked(groupId, attempt);
+			}
 		}
-		return manifest(pending._routeId, pending._generation, pending._destination, result.get(), pending._topologyHash);
+		return attempt;
 	}
 
 	public AdvanceResult advance(String groupId, RouteManifest route, MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots, int operationBudget, long logicalNow, String currentTopologyHash, PhantomCancellationToken token)
@@ -264,6 +291,7 @@ public final class PhantomPartyRouteCoordinator
 			pending = _pending.remove(groupId);
 			final String routeId = _routeByGroup.remove(groupId);
 			_routeDeadlines.remove(groupId);
+			_terminalByGroup.remove(groupId);
 			movement = _movement.entrySet().stream().filter(entry -> (routeId != null) && routeId.equals(entry.getValue()._routeId)).map(Map.Entry::getValue).map(value -> value._lease).toList();
 			_movement.entrySet().removeIf(entry -> (routeId != null) && routeId.equals(entry.getValue()._routeId));
 		}
@@ -286,7 +314,10 @@ public final class PhantomPartyRouteCoordinator
 		final List<String> groups;
 		synchronized (_stateLock)
 		{
-			groups = java.util.stream.Stream.concat(_pending.keySet().stream(), _routeByGroup.keySet().stream()).distinct().toList();
+			final Set<String> owned = new HashSet<>(_pending.keySet());
+			owned.addAll(_routeByGroup.keySet());
+			owned.addAll(_terminalByGroup.keySet());
+			groups = List.copyOf(owned);
 		}
 		for (String groupId : groups)
 		{
@@ -298,7 +329,7 @@ public final class PhantomPartyRouteCoordinator
 	{
 		synchronized (_stateLock)
 		{
-			return new Snapshot(_pending.size(), _movement.size());
+			return new Snapshot(_pending.size(), _routeByGroup.size(), _routeDeadlines.size(), _movement.size(), _terminalByGroup.size());
 		}
 	}
 
@@ -379,14 +410,29 @@ public final class PhantomPartyRouteCoordinator
 		}
 	}
 
-	private static Optional<RouteManifest> manifest(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, PhantomNavigationResult result, String topologyHash)
+	private void rememberTerminalLocked(String groupId, RouteAttempt attempt)
 	{
-		if (result.route() == null)
+		_terminalByGroup.remove(groupId);
+		_terminalByGroup.put(groupId, attempt);
+		while (_terminalByGroup.size() > MAX_TERMINAL_RECEIPTS)
 		{
-			return Optional.empty();
+			_terminalByGroup.remove(_terminalByGroup.keySet().iterator().next());
 		}
+	}
+
+	private static RouteAttempt completed(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, PhantomNavigationResult result, String topologyHash)
+	{
+		if ((result == null) || (result.route() == null))
+		{
+			return RouteAttempt.failed(routeId, generation, destination, result);
+		}
+		return RouteAttempt.ready(routeId, generation, destination, manifest(routeId, generation, destination, result, topologyHash), result.status());
+	}
+
+	private static RouteManifest manifest(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, PhantomNavigationResult result, String topologyHash)
+	{
 		final String navigationHash = PhantomPartyModel.sha256(result.route().mode() + "|" + result.route().waypoints());
-		return Optional.of(new RouteManifest(routeId, generation, destination, result.route().waypoints(), 0, 250, 1500, RouteStatus.MOVING, topologyHash, navigationHash));
+		return new RouteManifest(routeId, generation, destination, result.route().waypoints(), 0, 250, 1500, RouteStatus.MOVING, topologyHash, navigationHash);
 	}
 
 	private static double distance(MemberSnapshot snapshot, int x, int y, int z)
@@ -404,14 +450,21 @@ public final class PhantomPartyRouteCoordinator
 		MOVING,
 		REGROUPING,
 		ARRIVED,
-		FAILED
+		FAILED,
+		REJECTED,
+		UNAVAILABLE
 	}
 
-	public record RouteActivity(ActivityStatus status, String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, boolean plannerOwned, boolean routeOwned, boolean movementOwned)
+	public record RouteActivity(ActivityStatus status, String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, boolean plannerOwned, boolean routeOwned, boolean movementOwned, PhantomNavigationResult.Status navigationStatus, String reasonKey)
 	{
 		public static RouteActivity none()
 		{
-			return new RouteActivity(ActivityStatus.NONE, "0".repeat(64), 0, null, false, false, false);
+			return new RouteActivity(ActivityStatus.NONE, "0".repeat(64), 0, null, false, false, false, null, "party.route.none");
+		}
+
+		private static RouteActivity terminal(RouteAttempt attempt)
+		{
+			return new RouteActivity(ActivityStatus.valueOf(attempt.status().name()), attempt.routeId(), attempt.generation(), attempt.destination(), false, false, false, attempt.navigationStatus(), attempt.reasonKey());
 		}
 
 		public boolean nonTerminal()
@@ -421,11 +474,61 @@ public final class PhantomPartyRouteCoordinator
 
 		public boolean terminal()
 		{
-			return (status == ActivityStatus.ARRIVED) || (status == ActivityStatus.FAILED);
+			return Set.of(ActivityStatus.ARRIVED, ActivityStatus.FAILED, ActivityStatus.REJECTED, ActivityStatus.UNAVAILABLE).contains(status);
 		}
 	}
 
-	public record Snapshot(int navigationClaims, int movementClaims)
+	public enum AttemptStatus
+	{
+		NONE,
+		PENDING,
+		READY,
+		FAILED,
+		REJECTED,
+		UNAVAILABLE
+	}
+
+	public record RouteAttempt(AttemptStatus status, String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, RouteManifest route, PhantomNavigationResult.Status navigationStatus, String reasonKey)
+	{
+		private static RouteAttempt none()
+		{
+			return new RouteAttempt(AttemptStatus.NONE, "0".repeat(64), 0, null, null, null, "party.route.none");
+		}
+
+		private static RouteAttempt pending(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination)
+		{
+			return new RouteAttempt(AttemptStatus.PENDING, routeId, generation, destination, null, null, "party.route.pending");
+		}
+
+		private static RouteAttempt ready(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, RouteManifest route, PhantomNavigationResult.Status navigationStatus)
+		{
+			return new RouteAttempt(AttemptStatus.READY, routeId, generation, destination, route, navigationStatus, navigationReason(navigationStatus));
+		}
+
+		private static RouteAttempt failed(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, PhantomNavigationResult result)
+		{
+			final PhantomNavigationResult.Status status = result == null ? PhantomNavigationResult.Status.BACKEND_FAILURE : result.status();
+			return new RouteAttempt(AttemptStatus.FAILED, routeId, generation, destination, null, status, navigationReason(status));
+		}
+
+		private static RouteAttempt rejected(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, PhantomNavigationResult result)
+		{
+			final PhantomNavigationResult.Status status = result == null ? PhantomNavigationResult.Status.BACKEND_FAILURE : result.status();
+			return new RouteAttempt(AttemptStatus.REJECTED, routeId, generation, destination, null, status, navigationReason(status));
+		}
+
+		private static RouteAttempt unavailable(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, String reasonKey)
+		{
+			return new RouteAttempt(AttemptStatus.UNAVAILABLE, routeId, generation, destination, null, null, reasonKey);
+		}
+
+		private static String navigationReason(PhantomNavigationResult.Status status)
+		{
+			return "party.route.navigation." + status.name().toLowerCase(Locale.ROOT);
+		}
+	}
+
+	public record Snapshot(int navigationClaims, int routeClaims, int deadlineClaims, int movementClaims, int terminalReceipts)
 	{
 	}
 

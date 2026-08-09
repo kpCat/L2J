@@ -126,11 +126,17 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	public enum RouteOutcome
 	{
-		ACCEPTED,
+		READY,
 		PENDING,
+		FAILED,
+		REJECTED,
 		NOT_RUNNING,
 		NOT_PHANTOM_LEADER,
 		UNAVAILABLE
+	}
+
+	public record RouteRequestResult(RouteOutcome outcome, String routeId, long generation, PhantomDomainRef destination, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status navigationStatus, String reasonKey)
+	{
 	}
 	public enum ContentBindingOutcome
 	{
@@ -715,42 +721,59 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return (operation != null) && Set.of(OperationPhase.CANONICAL_PENDING, OperationPhase.CANONICAL_OBSERVED).contains(operation.phase());
 	}
 
-	public RouteOutcome requestRoute(long leaderProfileId, PhantomDomainRef destinationRef, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint destination)
+	public RouteRequestResult requestRoute(long leaderProfileId, PhantomDomainRef destinationRef, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint destination)
 	{
 		final OperationClaim control = beginOperation();
 		if (control == null)
 		{
-			return RouteOutcome.NOT_RUNNING;
+			return new RouteRequestResult(RouteOutcome.NOT_RUNNING, ZERO_HASH, 0, destinationRef, null, "party.route.not_running");
 		}
 		try (control)
 		{
 			final StoredPartyState claim = _claims.get(leaderProfileId);
 			if ((claim == null) || (claim.state().status() != StateStatus.LEADER) || (claim.state().leader().kind() != MemberKind.PHANTOM) || (claim.state().leader().profileId() != leaderProfileId))
 			{
-				return RouteOutcome.NOT_PHANTOM_LEADER;
+				return new RouteRequestResult(RouteOutcome.NOT_PHANTOM_LEADER, ZERO_HASH, 0, destinationRef, null, "party.route.not_phantom_leader");
 			}
 			final PhantomPartyRouteCoordinator.RouteActivity routeActivity = routeActivity(claim.state());
 			if (routeActivity.nonTerminal())
 			{
-				return RouteOutcome.PENDING;
+				return new RouteRequestResult(RouteOutcome.PENDING, routeActivity.routeId(), routeActivity.generation(), routeActivity.destination(), routeActivity.navigationStatus(), routeActivity.reasonKey());
 			}
 			if (routeActivity.terminal())
 			{
 				_routes.cancel(claim.state().groupId());
-				return RouteOutcome.PENDING;
+				if (routeActivity.navigationStatus() != null)
+				{
+					final RouteOutcome terminal = switch (routeActivity.status())
+					{
+						case REJECTED -> RouteOutcome.REJECTED;
+						case UNAVAILABLE -> RouteOutcome.UNAVAILABLE;
+						default -> RouteOutcome.FAILED;
+					};
+					return new RouteRequestResult(terminal, routeActivity.routeId(), routeActivity.generation(), routeActivity.destination(), routeActivity.navigationStatus(), routeActivity.reasonKey());
+				}
+				return new RouteRequestResult(RouteOutcome.PENDING, routeActivity.routeId(), routeActivity.generation(), routeActivity.destination(), null, "party.route.terminal_reconciled");
 			}
 			final MemberSnapshot leader = _backend.memberSnapshot(claim.state().leader()).orElse(null);
 			if (leader == null)
 			{
-				return RouteOutcome.UNAVAILABLE;
+				return new RouteRequestResult(RouteOutcome.UNAVAILABLE, ZERO_HASH, claim.state().groupGeneration(), destinationRef, null, "party.route.leader_unavailable");
 			}
-			final Optional<RouteManifest> immediate = _routes.request(claim.state().groupId(), claim.state().groupGeneration(), leader, destinationRef, destination, claim.state().topologyHash(), Math.max(0, _clock.getAsLong()), deadline());
-			if (immediate.isPresent())
+			final PhantomPartyRouteCoordinator.RouteAttempt attempt = _routes.request(claim.state().groupId(), claim.state().groupGeneration(), leader, destinationRef, destination, claim.state().topologyHash(), Math.max(0, _clock.getAsLong()), deadline());
+			if (attempt.status() == PhantomPartyRouteCoordinator.AttemptStatus.READY)
 			{
-				persistRoute(claim.state().groupId(), immediate.get());
-				return RouteOutcome.ACCEPTED;
+				persistRoute(claim.state().groupId(), attempt.route());
 			}
-			return RouteOutcome.PENDING;
+			final RouteOutcome outcome = switch (attempt.status())
+			{
+				case READY -> RouteOutcome.READY;
+				case PENDING -> RouteOutcome.PENDING;
+				case FAILED -> RouteOutcome.FAILED;
+				case REJECTED -> RouteOutcome.REJECTED;
+				case NONE, UNAVAILABLE -> RouteOutcome.UNAVAILABLE;
+			};
+			return new RouteRequestResult(outcome, attempt.routeId(), attempt.generation(), attempt.destination(), attempt.navigationStatus(), attempt.reasonKey());
 		}
 	}
 
@@ -826,8 +849,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				return CommandOutcome.PERSISTENCE_CONFLICT;
 			}
-			final RouteOutcome route = requestRoute(profileId, destinationRef, destination);
-			return Set.of(RouteOutcome.ACCEPTED, RouteOutcome.PENDING).contains(route) ? CommandOutcome.ACCEPTED : CommandOutcome.CANONICAL_REJECTED;
+			final RouteRequestResult route = requestRoute(profileId, destinationRef, destination);
+			return Set.of(RouteOutcome.READY, RouteOutcome.PENDING).contains(route.outcome()) ? CommandOutcome.ACCEPTED : CommandOutcome.CANONICAL_REJECTED;
 		}
 	}
 
@@ -1501,11 +1524,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		RouteManifest route = claims.getFirst().state().route();
 		if (route == null)
 		{
-			route = _routes.poll(groupId).orElse(null);
-			if (route == null)
+			final PhantomPartyRouteCoordinator.RouteAttempt attempt = _routes.poll(groupId);
+			if (attempt.status() != PhantomPartyRouteCoordinator.AttemptStatus.READY)
 			{
 				return 0;
 			}
+			route = attempt.route();
 			persistRoute(groupId, route);
 		}
 		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(party.members());

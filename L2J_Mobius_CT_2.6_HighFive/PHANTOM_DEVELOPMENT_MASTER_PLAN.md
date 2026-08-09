@@ -728,7 +728,7 @@ Checkpoint 2 `ACCEPT`; Goal 022 overall `ACCEPT` на baseline
 
 ### 023. Rift и advanced party recruitment
 
-Status: `CORRECTIVE_023B_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Status: `CORRECTIVE_023C_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Goal 023 overall: `CHANGES_REQUIRED` до независимого review 023C.
 
 - Rift destination/requirements;
 - content-specific composition;
@@ -738,6 +738,7 @@ Status: `CORRECTIVE_023B_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 - invite/refuse policy;
 - Goal 017 binding учитывает planner-pending и persisted `PLANNING`/`MOVING`/`REGROUPING` shared route;
 - production managed consent повторно проверяет exact current invitee eligibility перед `ACCEPT`.
+- typed `RouteAttempt` сохраняет Navigation terminal status через Goal 017 в Rift; terminal no-route не создаёт route/deadline ownership, а Rift возвращается к обычному replan без same-pulse resend.
 
 ### 024. Party farming и катакомбы
 

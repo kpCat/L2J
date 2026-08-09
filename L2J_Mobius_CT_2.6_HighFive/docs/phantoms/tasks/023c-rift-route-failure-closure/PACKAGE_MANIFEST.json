@@ -1,0 +1,29 @@
+{
+  "package": "phantom-world-goal-023c-rift-route-failure-closure",
+  "taskId": "023c-rift-route-failure-closure",
+  "goal": "023C",
+  "branch": "feature/phantom-world",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/023c-rift-route-failure-closure/TASK.md",
+  "requiredParent": "041e23502e5701716bab77dbe73304dc375a157e",
+  "commitSubject": "fix(phantoms): close rift route failure semantics",
+  "successToken": "GOAL_023C_RIFT_ROUTE_FAILURE_SEMANTICS_CLOSED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 23002313,
+  "goal023Status": "CHANGES_REQUIRED",
+  "goal023BReview": "ACCEPT_WITH_REQUIRED_023C_ROUTE_FAILURE_CLOSURE",
+  "goal024Started": false,
+  "finding": "R023C-01",
+  "artificialFileCountLimit": null,
+  "fileExpansionPolicy": "Pre-audited read/change set; additional High Five files allowed only when exact call-path necessity is documented.",
+  "productionDatabaseUseAllowed": false,
+  "payloadSha256": {
+    "docs/phantoms/tasks/023c-rift-route-failure-closure/ACCEPTANCE.md": "B4D87D352FD4762B88CD067C6CAE1D5E5380434B0F48E47D097661382191749E",
+    "docs/phantoms/tasks/023c-rift-route-failure-closure/ARCHITECTURE.md": "B57F272D1B91E0D361BF9CA67F2451D496CD3EB5A2912B8A6C5C32E230EB95EB",
+    "docs/phantoms/tasks/023c-rift-route-failure-closure/CODEX_LAUNCHER.txt": "ADB4F555DC65DFA68969A00E25807073FDA5C73D7F53430F11990FC9834C6231",
+    "docs/phantoms/tasks/023c-rift-route-failure-closure/CONTEXT.md": "C53EE3D2B675862DF86724F53BF5277921D7E5EAD1886ED00D98F0F0B2E2CF86",
+    "docs/phantoms/tasks/023c-rift-route-failure-closure/REVIEW_FINDINGS.md": "7AD29D52DCB3E12302542237B7BB1CA49E89F87ED7D0B23F219BC16AE492ADCE",
+    "docs/phantoms/tasks/023c-rift-route-failure-closure/TASK.md": "F2AEE30094026720AC1F9B2E19677B0B574C429B2B9BCCCE7CAC4EFD6FE8027D",
+    "docs/phantoms/tasks/023c-rift-route-failure-closure/TEST_CASES.md": "6B4EB47369D9F0D63C21FBD38FB6A3A3FC0FD2C960C849E0A2D686A01CCD6C0F"
+  },
+  "manifestSelfHashExcluded": true
+}

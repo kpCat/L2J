@@ -14,6 +14,7 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InvitationSn
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.CommandOutcome;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ContentBindingRequest;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ContentBindingResult;
@@ -152,12 +153,13 @@ public final class L2jPhantomRiftPartyPort implements PartyPort
 	@Override
 	public RouteObservation requestRoute(long leaderProfileId, PhantomDomainRef destination, PhantomNavigationPoint point)
 	{
-		final PhantomPartyCoordinator.RouteOutcome outcome = _coordinator.requestRoute(leaderProfileId, destination, point);
-		if ((outcome != PhantomPartyCoordinator.RouteOutcome.ACCEPTED) && (outcome != PhantomPartyCoordinator.RouteOutcome.PENDING))
+		final PhantomPartyCoordinator.RouteRequestResult result = _coordinator.requestRoute(leaderProfileId, destination, point);
+		return switch (result.outcome())
 		{
-			return new RouteObservation(PhantomRiftService.RouteStatus.REJECTED, "0".repeat(64), "rift.route." + outcome.name().toLowerCase());
-		}
-		return route(leaderProfileId);
+			case READY, PENDING -> route(leaderProfileId);
+			case FAILED -> new RouteObservation(PhantomRiftService.RouteStatus.FAILED, result.routeId(), riftReason(result.reasonKey(), result.outcome()));
+			case REJECTED, NOT_RUNNING, NOT_PHANTOM_LEADER, UNAVAILABLE -> new RouteObservation(PhantomRiftService.RouteStatus.REJECTED, result.routeId(), riftReason(result.reasonKey(), result.outcome()));
+		};
 	}
 
 	@Override
@@ -176,7 +178,7 @@ public final class L2jPhantomRiftPartyPort implements PartyPort
 		final var activity = _coordinator.observeRouteActivity(leaderProfileId);
 		return switch (activity.status())
 		{
-			case NONE -> new RouteObservation(PhantomRiftService.RouteStatus.PENDING, "0".repeat(64), "rift.route.pending");
+			case NONE -> new RouteObservation(PhantomRiftService.RouteStatus.NONE, "0".repeat(64), "rift.route.none");
 			case PLANNING, MOVING, REGROUPING -> new RouteObservation(PhantomRiftService.RouteStatus.PENDING, activity.routeId(), "rift.route.pending");
 			case ARRIVED ->
 			{
@@ -186,8 +188,23 @@ public final class L2jPhantomRiftPartyPort implements PartyPort
 			case FAILED ->
 			{
 				_coordinator.reconcileTerminalRoute(leaderProfileId, activity.routeId());
-				yield new RouteObservation(PhantomRiftService.RouteStatus.FAILED, activity.routeId(), "rift.route.failed");
+				yield new RouteObservation(PhantomRiftService.RouteStatus.FAILED, activity.routeId(), riftReason(activity.reasonKey(), PhantomPartyCoordinator.RouteOutcome.FAILED));
+			}
+			case REJECTED, UNAVAILABLE ->
+			{
+				_coordinator.reconcileTerminalRoute(leaderProfileId, activity.routeId());
+				yield new RouteObservation(PhantomRiftService.RouteStatus.REJECTED, activity.routeId(), riftReason(activity.reasonKey(), activity.status() == PhantomPartyRouteCoordinator.ActivityStatus.REJECTED ? PhantomPartyCoordinator.RouteOutcome.REJECTED : PhantomPartyCoordinator.RouteOutcome.UNAVAILABLE));
 			}
 		};
+	}
+
+	private static String riftReason(String reasonKey, PhantomPartyCoordinator.RouteOutcome outcome)
+	{
+		final String navigationPrefix = "party.route.navigation.";
+		if ((reasonKey != null) && reasonKey.startsWith(navigationPrefix))
+		{
+			return "rift.route." + reasonKey.substring(navigationPrefix.length());
+		}
+		return "rift.route." + outcome.name().toLowerCase(java.util.Locale.ROOT);
 	}
 }

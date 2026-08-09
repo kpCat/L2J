@@ -74,6 +74,7 @@ public final class PhantomRiftSuite implements PhantomTestSuite
 		RECRUITMENT,
 		REAL_PLAYER_INVITE,
 		TRAVEL_READINESS,
+		ROUTE_FAILURE_REPLAN,
 		RESTART_RECONCILIATION,
 		PERFORMANCE
 	}
@@ -95,7 +96,8 @@ public final class PhantomRiftSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
-		registry.add("required-seed", context -> assertEquals(REQUIRED_SEED, context.seed(), "Goal 023 must use its only authorized seed."));
+		final long requiredSeed = _mode == Mode.ROUTE_FAILURE_REPLAN ? 23002313L : REQUIRED_SEED;
+		registry.add("required-seed", context -> assertEquals(requiredSeed, context.seed(), "Rift mode must use its only authorized seed."));
 		switch (_mode)
 		{
 			case CATALOG_AUTHORITY ->
@@ -130,6 +132,7 @@ public final class PhantomRiftSuite implements PhantomTestSuite
 				registry.add("shared-route-handoff-no-teleport", this::travel);
 				registry.add("canonical-arrival-ready-only", this::arrival);
 			}
+			case ROUTE_FAILURE_REPLAN -> registry.add("terminal-route-failure-replans-without-same-pulse-resend", this::routeFailureReplan);
 			case RESTART_RECONCILIATION ->
 			{
 				registry.add("codec-all-stages-bounded", this::codecStages);
@@ -317,6 +320,27 @@ public final class PhantomRiftSuite implements PhantomTestSuite
 		advanceUntil(fixture, Stage.OBSERVE_ROUTE, 10);
 		assertEquals(1, fixture.party.routes, "Travel must be handed to the shared Goal 017 route.");
 		assertEquals(ENTRY_X + 1000, fixture.backend.facts.get(MemberRef.phantom(1, 101)).member().x(), "Rift service must not teleport the leader.");
+	}
+
+	private void routeFailureReplan(PhantomTestContext context) throws Exception
+	{
+		final Fixture fixture = fixture(context);
+		fixture.backend.roster(at(member(1, "combat.tank"), 1000), at(member(2, "combat.heal"), 1000), at(member(3, "combat.melee_damage"), 1000));
+		advanceUntil(fixture, Stage.OBSERVE_ROUTE, 10);
+		assertEquals(1, fixture.party.routes, "Initial NEEDS_TRAVEL issued an unexpected route count.");
+		fixture.party.routeStatus = RouteStatus.FAILED;
+		fixture.party.routeReason = "rift.route.no_path";
+		final var failed = fixture.service.advance(1, 23, 0, 1);
+		assertEquals("rift.route.no_path", failed.reasonKey(), "Terminal route failure reason changed during Rift reconciliation.");
+		assertEquals(Stage.EVALUATE_READINESS, fixture.service.load(1).orElseThrow().preparation().stage(), "Rift remained in OBSERVE_ROUTE after terminal failure.");
+		assertEquals(1, fixture.party.routes, "Rift resent a route in the same failure pulse.");
+		fixture.party.routeStatus = RouteStatus.PENDING;
+		fixture.party.routeReason = "rift.route.pending";
+		advanceUntil(fixture, Stage.REQUEST_PARTY_ROUTE, 4);
+		assertEquals(1, fixture.party.routes, "Readiness replan submitted before its normal request stage.");
+		fixture.service.advance(1, 23, 0, 1);
+		assertEquals(Stage.OBSERVE_ROUTE, fixture.service.load(1).orElseThrow().preparation().stage(), "Ordinary later replan did not request a new route.");
+		assertEquals(2, fixture.party.routes, "Ordinary later replan did not submit exactly one new route.");
 	}
 
 	private void arrival(PhantomTestContext context) throws Exception
@@ -530,6 +554,7 @@ public final class PhantomRiftSuite implements PhantomTestSuite
 		MemberRef pending;
 		InviteStatus inviteStatus = InviteStatus.PENDING;
 		RouteStatus routeStatus = RouteStatus.PENDING;
+		String routeReason = "rift.route.pending";
 
 		@Override
 		public PartyCommand ensureFormation(long leaderProfileId, long goalId, long goalRevision, PhantomDomainRef objective, List<RoleRequirement> requirements)
@@ -561,13 +586,13 @@ public final class PhantomRiftSuite implements PhantomTestSuite
 		public RouteObservation requestRoute(long leaderProfileId, PhantomDomainRef destination, PhantomNavigationPoint point)
 		{
 			routes++;
-			return new RouteObservation(routeStatus, hash("route"), "rift.route.pending");
+			return new RouteObservation(routeStatus, hash("route"), routeReason);
 		}
 
 		@Override
 		public RouteObservation observeRoute(long leaderProfileId, String expectedRouteHash)
 		{
-			return new RouteObservation(routeStatus, hash("route"), "rift.route.pending");
+			return new RouteObservation(routeStatus, hash("route"), routeReason);
 		}
 	}
 

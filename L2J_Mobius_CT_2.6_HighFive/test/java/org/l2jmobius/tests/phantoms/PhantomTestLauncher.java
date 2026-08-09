@@ -262,6 +262,7 @@ public final class PhantomTestLauncher
 			case "party-semantic-acts" -> new PhantomPartySuite(PhantomPartySuite.Mode.SEMANTIC_ACTS);
 			case "party-route" -> new PhantomPartySuite(PhantomPartySuite.Mode.ROUTE);
 			case "rift023b-route-closure" -> new PhantomPartySuite(PhantomPartySuite.Mode.ROUTE_CLOSURE);
+			case "rift023c-route-failure" -> new PhantomPartySuite(PhantomPartySuite.Mode.ROUTE_FAILURE_CLOSURE);
 			case "party-tactics" -> new PhantomPartySuite(PhantomPartySuite.Mode.TACTICS);
 			case "party-lifecycle" -> new PhantomPartySuite(PhantomPartySuite.Mode.LIFECYCLE);
 			case "party-server-integration" -> new PhantomPartyServerIntegrationSuite();
@@ -272,6 +273,7 @@ public final class PhantomTestLauncher
 			case "rift-recruitment" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.RECRUITMENT);
 			case "rift-real-player-invite" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.REAL_PLAYER_INVITE);
 			case "rift-travel-readiness" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.TRAVEL_READINESS);
+			case "rift023c-route-replan" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.ROUTE_FAILURE_REPLAN);
 			case "rift-restart-reconciliation" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.RESTART_RECONCILIATION);
 			case "rift-performance" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.PERFORMANCE);
 			case "rift023a-party-binding" -> new PhantomRiftCorrectionsSuite(PhantomRiftCorrectionsSuite.Mode.PARTY_BINDING);

@@ -894,14 +894,16 @@ conservation.
 **Gate:** no item/adena duplication across injected failures and restart.  
 **Follow-up risk:** `VERY_HIGH` — transaction/anti-dup/deadlock boundary.
 
-## Goal 023 — Rift и advanced party recruitment — `CORRECTIVE_023B_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+## Goal 023 — Rift и advanced party recruitment — `CORRECTIVE_023C_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** дополнить базовую Goal 017 content-specific composition.  
 **Зависимости:** 010, 013, 017, 020.  
 **Архитектурный результат:** Rift destination/requirements, real roster,
 missing roles, class/supply/travel readiness, full-party detection and
 invite/refuse policy; route-aware Goal 017 binding и exact target-side managed
-consent закрыты corrective Goal 023B.
+consent закрыты corrective Goal 023B. Corrective Goal 023C сохраняет typed terminal
+Navigation failure, исключает hidden route/deadline ownership и возвращает Rift к
+обычному replan. Goal 023 overall: `CHANGES_REQUIRED` до независимого review 023C.
 
 **Не включает:** general party kernel, raid/epic orchestration.  
 **Gate:** ответы о недостающей роли следуют из реального состава.  

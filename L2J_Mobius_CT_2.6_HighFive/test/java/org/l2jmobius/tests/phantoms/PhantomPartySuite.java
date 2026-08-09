@@ -11,8 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.l2jmobius.gameserver.phantoms.activity.PhantomCompositeSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
@@ -79,6 +81,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		SEMANTIC_ACTS,
 		ROUTE,
 		ROUTE_CLOSURE,
+		ROUTE_FAILURE_CLOSURE,
 		TACTICS,
 		LIFECYCLE,
 		SERVER_INTEGRATION,
@@ -110,6 +113,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			case SEMANTIC_ACTS -> semantics(registry);
 			case ROUTE -> route(registry);
 			case ROUTE_CLOSURE -> routeClosure(registry);
+			case ROUTE_FAILURE_CLOSURE -> routeFailureClosure(registry);
 			case TACTICS -> tactics(registry);
 			case LIFECYCLE -> lifecycle(registry);
 			case SERVER_INTEGRATION -> integration(registry);
@@ -464,7 +468,9 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			final MemberSnapshot leaderSnapshot = new MemberSnapshot(leader, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO);
 			final String groupId = PhantomPartyModel.sha256("route.missing.member");
 			final long now = Math.max(1, System.nanoTime());
-			final RouteManifest route = routes.request(groupId, 1, leaderSnapshot, new PhantomDomainRef("location", "missing"), new PhantomNavigationPoint(100, 100, 0, 0), ZERO, now, now + 1_000_000_000L).orElseThrow();
+			final PhantomPartyRouteCoordinator.RouteAttempt routeAttempt = routes.request(groupId, 1, leaderSnapshot, new PhantomDomainRef("location", "missing"), new PhantomNavigationPoint(100, 100, 0, 0), ZERO, now, now + 1_000_000_000L);
+			PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.AttemptStatus.READY, routeAttempt.status(), "Immediate route fixture did not produce READY.");
+			final RouteManifest route = routeAttempt.route();
 			final var result = routes.advance(groupId, route, leader, List.of(leader, missing), Map.of(leader, leaderSnapshot), 10, now + 1, ZERO, () -> false);
 			PhantomAssertions.assertEquals(RouteStatus.REGROUPING, result.route().status(), "Missing canonical member did not force REGROUPING.");
 			PhantomAssertions.assertEquals(route.currentWaypoint(), result.route().currentWaypoint(), "Missing canonical member advanced a waypoint.");
@@ -482,13 +488,13 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			try (RouteClosureFixture fixture = new RouteClosureFixture(context, false))
 			{
 				PhantomAssertions.assertTrue(fixture.bind().bound(), "Initial Rift content binding was not stable.");
-				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, fixture.request(new PhantomDomainRef("location", "unrelated")), "Planner-pending route did not expose PENDING.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, fixture.request(new PhantomDomainRef("location", "unrelated")).outcome(), "Planner-pending route did not expose PENDING.");
 				final var activity = fixture.coordinator().observeRouteActivity(fixture.leader().profileId());
 				PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.ActivityStatus.PLANNING, activity.status(), "Planner ownership was not visible before manifest persistence.");
 				PhantomAssertions.assertTrue(activity.plannerOwned() && !ZERO.equals(activity.routeId()), "Planner-pending activity lost exact route identity.");
 				PhantomAssertions.assertEquals(BindingStatus.PENDING, fixture.portBinding().status(), "Content binding ignored planner-pending route ownership.");
 				PhantomAssertions.assertEquals(null, fixture.state().route(), "Planner-pending binding fabricated or cleared a route manifest.");
-				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, fixture.request(new PhantomDomainRef("location", "second")), "Second request over planner ownership did not stay PENDING.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, fixture.request(new PhantomDomainRef("location", "second")).outcome(), "Second request over planner ownership did not stay PENDING.");
 				PhantomAssertions.assertEquals(1, fixture.submissions(), "Planner-pending retry submitted a second shared route.");
 			}
 		});
@@ -497,14 +503,14 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			try (RouteClosureFixture fixture = new RouteClosureFixture(context, true))
 			{
 				PhantomAssertions.assertTrue(fixture.bind().bound(), "Initial moving-route binding was not stable.");
-				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.ACCEPTED, fixture.request(new PhantomDomainRef("location", "unrelated")), "Immediate shared route was not accepted.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.READY, fixture.request(new PhantomDomainRef("location", "unrelated")).outcome(), "Immediate shared route was not ready.");
 				final RouteManifest moving = fixture.state().route();
 				final var movingActivity = fixture.coordinator().observeRouteActivity(fixture.leader().profileId());
 				PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.ActivityStatus.MOVING, movingActivity.status(), "Persisted MOVING route was not visible.");
 				PhantomAssertions.assertTrue(movingActivity.routeOwned(), "MOVING route lost Goal017 ownership.");
 				PhantomAssertions.assertEquals(BindingStatus.PENDING, fixture.portBinding().status(), "Content binding treated MOVING route as stable.");
 				PhantomAssertions.assertEquals(moving, fixture.state().route(), "Content binding overwrote the live MOVING manifest.");
-				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, fixture.request(new PhantomDomainRef("location", "duplicate")), "MOVING route allowed a second request.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, fixture.request(new PhantomDomainRef("location", "duplicate")).outcome(), "MOVING route allowed a second request.");
 				PhantomAssertions.assertEquals(1, fixture.submissions(), "MOVING retry submitted a second shared route.");
 				fixture.snapshot(0, 0, 0, true);
 				fixture.pulse(2);
@@ -540,13 +546,116 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		});
 	}
 
+	private static void routeFailureClosure(PhantomTestRegistry registry)
+	{
+		registry.add("00-required-seed", context -> PhantomAssertions.assertEquals(23002313L, context.seed(), "Goal 023C must use seed 23002313."));
+		registry.add("01-none-is-real-absence-not-pending", context ->
+		{
+			try (RouteClosureFixture fixture = new RouteClosureFixture(context, RouteNavigationCase.IMMEDIATE_SUCCESS))
+			{
+				PhantomAssertions.assertTrue(fixture.bind().bound(), "NONE fixture binding was not stable.");
+				final RouteObservation observation = fixture.port().observeRoute(fixture.leader().profileId(), ZERO);
+				PhantomAssertions.assertEquals(PhantomRiftService.RouteStatus.NONE, observation.status(), "RouteActivity.NONE was collapsed into PENDING.");
+				assertNoRouteOwnership(fixture, "NONE observation");
+			}
+		});
+		registry.add("02-sync-rejected-is-terminal-and-replannable", context ->
+		{
+			try (RouteClosureFixture fixture = new RouteClosureFixture(context, RouteNavigationCase.SYNC_REJECTED))
+			{
+				PhantomAssertions.assertTrue(fixture.bind().bound(), "Rejected fixture binding was not stable.");
+				final RouteObservation rejected = fixture.port().requestRoute(fixture.leader().profileId(), fixture.routeDestination(), fixture.destination());
+				PhantomAssertions.assertEquals(PhantomRiftService.RouteStatus.REJECTED, rejected.status(), "Navigation REJECTED was collapsed into PENDING.");
+				PhantomAssertions.assertEquals("rift.route.service_not_running", rejected.reasonKey(), "Rejected Navigation status was not preserved upward.");
+				assertNoRouteOwnership(fixture, "sync REJECTED");
+				PhantomAssertions.assertEquals(PhantomRiftService.RouteStatus.REJECTED, fixture.port().requestRoute(fixture.leader().profileId(), fixture.routeDestination(), fixture.destination()).status(), "Later ordinary replan could not resubmit after REJECTED.");
+			}
+		});
+		registry.add("03-sync-completed-no-route-is-failed", context ->
+		{
+			try (RouteClosureFixture fixture = new RouteClosureFixture(context, RouteNavigationCase.SYNC_NO_ROUTE))
+			{
+				PhantomAssertions.assertTrue(fixture.bind().bound(), "No-route fixture binding was not stable.");
+				final RouteObservation failed = fixture.port().requestRoute(fixture.leader().profileId(), fixture.routeDestination(), fixture.destination());
+				PhantomAssertions.assertEquals(PhantomRiftService.RouteStatus.FAILED, failed.status(), "COMPLETED no-route was collapsed into PENDING.");
+				PhantomAssertions.assertEquals("rift.route.no_geodata", failed.reasonKey(), "Completed no-route status was not preserved upward.");
+				assertNoRouteOwnership(fixture, "sync completed no-route");
+			}
+		});
+		registry.add("04-async-accepted-no-path-closes-ownership", context -> asyncRouteFailure(context, RouteNavigationCase.ASYNC_NO_PATH, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.NO_PATH, "rift.route.no_path"));
+		registry.add("05-async-accepted-backend-failure-closes-ownership", context -> asyncRouteFailure(context, RouteNavigationCase.ASYNC_BACKEND_FAILURE, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.BACKEND_FAILURE, "rift.route.backend_failure"));
+		registry.add("06-immediate-and-async-success-remain-ready", context ->
+		{
+			try (RouteClosureFixture immediate = new RouteClosureFixture(context, RouteNavigationCase.IMMEDIATE_SUCCESS))
+			{
+				PhantomAssertions.assertTrue(immediate.bind().bound(), "Immediate success binding was not stable.");
+				final RouteObservation requested = immediate.port().requestRoute(immediate.leader().profileId(), immediate.routeDestination(), immediate.destination());
+				PhantomAssertions.assertEquals(PhantomRiftService.RouteStatus.PENDING, requested.status(), "Immediate usable route did not enter MOVING/PENDING.");
+				PhantomAssertions.assertEquals(RouteStatus.MOVING, immediate.state().route().status(), "Immediate usable route did not persist MOVING.");
+				PhantomAssertions.assertEquals(1, immediate.routeSnapshot().routeClaims(), "Immediate usable route lost route ownership.");
+				PhantomAssertions.assertEquals(1, immediate.routeSnapshot().deadlineClaims(), "Immediate usable route lost its deadline.");
+			}
+			try (RouteClosureFixture async = new RouteClosureFixture(context, RouteNavigationCase.ASYNC_SUCCESS))
+			{
+				PhantomAssertions.assertTrue(async.bind().bound(), "Async success binding was not stable.");
+				final RouteObservation pending = async.port().requestRoute(async.leader().profileId(), async.routeDestination(), async.destination());
+				PhantomAssertions.assertEquals(PhantomRiftService.RouteStatus.PENDING, pending.status(), "Accepted async route did not expose PENDING.");
+				async.snapshot(0, 0, 0, true);
+				async.completeAsync();
+				PhantomAssertions.assertTrue(Set.of(RouteStatus.MOVING, RouteStatus.REGROUPING).contains(async.state().route().status()), "Async PATH_FOUND did not persist a usable live route.");
+				PhantomAssertions.assertEquals(pending.routeHash(), async.coordinator().observeRouteActivity(async.leader().profileId()).routeId(), "Async success changed exact route identity.");
+				PhantomAssertions.assertEquals(1, async.routeSnapshot().routeClaims(), "Async usable route lost route ownership.");
+				PhantomAssertions.assertEquals(0, async.routeSnapshot().terminalReceipts(), "Async usable route fabricated terminal failure evidence.");
+			}
+		});
+	}
+
+	private static void asyncRouteFailure(PhantomTestContext context, RouteNavigationCase navigationCase, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status expectedStatus, String expectedReason) throws Exception
+	{
+		try (RouteClosureFixture fixture = new RouteClosureFixture(context, navigationCase))
+		{
+			PhantomAssertions.assertTrue(fixture.bind().bound(), "Async failure binding was not stable.");
+			final RouteObservation pending = fixture.port().requestRoute(fixture.leader().profileId(), fixture.routeDestination(), fixture.destination());
+			PhantomAssertions.assertEquals(PhantomRiftService.RouteStatus.PENDING, pending.status(), "Accepted async route was not PENDING before completion.");
+			PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.ActivityStatus.PLANNING, fixture.coordinator().observeRouteActivity(fixture.leader().profileId()).status(), "Accepted async route lost planner ownership.");
+			fixture.completeAsync();
+			final var terminal = fixture.coordinator().observeRouteActivity(fixture.leader().profileId());
+			PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.ActivityStatus.FAILED, terminal.status(), "Async terminal no-route was not observable as FAILED.");
+			PhantomAssertions.assertEquals(expectedStatus, terminal.navigationStatus(), "Async terminal Navigation status changed across Goal017.");
+			PhantomAssertions.assertEquals(null, fixture.state().route(), "Async terminal no-route fabricated a RouteManifest.");
+			PhantomAssertions.assertEquals(0, fixture.routeSnapshot().routeClaims(), "Async terminal no-route polluted route ownership.");
+			PhantomAssertions.assertEquals(0, fixture.routeSnapshot().deadlineClaims(), "Async terminal no-route polluted deadline ownership.");
+			PhantomAssertions.assertEquals(1, fixture.routeSnapshot().terminalReceipts(), "Async terminal evidence was not bounded to one receipt.");
+			final RouteObservation failed = fixture.port().observeRoute(fixture.leader().profileId(), pending.routeHash());
+			PhantomAssertions.assertEquals(PhantomRiftService.RouteStatus.FAILED, failed.status(), "Async terminal failure did not reach Rift.");
+			PhantomAssertions.assertEquals(expectedReason, failed.reasonKey(), "Async terminal failure reason changed across Rift port.");
+			assertNoRouteOwnership(fixture, "async " + expectedStatus);
+			fixture.advanceClock(60_000_000_000L);
+			PhantomAssertions.assertEquals(PhantomRiftService.RouteStatus.PENDING, fixture.port().requestRoute(fixture.leader().profileId(), fixture.routeDestination(), fixture.destination()).status(), "Later ordinary replan did not resubmit after async failure.");
+			PhantomAssertions.assertEquals(2, fixture.submissions(), "Async failure replan did not perform exactly one later submission.");
+		}
+	}
+
+	private static void assertNoRouteOwnership(RouteClosureFixture fixture, String label)
+	{
+		final PhantomPartyRouteCoordinator.Snapshot route = fixture.routeSnapshot();
+		PhantomAssertions.assertEquals(0, route.navigationClaims(), label + " retained navigation ownership.");
+		PhantomAssertions.assertEquals(0, route.routeClaims(), label + " retained route ownership.");
+		PhantomAssertions.assertEquals(0, route.deadlineClaims(), label + " retained deadline ownership.");
+		PhantomAssertions.assertEquals(0, route.movementClaims(), label + " retained movement ownership.");
+		PhantomAssertions.assertEquals(0, route.terminalReceipts(), label + " retained terminal evidence after reconciliation.");
+		PhantomAssertions.assertEquals(0, fixture.navigationSnapshot().activeRequests(), label + " retained Navigation active request.");
+		PhantomAssertions.assertEquals(0, fixture.navigationSnapshot().completedResults(), label + " retained Navigation completed result.");
+		PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.ActivityStatus.NONE, fixture.coordinator().observeRouteActivity(fixture.leader().profileId()).status(), label + " did not reconcile to NONE.");
+	}
+
 	private static void terminalRoute(PhantomTestContext context, RouteStatus terminal) throws Exception
 	{
 		try (RouteClosureFixture fixture = new RouteClosureFixture(context, true))
 		{
 			final ContentBindingResult initial = fixture.bind();
 			PhantomAssertions.assertTrue(initial.bound(), "Initial terminal-route binding was not stable.");
-			PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.ACCEPTED, fixture.request(fixture.routeDestination()), "Terminal-route setup did not persist MOVING.");
+			PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.READY, fixture.request(fixture.routeDestination()).outcome(), "Terminal-route setup did not persist MOVING.");
 			final PartyState before = fixture.state();
 			if (terminal == RouteStatus.ARRIVED)
 			{
@@ -1035,6 +1144,16 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		return new PhantomGoal(9001, PhantomPartyCoordinator.JOIN_GOAL, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("party", "general"), new PhantomDomainRef("character.object", Integer.toString(identity.requesterObjectId())), 1, 0, null, List.of(), null, "conversation.action", 600, 0, 0, 0, constraints, "conversation.party.accept", 0);
 	}
 
+	private enum RouteNavigationCase
+	{
+		SYNC_REJECTED,
+		SYNC_NO_ROUTE,
+		IMMEDIATE_SUCCESS,
+		ASYNC_SUCCESS,
+		ASYNC_NO_PATH,
+		ASYNC_BACKEND_FAILURE
+	}
+
 	private static final class RouteClosureFixture implements AutoCloseable
 	{
 		private static final long GOAL_ID = 23002312L;
@@ -1042,8 +1161,11 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private final MemoryGoalStore _goals = new MemoryGoalStore();
 		private final MemoryPartyBackend _backend = new MemoryPartyBackend();
 		private final AtomicInteger _submissions = new AtomicInteger();
+		private final AtomicInteger _directChecks = new AtomicInteger();
+		private final AtomicLong _clock = new AtomicLong(1_000_000_000L);
 		private Runnable _deferredWorker;
 		private final PhantomNavigationService _navigation;
+		private final PhantomPartyRouteCoordinator _routes;
 		private final PhantomPartyCoordinator _coordinator;
 		private final L2jPhantomRiftPartyPort _port;
 		private final MemberRef _leader;
@@ -1053,34 +1175,61 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 		private RouteClosureFixture(PhantomTestContext context, boolean immediate)
 		{
+			this(context, immediate ? RouteNavigationCase.IMMEDIATE_SUCCESS : RouteNavigationCase.ASYNC_SUCCESS);
+		}
+
+		private RouteClosureFixture(PhantomTestContext context, RouteNavigationCase navigationCase)
+		{
 			final PhantomNavigationBackend navigationBackend = new PhantomNavigationBackend()
 			{
 				@Override public CapabilitySnapshot capability(PhantomNavigationPoint origin, PhantomNavigationPoint destination)
 				{
 					_submissions.incrementAndGet();
-					return new CapabilitySnapshot(immediate ? PhantomNavigationCapability.GEODATA_DIRECT_ONLY : PhantomNavigationCapability.GEODATA_PATHFINDING, 1);
+					final PhantomNavigationCapability capability = switch (navigationCase)
+					{
+						case SYNC_NO_ROUTE -> PhantomNavigationCapability.NO_GEODATA;
+						case IMMEDIATE_SUCCESS -> PhantomNavigationCapability.GEODATA_DIRECT_ONLY;
+						default -> PhantomNavigationCapability.GEODATA_PATHFINDING;
+					};
+					return new CapabilitySnapshot(capability, 1);
 				}
-				@Override public boolean canMoveDirect(PhantomNavigationPoint origin, PhantomNavigationPoint destination) { return immediate; }
-				@Override public List<PhantomNavigationPoint> findPath(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellationToken) { return List.of(request.destination()); }
+				@Override public boolean canMoveDirect(PhantomNavigationPoint origin, PhantomNavigationPoint destination)
+				{
+					final int check = _directChecks.incrementAndGet();
+					return (navigationCase == RouteNavigationCase.IMMEDIATE_SUCCESS) || ((navigationCase == RouteNavigationCase.ASYNC_SUCCESS) && (check > 1));
+				}
+				@Override public List<PhantomNavigationPoint> findPath(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellationToken)
+				{
+					return switch (navigationCase)
+					{
+						case ASYNC_SUCCESS -> List.of(request.origin(), request.destination());
+						case ASYNC_NO_PATH -> null;
+						case ASYNC_BACKEND_FAILURE -> throw new IllegalStateException("Expected Goal 023C backend failure.");
+						default -> throw new AssertionError("Synchronous route fixture invoked pathfinding.");
+					};
+				}
 			};
 			_navigation = new PhantomNavigationService(PhantomNavigationPolicy.productionDefaults(), navigationBackend, worker ->
 			{
-				if (immediate)
-				{
-					worker.run();
-				}
-				else
+				if (Set.of(RouteNavigationCase.ASYNC_SUCCESS, RouteNavigationCase.ASYNC_NO_PATH, RouteNavigationCase.ASYNC_BACKEND_FAILURE).contains(navigationCase))
 				{
 					_deferredWorker = worker;
 				}
+				else
+				{
+					worker.run();
+				}
 				return true;
-			}, System::nanoTime, new PhantomMetrics());
-			PhantomAssertions.assertTrue(_navigation.start(), "Route closure navigation did not start.");
+			}, _clock::get, new PhantomMetrics());
+			if (navigationCase != RouteNavigationCase.SYNC_REJECTED)
+			{
+				PhantomAssertions.assertTrue(_navigation.start(), "Route closure navigation did not start.");
+			}
 			_leader = _backend.add(1, 101);
 			_backend.party(new PhantomPartyBackend.PartySnapshot(_leader, List.of(_leader), PartyDistributionType.FINDERS_KEEPERS));
 			_goals.put(_leader.profileId(), goal(GOAL_ID, PhantomRiftService.GOAL_TYPE, _objective, 0));
-			final PhantomPartyRouteCoordinator routes = new PhantomPartyRouteCoordinator(_navigation, null);
-			_coordinator = new PhantomPartyCoordinator(_states, _goals, _backend, currentCatalog(context), routes, new PhantomPartyTactics(null, _backend), () -> ZERO, System::nanoTime, 64);
+			_routes = new PhantomPartyRouteCoordinator(_navigation, null);
+			_coordinator = new PhantomPartyCoordinator(_states, _goals, _backend, currentCatalog(context), _routes, new PhantomPartyTactics(null, _backend), () -> ZERO, _clock::get, 64);
 			PhantomAssertions.assertTrue(_coordinator.start(), "Route closure coordinator did not start.");
 			_port = new L2jPhantomRiftPartyPort(_coordinator);
 		}
@@ -1095,7 +1244,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			return _port.bind(_leader.profileId(), GOAL_ID, 0, _objective, List.of(), roster());
 		}
 
-		private PhantomPartyCoordinator.RouteOutcome request(PhantomDomainRef destination)
+		private PhantomPartyCoordinator.RouteRequestResult request(PhantomDomainRef destination)
 		{
 			return _coordinator.requestRoute(_leader.profileId(), destination, _destination);
 		}
@@ -1111,6 +1260,20 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			{
 				_coordinator.onPulse();
 			}
+		}
+
+		private void completeAsync()
+		{
+			PhantomAssertions.assertTrue(_deferredWorker != null, "Async route fixture has no accepted worker.");
+			final Runnable worker = _deferredWorker;
+			_deferredWorker = null;
+			worker.run();
+			pulse(2);
+		}
+
+		private void advanceClock(long nanos)
+		{
+			_clock.addAndGet(nanos);
 		}
 
 		private PartyState state()
@@ -1130,6 +1293,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private PhantomDomainRef routeDestination() { return _routeDestination; }
 		private PhantomNavigationPoint destination() { return _destination; }
 		private int submissions() { return _submissions.get(); }
+		private PhantomPartyRouteCoordinator.Snapshot routeSnapshot() { return _routes.snapshot(); }
+		private PhantomNavigationService.ServiceSnapshot navigationSnapshot() { return _navigation.snapshot(); }
 
 		@Override
 		public void close()
