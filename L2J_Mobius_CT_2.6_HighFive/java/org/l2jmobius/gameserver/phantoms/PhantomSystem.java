@@ -80,6 +80,11 @@ import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyDecision;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomStoreService;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingDecision;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingPolicy;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingService;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingStore;
 import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
@@ -164,6 +169,7 @@ public final class PhantomSystem
 	private PhantomStoreService _phantomStoreService;
 	private PhantomBackgroundService _backgroundService;
 	private PhantomAcquisitionService _acquisitionService;
+	private PhantomFarmingService _farmingService;
 	private PhantomPopulationManager _populationManager;
 	private PhantomPartyCoordinator _partyCoordinator;
 	private PhantomSocialService _socialService;
@@ -385,6 +391,14 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
 				}
 				partyParticipation.install(_partyCoordinator);
+				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
+				_farmingService = new PhantomFarmingService(farmingPolicy, new PhantomFarmingStore(productionProfiles), _acquisitionService, _topologyService, _partyCoordinator, _socialService, _settings.maxScheduledPhantomProfiles());
+				if (!_farmingService.start())
+				{
+					throw new IllegalStateException("Phantom farming conflict service could not enter the running state.");
+				}
+				PhantomFarmingConflictPort.install(_farmingService);
+				final PhantomFarmingDecision farmingDecision = new PhantomFarmingDecision(_farmingService);
 				final L2jPhantomRiftBackend riftBackend = new L2jPhantomRiftBackend(partyBackend, productionProfiles, _materializationService, _progressionService, commerceCatalog.catalog(), _socialService);
 				final PhantomRiftCatalog riftCatalog = PhantomRiftCatalog.load(new File(ServerConfig.DATAPACK_ROOT, "data/DimensionalRift.xml").toPath(), riftBackend);
 				final PhantomRiftPolicy riftPolicy = PhantomRiftPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/rift/high-five-rift-policy-v1.xml").toPath(), riftCatalog, partyRoleCatalog);
@@ -402,7 +416,7 @@ public final class PhantomSystem
 				final PhantomConversationExecutionStore conversationExecutionStore = new PhantomConversationExecutionStore(productionProfiles, conversationExecutionCatalog);
 				final PhantomConversationPlanSink.Bridge conversationExecutionSignal = PhantomConversationPlanSink.bridge();
 				_conversationService = new PhantomConversationService(conversationCatalog, new PhantomConversationStore(productionProfiles, conversationExecutionStore), new L2jPhantomConversationContextPort(_materializationService, _topologyService.query()), _semanticUnderstandingService, _socialService, conversationExecutionSignal, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance());
-				_conversationExecutionService = new PhantomConversationExecutionService(conversationExecutionCatalog, conversationExecutionStore, productionGoals, new L2jPhantomConversationExecutionPort(conversationExecutionCatalog, _gameKnowledgeService, _topologyService.query(), _partyCoordinator, _materializationService, ChatObservationService.getInstance(), riftService));
+				_conversationExecutionService = new PhantomConversationExecutionService(conversationExecutionCatalog, conversationExecutionStore, productionGoals, new L2jPhantomConversationExecutionPort(conversationExecutionCatalog, _gameKnowledgeService, _topologyService.query(), _partyCoordinator, _materializationService, ChatObservationService.getInstance(), riftService, _farmingService));
 				conversationExecutionSignal.install(_conversationExecutionService);
 				if (!_conversationExecutionService.start())
 				{
@@ -415,6 +429,7 @@ public final class PhantomSystem
 				final PhantomPopulationDecision populationDecision = new PhantomPopulationDecision(_populationManager);
 				final PhantomPartyDecision partyDecision = new PhantomPartyDecision(_partyCoordinator);
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
+				farmingDecision.registerCandidates(candidateRegistry);
 				acquisitionDecision.registerCandidates(candidateRegistry);
 				economyDecision.registerCandidates(candidateRegistry);
 				multipartyEconomyDecision.registerCandidates(candidateRegistry);
@@ -427,6 +442,7 @@ public final class PhantomSystem
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
 				new PhantomCombatStepHandlers(_combatService, combatPolicy).register(handlerRegistry);
+				farmingDecision.registerHandlers(handlerRegistry);
 				acquisitionDecision.registerHandlers(handlerRegistry);
 				economyDecision.registerHandlers(handlerRegistry);
 				multipartyEconomyDecision.registerHandlers(handlerRegistry);
@@ -456,6 +472,11 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException e)
 		{
+			if (_farmingService != null)
+			{
+				_farmingService.beginStop();
+				PhantomFarmingConflictPort.uninstall(_farmingService);
+			}
 			if (_conversationService != null)
 			{
 				_conversationService.beginStop();
@@ -524,7 +545,12 @@ public final class PhantomSystem
 			}
 			final boolean conversationStopped = (_conversationService == null) || _conversationService.finishStop();
 			final boolean conversationExecutionStopped = conversationStopped && ((_conversationExecutionService == null) || _conversationExecutionService.finishStop());
-			final boolean partyStopped = conversationExecutionStopped && ((_partyCoordinator == null) || _partyCoordinator.finishStop());
+			final boolean farmingStopped = conversationExecutionStopped && ((_farmingService == null) || _farmingService.finishStop());
+			if (farmingStopped && (_farmingService != null))
+			{
+				PhantomFarmingConflictPort.uninstall(_farmingService);
+			}
+			final boolean partyStopped = farmingStopped && ((_partyCoordinator == null) || _partyCoordinator.finishStop());
 			boolean socialStopped = _socialService == null;
 			if (partyStopped && (_socialService != null))
 			{
@@ -602,6 +628,11 @@ public final class PhantomSystem
 			{
 				_economyReservations.shutdown(System.currentTimeMillis());
 			}
+			if (_farmingService != null)
+			{
+				_farmingService.beginStop();
+				PhantomFarmingConflictPort.uninstall(_farmingService);
+			}
 			if (_conversationService != null)
 			{
 				_conversationService.beginStop();
@@ -616,6 +647,15 @@ public final class PhantomSystem
 			{
 				_conversationExecutionService.beginStop();
 				if (!_conversationExecutionService.finishStop())
+				{
+					_metrics.recordShutdownFailure();
+					_state = State.FAILED;
+					return false;
+				}
+			}
+			if (_farmingService != null)
+			{
+				if (!_farmingService.finishStop())
 				{
 					_metrics.recordShutdownFailure();
 					_state = State.FAILED;
@@ -779,6 +819,10 @@ public final class PhantomSystem
 		}
 		if (_state == State.FAILED)
 		{
+			if (_farmingService != null)
+			{
+				PhantomFarmingConflictPort.uninstall(_farmingService);
+			}
 			if ((_conversationService != null) && (_conversationService.snapshot().state() != PhantomConversationService.ServiceState.STOPPED))
 			{
 				_conversationService.beginStop();
@@ -792,6 +836,15 @@ public final class PhantomSystem
 			{
 				_conversationExecutionService.beginStop();
 				if (!_conversationExecutionService.finishStop())
+				{
+					_metrics.recordShutdownFailure();
+					return false;
+				}
+			}
+			if ((_farmingService != null) && (_farmingService.snapshot().state() != PhantomFarmingService.State.STOPPED))
+			{
+				_farmingService.beginStop();
+				if (!_farmingService.finishStop())
 				{
 					_metrics.recordShutdownFailure();
 					return false;
@@ -939,6 +992,11 @@ public final class PhantomSystem
 	public synchronized PhantomAcquisitionService.Snapshot acquisitionSnapshot()
 	{
 		return _acquisitionService == null ? null : _acquisitionService.snapshot();
+	}
+
+	public synchronized PhantomFarmingService.Snapshot farmingSnapshot()
+	{
+		return _farmingService == null ? null : _farmingService.snapshot();
 	}
 
 	public static synchronized boolean startConfigured()

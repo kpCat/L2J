@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<farmingConflictPolicy id="high-five-farming-conflict-v1" version="1">
+	<limits claimLeaseMinutes="3" negotiationTtlMinutes="10" waitMinutes="5" pairCooldownMinutes="2" maximumRounds="3" maximumAlternatives="4" maximumClaimants="8" perceptionLimit="32" historyReceipts="4"/>
+	<thresholds shareCooperation="700" refuseCooperation="-700" escalation="900"/>
+	<weights priority="8" remaining="4" progress="2" claimAge="10" alternative="-50" persistence="1"/>
+</farmingConflictPolicy>

@@ -102,6 +102,24 @@
 			<delta source="relationship.debt" value="-500"/>
 			<delta source="reputation.reliability" value="100"/>
 		</event>
+		<event code="1016" key="farming.agreement.offered" ttlMinutes="10080" salience="300">
+			<agreement key="offered" value="1"/>
+		</event>
+		<event code="1017" key="farming.agreement.accepted" ttlMinutes="43200" salience="450">
+			<delta source="relationship.trust" value="40"/>
+			<delta source="reputation.reliability" value="20"/>
+			<agreement key="accepted" value="1"/>
+		</event>
+		<event code="1018" key="farming.agreement.refused" ttlMinutes="21600" salience="450">
+			<delta source="relationship.anger" value="30"/>
+			<delta source="relationship.rivalry" value="20"/>
+			<agreement key="refused" value="1"/>
+		</event>
+		<event code="1019" key="farming.conflict.escalated" ttlMinutes="43200" salience="700">
+			<delta source="relationship.anger" value="100"/>
+			<delta source="relationship.rivalry" value="80"/>
+			<delta source="reputation.hostility" value="60"/>
+		</event>
 	</events>
 	<modifiers>
 		<modifier key="goal.persistence" minimum="-3000" maximum="3000">

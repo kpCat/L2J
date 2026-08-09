@@ -322,6 +322,7 @@ public final class PhantomTestLauncher
 			case "acquisition-recipe-planning" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.RECIPE_PLANNING);
 			case "acquisition-active-spoil" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.ACQUISITION);
 			case "acquisition-source-switching" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.SOURCE_SWITCHING);
+			case "farming-acquisition-gate" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.FARMING_GATE);
 			case "acquisition-lifecycle-performance" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "acquisition-manor-catalog-source" -> new PhantomAcquisitionManorSuite(PhantomAcquisitionManorSuite.Mode.CATALOG_SOURCE);
 			case "acquisition-manor-active" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.MANOR);
@@ -347,6 +348,14 @@ public final class PhantomTestLauncher
 			case "economy-manufacture" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.MANUFACTURE);
 			case "economy-multiparty-restart-fault" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.RESTART_FAULT);
 			case "economy-checkpoint2-performance" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.PERFORMANCE);
+			case "farming-resource-policy" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.RESOURCE_POLICY);
+			case "farming-perception-claims" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.PERCEPTION_CLAIMS);
+			case "farming-party-share" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.PARTY_SHARE);
+			case "farming-bilateral" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.BILATERAL);
+			case "farming-convergence" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.CONVERGENCE);
+			case "farming-facts" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.FACTS);
+			case "farming-restart-fault" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.RESTART_FAULT);
+			case "farming-lifecycle-performance" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

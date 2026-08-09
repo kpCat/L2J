@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
@@ -76,6 +77,9 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Reservation;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.ResourceKind;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort.Gate;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort.Outcome;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TerritoryGeometry;
@@ -250,9 +254,63 @@ public final class PhantomAcquisitionService
 		}
 		return switch (state.phase())
 		{
-			case TRAVEL_REQUIRED -> new Directive(DirectiveKind.TRAVEL, "acquisition.travel.required", sourceId, generation);
+			case TRAVEL_REQUIRED -> gatedDirective(profileId, goal, stored.get(), new Directive(DirectiveKind.TRAVEL, "acquisition.travel.required", sourceId, generation));
 			case VERIFYING -> new Directive(DirectiveKind.VERIFY, "acquisition.verify.required", sourceId, generation);
+			case TARGET_REQUIRED -> gatedDirective(profileId, goal, stored.get(), new Directive(activityState == PhantomActivityState.BACKGROUND ? DirectiveKind.BACKGROUND : DirectiveKind.ACTIVE, "acquisition.advance.required", sourceId, generation));
 			default -> new Directive(activityState == PhantomActivityState.BACKGROUND ? DirectiveKind.BACKGROUND : DirectiveKind.ACTIVE, "acquisition.advance.required", sourceId, generation);
+		};
+	}
+
+	/**
+	 * Exact current Goal 021 resource facts for Goal 024. The store remains
+	 * private and any goal/state identity mismatch is suppressed.
+	 */
+	public Optional<ConflictSnapshot> conflictSnapshot(long profileId)
+	{
+		if ((_state != ServiceState.RUNNING) || (profileId <= 0))
+		{
+			return Optional.empty();
+		}
+		final PhantomGoalStateStore.StoredGoal goal = _goals.load(profileId).orElse(null);
+		final StoredState acquisition = _store.load(profileId).orElse(null);
+		return (goal == null) || (acquisition == null) ? Optional.empty() : conflictSnapshot(profileId, goal.goal(), acquisition);
+	}
+
+	private Optional<ConflictSnapshot> conflictSnapshot(long profileId, PhantomGoal goal, StoredState acquisition)
+	{
+		try
+		{
+			final PhantomAcquisitionGoalSpec spec = PhantomAcquisitionGoalSpec.parse(goal);
+			final PhantomAcquisitionState state = acquisition.state();
+			if ((state.goalId() != goal.goalId()) || (state.goalRevision() != goal.revision()) || (state.targetItemId() != spec.itemId()) || (state.requiredAmount() != spec.requiredAmount()) || (state.progress() != goal.currentAmount()) || (state.selectedSource() == null))
+			{
+				return Optional.empty();
+			}
+			final List<ConflictAlternative> alternatives = state.candidates().stream().filter(candidate -> !candidate.sourceId().equals(state.selectedSource().sourceId())).map(candidate -> new ConflictAlternative(candidate.sourceId(), candidate.method(), candidate.score())).toList();
+			final boolean switchFeasible = (state.switchCount() < Math.min(spec.maximumSwitches(), _catalog.limits().sourceSwitches())) && !alternatives.isEmpty();
+			final long remaining = Math.subtractExact(spec.requiredAmount(), state.progress());
+			final String evidenceHash = digest(profileId, goal.goalId(), goal.revision(), acquisition.rowVersion(), state.selectedSource().sourceId(), state.requiredAmount(), state.progress(), state.hashes());
+			return Optional.of(new ConflictSnapshot(profileId, goal.goalId(), goal.revision(), state.targetItemId(), state.requiredAmount(), state.progress(), remaining, goal.priority(), state.selectedSource(), state.status(), state.phase(), acquisition.rowVersion(), alternatives, switchFeasible, state.hashes(), state.hashes().equals(hashes()), evidenceHash));
+		}
+		catch (RuntimeException exception)
+		{
+			return Optional.empty();
+		}
+	}
+
+	private Directive gatedDirective(long profileId, PhantomGoal goal, StoredState acquisition, Directive allowed)
+	{
+		final Optional<ConflictSnapshot> snapshot = conflictSnapshot(profileId, goal, acquisition);
+		if (snapshot.isEmpty())
+		{
+			return new Directive(DirectiveKind.SWITCH, "farming.conflict.snapshot_stale", allowed.sourceId(), allowed.generation());
+		}
+		final Gate gate = PhantomFarmingConflictPort.evaluate(profileId, snapshot.get());
+		return switch (gate.outcome())
+		{
+			case ALLOW, SHARE -> allowed;
+			case NEGOTIATE, WAIT -> new Directive(DirectiveKind.BLOCKED, gate.reasonKey(), allowed.sourceId(), allowed.generation());
+			case MOVE, STALE -> new Directive(DirectiveKind.SWITCH, gate.reasonKey(), allowed.sourceId(), allowed.generation());
 		};
 	}
 
@@ -379,6 +437,11 @@ public final class PhantomAcquisitionService
 			{
 				return OperationResult.replan("acquisition.travel.stale");
 			}
+			final OperationResult farmingGate = farmingBoundary(current);
+			if (farmingGate != null)
+			{
+				return farmingGate;
+			}
 			if (activityState != PhantomActivityState.BACKGROUND)
 			{
 				return travelMaterialized(current, logicalNowNanos, logicalMinute, token);
@@ -410,6 +473,14 @@ public final class PhantomAcquisitionService
 			if ((current == null) || stale(current) || (activityState != PhantomActivityState.BACKGROUND))
 			{
 				return OperationResult.replan("acquisition.background.stale");
+			}
+			if (current.state().phase() == Phase.TARGET_REQUIRED)
+			{
+				final OperationResult farmingGate = farmingBoundary(current);
+				if (farmingGate != null)
+				{
+					return farmingGate;
+				}
 			}
 			final PhantomBackgroundService.OperationResult result = _background.acquireItem(profileId, current.goal().goal(), current.goal().rowVersion(), current.state(), current.acquisition().rowVersion(), activityGeneration, tickSequence, activityState, logicalNowNanos, logicalMinute);
 			final OperationResult mapped = map(result);
@@ -443,6 +514,14 @@ public final class PhantomAcquisitionService
 			if ((current == null) || stale(current) || (current.state().selectedSource() == null))
 			{
 				return OperationResult.replan("acquisition.active.stale");
+			}
+			if (current.state().phase() == Phase.TARGET_REQUIRED)
+			{
+				final OperationResult farmingGate = farmingBoundary(current);
+				if (farmingGate != null)
+				{
+					return farmingGate;
+				}
 			}
 			if (!PhantomEconomyConflictPort.isInstalled())
 			{
@@ -491,6 +570,17 @@ public final class PhantomAcquisitionService
 			case VERIFYING -> verifyCurrent(current, logicalNowNanos, logicalMinute, token);
 			default -> OperationResult.replan("acquisition.active.phase");
 		};
+	}
+
+	private OperationResult farmingBoundary(Current current)
+	{
+		final Optional<ConflictSnapshot> snapshot = conflictSnapshot(current.profileId(), current.goal().goal(), current.acquisition());
+		if (snapshot.isEmpty())
+		{
+			return OperationResult.replan("farming.conflict.snapshot_stale");
+		}
+		final Gate gate = PhantomFarmingConflictPort.evaluate(current.profileId(), snapshot.get());
+		return Set.of(Outcome.ALLOW, Outcome.SHARE).contains(gate.outcome()) ? null : OperationResult.replan(gate.reasonKey());
 	}
 
 	public OperationResult verify(long profileId, PhantomGoal contextGoal, PhantomActivityState activityState, long logicalNowNanos, long logicalMinute, PhantomCancellationToken token)
@@ -2018,6 +2108,36 @@ public final class PhantomAcquisitionService
 		public static OperationResult fail(String reason)
 		{
 			return new OperationResult(OperationStatus.FAIL_GOAL, reason);
+		}
+	}
+
+	public record ConflictAlternative(String sourceId, Method method, int score)
+	{
+		public ConflictAlternative
+		{
+			Objects.requireNonNull(sourceId);
+			Objects.requireNonNull(method);
+		}
+	}
+
+	public record ConflictSnapshot(long profileId, long goalId, long goalRevision, int targetItemId, long requiredAmount, long progress, long remainingAmount, int goalPriority, Source source, Status status, Phase phase, long acquisitionRowVersion, List<ConflictAlternative> alternatives, boolean switchFeasible, Hashes authorityHashes, boolean authorityCurrent, String evidenceHash)
+	{
+		public ConflictSnapshot
+		{
+			if ((profileId <= 0) || (goalId <= 0) || (goalRevision < 0) || (targetItemId <= 0) || (requiredAmount <= 0) || (progress < 0) || (remainingAmount != (requiredAmount - progress)) || (goalPriority < 0) || (goalPriority > 1000) || (acquisitionRowVersion < 0))
+			{
+				throw new IllegalArgumentException("Invalid acquisition conflict snapshot.");
+			}
+			Objects.requireNonNull(source);
+			Objects.requireNonNull(status);
+			Objects.requireNonNull(phase);
+			alternatives = List.copyOf(alternatives);
+			if (alternatives.size() > PhantomAcquisitionState.MAX_CANDIDATES - 1)
+			{
+				throw new IllegalArgumentException("Acquisition conflict alternatives exceed the ranked bound.");
+			}
+			Objects.requireNonNull(authorityHashes);
+			Objects.requireNonNull(evidenceHash);
 		}
 	}
 

@@ -728,7 +728,9 @@ Checkpoint 2 `ACCEPT`; Goal 022 overall `ACCEPT` на baseline
 
 ### 023. Rift и advanced party recruitment
 
-Status: `CORRECTIVE_023C_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Goal 023 overall: `CHANGES_REQUIRED` до независимого review 023C.
+Status: `ACCEPT`. Goal 023C `ACCEPT`, `R023C-01` `CLOSED`; Goal 023 overall `ACCEPT` на baseline
+`e67298697eaecc629a03b215a78ffa947233efd3`. Исторические `CHANGES_REQUIRED` для исходных exact
+baselines Goal 023 и Goal 023A сохраняются в их independent review.
 
 - Rift destination/requirements;
 - content-specific composition;
@@ -742,7 +744,12 @@ Status: `CORRECTIVE_023C_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Goal 023 overa
 
 ### 024. Party farming и катакомбы
 
-Status: NOT_STARTED. Goal 024 не начат.
+Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Goal 024 реализован от accepted baseline
+`e67298697eaecc629a03b215a78ffa947233efd3`; independent review ещё не выполнен. Goal 025 не начат.
+
+Exact current Goal 021 Source теперь порождает bounded ROOM/MOB_GROUP claim; Goal 010 определяет current
+perceptibility, Goal 017 — same-Party SHARE, Goal 018 — social memory/history, Goal 020 — typed query/language.
+Двусторонний deterministic FINAL не действует до exact receipt обеих сторон; `ESCALATE` не выполняет combat/PvP.
 
 - follow/assist;
 - target assignment;

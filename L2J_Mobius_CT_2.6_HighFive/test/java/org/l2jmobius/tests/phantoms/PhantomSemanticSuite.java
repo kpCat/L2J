@@ -115,13 +115,13 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(first.packHash(), second.packHash(), "Semantic XML hash changed across identical loads.");
 			PhantomAssertions.assertEquals(first.corpusHash(), second.corpusHash(), "Semantic corpus hash changed across identical loads.");
 			PhantomAssertions.assertEquals(64, first.packHash().length(), "Semantic XML is not SHA-256 addressed.");
-			PhantomAssertions.assertEquals(240, first.corpus().size(), "Semantic corpus case count changed.");
-			PhantomAssertions.assertEquals(14, first.intents().size(), "Semantic intent coverage changed.");
+			PhantomAssertions.assertEquals(242, first.corpus().size(), "Semantic corpus case count changed.");
+			PhantomAssertions.assertEquals(15, first.intents().size(), "Semantic intent coverage changed.");
 		});
 		registry.add("02-required-contract-and-coverage-are-explicit", context ->
 		{
 			final PhantomSemanticPack pack = pack(context);
-			for (String intent : List.of("party.invite", "party.accept", "party.refuse", "party.leave", "party.role.query", "party.travel", "party.support.request", "party.assist.request", "party.regroup.request", "entity.locate", "item.acquire.query", "item.source.query", "content.requirements.query", "unknown"))
+			for (String intent : List.of("party.invite", "party.accept", "party.refuse", "party.leave", "party.role.query", "party.travel", "party.support.request", "party.assist.request", "party.regroup.request", "entity.locate", "item.acquire.query", "item.source.query", "content.requirements.query", "farming.conflict.query", "unknown"))
 			{
 				PhantomAssertions.assertEquals(intent, pack.intent(intent).key(), "Required semantic intent is absent.");
 			}

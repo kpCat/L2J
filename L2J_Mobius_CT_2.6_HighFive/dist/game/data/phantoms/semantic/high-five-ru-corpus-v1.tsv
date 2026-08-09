@@ -239,3 +239,5 @@ neg042	слово‌слово	none	REJECTED	unknown	-	0	reject.unsupported
 neg043	αθήνα	none	REJECTED	unknown	-	0	reject.unsupported
 neg044	東京	none	REJECTED	unknown	-	0	reject.unsupported
 neg045	مرحبا	none	REJECTED	unknown	-	0	reject.unsupported
+goal024_001	что с конфликтом фарма	none	ACCEPTED	farming.conflict.query	-	6000	accept.matched
+goal024_002	что с местом фарма	none	ACCEPTED	farming.conflict.query	-	6000	accept.matched

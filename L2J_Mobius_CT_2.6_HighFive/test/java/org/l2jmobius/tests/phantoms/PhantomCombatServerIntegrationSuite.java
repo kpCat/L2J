@@ -732,12 +732,15 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertEquals(5L, ((ManorBinding) prepared.methodBinding()).cropCountBeforeDispatch(), "Harvester baseline did not rebase to the observed crop count.");
 		restartAcquisitionService();
 		PhantomAssertions.assertEquals(prepared, acquisitionState(), "Prepared manor restart changed overall or handler-bound truth.");
+		await(() -> !_player.isCastingNow() && !_player.isAttackingNow(), "Service manor Combat cleanup did not quiesce before Harvester dispatch.");
 		_player.getItemReuseTimeStamps().clear();
 
 		long cropAfter = 5;
 		for (int attempt = 0; (attempt < 3) && (cropAfter == 5); attempt++)
 		{
-			advanceAcquisition(goal, 4 + (attempt * 2L));
+			final PhantomAcquisitionService.OperationResult dispatch = advanceAcquisition(goal, 4 + (attempt * 2L));
+			PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, dispatch.status(), "Service manor Harvester dispatch was not accepted: " + dispatch.reasonKey());
+			PhantomAssertions.assertEquals(Phase.HARVEST_DISPATCHING, acquisitionState().phase(), "Service manor Harvester dispatch did not persist HARVEST_DISPATCHING.");
 			waitFor(() -> _player.getInventory().getInventoryItemCount(cropItemId, -1) > 5, 4000);
 			advanceAcquisition(goal, 5 + (attempt * 2L));
 			cropAfter = _player.getInventory().getInventoryItemCount(cropItemId, -1);

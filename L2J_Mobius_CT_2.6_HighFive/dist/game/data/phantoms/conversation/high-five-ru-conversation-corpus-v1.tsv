@@ -127,3 +127,4 @@ c125	social-style	WHISPER	пригласи меня	ack.action_proposed	warm	par
 c126	cooldown	TRADE	Фантом, где взять адену	no_response.cooldown	neutral	none
 c127	semantic-rejection	GENERAL	Фантом, непонятный текст	no_response.unsupported	neutral	none
 c128	proposal-mapping	WHISPER	где взять адену	ack.query_proposed	neutral	item.acquire
+c129	proposal-mapping	WHISPER	что с конфликтом фарма	ack.query_proposed	neutral	farming.conflict.query

@@ -226,6 +226,10 @@
 			<pattern id="requirements.short" text="требования {CONTENT}"/>
 			<pattern id="requirements.missing" text="что нужно для"/>
 		</intent>
+		<intent key="farming.conflict.query" baseScore="7200" requiredAll="-" requiredAny="-">
+			<pattern id="farming.conflict" text="что с конфликтом фарма"/>
+			<pattern id="farming.resource" text="что с местом фарма"/>
+		</intent>
 		<intent key="unknown" baseScore="0" requiredAll="-" requiredAny="-">
 		</intent>
 	</intents>

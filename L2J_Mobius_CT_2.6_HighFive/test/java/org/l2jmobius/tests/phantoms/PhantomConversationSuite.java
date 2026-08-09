@@ -75,7 +75,7 @@ public final class PhantomConversationSuite implements PhantomTestSuite
 		registry.add("01-strict-catalog-corpus-and-required-hard-limits", context ->
 		{
 			final PhantomConversationCatalog catalog = catalog(context);
-			PhantomAssertions.assertEquals(128, catalog.corpusCases(), "Conversation corpus case count changed.");
+			PhantomAssertions.assertEquals(129, catalog.corpusCases(), "Conversation corpus case count changed.");
 			PhantomAssertions.assertTrue(catalog.limits().ingressQueue() <= 1024 && catalog.limits().openBatches() <= 256 && catalog.limits().observersPerMessage() <= 32 && catalog.limits().operationsPerPulse() <= 32, "Conversation ingress/pulse hard bounds changed.");
 			PhantomAssertions.assertTrue(catalog.limits().sessionsPerProfile() <= 8 && catalog.limits().recentHashes() <= 8 && catalog.limits().pendingSlots() <= 4 && catalog.limits().statePayload() <= 4096, "Conversation durable state hard bounds changed.");
 			final String source = Files.readString(xml(context), StandardCharsets.UTF_8);

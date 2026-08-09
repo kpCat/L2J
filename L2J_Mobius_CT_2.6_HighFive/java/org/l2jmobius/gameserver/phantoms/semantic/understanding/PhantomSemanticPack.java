@@ -43,7 +43,7 @@ public final class PhantomSemanticPack
 {
 	public static final int MAX_XML_BYTES = 256 * 1024;
 	public static final int MAX_CORPUS_BYTES = 256 * 1024;
-	private static final Set<String> REQUIRED_INTENTS = Set.of("party.invite", "party.accept", "party.refuse", "party.leave", "party.role.query", "party.travel", "party.support.request", "party.assist.request", "party.regroup.request", "entity.locate", "item.acquire.query", "item.source.query", "content.requirements.query", "unknown");
+	private static final Set<String> REQUIRED_INTENTS = Set.of("party.invite", "party.accept", "party.refuse", "party.leave", "party.role.query", "party.travel", "party.support.request", "party.assist.request", "party.regroup.request", "entity.locate", "item.acquire.query", "item.source.query", "content.requirements.query", "farming.conflict.query", "unknown");
 	private static final Set<String> REQUIRED_REASONS = Set.of("accept.matched", "clarify.intent", "clarify.target_player", "clarify.entity", "clarify.party_role", "clarify.location", "clarify.quantity", "clarify.complexity", "reject.unsupported", "reject.too_long", "reject.mixed_script");
 
 	public enum ContextResolver

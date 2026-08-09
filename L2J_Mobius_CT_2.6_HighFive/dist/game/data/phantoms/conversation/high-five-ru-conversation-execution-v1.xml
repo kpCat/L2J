@@ -7,6 +7,7 @@
 		<proposal key="item.acquire" kind="QUERY" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="item" targetNamespaces="" counterpartRequired="true" />
 		<proposal key="item.source" kind="QUERY" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="item" targetNamespaces="" counterpartRequired="true" />
 		<proposal key="content.requirements" kind="QUERY" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="content" targetNamespaces="" counterpartRequired="true" />
+		<proposal key="farming.conflict.query" kind="QUERY" goalType="" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="" targetNamespaces="" counterpartRequired="true" />
 		<proposal key="party.invite" kind="GOAL" goalType="party.form" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="target.player" targetNamespaces="character.object,profile" counterpartRequired="true" />
 		<proposal key="party.leave" kind="GOAL" goalType="party.leave" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="" targetNamespaces="" counterpartRequired="true" />
 		<proposal key="party.travel" kind="GOAL" goalType="party.travel" channels="GENERAL,WHISPER,PARTY,TRADE" requiredSlots="location,topology.node" targetNamespaces="" counterpartRequired="true" />
@@ -45,6 +46,15 @@
 		<label key="content.party_min" text="минимум группы" />
 		<label key="content.reference" text="контент" />
 		<label key="entity.reference" text="цель" />
+		<label key="farming.agreement" text="соглашение" />
+		<label key="farming.alternative" text="альтернатива" />
+		<label key="farming.claim_status" text="статус места" />
+		<label key="farming.counterpart" text="соперник" />
+		<label key="farming.counterpart_remaining" text="остаток второго" />
+		<label key="farming.escalation" text="эскалация" />
+		<label key="farming.negotiation_act" text="решение" />
+		<label key="farming.remaining" text="остаток цели" />
+		<label key="farming.resource" text="ресурс фарма" />
 		<label key="item.reference" text="предмет" />
 		<label key="item.source" text="источник" />
 		<label key="party.group_generation" text="поколение группы" />

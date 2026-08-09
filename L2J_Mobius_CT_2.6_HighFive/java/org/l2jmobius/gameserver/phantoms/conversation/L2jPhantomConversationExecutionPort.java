@@ -27,6 +27,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConversationFacts;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
@@ -52,13 +53,19 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 	private final PhantomMaterializationService _materialization;
 	private final ChatObservationService _observation;
 	private final PhantomRiftConversationFacts _riftFacts;
+	private final PhantomFarmingConversationFacts _farmingFacts;
 
 	public L2jPhantomConversationExecutionPort(PhantomConversationExecutionCatalog catalog, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomPartyCoordinator party, PhantomMaterializationService materialization, ChatObservationService observation)
 	{
-		this(catalog, knowledge, topology, party, materialization, observation, PhantomRiftConversationFacts.NONE);
+		this(catalog, knowledge, topology, party, materialization, observation, PhantomRiftConversationFacts.NONE, PhantomFarmingConversationFacts.NONE);
 	}
 
 	public L2jPhantomConversationExecutionPort(PhantomConversationExecutionCatalog catalog, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomPartyCoordinator party, PhantomMaterializationService materialization, ChatObservationService observation, PhantomRiftConversationFacts riftFacts)
+	{
+		this(catalog, knowledge, topology, party, materialization, observation, riftFacts, PhantomFarmingConversationFacts.NONE);
+	}
+
+	public L2jPhantomConversationExecutionPort(PhantomConversationExecutionCatalog catalog, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomPartyCoordinator party, PhantomMaterializationService materialization, ChatObservationService observation, PhantomRiftConversationFacts riftFacts, PhantomFarmingConversationFacts farmingFacts)
 	{
 		_catalog = Objects.requireNonNull(catalog);
 		_knowledge = Objects.requireNonNull(knowledge);
@@ -67,6 +74,7 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		_materialization = Objects.requireNonNull(materialization);
 		_observation = Objects.requireNonNull(observation);
 		_riftFacts = Objects.requireNonNull(riftFacts);
+		_farmingFacts = Objects.requireNonNull(farmingFacts);
 	}
 
 	@Override
@@ -75,6 +83,7 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		final PhantomGameKnowledgeQuery knowledge = _knowledge.query();
 		return switch (entry.proposalKey())
 		{
+			case "farming.conflict.query" -> farmingConflict(profileId);
 			case "party.role.query" -> partyRole(profileId);
 			case "entity.locate" -> locate(knowledge, entry);
 			case "item.acquire", "item.source" -> itemSources(knowledge, entry);
@@ -278,6 +287,39 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 				return new OutboundResult(status, dispatch.deliveries(), dispatch.expectedCounterpartDelivered());
 			}
 		}
+	}
+
+	private QueryResult farmingConflict(long profileId)
+	{
+		return farmingConflict(profileId, _farmingFacts);
+	}
+
+	public static QueryResult farmingConflict(long profileId, PhantomFarmingConversationFacts farmingFacts)
+	{
+		final List<PhantomFarmingConversationFacts.Fact> current = Objects.requireNonNull(farmingFacts).latest(profileId);
+		if (current.isEmpty())
+		{
+			return new QueryResult(ResultStatus.NOT_FOUND, List.of());
+		}
+		final List<QueryFact> facts = new ArrayList<>(current.size());
+		for (PhantomFarmingConversationFacts.Fact fact : current)
+		{
+			final String key = switch (fact.type())
+			{
+				case FARMING_CLAIM_STATUS -> "farming.claim_status";
+				case FARMING_CONFLICT -> fact.counterpartProfileId() > 0 ? "farming.counterpart" : "farming.resource";
+				case FARMING_REMAINING -> fact.counterpartProfileId() > 0 ? "farming.counterpart_remaining" : "farming.remaining";
+				case FARMING_ALTERNATIVE -> "farming.alternative";
+				case FARMING_NEGOTIATION_ACT -> "farming.negotiation_act";
+				case FARMING_AGREEMENT -> "farming.agreement";
+				case FARMING_ESCALATION -> "farming.escalation";
+			};
+			final PhantomDomainRef reference = key.equals("farming.counterpart") ? new PhantomDomainRef("profile", Long.toString(fact.counterpartProfileId())) : null;
+			final Long number = key.endsWith("remaining") ? fact.number() : null;
+			final String value = (reference == null) && (number == null) ? fact.value() : null;
+			facts.add(new QueryFact(key, reference, number, value, fact.reasonKey().isEmpty() ? "farming.current" : fact.reasonKey()));
+		}
+		return new QueryResult(ResultStatus.COMPLETED, List.copyOf(facts));
 	}
 
 	private QueryResult partyRole(long profileId)

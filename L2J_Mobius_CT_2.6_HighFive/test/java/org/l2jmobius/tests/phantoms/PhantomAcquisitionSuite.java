@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
@@ -74,6 +75,9 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.DispatchHan
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.DispatchResult;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.DispatchState;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort.Gate;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort.Outcome;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
@@ -128,6 +132,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		SOURCE_PLANNER,
 		RECIPE_PLANNING,
 		SOURCE_SWITCHING,
+		FARMING_GATE,
 		LIFECYCLE_PERFORMANCE
 	}
 
@@ -152,7 +157,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(SEED, context.seed(), "Goal 021 Checkpoint 1 mode used the wrong seed.");
+		PhantomAssertions.assertEquals(_mode == Mode.FARMING_GATE ? 24002401L : SEED, context.seed(), "Acquisition mode used the wrong deterministic seed.");
 		if (_mode != Mode.CATALOG_CODEC)
 		{
 			_environment = new PhantomHeadlessPlayerTestEnvironment();
@@ -216,6 +221,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			case SOURCE_PLANNER -> registerSourcePlanner(registry);
 			case RECIPE_PLANNING -> registerRecipePlanning(registry);
 			case SOURCE_SWITCHING -> registerSourceSwitching(registry);
+			case FARMING_GATE -> registerFarmingGate(registry);
 			case LIFECYCLE_PERFORMANCE -> registerLifecyclePerformance(registry);
 		}
 	}
@@ -281,6 +287,53 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		registry.add("03-authority-drift-and-exhausted-bounds", this::testAuthorityAndExhaustion);
 		registry.add("04-service-dispatch-recovery-and-terminal-release", this::testDispatchRecovery);
 		registry.add("05-combat-prepared-submitted-reconciliation", this::testCombatReconciliation);
+	}
+
+	private void registerFarmingGate(PhantomTestRegistry registry)
+	{
+		registry.add("01-exact-goal021-snapshot-and-safe-boundary-gate", context ->
+		{
+			final AtomicReference<Outcome> outcome = new AtomicReference<>(Outcome.ALLOW);
+			final PhantomFarmingConflictPort.Evaluator evaluator = (profileId, snapshot) -> new Gate(outcome.get(), "farming.test." + outcome.get().name().toLowerCase(java.util.Locale.ROOT), "");
+			PhantomFarmingConflictPort.resetForTesting();
+			final int exactItemId = productionSource(Method.DEATH_DROP, false).itemId();
+			try (AcquisitionServiceFixture fixture = acquisitionPlanningFixture(exactItemId, Map.of(), _production.knowledge(), _production.topology(), Set.of(Method.DEATH_DROP)))
+			{
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, fixture.plan(1).status(), "Gate fixture did not plan an exact executable source.");
+				final var snapshot = fixture.service().conflictSnapshot(fixture.profileId()).orElseThrow();
+				PhantomAssertions.assertEquals(snapshot.requiredAmount() - snapshot.progress(), snapshot.remainingAmount(), "Goal021 snapshot invented an independent remaining counter.");
+				PhantomAssertions.assertEquals(fixture.state().selectedSource(), snapshot.source(), "Goal021 snapshot lost the exact selected Source.");
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.DirectiveKind.TRAVEL, fixture.service().directive(fixture.profileId(), fixture.storedGoal(), PhantomActivityState.ACTIVE).kind(), "Uninstalled farming port changed legacy acquisition behavior.");
+
+				PhantomFarmingConflictPort.install(evaluator);
+				for (Outcome permitted : List.of(Outcome.ALLOW, Outcome.SHARE))
+				{
+					outcome.set(permitted);
+					PhantomAssertions.assertEquals(PhantomAcquisitionService.DirectiveKind.TRAVEL, fixture.service().directive(fixture.profileId(), fixture.storedGoal(), PhantomActivityState.ACTIVE).kind(), permitted + " did not continue acquisition.");
+				}
+				for (Outcome blocked : List.of(Outcome.NEGOTIATE, Outcome.WAIT))
+				{
+					outcome.set(blocked);
+					PhantomAssertions.assertEquals(PhantomAcquisitionService.DirectiveKind.BLOCKED, fixture.service().directive(fixture.profileId(), fixture.storedGoal(), PhantomActivityState.ACTIVE).kind(), blocked + " did not block new travel.");
+				}
+				outcome.set(Outcome.MOVE);
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.DirectiveKind.SWITCH, fixture.service().directive(fixture.profileId(), fixture.storedGoal(), PhantomActivityState.ACTIVE).kind(), "MOVE did not delegate to Goal021 SWITCH.");
+				outcome.set(Outcome.STALE);
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.DirectiveKind.SWITCH, fixture.service().directive(fixture.profileId(), fixture.storedGoal(), PhantomActivityState.ACTIVE).kind(), "STALE did not replan through Goal021 authority.");
+
+				fixture.forceBoundaryPhase(Phase.TARGET_REQUIRED);
+				outcome.set(Outcome.NEGOTIATE);
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.REPLAN, fixture.advance(2).status(), "NEGOTIATE did not block direct TARGET_REQUIRED execution.");
+				fixture.forceBoundaryPhase(Phase.COMBAT_SUBMITTED);
+				outcome.set(Outcome.WAIT);
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.DirectiveKind.ACTIVE, fixture.service().directive(fixture.profileId(), fixture.storedGoal(), PhantomActivityState.ACTIVE).kind(), "WAIT aborted an already-dispatched canonical action.");
+			}
+			finally
+			{
+				PhantomFarmingConflictPort.uninstall(evaluator);
+				PhantomFarmingConflictPort.resetForTesting();
+			}
+		});
 	}
 
 	private void registerLifecyclePerformance(PhantomTestRegistry registry)
@@ -1630,6 +1683,15 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		{
 			final StoredState stored = _store.load(profileId()).orElseThrow();
 			_store.replace(profileId(), stored.rowVersion(), stored.state().withPhase(phase, 200, 100, 0, stored.state().phaseAttempt(), stored.state().logicalMinute() + 1));
+		}
+
+		private void forceBoundaryPhase(Phase phase)
+		{
+			final StoredState stored = _store.load(profileId()).orElseThrow();
+			final boolean dispatched = phase == Phase.COMBAT_SUBMITTED;
+			final int objectId = dispatched ? 200 : 0;
+			final int npcId = dispatched ? stored.state().selectedSource().npcId() : 0;
+			_store.replace(profileId(), stored.rowVersion(), stored.state().withPhase(phase, objectId, npcId, 0, stored.state().phaseAttempt(), stored.state().logicalMinute() + 1));
 		}
 
 		private PhantomCombatRequest request(int targetObjectId)

@@ -96,6 +96,7 @@ public final class PhantomConversationExecutionCatalog
 		Map.entry("item.acquire", new ExpectedProposal(Kind.QUERY, null, Set.of("item"), Set.of())), //
 		Map.entry("item.source", new ExpectedProposal(Kind.QUERY, null, Set.of("item"), Set.of())), //
 		Map.entry("content.requirements", new ExpectedProposal(Kind.QUERY, null, Set.of("content"), Set.of())), //
+		Map.entry("farming.conflict.query", new ExpectedProposal(Kind.QUERY, null, Set.of(), Set.of())), //
 		Map.entry("party.invite", new ExpectedProposal(Kind.GOAL, "party.form", Set.of("target.player"), Set.of("character.object", "profile"))), //
 		Map.entry("party.leave", new ExpectedProposal(Kind.GOAL, "party.leave", Set.of(), Set.of())), //
 		Map.entry("party.travel", new ExpectedProposal(Kind.GOAL, "party.travel", Set.of("location", "topology.node"), Set.of())), //
@@ -107,7 +108,7 @@ public final class PhantomConversationExecutionCatalog
 	private static final Set<String> REQUIRED_RESPONSE_ACTS = Set.of("ack.accepted", "ack.action_proposed", "ack.query_proposed", "ack.refused", "clarify.complexity", "clarify.entity", "clarify.intent", "clarify.location", "clarify.party_role", "clarify.quantity", "clarify.target_player", "no_response.cooldown", "no_response.not_addressed", "no_response.unsupported");
 	private static final Set<String> REQUIRED_STYLES = Set.of("neutral", "warm", "cold", "cautious", "terse");
 	private static final Set<String> REQUIRED_REASONS = Set.of("action.deferred", "execution.expired", "execution.failed", "execution.prepared", "goal.busy", "goal.invalid", "goal.submitted", "outbound.invalid", "party.accepted", "party.refused", "party.stale", "query.ambiguous", "query.not_found", "query.ok");
-	private static final Set<String> REQUIRED_FACT_LABELS = Set.of("content.capability", "content.party_max", "content.party_min", "content.reference", "entity.reference", "item.reference", "item.source", "party.group_generation", "party.role", "party.vacancy", "topology.instance", "topology.reference", "topology.x", "topology.y", "topology.z");
+	private static final Set<String> REQUIRED_FACT_LABELS = Set.of("content.capability", "content.party_max", "content.party_min", "content.reference", "entity.reference", "farming.agreement", "farming.alternative", "farming.claim_status", "farming.counterpart", "farming.counterpart_remaining", "farming.escalation", "farming.negotiation_act", "farming.remaining", "farming.resource", "item.reference", "item.source", "party.group_generation", "party.role", "party.vacancy", "topology.instance", "topology.reference", "topology.x", "topology.y", "topology.z");
 	private final String _hash;
 	private final Limits _limits;
 	private final Map<String, ProposalPolicy> _proposals;

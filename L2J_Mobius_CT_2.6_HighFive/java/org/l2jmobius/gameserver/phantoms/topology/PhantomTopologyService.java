@@ -20,9 +20,11 @@
  */
 package org.l2jmobius.gameserver.phantoms.topology;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.topology.PhantomPerceptionProvider.CleanupStatus;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomPerceptionProvider.CombatEvent;
@@ -336,6 +338,47 @@ public final class PhantomTopologyService
 		try (PhantomTopologyGenerationCoordinator.Lease ignored = _generationCoordinator.read())
 		{
 			return _profileRegistry.find(profileId);
+		}
+	}
+
+	public List<ProfileTopologySnapshot> perceptibleProfiles(long observerProfileId, PhantomPerceptionChannel channel, int limit)
+	{
+		Objects.requireNonNull(channel, "Perception channel must not be null.");
+		if ((observerProfileId <= 0) || (limit < 1) || (limit > 1023))
+		{
+			throw new IllegalArgumentException("Invalid bounded perceptible-profile query.");
+		}
+		return perceptibleProfilesUnderLease(observerProfileId, channel, limit);
+	}
+
+	private List<ProfileTopologySnapshot> perceptibleProfilesUnderLease(long observerProfileId, PhantomPerceptionChannel channel, int limit)
+	{
+		try (PhantomTopologyGenerationCoordinator.Lease ignored = _generationCoordinator.read())
+		{
+			final View view = runningView();
+			if (view == null)
+			{
+				return List.of();
+			}
+			final ProfileTopologySnapshot observer = _profileRegistry.find(observerProfileId, view.generation()).filter(ProfileTopologySnapshot::resolved).orElse(null);
+			if (observer == null)
+			{
+				return List.of();
+			}
+			final Set<String> nodes = new HashSet<>();
+			nodes.add(observer.nodeId());
+			for (PhantomTopologyEdge edge : view.query().edges(observer.nodeId()))
+			{
+				if (view.query().isPerceptible(edge.id(), channel))
+				{
+					final String other = edge.otherNode(observer.nodeId());
+					if (other != null)
+					{
+						nodes.add(other);
+					}
+				}
+			}
+			return _profileRegistry.listForNodes(nodes, limit + 1, view.generation()).stream().filter(profile -> profile.profileId() != observerProfileId).limit(limit).toList();
 		}
 	}
 

@@ -1,0 +1,29 @@
+{
+  "package": "phantom-world-goal-024-farming-resource-negotiation",
+  "taskId": "024-farming-resource-negotiation",
+  "goal": "024",
+  "branch": "feature/phantom-world",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/024-farming-resource-negotiation/TASK.md",
+  "requiredParent": "e67298697eaecc629a03b215a78ffa947233efd3",
+  "commitSubject": "feat(phantoms): add farming resource negotiation",
+  "successToken": "GOAL_024_FARMING_RESOURCE_NEGOTIATION_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 24002401,
+  "priorGoal023CReview": "ACCEPT",
+  "goal023Overall": "ACCEPT",
+  "goal025Started": false,
+  "artificialFileCountLimit": null,
+  "fileExpansionPolicy": "Pre-audited exact read/change set; additional High Five files may be read/changed only when exact call-path necessity is documented.",
+  "productionDatabaseUseAllowed": false,
+  "newSqlExpected": false,
+  "payloadSha256": {
+    "docs/phantoms/tasks/024-farming-resource-negotiation/ACCEPTANCE.md": "51EAC45F6C4623A2E10E621509ACF669F3E541017DD6596BE231B2F37A9077F4",
+    "docs/phantoms/tasks/024-farming-resource-negotiation/ARCHITECTURE.md": "A777E4BCAFDBEC4BC9BA7840571CE1BB79B7CC2FC07E42FDAFB815B60EBCD540",
+    "docs/phantoms/tasks/024-farming-resource-negotiation/CODEX_LAUNCHER.txt": "CB90575581ED001A62CD8A377F9A0C18C43160F67CF601A7BD9410749F9580D6",
+    "docs/phantoms/tasks/024-farming-resource-negotiation/CONTEXT.md": "C15E0C500F060EC817435645E25904F83ABCE92179938B4AE8856FBB73055E99",
+    "docs/phantoms/tasks/024-farming-resource-negotiation/PRIOR_INDEPENDENT_REVIEW.md": "B3687CE1528278F47BDDBEBB8E11039DD64D736875903DD32C11B17123B2F2A9",
+    "docs/phantoms/tasks/024-farming-resource-negotiation/TASK.md": "43B94DC0DDB85BBAFC3BDCA70FEB66FADBAE6807F6986477EE0C7028652CDD7F",
+    "docs/phantoms/tasks/024-farming-resource-negotiation/TEST_CASES.md": "06E3E1D6C39D407AE05A16F92EB78CB6E9EECFAB90CE646773496DC0A33BB2E1"
+  },
+  "manifestSelfHashExcluded": true
+}

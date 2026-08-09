@@ -56,6 +56,7 @@
 		<mapping intent="item.acquire.query" proposal="item.acquire" kind="query" ttlMinutes="10"/>
 		<mapping intent="item.source.query" proposal="item.source" kind="query" ttlMinutes="10"/>
 		<mapping intent="content.requirements.query" proposal="content.requirements" kind="query" ttlMinutes="10"/>
+		<mapping intent="farming.conflict.query" proposal="farming.conflict.query" kind="query" ttlMinutes="10"/>
 	</proposalMappings>
 	<election private="exact-recipient" party="leader-or-min-profile" localTrade="unique-exact-vocative"/>
 </conversationCatalog>

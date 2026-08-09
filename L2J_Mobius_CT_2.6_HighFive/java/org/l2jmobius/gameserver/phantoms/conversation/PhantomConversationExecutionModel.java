@@ -30,7 +30,7 @@ public final class PhantomConversationExecutionModel
 	public static final int MAX_TEXT_BYTES = 240;
 	public static final int MAX_REFERENCE_BYTES = 64;
 	public static final int MAX_ARGUMENT_BYTES = 48;
-	private static final Set<String> QUERY_PROPOSALS = Set.of("party.role.query", "entity.locate", "item.acquire", "item.source", "content.requirements");
+	private static final Set<String> QUERY_PROPOSALS = Set.of("party.role.query", "entity.locate", "item.acquire", "item.source", "content.requirements", "farming.conflict.query");
 	private static final Pattern HASH = Pattern.compile("^[A-F0-9]{64}$");
 	private static final Pattern KEY = Pattern.compile("^[a-z][a-z0-9_.-]{0,63}$");
 

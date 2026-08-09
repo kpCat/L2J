@@ -211,8 +211,8 @@ public final class PhantomActivationGateSuite implements PhantomTestSuite
 
 		registry.add("02-production-authority-resolves-all-seven-grounded-families", context ->
 		{
-			PhantomAssertions.assertEquals("36C1E6E0F9793DF07006FBC2A4DFD7B4AE5888E8A4661F978F03B78875E2F23A", _pack.packHash(), "Pinned semantic pack hash changed.");
-			PhantomAssertions.assertEquals("CEBCCE4B1E9CE864B9695969FDACE06BFBE732B5FE69FF5BDB8DE89B9500EDBD", _pack.corpusHash(), "Pinned semantic corpus hash changed.");
+			PhantomAssertions.assertEquals("16C749B9E151E7D5FE7D702989A71DFC2AB3EEDDE9FA103C40B7D01A36E66A18", _pack.packHash(), "Pinned semantic pack hash changed.");
+			PhantomAssertions.assertEquals("2B7676BCCFD4395C267BC298E2F2C8DAE265E23CEE76D76853504BF7172F935E", _pack.corpusHash(), "Pinned semantic corpus hash changed.");
 			for (var sample : Map.of(SlotType.ITEM, "где взять адену", SlotType.NPC, "где кларисса", SlotType.CONTENT, "что нужно для рифт", SlotType.TOPOLOGY_NODE, "идем в город гиран", SlotType.LOCATION, "идем к центр гирана", SlotType.CAPABILITY, "нужно лечение", SlotType.PARTY_ROLE, "нужен хилер").entrySet())
 			{
 				final var result = _semantic.understand(sample.getValue(), InputContext.empty());
@@ -237,7 +237,7 @@ public final class PhantomActivationGateSuite implements PhantomTestSuite
 				Files.writeString(slotFirst, source.replace("пригласи {TARGET_PLAYER}", "{TARGET_PLAYER} пригласи"), StandardCharsets.UTF_8);
 				Files.writeString(adjacent, source.replace("{QUANTITY} штук {ITEM}", "{QUANTITY} {ITEM}"), StandardCharsets.UTF_8);
 				final StringBuilder budgetPatterns = new StringBuilder();
-				for (int index = 0; index < 88; index++)
+				for (int index = 0; index < 86; index++)
 				{
 					budgetPatterns.append("\n\t\t\t<pattern id=\"budget.").append(index).append("\" text=\"где взять {ITEM}\"/>");
 				}
