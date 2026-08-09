@@ -50,6 +50,25 @@ public final class PhantomPartyRouteCoordinator
 		_combat = combat;
 	}
 
+	public RouteActivity observe(String groupId, RouteManifest persisted, List<MemberRef> roster)
+	{
+		synchronized (_stateLock)
+		{
+			final PendingRoute pending = _pending.get(groupId);
+			if (pending != null)
+			{
+				return new RouteActivity(ActivityStatus.PLANNING, pending._routeId, pending._generation, pending._destination, true, false, false);
+			}
+			if (persisted == null)
+			{
+				return RouteActivity.none();
+			}
+			final boolean routeOwned = persisted.routeId().equals(_routeByGroup.get(groupId));
+			final boolean movementOwned = roster.stream().filter(member -> member.kind() == MemberKind.PHANTOM).map(member -> _movement.get(member.profileId())).anyMatch(movement -> (movement != null) && persisted.routeId().equals(movement._routeId));
+			return new RouteActivity(ActivityStatus.valueOf(persisted.status().name()), persisted.routeId(), persisted.generation(), persisted.destination(), false, routeOwned, movementOwned);
+		}
+	}
+
 	public Optional<RouteManifest> request(String groupId, long generation, MemberSnapshot leader, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destinationRef, PhantomNavigationPoint destination, String topologyHash, long now, long deadline)
 	{
 		if ((leader.ref().kind() != MemberKind.PHANTOM) || (destination.instanceId() != leader.instanceId()))
@@ -60,10 +79,11 @@ public final class PhantomPartyRouteCoordinator
 		final PendingRoute pending = new PendingRoute(leader.ref().profileId(), routeId, generation, destinationRef, topologyHash, deadline);
 		synchronized (_stateLock)
 		{
-			if (_pending.putIfAbsent(groupId, pending) != null)
+			if (_pending.containsKey(groupId) || _routeByGroup.containsKey(groupId))
 			{
 				return Optional.empty();
 			}
+			_pending.put(groupId, pending);
 		}
 		final PhantomNavigationPoint origin = new PhantomNavigationPoint(leader.x(), leader.y(), leader.z(), leader.instanceId());
 		final Submission submission = _navigation.submit(new PhantomNavigationRequest(leader.ref().profileId(), origin, destination, now, deadline, 100000));
@@ -375,6 +395,34 @@ public final class PhantomPartyRouteCoordinator
 		final long dy = (long) snapshot.y() - y;
 		final long dz = (long) snapshot.z() - z;
 		return Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
+	}
+
+	public enum ActivityStatus
+	{
+		NONE,
+		PLANNING,
+		MOVING,
+		REGROUPING,
+		ARRIVED,
+		FAILED
+	}
+
+	public record RouteActivity(ActivityStatus status, String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, boolean plannerOwned, boolean routeOwned, boolean movementOwned)
+	{
+		public static RouteActivity none()
+		{
+			return new RouteActivity(ActivityStatus.NONE, "0".repeat(64), 0, null, false, false, false);
+		}
+
+		public boolean nonTerminal()
+		{
+			return Set.of(ActivityStatus.PLANNING, ActivityStatus.MOVING, ActivityStatus.REGROUPING).contains(status);
+		}
+
+		public boolean terminal()
+		{
+			return (status == ActivityStatus.ARRIVED) || (status == ActivityStatus.FAILED);
+		}
 	}
 
 	public record Snapshot(int navigationClaims, int movementClaims)

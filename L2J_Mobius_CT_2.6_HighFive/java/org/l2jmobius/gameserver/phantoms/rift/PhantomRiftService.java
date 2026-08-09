@@ -22,6 +22,7 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.ObjectiveMode;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.OperationKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.OperationPhase;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.PartyState;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStatus;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RoleRequirement;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftBackend.MemberFacts;
@@ -123,12 +124,18 @@ public final class PhantomRiftService implements PhantomRiftConversationFacts
 		}
 		final var operation = context.leaderClaim().operation();
 		final var inviteeOperation = context.inviteeClaim().operation();
-		if ((operation == null) || (operation.kind() != OperationKind.JOIN) || (operation.phase() != OperationPhase.CANONICAL_PENDING) || (inviteeOperation == null) || (inviteeOperation.kind() != OperationKind.JOIN) || (inviteeOperation.phase() != OperationPhase.CANONICAL_PENDING) || (operation.invitationSequence() != context.invitation().identity().sequence()) || (operation.leader().characterObjectId() != context.invitation().identity().requesterObjectId()) || (operation.member() == null) || (operation.member().characterObjectId() != context.invitation().identity().inviteeObjectId()) || (context.inviteeClaim().status() != StateStatus.INVITED_INBOUND))
+		if ((operation == null) || (operation.kind() != OperationKind.JOIN) || (operation.phase() != OperationPhase.CANONICAL_PENDING) || (inviteeOperation == null) || (inviteeOperation.kind() != OperationKind.JOIN) || (inviteeOperation.phase() != OperationPhase.CANONICAL_PENDING) || (operation.invitationSequence() != context.invitation().identity().sequence()) || (operation.leader().characterObjectId() != context.invitation().identity().requesterObjectId()) || (operation.member() == null) || (operation.member().characterObjectId() != context.invitation().identity().inviteeObjectId()) || (operation.member().profileId() != context.inviteeProfileId()) || (context.inviteeClaim().status() != StateStatus.INVITED_INBOUND))
 		{
 			return ManagedInvitationDecision.DEFER;
 		}
 		final Preparation preparation = _store.load(context.requesterProfileId()).map(StoredPreparation::preparation).orElse(null);
-		if ((preparation == null) || preparation.legacyUntrusted() || (preparation.candidateReceipt() == null) || !preparation.candidateReceipt().candidate().equals(operation.member()) || (preparation.goalId() != operation.leaderGoalId()) || (preparation.goalRevision() != operation.leaderGoalRevision()) || !Set.of(Stage.REQUEST_INVITE, Stage.OBSERVE_INVITE).contains(preparation.stage()))
+		final PendingInvitationReceipt expectedInvite = preparation == null ? null : preparation.invitationReceipt();
+		if ((preparation == null) || preparation.legacyUntrusted() || (preparation.candidateReceipt() == null) || (expectedInvite == null) || (expectedInvite.status() != InvitationStatus.PENDING) || !preparation.candidateReceipt().candidate().equals(operation.member()) || (preparation.goalId() != operation.leaderGoalId()) || (preparation.goalRevision() != operation.leaderGoalRevision()) || !Set.of(Stage.REQUEST_INVITE, Stage.OBSERVE_INVITE).contains(preparation.stage()) || (preparation.pendingInvitationSequence() != context.invitation().identity().sequence()) || !exactInvitation(expectedInvite, context))
+		{
+			return ManagedInvitationDecision.DEFER;
+		}
+		final InviteObservation canonicalInvite = _party.observeInvite(context.requesterProfileId(), operation.member(), expectedInvite.sequence());
+		if ((canonicalInvite.status() != InviteStatus.PENDING) || !canonicalInvite.exactFor(operation.leader(), operation.member()) || (canonicalInvite.sequence() != expectedInvite.sequence()) || (canonicalInvite.canonicalExpiresAtGameTick() != expectedInvite.canonicalExpiresAtGameTick()))
 		{
 			return ManagedInvitationDecision.DEFER;
 		}
@@ -141,12 +148,51 @@ public final class PhantomRiftService implements PhantomRiftConversationFacts
 			return ManagedInvitationDecision.REFUSE;
 		}
 		final PartyReadiness readiness = _readiness.evaluate(context.requesterProfileId(), preparation.tierType());
-		if (!sameSources(preparation, readiness) || readiness.roster().fullParty() || !preparation.candidateReceipt().vacancyKey().equals(recruitmentVacancy(readiness)))
+		final CandidateReceipt selected = preparation.candidateReceipt();
+		if (!sameSources(preparation, readiness) || readiness.roster().fullParty() || readiness.roster().members().contains(operation.member()) || !selected.selectedRosterHash().equals(readiness.roster().evidenceHash()) || !selected.vacancyKey().equals(preparation.missingVacancyKey()) || !selected.vacancyKey().equals(recruitmentVacancy(readiness)) || !samePendingInvitationBinding(preparation.partyBinding(), context.leaderClaim(), readiness))
 		{
 			return ManagedInvitationDecision.DEFER;
 		}
+		if (activeRefusals(preparation.refusals()).stream().anyMatch(refusal -> refusal.candidate().equals(operation.member()) && refusal.vacancyKey().equals(selected.vacancyKey())))
+		{
+			return ManagedInvitationDecision.REFUSE;
+		}
+		final RoleRequirement requirement = _policy.requireTier(preparation.tierType()).requirements().stream().filter(value -> value.vacancyKey().equals(selected.vacancyKey())).findFirst().orElse(null);
+		final Set<Integer> itemIds = Set.of(_catalog.requireTier(preparation.tierType()).entry().itemId());
+		final MemberFacts leader = _backend.memberFacts(readiness.roster().leader(), itemIds).orElse(null);
+		final MemberFacts candidate = _backend.candidateFacts(readiness.roster().leader(), operation.member(), itemIds, _policy.limits().candidateRange()).orElse(null);
 		final var relationship = _backend.relationship(context.inviteeProfileId(), operation.leader());
-		return relationship.available() && (relationship.modifierBasisPoints() < -1000) ? ManagedInvitationDecision.REFUSE : ManagedInvitationDecision.ACCEPT;
+		if (relationship.available() && (relationship.modifierBasisPoints() < -1000))
+		{
+			return ManagedInvitationDecision.REFUSE;
+		}
+		if ((requirement == null) || (leader == null) || (candidate == null) || !candidate.member().ref().equals(operation.member()) || !context.inviteeSnapshot().ref().equals(operation.member()) || candidate.member().dead() || candidate.inAnotherParty(readiness.roster().members()) || (candidate.canonicalPartySize() > 0) || (candidate.member().instanceId() != leader.member().instanceId()))
+		{
+			return ManagedInvitationDecision.DEFER;
+		}
+		final long range = _policy.limits().candidateRange();
+		if (candidate.distanceSquared(leader.member().x(), leader.member().y(), leader.member().z()) > (range * range))
+		{
+			return ManagedInvitationDecision.DEFER;
+		}
+		return _readiness.candidate(candidate, requirement, preparation.tierType(), leader.member().x(), leader.member().y(), leader.member().z(), relationship).isPresent() ? ManagedInvitationDecision.ACCEPT : ManagedInvitationDecision.DEFER;
+	}
+
+	private static boolean exactInvitation(PendingInvitationReceipt expected, ManagedInvitationContext context)
+	{
+		return (expected.sequence() == context.invitation().identity().sequence()) && (expected.requesterObjectId() == context.invitation().identity().requesterObjectId()) && (expected.inviteeObjectId() == context.invitation().identity().inviteeObjectId()) && (expected.canonicalExpiresAtGameTick() == context.invitation().expiresAtGameTick());
+	}
+
+	private static boolean samePendingInvitationBinding(PartyBindingReceipt expected, PartyState state, PartyReadiness readiness)
+	{
+		if ((expected == null) || (expected.stability() != BindingStability.STABLE) || !expected.groupId().equals(state.groupId()) || (expected.groupGeneration() != state.groupGeneration()) || (expected.membershipRevision() != state.membershipRevision()) || !expected.leader().equals(state.leader()) || !expected.manifestHash().equals(state.leaderManifestHash()) || !expected.rosterHash().equals(readiness.roster().evidenceHash()))
+		{
+			return false;
+		}
+		final List<MemberRef> boundRoster = new ArrayList<>(state.phantomMembers());
+		boundRoster.addAll(state.realMembers());
+		boundRoster.sort(Comparator.comparing(MemberRef::stableKey));
+		return boundRoster.equals(readiness.roster().members().stream().sorted(Comparator.comparing(MemberRef::stableKey)).toList());
 	}
 	@Override
 	public List<SemanticFact> latest(long profileId)
@@ -443,10 +489,6 @@ public final class PhantomRiftService implements PhantomRiftConversationFacts
 	{
 		final Preparation current = stored.preparation();
 		final PartyReadiness readiness = current(current);
-		if (readiness.status() == Status.READY_TO_ENTER)
-		{
-			return saved(stored, fromReadiness(current, readiness, Stage.DECLARE_READY, null, 0, current.totalAttempts(), current.seatAttempts(), activeRefusals(current.refusals()), current.routeHash()), readiness, "rift.route.arrived");
-		}
 		final RouteObservation route = _party.observeRoute(current.leaderProfileId(), current.routeHash());
 		if (route.status() == RouteStatus.PENDING)
 		{

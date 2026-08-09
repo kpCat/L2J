@@ -173,16 +173,21 @@ public final class L2jPhantomRiftPartyPort implements PartyPort
 
 	private RouteObservation route(long leaderProfileId)
 	{
-		final RouteManifest route = _coordinator.claim(leaderProfileId).map(value -> value.state().route()).orElse(null);
-		if (route == null)
+		final var activity = _coordinator.observeRouteActivity(leaderProfileId);
+		return switch (activity.status())
 		{
-			return new RouteObservation(PhantomRiftService.RouteStatus.PENDING, "0".repeat(64), "rift.route.pending");
-		}
-		return switch (route.status())
-		{
-			case ARRIVED -> new RouteObservation(PhantomRiftService.RouteStatus.ARRIVED, route.routeId(), "rift.route.arrived");
-			case FAILED -> new RouteObservation(PhantomRiftService.RouteStatus.FAILED, route.routeId(), "rift.route.failed");
-			case PLANNING, MOVING, REGROUPING -> new RouteObservation(PhantomRiftService.RouteStatus.PENDING, route.routeId(), "rift.route.pending");
+			case NONE -> new RouteObservation(PhantomRiftService.RouteStatus.PENDING, "0".repeat(64), "rift.route.pending");
+			case PLANNING, MOVING, REGROUPING -> new RouteObservation(PhantomRiftService.RouteStatus.PENDING, activity.routeId(), "rift.route.pending");
+			case ARRIVED ->
+			{
+				_coordinator.reconcileTerminalRoute(leaderProfileId, activity.routeId());
+				yield new RouteObservation(PhantomRiftService.RouteStatus.ARRIVED, activity.routeId(), "rift.route.arrived");
+			}
+			case FAILED ->
+			{
+				_coordinator.reconcileTerminalRoute(leaderProfileId, activity.routeId());
+				yield new RouteObservation(PhantomRiftService.RouteStatus.FAILED, activity.routeId(), "rift.route.failed");
+			}
 		};
 	}
 }

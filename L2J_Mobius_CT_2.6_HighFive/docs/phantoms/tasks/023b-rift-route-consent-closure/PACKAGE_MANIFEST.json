@@ -1,0 +1,32 @@
+{
+  "package": "phantom-world-goal-023b-rift-route-consent-closure",
+  "taskId": "023b-rift-route-consent-closure",
+  "goal": "023B",
+  "branch": "feature/phantom-world",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/023b-rift-route-consent-closure/TASK.md",
+  "requiredParent": "563752f6844076fdbaeb3be7c5cae979c757960a",
+  "commitSubject": "fix(phantoms): close rift route and consent gaps",
+  "successToken": "GOAL_023B_RIFT_ROUTE_CONSENT_CLOSURE_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 23002312,
+  "goal023Status": "CHANGES_REQUIRED",
+  "goal023AStatus": "CHANGES_REQUIRED",
+  "goal024Started": false,
+  "productionDatabaseUseAllowed": false,
+  "artificialFileCountLimit": null,
+  "fileExpansionPolicy": "Pre-audited exact read/change set; additional High Five files allowed only when exact call-path necessity is documented.",
+  "findings": [
+    "R023B-01",
+    "R023B-02"
+  ],
+  "payloadSha256": {
+    "docs/phantoms/tasks/023b-rift-route-consent-closure/ACCEPTANCE.md": "6740B49FCA40F395FFFAB4675C22294F5AC0574FBC7C3430BDE8499CA17E663C",
+    "docs/phantoms/tasks/023b-rift-route-consent-closure/ARCHITECTURE.md": "CD053591188D6E37E14C6F57F11665843D1B67619D54576EAC55954FC8E25B03",
+    "docs/phantoms/tasks/023b-rift-route-consent-closure/CODEX_LAUNCHER.txt": "AF094D88A1355C3983D6824F53861479A788F8C9572C2BC347B4476F61E4D6A6",
+    "docs/phantoms/tasks/023b-rift-route-consent-closure/CONTEXT.md": "98A7AE5DE3E0FCDD49820EA560B5125D928150CC1453F90302A38E1A9EC56EE5",
+    "docs/phantoms/tasks/023b-rift-route-consent-closure/REVIEW_FINDINGS.md": "E491C0677182335413403C1A407A75574DFF8E56DD38D242A9BC6B02CC59DA98",
+    "docs/phantoms/tasks/023b-rift-route-consent-closure/TASK.md": "01DE4D85A1D9593D0B37D89E20CD1F3515425C4A72DFD9C35A1F0829FFC4EFA8",
+    "docs/phantoms/tasks/023b-rift-route-consent-closure/TEST_CASES.md": "BBCEA2451CDA27BA073E32B26F0A3C46EE5C588858CC03A06C140407A5FCB4A0"
+  },
+  "manifestSelfHashExcluded": true
+}

@@ -1,17 +1,24 @@
-# Goal 023A — independent review handoff
+# Goal 023A — independent review
 
-Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+Status: `CHANGES_REQUIRED`
 
-Corrective implementation подготовлена для независимой проверки. Этот документ не является self-accept и не переводит Goal 023 в `ACCEPT`.
+Проверен baseline `563752f6844076fdbaeb3be7c5cae979c757960a`, parent `840e159a989f6372da9c471c915413f1e4470daf`.
 
-Reviewer должен независимо подтвердить закрытие `R023A-01..08`, включая:
+Goal 023A сохранил и существенно улучшил принятые части Goal 023: exact pre-invite revalidation, `rift.preparation` schema v2 и v1 replan, full canonical invitation identity/expiry, typed terminal outcomes и semantic facts, Phantom-first bounded discovery, Goal 018 relationship modifier, bounded metrics и отдельный `ENSURE_PARTY_BINDING` stage.
 
-- adoption exact существующей canonical mixed Party в Goal 017-owned binding;
-- target-side managed Phantom `ACCEPT/REFUSE/DEFER` и отсутствие auto-accept ordinary real Player;
-- exact pre-invite revalidation и restart-safe `rift.preparation` schema v2;
-- canonical 15s expiry authority и typed `REFUSED`/`EXPIRED`;
-- stable binding/no-conflict перед route и READY;
-- Goal 020 semantic facts, Phantom-first bounded discovery, Goal 018 modifier и bounded metrics;
-- acceptance integration через real `PhantomPartyCoordinator`, `L2jPhantomRiftPartyPort` и canonical `PartyInvitationService` без fake `GameClient`.
+Production acceptance остаётся заблокирован двумя findings:
 
-Goal 024 и более поздние Goal не начинались. Следующий допустимый шаг — только независимое review Goal 023A.
+- `R023B-01`: Goal 017 content binding не учитывает planner-pending route ownership и persisted `PLANNING`/`MOVING`/`REGROUPING` при `ROUTE + COMMITTED`; binding может стереть live route, допустить второй route request или `READY_TO_ENTER` до terminal cleanup.
+- `R023B-02`: production `PhantomRiftService.evaluateManagedInvitation(...)` не обновляет полную current eligibility exact invitee для всё ещё отсутствующей vacancy, а canonical integration test подменяет actual Rift provider на `ignored -> ACCEPT`.
+
+```text
+Goal 023 baseline 840e159a989f6372da9c471c915413f1e4470daf:
+CHANGES_REQUIRED
+
+Goal 023A baseline 563752f6844076fdbaeb3be7c5cae979c757960a:
+CHANGES_REQUIRED
+
+Goal 024+: NOT_STARTED
+```
+
+Следующий допустимый шаг — только corrective Goal 023B и его последующее независимое review.

@@ -261,6 +261,7 @@ public final class PhantomTestLauncher
 			case "party-role-vacancy" -> new PhantomPartySuite(PhantomPartySuite.Mode.ROLE_VACANCY);
 			case "party-semantic-acts" -> new PhantomPartySuite(PhantomPartySuite.Mode.SEMANTIC_ACTS);
 			case "party-route" -> new PhantomPartySuite(PhantomPartySuite.Mode.ROUTE);
+			case "rift023b-route-closure" -> new PhantomPartySuite(PhantomPartySuite.Mode.ROUTE_CLOSURE);
 			case "party-tactics" -> new PhantomPartySuite(PhantomPartySuite.Mode.TACTICS);
 			case "party-lifecycle" -> new PhantomPartySuite(PhantomPartySuite.Mode.LIFECYCLE);
 			case "party-server-integration" -> new PhantomPartyServerIntegrationSuite();

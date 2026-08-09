@@ -23,3 +23,9 @@ Factual catalog читается из текущего High Five `DimensionalRif
 ## Ограничения исполнения
 
 Нет fake `GameClient`, packet invocation, глобального online-player scan, собственного worker/thread/executor/Future/task или отдельного scheduler. Состояние сохраняется bounded-компонентом профиля; production runtime не зависит от тестового seed.
+
+## Corrective route и managed-consent closure
+
+Goal 017 остаётся единственным владельцем shared route. Его bounded `RouteActivity` объединяет planner-pending ownership и persisted `PLANNING`/`MOVING`/`REGROUPING`; пока активность nonterminal, content binding не стирает manifest, не создаёт второй route и не допускает `READY_TO_ENTER`. `ARRIVED`/`FAILED` сначала проходят Goal 017 terminal cleanup, и только последующее наблюдение с `RouteActivity.NONE` может подтвердить stable binding.
+
+Production `PhantomRiftService.evaluateManagedInvitation(...)` непосредственно перед `ACCEPT` повторно читает exact canonical invitation, current goal/binding, всё ещё отсутствующую vacancy, current invitee eligibility, candidate facts и invitee-to-leader relationship. Stale/missing evidence даёт `DEFER`, запрещающая eligibility или relationship policy — `REFUSE`. Explicit `party.join`/conversation precedence сохраняется, ordinary real-player consent этим managed policy не подменяется.

@@ -130,10 +130,14 @@ try
 	}
 	else
 	{
-		$script:Mode = "committed"
-		$script:TargetCommit = $head
-		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $head) | Select-Object -First 1) -eq $RequiredParent) "Goal 023A completion is not the ordinary direct child."
-		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $head) | Select-Object -First 1) -eq $RequiredSubject) "Goal 023A commit subject changed."
+		& git merge-base --is-ancestor $RequiredParent $head
+		Assert-True ($LASTEXITCODE -eq 0) "Goal 023A parent is not an ancestor of HEAD."
+		$lineage = @(Git-Lines @("rev-list", "--first-parent", "--reverse", "$RequiredParent..$head"))
+		Assert-True ($lineage.Count -ge 1) "Goal 023A completion commit is absent."
+		$script:TargetCommit = $lineage[0]
+		$script:Mode = "historical"
+		Assert-True ((Git-Lines @("show", "-s", "--format=%P", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredParent) "Goal 023A completion is not the ordinary direct child."
+		Assert-True ((Git-Lines @("show", "-s", "--format=%s", $script:TargetCommit) | Select-Object -First 1) -eq $RequiredSubject) "Goal 023A commit subject changed."
 	}
 
 	$changed = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
@@ -231,7 +235,8 @@ try
 	else
 	{
 		$remote = (Git-Lines @("rev-parse", "origin/feature/phantom-world") | Select-Object -First 1)
-		Assert-True ($remote -eq $script:TargetCommit) "Remote head differs from Goal 023A commit."
+		& git merge-base --is-ancestor $script:TargetCommit $remote
+		Assert-True ($LASTEXITCODE -eq 0) "Remote does not contain Goal 023A."
 		& git -c core.safecrlf=false diff --check $RequiredParent $script:TargetCommit --
 		Assert-True ($LASTEXITCODE -eq 0) "Committed diff check failed."
 		$jarEntries = & jar tf (Join-Path $script:ModuleRoot 'dist/libs/GameServer.jar')

@@ -22,6 +22,8 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ContentBindingRequest;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ContentBindingResult;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
@@ -59,6 +61,11 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InvitationIdentity;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InviteOutcome;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InviteResult;
+import org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftPartyPort;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftModel.CanonicalRoster;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService.BindingStatus;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService.RouteObservation;
 import org.l2jmobius.gameserver.phantoms.semantic.PhantomPartySemanticActs;
 import org.l2jmobius.gameserver.phantoms.semantic.PhantomSemanticAct;
 
@@ -71,6 +78,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		ROLE_VACANCY,
 		SEMANTIC_ACTS,
 		ROUTE,
+		ROUTE_CLOSURE,
 		TACTICS,
 		LIFECYCLE,
 		SERVER_INTEGRATION,
@@ -101,6 +109,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			case ROLE_VACANCY -> roles(registry);
 			case SEMANTIC_ACTS -> semantics(registry);
 			case ROUTE -> route(registry);
+			case ROUTE_CLOSURE -> routeClosure(registry);
 			case TACTICS -> tactics(registry);
 			case LIFECYCLE -> lifecycle(registry);
 			case SERVER_INTEGRATION -> integration(registry);
@@ -466,8 +475,104 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		});
 	}
 
-	private static void tactics(PhantomTestRegistry registry)
+	private static void routeClosure(PhantomTestRegistry registry)
 	{
+		registry.add("01-planner-pending-binding-preserves-ownership-and-submits-once", context ->
+		{
+			try (RouteClosureFixture fixture = new RouteClosureFixture(context, false))
+			{
+				PhantomAssertions.assertTrue(fixture.bind().bound(), "Initial Rift content binding was not stable.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, fixture.request(new PhantomDomainRef("location", "unrelated")), "Planner-pending route did not expose PENDING.");
+				final var activity = fixture.coordinator().observeRouteActivity(fixture.leader().profileId());
+				PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.ActivityStatus.PLANNING, activity.status(), "Planner ownership was not visible before manifest persistence.");
+				PhantomAssertions.assertTrue(activity.plannerOwned() && !ZERO.equals(activity.routeId()), "Planner-pending activity lost exact route identity.");
+				PhantomAssertions.assertEquals(BindingStatus.PENDING, fixture.portBinding().status(), "Content binding ignored planner-pending route ownership.");
+				PhantomAssertions.assertEquals(null, fixture.state().route(), "Planner-pending binding fabricated or cleared a route manifest.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, fixture.request(new PhantomDomainRef("location", "second")), "Second request over planner ownership did not stay PENDING.");
+				PhantomAssertions.assertEquals(1, fixture.submissions(), "Planner-pending retry submitted a second shared route.");
+			}
+		});
+		registry.add("02-moving-and-regrouping-binding-preserves-live-route", context ->
+		{
+			try (RouteClosureFixture fixture = new RouteClosureFixture(context, true))
+			{
+				PhantomAssertions.assertTrue(fixture.bind().bound(), "Initial moving-route binding was not stable.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.ACCEPTED, fixture.request(new PhantomDomainRef("location", "unrelated")), "Immediate shared route was not accepted.");
+				final RouteManifest moving = fixture.state().route();
+				final var movingActivity = fixture.coordinator().observeRouteActivity(fixture.leader().profileId());
+				PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.ActivityStatus.MOVING, movingActivity.status(), "Persisted MOVING route was not visible.");
+				PhantomAssertions.assertTrue(movingActivity.routeOwned(), "MOVING route lost Goal017 ownership.");
+				PhantomAssertions.assertEquals(BindingStatus.PENDING, fixture.portBinding().status(), "Content binding treated MOVING route as stable.");
+				PhantomAssertions.assertEquals(moving, fixture.state().route(), "Content binding overwrote the live MOVING manifest.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, fixture.request(new PhantomDomainRef("location", "duplicate")), "MOVING route allowed a second request.");
+				PhantomAssertions.assertEquals(1, fixture.submissions(), "MOVING retry submitted a second shared route.");
+				fixture.snapshot(0, 0, 0, true);
+				fixture.pulse(2);
+				final RouteManifest regrouping = fixture.state().route();
+				PhantomAssertions.assertEquals(RouteStatus.REGROUPING, regrouping.status(), "Goal017 did not persist REGROUPING.");
+				PhantomAssertions.assertEquals(BindingStatus.PENDING, fixture.portBinding().status(), "Content binding treated REGROUPING as stable.");
+				PhantomAssertions.assertEquals(regrouping, fixture.state().route(), "Content binding overwrote the live REGROUPING manifest.");
+			}
+		});
+		registry.add("03-arrived-terminal-cleanup-precedes-stable-binding", context -> terminalRoute(context, RouteStatus.ARRIVED));
+		registry.add("04-failed-terminal-cleanup-precedes-stable-binding", context -> terminalRoute(context, RouteStatus.FAILED));
+		registry.add("05-rift-route-observed-once-and-ready-only-after-clean-binding", context ->
+		{
+			try (RouteClosureFixture fixture = new RouteClosureFixture(context, true))
+			{
+				final var initial = fixture.port().bind(fixture.leader().profileId(), RouteClosureFixture.GOAL_ID, 0, fixture.objective(), List.of(), fixture.roster());
+				PhantomAssertions.assertTrue(initial.stable(), "Rift production port did not create the initial exact binding.");
+				final RouteObservation requested = fixture.port().requestRoute(fixture.leader().profileId(), fixture.routeDestination(), fixture.destination());
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService.RouteStatus.PENDING, requested.status(), "Rift route was not pending after one request.");
+				final RouteObservation retry = fixture.port().requestRoute(fixture.leader().profileId(), fixture.routeDestination(), fixture.destination());
+				PhantomAssertions.assertEquals(requested.routeHash(), retry.routeHash(), "Rift retry changed exact route identity.");
+				PhantomAssertions.assertEquals(1, fixture.submissions(), "Rift retry submitted a second shared route.");
+				PhantomAssertions.assertEquals(BindingStatus.PENDING, fixture.portBinding().status(), "READY binding was stable while Rift route was MOVING.");
+				fixture.snapshot(100, 0, 0, false);
+				fixture.pulse(2);
+				final RouteObservation arrived = fixture.port().observeRoute(fixture.leader().profileId(), requested.routeHash());
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService.RouteStatus.ARRIVED, arrived.status(), "Rift route was not observed to ARRIVED.");
+				PhantomAssertions.assertEquals(BindingStatus.PENDING, fixture.port().observeBinding(fixture.leader().profileId(), RouteClosureFixture.GOAL_ID, 0, fixture.objective(), List.of(), fixture.roster()).status(), "Terminal manifest became READY without binding refresh.");
+				final var refreshed = fixture.port().bind(fixture.leader().profileId(), RouteClosureFixture.GOAL_ID, 0, fixture.objective(), List.of(), fixture.roster());
+				PhantomAssertions.assertTrue(refreshed.stable(), "Stable Rift binding did not recover after Goal017 terminal cleanup.");
+				PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.ActivityStatus.NONE, fixture.coordinator().observeRouteActivity(fixture.leader().profileId()).status(), "READY binding retained route ownership.");
+			}
+		});
+	}
+
+	private static void terminalRoute(PhantomTestContext context, RouteStatus terminal) throws Exception
+	{
+		try (RouteClosureFixture fixture = new RouteClosureFixture(context, true))
+		{
+			final ContentBindingResult initial = fixture.bind();
+			PhantomAssertions.assertTrue(initial.bound(), "Initial terminal-route binding was not stable.");
+			PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.ACCEPTED, fixture.request(fixture.routeDestination()), "Terminal-route setup did not persist MOVING.");
+			final PartyState before = fixture.state();
+			if (terminal == RouteStatus.ARRIVED)
+			{
+				fixture.snapshot(100, 0, 0, false);
+			}
+			else
+			{
+				fixture.snapshot(0, 0, 1, false);
+			}
+			fixture.pulse(2);
+			PhantomAssertions.assertEquals(terminal, fixture.state().route().status(), "Goal017 did not persist the expected terminal route status.");
+			final var terminalActivity = fixture.coordinator().observeRouteActivity(fixture.leader().profileId());
+			PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.ActivityStatus.valueOf(terminal.name()), terminalActivity.status(), "Terminal route activity was not typed.");
+			final ContentBindingResult reconciled = fixture.bind();
+			PhantomAssertions.assertTrue(reconciled.bound(), "Content binding did not recover after terminal route cleanup.");
+			final PartyState after = fixture.state();
+			PhantomAssertions.assertEquals(null, after.route(), "Terminal route manifest was not cleared by Goal017 reconciliation.");
+			PhantomAssertions.assertEquals(before.groupId(), after.groupId(), "Terminal cleanup changed group identity.");
+			PhantomAssertions.assertEquals(before.groupGeneration(), after.groupGeneration(), "Terminal cleanup changed group generation.");
+			PhantomAssertions.assertEquals(before.membershipRevision(), after.membershipRevision(), "Terminal cleanup changed membership revision.");
+			PhantomAssertions.assertEquals(before.phantomMembers(), after.phantomMembers(), "Terminal cleanup changed canonical membership.");
+			PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.ActivityStatus.NONE, fixture.coordinator().observeRouteActivity(fixture.leader().profileId()).status(), "Terminal cleanup orphaned route ownership.");
+		}
+	}
+
+	private static void tactics(PhantomTestRegistry registry)	{
 		registry.add("01-assist-protect-heal-recharge-resurrect-support-plan", _ ->
 		{
 			final MemberRef leader = MemberRef.phantom(1, 101);
@@ -930,8 +1035,118 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		return new PhantomGoal(9001, PhantomPartyCoordinator.JOIN_GOAL, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("party", "general"), new PhantomDomainRef("character.object", Integer.toString(identity.requesterObjectId())), 1, 0, null, List.of(), null, "conversation.action", 600, 0, 0, 0, constraints, "conversation.party.accept", 0);
 	}
 
-	private static final class MemoryPartyStore implements PhantomPartyPersistencePort
+	private static final class RouteClosureFixture implements AutoCloseable
 	{
+		private static final long GOAL_ID = 23002312L;
+		private final MemoryPartyStore _states = new MemoryPartyStore();
+		private final MemoryGoalStore _goals = new MemoryGoalStore();
+		private final MemoryPartyBackend _backend = new MemoryPartyBackend();
+		private final AtomicInteger _submissions = new AtomicInteger();
+		private Runnable _deferredWorker;
+		private final PhantomNavigationService _navigation;
+		private final PhantomPartyCoordinator _coordinator;
+		private final L2jPhantomRiftPartyPort _port;
+		private final MemberRef _leader;
+		private final PhantomDomainRef _objective = new PhantomDomainRef("rift.tier", "1");
+		private final PhantomDomainRef _routeDestination = new PhantomDomainRef("rift.entry", "1");
+		private final PhantomNavigationPoint _destination = new PhantomNavigationPoint(100, 0, 0, 0);
+
+		private RouteClosureFixture(PhantomTestContext context, boolean immediate)
+		{
+			final PhantomNavigationBackend navigationBackend = new PhantomNavigationBackend()
+			{
+				@Override public CapabilitySnapshot capability(PhantomNavigationPoint origin, PhantomNavigationPoint destination)
+				{
+					_submissions.incrementAndGet();
+					return new CapabilitySnapshot(immediate ? PhantomNavigationCapability.GEODATA_DIRECT_ONLY : PhantomNavigationCapability.GEODATA_PATHFINDING, 1);
+				}
+				@Override public boolean canMoveDirect(PhantomNavigationPoint origin, PhantomNavigationPoint destination) { return immediate; }
+				@Override public List<PhantomNavigationPoint> findPath(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellationToken) { return List.of(request.destination()); }
+			};
+			_navigation = new PhantomNavigationService(PhantomNavigationPolicy.productionDefaults(), navigationBackend, worker ->
+			{
+				if (immediate)
+				{
+					worker.run();
+				}
+				else
+				{
+					_deferredWorker = worker;
+				}
+				return true;
+			}, System::nanoTime, new PhantomMetrics());
+			PhantomAssertions.assertTrue(_navigation.start(), "Route closure navigation did not start.");
+			_leader = _backend.add(1, 101);
+			_backend.party(new PhantomPartyBackend.PartySnapshot(_leader, List.of(_leader), PartyDistributionType.FINDERS_KEEPERS));
+			_goals.put(_leader.profileId(), goal(GOAL_ID, PhantomRiftService.GOAL_TYPE, _objective, 0));
+			final PhantomPartyRouteCoordinator routes = new PhantomPartyRouteCoordinator(_navigation, null);
+			_coordinator = new PhantomPartyCoordinator(_states, _goals, _backend, currentCatalog(context), routes, new PhantomPartyTactics(null, _backend), () -> ZERO, System::nanoTime, 64);
+			PhantomAssertions.assertTrue(_coordinator.start(), "Route closure coordinator did not start.");
+			_port = new L2jPhantomRiftPartyPort(_coordinator);
+		}
+
+		private ContentBindingResult bind()
+		{
+			return _coordinator.bindContentGoal(new ContentBindingRequest(_leader.profileId(), GOAL_ID, 0, PhantomRiftService.GOAL_TYPE, ObjectiveMode.AREA_PVE, _objective, List.of(), _leader, List.of(_leader), PartyDistributionType.FINDERS_KEEPERS, roster().evidenceHash()));
+		}
+
+		private org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService.PartyBinding portBinding()
+		{
+			return _port.bind(_leader.profileId(), GOAL_ID, 0, _objective, List.of(), roster());
+		}
+
+		private PhantomPartyCoordinator.RouteOutcome request(PhantomDomainRef destination)
+		{
+			return _coordinator.requestRoute(_leader.profileId(), destination, _destination);
+		}
+
+		private void snapshot(int x, int y, int instanceId, boolean dead)
+		{
+			_backend.snapshot(_leader, new MemberSnapshot(_leader, 0, instanceId, x, y, 0, 100, 100, 100, dead, false, false, false, 0, List.of(), List.of(), ZERO));
+		}
+
+		private void pulse(int count)
+		{
+			for (int pulse = 0; pulse < count; pulse++)
+			{
+				_coordinator.onPulse();
+			}
+		}
+
+		private PartyState state()
+		{
+			return _coordinator.claim(_leader.profileId()).orElseThrow().state();
+		}
+
+		private CanonicalRoster roster()
+		{
+			return new CanonicalRoster(_leader, List.of(_leader), PartyDistributionType.FINDERS_KEEPERS, false, false, PhantomPartyModel.sha256("rift023b.route.roster|" + _leader.stableKey()));
+		}
+
+		private PhantomPartyCoordinator coordinator() { return _coordinator; }
+		private L2jPhantomRiftPartyPort port() { return _port; }
+		private MemberRef leader() { return _leader; }
+		private PhantomDomainRef objective() { return _objective; }
+		private PhantomDomainRef routeDestination() { return _routeDestination; }
+		private PhantomNavigationPoint destination() { return _destination; }
+		private int submissions() { return _submissions.get(); }
+
+		@Override
+		public void close()
+		{
+			_coordinator.beginStop();
+			_coordinator.finishStop();
+			if (_deferredWorker != null)
+			{
+				_deferredWorker.run();
+				_deferredWorker = null;
+			}
+			_navigation.beginStop();
+			PhantomAssertions.assertTrue(_navigation.finishStop(), "Route closure navigation did not drain.");
+		}
+	}
+
+	private static final class MemoryPartyStore implements PhantomPartyPersistencePort	{
 		private final TreeMap<Long, StoredPartyState> _states = new TreeMap<>();
 
 		private void seed(long profileId, PartyState state)
@@ -1031,6 +1246,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	{
 		private final Map<Long, MemberRef> _members = new LinkedHashMap<>();
 		private final Map<MemberRef, PartySnapshot> _parties = new LinkedHashMap<>();
+		private final Map<MemberRef, MemberSnapshot> _snapshots = new LinkedHashMap<>();
 		private PhantomPartyCoordinator _coordinator;
 		private PartyInvitation _lastInvitation;
 		private PartyInvitationService.Response _lastResponse;
@@ -1068,6 +1284,11 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			final MemberRef member = MemberRef.phantom(profileId, objectId);
 			_members.put(profileId, member);
 			return member;
+		}
+
+		private void snapshot(MemberRef member, MemberSnapshot snapshot)
+		{
+			_snapshots.put(member, snapshot);
 		}
 
 		private void party(PartySnapshot snapshot)
@@ -1166,7 +1387,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		@Override
 		public Optional<MemberSnapshot> memberSnapshot(MemberRef member)
 		{
-			return Optional.of(new MemberSnapshot(member, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO));
+			return Optional.ofNullable(_snapshots.getOrDefault(member, new MemberSnapshot(member, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO)));
 		}
 
 		@Override

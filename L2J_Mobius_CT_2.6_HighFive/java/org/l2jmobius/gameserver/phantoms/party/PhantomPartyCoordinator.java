@@ -357,6 +357,15 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			if (leaderClaim != null)
 			{
 				final PartyState state = leaderClaim.state();
+				final PhantomPartyRouteCoordinator.RouteActivity routeActivity = routeActivity(state);
+				if (routeActivity.nonTerminal())
+				{
+					return bindingFailure(ContentBindingOutcome.OPERATION_CONFLICT, request, "party.binding.route_active");
+				}
+				if (routeActivity.terminal())
+				{
+					_routes.cancel(state.groupId());
+				}
 				if (pendingMembership(state.operation()))
 				{
 					return bindingFailure(ContentBindingOutcome.OPERATION_CONFLICT, request, "party.binding.operation_pending");
@@ -384,6 +393,14 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			for (MemberRef member : phantoms)
 			{
 				final StoredPartyState claim = _claims.get(member.profileId());
+				if ((claim != null) && routeActivity(claim.state()).nonTerminal())
+				{
+					return bindingFailure(ContentBindingOutcome.OPERATION_CONFLICT, request, "party.binding.member_route_active");
+				}
+				if ((claim != null) && routeActivity(claim.state()).terminal())
+				{
+					_routes.cancel(claim.state().groupId());
+				}
 				if ((claim != null) && pendingMembership(claim.state().operation()))
 				{
 					return bindingFailure(ContentBindingOutcome.OPERATION_CONFLICT, request, "party.binding.member_operation_pending");
@@ -442,6 +459,16 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		if ((claim == null) || !committedClaim(claim) || !claim.state().leader().equals(leader) || !sameRoster(roster(claim.state()), party.members()))
 		{
 			return bindingFailure(ContentBindingOutcome.CLAIM_CONFLICT, request, "party.binding.claim_conflict");
+		}
+		final PhantomPartyRouteCoordinator.RouteActivity routeActivity = routeActivity(claim.state());
+		if (routeActivity.nonTerminal())
+		{
+			return new ContentBindingResult(ContentBindingOutcome.OPERATION_CONFLICT, claim.state().groupId(), claim.state().groupGeneration(), claim.state().membershipRevision(), leader, request.rosterEvidenceHash(), claim.state().leaderManifestHash(), OperationStability.PENDING, "party.binding.route_active");
+		}
+		if (routeActivity.terminal())
+		{
+			_routes.cancel(claim.state().groupId());
+			return new ContentBindingResult(ContentBindingOutcome.OPERATION_CONFLICT, claim.state().groupId(), claim.state().groupGeneration(), claim.state().membershipRevision(), leader, request.rosterEvidenceHash(), claim.state().leaderManifestHash(), OperationStability.PENDING, "party.binding.route_terminal_reconciled");
 		}
 		if (pendingMembership(claim.state().operation()))
 		{
@@ -702,6 +729,16 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				return RouteOutcome.NOT_PHANTOM_LEADER;
 			}
+			final PhantomPartyRouteCoordinator.RouteActivity routeActivity = routeActivity(claim.state());
+			if (routeActivity.nonTerminal())
+			{
+				return RouteOutcome.PENDING;
+			}
+			if (routeActivity.terminal())
+			{
+				_routes.cancel(claim.state().groupId());
+				return RouteOutcome.PENDING;
+			}
 			final MemberSnapshot leader = _backend.memberSnapshot(claim.state().leader()).orElse(null);
 			if (leader == null)
 			{
@@ -715,6 +752,33 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			}
 			return RouteOutcome.PENDING;
 		}
+	}
+
+	public PhantomPartyRouteCoordinator.RouteActivity observeRouteActivity(long leaderProfileId)
+	{
+		final StoredPartyState claim = _claims.get(leaderProfileId);
+		return claim == null ? PhantomPartyRouteCoordinator.RouteActivity.none() : routeActivity(claim.state());
+	}
+
+	public boolean reconcileTerminalRoute(long leaderProfileId, String expectedRouteId)
+	{
+		final StoredPartyState claim = _claims.get(leaderProfileId);
+		if (claim == null)
+		{
+			return false;
+		}
+		final PhantomPartyRouteCoordinator.RouteActivity activity = routeActivity(claim.state());
+		if (!activity.terminal() || !activity.routeId().equals(expectedRouteId))
+		{
+			return false;
+		}
+		_routes.cancel(claim.state().groupId());
+		return true;
+	}
+
+	private PhantomPartyRouteCoordinator.RouteActivity routeActivity(PartyState state)
+	{
+		return _routes.observe(state.groupId(), state.route(), roster(state));
 	}
 
 	public CommandOutcome leave(long profileId, long goalId, long goalRevision, long expectedGeneration)
