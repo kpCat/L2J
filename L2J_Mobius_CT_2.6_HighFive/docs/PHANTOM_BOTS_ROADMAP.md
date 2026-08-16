@@ -125,6 +125,10 @@ Goal 022 Checkpoint 2: NOT_STARTED
 
 Goal 022: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
+Goal 024: CHANGES_REQUIRED
+
+Goal 024A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
 Goal 025: NOT_STARTED
 ```
 
@@ -157,7 +161,9 @@ activation gates в Goal 020 Checkpoint 1; Goal 019 принята с явным
 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Goal 021 Checkpoint 1 и Checkpoint 2
 приняты; overall baseline закреплён на
 `043844c0fd7a0bfcac0d5f58461a21633b032332`. Goal 022 Checkpoint 1 реализован и
-ожидает независимого review; Checkpoint 2 не начат. Goal 025 не начат.
+ожидает независимого review; Checkpoint 2 не начат. Goal 024 имеет
+`CHANGES_REQUIRED`, а corrective Goal 024A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+без self-accept. Goal 025 не начат.
 
 ---
 
@@ -909,13 +915,17 @@ Navigation failure, исключает hidden route/deadline ownership и воз
 **Gate:** ответы о недостающей роли следуют из реального состава.  
 **Follow-up risk:** `HIGH` — instance/content and composition edge cases.
 
-## Goal 024 — Farming spot negotiation и resource conflict — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
+## Goal 024 — Farming spot negotiation и resource conflict — `CHANGES_REQUIRED`
 
 **Назначение:** согласование реальных целей в perceptible topology.  
 **Зависимости:** 010, 018, 020, 021, 023.  
 **Архитектурный результат:** claims на mob groups/rooms, alternatives, remaining
 amount, agreement history, share/wait/move/refuse/escalate semantic acts and
 perceptible-history protection.  
+Corrective Goal 024A имеет `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`: mutable evidence
+до FINAL отделено от stable live binding; persisted causal receipt поддерживает exact
+pair после restart; Goal021 lifecycle автоматически сводит bilateral terminal truth
+и durable Goal018 retry. Goal 024 не self-accepted.
 **Не включает:** actual PvP/PK execution.  
 **Gate:** решения объяснимы целями обеих сторон и world facts.  
 **Follow-up risk:** `HIGH` — topology, goals, memory and dialogue convergence.
@@ -1234,8 +1244,8 @@ Next:
    `ACCEPT_WITH_ACTIVATION_GATE`; Checkpoint 2 —
    `ACCEPT`; Goal 021 — `ACCEPT`; Goal 022 Checkpoint 1 —
    `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 022 Checkpoint 2 —
-   `NOT_STARTED`; Goal 023 — `ACCEPT`; Goal 024 —
-   `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 025 — `NOT_STARTED`.
+   `NOT_STARTED`; Goal 023 — `ACCEPT`; Goal 024 — `CHANGES_REQUIRED`;
+   Goal 024A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 025 — `NOT_STARTED`.
 
 Stage gate:
 - Stage I COMPLETE
@@ -1288,7 +1298,8 @@ Overall:
   Goal 022 Checkpoint 1 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
   Goal 022 Checkpoint 2 NOT_STARTED;
   Goal 023 ACCEPT;
-  Goal 024 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 024 CHANGES_REQUIRED;
+  Goal 024A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
   Goal 025 NOT_STARTED
 ```
 

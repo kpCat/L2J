@@ -14,15 +14,21 @@ import java.util.regex.Pattern;
 
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort.Outcome;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomPerceptionChannel;
 
 /** Bounded typed truth for one profile's farming claim and agreements. */
 public final class PhantomFarmingModel
 {
 	public static final String COMPONENT_TYPE = "farming.conflict";
-	public static final int SCHEMA_VERSION = 1;
+	public static final int SCHEMA_VERSION = 2;
 	public static final int MAX_HISTORY = 4;
 	public static final int MAX_ALTERNATIVES = 4;
 	public static final int MAX_ACTS = 3;
+	public static final int SOCIAL_OFFER = 1;
+	public static final int SOCIAL_RESPONSE = 1 << 1;
+	public static final int SOCIAL_ESCALATION = 1 << 2;
+	public static final int SOCIAL_TERMINAL = 1 << 3;
+	public static final int SOCIAL_ALL = SOCIAL_OFFER | SOCIAL_RESPONSE | SOCIAL_ESCALATION | SOCIAL_TERMINAL;
 	private static final Pattern HASH = Pattern.compile("^[0-9A-Fa-f]{64}$");
 
 	public enum ResourceScope
@@ -142,7 +148,29 @@ public final class PhantomFarmingModel
 		}
 	}
 
-	public record ActiveNegotiation(String agreementId, ResourceKey resource, long lowerProfileId, long higherProfileId, long lowerGoalId, long lowerGoalRevision, String lowerSourceId, long lowerRemaining, long higherGoalId, long higherGoalRevision, String higherSourceId, long higherRemaining, int round, long proposerProfileId, SemanticAct proposalAct, NegotiationStage stage, ArbitrationEvidence evidence, long createdMinute, long expiryMinute)
+	public record CausalPerceptionReceipt(long lowerProfileId, long higherProfileId, long topologyGeneration, String topologyHash, String lowerNodeId, long lowerProfileSequence, String higherNodeId, long higherProfileSequence, PhantomPerceptionChannel channel, long observedMinute, long expiryMinute, String evidenceHash, boolean trusted)
+	{
+		public CausalPerceptionReceipt
+		{
+			topologyHash = hash(topologyHash, "Causal topology hash");
+			lowerNodeId = bounded(lowerNodeId, 96, "Lower causal node ID");
+			higherNodeId = bounded(higherNodeId, 96, "Higher causal node ID");
+			Objects.requireNonNull(channel);
+			evidenceHash = hash(evidenceHash, "Causal perception evidence hash");
+			if ((lowerProfileId <= 0) || (higherProfileId <= lowerProfileId) || (topologyGeneration < 0) || (lowerProfileSequence < 0) || (higherProfileSequence < 0) || (observedMinute < 0) || (expiryMinute <= observedMinute))
+			{
+				throw new IllegalArgumentException("Invalid causal farming perception receipt.");
+			}
+		}
+
+		public static CausalPerceptionReceipt legacy(long lowerProfileId, long higherProfileId, long observedMinute, long expiryMinute)
+		{
+			final String topologyHash = sha256("farming.causal.legacy.topology", lowerProfileId, higherProfileId);
+			return new CausalPerceptionReceipt(lowerProfileId, higherProfileId, 0, topologyHash, "legacy.untrusted", 0, "legacy.untrusted", 0, PhantomPerceptionChannel.LOCAL_CHAT, observedMinute, expiryMinute, sha256("farming.causal.legacy", lowerProfileId, higherProfileId, observedMinute, expiryMinute), false);
+		}
+	}
+
+	public record ActiveNegotiation(String agreementId, ResourceKey resource, long lowerProfileId, long higherProfileId, long lowerGoalId, long lowerGoalRevision, String lowerSourceId, long lowerRemaining, long higherGoalId, long higherGoalRevision, String higherSourceId, long higherRemaining, int round, long proposerProfileId, SemanticAct proposalAct, NegotiationStage stage, ArbitrationEvidence evidence, CausalPerceptionReceipt perception, long createdMinute, long expiryMinute, int socialDeliveryMask)
 	{
 		public ActiveNegotiation
 		{
@@ -153,27 +181,36 @@ public final class PhantomFarmingModel
 			Objects.requireNonNull(proposalAct);
 			Objects.requireNonNull(stage);
 			Objects.requireNonNull(evidence);
-			if ((lowerProfileId <= 0) || (higherProfileId <= lowerProfileId) || (lowerGoalId <= 0) || (higherGoalId <= 0) || (lowerGoalRevision < 0) || (higherGoalRevision < 0) || (lowerRemaining < 0) || (higherRemaining < 0) || (round < 1) || (round > 16) || ((proposerProfileId != lowerProfileId) && (proposerProfileId != higherProfileId)) || (createdMinute < 0) || (expiryMinute <= createdMinute))
+			Objects.requireNonNull(perception);
+			if ((lowerProfileId <= 0) || (higherProfileId <= lowerProfileId) || (lowerGoalId <= 0) || (higherGoalId <= 0) || (lowerGoalRevision < 0) || (higherGoalRevision < 0) || (lowerRemaining < 0) || (higherRemaining < 0) || (round < 1) || (round > 16) || ((proposerProfileId != lowerProfileId) && (proposerProfileId != higherProfileId)) || (createdMinute < 0) || (expiryMinute <= createdMinute) || ((socialDeliveryMask & ~SOCIAL_ALL) != 0))
 			{
 				throw new IllegalArgumentException("Invalid active farming negotiation.");
 			}
 		}
+
+		public ActiveNegotiation withSocialDelivery(int delivery)
+		{
+			return new ActiveNegotiation(agreementId, resource, lowerProfileId, higherProfileId, lowerGoalId, lowerGoalRevision, lowerSourceId, lowerRemaining, higherGoalId, higherGoalRevision, higherSourceId, higherRemaining, round, proposerProfileId, proposalAct, stage, evidence, perception, createdMinute, expiryMinute, socialDeliveryMask | delivery);
+		}
 	}
 
-	public record AgreementReceipt(String agreementId, ResourceKey resource, long lowerProfileId, long higherProfileId, long holderProfileId, long lowerGoalId, long lowerGoalRevision, String lowerSourceId, long lowerRemaining, long higherGoalId, long higherGoalRevision, String higherSourceId, long higherRemaining, AgreementStatus status, Outcome loserOutcome, List<SemanticAct> acts, String reasonKey, String evidenceHash, long createdMinute, long expiryMinute, boolean effectApplied, boolean socialRecorded)
+	public record AgreementReceipt(String agreementId, ResourceKey resource, long lowerProfileId, long higherProfileId, long holderProfileId, long lowerGoalId, long lowerGoalRevision, String lowerSourceId, String lowerAuthorityHash, long lowerRemaining, long higherGoalId, long higherGoalRevision, String higherSourceId, String higherAuthorityHash, long higherRemaining, AgreementStatus status, Outcome loserOutcome, List<SemanticAct> acts, String reasonKey, String evidenceHash, CausalPerceptionReceipt perception, long createdMinute, long expiryMinute, boolean effectApplied, int socialDeliveryMask)
 	{
 		public AgreementReceipt
 		{
 			agreementId = hash(agreementId, "Agreement ID");
 			Objects.requireNonNull(resource);
 			lowerSourceId = hash(lowerSourceId, "Lower source ID");
+			lowerAuthorityHash = hash(lowerAuthorityHash, "Lower live authority hash");
 			higherSourceId = hash(higherSourceId, "Higher source ID");
+			higherAuthorityHash = hash(higherAuthorityHash, "Higher live authority hash");
 			Objects.requireNonNull(status);
 			Objects.requireNonNull(loserOutcome);
 			acts = List.copyOf(acts);
 			reasonKey = bounded(reasonKey, 64, "Agreement reason");
 			evidenceHash = hash(evidenceHash, "Agreement evidence hash");
-			if ((lowerProfileId <= 0) || (higherProfileId <= lowerProfileId) || ((holderProfileId != lowerProfileId) && (holderProfileId != higherProfileId)) || (lowerGoalId <= 0) || (higherGoalId <= 0) || (lowerGoalRevision < 0) || (higherGoalRevision < 0) || (lowerRemaining < 0) || (higherRemaining < 0) || (acts.isEmpty()) || (acts.size() > MAX_ACTS) || ((loserOutcome != Outcome.MOVE) && (loserOutcome != Outcome.WAIT) && (status != AgreementStatus.SHARED)) || (createdMinute < 0) || (expiryMinute <= createdMinute))
+			Objects.requireNonNull(perception);
+			if ((lowerProfileId <= 0) || (higherProfileId <= lowerProfileId) || ((holderProfileId != lowerProfileId) && (holderProfileId != higherProfileId)) || (lowerGoalId <= 0) || (higherGoalId <= 0) || (lowerGoalRevision < 0) || (higherGoalRevision < 0) || (lowerRemaining < 0) || (higherRemaining < 0) || (acts.isEmpty()) || (acts.size() > MAX_ACTS) || ((loserOutcome != Outcome.MOVE) && (loserOutcome != Outcome.WAIT) && (status != AgreementStatus.SHARED) && (status != AgreementStatus.FULFILLED) && (status != AgreementStatus.BROKEN) && (status != AgreementStatus.EXPIRED) && (status != AgreementStatus.STALE)) || (createdMinute < 0) || (expiryMinute <= createdMinute) || ((socialDeliveryMask & ~SOCIAL_ALL) != 0))
 			{
 				throw new IllegalArgumentException("Invalid farming agreement receipt.");
 			}
@@ -199,7 +236,32 @@ public final class PhantomFarmingModel
 
 		public boolean exactPair(AgreementReceipt other)
 		{
-			return (other != null) && agreementId.equals(other.agreementId) && resource.equals(other.resource) && (lowerProfileId == other.lowerProfileId) && (higherProfileId == other.higherProfileId) && (holderProfileId == other.holderProfileId) && (lowerGoalId == other.lowerGoalId) && (lowerGoalRevision == other.lowerGoalRevision) && lowerSourceId.equals(other.lowerSourceId) && (lowerRemaining == other.lowerRemaining) && (higherGoalId == other.higherGoalId) && (higherGoalRevision == other.higherGoalRevision) && higherSourceId.equals(other.higherSourceId) && (higherRemaining == other.higherRemaining) && (status == other.status) && (loserOutcome == other.loserOutcome) && acts.equals(other.acts) && reasonKey.equals(other.reasonKey) && evidenceHash.equals(other.evidenceHash) && (createdMinute == other.createdMinute) && (expiryMinute == other.expiryMinute);
+			return sameIdentity(other) && (status == other.status);
+		}
+
+		public boolean sameIdentity(AgreementReceipt other)
+		{
+			return (other != null) && agreementId.equals(other.agreementId) && resource.equals(other.resource) && (lowerProfileId == other.lowerProfileId) && (higherProfileId == other.higherProfileId) && (holderProfileId == other.holderProfileId) && (lowerGoalId == other.lowerGoalId) && (lowerGoalRevision == other.lowerGoalRevision) && lowerSourceId.equals(other.lowerSourceId) && lowerAuthorityHash.equals(other.lowerAuthorityHash) && (lowerRemaining == other.lowerRemaining) && (higherGoalId == other.higherGoalId) && (higherGoalRevision == other.higherGoalRevision) && higherSourceId.equals(other.higherSourceId) && higherAuthorityHash.equals(other.higherAuthorityHash) && (higherRemaining == other.higherRemaining) && (loserOutcome == other.loserOutcome) && acts.equals(other.acts) && reasonKey.equals(other.reasonKey) && evidenceHash.equals(other.evidenceHash) && perception.equals(other.perception) && (createdMinute == other.createdMinute) && (expiryMinute == other.expiryMinute);
+		}
+
+		public AgreementReceipt withStatus(AgreementStatus replacement, boolean applied)
+		{
+			return new AgreementReceipt(agreementId, resource, lowerProfileId, higherProfileId, holderProfileId, lowerGoalId, lowerGoalRevision, lowerSourceId, lowerAuthorityHash, lowerRemaining, higherGoalId, higherGoalRevision, higherSourceId, higherAuthorityHash, higherRemaining, replacement, loserOutcome, acts, reasonKey, evidenceHash, perception, createdMinute, expiryMinute, applied, socialDeliveryMask);
+		}
+
+		public AgreementReceipt withPerception(CausalPerceptionReceipt replacement)
+		{
+			return new AgreementReceipt(agreementId, resource, lowerProfileId, higherProfileId, holderProfileId, lowerGoalId, lowerGoalRevision, lowerSourceId, lowerAuthorityHash, lowerRemaining, higherGoalId, higherGoalRevision, higherSourceId, higherAuthorityHash, higherRemaining, status, loserOutcome, acts, reasonKey, evidenceHash, replacement, createdMinute, expiryMinute, effectApplied, socialDeliveryMask);
+		}
+
+		public AgreementReceipt withBinding(CausalPerceptionReceipt replacement, String lowerAuthority, String higherAuthority)
+		{
+			return new AgreementReceipt(agreementId, resource, lowerProfileId, higherProfileId, holderProfileId, lowerGoalId, lowerGoalRevision, lowerSourceId, lowerAuthority, lowerRemaining, higherGoalId, higherGoalRevision, higherSourceId, higherAuthority, higherRemaining, status, loserOutcome, acts, reasonKey, evidenceHash, replacement, createdMinute, expiryMinute, effectApplied, socialDeliveryMask);
+		}
+
+		public AgreementReceipt withSocialDelivery(int delivery)
+		{
+			return new AgreementReceipt(agreementId, resource, lowerProfileId, higherProfileId, holderProfileId, lowerGoalId, lowerGoalRevision, lowerSourceId, lowerAuthorityHash, lowerRemaining, higherGoalId, higherGoalRevision, higherSourceId, higherAuthorityHash, higherRemaining, status, loserOutcome, acts, reasonKey, evidenceHash, perception, createdMinute, expiryMinute, effectApplied, socialDeliveryMask | delivery);
 		}
 	}
 

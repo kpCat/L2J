@@ -744,12 +744,17 @@ baselines Goal 023 и Goal 023A сохраняются в их independent revie
 
 ### 024. Party farming и катакомбы
 
-Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Goal 024 реализован от accepted baseline
-`e67298697eaecc629a03b215a78ffa947233efd3`; independent review ещё не выполнен. Goal 025 не начат.
+Status: `CHANGES_REQUIRED`; corrective Goal 024A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+Goal 024A реализован как direct child baseline `2603776c6996007b147f93e4c7e79f145ceb8a89`
+и закрывает только R024A-01/02/03. Goal 024 не self-accepted; Goal 025 не начат.
 
 Exact current Goal 021 Source теперь порождает bounded ROOM/MOB_GROUP claim; Goal 010 определяет current
 perceptibility, Goal 017 — same-Party SHARE, Goal 018 — social memory/history, Goal 020 — typed query/language.
 Двусторонний deterministic FINAL не действует до exact receipt обеих сторон; `ESCALATE` не выполняет combat/PvP.
+Corrective lifecycle сохраняет historical arbitration evidence после FINAL, использует bounded persisted
+causal perceptibility receipt для exact pair restart и evidence-driven bilateral terminal reconciliation.
+Обычный Goal021 progress сохраняет SHARE/WAIT/MOVE; source completion/release/move даёт FULFILLED,
+TTL — EXPIRED, authority drift — STALE. Durable Goal018 delivery повторяется idempotently.
 
 - follow/assist;
 - target assignment;

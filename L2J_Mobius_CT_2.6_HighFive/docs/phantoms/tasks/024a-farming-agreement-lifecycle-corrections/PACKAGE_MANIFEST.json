@@ -1,0 +1,33 @@
+{
+  "package": "phantom-world-goal-024a-farming-agreement-lifecycle-corrections",
+  "taskId": "024a-farming-agreement-lifecycle-corrections",
+  "goal": "024A corrective",
+  "branch": "feature/phantom-world",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/024a-farming-agreement-lifecycle-corrections/TASK.md",
+  "requiredParent": "2603776c6996007b147f93e4c7e79f145ceb8a89",
+  "commitSubject": "fix(phantoms): harden farming agreement lifecycle",
+  "successToken": "GOAL_024A_FARMING_AGREEMENT_LIFECYCLE_CORRECTED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 24002402,
+  "goal024Status": "CHANGES_REQUIRED",
+  "goal025Started": false,
+  "findings": [
+    "R024A-01",
+    "R024A-02",
+    "R024A-03"
+  ],
+  "artificialFileCountLimit": null,
+  "fileExpansionPolicy": "Pre-audited read/change set; additional High Five files allowed only for documented exact call-path necessity.",
+  "productionDatabaseUseAllowed": false,
+  "newSqlExpected": false,
+  "payloadSha256": {
+    "docs/phantoms/tasks/024a-farming-agreement-lifecycle-corrections/ACCEPTANCE.md": "D6BAF182EFB4B8A81C06E9A129903A2ACF373831087DFB6916BFB1ADB654C125",
+    "docs/phantoms/tasks/024a-farming-agreement-lifecycle-corrections/ARCHITECTURE.md": "B665719E42C9403E12C1109E2D462CD523C733A2B0E1343C5EFFE4FAF874D761",
+    "docs/phantoms/tasks/024a-farming-agreement-lifecycle-corrections/CODEX_LAUNCHER.txt": "3D7DA1F52F93DA2C278DF1FDB7CA1CFEE187E8B3D43A765944AA3D2343753814",
+    "docs/phantoms/tasks/024a-farming-agreement-lifecycle-corrections/CONTEXT.md": "45D750AE52AEE5B03782D34E5CA32D87371E5D89B01AB3A26DE8BC47DD3BAC58",
+    "docs/phantoms/tasks/024a-farming-agreement-lifecycle-corrections/REVIEW_FINDINGS.md": "FA17E40414C647D712B5F4EC99169EEC65B67E0A567EC2DB85F528DBADDF22B8",
+    "docs/phantoms/tasks/024a-farming-agreement-lifecycle-corrections/TASK.md": "7B22FBE10D3E27A96D1AD59738E6D5770FE571203961E061A2B82AAA5F6269A0",
+    "docs/phantoms/tasks/024a-farming-agreement-lifecycle-corrections/TEST_CASES.md": "840B3554C125245B434F66C1CBF46469E7F3063141D105737402A2010E6766FE"
+  },
+  "manifestSelfHashExcluded": true
+}

@@ -20,26 +20,39 @@ import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.AgreementSt
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.Alternative;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.ArbitrationEvidence;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.ClaimReceipt;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.CausalPerceptionReceipt;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.FarmingState;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.NegotiationStage;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.ResourceKey;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.ResourceScope;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.SemanticAct;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomPerceptionChannel;
 
-/** Compact schema-1 codec bounded by the shared profile component payload. */
+/** Compact schema-2 codec with deterministic legacy schema-1 decoding. */
 public final class PhantomFarmingStateCodec
 {
-	private static final int MAGIC = 0x46524D31;
+	private static final int MAGIC = 0x46524D32;
+	private static final int LEGACY_MAGIC = 0x46524D31;
 
 	public byte[] encode(FarmingState state)
 	{
+		return encode(state, PhantomFarmingModel.SCHEMA_VERSION);
+	}
+
+	private byte[] encode(FarmingState state, int schemaVersion)
+	{
+		if ((schemaVersion != 1) && (schemaVersion != PhantomFarmingModel.SCHEMA_VERSION))
+		{
+			throw new IllegalArgumentException("Unsupported farming conflict schema version.");
+		}
+		final boolean legacy = schemaVersion == 1;
 		try
 		{
 			final ByteArrayOutputStream bytes = new ByteArrayOutputStream(1024);
 			try (DataOutputStream output = new DataOutputStream(bytes))
 			{
-				output.writeInt(MAGIC);
+				output.writeInt(legacy ? LEGACY_MAGIC : MAGIC);
 				output.writeUTF(state.policyHash());
 				output.writeUTF(state.authorityHash());
 				output.writeLong(state.logicalMinute());
@@ -51,12 +64,12 @@ public final class PhantomFarmingStateCodec
 				output.writeBoolean(state.active() != null);
 				if (state.active() != null)
 				{
-					writeActive(output, state.active());
+					writeActive(output, state.active(), legacy);
 				}
 				output.writeByte(state.history().size());
 				for (AgreementReceipt receipt : state.history())
 				{
-					writeAgreement(output, receipt);
+					writeAgreement(output, receipt, legacy);
 				}
 			}
 			final byte[] result = bytes.toByteArray();
@@ -80,15 +93,17 @@ public final class PhantomFarmingStateCodec
 		}
 		try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload)))
 		{
-			if (input.readInt() != MAGIC)
+			final int magic = input.readInt();
+			if ((magic != MAGIC) && (magic != LEGACY_MAGIC))
 			{
 				throw new IllegalArgumentException("Unknown farming conflict payload.");
 			}
+			final boolean legacy = magic == LEGACY_MAGIC;
 			final String policyHash = input.readUTF();
 			final String authorityHash = input.readUTF();
 			final long minute = input.readLong();
 			final ClaimReceipt claim = input.readBoolean() ? readClaim(input) : null;
-			final ActiveNegotiation active = input.readBoolean() ? readActive(input) : null;
+			final ActiveNegotiation active = input.readBoolean() ? readActive(input, legacy) : null;
 			final int historySize = input.readUnsignedByte();
 			if (historySize > PhantomFarmingModel.MAX_HISTORY)
 			{
@@ -97,7 +112,7 @@ public final class PhantomFarmingStateCodec
 			final List<AgreementReceipt> history = new ArrayList<>(historySize);
 			for (int index = 0; index < historySize; index++)
 			{
-				history.add(readAgreement(input));
+				history.add(readAgreement(input, legacy));
 			}
 			if (input.read() != -1)
 			{
@@ -181,7 +196,7 @@ public final class PhantomFarmingStateCodec
 		return new ClaimReceipt(resource, goalId, goalRevision, sourceId, targetItemId, required, progress, remaining, priority, rowVersion, evidenceHash, authorityHash, generation, claimed, expiry, alternatives, input.readBoolean());
 	}
 
-	private static void writeActive(DataOutputStream output, ActiveNegotiation active) throws IOException
+	private static void writeActive(DataOutputStream output, ActiveNegotiation active, boolean legacy) throws IOException
 	{
 		output.writeUTF(active.agreementId());
 		writeResource(output, active.resource());
@@ -200,13 +215,56 @@ public final class PhantomFarmingStateCodec
 		output.writeByte(active.proposalAct().ordinal());
 		output.writeByte(active.stage().ordinal());
 		writeEvidence(output, active.evidence());
+		if (!legacy)
+		{
+			writePerception(output, active.perception());
+		}
 		output.writeLong(active.createdMinute());
 		output.writeLong(active.expiryMinute());
+		if (!legacy)
+		{
+			output.writeInt(active.socialDeliveryMask());
+		}
 	}
 
-	private static ActiveNegotiation readActive(DataInputStream input) throws IOException
+	private static ActiveNegotiation readActive(DataInputStream input, boolean legacy) throws IOException
 	{
-		return new ActiveNegotiation(input.readUTF(), readResource(input), input.readLong(), input.readLong(), input.readLong(), input.readLong(), input.readUTF(), input.readLong(), input.readLong(), input.readLong(), input.readUTF(), input.readLong(), input.readUnsignedByte(), input.readLong(), ordinal(SemanticAct.values(), input.readUnsignedByte(), "semantic act"), ordinal(NegotiationStage.values(), input.readUnsignedByte(), "negotiation stage"), readEvidence(input), input.readLong(), input.readLong());
+		final String agreementId = input.readUTF();
+		final ResourceKey resource = readResource(input);
+		final long lowerProfileId = input.readLong();
+		final long higherProfileId = input.readLong();
+		final long lowerGoalId = input.readLong();
+		final long lowerGoalRevision = input.readLong();
+		final String lowerSourceId = input.readUTF();
+		final long lowerRemaining = input.readLong();
+		final long higherGoalId = input.readLong();
+		final long higherGoalRevision = input.readLong();
+		final String higherSourceId = input.readUTF();
+		final long higherRemaining = input.readLong();
+		final int round = input.readUnsignedByte();
+		final long proposerProfileId = input.readLong();
+		final SemanticAct proposalAct = ordinal(SemanticAct.values(), input.readUnsignedByte(), "semantic act");
+		final NegotiationStage stage = ordinal(NegotiationStage.values(), input.readUnsignedByte(), "negotiation stage");
+		final ArbitrationEvidence evidence = readEvidence(input);
+		final CausalPerceptionReceipt perception;
+		final long createdMinute;
+		final long expiryMinute;
+		final int socialDeliveryMask;
+		if (legacy)
+		{
+			createdMinute = input.readLong();
+			expiryMinute = input.readLong();
+			perception = CausalPerceptionReceipt.legacy(lowerProfileId, higherProfileId, createdMinute, expiryMinute);
+			socialDeliveryMask = 0;
+		}
+		else
+		{
+			perception = readPerception(input);
+			createdMinute = input.readLong();
+			expiryMinute = input.readLong();
+			socialDeliveryMask = input.readInt();
+		}
+		return new ActiveNegotiation(agreementId, resource, lowerProfileId, higherProfileId, lowerGoalId, lowerGoalRevision, lowerSourceId, lowerRemaining, higherGoalId, higherGoalRevision, higherSourceId, higherRemaining, round, proposerProfileId, proposalAct, stage, evidence, perception, createdMinute, expiryMinute, socialDeliveryMask);
 	}
 
 	private static void writeEvidence(DataOutputStream output, ArbitrationEvidence evidence) throws IOException
@@ -231,7 +289,29 @@ public final class PhantomFarmingStateCodec
 		return new ArbitrationEvidence(input.readLong(), input.readLong(), input.readInt(), input.readInt(), input.readInt(), input.readInt(), input.readInt(), input.readInt(), input.readInt(), input.readLong(), input.readUTF(), input.readLong(), input.readUTF());
 	}
 
-	private static void writeAgreement(DataOutputStream output, AgreementReceipt receipt) throws IOException
+	private static void writePerception(DataOutputStream output, CausalPerceptionReceipt perception) throws IOException
+	{
+		output.writeLong(perception.lowerProfileId());
+		output.writeLong(perception.higherProfileId());
+		output.writeLong(perception.topologyGeneration());
+		output.writeUTF(perception.topologyHash());
+		output.writeUTF(perception.lowerNodeId());
+		output.writeLong(perception.lowerProfileSequence());
+		output.writeUTF(perception.higherNodeId());
+		output.writeLong(perception.higherProfileSequence());
+		output.writeByte(perception.channel().ordinal());
+		output.writeLong(perception.observedMinute());
+		output.writeLong(perception.expiryMinute());
+		output.writeUTF(perception.evidenceHash());
+		output.writeBoolean(perception.trusted());
+	}
+
+	private static CausalPerceptionReceipt readPerception(DataInputStream input) throws IOException
+	{
+		return new CausalPerceptionReceipt(input.readLong(), input.readLong(), input.readLong(), input.readUTF(), input.readUTF(), input.readLong(), input.readUTF(), input.readLong(), ordinal(PhantomPerceptionChannel.values(), input.readUnsignedByte(), "perception channel"), input.readLong(), input.readLong(), input.readUTF(), input.readBoolean());
+	}
+
+	private static void writeAgreement(DataOutputStream output, AgreementReceipt receipt, boolean legacy) throws IOException
 	{
 		output.writeUTF(receipt.agreementId());
 		writeResource(output, receipt.resource());
@@ -241,10 +321,18 @@ public final class PhantomFarmingStateCodec
 		output.writeLong(receipt.lowerGoalId());
 		output.writeLong(receipt.lowerGoalRevision());
 		output.writeUTF(receipt.lowerSourceId());
+		if (!legacy)
+		{
+			output.writeUTF(receipt.lowerAuthorityHash());
+		}
 		output.writeLong(receipt.lowerRemaining());
 		output.writeLong(receipt.higherGoalId());
 		output.writeLong(receipt.higherGoalRevision());
 		output.writeUTF(receipt.higherSourceId());
+		if (!legacy)
+		{
+			output.writeUTF(receipt.higherAuthorityHash());
+		}
 		output.writeLong(receipt.higherRemaining());
 		output.writeByte(receipt.status().ordinal());
 		output.writeByte(receipt.loserOutcome().ordinal());
@@ -255,13 +343,24 @@ public final class PhantomFarmingStateCodec
 		}
 		output.writeUTF(receipt.reasonKey());
 		output.writeUTF(receipt.evidenceHash());
+		if (!legacy)
+		{
+			writePerception(output, receipt.perception());
+		}
 		output.writeLong(receipt.createdMinute());
 		output.writeLong(receipt.expiryMinute());
 		output.writeBoolean(receipt.effectApplied());
-		output.writeBoolean(receipt.socialRecorded());
+		if (legacy)
+		{
+			output.writeBoolean(receipt.socialDeliveryMask() != 0);
+		}
+		else
+		{
+			output.writeInt(receipt.socialDeliveryMask());
+		}
 	}
 
-	private static AgreementReceipt readAgreement(DataInputStream input) throws IOException
+	private static AgreementReceipt readAgreement(DataInputStream input, boolean legacy) throws IOException
 	{
 		final String agreementId = input.readUTF();
 		final ResourceKey resource = readResource(input);
@@ -271,10 +370,12 @@ public final class PhantomFarmingStateCodec
 		final long lowerGoalId = input.readLong();
 		final long lowerGoalRevision = input.readLong();
 		final String lowerSourceId = input.readUTF();
+		final String lowerAuthorityHash = legacy ? PhantomFarmingModel.sha256("farming.legacy.authority", lowerProfileId) : input.readUTF();
 		final long lowerRemaining = input.readLong();
 		final long higherGoalId = input.readLong();
 		final long higherGoalRevision = input.readLong();
 		final String higherSourceId = input.readUTF();
+		final String higherAuthorityHash = legacy ? PhantomFarmingModel.sha256("farming.legacy.authority", higherProfileId) : input.readUTF();
 		final long higherRemaining = input.readLong();
 		final AgreementStatus status = ordinal(AgreementStatus.values(), input.readUnsignedByte(), "agreement status");
 		final Outcome loserOutcome = ordinal(Outcome.values(), input.readUnsignedByte(), "gate outcome");
@@ -288,7 +389,31 @@ public final class PhantomFarmingStateCodec
 		{
 			acts.add(ordinal(SemanticAct.values(), input.readUnsignedByte(), "semantic act"));
 		}
-		return new AgreementReceipt(agreementId, resource, lowerProfileId, higherProfileId, holderProfileId, lowerGoalId, lowerGoalRevision, lowerSourceId, lowerRemaining, higherGoalId, higherGoalRevision, higherSourceId, higherRemaining, status, loserOutcome, acts, input.readUTF(), input.readUTF(), input.readLong(), input.readLong(), input.readBoolean(), input.readBoolean());
+		final String reasonKey = input.readUTF();
+		final String evidenceHash = input.readUTF();
+		final CausalPerceptionReceipt perception;
+		final long createdMinute;
+		final long expiryMinute;
+		final boolean effectApplied;
+		final int socialDeliveryMask;
+		if (legacy)
+		{
+			createdMinute = input.readLong();
+			expiryMinute = input.readLong();
+			effectApplied = input.readBoolean();
+			input.readBoolean();
+			perception = CausalPerceptionReceipt.legacy(lowerProfileId, higherProfileId, createdMinute, expiryMinute);
+			socialDeliveryMask = 0;
+		}
+		else
+		{
+			perception = readPerception(input);
+			createdMinute = input.readLong();
+			expiryMinute = input.readLong();
+			effectApplied = input.readBoolean();
+			socialDeliveryMask = input.readInt();
+		}
+		return new AgreementReceipt(agreementId, resource, lowerProfileId, higherProfileId, holderProfileId, lowerGoalId, lowerGoalRevision, lowerSourceId, lowerAuthorityHash, lowerRemaining, higherGoalId, higherGoalRevision, higherSourceId, higherAuthorityHash, higherRemaining, status, loserOutcome, acts, reasonKey, evidenceHash, perception, createdMinute, expiryMinute, effectApplied, socialDeliveryMask);
 	}
 
 	private static void writeResource(DataOutputStream output, ResourceKey resource) throws IOException

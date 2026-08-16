@@ -323,6 +323,7 @@ public final class PhantomTestLauncher
 			case "acquisition-active-spoil" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.ACQUISITION);
 			case "acquisition-source-switching" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.SOURCE_SWITCHING);
 			case "farming-acquisition-gate" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.FARMING_GATE);
+			case "farming-acquisition-lifecycle" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.FARMING_LIFECYCLE);
 			case "acquisition-lifecycle-performance" -> new PhantomAcquisitionSuite(PhantomAcquisitionSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "acquisition-manor-catalog-source" -> new PhantomAcquisitionManorSuite(PhantomAcquisitionManorSuite.Mode.CATALOG_SOURCE);
 			case "acquisition-manor-active" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.MANOR);
@@ -356,6 +357,8 @@ public final class PhantomTestLauncher
 			case "farming-facts" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.FACTS);
 			case "farming-restart-fault" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.RESTART_FAULT);
 			case "farming-lifecycle-performance" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.LIFECYCLE_PERFORMANCE);
+			case "farming-lifecycle-corrections" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.LIFECYCLE_CORRECTIONS);
+			case "farming-restart-corrections" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.RESTART_CORRECTIONS);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

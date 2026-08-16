@@ -19,6 +19,8 @@ import java.util.function.LongSupplier;
 
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService.ConflictLifecycle;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService.ConflictObservation;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService.ConflictSnapshot;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort.Gate;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort.Outcome;
@@ -30,6 +32,7 @@ import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.AgreementSt
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.Alternative;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.ArbitrationEvidence;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.ClaimReceipt;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.CausalPerceptionReceipt;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.FarmingState;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.NegotiationStage;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.ResourceKey;
@@ -46,6 +49,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomPerceptionChannel;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNode;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNodeKind;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.ProfileTopologySnapshot;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
 
 /**
@@ -81,13 +85,30 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		AFTER_OFFER,
 		AFTER_RESPONSE,
 		AFTER_FIRST_FINAL,
-		BEFORE_SOCIAL
+		BEFORE_SOCIAL,
+		AFTER_FIRST_TERMINAL,
+		BEFORE_TERMINAL_SOCIAL
+	}
+
+	private enum BindingState
+	{
+		EXACT,
+		MOVED,
+		COMPLETED,
+		RELEASED,
+		AUTHORITY_DRIFT,
+		UNKNOWN
 	}
 
 	@FunctionalInterface
 	public interface AcquisitionFacts
 	{
 		Optional<ConflictSnapshot> current(long profileId);
+
+		default ConflictObservation observe(long profileId)
+		{
+			return current(profileId).map(snapshot -> new ConflictObservation(ConflictLifecycle.CURRENT, profileId, snapshot.goalId(), snapshot.goalRevision(), snapshot.source().sourceId(), snapshot)).orElseGet(() -> ConflictObservation.unavailable(profileId));
+		}
 	}
 
 	@FunctionalInterface
@@ -135,7 +156,7 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		}
 	}
 
-	public record Snapshot(State state, String policyHash, int activeClaims, int resourceBuckets, int operationClaims, long claimsRequested, long claimsExpired, long claimsStale, long conflicts, long negotiationsStarted, long negotiationsResolved, long negotiationsExpired, long shareActs, long waitActs, long moveActs, long refuseActs, long escalateActs, long finalized, long fulfilled, long broken, long gatesAllow, long gatesShare, long gatesNegotiate, long gatesWait, long gatesMove, long gatesStale, long switchRequests, long perceptionUnavailable, long optimisticConflicts, long socialSuccess, long socialFailure, int maximumBucketSize, int maximumActiveNegotiations, int maximumPayloadBytes)
+	public record Snapshot(State state, String policyHash, int activeClaims, int resourceBuckets, int operationClaims, long claimsRequested, long claimsExpired, long claimsStale, long conflicts, long negotiationsStarted, long negotiationsResolved, long negotiationsExpired, long shareActs, long waitActs, long moveActs, long refuseActs, long escalateActs, long finalized, long fulfilled, long broken, long gatesAllow, long gatesShare, long gatesNegotiate, long gatesWait, long gatesMove, long gatesStale, long switchRequests, long perceptionUnavailable, long optimisticConflicts, long socialSuccess, long socialFailure, long exactPeerLoads, long reconciliationOperations, long socialRetries, int maximumBucketSize, int maximumActiveNegotiations, int maximumPayloadBytes)
 	{
 	}
 
@@ -157,7 +178,20 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 
 	public PhantomFarmingService(PhantomFarmingPolicy policy, PhantomFarmingPersistencePort store, PhantomAcquisitionService acquisition, PhantomTopologyService topology, PhantomPartyCoordinator party, PhantomSocialService social, int capacity)
 	{
-		this(policy, store, acquisition::conflictSnapshot, topology, productionPartyFacts(party), new Goal018SocialFacts(social), capacity, () -> System.currentTimeMillis() / 60000L, FaultInjector.NONE);
+		this(policy, store, new AcquisitionFacts()
+		{
+			@Override
+			public Optional<ConflictSnapshot> current(long profileId)
+			{
+				return acquisition.conflictSnapshot(profileId);
+			}
+
+			@Override
+			public ConflictObservation observe(long profileId)
+			{
+				return acquisition.conflictObservation(profileId);
+			}
+		}, topology, productionPartyFacts(party), new Goal018SocialFacts(social), capacity, () -> System.currentTimeMillis() / 60000L, FaultInjector.NONE);
 	}
 
 	public PhantomFarmingService(PhantomFarmingPolicy policy, PhantomFarmingPersistencePort store, AcquisitionFacts acquisition, PhantomTopologyService topology, PartyFacts party, SocialFacts social, int capacity, LongSupplier clock, FaultInjector faults)
@@ -216,10 +250,12 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 
 	public boolean hasWork(long profileId)
 	{
-		final ConflictSnapshot snapshot = _acquisition.current(profileId).orElse(null);
+		final ConflictObservation observation = _acquisition.observe(profileId);
+		final ConflictSnapshot snapshot = observation.lifecycle() == ConflictLifecycle.CURRENT ? observation.snapshot() : null;
 		if (snapshot == null)
 		{
-			return _claimsByProfile.containsKey(profileId);
+			final StoredState persisted = load(profileId);
+			return _claimsByProfile.containsKey(profileId) || ((persisted != null) && ((persisted.state().active() != null) || ((persisted.state().latest() != null) && liveStatus(persisted.state().latest().status()))));
 		}
 		final Gate gate = evaluate(profileId, snapshot);
 		return (gate.outcome() == Outcome.NEGOTIATE) || (gate.outcome() == Outcome.STALE);
@@ -233,15 +269,19 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		}
 		_metrics.claimsRequested.increment();
 		final long minute = now();
+		reconcilePersisted(profileId, minute);
 		final ConflictSnapshot snapshot = _acquisition.current(profileId).orElse(null);
 		if (snapshot == null)
 		{
+			reconcilePersisted(profileId, minute);
 			release(profileId);
 			return new AdvanceResult(AdvanceStatus.STALE, "farming.acquisition.missing", "");
 		}
 		final DerivedResource derived = derive(snapshot);
 		if (derived == null)
 		{
+			reconcilePersisted(profileId, minute);
+			invalidatePersistedActive(profileId, minute);
 			_metrics.claimsStale.increment();
 			release(profileId);
 			return new AdvanceResult(AdvanceStatus.STALE, "farming.resource.stale", "");
@@ -289,8 +329,11 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		final DerivedResource derived = derive(snapshot);
 		if (derived == null)
 		{
+			reconcilePersisted(profileId, minute);
+			invalidatePersistedActive(profileId, minute);
 			return gate(Outcome.STALE, "farming.resource.stale", "");
 		}
+		reconcilePersisted(profileId, minute);
 		final RuntimeClaim own = liveClaim(profileId, snapshot, derived.key(), minute);
 		if (own == null)
 		{
@@ -301,8 +344,9 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		{
 			return gate(Outcome.ALLOW, "farming.claim.uncontested", "");
 		}
-		final StoredState ownState = _cache.get(profileId);
-		final StoredState peerState = _cache.get(counterpart);
+		reconcilePair(profileId, counterpart, derived.key(), minute);
+		final StoredState ownState = load(profileId);
+		final StoredState peerState = load(counterpart);
 		final AgreementReceipt receipt = currentAgreement(ownState, peerState, profileId, counterpart, derived.key(), minute);
 		if (receipt == null)
 		{
@@ -319,6 +363,7 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 	@Override
 	public List<Fact> latest(long profileId)
 	{
+		reconcilePersisted(profileId, now());
 		final ConflictSnapshot snapshot = _acquisition.current(profileId).orElse(null);
 		final StoredState stored = _cache.get(profileId);
 		if ((snapshot == null) || (stored == null) || (stored.state().claim() == null))
@@ -411,7 +456,8 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		{
 			release(profileId);
 		}
-		final FarmingState next = new FarmingState(claim, sameIdentity ? base.active() : null, base.history(), _policy.hash(), derived.authorityHash(), minute);
+		final boolean proposalEvidenceUnchanged = sameIdentity && sameClaimFacts(previous, claim);
+		final FarmingState next = new FarmingState(claim, proposalEvidenceUnchanged ? base.active() : null, base.history(), _policy.hash(), derived.authorityHash(), minute);
 		final StoredState saved = save(profileId, current == null ? -1 : current.rowVersion(), next);
 		installRuntime(profileId, saved.state().claim());
 		return new AdvanceResult(AdvanceStatus.PROGRESSED, sameIdentity ? "farming.claim.refreshed" : "farming.claim.created", "");
@@ -464,6 +510,11 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 
 	private long counterpart(long profileId, ResourceKey resource, long minute)
 	{
+		final long persisted = persistedCounterpart(profileId, resource, minute);
+		if (persisted > 0)
+		{
+			return persisted;
+		}
 		final ConcurrentSkipListMap<Long, RuntimeClaim> bucket = _claimsByResource.get(resource);
 		if ((bucket == null) || (bucket.size() < 2))
 		{
@@ -484,6 +535,98 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 			}
 		}
 		return 0;
+	}
+
+	private long persistedCounterpart(long profileId, ResourceKey resource, long minute)
+	{
+		final StoredState own = load(profileId);
+		if (own == null)
+		{
+			return 0;
+		}
+		long counterpart = 0;
+		final ActiveNegotiation active = own.state().active();
+		if ((active != null) && active.resource().equals(resource))
+		{
+			counterpart = active.lowerProfileId() == profileId ? active.higherProfileId() : active.higherProfileId() == profileId ? active.lowerProfileId() : 0;
+		}
+		AgreementReceipt receipt = null;
+		if (counterpart == 0)
+		{
+			receipt = own.state().latest();
+			if ((receipt != null) && receipt.resource().equals(resource))
+			{
+				counterpart = receipt.counterpart(profileId);
+			}
+		}
+		if (counterpart <= 0)
+		{
+			return 0;
+		}
+		_metrics.exactPeerLoads.increment();
+		final StoredState peer = load(counterpart);
+		if (peer == null)
+		{
+			return counterpart;
+		}
+		if ((receipt != null) && terminalStatus(receipt.status()))
+		{
+			final AgreementReceipt peerReceipt = latestPairAgreement(peer.state(), counterpart, profileId, resource);
+			if (receipt.exactPair(peerReceipt))
+			{
+				return 0;
+			}
+		}
+		rehydrateClaim(profileId, own, resource, minute);
+		rehydrateClaim(counterpart, peer, resource, minute);
+		return counterpart;
+	}
+
+	private boolean rehydrateClaim(long profileId, StoredState stored, ResourceKey resource, long minute)
+	{
+		final ConflictObservation observation = _acquisition.observe(profileId);
+		final ConflictSnapshot snapshot = observation.lifecycle() == ConflictLifecycle.CURRENT ? observation.snapshot() : null;
+		final DerivedResource derived = snapshot == null ? null : derive(snapshot);
+		final ClaimReceipt previous = stored.state().claim();
+		if ((snapshot == null) || (derived == null) || !resource.equals(derived.key()) || (previous == null) || !previous.resource().equals(resource) || !previous.exactGoal(snapshot.goalId(), snapshot.goalRevision(), snapshot.source().sourceId()))
+		{
+			return false;
+		}
+		final List<Alternative> alternatives = snapshot.alternatives().stream().limit(_policy.limits().maximumAlternatives()).map(value -> new Alternative(value.sourceId(), value.method(), value.score())).toList();
+		final ClaimReceipt current = new ClaimReceipt(resource, snapshot.goalId(), snapshot.goalRevision(), snapshot.source().sourceId(), snapshot.targetItemId(), snapshot.requiredAmount(), snapshot.progress(), snapshot.remainingAmount(), snapshot.goalPriority(), snapshot.acquisitionRowVersion(), snapshot.evidenceHash(), derived.authorityHash(), derived.generation(), previous.claimedMinute(), Math.addExact(minute, _policy.limits().claimLeaseMinutes()), alternatives, snapshot.switchFeasible() && !alternatives.isEmpty());
+		installRuntime(profileId, current);
+		return true;
+	}
+
+	private CausalPerceptionReceipt capturePerception(long lowerProfileId, long higherProfileId, long minute)
+	{
+		final var query = _topology.query();
+		final long generation = query.snapshot().generation();
+		final ProfileTopologySnapshot lower = _topology.findProfile(lowerProfileId).filter(profile -> profile.resolved() && (profile.topologyGeneration() == generation)).orElse(null);
+		final ProfileTopologySnapshot higher = _topology.findProfile(higherProfileId).filter(profile -> profile.resolved() && (profile.topologyGeneration() == generation)).orElse(null);
+		if ((lower == null) || (higher == null) || _topology.perceptibleProfiles(lowerProfileId, PhantomPerceptionChannel.LOCAL_CHAT, _policy.limits().perceptionLimit()).stream().noneMatch(profile -> profile.profileId() == higherProfileId))
+		{
+			_metrics.perceptionUnavailable.increment();
+			return null;
+		}
+		final long expiry = Math.addExact(minute, _policy.limits().negotiationTtlMinutes());
+		final String evidenceHash = PhantomFarmingModel.sha256("farming.causal.perception", lowerProfileId, higherProfileId, generation, query.snapshot().canonicalHash(), lower.nodeId(), lower.sequence(), higher.nodeId(), higher.sequence(), PhantomPerceptionChannel.LOCAL_CHAT, minute, expiry);
+		return new CausalPerceptionReceipt(lowerProfileId, higherProfileId, generation, query.snapshot().canonicalHash(), lower.nodeId(), lower.sequence(), higher.nodeId(), higher.sequence(), PhantomPerceptionChannel.LOCAL_CHAT, minute, expiry, evidenceHash, true);
+	}
+
+	private boolean validPerception(CausalPerceptionReceipt perception, long lowerProfileId, long higherProfileId, long minute)
+	{
+		if (!perception.trusted() || (perception.lowerProfileId() != lowerProfileId) || (perception.higherProfileId() != higherProfileId) || (perception.channel() != PhantomPerceptionChannel.LOCAL_CHAT) || (perception.expiryMinute() <= minute))
+		{
+			return false;
+		}
+		final var snapshot = _topology.query().snapshot();
+		if ((snapshot.generation() != perception.topologyGeneration()) || !snapshot.canonicalHash().equals(perception.topologyHash()))
+		{
+			return false;
+		}
+		final String expected = PhantomFarmingModel.sha256("farming.causal.perception", lowerProfileId, higherProfileId, perception.topologyGeneration(), perception.topologyHash(), perception.lowerNodeId(), perception.lowerProfileSequence(), perception.higherNodeId(), perception.higherProfileSequence(), perception.channel(), perception.observedMinute(), perception.expiryMinute());
+		return expected.equals(perception.evidenceHash());
 	}
 
 	private void release(long profileId)
@@ -558,7 +701,7 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 			final AgreementReceipt canonical = existingLower == null ? existingHigher : existingLower;
 			if ((existingLower != null) && (existingHigher != null) && existingLower.exactPair(existingHigher))
 			{
-				recordFinalSocial(canonical, minute, canonical.status() == AgreementStatus.SHARED && _party.sameParty(lowerProfileId, higherProfileId));
+				retryAgreementSocial(canonical, minute, canonical.status() == AgreementStatus.SHARED && _party.sameParty(lowerProfileId, higherProfileId));
 				return new AdvanceResult(AdvanceStatus.IDEMPOTENT, "farming.agreement.final_idempotent", canonical.agreementId());
 			}
 			return mirrorFinal(lower, higher, canonical, minute);
@@ -570,7 +713,22 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		final boolean sameParty = _party.sameParty(lowerProfileId, higherProfileId);
 		final ActiveNegotiation lowerActive = lower.state().active();
 		final ActiveNegotiation higherActive = higher.state().active();
-		final Draft draft = !sameParty && (lowerActive != null) ? resumeDraft(lowerActive, lower.state().claim(), higher.state().claim()) : draft(lowerSnapshot, higherSnapshot, lower.state().claim(), higher.state().claim(), lowerResource, minute, sameParty);
+		final ActiveNegotiation canonicalActive = lowerActive != null ? lowerActive : higherActive;
+		if ((canonicalActive != null) && (canonicalActive.expiryMinute() > minute))
+		{
+			final Draft currentEvidence = draft(lowerSnapshot, higherSnapshot, lower.state().claim(), higher.state().claim(), lowerResource, canonicalActive.perception(), canonicalActive.createdMinute(), false);
+			if (!validPerception(canonicalActive.perception(), lowerProfileId, higherProfileId, minute) || !validActive(canonicalActive, currentEvidence, minute))
+			{
+				invalidateActivePair(lower, higher, minute);
+				return new AdvanceResult(AdvanceStatus.STALE, "farming.negotiation.evidence_drift", "");
+			}
+		}
+		final CausalPerceptionReceipt perception = canonicalActive == null ? capturePerception(lowerProfileId, higherProfileId, minute) : canonicalActive.perception();
+		if ((perception == null) || !validPerception(perception, lowerProfileId, higherProfileId, minute))
+		{
+			return new AdvanceResult(AdvanceStatus.STALE, "farming.perception.causal_stale", "");
+		}
+		final Draft draft = !sameParty && (canonicalActive != null) ? resumeDraft(canonicalActive, lower.state().claim(), higher.state().claim()) : draft(lowerSnapshot, higherSnapshot, lower.state().claim(), higher.state().claim(), lowerResource, perception, minute, sameParty);
 		if (sameParty)
 		{
 			return finalizePair(lower, higher, draft, minute, true);
@@ -582,7 +740,7 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 			_metrics.negotiationsStarted.increment();
 			_metrics.maximumActiveNegotiations.accumulateAndGet(_metrics.activeNegotiations.incrementAndGet(), Math::max);
 			_faults.at(FaultPoint.AFTER_OFFER);
-			recordEvent(lowerProfileId, higherProfileId, "farming.agreement.offered", offer.agreementId(), offer.evidence().evidenceHash(), minute);
+			deliverActiveSocial(lowerProfileId, higherProfileId, "farming.agreement.offered", offer.agreementId(), offer.evidence().evidenceHash(), PhantomFarmingModel.SOCIAL_OFFER, minute);
 			return new AdvanceResult(AdvanceStatus.PROGRESSED, "farming.negotiation.offer", offer.agreementId());
 		}
 		if ((lowerActive != null) && (higherActive == null) && validActive(lowerActive, draft, minute))
@@ -591,7 +749,7 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 			save(higherProfileId, higher.rowVersion(), higher.state().withActive(response, minute));
 			_faults.at(FaultPoint.AFTER_RESPONSE);
 			final String responseEvent = draft.acts().contains(SemanticAct.REFUSE) ? "farming.agreement.refused" : "farming.agreement.accepted";
-			recordEvent(higherProfileId, lowerProfileId, responseEvent, response.agreementId(), response.evidence().evidenceHash(), minute);
+			deliverActiveSocial(higherProfileId, lowerProfileId, responseEvent, response.agreementId(), response.evidence().evidenceHash(), PhantomFarmingModel.SOCIAL_RESPONSE, minute);
 			return new AdvanceResult(AdvanceStatus.PROGRESSED, "farming.negotiation.response", response.agreementId());
 		}
 		if ((lowerActive != null) && (higherActive != null) && validActive(lowerActive, draft, minute) && validActive(higherActive, draft, minute) && (lowerActive.stage() == NegotiationStage.OFFER) && (higherActive.stage() == NegotiationStage.RESPONSE))
@@ -613,7 +771,21 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		return new AdvanceResult(AdvanceStatus.RETRY, "farming.negotiation.waiting", draft.agreementId());
 	}
 
-	private Draft draft(ConflictSnapshot lower, ConflictSnapshot higher, ClaimReceipt lowerClaim, ClaimReceipt higherClaim, DerivedResource resource, long minute, boolean sameParty)
+	private void invalidateActivePair(StoredState lower, StoredState higher, long minute)
+	{
+		if (lower.state().active() != null)
+		{
+			save(lower.profileId(), lower.rowVersion(), lower.state().withActive(null, minute));
+		}
+		final StoredState refreshedHigher = load(higher.profileId());
+		if ((refreshedHigher != null) && (refreshedHigher.state().active() != null))
+		{
+			save(higher.profileId(), refreshedHigher.rowVersion(), refreshedHigher.state().withActive(null, minute));
+		}
+		_metrics.activeNegotiations.updateAndGet(value -> Math.max(0, value - 1));
+	}
+
+	private Draft draft(ConflictSnapshot lower, ConflictSnapshot higher, ClaimReceipt lowerClaim, ClaimReceipt higherClaim, DerivedResource resource, CausalPerceptionReceipt perception, long minute, boolean sameParty)
 	{
 		final SocialEvidence lowerSocial = _social.evidence(lower.profileId(), higher.profileId(), minute);
 		final SocialEvidence higherSocial = _social.evidence(higher.profileId(), lower.profileId(), minute);
@@ -653,7 +825,7 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		}
 		final long expiry = Math.addExact(minute, (status != AgreementStatus.SHARED) && (loserOutcome == Outcome.WAIT) ? _policy.limits().waitMinutes() : _policy.limits().negotiationTtlMinutes());
 		final String agreementId = PhantomFarmingModel.sha256("farming.agreement", resource.key().stableKey(), lower.profileId(), higher.profileId(), lower.goalId(), lower.goalRevision(), lower.source().sourceId(), higher.goalId(), higher.goalRevision(), higher.source().sourceId(), evidenceHash);
-		return new Draft(agreementId, evidence, status, loserOutcome, acts, reason, minute, expiry);
+		return new Draft(agreementId, evidence, perception, status, loserOutcome, acts, reason, minute, expiry);
 	}
 
 	private Draft resumeDraft(ActiveNegotiation active, ClaimReceipt lowerClaim, ClaimReceipt higherClaim)
@@ -696,7 +868,7 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 			}
 			default -> throw new IllegalStateException("Unknown farming proposal act.");
 		}
-		return new Draft(active.agreementId(), active.evidence(), status, loserOutcome, acts, reason, active.createdMinute(), active.expiryMinute());
+		return new Draft(active.agreementId(), active.evidence(), active.perception(), status, loserOutcome, acts, reason, active.createdMinute(), active.expiryMinute());
 	}
 
 	private int score(ClaimReceipt claim, SocialEvidence social, long minute)
@@ -711,7 +883,7 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 
 	private ActiveNegotiation active(Draft draft, ConflictSnapshot lower, ConflictSnapshot higher, NegotiationStage stage)
 	{
-		return new ActiveNegotiation(draft.agreementId(), draftResource(draft, lower, higher), lower.profileId(), higher.profileId(), lower.goalId(), lower.goalRevision(), lower.source().sourceId(), lower.remainingAmount(), higher.goalId(), higher.goalRevision(), higher.source().sourceId(), higher.remainingAmount(), 1, lower.profileId(), draft.acts().getFirst(), stage, draft.evidence(), draft.createdMinute(), draft.expiryMinute());
+		return new ActiveNegotiation(draft.agreementId(), draftResource(draft, lower, higher), lower.profileId(), higher.profileId(), lower.goalId(), lower.goalRevision(), lower.source().sourceId(), lower.remainingAmount(), higher.goalId(), higher.goalRevision(), higher.source().sourceId(), higher.remainingAmount(), 1, lower.profileId(), draft.acts().getFirst(), stage, draft.evidence(), draft.perception(), draft.createdMinute(), draft.expiryMinute(), 0);
 	}
 
 	private ResourceKey draftResource(Draft draft, ConflictSnapshot lower, ConflictSnapshot higher)
@@ -733,16 +905,23 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 	{
 		final ClaimReceipt lowerClaim = lower.state().claim();
 		final ClaimReceipt higherClaim = higher.state().claim();
-		final AgreementReceipt receipt = new AgreementReceipt(draft.agreementId(), lowerClaim.resource(), lower.profileId(), higher.profileId(), draft.evidence().holderProfileId(), lowerClaim.goalId(), lowerClaim.goalRevision(), lowerClaim.sourceId(), lowerClaim.remainingAmount(), higherClaim.goalId(), higherClaim.goalRevision(), higherClaim.sourceId(), higherClaim.remainingAmount(), draft.status(), draft.loserOutcome(), draft.acts(), draft.reasonKey(), draft.evidence().evidenceHash(), draft.createdMinute(), draft.expiryMinute(), false, false);
-		final StoredState savedLower = save(lower.profileId(), lower.rowVersion(), lower.state().withAgreement(receipt, minute));
+		final ConflictSnapshot lowerSnapshot = _acquisition.current(lower.profileId()).orElseThrow();
+		final ConflictSnapshot higherSnapshot = _acquisition.current(higher.profileId()).orElseThrow();
+		final String lowerAuthority = liveAuthority(lowerSnapshot, derive(lowerSnapshot));
+		final String higherAuthority = liveAuthority(higherSnapshot, derive(higherSnapshot));
+		final int lowerSocial = lower.state().active() == null ? 0 : lower.state().active().socialDeliveryMask();
+		final int higherSocial = higher.state().active() == null ? 0 : higher.state().active().socialDeliveryMask();
+		final AgreementReceipt lowerReceipt = new AgreementReceipt(draft.agreementId(), lowerClaim.resource(), lower.profileId(), higher.profileId(), draft.evidence().holderProfileId(), lowerClaim.goalId(), lowerClaim.goalRevision(), lowerClaim.sourceId(), lowerAuthority, lowerClaim.remainingAmount(), higherClaim.goalId(), higherClaim.goalRevision(), higherClaim.sourceId(), higherAuthority, higherClaim.remainingAmount(), draft.status(), draft.loserOutcome(), draft.acts(), draft.reasonKey(), draft.evidence().evidenceHash(), draft.perception(), draft.createdMinute(), draft.expiryMinute(), false, lowerSocial);
+		final AgreementReceipt higherReceipt = new AgreementReceipt(draft.agreementId(), lowerClaim.resource(), lower.profileId(), higher.profileId(), draft.evidence().holderProfileId(), lowerClaim.goalId(), lowerClaim.goalRevision(), lowerClaim.sourceId(), lowerAuthority, lowerClaim.remainingAmount(), higherClaim.goalId(), higherClaim.goalRevision(), higherClaim.sourceId(), higherAuthority, higherClaim.remainingAmount(), draft.status(), draft.loserOutcome(), draft.acts(), draft.reasonKey(), draft.evidence().evidenceHash(), draft.perception(), draft.createdMinute(), draft.expiryMinute(), false, higherSocial);
+		save(lower.profileId(), lower.rowVersion(), lower.state().withAgreement(lowerReceipt, minute));
 		_faults.at(FaultPoint.AFTER_FIRST_FINAL);
 		final StoredState refreshedHigher = load(higher.profileId());
-		save(higher.profileId(), refreshedHigher.rowVersion(), refreshedHigher.state().withAgreement(receipt, minute));
+		save(higher.profileId(), refreshedHigher.rowVersion(), refreshedHigher.state().withAgreement(higherReceipt, minute));
 		_metrics.activeNegotiations.updateAndGet(value -> Math.max(0, value - (sameParty ? 0 : 1)));
-		recordResolvedMetrics(receipt);
+		recordResolvedMetrics(lowerReceipt);
 		_faults.at(FaultPoint.BEFORE_SOCIAL);
-		recordFinalSocial(receipt, minute, sameParty);
-		return new AdvanceResult(AdvanceStatus.PROGRESSED, receipt.reasonKey(), receipt.agreementId());
+		retryAgreementSocial(lowerReceipt, minute, sameParty);
+		return new AdvanceResult(AdvanceStatus.PROGRESSED, lowerReceipt.reasonKey(), lowerReceipt.agreementId());
 	}
 
 	private AdvanceResult mirrorFinal(StoredState lower, StoredState higher, AgreementReceipt canonical, long minute)
@@ -753,63 +932,264 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		final AgreementReceipt higherReceipt = latestPairAgreement(currentHigher.state(), higher.profileId(), lower.profileId(), canonical.resource());
 		if (lowerReceipt == null)
 		{
-			currentLower = save(lower.profileId(), lower.rowVersion(), lower.state().withAgreement(canonical, minute));
+			final AgreementReceipt copy = copyAgreement(canonical, canonical.status(), canonical.perception(), 0, canonical.effectApplied());
+			currentLower = save(lower.profileId(), lower.rowVersion(), lower.state().withAgreement(copy, minute));
 		}
 		if (higherReceipt == null)
 		{
 			currentHigher = load(higher.profileId());
-			save(higher.profileId(), currentHigher.rowVersion(), currentHigher.state().withAgreement(canonical, minute));
+			final AgreementReceipt copy = copyAgreement(canonical, canonical.status(), canonical.perception(), 0, canonical.effectApplied());
+			save(higher.profileId(), currentHigher.rowVersion(), currentHigher.state().withAgreement(copy, minute));
 		}
 		_metrics.activeNegotiations.updateAndGet(value -> Math.max(0, value - 1));
 		recordResolvedMetrics(canonical);
 		_faults.at(FaultPoint.BEFORE_SOCIAL);
-		recordFinalSocial(canonical, minute, canonical.status() == AgreementStatus.SHARED && _party.sameParty(lower.profileId(), higher.profileId()));
+		retryAgreementSocial(canonical, minute, canonical.status() == AgreementStatus.SHARED && _party.sameParty(lower.profileId(), higher.profileId()));
 		return new AdvanceResult(AdvanceStatus.PROGRESSED, "farming.agreement.mirrored", canonical.agreementId());
 	}
 
-	public AdvanceResult observeAgreementOutcome(long profileId, String agreementId, boolean violated)
+	private AgreementReceipt reconcilePersisted(long profileId, long minute)
 	{
 		final StoredState own = load(profileId);
-		final AgreementReceipt receipt = own == null ? null : own.state().agreement(agreementId);
-		if ((receipt == null) || (receipt.expiryMinute() <= now()))
+		if (own == null)
 		{
-			return new AdvanceResult(AdvanceStatus.STALE, "farming.agreement.stale", agreementId);
+			return null;
 		}
-		if ((receipt.status() == AgreementStatus.FULFILLED) || (receipt.status() == AgreementStatus.BROKEN))
+		final ActiveNegotiation active = own.state().active();
+		final AgreementReceipt receipt = own.state().latest();
+		final long counterpart;
+		final ResourceKey resource;
+		if (active != null)
 		{
-			return new AdvanceResult(AdvanceStatus.IDEMPOTENT, receipt.status() == AgreementStatus.BROKEN ? "farming.agreement.broken" : "farming.agreement.fulfilled", agreementId);
+			counterpart = active.lowerProfileId() == profileId ? active.higherProfileId() : active.higherProfileId() == profileId ? active.lowerProfileId() : 0;
+			resource = active.resource();
 		}
-		final long counterpart = receipt.counterpart(profileId);
-		final ConflictSnapshot ownSnapshot = _acquisition.current(profileId).orElse(null);
-		final ConflictSnapshot peerSnapshot = _acquisition.current(counterpart).orElse(null);
-		if (violated && ((ownSnapshot == null) || (peerSnapshot == null) || !exact(ownSnapshot, receipt, profileId) || !exact(peerSnapshot, receipt, counterpart)))
+		else if (receipt != null)
 		{
-			return new AdvanceResult(AdvanceStatus.STALE, "farming.agreement.violation_unproven", agreementId);
+			counterpart = receipt.counterpart(profileId);
+			resource = receipt.resource();
+		}
+		else
+		{
+			return null;
+		}
+		return counterpart <= 0 ? null : reconcilePair(profileId, counterpart, resource, minute);
+	}
+
+	private void invalidatePersistedActive(long profileId, long minute)
+	{
+		final StoredState own = load(profileId);
+		final ActiveNegotiation active = own == null ? null : own.state().active();
+		if (active == null)
+		{
+			return;
+		}
+		final long counterpart = active.lowerProfileId() == profileId ? active.higherProfileId() : active.higherProfileId() == profileId ? active.lowerProfileId() : 0;
+		if (counterpart <= 0)
+		{
+			return;
 		}
 		try (PairClaim ignored = claimPair(profileId, counterpart))
 		{
 			if (ignored == null)
 			{
-				return new AdvanceResult(AdvanceStatus.RETRY, "farming.pair.busy", agreementId);
+				return;
 			}
-			final StoredState lower = load(receipt.lowerProfileId());
-			final StoredState higher = load(receipt.higherProfileId());
-			final AgreementStatus replacement = violated ? AgreementStatus.BROKEN : AgreementStatus.FULFILLED;
-			final AgreementReceipt resolved = copyStatus(receipt, replacement, true, receipt.socialRecorded());
-			save(lower.profileId(), lower.rowVersion(), lower.state().withAgreement(resolved, now()));
-			final StoredState refreshedHigher = load(higher.profileId());
-			save(higher.profileId(), refreshedHigher.rowVersion(), refreshedHigher.state().withAgreement(resolved, now()));
-			if (violated)
+			final StoredState lower = load(Math.min(profileId, counterpart));
+			final StoredState higher = load(Math.max(profileId, counterpart));
+			if ((lower != null) && (lower.state().active() != null) && lower.state().active().agreementId().equals(active.agreementId()))
 			{
-				_metrics.broken.increment();
+				save(lower.profileId(), lower.rowVersion(), lower.state().withActive(null, minute));
 			}
-			else
+			final StoredState refreshedHigher = load(Math.max(profileId, counterpart));
+			if ((refreshedHigher != null) && (refreshedHigher.state().active() != null) && refreshedHigher.state().active().agreementId().equals(active.agreementId()))
 			{
-				_metrics.fulfilled.increment();
+				save(refreshedHigher.profileId(), refreshedHigher.rowVersion(), refreshedHigher.state().withActive(null, minute));
 			}
-			recordAgreementResolution(resolved, violated, now());
-			return new AdvanceResult(AdvanceStatus.PROGRESSED, violated ? "farming.agreement.broken" : "farming.agreement.fulfilled", agreementId);
+			_metrics.activeNegotiations.updateAndGet(value -> Math.max(0, value - 1));
 		}
+	}
+
+	private AgreementReceipt reconcilePair(long firstProfileId, long secondProfileId, ResourceKey resource, long minute)
+	{
+		try (PairClaim ignored = claimPair(firstProfileId, secondProfileId))
+		{
+			if (ignored == null)
+			{
+				return null;
+			}
+			final StoredState lower = load(Math.min(firstProfileId, secondProfileId));
+			final StoredState higher = load(Math.max(firstProfileId, secondProfileId));
+			return (lower == null) || (higher == null) ? null : reconcileAgreementLocked(lower, higher, resource, minute);
+		}
+		catch (RuntimeException exception)
+		{
+			_metrics.optimisticConflicts.increment();
+			return null;
+		}
+	}
+
+	private AgreementReceipt reconcileAgreementLocked(StoredState lower, StoredState higher, ResourceKey resource, long minute)
+	{
+		_metrics.reconciliationOperations.increment();
+		AgreementReceipt lowerReceipt = latestPairAgreement(lower.state(), lower.profileId(), higher.profileId(), resource);
+		AgreementReceipt higherReceipt = latestPairAgreement(higher.state(), higher.profileId(), lower.profileId(), resource);
+		if ((lowerReceipt == null) && (higherReceipt == null))
+		{
+			return null;
+		}
+		AgreementReceipt canonical = lowerReceipt == null ? higherReceipt : lowerReceipt;
+		if ((lowerReceipt != null) && (higherReceipt != null) && !lowerReceipt.sameIdentity(higherReceipt))
+		{
+			return null;
+		}
+		if ((higherReceipt != null) && terminalStatus(higherReceipt.status()))
+		{
+			canonical = higherReceipt;
+		}
+		if (!canonical.perception().trusted())
+		{
+			final BindingState lowerBinding = bindingState(canonical, lower.profileId());
+			final BindingState higherBinding = bindingState(canonical, higher.profileId());
+			final CausalPerceptionReceipt revalidated = (lowerBinding == BindingState.EXACT) && (higherBinding == BindingState.EXACT) ? capturePerception(lower.profileId(), higher.profileId(), minute) : null;
+			if (revalidated != null)
+			{
+				final ConflictSnapshot currentLower = _acquisition.current(lower.profileId()).orElseThrow();
+				final ConflictSnapshot currentHigher = _acquisition.current(higher.profileId()).orElseThrow();
+				canonical = canonical.withBinding(revalidated, liveAuthority(currentLower, derive(currentLower)), liveAuthority(currentHigher, derive(currentHigher)));
+				lowerReceipt = copyAgreement(canonical, canonical.status(), revalidated, lowerReceipt == null ? 0 : lowerReceipt.socialDeliveryMask(), canonical.effectApplied());
+				higherReceipt = copyAgreement(canonical, canonical.status(), revalidated, higherReceipt == null ? 0 : higherReceipt.socialDeliveryMask(), canonical.effectApplied());
+				lower = save(lower.profileId(), lower.rowVersion(), lower.state().withAgreement(lowerReceipt, minute));
+				higher = save(higher.profileId(), higher.rowVersion(), higher.state().withAgreement(higherReceipt, minute));
+			}
+		}
+		final AgreementStatus desired = desiredTerminal(canonical, minute);
+		if (desired == null)
+		{
+			if ((lowerReceipt != null) && (higherReceipt != null) && lowerReceipt.exactPair(higherReceipt))
+			{
+				retryAgreementSocial(canonical, minute, canonical.status() == AgreementStatus.SHARED && _party.sameParty(lower.profileId(), higher.profileId()));
+			}
+			return canonical;
+		}
+		if ((lowerReceipt != null) && (higherReceipt != null) && (lowerReceipt.status() == desired) && lowerReceipt.exactPair(higherReceipt))
+		{
+			retryAgreementSocial(canonical, minute, canonical.acts().contains(SemanticAct.SHARE) && _party.sameParty(lower.profileId(), higher.profileId()));
+			return lowerReceipt;
+		}
+		final CausalPerceptionReceipt perception = canonical.perception();
+		final AgreementReceipt resolvedLower = copyAgreement(canonical, desired, perception, lowerReceipt == null ? 0 : lowerReceipt.socialDeliveryMask(), true);
+		final AgreementReceipt resolvedHigher = copyAgreement(canonical, desired, perception, higherReceipt == null ? 0 : higherReceipt.socialDeliveryMask(), true);
+		save(lower.profileId(), lower.rowVersion(), lower.state().withAgreement(resolvedLower, minute));
+		_faults.at(FaultPoint.AFTER_FIRST_TERMINAL);
+		final StoredState refreshedHigher = load(higher.profileId());
+		save(higher.profileId(), refreshedHigher.rowVersion(), refreshedHigher.state().withAgreement(resolvedHigher, minute));
+		release(lower.profileId());
+		release(higher.profileId());
+		if (desired == AgreementStatus.FULFILLED)
+		{
+			_metrics.fulfilled.increment();
+		}
+		else if (desired == AgreementStatus.BROKEN)
+		{
+			_metrics.broken.increment();
+		}
+		_faults.at(FaultPoint.BEFORE_TERMINAL_SOCIAL);
+		retryAgreementSocial(resolvedLower, minute, resolvedLower.acts().contains(SemanticAct.SHARE) && _party.sameParty(lower.profileId(), higher.profileId()));
+		return resolvedLower;
+	}
+
+	private AgreementStatus desiredTerminal(AgreementReceipt receipt, long minute)
+	{
+		if (terminalStatus(receipt.status()))
+		{
+			return receipt.status();
+		}
+		if (receipt.expiryMinute() <= minute)
+		{
+			return AgreementStatus.EXPIRED;
+		}
+		if (!validPerception(receipt.perception(), receipt.lowerProfileId(), receipt.higherProfileId(), minute))
+		{
+			return AgreementStatus.STALE;
+		}
+		final BindingState lower = bindingState(receipt, receipt.lowerProfileId());
+		final BindingState higher = bindingState(receipt, receipt.higherProfileId());
+		if ((lower == BindingState.UNKNOWN) || (higher == BindingState.UNKNOWN))
+		{
+			return null;
+		}
+		if ((lower == BindingState.AUTHORITY_DRIFT) || (higher == BindingState.AUTHORITY_DRIFT))
+		{
+			return AgreementStatus.STALE;
+		}
+		if ((lower == BindingState.EXACT) && (higher == BindingState.EXACT))
+		{
+			return terminalStatus(receipt.status()) ? receipt.status() : null;
+		}
+		if (receipt.status() == AgreementStatus.SHARED)
+		{
+			return normalEnd(lower) || normalEnd(higher) ? AgreementStatus.FULFILLED : AgreementStatus.STALE;
+		}
+		final BindingState holder = receipt.holderProfileId() == receipt.lowerProfileId() ? lower : higher;
+		final BindingState loser = receipt.holderProfileId() == receipt.lowerProfileId() ? higher : lower;
+		if ((receipt.loserOutcome() == Outcome.MOVE) && normalEnd(loser))
+		{
+			return AgreementStatus.FULFILLED;
+		}
+		if ((receipt.loserOutcome() == Outcome.WAIT) && normalEnd(holder))
+		{
+			return AgreementStatus.FULFILLED;
+		}
+		return normalEnd(holder) ? AgreementStatus.FULFILLED : AgreementStatus.STALE;
+	}
+
+	private BindingState bindingState(AgreementReceipt receipt, long profileId)
+	{
+		final ConflictObservation observation = _acquisition.observe(profileId);
+		if (observation.lifecycle() == ConflictLifecycle.UNAVAILABLE)
+		{
+			return BindingState.UNKNOWN;
+		}
+		final long goalId = profileId == receipt.lowerProfileId() ? receipt.lowerGoalId() : receipt.higherGoalId();
+		final long goalRevision = profileId == receipt.lowerProfileId() ? receipt.lowerGoalRevision() : receipt.higherGoalRevision();
+		final String sourceId = profileId == receipt.lowerProfileId() ? receipt.lowerSourceId() : receipt.higherSourceId();
+		if ((observation.goalId() != goalId) || (observation.goalRevision() != goalRevision))
+		{
+			return BindingState.AUTHORITY_DRIFT;
+		}
+		if (observation.lifecycle() == ConflictLifecycle.COMPLETED)
+		{
+			return BindingState.COMPLETED;
+		}
+		if (observation.lifecycle() == ConflictLifecycle.RELEASED)
+		{
+			return BindingState.RELEASED;
+		}
+		if ((observation.lifecycle() != ConflictLifecycle.CURRENT) || (observation.snapshot() == null))
+		{
+			return BindingState.AUTHORITY_DRIFT;
+		}
+		final DerivedResource derived = derive(observation.snapshot());
+		if (derived == null)
+		{
+			return BindingState.AUTHORITY_DRIFT;
+		}
+		if (observation.snapshot().source().sourceId().equals(sourceId))
+		{
+			if (!derived.key().equals(receipt.resource()))
+			{
+				return BindingState.AUTHORITY_DRIFT;
+			}
+			final String authority = profileId == receipt.lowerProfileId() ? receipt.lowerAuthorityHash() : receipt.higherAuthorityHash();
+			return !receipt.perception().trusted() || liveAuthority(observation.snapshot(), derived).equals(authority) ? BindingState.EXACT : BindingState.AUTHORITY_DRIFT;
+		}
+		return BindingState.MOVED;
+	}
+
+	private static boolean normalEnd(BindingState state)
+	{
+		return (state == BindingState.MOVED) || (state == BindingState.COMPLETED) || (state == BindingState.RELEASED);
 	}
 
 	private AgreementReceipt currentAgreement(StoredState ownState, StoredState peerState, long profileId, long counterpart, ResourceKey resource, long minute)
@@ -826,12 +1206,25 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		}
 		final ConflictSnapshot ownSnapshot = _acquisition.current(profileId).orElse(null);
 		final ConflictSnapshot peerSnapshot = _acquisition.current(counterpart).orElse(null);
-		return (ownSnapshot != null) && (peerSnapshot != null) && exact(ownSnapshot, own, profileId) && exact(peerSnapshot, own, counterpart) ? own : null;
+		if ((ownSnapshot == null) || (peerSnapshot == null) || !exact(ownSnapshot, own, profileId) || !exact(peerSnapshot, own, counterpart) || !validPerception(own.perception(), own.lowerProfileId(), own.higherProfileId(), minute))
+		{
+			return null;
+		}
+		final DerivedResource ownResource = derive(ownSnapshot);
+		final DerivedResource peerResource = derive(peerSnapshot);
+		final String ownAuthority = profileId == own.lowerProfileId() ? own.lowerAuthorityHash() : own.higherAuthorityHash();
+		final String peerAuthority = counterpart == own.lowerProfileId() ? own.lowerAuthorityHash() : own.higherAuthorityHash();
+		return (ownResource != null) && (peerResource != null) && resource.equals(ownResource.key()) && resource.equals(peerResource.key()) && liveAuthority(ownSnapshot, ownResource).equals(ownAuthority) && liveAuthority(peerSnapshot, peerResource).equals(peerAuthority) ? own : null;
 	}
 
 	private static boolean liveStatus(AgreementStatus status)
 	{
 		return Set.of(AgreementStatus.SHARED, AgreementStatus.WAITING, AgreementStatus.MOVING, AgreementStatus.REFUSED, AgreementStatus.ESCALATED).contains(status);
+	}
+
+	private static boolean terminalStatus(AgreementStatus status)
+	{
+		return Set.of(AgreementStatus.FULFILLED, AgreementStatus.BROKEN, AgreementStatus.EXPIRED, AgreementStatus.STALE).contains(status);
 	}
 
 	private static AgreementReceipt latestPairAgreement(FarmingState state, long ownerProfileId, long counterpart, ResourceKey resource)
@@ -851,11 +1244,11 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 	{
 		if (profileId == receipt.lowerProfileId())
 		{
-			return (snapshot.goalId() == receipt.lowerGoalId()) && (snapshot.goalRevision() == receipt.lowerGoalRevision()) && snapshot.source().sourceId().equals(receipt.lowerSourceId()) && (snapshot.remainingAmount() == receipt.lowerRemaining());
+			return (snapshot.goalId() == receipt.lowerGoalId()) && (snapshot.goalRevision() == receipt.lowerGoalRevision()) && snapshot.source().sourceId().equals(receipt.lowerSourceId());
 		}
 		if (profileId == receipt.higherProfileId())
 		{
-			return (snapshot.goalId() == receipt.higherGoalId()) && (snapshot.goalRevision() == receipt.higherGoalRevision()) && snapshot.source().sourceId().equals(receipt.higherSourceId()) && (snapshot.remainingAmount() == receipt.higherRemaining());
+			return (snapshot.goalId() == receipt.higherGoalId()) && (snapshot.goalRevision() == receipt.higherGoalRevision()) && snapshot.source().sourceId().equals(receipt.higherSourceId());
 		}
 		return false;
 	}
@@ -875,9 +1268,15 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		return (active.round() <= _policy.limits().maximumRounds()) && active.agreementId().equals(draft.agreementId()) && active.evidence().evidenceHash().equals(draft.evidence().evidenceHash()) && (active.expiryMinute() > minute);
 	}
 
-	private static boolean exactLiveAgreement(AgreementReceipt receipt, ConflictSnapshot lower, ConflictSnapshot higher, long minute)
+	private boolean exactLiveAgreement(AgreementReceipt receipt, ConflictSnapshot lower, ConflictSnapshot higher, long minute)
 	{
-		return (receipt != null) && liveStatus(receipt.status()) && (receipt.expiryMinute() > minute) && exact(lower, receipt, lower.profileId()) && exact(higher, receipt, higher.profileId());
+		if ((receipt == null) || !liveStatus(receipt.status()) || (receipt.expiryMinute() <= minute) || !exact(lower, receipt, lower.profileId()) || !exact(higher, receipt, higher.profileId()) || !validPerception(receipt.perception(), receipt.lowerProfileId(), receipt.higherProfileId(), minute))
+		{
+			return false;
+		}
+		final DerivedResource lowerResource = derive(lower);
+		final DerivedResource higherResource = derive(higher);
+		return (lowerResource != null) && (higherResource != null) && receipt.resource().equals(lowerResource.key()) && receipt.resource().equals(higherResource.key()) && liveAuthority(lower, lowerResource).equals(receipt.lowerAuthorityHash()) && liveAuthority(higher, higherResource).equals(receipt.higherAuthorityHash());
 	}
 
 	private boolean pairCoolingDown(AgreementReceipt receipt, long minute)
@@ -885,9 +1284,24 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		return (receipt != null) && !liveStatus(receipt.status()) && (minute < Math.addExact(receipt.createdMinute(), _policy.limits().pairCooldownMinutes()));
 	}
 
-	private static AgreementReceipt copyStatus(AgreementReceipt receipt, AgreementStatus status, boolean applied, boolean socialRecorded)
+	private static AgreementReceipt copyStatus(AgreementReceipt receipt, AgreementStatus status, boolean applied)
 	{
-		return new AgreementReceipt(receipt.agreementId(), receipt.resource(), receipt.lowerProfileId(), receipt.higherProfileId(), receipt.holderProfileId(), receipt.lowerGoalId(), receipt.lowerGoalRevision(), receipt.lowerSourceId(), receipt.lowerRemaining(), receipt.higherGoalId(), receipt.higherGoalRevision(), receipt.higherSourceId(), receipt.higherRemaining(), status, receipt.loserOutcome(), receipt.acts(), receipt.reasonKey(), receipt.evidenceHash(), receipt.createdMinute(), receipt.expiryMinute(), applied, socialRecorded);
+		return receipt.withStatus(status, applied);
+	}
+
+	private static AgreementReceipt copyAgreement(AgreementReceipt receipt, AgreementStatus status, CausalPerceptionReceipt perception, int socialDeliveryMask, boolean applied)
+	{
+		return new AgreementReceipt(receipt.agreementId(), receipt.resource(), receipt.lowerProfileId(), receipt.higherProfileId(), receipt.holderProfileId(), receipt.lowerGoalId(), receipt.lowerGoalRevision(), receipt.lowerSourceId(), receipt.lowerAuthorityHash(), receipt.lowerRemaining(), receipt.higherGoalId(), receipt.higherGoalRevision(), receipt.higherSourceId(), receipt.higherAuthorityHash(), receipt.higherRemaining(), status, receipt.loserOutcome(), receipt.acts(), receipt.reasonKey(), receipt.evidenceHash(), perception, receipt.createdMinute(), receipt.expiryMinute(), applied, socialDeliveryMask);
+	}
+
+	private String liveAuthority(ConflictSnapshot snapshot, DerivedResource resource)
+	{
+		if (resource == null)
+		{
+			throw new IllegalArgumentException("Missing farming authority resource.");
+		}
+		final var hashes = snapshot.authorityHashes();
+		return PhantomFarmingModel.sha256("farming.live.authority", _policy.hash(), hashes.catalog(), hashes.knowledge(), hashes.topology(), hashes.progression(), hashes.background(), resource.key().stableKey(), resource.generation(), resource.topologyHash());
 	}
 
 	private void recordResolvedMetrics(AgreementReceipt receipt)
@@ -907,33 +1321,61 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		}
 	}
 
-	private void recordFinalSocial(AgreementReceipt receipt, long minute, boolean sameParty)
+	private void retryAgreementSocial(AgreementReceipt receipt, long minute, boolean sameParty)
 	{
 		if (!sameParty)
 		{
-			recordEvent(receipt.lowerProfileId(), receipt.higherProfileId(), "farming.agreement.offered", receipt.agreementId(), receipt.evidenceHash(), minute);
-			final String response = receipt.status() == AgreementStatus.REFUSED ? "farming.agreement.refused" : "farming.agreement.accepted";
-			recordEvent(receipt.higherProfileId(), receipt.lowerProfileId(), response, receipt.agreementId(), receipt.evidenceHash(), minute);
+			deliverAgreementSocial(receipt.lowerProfileId(), receipt.higherProfileId(), "farming.agreement.offered", receipt.agreementId(), receipt.evidenceHash(), PhantomFarmingModel.SOCIAL_OFFER, minute);
+			final String response = receipt.acts().contains(SemanticAct.REFUSE) ? "farming.agreement.refused" : "farming.agreement.accepted";
+			deliverAgreementSocial(receipt.higherProfileId(), receipt.lowerProfileId(), response, receipt.agreementId(), receipt.evidenceHash(), PhantomFarmingModel.SOCIAL_RESPONSE, minute);
 		}
-		if (receipt.status() == AgreementStatus.ESCALATED)
+		if (receipt.acts().contains(SemanticAct.ESCALATE))
 		{
-			recordEvent(receipt.lowerProfileId(), receipt.higherProfileId(), "farming.conflict.escalated", receipt.agreementId(), receipt.evidenceHash(), minute);
-			recordEvent(receipt.higherProfileId(), receipt.lowerProfileId(), "farming.conflict.escalated", receipt.agreementId(), receipt.evidenceHash(), minute);
+			deliverAgreementSocial(receipt.lowerProfileId(), receipt.higherProfileId(), "farming.conflict.escalated", receipt.agreementId(), receipt.evidenceHash(), PhantomFarmingModel.SOCIAL_ESCALATION, minute);
+			deliverAgreementSocial(receipt.higherProfileId(), receipt.lowerProfileId(), "farming.conflict.escalated", receipt.agreementId(), receipt.evidenceHash(), PhantomFarmingModel.SOCIAL_ESCALATION, minute);
+		}
+		if ((receipt.status() == AgreementStatus.FULFILLED) || (receipt.status() == AgreementStatus.BROKEN))
+		{
+			final String eventKey = receipt.status() == AgreementStatus.BROKEN ? "agreement.broken" : "agreement.fulfilled";
+			deliverAgreementSocial(receipt.lowerProfileId(), receipt.higherProfileId(), eventKey, receipt.agreementId(), receipt.evidenceHash(), PhantomFarmingModel.SOCIAL_TERMINAL, minute);
+			deliverAgreementSocial(receipt.higherProfileId(), receipt.lowerProfileId(), eventKey, receipt.agreementId(), receipt.evidenceHash(), PhantomFarmingModel.SOCIAL_TERMINAL, minute);
 		}
 	}
 
-	private void recordAgreementResolution(AgreementReceipt receipt, boolean violated, long minute)
+	private void deliverActiveSocial(long ownerProfileId, long counterpartProfileId, String eventKey, String agreementId, String evidenceHash, int delivery, long minute)
 	{
-		final String eventKey = violated ? "agreement.broken" : "agreement.fulfilled";
-		recordEvent(receipt.lowerProfileId(), receipt.higherProfileId(), eventKey, receipt.agreementId(), receipt.evidenceHash(), minute);
-		recordEvent(receipt.higherProfileId(), receipt.lowerProfileId(), eventKey, receipt.agreementId(), receipt.evidenceHash(), minute);
-	}
-
-	private void recordEvent(long ownerProfileId, long counterpartProfileId, String eventKey, String agreementId, String evidenceHash, long minute)
-	{
+		final StoredState owner = load(ownerProfileId);
+		final ActiveNegotiation active = owner == null ? null : owner.state().active();
+		if ((active == null) || !active.agreementId().equals(agreementId) || ((active.socialDeliveryMask() & delivery) != 0))
+		{
+			return;
+		}
+		_metrics.socialRetries.increment();
 		final String eventId = PhantomFarmingModel.sha256("farming.social", ownerProfileId, counterpartProfileId, eventKey, agreementId);
 		if (_social.record(ownerProfileId, counterpartProfileId, eventKey, eventId, evidenceHash, minute))
 		{
+			save(ownerProfileId, owner.rowVersion(), owner.state().withActive(active.withSocialDelivery(delivery), minute));
+			_metrics.socialSuccess.increment();
+		}
+		else
+		{
+			_metrics.socialFailure.increment();
+		}
+	}
+
+	private void deliverAgreementSocial(long ownerProfileId, long counterpartProfileId, String eventKey, String agreementId, String evidenceHash, int delivery, long minute)
+	{
+		final StoredState owner = load(ownerProfileId);
+		final AgreementReceipt receipt = owner == null ? null : owner.state().agreement(agreementId);
+		if ((receipt == null) || ((receipt.socialDeliveryMask() & delivery) != 0))
+		{
+			return;
+		}
+		_metrics.socialRetries.increment();
+		final String eventId = PhantomFarmingModel.sha256("farming.social", ownerProfileId, counterpartProfileId, eventKey, agreementId);
+		if (_social.record(ownerProfileId, counterpartProfileId, eventKey, eventId, evidenceHash, minute))
+		{
+			save(ownerProfileId, owner.rowVersion(), owner.state().withAgreement(receipt.withSocialDelivery(delivery), minute));
 			_metrics.socialSuccess.increment();
 		}
 		else
@@ -958,7 +1400,7 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 
 	public Snapshot snapshot()
 	{
-		return new Snapshot(_state, _policy.hash(), _claimsByProfile.size(), _claimsByResource.size(), _operationClaims.size(), _metrics.claimsRequested.sum(), _metrics.claimsExpired.sum(), _metrics.claimsStale.sum(), _metrics.conflicts.sum(), _metrics.negotiationsStarted.sum(), _metrics.negotiationsResolved.sum(), _metrics.negotiationsExpired.sum(), _metrics.shareActs.sum(), _metrics.waitActs.sum(), _metrics.moveActs.sum(), _metrics.refuseActs.sum(), _metrics.escalateActs.sum(), _metrics.finalized.sum(), _metrics.fulfilled.sum(), _metrics.broken.sum(), _metrics.gatesAllow.sum(), _metrics.gatesShare.sum(), _metrics.gatesNegotiate.sum(), _metrics.gatesWait.sum(), _metrics.gatesMove.sum(), _metrics.gatesStale.sum(), _metrics.switchRequests.sum(), _metrics.perceptionUnavailable.sum(), _metrics.optimisticConflicts.sum(), _metrics.socialSuccess.sum(), _metrics.socialFailure.sum(), _metrics.maximumBucketSize.get(), _metrics.maximumActiveNegotiations.get(), new PhantomFarmingStateCodec().declaredWorstCaseBytes());
+		return new Snapshot(_state, _policy.hash(), _claimsByProfile.size(), _claimsByResource.size(), _operationClaims.size(), _metrics.claimsRequested.sum(), _metrics.claimsExpired.sum(), _metrics.claimsStale.sum(), _metrics.conflicts.sum(), _metrics.negotiationsStarted.sum(), _metrics.negotiationsResolved.sum(), _metrics.negotiationsExpired.sum(), _metrics.shareActs.sum(), _metrics.waitActs.sum(), _metrics.moveActs.sum(), _metrics.refuseActs.sum(), _metrics.escalateActs.sum(), _metrics.finalized.sum(), _metrics.fulfilled.sum(), _metrics.broken.sum(), _metrics.gatesAllow.sum(), _metrics.gatesShare.sum(), _metrics.gatesNegotiate.sum(), _metrics.gatesWait.sum(), _metrics.gatesMove.sum(), _metrics.gatesStale.sum(), _metrics.switchRequests.sum(), _metrics.perceptionUnavailable.sum(), _metrics.optimisticConflicts.sum(), _metrics.socialSuccess.sum(), _metrics.socialFailure.sum(), _metrics.exactPeerLoads.sum(), _metrics.reconciliationOperations.sum(), _metrics.socialRetries.sum(), _metrics.maximumBucketSize.get(), _metrics.maximumActiveNegotiations.get(), new PhantomFarmingStateCodec().declaredWorstCaseBytes());
 	}
 
 	private long now()
@@ -1104,7 +1546,7 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 	{
 	}
 
-	private record Draft(String agreementId, ArbitrationEvidence evidence, AgreementStatus status, Outcome loserOutcome, List<SemanticAct> acts, String reasonKey, long createdMinute, long expiryMinute)
+	private record Draft(String agreementId, ArbitrationEvidence evidence, CausalPerceptionReceipt perception, AgreementStatus status, Outcome loserOutcome, List<SemanticAct> acts, String reasonKey, long createdMinute, long expiryMinute)
 	{
 		private Draft
 		{
@@ -1140,6 +1582,9 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		private final LongAdder optimisticConflicts = new LongAdder();
 		private final LongAdder socialSuccess = new LongAdder();
 		private final LongAdder socialFailure = new LongAdder();
+		private final LongAdder exactPeerLoads = new LongAdder();
+		private final LongAdder reconciliationOperations = new LongAdder();
+		private final LongAdder socialRetries = new LongAdder();
 		private final AtomicInteger maximumBucketSize = new AtomicInteger();
 		private final AtomicInteger activeNegotiations = new AtomicInteger();
 		private final AtomicInteger maximumActiveNegotiations = new AtomicInteger();

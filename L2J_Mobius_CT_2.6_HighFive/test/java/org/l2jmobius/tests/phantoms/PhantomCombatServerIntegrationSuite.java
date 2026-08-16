@@ -626,6 +626,15 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		return item;
 	}
 
+	private void enableExactItemSkill(int itemId, String message)
+	{
+		final Item item = _player.getInventory().getItemByItemId(itemId);
+		final var skills = item == null ? null : item.getTemplate().getSkills();
+		PhantomAssertions.assertTrue((skills != null) && (skills.length == 1), message);
+		_player.enableSkill(skills[0].getSkill());
+		_player.setCurrentMp(_player.getMaxMp());
+	}
+
 	private void testCanonicalManorChain() throws Exception
 	{
 		prepareManorActor();
@@ -633,6 +642,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		boolean observedFailure = false;
 		for (int attempt = 0; (attempt < 32) && (seededTarget == null); attempt++)
 		{
+			await(() -> !_player.isCastingNow() && !_player.isAttackingNow(), "Canonical sow cleanup did not quiesce before the next bounded attempt.");
+			enableExactItemSkill(_manorCandidate.fact().seedItemId(), "Canonical seed item lost its exact Sowing skill.");
 			final Monster target = spawnNormalMonster(targetMaximumHp());
 			try (ExternalActionLease lease = acquireAcquisition("manor-sow-" + attempt))
 			{
@@ -733,7 +744,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		restartAcquisitionService();
 		PhantomAssertions.assertEquals(prepared, acquisitionState(), "Prepared manor restart changed overall or handler-bound truth.");
 		await(() -> !_player.isCastingNow() && !_player.isAttackingNow(), "Service manor Combat cleanup did not quiesce before Harvester dispatch.");
-		_player.getItemReuseTimeStamps().clear();
+		enableExactItemSkill(PhantomAcquisitionManorAuthority.HARVESTER_ITEM_ID, "Canonical Harvester item lost its exact skill.");
 
 		long cropAfter = 5;
 		for (int attempt = 0; (attempt < 3) && (cropAfter == 5); attempt++)
@@ -1293,7 +1304,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				PhantomAssertions.assertTrue((spoil == ActionOutcome.ISSUED) || (spoil == ActionOutcome.ALREADY_OWNED), "Canonical spoil cast was not issued.");
 				await(() -> target.isSpoiled() && (target.getSpoilerObjectId() == _player.getObjectId()), "Canonical spoil was not observed on the exact Monster.");
 			}
-			await(() -> !_player.isCastingNow() && !_player.isAttackingNow(), "Acquisition lease did not release the canonical spoil action.");
+			resetActor(false);
+			relocateToCombatPoint();
+			_player.setInvul(true);
+			ensureWeapon();
 			target.restoreTemplateLevel();
 			target.setCurrentHp(1);
 			target.getStatus().stopHpMpRegeneration();
@@ -1339,7 +1353,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		{
 			PhantomAssertions.assertEquals(ActionOutcome.ALREADY_OWNED, recovered.castAcquisition(target.getObjectId(), new SelectedSkill(SPOIL_SKILL_ID, 11), AcquisitionSkillKind.SPOIL), "Observed spoil was blindly repeated after dispatch recovery.");
 		}
-		await(() -> !_player.isCastingNow() && !_player.isAttackingNow(), "Recovered acquisition lease did not release the canonical spoil action.");
+		resetActor(false);
+		relocateToCombatPoint();
+		_player.setInvul(true);
+		ensureWeapon();
 		target.restoreTemplateLevel();
 		target.setCurrentHp(1);
 		target.getStatus().stopHpMpRegeneration();

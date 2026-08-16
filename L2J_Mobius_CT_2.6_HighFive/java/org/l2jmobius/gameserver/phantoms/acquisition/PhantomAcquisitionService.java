@@ -276,6 +276,52 @@ public final class PhantomAcquisitionService
 		return (goal == null) || (acquisition == null) ? Optional.empty() : conflictSnapshot(profileId, goal.goal(), acquisition);
 	}
 
+	/**
+	 * Exact Goal 021 lifecycle evidence for Goal 024 reconciliation. Unlike the
+	 * executable snapshot, terminal completion/release remains observable without
+	 * exposing either persistence store.
+	 */
+	public ConflictObservation conflictObservation(long profileId)
+	{
+		if ((_state != ServiceState.RUNNING) || (profileId <= 0))
+		{
+			return ConflictObservation.unavailable(profileId);
+		}
+		final PhantomGoalStateStore.StoredGoal storedGoal = _goals.load(profileId).orElse(null);
+		final StoredState acquisition = _store.load(profileId).orElse(null);
+		if ((storedGoal == null) || (acquisition == null))
+		{
+			return ConflictObservation.unavailable(profileId);
+		}
+		final PhantomGoal goal = storedGoal.goal();
+		final PhantomAcquisitionState state = acquisition.state();
+		final String sourceId = state.selectedSource() == null ? "" : state.selectedSource().sourceId();
+		try
+		{
+			final PhantomAcquisitionGoalSpec spec = PhantomAcquisitionGoalSpec.parse(goal);
+			if ((state.goalId() != goal.goalId()) || (state.goalRevision() != goal.revision()) || (state.targetItemId() != spec.itemId()) || (state.requiredAmount() != spec.requiredAmount()) || (state.progress() != goal.currentAmount()))
+			{
+				return new ConflictObservation(ConflictLifecycle.STALE, profileId, state.goalId(), state.goalRevision(), sourceId, null);
+			}
+			if ((state.status() == Status.COMPLETED) || (goal.status() == PhantomGoalStatus.COMPLETED))
+			{
+				return new ConflictObservation(ConflictLifecycle.COMPLETED, profileId, state.goalId(), state.goalRevision(), sourceId, null);
+			}
+			if (state.selectedSource() == null)
+			{
+				return new ConflictObservation(ConflictLifecycle.RELEASED, profileId, state.goalId(), state.goalRevision(), "", null);
+			}
+			final ConflictSnapshot snapshot = conflictSnapshot(profileId, goal, acquisition).orElse(null);
+			return snapshot == null
+				? new ConflictObservation(ConflictLifecycle.STALE, profileId, state.goalId(), state.goalRevision(), sourceId, null)
+				: new ConflictObservation(ConflictLifecycle.CURRENT, profileId, state.goalId(), state.goalRevision(), sourceId, snapshot);
+		}
+		catch (RuntimeException exception)
+		{
+			return new ConflictObservation(ConflictLifecycle.STALE, profileId, state.goalId(), state.goalRevision(), sourceId, null);
+		}
+	}
+
 	private Optional<ConflictSnapshot> conflictSnapshot(long profileId, PhantomGoal goal, StoredState acquisition)
 	{
 		try
@@ -2117,6 +2163,33 @@ public final class PhantomAcquisitionService
 		{
 			Objects.requireNonNull(sourceId);
 			Objects.requireNonNull(method);
+		}
+	}
+
+	public enum ConflictLifecycle
+	{
+		CURRENT,
+		COMPLETED,
+		RELEASED,
+		STALE,
+		UNAVAILABLE
+	}
+
+	public record ConflictObservation(ConflictLifecycle lifecycle, long profileId, long goalId, long goalRevision, String sourceId, ConflictSnapshot snapshot)
+	{
+		public ConflictObservation
+		{
+			Objects.requireNonNull(lifecycle);
+			sourceId = Objects.requireNonNullElse(sourceId, "");
+			if ((profileId < 0) || (goalId < 0) || (goalRevision < 0) || ((lifecycle == ConflictLifecycle.CURRENT) != (snapshot != null)) || ((snapshot != null) && ((snapshot.profileId() != profileId) || (snapshot.goalId() != goalId) || (snapshot.goalRevision() != goalRevision))))
+			{
+				throw new IllegalArgumentException("Invalid acquisition conflict observation.");
+			}
+		}
+
+		public static ConflictObservation unavailable(long profileId)
+		{
+			return new ConflictObservation(ConflictLifecycle.UNAVAILABLE, Math.max(0, profileId), 0, 0, "", null);
 		}
 	}
 

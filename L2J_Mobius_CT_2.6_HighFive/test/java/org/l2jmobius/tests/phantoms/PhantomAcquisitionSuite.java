@@ -10,12 +10,16 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.ConcurrentModificationException;
 import java.util.HexFormat;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
@@ -29,6 +33,7 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePla
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner.RankedSource;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner.ResourceEvidence;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionService.ConflictSnapshot;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore.StoredState;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
@@ -78,6 +83,12 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort.Gate;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort.Outcome;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.AgreementStatus;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel.FarmingState;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingPersistencePort;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingPolicy;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingService;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
@@ -122,6 +133,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologySnapshot;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyValidationBackend;
 
 public final class PhantomAcquisitionSuite implements PhantomTestSuite
@@ -133,6 +145,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		RECIPE_PLANNING,
 		SOURCE_SWITCHING,
 		FARMING_GATE,
+		FARMING_LIFECYCLE,
 		LIFECYCLE_PERFORMANCE
 	}
 
@@ -157,7 +170,8 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(_mode == Mode.FARMING_GATE ? 24002401L : SEED, context.seed(), "Acquisition mode used the wrong deterministic seed.");
+		final long expected = _mode == Mode.FARMING_GATE ? 24002401L : _mode == Mode.FARMING_LIFECYCLE ? 24002402L : SEED;
+		PhantomAssertions.assertEquals(expected, context.seed(), "Acquisition mode used the wrong deterministic seed.");
 		if (_mode != Mode.CATALOG_CODEC)
 		{
 			_environment = new PhantomHeadlessPlayerTestEnvironment();
@@ -222,6 +236,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			case RECIPE_PLANNING -> registerRecipePlanning(registry);
 			case SOURCE_SWITCHING -> registerSourceSwitching(registry);
 			case FARMING_GATE -> registerFarmingGate(registry);
+			case FARMING_LIFECYCLE -> registerFarmingLifecycle(registry);
 			case LIFECYCLE_PERFORMANCE -> registerLifecyclePerformance(registry);
 		}
 	}
@@ -331,6 +346,84 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			finally
 			{
 				PhantomFarmingConflictPort.uninstall(evaluator);
+				PhantomFarmingConflictPort.resetForTesting();
+			}
+		});
+	}
+
+	private void registerFarmingLifecycle(PhantomTestRegistry registry)
+	{
+		registry.add("01-real-goal021-switch-fulfils-old-move-exactly-once", context ->
+		{
+			PhantomFarmingConflictPort.resetForTesting();
+			try (SyntheticSource sourceFixture = syntheticSource(context); AcquisitionServiceFixture acquisition = acquisitionPlanningFixture(sourceFixture.planned().itemId(), Map.of(), sourceFixture.service().query(), sourceFixture.topology(), Set.of(Method.DEATH_DROP)))
+			{
+				PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, acquisition.plan(1).status(), "Goal024A real SWITCH fixture did not plan.");
+				final long loserProfileId = acquisition.profileId();
+				final long holderProfileId = loserProfileId + 100_000;
+				if (acquisition.service().conflictSnapshot(loserProfileId).isEmpty())
+				{
+					final List<RankedSource> ranked = sourceFixture.planned().result().ranked();
+					acquisition.installSelectedSource(ranked.getFirst().source(), ranked.stream().map(RankedSource::candidate).toList());
+				}
+				final Optional<ConflictSnapshot> currentConflict = acquisition.service().conflictSnapshot(loserProfileId);
+				PhantomAssertions.assertTrue(currentConflict.isPresent(), "Goal024A fixture exposed no Goal021 conflict snapshot after plan: state=" + acquisition.state() + ", goal=" + acquisition.storedGoal());
+				final ConflictSnapshot loser = currentConflict.get();
+				final ConflictSnapshot holder = new ConflictSnapshot(holderProfileId, loser.goalId() + 1, loser.goalRevision(), loser.targetItemId(), loser.requiredAmount(), loser.progress(), loser.remainingAmount(), 900, loser.source(), loser.status(), loser.phase(), 1, List.of(), false, loser.authorityHashes(), true, PhantomFarmingModel.sha256("goal024a.holder", holderProfileId, loser.evidenceHash()));
+				final PhantomTopologyService topology = PhantomTopologyService.fromSnapshotForTesting(sourceFixture.topology().snapshot(), sourceFixture.topologyBackend(), PhantomTopologyCoreSuite.POLICY, noSignals());
+				PhantomAssertions.assertTrue(topology.start(), "Goal024A farming topology did not start.");
+				final PhantomTopologyPoint point = new PhantomTopologyPoint(150, 150, 0, 0);
+				topology.registerProfile(loserProfileId);
+				topology.registerProfile(holderProfileId);
+				topology.updateProfile(loserProfileId, point, 1);
+				topology.updateProfile(holderProfileId, point, 1);
+				final FarmingMemoryStore store = new FarmingMemoryStore();
+				final FarmingSocial social = new FarmingSocial();
+				final AtomicLong minute = new AtomicLong(100);
+				final PhantomFarmingService.AcquisitionFacts facts = profileId -> profileId == loserProfileId ? acquisition.service().conflictSnapshot(profileId) : profileId == holderProfileId ? Optional.of(holder) : Optional.empty();
+				final PhantomFarmingService farming = new PhantomFarmingService(PhantomFarmingPolicy.load(context.moduleRoot().resolve("dist/game/data/phantoms/farming/high-five-farming-conflict-v1.xml")), store, facts, topology, (first, second) -> false, social, 2, minute::get, PhantomFarmingService.FaultInjector.NONE);
+				PhantomAssertions.assertTrue(farming.start(), "Goal024A farming service did not start.");
+				PhantomFarmingConflictPort.install(farming);
+				try
+				{
+					for (int step = 0; step < 12; step++)
+					{
+						farming.advance((step % 2) == 0 ? loserProfileId : holderProfileId);
+						final FarmingState lower = store.state(loserProfileId);
+						final FarmingState higher = store.state(holderProfileId);
+						if ((lower != null) && (higher != null) && (lower.latest() != null) && lower.latest().exactPair(higher.latest()))
+						{
+							break;
+						}
+					}
+					PhantomAssertions.assertTrue((store.state(loserProfileId) != null) && (store.state(holderProfileId) != null) && (store.state(loserProfileId).latest() != null) && store.state(loserProfileId).latest().exactPair(store.state(holderProfileId).latest()), "Goal024A real Goal021 pair did not reach bilateral FINAL.");
+					final String agreementId = store.state(loserProfileId).latest().agreementId();
+					final String originalSource = acquisition.state().selectedSource().sourceId();
+					PhantomAssertions.assertEquals(PhantomAcquisitionService.DirectiveKind.SWITCH, acquisition.service().directive(loserProfileId, acquisition.storedGoal(), PhantomActivityState.ACTIVE).kind(), "Real Goal021 gate did not expose SWITCH for MOVE.");
+					PhantomAssertions.assertEquals(PhantomAcquisitionService.OperationStatus.SUCCESS, acquisition.service().switchSource(loserProfileId, acquisition.storedGoal(), PhantomActivityState.ACTIVE, 2_000_000, 101, () -> false).status(), "Real Goal021 switchSource failed.");
+					PhantomAssertions.assertFalse(originalSource.equals(acquisition.state().selectedSource().sourceId()), "Goal021 switchSource retained the old source.");
+					PhantomAssertions.assertEquals(1, acquisition.state().switchCount(), "Goal021 source changed more than once.");
+					farming.advance(loserProfileId);
+					final var lower = store.state(loserProfileId).agreement(agreementId);
+					final var higher = store.state(holderProfileId).agreement(agreementId);
+					PhantomAssertions.assertEquals(AgreementStatus.FULFILLED, lower.status(), "Goal024 did not observe the real Goal021 source change.");
+					PhantomAssertions.assertTrue(lower.exactPair(higher), "Real MOVE fulfillment was not bilateral.");
+					PhantomAssertions.assertEquals(2, social.durableCount("agreement.fulfilled", agreementId), "Goal018 fulfillment evidence was not exactly once per owner.");
+					PhantomAssertions.assertEquals(1, farming.snapshot().activeClaims(), "Old claim was not released before the new source claim was installed.");
+					PhantomAssertions.assertTrue(acquisition.service().directive(loserProfileId, acquisition.storedGoal(), PhantomActivityState.ACTIVE).kind() != PhantomAcquisitionService.DirectiveKind.SWITCH, "Fulfilled MOVE requested a second SWITCH.");
+					PhantomAssertions.assertEquals(1, acquisition.state().switchCount(), "Replay changed Goal021 source twice.");
+				}
+				finally
+				{
+					PhantomFarmingConflictPort.uninstall(farming);
+					farming.beginStop();
+					PhantomAssertions.assertTrue(farming.finishStop(), "Goal024A farming service did not stop.");
+					topology.beginStop();
+					PhantomAssertions.assertTrue(topology.finishStop(), "Goal024A farming topology did not stop.");
+				}
+			}
+			finally
+			{
 				PhantomFarmingConflictPort.resetForTesting();
 			}
 		});
@@ -1362,7 +1455,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 			final var request = new PhantomAcquisitionSourcePlanner.Request(1, 1, 1, PhantomActivityState.BACKGROUND, 88, 20, Map.of(), Map.of(), Set.of(Method.DEATH_DROP), Method.DEATH_DROP, "synthetic.anchor", Map.of(), 0);
 			final var result = planner.plan(request);
 			PhantomAssertions.assertEquals(2, result.ranked().size(), "Synthetic alternative source fixture is incomplete.");
-			return new SyntheticSource(service, topology, new PlannedSource(1, planner, request, result));
+			return new SyntheticSource(service, topology, topologyBackend, new PlannedSource(1, planner, request, result));
 		}
 		catch (Exception exception)
 		{
@@ -1604,6 +1697,59 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		}
 	}
 
+	private static final class FarmingMemoryStore implements PhantomFarmingPersistencePort
+	{
+		private final Map<Long, PhantomFarmingPersistencePort.StoredState> states = new ConcurrentHashMap<>();
+
+		@Override
+		public Optional<PhantomFarmingPersistencePort.StoredState> load(long profileId)
+		{
+			return Optional.ofNullable(states.get(profileId));
+		}
+
+		@Override
+		public synchronized PhantomFarmingPersistencePort.StoredState save(long profileId, long expectedRowVersion, FarmingState state)
+		{
+			final PhantomFarmingPersistencePort.StoredState current = states.get(profileId);
+			if (((current == null) && (expectedRowVersion != -1)) || ((current != null) && (current.rowVersion() != expectedRowVersion)))
+			{
+				throw new ConcurrentModificationException("Stale Goal024A farming row version.");
+			}
+			final PhantomFarmingPersistencePort.StoredState saved = new PhantomFarmingPersistencePort.StoredState(profileId, current == null ? 0 : current.rowVersion() + 1, state);
+			states.put(profileId, saved);
+			return saved;
+		}
+
+		private FarmingState state(long profileId)
+		{
+			final var stored = states.get(profileId);
+			return stored == null ? null : stored.state();
+		}
+	}
+
+	private static final class FarmingSocial implements PhantomFarmingService.SocialFacts
+	{
+		private final Set<String> durable = ConcurrentHashMap.newKeySet();
+
+		@Override
+		public PhantomFarmingService.SocialEvidence evidence(long ownerProfileId, long counterpartProfileId, long minute)
+		{
+			return new PhantomFarmingService.SocialEvidence(0, 0, 0, PhantomFarmingModel.sha256("goal024a.social", ownerProfileId, counterpartProfileId));
+		}
+
+		@Override
+		public boolean record(long ownerProfileId, long counterpartProfileId, String eventKey, String eventId, String evidenceHash, long minute)
+		{
+			durable.add(ownerProfileId + "|" + eventKey + "|" + eventId);
+			return true;
+		}
+
+		private int durableCount(String eventKey, String agreementId)
+		{
+			return (int) durable.stream().filter(value -> value.contains("|" + eventKey + "|")).count();
+		}
+	}
+
 	private final class AcquisitionServiceFixture implements AutoCloseable
 	{
 		private final PhantomProfileRepository _profiles;
@@ -1667,6 +1813,14 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		private PhantomAcquisitionState state()
 		{
 			return _store.load(profileId()).orElseThrow().state();
+		}
+
+		private void installSelectedSource(Source source, List<Candidate> candidates)
+		{
+			final StoredState stored = _store.load(profileId()).orElseThrow();
+			final PhantomAcquisitionState current = stored.state();
+			final PhantomAcquisitionState selected = new PhantomAcquisitionState(current.hashes(), current.goalId(), current.goalRevision(), current.targetItemId(), current.requiredAmount(), current.baselineCount(), current.lastObservedCount(), current.progress(), Status.READY, source, candidates, 0, current.switchCount(), Phase.TARGET_REQUIRED, 0, 0, 0, null, null, current.receipts(), 0, current.logicalMinute() + 1);
+			_store.replace(profileId(), stored.rowVersion(), selected);
 		}
 
 		private PhantomAcquisitionService.OperationResult advance(long sequence)
@@ -1974,7 +2128,7 @@ public final class PhantomAcquisitionSuite implements PhantomTestSuite
 		}
 	}
 
-	private record SyntheticSource(PhantomGameKnowledgeService service, PhantomTopologyQuery topology, PlannedSource planned) implements AutoCloseable
+	private record SyntheticSource(PhantomGameKnowledgeService service, PhantomTopologyQuery topology, PhantomTopologyCoreSuite.TestBackend topologyBackend, PlannedSource planned) implements AutoCloseable
 	{
 		@Override
 		public void close()

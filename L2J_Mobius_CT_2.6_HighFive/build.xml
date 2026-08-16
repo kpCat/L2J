@@ -53,6 +53,7 @@
 	<property name="phantom.goal023b.seed" value="23002312" />
 	<property name="phantom.goal023c.seed" value="23002313" />
 	<property name="phantom.goal024.seed" value="24002401" />
+	<property name="phantom.goal024a.seed" value="24002402" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -2613,11 +2614,60 @@
 			<arg value="Bypass" />
 			<arg value="-File" />
 			<arg value="${basedir}/tools/phantoms/verify-task-024.ps1" />
-			<arg value="-WorkingTree" />
 		</exec>
 	</target>
 
 	<target name="phantom-farming-goal024-test" depends="phantom-farming-goal024-focused-test,phantom-farming-goal024-affected-test,phantom-rift-goal023c-test,phantom-static-verify-023,phantom-static-verify-023a,phantom-static-verify-023b,phantom-static-verify-023c,phantom-static-verify-024" description="Run the final Goal 024 farming resource negotiation aggregate." />
+
+	<target name="phantom-farming-goal024a-lifecycle-test" depends="compile-tests" description="Run corrective Goal 024A lifecycle binding, causal perception, expiry and social retry tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="farming-lifecycle-corrections" />
+			<arg value="${phantom.goal024a.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-farming-goal024a-restart-test" depends="compile-tests" description="Run corrective Goal 024A loser-first restart and terminal bilateral fault tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="farming-restart-corrections" />
+			<arg value="${phantom.goal024a.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-farming-goal024a-acquisition-integration-test" depends="compile-tests" description="Run corrective Goal 024A production Goal021 SWITCH lifecycle integration tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="farming-acquisition-lifecycle" />
+			<arg value="${phantom.goal024a.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-farming-goal024a-focused-test" depends="phantom-farming-goal024a-lifecycle-test,phantom-farming-goal024a-restart-test,phantom-farming-goal024a-acquisition-integration-test" description="Run all focused dynamic corrective Goal 024A tests." />
+
+	<target name="phantom-farming-goal024a-affected-test" depends="phantom-topology-perception-test,phantom-party-state-recovery-test,phantom-party-route-test,phantom-social-events-test,phantom-social-modifiers-test,phantom-conversation-query-execution-test,phantom-acquisition-source-planner-test,phantom-acquisition-source-switching-test,phantom-rift-goal023c-focused-test" description="Run exact Goal 010, 017, 018, 020, 021 and 023C regressions affected by corrective Goal 024A." />
+
+	<target name="phantom-static-verify-024a" description="Run the working-tree corrective Goal 024A verifier.">
+		<exec executable="powershell" dir="${basedir}" failonerror="true">
+			<arg value="-NoProfile" />
+			<arg value="-ExecutionPolicy" />
+			<arg value="Bypass" />
+			<arg value="-File" />
+			<arg value="${basedir}/tools/phantoms/verify-task-024a.ps1" />
+			<arg value="-WorkingTree" />
+		</exec>
+	</target>
+
+	<target name="phantom-farming-goal024a-test" depends="phantom-farming-goal024a-focused-test,phantom-farming-goal024-test,phantom-farming-goal024a-affected-test,phantom-static-verify-023,phantom-static-verify-023a,phantom-static-verify-023b,phantom-static-verify-023c,phantom-static-verify-024,phantom-static-verify-024a" description="Run the final corrective Goal 024A lifecycle aggregate." />
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->

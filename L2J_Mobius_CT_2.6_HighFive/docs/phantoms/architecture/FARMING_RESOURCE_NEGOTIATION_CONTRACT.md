@@ -17,13 +17,20 @@ Claim строится только из exact current `PhantomAcquisitionServic
 - `MOB_GROUP|field.gludio.north|spawn.201|npc.20001` конфликтует только с тем же node, anchor и NPC.
 - одинаковые anchor/NPC в разных topology nodes не конфликтуют.
 
-Новая копия acquisition planner или remaining calculator запрещена. Любое несовпадение Goal revision/source/remaining делает claim или agreement stale.
+Новая копия acquisition planner или remaining calculator запрещена. До bilateral FINAL изменение
+remaining/progress/acquisition/social evidence инвалидирует или пересчитывает draft. После exact
+bilateral FINAL remaining/progress являются historical arbitration evidence: обычный monotonic Goal021
+progress не делает SHARE/WAIT/MOVE stale.
 
 ## Perceptibility
 
 `PhantomTopologyService.perceptibleProfiles(observerProfileId, LOCAL_CHAT, limit)` — единственный новый seam. Он использует current generation lease, same-node/one-hop topology query и существующий profile registry node index, запрашивает не более `limit + 1`, исключает observer и возвращает стабильный bounded список. Policy ограничивает запрос 32 профилями. `listProfiles()`, `World.getPlayers()` и четвёртый источник topology signal ledger не используются.
 
-Claim bucket сам по себе не доказывает конфликт: counterpart должен одновременно иметь exact current claim того же ресурса и присутствовать в текущем bounded perceptibility query.
+Claim bucket сам по себе не доказывает новый конфликт: counterpart должен одновременно иметь exact
+current claim того же ресурса и присутствовать в текущем bounded perceptibility query. Начатая exact
+pair negotiation хранит `CausalPerceptionReceipt`: pair, topology generation/hash, оба node/sequence,
+channel, observed/expiry minute и evidence hash. До causal TTL receipt разрешает продолжить только ту
+же exact pair даже после исчезновения one-hop visibility; topology authority drift fail closed.
 
 ## Goal 021 gate
 
@@ -47,21 +54,49 @@ Exact same Party membership из Goal 017 всегда даёт `SHARE` без b
 5. exact mirror `FINAL` у большего profile id;
 6. эффект разрешён только после повторного чтения и полного `exactPair` обоих receipts.
 
-Порядок записи всегда lower id → higher id. Fault после любого из четырёх persistence boundaries безопасен: после restart тот же agreement id восстанавливается, односторонний FINAL не имеет gate/social/query эффекта, а reconciliation дописывает missing mirror. Receipt фиксирует оба real remaining/progress и обе Goal revision/source binding; эффект не применяется к изменившимся данным.
+Порядок записи всегда lower id → higher id. Fault после любого persistence boundary безопасен:
+после restart тот же agreement id восстанавливается, односторонний FINAL/terminal не имеет
+противоречивого gate/social/query эффекта, а reconciliation дописывает exact mirror. Restart exact-load
+делает только persisted counterpart по ID и не зависит от его scheduler pulse; profile/listProfiles/World
+scans отсутствуют.
+
+Receipt фиксирует оба historical remaining/progress, обе Goal revision/source binding, ResourceKey,
+stable authority и causal receipt. Live binding проверяет pair, goal/revision, source, ResourceKey,
+authority, exactPair и TTL, но не equality current remaining.
 
 Arbitration стабильна и использует данные обеих сторон: remaining/progress, Goal priority, bounded alternatives, claim age, Goal 018 `goal.persistence`, `conflict.escalation`, relationship/cooperation и current Goal 010 perceptibility. Итоговый набор актов строго ограничен: `SHARE`, `WAIT`, `MOVE`, `REFUSE`, `ESCALATE`.
 
 ## Persistence и policy
 
-Компонент `farming.conflict`, schema 1, хранится через существующий versioned profile component CAS. Состояние bounded: один current claim, один active negotiation, не более четырёх agreement history entries и policy-bounded alternatives. Startup scan отсутствует: recovery lazy и каждый receipt revalidates current acquisition/topology facts.
+Компонент `farming.conflict`, schema v2, хранится через существующий versioned profile component CAS.
+Состояние bounded: один current claim, один active negotiation, не более четырёх agreement history
+entries и policy-bounded alternatives. Codec детерминированно читает v2; v1 считается legacy-untrusted
+и не авторизует эффект без fresh exact pair revalidation. Safe exact v1 может лениво мигрировать в v2;
+SQL migration отсутствует. Startup scan отсутствует.
 
 Strict hashed policy находится в `dist/game/data/phantoms/farming/high-five-farming-conflict-v1.xml`. Все XML attributes allowlisted и range-checked; неизвестные/дублированные элементы и XXE запрещены. Основные bounds: claim lease 3 минуты, agreement TTL 10, wait 5, cooldown 2, не более 3 rounds, 4 alternatives, 8 claimants на resource, 32 perceptible profiles, 4 history entries.
 
 ## Social и conversation ownership
 
-Goal 018 получает idempotent события `farming.agreement.offered`, `farming.agreement.accepted`, `farming.agreement.refused`, `farming.conflict.escalated` с exact agreement/resource identity; generic `agreement.fulfilled`/`agreement.broken` остаются у Goal 018. Farming service не отправляет chat packets.
+Goal 018 получает idempotent события `farming.agreement.offered`, `farming.agreement.accepted`,
+`farming.agreement.refused`, `farming.conflict.escalated` с exact agreement/resource identity;
+generic `agreement.fulfilled`/`agreement.broken` остаются у Goal 018. Per-owner delivery bits являются
+durable retry truth: transient social failure повторяет тот же deterministic event id. EXPIRED/STALE
+не создают broken. Farming service не отправляет chat packets.
 
 Goal 020 исполняет typed intent `farming.conflict.query` и получает не более восьми current facts: claim status, own/counterpart remaining, alternative, conflict, semantic act/escalation и exact bilateral agreement. Stale и one-sided state подавляются. Обычный human `Player` без Phantom profile/acquisition state не получает fabricated Goal, claim или auto-agreement.
+
+## Corrective lifecycle Goal 024A
+
+Manual `observeAgreementOutcome(..., boolean)` не является production authority и отсутствует.
+Bounded reconciliation наблюдает фактический Goal021 lifecycle:
+
+- real MOVE проходит существующий `DirectiveKind.SWITCH` / `switchSource` ровно один раз; после
+  наблюдаемой смены Source old claim освобождается, agreement становится bilateral FULFILLED;
+- WAIT переживает progress holder и становится FULFILLED при holder completion/release/move;
+- SHARE переживает обычный progress и нормально завершается при completion/release;
+- TTL даёт bilateral EXPIRED; incompatible authority drift — bilateral STALE;
+- BROKEN допускается только по объективному exact breach evidence; неоднозначность не выдумывает breach.
 
 ## Lifecycle и performance
 

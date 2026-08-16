@@ -39,7 +39,7 @@ public final class PhantomFarmingStore implements PhantomFarmingPersistencePort
 
 	private StoredState decode(PhantomProfileComponent component)
 	{
-		if (component.componentSchemaVersion() != PhantomFarmingModel.SCHEMA_VERSION)
+		if ((component.componentSchemaVersion() != 1) && (component.componentSchemaVersion() != PhantomFarmingModel.SCHEMA_VERSION))
 		{
 			throw new IllegalArgumentException("Unknown farming.conflict schema version.");
 		}
