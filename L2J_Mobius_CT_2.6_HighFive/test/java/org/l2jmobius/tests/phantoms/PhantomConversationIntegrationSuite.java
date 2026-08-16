@@ -64,6 +64,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBridge;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.Authorization;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationActionProposal;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationResponsePlan;
@@ -562,6 +563,73 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 				knowledge.beginStop();
 				knowledge.finishStop();
 			}
+		});
+		registry.add("03-pvp-help-current-party-member-and-stale-membership-gate", context ->
+		{
+			if (!_speaker.isSpawned())
+			{
+				_speaker.spawnMe(_observer.getX(), _observer.getY(), _observer.getZ());
+			}
+			final NetworkBackedClient onlineCounterpart = NetworkBackedClient.attach(_speaker);
+			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
+			final PhantomConversationExecutionCatalog executionCatalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml"));
+			final PhantomConversationExecutionStore executionStore = new PhantomConversationExecutionStore(_profiles, executionCatalog);
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
+			final PhantomGameKnowledgeService knowledge = PhantomGameKnowledgeService.inertForTesting(_topology.snapshot().canonicalHash());
+			PhantomAssertions.assertTrue(knowledge.start(), "PvP help knowledge authority did not start.");
+			final PhantomPartyCoordinator party = idleParty(goals);
+			final L2jPhantomConversationExecutionPort port = new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, _topology, party, _materialization, ChatObservationService.getInstance());
+			final PhantomConversationExecutionService execution = new PhantomConversationExecutionService(executionCatalog, executionStore, goals, port);
+			PhantomAssertions.assertTrue(execution.start(), "PvP help execution service did not start.");
+
+			final Party localParty = new Party(_observer, PartyDistributionType.FINDERS_KEEPERS);
+			_observer.setParty(localParty);
+			localParty.addPartyMember(_speaker);
+			_speaker.setParty(localParty);
+			final long generatedBefore = ChatObservationService.getInstance().snapshot().generatedDeliveries();
+			try
+			{
+				final PhantomPvpConversationBridge bridge = new PhantomPvpConversationBridge(execution);
+				final PhantomDomainRef member = new PhantomDomainRef("character.object", Integer.toString(_speaker.getObjectId()));
+				final long minute = System.currentTimeMillis() / 60000L;
+				final var exact = bridge.submit(new PhantomPvpConversationBridge.Request(_observerProfile.profileId(), member, PhantomPvpConversationBridge.MessageKind.HELP_REQUEST, "C".repeat(64), minute, minute + 2));
+				PhantomAssertions.assertTrue(exact.durable(), "Exact Party help was not durably submitted.");
+				PhantomPvpConversationBridge.Receipt exactReceipt = null;
+				for (int pulse = 0; (pulse < 64) && (exactReceipt == null); pulse++)
+				{
+					execution.onPulse();
+					exactReceipt = bridge.receipt(_observerProfile.profileId(), exact.planId()).orElse(null);
+				}
+				PhantomAssertions.assertTrue((exactReceipt != null) && exactReceipt.delivered(), "Goal020 did not deliver PARTY help to the exact current Party member.");
+				PhantomAssertions.assertEquals(OutboundState.SENT, exactReceipt.state(), "Exact current Party member did not produce SENT.");
+				final long generatedAfterExact = ChatObservationService.getInstance().snapshot().generatedDeliveries();
+
+				_speaker.setParty(null);
+				final var stale = bridge.submit(new PhantomPvpConversationBridge.Request(_observerProfile.profileId(), member, PhantomPvpConversationBridge.MessageKind.HELP_REQUEST, "D".repeat(64), minute, minute + 2));
+				PhantomAssertions.assertTrue(stale.durable(), "Stale Party help was not durably submitted for the fail-closed gate.");
+				PhantomPvpConversationBridge.Receipt staleReceipt = null;
+				for (int pulse = 0; (pulse < 64) && (staleReceipt == null); pulse++)
+				{
+					execution.onPulse();
+					staleReceipt = bridge.receipt(_observerProfile.profileId(), stale.planId()).orElse(null);
+				}
+				PhantomAssertions.assertTrue((staleReceipt != null) && !staleReceipt.delivered(), "Stale/non-party help evidence reached a Party chat handler.");
+				PhantomAssertions.assertEquals(OutboundState.FAILED, staleReceipt.state(), "Goal020 current Party membership gate did not fail closed.");
+				PhantomAssertions.assertEquals(generatedAfterExact, ChatObservationService.getInstance().snapshot().generatedDeliveries(), "Stale/non-party help changed generated delivery metrics.");
+			}
+			finally
+			{
+				execution.beginStop();
+				PhantomAssertions.assertTrue(execution.finishStop(), "PvP help execution service did not stop.");
+				_observer.setParty(null);
+				_speaker.setParty(null);
+				onlineCounterpart.close();
+				knowledge.beginStop();
+				knowledge.finishStop();
+			}
+			final long generated = ChatObservationService.getInstance().snapshot().generatedDeliveries() - generatedBefore;
+			PhantomAssertions.assertTrue(generated > 0, "Exact Party help produced no generated delivery.");
+			context.record("pvpHelp.generatedDeliveries", generated);
 		});
 	}
 

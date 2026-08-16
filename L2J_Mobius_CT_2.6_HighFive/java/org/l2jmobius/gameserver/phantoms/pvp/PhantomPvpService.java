@@ -24,6 +24,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBrid
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBridge.MessageKind;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBridge.Request;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
@@ -199,10 +200,6 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			save(stored, cooldown(stored.encounter(), now, result.reasonKey()));
 			return;
 		}
-		if ((stored != null) && (stored.encounter().cooldownUntilLogicalNanos() > now))
-		{
-			return;
-		}
 		final Snapshot observed = _context.observe(profileId, now).orElse(null);
 		if (observed == null)
 		{
@@ -210,6 +207,10 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			{
 				save(stored, cooldown(stored.encounter(), now, "pvp.authority.expired"));
 			}
+			return;
+		}
+		if ((stored != null) && blocksActivePairCooldown(stored.encounter(), observed.candidate(), now))
+		{
 			return;
 		}
 		if ((stored == null) || !sameAuthority(stored.encounter(), observed.candidate()) || terminal(stored.encounter().stage()))
@@ -286,7 +287,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private void warn(StoredEncounter stored, Snapshot observed, long now)
 	{
 		final long minute = minute(now);
-		final var request = new Request(stored.profileId(), observed.conversationCounterpart(), MessageKind.WARNING, stored.encounter().authorityHash(), minute, expiryMinute(stored.encounter(), minute));
+		final Request request = outboundRequest(stored, observed, MessageKind.WARNING, minute);
 		final var submission = _conversation.submit(request);
 		if (submission.durable())
 		{
@@ -298,10 +299,17 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private StoredEncounter help(StoredEncounter stored, Snapshot observed, long now)
 	{
 		final long minute = minute(now);
-		final var request = new Request(stored.profileId(), observed.conversationCounterpart(), MessageKind.HELP_REQUEST, stored.encounter().authorityHash(), minute, expiryMinute(stored.encounter(), minute));
+		final Request request = outboundRequest(stored, observed, MessageKind.HELP_REQUEST, minute);
+		if (request == null)
+		{
+			return null;
+		}
 		final var submission = _conversation.submit(request);
-		final String receipt = submission.durable() ? submission.planId() : "";
-		final StoredEncounter updated = save(stored, stored.encounter().withStage(Stage.HELP, stored.encounter().warningReceiptId(), receipt, stored.encounter().proactiveEngagements(), stored.encounter().warningLogicalNanos(), 0, "pvp.party.help"));
+		if (!submission.durable())
+		{
+			return null;
+		}
+		final StoredEncounter updated = save(stored, stored.encounter().withStage(Stage.HELP, stored.encounter().warningReceiptId(), submission.planId(), stored.encounter().proactiveEngagements(), stored.encounter().warningLogicalNanos(), 0, "pvp.party.help"));
 		if (updated != null)
 		{
 			_helps.increment();
@@ -377,7 +385,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	{
 		cancelOwned(stored.encounter());
 		final long minute = minute(now);
-		_conversation.submit(new Request(stored.profileId(), observed.conversationCounterpart(), MessageKind.DISENGAGE, stored.encounter().authorityHash(), minute, expiryMinute(stored.encounter(), minute)));
+		_conversation.submit(outboundRequest(stored, observed, MessageKind.DISENGAGE, minute));
 		save(stored, cooldown(stored.encounter(), now, reason));
 	}
 
@@ -422,9 +430,52 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		}
 	}
 
-	private Encounter initial(Candidate candidate)
+	static Encounter initial(Candidate candidate)
 	{
 		return new Encounter(candidate.profileId(), candidate.counterpart(), candidate.source(), candidate.authorityHash(), Stage.OBSERVE, "", "", 0, candidate.createdLogicalNanos(), candidate.expiresLogicalNanos(), 0, 0, "pvp.observed");
+	}
+
+	static boolean blocksActivePairCooldown(Encounter encounter, Candidate candidate, long now)
+	{
+		return (encounter.cooldownUntilLogicalNanos() > now) && candidate.source().proactive() && samePair(encounter.counterpart(), candidate.counterpart());
+	}
+
+	static Request outboundRequest(StoredEncounter stored, Snapshot observed, MessageKind kind, long minute)
+	{
+		Objects.requireNonNull(stored);
+		Objects.requireNonNull(observed);
+		Objects.requireNonNull(kind);
+		PhantomDomainRef counterpart = observed.conversationCounterpart();
+		if (kind == MessageKind.HELP_REQUEST)
+		{
+			counterpart = observed.helpCounterpart();
+			if ((observed.candidate().source() != Source.PARTY_DEFENSE) || !exactPartyMember(counterpart) || counterpart.equals(observed.conversationCounterpart()))
+			{
+				return null;
+			}
+		}
+		return new Request(stored.profileId(), counterpart, kind, stored.encounter().authorityHash(), minute, expiryMinute(stored.encounter(), minute));
+	}
+
+	private static boolean exactPartyMember(PhantomDomainRef counterpart)
+	{
+		if (counterpart == null)
+		{
+			return false;
+		}
+		try
+		{
+			return switch (counterpart.namespace())
+			{
+				case "profile" -> Long.parseLong(counterpart.key()) > 0;
+				case "character.object" -> Integer.parseInt(counterpart.key()) > 0;
+				default -> false;
+			};
+		}
+		catch (NumberFormatException exception)
+		{
+			return false;
+		}
 	}
 
 	private Encounter cooldown(Encounter encounter, long now, String reason)
@@ -452,6 +503,11 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private static boolean sameAuthority(Encounter encounter, Candidate candidate)
 	{
 		return (encounter.profileId() == candidate.profileId()) && (encounter.source() == candidate.source()) && encounter.authorityHash().equals(candidate.authorityHash()) && encounter.counterpart().kind() == candidate.counterpart().kind() && (encounter.counterpart().identity() == candidate.counterpart().identity()) && (encounter.counterpart().currentObjectId() == candidate.counterpart().currentObjectId());
+	}
+
+	private static boolean samePair(Counterpart left, Counterpart right)
+	{
+		return (left.kind() == right.kind()) && (left.identity() == right.identity());
 	}
 
 	private static boolean terminal(Stage stage)

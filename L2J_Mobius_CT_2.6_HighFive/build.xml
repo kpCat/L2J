@@ -55,6 +55,7 @@
 	<property name="phantom.goal024.seed" value="24002401" />
 	<property name="phantom.goal024a.seed" value="24002402" />
 	<property name="phantom.goal025.seed" value="25002501" />
+	<property name="phantom.goal025a.seed" value="25002511" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -2769,6 +2770,27 @@
 	</target>
 
 	<target name="phantom-pvp-goal025-test" depends="phantom-pvp-goal025-focused-test,phantom-pvp-goal025-affected-test,phantom-static-verify-025" description="Run the final Goal 025 PvP threat escalation aggregate." />
+
+	<target name="phantom-pvp-goal025a-core-test" depends="compile-tests" description="Run focused Goal 025A help counterpart and pair cooldown tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="pvp-help-pair-cooldown" />
+			<arg value="${phantom.goal025a.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-pvp-goal025a-combat-regression-test" depends="compile-tests" description="Run the directly relevant legacy Monster/PvP path regression.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="pvp-combat" />
+			<arg value="${phantom.goal025.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-pvp-goal025a-test" depends="phantom-pvp-goal025a-core-test,phantom-conversation-outbound-chat-test,phantom-pvp-goal025a-combat-regression-test" description="Run only focused Goal 025A and directly affected Goal 020/legacy combat regressions." />
+
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->
 	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-profile-persistence-test,phantom-production-materialization-test,phantom-production-materialization-performance-smoke,phantom-server-shutdown-handoff-test,phantom-activity-scheduler-test,phantom-activity-scheduler-performance-smoke,phantom-decision-core-test,phantom-decision-persistence-test,phantom-decision-performance-smoke,phantom-navigation-core-test,phantom-navigation-performance-smoke,phantom-topology-core-test,phantom-topology-perception-test,phantom-topology-scheduler-signal-integration-test,phantom-topology-signal-ledger-test,phantom-topology-generation-test,phantom-topology-production-corpus-test,phantom-topology-performance-smoke,phantom-game-knowledge-core-test,phantom-game-knowledge-query-truth-test,phantom-game-knowledge-parity-test,phantom-game-knowledge-content-test,phantom-game-knowledge-performance-smoke,phantom-combat-core-test,phantom-combat-ownership-test,phantom-combat-action-ownership-test,phantom-combat-server-integration-test,phantom-combat-performance-smoke,phantom-progression-catalog-test,phantom-progression-parity-test,phantom-capability-runtime-test,phantom-progression-operations-test,phantom-progression-server-integration-test,phantom-progression-durability-test,phantom-progression-performance-smoke,phantom-progression-extensibility-test,phantom-progression-production-composition-test,phantom-commerce-test,phantom-commerce-hardening-test,phantom-background-test,phantom-population-test,phantom-party-test,phantom-social-test,phantom-semantic-test,phantom-social-activation-test,phantom-semantic-activation-test,phantom-chat-observation-test,phantom-conversation-catalog-codec-test,phantom-conversation-understanding-test,phantom-conversation-social-style-test,phantom-conversation-chat-integration-test,phantom-conversation-lifecycle-performance-smoke,phantom-economy-checkpoint1-test,phantom-economy-checkpoint1-affected-test,phantom-economy-checkpoint2-test,phantom-economy-checkpoint2-affected-test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004,phantom-static-verify-004a,phantom-static-verify-004b,phantom-static-verify-005,phantom-static-verify-006,phantom-static-verify-006a,phantom-static-verify-006b,phantom-static-verify-007,phantom-static-verify-014a,phantom-static-verify-015,phantom-static-verify-016,phantom-static-verify-017,phantom-static-verify-018,phantom-static-verify-019,phantom-static-verify-020c1,phantom-static-verify-020c2,phantom-static-verify-022c1,phantom-static-verify-022c2,phantom-farming-goal024-test" description="Run Goal 024 farming negotiation and all prior Phantom verification gates." />

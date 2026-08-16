@@ -33,6 +33,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomServerShutdownHandoffSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerPerformanceSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomPopulationPerformanceSuite;
+import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpCorrectiveSuite;
 import org.l2jmobius.tests.phantoms.PhantomTestDatabaseGuard.GuardException;
 
 public final class PhantomTestLauncher
@@ -365,6 +366,7 @@ public final class PhantomTestLauncher
 			case "pvp-combat" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.COMBAT);
 			case "pvp-cp" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.CP);
 			case "pvp-party-help" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.PARTY_HELP);
+			case "pvp-help-pair-cooldown" -> new PhantomPvpCorrectiveSuite();
 			case "pvp-warning-social" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.WARNING_SOCIAL);
 			case "pvp-restart" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.RESTART);
 			case "pvp-performance" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.PERFORMANCE);

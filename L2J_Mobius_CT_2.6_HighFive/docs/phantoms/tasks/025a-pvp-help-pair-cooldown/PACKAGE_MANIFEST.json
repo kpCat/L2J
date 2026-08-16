@@ -1,0 +1,20 @@
+{
+  "task_id": "025a-pvp-help-pair-cooldown",
+  "branch": "feature/phantom-world",
+  "required_parent": "5656b9ce8c423f503d4a8b5d1046eb12929950d4",
+  "required_subject": "fix(phantoms): correct pvp help and pair cooldown",
+  "seed": 25002511,
+  "success_token": "GOAL_025A_PVP_HELP_COOLDOWN_FIXED_PENDING_INDEPENDENT_REVIEW",
+  "scope": [
+    "R025A-01",
+    "R025A-02"
+  ],
+  "plain_ant_verify": false,
+  "repeat_goal025_aggregate": false,
+  "payload_sha256": {
+    "PRIOR_INDEPENDENT_REVIEW.md": "052975B3037B96AA55AC341DEB08D4EC29825D0C98AD5937D63E9D38529FCAE6",
+    "TASK.md": "DC44CD9AFDCB9F6FD1A04A7556DD7790E4F9A0D81B37A03C83F82E3F47AF492C",
+    "TEST_CASES.md": "9532D17BCA8731F1062CD0A505FBD0D13C2C4B2D6CEDA8890654EEA4BD7935D6",
+    "CODEX_LAUNCHER.txt": "3B59275E10F30EDE1B4A510C4FFA5CFD4871393A46807975111F907B757E9E01"
+  }
+}
