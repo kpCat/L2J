@@ -107,7 +107,7 @@ public final class PhantomRaidReadinessService
 
 	private static boolean satisfies(MemberSnapshot member, CapabilityRequirement requirement)
 	{
-		return member.capabilities().stream().anyMatch(capability -> capability.capabilityKey().equals(requirement.capabilityKey()) && (capability.rank() >= requirement.minimumRank()) && capability.intrinsic() && capability.learned());
+		return member.capabilities().stream().anyMatch(capability -> capability.capabilityKey().equals(requirement.capabilityKey()) && (capability.rank() >= requirement.minimumRank()) && capability.intrinsic() && capability.learned() && capability.readyNow());
 	}
 
 	private static RaidReadiness result(String contentId, ContentSnapshot content, BossObservation target, TargetAvailability availability, CurrentForceObservation force, List<CapabilityAssessment> capabilities, ReadinessStatus status, String reason)

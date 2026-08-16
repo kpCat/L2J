@@ -47,10 +47,12 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 	{
 		AUTHORITY,
 		FORCE,
-		READINESS
+		READINESS,
+		CURRENT_CAPABILITY_READINESS
 	}
 
-	private static final long SEED = 26002601L;
+	private static final long CHECKPOINT_1_SEED = 26002601L;
+	private static final long CURRENT_CAPABILITY_READINESS_SEED = 26002611L;
 	private static final long NOW = 1_000_000L;
 	private static final String HASH = "0".repeat(64);
 	private final Mode _mode;
@@ -75,8 +77,9 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(SEED, context.seed(), "Goal 026 CP1 used the wrong deterministic seed.");
-		if (_mode == Mode.READINESS)
+		final long expectedSeed = _mode == Mode.CURRENT_CAPABILITY_READINESS ? CURRENT_CAPABILITY_READINESS_SEED : CHECKPOINT_1_SEED;
+		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Raid readiness used the wrong deterministic seed.");
+		if ((_mode == Mode.READINESS) || (_mode == Mode.CURRENT_CAPABILITY_READINESS))
 		{
 			_temporaryRoot = context.reportsDirectory().resolve("raid-readiness-" + ProcessHandle.current().pid());
 			Files.createDirectories(_temporaryRoot.resolve("curated"));
@@ -129,6 +132,7 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 			case AUTHORITY -> authority(registry);
 			case FORCE -> force(registry);
 			case READINESS -> readiness(registry);
+			case CURRENT_CAPABILITY_READINESS -> currentCapabilityReadiness(registry);
 		}
 	}
 
@@ -260,6 +264,51 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 		});
 	}
 
+	private void currentCapabilityReadiness(PhantomTestRegistry registry)
+	{
+		registry.add("01-required-healer-must-be-ready-now", _ ->
+		{
+			_authority.raid = availableRaid();
+			_party.observation = force(member(actor(), capability("combat.tank", 1000)), member(MemberRef.real(200), true, capability("combat.heal", 1000, false)), member(MemberRef.real(300)));
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_INCAPABLE, _service.assess(actor(), "raid.synthetic").status(), "Dead healer with learned intrinsic capability became raid-ready.");
+		});
+		registry.add("02-required-resurrection-must-be-ready-now", _ ->
+		{
+			_authority.epic = observation(ContentKind.EPIC, 101, true, "test", true, true, false, 0L);
+			_party.observation = force(member(actor(), capability("combat.tank", 1000)), member(MemberRef.real(200), capability("combat.heal", 1000)), member(MemberRef.real(300), capability("combat.resurrection", 1000, false)));
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_INCAPABLE, _service.assess(actor(), "epic.synthetic").status(), "Unavailable resurrection capability became epic-ready.");
+		});
+		registry.add("03-ready-now-capabilities-satisfy-normally", _ ->
+		{
+			_authority.epic = observation(ContentKind.EPIC, 101, true, "test", true, true, false, 0L);
+			_party.observation = readyForce(true, true, true);
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_READY, _service.assess(actor(), "epic.synthetic").status(), "Currently ready required capabilities did not satisfy epic readiness.");
+		});
+		registry.add("04-rank-and-count-still-gate", _ ->
+		{
+			_authority.raid = availableRaid();
+			_party.observation = force(member(actor(), capability("combat.tank", 1000)), member(MemberRef.real(200), capability("combat.heal", 849)), member(MemberRef.real(300)));
+			final var rankFailure = _service.assess(actor(), "raid.synthetic");
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_INCAPABLE, rankFailure.status(), "Ready capability below minimum rank satisfied raid readiness.");
+			PhantomAssertions.assertEquals(0, rankFailure.capabilities().stream().filter(value -> value.requirement().capabilityKey().equals("combat.heal")).findFirst().orElseThrow().satisfyingMembers(), "Below-rank healer contributed to satisfying member count.");
+			_party.observation = force(member(actor(), capability("combat.tank", 1000)), member(MemberRef.real(200)), member(MemberRef.real(300)));
+			final var countFailure = _service.assess(actor(), "raid.synthetic");
+			final var healerCount = countFailure.capabilities().stream().filter(value -> value.requirement().capabilityKey().equals("combat.heal")).findFirst().orElseThrow();
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_INCAPABLE, countFailure.status(), "Zero ready healers satisfied a required healer count.");
+			PhantomAssertions.assertEquals(1, healerCount.requirement().minimumCount(), "Focused healer minimumCount fixture changed.");
+			PhantomAssertions.assertEquals(0, healerCount.satisfyingMembers(), "Missing healer contributed to satisfying member count.");
+			PhantomAssertions.assertFalse(healerCount.satisfied(), "Required healer count was satisfied without a contributing member.");
+		});
+		registry.add("05-unavailable-optional-capability-is-non-fatal", _ ->
+		{
+			_authority.raid = availableRaid();
+			_party.observation = force(member(actor(), capability("combat.tank", 1000)), member(MemberRef.real(200), capability("combat.heal", 1000)), member(MemberRef.real(300), capability("combat.buff", 1000, false)));
+			final var readiness = _service.assess(actor(), "raid.synthetic");
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_READY, readiness.status(), "Unavailable optional capability blocked otherwise ready raid group.");
+			PhantomAssertions.assertTrue(readiness.capabilities().stream().anyMatch(value -> !value.requirement().required() && !value.satisfied()), "Unavailable optional capability was not retained as unsatisfied evidence.");
+		});
+	}
+
 	private static BossObservation availableRaid()
 	{
 		return observation(ContentKind.RAID, 100, true, "ALIVE", true, true, false, 0L);
@@ -293,12 +342,22 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 
 	private static MemberSnapshot member(MemberRef reference, MemberCapability... capabilities)
 	{
-		return new MemberSnapshot(reference, 1, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(capabilities), HASH);
+		return member(reference, false, capabilities);
+	}
+
+	private static MemberSnapshot member(MemberRef reference, boolean dead, MemberCapability... capabilities)
+	{
+		return new MemberSnapshot(reference, 1, 0, 0, 0, 0, 100, 100, 100, dead, false, false, false, 0, List.of(), List.of(capabilities), HASH);
 	}
 
 	private static MemberCapability capability(String key, int rank)
 	{
-		return new MemberCapability(key, "test", rank, 500, 1, "SELF", true, true, true, "ready", rank, "test.fixture");
+		return capability(key, rank, true);
+	}
+
+	private static MemberCapability capability(String key, int rank, boolean readyNow)
+	{
+		return new MemberCapability(key, "test", rank, 500, 1, "SELF", true, true, readyNow, readyNow ? "ready" : "not.ready", rank, "test.fixture");
 	}
 
 	private static String curatedXml()
