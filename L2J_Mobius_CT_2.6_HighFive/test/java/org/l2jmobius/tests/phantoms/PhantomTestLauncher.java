@@ -370,6 +370,9 @@ public final class PhantomTestLauncher
 			case "pvp-warning-social" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.WARNING_SOCIAL);
 			case "pvp-restart" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.RESTART);
 			case "pvp-performance" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.PERFORMANCE);
+			case "raid-readiness-authority" -> new PhantomRaidReadinessSuite(PhantomRaidReadinessSuite.Mode.AUTHORITY);
+			case "raid-readiness-force" -> new PhantomRaidReadinessSuite(PhantomRaidReadinessSuite.Mode.FORCE);
+			case "raid-readiness-policy" -> new PhantomRaidReadinessSuite(PhantomRaidReadinessSuite.Mode.READINESS);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

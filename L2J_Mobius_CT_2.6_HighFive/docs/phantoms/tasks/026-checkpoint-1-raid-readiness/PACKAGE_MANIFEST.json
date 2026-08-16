@@ -1,0 +1,25 @@
+{
+  "task_id": "026-checkpoint-1-raid-readiness",
+  "goal": 26,
+  "checkpoint": 1,
+  "branch": "feature/phantom-world",
+  "required_parent": "5517081fb2bbf2aa9ad8295130714df2d4b45921",
+  "required_subject": "feat(phantoms): add raid readiness authority",
+  "seed": 26002601,
+  "success_token": "GOAL_026_CHECKPOINT_1_RAID_READINESS_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "scope": "read-only raid/epic authority and current-force readiness",
+  "overall_goal026_complete": false,
+  "plain_ant_verify_authorized": false,
+  "goal025_aggregate_authorized": false,
+  "broad_regression_authorized": false,
+  "context_compaction_stop_signal": true,
+  "payload_sha256": {
+    "TASK.md": "EE95F091878B19C0CD64E3BAC6FC90BC9309C51407D85E45B10C858F96BB358B",
+    "ARCHITECTURE.md": "392542217C31D77EBFB436E0D5CE263B889F0C49E544233B35E21A24FDD57E62",
+    "TEST_CASES.md": "31ECE86439F64C2469E5F5D7E89BB0066B68AA6FBD4511DA2BD703B20EF0BC5F",
+    "ACCEPTANCE.md": "9103058A65B7B0CA31810F39CC9E7C17A4E5496119F73A1E4C7943CC2476D6D0",
+    "CONTEXT.md": "3BC34EE3A5E36446E90880B4CF8112EFFC62F41A93DA61CF78931F1D41C44346",
+    "PRIOR_INDEPENDENT_REVIEW.md": "C70EF2BDD06FD3FB8FD670183DB8EAAB226D860BBE98C6708188A8D07189D96D",
+    "CODEX_LAUNCHER.txt": "66C3BB13F78478FD85289C22C8938762835D98D1D66D77F8FBC08C6575B5B68C"
+  }
+}

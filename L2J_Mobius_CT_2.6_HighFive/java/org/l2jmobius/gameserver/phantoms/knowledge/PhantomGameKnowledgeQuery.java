@@ -32,6 +32,7 @@ import java.util.function.Predicate;
 
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeMetrics.QueryCategory;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ClassCapabilityFact;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentRequirementFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ItemFact;
@@ -143,6 +144,13 @@ public final class PhantomGameKnowledgeQuery
 	{
 		_metrics.recordQuery(QueryCategory.CONTENT);
 		return Optional.ofNullable(_snapshot.contentById().get(contentId));
+	}
+
+	public KnowledgePage<ContentRequirementFact> contents(ContentKind contentKind, PageRequest page)
+	{
+		Objects.requireNonNull(contentKind, "contentKind");
+		_metrics.recordQuery(QueryCategory.CONTENT);
+		return filteredPage(_snapshot.contentRequirements(), content -> content.contentKind() == contentKind, page, ContentRequirementFact::stableKey);
 	}
 
 	public KnowledgePage<ContentRequirementFact> contentsRequiring(String capabilityKey, PageRequest page)

@@ -110,6 +110,8 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleP
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
+import org.l2jmobius.gameserver.phantoms.raid.L2jPhantomRaidAuthority;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidReadinessService;
 import org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftBackend;
 import org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftPartyPort;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftCatalog;
@@ -179,6 +181,7 @@ public final class PhantomSystem
 	private PhantomFarmingService _farmingService;
 	private PhantomPopulationManager _populationManager;
 	private PhantomPartyCoordinator _partyCoordinator;
+	private PhantomRaidReadinessService _raidReadinessService;
 	private PhantomSocialService _socialService;
 	private PhantomConversationService _conversationService;
 	private PhantomConversationExecutionService _conversationExecutionService;
@@ -384,6 +387,7 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom semantic understanding service could not enter the running state.");
 				}
 				final L2jPhantomPartyBackend partyBackend = new L2jPhantomPartyBackend(productionProfiles, _materializationService, _progressionService);
+				_raidReadinessService = new PhantomRaidReadinessService(_gameKnowledgeService.query(), partyBackend, new L2jPhantomRaidAuthority());
 				_partyCoordinator = new PhantomPartyCoordinator(
 					new PhantomPartyStore(productionProfiles),
 					productionGoals,
@@ -1036,6 +1040,11 @@ public final class PhantomSystem
 	public synchronized PhantomPartyCoordinator.Snapshot partySnapshot()
 	{
 		return _partyCoordinator == null ? PhantomPartyCoordinator.Snapshot.inactive() : _partyCoordinator.snapshot();
+	}
+
+	public synchronized PhantomRaidReadinessService raidReadiness()
+	{
+		return _raidReadinessService;
 	}
 
 	public synchronized PhantomAcquisitionService.Snapshot acquisitionSnapshot()

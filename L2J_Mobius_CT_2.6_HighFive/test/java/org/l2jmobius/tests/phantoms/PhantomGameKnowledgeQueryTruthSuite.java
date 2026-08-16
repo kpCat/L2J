@@ -29,6 +29,8 @@ import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentKind;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentRequirementFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.KnowledgePage;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
@@ -74,7 +76,7 @@ public final class PhantomGameKnowledgeQueryTruthSuite implements PhantomTestSui
 		_service = new PhantomGameKnowledgeService(builder);
 		PhantomAssertions.assertTrue(_service.start(), "Query-truth knowledge service did not start.");
 		_query = _service.query();
-		context.record("knowledge.queryTruth.cases", 13);
+		context.record("knowledge.queryTruth.cases", 14);
 		context.record("knowledge.queryTruth.combinedHash", _query.snapshot().combinedHash());
 	}
 
@@ -109,6 +111,17 @@ public final class PhantomGameKnowledgeQueryTruthSuite implements PhantomTestSui
 		registry.add("11-target-area-summaries-are-capped", _ -> testTargetCap());
 		registry.add("12-exact-spawn-page-is-capped", _ -> testSpawnFactCap());
 		registry.add("13-service-exposes-component-hashes", _ -> testServiceHashes());
+		registry.add("14-content-kind-query-preserves-exact-truth", _ -> testContentKindQuery());
+	}
+
+	private void testContentKindQuery()
+	{
+		final KnowledgePage<ContentRequirementFact> raid = _query.contents(ContentKind.RAID, PageRequest.first(1));
+		PhantomAssertions.assertEquals(List.of("raid.synthetic"), raid.values().stream().map(ContentRequirementFact::contentId).toList(), "RAID content-kind query changed deterministic truth.");
+		PhantomAssertions.assertFalse(raid.hasMore(), "Single RAID content unexpectedly advertised another page.");
+		PhantomAssertions.assertEquals(_query.content("raid.synthetic").orElseThrow(), raid.values().getFirst(), "Exact content(contentId) truth diverged from kind enumeration.");
+		PhantomAssertions.assertEquals(List.of("epic.synthetic"), _query.contents(ContentKind.EPIC, PageRequest.first(1)).values().stream().map(ContentRequirementFact::contentId).toList(), "EPIC content-kind query changed deterministic truth.");
+		PhantomAssertions.assertThrows(NullPointerException.class, () -> _query.contents(null, PageRequest.first(1)), "Null content kind did not fail closed.");
 	}
 
 	private void assertEmpty(TargetQuery target)

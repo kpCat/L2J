@@ -747,7 +747,9 @@ baselines Goal 023 и Goal 023A сохраняются в их independent revie
 Status: `ACCEPT`; corrective Goal 024A — `ACCEPT`.
 Prior independent review закрыл R024A-01/02/03; Goal 024 overall принят.
 Accepted baseline: `922f72c0d422904dcbdc6215a5cc1167a1bb84fb`.
-Goal 025 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 026+ — `NOT_STARTED`.
+Goal 025A — `ACCEPT`; Goal 025 overall — `ACCEPT`.
+Accepted baseline: `5517081fb2bbf2aa9ad8295130714df2d4b45921`.
+Goal 026 Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 026 overall — `IN_PROGRESS`; Checkpoint 2+ — `NOT_STARTED`.
 
 Exact current Goal 021 Source теперь порождает bounded ROOM/MOB_GROUP claim; Goal 010 определяет current
 perceptibility, Goal 017 — same-Party SHARE, Goal 018 — social memory/history, Goal 020 — typed query/language.
@@ -765,7 +767,9 @@ TTL — EXPIRED, authority drift — STALE. Durable Goal018 delivery повто�
 
 ### 025. PvP, PK, karma и revenge
 
-Status: `NOT_STARTED`.
+Status: `ACCEPT`; corrective Goal 025A — `ACCEPT`.
+Prior independent review закрыл R025A-01/02; Goal 025 overall принят.
+Accepted baseline: `5517081fb2bbf2aa9ad8295130714df2d4b45921`.
 
 - risk;
 - flags/karma/drop;
@@ -775,6 +779,9 @@ Status: `NOT_STARTED`.
 - защита от бесконечной мясорубки.
 
 ### 026. RaidPlanner и эпики
+
+Status: `IN_PROGRESS`; Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 2+ — `NOT_STARTED`.
+Checkpoint 1 добавляет только passive read-only raid/epic authority и текущие Party/CommandChannel readiness facts.
 
 - composition;
 - preparation;

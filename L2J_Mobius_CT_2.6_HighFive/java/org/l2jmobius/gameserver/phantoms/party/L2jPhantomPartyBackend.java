@@ -4,6 +4,8 @@
 package org.l2jmobius.gameserver.phantoms.party;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -15,6 +17,7 @@ import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.groups.CommandChannel;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
@@ -24,6 +27,9 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService.MembershipOu
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.RespondResult;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.Response;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceObservation;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PartySnapshot;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PvpProtection;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
@@ -142,12 +148,127 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			{
 				return Optional.empty();
 			}
-			final Player player = acquired.player();
-			final WorldObject target = player.getTarget();
-			final List<Integer> attackers = player.getAttackByList().stream().filter(Creature::isMonster).map(Creature::getObjectId).distinct().sorted().limit(32).toList();
-			final List<MemberCapability> capabilities = member.kind() == MemberKind.PHANTOM ? phantomCapabilities(member.profileId(), 0) : realCapabilities(player, 0);
-			final String progressionHash = _progression.findCatalog().map(catalog -> catalog.combinedHash()).orElse("0".repeat(64));
-			return Optional.of(new MemberSnapshot(member, player.getActiveClass(), player.getInstanceId(), player.getX(), player.getY(), player.getZ(), percent(player.getCurrentHp(), player.getMaxHp()), percent(player.getCurrentMp(), player.getMaxMp()), percent(player.getCurrentCp(), player.getMaxCp()), player.isDead(), player.isCastingNow(), player.isAttackingNow(), player.isMoving(), target == null ? 0 : target.getObjectId(), attackers, capabilities, progressionHash));
+			return Optional.of(snapshot(member, acquired.player()));
+		}
+	}
+
+	@Override
+	public CurrentForceObservation currentForce(MemberRef actor)
+	{
+		if (actor == null)
+		{
+			return CurrentForceObservation.unavailable("party.current_force.actor_missing");
+		}
+		try (AcquiredPlayer acquired = acquire(actor))
+		{
+			if ((acquired == null) || !reference(acquired.player()).equals(actor))
+			{
+				return CurrentForceObservation.unavailable("party.current_force.actor_stale");
+			}
+			final Player actorPlayer = acquired.player();
+			final Party actorParty = actorPlayer.getParty();
+			if (actorParty == null)
+			{
+				return CurrentForceObservation.partyAbsent();
+			}
+			final CommandChannel channel = actorParty.getCommandChannel();
+			final List<Party> parties;
+			final MemberRef channelLeader;
+			final String channelIdentity;
+			final int channelLevel;
+			if (channel == null)
+			{
+				parties = List.of(actorParty);
+				channelLeader = null;
+				channelIdentity = "";
+				channelLevel = 0;
+			}
+			else
+			{
+				final Player leader = channel.getLeader();
+				parties = new ArrayList<>(channel.getParties());
+				parties.sort(Comparator.comparingInt(Party::getLeaderObjectId));
+				if ((leader == null) || !parties.contains(actorParty) || !channel.containsPlayer(actorPlayer))
+				{
+					return CurrentForceObservation.unavailable("party.current_force.channel_inconsistent");
+				}
+				channelLeader = reference(leader);
+				channelIdentity = "command-channel:" + leader.getObjectId();
+				channelLevel = channel.getLevel();
+			}
+			if (parties.size() > MAX_FORCE_PARTIES)
+			{
+				return CurrentForceObservation.boundsExceeded();
+			}
+			int memberCount = 0;
+			for (Party party : parties)
+			{
+				if (party == null)
+				{
+					return CurrentForceObservation.unavailable("party.current_force.party_missing");
+				}
+				memberCount += party.getMembers().size();
+			}
+			if (memberCount > MAX_FORCE_MEMBERS)
+			{
+				return CurrentForceObservation.boundsExceeded();
+			}
+			final List<PartySnapshot> partySnapshots = new ArrayList<>(parties.size());
+			final List<MemberSnapshot> memberSnapshots = new ArrayList<>(memberCount);
+			final HashSet<Integer> objectIds = new HashSet<>();
+			final HashSet<Player> copiedPlayers = new HashSet<>();
+			for (Party party : parties)
+			{
+				if (((channel == null) && (party != actorParty)) || ((channel != null) && (party.getCommandChannel() != channel)))
+				{
+					return CurrentForceObservation.unavailable("party.current_force.party_channel_drift");
+				}
+				final Player leader = party.getLeader();
+				final List<Player> players = List.copyOf(party.getMembers());
+				if ((leader == null) || players.isEmpty() || (players.size() > 9))
+				{
+					return CurrentForceObservation.boundsExceeded();
+				}
+				final List<MemberRef> references = new ArrayList<>(players.size());
+				for (Player player : players)
+				{
+					if ((player == null) || (player.getParty() != party) || (World.getInstance().getPlayer(player.getObjectId()) != player) || !objectIds.add(player.getObjectId()) || !copiedPlayers.add(player))
+					{
+						return CurrentForceObservation.unavailable("party.current_force.member_stale");
+					}
+					final MemberRef member = reference(player);
+					references.add(member);
+					memberSnapshots.add(snapshot(member, player));
+				}
+				final MemberRef partyLeader = reference(leader);
+				if (!references.contains(partyLeader))
+				{
+					return CurrentForceObservation.unavailable("party.current_force.leader_stale");
+				}
+				partySnapshots.add(new PartySnapshot(partyLeader, references, party.getDistributionType()));
+			}
+			final MemberRef copiedPartyLeader = partySnapshots.stream().filter(party -> party.members().contains(actor)).map(PartySnapshot::leader).findFirst().orElse(null);
+			final Player currentPartyLeader = actorParty.getLeader();
+			if ((copiedPartyLeader == null) || (currentPartyLeader == null) || !reference(currentPartyLeader).equals(copiedPartyLeader) || (actorPlayer.getParty() != actorParty) || (actorParty.getCommandChannel() != channel))
+			{
+				return CurrentForceObservation.unavailable("party.current_force.changed_during_copy");
+			}
+			if (channel == null)
+			{
+				if (!new HashSet<>(actorParty.getMembers()).equals(copiedPlayers))
+				{
+					return CurrentForceObservation.unavailable("party.current_force.changed_during_copy");
+				}
+			}
+			else
+			{
+				final Player currentChannelLeader = channel.getLeader();
+				if ((currentChannelLeader == null) || !reference(currentChannelLeader).equals(channelLeader) || (channel.getLevel() != channelLevel) || !new HashSet<>(channel.getParties()).equals(new HashSet<>(parties)) || !new HashSet<>(channel.getMembers()).equals(copiedPlayers))
+				{
+					return CurrentForceObservation.unavailable("party.current_force.changed_during_copy");
+				}
+			}
+			return CurrentForceObservation.available(new CurrentForceSnapshot(actor, copiedPartyLeader, channelIdentity, channelLeader, channelLevel, memberSnapshots.size(), partySnapshots, memberSnapshots));
 		}
 	}
 
@@ -220,6 +341,15 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			case SUCCESS, ALREADY_ACTIVE -> true;
 			default -> false;
 		};
+	}
+
+	private MemberSnapshot snapshot(MemberRef member, Player player)
+	{
+		final WorldObject target = player.getTarget();
+		final List<Integer> attackers = player.getAttackByList().stream().filter(Creature::isMonster).map(Creature::getObjectId).distinct().sorted().limit(32).toList();
+		final List<MemberCapability> capabilities = member.kind() == MemberKind.PHANTOM ? phantomCapabilities(member.profileId(), 0) : realCapabilities(player, 0);
+		final String progressionHash = _progression.findCatalog().map(catalog -> catalog.combinedHash()).orElse("0".repeat(64));
+		return new MemberSnapshot(member, player.getActiveClass(), player.getInstanceId(), player.getX(), player.getY(), player.getZ(), percent(player.getCurrentHp(), player.getMaxHp()), percent(player.getCurrentMp(), player.getMaxMp()), percent(player.getCurrentCp(), player.getMaxCp()), player.isDead(), player.isCastingNow(), player.isAttackingNow(), player.isMoving(), target == null ? 0 : target.getObjectId(), attackers, capabilities, progressionHash);
 	}
 
 	private List<MemberCapability> phantomCapabilities(long profileId, int targetObjectId)

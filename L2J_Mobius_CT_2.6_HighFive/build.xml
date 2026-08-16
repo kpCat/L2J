@@ -56,6 +56,7 @@
 	<property name="phantom.goal024a.seed" value="24002402" />
 	<property name="phantom.goal025.seed" value="25002501" />
 	<property name="phantom.goal025a.seed" value="25002511" />
+	<property name="phantom.goal026cp1.seed" value="26002601" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -2790,6 +2791,35 @@
 	</target>
 
 	<target name="phantom-pvp-goal025a-test" depends="phantom-pvp-goal025a-core-test,phantom-conversation-outbound-chat-test,phantom-pvp-goal025a-combat-regression-test" description="Run only focused Goal 025A and directly affected Goal 020/legacy combat regressions." />
+
+	<target name="phantom-raid-readiness-authority-test" depends="compile-tests" description="Run Goal 026 CP1 exact raid and epic authority policy tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-readiness-authority" />
+			<arg value="${phantom.goal026cp1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-raid-readiness-force-test" depends="compile-tests" description="Run Goal 026 CP1 bounded current Party and CommandChannel fact tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-readiness-force" />
+			<arg value="${phantom.goal026cp1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-raid-readiness-policy-test" depends="compile-tests" description="Run Goal 026 CP1 content, capability and readiness policy tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-readiness-policy" />
+			<arg value="${phantom.goal026cp1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-raid-readiness-checkpoint1-test" depends="phantom-raid-readiness-authority-test,phantom-raid-readiness-force-test,phantom-raid-readiness-policy-test,phantom-game-knowledge-query-truth-test,phantom-party-server-integration-test" description="Run the final Goal 026 Checkpoint 1 focused aggregate and exact affected regressions." />
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->
