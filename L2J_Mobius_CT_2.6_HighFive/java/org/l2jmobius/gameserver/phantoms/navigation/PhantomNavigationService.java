@@ -222,6 +222,11 @@ public final class PhantomNavigationService
 		}
 	}
 
+	public int arrivalRadius()
+	{
+		return _policy.arrivalRadius();
+	}
+
 	public ServiceSnapshot snapshot()
 	{
 		synchronized (_monitor)

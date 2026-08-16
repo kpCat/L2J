@@ -62,6 +62,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationCatalog
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBridge;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationPlanSink;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore;
@@ -92,6 +93,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyDecision;
@@ -116,6 +118,10 @@ import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftPolicy;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftReadinessService;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftStore;
+import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpContext;
+import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpPolicy;
+import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpService;
+import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpStore;
 
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationDecision;
@@ -128,6 +134,7 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionStepHandlers;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticGrounding;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticUnderstandingService;
+import org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialStore;
@@ -175,6 +182,7 @@ public final class PhantomSystem
 	private PhantomSocialService _socialService;
 	private PhantomConversationService _conversationService;
 	private PhantomConversationExecutionService _conversationExecutionService;
+	private PhantomPvpService _pvpService;
 	private State _state = State.NEW;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
@@ -218,6 +226,7 @@ public final class PhantomSystem
 			PhantomCombatPolicy combatPolicy;
 			PhantomActivityWorkSinkBridge workSinkBridge = null;
 			PhantomMaterializationLifecycleBridge lifecycleBridge = null;
+			PhantomMaterializationLifecycleBridge pvpLifecycleBridge = null;
 			if (_productionMaterialization)
 			{
 				profileRepository = PhantomProfileRepository.open();
@@ -328,7 +337,8 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom background service could not enter the running state.");
 				}
-				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService));
+				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
+				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge));
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
 				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
 				final File questCollectionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-quest-collection-v1.xml");
@@ -426,6 +436,21 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom conversation service could not enter the running state.");
 				}
+				final PhantomPvpPolicy pvpPolicy = PhantomPvpPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/pvp/pvp-policy-v1.xml").toPath());
+				final PhantomPvpSocialBridge pvpSocial = new PhantomPvpSocialBridge(_socialService);
+				_pvpService = new PhantomPvpService(
+					pvpPolicy,
+					new PhantomPvpStore(productionProfiles),
+					new PhantomPvpContext(pvpPolicy, _combatService, _partyCoordinator, _farmingService, pvpSocial, _materializationService),
+					_combatService,
+					new PhantomPvpConversationBridge(_conversationExecutionService),
+					pvpSocial,
+					new PhantomPvpRetreatCoordinator(_navigationService, _topologyService, _combatService));
+				if (!_pvpService.start())
+				{
+					throw new IllegalStateException("Phantom PvP service could not enter the running state.");
+				}
+				Objects.requireNonNull(pvpLifecycleBridge).install(_pvpService);
 				final PhantomPopulationDecision populationDecision = new PhantomPopulationDecision(_populationManager);
 				final PhantomPartyDecision partyDecision = new PhantomPartyDecision(_partyCoordinator);
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
@@ -455,7 +480,7 @@ public final class PhantomSystem
 				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
 				_decisionEngine.start();
 				_populationManager.installDecisionEngine(_decisionEngine);
-				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService))))
+				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService))))
 				{
 					throw new IllegalStateException("Population control port could not be installed before scheduler start.");
 				}
@@ -472,6 +497,10 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException e)
 		{
+			if (_pvpService != null)
+			{
+				_pvpService.beginStop();
+			}
 			if (_farmingService != null)
 			{
 				_farmingService.beginStop();
@@ -543,7 +572,8 @@ public final class PhantomSystem
 			{
 				_navigationService.beginStop();
 			}
-			final boolean conversationStopped = (_conversationService == null) || _conversationService.finishStop();
+			final boolean pvpStopped = (_pvpService == null) || _pvpService.finishStop();
+			final boolean conversationStopped = pvpStopped && ((_conversationService == null) || _conversationService.finishStop());
 			final boolean conversationExecutionStopped = conversationStopped && ((_conversationExecutionService == null) || _conversationExecutionService.finishStop());
 			final boolean farmingStopped = conversationExecutionStopped && ((_farmingService == null) || _farmingService.finishStop());
 			if (farmingStopped && (_farmingService != null))
@@ -627,6 +657,16 @@ public final class PhantomSystem
 			if (_economyReservations != null)
 			{
 				_economyReservations.shutdown(System.currentTimeMillis());
+			}
+			if (_pvpService != null)
+			{
+				_pvpService.beginStop();
+				if (!_pvpService.finishStop())
+				{
+					_metrics.recordShutdownFailure();
+					_state = State.FAILED;
+					return false;
+				}
 			}
 			if (_farmingService != null)
 			{
@@ -819,6 +859,15 @@ public final class PhantomSystem
 		}
 		if (_state == State.FAILED)
 		{
+			if ((_pvpService != null) && (_pvpService.snapshot().state() != PhantomPvpService.State.STOPPED))
+			{
+				_pvpService.beginStop();
+				if (!_pvpService.finishStop())
+				{
+					_metrics.recordShutdownFailure();
+					return false;
+				}
+			}
 			if (_farmingService != null)
 			{
 				PhantomFarmingConflictPort.uninstall(_farmingService);

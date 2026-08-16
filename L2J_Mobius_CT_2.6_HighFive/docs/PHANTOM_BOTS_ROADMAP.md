@@ -12,7 +12,7 @@
 
 ```text
 Последний принятый production baseline:
-8dba87e9c1d5828376b80c1ea16c4578726d4947
+922f72c0d422904dcbdc6215a5cc1167a1bb84fb
 
 Текущий branch HEAD:
 Goal 015 production loot disposition, position canonicalization и anchor
@@ -125,11 +125,13 @@ Goal 022 Checkpoint 2: NOT_STARTED
 
 Goal 022: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
-Goal 024: CHANGES_REQUIRED
+Goal 024: ACCEPT
 
-Goal 024A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 024A: ACCEPT
 
-Goal 025: NOT_STARTED
+Goal 025: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+
+Goal 026+: NOT_STARTED
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
@@ -161,9 +163,9 @@ activation gates в Goal 020 Checkpoint 1; Goal 019 принята с явным
 `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`. Goal 021 Checkpoint 1 и Checkpoint 2
 приняты; overall baseline закреплён на
 `043844c0fd7a0bfcac0d5f58461a21633b032332`. Goal 022 Checkpoint 1 реализован и
-ожидает независимого review; Checkpoint 2 не начат. Goal 024 имеет
-`CHANGES_REQUIRED`, а corrective Goal 024A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
-без self-accept. Goal 025 не начат.
+ожидает независимого review; Checkpoint 2 не начат. Goal 024A и Goal 024
+приняты независимым review; accepted baseline — `922f72c0d422904dcbdc6215a5cc1167a1bb84fb`.
+Goal 025 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 026+ — `NOT_STARTED`.
 
 ---
 
@@ -411,7 +413,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 # 7. Этап I — Canonical actor, persistence и lifecycle
 
 **GOAL:** 001–006  
-**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `ACCEPT`; Goal 016 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 017 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 018 — `ACCEPT`; Goal 019 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 020 — `ACCEPT`; Goal 020 Checkpoint 1 — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 020 Checkpoint 2 — `ACCEPT`; Goal 021 — `ACCEPT`; Goal 022 Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 022 Checkpoint 2 — `NOT_STARTED`; Goal 023 — `ACCEPT`; Goal 024 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 025 — `NOT_STARTED`.
+**Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `ACCEPT`; Goal 016 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 017 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 018 — `ACCEPT`; Goal 019 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 020 — `ACCEPT`; Goal 020 Checkpoint 1 — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 020 Checkpoint 2 — `ACCEPT`; Goal 021 — `ACCEPT`; Goal 022 Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 022 Checkpoint 2 — `NOT_STARTED`; Goal 023 — `ACCEPT`; Goal 024 — `ACCEPT`; Goal 024A — `ACCEPT`; Goal 025 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 026+ — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -915,25 +917,26 @@ Navigation failure, исключает hidden route/deadline ownership и воз
 **Gate:** ответы о недостающей роли следуют из реального состава.  
 **Follow-up risk:** `HIGH` — instance/content and composition edge cases.
 
-## Goal 024 — Farming spot negotiation и resource conflict — `CHANGES_REQUIRED`
+## Goal 024 — Farming spot negotiation и resource conflict — `ACCEPT`
 
 **Назначение:** согласование реальных целей в perceptible topology.  
 **Зависимости:** 010, 018, 020, 021, 023.  
 **Архитектурный результат:** claims на mob groups/rooms, alternatives, remaining
 amount, agreement history, share/wait/move/refuse/escalate semantic acts and
 perceptible-history protection.  
-Corrective Goal 024A имеет `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`: mutable evidence
-до FINAL отделено от stable live binding; persisted causal receipt поддерживает exact
-pair после restart; Goal021 lifecycle автоматически сводит bilateral terminal truth
-и durable Goal018 retry. Goal 024 не self-accepted.
+Corrective Goal 024A принят: mutable evidence до FINAL отделено от stable live binding;
+persisted causal receipt поддерживает exact pair после restart; Goal021 lifecycle
+автоматически сводит bilateral terminal truth и durable Goal018 retry.
+R024A-01/02/03 закрыты; Goal 024 overall — `ACCEPT`.
 **Не включает:** actual PvP/PK execution.  
 **Gate:** решения объяснимы целями обеих сторон и world facts.  
 **Follow-up risk:** `HIGH` — topology, goals, memory and dialogue convergence.
 
-## Goal 025 — PvP/PK, threat и escalation — `NOT_STARTED`
+## Goal 025 — PvP/PK, threat и escalation — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
 **Назначение:** безопасно исполнять конфликтные решения.  
 **Зависимости:** 012, 013, 017, 018, 020, 024.  
+**Implementation:** bounded causal PvP/PK реализован через Goal 012 combat owner, exact owner evidence Goals 017/018/020/024, canonical Player consequences и navigation-owned retreat; статус — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
 **Архитектурный результат:** strength/risk, party/friend allies, retreat,
 warning, help calls, revenge memory, zone rules, karma/drop consequences and
 bounded escalation.  
@@ -944,7 +947,7 @@ restrictions.
 **Gate:** canonical PvP/PK/karma rules and no uncontrolled aggression.  
 **Follow-up risk:** `VERY_HIGH` — gameplay harm, concurrency and consequence rules.
 
-## Goal 026 — Raid и epic orchestration
+## Goal 026 — Raid и epic orchestration — `NOT_STARTED`
 
 **Назначение:** правдоподобный large-group content без free victory.  
 **Зависимости:** 009–011, 013, 017, 023, 025.  
@@ -1195,11 +1198,10 @@ Current stage:
 III. Solo gameplay, progression and causal background
 
 Current accepted baseline:
-8dba87e9c1d5828376b80c1ea16c4578726d4947
+922f72c0d422904dcbdc6215a5cc1167a1bb84fb
 
 Current branch HEAD under review:
-Goal 013 class progression capability catalog — commit SHA во внешнем final
-handoff
+Goal 025 PvP threat escalation — commit SHA во внешнем final handoff
 
 Completed:
 - 001 / 001A
@@ -1244,8 +1246,8 @@ Next:
    `ACCEPT_WITH_ACTIVATION_GATE`; Checkpoint 2 —
    `ACCEPT`; Goal 021 — `ACCEPT`; Goal 022 Checkpoint 1 —
    `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 022 Checkpoint 2 —
-   `NOT_STARTED`; Goal 023 — `ACCEPT`; Goal 024 — `CHANGES_REQUIRED`;
-   Goal 024A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 025 — `NOT_STARTED`.
+   `NOT_STARTED`; Goal 023 — `ACCEPT`; Goal 024 — `ACCEPT`;
+   Goal 024A — `ACCEPT`; Goal 025 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 026+ — `NOT_STARTED`.
 
 Stage gate:
 - Stage I COMPLETE
@@ -1298,9 +1300,10 @@ Overall:
   Goal 022 Checkpoint 1 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
   Goal 022 Checkpoint 2 NOT_STARTED;
   Goal 023 ACCEPT;
-  Goal 024 CHANGES_REQUIRED;
-  Goal 024A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
-  Goal 025 NOT_STARTED
+  Goal 024 ACCEPT;
+  Goal 024A ACCEPT;
+  Goal 025 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW;
+  Goal 026+ NOT_STARTED
 ```
 
 ---

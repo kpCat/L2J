@@ -18,6 +18,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalAct
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionLease;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionRequest;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PvpProtection;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.DirectiveKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
@@ -95,9 +96,23 @@ public final class PhantomPartyTactics
 		return candidates.stream().sorted(Comparator.comparingInt(TacticalDirective::priority).reversed().thenComparing(value -> value.actor().stableKey()).thenComparing(value -> value.kind().name()).thenComparingInt(TacticalDirective::targetObjectId)).toList();
 	}
 
+	public List<TacticalDirective> planPvpProtection(MemberRef helper, int limit)
+	{
+		if ((_backend == null) || (helper == null) || (helper.kind() != MemberKind.PHANTOM) || (limit < 1) || (limit > 8))
+		{
+			return List.of();
+		}
+		final List<TacticalDirective> result = new ArrayList<>();
+		for (PvpProtection evidence : _backend.pvpProtection(helper, limit))
+		{
+			result.add(new TacticalDirective(DirectiveKind.PROTECT_MEMBER_PVP, helper, evidence.protectedMember(), evidence.attackerObjectId(), "", "", "", 0, 0, "member.attacked.player", 9000));
+		}
+		return result.stream().sorted(Comparator.comparing(value -> value.targetMember().stableKey())).limit(limit).toList();
+	}
+
 	public Optional<ExternalActionLease> dispatch(TacticalDirective directive, String operationKey, long deadlineLogicalNanos, PhantomCancellationToken token)
 	{
-		if (directive.actor().kind() != MemberKind.PHANTOM)
+		if ((directive.actor().kind() != MemberKind.PHANTOM) || (directive.kind() == DirectiveKind.PROTECT_MEMBER_PVP))
 		{
 			return Optional.empty();
 		}

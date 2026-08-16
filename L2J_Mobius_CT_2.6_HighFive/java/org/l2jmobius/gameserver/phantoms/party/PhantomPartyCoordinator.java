@@ -138,6 +138,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	public record RouteRequestResult(RouteOutcome outcome, String routeId, long generation, PhantomDomainRef destination, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status navigationStatus, String reasonKey)
 	{
 	}
+
+	public record PvpProtectionEvidence(TacticalDirective directive, long partyGeneration, String authorityHash)
+	{
+	}
 	public enum ContentBindingOutcome
 	{
 		BOUND,
@@ -783,6 +787,28 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return claim == null ? PhantomPartyRouteCoordinator.RouteActivity.none() : routeActivity(claim.state());
 	}
 
+
+	public List<PvpProtectionEvidence> pvpProtection(long helperProfileId, int limit)
+	{
+		if ((_state != State.RUNNING) || (limit < 1) || (limit > 8))
+		{
+			return List.of();
+		}
+		final StoredPartyState stored = _claims.get(helperProfileId);
+		final MemberRef helper = _backend.currentMember(helperProfileId).orElse(null);
+		if ((stored == null) || (helper == null) || (helper.kind() != MemberKind.PHANTOM) || !Set.of(StateStatus.LEADER, StateStatus.MEMBER).contains(stored.state().status()))
+		{
+			return List.of();
+		}
+		final PartySnapshot canonical = _backend.observe(helper).orElse(null);
+		if ((canonical == null) || !canonical.members().contains(helper) || (canonical.members().size() > 9))
+		{
+			return List.of();
+		}
+		final long generation = stored.state().groupGeneration();
+		final long revision = stored.state().membershipRevision();
+		return _tactics.planPvpProtection(helper, limit).stream().filter(directive -> canonical.members().contains(directive.targetMember())).map(directive -> new PvpProtectionEvidence(directive, generation, PhantomPartyModel.sha256(stored.state().groupId() + '|' + generation + '|' + revision + '|' + directive.targetMember().stableKey() + '|' + directive.targetObjectId()))).toList();
+	}
 	public boolean reconcileTerminalRoute(long leaderProfileId, String expectedRouteId)
 	{
 		final StoredPartyState claim = _claims.get(leaderProfileId);

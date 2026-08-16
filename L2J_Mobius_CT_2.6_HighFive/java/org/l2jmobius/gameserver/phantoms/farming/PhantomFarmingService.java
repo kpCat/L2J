@@ -146,6 +146,23 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 		}
 	}
 
+	/**
+	 * Goal024-owned, bilateral and live escalation authority exposed to Goal025.
+	 */
+	public record PvpEscalationEvidence(long counterpartProfileId, String agreementId, String resourceHash, String authorityHash, long expiryMinute)
+	{
+		public PvpEscalationEvidence
+		{
+			agreementId = PhantomFarmingModel.hash(agreementId, "Agreement ID");
+			resourceHash = PhantomFarmingModel.hash(resourceHash, "Farming resource hash");
+			authorityHash = PhantomFarmingModel.hash(authorityHash, "Farming PvP escalation authority");
+			if ((counterpartProfileId <= 0) || (expiryMinute < 0))
+			{
+				throw new IllegalArgumentException("Invalid farming PvP escalation evidence.");
+			}
+		}
+	}
+
 	public record AdvanceResult(AdvanceStatus status, String reasonKey, String agreementId)
 	{
 		public AdvanceResult
@@ -400,6 +417,40 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 			}
 		}
 		return List.copyOf(facts.stream().limit(8).toList());
+	}
+
+	/**
+	 * Read-only exact source seam. It does not reconcile, create or promote a
+	 * farming agreement; both persisted copies and all live Goal024 authority
+	 * bindings must still match.
+	 */
+	public Optional<PvpEscalationEvidence> pvpEscalation(long profileId, long minute)
+	{
+		if ((_state != State.RUNNING) || (profileId <= 0) || (minute < 0))
+		{
+			return Optional.empty();
+		}
+		final StoredState own = load(profileId);
+		if (own == null)
+		{
+			return Optional.empty();
+		}
+		for (int index = own.state().history().size() - 1; index >= 0; index--)
+		{
+			final AgreementReceipt candidate = own.state().history().get(index);
+			final long counterpart = candidate.counterpart(profileId);
+			if ((counterpart <= 0) || (candidate.status() != AgreementStatus.ESCALATED))
+			{
+				continue;
+			}
+			final AgreementReceipt exact = currentAgreement(own, load(counterpart), profileId, counterpart, candidate.resource(), minute);
+			if ((exact != null) && (exact.status() == AgreementStatus.ESCALATED))
+			{
+				final String authority = PhantomFarmingModel.sha256("farming.pvp.escalation", exact.agreementId(), exact.resource().hash(), exact.evidenceHash(), exact.perception().evidenceHash(), exact.lowerAuthorityHash(), exact.higherAuthorityHash(), exact.expiryMinute());
+				return Optional.of(new PvpEscalationEvidence(counterpart, exact.agreementId(), exact.resource().hash(), authority, exact.expiryMinute()));
+			}
+		}
+		return Optional.empty();
 	}
 
 	private DerivedResource derive(ConflictSnapshot snapshot)

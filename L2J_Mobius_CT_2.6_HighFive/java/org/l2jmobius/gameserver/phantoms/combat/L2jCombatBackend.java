@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import org.l2jmobius.gameserver.config.PvpConfig;
+import org.l2jmobius.gameserver.config.RatesConfig;
 
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
@@ -39,6 +41,7 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillUseHolder;
+import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.model.script.QuestState;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
@@ -47,6 +50,13 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.Acquisition
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionActorPosition;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionUse;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConsequenceSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLocalSupportSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
+
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ExternalOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
@@ -118,6 +128,12 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public int pvpLevel()
+		{
+			return _player.getLevel();
+		}
+
+		@Override
 		public TargetSnapshot targetSnapshot(int targetObjectId)
 		{
 			final WorldObject object = World.getInstance().findObject(targetObjectId);
@@ -128,6 +144,85 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			return targetSnapshot(monster);
 		}
 
+
+		@Override
+		public PvpTargetSnapshot pvpTargetSnapshot(int targetObjectId)
+		{
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if (!(object instanceof Player target))
+			{
+				return null;
+			}
+			final WorldRegion actorRegion = _player.getWorldRegion();
+			final boolean surrounding = (actorRegion != null) && actorRegion.isSurroundingRegion(target.getWorldRegion());
+			final boolean sameParty = (_player.getParty() != null) && (_player.getParty() == target.getParty());
+			final boolean unmanagedEvent = _player.isOnEvent() || target.isOnEvent();
+			final boolean olympiad = _player.isInOlympiadMode() || target.isInOlympiadMode();
+			final boolean duel = _player.isInDuel() || target.isInDuel();
+			final boolean siege = _player.isInSiege() || target.isInSiege() || _player.isInsideZone(ZoneId.SIEGE) || target.isInsideZone(ZoneId.SIEGE);
+			final boolean peace = _player.isInsideZone(ZoneId.PEACE) || target.isInsideZone(ZoneId.PEACE);
+			final boolean boatOrAirship = _player.isInBoat() || _player.isInAirShip() || target.isInBoat() || target.isInAirShip();
+			return new PvpTargetSnapshot(target.getObjectId(), target.getActiveClass(), target.getInstanceId(), target.getLevel(), band(target.getCurrentHp(), target.getMaxHp()), band(target.getCurrentHp() + target.getCurrentCp(), target.getMaxHp() + target.getMaxCp()), distance(_player, target), true, true, target.isTargetable(), target.isInvisible(), target.isDead(), target.isAlikeDead(), surrounding, peace, sameParty, target == _player, unmanagedEvent, olympiad, duel, siege, _player.isJailed() || target.isJailed(), _player.isFestivalParticipant() || target.isFestivalParticipant(), boatOrAirship, target.isAutoAttackable(_player));
+		}
+
+		@Override
+		public PvpLocalSupportSnapshot pvpLocalSupport(int targetObjectId, int limit)
+		{
+			if ((limit < 1) || (limit > 32))
+			{
+				return PvpLocalSupportSnapshot.empty(Math.max(1, Math.min(32, limit)));
+			}
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if (!(object instanceof Player target))
+			{
+				return PvpLocalSupportSnapshot.empty(limit);
+			}
+			final WorldRegion actorRegion = _player.getWorldRegion();
+			if (actorRegion == null)
+			{
+				return PvpLocalSupportSnapshot.empty(limit);
+			}
+			final TreeMap<Integer, Player> local = new TreeMap<>();
+			for (WorldRegion surrounding : actorRegion.getSurroundingRegions())
+			{
+				for (WorldObject visible : surrounding.getVisibleObjects())
+				{
+					if (!(visible instanceof Player player) || (player == _player) || (player == target))
+					{
+						continue;
+					}
+					if ((player.getInstanceId() != _player.getInstanceId()) || player.isDead() || player.isAlikeDead() || player.isInvisible() || ((distance(_player, player) > MAXIMUM_ACQUISITION_DISTANCE) && (distance(target, player) > MAXIMUM_ACQUISITION_DISTANCE)))
+					{
+						continue;
+					}
+					local.put(player.getObjectId(), player);
+					if (local.size() > limit)
+					{
+						local.pollLastEntry();
+					}
+				}
+			}
+			int actorSupport = 0;
+			int targetSupport = 0;
+			for (Player player : local.values())
+			{
+				if ((_player.getParty() != null) && (_player.getParty() == player.getParty()))
+				{
+					actorSupport++;
+				}
+				if ((target.getParty() != null) && (target.getParty() == player.getParty()))
+				{
+					targetSupport++;
+				}
+			}
+			return new PvpLocalSupportSnapshot(local.size(), actorSupport, targetSupport, limit);
+		}
+
+		@Override
+		public PvpConsequenceSnapshot pvpConsequences(int targetObjectId)
+		{
+			return pvpTargetSnapshot(targetObjectId) == null ? null : new PvpConsequenceSnapshot(_player.getPvpFlag(), _player.getKarma(), _player.getPvpKills(), _player.getPkKills(), PvpConfig.PVP_NORMAL_TIME, PvpConfig.PVP_PVP_TIME, PvpConfig.KARMA_PK_LIMIT, RatesConfig.KARMA_DROP_LIMIT, RatesConfig.KARMA_RATE_DROP_EQUIP_WEAPON, RatesConfig.KARMA_RATE_DROP_EQUIP, RatesConfig.KARMA_RATE_DROP_ITEM);
+		}
 		@Override
 		public AcquisitionTargetSnapshot acquisitionTargetSnapshot(int targetObjectId)
 		{
@@ -346,6 +441,17 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public boolean supportsPvpSkill(SelectedSkill selected, PhantomCombatMode mode)
+		{
+			final Skill skill = _player.getKnownSkill(selected.skillId());
+			if ((skill == null) || (skill.getLevel() != selected.skillLevel()))
+			{
+				return false;
+			}
+			return PhantomPvpSkillSafety.supports(skill, mode, _player.isTransformed());
+		}
+
+		@Override
 		public List<ThreatObservation> observedAttackers(int limit)
 		{
 			final TreeMap<Integer, ThreatObservation> observations = new TreeMap<>();
@@ -394,6 +500,40 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 						{
 							observations.pollLastEntry();
 						}
+					}
+				}
+			}
+			return List.copyOf(observations.values());
+		}
+
+		@Override
+		public List<ThreatObservation> observedPlayerAttackers(int protectedObjectId, int limit)
+		{
+			if ((limit < 1) || (limit > 32))
+			{
+				return List.of();
+			}
+			final WorldObject object = World.getInstance().findObject(protectedObjectId);
+			if (!(object instanceof Player protectedPlayer) || ((protectedPlayer != _player) && ((_player.getParty() == null) || (_player.getParty() != protectedPlayer.getParty()))))
+			{
+				return List.of();
+			}
+			final TreeMap<Integer, ThreatObservation> observations = new TreeMap<>();
+			final ActorSnapshot actor = actorSnapshot();
+			for (Creature creature : protectedPlayer.getAttackByList())
+			{
+				if (!(creature instanceof Player attacker))
+				{
+					continue;
+				}
+				final boolean currentAttack = (attacker.getTarget() == protectedPlayer) || (attacker.hasAI() && (attacker.getAI().getAttackTarget() == protectedPlayer));
+				final PvpTargetSnapshot target = pvpTargetSnapshot(attacker.getObjectId());
+				if (currentAttack && (target != null) && target.validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
+				{
+					observations.put(attacker.getObjectId(), new ThreatObservation(attacker.getObjectId(), 1));
+					if (observations.size() > limit)
+					{
+						observations.pollLastEntry();
 					}
 				}
 			}
@@ -450,6 +590,74 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return LootObservation.ACQUIRED_BY_ACTOR;
 			}
 			return LootObservation.LOST_WITHOUT_ACQUISITION;
+		}
+
+		@Override
+		public List<CpPotionSnapshot> cpPotions()
+		{
+			final List<CpPotionSnapshot> result = new ArrayList<>(2);
+			for (int itemId : new int[]
+			{
+				5591,
+				5592
+			})
+			{
+				final Item item = _player.getInventory().getItemByItemId(itemId);
+				if ((item == null) || (item.getCount() <= 0) || (item.getEtcItem() == null) || !"ItemSkills".equals(item.getEtcItem().getHandlerName()))
+				{
+					continue;
+				}
+				final SkillHolder[] skills = item.getEtcItem().getSkills();
+				final int expectedLevel = itemId == 5591 ? 1 : 2;
+				if ((skills == null) || (skills.length != 1) || (skills[0].getSkillId() != 2166) || (skills[0].getSkillLevel() != expectedLevel))
+				{
+					continue;
+				}
+				final Skill skill = skills[0].getSkill();
+				final long itemReuse = Math.max(0, Math.max(_player.getItemRemainingReuseTime(item.getObjectId()), _player.getReuseDelayOnGroup(item.getSharedReuseGroup())));
+				final long skillReuse = skill == null ? 0 : Math.max(0, _player.getSkillRemainingReuseTime(skill.getReuseHashCode()));
+				result.add(new CpPotionSnapshot(item.getObjectId(), itemId, item.getCount(), 2166, expectedLevel, itemReuse, skillReuse));
+			}
+			return List.copyOf(result);
+		}
+
+		@Override
+		public CpPotionUse useCpPotion(int itemObjectId, int itemId)
+		{
+			final Item item = _player.getInventory().getItemByObjectId(itemObjectId);
+			final long countBefore = _player.getInventory().getInventoryItemCount(itemId, -1);
+			final double cpBefore = _player.getCurrentCp();
+			if ((item == null) || (item.getId() != itemId) || ((itemId != 5591) && (itemId != 5592)) || (item.getOwnerId() != _player.getObjectId()) || (item.getItemLocation() != ItemLocation.INVENTORY) || (item.getEtcItem() == null) || !"ItemSkills".equals(item.getEtcItem().getHandlerName()) || !_player.getInventory().canManipulateWithItemId(itemId) || !item.getTemplate().checkCondition(_player, _player, true))
+			{
+				return new CpPotionUse(CpPotionOutcome.REJECTED, itemId, countBefore, countBefore, cpBefore, cpBefore, 0);
+			}
+			final SkillHolder[] skills = item.getEtcItem().getSkills();
+			final int expectedLevel = itemId == 5591 ? 1 : 2;
+			if ((skills == null) || (skills.length != 1) || (skills[0].getSkillId() != 2166) || (skills[0].getSkillLevel() != expectedLevel))
+			{
+				return new CpPotionUse(CpPotionOutcome.REJECTED, itemId, countBefore, countBefore, cpBefore, cpBefore, 0);
+			}
+			final Skill skill = skills[0].getSkill();
+			final long beforeReuse = Math.max(0, Math.max(Math.max(_player.getItemRemainingReuseTime(itemObjectId), _player.getReuseDelayOnGroup(item.getSharedReuseGroup())), skill == null ? 0 : _player.getSkillRemainingReuseTime(skill.getReuseHashCode())));
+			if (beforeReuse > 0)
+			{
+				return new CpPotionUse(CpPotionOutcome.REUSE, itemId, countBefore, countBefore, cpBefore, cpBefore, beforeReuse);
+			}
+			final IItemHandler handler = ItemHandler.getInstance().getHandler(item.getEtcItem());
+			if ((handler == null) || !"ItemSkills".equals(handler.getClass().getSimpleName()))
+			{
+				return new CpPotionUse(CpPotionOutcome.UNAVAILABLE, itemId, countBefore, countBefore, cpBefore, cpBefore, 0);
+			}
+			final boolean used = handler.onItemUse(_player, item, false);
+			if (used && (item.getReuseDelay() > 0))
+			{
+				_player.addTimeStampItem(item, item.getReuseDelay());
+			}
+			final long countAfter = _player.getInventory().getInventoryItemCount(itemId, -1);
+			final double cpAfter = _player.getCurrentCp();
+			final long observedReuse = Math.max(0, Math.max(Math.max(_player.getItemRemainingReuseTime(itemObjectId), _player.getReuseDelayOnGroup(item.getSharedReuseGroup())), skill == null ? 0 : _player.getSkillRemainingReuseTime(skill.getReuseHashCode())));
+			final CpPotionOutcome outcome = used && (countAfter < countBefore) && ((cpAfter > cpBefore) || (observedReuse > 0)) ? CpPotionOutcome.OBSERVED_SUCCESS : CpPotionOutcome.REJECTED;
+			return new CpPotionUse(outcome, itemId, countBefore, countAfter, cpBefore, cpAfter, observedReuse);
 		}
 
 		@Override
@@ -548,6 +756,69 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			_player.setTarget(target);
 			_player.getAI().setIntention(Intention.CAST, skill, target);
 			return ActionOutcome.ISSUED;
+		}
+
+		@Override
+		public ActionOutcome attackPvp(int targetObjectId, String authorityHash)
+		{
+			if ((authorityHash == null) || !authorityHash.matches("[0-9A-F]{64}"))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if (!(object instanceof Player target))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final PvpTargetSnapshot snapshot = pvpTargetSnapshot(targetObjectId);
+			if ((snapshot == null) || !snapshot.validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == target))
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			_player.setTarget(target);
+			target.onForcedAttack(_player);
+			return _player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == target) ? ActionOutcome.ISSUED : ActionOutcome.REJECTED;
+		}
+
+		@Override
+		public ActionOutcome castPvp(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode, boolean forceUse, String authorityHash)
+		{
+			if ((authorityHash == null) || !authorityHash.matches("[0-9A-F]{64}") || (selected == null))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if (!(object instanceof Player target))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final PvpTargetSnapshot snapshot = pvpTargetSnapshot(targetObjectId);
+			if ((snapshot == null) || !snapshot.validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE) || !supportsPvpSkill(selected, mode))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final Skill skill = _player.getKnownSkill(selected.skillId());
+			final SkillUseHolder current = _player.getCurrentSkill();
+			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (current != null) && (current.getSkillId() == selected.skillId()) && (current.getSkillLevel() == selected.skillLevel()))
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			if (_player.isSkillDisabled(skill) || !_player.checkDoCastConditions(skill))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			_player.setTarget(target);
+			if (!_player.useMagic(skill, forceUse, false))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			final SkillUseHolder observed = _player.getCurrentSkill();
+			final boolean owned = _player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (observed != null) && (observed.getSkillId() == selected.skillId()) && (observed.getSkillLevel() == selected.skillLevel());
+			return owned ? ActionOutcome.ISSUED : ActionOutcome.REJECTED;
 		}
 
 		@Override
@@ -836,5 +1107,14 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	private static double distance(WorldObject left, WorldObject right)
 	{
 		return left.calculateDistance2D(right);
+	}
+
+	private static int band(double current, double maximum)
+	{
+		if ((maximum <= 0) || (current <= 0))
+		{
+			return 0;
+		}
+		return Math.min(4, Math.max(1, (int) Math.ceil((current * 4) / maximum)));
 	}
 }

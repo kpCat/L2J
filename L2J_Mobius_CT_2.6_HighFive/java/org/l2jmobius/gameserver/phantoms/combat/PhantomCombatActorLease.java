@@ -12,6 +12,11 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.Acquisition
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionActorPosition;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionUse;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConsequenceSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLocalSupportSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ManorInventorySnapshot;
@@ -30,6 +35,41 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	ActorSnapshot actorSnapshot();
 
 	TargetSnapshot targetSnapshot(int targetObjectId);
+
+	default PvpTargetSnapshot pvpTargetSnapshot(int targetObjectId)
+	{
+		return null;
+	}
+
+
+	default PvpLocalSupportSnapshot pvpLocalSupport(int targetObjectId, int limit)
+	{
+		return PvpLocalSupportSnapshot.empty(limit);
+	}
+	default int pvpLevel()
+	{
+		return 1;
+	}
+
+	default List<ThreatObservation> observedPlayerAttackers(int protectedObjectId, int limit)
+	{
+		return List.of();
+	}
+
+	default PvpConsequenceSnapshot pvpConsequences(int targetObjectId)
+	{
+		return null;
+	}
+
+	default List<CpPotionSnapshot> cpPotions()
+	{
+		return List.of();
+	}
+
+	default CpPotionUse useCpPotion(int itemObjectId, int itemId)
+	{
+		return null;
+	}
 
 	default AcquisitionTargetSnapshot acquisitionTargetSnapshot(int targetObjectId)
 	{
@@ -112,6 +152,12 @@ public interface PhantomCombatActorLease extends AutoCloseable
 
 	boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode);
 
+
+	default boolean supportsPvpSkill(SelectedSkill skill, PhantomCombatMode mode)
+	{
+		return false;
+	}
+
 	List<ThreatObservation> observedAttackers(int limit);
 
 	default List<ThreatObservation> observedAttackers(int protectedObjectId, int limit)
@@ -126,6 +172,17 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	ShotOutcome activateShot(PhantomCombatMode mode);
 
 	ActionOutcome attack(int targetObjectId);
+
+
+	default ActionOutcome attackPvp(int targetObjectId, String authorityHash)
+	{
+		return ActionOutcome.REJECTED;
+	}
+
+	default ActionOutcome castPvp(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode, boolean forceUse, String authorityHash)
+	{
+		return ActionOutcome.REJECTED;
+	}
 
 	ActionOutcome cast(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode);
 

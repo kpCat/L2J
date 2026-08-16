@@ -104,6 +104,32 @@ public final class PhantomConversationExecutionStore
 		return new HandoffResult(HandoffStatus.SAVED, decodeConversation(components.get(1)), decode(components.get(0)));
 	}
 
+	/**
+	 * Durable Goal020-owned handoff for typed system outbound messages that do
+	 * not originate from an inbound conversation state transition.
+	 */
+	public HandoffResult enqueueOutbound(long profileId, ExecutionEntry entry)
+	{
+		final StoredExecution current = load(profileId).orElse(null);
+		final long replayFloor = Math.max(0, entry.createdMinute() - _catalog.limits().replayHorizonMinutes());
+		final ExecutionState base = current == null ? ExecutionState.empty(_catalog.hash(), entry.createdMinute()) : current.state().pruneReceipts(replayFloor);
+		validateAuthority(base);
+		if (base.contains(entry.planId()))
+		{
+			return new HandoffResult(HandoffStatus.DUPLICATE, null, current);
+		}
+		if (base.entries().size() >= PhantomConversationExecutionModel.MAX_ENTRIES)
+		{
+			return new HandoffResult(HandoffStatus.CAPACITY_REACHED, null, current);
+		}
+		if ((base.receipts().size() + base.entries().size() + 1) > PhantomConversationExecutionModel.MAX_RECEIPTS)
+		{
+			return new HandoffResult(HandoffStatus.CAPACITY_REACHED, null, current);
+		}
+		final StoredExecution saved = save(profileId, current == null ? -1 : current.rowVersion(), base.add(entry));
+		return new HandoffResult(HandoffStatus.SAVED, null, saved);
+	}
+
 	public GoalMutationResult mutateGoal(long profileId, long expectedExecutionVersion, ExecutionState execution, PhantomGoalStateStore goals, long expectedGoalVersion, PhantomGoal goal)
 	{
 		validateAuthority(execution);

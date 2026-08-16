@@ -105,4 +105,25 @@ public final class PhantomCombatCapabilityResolver
 		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElseThrow();
 		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, mode != PhantomCombatMode.RANGED_MAGIC));
 	}
+
+	public Optional<PhantomCombatLoadout> resolvePvp(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int maximumSkills)
+	{
+		Objects.requireNonNull(actor, "actor");
+		Objects.requireNonNull(mode, "mode");
+		Objects.requireNonNull(lease, "lease");
+		if ((maximumSkills < 1) || (maximumSkills > 4))
+		{
+			throw new IllegalArgumentException("Invalid selected skill bound.");
+		}
+		final List<CapabilityEvidence> capabilities = new ArrayList<>(_source.capabilities(actor.classId()));
+		capabilities.sort(CAPABILITY_ORDER);
+		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).sorted(SKILL_ORDER).distinct().filter(skill -> lease.supportsPvpSkill(skill, mode)).limit(maximumSkills).toList();
+		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
+		if (matching.isEmpty() || ((mode == PhantomCombatMode.RANGED_MAGIC) && selected.isEmpty()))
+		{
+			return Optional.empty();
+		}
+		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElseThrow();
+		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, mode != PhantomCombatMode.RANGED_MAGIC));
+	}
 }

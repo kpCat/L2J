@@ -744,9 +744,10 @@ baselines Goal 023 и Goal 023A сохраняются в их independent revie
 
 ### 024. Party farming и катакомбы
 
-Status: `CHANGES_REQUIRED`; corrective Goal 024A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
-Goal 024A реализован как direct child baseline `2603776c6996007b147f93e4c7e79f145ceb8a89`
-и закрывает только R024A-01/02/03. Goal 024 не self-accepted; Goal 025 не начат.
+Status: `ACCEPT`; corrective Goal 024A — `ACCEPT`.
+Prior independent review закрыл R024A-01/02/03; Goal 024 overall принят.
+Accepted baseline: `922f72c0d422904dcbdc6215a5cc1167a1bb84fb`.
+Goal 025 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 026+ — `NOT_STARTED`.
 
 Exact current Goal 021 Source теперь порождает bounded ROOM/MOB_GROUP claim; Goal 010 определяет current
 perceptibility, Goal 017 — same-Party SHARE, Goal 018 — social memory/history, Goal 020 — typed query/language.

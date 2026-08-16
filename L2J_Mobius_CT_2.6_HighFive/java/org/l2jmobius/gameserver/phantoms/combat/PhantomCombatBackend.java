@@ -26,6 +26,15 @@ public interface PhantomCombatBackend
 		FAILED
 	}
 
+	enum CpPotionOutcome
+	{
+		OBSERVED_SUCCESS,
+		UNAVAILABLE,
+		REUSE,
+		REJECTED
+	}
+
+
 	enum RespawnOutcome
 	{
 		COMPLETED,
@@ -74,6 +83,81 @@ public interface PhantomCombatBackend
 			return normalMonster && knowledgeMonster && targetable && attackable && !invulnerable && surroundingRegion && !peaceRestricted && !dead && !alikeDead && (instanceId == actor.instanceId()) && (distance <= maximumDistance);
 		}
 	}
+
+	record PvpTargetSnapshot(int objectId, int classId, int instanceId, int level, int hpBand, int effectivePoolBand, double distance, boolean player, boolean exactKnowledge, boolean targetable, boolean invisible, boolean dead, boolean alikeDead, boolean surroundingRegion, boolean peaceRestricted, boolean sameParty, boolean self, boolean unmanagedEvent, boolean olympiad, boolean duel, boolean siege, boolean jailed, boolean festival, boolean boatOrAirship, boolean autoAttackable)
+	{
+		public PvpTargetSnapshot
+		{
+			if ((objectId <= 0) || (classId < 0) || (instanceId < 0) || (level < 1) || (hpBand < 0) || (hpBand > 4) || (effectivePoolBand < 0) || (effectivePoolBand > 4) || !Double.isFinite(distance) || (distance < 0))
+			{
+				throw new IllegalArgumentException("Invalid PvP target snapshot.");
+			}
+		}
+
+		public boolean validFor(ActorSnapshot actor, int maximumDistance)
+		{
+			return player && exactKnowledge && targetable && !invisible && !dead && !alikeDead && surroundingRegion && !peaceRestricted && !sameParty && !self && !unmanagedEvent && !olympiad && !duel && !siege && !jailed && !festival && !boatOrAirship && (instanceId == actor.instanceId()) && (distance <= maximumDistance);
+		}
+	}
+
+	record PvpConsequenceSnapshot(int pvpFlag, int karma, int pvpKills, int pkKills, int normalPvpDurationMillis, int pvpFlagDurationMillis, int minimumPkForDrop, int karmaDropLimit, double weaponDropChance, double equipmentDropChance, double inventoryDropChance)
+	{
+		public PvpConsequenceSnapshot
+		{
+			if ((pvpFlag < 0) || (karma < 0) || (pvpKills < 0) || (pkKills < 0) || (normalPvpDurationMillis < 0) || (pvpFlagDurationMillis < 0) || (minimumPkForDrop < 0) || (karmaDropLimit < 0) || !chance(weaponDropChance) || !chance(equipmentDropChance) || !chance(inventoryDropChance))
+			{
+				throw new IllegalArgumentException("Invalid canonical PvP consequence snapshot.");
+			}
+		}
+	}
+
+
+	record PvpLocalSupportSnapshot(int observedPlayers, int actorSupport, int targetSupport, int limit)
+	{
+		public PvpLocalSupportSnapshot
+		{
+			if ((limit < 1) || (limit > 32) || (observedPlayers < 0) || (observedPlayers > limit) || (actorSupport < 0) || (actorSupport > observedPlayers) || (targetSupport < 0) || (targetSupport > observedPlayers))
+			{
+				throw new IllegalArgumentException("Invalid bounded PvP local support snapshot.");
+			}
+		}
+
+		public static PvpLocalSupportSnapshot empty(int limit)
+		{
+			return new PvpLocalSupportSnapshot(0, 0, 0, limit);
+		}
+	}
+	record CpPotionSnapshot(int itemObjectId, int itemId, long count, int skillId, int skillLevel, long itemReuseMillis, long skillReuseMillis)
+	{
+		public CpPotionSnapshot
+		{
+			if ((itemObjectId <= 0) || ((itemId != 5591) && (itemId != 5592)) || (count <= 0) || (skillId != 2166) || (((itemId == 5591) && (skillLevel != 1)) || ((itemId == 5592) && (skillLevel != 2))) || (itemReuseMillis < 0) || (skillReuseMillis < 0))
+			{
+				throw new IllegalArgumentException("Invalid canonical CP potion snapshot.");
+			}
+		}
+
+		public boolean ready()
+		{
+			return (itemReuseMillis == 0) && (skillReuseMillis == 0);
+		}
+	}
+
+	record CpPotionUse(CpPotionOutcome outcome, int itemId, long countBefore, long countAfter, double cpBefore, double cpAfter, long observedReuseMillis)
+	{
+		public CpPotionUse
+		{
+			if ((outcome == null) || ((itemId != 5591) && (itemId != 5592)) || (countBefore < 0) || (countAfter < 0) || !Double.isFinite(cpBefore) || !Double.isFinite(cpAfter) || (cpBefore < 0) || (cpAfter < 0) || (observedReuseMillis < 0))
+			{
+				throw new IllegalArgumentException("Invalid observed CP potion result.");
+			}
+			if ((outcome == CpPotionOutcome.OBSERVED_SUCCESS) && !((countAfter < countBefore) && ((cpAfter > cpBefore) || (observedReuseMillis > 0))))
+			{
+				throw new IllegalArgumentException("CP potion success lacks observed canonical truth.");
+			}
+		}
+	}
+
 
 	record AcquisitionTargetSnapshot(int objectId, int npcId, int instanceId, double distance, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean normalMonster, boolean knowledgeMonster, boolean peaceRestricted, boolean surroundingRegion, boolean spoiled, int spoilerObjectId, boolean sweepActive, boolean sweepOwnerEligible, int level, boolean canBeSown, boolean raid, boolean chest, boolean seeded, int seederObjectId, int seedItemId, int onKillDelayMillis, int x, int y, int z, boolean spawnPresent, boolean spawnTerritoryPresent, boolean exactPointSpawn, String territoryName, String territorySourcePath, String territoryGeometryHash)
 	{
@@ -213,6 +297,11 @@ public interface PhantomCombatBackend
 			}
 		}
 		return true;
+	}
+
+	private static boolean chance(double value)
+	{
+		return Double.isFinite(value) && (value >= 0) && (value <= 100);
 	}
 
 	static PhantomCombatBackend inert()

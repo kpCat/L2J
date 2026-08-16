@@ -120,6 +120,29 @@
 			<delta source="relationship.rivalry" value="80"/>
 			<delta source="reputation.hostility" value="60"/>
 		</event>
+		<event code="1020" key="pvp.attack.received" ttlMinutes="43200" salience="900">
+			<delta source="relationship.trust" value="-180"/>
+			<delta source="relationship.anger" value="260"/>
+			<delta source="relationship.rivalry" value="160"/>
+			<delta source="reputation.hostility" value="180"/>
+		</event>
+		<event code="1021" key="pvp.kill.caused" ttlMinutes="43200" salience="700">
+			<delta source="relationship.fear" value="-80"/>
+			<delta source="relationship.respect" value="80"/>
+			<delta source="relationship.rivalry" value="100"/>
+		</event>
+		<event code="1022" key="pvp.death.suffered" ttlMinutes="129600" salience="1400">
+			<delta source="relationship.trust" value="-220"/>
+			<delta source="relationship.fear" value="180"/>
+			<delta source="relationship.anger" value="420"/>
+			<delta source="relationship.rivalry" value="300"/>
+			<delta source="reputation.hostility" value="220"/>
+		</event>
+		<event code="1023" key="pvp.help.received" ttlMinutes="129600" salience="950">
+			<delta source="relationship.trust" value="180"/>
+			<delta source="relationship.friendship" value="160"/>
+			<delta source="reputation.helpfulness" value="240"/>
+		</event>
 	</events>
 	<modifiers>
 		<modifier key="goal.persistence" minimum="-3000" maximum="3000">

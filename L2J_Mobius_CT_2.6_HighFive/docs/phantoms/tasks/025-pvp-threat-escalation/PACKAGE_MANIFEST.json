@@ -1,0 +1,37 @@
+{
+  "package": "phantom-world-goal-025-pvp-threat-escalation",
+  "taskId": "025-pvp-threat-escalation",
+  "goal": "025",
+  "branch": "feature/phantom-world",
+  "extractInto": "C:\\Users\\endim\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive",
+  "mainFile": "docs/phantoms/tasks/025-pvp-threat-escalation/TASK.md",
+  "requiredParent": "922f72c0d422904dcbdc6215a5cc1167a1bb84fb",
+  "commitSubject": "feat(phantoms): add pvp threat escalation",
+  "successToken": "GOAL_025_PVP_THREAT_ESCALATION_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "deterministicSeed": 25002501,
+  "priorIndependentReview": {
+    "goal024A": "ACCEPT",
+    "goal024": "ACCEPT",
+    "acceptedBaseline": "922f72c0d422904dcbdc6215a5cc1167a1bb84fb",
+    "findings": {
+      "R024A-01": "CLOSED",
+      "R024A-02": "CLOSED",
+      "R024A-03": "CLOSED"
+    }
+  },
+  "artificialFileCountLimit": null,
+  "fileExpansionPolicy": "Pre-audited exact read/change set; additional High Five files may be read/changed only when exact call-path necessity is documented.",
+  "productionDatabaseUseAllowed": false,
+  "newSqlExpected": false,
+  "reviewZipRequired": false,
+  "payloadSha256": {
+    "docs/phantoms/tasks/025-pvp-threat-escalation/ACCEPTANCE.md": "6EF87168F4C24E7C62C7C10D4503CF242D0319C0DC8E58B51FD255B0C14C3CBC",
+    "docs/phantoms/tasks/025-pvp-threat-escalation/ARCHITECTURE.md": "2BFBF755FCD0C05A23541A8737DA86492B19749BA7027C2654EC34245707584E",
+    "docs/phantoms/tasks/025-pvp-threat-escalation/CODEX_LAUNCHER.txt": "C7F8F225DF996D7E0A5EE0B9A9C57FF48B5D7E7991CEF52B5963E0A4AFC60375",
+    "docs/phantoms/tasks/025-pvp-threat-escalation/CONTEXT.md": "134601AAB7D68856191E11695B74323989B76FBD06823153504587065F77391A",
+    "docs/phantoms/tasks/025-pvp-threat-escalation/PRIOR_INDEPENDENT_REVIEW.md": "6621693A2E98B7B351D77D01DB44B4CF8738631DFFD5CBF593E6F707DF09B33F",
+    "docs/phantoms/tasks/025-pvp-threat-escalation/TASK.md": "DF1AE73B73E99F6189FFBFDBA7D62F6BFC22BA70595B647B57B8FBC9FDD36E07",
+    "docs/phantoms/tasks/025-pvp-threat-escalation/TEST_CASES.md": "C2A4160B7603C3065ABC02119BC10A0D9843EBB8889D103E1BD8DB35C5309A64"
+  },
+  "manifestSelfHashExcluded": true
+}

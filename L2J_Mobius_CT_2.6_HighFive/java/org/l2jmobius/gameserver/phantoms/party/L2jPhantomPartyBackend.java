@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
@@ -23,6 +24,7 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService.MembershipOu
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.RespondResult;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.Response;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PvpProtection;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
@@ -146,6 +148,50 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final List<MemberCapability> capabilities = member.kind() == MemberKind.PHANTOM ? phantomCapabilities(member.profileId(), 0) : realCapabilities(player, 0);
 			final String progressionHash = _progression.findCatalog().map(catalog -> catalog.combinedHash()).orElse("0".repeat(64));
 			return Optional.of(new MemberSnapshot(member, player.getActiveClass(), player.getInstanceId(), player.getX(), player.getY(), player.getZ(), percent(player.getCurrentHp(), player.getMaxHp()), percent(player.getCurrentMp(), player.getMaxMp()), percent(player.getCurrentCp(), player.getMaxCp()), player.isDead(), player.isCastingNow(), player.isAttackingNow(), player.isMoving(), target == null ? 0 : target.getObjectId(), attackers, capabilities, progressionHash));
+		}
+	}
+
+	@Override
+	public List<PvpProtection> pvpProtection(MemberRef helper, int limit)
+	{
+		if ((helper == null) || (helper.kind() != MemberKind.PHANTOM) || (limit < 1) || (limit > 8))
+		{
+			return List.of();
+		}
+		try (AcquiredPlayer acquired = acquire(helper))
+		{
+			if ((acquired == null) || (acquired.player().getParty() == null))
+			{
+				return List.of();
+			}
+			final Player helperPlayer = acquired.player();
+			final Party party = helperPlayer.getParty();
+			final TreeMap<String, PvpProtection> evidence = new TreeMap<>();
+			for (Player protectedPlayer : party.getMembers())
+			{
+				if ((protectedPlayer == helperPlayer) || protectedPlayer.isDead() || protectedPlayer.isAlikeDead() || (protectedPlayer.getInstanceId() != helperPlayer.getInstanceId()))
+				{
+					continue;
+				}
+				for (Creature creature : protectedPlayer.getAttackByList())
+				{
+					if (!(creature instanceof Player attacker) || attacker.isDead() || attacker.isAlikeDead() || (attacker.getInstanceId() != helperPlayer.getInstanceId()) || (attacker.getParty() == party))
+					{
+						continue;
+					}
+					final boolean currentAttack = (attacker.getTarget() == protectedPlayer) || (attacker.hasAI() && (attacker.getAI().getAttackTarget() == protectedPlayer));
+					if (currentAttack)
+					{
+						final PvpProtection item = new PvpProtection(reference(protectedPlayer), attacker.getObjectId());
+						evidence.put(item.protectedMember().stableKey() + ':' + item.attackerObjectId(), item);
+						if (evidence.size() > limit)
+						{
+							evidence.pollLastEntry();
+						}
+					}
+				}
+			}
+			return List.copyOf(evidence.values());
 		}
 	}
 

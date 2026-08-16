@@ -22,6 +22,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog.ProposalPolicy;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ActionState;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionReceipt;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionState;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationBinding;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationResponse;
@@ -74,6 +75,25 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		};
 
 		void beforeBoundary(Phase phase, long profileId);
+	}
+
+	public enum OutboundSubmissionStatus
+	{
+		ACCEPTED,
+		IDEMPOTENT,
+		CAPACITY_REACHED,
+		NOT_RUNNING,
+		INVALID,
+		RETRY
+	}
+
+	public record OutboundSubmission(OutboundSubmissionStatus status, String planId)
+	{
+		public OutboundSubmission
+		{
+			Objects.requireNonNull(status);
+			planId = Objects.requireNonNull(planId);
+		}
 	}
 
 	public record Snapshot(State state, String catalogHash, int ready, int delayed, int membership, int claims, boolean pulseOwned, boolean recoveryDone, long recoveryCursor, long signals, long signalDrops, long pages, long entriesLoaded, long queries, long goalsSubmitted, long partyResponses, long outboundDispatches, long sent, long uncertain, long terminalReceipts, long conflicts, long failures, long maximumOperationsPerPulse)
@@ -160,6 +180,77 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		}
 		_signals.increment();
 		signal(plan.ownerProfileId());
+	}
+
+	/**
+	 * Persists a typed, proposal-free outbound entry before it can be dispatched.
+	 */
+	public OutboundSubmission submitOutbound(long profileId, ExecutionEntry entry)
+	{
+		if ((profileId <= 0) || (entry == null) || (entry.proposalKey() != null) || (entry.actionState() != ActionState.NONE) || (entry.outboundState() != OutboundState.PREPARED))
+		{
+			return new OutboundSubmission(OutboundSubmissionStatus.INVALID, entry == null ? "" : entry.planId());
+		}
+		if (_state != State.RUNNING)
+		{
+			return new OutboundSubmission(OutboundSubmissionStatus.NOT_RUNNING, entry.planId());
+		}
+		_claims.incrementAndGet();
+		try
+		{
+			if (_state != State.RUNNING)
+			{
+				return new OutboundSubmission(OutboundSubmissionStatus.NOT_RUNNING, entry.planId());
+			}
+			for (int attempt = 0; attempt < 3; attempt++)
+			{
+				try
+				{
+					final var result = _store.enqueueOutbound(profileId, entry);
+					switch (result.status())
+					{
+						case SAVED:
+							signal(profileId);
+							return new OutboundSubmission(OutboundSubmissionStatus.ACCEPTED, entry.planId());
+						case DUPLICATE:
+							signal(profileId);
+							return new OutboundSubmission(OutboundSubmissionStatus.IDEMPOTENT, entry.planId());
+						case CAPACITY_REACHED:
+							return new OutboundSubmission(OutboundSubmissionStatus.CAPACITY_REACHED, entry.planId());
+					}
+				}
+				catch (java.util.ConcurrentModificationException exception)
+				{
+					_conflicts.increment();
+				}
+				catch (RuntimeException exception)
+				{
+					_failures.increment();
+					return new OutboundSubmission(OutboundSubmissionStatus.RETRY, entry.planId());
+				}
+			}
+			return new OutboundSubmission(OutboundSubmissionStatus.RETRY, entry.planId());
+		}
+		finally
+		{
+			_claims.decrementAndGet();
+		}
+	}
+
+	public Optional<ExecutionReceipt> outboundReceipt(long profileId, String planId)
+	{
+		if ((profileId <= 0) || (planId == null) || (planId.length() != 64))
+		{
+			return Optional.empty();
+		}
+		try
+		{
+			return _store.load(profileId).flatMap(stored -> stored.state().receipts().stream().filter(receipt -> receipt.planId().equals(planId)).findFirst());
+		}
+		catch (RuntimeException exception)
+		{
+			return Optional.empty();
+		}
 	}
 
 	@Override

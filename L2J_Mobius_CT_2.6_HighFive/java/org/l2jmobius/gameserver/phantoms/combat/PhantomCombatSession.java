@@ -12,6 +12,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.CleanupStat
 public final class PhantomCombatSession
 {
 	final PhantomCombatRequest _request;
+	final PhantomPvpCombatRequest _pvpRequest;
 	final long _generation;
 	final long _startedLogicalNanos;
 	final PhantomCombatThreatTable _threatTable;
@@ -38,6 +39,18 @@ public final class PhantomCombatSession
 	PhantomCombatSession(PhantomCombatRequest request, long generation, long startedLogicalNanos, int maximumThreatEntries)
 	{
 		_request = request;
+		_pvpRequest = null;
+		_generation = generation;
+		_startedLogicalNanos = startedLogicalNanos;
+		_lastPulseLogicalNanos = startedLogicalNanos;
+		_threatTable = new PhantomCombatThreatTable(maximumThreatEntries);
+		_ownedAction = new PhantomOwnedAction(generation, request.targetObjectId(), null, 0);
+	}
+
+	PhantomCombatSession(PhantomPvpCombatRequest request, long generation, long startedLogicalNanos, int maximumThreatEntries)
+	{
+		_pvpRequest = request;
+		_request = request.leaseRequest();
 		_generation = generation;
 		_startedLogicalNanos = startedLogicalNanos;
 		_lastPulseLogicalNanos = startedLogicalNanos;

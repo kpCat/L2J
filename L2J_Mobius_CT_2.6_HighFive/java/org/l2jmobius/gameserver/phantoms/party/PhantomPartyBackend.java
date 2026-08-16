@@ -41,7 +41,23 @@ public interface PhantomPartyBackend
 
 	List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId);
 
+	default List<PvpProtection> pvpProtection(MemberRef helper, int limit)
+	{
+		return List.of();
+	}
+
 	boolean materialize(long profileId);
+
+	record PvpProtection(MemberRef protectedMember, int attackerObjectId)
+	{
+		public PvpProtection
+		{
+			if ((protectedMember == null) || (attackerObjectId <= 0))
+			{
+				throw new IllegalArgumentException("Invalid exact Party PvP protection evidence.");
+			}
+		}
+	}
 
 	record PartySnapshot(MemberRef leader, List<MemberRef> members, PartyDistributionType distribution)
 	{

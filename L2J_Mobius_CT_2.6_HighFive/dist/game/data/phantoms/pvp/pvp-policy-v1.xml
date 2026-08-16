@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pvpThreatPolicy id="high-five-pvp-threat-v1" version="1">
+	<limits observedAttackerLimit="16" localRiskPlayerLimit="24" profilesPerPulse="16" combatTimeoutSeconds="45" retreatTimeoutSeconds="30" cpPotionThresholdPercent="30" encounterTtlSeconds="120" warningDelaySeconds="5" pairCooldownSeconds="300" maxProactiveEngagementsPerPair="1" helpFanout="8" retreatHpPercent="25" retreatEffectivePoolPercent="30" engageMinimumStrengthBasisPoints="8500" forcedPkMaximumRiskBasisPoints="3500"/>
+</pvpThreatPolicy>

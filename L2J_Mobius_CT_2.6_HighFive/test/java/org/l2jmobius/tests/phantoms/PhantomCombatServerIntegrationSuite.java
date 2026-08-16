@@ -43,6 +43,7 @@ import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
 import org.l2jmobius.gameserver.data.SpawnTable;
+import org.l2jmobius.gameserver.config.PvpConfig;
 import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.managers.InstanceManager;
 import org.l2jmobius.gameserver.managers.ItemManager;
@@ -95,8 +96,12 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.Acquisition
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionUse;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConsequenceSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
@@ -105,6 +110,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomPvpCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatResult;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomRespawnRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.CancelStatus;
@@ -161,11 +167,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		BASELINE,
 		ACQUISITION,
 		MANOR,
-		QUEST
+		QUEST,
+		PVP
 	}
 
 	private static final long ACQUISITION_SEED = 21002101L;
 	private static final long CHECKPOINT_2_SEED = 21002102L;
+	private static final long PVP_SEED = 25002501L;
+	private static final String PVP_AUTHORITY_HASH = "A".repeat(64);
 	private static final int MELEE_CLASS_ID = 88;
 	private static final int MAGIC_CLASS_ID = 94;
 	private static final int MAGIC_SKILL_ID = 1339;
@@ -229,6 +238,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	{
 		return switch (_mode)
 		{
+			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
 			case MANOR -> "acquisition-manor-active";
 			case QUEST -> "acquisition-quest-active";
@@ -246,6 +256,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		else if ((_mode == Mode.MANOR) || (_mode == Mode.QUEST))
 		{
 			PhantomAssertions.assertEquals(CHECKPOINT_2_SEED, context.seed(), "Goal 021 Checkpoint 2 active mode used the wrong seed.");
+		}
+		else if (_mode == Mode.PVP)
+		{
+			PhantomAssertions.assertEquals(PVP_SEED, context.seed(), "Goal 025 PvP mode used the wrong seed.");
 		}
 		_moduleRoot = context.moduleRoot();
 		_environment.initialize(context);
@@ -368,6 +382,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.PVP)
+		{
+			registry.add("01-canonical-player-forced-physical-path", _ -> testPvpPhysical());
+			registry.add("02-canonical-player-use-magic-path", _ -> testPvpMagic());
+			registry.add("03-canonical-cp-handler-and-consequence-truth", _ -> testPvpCpAndConsequences());
+			registry.add("04-canonical-pvp-pk-karma-outcomes", _ -> testPvpReputationOutcomes());
+			return;
+		}
 		if (_mode == Mode.ACQUISITION)
 		{
 			registry.add("01-exact-target-skill-distance-instance-and-ownership", _ -> testAcquisitionControls());
@@ -1415,6 +1437,182 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(Double.compare(first.currentCp(), firstCp) == 0, "Immutable combat snapshot changed after canonical CP mutation.");
 	}
 
+	private void testPvpPhysical() throws Exception
+	{
+		resetActor(true);
+		final Player target = preparePvpTarget();
+		final double initialHp = target.getCurrentHp();
+		final double initialCp = target.getCurrentCp();
+		final PhantomCombatService.StartResult started = _combat.startPvpSession(pvpRequest(target, org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK, PhantomCombatMode.MELEE_PHYSICAL, false));
+		PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Real Player physical PvP was not accepted.");
+		await(() -> _player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == target), "Canonical target.onForcedAttack did not establish the exact Player attack.");
+		PhantomAssertions.assertTrue((target.getCurrentHp() <= initialHp) && (target.getCurrentCp() <= initialCp), "Canonical physical PvP fabricated target HP or CP.");
+		PhantomAssertions.assertEquals(CancelStatus.CANCELLED_CLEAN, _combat.cancel(_profile.profileId()), "Physical PvP session did not release exact combat ownership.");
+		consumeTerminal();
+	}
+
+	private void testPvpMagic() throws Exception
+	{
+		resetActor(true);
+		final Player target = preparePvpTarget();
+		_player.setPlayerClass(MAGIC_CLASS_ID);
+		_player.getStat().setLevel((byte) 85);
+		final Skill skill = SkillData.getInstance().getSkill(MAGIC_SKILL_ID, 1);
+		PhantomAssertions.assertTrue(skill != null, "Deterministic PvP offensive skill is unavailable.");
+		_player.addSkill(skill, false);
+		_player.setCurrentMp(_player.getMaxMp());
+		final double initialHp = target.getCurrentHp();
+		final double initialCp = target.getCurrentCp();
+		final double initialMp = _player.getCurrentMp();
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			PhantomAssertions.assertTrue(lease.supportsPvpSkill(new SelectedSkill(MAGIC_SKILL_ID, 1), PhantomCombatMode.RANGED_MAGIC), "Real hostile one-target PvP skill was rejected.");
+		}
+		final PhantomCombatService.StartResult started = _combat.startPvpSession(pvpRequest(target, org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.REVENGE, PhantomCombatMode.RANGED_MAGIC, true));
+		PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Real Player skill PvP was not accepted.");
+		await(() -> _player.isCastingNow() || (_player.getCurrentSkill() != null) || (target.getCurrentHp() < initialHp) || (target.getCurrentCp() < initialCp) || (_player.getCurrentMp() < initialMp), "Canonical Player.useMagic produced no observable cast state or effect.");
+		PhantomAssertions.assertTrue((_player.getCurrentMp() <= initialMp) && (target.getCurrentHp() <= initialHp) && (target.getCurrentCp() <= initialCp), "Canonical PvP cast fabricated HP, CP or MP.");
+		PhantomAssertions.assertEquals(CancelStatus.CANCELLED_CLEAN, _combat.cancel(_profile.profileId()), "Skill PvP session did not release exact combat ownership.");
+		consumeTerminal();
+	}
+
+	private void testPvpCpAndConsequences()
+	{
+		resetActor(true);
+		final Player target = preparePvpTarget();
+		final double initialHp = target.getMaxHp();
+		final double initialCp = target.getMaxCp();
+		PhantomAssertions.assertTrue(initialCp > 1, "PvP fixture has no usable canonical CP pool.");
+		target.setCurrentHp(initialHp);
+		target.setCurrentCp(initialCp);
+		final double damage = Math.max(1, Math.min(25, Math.floor(initialCp / 2)));
+		target.reduceCurrentHp(damage, _player, null);
+		PhantomAssertions.assertTrue(target.getCurrentCp() < initialCp, "Canonical PlayerStatus did not consume CP first.");
+		PhantomAssertions.assertTrue(Double.compare(target.getCurrentHp(), initialHp) == 0, "Canonical PlayerStatus bypassed remaining CP and reduced HP.");
+
+		final long baseline5591 = _player.getInventory().getInventoryItemCount(5591, -1);
+		final long baseline5592 = _player.getInventory().getInventoryItemCount(5592, -1);
+		try
+		{
+			PhantomAssertions.assertTrue(_player.getInventory().addItem(ItemProcessType.REWARD, 5591, 1, _player, this) != null, "Could not create test-owned CP Potion.");
+			PhantomAssertions.assertTrue(_player.getInventory().addItem(ItemProcessType.REWARD, 5592, 1, _player, this) != null, "Could not create test-owned Greater CP Potion.");
+			_player.setTarget(null);
+			_player.setCurrentCp(Math.max(0, _player.getMaxCp() - 1000));
+			try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				final List<CpPotionSnapshot> stock = lease.cpPotions();
+				final CpPotionSnapshot normal = stock.stream().filter(value -> value.itemId() == 5591).findFirst().orElseThrow(() -> new AssertionError("Real stock 5591 was not source-derived."));
+				final CpPotionSnapshot greater = stock.stream().filter(value -> value.itemId() == 5592).findFirst().orElseThrow(() -> new AssertionError("Real stock 5592 was not source-derived."));
+				PhantomAssertions.assertTrue((normal.skillId() == 2166) && (normal.skillLevel() == 1), "Item 5591 did not expose source-derived skill 2166/1.");
+				PhantomAssertions.assertTrue((greater.skillId() == 2166) && (greater.skillLevel() == 2), "Item 5592 did not expose source-derived skill 2166/2.");
+				final CpPotionUse used = lease.useCpPotion(normal.itemObjectId(), normal.itemId());
+				PhantomAssertions.assertEquals(CpPotionOutcome.OBSERVED_SUCCESS, used.outcome(), "Registered ItemSkills did not produce observed CP potion success.");
+				PhantomAssertions.assertTrue((used.countAfter() < used.countBefore()) && ((used.cpAfter() > used.cpBefore()) || (used.observedReuseMillis() > 0)), "CP potion success lacked observed canonical inventory/CP/reuse truth.");
+
+				final PvpConsequenceSnapshot consequences = lease.pvpConsequences(target.getObjectId());
+				PhantomAssertions.assertTrue(consequences != null, "Canonical PvP consequence snapshot is absent.");
+				PhantomAssertions.assertTrue((consequences.pvpFlag() == _player.getPvpFlag()) && (consequences.karma() == _player.getKarma()) && (consequences.pvpKills() == _player.getPvpKills()) && (consequences.pkKills() == _player.getPkKills()), "PvP consequence snapshot diverged from canonical Player truth.");
+				PhantomAssertions.assertTrue((consequences.normalPvpDurationMillis() == PvpConfig.PVP_NORMAL_TIME) && (consequences.pvpFlagDurationMillis() == PvpConfig.PVP_PVP_TIME) && (consequences.minimumPkForDrop() == PvpConfig.KARMA_PK_LIMIT), "PvP consequence snapshot diverged from canonical PvpConfig.");
+				PhantomAssertions.assertTrue((consequences.karmaDropLimit() == RatesConfig.KARMA_DROP_LIMIT) && (Double.compare(consequences.weaponDropChance(), RatesConfig.KARMA_RATE_DROP_EQUIP_WEAPON) == 0) && (Double.compare(consequences.equipmentDropChance(), RatesConfig.KARMA_RATE_DROP_EQUIP) == 0) && (Double.compare(consequences.inventoryDropChance(), RatesConfig.KARMA_RATE_DROP_ITEM) == 0), "Drop risk snapshot diverged from canonical RatesConfig.");
+			}
+			final var observation = _combat.observePvp(_profile.profileId(), List.of(target.getObjectId()), 16, 1).orElseThrow(() -> new AssertionError("Bounded exact PvP observation is absent."));
+			PhantomAssertions.assertEquals(1, observation.targets().size(), "Local risk scan created a victim candidate outside the exact causal target.");
+			PhantomAssertions.assertEquals(target.getObjectId(), observation.targets().getFirst().target().objectId(), "Bounded PvP observation changed the exact causal target.");
+			PhantomAssertions.assertTrue((observation.targets().getFirst().localSupport().limit() == 1) && (observation.targets().getFirst().localSupport().observedPlayers() <= 1), "Local PvP support observation exceeded its configured cap.");
+		}
+		finally
+		{
+			destroyInventoryCount(_player, 5591, _player.getInventory().getInventoryItemCount(5591, -1) - baseline5591);
+			destroyInventoryCount(_player, 5592, _player.getInventory().getInventoryItemCount(5592, -1) - baseline5592);
+		}
+	}
+
+	private void testPvpReputationOutcomes() throws Exception
+	{
+		resetActor(true);
+		final Player target = preparePvpTarget();
+		final int actorPvpFlag = _player.getPvpFlag();
+		final long actorPvpFlagLasts = _player.getPvpFlagLasts();
+		final int actorPvpKills = _player.getPvpKills();
+		final int actorPkKills = _player.getPkKills();
+		final int actorKarma = _player.getKarma();
+		final int targetPvpFlag = target.getPvpFlag();
+		final long targetPvpFlagLasts = target.getPvpFlagLasts();
+		final int targetKarma = target.getKarma();
+		final long targetExp = target.getExp();
+		final long targetSp = target.getSp();
+		final int targetDeathPenalty = target.getDeathPenaltyBuffLevel();
+		final boolean antiFeed = PvpConfig.ANTIFEED_ENABLE;
+		try
+		{
+			PvpConfig.ANTIFEED_ENABLE = false;
+			_player.stopPvpRegTask();
+			_player.setPvpFlag(0);
+			_player.setPvpFlagLasts(0);
+			_player.setKarma(0);
+			target.setKarma(0);
+			target.setPvpFlag(1);
+			target.setPvpFlagLasts(System.currentTimeMillis() + PvpConfig.PVP_PVP_TIME);
+			final PhantomCombatService.StartResult started = _combat.startPvpSession(pvpRequest(target, org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK, PhantomCombatMode.MELEE_PHYSICAL, false));
+			PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Canonical flagged-target PvP did not start.");
+			await(() -> _player.getPvpFlag() != 0, "Canonical physical Player attack did not update the actor PvP flag.");
+			PhantomAssertions.assertEquals(CancelStatus.CANCELLED_CLEAN, _combat.cancel(_profile.profileId()), "Flagged-target PvP ownership did not release.");
+			consumeTerminal();
+
+			final int pvpBefore = _player.getPvpKills();
+			final int pkBeforePvp = _player.getPkKills();
+			final int karmaBeforePvp = _player.getKarma();
+			PhantomAssertions.assertTrue(target.doDie(_player), "Could not execute canonical flagged Player death.");
+			PhantomAssertions.assertEquals(pvpBefore + 1, _player.getPvpKills(), "Canonical flagged Player death did not increment PvP kills.");
+			PhantomAssertions.assertEquals(pkBeforePvp, _player.getPkKills(), "Canonical flagged Player death was misclassified as PK.");
+			PhantomAssertions.assertEquals(karmaBeforePvp, _player.getKarma(), "Canonical flagged Player death fabricated karma.");
+
+			target.doRevive();
+			target.setCurrentHp(target.getMaxHp());
+			target.setCurrentMp(target.getMaxMp());
+			target.setCurrentCp(target.getMaxCp());
+			target.setPvpFlag(0);
+			target.setPvpFlagLasts(0);
+			target.setKarma(0);
+			_player.stopPvpRegTask();
+			_player.setPvpFlag(0);
+			_player.setPvpFlagLasts(0);
+			_player.setKarma(0);
+			final int pkBefore = _player.getPkKills();
+			final int pvpBeforePk = _player.getPvpKills();
+			PhantomAssertions.assertTrue(target.doDie(_player), "Could not execute canonical neutral Player death.");
+			PhantomAssertions.assertEquals(pkBefore + 1, _player.getPkKills(), "Canonical neutral Player death did not increment PK kills.");
+			PhantomAssertions.assertEquals(pvpBeforePk, _player.getPvpKills(), "Canonical neutral Player death was misclassified as PvP.");
+			PhantomAssertions.assertTrue(_player.getKarma() > 0, "Canonical neutral Player death did not produce karma.");
+		}
+		finally
+		{
+			_combat.cancel(_profile.profileId());
+			consumeTerminal();
+			if (target.isDead())
+			{
+				target.doRevive();
+			}
+			_player.stopPvpRegTask();
+			_player.setPvpFlag(actorPvpFlag);
+			_player.setPvpFlagLasts(actorPvpFlagLasts);
+			_player.setPvpKills(actorPvpKills);
+			_player.setPkKills(actorPkKills);
+			_player.setKarma(actorKarma);
+			target.stopPvpRegTask();
+			target.setPvpFlag(targetPvpFlag);
+			target.setPvpFlagLasts(targetPvpFlagLasts);
+			target.setKarma(targetKarma);
+			target.getStat().setExp(targetExp);
+			target.setSp(targetSp);
+			target.setDeathPenaltyBuffLevel(targetDeathPenalty);
+			target.setCurrentHp(target.getMaxHp());
+			target.setCurrentMp(target.getMaxMp());
+			target.setCurrentCp(target.getMaxCp());
+			PvpConfig.ANTIFEED_ENABLE = antiFeed;
+		}
+	}
+
 	private void testCanonicalAttack() throws Exception
 	{
 		resetActor(true);
@@ -1818,6 +2016,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		return new PhantomCombatRequest(_profile.profileId(), targetObjectId, mode, false, false, 30_000, () -> false);
 	}
 
+	private PhantomPvpCombatRequest pvpRequest(Player target, org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source source, PhantomCombatMode mode, boolean forceUse)
+	{
+		return new PhantomPvpCombatRequest(_profile.profileId(), target.getObjectId(), source, PVP_AUTHORITY_HASH, mode, forceUse, false, 1, 30_000, () -> false);
+	}
+
 	private PhantomCombatSessionSnapshot awaitTerminal() throws Exception
 	{
 		await(() -> _combat.find(_profile.profileId()).map(snapshot -> snapshot.result().terminal()).orElse(false), "Combat session did not become terminal.");
@@ -1851,6 +2054,32 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_observer.spawnMe();
 		}
 		return _observer;
+	}
+
+	private Player preparePvpTarget()
+	{
+		final Player target = ensureObserver();
+		if (target.isDead())
+		{
+			target.doRevive();
+		}
+		target.abortAttack();
+		target.abortCast();
+		target.setInvul(false);
+		target.setTarget(null);
+		target.getAI().setIntention(Intention.IDLE);
+		target.getStat().setLevel((byte) 85);
+		target.setCurrentHp(target.getMaxHp());
+		target.setCurrentMp(target.getMaxMp());
+		target.setCurrentCp(target.getMaxCp());
+		if (target.isSpawned())
+		{
+			target.decayMe();
+		}
+		target.setXYZInvisible(_player.getX() + 30, _player.getY(), _player.getZ());
+		target.spawnMe();
+		target.revalidateZone(true);
+		return target;
 	}
 
 	private static LootCandidate exactCandidate(PhantomCombatActorLease lease, Item item)

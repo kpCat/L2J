@@ -214,6 +214,7 @@ public final class PhantomTestLauncher
 			case "combat-ownership" -> new PhantomCombatOwnershipSuite();
 			case "combat-action-ownership" -> new PhantomCombatActionOwnershipSuite();
 			case "combat-server-integration" -> new PhantomCombatServerIntegrationSuite();
+			case "pvp-combat-server-integration" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.PVP);
 			case "combat-performance" -> new PhantomCombatPerformanceSuite();
 			case "progression-parity" -> new PhantomProgressionParitySuite();
 			case "progression-catalog" -> new PhantomProgressionCatalogSuite();
@@ -359,6 +360,14 @@ public final class PhantomTestLauncher
 			case "farming-lifecycle-performance" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "farming-lifecycle-corrections" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.LIFECYCLE_CORRECTIONS);
 			case "farming-restart-corrections" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.RESTART_CORRECTIONS);
+			case "pvp-policy" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.POLICY);
+			case "pvp-admission" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.ADMISSION);
+			case "pvp-combat" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.COMBAT);
+			case "pvp-cp" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.CP);
+			case "pvp-party-help" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.PARTY_HELP);
+			case "pvp-warning-social" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.WARNING_SOCIAL);
+			case "pvp-restart" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.RESTART);
+			case "pvp-performance" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.PERFORMANCE);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};
