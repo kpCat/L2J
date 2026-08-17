@@ -91,8 +91,10 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 		DECISION
 	}
 
-	private static final long SEED = 26002641L;
+	private static final long CP4_SEED = 26002641L;
+	private static final long SEED = 26002642L;
 	private static final long NOW = 1_000_000L;
+	private static final long LOGICAL_NOW = 9_000_000_000_000L;
 	private static final long DEADLINE = NOW + 1_000_000L;
 	private static final String HASH = "0".repeat(64);
 	private static final String LIVE_CONTENT = "raid.cp4.live";
@@ -125,7 +127,7 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(SEED, context.seed(), "CP4 suite used the wrong deterministic seed.");
+		PhantomAssertions.assertTrue((context.seed() == CP4_SEED) || (context.seed() == SEED), "Raid assembly suite used an unsupported deterministic seed.");
 		_topology = topology(true);
 		_emptyTopology = topology(false);
 		_temporaryRoot = context.reportsDirectory().resolve("raid-assembly-" + _mode.name().toLowerCase(java.util.Locale.ROOT) + "-" + ProcessHandle.current().pid());
@@ -169,7 +171,7 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 		{
 			worker.run();
 			return true;
-		}, () -> NOW, new PhantomMetrics());
+		}, () -> LOGICAL_NOW, new PhantomMetrics());
 		PhantomAssertions.assertTrue(_navigation.start(), "CP4 navigation fixture did not start.");
 		_combat = new PhantomCombatService(PhantomCombatBackend.inert(), new PhantomCombatCapabilityResolver(_ -> List.of()), PhantomCombatPolicy.productionDefaults(64));
 		_combat.start();
@@ -313,6 +315,8 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(StagingSource.LIVE_BOSS, ready.readyReceipt().centre().source(), "Shipped no-anchor content did not use exact live boss fallback.");
 				PhantomAssertions.assertEquals(11800, ready.readyReceipt().slots().getFirst().point().x(), "Live fallback did not apply deterministic 1800 stand-off.");
 				PhantomAssertions.assertTrue(ready.readyReceipt().finalReadiness().groupReady(), "READY receipt lacks fresh CP1 GROUP_READY evidence.");
+				PhantomAssertions.assertEquals(0, fixture.service.snapshot().activeAssemblies(), "READY assembly retained live capacity.");
+				PhantomAssertions.assertEquals(ready.readyReceipt(), fixture.service.readyReceipt(1).orElseThrow(), "READY receipt did not survive live-state release.");
 			}
 		});
 		registry.add("03-force-and-live-centre-drift-cancel-routes-and-reassemble", _ ->
@@ -335,7 +339,24 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(0, _routes.snapshot().routeClaims(), "Live centre drift retained stale routes.");
 			}
 		});
-		registry.add("04-staging-priority-and-negative-movement-scope", context ->
+		registry.add("04-divergent-wall-and-logical-clocks-preserve-future-route-deadline", _ ->
+		{
+			try (Fixture fixture = readyFixture(_topology, LIVE_CONTENT, null))
+			{
+				PhantomAssertions.assertEquals(AssemblyStatus.GATHERING, fixture.service.advance(1, 10, 0).status(), "Future wall-clock goal did not enter gathering.");
+				PhantomAssertions.assertEquals(AssemblyStatus.GATHERING, fixture.service.advance(1, 10, 0).status(), "Divergent logical clock caused immediate route deadline expiry.");
+				PhantomAssertions.assertEquals(3, _routes.snapshot().routeClaims(), "Divergent clock fixture did not retain logical-domain routes.");
+			}
+			try (Fixture fixture = fixture(_topology))
+			{
+				fixture.party.profile(LEADER);
+				fixture.party.force(LEADER, standalone(LEADER, member(LEADER, tank(true))));
+				final PhantomGoal expired = prepare(1, 11, 0, LIVE_CONTENT, List.of(), null, NOW);
+				fixture.goals.put(1, expired);
+				PhantomAssertions.assertEquals(AssemblyStatus.EXPIRED, fixture.service.advance(1, 11, 0).status(), "Expired wall-clock goal did not expire.");
+			}
+		});
+		registry.add("05-staging-priority-and-negative-movement-scope", context ->
 		{
 			try (Fixture fixture = readyFixture(_topology, ANCHOR_CONTENT, new PhantomDomainRef("topology.anchor", "raid.goal.anchor")))
 			{
@@ -405,6 +426,82 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(system.indexOf("_raidAssemblyService.beginStop()") < system.indexOf("_combatService.beginStop()"), "Assembly cleanup does not precede Combat teardown.");
 			PhantomAssertions.assertTrue(system.indexOf("_raidAssemblyService.beginStop()") < system.indexOf("_navigationService.beginStop()"), "Assembly cleanup does not precede Navigation teardown.");
 		});
+		registry.add("03-terminal-history-releases-capacity-and-preserves-exact-revision", _ ->
+		{
+			try (Fixture fixture = fixture(_topology))
+			{
+				for (int index = 0; index < PhantomRaidAssemblyService.MAX_ACTIVE_ASSEMBLIES; index++)
+				{
+					final long profileId = 1000L + index;
+					final long goalId = 5000L + index;
+					final MemberRef actor = MemberRef.phantom(profileId, 10000 + index);
+					fixture.party.profile(actor);
+					fixture.party.force(actor, standalone(actor, member(actor, tank(true))));
+					fixture.goals.put(profileId, prepare(profileId, goalId, 0, LIVE_CONTENT, List.of(), null, DEADLINE));
+					PhantomAssertions.assertTrue(fixture.service.advance(profileId, goalId, 0).status().terminal(), "Cheap assembly did not terminalize.");
+				}
+				PhantomAssertions.assertEquals(0, fixture.service.snapshot().activeAssemblies(), "64 terminal assemblies retained active capacity.");
+				PhantomAssertions.assertEquals(64, fixture.service.snapshot().terminalAssemblies(), "Terminal history did not retain the exact 64 identities.");
+				final var prior = fixture.service.advance(1000, 5000, 0);
+				final var repeated = fixture.service.advance(1000, 5000, 0);
+				PhantomAssertions.assertEquals(prior, repeated, "Exact terminal identity was not idempotent.");
+
+				final MemberRef revisionCandidate = MemberRef.phantom(3000, 30000);
+				fixture.party.profile(revisionCandidate);
+				fixture.party.force(revisionCandidate, standalone(revisionCandidate, member(revisionCandidate, heal(true))));
+				fixture.goals.put(1000, prepare(1000, 5000, 1, LIVE_CONTENT, List.of(new PhantomDomainRef("profile", "3000")), null, DEADLINE));
+				PhantomAssertions.assertEquals(AssemblyStatus.WAITING_CONSENT, fixture.service.advance(1000, 5000, 1).status(), "Newer goal revision was shadowed by terminal history.");
+				PhantomAssertions.assertFalse(fixture.service.cancel(1000, 5000, 0, "test.stale"), "Stale cancel affected a newer live revision.");
+				PhantomAssertions.assertEquals(1, fixture.service.snapshot().activeAssemblies(), "Stale cancel released newer live revision.");
+				PhantomAssertions.assertTrue(fixture.service.cancel(1000, 5000, 1, "test.cleanup"), "Exact newer revision cleanup failed.");
+
+				final MemberRef leader65 = MemberRef.phantom(2000, 20000);
+				final MemberRef candidate65 = MemberRef.phantom(3001, 30001);
+				fixture.party.profile(leader65);
+				fixture.party.profile(candidate65);
+				fixture.party.force(leader65, standalone(leader65, member(leader65, tank(true))));
+				fixture.party.force(candidate65, standalone(candidate65, member(candidate65, heal(true))));
+				fixture.goals.put(2000, prepare(2000, 6000, 0, LIVE_CONTENT, List.of(new PhantomDomainRef("profile", "3001")), null, DEADLINE));
+				PhantomAssertions.assertEquals(AssemblyStatus.WAITING_CONSENT, fixture.service.advance(2000, 6000, 0).status(), "65th distinct live leader was rejected after 64 terminal assemblies.");
+				PhantomAssertions.assertEquals(1, fixture.service.snapshot().activeAssemblies(), "65th leader was not admitted as live state.");
+				PhantomAssertions.assertTrue(fixture.service.snapshot().terminalAssemblies() <= PhantomRaidAssemblyService.MAX_RECEIPTS, "Terminal history exceeded its bound.");
+			}
+		});
+		registry.add("04-late-participation-completes-only-for-exact-ready-force-member", _ ->
+		{
+			try (Fixture fixture = readyFixture(_topology, LIVE_CONTENT, null))
+			{
+				final PhantomGoal participantGoal = participate(20, LIVE_CONTENT);
+				fixture.goals.put(2, participantGoal);
+				fixture.goals.put(3, participate(30, LIVE_CONTENT));
+				final PhantomRaidDecision decision = new PhantomRaidDecision(fixture.service);
+				final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
+				decision.registerHandlers(handlers);
+				handlers.seal();
+				fixture.service.advance(1, 10, 0);
+				fixture.service.advance(1, 10, 0);
+				fixture.party.readyForceAtLiveSlots(false);
+				fixture.service.advance(1, 10, 0);
+				PhantomAssertions.assertEquals(AssemblyStatus.READY_AT_STAGING, fixture.service.advance(1, 10, 0).status(), "Late participation fixture did not reach READY.");
+				final PhantomStepResult late = execute(handlers, PhantomRaidDecision.PARTICIPATE_ACTION, PhantomRaidDecision.PARTICIPATE_CANDIDATE, 2, participantGoal, false);
+				PhantomAssertions.assertEquals(PhantomStepResult.Type.COMPLETE_GOAL, late.type(), "Exact joined candidate did not complete raid.participate after leader READY.");
+
+				final MemberRef unrelated = MemberRef.phantom(4, 400);
+				fixture.party.profile(unrelated);
+				final PhantomGoal unrelatedGoal = participate(40, LIVE_CONTENT);
+				fixture.goals.put(4, unrelatedGoal);
+				PhantomAssertions.assertEquals(PhantomStepResult.Type.FAIL_GOAL, execute(handlers, PhantomRaidDecision.PARTICIPATE_ACTION, PhantomRaidDecision.PARTICIPATE_CANDIDATE, 4, unrelatedGoal, false).type(), "Unrelated same-content candidate inherited READY membership.");
+
+				final PhantomGoal mismatched = participate(30, "raid.other");
+				fixture.goals.put(3, mismatched);
+				PhantomAssertions.assertEquals(PhantomStepResult.Type.FAIL_GOAL, execute(handlers, PhantomRaidDecision.PARTICIPATE_ACTION, PhantomRaidDecision.PARTICIPATE_CANDIDATE, 3, mismatched, false).type(), "Mismatched content inherited READY membership.");
+
+				final PhantomGoal expired = participate(31, LIVE_CONTENT, NOW);
+				fixture.goals.put(3, expired);
+				PhantomAssertions.assertEquals(PhantomRaidAssemblyService.ParticipationOutcome.EXPIRED, fixture.service.participation(3, 31, 0), "Expired participation did not remain EXPIRED.");
+				PhantomAssertions.assertEquals(PhantomStepResult.Type.FAIL_GOAL, execute(handlers, PhantomRaidDecision.PARTICIPATE_ACTION, PhantomRaidDecision.PARTICIPATE_CANDIDATE, 3, expired, false).type(), "Expired participation did not fail its goal.");
+			}
+		});
 	}
 
 	private Fixture recruitmentFixture()
@@ -440,7 +537,7 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 		final StubRaidAuthority authority = new StubRaidAuthority();
 		final PhantomRaidReadinessService readiness = new PhantomRaidReadinessService(_knowledge, party, authority);
 		final PhantomRaidRecruitmentService recruitment = new PhantomRaidRecruitmentService(readiness, party);
-		final PhantomRaidAssemblyService service = new PhantomRaidAssemblyService(goals, readiness, recruitment, party, authority, () -> topology, _routes, () -> NOW, (x, y, factualZ) -> factualZ);
+		final PhantomRaidAssemblyService service = new PhantomRaidAssemblyService(goals, readiness, recruitment, party, authority, () -> topology, _routes, () -> NOW, () -> LOGICAL_NOW, (x, y, factualZ) -> factualZ);
 		return new Fixture(goals, party, authority, service);
 	}
 
@@ -453,12 +550,22 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 
 	private static PhantomGoal prepare(long goalId, String content, List<PhantomDomainRef> sources, PhantomDomainRef selectedAnchor)
 	{
-		return new PhantomGoal(goalId, PhantomRaidAssemblyService.PREPARE_GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "1"), new PhantomDomainRef("raid.content", content), 1, 0, null, sources, selectedAnchor, "raid.prepare", 500, 0, 0, DEADLINE, Map.of(), "raid.prepare.test", 0);
+		return prepare(1, goalId, 0, content, sources, selectedAnchor, DEADLINE);
+	}
+
+	private static PhantomGoal prepare(long profileId, long goalId, long revision, String content, List<PhantomDomainRef> sources, PhantomDomainRef selectedAnchor, long deadline)
+	{
+		return new PhantomGoal(goalId, PhantomRaidAssemblyService.PREPARE_GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profileId)), new PhantomDomainRef("raid.content", content), 1, 0, null, sources, selectedAnchor, "raid.prepare", 500, 0, 0, deadline, Map.of(), "raid.prepare.test", revision);
 	}
 
 	private static PhantomGoal participate(long goalId, String content)
 	{
-		return new PhantomGoal(goalId, PhantomRaidAssemblyService.PARTICIPATE_GOAL_TYPE, PhantomGoalStatus.ACTIVE, null, new PhantomDomainRef("raid.content", content), 1, 0, null, List.of(), null, "raid.participate", 500, 0, 0, DEADLINE, Map.of(), "raid.participate.test", 0);
+		return participate(goalId, content, DEADLINE);
+	}
+
+	private static PhantomGoal participate(long goalId, String content, long deadline)
+	{
+		return new PhantomGoal(goalId, PhantomRaidAssemblyService.PARTICIPATE_GOAL_TYPE, PhantomGoalStatus.ACTIVE, null, new PhantomDomainRef("raid.content", content), 1, 0, null, List.of(), null, "raid.participate", 500, 0, 0, deadline, Map.of(), "raid.participate.test", 0);
 	}
 
 	private static CurrentForceObservation readyForce(boolean transientNotReady, boolean rosterChange)

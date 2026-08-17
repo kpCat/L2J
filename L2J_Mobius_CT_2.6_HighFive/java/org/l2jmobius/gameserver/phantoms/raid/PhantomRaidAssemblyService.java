@@ -74,18 +74,19 @@ public final class PhantomRaidAssemblyService
 	private final PhantomRaidAuthority _authority;
 	private final Supplier<PhantomTopologyQuery> _topology;
 	private final PhantomPartyRouteCoordinator _routes;
-	private final LongSupplier _clock;
+	private final LongSupplier _wallClock;
+	private final LongSupplier _logicalClock;
 	private final HeightResolver _height;
 	private final Map<Long, Assembly> _active = new HashMap<>();
-	private final LinkedHashMap<AssemblyIdentity, ReadyReceipt> _receipts = new LinkedHashMap<>();
+	private final LinkedHashMap<AssemblyIdentity, TerminalAssembly> _terminal = new LinkedHashMap<>();
 	private boolean _stopping;
 
-	public PhantomRaidAssemblyService(PhantomGoalStore goals, PhantomRaidReadinessService readiness, PhantomRaidRecruitmentService recruitment, PhantomPartyBackend party, PhantomRaidAuthority authority, Supplier<PhantomTopologyQuery> topology, PhantomPartyRouteCoordinator routes, LongSupplier clock)
+	public PhantomRaidAssemblyService(PhantomGoalStore goals, PhantomRaidReadinessService readiness, PhantomRaidRecruitmentService recruitment, PhantomPartyBackend party, PhantomRaidAuthority authority, Supplier<PhantomTopologyQuery> topology, PhantomPartyRouteCoordinator routes, LongSupplier wallClock, LongSupplier logicalClock)
 	{
-		this(goals, readiness, recruitment, party, authority, topology, routes, clock, (x, y, factualZ) -> GeoEngine.getInstance().hasGeo(x, y) ? GeoEngine.getInstance().getHeight(x, y, factualZ) : factualZ);
+		this(goals, readiness, recruitment, party, authority, topology, routes, wallClock, logicalClock, (x, y, factualZ) -> GeoEngine.getInstance().hasGeo(x, y) ? GeoEngine.getInstance().getHeight(x, y, factualZ) : factualZ);
 	}
 
-	public PhantomRaidAssemblyService(PhantomGoalStore goals, PhantomRaidReadinessService readiness, PhantomRaidRecruitmentService recruitment, PhantomPartyBackend party, PhantomRaidAuthority authority, Supplier<PhantomTopologyQuery> topology, PhantomPartyRouteCoordinator routes, LongSupplier clock, HeightResolver height)
+	public PhantomRaidAssemblyService(PhantomGoalStore goals, PhantomRaidReadinessService readiness, PhantomRaidRecruitmentService recruitment, PhantomPartyBackend party, PhantomRaidAuthority authority, Supplier<PhantomTopologyQuery> topology, PhantomPartyRouteCoordinator routes, LongSupplier wallClock, LongSupplier logicalClock, HeightResolver height)
 	{
 		_goals = Objects.requireNonNull(goals);
 		_readiness = Objects.requireNonNull(readiness);
@@ -94,7 +95,8 @@ public final class PhantomRaidAssemblyService
 		_authority = Objects.requireNonNull(authority);
 		_topology = Objects.requireNonNull(topology);
 		_routes = Objects.requireNonNull(routes);
-		_clock = Objects.requireNonNull(clock);
+		_wallClock = Objects.requireNonNull(wallClock);
+		_logicalClock = Objects.requireNonNull(logicalClock);
 		_height = Objects.requireNonNull(height);
 	}
 
@@ -104,30 +106,35 @@ public final class PhantomRaidAssemblyService
 		{
 			return result(AssemblyStatus.CANCELLED, "raid.assembly.stopping", null);
 		}
-		final long now = _clock.getAsLong();
+		final long now = _wallClock.getAsLong();
 		final Optional<PhantomGoalStore.StoredGoal> stored = _goals.load(leaderProfileId);
 		if (stored.isEmpty() || (stored.get().goal().goalId() != goalId) || (stored.get().goal().revision() != goalRevision))
 		{
 			return result(AssemblyStatus.BLOCKED, "raid.assembly.goal.stale", null);
 		}
-		final GoalContext context = validateLeaderGoal(leaderProfileId, stored.get().goal(), now);
+		final PhantomGoal goal = stored.get().goal();
+		final AssemblyIdentity requestedIdentity = identity(leaderProfileId, goal);
+		final TerminalAssembly prior = requestedIdentity == null ? null : _terminal.get(requestedIdentity);
+		if (prior != null)
+		{
+			return result(prior);
+		}
+		final GoalContext context = validateLeaderGoal(leaderProfileId, goal, now);
 		if (context == null)
 		{
 			final Assembly current = _active.get(leaderProfileId);
 			if ((current != null) && (current._identity.goalId() == goalId) && (current._identity.goalRevision() <= goalRevision))
 			{
-				cleanup(current);
-				current._status = now >= stored.get().goal().deadlineEpochMillis() ? AssemblyStatus.EXPIRED : AssemblyStatus.BLOCKED;
-				current._reason = "raid.assembly.goal.invalid";
+				final boolean exact = current._identity.goalRevision() == goalRevision;
+				terminalize(current, exact && (now >= goal.deadlineEpochMillis()) ? AssemblyStatus.EXPIRED : exact ? AssemblyStatus.BLOCKED : AssemblyStatus.CANCELLED, exact ? "raid.assembly.goal.invalid" : "raid.assembly.goal.replaced", null);
 			}
-			return result(now >= stored.get().goal().deadlineEpochMillis() ? AssemblyStatus.EXPIRED : AssemblyStatus.BLOCKED, "raid.assembly.goal.invalid", null);
+			return result(now >= goal.deadlineEpochMillis() ? AssemblyStatus.EXPIRED : AssemblyStatus.BLOCKED, "raid.assembly.goal.invalid", null);
 		}
 
 		Assembly assembly = _active.get(leaderProfileId);
 		if ((assembly != null) && !assembly._identity.equals(context.identity()))
 		{
-			cleanup(assembly);
-			_active.remove(leaderProfileId);
+			terminalize(assembly, AssemblyStatus.CANCELLED, "raid.assembly.goal.replaced", null);
 			assembly = null;
 		}
 		if (assembly == null)
@@ -141,20 +148,13 @@ public final class PhantomRaidAssemblyService
 		}
 		if (now >= assembly._goal.deadlineEpochMillis())
 		{
-			cleanup(assembly);
-			assembly._status = AssemblyStatus.EXPIRED;
-			assembly._reason = "raid.assembly.deadline";
-			return result(assembly);
-		}
-		if (assembly._status.terminal())
-		{
-			return result(assembly);
+			return terminalize(assembly, AssemblyStatus.EXPIRED, "raid.assembly.deadline", null);
 		}
 
 		return switch (assembly._status)
 		{
 			case ASSEMBLING -> advanceAssembly(assembly, now);
-			case WAITING_CONSENT -> advanceConsent(assembly);
+			case WAITING_CONSENT -> advanceConsent(assembly, now);
 			case GATHERING -> advanceGathering(assembly, now);
 			case FINAL_PREPARATION -> advanceFinalPreparation(assembly, now);
 			default -> result(assembly);
@@ -168,15 +168,13 @@ public final class PhantomRaidAssemblyService
 		{
 			return false;
 		}
-		cleanup(assembly);
-		assembly._status = AssemblyStatus.CANCELLED;
-		assembly._reason = (reason == null) || reason.isBlank() ? "raid.assembly.cancelled" : reason;
+		terminalize(assembly, AssemblyStatus.CANCELLED, (reason == null) || reason.isBlank() ? "raid.assembly.cancelled" : reason, null);
 		return true;
 	}
 
 	public synchronized ParticipationOutcome participation(long profileId, long goalId, long goalRevision)
 	{
-		final long now = _clock.getAsLong();
+		final long now = _wallClock.getAsLong();
 		final Optional<PhantomGoalStore.StoredGoal> stored = _goals.load(profileId);
 		if (stored.isEmpty() || (stored.get().goal().goalId() != goalId) || (stored.get().goal().revision() != goalRevision))
 		{
@@ -193,26 +191,46 @@ public final class PhantomRaidAssemblyService
 			return ParticipationOutcome.IMPOSSIBLE;
 		}
 		final String contentId = goal.target().key();
+		boolean waiting = false;
 		for (Assembly assembly : _active.values())
 		{
-			if (!assembly._identity.contentId().equals(contentId) || assembly._status.terminal() || !assembly._candidates.contains(participant.get()))
+			if (!assembly._identity.contentId().equals(contentId) || !assembly._candidates.contains(participant.get()))
 			{
 				continue;
 			}
 			final CurrentForceObservation force = _party.currentForce(assembly._actor);
-			if ((force.status() == CurrentForceStatus.AVAILABLE) && force.snapshot().members().stream().anyMatch(member -> member.ref().equals(participant.get())))
+			if ((force.status() == CurrentForceStatus.AVAILABLE) && (force.snapshot() != null) && force.snapshot().members().stream().anyMatch(member -> member.ref().equals(participant.get())))
 			{
 				return ParticipationOutcome.JOINED;
 			}
-			return ParticipationOutcome.WAITING;
+			waiting = true;
 		}
-		return ParticipationOutcome.IMPOSSIBLE;
+		for (TerminalAssembly terminal : _terminal.values())
+		{
+			if ((terminal.status() != AssemblyStatus.READY_AT_STAGING) || !terminal.identity().contentId().equals(contentId) || !terminal.candidates().contains(participant.get()) || (terminal.readyReceipt() == null))
+			{
+				continue;
+			}
+			final CurrentForceObservation force = terminal.readyReceipt().finalReadiness().force();
+			if ((force.status() == CurrentForceStatus.AVAILABLE) && (force.snapshot() != null) && force.snapshot().members().stream().anyMatch(member -> member.ref().equals(participant.get())))
+			{
+				return ParticipationOutcome.JOINED;
+			}
+		}
+		return waiting ? ParticipationOutcome.WAITING : ParticipationOutcome.IMPOSSIBLE;
 	}
 
 	public synchronized Optional<ReadyReceipt> readyReceipt(long leaderProfileId)
 	{
-		final Assembly assembly = _active.get(leaderProfileId);
-		return (assembly == null) || (assembly._ready == null) ? Optional.empty() : Optional.of(assembly._ready);
+		ReadyReceipt latest = null;
+		for (TerminalAssembly terminal : _terminal.values())
+		{
+			if ((terminal.identity().leaderProfileId() == leaderProfileId) && (terminal.readyReceipt() != null))
+			{
+				latest = terminal.readyReceipt();
+			}
+		}
+		return Optional.ofNullable(latest);
 	}
 
 	public synchronized void beginStop()
@@ -222,14 +240,9 @@ public final class PhantomRaidAssemblyService
 			return;
 		}
 		_stopping = true;
-		for (Assembly assembly : _active.values())
+		for (Assembly assembly : List.copyOf(_active.values()))
 		{
-			cleanup(assembly);
-			if (!assembly._status.terminal())
-			{
-				assembly._status = AssemblyStatus.CANCELLED;
-				assembly._reason = "raid.assembly.shutdown";
-			}
+			terminalize(assembly, AssemblyStatus.CANCELLED, "raid.assembly.shutdown", null);
 		}
 	}
 
@@ -237,7 +250,8 @@ public final class PhantomRaidAssemblyService
 	{
 		final int pending = (int) _active.values().stream().filter(value -> value._pendingIdentity != null).count();
 		final int routeGroups = _active.values().stream().mapToInt(value -> value._routeProgress.size()).sum();
-		return new Snapshot(_active.size(), pending, routeGroups, _receipts.size(), _stopping);
+		final int readyReceipts = (int) _terminal.values().stream().filter(value -> value.readyReceipt() != null).count();
+		return new Snapshot(_active.size(), pending, routeGroups, readyReceipts, _terminal.size(), _stopping);
 	}
 
 	private AdvanceResult advanceAssembly(Assembly assembly, long now)
@@ -296,7 +310,7 @@ public final class PhantomRaidAssemblyService
 		return block(assembly, "raid.assembly.recruitment." + status.name().toLowerCase(java.util.Locale.ROOT));
 	}
 
-	private AdvanceResult advanceConsent(Assembly assembly)
+	private AdvanceResult advanceConsent(Assembly assembly, long now)
 	{
 		final MemberRef candidate = assembly._pendingCandidate;
 		final InvitationIdentity identity = assembly._pendingIdentity;
@@ -328,7 +342,7 @@ public final class PhantomRaidAssemblyService
 		}
 
 		final boolean standaloneLeader = exactStandaloneLeader(candidate);
-		final boolean willing = validParticipationGoal(candidate.profileId(), _goals.load(candidate.profileId()).map(PhantomGoalStore.StoredGoal::goal).orElse(null), assembly._identity.contentId(), _clock.getAsLong());
+		final boolean willing = validParticipationGoal(candidate.profileId(), _goals.load(candidate.profileId()).map(PhantomGoalStore.StoredGoal::goal).orElse(null), assembly._identity.contentId(), now);
 		final RecruitmentPlan freshPlan = _recruitment.plan(assembly._actor, assembly._identity.contentId(), List.of(candidate));
 		final boolean useful = (freshPlan.status() == RecruitmentStatus.CANDIDATE_SELECTED) && candidate.equals(freshPlan.selectedCandidate());
 		final boolean accept = standaloneLeader && willing && useful;
@@ -345,6 +359,11 @@ public final class PhantomRaidAssemblyService
 
 	private AdvanceResult advanceGathering(Assembly assembly, long now)
 	{
+		final RouteTiming timing = routeTiming(assembly._goal.deadlineEpochMillis(), now);
+		if (timing == null)
+		{
+			return block(assembly, "raid.assembly.staging.deadline_invalid");
+		}
 		final RaidReadiness readiness = _readiness.assess(assembly._actor, assembly._identity.contentId());
 		final AdvanceResult authority = validateFrozenAuthority(assembly, readiness);
 		if (authority != null)
@@ -381,7 +400,7 @@ public final class PhantomRaidAssemblyService
 			RouteProgress progress = assembly._routeProgress.get(slot.groupId());
 			if (progress == null)
 			{
-				final RouteAttempt requested = _routes.request(slot.groupId(), Math.max(1, assembly._identity.goalRevision() + 1), routeSnapshot, slot.destination(), slot.point(), assembly._topologyHash, now, assembly._goal.deadlineEpochMillis());
+				final RouteAttempt requested = _routes.request(slot.groupId(), Math.max(1, assembly._identity.goalRevision() + 1), routeSnapshot, slot.destination(), slot.point(), assembly._topologyHash, timing.logicalNow(), timing.logicalDeadline());
 				progress = new RouteProgress(requested.route());
 				assembly._routeProgress.put(slot.groupId(), progress);
 				if (terminalRouteFailure(requested))
@@ -403,7 +422,7 @@ public final class PhantomRaidAssemblyService
 			}
 			if (progress._manifest != null)
 			{
-				final var advanced = _routes.advance(slot.groupId(), progress._manifest, routeActor, party.members(), snapshots, 2 + (party.members().size() * 2), now, assembly._topologyHash, () -> false);
+				final var advanced = _routes.advance(slot.groupId(), progress._manifest, routeActor, party.members(), snapshots, 2 + (party.members().size() * 2), timing.logicalNow(), assembly._topologyHash, () -> false);
 				progress._manifest = advanced.route();
 				if (advanced.route().status() == RouteStatus.ARRIVED)
 				{
@@ -451,11 +470,8 @@ public final class PhantomRaidAssemblyService
 			assembly._reason = alive ? "raid.assembly.final_readiness_transient" : "raid.assembly.final_member_dead";
 			return result(assembly);
 		}
-		assembly._ready = new ReadyReceipt(assembly._identity, assembly._structuralHash, assembly._centre, assembly._slots, readiness, now);
-		assembly._status = AssemblyStatus.READY_AT_STAGING;
-		assembly._reason = "raid.assembly.ready_at_staging";
-		rememberReceipt(assembly._ready);
-		return result(assembly);
+		final ReadyReceipt ready = new ReadyReceipt(assembly._identity, assembly._structuralHash, assembly._centre, assembly._slots, readiness, now);
+		return terminalize(assembly, AssemblyStatus.READY_AT_STAGING, "raid.assembly.ready_at_staging", ready);
 	}
 
 	private AdvanceResult validateFrozenAuthority(Assembly assembly, RaidReadiness readiness)
@@ -664,10 +680,28 @@ public final class PhantomRaidAssemblyService
 
 	private AdvanceResult block(Assembly assembly, String reason)
 	{
+		return terminalize(assembly, AssemblyStatus.BLOCKED, reason, null);
+	}
+
+	private AdvanceResult terminalize(Assembly assembly, AssemblyStatus status, String reason, ReadyReceipt ready)
+	{
+		if (!status.terminal())
+		{
+			throw new IllegalArgumentException("Raid assembly terminal state required.");
+		}
 		cleanup(assembly);
-		assembly._status = AssemblyStatus.BLOCKED;
+		assembly._status = status;
 		assembly._reason = reason;
-		return result(assembly);
+		assembly._ready = ready;
+		_active.remove(assembly._identity.leaderProfileId(), assembly);
+		final TerminalAssembly terminal = new TerminalAssembly(assembly._identity, status, reason, ready, Set.copyOf(assembly._candidates));
+		_terminal.remove(terminal.identity());
+		_terminal.put(terminal.identity(), terminal);
+		while (_terminal.size() > MAX_RECEIPTS)
+		{
+			_terminal.remove(_terminal.keySet().iterator().next());
+		}
+		return result(terminal);
 	}
 
 	private void cleanup(Assembly assembly)
@@ -703,19 +737,34 @@ public final class PhantomRaidAssemblyService
 		assembly._pendingIdentity = null;
 	}
 
-	private void rememberReceipt(ReadyReceipt receipt)
+	private RouteTiming routeTiming(long deadlineEpochMillis, long wallNow)
 	{
-		_receipts.remove(receipt.identity());
-		_receipts.put(receipt.identity(), receipt);
-		while (_receipts.size() > MAX_RECEIPTS)
+		try
 		{
-			_receipts.remove(_receipts.keySet().iterator().next());
+			final long remainingMillis = Math.subtractExact(deadlineEpochMillis, wallNow);
+			final long logicalNow = _logicalClock.getAsLong();
+			if ((remainingMillis <= 0) || (logicalNow < 0))
+			{
+				return null;
+			}
+			final long durationNanos = Math.multiplyExact(remainingMillis, 1_000_000L);
+			final long logicalDeadline = Math.addExact(logicalNow, durationNanos);
+			return logicalDeadline > logicalNow ? new RouteTiming(logicalNow, logicalDeadline) : null;
+		}
+		catch (ArithmeticException e)
+		{
+			return null;
 		}
 	}
 
 	private static AdvanceResult result(Assembly assembly)
 	{
 		return result(assembly._status, assembly._reason, assembly._ready);
+	}
+
+	private static AdvanceResult result(TerminalAssembly terminal)
+	{
+		return result(terminal.status(), terminal.reason(), terminal.readyReceipt());
 	}
 
 	private static AdvanceResult result(AssemblyStatus status, String reason, ReadyReceipt ready)
@@ -734,6 +783,15 @@ public final class PhantomRaidAssemblyService
 		{
 			return -1;
 		}
+	}
+
+	private static AssemblyIdentity identity(long leaderProfileId, PhantomGoal goal)
+	{
+		if ((goal == null) || (goal.target() == null) || !"raid.content".equals(goal.target().namespace()) || goal.target().key().isBlank())
+		{
+			return null;
+		}
+		return new AssemblyIdentity(leaderProfileId, goal.goalId(), goal.revision(), goal.target().key());
 	}
 
 	public enum AssemblyStatus
@@ -842,12 +900,30 @@ public final class PhantomRaidAssemblyService
 		}
 	}
 
-	public record Snapshot(int activeAssemblies, int pendingInvitations, int routeGroups, int readyReceipts, boolean stopping)
+	public record Snapshot(int activeAssemblies, int pendingInvitations, int routeGroups, int readyReceipts, int terminalAssemblies, boolean stopping)
 	{
 	}
 
 	private record GoalContext(AssemblyIdentity identity, PhantomGoal goal, MemberRef actor, List<MemberRef> candidates)
 	{
+	}
+
+	private record RouteTiming(long logicalNow, long logicalDeadline)
+	{
+	}
+
+	private record TerminalAssembly(AssemblyIdentity identity, AssemblyStatus status, String reason, ReadyReceipt readyReceipt, Set<MemberRef> candidates)
+	{
+		private TerminalAssembly
+		{
+			Objects.requireNonNull(identity);
+			Objects.requireNonNull(status);
+			if (!status.terminal() || (reason == null) || reason.isBlank() || ((status == AssemblyStatus.READY_AT_STAGING) != (readyReceipt != null)))
+			{
+				throw new IllegalArgumentException("Invalid terminal raid assembly state.");
+			}
+			candidates = Set.copyOf(candidates);
+		}
 	}
 
 	private static final class Assembly

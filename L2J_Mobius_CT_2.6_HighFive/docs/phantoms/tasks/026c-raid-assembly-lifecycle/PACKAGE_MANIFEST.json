@@ -1,0 +1,21 @@
+{
+  "task_id": "026c-raid-assembly-lifecycle",
+  "goal": 26,
+  "corrective": "C",
+  "branch": "feature/phantom-world",
+  "required_parent": "867ff96e1b19c4cd0435cb51bfd7c31d14cae762",
+  "required_subject": "fix(phantoms): harden raid assembly lifecycle",
+  "seed": 26002642,
+  "success_token": "GOAL_026C_RAID_ASSEMBLY_LIFECYCLE_FIXED_PENDING_INDEPENDENT_REVIEW",
+  "scope": [
+    "R026C-01-clock-domain",
+    "R026C-02-terminal-capacity",
+    "R026C-03-late-participation",
+    "roadmap-status-debt"
+  ],
+  "first_context_compaction_is_stop": true,
+  "plain_ant_verify_authorized": false,
+  "cp2_gate_authorized": false,
+  "raid_authority_gate_authorized": false,
+  "cp3_026b_gate_authorized": false
+}

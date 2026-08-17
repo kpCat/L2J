@@ -396,7 +396,7 @@ public final class PhantomSystem
 				_raidReadinessService = new PhantomRaidReadinessService(_gameKnowledgeService.query(), partyBackend, raidAuthority);
 				_raidRecruitmentService = new PhantomRaidRecruitmentService(_raidReadinessService, partyBackend);
 				final PhantomPartyRouteCoordinator raidRoutes = new PhantomPartyRouteCoordinator(_navigationService, _combatService);
-				_raidAssemblyService = new PhantomRaidAssemblyService(productionGoals, _raidReadinessService, _raidRecruitmentService, partyBackend, raidAuthority, _topologyService::query, raidRoutes, System::currentTimeMillis);
+				_raidAssemblyService = new PhantomRaidAssemblyService(productionGoals, _raidReadinessService, _raidRecruitmentService, partyBackend, raidAuthority, _topologyService::query, raidRoutes, System::currentTimeMillis, System::nanoTime);
 				final PhantomRaidDecision raidDecision = new PhantomRaidDecision(_raidAssemblyService);
 				_partyCoordinator = new PhantomPartyCoordinator(
 					new PhantomPartyStore(productionProfiles),
