@@ -105,7 +105,7 @@ public final class PhantomRaidReadinessService
 		return result(contentId, content, target, availability, force, capabilities, requiredMissing ? ReadinessStatus.GROUP_INCAPABLE : ReadinessStatus.GROUP_READY, requiredMissing ? "raid.group.required_capability_missing" : "raid.group.ready");
 	}
 
-	private static boolean satisfies(MemberSnapshot member, CapabilityRequirement requirement)
+	static boolean satisfies(MemberSnapshot member, CapabilityRequirement requirement)
 	{
 		return member.capabilities().stream().anyMatch(capability -> capability.capabilityKey().equals(requirement.capabilityKey()) && (capability.rank() >= requirement.minimumRank()) && capability.intrinsic() && capability.learned() && capability.readyNow());
 	}

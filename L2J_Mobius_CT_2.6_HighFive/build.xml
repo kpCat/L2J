@@ -59,6 +59,7 @@
 	<property name="phantom.goal026cp1.seed" value="26002601" />
 	<property name="phantom.goal026a.seed" value="26002611" />
 	<property name="phantom.goal026cp2.seed" value="26002621" />
+	<property name="phantom.goal026cp3.seed" value="26002631" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -2831,6 +2832,17 @@
 	</target>
 
 	<target name="phantom-raid-readiness-checkpoint1-test" depends="phantom-raid-readiness-authority-test,phantom-raid-readiness-force-test,phantom-raid-readiness-policy-test,phantom-game-knowledge-query-truth-test,phantom-party-server-integration-test" description="Run the final Goal 026 Checkpoint 1 focused aggregate and exact affected regressions." />
+
+	<target name="phantom-raid-recruitment-test" depends="compile-tests" description="Run Goal 026 CP3 bounded raid composition and one-shot outbound recruitment tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-recruitment" />
+			<arg value="${phantom.goal026cp3.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-raid-recruitment-checkpoint3-test" depends="phantom-raid-recruitment-test,phantom-raid-current-capability-readiness-test" description="Run the final Goal 026 Checkpoint 3 aggregate and directly affected current-readiness regression." />
 
 	<target name="phantom-command-channel-lifecycle-test" depends="compile-tests" description="Run Goal 026 CP2 exact CommandChannel lifecycle and packet parity tests.">
 		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />

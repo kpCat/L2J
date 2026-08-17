@@ -1,151 +1,148 @@
-# Goal 026 Checkpoint 2 - canonical CommandChannel lifecycle
+# Goal 026 Checkpoint 2 ‚Äî canonical CommandChannel lifecycle
 
 ## Status
 
-SUCCESS - IMPLEMENTED_PENDING_INDEPENDENT_REVIEW.
-
-Goal026 CP1 Æ·‚†Ò‚·Ô ACCEPT; Goal026 overall Æ·‚†Ò‚·Ô IN_PROGRESS; CP3+ ≠• ≠†Á®≠†´®·Ï.
+- Historical implementation result: `SUCCESS ‚Äî IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+- Independent verdict: `ACCEPT`.
+- Accepted commit: `bbd29495a19a322c0629509c85c31fe508ae8d07`.
+- Goal 026 Checkpoint 1 + Goal 026A: `ACCEPT`.
+- Goal 026 overall: `IN_PROGRESS`.
 
 ## Summary
 
-- ÑÆ°†¢´•≠ generic transport-neutral CommandChannelInvitationService ¢ ordinary server model.
-- Exact pending invitation ·Æ§•‡¶®‚ monotonic sequence ® object IDs requester/invitee; ·Æ·‚ÆÔ≠®• Æ£‡†≠®Á•≠Æ Æ§≠®¨ pending ≠† invitee ® Æ§≠®¨ ownership slot ≠† requester.
-- Player activeRequester ® Ë‚†‚≠Î© request timeout Æ·‚†Ó‚·Ô time/authority source; expiration ¢ÎØÆ´≠Ô•‚·Ô ´•≠®¢Æ °•ß scheduler/thread/Future.
-- ACCEPT ØÆ¢‚Æ‡≠Æ ¢†´®§®‡„•‚ exact Party leadership/identity, CommandChannel state ® formation authority.
-- Canonical mutation ¢ÎØÆ´≠ÔÓ‚ ‚Æ´Ï™Æ ·„È•·‚¢„ÓÈ®• CommandChannel constructor, addParty, removeParty ® disbandChannel.
-- í‡® ordinary MPCC packets Æ·‚†¢´ÔÓ‚ wire decode/name lookup ® §•´•£®‡„Ó‚ shared service.
-- Goal017 backend ØÆ´„Á®´ „ß™®© MemberRef seam invite/respond/observe/dismiss °•ß ¢Î§†Á® mutable Player, Party ®´® CommandChannel.
-- Phantom ACCEPT/REFUSE Æ·‚†Ò‚·Ô Æ‚§•´Ï≠Î¨ target-side ¢ÎßÆ¢Æ¨ · exact identity; auto-accept Æ‚·„‚·‚¢„•‚.
+- –î–æ–±–∞–≤–ª–µ–Ω generic transport-neutral `CommandChannelInvitationService` –≤ ordinary server model.
+- Exact pending invitation —Å–æ–¥–µ—Ä–∂–∏—Ç monotonic sequence –∏ object IDs requester/invitee; —Å–æ—Å—Ç–æ—è–Ω–∏–µ –æ–≥—Ä–∞–Ω–∏—á–µ–Ω–æ –æ–¥–Ω–∏–º pending –Ω–∞ invitee –∏ –æ–¥–Ω–∏–º ownership slot –Ω–∞ requester.
+- `Player.activeRequester` –∏ —à—Ç–∞—Ç–Ω—ã–π request timeout –æ—Å—Ç–∞—é—Ç—Å—è time/authority source; expiration –≤—ã–ø–æ–ª–Ω—è–µ—Ç—Å—è –ª–µ–Ω–∏–≤–æ –±–µ–∑ scheduler, thread –∏–ª–∏ Future.
+- `ACCEPT` –ø–æ–≤—Ç–æ—Ä–Ω–æ –ø—Ä–æ–≤–µ—Ä—è–µ—Ç exact Party leadership/identity, CommandChannel state –∏ formation authority.
+- Canonical mutation –≤—ã–ø–æ–ª–Ω—è—é—Ç —Ç–æ–ª—å–∫–æ —Å—É—â–µ—Å—Ç–≤—É—é—â–∏–µ `CommandChannel` constructor, `addParty`, `removeParty` –∏ `disbandChannel`.
+- Ordinary MPCC packets —Å–æ—Ö—Ä–∞–Ω—è—é—Ç wire decode/name lookup –∏ –¥–µ–ª–µ–≥–∏—Ä—É—é—Ç shared service.
+- Goal017 backend –ø–æ–ª—É—á–∏–ª —É–∑–∫–∏–π `MemberRef` seam `invite/respond/observe/dismiss` –±–µ–∑ –≤—ã–¥–∞—á–∏ mutable `Player`, `Party` –∏–ª–∏ `CommandChannel`.
+- Phantom `ACCEPT/REFUSE` –æ—Å—Ç–∞—é—Ç—Å—è –æ—Ç–¥–µ–ª—å–Ω–æ–π target-side –æ–ø–µ—Ä–∞—Ü–∏–µ–π —Å exact identity; auto-accept –æ—Ç—Å—É—Ç—Å—Ç–≤—É–µ—Ç.
 
 ## Changed files
 
 Production:
 
-- java/org/l2jmobius/gameserver/model/groups/CommandChannelInvitationService.java;
-- java/org/l2jmobius/gameserver/network/clientpackets/RequestExAskJoinMPCC.java;
-- java/org/l2jmobius/gameserver/network/clientpackets/RequestExAcceptJoinMPCC.java;
-- java/org/l2jmobius/gameserver/network/clientpackets/RequestExOustFromMPCC.java;
-- java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyBackend.java;
-- java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java.
+- `java/org/l2jmobius/gameserver/model/groups/CommandChannelInvitationService.java`;
+- `java/org/l2jmobius/gameserver/network/clientpackets/RequestExAskJoinMPCC.java`;
+- `java/org/l2jmobius/gameserver/network/clientpackets/RequestExAcceptJoinMPCC.java`;
+- `java/org/l2jmobius/gameserver/network/clientpackets/RequestExOustFromMPCC.java`;
+- `java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyBackend.java`;
+- `java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java`.
 
 Tests/routes:
 
-- test/java/org/l2jmobius/tests/phantoms/PhantomCommandChannelLifecycleSuite.java;
-- test/java/org/l2jmobius/tests/phantoms/PhantomPartyServerIntegrationSuite.java;
-- test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java;
-- build.xml.
+- `test/java/org/l2jmobius/tests/phantoms/PhantomCommandChannelLifecycleSuite.java`;
+- `test/java/org/l2jmobius/tests/phantoms/PhantomPartyServerIntegrationSuite.java`;
+- `test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java`;
+- `build.xml`.
 
 Documentation:
 
-- docs/phantoms/tasks/026-checkpoint-2-command-channel-lifecycle/*;
-- docs/phantoms/reports/026-checkpoint-2-command-channel-lifecycle.md.
+- `docs/phantoms/tasks/026-checkpoint-2-command-channel-lifecycle/*`;
+- `docs/phantoms/reports/026-checkpoint-2-command-channel-lifecycle.md`.
 
-ù‚Æ bounded exception ™ Æ°ÎÁ≠Æ¨„ ´®¨®‚„ 8-10 ‰†©´Æ¢: task Ø‡Ô¨Æ ‚‡•°„•‚ service, ‚‡® packet adapters, §¢† backend artifacts, focused/affected tests, Ant routes, task package ® report. ç•ß†¢®·®¨Î• ØÆ§·®·‚•¨Î ≠• §Æ°†¢´Ô´®·Ï.
+Bounded exception –æ—Ç–Ω–æ—Å–∏—Ç–µ–ª—å–Ω–æ –æ–±—ã—á–Ω–æ–≥–æ –ª–∏–º–∏—Ç–∞ 8‚Äì10 —Ñ–∞–π–ª–æ–≤: task —Ç—Ä–µ–±–æ–≤–∞–ª –æ–¥–∏–Ω service, —Ç—Ä–∏ packet adapters, –¥–≤–∞ backend artifacts, focused/affected tests, Ant routes, task package –∏ report. –ù–µ–∑–∞–≤–∏—Å–∏–º—ã–µ –ø–æ–¥—Å–∏—Å—Ç–µ–º—ã –Ω–µ –∑–∞—Ç—Ä–∞–≥–∏–≤–∞–ª–∏—Å—å.
 
 ## Architecture decisions
 
-- Formation right ·ÆÂ‡†≠Ò≠ ‚ÆÁ≠Æ: clan leader · clan level >= 5, ´®°Æ item 8871, ´®°Æ pledge class >= 5 ¢¨•·‚• ·Æ skill 391.
-- Ordinary packet Ø•‡•§†Ò‚ exact ≠†©§•≠≠Æ£Æ Player; service ™†≠Æ≠®Á•·™® †§‡•·„•‚ ‚•™„È•£Æ Party leader. Phantom seam Æ‚¢•‡£†•‚ MemberRef, ™Æ‚Æ‡Î© ≠• Ô¢´Ô•‚·Ô exact current target Party leader.
-- Invitation identity Æ°Ôß†‚•´Ï≠† §´Ô response. Wrong/old identity ¢Æß¢‡†È†•‚ STALE_INVITE ® ≠• ·≠®¨†•‚ °Æ´•• ≠Æ¢Î© pending/request.
-- REFUSE, expiry ® terminal revalidation failure ·≠®¨†Ó‚ ‚Æ´Ï™Æ matching pending ® matching Player request relation.
-- Requester Party, target Party, leader ®´® CC object drift ¨•¶§„ invite ® ACCEPT ß†™‡Î¢†•‚·Ô fail-closed.
-- Dismiss §ÆØ„·™†•‚·Ô ‚Æ´Ï™Æ exact current CC leader Ø‡Æ‚®¢ §‡„£Æ© Party ‚Æ£Æ ¶• CC. Own Party/self loophole ß†™‡Î‚; less-than-two disband Æ·‚†Ò‚·Ô Ë‚†‚≠Î¨ ØÆ¢•§•≠®•¨ CommandChannel.
-- Default methods PhantomPartyBackend ¢Æß¢‡†È†Ó‚ typed UNSUPPORTED, Á‚Æ°Î unrelated in-memory backends ≠• ‰†°‡®™Æ¢†´® MPCC. Production L2j backend override-®‚ ¢·• Á•‚Î‡• ÆØ•‡†Ê®®.
-- Generic service ≠• ¢ÎØÆ´≠Ô•‚ World/global discovery.
+- Formation right —Å–æ—Ö—Ä–∞–Ω—ë–Ω —Ç–æ—á–Ω–æ: clan leader –ø—Ä–∏ clan level >= 5, –ª–∏–±–æ item 8871, –ª–∏–±–æ pledge class >= 5 –≤–º–µ—Å—Ç–µ —Å–æ skill 391.
+- Ordinary packet –ø–µ—Ä–µ–¥–∞—ë—Ç exact –Ω–∞–π–¥–µ–Ω–Ω—ã–π `Player`; service –∫–∞–Ω–æ–Ω–∏—á–µ—Å–∫–∏ —Ç—Ä–µ–±—É–µ—Ç —Ç–µ–∫—É—â–µ–≥–æ Party leader. Phantom seam –æ—Ç–≤–µ—Ä–≥–∞–µ—Ç `MemberRef`, –∫–æ—Ç–æ—Ä—ã–π –Ω–µ —è–≤–ª—è–µ—Ç—Å—è exact current target Party leader.
+- Invitation identity –æ–±—è–∑–∞—Ç–µ–ª—å–Ω–∞ –¥–ª—è response. Wrong/old identity –≤–æ–∑–≤—Ä–∞—â–∞–µ—Ç `STALE_INVITE` –∏ –Ω–µ —Å–Ω–∏–º–∞–µ—Ç –±–æ–ª–µ–µ –Ω–æ–≤—ã–π matching pending/request.
+- `REFUSE`, expiry –∏ terminal revalidation failure —Å–Ω–∏–º–∞—é—Ç —Ç–æ–ª—å–∫–æ matching pending –∏ matching `Player` request relation.
+- Requester Party, target Party, leader –∏–ª–∏ CC object drift –º–µ–∂–¥—É invite –∏ `ACCEPT` –æ–±—Ä–∞–±–∞—Ç—ã–≤–∞—é—Ç—Å—è fail-closed.
+- Dismiss —Ä–∞–∑—Ä–µ—à–∞–µ—Ç—Å—è —Ç–æ–ª—å–∫–æ exact current CC leader –ø—Ä–æ—Ç–∏–≤ –¥—Ä—É–≥–æ–π Party —Ç–æ–≥–æ –∂–µ CC. Own Party/self loophole –∑–∞–∫—Ä—ã—Ç; less-than-two disband –≤—ã–ø–æ–ª–Ω—è–µ—Ç —à—Ç–∞—Ç–Ω—ã–π `CommandChannel`.
+- Default methods `PhantomPartyBackend` –≤–æ–∑–≤—Ä–∞—â–∞—é—Ç typed `UNSUPPORTED`, —á—Ç–æ–±—ã unrelated in-memory backends –Ω–µ —Ñ–∞–±—Ä–∏–∫–æ–≤–∞–ª–∏ MPCC. Production L2J backend –ø–µ—Ä–µ–æ–ø—Ä–µ–¥–µ–ª—è–µ—Ç –≤—Å–µ —á–µ—Ç—ã—Ä–µ –æ–ø–µ—Ä–∞—Ü–∏–∏.
+- Generic service –Ω–µ –∏—Å–ø–æ–ª—å–∑—É–µ—Ç World/global discovery.
 
 ## DB, migrations and configs
 
-- Schema/migrations ® config keys ≠• ¨•≠Ô´®·Ï.
-- Production DB l2jmobiush5 ‚•·‚†¨® ≠• ®ß¨•≠Ô´†·Ï.
-- Focused integration ®·ØÆ´ÏßÆ¢†´ allowlisted l2jmobiush5_phantom_test.
-- Phantom enable/disable lifecycle ≠• ¨•≠Ô´·Ô; ≠Æ¢ÎÂ workers ≠•‚.
+- Schema, migrations –∏ config keys –Ω–µ –¥–æ–±–∞–≤–ª—è–ª–∏—Å—å.
+- Production DB `l2jmobiush5` —Ç–µ—Å—Ç–∞–º–∏ –Ω–µ –∏–∑–º–µ–Ω—è–ª–∞—Å—å.
+- Focused integration –∏—Å–ø–æ–ª—å–∑–æ–≤–∞–ª–∞ allowlisted `l2jmobiush5_phantom_test`.
+- Phantom enable/disable lifecycle –Ω–µ –º–µ–Ω—è–ª—Å—è; –Ω–æ–≤—ã—Ö workers –Ω–µ—Ç.
 
 ## Commands and results
 
 Baseline:
 
-- git rev-parse --show-toplevel: C:/Users/endim/L2J_Mobius;
-- branch/upstream: feature/phantom-world / origin/feature/phantom-world;
-- required parent: e3f44333df659d3ba3f258739e1e0bba8bb6a53b.
+- `git rev-parse --show-toplevel`: `C:/Users/endim/L2J_Mobius`;
+- branch/upstream: `feature/phantom-world` / `origin/feature/phantom-world`;
+- required parent: `e3f44333df659d3ba3f258739e1e0bba8bb6a53b`.
 
 Compilation:
 
-- ant compile-tests: FAIL - initial patch fallback Æ°‡•ß†´ tail ≠Æ¢Æ£Æ service;
-- affected compile rerun: production compile PASS, test compile FAIL - §¢† assertions ®·ØÆ´ÏßÆ¢†´® Æ‚·„‚·‚¢„ÓÈ®© Player shortcut, † ≠Æ¢Î© interface seam ≠• ®¨•´ fail-closed defaults;
-- §•‰•™‚Î ®·Ø‡†¢´•≠Î ¨®≠®¨†´Ï≠Æ; ·´•§„ÓÈ®© ‡†ß‡•ËÒ≠≠Î© focused target „·Ø•Ë≠Æ ¢ÎØÆ´≠®´ production ® test compilation.
+- `ant compile-tests`: initial FAIL ‚Äî fallback patch –æ–±—Ä–µ–∑–∞–ª tail –Ω–æ–≤–æ–≥–æ service;
+- affected compile rerun: production compile PASS, test compile FAIL ‚Äî –¥–≤–∞ assertions –∏—Å–ø–æ–ª—å–∑–æ–≤–∞–ª–∏ –æ—Ç—Å—É—Ç—Å—Ç–≤—É—é—â–∏–π `Player` shortcut, –∞ –Ω–æ–≤—ã–π interface seam –µ—â—ë –Ω–µ –∏–º–µ–ª fail-closed defaults;
+- –¥–µ—Ñ–µ–∫—Ç—ã –∏—Å–ø—Ä–∞–≤–ª–µ–Ω—ã –ª–æ–∫–∞–ª—å–Ω–æ; —Å–ª–µ–¥—É—é—â–∏–π —Ä–∞–∑—Ä–µ—à—ë–Ω–Ω—ã–π focused target —É—Å–ø–µ—à–Ω–æ –≤—ã–ø–æ–ª–Ω–∏–ª production –∏ test compilation.
 
 Required gates:
 
-- ant phantom-command-channel-lifecycle-test: PASS, 6/6, seed 26002621;
-- ant phantom-party-server-integration-test: PASS, 9/9, seed 17001701;
-- ant phantom-command-channel-checkpoint2-test: PASS, CP2 6/6 + Goal017 9/9;
-- ant jar: PASS; LoginServer.jar, GameServer.jar ® DatabaseInstaller.jar ·Æ°‡†≠Î.
+- `ant phantom-command-channel-lifecycle-test`: PASS, 6/6, seed `26002621`;
+- `ant phantom-party-server-integration-test`: PASS, 9/9, seed `17001701`;
+- `ant phantom-command-channel-checkpoint2-test`: PASS, CP2 6/6 + Goal017 9/9;
+- `ant jar`: PASS; —Å–æ–±—Ä–∞–Ω—ã `LoginServer.jar`, `GameServer.jar` –∏ `DatabaseInstaller.jar`.
 
-Forbidden gates:
-
-- plain ant verify ≠• ß†Ø„·™†´·Ô;
-- Goal025 aggregate ≠• ß†Ø„·™†´·Ô;
-- Goal026 CP1 aggregate ≠• ß†Ø„·™†´·Ô;
-- broad all-Phantom suite ® stress loops ≠• ß†Ø„·™†´®·Ï.
+Forbidden gates –Ω–µ –∑–∞–ø—É—Å–∫–∞–ª–∏—Å—å: plain `ant verify`, Goal025 aggregate, Goal026 CP1 aggregate, broad all-Phantom suite –∏ stress loops.
 
 Editing/tool deviation:
 
-- packaged apply_patch °Î´ ≠•§Æ·‚„Ø•≠ ®ß-ß† Windows ACL: Access is denied §´Ô packaged Codex runner.
-- à·ØÆ´ÏßÆ¢†≠ patch-based fallback: scoped git hash-object -w --stdin, blob git diff --no-ext-diff --full-index ® git apply Á•‡•ß stdin.
-- è‡Ô¨Æ© shell overwrite production/test logic ≠• ®·ØÆ´ÏßÆ¢†´·Ô.
-- í‡® packet-‰†©´† ØÆ·´• ConPTY patch input ‚ÆÁ•Á≠Æ ≠Æ‡¨†´®ßÆ¢†≠Î CRLF -> LF §´Ô git diff --check.
+- packaged `apply_patch` –±—ã–ª –Ω–µ–¥–æ—Å—Ç—É–ø–µ–Ω –∏–∑-–∑–∞ Windows ACL (`Access is denied`);
+- –∏—Å–ø–æ–ª—å–∑–æ–≤–∞–Ω patch-based fallback —á–µ—Ä–µ–∑ Git plumbing –∏ `git apply`;
+- shell overwrite production/test logic –Ω–µ –∏—Å–ø–æ–ª—å–∑–æ–≤–∞–ª—Å—è;
+- —Ç—Ä–∏ packet-—Ñ–∞–π–ª–∞ –ø–æ—Å–ª–µ ConPTY patch input –±—ã–ª–∏ —Ç–æ—á–Ω–æ –Ω–æ—Ä–º–∞–ª–∏–∑–æ–≤–∞–Ω—ã CRLF ‚Üí LF –¥–æ `git diff --check`.
 
 ## Test coverage
 
 Focused CP2:
 
-- service/packet delegation ® negative scope;
-- exact validation ® ‚‡® formation authority families;
-- exact REFUSE, stale identity ® retry ownership;
-- canonical new/existing CC ACCEPT;
-- Party identity drift ® Player timeout fail-closed;
-- exact CC-leader dismiss ® canonical disband.
+- service/packet delegation –∏ negative scope;
+- exact validation –∏ —Ç—Ä–∏ formation authority families;
+- exact `REFUSE`, stale identity –∏ retry ownership;
+- canonical new/existing CC `ACCEPT`;
+- Party identity drift –∏ `Player` timeout fail-closed;
+- exact CC-leader dismiss –∏ canonical disband.
 
 Goal017 affected regression:
 
-- exact Phantom MemberRef requester ® exact real target leader;
-- Æ‚·„‚·‚¢®• auto-accept;
-- separate target-side REFUSE ® ACCEPT;
+- exact Phantom `MemberRef` requester –∏ exact real target leader;
+- –æ—Ç—Å—É—Ç—Å—Ç–≤–∏–µ auto-accept;
+- –æ—Ç–¥–µ–ª—å–Ω—ã–µ target-side `REFUSE` –∏ `ACCEPT`;
 - canonical shared CC identity;
 - exact CC-leader dismiss.
 
 ## Performance
 
-- çÆ¢Î© lifecycle ≠• ·Æß§†Ò‚ thread/scheduler/Future.
-- Pending state Æ£‡†≠®Á•≠ §¢„¨Ô ®≠§•™·†¨® Æ§≠Æ£Æ exact record ® ÆÁ®È†•‚·Ô ´•≠®¢Æ.
-- ç•‚ DB query, global player scan, candidate discovery ®´® hot-path logging.
-- Focused CP2 target: 32 s; Goal017 affected target: 29 s; final aggregate: 40 s; ant jar: 16 s.
-- é‚§•´Ï≠Î© performance smoke ≠• ß†Ø„·™†´·Ô: TASK •£Æ ≠• ‡†ß‡•Ë†•‚.
+- –ù–æ–≤—ã–π lifecycle –Ω–µ —Å–æ–∑–¥–∞—ë—Ç thread, scheduler –∏–ª–∏ Future.
+- Pending state –æ–≥—Ä–∞–Ω–∏—á–µ–Ω –∏–Ω–¥–µ–∫—Å–∞–º–∏ exact records –∏ –æ—á–∏—â–∞–µ—Ç—Å—è –ª–µ–Ω–∏–≤–æ.
+- –ù–µ—Ç DB query, global player scan, candidate discovery –∏–ª–∏ hot-path logging.
+- Focused CP2 target: 32 s; Goal017 affected target: 29 s; final aggregate: 40 s; `ant jar`: 16 s.
+- –û—Ç–¥–µ–ª—å–Ω—ã–π performance smoke –Ω–µ –∑–∞–ø—É—Å–∫–∞–ª—Å—è: TASK –µ–≥–æ –Ω–µ —Ä–∞–∑—Ä–µ—à–∞–ª.
 
 ## Deviations
 
-- èÆ´≠Î© master-plan ≠• Ø•‡•Á®‚Î¢†´·Ô: task-specific read budget Ø‡Ô¨Æ ß†Ø‡•È†•‚ master-plan/historical reread.
-- àß-ß† ≠•§Æ·‚„Ø≠Æ·‚® packaged apply_patch Ø‡®¨•≠Ò≠ ÆØ®·†≠≠Î© unified-diff fallback.
-- ê†≠≠®• compile failures ≠• ·™‡Î‚Î; frozen final gates ß•´Ò≠Î•.
+- Master plan –Ω–µ –ø–µ—Ä–µ—á–∏—Ç—ã–≤–∞–ª—Å—è –≤ –∏—Å—Ç–æ—Ä–∏—á–µ—Å–∫–æ–º CP2 –∑–∞–ø—É—Å–∫–µ: task-specific read budget –ø—Ä—è–º–æ –∑–∞–ø—Ä–µ—â–∞–ª master-plan/historical reread.
+- –ò–∑-–∑–∞ –Ω–µ–¥–æ—Å—Ç—É–ø–Ω–æ—Å—Ç–∏ packaged `apply_patch` –ø—Ä–∏–º–µ–Ω—è–ª—Å—è –æ–ø–∏—Å–∞–Ω–Ω—ã–π unified-diff fallback.
+- –ü–µ—Ä–≤–∏—á–Ω—ã–µ compile failures –∏—Å–ø—Ä–∞–≤–ª–µ–Ω—ã; frozen final gates –±—ã–ª–∏ –∑–µ–ª—ë–Ω—ã–º–∏.
 
 ## Limitations and risks
 
-- Invitation state Æ·‚†Ò‚·Ô transient in-memory ® ≠†¨•‡•≠≠Æ ≠• persist-®‚·Ô.
-- Ordinary wire response ≠• ≠•·Ò‚ sequence token; packet adapter Æ‚¢•Á†•‚ ≠† exact current observed pending identity. Phantom/backend API ‚‡•°„•‚ expected identity.
-- Human target ·ÆÂ‡†≠Ô•‚ normal MPCC prompt; °„§„È†Ô Phantom policy §Æ´¶≠† Æ‚§•´Ï≠Æ ‡•Ë®‚Ï ACCEPT/REFUSE.
-- Candidate discovery, recruitment scoring, chat, gathering, navigation, entry, combat, retreat, persistence ® worker ≠• ‡•†´®ßÆ¢†≠Î.
+- Invitation state –æ—Å—Ç–∞—ë—Ç—Å—è transient in-memory –∏ –Ω–∞–º–µ—Ä–µ–Ω–Ω–æ –Ω–µ persist-–∏—Ç—Å—è.
+- Ordinary wire response –Ω–µ –Ω–µ—Å—ë—Ç sequence token; packet adapter –æ—Ç–≤–µ—á–∞–µ—Ç –Ω–∞ exact current observed pending identity. Phantom/backend API —Ç—Ä–µ–±—É–µ—Ç expected identity.
+- Human target —Å–æ—Ö—Ä–∞–Ω—è–µ—Ç normal MPCC prompt; –±—É–¥—É—â–∞—è Phantom policy –¥–æ–ª–∂–Ω–∞ –æ—Ç–¥–µ–ª—å–Ω–æ —Ä–µ—à–∏—Ç—å `ACCEPT/REFUSE`.
+- Candidate discovery, recruitment scoring, chat, gathering, navigation, entry, combat, retreat, persistence –∏ worker –Ω–µ —Ä–µ–∞–ª–∏–∑–æ–≤–∞–Ω—ã CP2.
 
 ## Branch, parent, commit and push
 
-- branch: feature/phantom-world;
-- required parent: e3f44333df659d3ba3f258739e1e0bba8bb6a53b;
-- commit subject: feat(phantoms): add command channel lifecycle;
-- commit SHA: same commit that contains this report; exact SHA °„§•‚ ¢ final delivery, ØÆ‚Æ¨„ Á‚Æ commit ≠• ¨Æ¶•‚ ·Æ§•‡¶†‚Ï ·Æ°·‚¢•≠≠Î© hash;
-- remote HEAD/push result: °„§„‚ ¢ final delivery ØÆ·´• ordinary push origin feature/phantom-world.
+- branch: `feature/phantom-world`;
+- required parent: `e3f44333df659d3ba3f258739e1e0bba8bb6a53b`;
+- commit subject: `feat(phantoms): add command channel lifecycle`;
+- accepted commit / remote baseline: `bbd29495a19a322c0629509c85c31fe508ae8d07`;
+- ordinary push `origin feature/phantom-world` –±—ã–ª –Ω–µ–∑–∞–≤–∏—Å–∏–º–æ –ø–æ–¥—Ç–≤–µ—Ä–∂–¥—ë–Ω review.
 
 ## Unfinished findings
 
-ç•ß†¢•‡ËÒ≠≠ÎÂ CP2 findings ≠•‚. í‡•°„•‚·Ô independent review. Goal026 overall ≠• ß†¢•‡ËÒ≠.
+–ë–ª–æ–∫–∏—Ä—É—é—â–∏—Ö CP2 findings –Ω–µ—Ç. CP2 –Ω–µ–∑–∞–≤–∏—Å–∏–º–æ –ø—Ä–∏–Ω—è—Ç; Goal 026 overall –æ—Å—Ç–∞—ë—Ç—Å—è `IN_PROGRESS`.
 
 ## Context compaction
 
@@ -153,6 +150,6 @@ occurred_context_compaction: yes
 
 ## Next step
 
-Independent review Goal026 CP2. ç• ≠†Á®≠†‚Ï CP3+ §Æ review decision.
+Goal 026 Checkpoint 3 —Ä–µ–∞–ª–∏–∑—É–µ—Ç—Å—è –æ—Ç–¥–µ–ª—å–Ω—ã–º bounded checkpoint; CP2 product gates –Ω–µ –ø–æ–≤—Ç–æ—Ä—è—é—Ç—Å—è —Ç–æ–ª—å–∫–æ –∏–∑-–∑–∞ —ç—Ç–æ–π UTF-8 –¥–æ–∫—É–º–µ–Ω—Ç–∞—Ü–∏–æ–Ω–Ω–æ–π –ø—Ä–∞–≤–∫–∏.
 
 GOAL_026_CHECKPOINT_2_COMMAND_CHANNEL_LIFECYCLE_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW

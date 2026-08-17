@@ -1,0 +1,15 @@
+{
+  "task_id": "026-checkpoint-3-raid-recruitment",
+  "goal": 26,
+  "checkpoint": 3,
+  "branch": "feature/phantom-world",
+  "required_parent": "bbd29495a19a322c0629509c85c31fe508ae8d07",
+  "required_subject": "feat(phantoms): add raid recruitment planning",
+  "seed": 26002631,
+  "success_token": "GOAL_026_CHECKPOINT_3_RAID_RECRUITMENT_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "accepted_cp2_baseline": "bbd29495a19a322c0629509c85c31fe508ae8d07",
+  "scope": "raid composition deficits and deterministic bounded single outbound MPCC recruitment",
+  "first_context_compaction_is_stop": true,
+  "plain_ant_verify_authorized": false,
+  "goal026_cp2_aggregate_authorized": false
+}

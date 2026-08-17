@@ -112,6 +112,7 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.Se
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
 import org.l2jmobius.gameserver.phantoms.raid.L2jPhantomRaidAuthority;
 import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidReadinessService;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidRecruitmentService;
 import org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftBackend;
 import org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftPartyPort;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftCatalog;
@@ -182,6 +183,7 @@ public final class PhantomSystem
 	private PhantomPopulationManager _populationManager;
 	private PhantomPartyCoordinator _partyCoordinator;
 	private PhantomRaidReadinessService _raidReadinessService;
+	private PhantomRaidRecruitmentService _raidRecruitmentService;
 	private PhantomSocialService _socialService;
 	private PhantomConversationService _conversationService;
 	private PhantomConversationExecutionService _conversationExecutionService;
@@ -388,6 +390,7 @@ public final class PhantomSystem
 				}
 				final L2jPhantomPartyBackend partyBackend = new L2jPhantomPartyBackend(productionProfiles, _materializationService, _progressionService);
 				_raidReadinessService = new PhantomRaidReadinessService(_gameKnowledgeService.query(), partyBackend, new L2jPhantomRaidAuthority());
+				_raidRecruitmentService = new PhantomRaidRecruitmentService(_raidReadinessService, partyBackend);
 				_partyCoordinator = new PhantomPartyCoordinator(
 					new PhantomPartyStore(productionProfiles),
 					productionGoals,
@@ -1045,6 +1048,11 @@ public final class PhantomSystem
 	public synchronized PhantomRaidReadinessService raidReadiness()
 	{
 		return _raidReadinessService;
+	}
+
+	public synchronized PhantomRaidRecruitmentService raidRecruitment()
+	{
+		return _raidRecruitmentService;
 	}
 
 	public synchronized PhantomAcquisitionService.Snapshot acquisitionSnapshot()

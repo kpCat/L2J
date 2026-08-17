@@ -375,6 +375,7 @@ public final class PhantomTestLauncher
 			case "raid-readiness-force" -> new PhantomRaidReadinessSuite(PhantomRaidReadinessSuite.Mode.FORCE);
 			case "raid-readiness-policy" -> new PhantomRaidReadinessSuite(PhantomRaidReadinessSuite.Mode.READINESS);
 			case "raid-current-capability-readiness" -> new PhantomRaidReadinessSuite(PhantomRaidReadinessSuite.Mode.CURRENT_CAPABILITY_READINESS);
+			case "raid-recruitment" -> new PhantomRaidRecruitmentSuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};
