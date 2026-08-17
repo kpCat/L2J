@@ -87,6 +87,14 @@ public final class CommandChannelInvitationService
 		DIFFERENT_COMMAND_CHANNEL
 	}
 
+	public enum CancelOutcome
+	{
+		UNSUPPORTED,
+		CANCELLED,
+		NO_PENDING_INVITE,
+		STALE_INVITE
+	}
+
 	public record InvitationIdentity(long sequence, int requesterObjectId, int inviteeObjectId)
 	{
 		public InvitationIdentity
@@ -111,6 +119,14 @@ public final class CommandChannelInvitationService
 		public boolean accepted()
 		{
 			return outcome == RespondOutcome.ACCEPTED;
+		}
+	}
+
+	public record CancelResult(CancelOutcome outcome, InvitationIdentity identity)
+	{
+		public boolean cancelled()
+		{
+			return outcome == CancelOutcome.CANCELLED;
 		}
 	}
 
@@ -284,6 +300,33 @@ public final class CommandChannelInvitationService
 				return Optional.empty();
 			}
 			return Optional.of(pending.snapshot());
+		}
+	}
+
+	/**
+	 * Removes only the exact pending identity. This is a cleanup seam; it does not
+	 * accept or refuse on behalf of either Party.
+	 */
+	public CancelResult cancel(InvitationIdentity expectedIdentity)
+	{
+		if (expectedIdentity == null)
+		{
+			return new CancelResult(CancelOutcome.NO_PENDING_INVITE, null);
+		}
+		synchronized (_stateLock)
+		{
+			final PendingInvitation pending = _pendingByInvitee.get(expectedIdentity.inviteeObjectId());
+			if (pending == null)
+			{
+				return new CancelResult(CancelOutcome.NO_PENDING_INVITE, expectedIdentity);
+			}
+			if (!pending._identity.equals(expectedIdentity))
+			{
+				return new CancelResult(CancelOutcome.STALE_INVITE, expectedIdentity);
+			}
+			removePending(pending);
+			clearRequestRelation(pending);
+			return new CancelResult(CancelOutcome.CANCELLED, pending._identity);
 		}
 	}
 

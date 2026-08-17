@@ -1,0 +1,14 @@
+{
+  "task_id": "026-checkpoint-4-raid-assembly-gathering",
+  "goal": 26,
+  "checkpoint": 4,
+  "branch": "feature/phantom-world",
+  "required_parent": "88b7c031847c71abd4077423336caaa6bd179712",
+  "required_subject": "feat(phantoms): assemble and gather raid forces",
+  "seed": 26002641,
+  "success_token": "GOAL_026_CHECKPOINT_4_RAID_ASSEMBLY_GATHERING_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "task_sizing": "large_substantive_vertical_slice",
+  "first_context_compaction_is_stop": true,
+  "plain_ant_verify_authorized": false,
+  "cp3_026b_aggregate_authorized": false
+}

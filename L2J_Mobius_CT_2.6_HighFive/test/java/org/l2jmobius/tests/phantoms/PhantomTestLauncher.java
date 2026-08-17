@@ -376,6 +376,9 @@ public final class PhantomTestLauncher
 			case "raid-readiness-policy" -> new PhantomRaidReadinessSuite(PhantomRaidReadinessSuite.Mode.READINESS);
 			case "raid-current-capability-readiness" -> new PhantomRaidReadinessSuite(PhantomRaidReadinessSuite.Mode.CURRENT_CAPABILITY_READINESS);
 			case "raid-recruitment" -> new PhantomRaidRecruitmentSuite();
+			case "raid-assembly-consent" -> new PhantomRaidAssemblySuite(PhantomRaidAssemblySuite.Mode.ASSEMBLY);
+			case "raid-gathering-staging" -> new PhantomRaidAssemblySuite(PhantomRaidAssemblySuite.Mode.GATHERING);
+			case "raid-decision-lifecycle" -> new PhantomRaidAssemblySuite(PhantomRaidAssemblySuite.Mode.DECISION);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

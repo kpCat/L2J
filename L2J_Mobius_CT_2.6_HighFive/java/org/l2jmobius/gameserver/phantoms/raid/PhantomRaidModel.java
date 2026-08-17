@@ -128,6 +128,18 @@ public final class PhantomRaidModel
 		}
 	}
 
+	public record BossLocation(ContentKind contentKind, int npcId, int x, int y, int z, int instanceId, long observedAtMillis, String source)
+	{
+		public BossLocation
+		{
+			Objects.requireNonNull(contentKind, "contentKind");
+			if (((contentKind != ContentKind.RAID) && (contentKind != ContentKind.EPIC)) || (npcId <= 0) || (instanceId < 0) || (observedAtMillis < 0) || (source == null) || source.isBlank())
+			{
+				throw new IllegalArgumentException("Invalid exact boss location.");
+			}
+		}
+	}
+
 	public record CapabilityAssessment(CapabilityRequirement requirement, int satisfyingMembers)
 	{
 		public CapabilityAssessment

@@ -61,6 +61,7 @@
 	<property name="phantom.goal026cp2.seed" value="26002621" />
 	<property name="phantom.goal026cp3.seed" value="26002631" />
 	<property name="phantom.goal026b.seed" value="26002632" />
+	<property name="phantom.goal026cp4.seed" value="26002641" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -2861,6 +2862,35 @@
 	</target>
 
 	<target name="phantom-command-channel-checkpoint2-test" depends="phantom-command-channel-lifecycle-test,phantom-party-server-integration-test" description="Run the final Goal 026 Checkpoint 2 focused aggregate and exact Goal 017 affected regression." />
+
+	<target name="phantom-raid-assembly-consent-test" depends="compile-tests" description="Run Goal 026 CP4 bounded assembly and bilateral consent tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-assembly-consent" />
+			<arg value="${phantom.goal026cp4.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-raid-gathering-staging-test" depends="compile-tests" description="Run Goal 026 CP4 force, staging and per-Party gathering tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-gathering-staging" />
+			<arg value="${phantom.goal026cp4.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-raid-decision-lifecycle-test" depends="compile-tests" description="Run Goal 026 CP4 Decision wiring and production cleanup tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-decision-lifecycle" />
+			<arg value="${phantom.goal026cp4.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-raid-assembly-checkpoint4-test" depends="phantom-raid-assembly-consent-test,phantom-raid-gathering-staging-test,phantom-raid-decision-lifecycle-test,phantom-command-channel-lifecycle-test,phantom-raid-readiness-authority-test" description="Run the final Goal 026 Checkpoint 4 focused aggregate and exact affected regressions." />
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->

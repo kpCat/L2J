@@ -11,6 +11,7 @@ import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.groups.CommandChannel;
 import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService;
+import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService.CancelOutcome;
 import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService.DismissOutcome;
 import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService.InvitationIdentity;
 import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService.InviteOutcome;
@@ -79,6 +80,7 @@ public final class PhantomCommandChannelLifecycleSuite implements PhantomTestSui
 		registry.add("04-canonical-create-and-existing-channel-accept", _ -> testAccept());
 		registry.add("05-party-drift-and-player-timeout-fail-closed", _ -> testDriftAndExpiry());
 		registry.add("06-exact-leader-dismiss-and-canonical-disband", _ -> testDismiss());
+		registry.add("07-exact-cancel-is-stale-safe", _ -> testCancel());
 	}
 
 	private void testStaticParity() throws Exception
@@ -208,6 +210,27 @@ public final class PhantomCommandChannelLifecycleSuite implements PhantomTestSui
 		PhantomAssertions.assertEquals(DismissOutcome.REQUESTER_NOT_COMMAND_CHANNEL_LEADER, _service.dismiss(_invitee, _requester), "Non-CC-leader dismissal was accepted.");
 		PhantomAssertions.assertEquals(DismissOutcome.COMPLETED, _service.dismiss(_requester, _invitee), "Exact CC-leader dismissal failed.");
 		PhantomAssertions.assertFalse(pair.requester().isInCommandChannel() || pair.invitee().isInCommandChannel(), "Canonical less-than-two Party disband did not run.");
+		resetPlayers();
+	}
+
+	private void testCancel()
+	{
+		resetPlayers();
+		parties();
+		ensureFormationItem();
+		final InviteResult first = _service.invite(_requester, _invitee);
+		final InvitationIdentity wrong = new InvitationIdentity(first.identity().sequence() + 1, first.identity().requesterObjectId(), first.identity().inviteeObjectId());
+		PhantomAssertions.assertEquals(CancelOutcome.STALE_INVITE, _service.cancel(wrong).outcome(), "Stale cancel cleared a matching pending request.");
+		PhantomAssertions.assertEquals(first.identity(), _service.observe(_invitee).orElseThrow().identity(), "Stale cancel changed the exact pending identity.");
+		PhantomAssertions.assertEquals(CancelOutcome.CANCELLED, _service.cancel(first.identity()).outcome(), "Exact cleanup cancel did not clear the request.");
+		PhantomAssertions.assertFalse(_service.observe(_invitee).isPresent(), "Exact cancel retained pending state.");
+		PhantomAssertions.assertEquals(null, _invitee.getActiveRequester(), "Exact cancel retained Player request authority.");
+
+		final InviteResult newer = _service.invite(_requester, _invitee);
+		PhantomAssertions.assertTrue(newer.delivered() && (newer.identity().sequence() > first.identity().sequence()), "Cancel retry did not receive a newer identity.");
+		PhantomAssertions.assertEquals(CancelOutcome.STALE_INVITE, _service.cancel(first.identity()).outcome(), "Old cancel cleared a newer invitation.");
+		PhantomAssertions.assertEquals(newer.identity(), _service.observe(_invitee).orElseThrow().identity(), "Old cancel changed newer pending state.");
+		PhantomAssertions.assertEquals(CancelOutcome.CANCELLED, _service.cancel(newer.identity()).outcome(), "Newer exact cancel failed.");
 		resetPlayers();
 	}
 

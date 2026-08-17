@@ -4,6 +4,7 @@
 package org.l2jmobius.gameserver.phantoms.raid;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import org.l2jmobius.gameserver.managers.GrandBossManager;
@@ -13,6 +14,7 @@ import org.l2jmobius.gameserver.model.actor.enums.npc.RaidBossStatus;
 import org.l2jmobius.gameserver.model.actor.instance.GrandBoss;
 import org.l2jmobius.gameserver.model.actor.instance.RaidBoss;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentKind;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidModel.BossLocation;
 import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidModel.BossObservation;
 
 public final class L2jPhantomRaidAuthority implements PhantomRaidAuthority
@@ -41,6 +43,26 @@ public final class L2jPhantomRaidAuthority implements PhantomRaidAuthority
 			throw new IllegalArgumentException("Raid authority requires an exact NPC id.");
 		}
 		return contentKind == ContentKind.RAID ? observeRaid(npcId) : observeEpic(npcId);
+	}
+
+	@Override
+	public Optional<BossLocation> observeLocation(ContentKind contentKind, int npcId)
+	{
+		if ((contentKind != ContentKind.RAID) && (contentKind != ContentKind.EPIC))
+		{
+			throw new IllegalArgumentException("Raid authority accepts only RAID or EPIC content.");
+		}
+		if (npcId <= 0)
+		{
+			throw new IllegalArgumentException("Raid authority requires an exact NPC id.");
+		}
+		if (contentKind == ContentKind.RAID)
+		{
+			final RaidBoss live = RaidBossSpawnManager.getInstance().getBosses().get(npcId);
+			return (live == null) || (live.getId() != npcId) ? Optional.empty() : Optional.of(new BossLocation(contentKind, npcId, live.getX(), live.getY(), live.getZ(), live.getInstanceId(), _clock.getAsLong(), "RaidBossSpawnManager.getBosses"));
+		}
+		final GrandBoss live = GrandBossManager.getInstance().getBoss(npcId);
+		return (live == null) || (live.getId() != npcId) ? Optional.empty() : Optional.of(new BossLocation(contentKind, npcId, live.getX(), live.getY(), live.getZ(), live.getInstanceId(), _clock.getAsLong(), "GrandBossManager.getBoss"));
 	}
 
 	private BossObservation observeRaid(int npcId)

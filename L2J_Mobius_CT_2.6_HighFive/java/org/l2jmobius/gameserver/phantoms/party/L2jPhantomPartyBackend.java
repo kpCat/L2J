@@ -144,6 +144,12 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	}
 
 	@Override
+	public CommandChannelInvitationService.CancelResult cancelCommandChannel(CommandChannelInvitationService.InvitationIdentity identity)
+	{
+		return _commandChannels.cancel(identity);
+	}
+
+	@Override
 	public Optional<CommandChannelInvitationService.InvitationSnapshot> observeCommandChannelInvitation(MemberRef invitee)
 	{
 		try (AcquiredPlayer acquired = acquire(invitee))

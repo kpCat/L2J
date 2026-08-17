@@ -161,6 +161,15 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 				PhantomAssertions.assertFalse(source.contains(forbidden), "Production raid authority contains a mutation/scheduling seam: " + forbidden);
 			}
 		});
+		registry.add("04-exact-live-location-is-read-only-and-optional", context ->
+		{
+			final PhantomRaidAuthority unsupported = (kind, npcId) -> observation(kind, npcId, true, kind == ContentKind.RAID ? "ALIVE" : "1", true, true, false, 0L);
+			PhantomAssertions.assertFalse(unsupported.observeLocation(ContentKind.RAID, 100).isPresent(), "Default raid location authority fabricated coordinates.");
+			final String source = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/raid/L2jPhantomRaidAuthority.java"), StandardCharsets.UTF_8);
+			PhantomAssertions.assertTrue(source.contains("observeLocation") && source.contains("live.getX()") && source.contains("live.getY()") && source.contains("live.getZ()") && source.contains("live.getInstanceId()"), "Production authority does not expose exact live x/y/z/instanceId.");
+			PhantomAssertions.assertTrue(source.contains("RaidBossSpawnManager.getInstance().getBosses().get(npcId)") && source.contains("GrandBossManager.getInstance().getBoss(npcId)"), "Location observation does not use exact raid/epic live identity.");
+			PhantomAssertions.assertFalse(source.contains("teleToLocation") || source.contains("setXYZ"), "Read-only location authority gained movement mutation.");
+		});
 	}
 
 	private static void force(PhantomTestRegistry registry)

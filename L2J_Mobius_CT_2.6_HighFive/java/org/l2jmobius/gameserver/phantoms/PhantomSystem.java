@@ -111,6 +111,8 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
 import org.l2jmobius.gameserver.phantoms.raid.L2jPhantomRaidAuthority;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAssemblyService;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidDecision;
 import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidReadinessService;
 import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidRecruitmentService;
 import org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftBackend;
@@ -184,6 +186,7 @@ public final class PhantomSystem
 	private PhantomPartyCoordinator _partyCoordinator;
 	private PhantomRaidReadinessService _raidReadinessService;
 	private PhantomRaidRecruitmentService _raidRecruitmentService;
+	private PhantomRaidAssemblyService _raidAssemblyService;
 	private PhantomSocialService _socialService;
 	private PhantomConversationService _conversationService;
 	private PhantomConversationExecutionService _conversationExecutionService;
@@ -389,8 +392,12 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom semantic understanding service could not enter the running state.");
 				}
 				final L2jPhantomPartyBackend partyBackend = new L2jPhantomPartyBackend(productionProfiles, _materializationService, _progressionService);
-				_raidReadinessService = new PhantomRaidReadinessService(_gameKnowledgeService.query(), partyBackend, new L2jPhantomRaidAuthority());
+				final L2jPhantomRaidAuthority raidAuthority = new L2jPhantomRaidAuthority();
+				_raidReadinessService = new PhantomRaidReadinessService(_gameKnowledgeService.query(), partyBackend, raidAuthority);
 				_raidRecruitmentService = new PhantomRaidRecruitmentService(_raidReadinessService, partyBackend);
+				final PhantomPartyRouteCoordinator raidRoutes = new PhantomPartyRouteCoordinator(_navigationService, _combatService);
+				_raidAssemblyService = new PhantomRaidAssemblyService(productionGoals, _raidReadinessService, _raidRecruitmentService, partyBackend, raidAuthority, _topologyService::query, raidRoutes, System::currentTimeMillis);
+				final PhantomRaidDecision raidDecision = new PhantomRaidDecision(_raidAssemblyService);
 				_partyCoordinator = new PhantomPartyCoordinator(
 					new PhantomPartyStore(productionProfiles),
 					productionGoals,
@@ -470,6 +477,7 @@ public final class PhantomSystem
 				populationDecision.registerCandidates(candidateRegistry);
 				partyDecision.registerCandidates(candidateRegistry);
 				riftDecision.registerCandidates(candidateRegistry);
+				raidDecision.registerCandidates(candidateRegistry);
 				candidateRegistry.seal();
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
@@ -483,6 +491,7 @@ public final class PhantomSystem
 				populationDecision.registerHandlers(handlerRegistry);
 				partyDecision.registerHandlers(handlerRegistry);
 				riftDecision.registerHandlers(handlerRegistry);
+				raidDecision.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
 				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
 				_decisionEngine.start();
@@ -504,6 +513,10 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException e)
 		{
+			if (_raidAssemblyService != null)
+			{
+				_raidAssemblyService.beginStop();
+			}
 			if (_pvpService != null)
 			{
 				_pvpService.beginStop();
@@ -643,6 +656,10 @@ public final class PhantomSystem
 
 		if (_state == State.RUNNING)
 		{
+			if (_raidAssemblyService != null)
+			{
+				_raidAssemblyService.beginStop();
+			}
 			if (_multipartyEconomyService != null)
 			{
 				if (!_multipartyEconomyService.shutdown(System.currentTimeMillis()).successful())
@@ -866,6 +883,10 @@ public final class PhantomSystem
 		}
 		if (_state == State.FAILED)
 		{
+			if (_raidAssemblyService != null)
+			{
+				_raidAssemblyService.beginStop();
+			}
 			if ((_pvpService != null) && (_pvpService.snapshot().state() != PhantomPvpService.State.STOPPED))
 			{
 				_pvpService.beginStop();
@@ -1053,6 +1074,11 @@ public final class PhantomSystem
 	public synchronized PhantomRaidRecruitmentService raidRecruitment()
 	{
 		return _raidRecruitmentService;
+	}
+
+	public synchronized PhantomRaidAssemblyService raidAssembly()
+	{
+		return _raidAssemblyService;
 	}
 
 	public synchronized PhantomAcquisitionService.Snapshot acquisitionSnapshot()

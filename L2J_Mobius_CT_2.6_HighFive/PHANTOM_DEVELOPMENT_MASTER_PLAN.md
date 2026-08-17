@@ -749,7 +749,7 @@ Prior independent review закрыл R024A-01/02/03; Goal 024 overall прин�
 Accepted baseline: `922f72c0d422904dcbdc6215a5cc1167a1bb84fb`.
 Goal 025A — `ACCEPT`; Goal 025 overall — `ACCEPT`.
 Accepted baseline: `5517081fb2bbf2aa9ad8295130714df2d4b45921`.
-Goal 026 Checkpoint 1 и corrective 026A — `ACCEPT`; Checkpoint 2 — `ACCEPT` на baseline `bbd29495a19a322c0629509c85c31fe508ae8d07`; Checkpoint 3 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 026 overall — `IN_PROGRESS`; Checkpoint 4+ — `NOT_STARTED`.
+Goal 026 Checkpoint 1 и corrective 026A — `ACCEPT`; Checkpoint 2 — `ACCEPT`; Checkpoint 3 и corrective 026B — `ACCEPT` на baseline `88b7c031847c71abd4077423336caaa6bd179712`; Checkpoint 4 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 026 overall — `IN_PROGRESS`; Checkpoint 5 — `NOT_STARTED`.
 
 Exact current Goal 021 Source теперь порождает bounded ROOM/MOB_GROUP claim; Goal 010 определяет current
 perceptibility, Goal 017 — same-Party SHARE, Goal 018 — social memory/history, Goal 020 — typed query/language.

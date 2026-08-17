@@ -3,7 +3,10 @@
  */
 package org.l2jmobius.gameserver.phantoms.raid;
 
+import java.util.Optional;
+
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentKind;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidModel.BossLocation;
 import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidModel.BossObservation;
 
 /**
@@ -12,4 +15,9 @@ import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidModel.BossObservation;
 public interface PhantomRaidAuthority
 {
 	BossObservation observe(ContentKind contentKind, int npcId);
+
+	default Optional<BossLocation> observeLocation(ContentKind contentKind, int npcId)
+	{
+		return Optional.empty();
+	}
 }

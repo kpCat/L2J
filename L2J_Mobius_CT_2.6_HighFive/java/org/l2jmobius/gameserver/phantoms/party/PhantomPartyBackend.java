@@ -52,6 +52,11 @@ public interface PhantomPartyBackend
 		return CommandChannelInvitationService.DismissOutcome.UNSUPPORTED;
 	}
 
+	default CommandChannelInvitationService.CancelResult cancelCommandChannel(CommandChannelInvitationService.InvitationIdentity identity)
+	{
+		return new CommandChannelInvitationService.CancelResult(CommandChannelInvitationService.CancelOutcome.UNSUPPORTED, identity);
+	}
+
 	default Optional<CommandChannelInvitationService.InvitationSnapshot> observeCommandChannelInvitation(MemberRef invitee)
 	{
 		return Optional.empty();
