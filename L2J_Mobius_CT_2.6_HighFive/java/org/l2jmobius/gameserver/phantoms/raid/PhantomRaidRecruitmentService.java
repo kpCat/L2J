@@ -16,6 +16,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceObservation;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceStatus;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PartySnapshot;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
@@ -135,8 +136,19 @@ public final class PhantomRaidRecruitmentService
 			return rejected(candidate, CandidateStatus.EVIDENCE_UNAVAILABLE, List.of(), "raid.recruitment.candidate.evidence_unavailable");
 		}
 		final CurrentForceSnapshot candidateForce = observation.snapshot();
-		final List<MemberRef> members = candidateForce.members().stream().map(MemberSnapshot::ref).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
-		if (!candidate.equals(candidateForce.actor()) || !candidate.equals(candidateForce.partyLeader()))
+		final List<PartySnapshot> matchingParties = candidateForce.parties().stream().filter(party -> party.members().contains(candidate)).toList();
+		if (matchingParties.size() != 1)
+		{
+			return rejected(candidate, CandidateStatus.EVIDENCE_UNAVAILABLE, List.of(), "raid.recruitment.candidate.party_evidence_inconsistent");
+		}
+		final PartySnapshot candidateParty = matchingParties.get(0);
+		final List<MemberRef> members = candidateParty.members().stream().sorted(Comparator.comparing(MemberRef::stableKey)).toList();
+		final List<MemberSnapshot> memberSnapshots = candidateForce.members().stream().filter(member -> members.contains(member.ref())).toList();
+		if ((new HashSet<>(members).size() != members.size()) || (memberSnapshots.size() != members.size()))
+		{
+			return rejected(candidate, CandidateStatus.EVIDENCE_UNAVAILABLE, List.of(), "raid.recruitment.candidate.party_evidence_inconsistent");
+		}
+		if (!candidate.equals(candidateForce.actor()) || !candidate.equals(candidateParty.leader()))
 		{
 			return rejected(candidate, CandidateStatus.NOT_EXACT_PARTY_LEADER, members, "raid.recruitment.candidate.not_exact_party_leader");
 		}
@@ -148,7 +160,7 @@ public final class PhantomRaidRecruitmentService
 		{
 			return rejected(candidate, CandidateStatus.CURRENT_FORCE_MEMBER, members, "raid.recruitment.candidate.current_force_overlap");
 		}
-		final int partyMembers = candidateForce.totalMemberCount();
+		final int partyMembers = members.size();
 		if ((current.totalMemberCount() + partyMembers) > recommendedMaximum)
 		{
 			return rejected(candidate, CandidateStatus.CONTENT_MEMBER_BOUND_EXCEEDED, members, "raid.recruitment.candidate.content_member_bound");
@@ -168,7 +180,7 @@ public final class PhantomRaidRecruitmentService
 		{
 			final CapabilityDeficit deficit = deficits.get(index);
 			final CapabilityRequirement requirement = hardRequirements.get(index);
-			final int satisfying = (int) candidateForce.members().stream().filter(member -> PhantomRaidReadinessService.satisfies(member, requirement)).count();
+			final int satisfying = (int) memberSnapshots.stream().filter(member -> PhantomRaidReadinessService.satisfies(member, requirement)).count();
 			final int reduction = Math.min(deficit.deficit(), satisfying);
 			contributions.add(new CapabilityContribution(deficit.capabilityKey(), deficit.minimumRank(), satisfying, reduction));
 			totalHardReduction += reduction;

@@ -1,0 +1,18 @@
+{
+  "task_id": "026b-large-cc-candidate-evidence",
+  "goal": 26,
+  "corrective": "B",
+  "branch": "feature/phantom-world",
+  "required_parent": "c9d2d429b1a7655d36676f8f8496de53d9cff11d",
+  "required_subject": "fix(phantoms): bound raid candidate party evidence",
+  "seed": 26002632,
+  "success_token": "GOAL_026B_RAID_CANDIDATE_EVIDENCE_FIXED_PENDING_INDEPENDENT_REVIEW",
+  "scope": [
+    "R026B-01"
+  ],
+  "plain_ant_verify_authorized": false,
+  "cp3_aggregate_authorized": false,
+  "cp1_regression_authorized": false,
+  "cp2_gates_authorized": false,
+  "first_context_compaction_is_stop": true
+}

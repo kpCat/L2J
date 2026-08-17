@@ -49,7 +49,7 @@ import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidRecruitmentService;
 
 public final class PhantomRaidRecruitmentSuite implements PhantomTestSuite
 {
-	private static final long SEED = 26002631L;
+	private static final long SEED = 26002632L;
 	private static final long NOW = 1_000_000L;
 	private static final String HASH = "0".repeat(64);
 	private static final String RAID = "raid.recruitment.synthetic";
@@ -186,15 +186,42 @@ public final class PhantomRaidRecruitmentSuite implements PhantomTestSuite
 		final MemberRef actualLeader = MemberRef.real(301);
 		_party.force(nonLeader, standalone(nonLeader, actualLeader, member(actualLeader), member(nonLeader)));
 		final MemberRef channelCandidate = MemberRef.real(400);
-		final MemberRef secondLeader = MemberRef.real(401);
+		final List<MemberRef> channelOwnParty = List.of(channelCandidate, MemberRef.real(401), MemberRef.real(402), MemberRef.real(403), MemberRef.real(404), MemberRef.real(405));
+		final MemberRef secondLeader = MemberRef.real(410);
+		final List<MemberRef> channelOtherParty = List.of(secondLeader, MemberRef.real(411), MemberRef.real(412), MemberRef.real(413), MemberRef.real(414), MemberRef.real(415));
 		_party.force(channelCandidate, channel(channelCandidate, channelCandidate, List.of(
-			party(channelCandidate, channelCandidate),
-			party(secondLeader, secondLeader)), List.of(member(channelCandidate), member(secondLeader))));
+			party(channelCandidate, channelOwnParty.toArray(MemberRef[]::new)),
+			party(secondLeader, channelOtherParty.toArray(MemberRef[]::new))), java.util.stream.Stream.concat(channelOwnParty.stream(), channelOtherParty.stream()).map(reference -> member(reference)).toList()));
+		final MemberRef largeChannelNonLeader = MemberRef.real(420);
+		final MemberRef largeChannelLeader = MemberRef.real(421);
+		final List<MemberRef> nonLeaderOwnParty = List.of(largeChannelLeader, largeChannelNonLeader, MemberRef.real(422), MemberRef.real(423), MemberRef.real(424));
+		final MemberRef nonLeaderOtherLeader = MemberRef.real(430);
+		final List<MemberRef> nonLeaderOtherParty = List.of(nonLeaderOtherLeader, MemberRef.real(431), MemberRef.real(432), MemberRef.real(433), MemberRef.real(434));
+		_party.force(largeChannelNonLeader, channel(largeChannelNonLeader, largeChannelLeader, List.of(
+			party(largeChannelLeader, nonLeaderOwnParty.toArray(MemberRef[]::new)),
+			party(nonLeaderOtherLeader, nonLeaderOtherParty.toArray(MemberRef[]::new))), java.util.stream.Stream.concat(nonLeaderOwnParty.stream(), nonLeaderOtherParty.stream()).map(reference -> member(reference)).toList()));
+		final MemberRef ambiguous = MemberRef.real(440);
+		final MemberRef ambiguousOtherLeader = MemberRef.real(441);
+		_party.force(ambiguous, channel(ambiguous, ambiguous, List.of(
+			party(ambiguous, ambiguous),
+			party(ambiguousOtherLeader, ambiguousOtherLeader, ambiguous)), List.of(member(ambiguous), member(ambiguousOtherLeader))));
 		final MemberRef unavailable = MemberRef.real(500);
-		final RecruitmentPlan plan = _recruitment.plan(ACTOR, RAID, List.of(unavailable, channelCandidate, nonLeader, exact, ACTOR));
+		PhantomAssertions.assertEquals(12, _party.currentForce(channelCandidate).snapshot().totalMemberCount(), "Exact-leader fixture is not a large CommandChannel.");
+		PhantomAssertions.assertEquals(10, _party.currentForce(largeChannelNonLeader).snapshot().totalMemberCount(), "Non-leader fixture is not a large CommandChannel.");
+		final RecruitmentPlan plan = _recruitment.plan(ACTOR, RAID, List.of(unavailable, ambiguous, largeChannelNonLeader, channelCandidate, nonLeader, exact, ACTOR));
 		PhantomAssertions.assertEquals(CandidateStatus.RECRUITABLE, assessment(plan, exact).status(), "Exact standalone Party leader was rejected.");
+		PhantomAssertions.assertEquals(exact, plan.selectedCandidate(), "Standalone candidate selection changed while bounding large-CC evidence.");
 		PhantomAssertions.assertEquals(CandidateStatus.NOT_EXACT_PARTY_LEADER, assessment(plan, nonLeader).status(), "Non-leader candidate was accepted.");
-		PhantomAssertions.assertEquals(CandidateStatus.NOT_STANDALONE_PARTY, assessment(plan, channelCandidate).status(), "Candidate already in CC was accepted.");
+		final CandidateAssessment channelLeaderAssessment = assessment(plan, channelCandidate);
+		PhantomAssertions.assertEquals(CandidateStatus.NOT_STANDALONE_PARTY, channelLeaderAssessment.status(), "Large-CC exact Party leader was not rejected with the typed standalone status.");
+		PhantomAssertions.assertEquals(channelOwnParty.size(), channelLeaderAssessment.partyMemberCount(), "Large-CC leader evidence used the whole CommandChannel member count.");
+		PhantomAssertions.assertTrue(channelOwnParty.containsAll(channelLeaderAssessment.members()) && channelLeaderAssessment.members().containsAll(channelOwnParty), "Large-CC leader evidence did not contain exactly the candidate own Party.");
+		final CandidateAssessment channelNonLeaderAssessment = assessment(plan, largeChannelNonLeader);
+		PhantomAssertions.assertEquals(CandidateStatus.NOT_EXACT_PARTY_LEADER, channelNonLeaderAssessment.status(), "Large-CC non-leader did not receive the typed exact-leader rejection.");
+		PhantomAssertions.assertEquals(nonLeaderOwnParty.size(), channelNonLeaderAssessment.partyMemberCount(), "Large-CC non-leader evidence used the whole CommandChannel member count.");
+		PhantomAssertions.assertTrue(nonLeaderOwnParty.containsAll(channelNonLeaderAssessment.members()) && channelNonLeaderAssessment.members().containsAll(nonLeaderOwnParty), "Large-CC non-leader evidence did not contain exactly the candidate own Party.");
+		PhantomAssertions.assertEquals(CandidateStatus.EVIDENCE_UNAVAILABLE, assessment(plan, ambiguous).status(), "Ambiguous candidate own-Party evidence did not fail closed.");
+		PhantomAssertions.assertEquals(0, assessment(plan, ambiguous).partyMemberCount(), "Ambiguous candidate fabricated Party evidence.");
 		PhantomAssertions.assertEquals(CandidateStatus.EVIDENCE_UNAVAILABLE, assessment(plan, unavailable).status(), "Unavailable candidate evidence was guessed.");
 		PhantomAssertions.assertEquals(CandidateStatus.CURRENT_FORCE_MEMBER, assessment(plan, ACTOR).status(), "Current-force member was accepted as a candidate.");
 
