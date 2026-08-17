@@ -18,6 +18,7 @@ import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.groups.CommandChannel;
+import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
@@ -49,6 +50,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	private final PhantomMaterializationService _materialization;
 	private final PhantomProgressionService _progression;
 	private final PartyInvitationService _invitations;
+	private final CommandChannelInvitationService _commandChannels;
 
 	public L2jPhantomPartyBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomProgressionService progression)
 	{
@@ -56,6 +58,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		_materialization = materialization;
 		_progression = progression;
 		_invitations = PartyInvitationService.getInstance();
+		_commandChannels = CommandChannelInvitationService.getInstance();
 	}
 
 	@Override
@@ -90,6 +93,62 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		try (AcquiredPlayer acquired = acquire(invitee))
 		{
 			return acquired == null ? new RespondResult(PartyInvitationService.RespondOutcome.NO_PENDING_INVITE, identity, null) : _invitations.respond(acquired.player(), response, identity);
+		}
+	}
+
+	@Override
+	public CommandChannelInvitationService.InviteResult inviteCommandChannel(MemberRef requester, MemberRef target)
+	{
+		try (AcquiredPlayer requesterPlayer = acquire(requester); AcquiredPlayer targetPlayer = acquire(target))
+		{
+			if ((requesterPlayer == null) || (targetPlayer == null))
+			{
+				return new CommandChannelInvitationService.InviteResult(CommandChannelInvitationService.InviteOutcome.TARGET_NOT_FOUND, null);
+			}
+			final Player targetLeader = targetPlayer.player();
+			final Party targetParty = targetLeader.getParty();
+			if ((targetParty != null) && (targetParty.getLeader() != targetLeader))
+			{
+				return new CommandChannelInvitationService.InviteResult(CommandChannelInvitationService.InviteOutcome.TARGET_NOT_PARTY_LEADER, null);
+			}
+			return _commandChannels.invite(requesterPlayer.player(), targetLeader);
+		}
+	}
+
+	@Override
+	public CommandChannelInvitationService.RespondResult respondCommandChannel(MemberRef invitee, CommandChannelInvitationService.Response response, CommandChannelInvitationService.InvitationIdentity identity)
+	{
+		try (AcquiredPlayer acquired = acquire(invitee))
+		{
+			return acquired == null ? new CommandChannelInvitationService.RespondResult(CommandChannelInvitationService.RespondOutcome.NO_PENDING_INVITE, identity, false) : _commandChannels.respond(acquired.player(), response, identity);
+		}
+	}
+
+	@Override
+	public CommandChannelInvitationService.DismissOutcome dismissCommandChannel(MemberRef requester, MemberRef target)
+	{
+		try (AcquiredPlayer requesterPlayer = acquire(requester); AcquiredPlayer targetPlayer = acquire(target))
+		{
+			if ((requesterPlayer == null) || (targetPlayer == null))
+			{
+				return CommandChannelInvitationService.DismissOutcome.TARGET_NOT_FOUND;
+			}
+			final Player targetLeader = targetPlayer.player();
+			final Party targetParty = targetLeader.getParty();
+			if ((targetParty != null) && (targetParty.getLeader() != targetLeader))
+			{
+				return CommandChannelInvitationService.DismissOutcome.TARGET_NOT_PARTY_LEADER;
+			}
+			return _commandChannels.dismiss(requesterPlayer.player(), targetLeader);
+		}
+	}
+
+	@Override
+	public Optional<CommandChannelInvitationService.InvitationSnapshot> observeCommandChannelInvitation(MemberRef invitee)
+	{
+		try (AcquiredPlayer acquired = acquire(invitee))
+		{
+			return acquired == null ? Optional.empty() : _commandChannels.observe(acquired.player());
 		}
 	}
 

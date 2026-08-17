@@ -22,7 +22,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService;
+import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
+import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.DeliveryOutcome;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PartyInvitation;
@@ -41,6 +44,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
+import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PartySnapshot;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
@@ -128,6 +132,7 @@ public final class PhantomPartyServerIntegrationSuite implements PhantomTestSuit
 		registry.add("06-rift-production-provider-stale-capability-defers", this::testRiftStaleCandidate);
 		registry.add("07-rift-production-provider-negative-relationship-refuses", this::testRiftRefusal);
 		registry.add("08-rift-production-provider-unavailable-evidence-defers-until-expiry", this::testRiftDeferExpiry);
+		registry.add("09-command-channel-exact-consent-and-dismiss-seam", _ -> testCommandChannelBackendSeam());
 	}
 
 	private void testCancelRetry() throws Exception
@@ -288,6 +293,30 @@ public final class PhantomPartyServerIntegrationSuite implements PhantomTestSuit
 		}
 	}
 
+	private void testCommandChannelBackendSeam() throws Exception
+	{
+		try (PartyFixture fixture = openPartyFixture())
+		{
+			final Party requesterParty = new Party(fixture.managed(), PartyDistributionType.FINDERS_KEEPERS);
+			final Party inviteeParty = new Party(fixture.real(), PartyDistributionType.FINDERS_KEEPERS);
+			fixture.managed().setParty(requesterParty);
+			fixture.real().setParty(inviteeParty);
+			PhantomAssertions.assertTrue(fixture.managed().getInventory().addItem(ItemProcessType.REWARD, 8871, 1, fixture.managed(), this) != null, "Could not create Goal017 Strategy Guide fixture.");
+			final L2jPhantomPartyBackend backend = new L2jPhantomPartyBackend(_profiles, fixture.materialization(), null);
+			final MemberRef requester = MemberRef.phantom(fixture.profile().profileId(), fixture.managed().getObjectId());
+			final MemberRef invitee = MemberRef.real(fixture.real().getObjectId());
+			var invitation = backend.inviteCommandChannel(requester, invitee);
+			PhantomAssertions.assertTrue(invitation.delivered(), "Goal017 exact MemberRef MPCC invitation was not delivered.");
+			PhantomAssertions.assertFalse(requesterParty.isInCommandChannel() || inviteeParty.isInCommandChannel(), "Both Phantom endpoints caused automatic MPCC acceptance.");
+			PhantomAssertions.assertEquals(CommandChannelInvitationService.RespondOutcome.REFUSED, backend.respondCommandChannel(invitee, CommandChannelInvitationService.Response.REFUSE, invitation.identity()).outcome(), "Target-side exact REFUSE failed.");
+			invitation = backend.inviteCommandChannel(requester, invitee);
+			PhantomAssertions.assertTrue(backend.respondCommandChannel(invitee, CommandChannelInvitationService.Response.ACCEPT, invitation.identity()).accepted(), "Target-side exact ACCEPT failed.");
+			PhantomAssertions.assertTrue((requesterParty.getCommandChannel() != null) && (requesterParty.getCommandChannel() == inviteeParty.getCommandChannel()), "Goal017 backend did not reach one canonical CommandChannel.");
+			PhantomAssertions.assertEquals(CommandChannelInvitationService.DismissOutcome.COMPLETED, backend.dismissCommandChannel(requester, invitee), "Exact CC-leader MemberRef dismissal failed.");
+			PhantomAssertions.assertFalse(requesterParty.isInCommandChannel() || inviteeParty.isInCommandChannel(), "Canonical dismiss/disband postcondition failed.");
+		}
+	}
+
 	private void testRiftProductionPort(PhantomTestContext context) throws Exception
 	{
 		try (RiftScenarioFixture fixture = new RiftScenarioFixture(context))
@@ -430,6 +459,11 @@ public final class PhantomPartyServerIntegrationSuite implements PhantomTestSuit
 		private Player managed()
 		{
 			return _managed;
+		}
+
+		private PhantomMaterializationService materialization()
+		{
+			return _materialization;
 		}
 
 		private Player real()

@@ -268,6 +268,7 @@ public final class PhantomTestLauncher
 			case "party-tactics" -> new PhantomPartySuite(PhantomPartySuite.Mode.TACTICS);
 			case "party-lifecycle" -> new PhantomPartySuite(PhantomPartySuite.Mode.LIFECYCLE);
 			case "party-server-integration" -> new PhantomPartyServerIntegrationSuite();
+			case "command-channel-lifecycle" -> new PhantomCommandChannelLifecycleSuite();
 			case "party-performance" -> new PhantomPartySuite(PhantomPartySuite.Mode.PERFORMANCE);
 			case "rift-catalog-authority" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.CATALOG_AUTHORITY);
 			case "rift-roster-readiness" -> new PhantomRiftSuite(PhantomRiftSuite.Mode.ROSTER_READINESS);

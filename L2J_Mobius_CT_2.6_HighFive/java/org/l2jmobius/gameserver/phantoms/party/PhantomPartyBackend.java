@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 
+import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService;
 import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InvitationIdentity;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InviteResult;
@@ -35,6 +36,26 @@ public interface PhantomPartyBackend
 	InviteResult invite(MemberRef requester, MemberRef target, PartyDistributionType distribution);
 
 	RespondResult respond(MemberRef invitee, Response response, InvitationIdentity identity);
+
+	default CommandChannelInvitationService.InviteResult inviteCommandChannel(MemberRef requester, MemberRef target)
+	{
+		return new CommandChannelInvitationService.InviteResult(CommandChannelInvitationService.InviteOutcome.UNSUPPORTED, null);
+	}
+
+	default CommandChannelInvitationService.RespondResult respondCommandChannel(MemberRef invitee, CommandChannelInvitationService.Response response, CommandChannelInvitationService.InvitationIdentity identity)
+	{
+		return new CommandChannelInvitationService.RespondResult(CommandChannelInvitationService.RespondOutcome.UNSUPPORTED, identity, false);
+	}
+
+	default CommandChannelInvitationService.DismissOutcome dismissCommandChannel(MemberRef requester, MemberRef target)
+	{
+		return CommandChannelInvitationService.DismissOutcome.UNSUPPORTED;
+	}
+
+	default Optional<CommandChannelInvitationService.InvitationSnapshot> observeCommandChannelInvitation(MemberRef invitee)
+	{
+		return Optional.empty();
+	}
 
 	MembershipOutcome leave(MemberRef member);
 
