@@ -104,7 +104,9 @@ Verification:
 
 ## Deviations and diagnostics
 
-Built-in `apply_patch` не мог читать workspace files из-за Windows sandbox ACL (`apply deny-read ACLs`). После каждой неудачи применялись bounded exact PowerShell replacements с проверкой ожидаемого match count. Созданный до compaction незавершённый untracked `PhantomRaidAttemptService.java` был точечно удалён, чтобы не оставить некомпилируемый production-код; он не восстанавливается через Git и не содержал законченной реализации.
+Built-in `apply_patch` не мог читать workspace files из-за Windows sandbox ACL (`apply deny-read ACLs`). После каждой неудачи применялись bounded exact PowerShell replacements с проверкой ожидаемого match count. Созданный до первой compaction незавершённый untracked `PhantomRaidAttemptService.java` был точечно удалён, чтобы не оставить некомпилируемый production-код; он не восстанавливается через Git и не содержал законченной реализации.
+
+Continuation от `239df7dd668970de2803dd543e69299039a1383a` также остановлен первым automatic context compaction в своём implementation context. По пользовательскому gate новое исследование и восстановление контекста не выполнялись. Три незавершённых untracked draft-файла (`PhantomRaidAttemptService.java`, `PhantomRaidAttemptRuntime.java`, `L2jPhantomRaidAttemptRuntime.java`) были проверены как обычные файлы внутри High Five и удалены; production-изменения этого continuation не сохранены. Проверенный PARTIAL из `239df7dd668970de2803dd543e69299039a1383a` остаётся authoritative implementation result. `occurred_context_compaction: yes`.
 
 ## Limitations and risks
 
@@ -122,6 +124,7 @@ Checkpoint 5 не завершён и не получает verdict `IMPLEMENTED
 
 - branch: `feature/phantom-world`
 - required parent: `a44421c1cec30e027aeb33e5588fb00373e30f1b`
+- continuation delivery parent: `239df7dd668970de2803dd543e69299039a1383a`
 - commit subject: `feat(phantoms): finish raid encounter orchestration`
 - commit SHA: ordinary commit, содержащий этот отчёт; exact SHA фиксируется в final handoff
 - push target: `origin feature/phantom-world`
