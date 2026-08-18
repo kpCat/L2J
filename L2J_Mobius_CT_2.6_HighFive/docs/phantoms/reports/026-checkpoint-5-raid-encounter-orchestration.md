@@ -2,135 +2,155 @@
 
 ## Status
 
-`PARTIAL`
+`IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`
 
-Continuation выполнялся от required parent `a44421c1cec30e027aeb33e5588fb00373e30f1b` на ветке `feature/phantom-world`. Первый automatic context compaction сработал до завершения remaining vertical slice; согласно прямому указанию TASK новое discovery и дальнейшая реализация остановлены. Оставлен только безопасный компилируемый PARTIAL, Goal 026 overall остаётся `IN_PROGRESS`, success token не выдаётся.
+Checkpoint 5 завершён на ветке `feature/phantom-world` как continuation от required parent `a44421c1cec30e027aeb33e5588fb00373e30f1b`. Checkpoint 1–4 и correctives 026A/026B/026C остаются `ACCEPT`; Goal 026 overall переведён в `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 не начат.
 
 `occurred_context_compaction: yes`
 
 ## Summary
 
-Сохранён additive raid Combat из parent и закрыта review-находка по combat-level death: `VICTORY` теперь допускается только после exact совпадения `objectId + npcId + ContentKind/NpcKind + instanceId`. Добавлен exact live/dead authority evidence seam.
+Сохранен additive raid Combat из required parent. Combat допускает dead `VICTORY` только после exact совпадения `objectId + npcId + ContentKind + NpcKind + instanceId`; replaced или mismatched dead target завершается как `TARGET_LOST`. Collector проходит только штатную loot-фазу Combat, custom drops и прямые награды не добавлены.
 
-Добавлены ограниченные encounter contracts для Queen Ant `epic.29001` и Zaken83 `epic.zaken.83`, typed `ENTRY_GATED`, exact entry NPC locator через `SpawnTable`, staging от entry NPC, bounded reload-safe script registry и Zaken83 adapter, который переиспользует те же `checkConditions` и `InstanceScript.enterInstance`, а candle interaction физически делегирует существующему `onFirstTalk`. Canonical native reward/finish остаются в script `onKill`; Phantom custom loot/reward не добавлен.
+Завершён remaining vertical slice:
 
-Полный orchestration не завершён: `PhantomRaidAttemptService` после compaction-stop не оставлен, `attemptAuthorityHash` ещё не mint/owned exact AttemptService evidence, `PhantomRaidDecision` и production wiring не изменены. ENTRY_GATED readiness integration была точечно снята после affected CP1 regression; новые profile/staging/script contracts компилируются, но production attempt пока их не вызывает.
+- `ENTRY_GATED` readiness и staging через exact `SpawnTable.getSpawns(entryNpcId)`;
+- Queen Ant `epic.29001`, NPC `29001`, curse-boundary с допустимым level 48 и отклонением level 49 при включённой штатной curse-механике;
+- Zaken 83 `epic.zaken.83` через тот же `CavernOfThePirateCaptain.checkConditions` и `InstanceScript.enterInstance`;
+- публичные candle facts без hidden `isBlue`; физическое взаимодействие проверяет exact instance/distance и делегирует тому же `onFirstTalk`;
+- bounded caller-driven `PhantomRaidAttemptService` без собственного worker/thread;
+- required support через существующий per-Party `PhantomPartyTactics`, offense только для `PHANTOM` через additive raid Combat, `REAL` остаётся observation-only;
+- objective retreat через существующий `PhantomPartyRouteCoordinator`;
+- attempt authority mint/ownership только по exact `AttemptIdentity`, CP4 structural hash, recommendation/profile/encounter evidence и exact target;
+- `VICTORY` только после фактической смерти exact target, authority/script confirmation и завершения native collector loot;
+- `raid.prepare` завершается только по attempt `VICTORY`; `raid.participate` ждёт leader startup и следует exact attempt terminal.
 
-## Mandatory reading and reuse
+## Mandatory reading and local reuse
 
-Перед изменениями были прочитаны только completion `TASK.md` и его `PRIOR_INDEPENDENT_REVIEW.md`, `TEST_CASES.md`, `PACKAGE_MANIFEST.json`, `CODEX_LAUNCHER.txt`, а затем bounded affected fragments. Whole Combat, whole Party, historical task chain и запрещённые broad areas повторно не читались.
+Прочитаны completion `TASK.md` и только перечисленные им bounded fragments. Whole Combat, whole Party, historical task chain и запрещённые broad areas повторно не читались.
 
 Переиспользованы локальные паттерны:
 
-- существующий bounded shared `PhantomCombatService`, а не второй combat engine;
-- `PhantomRaidAssemblyService` и существующий `PhantomPartyRouteCoordinator` для per-Party staging contracts;
-- canonical Zaken83 `checkConditions`, `enterInstance`, `onFirstTalk` и `onKill`;
-- `SpawnTable.getSpawns(exactNpcId)` для exact entry NPC;
-- `PhantomRaidAuthority` для read-only canonical boss evidence.
-
-Непроверенным остаётся end-to-end attempt/Decision lifecycle, потому что его реализация остановлена обязательным compaction gate.
+- `PhantomCombatService` и `PhantomRaidCombatRequest` для offense и native loot;
+- `PhantomPartyTactics` для support;
+- `PhantomPartyRouteCoordinator` для per-Party staging, mechanic routing и retreat;
+- CP4 `ReadyReceipt`, exact structural hash и assembly identity;
+- `PhantomRaidAuthority` для open-world target/death evidence;
+- canonical Zaken `checkConditions`, `enterInstance`, `onFirstTalk`, `onKill`;
+- `SpawnTable.getSpawns(exactNpcId)` для entry staging.
 
 ## Changed files
 
-Production/data:
+Production/data текущего Checkpoint 5:
 
 - `dist/game/data/phantoms/knowledge/high-five-core-v1.xml`
 - `dist/game/data/scripts/instances/CavernOfThePirateCaptain/CavernOfThePirateCaptain.java`
+- `java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java`
 - `java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatBackend.java`
 - `java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatService.java`
 - `java/org/l2jmobius/gameserver/phantoms/combat/PhantomRaidCombatRequest.java`
 - `java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java`
 - `java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyBackend.java`
+- `java/org/l2jmobius/gameserver/phantoms/raid/L2jPhantomRaidAttemptRuntime.java`
 - `java/org/l2jmobius/gameserver/phantoms/raid/L2jPhantomRaidAuthority.java`
 - `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidAssemblyService.java`
+- `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidAttemptRuntime.java`
+- `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidAttemptService.java`
 - `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidAuthority.java`
+- `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidDecision.java`
 - `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidEncounterCatalog.java`
 - `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidEncounterProfile.java`
 - `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidEntryNpcLocator.java`
 - `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidModel.java`
+- `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidReadinessService.java`
 - `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidScriptAdapter.java`
 - `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidScriptRegistry.java`
 - `java/org/l2jmobius/gameserver/phantoms/raid/PhantomRaidTargetEvidence.java`
+- `build.xml`
 
-Focused verification/documentation:
+Focused tests/docs:
 
-- `test/java/org/l2jmobius/tests/phantoms/PhantomGameKnowledgeContentSuite.java`
 - `test/java/org/l2jmobius/tests/phantoms/PhantomRaidCombatGoal026Checkpoint5Suite.java`
-- этот отчёт;
-- completion task package `docs/phantoms/tasks/026-checkpoint-5-completion/`.
+- `test/java/org/l2jmobius/tests/phantoms/PhantomRaidCombatDynamicGoal026Checkpoint5Suite.java`
+- `test/java/org/l2jmobius/tests/phantoms/PhantomRaidEncounterProfileGoal026Checkpoint5Suite.java`
+- `test/java/org/l2jmobius/tests/phantoms/PhantomRaidAttemptGoal026Checkpoint5Suite.java`
+- `test/java/org/l2jmobius/tests/phantoms/PhantomRaidDecisionGoal026Checkpoint5Suite.java`
+- directly affected `PhantomRaidReadinessSuite.java`, `PhantomRaidRecruitmentSuite.java`, `PhantomRaidAssemblySuite.java` и `PhantomTestLauncher.java`;
+- `PHANTOM_DEVELOPMENT_MASTER_PLAN.md`, `docs/PHANTOM_BOTS_ROADMAP.md` и этот отчёт.
 
 User-owned untracked `docs/phantoms/tasks/026-checkpoint-2-command-channel-lifecycle/CODEX_LAUNCHER.txt` и `PACKAGE_MANIFEST.json` не изменялись и не включаются в commit.
 
 ## Architecture decisions
 
-- Dead raid snapshot не является победой без exact request identity; wrong object/NPC/kind/instance остаётся `TARGET_LOST`.
-- `targetInstanceId` входит в raid request и idempotent operation identity; `matchesRaidSession` также требует exact generation, target identity и authority hash.
-- `attemptAuthorityHash` остаётся opaque Combat input. Без завершённого AttemptService он не считается canonical attempt authority — это явный незакрытый acceptance criterion.
-- Encounter catalog разрешает generic `RAID`, Queen Ant `29001` и Zaken83 `29181`; другие EPIC fail closed.
-- `ENTRY_GATED` добавлен в модель и CP4 staging contract, но не включён в CP1 readiness до появления полного attempt owner.
-- Zaken adapter не раскрывает hidden `isBlue`; public candle evidence содержит только object/position/used. Physical interaction проверяет exact actor, instance, live unused candle и дистанцию, затем вызывает тот же `onFirstTalk`.
-- Script death evidence записывается до существующего native reward/finish и bounded до 256 instance entries.
-- Новые worker/thread/scheduler/DB query/custom reward не добавлены.
+- `AttemptIdentity` содержит exact leader, goal id/revision, content id и CP4 structural hash.
+- Authority hash создаёт только `PhantomRaidAttemptService` из exact attempt/recommendation/profile/encounter evidence. `ownsAuthority` требует тот же identity, hash и target identity.
+- Один leader имеет не более одного live attempt; live/terminal state ограничен `64/256`; advance выполняется вызывающим Decision, отдельного scheduler нет.
+- Все EPIC, кроме Queen Ant и Zaken 83, fail closed. Generic RAID остаётся open-world.
+- Support provider должен быть живым `PHANTOM` с intrinsic + learned + usable skill/rank; reserved providers исключаются из offense.
+- Offense не управляет `REAL`; для `PHANTOM` используется существующий Combat. Прямые HP/death/boss-state/instance/reward mutation запрещены и отсутствуют.
+- Collector terminal признаёт native loot complete только при его canonical Combat `VICTORY`; другой terminal освобождает collector role.
+- Scripted Zaken death подтверждается exact object/NPC/instance evidence до штатного `onKill` reward/finish, но не заменяет их.
 
 ## DB, migrations and configs
 
-DB, migrations, schema, production DB и config keys не менялись.
+DB schema, migrations и config keys не менялись. Phantom World остаётся под существующим global feature flag. Новая orchestration при выключенной системе не создаётся.
 
 ## Commands and test results
 
-Read-only Git/scope commands включали `git status --short --branch`, `git rev-parse`, `git branch --show-current`, bounded `git diff`, `git diff --stat`, `git diff --name-status` и финальные scope checks. Git mutation до delivery не выполнялась.
+Focused CP5:
 
-Verification:
+- `phantom-raid-combat-goal026cp5-test`: PASS, contract 4/4 + dynamic 4/4, seed `26002652`;
+- `phantom-raid-entry-profile-goal026cp5-test`: PASS 4/4;
+- `phantom-raid-attempt-goal026cp5-test`: PASS 7/7 после collector hardening;
+- `phantom-raid-decision-goal026cp5-test`: PASS 2/2. Первый запуск не дошёл до тестов из-за native JDK 25 `EXCEPTION_ACCESS_VIOLATION` в GC thread; один повтор того же target прошёл.
 
-- `ant ...focused targets...`: не стартовал, потому что `ant` отсутствует в `PATH`.
-- Первый local-Ant focused run: raid Combat 4/4 PASS; initial CP1 дал 4/6 из-за незавершённой readiness integration. После её rollback capability regression устранена; повторный CP1 дал 5/6, единственный FAIL — legacy static boundary `no-orchestration` видит `Navigation` в новых поздних raid contracts.
-- `.phantom-local/apache-ant-1.10.17/bin/ant.bat phantom-raid-recruitment-checkpoint3-test phantom-raid-assembly-checkpoint4-test phantom-combat-core-test phantom-game-knowledge-content-test`: `BUILD SUCCESSFUL`; CP3 9/9 + current-capability 5/5; CP4 3/3 + 5/5 + 4/4, affected command-channel 7/7 и raid-authority 4/4; Combat core 50/50; GameKnowledge 18/18.
-- Единственный финальный `.phantom-local/apache-ant-1.10.17/bin/ant.bat phantom-raid-encounter-goal026cp5-test`: `BUILD SUCCESSFUL`, raid Combat 4/4, seed `26002651`. Текущий aggregate покрывает только inherited raid Combat и не доказывает отсутствующие attempt/Decision acceptance tests.
-- Единственный `.phantom-local/apache-ant-1.10.17/bin/ant.bat jar`: `BUILD SUCCESSFUL`; собраны и скопированы штатные server JAR.
-- Один targeted `javac -source 25 -target 25 ... CavernOfThePirateCaptain.java`: PASS; изолированный временный output удалён.
-- Plain `git diff --cached --check` отметил CR в новых строках Zaken script как trailing whitespace. Byte-аудит подтвердил единый исходный стиль `CRLF=681`, `CRCRLF=0`, `bare LF=0`; реальных trailing spaces нет. Command-scoped `git -c core.whitespace=cr-at-eol diff --cached --check`: PASS, repository config не менялся.
-- Negative static gates: в добавленных строках Zaken нет hidden `isBlue`, custom reward/finish/death mutation; в core contracts нет direct script/reward mutation. Exact Combat death identity и authority death match присутствуют.
+Directly affected:
 
-Не запускались plain `ant verify`, Goal025, broad Goal017, all-Combat, all-Phantom, unrelated economy/social/PvP/Rift и stress loops.
+- CP1 `phantom-raid-readiness-policy-test`: первоначально 4/6 из-за устаревших generic-EPIC/whole-directory assertions; после bounded adaptation PASS 6/6;
+- CP3 `phantom-raid-recruitment-test`: первоначально 8/9 из-за устаревшего generic-EPIC success assertion; после fail-closed adaptation PASS 9/9;
+- CP4 `phantom-raid-assembly-goal026c-test`: PASS 3/3 + 5/5 + 4/4;
+- ordinary `phantom-combat-core-test`: PASS 50/50;
+- `phantom-game-knowledge-content-test`: PASS 18/18;
+- targeted `javac` для `CavernOfThePirateCaptain.java`: PASS.
 
-## Encoding checks
+Final gates:
 
-- mojibake-маркеры в изменённых файлах проверены: совпадений нет;
-- escaped Cyrillic в изменённых файлах проверены: совпадений нет.
+- единственный final `phantom-raid-encounter-goal026cp5-test`: `BUILD SUCCESSFUL`, 21/21;
+- единственный final `jar`: `BUILD SUCCESSFUL`; `LoginServer.jar`, `GameServer.jar`, `DatabaseInstaller.jar` собраны, server JAR скопированы в рабочий `dist/libs`.
+
+Plain `ant verify`, Goal025, broad Goal017, all-Combat, all-Phantom, unrelated economy/social/PvP/Rift и stress loops не запускались.
 
 ## Performance and lifecycle
 
-Новый runtime worker отсутствует. Registry ограничен 16 adapters, script death evidence — 256 instances, SpawnTable staging выбирает один deterministic exact NPC spawn. Performance/stress smoke не запускался по TASK.
+AttemptService не создаёт worker/thread/future. Live и terminal maps ограничены. Support/offense/route state ограничен live-attempt cap; actions очищаются до Assembly/Party/Combat/Navigation teardown. Target loss, structural drift, deadline, provider loss и wipe переводят attempt в bounded objective retreat. Runtime cleanup precedes Assembly cleanup во всех production stop/failure paths.
+
+## Encoding checks
+
+- mojibake-маркеры в изменённых файлах проверены;
+- escaped Cyrillic в изменённых файлах проверены.
 
 ## Deviations and diagnostics
 
-Built-in `apply_patch` не мог читать workspace files из-за Windows sandbox ACL (`apply deny-read ACLs`). После каждой неудачи применялись bounded exact PowerShell replacements с проверкой ожидаемого match count. Созданный до первой compaction незавершённый untracked `PhantomRaidAttemptService.java` был точечно удалён, чтобы не оставить некомпилируемый production-код; он не восстанавливается через Git и не содержал законченной реализации.
+Built-in `apply_patch` не мог читать существующие workspace files из-за Windows sandbox ACL (`apply deny-read ACLs`). Новые файлы создавались через `apply_patch`; изменения существующих файлов выполнялись bounded exact PowerShell replacements с проверкой количества совпадений. Временные editor scripts, targeted compile output и JVM crash log удалены после использования.
 
-Continuation от `239df7dd668970de2803dd543e69299039a1383a` также остановлен первым automatic context compaction в своём implementation context. По пользовательскому gate новое исследование и восстановление контекста не выполнялись. Три незавершённых untracked draft-файла (`PhantomRaidAttemptService.java`, `PhantomRaidAttemptRuntime.java`, `L2jPhantomRaidAttemptRuntime.java`) были проверены как обычные файлы внутри High Five и удалены; production-изменения этого continuation не сохранены. Проверенный PARTIAL из `239df7dd668970de2803dd543e69299039a1383a` остаётся authoritative implementation result. `occurred_context_compaction: yes`.
+В ходе continuation произошли automatic context compactions; работа не расширяла discovery scope и продолжалась только по зафиксированному CP5 slice.
 
 ## Limitations and risks
 
-Checkpoint 5 не завершён и не получает verdict `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`:
-
-- отсутствует bounded no-worker AttemptService;
-- authority hash не mint/owned AttemptService evidence;
-- нет per-Party support execution, PHANTOM offense ownership и objective retreat orchestration;
-- нет combined actual-death + authority/script-confirmed victory owner;
-- `raid.prepare`/`raid.participate` не переведены на attempt terminal lifecycle;
-- CP5 entry/profile/attempt/Decision focused suites и полноценный aggregate не созданы;
-- final affected CP1 static gate остаётся красным.
+- Verdict не является self-accept: требуется независимый review.
+- Универсальный epic solver, другие эпики, clans/sieges/quests, raid DB saga и REAL control не реализованы и остаются вне scope.
+- Навигационная runtime-проверка без geodata остаётся общим ранее зафиксированным ограничением проекта; orchestration использует существующий route owner и fail-closed outcomes.
 
 ## Git and delivery
 
 - branch: `feature/phantom-world`
 - required parent: `a44421c1cec30e027aeb33e5588fb00373e30f1b`
-- continuation delivery parent: `239df7dd668970de2803dd543e69299039a1383a`
-- commit subject: `feat(phantoms): finish raid encounter orchestration`
-- commit SHA: ordinary commit, содержащий этот отчёт; exact SHA фиксируется в final handoff
+- continuation base before final commit: `b7fccfc343893150e9de8de92737c7782e7c2796`
+- exact commit subject: `feat(phantoms): finish raid encounter orchestration`
+- commit SHA и remote HEAD: фиксируются во внешнем final handoff после commit/push
 - push target: `origin feature/phantom-world`
-- push result / remote HEAD: фиксируется в final handoff после push
 - amend/rebase/squash/reset/force-push не выполнялись
 
 ## Next step
 
-Продолжить тот же Goal 026 Checkpoint 5 только в новом непрерывном context с оставшимися AttemptService/Decision/support/retreat/victory/native-settlement acceptance criteria. До этого independent success review невозможен.
+Независимый review Goal 026 Checkpoint 5 и Goal 026 overall. Goal 027 остаётся `NOT_STARTED` до review verdict.

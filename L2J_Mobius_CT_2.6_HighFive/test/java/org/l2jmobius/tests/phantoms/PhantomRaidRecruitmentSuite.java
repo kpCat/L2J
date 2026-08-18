@@ -155,8 +155,8 @@ public final class PhantomRaidRecruitmentSuite implements PhantomTestSuite
 		final MemberRef epicCandidate = MemberRef.real(210);
 		_party.force(epicCandidate, standalone(epicCandidate, epicCandidate, member(epicCandidate, capability("combat.heal", 950), capability("combat.resurrection", 950))));
 		final RecruitmentPlan epic = _recruitment.plan(ACTOR, EPIC, List.of(epicCandidate));
-		PhantomAssertions.assertEquals(RecruitmentStatus.CANDIDATE_SELECTED, epic.status(), "Exact EPIC content id did not use the same bounded recruitment contract.");
-		PhantomAssertions.assertEquals(epicCandidate, epic.selectedCandidate(), "EPIC hard capabilities did not select the contributing Party.");
+		PhantomAssertions.assertEquals(RecruitmentStatus.TARGET_UNKNOWN, epic.status(), "Unsupported EPIC content did not fail closed before recruitment.");
+		PhantomAssertions.assertEquals(null, epic.selectedCandidate(), "Unsupported EPIC selected a contributing Party.");
 	}
 
 	private void testInputBounds()

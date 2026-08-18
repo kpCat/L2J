@@ -63,7 +63,7 @@
 	<property name="phantom.goal026b.seed" value="26002632" />
 	<property name="phantom.goal026cp4.seed" value="26002641" />
 	<property name="phantom.goal026c.seed" value="26002642" />
-	<property name="phantom.goal026cp5.seed" value="26002651" />
+	<property name="phantom.goal026cp5.seed" value="26002652" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -2923,7 +2923,7 @@
 
 	<target name="phantom-raid-assembly-goal026c-test" depends="phantom-raid-assembly-consent-goal026c-test,phantom-raid-gathering-goal026c-test,phantom-raid-decision-goal026c-test" description="Run the final Goal 026C affected CP4 aggregate without prior checkpoint gates." />
 
-	<target name="phantom-raid-combat-goal026cp5-test" depends="compile-tests" description="Run the focused Goal 026 CP5 additive exact raid Combat contract regressions.">
+	<target name="phantom-raid-combat-contract-goal026cp5-test" depends="compile-tests" description="Run the focused Goal 026 CP5 additive raid Combat contract checks.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
 			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
@@ -2932,7 +2932,43 @@
 		</java>
 	</target>
 
-	<target name="phantom-raid-encounter-goal026cp5-test" depends="phantom-raid-combat-goal026cp5-test" description="Run the currently delivered coherent Goal 026 CP5 raid-combat aggregate." />
+	<target name="phantom-raid-combat-goal026cp5-test" depends="phantom-raid-combat-contract-goal026cp5-test" description="Run final dynamic exact-identity raid Combat regressions after the additive contract checks.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-combat-dynamic-goal026cp5" />
+			<arg value="${phantom.goal026cp5.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-raid-entry-profile-goal026cp5-test" depends="compile-tests" description="Run ENTRY_GATED and Queen Ant/Zaken 83 encounter profile regressions.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-entry-profile-goal026cp5" />
+			<arg value="${phantom.goal026cp5.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-raid-attempt-goal026cp5-test" depends="compile-tests" description="Run bounded raid Attempt/support/retreat/victory/native-loot regressions.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-attempt-goal026cp5" />
+			<arg value="${phantom.goal026cp5.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-raid-decision-goal026cp5-test" depends="compile-tests" description="Run raid.prepare/raid.participate Decision terminal orchestration regressions.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-decision-goal026cp5" />
+			<arg value="${phantom.goal026cp5.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-raid-encounter-goal026cp5-test" depends="phantom-raid-combat-goal026cp5-test,phantom-raid-entry-profile-goal026cp5-test,phantom-raid-attempt-goal026cp5-test,phantom-raid-decision-goal026cp5-test" description="Run the final focused Goal 026 CP5 raid encounter orchestration aggregate." />
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->

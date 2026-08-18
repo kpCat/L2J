@@ -24,6 +24,7 @@ import java.io.File;
 import java.time.Clock;
 import java.util.Objects;
 
+import org.l2jmobius.gameserver.config.NpcConfig;
 import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -110,11 +111,15 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleP
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult;
+import org.l2jmobius.gameserver.phantoms.raid.L2jPhantomRaidAttemptRuntime;
 import org.l2jmobius.gameserver.phantoms.raid.L2jPhantomRaidAuthority;
 import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAssemblyService;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService;
 import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidDecision;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidEncounterCatalog;
 import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidReadinessService;
 import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidRecruitmentService;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidScriptRegistry;
 import org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftBackend;
 import org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftPartyPort;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftCatalog;
@@ -187,6 +192,7 @@ public final class PhantomSystem
 	private PhantomRaidReadinessService _raidReadinessService;
 	private PhantomRaidRecruitmentService _raidRecruitmentService;
 	private PhantomRaidAssemblyService _raidAssemblyService;
+	private PhantomRaidAttemptService _raidAttemptService;
 	private PhantomSocialService _socialService;
 	private PhantomConversationService _conversationService;
 	private PhantomConversationExecutionService _conversationExecutionService;
@@ -393,11 +399,16 @@ public final class PhantomSystem
 				}
 				final L2jPhantomPartyBackend partyBackend = new L2jPhantomPartyBackend(productionProfiles, _materializationService, _progressionService);
 				final L2jPhantomRaidAuthority raidAuthority = new L2jPhantomRaidAuthority();
-				_raidReadinessService = new PhantomRaidReadinessService(_gameKnowledgeService.query(), partyBackend, raidAuthority);
+				final PhantomRaidEncounterCatalog raidCatalog = new PhantomRaidEncounterCatalog();
+				final PhantomRaidScriptRegistry raidScripts = PhantomRaidScriptRegistry.getInstance();
+				_raidReadinessService = new PhantomRaidReadinessService(_gameKnowledgeService.query(), partyBackend, raidAuthority, raidCatalog, raidScripts);
 				_raidRecruitmentService = new PhantomRaidRecruitmentService(_raidReadinessService, partyBackend);
 				final PhantomPartyRouteCoordinator raidRoutes = new PhantomPartyRouteCoordinator(_navigationService, _combatService);
 				_raidAssemblyService = new PhantomRaidAssemblyService(productionGoals, _raidReadinessService, _raidRecruitmentService, partyBackend, raidAuthority, _topologyService::query, raidRoutes, System::currentTimeMillis, System::nanoTime);
-				final PhantomRaidDecision raidDecision = new PhantomRaidDecision(_raidAssemblyService);
+				final PhantomPartyTactics raidTactics = new PhantomPartyTactics(_combatService, partyBackend);
+				final L2jPhantomRaidAttemptRuntime raidRuntime = new L2jPhantomRaidAttemptRuntime(_combatService, raidTactics, raidRoutes, () -> _topologyService.query().snapshot().canonicalHash(), System::nanoTime);
+				_raidAttemptService = new PhantomRaidAttemptService(productionGoals, _raidAssemblyService, _raidReadinessService, partyBackend, raidAuthority, raidCatalog, raidScripts, raidRuntime, System::currentTimeMillis, System::nanoTime, () -> NpcConfig.RAID_DISABLE_CURSE);
+				final PhantomRaidDecision raidDecision = new PhantomRaidDecision(_raidAssemblyService, _raidAttemptService);
 				_partyCoordinator = new PhantomPartyCoordinator(
 					new PhantomPartyStore(productionProfiles),
 					productionGoals,
@@ -513,6 +524,10 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException e)
 		{
+			if (_raidAttemptService != null)
+			{
+				_raidAttemptService.beginStop();
+			}
 			if (_raidAssemblyService != null)
 			{
 				_raidAssemblyService.beginStop();
@@ -656,6 +671,10 @@ public final class PhantomSystem
 
 		if (_state == State.RUNNING)
 		{
+			if (_raidAttemptService != null)
+			{
+				_raidAttemptService.beginStop();
+			}
 			if (_raidAssemblyService != null)
 			{
 				_raidAssemblyService.beginStop();
@@ -883,6 +902,10 @@ public final class PhantomSystem
 		}
 		if (_state == State.FAILED)
 		{
+			if (_raidAttemptService != null)
+			{
+				_raidAttemptService.beginStop();
+			}
 			if (_raidAssemblyService != null)
 			{
 				_raidAssemblyService.beginStop();
@@ -1079,6 +1102,11 @@ public final class PhantomSystem
 	public synchronized PhantomRaidAssemblyService raidAssembly()
 	{
 		return _raidAssemblyService;
+	}
+
+	public synchronized PhantomRaidAttemptService raidAttempt()
+	{
+		return _raidAttemptService;
 	}
 
 	public synchronized PhantomAcquisitionService.Snapshot acquisitionSnapshot()

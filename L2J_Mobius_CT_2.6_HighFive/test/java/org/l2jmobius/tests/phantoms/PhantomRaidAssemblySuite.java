@@ -389,7 +389,7 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 		{
 			try (Fixture fixture = readyFixture(_topology, LIVE_CONTENT, null))
 			{
-				final PhantomRaidDecision decision = new PhantomRaidDecision(fixture.service);
+				final PhantomRaidDecision decision = new PhantomRaidDecision(fixture.service, cp4DecisionAttempt(fixture.service));
 				final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
 				decision.registerCandidates(candidates);
 				candidates.seal();
@@ -412,7 +412,7 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 				fixture.party.profile(CANDIDATE_ONE);
 				final PhantomGoal goal = participate(20, LIVE_CONTENT);
 				fixture.goals.put(2, goal);
-				final PhantomRaidDecision decision = new PhantomRaidDecision(fixture.service);
+				final PhantomRaidDecision decision = new PhantomRaidDecision(fixture.service, cp4DecisionAttempt(fixture.service));
 				final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
 				decision.registerHandlers(handlers);
 				handlers.seal();
@@ -474,7 +474,7 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 				final PhantomGoal participantGoal = participate(20, LIVE_CONTENT);
 				fixture.goals.put(2, participantGoal);
 				fixture.goals.put(3, participate(30, LIVE_CONTENT));
-				final PhantomRaidDecision decision = new PhantomRaidDecision(fixture.service);
+				final PhantomRaidDecision decision = new PhantomRaidDecision(fixture.service, cp4DecisionAttempt(fixture.service));
 				final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
 				decision.registerHandlers(handlers);
 				handlers.seal();
@@ -539,6 +539,36 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 		final PhantomRaidRecruitmentService recruitment = new PhantomRaidRecruitmentService(readiness, party);
 		final PhantomRaidAssemblyService service = new PhantomRaidAssemblyService(goals, readiness, recruitment, party, authority, () -> topology, _routes, () -> NOW, () -> LOGICAL_NOW, (x, y, factualZ) -> factualZ);
 		return new Fixture(goals, party, authority, service);
+	}
+
+	private static PhantomRaidDecision.AttemptPort cp4DecisionAttempt(PhantomRaidAssemblyService assembly)
+	{
+		return new PhantomRaidDecision.AttemptPort()
+		{
+			@Override
+			public org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService.AdvanceResult advance(long leaderProfileId, long goalId, long goalRevision)
+			{
+				return new org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService.AdvanceResult(org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService.AttemptStatus.FIGHTING, "raid.attempt.cp4_active", null);
+			}
+
+			@Override
+			public boolean cancel(long leaderProfileId, long goalId, long goalRevision, String reasonKey)
+			{
+				return true;
+			}
+
+			@Override
+			public org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService.ParticipationStatus participation(long profileId, long goalId, long goalRevision)
+			{
+				return switch (assembly.participation(profileId, goalId, goalRevision))
+				{
+					case WAITING -> org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService.ParticipationStatus.WAITING_FOR_LEADER;
+					case JOINED -> org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService.ParticipationStatus.VICTORY;
+					case EXPIRED -> org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService.ParticipationStatus.EXPIRED;
+					case IMPOSSIBLE -> org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService.ParticipationStatus.FAILED;
+				};
+			}
+		};
 	}
 
 	private static PhantomStepResult execute(PhantomStepHandlerRegistry handlers, String action, String candidate, long profileId, PhantomGoal goal, boolean cancelled)

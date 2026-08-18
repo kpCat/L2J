@@ -380,6 +380,10 @@ public final class PhantomTestLauncher
 			case "raid-gathering-staging" -> new PhantomRaidAssemblySuite(PhantomRaidAssemblySuite.Mode.GATHERING);
 			case "raid-decision-lifecycle" -> new PhantomRaidAssemblySuite(PhantomRaidAssemblySuite.Mode.DECISION);
 			case "raid-combat-goal026cp5" -> new PhantomRaidCombatGoal026Checkpoint5Suite();
+			case "raid-combat-dynamic-goal026cp5" -> new PhantomRaidCombatDynamicGoal026Checkpoint5Suite();
+			case "raid-entry-profile-goal026cp5" -> new PhantomRaidEncounterProfileGoal026Checkpoint5Suite();
+			case "raid-attempt-goal026cp5" -> new PhantomRaidAttemptGoal026Checkpoint5Suite();
+			case "raid-decision-goal026cp5" -> new PhantomRaidDecisionGoal026Checkpoint5Suite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

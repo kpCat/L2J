@@ -56,7 +56,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
  * Bounded process-local owner for explicit raid assembly and physical staging.
  * Canonical Party, CommandChannel, Navigation and Combat services retain mutation ownership.
  */
-public final class PhantomRaidAssemblyService
+public final class PhantomRaidAssemblyService implements PhantomRaidAttemptService.AssemblyPort, PhantomRaidDecision.AssemblyPort
 {
 	public static final String PREPARE_GOAL_TYPE = "raid.prepare";
 	public static final String PARTICIPATE_GOAL_TYPE = "raid.participate";
@@ -183,24 +183,29 @@ public final class PhantomRaidAssemblyService
 
 	public synchronized ParticipationOutcome participation(long profileId, long goalId, long goalRevision)
 	{
+		return participationReceipt(profileId, goalId, goalRevision).outcome();
+	}
+
+	public synchronized ParticipationReceipt participationReceipt(long profileId, long goalId, long goalRevision)
+	{
 		final long now = _wallClock.getAsLong();
 		final Optional<PhantomGoalStore.StoredGoal> stored = _goals.load(profileId);
 		if (stored.isEmpty() || (stored.get().goal().goalId() != goalId) || (stored.get().goal().revision() != goalRevision))
 		{
-			return ParticipationOutcome.IMPOSSIBLE;
+			return new ParticipationReceipt(ParticipationOutcome.IMPOSSIBLE, null);
 		}
 		final PhantomGoal goal = stored.get().goal();
 		if (!validParticipationGoal(profileId, goal, null, now))
 		{
-			return now >= goal.deadlineEpochMillis() ? ParticipationOutcome.EXPIRED : ParticipationOutcome.IMPOSSIBLE;
+			return new ParticipationReceipt(now >= goal.deadlineEpochMillis() ? ParticipationOutcome.EXPIRED : ParticipationOutcome.IMPOSSIBLE, null);
 		}
 		final Optional<MemberRef> participant = _party.currentMember(profileId);
 		if (participant.isEmpty())
 		{
-			return ParticipationOutcome.IMPOSSIBLE;
+			return new ParticipationReceipt(ParticipationOutcome.IMPOSSIBLE, null);
 		}
 		final String contentId = goal.target().key();
-		boolean waiting = false;
+		AssemblyIdentity waitingIdentity = null;
 		for (Assembly assembly : _active.values())
 		{
 			if (!assembly._identity.contentId().equals(contentId) || !assembly._candidates.contains(participant.get()))
@@ -210,9 +215,12 @@ public final class PhantomRaidAssemblyService
 			final CurrentForceObservation force = _party.currentForce(assembly._actor);
 			if ((force.status() == CurrentForceStatus.AVAILABLE) && (force.snapshot() != null) && force.snapshot().members().stream().anyMatch(member -> member.ref().equals(participant.get())))
 			{
-				return ParticipationOutcome.JOINED;
+				return new ParticipationReceipt(ParticipationOutcome.JOINED, assembly._identity);
 			}
-			waiting = true;
+			if (waitingIdentity == null)
+			{
+				waitingIdentity = assembly._identity;
+			}
 		}
 		for (TerminalAssembly terminal : _terminal.values())
 		{
@@ -220,13 +228,13 @@ public final class PhantomRaidAssemblyService
 			{
 				continue;
 			}
-			final CurrentForceObservation force = terminal.readyReceipt().finalReadiness().force();
+			final CurrentForceObservation force = _party.currentForce(terminal.readyReceipt().finalReadiness().force().snapshot().actor());
 			if ((force.status() == CurrentForceStatus.AVAILABLE) && (force.snapshot() != null) && force.snapshot().members().stream().anyMatch(member -> member.ref().equals(participant.get())))
 			{
-				return ParticipationOutcome.JOINED;
+				return new ParticipationReceipt(ParticipationOutcome.JOINED, terminal.identity());
 			}
 		}
-		return waiting ? ParticipationOutcome.WAITING : ParticipationOutcome.IMPOSSIBLE;
+		return new ParticipationReceipt(waitingIdentity == null ? ParticipationOutcome.IMPOSSIBLE : ParticipationOutcome.WAITING, waitingIdentity);
 	}
 
 	public synchronized Optional<ReadyReceipt> readyReceipt(AssemblyIdentity identity)
@@ -854,6 +862,18 @@ public final class PhantomRaidAssemblyService
 		JOINED,
 		EXPIRED,
 		IMPOSSIBLE
+	}
+
+	public record ParticipationReceipt(ParticipationOutcome outcome, AssemblyIdentity assemblyIdentity)
+	{
+		public ParticipationReceipt
+		{
+			Objects.requireNonNull(outcome);
+			if ((outcome == ParticipationOutcome.JOINED) && (assemblyIdentity == null))
+			{
+				throw new IllegalArgumentException("Joined raid participation requires exact assembly identity.");
+			}
+		}
 	}
 
 	@FunctionalInterface

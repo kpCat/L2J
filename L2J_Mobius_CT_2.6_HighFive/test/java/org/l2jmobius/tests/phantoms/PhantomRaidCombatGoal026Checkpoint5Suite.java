@@ -15,7 +15,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Npc
 
 public final class PhantomRaidCombatGoal026Checkpoint5Suite implements PhantomTestSuite
 {
-	private static final long SEED = 26002651L;
+	private static final long SEED = 26002652L;
 	private static final String HASH = "ab".repeat(32);
 	private String _serviceSource;
 

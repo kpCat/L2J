@@ -529,6 +529,16 @@ public final class PhantomCombatService
 		}
 	}
 
+	public boolean matchesOwnedSession(long profileId, long generation, int targetObjectId, PhantomCancellationToken ownershipToken)
+	{
+		Objects.requireNonNull(ownershipToken, "ownershipToken");
+		synchronized (_monitor)
+		{
+			final PhantomCombatSession session = _sessions.get(profileId);
+			return (session != null) && (session._pvpRequest == null) && (session._raidRequest == null) && (session._generation == generation) && (session._request.targetObjectId() == targetObjectId) && (session._request.planOwnershipToken() == ownershipToken);
+		}
+	}
+
 	public Optional<PvpObservation> observePvp(long profileId, List<Integer> exactTargetObjectIds, int attackerLimit, int localRiskPlayerLimit)
 	{
 		if ((profileId <= 0) || (attackerLimit < 1) || (attackerLimit > 32) || (localRiskPlayerLimit < 1) || (localRiskPlayerLimit > 32) || (exactTargetObjectIds == null) || (exactTargetObjectIds.size() > 10) || exactTargetObjectIds.stream().anyMatch(id -> id == null || id <= 0) || !exactTargetObjectIds.equals(exactTargetObjectIds.stream().distinct().sorted().toList()))

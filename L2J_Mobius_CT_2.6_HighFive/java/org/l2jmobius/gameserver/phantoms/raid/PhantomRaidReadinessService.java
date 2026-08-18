@@ -30,17 +30,26 @@ import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidModel.TargetAvailabilit
 /**
  * Stateless feasibility join over Goal011, live boss managers and Goal017.
  */
-public final class PhantomRaidReadinessService
+public final class PhantomRaidReadinessService implements PhantomRaidAttemptService.ReadinessPort
 {
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomPartyBackend _party;
 	private final PhantomRaidAuthority _authority;
+	private final PhantomRaidEncounterCatalog _catalog;
+	private final PhantomRaidScriptRegistry _scripts;
 
 	public PhantomRaidReadinessService(PhantomGameKnowledgeQuery knowledge, PhantomPartyBackend party, PhantomRaidAuthority authority)
+	{
+		this(knowledge, party, authority, new PhantomRaidEncounterCatalog(), PhantomRaidScriptRegistry.getInstance());
+	}
+
+	public PhantomRaidReadinessService(PhantomGameKnowledgeQuery knowledge, PhantomPartyBackend party, PhantomRaidAuthority authority, PhantomRaidEncounterCatalog catalog, PhantomRaidScriptRegistry scripts)
 	{
 		_knowledge = Objects.requireNonNull(knowledge);
 		_party = Objects.requireNonNull(party);
 		_authority = Objects.requireNonNull(authority);
+		_catalog = Objects.requireNonNull(catalog);
+		_scripts = Objects.requireNonNull(scripts);
 	}
 
 	public KnowledgePage<ContentRequirementFact> contents(ContentKind contentKind, PageRequest page)
@@ -72,13 +81,32 @@ public final class PhantomRaidReadinessService
 			return result(contentId, null, null, TargetAvailability.UNKNOWN, force, List.of(), ReadinessStatus.TARGET_UNKNOWN, "raid.content.npc_kind_mismatch");
 		}
 		final ContentSnapshot content = new ContentSnapshot(requirement, npc, _knowledge.snapshot().contentRequirementHash());
-		final BossObservation target = _authority.observe(requirement.contentKind(), npc.npcId());
-		if ((target == null) || (target.contentKind() != requirement.contentKind()) || (target.npcId() != npc.npcId()))
+		final PhantomRaidEncounterProfile profile = _catalog.resolve(content).orElse(null);
+		if (profile == null)
 		{
-			return result(contentId, content, null, TargetAvailability.UNKNOWN, force, List.of(), ReadinessStatus.TARGET_UNKNOWN, "raid.target.identity_mismatch");
+			return result(contentId, content, null, TargetAvailability.UNKNOWN, force, List.of(), ReadinessStatus.TARGET_UNKNOWN, "raid.content.encounter_unsupported");
 		}
-		final TargetAvailability availability = target.availability();
-		if (availability != TargetAvailability.AVAILABLE)
+		final BossObservation target;
+		final TargetAvailability availability;
+		if (profile.entryGated())
+		{
+			if (!_scripts.registered(profile.contentId(), profile.entryNpcId(), profile.templateId()))
+			{
+				return result(contentId, content, null, TargetAvailability.UNKNOWN, force, List.of(), ReadinessStatus.TARGET_UNKNOWN, "raid.entry.adapter_unavailable");
+			}
+			target = new BossObservation(requirement.contentKind(), npc.npcId(), true, "ENTRY_GATED", false, false, false, null, 0, "PhantomRaidScriptRegistry");
+			availability = TargetAvailability.ENTRY_GATED;
+		}
+		else
+		{
+			target = _authority.observe(requirement.contentKind(), npc.npcId());
+			if ((target == null) || (target.contentKind() != requirement.contentKind()) || (target.npcId() != npc.npcId()))
+			{
+				return result(contentId, content, null, TargetAvailability.UNKNOWN, force, List.of(), ReadinessStatus.TARGET_UNKNOWN, "raid.target.identity_mismatch");
+			}
+			availability = target.availability();
+		}
+		if ((availability != TargetAvailability.AVAILABLE) && (availability != TargetAvailability.ENTRY_GATED))
 		{
 			return result(contentId, content, target, availability, force, List.of(), availability == TargetAvailability.UNAVAILABLE ? ReadinessStatus.TARGET_UNAVAILABLE : ReadinessStatus.TARGET_UNKNOWN, availability == TargetAvailability.UNAVAILABLE ? "raid.target.unavailable" : "raid.target.unknown");
 		}

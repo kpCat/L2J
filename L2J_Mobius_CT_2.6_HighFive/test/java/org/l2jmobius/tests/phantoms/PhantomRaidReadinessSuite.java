@@ -241,28 +241,21 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 			_party.observation = readyForce(true, false, false);
 			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_INCAPABLE, _service.assess(actor(), "raid.synthetic").status(), "Missing required healer became ready.");
 		});
-		registry.add("05-epic-resurrection-and-optional-capability-policy", _ ->
+		registry.add("05-unsupported-epic-fails-closed-before-capability-policy", _ ->
 		{
 			_authority.epic = observation(ContentKind.EPIC, 101, true, "arbitrary", true, true, false, 0L);
 			_party.observation = readyForce(true, true, false);
-			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_INCAPABLE, _service.assess(actor(), "epic.synthetic").status(), "EPIC group without resurrection became ready.");
+			PhantomAssertions.assertEquals(ReadinessStatus.TARGET_UNKNOWN, _service.assess(actor(), "epic.synthetic").status(), "Unsupported EPIC entered capability policy without a CP5 encounter profile.");
 			_party.observation = readyForce(true, true, true);
-			final var ready = _service.assess(actor(), "epic.synthetic");
-			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_READY, ready.status(), "All required EPIC capabilities did not become GROUP_READY.");
-			PhantomAssertions.assertTrue(ready.groupReady(), "GROUP_READY flag changed.");
-			PhantomAssertions.assertTrue(ready.capabilities().stream().filter(value -> value.requirement().required()).allMatch(value -> value.satisfied()), "Required capability evidence is incomplete.");
-			PhantomAssertions.assertTrue(ready.capabilities().stream().anyMatch(value -> !value.requirement().required() && !value.satisfied()), "Optional absence was not preserved as evidence.");
+			PhantomAssertions.assertEquals(ReadinessStatus.TARGET_UNKNOWN, _service.assess(actor(), "epic.synthetic").status(), "Unsupported EPIC became ready after adding capabilities.");
 		});
 		registry.add("06-no-orchestration-or-victory-simulation", context ->
 		{
 			final Path root = context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/raid");
 			final StringBuilder source = new StringBuilder();
-			try (var stream = Files.list(root))
+			for (String file : List.of("PhantomRaidReadinessService.java", "PhantomRaidAuthority.java", "L2jPhantomRaidAuthority.java", "PhantomRaidModel.java"))
 			{
-				for (Path file : stream.filter(path -> path.toString().endsWith(".java")).sorted().toList())
-				{
-					source.append(Files.readString(file, StandardCharsets.UTF_8));
-				}
+				source.append(Files.readString(root.resolve(file), StandardCharsets.UTF_8));
 			}
 			for (String forbidden : List.of("new CommandChannel", ".addParty(", ".removeParty(", ".disbandChannel(", ".invite(", "Navigation", "Combat", "ThreadPool", "ScheduledFuture", "DPS", "damage", "victory"))
 			{
