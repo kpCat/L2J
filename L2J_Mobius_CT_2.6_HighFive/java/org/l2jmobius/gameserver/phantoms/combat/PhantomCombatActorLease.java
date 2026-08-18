@@ -26,6 +26,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutc
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.QuestStateSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 
@@ -35,6 +36,16 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	ActorSnapshot actorSnapshot();
 
 	TargetSnapshot targetSnapshot(int targetObjectId);
+
+	default RaidTargetSnapshot raidTargetSnapshot(int targetObjectId)
+	{
+		return null;
+	}
+
+	default int raidActorLevel()
+	{
+		return 0;
+	}
 
 	default PvpTargetSnapshot pvpTargetSnapshot(int targetObjectId)
 	{
@@ -174,6 +185,11 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	ActionOutcome attack(int targetObjectId);
 
 
+	default ActionOutcome attackRaid(int targetObjectId, PhantomRaidCombatRequest request)
+	{
+		return ActionOutcome.REJECTED;
+	}
+
 	default ActionOutcome attackPvp(int targetObjectId, String authorityHash)
 	{
 		return ActionOutcome.REJECTED;
@@ -187,6 +203,11 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	ActionOutcome cast(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode);
 
 	default ActionOutcome castAcquisition(int targetObjectId, SelectedSkill skill, AcquisitionSkillKind kind)
+	{
+		return ActionOutcome.REJECTED;
+	}
+
+	default ActionOutcome castRaid(int targetObjectId, SelectedSkill skill, PhantomRaidCombatRequest request)
 	{
 		return ActionOutcome.REJECTED;
 	}

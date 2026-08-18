@@ -6,6 +6,8 @@ package org.l2jmobius.gameserver.phantoms.combat;
 import java.util.List;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentKind;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
 
 public interface PhantomCombatBackend
 {
@@ -81,6 +83,23 @@ public interface PhantomCombatBackend
 		public boolean validFor(ActorSnapshot actor, int maximumDistance)
 		{
 			return normalMonster && knowledgeMonster && targetable && attackable && !invulnerable && surroundingRegion && !peaceRestricted && !dead && !alikeDead && (instanceId == actor.instanceId()) && (distance <= maximumDistance);
+		}
+	}
+
+	record RaidTargetSnapshot(int objectId, int npcId, int instanceId, double currentHp, double maximumHp, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean canonicalRaidMonster, NpcKind knowledgeKind, double distance, boolean peaceRestricted, boolean surroundingRegion)
+	{
+		public RaidTargetSnapshot
+		{
+			if ((objectId <= 0) || (npcId <= 0) || (instanceId < 0) || !finite(currentHp, maximumHp, distance) || (maximumHp <= 0) || (distance < 0) || (knowledgeKind == null))
+			{
+				throw new IllegalArgumentException("Invalid exact raid combat target snapshot.");
+			}
+		}
+
+		public boolean validFor(ActorSnapshot actor, PhantomRaidCombatRequest request, int maximumDistance)
+		{
+			final NpcKind requiredKind = request.contentKind() == ContentKind.RAID ? NpcKind.RAID_BOSS : request.contentKind() == ContentKind.EPIC ? NpcKind.GRAND_BOSS : null;
+			return (requiredKind != null) && (objectId == request.targetObjectId()) && (npcId == request.targetNpcId()) && (knowledgeKind == requiredKind) && (request.expectedNpcKind() == requiredKind) && canonicalRaidMonster && targetable && attackable && !invulnerable && surroundingRegion && !peaceRestricted && !dead && !alikeDead && (instanceId == actor.instanceId()) && (distance <= maximumDistance);
 		}
 	}
 

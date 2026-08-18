@@ -56,6 +56,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionUse
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConsequenceSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLocalSupportSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ExternalOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
@@ -134,6 +135,12 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public int raidActorLevel()
+		{
+			return _player.getLevel();
+		}
+
+		@Override
 		public TargetSnapshot targetSnapshot(int targetObjectId)
 		{
 			final WorldObject object = World.getInstance().findObject(targetObjectId);
@@ -142,6 +149,17 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return null;
 			}
 			return targetSnapshot(monster);
+		}
+
+		@Override
+		public RaidTargetSnapshot raidTargetSnapshot(int targetObjectId)
+		{
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if (!(object instanceof Monster monster))
+			{
+				return null;
+			}
+			return raidTargetSnapshot(monster);
 		}
 
 
@@ -409,6 +427,22 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final boolean restrictedActor = _player.isOnEvent() || _player.isInOlympiadMode() || _player.isInDuel() || _player.isInSiege() || _player.isInsideZone(ZoneId.SIEGE);
 			final boolean peaceRestricted = restrictedActor || _player.isInsideZone(ZoneId.PEACE) || monster.isInsideZone(ZoneId.PEACE);
 			return new TargetSnapshot(monster.getObjectId(), monster.getId(), monster.getInstanceId(), monster.getCurrentHp(), monster.getMaxHp(), monster.isDead(), monster.isAlikeDead(), monster.isTargetable(), monster.isAttackable() && monster.isAutoAttackable(_player), monster.isInvul(), normalMonster, knowledgeMonster, distance(_player, monster), peaceRestricted, surrounding);
+		}
+
+		private RaidTargetSnapshot raidTargetSnapshot(Monster monster)
+		{
+			final PhantomGameKnowledgeQuery knowledge = _knowledgeSupplier.get();
+			final var fact = knowledge == null ? null : knowledge.findNpc(monster.getId()).orElse(null);
+			if ((fact == null) || ((fact.kind() != NpcKind.RAID_BOSS) && (fact.kind() != NpcKind.GRAND_BOSS)))
+			{
+				return null;
+			}
+			final boolean canonicalRaidMonster = monster.isRaid() && monster.isMortal() && monster.isSpawned() && (((fact.kind() == NpcKind.GRAND_BOSS) && (monster instanceof GrandBoss)) || ((fact.kind() == NpcKind.RAID_BOSS) && (monster instanceof RaidBoss) && !(monster instanceof GrandBoss)));
+			final WorldRegion actorRegion = _player.getWorldRegion();
+			final boolean surrounding = (actorRegion != null) && actorRegion.isSurroundingRegion(monster.getWorldRegion());
+			final boolean restrictedActor = _player.isOnEvent() || _player.isInOlympiadMode() || _player.isInDuel() || _player.isInSiege() || _player.isInsideZone(ZoneId.SIEGE);
+			final boolean peaceRestricted = restrictedActor || _player.isInsideZone(ZoneId.PEACE) || monster.isInsideZone(ZoneId.PEACE);
+			return new RaidTargetSnapshot(monster.getObjectId(), monster.getId(), monster.getInstanceId(), monster.getCurrentHp(), monster.getMaxHp(), monster.isDead(), monster.isAlikeDead(), monster.isTargetable(), monster.isAttackable() && monster.isAutoAttackable(_player), monster.isInvul(), canonicalRaidMonster, fact.kind(), distance(_player, monster), peaceRestricted, surrounding);
 		}
 
 		private AcquisitionTargetSnapshot acquisitionSnapshot(Monster monster)
@@ -740,6 +774,64 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			}
 			final TargetSnapshot snapshot = targetSnapshot(target);
 			if (!snapshot.validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE) || !supportsSkill(selected, mode))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final Skill skill = _player.getKnownSkill(selected.skillId());
+			if (_player.isSkillDisabled(skill) || !_player.checkDoCastConditions(skill))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			final SkillUseHolder current = _player.getCurrentSkill();
+			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (current != null) && (current.getSkillId() == selected.skillId()) && (current.getSkillLevel() == selected.skillLevel()))
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			_player.setTarget(target);
+			_player.getAI().setIntention(Intention.CAST, skill, target);
+			return ActionOutcome.ISSUED;
+		}
+
+		@Override
+		public ActionOutcome attackRaid(int targetObjectId, PhantomRaidCombatRequest request)
+		{
+			if ((request == null) || (request.targetObjectId() != targetObjectId) || (_player.getLevel() > request.maximumActorLevel()))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if (!(object instanceof Monster target))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final RaidTargetSnapshot snapshot = raidTargetSnapshot(target);
+			if ((snapshot == null) || !snapshot.validFor(actorSnapshot(), request, MAXIMUM_ACQUISITION_DISTANCE))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == target))
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			_player.setTarget(target);
+			_player.getAI().setIntention(Intention.ATTACK, target);
+			return ActionOutcome.ISSUED;
+		}
+
+		@Override
+		public ActionOutcome castRaid(int targetObjectId, SelectedSkill selected, PhantomRaidCombatRequest request)
+		{
+			if ((request == null) || (selected == null) || (request.targetObjectId() != targetObjectId) || (_player.getLevel() > request.maximumActorLevel()))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if (!(object instanceof Monster target))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final RaidTargetSnapshot snapshot = raidTargetSnapshot(target);
+			if ((snapshot == null) || !snapshot.validFor(actorSnapshot(), request, MAXIMUM_ACQUISITION_DISTANCE) || !supportsSkill(selected, request.mode()))
 			{
 				return ActionOutcome.REJECTED;
 			}

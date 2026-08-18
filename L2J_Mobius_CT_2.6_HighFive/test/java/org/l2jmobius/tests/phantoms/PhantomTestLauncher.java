@@ -379,6 +379,7 @@ public final class PhantomTestLauncher
 			case "raid-assembly-consent" -> new PhantomRaidAssemblySuite(PhantomRaidAssemblySuite.Mode.ASSEMBLY);
 			case "raid-gathering-staging" -> new PhantomRaidAssemblySuite(PhantomRaidAssemblySuite.Mode.GATHERING);
 			case "raid-decision-lifecycle" -> new PhantomRaidAssemblySuite(PhantomRaidAssemblySuite.Mode.DECISION);
+			case "raid-combat-goal026cp5" -> new PhantomRaidCombatGoal026Checkpoint5Suite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

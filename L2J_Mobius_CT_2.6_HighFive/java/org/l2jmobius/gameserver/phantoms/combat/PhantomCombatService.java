@@ -36,6 +36,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnaps
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConsequenceSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLocalSupportSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
@@ -308,15 +309,21 @@ public final class PhantomCombatService
 	public StartResult startPvpSession(PhantomPvpCombatRequest request)
 	{
 		Objects.requireNonNull(request, "request");
-		return startSession(request.leaseRequest(), "", request);
+		return startSession(request.leaseRequest(), "", request, null);
+	}
+
+	public StartResult startRaidSession(PhantomRaidCombatRequest request)
+	{
+		Objects.requireNonNull(request, "request");
+		return startSession(request.leaseRequest(), "", null, request);
 	}
 
 	private StartResult startSession(PhantomCombatRequest request, String operationOwner)
 	{
-		return startSession(request, operationOwner, null);
+		return startSession(request, operationOwner, null, null);
 	}
 
-	private StartResult startSession(PhantomCombatRequest request, String operationOwner, PhantomPvpCombatRequest pvpRequest)
+	private StartResult startSession(PhantomCombatRequest request, String operationOwner, PhantomPvpCombatRequest pvpRequest, PhantomRaidCombatRequest raidRequest)
 	{
 		Objects.requireNonNull(request, "request");
 		_metrics.sessionRequested();
@@ -337,7 +344,7 @@ public final class PhantomCombatService
 			final PhantomCombatSession existing = _sessions.get(request.profileId());
 			if (existing != null)
 			{
-				final boolean sameOperation = pvpRequest == null ? (existing._pvpRequest == null) && existing._request.sameOperation(request) : (existing._pvpRequest != null) && existing._pvpRequest.sameOperation(pvpRequest);
+				final boolean sameOperation = raidRequest != null ? (existing._raidRequest != null) && existing._raidRequest.sameOperation(raidRequest) : pvpRequest != null ? (existing._pvpRequest != null) && existing._pvpRequest.sameOperation(pvpRequest) : (existing._pvpRequest == null) && (existing._raidRequest == null) && existing._request.sameOperation(request);
 				if (!existing._result.terminal() && sameOperation && operationOwner.equals(_sessionOperationOwners.getOrDefault(request.profileId(), "")))
 				{
 					return new StartResult(StartStatus.IDEMPOTENT, existing.snapshot());
@@ -350,7 +357,7 @@ public final class PhantomCombatService
 				_metrics.sessionRejected();
 				return new StartResult(StartStatus.REJECTED_CAPACITY, null);
 			}
-			reserved = pvpRequest == null ? new PhantomCombatSession(request, ++_nextGeneration, now, _policy.maximumThreatEntries()) : new PhantomCombatSession(pvpRequest, ++_nextGeneration, now, _policy.maximumThreatEntries());
+			reserved = raidRequest != null ? new PhantomCombatSession(raidRequest, ++_nextGeneration, now, _policy.maximumThreatEntries()) : pvpRequest != null ? new PhantomCombatSession(pvpRequest, ++_nextGeneration, now, _policy.maximumThreatEntries()) : new PhantomCombatSession(request, ++_nextGeneration, now, _policy.maximumThreatEntries());
 			_sessions.put(request.profileId(), reserved);
 			if (operationOwner.isEmpty())
 			{
@@ -392,14 +399,20 @@ public final class PhantomCombatService
 					else
 					{
 						final boolean validTarget;
-						if (pvpRequest == null)
+						if (raidRequest != null)
 						{
-							final TargetSnapshot target = lease.targetSnapshot(request.targetObjectId());
+							final RaidTargetSnapshot target = lease.raidTargetSnapshot(request.targetObjectId());
+							final int actorLevel = lease.raidActorLevel();
+							validTarget = (actorLevel > 0) && (actorLevel <= raidRequest.maximumActorLevel()) && (target != null) && target.validFor(actor, raidRequest, _policy.maximumAcquisitionDistance());
+						}
+						else if (pvpRequest != null)
+						{
+							final PvpTargetSnapshot target = lease.pvpTargetSnapshot(request.targetObjectId());
 							validTarget = (target != null) && target.validFor(actor, _policy.maximumAcquisitionDistance());
 						}
 						else
 						{
-							final PvpTargetSnapshot target = lease.pvpTargetSnapshot(request.targetObjectId());
+							final TargetSnapshot target = lease.targetSnapshot(request.targetObjectId());
 							validTarget = (target != null) && target.validFor(actor, _policy.maximumAcquisitionDistance());
 						}
 						_metrics.target(validTarget);
@@ -1152,6 +1165,11 @@ public final class PhantomCombatService
 				return;
 			}
 
+			if (session._raidRequest != null)
+			{
+				processRaid(session, actor, now);
+				return;
+			}
 			if (session._pvpRequest != null)
 			{
 				processPvp(session, actor);
@@ -1198,6 +1216,74 @@ public final class PhantomCombatService
 		}
 	}
 
+
+	private void processRaid(PhantomCombatSession session, ActorSnapshot actor, long now)
+	{
+		final RaidTargetSnapshot target = session._actorLease.raidTargetSnapshot(session._request.targetObjectId());
+		if ((target != null) && (target.dead() || target.alikeDead()))
+		{
+			if (session._request.lootAfterVictory())
+			{
+				session._phase = PhantomCombatPhase.LOOTING;
+				session._lootStartedLogicalNanos = now;
+				requeue(session);
+			}
+			else
+			{
+				finish(session, PhantomCombatResult.VICTORY);
+			}
+			return;
+		}
+		if ((session._actorLease.raidActorLevel() <= 0) || (session._actorLease.raidActorLevel() > session._raidRequest.maximumActorLevel()) || (target == null) || !target.validFor(actor, session._raidRequest, _policy.maximumAcquisitionDistance()))
+		{
+			finish(session, PhantomCombatResult.TARGET_LOST);
+			return;
+		}
+		session._phase = PhantomCombatPhase.FIGHTING;
+		issueRaidAction(session, actor);
+		requeue(session);
+	}
+
+	private void issueRaidAction(PhantomCombatSession session, ActorSnapshot actor)
+	{
+		SelectedSkill selected = null;
+		if (!session._loadout.selectedSkills().isEmpty() && (percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()))
+		{
+			selected = session._loadout.selectedSkills().get(session._nextSkill++ % session._loadout.selectedSkills().size());
+		}
+		if ((selected == null) && !session._loadout.normalAttackFallback())
+		{
+			return;
+		}
+		if (session._request.useShotsIfAvailable())
+		{
+			_metrics.shot(session._actorLease.activateShot(session._request.mode()));
+		}
+		if (selected != null)
+		{
+			final ActionOutcome outcome = session._actorLease.castRaid(session._request.targetObjectId(), selected, session._raidRequest);
+			if (outcome == ActionOutcome.ISSUED)
+			{
+				session._ownedAction = session._ownedAction.withSelectedSkill(selected);
+				_metrics.castIssued();
+				return;
+			}
+			if (outcome != ActionOutcome.ALREADY_OWNED)
+			{
+				_metrics.castRejected();
+			}
+			if ((outcome != ActionOutcome.UNAVAILABLE) || !session._loadout.normalAttackFallback())
+			{
+				return;
+			}
+		}
+		final ActionOutcome outcome = session._actorLease.attackRaid(session._request.targetObjectId(), session._raidRequest);
+		if (outcome == ActionOutcome.ISSUED)
+		{
+			session._ownedAction = session._ownedAction.withSelectedSkill(null);
+			_metrics.attackIssued();
+		}
+	}
 
 	private void processPvp(PhantomCombatSession session, ActorSnapshot actor)
 	{
