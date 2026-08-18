@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 
@@ -71,6 +72,11 @@ public interface PhantomPartyBackend
 	Optional<PartySnapshot> observe(MemberRef member);
 
 	Optional<MemberSnapshot> memberSnapshot(MemberRef member);
+
+	default OptionalInt currentLevel(MemberRef member)
+	{
+		return OptionalInt.empty();
+	}
 
 	default CurrentForceObservation currentForce(MemberRef actor)
 	{

@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeMap;
@@ -214,6 +215,15 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				return Optional.empty();
 			}
 			return Optional.of(snapshot(member, acquired.player()));
+		}
+	}
+
+	@Override
+	public OptionalInt currentLevel(MemberRef member)
+	{
+		try (AcquiredPlayer acquired = acquire(member))
+		{
+			return acquired == null ? OptionalInt.empty() : OptionalInt.of(acquired.player().getLevel());
 		}
 	}
 

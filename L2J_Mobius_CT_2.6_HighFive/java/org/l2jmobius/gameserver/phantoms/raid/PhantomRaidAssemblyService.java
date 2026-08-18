@@ -76,6 +76,8 @@ public final class PhantomRaidAssemblyService
 	private final PhantomPartyRouteCoordinator _routes;
 	private final LongSupplier _wallClock;
 	private final LongSupplier _logicalClock;
+	private final PhantomRaidEncounterCatalog _catalog;
+	private final PhantomRaidEntryNpcLocator _entryNpcLocator;
 	private final HeightResolver _height;
 	private final Map<Long, Assembly> _active = new HashMap<>();
 	private final LinkedHashMap<AssemblyIdentity, TerminalAssembly> _terminal = new LinkedHashMap<>();
@@ -83,10 +85,15 @@ public final class PhantomRaidAssemblyService
 
 	public PhantomRaidAssemblyService(PhantomGoalStore goals, PhantomRaidReadinessService readiness, PhantomRaidRecruitmentService recruitment, PhantomPartyBackend party, PhantomRaidAuthority authority, Supplier<PhantomTopologyQuery> topology, PhantomPartyRouteCoordinator routes, LongSupplier wallClock, LongSupplier logicalClock)
 	{
-		this(goals, readiness, recruitment, party, authority, topology, routes, wallClock, logicalClock, (x, y, factualZ) -> GeoEngine.getInstance().hasGeo(x, y) ? GeoEngine.getInstance().getHeight(x, y, factualZ) : factualZ);
+		this(goals, readiness, recruitment, party, authority, topology, routes, wallClock, logicalClock, (x, y, factualZ) -> GeoEngine.getInstance().hasGeo(x, y) ? GeoEngine.getInstance().getHeight(x, y, factualZ) : factualZ, new PhantomRaidEncounterCatalog(), PhantomRaidEntryNpcLocator.spawnTable());
 	}
 
 	public PhantomRaidAssemblyService(PhantomGoalStore goals, PhantomRaidReadinessService readiness, PhantomRaidRecruitmentService recruitment, PhantomPartyBackend party, PhantomRaidAuthority authority, Supplier<PhantomTopologyQuery> topology, PhantomPartyRouteCoordinator routes, LongSupplier wallClock, LongSupplier logicalClock, HeightResolver height)
+	{
+		this(goals, readiness, recruitment, party, authority, topology, routes, wallClock, logicalClock, height, new PhantomRaidEncounterCatalog(), PhantomRaidEntryNpcLocator.spawnTable());
+	}
+
+	public PhantomRaidAssemblyService(PhantomGoalStore goals, PhantomRaidReadinessService readiness, PhantomRaidRecruitmentService recruitment, PhantomPartyBackend party, PhantomRaidAuthority authority, Supplier<PhantomTopologyQuery> topology, PhantomPartyRouteCoordinator routes, LongSupplier wallClock, LongSupplier logicalClock, HeightResolver height, PhantomRaidEncounterCatalog catalog, PhantomRaidEntryNpcLocator entryNpcLocator)
 	{
 		_goals = Objects.requireNonNull(goals);
 		_readiness = Objects.requireNonNull(readiness);
@@ -98,6 +105,8 @@ public final class PhantomRaidAssemblyService
 		_wallClock = Objects.requireNonNull(wallClock);
 		_logicalClock = Objects.requireNonNull(logicalClock);
 		_height = Objects.requireNonNull(height);
+		_catalog = Objects.requireNonNull(catalog);
+		_entryNpcLocator = Objects.requireNonNull(entryNpcLocator);
 	}
 
 	public synchronized AdvanceResult advance(long leaderProfileId, long goalId, long goalRevision)
@@ -220,6 +229,12 @@ public final class PhantomRaidAssemblyService
 		return waiting ? ParticipationOutcome.WAITING : ParticipationOutcome.IMPOSSIBLE;
 	}
 
+	public synchronized Optional<ReadyReceipt> readyReceipt(AssemblyIdentity identity)
+	{
+		final TerminalAssembly terminal = _terminal.get(Objects.requireNonNull(identity));
+		return (terminal == null) ? Optional.empty() : Optional.ofNullable(terminal.readyReceipt());
+	}
+
 	public synchronized Optional<ReadyReceipt> readyReceipt(long leaderProfileId)
 	{
 		ReadyReceipt latest = null;
@@ -257,7 +272,7 @@ public final class PhantomRaidAssemblyService
 	private AdvanceResult advanceAssembly(Assembly assembly, long now)
 	{
 		final RaidReadiness readiness = _readiness.assess(assembly._actor, assembly._identity.contentId());
-		if (readiness.targetAvailability() != TargetAvailability.AVAILABLE)
+		if (!availableForAssembly(readiness.targetAvailability()))
 		{
 			return block(assembly, readiness.targetAvailability() == TargetAvailability.UNAVAILABLE ? "raid.assembly.target.unavailable" : "raid.assembly.target.unknown");
 		}
@@ -476,7 +491,7 @@ public final class PhantomRaidAssemblyService
 
 	private AdvanceResult validateFrozenAuthority(Assembly assembly, RaidReadiness readiness)
 	{
-		if (readiness.targetAvailability() != TargetAvailability.AVAILABLE)
+		if (!availableForAssembly(readiness.targetAvailability()))
 		{
 			return block(assembly, readiness.targetAvailability() == TargetAvailability.UNAVAILABLE ? "raid.assembly.target.unavailable" : "raid.assembly.target.unknown");
 		}
@@ -595,7 +610,21 @@ public final class PhantomRaidAssemblyService
 		{
 			return topology.findAnchor(assembly._goal.selectedAnchor().key()).map(anchor -> anchorCentre(StagingSource.GOAL_ANCHOR, anchor)).orElse(null);
 		}
+		if (readiness.targetAvailability() == TargetAvailability.ENTRY_GATED)
+		{
+			final PhantomRaidEncounterProfile profile = _catalog.resolve(readiness.content()).orElse(null);
+			if ((profile == null) || !profile.entryGated())
+			{
+				return null;
+			}
+			return _entryNpcLocator.locate(profile.entryNpcId()).map(point -> new StagingCenter(StagingSource.ENTRY_NPC, point, PhantomPartyModel.sha256("entryNpc|" + profile.evidenceHash() + "|" + point))).orElse(null);
+		}
 		return _authority.observeLocation(content.contentKind(), content.npcId()).map(location -> new StagingCenter(StagingSource.LIVE_BOSS, point(location), PhantomPartyModel.sha256("live|" + location))).orElse(null);
+	}
+
+	private static boolean availableForAssembly(TargetAvailability availability)
+	{
+		return (availability == TargetAvailability.AVAILABLE) || (availability == TargetAvailability.ENTRY_GATED);
 	}
 
 	private static StagingCenter anchorCentre(StagingSource source, PhantomTopologyAnchor anchor)
@@ -815,6 +844,7 @@ public final class PhantomRaidAssemblyService
 	{
 		CONTENT_ANCHOR,
 		GOAL_ANCHOR,
+		ENTRY_NPC,
 		LIVE_BOSS
 	}
 

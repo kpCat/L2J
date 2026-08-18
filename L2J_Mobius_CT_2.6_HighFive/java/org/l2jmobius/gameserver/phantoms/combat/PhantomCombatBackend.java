@@ -98,8 +98,13 @@ public interface PhantomCombatBackend
 
 		public boolean validFor(ActorSnapshot actor, PhantomRaidCombatRequest request, int maximumDistance)
 		{
+			return matchesIdentity(request) && canonicalRaidMonster && targetable && attackable && !invulnerable && surroundingRegion && !peaceRestricted && !dead && !alikeDead && (instanceId == actor.instanceId()) && (distance <= maximumDistance);
+		}
+
+		public boolean matchesIdentity(PhantomRaidCombatRequest request)
+		{
 			final NpcKind requiredKind = request.contentKind() == ContentKind.RAID ? NpcKind.RAID_BOSS : request.contentKind() == ContentKind.EPIC ? NpcKind.GRAND_BOSS : null;
-			return (requiredKind != null) && (objectId == request.targetObjectId()) && (npcId == request.targetNpcId()) && (knowledgeKind == requiredKind) && (request.expectedNpcKind() == requiredKind) && canonicalRaidMonster && targetable && attackable && !invulnerable && surroundingRegion && !peaceRestricted && !dead && !alikeDead && (instanceId == actor.instanceId()) && (distance <= maximumDistance);
+			return (requiredKind != null) && (objectId == request.targetObjectId()) && (npcId == request.targetNpcId()) && (instanceId == request.targetInstanceId()) && (knowledgeKind == requiredKind) && (request.expectedNpcKind() == requiredKind);
 		}
 	}
 

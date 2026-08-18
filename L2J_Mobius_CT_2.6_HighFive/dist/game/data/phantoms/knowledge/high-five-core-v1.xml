@@ -170,4 +170,11 @@
 		<requirement capabilityKey="combat.debuff" minimumCount="1" minimumRank="850" required="false" />
 		<source path="data/stats/npcs/29000-29099.xml" />
 	</contentRequirement>
+	<contentRequirement contentId="epic.zaken.83" contentKind="EPIC" npcId="29181" recommendedMinParty="9" recommendedMaxParty="27">
+		<requirement capabilityKey="combat.tank" minimumCount="1" minimumRank="850" required="true" />
+		<requirement capabilityKey="combat.heal" minimumCount="1" minimumRank="900" required="true" />
+		<requirement capabilityKey="combat.resurrection" minimumCount="1" minimumRank="900" required="true" />
+		<source path="data/stats/npcs/29000-29099.xml" />
+		<source path="data/scripts/instances/CavernOfThePirateCaptain/CavernOfThePirateCaptain.java" />
+	</contentRequirement>
 </knowledge>

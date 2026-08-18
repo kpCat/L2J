@@ -520,6 +520,15 @@ public final class PhantomCombatService
 	 * come only from an upstream causal owner; the selected target is context, not
 	 * an aggression candidate by itself.
 	 */
+	public boolean matchesRaidSession(long profileId, long generation, int targetObjectId, int targetNpcId, int targetInstanceId, String attemptAuthorityHash)
+	{
+		synchronized (_monitor)
+		{
+			final PhantomCombatSession session = _sessions.get(profileId);
+			return (session != null) && (session._raidRequest != null) && (session._generation == generation) && (session._raidRequest.targetObjectId() == targetObjectId) && (session._raidRequest.targetNpcId() == targetNpcId) && (session._raidRequest.targetInstanceId() == targetInstanceId) && session._raidRequest.attemptAuthorityHash().equals(attemptAuthorityHash);
+		}
+	}
+
 	public Optional<PvpObservation> observePvp(long profileId, List<Integer> exactTargetObjectIds, int attackerLimit, int localRiskPlayerLimit)
 	{
 		if ((profileId <= 0) || (attackerLimit < 1) || (attackerLimit > 32) || (localRiskPlayerLimit < 1) || (localRiskPlayerLimit > 32) || (exactTargetObjectIds == null) || (exactTargetObjectIds.size() > 10) || exactTargetObjectIds.stream().anyMatch(id -> id == null || id <= 0) || !exactTargetObjectIds.equals(exactTargetObjectIds.stream().distinct().sorted().toList()))
@@ -1220,7 +1229,7 @@ public final class PhantomCombatService
 	private void processRaid(PhantomCombatSession session, ActorSnapshot actor, long now)
 	{
 		final RaidTargetSnapshot target = session._actorLease.raidTargetSnapshot(session._request.targetObjectId());
-		if ((target != null) && (target.dead() || target.alikeDead()))
+		if ((target != null) && target.matchesIdentity(session._raidRequest) && (target.dead() || target.alikeDead()))
 		{
 			if (session._request.lootAfterVictory())
 			{

@@ -1,0 +1,14 @@
+{
+  "task_id": "026-checkpoint-5-completion",
+  "goal": 26,
+  "checkpoint": 5,
+  "kind": "continuation_after_compaction",
+  "branch": "feature/phantom-world",
+  "required_parent": "a44421c1cec30e027aeb33e5588fb00373e30f1b",
+  "last_fully_accepted_baseline": "f6402b512d5b22982e44f256506d7383a6b3d7c1",
+  "required_subject": "feat(phantoms): finish raid encounter orchestration",
+  "seed": 26002652,
+  "success_token": "GOAL_026_CHECKPOINT_5_RAID_ENCOUNTER_ORCHESTRATION_COMPLETED_PENDING_INDEPENDENT_REVIEW",
+  "not_a_new_checkpoint": true,
+  "first_context_compaction_is_stop": true
+}

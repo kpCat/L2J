@@ -16,6 +16,16 @@ public interface PhantomRaidAuthority
 {
 	BossObservation observe(ContentKind contentKind, int npcId);
 
+	default Optional<PhantomRaidTargetEvidence> observeTarget(ContentKind contentKind, int npcId)
+	{
+		return Optional.empty();
+	}
+
+	default boolean confirmsDeath(PhantomRaidTargetEvidence expected)
+	{
+		return observeTarget(expected.contentKind(), expected.npcId()).filter(current -> current.sameIdentity(expected) && current.dead()).isPresent();
+	}
+
 	default Optional<BossLocation> observeLocation(ContentKind contentKind, int npcId)
 	{
 		return Optional.empty();

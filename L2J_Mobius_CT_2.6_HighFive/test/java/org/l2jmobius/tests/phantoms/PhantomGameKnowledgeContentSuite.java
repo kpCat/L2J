@@ -274,11 +274,15 @@ public final class PhantomGameKnowledgeContentSuite implements PhantomTestSuite
 		final ContentRequirementFact rift = _snapshot.contentById().get("rift.high-five-core");
 		final ContentRequirementFact raid = _snapshot.contentById().get("raid.25001");
 		final ContentRequirementFact epic = _snapshot.contentById().get("epic.29001");
+		final ContentRequirementFact zaken = _snapshot.contentById().get("epic.zaken.83");
 		PhantomAssertions.assertEquals(ContentKind.RIFT, rift.contentKind(), "Dimensional Rift recommendation is missing.");
 		PhantomAssertions.assertEquals(25001, raid.npcId(), "RaidBoss recommendation identity changed.");
 		PhantomAssertions.assertEquals(NpcKind.RAID_BOSS, _snapshot.npcById().get(raid.npcId()).kind(), "Raid content does not reference a real RaidBoss.");
 		PhantomAssertions.assertEquals(29001, epic.npcId(), "GrandBoss recommendation identity changed.");
 		PhantomAssertions.assertEquals(NpcKind.GRAND_BOSS, _snapshot.npcById().get(epic.npcId()).kind(), "Epic content does not reference a real GrandBoss.");
+		PhantomAssertions.assertEquals(29181, zaken.npcId(), "Zaken83 recommendation identity changed.");
+		PhantomAssertions.assertEquals(9, zaken.recommendedMinParty(), "Zaken83 minimum group changed.");
+		PhantomAssertions.assertEquals(27, zaken.recommendedMaxParty(), "Zaken83 maximum group changed.");
 	}
 
 	private void testAuthority()

@@ -58,7 +58,7 @@ public final class PhantomRaidCombatGoal026Checkpoint5Suite implements PhantomTe
 		PhantomAssertions.assertFalse(raidTarget(7001, 29002, 0, NpcKind.GRAND_BOSS, false).validFor(actor, request, 2000), "Different raid NPC identity was accepted.");
 		PhantomAssertions.assertFalse(raidTarget(7001, 29001, 0, NpcKind.RAID_BOSS, false).validFor(actor, request, 2000), "RAID_BOSS knowledge was accepted for an EPIC request.");
 		PhantomAssertions.assertFalse(raidTarget(7001, 29001, 1, NpcKind.GRAND_BOSS, false).validFor(actor, request, 2000), "Cross-instance raid target was accepted.");
-		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new PhantomRaidCombatRequest(1, 7001, 29001, ContentKind.EPIC, NpcKind.RAID_BOSS, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, false, 48, 60_000, () -> false), "Mismatched content/NPC kind was accepted.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new PhantomRaidCombatRequest(1, 7001, 29001, 0, ContentKind.EPIC, NpcKind.RAID_BOSS, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, false, 48, 60_000, () -> false), "Mismatched content/NPC kind was accepted.");
 	}
 
 	private static void testOrdinarySafety()
@@ -80,7 +80,7 @@ public final class PhantomRaidCombatGoal026Checkpoint5Suite implements PhantomTe
 
 	private static PhantomRaidCombatRequest queenRequest()
 	{
-		return new PhantomRaidCombatRequest(1, 7001, 29001, ContentKind.EPIC, NpcKind.GRAND_BOSS, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, false, 48, 60_000, () -> false);
+		return new PhantomRaidCombatRequest(1, 7001, 29001, 0, ContentKind.EPIC, NpcKind.GRAND_BOSS, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, false, 48, 60_000, () -> false);
 	}
 
 	private static ActorSnapshot actor(int instanceId)

@@ -24,6 +24,7 @@ public final class PhantomRaidModel
 	public enum TargetAvailability
 	{
 		AVAILABLE,
+		ENTRY_GATED,
 		UNAVAILABLE,
 		UNKNOWN
 	}
@@ -264,9 +265,9 @@ public final class PhantomRaidModel
 				throw new IllegalArgumentException("Invalid raid readiness result.");
 			}
 			capabilities = List.copyOf(capabilities);
-			if ((status == ReadinessStatus.GROUP_READY) && (targetAvailability != TargetAvailability.AVAILABLE))
+			if ((status == ReadinessStatus.GROUP_READY) && (targetAvailability != TargetAvailability.AVAILABLE) && (targetAvailability != TargetAvailability.ENTRY_GATED))
 			{
-				throw new IllegalArgumentException("A ready group requires an available target.");
+				throw new IllegalArgumentException("A ready group requires an available target or exact entry workflow.");
 			}
 		}
 

@@ -17,16 +17,25 @@
 package instances.CavernOfThePirateCaptain;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.l2jmobius.gameserver.managers.InstanceManager;
 import org.l2jmobius.gameserver.model.Location;
+import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Attackable;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.instancezone.InstanceWorld;
 import org.l2jmobius.gameserver.model.script.InstanceScript;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidEncounterCatalog;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidScriptAdapter;
+import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidScriptRegistry;
 import org.l2jmobius.gameserver.network.NpcStringId;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
@@ -37,6 +46,7 @@ import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
  */
 public class CavernOfThePirateCaptain extends InstanceScript
 {
+	private final Map<Integer, PhantomRaidScriptAdapter.TargetEvidence> _phantomZakenDeaths = new LinkedHashMap<>();
 	// NPCs
 	private static final int PATHFINDER = 32713; // Pathfinder Worker
 	private static final int ZAKEN_60 = 29176; // Zaken
@@ -151,6 +161,7 @@ public class CavernOfThePirateCaptain extends InstanceScript
 		addTalkId(PATHFINDER);
 		addKillId(ZAKEN_60, ZAKEN_60_NIGHT, ZAKEN_83);
 		addFirstTalkId(CANDLE);
+		PhantomRaidScriptRegistry.getInstance().install(new Zaken83Adapter());
 	}
 	
 	@Override
@@ -257,6 +268,21 @@ public class CavernOfThePirateCaptain extends InstanceScript
 		return true;
 	}
 	
+	private PhantomRaidScriptAdapter.EntryResult enter83(Player player)
+	{
+		if ((player == null) || !checkConditions(player, TEMPLATE_ID_83))
+		{
+			return PhantomRaidScriptAdapter.EntryResult.rejected("raid.entry.conditions_rejected");
+		}
+		enterInstance(player, TEMPLATE_ID_83);
+		final InstanceWorld world = InstanceManager.getInstance().getPlayerWorld(player);
+		if ((world == null) || (world.getTemplateId() != TEMPLATE_ID_83) || (player.getInstanceId() != world.getInstanceId()))
+		{
+			return PhantomRaidScriptAdapter.EntryResult.rejected("raid.entry.world_unavailable");
+		}
+		return PhantomRaidScriptAdapter.EntryResult.entered(world.getInstanceId());
+	}
+
 	private void broadcastSystemMessage(Player player, Player member, SystemMessageId msgId, boolean toGroup)
 	{
 		final SystemMessage sm = new SystemMessage(msgId);
@@ -299,10 +325,7 @@ public class CavernOfThePirateCaptain extends InstanceScript
 		}
 		else if (event.equals("enter83"))
 		{
-			if (checkConditions(player, TEMPLATE_ID_83))
-			{
-				enterInstance(player, TEMPLATE_ID_83);
-			}
+			enter83(player);
 		}
 		else
 		{
@@ -384,6 +407,7 @@ public class CavernOfThePirateCaptain extends InstanceScript
 		{
 			if (npc.getId() == ZAKEN_83)
 			{
+				recordPhantomZakenDeath(world, npc);
 				for (Player playersInside : world.getParameters().getList("playersInside", Player.class))
 				{
 					if ((playersInside != null) && ((playersInside.getInstanceId() == world.getInstanceId()) && playersInside.isInsideRadius3D(npc, 1500)))
@@ -518,6 +542,138 @@ public class CavernOfThePirateCaptain extends InstanceScript
 		world.setParameter("zaken", zaken);
 	}
 	
+	private void recordPhantomZakenDeath(InstanceWorld world, Npc npc)
+	{
+		final PhantomRaidScriptAdapter.TargetEvidence evidence = new PhantomRaidScriptAdapter.TargetEvidence(npc.getObjectId(), npc.getId(), world.getInstanceId());
+		synchronized (_phantomZakenDeaths)
+		{
+			_phantomZakenDeaths.remove(world.getInstanceId());
+			_phantomZakenDeaths.put(world.getInstanceId(), evidence);
+			while (_phantomZakenDeaths.size() > 256)
+			{
+				_phantomZakenDeaths.remove(_phantomZakenDeaths.keySet().iterator().next());
+			}
+		}
+	}
+
+	private final class Zaken83Adapter implements PhantomRaidScriptAdapter
+	{
+		@Override
+		public String contentId()
+		{
+			return PhantomRaidEncounterCatalog.ZAKEN_83;
+		}
+
+		@Override
+		public int entryNpcId()
+		{
+			return PATHFINDER;
+		}
+
+		@Override
+		public int templateId()
+		{
+			return TEMPLATE_ID_83;
+		}
+
+		@Override
+		public EntryResult enter(EntryRequest request)
+		{
+			if (!contentId().equals(request.contentId()))
+			{
+				return EntryResult.rejected("raid.entry.content_mismatch");
+			}
+			final Player leader = World.getInstance().getPlayer(request.leader().characterObjectId());
+			return enter83(leader);
+		}
+
+		@Override
+		public List<CandleEvidence> candles(int instanceId)
+		{
+			final InstanceWorld world = InstanceManager.getInstance().getWorld(instanceId);
+			if ((world == null) || (world.getTemplateId() != TEMPLATE_ID_83))
+			{
+				return List.of();
+			}
+			return world.getNpcs(CANDLE).stream()
+				.sorted(Comparator.comparingInt(Npc::getObjectId))
+				.limit(36)
+				.map(candle -> new CandleEvidence(candle.getObjectId(), new PhantomNavigationPoint(candle.getX(), candle.getY(), candle.getZ(), instanceId), !candle.isScriptValue(0)))
+				.toList();
+		}
+
+		@Override
+		public CandleInteraction interactCandle(int instanceId, int scoutObjectId, int candleObjectId)
+		{
+			final Player scout = World.getInstance().getPlayer(scoutObjectId);
+			if ((scout == null) || scout.isDead() || scout.isAlikeDead())
+			{
+				return CandleInteraction.INVALID_ACTOR;
+			}
+			if (scout.getInstanceId() != instanceId)
+			{
+				return CandleInteraction.WRONG_INSTANCE;
+			}
+			final InstanceWorld world = InstanceManager.getInstance().getWorld(instanceId);
+			if ((world == null) || (world.getTemplateId() != TEMPLATE_ID_83))
+			{
+				return CandleInteraction.WRONG_INSTANCE;
+			}
+			final Npc candle = world.getNpcs(CANDLE).stream().filter(candidate -> candidate.getObjectId() == candleObjectId).findFirst().orElse(null);
+			if ((candle == null) || candle.isDead() || candle.isAlikeDead())
+			{
+				return CandleInteraction.MISSING;
+			}
+			if (!candle.isScriptValue(0))
+			{
+				return CandleInteraction.ALREADY_USED;
+			}
+			if ((candle.getInstanceId() != instanceId) || !candle.isInsideRadius3D(scout, Npc.INTERACTION_DISTANCE))
+			{
+				return CandleInteraction.OUT_OF_RANGE;
+			}
+			CavernOfThePirateCaptain.this.onFirstTalk(candle, scout);
+			return CandleInteraction.INTERACTED;
+		}
+
+		@Override
+		public Optional<TargetEvidence> revealedTarget(int instanceId)
+		{
+			final InstanceWorld world = InstanceManager.getInstance().getWorld(instanceId);
+			if ((world == null) || (world.getTemplateId() != TEMPLATE_ID_83))
+			{
+				return Optional.empty();
+			}
+			final Npc zaken = world.getParameters().getObject("zaken", Npc.class);
+			if ((zaken == null) || (zaken.getId() != ZAKEN_83) || (zaken.getInstanceId() != instanceId) || zaken.isInvisible() || zaken.isParalyzed() || zaken.isDead() || zaken.isAlikeDead())
+			{
+				return Optional.empty();
+			}
+			return Optional.of(new TargetEvidence(zaken.getObjectId(), zaken.getId(), zaken.getInstanceId()));
+		}
+
+		@Override
+		public Optional<PhantomNavigationPoint> safeRetreatPoint(int instanceId)
+		{
+			final InstanceWorld world = InstanceManager.getInstance().getWorld(instanceId);
+			if ((world == null) || (world.getTemplateId() != TEMPLATE_ID_83))
+			{
+				return Optional.empty();
+			}
+			final Location location = ENTER_LOC[0];
+			return Optional.of(new PhantomNavigationPoint(location.getX(), location.getY(), location.getZ(), instanceId));
+		}
+
+		@Override
+		public boolean confirmsDeath(TargetEvidence target)
+		{
+			synchronized (_phantomZakenDeaths)
+			{
+				return target.equals(_phantomZakenDeaths.get(target.instanceId()));
+			}
+		}
+	}
+
 	public static void main(String[] args)
 	{
 		new CavernOfThePirateCaptain();
