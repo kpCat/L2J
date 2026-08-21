@@ -31,6 +31,8 @@ public final class PhantomClanService
 	public static final String JOIN_GOAL = "clan.join";
 	public static final String ROLE_GOAL = "clan.role";
 	public static final String CONTRIBUTE_GOAL = "clan.contribute";
+	public static final String CHAT_GOAL = "clan.chat";
+	public static final String CHAT_TEXT_CONSTRAINT = "text";
 	public static final int MAX_ACTIVE_OPERATIONS = 64;
 	public static final int MAX_TERMINAL_RECEIPTS = 256;
 	public static final long MAX_CONTRIBUTION_COUNT = 1_000_000_000L;
@@ -308,8 +310,23 @@ public final class PhantomClanService
 			return prior;
 		}
 		final long now = _clock.getAsLong();
+		final Operation previous = _active.get(profileId);
+		if ((previous != null) && !previous._identity.equals(identity) && JOIN_GOAL.equals(previous._goal.goalType()))
+		{
+			refuseCurrentJoinInvitation(previous);
+			terminalize(previous, OperationStatus.CANCELLED, "clan.goal.replaced", null);
+		}
 		if (!validCommon(profileId, goal, now))
 		{
+			if (JOIN_GOAL.equals(goal.goalType()) && (now >= goal.deadlineEpochMillis()))
+			{
+				final Operation expired = _active.get(profileId);
+				refuseCurrentJoinInvitation(profileId);
+				if ((expired != null) && expired._identity.equals(identity))
+				{
+					return terminalize(expired, OperationStatus.EXPIRED, "clan.goal.invalid", null);
+				}
+			}
 			return result(now >= goal.deadlineEpochMillis() ? OperationStatus.EXPIRED : OperationStatus.FAILED, "clan.goal.invalid", null);
 		}
 
@@ -335,6 +352,7 @@ public final class PhantomClanService
 			case JOIN_GOAL -> advanceJoin(operation);
 			case ROLE_GOAL -> advanceRole(operation);
 			case CONTRIBUTE_GOAL -> advanceContribution(operation);
+			case CHAT_GOAL -> advanceChat(operation);
 			default -> terminalize(operation, OperationStatus.FAILED, "clan.goal.unsupported", null);
 		};
 	}
@@ -346,6 +364,7 @@ public final class PhantomClanService
 		{
 			return false;
 		}
+		refuseCurrentJoinInvitation(operation);
 		cancelPending(operation);
 		terminalize(operation, OperationStatus.CANCELLED, reasonKey == null ? "clan.operation.cancelled" : reasonKey, null);
 		return true;
@@ -363,7 +382,7 @@ public final class PhantomClanService
 			return new ChatResult(ChatOutcome.STALE, 0);
 		}
 		final PhantomGoal goal = stored.get().goal();
-		if ((goal.goalId() != goalId) || (goal.revision() != goalRevision) || !validCommon(profileId, goal, _clock.getAsLong()) || !goal.goalType().startsWith("clan."))
+		if ((goal.goalId() != goalId) || (goal.revision() != goalRevision) || !validCommon(profileId, goal, _clock.getAsLong()) || !CHAT_GOAL.equals(goal.goalType()) || !validChatContract(goal, text))
 		{
 			return new ChatResult(ChatOutcome.STALE, 0);
 		}
@@ -402,6 +421,7 @@ public final class PhantomClanService
 		_state = State.STOPPING;
 		for (Operation operation : List.copyOf(_active.values()))
 		{
+			refuseCurrentJoinInvitation(operation);
 			cancelPending(operation);
 			terminalize(operation, OperationStatus.CANCELLED, "clan.service.stopping", null);
 		}
@@ -537,9 +557,14 @@ public final class PhantomClanService
 			return terminalize(operation, OperationStatus.COMPLETE, "clan.join.complete", receipt(operation, currentClan, actor, actor, 0));
 		}
 		final InvitationSnapshot invitation = _backend.observeInvitation(actor).orElse(null);
-		if ((invitation == null) || !matches(goal.target(), invitation))
+		if (invitation == null)
 		{
 			return result(OperationStatus.WAITING, "clan.join.waiting_matching_invite", null);
+		}
+		if (!matches(goal.target(), invitation))
+		{
+			final ClanInvitationService.RespondResult refused = _backend.respond(actor, ClanInvitationService.Response.REFUSE, invitation.identity());
+			return result(OperationStatus.REPLAN, refused.outcome() == ClanInvitationService.RespondOutcome.REFUSED ? "clan.join.mismatched_invite_refused" : "clan.join.invite_stale", null);
 		}
 		final ClanInvitationService.RespondResult accepted = _backend.respond(actor, ClanInvitationService.Response.ACCEPT, invitation.identity());
 		if (!accepted.accepted())
@@ -553,6 +578,34 @@ public final class PhantomClanService
 		}
 		persist(actor.profileId(), metadata(goal, actor, joined, defaultRole(actor, joined), 0, List.of()));
 		return terminalize(operation, OperationStatus.COMPLETE, "clan.join.complete", receipt(operation, joined, actor, actor, 0));
+	}
+
+	private AdvanceResult advanceChat(Operation operation)
+	{
+		final PhantomGoal goal = operation._goal;
+		final String text = goal.acquisitionMethod();
+		if (!validChatContract(goal, text))
+		{
+			return terminalize(operation, OperationStatus.FAILED, "clan.chat.contract", null);
+		}
+		final MemberRef actor = _backend.currentMember(operation._identity.profileId()).orElse(null);
+		if ((actor == null) || (actor.kind() != MemberKind.PHANTOM))
+		{
+			return result(OperationStatus.STALE, "clan.chat.actor.stale", null);
+		}
+		final ClanSnapshot clan = _backend.observe(actor).orElse(null);
+		if ((clan == null) || !matches(goal.target(), clan))
+		{
+			return result(OperationStatus.STALE, "clan.chat.clan.stale", null);
+		}
+		final ChatResult chat = postClanChat(operation._identity.profileId(), operation._identity.goalId(), operation._identity.goalRevision(), text);
+		return switch (chat.outcome())
+		{
+			case DELIVERED -> terminalize(operation, OperationStatus.COMPLETE, "clan.chat.delivered", receipt(operation, clan, actor, actor, chat.deliveries()));
+			case REJECTED -> terminalize(operation, OperationStatus.FAILED, "clan.chat.rejected", null);
+			case STALE -> result(OperationStatus.STALE, "clan.chat.stale", null);
+			case FAILED -> terminalize(operation, OperationStatus.FAILED, "clan.chat.failed", null);
+		};
 	}
 
 	private AdvanceResult advanceRole(Operation operation)
@@ -707,6 +760,28 @@ public final class PhantomClanService
 		_persistence.save(profileId, stored.map(StoredMetadata::rowVersion).orElse(-1L), metadata);
 	}
 
+	private void refuseCurrentJoinInvitation(Operation operation)
+	{
+		if (JOIN_GOAL.equals(operation._goal.goalType()))
+		{
+			refuseCurrentJoinInvitation(operation._identity.profileId());
+		}
+	}
+
+	private void refuseCurrentJoinInvitation(long profileId)
+	{
+		final MemberRef actor = _backend.currentMember(profileId).orElse(null);
+		if ((actor == null) || (actor.kind() != MemberKind.PHANTOM))
+		{
+			return;
+		}
+		final InvitationSnapshot invitation = _backend.observeInvitation(actor).orElse(null);
+		if (invitation != null)
+		{
+			_backend.respond(actor, ClanInvitationService.Response.REFUSE, invitation.identity());
+		}
+	}
+
 	private void cancelPending(Operation operation)
 	{
 		if (operation._pendingIdentity != null)
@@ -735,9 +810,14 @@ public final class PhantomClanService
 		return new Receipt(operation._identity.profileId(), operation._identity.goalId(), operation._identity.goalRevision(), operation._goal.goalType(), clan.clanId(), actor.characterObjectId(), subject.characterObjectId(), delta, clan.evidenceHash());
 	}
 
+	private static boolean validChatContract(PhantomGoal goal, String text)
+	{
+		return (goal.target() != null) && SetTarget.valid(goal.target()) && goal.validSources().isEmpty() && (goal.constraints().size() == 1) && (text != null) && !text.isBlank() && (text.length() <= MAX_CHAT_TEXT) && Objects.equals(goal.constraints().get(CHAT_TEXT_CONSTRAINT), (long) text.length()) && Objects.equals(goal.acquisitionMethod(), text);
+	}
+
 	private static boolean validCommon(long profileId, PhantomGoal goal, long now)
 	{
-		if ((goal == null) || (goal.status() != PhantomGoalStatus.ACTIVE) || (goal.deadlineEpochMillis() <= now) || !List.of(BUILD_GOAL, JOIN_GOAL, ROLE_GOAL, CONTRIBUTE_GOAL).contains(goal.goalType()))
+		if ((goal == null) || (goal.status() != PhantomGoalStatus.ACTIVE) || (goal.deadlineEpochMillis() <= now) || !List.of(BUILD_GOAL, JOIN_GOAL, ROLE_GOAL, CONTRIBUTE_GOAL, CHAT_GOAL).contains(goal.goalType()))
 		{
 			return false;
 		}

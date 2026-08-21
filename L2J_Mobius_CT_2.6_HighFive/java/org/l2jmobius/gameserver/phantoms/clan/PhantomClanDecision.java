@@ -27,10 +27,12 @@ public final class PhantomClanDecision
 	public static final String JOIN_CANDIDATE = "candidate.clan.join";
 	public static final String ROLE_CANDIDATE = "candidate.clan.role";
 	public static final String CONTRIBUTE_CANDIDATE = "candidate.clan.contribute";
+	public static final String CHAT_CANDIDATE = "candidate.clan.chat";
 	public static final String BUILD_ACTION = "clan.build.advance";
 	public static final String JOIN_ACTION = "clan.join.advance";
 	public static final String ROLE_ACTION = "clan.role.advance";
 	public static final String CONTRIBUTE_ACTION = "clan.contribute.advance";
+	public static final String CHAT_ACTION = "clan.chat.advance";
 	private static final long TIMEOUT_MILLIS = 30_000;
 	private final PhantomClanService _service;
 
@@ -45,6 +47,7 @@ public final class PhantomClanDecision
 		registry.register(candidate(JOIN_CANDIDATE, PhantomClanService.JOIN_GOAL, JOIN_ACTION));
 		registry.register(candidate(ROLE_CANDIDATE, PhantomClanService.ROLE_GOAL, ROLE_ACTION));
 		registry.register(candidate(CONTRIBUTE_CANDIDATE, PhantomClanService.CONTRIBUTE_GOAL, CONTRIBUTE_ACTION));
+		registry.register(candidate(CHAT_CANDIDATE, PhantomClanService.CHAT_GOAL, CHAT_ACTION));
 	}
 
 	public void registerHandlers(PhantomStepHandlerRegistry registry)
@@ -53,6 +56,7 @@ public final class PhantomClanDecision
 		registry.register(JOIN_ACTION, this::execute);
 		registry.register(ROLE_ACTION, this::execute);
 		registry.register(CONTRIBUTE_ACTION, this::execute);
+		registry.register(CHAT_ACTION, this::execute);
 	}
 
 	private PhantomStepResult execute(PhantomStepContext context)

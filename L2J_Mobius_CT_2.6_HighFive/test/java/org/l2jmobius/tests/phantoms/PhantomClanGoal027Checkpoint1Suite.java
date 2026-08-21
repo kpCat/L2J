@@ -52,10 +52,12 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		RECRUITMENT,
 		ROLES,
 		TREASURY,
-		CHAT_DECISION
+		CHAT_DECISION,
+		CONSENT_CHAT_027A
 	}
 
 	private static final long SEED = 27002701L;
+	private static final long CORRECTIVE_SEED = 27002711L;
 	private static final long NOW = 1_000;
 	private final Mode _mode;
 
@@ -73,7 +75,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 	@Override
 	public void beforeAll(PhantomTestContext context)
 	{
-		PhantomAssertions.assertEquals(SEED, context.seed(), "Goal 027 CP1 used the wrong seed.");
+		PhantomAssertions.assertEquals(_mode == Mode.CONSENT_CHAT_027A ? CORRECTIVE_SEED : SEED, context.seed(), "Goal 027 clan suite used the wrong seed.");
 	}
 
 	@Override
@@ -90,6 +92,11 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 			case ROLES -> registry.add("01-leadership-and-external-drift-replan", this::roles);
 			case TREASURY -> registry.add("01-prepared-completed-restart-no-dupe-and-withdraw-unsupported", this::treasury);
 			case CHAT_DECISION -> registry.add("01-clan-chat-receipt-decision-and-lifecycle", this::chatDecision);
+			case CONSENT_CHAT_027A ->
+			{
+				registry.add("01-exact-consent-cleanup-lifecycle", this::consentCorrections);
+				registry.add("02-explicit-clan-chat-decision", this::chatCorrections);
+			}
 		}
 	}
 
@@ -214,7 +221,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		final Fixture fixture = new Fixture();
 		fixture.backend.addPhantom(1, 100);
 		fixture.backend.putClan(100, 100);
-		final PhantomGoal build = goal(1, 50, PhantomClanService.BUILD_GOAL, new PhantomDomainRef("clan.name", "CodexClan"), null, List.of(), 1, 0, 0);
+		final PhantomGoal build = goal(1, 50, PhantomClanService.CHAT_GOAL, new PhantomDomainRef("clan.id", "42"), "assemble-at-warehouse", List.of(), 1, 0, 0);
 		fixture.goals.put(1, build);
 		final PhantomClanService service = fixture.service();
 		final PhantomClanDecision decision = new PhantomClanDecision(service);
@@ -224,13 +231,13 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
 		decision.registerHandlers(handlers);
 		handlers.seal();
-		final PhantomPlanStep step = new PhantomPlanStep(0, PhantomClanDecision.BUILD_ACTION, build.target(), Map.of(), 30_000, 1, "clan.test");
-		final PhantomPlan plan = new PhantomPlan(1, build.goalId(), PhantomClanDecision.BUILD_CANDIDATE, List.of(step), 30_000, 1);
-		final PhantomStepResult decisionResult = handlers.snapshot().get(PhantomClanDecision.BUILD_ACTION).execute(new PhantomStepContext(1, build, plan, step, PhantomActivityState.ACTIVE, 1, 1, () -> false));
-		PhantomAssertions.assertEquals(PhantomStepResult.Type.COMPLETE_GOAL, decisionResult.type(), "PhantomClanDecision did not complete canonical build.");
+		final PhantomPlanStep step = new PhantomPlanStep(0, PhantomClanDecision.CHAT_ACTION, build.target(), Map.of(), 30_000, 1, "clan.test");
+		final PhantomPlan plan = new PhantomPlan(1, build.goalId(), PhantomClanDecision.CHAT_CANDIDATE, List.of(step), 30_000, 1);
+		final PhantomStepResult decisionResult = handlers.snapshot().get(PhantomClanDecision.CHAT_ACTION).execute(new PhantomStepContext(1, build, plan, step, PhantomActivityState.ACTIVE, 1, 1, () -> false));
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.COMPLETE_GOAL, decisionResult.type(), "PhantomClanDecision did not deliver explicit clan.chat.");
 
-		final ChatResult first = service.postClanChat(1, 50, 0, "Собираемся у склада.");
-		final ChatResult repeated = service.postClanChat(1, 50, 0, "Собираемся у склада.");
+		final ChatResult first = service.postClanChat(1, 50, 0, "assemble-at-warehouse");
+		final ChatResult repeated = service.postClanChat(1, 50, 0, "assemble-at-warehouse");
 		PhantomAssertions.assertEquals(ChatOutcome.DELIVERED, first.outcome(), "Explicit clan chat was not delivered.");
 		PhantomAssertions.assertEquals(ChatOutcome.DELIVERED, repeated.outcome(), "Clan chat receipt was not idempotent.");
 		PhantomAssertions.assertEquals(1, fixture.backend.chatCalls, "Repeated Decision/event spammed clan chat.");
@@ -239,9 +246,149 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		PhantomAssertions.assertEquals(PhantomClanService.State.STOPPED, service.snapshot().state(), "Clan lifecycle did not reach STOPPED.");
 	}
 
+	private void consentCorrections(PhantomTestContext context)
+	{
+		final Fixture mismatch = new Fixture();
+		mismatch.backend.addPhantom(2, 200);
+		mismatch.goals.put(2, goal(2, 60, PhantomClanService.JOIN_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 1, 0, 0));
+		mismatch.backend.putInvitation(900, 200, 99, "OtherClan");
+		final PhantomClanService mismatchService = mismatch.service();
+		PhantomAssertions.assertEquals(OperationStatus.REPLAN, mismatchService.advance(2, 60, 0).status(), "Mismatched ACTIVE clan.join did not replan after exact refusal.");
+		PhantomAssertions.assertEquals(ClanInvitationService.Response.REFUSE, mismatch.backend.lastResponse, "Mismatched invitation was not refused.");
+		PhantomAssertions.assertTrue(mismatch.backend.observeInvitation(MemberRef.phantom(2, 200)).isEmpty(), "Refused mismatched invitation remained pending.");
+		PhantomAssertions.assertTrue(mismatch.backend.clan(200) == null, "Mismatched invitation was accepted.");
+		final Fixture matching = new Fixture();
+		matching.backend.addPhantom(1, 100);
+		matching.backend.addPhantom(2, 200);
+		matching.backend.putClan(100, 100);
+		matching.goals.put(2, goal(2, 61, PhantomClanService.JOIN_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 1, 0, 0));
+		matching.backend.putInvitation(100, 200, 42, "CodexClan");
+		final PhantomClanService matchingService = matching.service();
+		PhantomAssertions.assertEquals(OperationStatus.COMPLETE, matchingService.advance(2, 61, 0).status(), "Matching exact clan.join did not accept.");
+		PhantomAssertions.assertEquals(ClanInvitationService.Response.ACCEPT, matching.backend.lastResponse, "Matching invitation did not use ACCEPT.");
+		PhantomAssertions.assertEquals(42, matching.backend.clan(200).clanId(), "Matching ACCEPT did not establish canonical membership.");
+		final Fixture expired = new Fixture();
+		expired.backend.addPhantom(2, 200);
+		expired.goals.put(2, goalWithDeadline(2, 62, PhantomClanService.JOIN_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 0, NOW));
+		expired.backend.putInvitation(100, 200, 42, "CodexClan");
+		final PhantomClanService expiredService = expired.service();
+		PhantomAssertions.assertEquals(OperationStatus.EXPIRED, expiredService.advance(2, 62, 0).status(), "Expired clan.join was not typed EXPIRED.");
+		PhantomAssertions.assertEquals(ClanInvitationService.Response.REFUSE, expired.backend.lastResponse, "Expired clan.join did not refuse before EXPIRED.");
+		final Fixture replacement = new Fixture();
+		replacement.backend.addPhantom(2, 200);
+		replacement.goals.put(2, goal(2, 63, PhantomClanService.JOIN_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 1, 0, 0));
+		final PhantomClanService replacementService = replacement.service();
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, replacementService.advance(2, 63, 0).status(), "Old clan.join was not active before replacement.");
+		replacement.backend.putInvitation(100, 200, 42, "CodexClan");
+		replacement.goals.put(2, goal(2, 63, PhantomClanService.JOIN_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 1, 0, 1));
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, replacementService.advance(2, 63, 1).status(), "Replacement clan.join did not wait after refusing the old invite.");
+		PhantomAssertions.assertEquals(ClanInvitationService.Response.REFUSE, replacement.backend.lastResponse, "Revision replacement did not refuse the old current invite.");
+		final Fixture cancelled = new Fixture();
+		cancelled.backend.addPhantom(2, 200);
+		cancelled.goals.put(2, goal(2, 64, PhantomClanService.JOIN_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 1, 0, 0));
+		final PhantomClanService cancelledService = cancelled.service();
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, cancelledService.advance(2, 64, 0).status(), "Cancelable clan.join was not active.");
+		cancelled.backend.putInvitation(100, 200, 42, "CodexClan");
+		PhantomAssertions.assertTrue(cancelledService.cancel(2, 64, 0, "clan.test.cancel"), "Explicit clan.join cancel was rejected.");
+		PhantomAssertions.assertEquals(ClanInvitationService.Response.REFUSE, cancelled.backend.lastResponse, "Explicit cancel did not refuse current invite.");
+		final Fixture stopping = new Fixture();
+		stopping.backend.addPhantom(2, 200);
+		stopping.goals.put(2, goal(2, 65, PhantomClanService.JOIN_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 1, 0, 0));
+		final PhantomClanService stoppingService = stopping.service();
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, stoppingService.advance(2, 65, 0).status(), "Stopping clan.join was not active.");
+		stopping.backend.putInvitation(100, 200, 42, "CodexClan");
+		stoppingService.beginStop();
+		PhantomAssertions.assertEquals(ClanInvitationService.Response.REFUSE, stopping.backend.lastResponse, "Service stop did not refuse current invite.");
+		PhantomAssertions.assertTrue(stoppingService.finishStop(), "Service did not finish after join refusal.");
+		final Fixture stale = new Fixture();
+		stale.backend.addPhantom(2, 200);
+		stale.goals.put(2, goal(2, 66, PhantomClanService.JOIN_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 1, 0, 0));
+		final PhantomClanService staleService = stale.service();
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, staleService.advance(2, 66, 0).status(), "Stale-identity clan.join was not active.");
+		stale.backend.putInvitation(100, 200, 42, "CodexClan");
+		final ClanInvitationService.InvitationIdentity newer = stale.backend.replaceBeforeRespond(101, 200, 42, "CodexClan");
+		PhantomAssertions.assertTrue(staleService.cancel(2, 66, 0, "clan.test.stale"), "Stale-identity cancel was rejected.");
+		PhantomAssertions.assertEquals(newer, stale.backend.observeInvitation(MemberRef.phantom(2, 200)).orElseThrow().identity(), "Stale identity cleared the newer invitation.");
+		final Fixture real = new Fixture();
+		real.backend.addPhantom(1, 100);
+		real.backend.addReal(300);
+		real.backend.putClan(100, 100);
+		real.goals.put(1, goal(1, 67, PhantomClanService.BUILD_GOAL, new PhantomDomainRef("clan.name", "CodexClan"), null, List.of(new PhantomDomainRef("character.object", "300")), 1, 0, 0));
+		final PhantomClanService realService = real.service();
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, realService.advance(1, 67, 0).status(), "REAL target did not receive a manual pending invitation.");
+		PhantomAssertions.assertEquals(0, real.backend.respondCalls, "REAL target received an automatic Phantom response.");
+	}
+	private void chatCorrections(PhantomTestContext context)
+	{
+		final Fixture delivered = new Fixture();
+		delivered.backend.addPhantom(1, 100);
+		delivered.backend.putClan(100, 100);
+		final PhantomGoal chat = goal(1, 70, PhantomClanService.CHAT_GOAL, new PhantomDomainRef("clan.id", "42"), "assemble-at-warehouse", List.of(), 1, 0, 0);
+		delivered.goals.put(1, chat);
+		final PhantomClanService deliveredService = delivered.service();
+		final PhantomClanDecision decision = new PhantomClanDecision(deliveredService);
+		final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
+		decision.registerCandidates(candidates);
+		candidates.seal();
+		PhantomAssertions.assertTrue(candidates.snapshot().stream().anyMatch(candidate -> PhantomClanDecision.CHAT_CANDIDATE.equals(candidate.key())), "clan.chat candidate was not registered.");
+		final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
+		decision.registerHandlers(handlers);
+		handlers.seal();
+		PhantomAssertions.assertTrue(handlers.snapshot().containsKey(PhantomClanDecision.CHAT_ACTION), "clan.chat action was not registered.");
+		final PhantomPlanStep step = new PhantomPlanStep(0, PhantomClanDecision.CHAT_ACTION, chat.target(), chat.constraints(), 30_000, 1, "clan.chat.explicit");
+		final PhantomPlan plan = new PhantomPlan(1, chat.goalId(), PhantomClanDecision.CHAT_CANDIDATE, List.of(step), 30_000, 1);
+		final PhantomStepContext stepContext = new PhantomStepContext(1, chat, plan, step, PhantomActivityState.ACTIVE, 1, 1, () -> false);
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.COMPLETE_GOAL, handlers.snapshot().get(PhantomClanDecision.CHAT_ACTION).execute(stepContext).type(), "Decision did not deliver explicit clan.chat.");
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.COMPLETE_GOAL, handlers.snapshot().get(PhantomClanDecision.CHAT_ACTION).execute(stepContext).type(), "Repeated exact clan.chat did not replay its terminal receipt.");
+		PhantomAssertions.assertEquals(1, delivered.backend.chatCalls, "Repeated exact clan.chat spammed the clan.");
+		PhantomAssertions.assertEquals("assemble-at-warehouse", delivered.backend.lastChatText, "Decision changed the explicit clan.chat text.");
+		PhantomAssertions.assertEquals(ChatOutcome.REJECTED, deliveredService.postClanChat(1, 70, 0, "x".repeat(PhantomClanService.MAX_CHAT_TEXT + 1)).outcome(), "Oversize clan chat was not rejected.");
+		PhantomAssertions.assertEquals(1, delivered.backend.chatCalls, "Oversize clan chat reached the backend.");
+		final Fixture wrongClan = new Fixture();
+		wrongClan.backend.addPhantom(1, 100);
+		wrongClan.backend.putClan(100, 100);
+		wrongClan.goals.put(1, goal(1, 71, PhantomClanService.CHAT_GOAL, new PhantomDomainRef("clan.id", "99"), "wrong-clan", List.of(), 1, 0, 0));
+		final PhantomClanService wrongClanService = wrongClan.service();
+		PhantomAssertions.assertEquals(OperationStatus.STALE, wrongClanService.advance(1, 71, 0).status(), "Wrong clan target was not typed STALE.");
+		PhantomAssertions.assertEquals(0, wrongClan.backend.chatCalls, "Wrong clan target dispatched chat.");
+		final Fixture blank = new Fixture();
+		blank.backend.addPhantom(1, 100);
+		blank.backend.putClan(100, 100);
+		blank.goals.put(1, goal(1, 72, PhantomClanService.CHAT_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 1, 0, 0));
+		final PhantomClanService blankService = blank.service();
+		PhantomAssertions.assertEquals(OperationStatus.FAILED, blankService.advance(1, 72, 0).status(), "Blank clan.chat text was not rejected.");
+		PhantomAssertions.assertEquals(0, blank.backend.chatCalls, "Blank clan.chat text dispatched chat.");
+		final Fixture sources = new Fixture();
+		sources.backend.addPhantom(1, 100);
+		sources.backend.putClan(100, 100);
+		sources.goals.put(1, goal(1, 73, PhantomClanService.CHAT_GOAL, new PhantomDomainRef("clan.id", "42"), "source-forbidden", List.of(new PhantomDomainRef("profile", "2")), 1, 0, 0));
+		final PhantomClanService sourcesService = sources.service();
+		PhantomAssertions.assertEquals(OperationStatus.FAILED, sourcesService.advance(1, 73, 0).status(), "clan.chat accepted validSources.");
+		PhantomAssertions.assertEquals(0, sources.backend.chatCalls, "clan.chat with validSources dispatched chat.");
+		final Fixture expired = new Fixture();
+		expired.backend.addPhantom(1, 100);
+		expired.backend.putClan(100, 100);
+		expired.goals.put(1, goalWithDeadline(1, 74, PhantomClanService.CHAT_GOAL, new PhantomDomainRef("clan.id", "42"), "expired-chat", List.of(), 0, NOW));
+		final PhantomClanService expiredService = expired.service();
+		PhantomAssertions.assertEquals(OperationStatus.EXPIRED, expiredService.advance(1, 74, 0).status(), "Expired clan.chat was not typed EXPIRED.");
+		PhantomAssertions.assertEquals(0, expired.backend.chatCalls, "Expired clan.chat dispatched chat.");
+	}
+
+
 	private static PhantomGoal goal(long profileId, long goalId, String type, PhantomDomainRef target, String method, List<PhantomDomainRef> sources, long amount, long budget, long revision)
 	{
-		return new PhantomGoal(goalId, type, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profileId)), target, amount, 0, method, sources, null, "clan.organization", 700, 0, budget, NOW + 100_000, Map.of(), "clan.test", revision);
+		return goalWithDeadline(profileId, goalId, type, target, method, sources, amount, budget, revision, NOW + 100_000);
+	}
+
+	private static PhantomGoal goalWithDeadline(long profileId, long goalId, String type, PhantomDomainRef target, String method, List<PhantomDomainRef> sources, long revision, long deadline)
+	{
+		return goalWithDeadline(profileId, goalId, type, target, method, sources, 1, 0, revision, deadline);
+	}
+
+	private static PhantomGoal goalWithDeadline(long profileId, long goalId, String type, PhantomDomainRef target, String method, List<PhantomDomainRef> sources, long amount, long budget, long revision, long deadline)
+	{
+		final Map<String, Long> constraints = PhantomClanService.CHAT_GOAL.equals(type) ? Map.of(PhantomClanService.CHAT_TEXT_CONSTRAINT, method == null ? 0L : (long) method.length()) : Map.of();
+		return new PhantomGoal(goalId, type, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profileId)), target, amount, 0, method, sources, null, "clan.organization", 700, 0, budget, deadline, constraints, "clan.test", revision);
 	}
 
 	private static final class Fixture
@@ -337,6 +484,9 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		private final Map<Integer, Long> inventory = new HashMap<>();
 		private long warehouse;
 		private long invitationSequence;
+		private ClanInvitationService.InvitationSnapshot replacementBeforeRespond;
+		private ClanInvitationService.Response lastResponse;
+		private String lastChatText;
 		private int createCalls;
 		private int inviteCalls;
 		private int respondCalls;
@@ -364,6 +514,20 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		private ClanSnapshot clan(int objectId)
 		{
 			return clans.get(objectId);
+		}
+
+		private ClanInvitationService.InvitationIdentity putInvitation(int requesterObjectId, int inviteeObjectId, int clanId, String clanName)
+		{
+			final ClanInvitationService.InvitationIdentity identity = new ClanInvitationService.InvitationIdentity(++invitationSequence, requesterObjectId, inviteeObjectId, clanId, 0);
+			invitations.put(inviteeObjectId, new ClanInvitationService.InvitationSnapshot(identity, clanName, 10_000));
+			return identity;
+		}
+
+		private ClanInvitationService.InvitationIdentity replaceBeforeRespond(int requesterObjectId, int inviteeObjectId, int clanId, String clanName)
+		{
+			final ClanInvitationService.InvitationIdentity identity = new ClanInvitationService.InvitationIdentity(++invitationSequence, requesterObjectId, inviteeObjectId, clanId, 0);
+			replacementBeforeRespond = new ClanInvitationService.InvitationSnapshot(identity, clanName, 10_000);
+			return identity;
 		}
 
 		private void externalLeader(int clanId, int leaderObjectId)
@@ -438,6 +602,12 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		public ClanInvitationService.RespondResult respond(MemberRef invitee, ClanInvitationService.Response response, ClanInvitationService.InvitationIdentity identity)
 		{
 			respondCalls++;
+			lastResponse = response;
+			if (replacementBeforeRespond != null)
+			{
+				invitations.put(invitee.characterObjectId(), replacementBeforeRespond);
+				replacementBeforeRespond = null;
+			}
 			final ClanInvitationService.InvitationSnapshot pending = invitations.get(invitee.characterObjectId());
 			if ((pending == null) || !pending.identity().equals(identity))
 			{
@@ -509,6 +679,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		public ChatResult clanChat(MemberRef member, int expectedClanId, String text)
 		{
 			chatCalls++;
+			lastChatText = text;
 			return new ChatResult(ChatOutcome.DELIVERED, 2);
 		}
 

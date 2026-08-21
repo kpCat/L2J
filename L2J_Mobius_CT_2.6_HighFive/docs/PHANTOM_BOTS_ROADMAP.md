@@ -135,7 +135,7 @@ Goal 025 overall: ACCEPT
 
 Accepted baseline: bbd29495a19a322c0629509c85c31fe508ae8d07
 
-Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `NOT_STARTED`.
+Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `CHANGES_REQUIRED` pending Goal 027A independent review; Goal 027A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `NOT_STARTED`.
 
 Goal 026 Checkpoint 5: ACCEPT
 
@@ -143,7 +143,9 @@ Goal 026D: ACCEPT
 
 Goal 026 overall: ACCEPT
 
-Goal 027 Checkpoint 1: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 027 Checkpoint 1: CHANGES_REQUIRED pending Goal 027A independent review
+
+Goal 027A: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 
 Goal 027 overall: IN_PROGRESS
 
@@ -182,7 +184,7 @@ activation gates в Goal 020 Checkpoint 1; Goal 019 принята с явным
 ожидает независимого review; Checkpoint 2 не начат. Goal 024A и Goal 024
 приняты независимым review; accepted baseline — `922f72c0d422904dcbdc6215a5cc1167a1bb84fb`.
 Goal 025A и Goal 025 overall — `ACCEPT`; accepted baseline — `5517081fb2bbf2aa9ad8295130714df2d4b45921`.
-Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `NOT_STARTED`.
+Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `CHANGES_REQUIRED` pending Goal 027A independent review; Goal 027A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `NOT_STARTED`.
 
 ---
 
@@ -431,7 +433,7 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 
 **GOAL:** 001–006  
 **Текущий статус:** Task 004/004A/004B, Goal 005, Goal 006A и Goal 006B приняты; Goal 006 overall — `ACCEPT`; Stage I — `COMPLETE`; Goal 007 — `ACCEPT after Goal 007A`; Goal 007A — `ACCEPT`; Goal 008 — `ACCEPT after Goal 008A`; Goal 008A — `ACCEPT`; Goal 009 — `ACCEPT after Goal 009A`; Goal 009A — `ACCEPT`; Goal 010 — `ACCEPT after Goal 010A/010B/010C`; Goal 010A — `ACCEPT`; Goal 010B — `ACCEPT_WITH_010C_INTEGRATION_BOUNDARY`; Goal 010C — `ACCEPT`; Goal 011 — `ACCEPT after Goal 011A`; Goal 011A — `ACCEPT`; Stage II — `COMPLETE`; Goal 012 — `ACCEPT after Goal 012A`; Goal 012A — `ACCEPT`; Goal 013/013A — `ACCEPT after Goal 013B`; Goal 013B — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 014 — `ACCEPT after Goal 014A`; Goal 014A + completion — `ACCEPT`; Goal 015 — `ACCEPT`; Goal 016 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 017 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 018 — `ACCEPT`; Goal 019 — `ACCEPT_WITH_EXPLICIT_FUTURE_CONTRACTS`; Goal 020 — `ACCEPT`; Goal 020 Checkpoint 1 — `ACCEPT_WITH_ACTIVATION_GATE`; Goal 020 Checkpoint 2 — `ACCEPT`; Goal 021 — `ACCEPT`; Goal 022 Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 022 Checkpoint 2 — `NOT_STARTED`; Goal 023 — `ACCEPT`; Goal 024 — `ACCEPT`; Goal 024A — `ACCEPT`; Goal 025A и Goal 025 overall — `ACCEPT`; accepted baseline — `5517081fb2bbf2aa9ad8295130714df2d4b45921`.
-Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `NOT_STARTED`.
+Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `CHANGES_REQUIRED` pending Goal 027A independent review; Goal 027A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `NOT_STARTED`.
 
 ## Goal 001 — Baseline и полный аудит — `ACCEPT`
 
@@ -978,7 +980,7 @@ readiness, gathering, route, timing, recruitment, retreat and win feasibility.
 
 ## Goal 027 — Clan lifecycle, alliances и wars — `IN_PROGRESS`
 
-**Checkpoint truth:** Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 2 — `NOT_STARTED`.
+**Checkpoint truth:** Checkpoint 1 — `CHANGES_REQUIRED` pending Goal 027A independent review; Goal 027A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 2 — `NOT_STARTED`.
 **Назначение:** persistent long-term social organizations.  
 **Зависимости:** 005, 017, 018, 022, 025, 026.  
 **Архитектурный результат:** recruitment, roles, contributions, clan goals,
@@ -1268,7 +1270,7 @@ Next:
    `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 022 Checkpoint 2 —
    `NOT_STARTED`; Goal 023 — `ACCEPT`; Goal 024 — `ACCEPT`;
    Goal 024A — `ACCEPT`; Goal 025A и Goal 025 overall — `ACCEPT`; accepted baseline — `5517081fb2bbf2aa9ad8295130714df2d4b45921`.
-   Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `NOT_STARTED`.
+   Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `CHANGES_REQUIRED` pending Goal 027A independent review; Goal 027A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `NOT_STARTED`.
 
 Stage gate:
 - Stage I COMPLETE
@@ -1325,11 +1327,12 @@ Overall:
   Goal 024A ACCEPT;
   Goal 025A ACCEPT;
   Goal 025 overall ACCEPT;
-  Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `NOT_STARTED`.
+  Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `CHANGES_REQUIRED` pending Goal 027A independent review; Goal 027A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `NOT_STARTED`.
   Goal 026 Checkpoint 5: ACCEPT
   Goal 026D: ACCEPT
   Goal 026 overall: ACCEPT
-  Goal 027 Checkpoint 1 IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+  Goal 027 Checkpoint 1 CHANGES_REQUIRED pending Goal 027A independent review
+  Goal 027A IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
   Goal 027 overall IN_PROGRESS
   Goal 027 Checkpoint 2 NOT_STARTED
 

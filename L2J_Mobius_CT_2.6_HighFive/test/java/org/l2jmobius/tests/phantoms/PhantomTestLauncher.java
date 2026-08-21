@@ -390,6 +390,7 @@ public final class PhantomTestLauncher
 			case "clan-roles-goal027cp1" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.ROLES);
 			case "clan-treasury-goal027cp1" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.TREASURY);
 			case "clan-chat-decision-goal027cp1" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.CHAT_DECISION);
+			case "clan-consent-chat-goal027a" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.CONSENT_CHAT_027A);
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};
