@@ -320,12 +320,10 @@ public final class PhantomClanService
 		{
 			if (JOIN_GOAL.equals(goal.goalType()) && (now >= goal.deadlineEpochMillis()))
 			{
-				final Operation expired = _active.get(profileId);
-				refuseCurrentJoinInvitation(profileId);
-				if ((expired != null) && expired._identity.equals(identity))
-				{
-					return terminalize(expired, OperationStatus.EXPIRED, "clan.goal.invalid", null);
-				}
+				final Operation active = _active.get(profileId);
+				final Operation expired = ((active != null) && active._identity.equals(identity)) ? active : new Operation(identity, goal);
+				refuseCurrentJoinInvitation(expired);
+				return terminalize(expired, OperationStatus.EXPIRED, "clan.goal.invalid", null);
 			}
 			return result(now >= goal.deadlineEpochMillis() ? OperationStatus.EXPIRED : OperationStatus.FAILED, "clan.goal.invalid", null);
 		}

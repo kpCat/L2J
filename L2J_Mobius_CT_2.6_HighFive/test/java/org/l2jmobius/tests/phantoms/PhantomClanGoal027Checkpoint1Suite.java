@@ -53,11 +53,13 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		ROLES,
 		TREASURY,
 		CHAT_DECISION,
-		CONSENT_CHAT_027A
+		CONSENT_CHAT_027A,
+		EXPIRY_REPLAY_027B
 	}
 
 	private static final long SEED = 27002701L;
 	private static final long CORRECTIVE_SEED = 27002711L;
+	private static final long EXPIRY_REPLAY_SEED = 27002712L;
 	private static final long NOW = 1_000;
 	private final Mode _mode;
 
@@ -75,7 +77,8 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 	@Override
 	public void beforeAll(PhantomTestContext context)
 	{
-		PhantomAssertions.assertEquals(_mode == Mode.CONSENT_CHAT_027A ? CORRECTIVE_SEED : SEED, context.seed(), "Goal 027 clan suite used the wrong seed.");
+		final long expectedSeed = _mode == Mode.EXPIRY_REPLAY_027B ? EXPIRY_REPLAY_SEED : _mode == Mode.CONSENT_CHAT_027A ? CORRECTIVE_SEED : SEED;
+		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Goal 027 clan suite used the wrong seed.");
 	}
 
 	@Override
@@ -96,6 +99,13 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 			{
 				registry.add("01-exact-consent-cleanup-lifecycle", this::consentCorrections);
 				registry.add("02-explicit-clan-chat-decision", this::chatCorrections);
+			}
+			case EXPIRY_REPLAY_027B ->
+			{
+				registry.add("01-first-touch-expiry-terminal-replay", this::expiredReplayWithInvitation);
+				registry.add("02-no-invite-expiry-terminal-replay", this::expiredReplayWithoutInvitation);
+				registry.add("03-expiry-stale-replacement-terminal-replay", this::expiredReplayWithStaleReplacement);
+				registry.add("04-real-invitation-remains-manual", this::realInvitationRemainsManual);
 			}
 		}
 	}
@@ -318,6 +328,85 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		PhantomAssertions.assertEquals(OperationStatus.WAITING, realService.advance(1, 67, 0).status(), "REAL target did not receive a manual pending invitation.");
 		PhantomAssertions.assertEquals(0, real.backend.respondCalls, "REAL target received an automatic Phantom response.");
 	}
+	private void expiredReplayWithInvitation(PhantomTestContext context)
+	{
+		final Fixture fixture = new Fixture();
+		fixture.backend.addPhantom(2, 200);
+		fixture.goals.put(2, goalWithDeadline(2, 80, PhantomClanService.JOIN_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 0, NOW));
+		final ClanInvitationService.InvitationIdentity firstIdentity = fixture.backend.putInvitation(100, 200, 42, "CodexClan");
+		final PhantomClanService service = fixture.service();
+		final AdvanceResult expired = service.advance(2, 80, 0);
+		PhantomAssertions.assertEquals(OperationStatus.EXPIRED, expired.status(), "First-touch expired clan.join was not typed EXPIRED.");
+		PhantomAssertions.assertEquals(ClanInvitationService.Response.REFUSE, fixture.backend.lastResponse, "First-touch expired clan.join did not REFUSE the pending invitation.");
+		PhantomAssertions.assertEquals(firstIdentity, fixture.backend.lastResponseIdentity, "First-touch expiry did not respond with the observed exact invitation identity.");
+		PhantomAssertions.assertEquals(1, fixture.backend.respondCalls, "First-touch expiry did not make exactly one response attempt.");
+		PhantomAssertions.assertEquals(1, service.snapshot().terminalReceipts(), "First-touch expiry did not store an exact terminal receipt.");
+		PhantomAssertions.assertEquals(0, service.snapshot().activeOperations(), "First-touch expiry retained a transient active operation.");
+		PhantomAssertions.assertTrue(fixture.backend.invitation(200) == null, "Refused first invitation remained pending.");
+
+		final int observationsAfterExpiry = fixture.backend.observeInvitationCalls;
+		final ClanInvitationService.InvitationIdentity newerIdentity = fixture.backend.putInvitation(101, 200, 42, "CodexClan");
+		final AdvanceResult replay = service.advance(2, 80, 0);
+		PhantomAssertions.assertEquals(expired, replay, "Exact expired replay did not return the stored terminal result.");
+		PhantomAssertions.assertEquals(observationsAfterExpiry, fixture.backend.observeInvitationCalls, "Exact expired replay observed a newer invitation.");
+		PhantomAssertions.assertEquals(1, fixture.backend.respondCalls, "Exact expired replay responded to a newer invitation.");
+		PhantomAssertions.assertEquals(newerIdentity, fixture.backend.invitation(200).identity(), "Exact expired replay changed the newer invitation.");
+		PhantomAssertions.assertTrue(fixture.backend.clan(200) == null, "Exact expired replay changed canonical membership.");
+	}
+
+	private void expiredReplayWithoutInvitation(PhantomTestContext context)
+	{
+		final Fixture fixture = new Fixture();
+		fixture.backend.addPhantom(2, 200);
+		fixture.goals.put(2, goalWithDeadline(2, 81, PhantomClanService.JOIN_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 0, NOW));
+		final PhantomClanService service = fixture.service();
+		final AdvanceResult expired = service.advance(2, 81, 0);
+		PhantomAssertions.assertEquals(OperationStatus.EXPIRED, expired.status(), "First-touch expiry without an invitation was not typed EXPIRED.");
+		PhantomAssertions.assertEquals(1, service.snapshot().terminalReceipts(), "Expiry without an invitation did not store an exact terminal receipt.");
+		PhantomAssertions.assertEquals(0, fixture.backend.respondCalls, "Expiry without an invitation attempted a response.");
+
+		final int observationsAfterExpiry = fixture.backend.observeInvitationCalls;
+		final ClanInvitationService.InvitationIdentity newerIdentity = fixture.backend.putInvitation(101, 200, 42, "CodexClan");
+		PhantomAssertions.assertEquals(expired, service.advance(2, 81, 0), "No-invite expiry replay did not return the stored terminal result.");
+		PhantomAssertions.assertEquals(observationsAfterExpiry, fixture.backend.observeInvitationCalls, "No-invite expiry replay observed a later invitation.");
+		PhantomAssertions.assertEquals(0, fixture.backend.respondCalls, "No-invite expiry replay responded to a later invitation.");
+		PhantomAssertions.assertEquals(newerIdentity, fixture.backend.invitation(200).identity(), "No-invite expiry replay changed the later invitation.");
+	}
+
+	private void expiredReplayWithStaleReplacement(PhantomTestContext context)
+	{
+		final Fixture fixture = new Fixture();
+		fixture.backend.addPhantom(2, 200);
+		fixture.goals.put(2, goalWithDeadline(2, 82, PhantomClanService.JOIN_GOAL, new PhantomDomainRef("clan.id", "42"), null, List.of(), 0, NOW));
+		final ClanInvitationService.InvitationIdentity observedIdentity = fixture.backend.putInvitation(100, 200, 42, "CodexClan");
+		final ClanInvitationService.InvitationIdentity replacementIdentity = fixture.backend.replaceBeforeRespond(101, 200, 42, "CodexClan");
+		final PhantomClanService service = fixture.service();
+		final AdvanceResult expired = service.advance(2, 82, 0);
+		PhantomAssertions.assertEquals(OperationStatus.EXPIRED, expired.status(), "Stale replacement expiry was not terminalized as EXPIRED.");
+		PhantomAssertions.assertEquals(observedIdentity, fixture.backend.lastResponseIdentity, "Expiry cleanup did not use the originally observed invitation identity.");
+		PhantomAssertions.assertEquals(replacementIdentity, fixture.backend.invitation(200).identity(), "Stale expiry cleanup removed the replacement invitation.");
+		PhantomAssertions.assertEquals(1, service.snapshot().terminalReceipts(), "Stale expiry cleanup did not store a terminal receipt.");
+
+		final int observationsAfterExpiry = fixture.backend.observeInvitationCalls;
+		PhantomAssertions.assertEquals(expired, service.advance(2, 82, 0), "Stale replacement replay did not return the stored terminal result.");
+		PhantomAssertions.assertEquals(observationsAfterExpiry, fixture.backend.observeInvitationCalls, "Stale replacement replay observed the replacement invitation.");
+		PhantomAssertions.assertEquals(1, fixture.backend.respondCalls, "Stale replacement replay made an additional response attempt.");
+		PhantomAssertions.assertEquals(replacementIdentity, fixture.backend.invitation(200).identity(), "Stale replacement replay changed the replacement invitation.");
+	}
+
+	private void realInvitationRemainsManual(PhantomTestContext context)
+	{
+		final Fixture fixture = new Fixture();
+		fixture.backend.addPhantom(1, 100);
+		fixture.backend.addReal(300);
+		fixture.backend.putClan(100, 100);
+		fixture.goals.put(1, goal(1, 83, PhantomClanService.BUILD_GOAL, new PhantomDomainRef("clan.name", "CodexClan"), null, List.of(new PhantomDomainRef("character.object", "300")), 1, 0, 0));
+		final PhantomClanService service = fixture.service();
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, service.advance(1, 83, 0).status(), "REAL target did not retain a manual pending invitation.");
+		PhantomAssertions.assertEquals(0, fixture.backend.respondCalls, "REAL target received an automatic Phantom response.");
+		PhantomAssertions.assertTrue(fixture.backend.invitation(300) != null, "REAL target manual invitation was not left pending.");
+	}
+
 	private void chatCorrections(PhantomTestContext context)
 	{
 		final Fixture delivered = new Fixture();
@@ -486,9 +575,11 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		private long invitationSequence;
 		private ClanInvitationService.InvitationSnapshot replacementBeforeRespond;
 		private ClanInvitationService.Response lastResponse;
+		private ClanInvitationService.InvitationIdentity lastResponseIdentity;
 		private String lastChatText;
 		private int createCalls;
 		private int inviteCalls;
+		private int observeInvitationCalls;
 		private int respondCalls;
 		private int transferCalls;
 		private int contributionCalls;
@@ -521,6 +612,11 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 			final ClanInvitationService.InvitationIdentity identity = new ClanInvitationService.InvitationIdentity(++invitationSequence, requesterObjectId, inviteeObjectId, clanId, 0);
 			invitations.put(inviteeObjectId, new ClanInvitationService.InvitationSnapshot(identity, clanName, 10_000));
 			return identity;
+		}
+
+		private ClanInvitationService.InvitationSnapshot invitation(int inviteeObjectId)
+		{
+			return invitations.get(inviteeObjectId);
 		}
 
 		private ClanInvitationService.InvitationIdentity replaceBeforeRespond(int requesterObjectId, int inviteeObjectId, int clanId, String clanName)
@@ -595,6 +691,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		@Override
 		public Optional<ClanInvitationService.InvitationSnapshot> observeInvitation(MemberRef invitee)
 		{
+			observeInvitationCalls++;
 			return Optional.ofNullable(invitations.get(invitee.characterObjectId()));
 		}
 
@@ -603,6 +700,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		{
 			respondCalls++;
 			lastResponse = response;
+			lastResponseIdentity = identity;
 			if (replacementBeforeRespond != null)
 			{
 				invitations.put(invitee.characterObjectId(), replacementBeforeRespond);

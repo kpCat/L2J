@@ -67,6 +67,7 @@
 	<property name="phantom.goal026d.seed" value="26002653" />
 	<property name="phantom.goal027cp1.seed" value="27002701" />
 	<property name="phantom.goal027a.seed" value="27002711" />
+	<property name="phantom.goal027b.seed" value="27002712" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -3033,6 +3034,15 @@
 			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
 			<arg value="clan-consent-chat-goal027a" />
 			<arg value="${phantom.goal027a.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-clan-expired-replay-goal027b-test" depends="compile-tests" description="Run focused Goal 027B expired clan join terminal replay regressions.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="clan-expired-replay-goal027b" />
+			<arg value="${phantom.goal027b.seed}" />
 		</java>
 	</target>
 
