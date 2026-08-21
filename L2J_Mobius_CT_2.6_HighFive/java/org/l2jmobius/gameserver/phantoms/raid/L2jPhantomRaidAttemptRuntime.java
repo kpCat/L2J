@@ -86,7 +86,11 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		{
 			return new MechanicAdvance(providers, null, "raid.mechanic.required_provider_unavailable");
 		}
-		advanceSupport(state, context.profile(), force, context.logicalDeadlineNanos(), context.token());
+		final RuntimeStatus support = advanceSupport(state, context.profile(), force, context.logicalDeadlineNanos(), context.token());
+		if (support != RuntimeStatus.INTERMEDIATE)
+		{
+			return new MechanicAdvance(support, null, "raid.mechanic.party_support_evidence_invalid");
+		}
 		final List<Integer> attackers = force.members().stream().flatMap(member -> member.attackerObjectIds().stream()).filter(id -> id > 0).distinct().sorted().limit(MAXIMUM_MECHANIC_ATTACKERS).toList();
 		final boolean mechanicBusy = pollMechanicSessions(state, context.token());
 		if (!attackers.isEmpty() || mechanicBusy)
@@ -155,7 +159,11 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		{
 			return new EngagementAdvance(providers, state._actualDeathObserved, nativeLootComplete(state), "raid.engagement.required_provider_unavailable");
 		}
-		advanceSupport(state, context.profile(), force, context.logicalDeadlineNanos(), context.token());
+		final RuntimeStatus support = advanceSupport(state, context.profile(), force, context.logicalDeadlineNanos(), context.token());
+		if (support != RuntimeStatus.INTERMEDIATE)
+		{
+			return new EngagementAdvance(support, state._actualDeathObserved, nativeLootComplete(state), "raid.engagement.party_support_evidence_invalid");
+		}
 		boolean targetLost = false;
 		for (RaidClaim claim : new ArrayList<>(state._raidClaims.values()))
 		{
@@ -338,14 +346,19 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 
 	private RuntimeStatus reserveProviders(RuntimeAttempt state, PhantomRaidEncounterProfile profile, org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot force)
 	{
-		final Map<String, Set<Long>> selected = new LinkedHashMap<>();
-		for (var requirement : profile.requiredCapabilities().stream().filter(requirement -> requirement.required() && SUPPORT_CAPABILITIES.contains(requirement.capabilityKey())).toList())
+		for (var requirement : profile.requiredCapabilities())
 		{
-			final List<MemberSnapshot> candidates = force.members().stream().filter(member -> (member.ref().kind() == MemberKind.PHANTOM) && !member.dead()).filter(member -> usableCapability(member, requirement.capabilityKey(), requirement.minimumRank()).isPresent()).sorted(Comparator.comparing(member -> member.ref().stableKey())).toList();
-			if (candidates.size() < requirement.minimumCount())
+			final long providers = force.members().stream().filter(member -> !member.dead()).filter(member -> providesCapability(member, requirement.capabilityKey(), requirement.minimumRank())).count();
+			if (providers < requirement.minimumCount())
 			{
+				state._providers.clear();
 				return RuntimeStatus.PROVIDER_UNAVAILABLE;
 			}
+		}
+		final Map<String, Set<Long>> selected = new LinkedHashMap<>();
+		for (var requirement : profile.requiredCapabilities().stream().filter(requirement -> SUPPORT_CAPABILITIES.contains(requirement.capabilityKey())).toList())
+		{
+			final List<MemberSnapshot> candidates = force.members().stream().filter(member -> (member.ref().kind() == MemberKind.PHANTOM) && !member.dead()).filter(member -> usableCapability(member, requirement.capabilityKey(), requirement.minimumRank()).isPresent()).sorted(Comparator.comparing(member -> member.ref().stableKey())).toList();
 			selected.put(requirement.capabilityKey(), candidates.stream().limit(requirement.minimumCount()).map(member -> member.ref().profileId()).collect(Collectors.toCollection(LinkedHashSet::new)));
 		}
 		state._providers.clear();
@@ -353,7 +366,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		return RuntimeStatus.INTERMEDIATE;
 	}
 
-	private void advanceSupport(RuntimeAttempt state, PhantomRaidEncounterProfile profile, org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot force, long deadline, org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken token)
+	private RuntimeStatus advanceSupport(RuntimeAttempt state, PhantomRaidEncounterProfile profile, org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot force, long deadline, org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken token)
 	{
 		for (var entry : new ArrayList<>(state._supportLeases.entrySet()))
 		{
@@ -365,13 +378,15 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 			}
 		}
 		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(force);
+		final Set<MemberRef> assignedMembers = new LinkedHashSet<>();
 		for (PartySnapshot party : force.parties())
 		{
-			if (party.members().size() > 9)
+			final Map<MemberRef, MemberSnapshot> partySnapshots = exactPartySnapshots(party, snapshots, assignedMembers);
+			if (partySnapshots == null)
 			{
-				continue;
+				return RuntimeStatus.INVALID;
 			}
-			for (TacticalDirective directive : _tactics.plan(party.leader(), party.members(), snapshots))
+			for (TacticalDirective directive : _tactics.plan(party.leader(), party.members(), partySnapshots))
 			{
 				if (!supportDirective(directive.kind()) || !state._providers.getOrDefault(directive.capabilityKey(), Set.of()).contains(directive.actor().profileId()) || state._supportLeases.containsKey(directive.actor().profileId()))
 				{
@@ -381,6 +396,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 				_tactics.dispatch(directive, operation, deadline, token).ifPresent(lease -> state._supportLeases.put(directive.actor().profileId(), lease));
 			}
 		}
+		return assignedMembers.size() == snapshots.size() ? RuntimeStatus.INTERMEDIATE : RuntimeStatus.INVALID;
 	}
 
 	private RuntimeStatus advanceMechanicCombat(RuntimeAttempt state, MechanicContext context, org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot force, List<Integer> attackers)
@@ -530,6 +546,11 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		return member.capabilities().stream().filter(capability -> capability.capabilityKey().equals(capabilityKey) && (capability.rank() >= minimumRank) && capability.intrinsic() && capability.learned() && (capability.actionSkillId() > 0) && (capability.actionSkillLevel() > 0)).sorted(Comparator.comparingInt(MemberCapability::rank).reversed().thenComparing(MemberCapability::identity)).findFirst();
 	}
 
+	private static boolean providesCapability(MemberSnapshot member, String capabilityKey, int minimumRank)
+	{
+		return member.capabilities().stream().anyMatch(capability -> capability.capabilityKey().equals(capabilityKey) && (capability.rank() >= minimumRank) && capability.intrinsic() && capability.learned());
+	}
+
 	private static PhantomCombatMode supportedMode(MemberSnapshot member)
 	{
 		return List.of(PhantomCombatMode.RANGED_MAGIC, PhantomCombatMode.RANGED_PHYSICAL, PhantomCombatMode.MELEE_PHYSICAL).stream().filter(mode -> usableCapability(member, mode.capabilityKey(), 1).isPresent()).findFirst().orElse(null);
@@ -543,6 +564,25 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 	private static Map<MemberRef, MemberSnapshot> snapshots(org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot force)
 	{
 		return force.members().stream().collect(Collectors.toMap(MemberSnapshot::ref, value -> value));
+	}
+
+	private static Map<MemberRef, MemberSnapshot> exactPartySnapshots(PartySnapshot party, Map<MemberRef, MemberSnapshot> forceSnapshots, Set<MemberRef> assignedMembers)
+	{
+		if ((party.members().size() > 9) || (party.members().size() != new LinkedHashSet<>(party.members()).size()))
+		{
+			return null;
+		}
+		final Map<MemberRef, MemberSnapshot> result = new LinkedHashMap<>();
+		for (MemberRef member : party.members())
+		{
+			final MemberSnapshot snapshot = forceSnapshots.get(member);
+			if ((snapshot == null) || !snapshot.ref().equals(member) || !assignedMembers.add(member))
+			{
+				return null;
+			}
+			result.put(member, snapshot);
+		}
+		return result.size() == party.members().size() ? Map.copyOf(result) : null;
 	}
 
 	private static boolean nativeLootComplete(RuntimeAttempt state)

@@ -64,6 +64,7 @@
 	<property name="phantom.goal026cp4.seed" value="26002641" />
 	<property name="phantom.goal026c.seed" value="26002642" />
 	<property name="phantom.goal026cp5.seed" value="26002652" />
+	<property name="phantom.goal026d.seed" value="26002653" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -2950,12 +2951,21 @@
 		</java>
 	</target>
 
+	<target name="phantom-raid-attempt-runtime-goal026d-test" depends="compile-tests" description="Run dynamic Goal 026D Party-local support and all-required viability regressions.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="raid-attempt-runtime-goal026d" />
+			<arg value="${phantom.goal026d.seed}" />
+		</java>
+	</target>
+
 	<target name="phantom-raid-attempt-goal026cp5-test" depends="compile-tests" description="Run bounded raid Attempt/support/retreat/victory/native-loot regressions.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
 			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
 			<arg value="raid-attempt-goal026cp5" />
-			<arg value="${phantom.goal026cp5.seed}" />
+			<arg value="${phantom.goal026d.seed}" />
 		</java>
 	</target>
 
@@ -2964,7 +2974,7 @@
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
 			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
 			<arg value="raid-decision-goal026cp5" />
-			<arg value="${phantom.goal026cp5.seed}" />
+			<arg value="${phantom.goal026d.seed}" />
 		</java>
 	</target>
 

@@ -749,7 +749,7 @@ Prior independent review закрыл R024A-01/02/03; Goal 024 overall прин�
 Accepted baseline: `922f72c0d422904dcbdc6215a5cc1167a1bb84fb`.
 Goal 025A — `ACCEPT`; Goal 025 overall — `ACCEPT`.
 Accepted baseline: `5517081fb2bbf2aa9ad8295130714df2d4b45921`.
-Goal 026 Checkpoint 1–4 и correctives 026A/026B/026C — `ACCEPT` на baseline `f6402b512d5b22982e44f256506d7383a6b3d7c1`; Checkpoint 5 и Goal 026 overall — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 — `NOT_STARTED`.
+Goal 026 Checkpoint 1–4 и correctives 026A/026B/026C — `ACCEPT` на baseline `f6402b512d5b22982e44f256506d7383a6b3d7c1`; Checkpoint 5 — `CHANGES_REQUIRED` pending Goal 026D review; Goal 026D — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 026 overall — `IN_PROGRESS`; Goal 027 — `NOT_STARTED`.
 
 Exact current Goal 021 Source теперь порождает bounded ROOM/MOB_GROUP claim; Goal 010 определяет current
 perceptibility, Goal 017 — same-Party SHARE, Goal 018 — social memory/history, Goal 020 — typed query/language.
@@ -780,7 +780,7 @@ Accepted baseline: `5517081fb2bbf2aa9ad8295130714df2d4b45921`.
 
 ### 026. RaidPlanner и эпики
 
-Status: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 1–4 и correctives 026A/026B/026C — `ACCEPT` на baseline `f6402b512d5b22982e44f256506d7383a6b3d7c1`; Checkpoint 5 реализован и ожидает независимого review; Goal 027 — `NOT_STARTED`.
+Status: `IN_PROGRESS`; Checkpoint 1–4 и correctives 026A/026B/026C — `ACCEPT` на baseline `f6402b512d5b22982e44f256506d7383a6b3d7c1`; Checkpoint 5 — `CHANGES_REQUIRED` pending Goal 026D review; Goal 026D — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 — `NOT_STARTED`.
 Checkpoint 1/026A закрепили passive read-only raid/epic authority и текущие Party/CommandChannel readiness facts. Checkpoint 2 закрепил canonical CommandChannel lifecycle. Checkpoint 3 добавляет только raid force composition и bounded outbound recruitment; documentation-only closure не требует повторного запуска product gates Checkpoint 2.
 
 - composition;

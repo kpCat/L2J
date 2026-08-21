@@ -63,7 +63,7 @@ import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidTargetEvidence;
 
 public final class PhantomRaidAttemptGoal026Checkpoint5Suite implements PhantomTestSuite
 {
-	private static final long SEED = 26002652L;
+	private static final long SEED = 26002653L;
 
 	@Override
 	public String id()
@@ -87,6 +87,8 @@ public final class PhantomRaidAttemptGoal026Checkpoint5Suite implements PhantomT
 		registry.add("05-zaken-entry-target-bind-and-script-death", _ -> zakenScriptVictory());
 		registry.add("06-participation-follows-exact-leader-terminal", _ -> participationTerminal());
 		registry.add("07-production-runtime-reuses-existing-services-and-keeps-real-observational", PhantomRaidAttemptGoal026Checkpoint5Suite::productionRuntimeScope);
+		registry.add("08-live-and-terminal-ignore-ready-receipt-eviction", _ -> receiptEviction());
+		registry.add("09-revision-replacement-cancels-runtime-before-new-ready-read", _ -> revisionReplacement());
 	}
 
 	private static void authorityAndVictory()
@@ -122,6 +124,44 @@ public final class PhantomRaidAttemptGoal026Checkpoint5Suite implements PhantomT
 		PhantomAssertions.assertEquals(AttemptStatus.VICTORY, repeated.status(), "Exact terminal attempt was not idempotent.");
 		PhantomAssertions.assertEquals(terminal.terminalReceipt(), repeated.terminalReceipt(), "Exact terminal receipt changed on replay.");
 		PhantomAssertions.assertEquals(1, fixture.runtime.completeCalls, "Terminal replay repeated runtime settlement.");
+	}
+
+	private static void receiptEviction()
+	{
+		final Fixture fixture = Fixture.queen();
+		PhantomAssertions.assertEquals(AttemptStatus.FIGHTING, fixture.service.advance(1, 10, 0).status(), "Receipt-eviction fixture did not start.");
+		final var started = fixture.service.view(1).orElseThrow();
+		fixture.events.clear();
+		fixture.assembly.ready = null;
+		final var continued = fixture.service.advance(1, 10, 0);
+		final var live = fixture.service.view(1).orElseThrow();
+		PhantomAssertions.assertEquals(AttemptStatus.FIGHTING, continued.status(), "Live attempt waited for an evicted CP4 receipt.");
+		PhantomAssertions.assertEquals(started.identity(), live.identity(), "Live attempt identity changed after CP4 receipt eviction.");
+		PhantomAssertions.assertEquals(started.attemptAuthorityHash(), live.attemptAuthorityHash(), "Live authority changed after CP4 receipt eviction.");
+		PhantomAssertions.assertTrue(fixture.events.isEmpty(), "Live attempt reread the evicted CP4 receipt.");
+		fixture.runtime.deathObserved = true;
+		fixture.runtime.lootComplete = true;
+		fixture.authority.deathConfirmed = true;
+		final var terminal = fixture.service.advance(1, 10, 0);
+		final var repeated = fixture.service.advance(1, 10, 0);
+		PhantomAssertions.assertEquals(AttemptStatus.VICTORY, repeated.status(), "Terminal replay depended on an evicted CP4 receipt.");
+		PhantomAssertions.assertEquals(terminal.terminalReceipt(), repeated.terminalReceipt(), "Receipt-free terminal replay changed exact outcome.");
+		PhantomAssertions.assertEquals(1, fixture.runtime.completeCalls, "Receipt-free terminal replay repeated runtime completion.");
+		PhantomAssertions.assertTrue(fixture.events.isEmpty(), "Terminal replay reread the evicted CP4 receipt.");
+	}
+
+	private static void revisionReplacement()
+	{
+		final Fixture fixture = Fixture.queen();
+		fixture.service.advance(1, 10, 0);
+		fixture.events.clear();
+		fixture.store.goals.put(1L, prepareGoal(fixture.content.requirement().contentId(), 1));
+		fixture.assembly.identity = new AssemblyIdentity(1, 10, 1, fixture.content.requirement().contentId());
+		fixture.assembly.ready = null;
+		final var replacement = fixture.service.advance(1, 10, 1);
+		PhantomAssertions.assertEquals(AttemptStatus.WAITING_FOR_READY, replacement.status(), "New revision did not enter typed waiting-for-ready.");
+		PhantomAssertions.assertEquals(List.of("runtime.cancel", "assembly.ready"), fixture.events, "Old runtime was not cancelled before the new revision read Assembly readiness.");
+		PhantomAssertions.assertTrue(fixture.service.view(1).isEmpty(), "Replaced attempt retained live runtime ownership while waiting for new Assembly.");
 	}
 
 	private static void queenLevelGate()
@@ -215,8 +255,9 @@ public final class PhantomRaidAttemptGoal026Checkpoint5Suite implements PhantomT
 		private final FakeAuthority authority = new FakeAuthority();
 		private final PhantomRaidEncounterCatalog catalog = new PhantomRaidEncounterCatalog();
 		private final PhantomRaidScriptRegistry scripts = new PhantomRaidScriptRegistry();
-		private final FakeRuntime runtime = new FakeRuntime();
-		private final FakeAssembly assembly = new FakeAssembly();
+		private final List<String> events = new java.util.ArrayList<>();
+		private final FakeRuntime runtime = new FakeRuntime(events);
+		private final FakeAssembly assembly = new FakeAssembly(events);
 		private final List<MemberRef> members;
 		private final ContentSnapshot content;
 		private final RaidReadiness readiness;
@@ -314,10 +355,17 @@ public final class PhantomRaidAttemptGoal026Checkpoint5Suite implements PhantomT
 
 	private static final class FakeAssembly implements PhantomRaidAttemptService.AssemblyPort
 	{
+		private final List<String> _events;
 		private AssemblyIdentity identity;
 		private ReadyReceipt ready;
 		private ParticipationReceipt participation = new ParticipationReceipt(ParticipationOutcome.IMPOSSIBLE, null);
-		@Override public Optional<ReadyReceipt> readyReceipt(AssemblyIdentity requested) { return requested.equals(identity) ? Optional.ofNullable(ready) : Optional.empty(); }
+
+		private FakeAssembly(List<String> events)
+		{
+			_events = events;
+		}
+
+		@Override public Optional<ReadyReceipt> readyReceipt(AssemblyIdentity requested) { _events.add("assembly.ready"); return requested.equals(identity) ? Optional.ofNullable(ready) : Optional.empty(); }
 		@Override public ParticipationReceipt participationReceipt(long profileId, long goalId, long goalRevision) { return participation; }
 	}
 
@@ -332,6 +380,7 @@ public final class PhantomRaidAttemptGoal026Checkpoint5Suite implements PhantomT
 
 	private static final class FakeRuntime implements PhantomRaidAttemptRuntime
 	{
+		private final List<String> _events;
 		private RuntimeStatus engagementStatus = RuntimeStatus.INTERMEDIATE;
 		private PhantomRaidTargetEvidence mechanicTarget;
 		private boolean deathObserved;
@@ -339,10 +388,16 @@ public final class PhantomRaidAttemptGoal026Checkpoint5Suite implements PhantomT
 		private int cancelCalls;
 		private int retreatCalls;
 		private int completeCalls;
+
+		private FakeRuntime(List<String> events)
+		{
+			_events = events;
+		}
+
 		@Override public MechanicAdvance advanceMechanic(MechanicContext context, CurrentForceSnapshot force) { return mechanicTarget == null ? new MechanicAdvance(RuntimeStatus.INTERMEDIATE, null, "test.mechanic") : new MechanicAdvance(RuntimeStatus.TARGET_REVEALED, mechanicTarget, "test.revealed"); }
 		@Override public EngagementAdvance advanceEngagement(EngagementContext context, CurrentForceSnapshot force) { return new EngagementAdvance(engagementStatus, deathObserved, lootComplete, "test.engagement"); }
 		@Override public RetreatAdvance advanceRetreat(RetreatContext context, CurrentForceSnapshot force) { retreatCalls++; return new RetreatAdvance(RuntimeStatus.COMPLETE, "test.retreat.complete"); }
-		@Override public void cancel(String attemptAuthorityHash) { cancelCalls++; }
+		@Override public void cancel(String attemptAuthorityHash) { cancelCalls++; _events.add("runtime.cancel"); }
 		@Override public void complete(String attemptAuthorityHash) { completeCalls++; }
 		@Override public void beginStop() { }
 	}

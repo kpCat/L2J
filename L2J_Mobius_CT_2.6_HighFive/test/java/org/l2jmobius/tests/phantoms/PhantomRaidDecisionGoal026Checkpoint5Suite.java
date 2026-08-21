@@ -36,7 +36,7 @@ import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidModel.TargetAvailabilit
 
 public final class PhantomRaidDecisionGoal026Checkpoint5Suite implements PhantomTestSuite
 {
-	private static final long SEED = 26002652L;
+	private static final long SEED = 26002653L;
 
 	@Override
 	public String id()
@@ -64,20 +64,36 @@ public final class PhantomRaidDecisionGoal026Checkpoint5Suite implements Phantom
 		final FakeAttempt attempt = new FakeAttempt(calls);
 		final PhantomStepHandlerRegistry handlers = handlers(assembly, attempt);
 		final PhantomGoal goal = goal(1, 10, PhantomRaidAssemblyService.PREPARE_GOAL_TYPE);
+		final var waiting = new PhantomRaidAttemptService.AdvanceResult(AttemptStatus.WAITING_FOR_READY, "raid.attempt.waiting_ready_receipt", null);
 
+		attempt.responds(waiting);
 		assembly.result = new PhantomRaidAssemblyService.AdvanceResult(AssemblyStatus.ASSEMBLING, "raid.assembly.assembling", null);
-		PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, execute(handlers, PhantomRaidDecision.PREPARE_ACTION, PhantomRaidDecision.PREPARE_CANDIDATE, 1, goal, false).type(), "Assembly intermediate completed raid.prepare.");
-		PhantomAssertions.assertEquals(0, attempt.advanceCalls, "Attempt started before READY_AT_STAGING.");
+		calls.clear();
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, execute(handlers, PhantomRaidDecision.PREPARE_ACTION, PhantomRaidDecision.PREPARE_CANDIDATE, 1, goal, false).type(), "Typed waiting-for-ready did not advance Assembly.");
+		PhantomAssertions.assertEquals(List.of("attempt.advance", "assembly.advance"), calls, "No-attempt Decision did not call Attempt before Assembly.");
+
+		for (AttemptStatus status : List.of(AttemptStatus.FIGHTING, AttemptStatus.RETREAT))
+		{
+			attempt.responds(new PhantomRaidAttemptService.AdvanceResult(status, "raid.attempt.active", null));
+			calls.clear();
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, execute(handlers, PhantomRaidDecision.PREPARE_ACTION, PhantomRaidDecision.PREPARE_CANDIDATE, 1, goal, false).type(), status + " completed raid.prepare.");
+			PhantomAssertions.assertEquals(List.of("attempt.advance"), calls, status + " advanced Assembly despite exact Attempt ownership.");
+		}
+
+		attempt.responds(new PhantomRaidAttemptService.AdvanceResult(AttemptStatus.VICTORY, "raid.attempt.victory", null));
+		calls.clear();
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.COMPLETE_GOAL, execute(handlers, PhantomRaidDecision.PREPARE_ACTION, PhantomRaidDecision.PREPARE_CANDIDATE, 1, goal, false).type(), "VICTORY did not complete raid.prepare.");
+		PhantomAssertions.assertEquals(List.of("attempt.advance"), calls, "Terminal VICTORY advanced Assembly.");
+		attempt.responds(new PhantomRaidAttemptService.AdvanceResult(AttemptStatus.ABORTED, "raid.attempt.aborted", null));
+		calls.clear();
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.FAIL_GOAL, execute(handlers, PhantomRaidDecision.PREPARE_ACTION, PhantomRaidDecision.PREPARE_CANDIDATE, 1, goal, false).type(), "ABORTED did not fail raid.prepare.");
+		PhantomAssertions.assertEquals(List.of("attempt.advance"), calls, "Terminal ABORTED advanced Assembly.");
 
 		assembly.result = new PhantomRaidAssemblyService.AdvanceResult(AssemblyStatus.READY_AT_STAGING, "raid.assembly.ready", ready());
-		attempt.advanceResult = new PhantomRaidAttemptService.AdvanceResult(AttemptStatus.FIGHTING, "raid.attempt.fighting", null);
-		PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, execute(handlers, PhantomRaidDecision.PREPARE_ACTION, PhantomRaidDecision.PREPARE_CANDIDATE, 1, goal, false).type(), "Active attempt completed raid.prepare.");
-		attempt.advanceResult = new PhantomRaidAttemptService.AdvanceResult(AttemptStatus.RETREAT, "raid.attempt.retreat", null);
-		PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, execute(handlers, PhantomRaidDecision.PREPARE_ACTION, PhantomRaidDecision.PREPARE_CANDIDATE, 1, goal, false).type(), "Retreat completed raid.prepare.");
-		attempt.advanceResult = new PhantomRaidAttemptService.AdvanceResult(AttemptStatus.VICTORY, "raid.attempt.victory", null);
-		PhantomAssertions.assertEquals(PhantomStepResult.Type.COMPLETE_GOAL, execute(handlers, PhantomRaidDecision.PREPARE_ACTION, PhantomRaidDecision.PREPARE_CANDIDATE, 1, goal, false).type(), "VICTORY did not complete raid.prepare.");
-		attempt.advanceResult = new PhantomRaidAttemptService.AdvanceResult(AttemptStatus.ABORTED, "raid.attempt.aborted", null);
-		PhantomAssertions.assertEquals(PhantomStepResult.Type.FAIL_GOAL, execute(handlers, PhantomRaidDecision.PREPARE_ACTION, PhantomRaidDecision.PREPARE_CANDIDATE, 1, goal, false).type(), "ABORTED did not fail raid.prepare.");
+		attempt.responds(waiting, new PhantomRaidAttemptService.AdvanceResult(AttemptStatus.FIGHTING, "raid.attempt.fighting", null));
+		calls.clear();
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, execute(handlers, PhantomRaidDecision.PREPARE_ACTION, PhantomRaidDecision.PREPARE_CANDIDATE, 1, goal, false).type(), "READY did not start Attempt in the same bounded Decision step.");
+		PhantomAssertions.assertEquals(List.of("attempt.advance", "assembly.advance", "attempt.advance"), calls, "READY flow did not retry Attempt after Assembly exactly once.");
 
 		calls.clear();
 		PhantomAssertions.assertEquals(PhantomStepResult.Type.CANCELLED, execute(handlers, PhantomRaidDecision.PREPARE_ACTION, PhantomRaidDecision.PREPARE_CANDIDATE, 1, goal, true).type(), "Cancellation did not cancel raid.prepare.");
@@ -153,6 +169,7 @@ public final class PhantomRaidDecisionGoal026Checkpoint5Suite implements Phantom
 		public PhantomRaidAssemblyService.AdvanceResult advance(long leaderProfileId, long goalId, long goalRevision)
 		{
 			advanceCalls++;
+			_calls.add("assembly.advance");
 			return result;
 		}
 
@@ -167,7 +184,8 @@ public final class PhantomRaidDecisionGoal026Checkpoint5Suite implements Phantom
 	private static final class FakeAttempt implements PhantomRaidDecision.AttemptPort
 	{
 		private final List<String> _calls;
-		private PhantomRaidAttemptService.AdvanceResult advanceResult = new PhantomRaidAttemptService.AdvanceResult(AttemptStatus.FIGHTING, "raid.attempt.fighting", null);
+		private List<PhantomRaidAttemptService.AdvanceResult> _advanceResults = List.of(new PhantomRaidAttemptService.AdvanceResult(AttemptStatus.FIGHTING, "raid.attempt.fighting", null));
+		private int _advanceIndex;
 		private ParticipationStatus participation = ParticipationStatus.WAITING_FOR_LEADER;
 		private int advanceCalls;
 
@@ -176,11 +194,19 @@ public final class PhantomRaidDecisionGoal026Checkpoint5Suite implements Phantom
 			_calls = calls;
 		}
 
+		private void responds(PhantomRaidAttemptService.AdvanceResult... results)
+		{
+			_advanceResults = List.of(results);
+			_advanceIndex = 0;
+		}
+
 		@Override
 		public PhantomRaidAttemptService.AdvanceResult advance(long leaderProfileId, long goalId, long goalRevision)
 		{
 			advanceCalls++;
-			return advanceResult;
+			_calls.add("attempt.advance");
+			final int index = Math.min(_advanceIndex++, _advanceResults.size() - 1);
+			return _advanceResults.get(index);
 		}
 
 		@Override

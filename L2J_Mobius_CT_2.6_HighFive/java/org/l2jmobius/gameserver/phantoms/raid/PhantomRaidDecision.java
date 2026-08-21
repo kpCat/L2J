@@ -54,6 +54,11 @@ public final class PhantomRaidDecision
 				_assembly.cancel(context.profileId(), context.goal().goalId(), context.goal().revision(), "raid.assembly.decision_cancelled");
 				return PhantomStepResult.of(PhantomStepResult.Type.CANCELLED, "raid.prepare.cancelled");
 			}
+			final PhantomRaidAttemptService.AdvanceResult attempt = _attempt.advance(context.profileId(), context.goal().goalId(), context.goal().revision());
+			if (attempt.status() != PhantomRaidAttemptService.AttemptStatus.WAITING_FOR_READY)
+			{
+				return attemptResult(attempt);
+			}
 			final var assembly = _assembly.advance(context.profileId(), context.goal().goalId(), context.goal().revision());
 			if (assembly.status() == AssemblyStatus.CANCELLED)
 			{
@@ -67,14 +72,7 @@ public final class PhantomRaidDecision
 			{
 				return PhantomStepResult.of(PhantomStepResult.Type.REPLAN, assembly.reasonKey());
 			}
-			final PhantomRaidAttemptService.AdvanceResult attempt = _attempt.advance(context.profileId(), context.goal().goalId(), context.goal().revision());
-			return switch (attempt.status())
-			{
-				case VICTORY -> PhantomStepResult.of(PhantomStepResult.Type.COMPLETE_GOAL, attempt.reasonKey());
-				case ABORTED, WIPED, EXPIRED -> PhantomStepResult.of(PhantomStepResult.Type.FAIL_GOAL, attempt.reasonKey());
-				case CANCELLED -> PhantomStepResult.of(PhantomStepResult.Type.CANCELLED, attempt.reasonKey());
-				default -> PhantomStepResult.of(PhantomStepResult.Type.REPLAN, attempt.reasonKey());
-			};
+			return attemptResult(_attempt.advance(context.profileId(), context.goal().goalId(), context.goal().revision()));
 		});
 		registry.register(PARTICIPATE_ACTION, context ->
 		{
@@ -106,6 +104,17 @@ public final class PhantomRaidDecision
 		boolean cancel(long leaderProfileId, long goalId, long goalRevision, String reasonKey);
 
 		PhantomRaidAttemptService.ParticipationStatus participation(long profileId, long goalId, long goalRevision);
+	}
+
+	private static PhantomStepResult attemptResult(PhantomRaidAttemptService.AdvanceResult attempt)
+	{
+		return switch (attempt.status())
+		{
+			case VICTORY -> PhantomStepResult.of(PhantomStepResult.Type.COMPLETE_GOAL, attempt.reasonKey());
+			case ABORTED, WIPED, EXPIRED -> PhantomStepResult.of(PhantomStepResult.Type.FAIL_GOAL, attempt.reasonKey());
+			case CANCELLED -> PhantomStepResult.of(PhantomStepResult.Type.CANCELLED, attempt.reasonKey());
+			default -> PhantomStepResult.of(PhantomStepResult.Type.REPLAN, attempt.reasonKey());
+		};
 	}
 
 	private static PhantomWeightedConsideration score(String key, String reason)

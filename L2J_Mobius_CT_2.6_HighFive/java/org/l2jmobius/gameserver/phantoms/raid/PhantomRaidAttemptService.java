@@ -98,42 +98,38 @@ public final class PhantomRaidAttemptService implements PhantomRaidDecision.Atte
 			return result(goalValidation.expired() ? AttemptStatus.EXPIRED : AttemptStatus.ABORTED, goalValidation.reasonKey(), null);
 		}
 		final AssemblyIdentity assemblyIdentity = new AssemblyIdentity(leaderProfileId, goalId, goalRevision, goalValidation.goal().target().key());
-		final ReadyReceipt ready = _assembly.readyReceipt(assemblyIdentity).orElse(null);
-		if (ready == null)
-		{
-			return result(AttemptStatus.VALIDATING, "raid.attempt.waiting_ready_receipt", null);
-		}
-		final AttemptIdentity identity = new AttemptIdentity(assemblyIdentity, ready.structuralHash());
-		final TerminalOutcome prior = _outcomes.get(assemblyIdentity);
-		if (prior != null)
-		{
-			if ((prior.receipt() != null) && !prior.receipt().identity().equals(identity))
-			{
-				return result(AttemptStatus.ABORTED, "raid.attempt.terminal_identity_mismatch", null);
-			}
-			return result(prior.status(), prior.reasonKey(), prior.receipt());
-		}
-
 		Attempt attempt = _active.get(leaderProfileId);
-		if ((attempt != null) && !attempt._identity.equals(identity))
+		if ((attempt != null) && !attempt._identity.assemblyIdentity().equals(assemblyIdentity))
 		{
 			terminalize(attempt, AttemptStatus.CANCELLED, "raid.attempt.goal_replaced");
 			attempt = null;
 		}
-		if (attempt == null)
+		final TerminalOutcome prior = _outcomes.get(assemblyIdentity);
+		if (prior != null)
 		{
-			final Preflight preflight = preflight(goalValidation.goal(), ready, identity, wallNow);
-			if (!preflight.valid())
-			{
-				return reject(identity.assemblyIdentity(), preflight.expired() ? AttemptStatus.EXPIRED : AttemptStatus.ABORTED, preflight.reasonKey());
-			}
-			if (_active.size() >= MAXIMUM_LIVE_ATTEMPTS)
-			{
-				return reject(identity.assemblyIdentity(), AttemptStatus.ABORTED, "raid.attempt.capacity");
-			}
-			attempt = new Attempt(identity, goalValidation.goal(), ready, preflight.profile(), preflight.registration(), preflight.leader(), preflight.force(), preflight.target(), preflight.maximumActorLevel(), mintAuthority(identity, ready, preflight), preflight.encounterEvidence());
-			_active.put(leaderProfileId, attempt);
+			return result(prior.status(), prior.reasonKey(), prior.receipt());
 		}
+		if (attempt != null)
+		{
+			return advance(attempt, wallNow, _logicalClock.getAsLong());
+		}
+		final ReadyReceipt ready = _assembly.readyReceipt(assemblyIdentity).orElse(null);
+		if (ready == null)
+		{
+			return result(AttemptStatus.WAITING_FOR_READY, "raid.attempt.waiting_ready_receipt", null);
+		}
+		final AttemptIdentity identity = new AttemptIdentity(assemblyIdentity, ready.structuralHash());
+		final Preflight preflight = preflight(goalValidation.goal(), ready, identity, wallNow);
+		if (!preflight.valid())
+		{
+			return reject(identity.assemblyIdentity(), preflight.expired() ? AttemptStatus.EXPIRED : AttemptStatus.ABORTED, preflight.reasonKey());
+		}
+		if (_active.size() >= MAXIMUM_LIVE_ATTEMPTS)
+		{
+			return reject(identity.assemblyIdentity(), AttemptStatus.ABORTED, "raid.attempt.capacity");
+		}
+		attempt = new Attempt(identity, goalValidation.goal(), ready, preflight.profile(), preflight.registration(), preflight.leader(), preflight.force(), preflight.target(), preflight.maximumActorLevel(), mintAuthority(identity, ready, preflight), preflight.encounterEvidence());
+		_active.put(leaderProfileId, attempt);
 		return advance(attempt, wallNow, _logicalClock.getAsLong());
 	}
 
@@ -565,7 +561,7 @@ public final class PhantomRaidAttemptService implements PhantomRaidDecision.Atte
 
 	public enum AttemptStatus
 	{
-		VALIDATING,
+		WAITING_FOR_READY,
 		ENTRY,
 		MECHANIC,
 		ENGAGING,
