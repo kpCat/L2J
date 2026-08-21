@@ -143,15 +143,15 @@ Goal 026D: ACCEPT
 
 Goal 026 overall: ACCEPT
 
-Goal 027 Checkpoint 1: CHANGES_REQUIRED pending Goal 027B independent review
+Goal 027 Checkpoint 1: ACCEPTED
 
-Goal 027A: CHANGES_REQUIRED after independent review; corrective Goal 027B pending
+Goal 027A: ACCEPTED
 
-Goal 027B: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
+Goal 027B: ACCEPTED
 
-Goal 027 overall: IN_PROGRESS
+Goal 027 overall: IN_PROGRESS_BLOCKED_ON_CANONICAL_DOMAIN_SEAM
 
-Goal 027 Checkpoint 2: NOT_STARTED
+Goal 027 Checkpoint 2: BLOCKED_CANONICAL_DOMAIN_SEAM_REQUIRED
 ```
 
 Task 004 доказала главный архитектурный тезис: canonical `Player` может быть
@@ -980,9 +980,9 @@ readiness, gathering, route, timing, recruitment, retreat and win feasibility.
 **Gate:** objectively incapable group cannot aggregate a victory.  
 **Follow-up risk:** `VERY_HIGH` — multi-group orchestration and content diversity.
 
-## Goal 027 — Clan lifecycle, alliances и wars — `IN_PROGRESS`
+## Goal 027 — Clan lifecycle, alliances и wars — `IN_PROGRESS_BLOCKED_ON_CANONICAL_DOMAIN_SEAM`
 
-**Checkpoint truth:** Checkpoint 1 — `CHANGES_REQUIRED pending Goal 027B independent review`; Goal 027A — `CHANGES_REQUIRED after independent review; corrective Goal 027B pending`; Goal 027B — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 2 — `NOT_STARTED`.
+**Checkpoint truth:** Checkpoint 1 — `ACCEPTED`; Goal 027A — `ACCEPTED`; Goal 027B — `ACCEPTED`; Checkpoint 2 — `BLOCKED_CANONICAL_DOMAIN_SEAM_REQUIRED` на required parent `87da216ad4c4a17d26d46e79e3d59098c0e47c8a`: native High Five не предоставляет transport-neutral exact-identity seam для alliance join/leave и clan war/peace lifecycle.
 **Назначение:** persistent long-term social organizations.  
 **Зависимости:** 005, 017, 018, 022, 025, 026.  
 **Архитектурный результат:** recruitment, roles, contributions, clan goals,

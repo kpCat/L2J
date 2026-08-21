@@ -793,7 +793,7 @@ Checkpoint 1/026A закрепили passive read-only raid/epic authority и т
 
 ### 027. Clans, alliances и wars
 
-Status: `IN_PROGRESS`; Checkpoint 1 — `CHANGES_REQUIRED pending Goal 027B independent review`; Goal 027A — `CHANGES_REQUIRED after independent review; corrective Goal 027B pending`; Goal 027B — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 2 — `NOT_STARTED`.
+Status: `IN_PROGRESS_BLOCKED_ON_CANONICAL_DOMAIN_SEAM`; Checkpoint 1 — `ACCEPTED`; Goal 027A — `ACCEPTED`; Goal 027B — `ACCEPTED`; Checkpoint 2 — `BLOCKED_CANONICAL_DOMAIN_SEAM_REQUIRED`.
 
 - creation;
 - leadership;
