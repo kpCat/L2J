@@ -20,8 +20,8 @@
  */
 package org.l2jmobius.gameserver.network.clientpackets;
 
-import org.l2jmobius.gameserver.data.sql.ClanTable;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.clan.ClanWarService;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 
 /**
@@ -55,7 +55,11 @@ public class RequestReplyStartPledgeWar extends ClientPacket
 		
 		if (_answer == 1)
 		{
-			ClanTable.getInstance().storeClanWars(requestor.getClanId(), player.getClanId());
+			final ClanWarService.Result result = ClanWarService.getInstance().declareAcceptedReply(requestor.getClan(), player.getClan());
+			if (!result.successful())
+			{
+				requestor.sendMessage("Clan war declaration failed.");
+			}
 		}
 		else
 		{

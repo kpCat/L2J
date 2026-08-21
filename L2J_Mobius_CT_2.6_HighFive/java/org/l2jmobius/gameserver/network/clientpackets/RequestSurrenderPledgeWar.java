@@ -23,6 +23,7 @@ package org.l2jmobius.gameserver.network.clientpackets;
 import org.l2jmobius.gameserver.data.sql.ClanTable;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.model.clan.ClanWarService;
 import org.l2jmobius.gameserver.network.PacketLogger;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.ActionFailed;
@@ -46,53 +47,38 @@ public class RequestSurrenderPledgeWar extends ClientPacket
 		{
 			return;
 		}
-		
+
 		final Clan playerClan = player.getClan();
 		if (playerClan == null)
 		{
 			return;
 		}
-		
-		final Clan clan = ClanTable.getInstance().getClanByName(_pledgeName);
-		if (clan == null)
+		final Clan targetClan = ClanTable.getInstance().getClanByName(_pledgeName);
+		if (targetClan == null)
 		{
 			player.sendMessage("No such clan.");
 			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
-		
-		PacketLogger.info("RequestSurrenderPledgeWar by " + player.getClan().getName() + " with " + _pledgeName);
-		if (!playerClan.isAtWarWith(clan.getId()))
+
+		PacketLogger.info("RequestSurrenderPledgeWar by " + playerClan.getName() + " with " + _pledgeName);
+		final ClanWarService service = ClanWarService.getInstance();
+		final ClanWarService.WarIdentity identity = service.currentWar(playerClan, targetClan).orElse(null);
+		if (identity == null)
 		{
 			player.sendMessage("You aren't at war with this clan.");
 			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
-		
-		final SystemMessage msg = new SystemMessage(SystemMessageId.YOU_HAVE_SURRENDERED_TO_THE_S1_CLAN);
-		msg.addString(_pledgeName);
-		player.sendPacket(msg);
-		ClanTable.getInstance().deleteClanWars(playerClan.getId(), clan.getId());
-		
-		// Zoey76: TODO: Implement or cleanup.
-		// Player leader = World.getInstance().getPlayer(clan.getLeaderName());
-		// if ((leader != null) && (leader.isOnline() == 0))
-		// {
-		// player.sendMessage("Clan leader isn't online.");
-		// player.sendPacket(ActionFailed.STATIC_PACKET);
-		// return;
-		// }
-		//
-		// if (leader.isTransactionInProgress())
-		// {
-		// SystemMessage sm = new SystemMessage(SystemMessageId.S1_IS_BUSY_TRY_LATER);
-		// sm.addString(leader.getName());
-		// player.sendPacket(sm);
-		// return;
-		// }
-		//
-		// leader.setTransactionRequester(player);
-		// player.setTransactionRequester(leader);
-		// leader.sendPacket(new SurrenderPledgeWar(_clan.getName(), player.getName()));
+		final ClanWarService.Result result = service.surrender(player, targetClan, identity.warId());
+		if (!result.successful())
+		{
+			player.sendMessage("Clan war surrender failed.");
+			return;
+		}
+
+		final SystemMessage message = new SystemMessage(SystemMessageId.YOU_HAVE_SURRENDERED_TO_THE_S1_CLAN);
+		message.addString(_pledgeName);
+		player.sendPacket(message);
 	}
 }

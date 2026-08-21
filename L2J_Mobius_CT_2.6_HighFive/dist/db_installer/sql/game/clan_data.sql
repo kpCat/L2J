@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS `clan_data` (
   `blood_oath_count` smallint(5) unsigned NOT NULL DEFAULT 0,
   `ally_id` INT,
   `ally_name` varchar(45),
+  `ally_generation` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  `ally_generation_counter` BIGINT UNSIGNED NOT NULL DEFAULT 0,
   `leader_id` INT,
   `crest_id` INT,
   `crest_large_id` INT,

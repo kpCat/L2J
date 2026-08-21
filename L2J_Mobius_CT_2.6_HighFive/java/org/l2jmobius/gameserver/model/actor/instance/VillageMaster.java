@@ -49,6 +49,7 @@ import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.holders.player.SubClassHolder;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
 import org.l2jmobius.gameserver.model.clan.Clan.SubPledge;
 import org.l2jmobius.gameserver.model.clan.ClanMember;
 import org.l2jmobius.gameserver.model.olympiad.OlympiadManager;
@@ -221,12 +222,12 @@ public class VillageMaster extends Folk
 			}
 			else
 			{
-				player.getClan().createAlly(player, cmdParams);
+				handleCreateAlliance(player, cmdParams);
 			}
 		}
 		else if (actualCommand.equalsIgnoreCase("dissolve_ally"))
 		{
-			player.getClan().dissolveAlly(player);
+			handleDissolveAlliance(player);
 		}
 		else if (actualCommand.equalsIgnoreCase("dissolve_clan"))
 		{
@@ -1374,6 +1375,71 @@ public class VillageMaster extends Folk
 		player.sendPacket(ActionFailed.STATIC_PACKET);
 	}
 	
+	private static void handleCreateAlliance(Player player, String allianceName)
+	{
+		final ClanAllianceService.Result result = ClanAllianceService.getInstance().create(player, allianceName);
+		if (result.successful())
+		{
+			player.updateUserInfo();
+			// TODO: Need correct message id
+			player.sendMessage("Alliance " + allianceName + " has been created.");
+			return;
+		}
+		switch (result.reason())
+		{
+			case NOT_CLAN_LEADER:
+				player.sendPacket(SystemMessageId.ONLY_CLAN_LEADERS_MAY_CREATE_ALLIANCES);
+				break;
+			case ALREADY_ALLIED:
+				player.sendPacket(SystemMessageId.YOU_ALREADY_BELONG_TO_ANOTHER_ALLIANCE);
+				break;
+			case CLAN_LEVEL_TOO_LOW:
+				player.sendPacket(SystemMessageId.TO_CREATE_AN_ALLIANCE_YOUR_CLAN_MUST_BE_LEVEL_5_OR_HIGHER);
+				break;
+			case DISSOLUTION_PENALTY:
+				player.sendPacket(SystemMessageId.YOU_CANNOT_CREATE_A_NEW_ALLIANCE_WITHIN_1_DAY_OF_DISSOLUTION);
+				break;
+			case CLAN_DISSOLVING:
+				player.sendPacket(SystemMessageId.AS_YOU_ARE_CURRENTLY_SCHEDULE_FOR_CLAN_DISSOLUTION_NO_ALLIANCE_CAN_BE_CREATED);
+				break;
+			case INVALID_NAME:
+				player.sendPacket(SystemMessageId.INCORRECT_ALLIANCE_NAME_PLEASE_TRY_AGAIN);
+				break;
+			case INVALID_NAME_LENGTH:
+				player.sendPacket(SystemMessageId.INCORRECT_LENGTH_FOR_AN_ALLIANCE_NAME);
+				break;
+			case NAME_EXISTS:
+				player.sendPacket(SystemMessageId.THAT_ALLIANCE_NAME_ALREADY_EXISTS);
+				break;
+			default:
+				player.sendMessage("Alliance could not be created.");
+		}
+	}
+
+	private static void handleDissolveAlliance(Player player)
+	{
+		final ClanAllianceService service = ClanAllianceService.getInstance();
+		final ClanAllianceService.Result result = service.dissolve(player, service.currentIdentity(player.getClan()).orElse(null));
+		if (result.successful())
+		{
+			return;
+		}
+		switch (result.reason())
+		{
+			case NOT_ALLIED:
+				player.sendPacket(SystemMessageId.YOU_ARE_NOT_CURRENTLY_ALLIED_WITH_ANY_CLANS);
+				break;
+			case CLAN_NOT_FOUND:
+			case NOT_ALLIANCE_LEADER:
+				player.sendPacket(SystemMessageId.THIS_FEATURE_IS_ONLY_AVAILABLE_TO_ALLIANCE_LEADERS);
+				break;
+			case ACTOR_IN_SIEGE:
+				player.sendPacket(SystemMessageId.YOU_CANNOT_DISSOLVE_AN_ALLIANCE_WHILE_AN_AFFILIATED_CLAN_IS_PARTICIPATING_IN_A_SIEGE_BATTLE);
+				break;
+			default:
+				player.sendPacket(SystemMessageId.YOU_HAVE_FAILED_TO_DISSOLVE_THE_ALLIANCE);
+		}
+	}
 	private static boolean isValidName(String name)
 	{
 		Pattern pattern;

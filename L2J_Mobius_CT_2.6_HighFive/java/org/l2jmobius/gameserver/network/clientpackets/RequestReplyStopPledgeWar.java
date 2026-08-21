@@ -20,8 +20,9 @@
  */
 package org.l2jmobius.gameserver.network.clientpackets;
 
-import org.l2jmobius.gameserver.data.sql.ClanTable;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.model.clan.ClanWarService;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 
 /**
@@ -55,7 +56,21 @@ public class RequestReplyStopPledgeWar extends ClientPacket
 		
 		if (_answer == 1)
 		{
-			ClanTable.getInstance().deleteClanWars(requestor.getClanId(), player.getClanId());
+			final Clan sourceClan = requestor.getClan();
+			final Clan targetClan = player.getClan();
+			final ClanWarService.WarIdentity identity = ClanWarService.getInstance().currentWar(sourceClan, targetClan).orElse(null);
+			if (identity == null)
+			{
+				requestor.sendPacket(SystemMessageId.REQUEST_TO_END_WAR_HAS_BEEN_DENIED);
+			}
+			else
+			{
+				final ClanWarService.Result result = ClanWarService.getInstance().endAcceptedReply(sourceClan, targetClan, identity.warId());
+				if (!result.successful())
+				{
+					requestor.sendPacket(SystemMessageId.REQUEST_TO_END_WAR_HAS_BEEN_DENIED);
+				}
+			}
 		}
 		else
 		{

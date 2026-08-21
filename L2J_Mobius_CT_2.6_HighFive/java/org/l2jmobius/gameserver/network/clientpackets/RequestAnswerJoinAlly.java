@@ -21,7 +21,7 @@
 package org.l2jmobius.gameserver.network.clientpackets;
 
 import org.l2jmobius.gameserver.model.actor.Player;
-import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 
 public class RequestAnswerJoinAlly extends ClientPacket
@@ -42,13 +42,13 @@ public class RequestAnswerJoinAlly extends ClientPacket
 		{
 			return;
 		}
-		
+
 		final Player requestor = player.getRequest().getPartner();
 		if (requestor == null)
 		{
 			return;
 		}
-		
+
 		if (_response == 0)
 		{
 			player.sendPacket(SystemMessageId.NO_RESPONSE_YOUR_ENTRANCE_TO_THE_ALLIANCE_HAS_BEEN_CANCELLED);
@@ -56,29 +56,24 @@ public class RequestAnswerJoinAlly extends ClientPacket
 		}
 		else
 		{
-			if (!(requestor.getRequest().getRequestPacket() instanceof RequestJoinAlly))
+			if (!(requestor.getRequest().getRequestPacket() instanceof RequestJoinAlly request))
 			{
 				return; // hax
 			}
-			
-			final Clan requestorClan = requestor.getClan();
-			
-			// we must double check this cause of hack
-			if (requestorClan.checkAllyJoinCondition(requestor, player))
+
+			final ClanAllianceService.Result result = ClanAllianceService.getInstance().join(requestor, player, request.getAllianceIdentity(), request.getTargetEpoch());
+			if (result.successful())
 			{
 				// TODO: Need correct message id
 				requestor.sendPacket(SystemMessageId.THAT_PERSON_HAS_BEEN_SUCCESSFULLY_ADDED_TO_YOUR_FRIEND_LIST);
 				player.sendPacket(SystemMessageId.YOU_HAVE_ACCEPTED_THE_ALLIANCE);
-				
-				final Clan clan = player.getClan();
-				clan.setAllyId(requestorClan.getAllyId());
-				clan.setAllyName(requestorClan.getAllyName());
-				clan.setAllyPenaltyExpiryTime(0, 0);
-				clan.changeAllyCrest(requestorClan.getAllyCrestId(), true);
-				clan.updateClanInDB();
+			}
+			else
+			{
+				RequestJoinAlly.sendFailure(requestor, player, result.reason());
 			}
 		}
-		
+
 		player.getRequest().onRequestResponse();
 	}
 }

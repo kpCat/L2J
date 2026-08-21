@@ -22,7 +22,9 @@ package org.l2jmobius.gameserver.network.clientpackets;
 
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
-import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService.AllianceIdentity;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService.MembershipEpoch;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.AskJoinAlly;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
@@ -33,6 +35,8 @@ import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
 public class RequestJoinAlly extends ClientPacket
 {
 	private int _id;
+	private AllianceIdentity _allianceIdentity;
+	private MembershipEpoch _targetEpoch;
 	
 	@Override
 	protected void readImpl()
@@ -48,36 +52,124 @@ public class RequestJoinAlly extends ClientPacket
 		{
 			return;
 		}
-		
-		final Player ob = World.getInstance().getPlayer(_id);
-		if (ob == null)
+
+		final Player target = World.getInstance().getPlayer(_id);
+		if (target == null)
 		{
 			player.sendPacket(SystemMessageId.YOU_HAVE_INVITED_THE_WRONG_TARGET);
 			return;
 		}
-		
-		if (player.getClan() == null)
+
+		final ClanAllianceService.Result result = ClanAllianceService.getInstance().checkInvite(player, target);
+		if (!result.successful())
 		{
-			player.sendPacket(SystemMessageId.YOU_ARE_NOT_A_CLAN_MEMBER_AND_CANNOT_PERFORM_THIS_ACTION);
+			sendFailure(player, target, result.reason());
 			return;
 		}
-		
-		final Player target = ob;
-		final Clan clan = player.getClan();
-		if (!clan.checkAllyJoinCondition(player, target))
-		{
-			return;
-		}
-		
+		_allianceIdentity = result.identity();
+		_targetEpoch = result.targetEpoch();
 		if (!player.getRequest().setRequest(target, this))
 		{
 			return;
 		}
-		
-		final SystemMessage sm = new SystemMessage(SystemMessageId.S1_LEADER_S2_HAS_REQUESTED_AN_ALLIANCE);
-		sm.addString(player.getClan().getAllyName());
-		sm.addString(player.getName());
-		target.sendPacket(sm);
+
+		final SystemMessage message = new SystemMessage(SystemMessageId.S1_LEADER_S2_HAS_REQUESTED_AN_ALLIANCE);
+		message.addString(player.getClan().getAllyName());
+		message.addString(player.getName());
+		target.sendPacket(message);
 		target.sendPacket(new AskJoinAlly(player.getObjectId(), player.getClan().getAllyName()));
+	}
+
+	AllianceIdentity getAllianceIdentity()
+	{
+		return _allianceIdentity;
+	}
+	MembershipEpoch getTargetEpoch()
+	{
+		return _targetEpoch;
+	}
+
+	static void sendFailure(Player player, Player target, ClanAllianceService.Reason reason)
+	{
+		switch (reason)
+		{
+			case CLAN_NOT_FOUND:
+			{
+				player.sendPacket(SystemMessageId.YOU_ARE_NOT_A_CLAN_MEMBER_AND_CANNOT_PERFORM_THIS_ACTION);
+				break;
+			}
+			case NOT_ALLIANCE_LEADER:
+			{
+				player.sendPacket(SystemMessageId.THIS_FEATURE_IS_ONLY_AVAILABLE_TO_ALLIANCE_LEADERS);
+				break;
+			}
+			case LEADER_DISMISS_PENALTY:
+			{
+				player.sendPacket(SystemMessageId.YOU_MAY_NOT_ACCEPT_ANY_CLAN_WITHIN_A_DAY_AFTER_EXPELLING_ANOTHER_CLAN);
+				break;
+			}
+			case TARGET_NOT_FOUND:
+			{
+				player.sendPacket(SystemMessageId.YOU_HAVE_INVITED_THE_WRONG_TARGET);
+				break;
+			}
+			case SELF_TARGET:
+			{
+				player.sendPacket(SystemMessageId.YOU_CANNOT_ASK_YOURSELF_TO_APPLY_TO_A_CLAN);
+				break;
+			}
+			case TARGET_NOT_IN_CLAN:
+			{
+				player.sendPacket(SystemMessageId.THE_TARGET_MUST_BE_A_CLAN_MEMBER);
+				break;
+			}
+			case TARGET_NOT_LEADER:
+			{
+				final SystemMessage message = new SystemMessage(SystemMessageId.S1_IS_NOT_A_CLAN_LEADER);
+				message.addString(target.getName());
+				player.sendPacket(message);
+				break;
+			}
+			case TARGET_ALREADY_ALLIED:
+			{
+				final SystemMessage message = new SystemMessage(SystemMessageId.S1_CLAN_IS_ALREADY_A_MEMBER_OF_S2_ALLIANCE);
+				message.addString(target.getClan().getName());
+				message.addString(target.getClan().getAllyName());
+				player.sendPacket(message);
+				break;
+			}
+			case TARGET_LEAVE_PENALTY:
+			{
+				final SystemMessage message = new SystemMessage(SystemMessageId.S1_CLAN_CANNOT_JOIN_THE_ALLIANCE_BECAUSE_ONE_DAY_HAS_NOT_YET_PASSED_SINCE_THEY_LEFT_ANOTHER_ALLIANCE);
+				message.addString(target.getClan().getName());
+				message.addString(target.getClan().getAllyName());
+				player.sendPacket(message);
+				break;
+			}
+			case TARGET_DISMISSED_PENALTY:
+			{
+				player.sendPacket(SystemMessageId.A_CLAN_THAT_HAS_WITHDRAWN_OR_BEEN_EXPELLED_CANNOT_ENTER_INTO_AN_ALLIANCE_WITHIN_ONE_DAY_OF_WITHDRAWAL_OR_EXPULSION);
+				break;
+			}
+			case BOTH_IN_SIEGE:
+			{
+				player.sendPacket(SystemMessageId.THE_OPPOSING_CLAN_IS_PARTICIPATING_IN_A_SIEGE_BATTLE);
+				break;
+			}
+			case AT_WAR:
+			{
+				player.sendPacket(SystemMessageId.YOU_MAY_NOT_ALLY_WITH_A_CLAN_YOU_ARE_CURRENTLY_AT_WAR_WITH_THAT_WOULD_BE_DIABOLICAL_AND_TREACHEROUS);
+				break;
+			}
+			case ALLIANCE_FULL:
+			{
+				player.sendPacket(SystemMessageId.YOU_HAVE_EXCEEDED_THE_LIMIT);
+				break;
+			}
+			default:
+			{
+				player.sendPacket(SystemMessageId.YOU_HAVE_FAILED_TO_INVITE_A_CLAN_INTO_THE_ALLIANCE);
+			}
+		}
 	}
 }

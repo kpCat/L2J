@@ -21,6 +21,7 @@
 package org.l2jmobius.gameserver.network.clientpackets;
 
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 
 /**
@@ -41,13 +42,36 @@ public class RequestDismissAlly extends ClientPacket
 		{
 			return;
 		}
-		
-		if (!player.isClanLeader())
+
+		final ClanAllianceService service = ClanAllianceService.getInstance();
+		final ClanAllianceService.Result result = service.dissolve(player, service.currentIdentity(player.getClan()).orElse(null));
+		if (result.successful())
 		{
-			player.sendPacket(SystemMessageId.THIS_FEATURE_IS_ONLY_AVAILABLE_TO_ALLIANCE_LEADERS);
 			return;
 		}
-		
-		player.getClan().dissolveAlly(player);
+
+		switch (result.reason())
+		{
+			case NOT_ALLIED:
+			{
+				player.sendPacket(SystemMessageId.YOU_ARE_NOT_CURRENTLY_ALLIED_WITH_ANY_CLANS);
+				break;
+			}
+			case CLAN_NOT_FOUND:
+			case NOT_ALLIANCE_LEADER:
+			{
+				player.sendPacket(SystemMessageId.THIS_FEATURE_IS_ONLY_AVAILABLE_TO_ALLIANCE_LEADERS);
+				break;
+			}
+			case ACTOR_IN_SIEGE:
+			{
+				player.sendPacket(SystemMessageId.YOU_CANNOT_DISSOLVE_AN_ALLIANCE_WHILE_AN_AFFILIATED_CLAN_IS_PARTICIPATING_IN_A_SIEGE_BATTLE);
+				break;
+			}
+			default:
+			{
+				player.sendPacket(SystemMessageId.YOU_HAVE_FAILED_TO_DISSOLVE_THE_ALLIANCE);
+			}
+		}
 	}
 }

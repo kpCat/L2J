@@ -20,8 +20,9 @@
  */
 package org.l2jmobius.gameserver.network.clientpackets;
 
-import org.l2jmobius.gameserver.data.sql.ClanTable;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.model.clan.ClanWarService;
 import org.l2jmobius.gameserver.network.PacketLogger;
 
 public class RequestReplySurrenderPledgeWar extends ClientPacket
@@ -53,7 +54,17 @@ public class RequestReplySurrenderPledgeWar extends ClientPacket
 		
 		if (_answer == 1)
 		{
-			ClanTable.getInstance().deleteClanWars(requestor.getClanId(), player.getClanId());
+			final Clan sourceClan = requestor.getClan();
+			final Clan targetClan = player.getClan();
+			final ClanWarService.WarIdentity identity = ClanWarService.getInstance().currentWar(sourceClan, targetClan).orElse(null);
+			if (identity != null)
+			{
+				final ClanWarService.Result result = ClanWarService.getInstance().endAcceptedReply(sourceClan, targetClan, identity.warId());
+				if (!result.successful())
+				{
+					PacketLogger.warning(getClass().getSimpleName() + ": Clan war surrender reply failed.");
+				}
+			}
 		}
 		else
 		{

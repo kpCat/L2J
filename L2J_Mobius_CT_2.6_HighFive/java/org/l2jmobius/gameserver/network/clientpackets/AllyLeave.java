@@ -20,9 +20,8 @@
  */
 package org.l2jmobius.gameserver.network.clientpackets;
 
-import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.model.actor.Player;
-import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 
 public class AllyLeave extends ClientPacket
@@ -40,39 +39,41 @@ public class AllyLeave extends ClientPacket
 		{
 			return;
 		}
-		
-		if (player.getClan() == null)
+
+		final ClanAllianceService service = ClanAllianceService.getInstance();
+		final ClanAllianceService.Result result = service.leave(player, service.currentIdentity(player.getClan()).orElse(null));
+		if (result.successful())
 		{
-			player.sendPacket(SystemMessageId.YOU_ARE_NOT_A_CLAN_MEMBER_AND_CANNOT_PERFORM_THIS_ACTION);
+			player.sendPacket(SystemMessageId.YOU_HAVE_WITHDRAWN_FROM_THE_ALLIANCE);
 			return;
 		}
-		
-		if (!player.isClanLeader())
+
+		switch (result.reason())
 		{
-			player.sendPacket(SystemMessageId.ONLY_THE_CLAN_LEADER_MAY_APPLY_FOR_WITHDRAWAL_FROM_THE_ALLIANCE);
-			return;
+			case CLAN_NOT_FOUND:
+			{
+				player.sendPacket(SystemMessageId.YOU_ARE_NOT_A_CLAN_MEMBER_AND_CANNOT_PERFORM_THIS_ACTION);
+				break;
+			}
+			case NOT_CLAN_LEADER:
+			{
+				player.sendPacket(SystemMessageId.ONLY_THE_CLAN_LEADER_MAY_APPLY_FOR_WITHDRAWAL_FROM_THE_ALLIANCE);
+				break;
+			}
+			case NOT_ALLIED:
+			{
+				player.sendPacket(SystemMessageId.YOU_ARE_NOT_CURRENTLY_ALLIED_WITH_ANY_CLANS);
+				break;
+			}
+			case ALLIANCE_LEADER_CANNOT_LEAVE:
+			{
+				player.sendPacket(SystemMessageId.ALLIANCE_LEADERS_CANNOT_WITHDRAW);
+				break;
+			}
+			default:
+			{
+				player.sendPacket(SystemMessageId.YOU_HAVE_FAILED_TO_WITHDRAW_FROM_THE_ALLIANCE);
+			}
 		}
-		
-		final Clan clan = player.getClan();
-		if (clan.getAllyId() == 0)
-		{
-			player.sendPacket(SystemMessageId.YOU_ARE_NOT_CURRENTLY_ALLIED_WITH_ANY_CLANS);
-			return;
-		}
-		
-		if (clan.getId() == clan.getAllyId())
-		{
-			player.sendPacket(SystemMessageId.ALLIANCE_LEADERS_CANNOT_WITHDRAW);
-			return;
-		}
-		
-		final long currentTime = System.currentTimeMillis();
-		clan.setAllyId(0);
-		clan.setAllyName(null);
-		clan.changeAllyCrest(0, true);
-		clan.setAllyPenaltyExpiryTime(currentTime + (PlayerConfig.ALT_ALLY_JOIN_DAYS_WHEN_LEAVED * 86400000), Clan.PENALTY_TYPE_CLAN_LEAVED); // 24*60*60*1000 = 86400000
-		clan.updateClanInDB();
-		
-		player.sendPacket(SystemMessageId.YOU_HAVE_WITHDRAWN_FROM_THE_ALLIANCE);
 	}
 }

@@ -30,6 +30,7 @@ import java.util.logging.Logger;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
 import org.l2jmobius.gameserver.model.clan.Crest;
 import org.l2jmobius.gameserver.model.clan.enums.CrestType;
 
@@ -129,8 +130,11 @@ public class CrestTable
 			if ((clan.getAllyCrestId() != 0) && (getCrest(clan.getAllyCrestId()) == null))
 			{
 				LOGGER.info("Removing non-existent ally crest for clan " + clan.getName() + " [" + clan.getId() + "], allyCrestId:" + clan.getAllyCrestId());
-				clan.setAllyCrestId(0);
-				clan.changeAllyCrest(0, true);
+				final ClanAllianceService.Result result = ClanAllianceService.getInstance().clearInvalidCrest(clan);
+				if (!result.successful())
+				{
+					LOGGER.warning("Failed to remove invalid alliance crest durably for clan " + clan.getId() + ".");
+				}
 			}
 		}
 	}

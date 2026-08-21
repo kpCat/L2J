@@ -68,6 +68,7 @@
 	<property name="phantom.goal027cp1.seed" value="27002701" />
 	<property name="phantom.goal027a.seed" value="27002711" />
 	<property name="phantom.goal027b.seed" value="27002712" />
+	<property name="phantom.goal027c.seed" value="27002730" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -3046,6 +3047,19 @@
 		</java>
 	</target>
 
+	<target name="phantom-clan-social-domain-goal027c-test" depends="compile-tests" description="Run focused Goal 027C canonical native clan social domain seam and isolated upgrade rehearsal tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="clan-social-domain-goal027c" />
+			<arg value="${phantom.goal027c.seed}" />
+		</java>
+	</target>
 	<target name="phantom-clan-checkpoint1-goal027-test" depends="phantom-clan-creation-restart-goal027cp1-test,phantom-clan-recruitment-goal027cp1-test,phantom-clan-roles-goal027cp1-test,phantom-clan-treasury-goal027cp1-test,phantom-clan-chat-decision-goal027cp1-test,phantom-profile-persistence-test,phantom-chat-observation-test" description="Run the final Goal 027 CP1 persistent clan organization aggregate and directly affected regressions." />
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->

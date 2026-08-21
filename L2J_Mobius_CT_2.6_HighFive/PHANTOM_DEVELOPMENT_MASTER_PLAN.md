@@ -749,7 +749,7 @@ Prior independent review закрыл R024A-01/02/03; Goal 024 overall прин�
 Accepted baseline: `922f72c0d422904dcbdc6215a5cc1167a1bb84fb`.
 Goal 025A — `ACCEPT`; Goal 025 overall — `ACCEPT`.
 Accepted baseline: `5517081fb2bbf2aa9ad8295130714df2d4b45921`.
-Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `CHANGES_REQUIRED pending Goal 027B independent review`; Goal 027A — `CHANGES_REQUIRED after independent review; corrective Goal 027B pending`; Goal 027B — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `NOT_STARTED`.
+Goal 026 overall — `ACCEPT` на required parent `ff631e5f71a43da6e771c3541ee59ee15ea916b3`. Goal 027 Checkpoint 1 — `ACCEPTED`; Goal 027A — `ACCEPTED`; Goal 027B — `ACCEPTED`; Goal 027C — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 overall — `IN_PROGRESS`; Checkpoint 2 — `BLOCKED_PENDING_027C_INDEPENDENT_REVIEW`.
 
 Exact current Goal 021 Source теперь порождает bounded ROOM/MOB_GROUP claim; Goal 010 определяет current
 perceptibility, Goal 017 — same-Party SHARE, Goal 018 — social memory/history, Goal 020 — typed query/language.
@@ -780,7 +780,7 @@ Accepted baseline: `5517081fb2bbf2aa9ad8295130714df2d4b45921`.
 
 ### 026. RaidPlanner и эпики
 
-Status: `ACCEPT`; Checkpoint 1–5 и correctives 026A/026B/026C/026D — `ACCEPT`; Goal 027 — `IN_PROGRESS`.
+Status: `ACCEPT`; Checkpoint 1–5 и correctives 026A/026B/026C/026D — `ACCEPT`; Goal 027 — `IN_PROGRESS`; Goal 027C — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Goal 027 Checkpoint 2 — `BLOCKED_PENDING_027C_INDEPENDENT_REVIEW`.
 Checkpoint 1/026A закрепили passive read-only raid/epic authority и текущие Party/CommandChannel readiness facts. Checkpoint 2 закрепил canonical CommandChannel lifecycle. Checkpoint 3 добавляет только raid force composition и bounded outbound recruitment; documentation-only closure не требует повторного запуска product gates Checkpoint 2.
 
 - composition;
@@ -793,7 +793,7 @@ Checkpoint 1/026A закрепили passive read-only raid/epic authority и т
 
 ### 027. Clans, alliances и wars
 
-Status: `IN_PROGRESS_BLOCKED_ON_CANONICAL_DOMAIN_SEAM`; Checkpoint 1 — `ACCEPTED`; Goal 027A — `ACCEPTED`; Goal 027B — `ACCEPTED`; Checkpoint 2 — `BLOCKED_CANONICAL_DOMAIN_SEAM_REQUIRED`.
+Status: `IN_PROGRESS`; Checkpoint 1 — `ACCEPTED`; Goal 027A — `ACCEPTED`; Goal 027B — `ACCEPTED`; Goal 027C — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 2 — `BLOCKED_PENDING_027C_INDEPENDENT_REVIEW`.
 
 - creation;
 - leadership;

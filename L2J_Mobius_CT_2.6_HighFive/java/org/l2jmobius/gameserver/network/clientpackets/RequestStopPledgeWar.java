@@ -23,11 +23,9 @@ package org.l2jmobius.gameserver.network.clientpackets;
 import org.l2jmobius.gameserver.data.sql.ClanTable;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.clan.Clan;
-import org.l2jmobius.gameserver.model.clan.ClanAccess;
-import org.l2jmobius.gameserver.model.clan.ClanMember;
+import org.l2jmobius.gameserver.model.clan.ClanWarService;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.ActionFailed;
-import org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager;
 
 public class RequestStopPledgeWar extends ClientPacket
 {
@@ -47,77 +45,48 @@ public class RequestStopPledgeWar extends ClientPacket
 		{
 			return;
 		}
-		
+
 		final Clan playerClan = player.getClan();
 		if (playerClan == null)
 		{
 			return;
 		}
-		
-		final Clan clan = ClanTable.getInstance().getClanByName(_pledgeName);
-		if (clan == null)
+		final Clan targetClan = ClanTable.getInstance().getClanByName(_pledgeName);
+		if (targetClan == null)
 		{
 			player.sendMessage("No such clan.");
 			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
-		
-		if (!playerClan.isAtWarWith(clan.getId()))
+
+		final ClanWarService service = ClanWarService.getInstance();
+		final ClanWarService.WarIdentity identity = service.currentWar(playerClan, targetClan).orElse(null);
+		if (identity == null)
 		{
 			player.sendMessage("You aren't at war with this clan.");
 			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
-		
-		// Check if player who does the request has the correct rights to do it
-		if (!player.hasAccess(ClanAccess.WAR_DECLARATION))
+
+		final ClanWarService.Result result = service.stop(player, targetClan, identity.warId());
+		if (result.successful())
 		{
-			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
 			return;
 		}
-		
-		// LOGGER.info("RequestStopPledgeWar: By leader or authorized player: " + playerClan.getLeaderName() + " of clan: "
-		// + playerClan.getName() + " to clan: " + _pledgeName);
-		
-		// Player leader = World.getInstance().getPlayer(clan.getLeaderName());
-		// if(leader != null && leader.isOnline() == 0)
-		// {
-		// player.sendMessage("Clan leader isn't online.");
-		// player.sendPacket(ActionFailed.STATIC_PACKET);
-		// return;
-		// }
-		
-		// if (leader.isProcessingRequest())
-		// {
-		// SystemMessage sm = SystemMessage.getSystemMessage(SystemMessage.S1_IS_BUSY_TRY_LATER);
-		// sm.addString(leader.getName());
-		// player.sendPacket(sm);
-		// return;
-		// }
-		
-		for (ClanMember member : playerClan.getMembers())
+		switch (result.reason())
 		{
-			if ((member == null) || (member.getPlayer() == null))
-			{
-				continue;
-			}
-			
-			if (AttackStanceTaskManager.getInstance().hasAttackStanceTask(member.getPlayer()))
-			{
+			case NOT_AUTHORIZED:
+				player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
+				break;
+			case ATTACK_STANCE:
 				player.sendPacket(SystemMessageId.A_CEASE_FIRE_DURING_A_CLAN_WAR_CAN_NOT_BE_CALLED_WHILE_MEMBERS_OF_YOUR_CLAN_ARE_ENGAGED_IN_BATTLE);
-				return;
-			}
-		}
-		
-		ClanTable.getInstance().deleteClanWars(playerClan.getId(), clan.getId());
-		for (Player member : playerClan.getOnlineMembers(0))
-		{
-			member.broadcastUserInfo();
-		}
-		
-		for (Player member : clan.getOnlineMembers(0))
-		{
-			member.broadcastUserInfo();
+				break;
+			case NOT_AT_WAR:
+				player.sendMessage("You aren't at war with this clan.");
+				player.sendPacket(ActionFailed.STATIC_PACKET);
+				break;
+			default:
+				player.sendMessage("Clan war could not be stopped.");
 		}
 	}
 }

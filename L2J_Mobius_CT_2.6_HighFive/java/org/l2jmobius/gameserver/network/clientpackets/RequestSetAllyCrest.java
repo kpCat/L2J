@@ -24,6 +24,7 @@ import org.l2jmobius.gameserver.data.sql.ClanTable;
 import org.l2jmobius.gameserver.data.sql.CrestTable;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
 import org.l2jmobius.gameserver.model.clan.Crest;
 import org.l2jmobius.gameserver.model.clan.enums.CrestType;
 import org.l2jmobius.gameserver.network.SystemMessageId;
@@ -86,7 +87,11 @@ public class RequestSetAllyCrest extends ClientPacket
 		{
 			if (leaderClan.getAllyCrestId() != 0)
 			{
-				leaderClan.changeAllyCrest(0, false);
+				final ClanAllianceService.Result result = ClanAllianceService.getInstance().changeCrest(player, 0);
+				if (!result.successful())
+				{
+					player.sendMessage("The crest could not be removed.");
+				}
 			}
 		}
 		else
@@ -94,8 +99,16 @@ public class RequestSetAllyCrest extends ClientPacket
 			final Crest crest = CrestTable.getInstance().createCrest(_data, CrestType.ALLY);
 			if (crest != null)
 			{
-				leaderClan.changeAllyCrest(crest.getId(), false);
-				player.sendPacket(SystemMessageId.THE_CREST_WAS_SUCCESSFULLY_REGISTERED);
+				final ClanAllianceService.Result result = ClanAllianceService.getInstance().changeCrest(player, crest.getId());
+				if (result.successful())
+				{
+					player.sendPacket(SystemMessageId.THE_CREST_WAS_SUCCESSFULLY_REGISTERED);
+				}
+				else
+				{
+					CrestTable.getInstance().removeCrest(crest.getId());
+					player.sendMessage("The crest could not be registered.");
+				}
 			}
 		}
 	}

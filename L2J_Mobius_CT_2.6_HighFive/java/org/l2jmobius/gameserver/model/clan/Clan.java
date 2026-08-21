@@ -38,7 +38,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
-import org.l2jmobius.commons.util.StringUtil;
 import org.l2jmobius.gameserver.communitybbs.BB.Forum;
 import org.l2jmobius.gameserver.communitybbs.Manager.ForumsBBSManager;
 import org.l2jmobius.gameserver.config.FeatureConfig;
@@ -70,7 +69,6 @@ import org.l2jmobius.gameserver.model.siege.Castle;
 import org.l2jmobius.gameserver.model.siege.Fort;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
-import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.CreatureSay;
 import org.l2jmobius.gameserver.network.serverpackets.ExSubPledgeSkillAdd;
@@ -91,7 +89,7 @@ public class Clan
 	private static final Logger LOGGER = Logger.getLogger(Clan.class.getName());
 	
 	// SQL queries
-	private static final String INSERT_CLAN_DATA = "INSERT INTO clan_data (clan_id,clan_name,clan_level,hasCastle,blood_alliance_count,blood_oath_count,ally_id,ally_name,leader_id,crest_id,crest_large_id,ally_crest_id,new_leader_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+	private static final String INSERT_CLAN_DATA = "INSERT INTO clan_data (clan_id,clan_name,clan_level,hasCastle,blood_alliance_count,blood_oath_count,ally_id,ally_name,ally_generation,ally_generation_counter,leader_id,crest_id,crest_large_id,ally_crest_id,new_leader_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	private static final String SELECT_CLAN_DATA = "SELECT * FROM clan_data where clan_id=?";
 	
 	// Ally Penalty Types
@@ -127,6 +125,8 @@ public class Clan
 	
 	private String _allyName;
 	private int _allyId = 0;
+	private long _allyGeneration;
+	private long _allyGenerationCounter;
 	private int _level;
 	private int _castleId;
 	private int _fortId;
@@ -719,6 +719,16 @@ public class Clan
 	{
 		return _allyId;
 	}
+
+	public long getAllyGeneration()
+	{
+		return _allyGeneration;
+	}
+
+	long getAllyGenerationCounter()
+	{
+		return _allyGenerationCounter;
+	}
 	
 	/**
 	 * @return the alliance name.
@@ -731,7 +741,7 @@ public class Clan
 	/**
 	 * @param allyCrestId the alliance crest Id to be set.
 	 */
-	public void setAllyCrestId(int allyCrestId)
+	void setAllyCrestId(int allyCrestId)
 	{
 		_allyCrestId = allyCrestId;
 	}
@@ -832,15 +842,25 @@ public class Clan
 	/**
 	 * @param allyId The allyId to set.
 	 */
-	public void setAllyId(int allyId)
+	void setAllyId(int allyId)
 	{
 		_allyId = allyId;
+	}
+
+	void setAllyGeneration(long generation)
+	{
+		_allyGeneration = generation;
+	}
+
+	void setAllyGenerationCounter(long generationCounter)
+	{
+		_allyGenerationCounter = generationCounter;
 	}
 	
 	/**
 	 * @param allyName The allyName to set.
 	 */
-	public void setAllyName(String allyName)
+	void setAllyName(String allyName)
 	{
 		_allyName = allyName;
 	}
@@ -983,18 +1003,14 @@ public class Clan
 	public void updateClanInDB()
 	{
 		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement ps = con.prepareStatement("UPDATE clan_data SET leader_id=?,ally_id=?,ally_name=?,reputation_score=?,ally_penalty_expiry_time=?,ally_penalty_type=?,char_penalty_expiry_time=?,dissolving_expiry_time=?,new_leader_id=? WHERE clan_id=?"))
+			PreparedStatement ps = con.prepareStatement("UPDATE clan_data SET leader_id=?,reputation_score=?,char_penalty_expiry_time=?,dissolving_expiry_time=?,new_leader_id=? WHERE clan_id=?"))
 		{
 			ps.setInt(1, getLeaderId());
-			ps.setInt(2, _allyId);
-			ps.setString(3, _allyName);
-			ps.setInt(4, _reputationScore);
-			ps.setLong(5, _allyPenaltyExpiryTime);
-			ps.setInt(6, _allyPenaltyType);
-			ps.setLong(7, _charPenaltyExpiryTime);
-			ps.setLong(8, _dissolvingExpiryTime);
-			ps.setInt(9, _newLeaderId);
-			ps.setInt(10, _clanId);
+			ps.setInt(2, _reputationScore);
+			ps.setLong(3, _charPenaltyExpiryTime);
+			ps.setLong(4, _dissolvingExpiryTime);
+			ps.setInt(5, _newLeaderId);
+			ps.setInt(6, _clanId);
 			ps.execute();
 		}
 		catch (Exception e)
@@ -1031,11 +1047,13 @@ public class Clan
 			ps.setInt(6, _bloodOathCount);
 			ps.setInt(7, _allyId);
 			ps.setString(8, _allyName);
-			ps.setInt(9, getLeaderId());
-			ps.setInt(10, _crestId);
-			ps.setInt(11, _crestLargeId);
-			ps.setInt(12, _allyCrestId);
-			ps.setInt(13, _newLeaderId);
+			ps.setLong(9, _allyGeneration);
+			ps.setLong(10, _allyGenerationCounter);
+			ps.setInt(11, getLeaderId());
+			ps.setInt(12, _crestId);
+			ps.setInt(13, _crestLargeId);
+			ps.setInt(14, _allyCrestId);
+			ps.setInt(15, _newLeaderId);
 			ps.execute();
 		}
 		catch (Exception e)
@@ -1095,6 +1113,8 @@ public class Clan
 					_bloodOathCount = clanData.getInt("blood_oath_count");
 					setAllyId(clanData.getInt("ally_id"));
 					setAllyName(clanData.getString("ally_name"));
+					setAllyGeneration(clanData.getLong("ally_generation"));
+					setAllyGenerationCounter(clanData.getLong("ally_generation_counter"));
 					setAllyPenaltyExpiryTime(clanData.getLong("ally_penalty_expiry_time"), clanData.getInt("ally_penalty_type"));
 					if (_allyPenaltyExpiryTime < System.currentTimeMillis())
 					{
@@ -1651,32 +1671,32 @@ public class Clan
 		return _atWarAttackers.contains(id);
 	}
 	
-	public void setEnemyClan(Clan clan)
+	void setEnemyClan(Clan clan)
 	{
 		_atWarWith.add(clan.getId());
 	}
 	
-	public void setEnemyClan(int id)
+	void setEnemyClan(int id)
 	{
 		_atWarWith.add(id);
 	}
 	
-	public void setAttackerClan(Clan clan)
+	void setAttackerClan(Clan clan)
 	{
 		_atWarAttackers.add(clan.getId());
 	}
 	
-	public void setAttackerClan(int clan)
+	void setAttackerClan(int clan)
 	{
 		_atWarAttackers.add(clan);
 	}
 	
-	public void deleteEnemyClan(Clan clan)
+	void deleteEnemyClan(Clan clan)
 	{
 		_atWarWith.remove(clan.getId());
 	}
 	
-	public void deleteAttackerClan(Clan clan)
+	void deleteAttackerClan(Clan clan)
 	{
 		_atWarAttackers.remove(clan.getId());
 	}
@@ -2298,106 +2318,6 @@ public class Clan
 		return true;
 	}
 	
-	/**
-	 * @param player the clan inviting player.
-	 * @param target the invited player.
-	 * @return {core true} if player and target meet various conditions to join a clan.
-	 */
-	public boolean checkAllyJoinCondition(Player player, Player target)
-	{
-		if (player == null)
-		{
-			return false;
-		}
-		
-		if ((player.getAllyId() == 0) || !player.isClanLeader() || (player.getClanId() != player.getAllyId()))
-		{
-			player.sendPacket(SystemMessageId.THIS_FEATURE_IS_ONLY_AVAILABLE_TO_ALLIANCE_LEADERS);
-			return false;
-		}
-		
-		final Clan leaderClan = player.getClan();
-		if ((leaderClan.getAllyPenaltyExpiryTime() > System.currentTimeMillis()) && (leaderClan.getAllyPenaltyType() == PENALTY_TYPE_DISMISS_CLAN))
-		{
-			player.sendPacket(SystemMessageId.YOU_MAY_NOT_ACCEPT_ANY_CLAN_WITHIN_A_DAY_AFTER_EXPELLING_ANOTHER_CLAN);
-			return false;
-		}
-		
-		if (target == null)
-		{
-			player.sendPacket(SystemMessageId.YOU_HAVE_INVITED_THE_WRONG_TARGET);
-			return false;
-		}
-		
-		if (player.getObjectId() == target.getObjectId())
-		{
-			player.sendPacket(SystemMessageId.YOU_CANNOT_ASK_YOURSELF_TO_APPLY_TO_A_CLAN);
-			return false;
-		}
-		
-		if (target.getClan() == null)
-		{
-			player.sendPacket(SystemMessageId.THE_TARGET_MUST_BE_A_CLAN_MEMBER);
-			return false;
-		}
-		
-		if (!target.isClanLeader())
-		{
-			final SystemMessage sm = new SystemMessage(SystemMessageId.S1_IS_NOT_A_CLAN_LEADER);
-			sm.addString(target.getName());
-			player.sendPacket(sm);
-			return false;
-		}
-		
-		final Clan targetClan = target.getClan();
-		if (target.getAllyId() != 0)
-		{
-			final SystemMessage sm = new SystemMessage(SystemMessageId.S1_CLAN_IS_ALREADY_A_MEMBER_OF_S2_ALLIANCE);
-			sm.addString(targetClan.getName());
-			sm.addString(targetClan.getAllyName());
-			player.sendPacket(sm);
-			return false;
-		}
-		
-		if (targetClan.getAllyPenaltyExpiryTime() > System.currentTimeMillis())
-		{
-			if (targetClan.getAllyPenaltyType() == PENALTY_TYPE_CLAN_LEAVED)
-			{
-				final SystemMessage sm = new SystemMessage(SystemMessageId.S1_CLAN_CANNOT_JOIN_THE_ALLIANCE_BECAUSE_ONE_DAY_HAS_NOT_YET_PASSED_SINCE_THEY_LEFT_ANOTHER_ALLIANCE);
-				sm.addString(target.getClan().getName());
-				sm.addString(target.getClan().getAllyName());
-				player.sendPacket(sm);
-				return false;
-			}
-			
-			if (targetClan.getAllyPenaltyType() == PENALTY_TYPE_CLAN_DISMISSED)
-			{
-				player.sendPacket(SystemMessageId.A_CLAN_THAT_HAS_WITHDRAWN_OR_BEEN_EXPELLED_CANNOT_ENTER_INTO_AN_ALLIANCE_WITHIN_ONE_DAY_OF_WITHDRAWAL_OR_EXPULSION);
-				return false;
-			}
-		}
-		
-		if (player.isInsideZone(ZoneId.SIEGE) && target.isInsideZone(ZoneId.SIEGE))
-		{
-			player.sendPacket(SystemMessageId.THE_OPPOSING_CLAN_IS_PARTICIPATING_IN_A_SIEGE_BATTLE);
-			return false;
-		}
-		
-		if (leaderClan.isAtWarWith(targetClan.getId()))
-		{
-			player.sendPacket(SystemMessageId.YOU_MAY_NOT_ALLY_WITH_A_CLAN_YOU_ARE_CURRENTLY_AT_WAR_WITH_THAT_WOULD_BE_DIABOLICAL_AND_TREACHEROUS);
-			return false;
-		}
-		
-		if (ClanTable.getInstance().getClanAllies(player.getAllyId()).size() >= PlayerConfig.ALT_MAX_NUM_OF_CLANS_IN_ALLY)
-		{
-			player.sendPacket(SystemMessageId.YOU_HAVE_EXCEEDED_THE_LIMIT);
-			return false;
-		}
-		
-		return true;
-	}
-	
 	public long getAllyPenaltyExpiryTime()
 	{
 		return _allyPenaltyExpiryTime;
@@ -2408,7 +2328,7 @@ public class Clan
 		return _allyPenaltyType;
 	}
 	
-	public void setAllyPenaltyExpiryTime(long expiryTime, int penaltyType)
+	void setAllyPenaltyExpiryTime(long expiryTime, int penaltyType)
 	{
 		_allyPenaltyExpiryTime = expiryTime;
 		_allyPenaltyType = penaltyType;
@@ -2432,113 +2352,6 @@ public class Clan
 	public void setDissolvingExpiryTime(long time)
 	{
 		_dissolvingExpiryTime = time;
-	}
-	
-	public void createAlly(Player player, String allyName)
-	{
-		if (null == player)
-		{
-			return;
-		}
-		
-		if (!player.isClanLeader())
-		{
-			player.sendPacket(SystemMessageId.ONLY_CLAN_LEADERS_MAY_CREATE_ALLIANCES);
-			return;
-		}
-		
-		if (_allyId != 0)
-		{
-			player.sendPacket(SystemMessageId.YOU_ALREADY_BELONG_TO_ANOTHER_ALLIANCE);
-			return;
-		}
-		
-		if (_level < 5)
-		{
-			player.sendPacket(SystemMessageId.TO_CREATE_AN_ALLIANCE_YOUR_CLAN_MUST_BE_LEVEL_5_OR_HIGHER);
-			return;
-		}
-		
-		if ((_allyPenaltyExpiryTime > System.currentTimeMillis()) && (_allyPenaltyType == PENALTY_TYPE_DISSOLVE_ALLY))
-		{
-			player.sendPacket(SystemMessageId.YOU_CANNOT_CREATE_A_NEW_ALLIANCE_WITHIN_1_DAY_OF_DISSOLUTION);
-			return;
-		}
-		
-		if (_dissolvingExpiryTime > System.currentTimeMillis())
-		{
-			player.sendPacket(SystemMessageId.AS_YOU_ARE_CURRENTLY_SCHEDULE_FOR_CLAN_DISSOLUTION_NO_ALLIANCE_CAN_BE_CREATED);
-			return;
-		}
-		
-		if (!StringUtil.isAlphaNumeric(allyName))
-		{
-			player.sendPacket(SystemMessageId.INCORRECT_ALLIANCE_NAME_PLEASE_TRY_AGAIN);
-			return;
-		}
-		
-		if ((allyName.length() > 16) || (allyName.length() < 2))
-		{
-			player.sendPacket(SystemMessageId.INCORRECT_LENGTH_FOR_AN_ALLIANCE_NAME);
-			return;
-		}
-		
-		if (ClanTable.getInstance().isAllyExists(allyName))
-		{
-			player.sendPacket(SystemMessageId.THAT_ALLIANCE_NAME_ALREADY_EXISTS);
-			return;
-		}
-		
-		setAllyId(_clanId);
-		setAllyName(allyName.trim());
-		setAllyPenaltyExpiryTime(0, 0);
-		updateClanInDB();
-		
-		player.updateUserInfo();
-		
-		// TODO: Need correct message id
-		player.sendMessage("Alliance " + allyName + " has been created.");
-	}
-	
-	public void dissolveAlly(Player player)
-	{
-		if (_allyId == 0)
-		{
-			player.sendPacket(SystemMessageId.YOU_ARE_NOT_CURRENTLY_ALLIED_WITH_ANY_CLANS);
-			return;
-		}
-		
-		if (!player.isClanLeader() || (_clanId != _allyId))
-		{
-			player.sendPacket(SystemMessageId.THIS_FEATURE_IS_ONLY_AVAILABLE_TO_ALLIANCE_LEADERS);
-			return;
-		}
-		
-		if (player.isInsideZone(ZoneId.SIEGE))
-		{
-			player.sendPacket(SystemMessageId.YOU_CANNOT_DISSOLVE_AN_ALLIANCE_WHILE_AN_AFFILIATED_CLAN_IS_PARTICIPATING_IN_A_SIEGE_BATTLE);
-			return;
-		}
-		
-		broadcastToOnlineAllyMembers(new SystemMessage(SystemMessageId.THE_ALLIANCE_HAS_BEEN_DISSOLVED));
-		
-		final long currentTime = System.currentTimeMillis();
-		for (Clan clan : ClanTable.getInstance().getClanAllies(getAllyId()))
-		{
-			if (clan.getId() != getId())
-			{
-				clan.setAllyId(0);
-				clan.setAllyName(null);
-				clan.setAllyPenaltyExpiryTime(0, 0);
-				clan.updateClanInDB();
-			}
-		}
-		
-		setAllyId(0);
-		setAllyName(null);
-		changeAllyCrest(0, false);
-		setAllyPenaltyExpiryTime(currentTime + (PlayerConfig.ALT_CREATE_ALLY_DAYS_WHEN_DISSOLVED * 86400000), PENALTY_TYPE_DISSOLVE_ALLY); // 24*60*60*1000 = 86400000
-		updateClanInDB();
 	}
 	
 	public boolean levelUpClan(Player player)
@@ -2826,59 +2639,6 @@ public class Clan
 		for (Player member : getOnlineMembers(0))
 		{
 			member.broadcastUserInfo();
-		}
-	}
-	
-	/**
-	 * Change the ally crest. If crest id is 0, crest is removed. New crest id is saved to database.
-	 * @param crestId if 0, crest is removed, else new crest id is set and saved to database
-	 * @param onlyThisClan
-	 */
-	public void changeAllyCrest(int crestId, boolean onlyThisClan)
-	{
-		String sqlStatement = "UPDATE clan_data SET ally_crest_id = ? WHERE clan_id = ?";
-		int allyId = _clanId;
-		if (!onlyThisClan)
-		{
-			if (_allyCrestId != 0)
-			{
-				CrestTable.getInstance().removeCrest(getAllyCrestId());
-			}
-			
-			sqlStatement = "UPDATE clan_data SET ally_crest_id = ? WHERE ally_id = ?";
-			allyId = _allyId;
-		}
-		
-		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement ps = con.prepareStatement(sqlStatement))
-		{
-			ps.setInt(1, crestId);
-			ps.setInt(2, allyId);
-			ps.executeUpdate();
-		}
-		catch (SQLException e)
-		{
-			LOGGER.log(Level.WARNING, "Could not update ally crest for ally/clan id " + allyId + " : " + e.getMessage(), e);
-		}
-		
-		if (onlyThisClan)
-		{
-			setAllyCrestId(crestId);
-			for (Player member : getOnlineMembers(0))
-			{
-				member.broadcastUserInfo();
-			}
-		}
-		else
-		{
-			for (Clan clan : ClanTable.getInstance().getClanAllies(getAllyId()))
-			{
-				clan.setAllyCrestId(crestId);
-				for (Player member : clan.getOnlineMembers(0))
-				{
-					member.broadcastUserInfo();
-				}
-			}
 		}
 	}
 	

@@ -20,11 +20,8 @@
  */
 package org.l2jmobius.gameserver.network.clientpackets;
 
-import org.l2jmobius.gameserver.config.PlayerConfig;
-import org.l2jmobius.gameserver.data.sql.ClanTable;
 import org.l2jmobius.gameserver.model.actor.Player;
-import org.l2jmobius.gameserver.model.clan.Clan;
-import org.l2jmobius.gameserver.model.clan.ClanAccess;
+import org.l2jmobius.gameserver.model.clan.ClanWarService;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.ActionFailed;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
@@ -47,63 +44,46 @@ public class RequestStartPledgeWar extends ClientPacket
 		{
 			return;
 		}
-		
-		final Clan playerClan = player.getClan();
-		if (playerClan == null)
+
+		final ClanWarService.Result result = ClanWarService.getInstance().declare(player, _pledgeName);
+		if (result.successful())
 		{
 			return;
 		}
-		
-		if ((playerClan.getLevel() < 3) || (playerClan.getMembersCount() < PlayerConfig.ALT_CLAN_MEMBERS_FOR_WAR))
+
+		switch (result.reason())
 		{
-			player.sendPacket(SystemMessageId.A_CLAN_WAR_CAN_ONLY_BE_DECLARED_IF_THE_CLAN_IS_LEVEL_3_OR_ABOVE_AND_THE_NUMBER_OF_CLAN_MEMBERS_IS_FIFTEEN_OR_GREATER);
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
+			case SOURCE_CLAN_NOT_FOUND:
+				return;
+			case SOURCE_REQUIREMENTS:
+			case TARGET_REQUIREMENTS:
+				player.sendPacket(SystemMessageId.A_CLAN_WAR_CAN_ONLY_BE_DECLARED_IF_THE_CLAN_IS_LEVEL_3_OR_ABOVE_AND_THE_NUMBER_OF_CLAN_MEMBERS_IS_FIFTEEN_OR_GREATER);
+				break;
+			case NOT_AUTHORIZED:
+				player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
+				break;
+			case TARGET_NOT_FOUND:
+				player.sendPacket(SystemMessageId.A_CLAN_WAR_CANNOT_BE_DECLARED_AGAINST_A_CLAN_THAT_DOES_NOT_EXIST);
+				break;
+			case SELF_TARGET:
+				player.sendPacket(SystemMessageId.FOOL_YOU_CANNOT_DECLARE_WAR_AGAINST_YOUR_OWN_CLAN);
+				break;
+			case ALLIED_TARGET:
+				player.sendPacket(SystemMessageId.A_DECLARATION_OF_CLAN_WAR_AGAINST_AN_ALLIED_CLAN_CAN_T_BE_MADE);
+				break;
+			case TARGET_DISSOLVING:
+				player.sendPacket(SystemMessageId.A_CLAN_WAR_CAN_NOT_BE_DECLARED_AGAINST_A_CLAN_THAT_IS_BEING_DISSOLVED);
+				break;
+			case ALREADY_ACTIVE:
+			{
+				final SystemMessage message = new SystemMessage(SystemMessageId.YOU_HAVE_ALREADY_BEEN_AT_WAR_WITH_THE_S1_CLAN_5_DAYS_MUST_PASS_BEFORE_YOU_CAN_DECLARE_WAR_AGAIN);
+				message.addString(_pledgeName);
+				player.sendPacket(message);
+				break;
+			}
+			default:
+				player.sendMessage("Clan war declaration failed.");
 		}
-		else if (!player.hasAccess(ClanAccess.WAR_DECLARATION))
-		{
-			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
-		
-		final Clan clan = ClanTable.getInstance().getClanByName(_pledgeName);
-		if (clan == null)
-		{
-			player.sendPacket(SystemMessageId.A_CLAN_WAR_CANNOT_BE_DECLARED_AGAINST_A_CLAN_THAT_DOES_NOT_EXIST);
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
-		else if ((playerClan.getAllyId() == clan.getAllyId()) && (playerClan.getAllyId() != 0))
-		{
-			player.sendPacket(SystemMessageId.A_DECLARATION_OF_CLAN_WAR_AGAINST_AN_ALLIED_CLAN_CAN_T_BE_MADE);
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
-		else if ((clan.getLevel() < 3) || (clan.getMembersCount() < PlayerConfig.ALT_CLAN_MEMBERS_FOR_WAR))
-		{
-			player.sendPacket(SystemMessageId.A_CLAN_WAR_CAN_ONLY_BE_DECLARED_IF_THE_CLAN_IS_LEVEL_3_OR_ABOVE_AND_THE_NUMBER_OF_CLAN_MEMBERS_IS_FIFTEEN_OR_GREATER);
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
-		else if (playerClan.isAtWarWith(clan.getId()))
-		{
-			final SystemMessage sm = new SystemMessage(SystemMessageId.YOU_HAVE_ALREADY_BEEN_AT_WAR_WITH_THE_S1_CLAN_5_DAYS_MUST_PASS_BEFORE_YOU_CAN_DECLARE_WAR_AGAIN);
-			sm.addString(clan.getName());
-			player.sendPacket(sm);
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
-		
-		ClanTable.getInstance().storeClanWars(player.getClanId(), clan.getId());
-		for (Player member : playerClan.getOnlineMembers(0))
-		{
-			member.broadcastUserInfo();
-		}
-		
-		for (Player member : clan.getOnlineMembers(0))
-		{
-			member.broadcastUserInfo();
-		}
+		player.sendPacket(ActionFailed.STATIC_PACKET);
 	}
 }
