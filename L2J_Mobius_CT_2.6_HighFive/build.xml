@@ -65,6 +65,7 @@
 	<property name="phantom.goal026c.seed" value="26002642" />
 	<property name="phantom.goal026cp5.seed" value="26002652" />
 	<property name="phantom.goal026d.seed" value="26002653" />
+	<property name="phantom.goal027cp1.seed" value="27002701" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -2980,6 +2981,52 @@
 
 	<target name="phantom-raid-encounter-goal026cp5-test" depends="phantom-raid-combat-goal026cp5-test,phantom-raid-entry-profile-goal026cp5-test,phantom-raid-attempt-goal026cp5-test,phantom-raid-decision-goal026cp5-test" description="Run the final focused Goal 026 CP5 raid encounter orchestration aggregate." />
 
+	<target name="phantom-clan-creation-restart-goal027cp1-test" depends="compile-tests" description="Run Goal 027 CP1 canonical creation and restart reconciliation tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="clan-creation-restart-goal027cp1" />
+			<arg value="${phantom.goal027cp1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-clan-recruitment-goal027cp1-test" depends="compile-tests" description="Run Goal 027 CP1 bounded bilateral clan recruitment tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="clan-recruitment-goal027cp1" />
+			<arg value="${phantom.goal027cp1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-clan-roles-goal027cp1-test" depends="compile-tests" description="Run Goal 027 CP1 role metadata, leadership and drift tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="clan-roles-goal027cp1" />
+			<arg value="${phantom.goal027cp1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-clan-treasury-goal027cp1-test" depends="compile-tests" description="Run Goal 027 CP1 canonical contribution and restart no-dupe tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="clan-treasury-goal027cp1" />
+			<arg value="${phantom.goal027cp1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-clan-chat-decision-goal027cp1-test" depends="compile-tests" description="Run Goal 027 CP1 clan chat, Decision and lifecycle tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="clan-chat-decision-goal027cp1" />
+			<arg value="${phantom.goal027cp1.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-clan-checkpoint1-goal027-test" depends="phantom-clan-creation-restart-goal027cp1-test,phantom-clan-recruitment-goal027cp1-test,phantom-clan-roles-goal027cp1-test,phantom-clan-treasury-goal027cp1-test,phantom-clan-chat-decision-goal027cp1-test,phantom-profile-persistence-test,phantom-chat-observation-test" description="Run the final Goal 027 CP1 persistent clan organization aggregate and directly affected regressions." />
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->
 	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-profile-persistence-test,phantom-production-materialization-test,phantom-production-materialization-performance-smoke,phantom-server-shutdown-handoff-test,phantom-activity-scheduler-test,phantom-activity-scheduler-performance-smoke,phantom-decision-core-test,phantom-decision-persistence-test,phantom-decision-performance-smoke,phantom-navigation-core-test,phantom-navigation-performance-smoke,phantom-topology-core-test,phantom-topology-perception-test,phantom-topology-scheduler-signal-integration-test,phantom-topology-signal-ledger-test,phantom-topology-generation-test,phantom-topology-production-corpus-test,phantom-topology-performance-smoke,phantom-game-knowledge-core-test,phantom-game-knowledge-query-truth-test,phantom-game-knowledge-parity-test,phantom-game-knowledge-content-test,phantom-game-knowledge-performance-smoke,phantom-combat-core-test,phantom-combat-ownership-test,phantom-combat-action-ownership-test,phantom-combat-server-integration-test,phantom-combat-performance-smoke,phantom-progression-catalog-test,phantom-progression-parity-test,phantom-capability-runtime-test,phantom-progression-operations-test,phantom-progression-server-integration-test,phantom-progression-durability-test,phantom-progression-performance-smoke,phantom-progression-extensibility-test,phantom-progression-production-composition-test,phantom-commerce-test,phantom-commerce-hardening-test,phantom-background-test,phantom-population-test,phantom-party-test,phantom-social-test,phantom-semantic-test,phantom-social-activation-test,phantom-semantic-activation-test,phantom-chat-observation-test,phantom-conversation-catalog-codec-test,phantom-conversation-understanding-test,phantom-conversation-social-style-test,phantom-conversation-chat-integration-test,phantom-conversation-lifecycle-performance-smoke,phantom-economy-checkpoint1-test,phantom-economy-checkpoint1-affected-test,phantom-economy-checkpoint2-test,phantom-economy-checkpoint2-affected-test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004,phantom-static-verify-004a,phantom-static-verify-004b,phantom-static-verify-005,phantom-static-verify-006,phantom-static-verify-006a,phantom-static-verify-006b,phantom-static-verify-007,phantom-static-verify-014a,phantom-static-verify-015,phantom-static-verify-016,phantom-static-verify-017,phantom-static-verify-018,phantom-static-verify-019,phantom-static-verify-020c1,phantom-static-verify-020c2,phantom-static-verify-022c1,phantom-static-verify-022c2,phantom-farming-goal024-test" description="Run Goal 024 farming negotiation and all prior Phantom verification gates." />

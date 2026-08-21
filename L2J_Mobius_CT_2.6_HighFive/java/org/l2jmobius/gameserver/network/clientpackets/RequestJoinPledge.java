@@ -22,9 +22,7 @@ package org.l2jmobius.gameserver.network.clientpackets;
 
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
-import org.l2jmobius.gameserver.model.clan.Clan;
-import org.l2jmobius.gameserver.network.SystemMessageId;
-import org.l2jmobius.gameserver.network.serverpackets.AskJoinPledge;
+import org.l2jmobius.gameserver.model.clan.ClanInvitationService;
 
 /**
  * @version $Revision: 1.3.4.4 $ $Date: 2005/03/27 15:29:30 $
@@ -45,37 +43,12 @@ public class RequestJoinPledge extends ClientPacket
 	protected void runImpl()
 	{
 		final Player player = getPlayer();
-		if (player == null)
+		if ((player == null) || (player.getClan() == null))
 		{
 			return;
 		}
 		
-		final Clan clan = player.getClan();
-		if (clan == null)
-		{
-			return;
-		}
-		
-		final Player target = World.getInstance().getPlayer(_target);
-		if (target == null)
-		{
-			player.sendPacket(SystemMessageId.YOU_HAVE_INVITED_THE_WRONG_TARGET);
-			return;
-		}
-		
-		if (!clan.checkClanJoinCondition(player, target, _pledgeType))
-		{
-			return;
-		}
-		
-		if (!player.getRequest().setRequest(target, this))
-		{
-			return;
-		}
-		
-		final String pledgeName = player.getClan().getName();
-		final String subPledgeName = (player.getClan().getSubPledge(_pledgeType) != null ? player.getClan().getSubPledge(_pledgeType).getName() : null);
-		target.sendPacket(new AskJoinPledge(player.getObjectId(), subPledgeName, _pledgeType, pledgeName));
+		ClanInvitationService.getInstance().invite(player, World.getInstance().getPlayer(_target), _pledgeType);
 	}
 	
 	public int getPledgeType()

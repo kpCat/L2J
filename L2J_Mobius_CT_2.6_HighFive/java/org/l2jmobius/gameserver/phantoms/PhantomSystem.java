@@ -57,6 +57,10 @@ import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceDecision;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService;
+import org.l2jmobius.gameserver.phantoms.clan.L2jPhantomClanBackend;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanDecision;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanStore;
 import org.l2jmobius.gameserver.phantoms.conversation.L2jPhantomConversationContextPort;
 import org.l2jmobius.gameserver.phantoms.conversation.L2jPhantomConversationExecutionPort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationCatalog;
@@ -189,6 +193,7 @@ public final class PhantomSystem
 	private PhantomFarmingService _farmingService;
 	private PhantomPopulationManager _populationManager;
 	private PhantomPartyCoordinator _partyCoordinator;
+	private PhantomClanService _clanService;
 	private PhantomRaidReadinessService _raidReadinessService;
 	private PhantomRaidRecruitmentService _raidRecruitmentService;
 	private PhantomRaidAssemblyService _raidAssemblyService;
@@ -426,6 +431,12 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
 				}
 				partyParticipation.install(_partyCoordinator);
+				_clanService = new PhantomClanService(productionGoals, new PhantomClanStore(productionProfiles), new L2jPhantomClanBackend(productionProfiles, _materializationService), System::currentTimeMillis);
+				if (!_clanService.start())
+				{
+					throw new IllegalStateException("Phantom clan organization service could not enter the running state.");
+				}
+				final PhantomClanDecision clanDecision = new PhantomClanDecision(_clanService);
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
 				_farmingService = new PhantomFarmingService(farmingPolicy, new PhantomFarmingStore(productionProfiles), _acquisitionService, _topologyService, _partyCoordinator, _socialService, _settings.maxScheduledPhantomProfiles());
 				if (!_farmingService.start())
@@ -487,6 +498,7 @@ public final class PhantomSystem
 				backgroundDecision.registerCandidates(candidateRegistry);
 				populationDecision.registerCandidates(candidateRegistry);
 				partyDecision.registerCandidates(candidateRegistry);
+				clanDecision.registerCandidates(candidateRegistry);
 				riftDecision.registerCandidates(candidateRegistry);
 				raidDecision.registerCandidates(candidateRegistry);
 				candidateRegistry.seal();
@@ -501,6 +513,7 @@ public final class PhantomSystem
 				backgroundDecision.registerHandlers(handlerRegistry);
 				populationDecision.registerHandlers(handlerRegistry);
 				partyDecision.registerHandlers(handlerRegistry);
+				clanDecision.registerHandlers(handlerRegistry);
 				riftDecision.registerHandlers(handlerRegistry);
 				raidDecision.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
@@ -554,6 +567,11 @@ public final class PhantomSystem
 			if (_conversationExecutionService != null)
 			{
 				_conversationExecutionService.beginStop();
+			}
+			if (_clanService != null)
+			{
+				_clanService.beginStop();
+				_clanService.finishStop();
 			}
 			if (_partyCoordinator != null)
 			{
@@ -744,6 +762,11 @@ public final class PhantomSystem
 					_state = State.FAILED;
 					return false;
 				}
+			}
+			if (_clanService != null)
+			{
+				_clanService.beginStop();
+				_clanService.finishStop();
 			}
 			if (_partyCoordinator != null)
 			{
@@ -949,6 +972,11 @@ public final class PhantomSystem
 					_metrics.recordShutdownFailure();
 					return false;
 				}
+			}
+			if (_clanService != null)
+			{
+				_clanService.beginStop();
+				_clanService.finishStop();
 			}
 			if ((_partyCoordinator != null) && (_partyCoordinator.snapshot().state() != PhantomPartyCoordinator.State.STOPPED))
 			{
