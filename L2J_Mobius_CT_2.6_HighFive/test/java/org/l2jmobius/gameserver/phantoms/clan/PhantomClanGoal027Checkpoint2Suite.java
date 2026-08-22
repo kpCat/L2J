@@ -145,6 +145,15 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		PhantomAssertions.assertEquals(1, dissolve.backend.dissolveCalls, "dissolveWithProof was not called exactly once.");
 		PhantomAssertions.assertEquals(null, dissolve.backend.clans.get(11).alliance, "Alliance leader remained allied after dissolve.");
 
+		final Fixture unrelated = alliedPair();
+		unrelated.backend.addManagedClan(3, 303, 33, "RelationPeer");
+		unrelated.persistence.save(1, -1, copyWithRelations(baseMetadata(DiplomacyState.empty()), List.of("profile:2", "profile:3")));
+		unrelated.goals.put(1, goal(1, 134, PhantomClanService.ALLIANCE_DISSOLVE_GOAL, ref("alliance.name", "CodexAlly"), List.of(ref("profile", "2")), null, 0));
+		PhantomAssertions.assertEquals(OperationStatus.COMPLETE, unrelated.service().advance(1, 134, 0).status(), "Unrelated managed relation peer blocked exact A/B proof dissolve.");
+		PhantomAssertions.assertEquals(1, unrelated.backend.dissolveCalls, "Proof-directed dissolve did not reach native seam once.");
+		PhantomAssertions.assertEquals(null, unrelated.backend.clans.get(11).alliance, "Unrelated relation peer left exact A/B alliance active.");
+		PhantomAssertions.assertEquals(null, unrelated.backend.clans.get(33).alliance, "Unrelated relation peer was mutated by A/B dissolve.");
+
 		final Fixture unexpected = alliedPair();
 		unexpected.backend.addRealClan(303, 33, "UnexpectedC");
 		unexpected.backend.attach(33, unexpected.backend.clans.get(11).alliance, "CodexAlly");
@@ -223,16 +232,29 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		peace.goals.put(2, peerGoal(2, 152, PhantomClanService.WAR_PEACE_GOAL, 11, 1, 0));
 		final PhantomClanService peaceService = peace.service();
 		PhantomAssertions.assertEquals(OperationStatus.WAITING, peaceService.advance(1, 151, 0).status(), "Peace source did not publish W1 offer.");
+		final DiplomacyState sourceWarOne = peace.persistence.load(1).orElseThrow().metadata().diplomacy();
+		PhantomAssertions.assertEquals(DiplomacyAction.WAR_PEACE, sourceWarOne.action(), "Peace source did not persist WAR_PEACE.");
+		PhantomAssertions.assertEquals(DiplomacyPhase.PREPARED, sourceWarOne.phase(), "Peace source did not persist PREPARED.");
+		PhantomAssertions.assertEquals(warOne, sourceWarOne.warId(), "Peace source did not persist exact W1.");
 		PhantomAssertions.assertEquals(OperationStatus.WAITING, peaceService.advance(1, 151, 0).status(), "Repeated peace source pulse refreshed W1 offer.");
 		peace.backend.startWar(11, 22);
 		final long warTwo = peace.backend.war.warId();
 		PhantomAssertions.assertTrue(warTwo != warOne, "Fake war identity did not advance to W2.");
 		PhantomAssertions.assertEquals(OperationStatus.STALE, peaceService.advance(2, 152, 0).status(), "W1 peace offer was not stale in W2.");
 		PhantomAssertions.assertEquals(warTwo, peace.backend.war.warId(), "Stale W1 peace affected W2.");
-		PhantomAssertions.assertEquals(OperationStatus.WAITING, peaceService.advance(1, 151, 0).status(), "W2 peace offer was not published on a later replan.");
+		PhantomAssertions.assertEquals(OperationStatus.STALE, peaceService.advance(1, 151, 0).status(), "Source W1 PREPARED was accepted against W2.");
+		peace.goals.put(1, peerGoal(1, 153, PhantomClanService.WAR_PEACE_GOAL, 22, 2, 0));
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, peaceService.advance(1, 153, 0).status(), "Fresh W2 peace offer was not published.");
 		PhantomAssertions.assertEquals(OperationStatus.COMPLETE, peaceService.advance(2, 152, 0).status(), "Later bilateral W2 peace failed.");
 		PhantomAssertions.assertEquals(null, peace.backend.war, "Accepted peace left W2 active.");
 		PhantomAssertions.assertEquals(warTwo, peace.backend.lastPeaceWarId, "Accepted peace did not carry exact W2 id.");
+		PhantomAssertions.assertEquals(2, peace.backend.socialReceipts.size(), "Peace target did not own the single bilateral Goal018 event.");
+		PhantomAssertions.assertEquals(OperationStatus.COMPLETE, peaceService.advance(1, 153, 0).status(), "Peace source did not reconcile completed W2.");
+		final DiplomacyState sourceCompleted = peace.persistence.load(1).orElseThrow().metadata().diplomacy();
+		PhantomAssertions.assertEquals(DiplomacyPhase.COMPLETED, sourceCompleted.phase(), "Peace source did not persist COMPLETED.");
+		PhantomAssertions.assertEquals(warTwo, sourceCompleted.warId(), "Peace source completed the wrong war.");
+		PhantomAssertions.assertTrue(sourceCompleted.cooldownUntilEpochMillis() > NOW, "Peace source did not persist cooldown.");
+		PhantomAssertions.assertEquals(2, peace.backend.socialReceipts.size(), "Peace source duplicated the target-owned Goal018 event.");
 	}
 
 	private void relationAndHysteresis(PhantomTestContext context)
@@ -250,6 +272,24 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		PhantomAssertions.assertEquals(OperationStatus.WAITING, restarted.advance(1, 161, 1).status(), "Immediate inverse action bypassed persisted hysteresis.");
 		PhantomAssertions.assertEquals(OperationStatus.WAITING, restarted.advance(1, 161, 1).status(), "Same inputs produced a different hysteresis decision.");
 		PhantomAssertions.assertEquals(0, fixture.backend.stopCalls, "Hysteresis reached native stop.");
+
+		final Fixture source = plainPair();
+		source.backend.startWar(11, 22);
+		final long externalWar = source.backend.war.warId();
+		source.goals.put(1, peerGoal(1, 162, PhantomClanService.WAR_PEACE_GOAL, 22, 2, 0));
+		final PhantomClanService sourceService = source.service();
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, sourceService.advance(1, 162, 0).status(), "External-end fixture did not persist source peace PREPARED.");
+		source.backend.war = null;
+		PhantomAssertions.assertEquals(OperationStatus.COMPLETE, sourceService.advance(1, 162, 0).status(), "External W1 end did not complete source peace.");
+		final DiplomacyState externalCompleted = source.persistence.load(1).orElseThrow().metadata().diplomacy();
+		PhantomAssertions.assertEquals(externalWar, externalCompleted.warId(), "External end reconciled the wrong war.");
+		PhantomAssertions.assertEquals(DiplomacyPhase.COMPLETED, externalCompleted.phase(), "External end did not persist source peace COMPLETED.");
+		PhantomAssertions.assertEquals(0, source.backend.socialReceipts.size(), "External W1 end emitted a fake agreement event.");
+		source.backend.hostilityScore = 800;
+		source.backend.hostileEvidence = true;
+		source.goals.put(1, peerGoal(1, 163, PhantomClanService.WAR_DECLARE_GOAL, 22, 2, 0));
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, source.service().advance(1, 163, 0).status(), "Source peace cooldown did not suppress immediate WAR_DECLARE.");
+		PhantomAssertions.assertEquals(0, source.backend.declareCalls, "Source peace cooldown reached native WAR_DECLARE.");
 	}
 
 	private void allianceChatAndStore(PhantomTestContext context) throws Exception
@@ -350,6 +390,11 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 	private static OrganizationMetadata copyWithDiplomacy(OrganizationMetadata value, DiplomacyState diplomacy)
 	{
 		return new OrganizationMetadata(value.canonicalClanId(), value.clanName(), value.canonicalLeaderObjectId(), value.roleIntent(), value.organizationGoalId(), value.goalRevision(), value.contributionBudget(), value.contributionItemObjectId(), value.contributionAmount(), value.contributionInventoryBefore(), value.contributionWarehouseBefore(), value.contributionState(), value.relationReferences(), value.canonicalEvidenceHash(), value.intentEvidenceHash(), value.updatedEpochMillis(), diplomacy);
+	}
+
+	private static OrganizationMetadata copyWithRelations(OrganizationMetadata value, List<String> relationReferences)
+	{
+		return new OrganizationMetadata(value.canonicalClanId(), value.clanName(), value.canonicalLeaderObjectId(), value.roleIntent(), value.organizationGoalId(), value.goalRevision(), value.contributionBudget(), value.contributionItemObjectId(), value.contributionAmount(), value.contributionInventoryBefore(), value.contributionWarehouseBefore(), value.contributionState(), relationReferences, value.canonicalEvidenceHash(), value.intentEvidenceHash(), value.updatedEpochMillis(), value.diplomacy());
 	}
 
 	private static byte[] legacyPayload(OrganizationMetadata metadata) throws Exception

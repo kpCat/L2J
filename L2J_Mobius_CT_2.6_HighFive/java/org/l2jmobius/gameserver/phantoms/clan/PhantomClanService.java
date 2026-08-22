@@ -1034,8 +1034,9 @@ public final class PhantomClanService
 		{
 			return nativeAllianceProofFailure(operation, captured);
 		}
-		final ManagedAllianceSet managed = managedAllianceSet(actor, actorClan, current.identity(), metadata, goal.validSources());
-		if (!managed.complete() || !captured.proof().memberEpochs().stream().map(MembershipEpoch::clanId).toList().equals(managed.clanIds()))
+		final List<Integer> proofClanIds = captured.proof().memberEpochs().stream().map(MembershipEpoch::clanId).toList();
+		final ManagedAllianceSet managed = managedAllianceSet(actor, actorClan, current.identity(), metadata, goal.validSources(), proofClanIds);
+		if (!managed.complete() || !proofClanIds.equals(managed.clanIds()))
 		{
 			return result(OperationStatus.WAITING, "clan.alliance.dissolve.membership_proof_mismatch", null);
 		}
@@ -1178,6 +1179,12 @@ public final class PhantomClanService
 		final WarIdentity current = _backend.currentWar(peers.actor(), peers.peer()).orElse(null);
 		if (prior.sameGoal(goal, DiplomacyAction.WAR_PEACE) && (current == null))
 		{
+			if ((prior.phase() == DiplomacyPhase.PREPARED) && prior.evidenceHash().equals(sha256("war.peace.source|" + goal.goalId() + "|" + goal.revision() + "|" + prior.warId())))
+			{
+				final DiplomacyState completed = withPhase(prior, DiplomacyPhase.COMPLETED);
+				persistDiplomacy(peers.actor().profileId(), metadata, completed, goal.validSources());
+				return terminalize(operation, OperationStatus.COMPLETE, "clan.war.peace.source_reconciled", receipt(operation, peers.actorClan(), peers.actor(), peers.peer(), completed.warId()));
+			}
 			return prior.phase() == DiplomacyPhase.PREPARED ? completePreparedTerminal(operation, peers.actor(), peers.peer(), peers.actorClan(), metadata, prior, "agreement.fulfilled", "clan.war.peace.restart_reconciled") : completeRelation(operation, peers.actor(), peers.peer(), peers.actorClan(), metadata, prior, "agreement.fulfilled", "clan.war.peace.restart_reconciled");
 		}
 		if (current == null)
@@ -1192,6 +1199,10 @@ public final class PhantomClanService
 		if (!evidence.peacefulEnough())
 		{
 			return result(OperationStatus.WAITING, evidence.available() ? "clan.war.peace.hostility_hold" : "clan.war.peace.evidence_unavailable", null);
+		}
+		if (inverseSuppressed(prior, DiplomacyAction.WAR_PEACE, peers.peerClan().clanId()))
+		{
+			return result(OperationStatus.WAITING, "clan.diplomacy.hysteresis", null);
 		}
 		final ConsentKey reverseKey = new ConsentKey(peers.peerClan().clanId(), peers.actorClan().clanId());
 		final PeaceOffer offer = _peaceOffers.get(reverseKey);
@@ -1208,6 +1219,8 @@ public final class PhantomClanService
 				}
 				return result(OperationStatus.WAITING, "clan.war.peace.offer_pending", receipt(operation, peers.actorClan(), peers.actor(), peers.peer(), current.warId()));
 			}
+			final DiplomacyState sourcePrepared = diplomacy(goal, DiplomacyAction.WAR_PEACE, DiplomacyPhase.PREPARED, peers.peerClan().clanId(), null, 0, current.warId(), prior, sha256("war.peace.source|" + goal.goalId() + "|" + goal.revision() + "|" + current.warId()));
+			persistDiplomacy(peers.actor().profileId(), metadata, sourcePrepared, goal.validSources());
 			putBoundedOffer(_peaceOffers, key, new PeaceOffer(peers.actor(), peers.peer(), current, operation._identity, _advanceSequence, goal.deadlineEpochMillis()));
 			return result(OperationStatus.WAITING, "clan.war.peace.offer_published", receipt(operation, peers.actorClan(), peers.actor(), peers.peer(), current.warId()));
 		}
@@ -1215,10 +1228,6 @@ public final class PhantomClanService
 		{
 			_peaceOffers.remove(reverseKey, offer);
 			return result(OperationStatus.STALE, "clan.war.peace.offer_stale", null);
-		}
-		if (inverseSuppressed(prior, DiplomacyAction.WAR_PEACE, peers.peerClan().clanId()))
-		{
-			return result(OperationStatus.WAITING, "clan.diplomacy.hysteresis", null);
 		}
 		final DiplomacyState prepared = diplomacy(goal, DiplomacyAction.WAR_PEACE, DiplomacyPhase.PREPARED, peers.peerClan().clanId(), null, 0, current.warId(), prior, sha256("war.peace|" + offer.sourceGoal() + "|" + goal.goalId() + "|" + goal.revision() + "|" + current.warId()));
 		persistDiplomacy(peers.actor().profileId(), metadata, prepared, goal.validSources());
@@ -1570,24 +1579,29 @@ public final class PhantomClanService
 		return terminalize(operation, OperationStatus.COMPLETE, reason, receipt(operation, clan, actor, actor, diplomacy.allianceGeneration()));
 	}
 
-	private ManagedAllianceSet managedAllianceSet(MemberRef actor, ClanSnapshot actorClan, AllianceIdentity identity, OrganizationMetadata metadata, List<PhantomDomainRef> sources)
+	private ManagedAllianceSet managedAllianceSet(MemberRef actor, ClanSnapshot actorClan, AllianceIdentity identity, OrganizationMetadata metadata, List<PhantomDomainRef> sources, List<Integer> proofClanIds)
 	{
+		final Set<Integer> proof = Set.copyOf(proofClanIds);
 		final Map<Integer, MemberRef> members = new HashMap<>();
-		members.put(actorClan.clanId(), actor);
-		boolean complete = true;
+		if (proof.contains(actorClan.clanId()))
+		{
+			members.put(actorClan.clanId(), actor);
+		}
 		for (MemberRef member : managedRelations(actor, metadata, sources))
 		{
 			final ClanSnapshot clan = _backend.observe(member).orElse(null);
-			final AllianceObservation alliance = _backend.observeAlliance(member).orElse(null);
-			if ((clan == null) || (clan.leaderObjectId() != member.characterObjectId()) || (alliance == null) || !identity.equals(alliance.identity()))
+			if ((clan == null) || !proof.contains(clan.clanId()))
 			{
-				complete = false;
 				continue;
 			}
-			members.put(clan.clanId(), member);
+			final AllianceObservation alliance = _backend.observeAlliance(member).orElse(null);
+			if ((clan.leaderObjectId() == member.characterObjectId()) && (alliance != null) && identity.equals(alliance.identity()))
+			{
+				members.put(clan.clanId(), member);
+			}
 		}
 		final List<Integer> clanIds = members.keySet().stream().sorted().toList();
-		return new ManagedAllianceSet(complete, clanIds, members);
+		return new ManagedAllianceSet(members.keySet().equals(proof), clanIds, members);
 	}
 
 	private List<MemberRef> managedRelations(MemberRef actor, OrganizationMetadata metadata, List<PhantomDomainRef> sources)
