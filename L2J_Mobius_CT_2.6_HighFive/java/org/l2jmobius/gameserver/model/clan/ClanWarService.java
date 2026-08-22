@@ -53,6 +53,7 @@ public final class ClanWarService
 		ALLIED_TARGET,
 		TARGET_REQUIREMENTS,
 		TARGET_DISSOLVING,
+		CLAN_RETIRING,
 		ALREADY_ACTIVE,
 		NOT_AT_WAR,
 		ATTACK_STANCE,
@@ -194,11 +195,15 @@ public final class ClanWarService
 			ClanSocialMutationFence.clanKey(actor.clanId()),
 			ClanSocialMutationFence.clanKey(targetClanId)
 		};
-		return _fence.execute(keys, () -> declareLocked(actor, targetClanName));
+		return _fence.execute(keys, () -> declareLocked(actor, targetClanName, targetClanId));
 	}
 
-	private Result declareLocked(Actor actor, String targetClanName)
+	private Result declareLocked(Actor actor, String targetClanName, int expectedTargetClanId)
 	{
+		if (_fence.isRetiring(actor.clanId()) || _fence.isRetiring(expectedTargetClanId))
+		{
+			return ineligible(Reason.CLAN_RETIRING);
+		}
 		if (actor.objectId() <= 0)
 		{
 			return ineligible(Reason.ACTOR_NOT_FOUND);
@@ -220,6 +225,10 @@ public final class ClanWarService
 		if (target == null)
 		{
 			return ineligible(Reason.TARGET_NOT_FOUND);
+		}
+		if (target.clanId() != expectedTargetClanId)
+		{
+			return stale();
 		}
 		if (source.clanId() == target.clanId())
 		{
@@ -260,6 +269,10 @@ public final class ClanWarService
 		};
 		return _fence.execute(keys, () ->
 		{
+			if (_fence.isRetiring(sourceClanId) || _fence.isRetiring(targetClanId))
+			{
+				return ineligible(Reason.CLAN_RETIRING);
+			}
 			final ClanSnapshot source = _state.clan(sourceClanId);
 			final ClanSnapshot target = _state.clan(targetClanId);
 			if (source == null)
@@ -338,6 +351,10 @@ public final class ClanWarService
 		};
 		return _fence.execute(keys, () ->
 		{
+			if (_fence.isRetiring(actor.clanId()) || _fence.isRetiring(targetClanId))
+			{
+				return ineligible(Reason.CLAN_RETIRING);
+			}
 			if (actor.objectId() <= 0)
 			{
 				return ineligible(Reason.ACTOR_NOT_FOUND);
@@ -388,18 +405,26 @@ public final class ClanWarService
 			}
 		});
 	}
-	public Result removeAllForClan(int clanId)
+	public Result removeAllForClan(ClanSocialMutationFence.Retirement retirement)
 	{
+		if (retirement == null)
+		{
+			return stale();
+		}
+		final int clanId = retirement.clanId();
 		for (int attempt = 0; attempt < 3; attempt++)
 		{
 			final List<WarIdentity> observed = warsForClan(clanId);
-			if (observed.isEmpty())
+			final long[] keys = observed.isEmpty() ? new long[]
 			{
-				return success(null);
-			}
-			final long[] keys = observed.stream().flatMapToLong(war -> java.util.stream.LongStream.of(ClanSocialMutationFence.clanKey(war.sourceClanId()), ClanSocialMutationFence.clanKey(war.targetClanId()))).distinct().toArray();
+				ClanSocialMutationFence.clanKey(clanId)
+			} : observed.stream().flatMapToLong(war -> java.util.stream.LongStream.of(ClanSocialMutationFence.clanKey(war.sourceClanId()), ClanSocialMutationFence.clanKey(war.targetClanId()))).distinct().toArray();
 			final Result result = _fence.execute(keys, () ->
 			{
+				if (!_fence.isCurrentRetirement(retirement))
+				{
+					return stale();
+				}
 				final List<WarIdentity> current = warsForClan(clanId);
 				if (!sameWarIds(observed, current))
 				{

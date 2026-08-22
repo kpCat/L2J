@@ -51,6 +51,7 @@ public final class ClanAllianceService
 		CLAN_LEVEL_TOO_LOW,
 		DISSOLUTION_PENALTY,
 		CLAN_DISSOLVING,
+		CLAN_RETIRING,
 		INVALID_NAME,
 		INVALID_NAME_LENGTH,
 		NAME_EXISTS,
@@ -209,6 +210,10 @@ public final class ClanAllianceService
 
 	private Result createLocked(Actor actor, String allianceName)
 	{
+		if (_fence.isRetiring(actor.clanId()))
+		{
+			return ineligible(Reason.CLAN_RETIRING);
+		}
 		if (actor.objectId() <= 0)
 		{
 			return ineligible(Reason.ACTOR_NOT_FOUND);
@@ -255,8 +260,9 @@ public final class ClanAllianceService
 		try
 		{
 			final long generation = _persistence.createAlliance(clan.clanId(), clan.allianceGeneration(), clan.allianceGenerationCounter(), allianceName.trim());
+			final long nextEpoch = Math.addExact(clan.allianceGenerationCounter(), 1);
 			final AllianceIdentity identity = new AllianceIdentity(clan.clanId(), generation);
-			_state.apply(new AllianceState(clan.clanId(), clan.clanId(), allianceName.trim(), generation, generation, clan.allianceCrestId(), 0, 0));
+			_state.apply(new AllianceState(clan.clanId(), clan.clanId(), allianceName.trim(), generation, nextEpoch, clan.allianceCrestId(), 0, 0));
 			return success(identity);
 		}
 		catch (ClanSocialRepository.StaleStateException | ArithmeticException e)
@@ -332,6 +338,10 @@ public final class ClanAllianceService
 	}
 	private Result validateInviteLocked(Actor inviter, Actor target)
 	{
+		if (_fence.isRetiring(inviter.clanId()) || _fence.isRetiring(target.clanId()))
+		{
+			return ineligible(Reason.CLAN_RETIRING);
+		}
 		if (inviter.objectId() <= 0)
 		{
 			return ineligible(Reason.ACTOR_NOT_FOUND);
@@ -416,6 +426,10 @@ public final class ClanAllianceService
 		};
 		return _fence.execute(keys, () ->
 		{
+			if (_fence.isRetiring(actor.clanId()) || _fence.isRetiring(observedLeader))
+			{
+				return ineligible(Reason.CLAN_RETIRING);
+			}
 			if (actor.objectId() <= 0)
 			{
 				return ineligible(Reason.ACTOR_NOT_FOUND);
@@ -475,6 +489,10 @@ public final class ClanAllianceService
 		};
 		return _fence.execute(keys, () ->
 		{
+			if (_fence.isRetiring(actor.clanId()) || _fence.isRetiring(targetClanId))
+			{
+				return ineligible(Reason.CLAN_RETIRING);
+			}
 			final ClanSnapshot leader = _state.clan(actor.clanId());
 			if (leader == null)
 			{
@@ -553,6 +571,10 @@ public final class ClanAllianceService
 
 	private Result dissolveLocked(Actor actor, AllianceIdentity expectedIdentity, List<ClanSnapshot> observed)
 	{
+		if (_fence.isRetiring(actor.clanId()))
+		{
+			return ineligible(Reason.CLAN_RETIRING);
+		}
 		final ClanSnapshot leader = _state.clan(actor.clanId());
 		if (leader == null)
 		{
@@ -575,6 +597,10 @@ public final class ClanAllianceService
 			return ineligible(Reason.ACTOR_IN_SIEGE);
 		}
 		final List<ClanSnapshot> current = sorted(_state.allies(leader.allianceId()));
+		if (current.stream().anyMatch(member -> _fence.isRetiring(member.clanId())))
+		{
+			return ineligible(Reason.CLAN_RETIRING);
+		}
 		if (!sameAllianceMembers(observed, current, expectedIdentity))
 		{
 			return ineligible(Reason.CONCURRENT_CHANGE);
@@ -612,6 +638,103 @@ public final class ClanAllianceService
 			return persistenceFailure();
 		}
 	}
+
+	public Result removeAllForClan(ClanSocialMutationFence.Retirement retirement)
+	{
+		if (retirement == null)
+		{
+			return stale();
+		}
+		final int clanId = retirement.clanId();
+		for (int attempt = 0; attempt < 3; attempt++)
+		{
+			final ClanSnapshot observedClan = _state.clan(clanId);
+			if (observedClan == null)
+			{
+				return ineligible(Reason.CLAN_NOT_FOUND);
+			}
+			final List<ClanSnapshot> observed = observedClan.allianceId() == 0 ? List.of(observedClan) : sorted(_state.allies(observedClan.allianceId()));
+			final long[] keys = observed.stream().mapToLong(member -> ClanSocialMutationFence.clanKey(member.clanId())).toArray();
+			final long[] effectiveKeys = keys.length == 0 ? new long[]
+			{
+				ClanSocialMutationFence.clanKey(clanId)
+			} : keys;
+			final Result result = _fence.execute(effectiveKeys, () -> removeAllForClanLocked(retirement, observedClan, observed));
+			if (result.reason() != Reason.CONCURRENT_CHANGE)
+			{
+				return result;
+			}
+		}
+		return ineligible(Reason.CONCURRENT_CHANGE);
+	}
+
+	private Result removeAllForClanLocked(ClanSocialMutationFence.Retirement retirement, ClanSnapshot observedClan, List<ClanSnapshot> observed)
+	{
+		if (!_fence.isCurrentRetirement(retirement))
+		{
+			return stale();
+		}
+		final ClanSnapshot currentClan = _state.clan(retirement.clanId());
+		if (currentClan == null)
+		{
+			return ineligible(Reason.CLAN_NOT_FOUND);
+		}
+		if (currentClan.allianceId() == 0)
+		{
+			return success(null);
+		}
+		if (!Objects.equals(currentClan.membershipEpoch(), observedClan.membershipEpoch()))
+		{
+			return ineligible(Reason.CONCURRENT_CHANGE);
+		}
+		final AllianceIdentity identity = currentClan.identity();
+		try
+		{
+			if (currentClan.clanId() == currentClan.allianceId())
+			{
+				final List<ClanSnapshot> current = sorted(_state.allies(currentClan.allianceId()));
+				if (!sameAllianceMembers(observed, current, identity))
+				{
+					return ineligible(Reason.CONCURRENT_CHANGE);
+				}
+				final Map<Integer, Long> memberEpochs = new LinkedHashMap<>();
+				for (ClanSnapshot member : current)
+				{
+					memberEpochs.put(member.clanId(), member.allianceGenerationCounter());
+				}
+				_persistence.dissolveAlliance(currentClan.clanId(), currentClan.allianceId(), currentClan.allianceGeneration(), memberEpochs, 0);
+				final List<Integer> memberIds = current.stream().map(ClanSnapshot::clanId).toList();
+				for (ClanSnapshot member : current)
+				{
+					final boolean allianceLeader = member.clanId() == currentClan.clanId();
+					_state.apply(new AllianceState(member.clanId(), 0, null, 0, Math.addExact(member.allianceGenerationCounter(), 1), 0, 0, allianceLeader ? Clan.PENALTY_TYPE_DISSOLVE_ALLY : 0));
+					notifySafely("retiring alliance member broadcast", () -> _state.broadcastUserInfo(member.clanId()));
+				}
+				if (currentClan.allianceCrestId() != 0)
+				{
+					notifySafely("retiring alliance crest cleanup", () -> _state.removeCrest(currentClan.allianceCrestId()));
+				}
+				notifySafely("retiring alliance dissolve broadcast", () -> _state.broadcastDissolved(memberIds));
+			}
+			else
+			{
+				final long nextEpoch = Math.addExact(currentClan.allianceGenerationCounter(), 1);
+				_persistence.repairOrphanAlliance(currentClan.clanId(), currentClan.allianceId(), currentClan.allianceGeneration(), currentClan.allianceGenerationCounter());
+				_state.apply(new AllianceState(currentClan.clanId(), 0, null, 0, nextEpoch, 0, currentClan.alliancePenaltyExpiryTime(), currentClan.alliancePenaltyType()));
+				notifySafely("retiring alliance member cleanup", () -> _state.broadcastUserInfo(currentClan.clanId()));
+			}
+			return success(identity);
+		}
+		catch (ClanSocialRepository.StaleStateException | ArithmeticException e)
+		{
+			return stale();
+		}
+		catch (SQLException e)
+		{
+			return persistenceFailure();
+		}
+	}
+
 	public Result changeCrest(Player player, int crestId)
 	{
 		final Actor actor = actor(player);
@@ -636,6 +759,10 @@ public final class ClanAllianceService
 
 	private Result changeCrestLocked(Actor actor, int crestId, AllianceIdentity expectedIdentity, List<ClanSnapshot> observed)
 	{
+		if (_fence.isRetiring(actor.clanId()))
+		{
+			return ineligible(Reason.CLAN_RETIRING);
+		}
 		final ClanSnapshot leader = _state.clan(actor.clanId());
 		if ((leader == null) || !actor.clanLeader() || (leader.clanId() != leader.allianceId()))
 		{
@@ -646,6 +773,10 @@ public final class ClanAllianceService
 			return stale();
 		}
 		final List<ClanSnapshot> current = sorted(_state.allies(leader.allianceId()));
+		if (current.stream().anyMatch(member -> _fence.isRetiring(member.clanId())))
+		{
+			return ineligible(Reason.CLAN_RETIRING);
+		}
 		if (!sameAllianceMembers(observed, current, expectedIdentity))
 		{
 			return ineligible(Reason.CONCURRENT_CHANGE);
@@ -687,6 +818,10 @@ public final class ClanAllianceService
 			ClanSocialMutationFence.clanKey(clan.getId())
 		}, () ->
 		{
+			if (_fence.isRetiring(clan.getId()))
+			{
+				return ineligible(Reason.CLAN_RETIRING);
+			}
 			final ClanSnapshot current = _state.clan(clan.getId());
 			if (current == null)
 			{
@@ -722,6 +857,10 @@ public final class ClanAllianceService
 			ClanSocialMutationFence.clanKey(clan.getAllyId())
 		}, () ->
 		{
+			if (_fence.isRetiring(clan.getId()) || _fence.isRetiring(clan.getAllyId()))
+			{
+				return ineligible(Reason.CLAN_RETIRING);
+			}
 			final ClanSnapshot current = state.clan(clan.getId());
 			if ((current == null) || (current.allianceId() == 0) || (current.clanId() == current.allianceId()) || (clanTable.getClan(current.allianceId()) != null))
 			{

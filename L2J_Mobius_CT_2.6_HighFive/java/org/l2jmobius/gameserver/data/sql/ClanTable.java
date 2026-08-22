@@ -46,6 +46,7 @@ import org.l2jmobius.gameserver.managers.SiegeManager;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.clan.Clan;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
+import org.l2jmobius.gameserver.model.clan.ClanSocialMutationFence;
 import org.l2jmobius.gameserver.model.clan.ClanWarService;
 import org.l2jmobius.gameserver.model.clan.ClanMember;
 import org.l2jmobius.gameserver.model.clan.ClanPrivileges;
@@ -248,12 +249,28 @@ public class ClanTable
 			return;
 		}
 		
-		final ClanWarService.Result warRemoval = ClanWarService.getInstance().removeAllForClan(clanId);
-		if (warRemoval.status() != ClanWarService.Status.SUCCESS)
+		final ClanSocialMutationFence socialFence = ClanSocialMutationFence.getInstance();
+		final ClanSocialMutationFence.Retirement retirement = socialFence.beginRetirement(clanId);
+		if (retirement == null)
 		{
-			LOGGER.severe(getClass().getSimpleName() + ": Clan destruction aborted because clan wars could not be removed durably for clan " + clanId + ".");
+			LOGGER.warning(getClass().getSimpleName() + ": Clan destruction is already in progress for clan " + clanId + ".");
 			return;
 		}
+		boolean retirementCompleted = false;
+		try
+		{
+			final ClanAllianceService.Result allianceRemoval = ClanAllianceService.getInstance().removeAllForClan(retirement);
+			if (allianceRemoval.status() != ClanAllianceService.Status.SUCCESS)
+			{
+				LOGGER.severe(getClass().getSimpleName() + ": Clan destruction aborted because alliance state could not be removed durably for clan " + clanId + ".");
+				return;
+			}
+			final ClanWarService.Result warRemoval = ClanWarService.getInstance().removeAllForClan(retirement);
+			if (warRemoval.status() != ClanWarService.Status.SUCCESS)
+			{
+				LOGGER.severe(getClass().getSimpleName() + ": Clan destruction aborted because clan wars could not be removed durably for clan " + clanId + ".");
+				return;
+			}
 
 		clan.broadcastToOnlineMembers(new SystemMessage(SystemMessageId.CLAN_HAS_DISPERSED));
 		final int castleId = clan.getCastleId();
@@ -296,9 +313,6 @@ public class ClanTable
 		{
 			clan.removeClanMember(member.getObjectId(), 0);
 		}
-		
-		_clans.remove(clanId);
-		IdManager.getInstance().releaseId(clanId);
 		
 		try (Connection con = DatabaseFactory.getConnection())
 		{
@@ -362,12 +376,34 @@ public class ClanTable
 		catch (Exception e)
 		{
 			LOGGER.log(Level.SEVERE, getClass().getSimpleName() + ": Error removing clan from DB.", e);
+			return;
 		}
+
+		if (!_clans.remove(clanId, clan))
+		{
+			LOGGER.severe(getClass().getSimpleName() + ": Clan destruction aborted because the live clan registry changed for clan " + clanId + ".");
+			return;
+		}
+		if (!socialFence.completeRetirement(retirement))
+		{
+			LOGGER.severe(getClass().getSimpleName() + ": Clan destruction could not complete the social retirement fence for clan " + clanId + ".");
+			return;
+		}
+		retirementCompleted = true;
+		IdManager.getInstance().releaseId(clanId);
 		
 		// Notify to scripts
 		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_CLAN_DESTROY))
 		{
 			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerClanDestroy(leaderMember, clan));
+		}
+		}
+		finally
+		{
+			if (!retirementCompleted)
+			{
+				socialFence.abortRetirement(retirement);
+			}
 		}
 	}
 	

@@ -329,7 +329,7 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(warService.contains("notifySafely") && warService.contains("notifyWarStarted") && warService.contains("notifyWarEnded") && allianceService.contains("notifySafely"), "Post-commit notifications are not isolated from typed durable success.");
 	}
 
-	private static void createOldSchemaFixture(Connection connection, Path moduleRoot) throws Exception
+	static void createOldSchemaFixture(Connection connection, Path moduleRoot) throws Exception
 	{
 		final Path clanDataFile = moduleRoot.resolve("dist/db_installer/sql/game/clan_data.sql");
 		final Path clanWarsFile = moduleRoot.resolve("dist/db_installer/sql/game/clan_wars.sql");
@@ -355,13 +355,13 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		StrictSqlScriptRunner.execute(connection, List.of(script(clanDataFile, moduleRoot, oldClanData.toString()), script(clanWarsFile, moduleRoot, oldClanWars.toString())));
 	}
 
-	private static void seedOldSchemaFixture(Connection connection) throws SQLException
+	static void seedOldSchemaFixture(Connection connection) throws SQLException
 	{
 		execute(connection, "INSERT INTO `clan_data` (`clan_id`,`clan_name`,`clan_level`,`ally_id`,`ally_name`,`leader_id`) VALUES (1,'AlphaClan',5,1,'Alpha',101),(2,'BetaClan',5,1,'Alpha',102),(3,'GammaClan',5,0,NULL,103),(4,'DeltaClan',5,4,'Delta',104)");
 		execute(connection, "INSERT INTO `clan_wars` (`clan1`,`clan2`,`wantspeace1`,`wantspeace2`) VALUES ('1','2',1,0),('2','1',0,1),('3','4',1,1)");
 	}
 
-	private static void applyExactMigration(Connection connection, Path moduleRoot, Path migrationFile) throws Exception
+	static void applyExactMigration(Connection connection, Path moduleRoot, Path migrationFile) throws Exception
 	{
 		final String content = Files.readString(migrationFile);
 		PhantomAssertions.assertTrue(content.contains("manual one-shot upgrade") && content.contains("apply this file exactly once"), "027C upgrade artifact no longer declares its one-shot convention.");
@@ -514,13 +514,13 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(warTwo, restarted.currentWar(10, 20).orElseThrow().warId(), "Stale MariaDB W1 replay changed W2 registry identity.");
 		PhantomAssertions.assertTrue(restarted.stop(leader, 20, warTwo).successful(), "MariaDB W2 cleanup failed.");
 	}
-	private static void restoreFreshSchemaTables(Connection connection) throws SQLException
+	static void restoreFreshSchemaTables(Connection connection) throws SQLException
 	{
-		execute(connection, "DROP TABLE IF EXISTS `clan_data`, `clan_wars`");
-		execute(connection, "RENAME TABLE `clan_data_027c_backup` TO `clan_data`, `clan_wars_027c_backup` TO `clan_wars`");
+		execute(connection, "DROP TABLE IF EXISTS `clan_data`, `clan_wars`, `clan_social_identity`");
+		execute(connection, "RENAME TABLE `clan_data_027c_backup` TO `clan_data`, `clan_wars_027c_backup` TO `clan_wars`, `clan_social_identity_027c_backup` TO `clan_social_identity`");
 	}
 
-	private static boolean tableExists(Connection connection, String table) throws SQLException
+	static boolean tableExists(Connection connection, String table) throws SQLException
 	{
 		try (var statement = connection.prepareStatement("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?"))
 		{
@@ -532,7 +532,7 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		}
 	}
 
-	private static int scalarInt(Connection connection, String sql) throws SQLException
+	static int scalarInt(Connection connection, String sql) throws SQLException
 	{
 		try (Statement statement = connection.createStatement(); ResultSet result = statement.executeQuery(sql))
 		{
@@ -540,7 +540,7 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		}
 	}
 
-	private static String scalarString(Connection connection, String sql) throws SQLException
+	static String scalarString(Connection connection, String sql) throws SQLException
 	{
 		try (Statement statement = connection.createStatement(); ResultSet result = statement.executeQuery(sql))
 		{
@@ -548,7 +548,15 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		}
 	}
 
-	private static void execute(Connection connection, String sql) throws SQLException
+	static long scalarLong(Connection connection, String sql) throws SQLException
+	{
+		try (Statement statement = connection.createStatement(); ResultSet result = statement.executeQuery(sql))
+		{
+			return result.next() ? result.getLong(1) : -1;
+		}
+	}
+
+	static void execute(Connection connection, String sql) throws SQLException
 	{
 		try (Statement statement = connection.createStatement())
 		{
@@ -582,12 +590,13 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		try (Connection connection = DatabaseFactory.getConnection())
 		{
 			PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, scalarString(connection, "SELECT DATABASE()"), "Migration rehearsal escaped the allowlisted test database.");
-			PhantomAssertions.assertFalse(tableExists(connection, "clan_data_027c_backup") || tableExists(connection, "clan_wars_027c_backup"), "Previous migration rehearsal backup tables remain; guarded provisioning is required.");
+			PhantomAssertions.assertFalse(tableExists(connection, "clan_data_027c_backup") || tableExists(connection, "clan_wars_027c_backup") || tableExists(connection, "clan_social_identity_027c_backup"), "Previous migration rehearsal backup tables remain; guarded provisioning is required.");
 			final int originalClanRows = scalarInt(connection, "SELECT COUNT(*) FROM `clan_data`");
 			final int originalWarRows = scalarInt(connection, "SELECT COUNT(*) FROM `clan_wars`");
+			final long originalAllianceHighWater = scalarLong(connection, "SELECT `high_water` FROM `clan_social_identity` WHERE `identity_name`='alliance_incarnation'");
 			try
 			{
-				execute(connection, "RENAME TABLE `clan_data` TO `clan_data_027c_backup`, `clan_wars` TO `clan_wars_027c_backup`");
+				execute(connection, "RENAME TABLE `clan_data` TO `clan_data_027c_backup`, `clan_wars` TO `clan_wars_027c_backup`, `clan_social_identity` TO `clan_social_identity_027c_backup`");
 				backupsCreated = true;
 				createOldSchemaFixture(connection, context.moduleRoot());
 				seedOldSchemaFixture(connection);
@@ -600,6 +609,7 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(4, clans.size(), "027C migration lost clan_data rows.");
 				PhantomAssertions.assertEquals(3, wars.size(), "027C migration lost clan_wars rows.");
 				verifyMigratedAllianceRows(clans);
+				PhantomAssertions.assertEquals(1L, scalarLong(connection, "SELECT `high_water` FROM `clan_social_identity` WHERE `identity_name`='alliance_incarnation'"), "027C migration did not initialize the durable alliance high-water.");
 				verifyMigratedWarRows(wars);
 				verifyMigrationKeys(connection);
 				verifyCanonicalRestore(clans, wars);
@@ -614,10 +624,11 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 			}
 			PhantomAssertions.assertEquals(originalClanRows, scalarInt(connection, "SELECT COUNT(*) FROM `clan_data`"), "Rehearsal did not restore original fresh clan_data.");
 			PhantomAssertions.assertEquals(originalWarRows, scalarInt(connection, "SELECT COUNT(*) FROM `clan_wars`"), "Rehearsal did not restore original fresh clan_wars.");
+			PhantomAssertions.assertEquals(originalAllianceHighWater, scalarLong(connection, "SELECT `high_water` FROM `clan_social_identity` WHERE `identity_name`='alliance_incarnation'"), "Rehearsal did not restore original alliance high-water.");
 		}
 	}
 
-	private static ClanAllianceService.Result joinWithCurrentEpoch(ClanAllianceService service, Actor inviter, Actor target, AllianceIdentity identity)
+	static ClanAllianceService.Result joinWithCurrentEpoch(ClanAllianceService service, Actor inviter, Actor target, AllianceIdentity identity)
 	{
 		final ClanAllianceService.Result permit = service.checkInvite(inviter, target);
 		if (!permit.successful())
@@ -626,12 +637,12 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		}
 		return service.join(inviter, target, identity, permit.targetEpoch());
 	}
-	private static ClanAllianceService allianceService(ClanSocialPersistence persistence, ClanAllianceService.StateAccess state)
+	static ClanAllianceService allianceService(ClanSocialPersistence persistence, ClanAllianceService.StateAccess state)
 	{
 		return new ClanAllianceService(persistence, state, new ClanSocialMutationFence(16), () -> NOW, true);
 	}
 
-	private static ClanWarService warService(ClanSocialPersistence persistence, ClanWarService.StateAccess state)
+	static ClanWarService warService(ClanSocialPersistence persistence, ClanWarService.StateAccess state)
 	{
 		return new ClanWarService(persistence, state, new ClanSocialMutationFence(16), () -> NOW, true);
 	}
@@ -673,7 +684,7 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		return sources;
 	}
 
-	private static final class AllianceStateAccess implements ClanAllianceService.StateAccess
+	static final class AllianceStateAccess implements ClanAllianceService.StateAccess
 	{
 		private final Map<Integer, ClanSnapshot> _clans = new HashMap<>();
 		private boolean failNotifications;
@@ -764,12 +775,15 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		}
 	}
 
-	private static final class WarStateAccess implements ClanWarService.StateAccess
+	static final class WarStateAccess implements ClanWarService.StateAccess
 	{
 		private final Map<Integer, ClanWarService.ClanSnapshot> _clans = new HashMap<>();
 		private final Set<String> _active = new HashSet<>();
 		private boolean attackStance;
 		private boolean failNotifications;
+		private String _rebindName;
+		private int _rebindTargetClanId;
+		private int _nameLookups;
 
 		static WarStateAccess standard()
 		{
@@ -791,9 +805,20 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 			return _clans.get(clanId);
 		}
 
+		void rebindOnSecondLookup(String clanName, int targetClanId)
+		{
+			_rebindName = clanName;
+			_rebindTargetClanId = targetClanId;
+			_nameLookups = 0;
+		}
+
 		@Override
 		public ClanWarService.ClanSnapshot clanByName(String clanName)
 		{
+			if ((_rebindName != null) && _rebindName.equalsIgnoreCase(clanName) && (++_nameLookups == 2))
+			{
+				return _clans.get(_rebindTargetClanId);
+			}
 			return _clans.values().stream().filter(clan -> clan.clanName().equalsIgnoreCase(clanName)).findFirst().orElse(null);
 		}
 
@@ -846,10 +871,11 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		}
 	}
 
-	private static final class FakePersistence implements ClanSocialPersistence
+	static final class FakePersistence implements ClanSocialPersistence
 	{
 		private final Map<Integer, DurableAlliance> _alliances = new HashMap<>();
 		private final Map<String, ClanSocialRepository.WarRow> _wars = new HashMap<>();
+		private long _nextAllianceGeneration = 1;
 		private long _nextWarId = 100;
 		private boolean failAllianceWrites;
 		private boolean failWarCreate;
@@ -894,8 +920,9 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 			{
 				throw new StaleStateException("create changed");
 			}
-			final long generation = expectedGenerationCounter + 1;
-			_alliances.put(leaderClanId, new DurableAlliance(leaderClanId, leaderClanId, allianceName, generation, generation, current.crestId(), 0, 0));
+			final long generation = _nextAllianceGeneration++;
+			final long nextEpoch = Math.addExact(expectedGenerationCounter, 1);
+			_alliances.put(leaderClanId, new DurableAlliance(leaderClanId, leaderClanId, allianceName, generation, nextEpoch, current.crestId(), 0, 0));
 			return generation;
 		}
 

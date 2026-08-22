@@ -35,6 +35,8 @@ interface ClanSocialPersistence
 }
 final class ClanSocialRepository implements ClanSocialPersistence
 {
+	private static final String ALLIANCE_INCARNATION_SEQUENCE = "alliance_incarnation";
+
 	record WarRow(long warId, int sourceClanId, int targetClanId)
 	{
 		WarRow
@@ -79,15 +81,21 @@ final class ClanSocialRepository implements ClanSocialPersistence
 	@Override
 	public long createAlliance(int leaderClanId, long expectedGeneration, long expectedGenerationCounter, String allianceName) throws SQLException, StaleStateException
 	{
-		final long nextGeneration = Math.addExact(expectedGenerationCounter, 1);
 		return write(connection ->
 		{
+			final AllianceRow current = lockClanRow(connection, leaderClanId);
+			if ((current.allianceId() != 0) || (current.generation() != expectedGeneration) || (current.generationCounter() != expectedGenerationCounter))
+			{
+				throw new StaleStateException("Leader clan alliance state changed before create.");
+			}
+			final long nextGeneration = allocateAllianceIncarnation(connection);
+			final long nextEpoch = Math.addExact(expectedGenerationCounter, 1);
 			try (PreparedStatement statement = connection.prepareStatement("UPDATE clan_data SET ally_id=?, ally_name=?, ally_generation=?, ally_generation_counter=?, ally_penalty_expiry_time=0, ally_penalty_type=0 WHERE clan_id=? AND ally_id=0 AND ally_generation=? AND ally_generation_counter=?"))
 			{
 				statement.setInt(1, leaderClanId);
 				statement.setString(2, allianceName);
 				statement.setLong(3, nextGeneration);
-				statement.setLong(4, nextGeneration);
+				statement.setLong(4, nextEpoch);
 				statement.setInt(5, leaderClanId);
 				statement.setLong(6, expectedGeneration);
 				statement.setLong(7, expectedGenerationCounter);
@@ -95,6 +103,36 @@ final class ClanSocialRepository implements ClanSocialPersistence
 			}
 			return nextGeneration;
 		});
+	}
+
+	private static long allocateAllianceIncarnation(Connection connection) throws SQLException, StaleStateException
+	{
+		final long highWater;
+		try (PreparedStatement statement = connection.prepareStatement("SELECT high_water FROM clan_social_identity WHERE identity_name=? FOR UPDATE"))
+		{
+			statement.setString(1, ALLIANCE_INCARNATION_SEQUENCE);
+			try (ResultSet result = statement.executeQuery())
+			{
+				if (!result.next())
+				{
+					throw new SQLException("Alliance incarnation allocator row is missing.");
+				}
+				highWater = result.getLong("high_water");
+			}
+		}
+		if (highWater == Long.MAX_VALUE)
+		{
+			throw new SQLException("Alliance incarnation allocator is exhausted.");
+		}
+		final long next = highWater + 1;
+		try (PreparedStatement statement = connection.prepareStatement("UPDATE clan_social_identity SET high_water=? WHERE identity_name=? AND high_water=?"))
+		{
+			statement.setLong(1, next);
+			statement.setString(2, ALLIANCE_INCARNATION_SEQUENCE);
+			statement.setLong(3, highWater);
+			requireSingleRow(statement.executeUpdate(), "allocate alliance incarnation");
+		}
+		return next;
 	}
 
 	@Override
