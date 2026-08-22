@@ -34,13 +34,13 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector.Candida
 /**
  * Fixed-capacity structured decision trace for one explicitly selected profile.
  */
-public final class PhantomSelectedDecisionTrace
+public final class PhantomSelectedDecisionTrace implements PhantomDecisionEngine.DecisionObserver
 {
 	public static final int MAX_CAPACITY = 64;
 	private final boolean _enabled;
 	private final int _capacity;
 	private final DecisionView[] _entries;
-	private long _selectedProfileId;
+	private volatile long _selectedProfileId;
 	private long _recorded;
 	private long _dropped;
 	private int _start;
@@ -56,6 +56,23 @@ public final class PhantomSelectedDecisionTrace
 		_enabled = enabled;
 		_capacity = enabled ? capacity : 0;
 		_entries = enabled ? new DecisionView[capacity] : null;
+	}
+
+	@Override
+	public boolean interested(long profileId)
+	{
+		return isSelected(profileId);
+	}
+
+	public boolean isSelected(long profileId)
+	{
+		return _enabled && (profileId > 0) && (_selectedProfileId == profileId);
+	}
+
+	@Override
+	public void onDecision(PhantomActivityState activityState, RuntimeSnapshot snapshot)
+	{
+		observe(activityState, snapshot);
 	}
 
 	public synchronized SelectionStatus select(long profileId, RuntimeSnapshot current)

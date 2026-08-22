@@ -377,6 +377,17 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		{
 			return;
 		}
+		try
+		{
+			if (!_observer.interested(workItem.profileId()))
+			{
+				return;
+			}
+		}
+		catch (Throwable ignored)
+		{
+			return;
+		}
 		final RuntimeSnapshot snapshot;
 		synchronized (_monitor)
 		{
@@ -1148,6 +1159,11 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	@FunctionalInterface
 	public interface DecisionObserver
 	{
+		default boolean interested(long profileId)
+		{
+			return true;
+		}
+
 		void onDecision(PhantomActivityState activityState, RuntimeSnapshot snapshot);
 	}
 

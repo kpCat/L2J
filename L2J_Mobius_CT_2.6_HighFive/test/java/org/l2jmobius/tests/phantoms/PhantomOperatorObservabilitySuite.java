@@ -30,6 +30,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.xml.XMLConstants;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.SchemaFactory;
+
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.SelectionStatus;
@@ -66,7 +70,7 @@ public final class PhantomOperatorObservabilitySuite implements PhantomTestSuite
 		registry.add("02-diagnostics-disabled-has-zero-storage", _ -> testDisabledTrace());
 		registry.add("03-explicit-attached-selection-and-current-reason", _ -> testSelectionAndCurrent());
 		registry.add("04-single-profile-capacity-switch-and-clear", _ -> testCapacitySwitchAndClear());
-		registry.add("05-optional-observer-and-exception-isolation", _ -> testObserverSemantics());
+		registry.add("05-observer-prefilter-and-exception-isolation", this::testObserverSemantics);
 		registry.add("06-admin-family-access-and-privacy-contract", this::testAdminContract);
 	}
 
@@ -94,8 +98,11 @@ public final class PhantomOperatorObservabilitySuite implements PhantomTestSuite
 	private static void testSelectionAndCurrent()
 	{
 		final PhantomSelectedDecisionTrace trace = new PhantomSelectedDecisionTrace(true, 64);
+		PhantomAssertions.assertFalse(trace.interested(1), "Trace prefilter accepted a profile before explicit selection.");
 		PhantomAssertions.assertEquals(SelectionStatus.NOT_ATTACHED, trace.select(1, snapshot(2, 1)), "Mismatched attached snapshot was accepted.");
 		PhantomAssertions.assertEquals(SelectionStatus.SELECTED, trace.select(1, snapshot(1, 7)), "Attached profile was not selected.");
+		PhantomAssertions.assertTrue(trace.interested(1), "Trace prefilter rejected the selected profile.");
+		PhantomAssertions.assertFalse(trace.interested(2), "Trace prefilter accepted an unselected profile.");
 		final var selected = trace.snapshot();
 		PhantomAssertions.assertEquals(1L, selected.selectedProfileId(), "Selected profile id mismatch.");
 		PhantomAssertions.assertEquals(7L, selected.current().decisionSequence(), "Current reason view did not come from RuntimeSnapshot.");
@@ -128,12 +135,55 @@ public final class PhantomOperatorObservabilitySuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(0L, trace.snapshot().recorded(), "Clear retained counters.");
 	}
 
-	private static void testObserverSemantics()
+	private void testObserverSemantics(PhantomTestContext context) throws Exception
 	{
 		final EngineFixture legacy = fixture(null);
 		legacy.pulse();
 		PhantomAssertions.assertEquals(RuntimeState.NO_CANDIDATE, legacy.engine.find(1).orElseThrow().runtimeState(), "Legacy constructor path changed canonical decision.");
 		legacy.stop();
+
+		final AtomicInteger interestedCalls = new AtomicInteger();
+		final AtomicInteger filteredDecisionCalls = new AtomicInteger();
+		final EngineFixture filtered = fixture(new PhantomDecisionEngine.DecisionObserver()
+		{
+			@Override
+			public boolean interested(long profileId)
+			{
+				interestedCalls.incrementAndGet();
+				return false;
+			}
+
+			@Override
+			public void onDecision(PhantomActivityState activityState, RuntimeSnapshot snapshot)
+			{
+				filteredDecisionCalls.incrementAndGet();
+			}
+		});
+		filtered.pulse();
+		PhantomAssertions.assertEquals(1, interestedCalls.get(), "Observer prefilter was not called exactly once.");
+		PhantomAssertions.assertEquals(0, filteredDecisionCalls.get(), "Uninterested observer received an allocated RuntimeSnapshot callback.");
+		PhantomAssertions.assertEquals(1L, filtered.engine.find(1).orElseThrow().decisionSequence(), "Observer prefilter changed canonical decision sequence.");
+		filtered.stop();
+
+		final AtomicInteger rejectedDecisionCalls = new AtomicInteger();
+		final EngineFixture rejected = fixture(new PhantomDecisionEngine.DecisionObserver()
+		{
+			@Override
+			public boolean interested(long profileId)
+			{
+				throw new IllegalStateException("prefilter failure");
+			}
+
+			@Override
+			public void onDecision(PhantomActivityState activityState, RuntimeSnapshot snapshot)
+			{
+				rejectedDecisionCalls.incrementAndGet();
+			}
+		});
+		rejected.pulse();
+		PhantomAssertions.assertEquals(0, rejectedDecisionCalls.get(), "Observer callback ran after prefilter exception.");
+		PhantomAssertions.assertEquals(RuntimeState.NO_CANDIDATE, rejected.engine.find(1).orElseThrow().runtimeState(), "Observer prefilter exception changed canonical decision state.");
+		rejected.stop();
 
 		final AtomicInteger observerCalls = new AtomicInteger();
 		final EngineFixture observed = fixture((activityState, snapshot) ->
@@ -143,22 +193,34 @@ public final class PhantomOperatorObservabilitySuite implements PhantomTestSuite
 		});
 		observed.pulse();
 		final RuntimeSnapshot canonical = observed.engine.find(1).orElseThrow();
-		PhantomAssertions.assertEquals(1, observerCalls.get(), "Observer was not called exactly once for a meaningful pulse.");
+		PhantomAssertions.assertEquals(1, observerCalls.get(), "Source-compatible observer was not called exactly once for a meaningful pulse.");
 		PhantomAssertions.assertEquals(RuntimeState.NO_CANDIDATE, canonical.runtimeState(), "Observer exception changed canonical decision state.");
 		PhantomAssertions.assertEquals(1L, canonical.decisionSequence(), "Observer exception changed canonical decision sequence.");
 		observed.stop();
+
+		final String engineSource = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/decision/PhantomDecisionEngine.java"));
+		final int notifyStart = engineSource.indexOf("private void notifyObserver");
+		final int notifyEnd = engineSource.indexOf("public Optional<RuntimeSnapshot> find", notifyStart);
+		final String notifySource = engineSource.substring(notifyStart, notifyEnd);
+		final int prefilter = notifySource.indexOf("_observer.interested(workItem.profileId())");
+		final int observerLock = notifySource.indexOf("synchronized (_monitor)");
+		final int snapshotBuild = notifySource.indexOf("snapshotLocked(slot)");
+		PhantomAssertions.assertTrue((prefilter >= 0) && (prefilter < observerLock) && (prefilter < snapshotBuild), "Observer prefilter no longer precedes the observer snapshot lock/build path.");
 	}
 
 	private void testAdminContract(PhantomTestContext context) throws Exception
 	{
 		final String handler = Files.readString(context.moduleRoot().resolve("dist/game/data/scripts/handlers/chat/commands/admin/AdminPhantom.java"));
 		final String master = Files.readString(context.moduleRoot().resolve("dist/game/data/scripts/handlers/MasterHandler.java"));
-		final String access = Files.readString(context.moduleRoot().resolve("dist/game/config/AdminCommands.xml"));
+		final var accessPath = context.moduleRoot().resolve("dist/game/config/AdminCommands.xml");
+		final var schemaPath = context.moduleRoot().resolve("dist/game/data/xsd/AdminCommands.xsd");
+		final String access = Files.readString(accessPath);
+		SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI).newSchema(schemaPath.toFile()).newValidator().validate(new StreamSource(accessPath.toFile()));
 		final String trace = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/PhantomSelectedDecisionTrace.java"));
 		PhantomAssertions.assertTrue(handler.contains("\"admin_phantom\""), "Admin handler did not expose one native family.");
 		PhantomAssertions.assertTrue(handler.contains("//phantom status | //phantom trace <profileId> | //phantom trace clear"), "Admin usage contract drifted.");
 		PhantomAssertions.assertTrue(master.contains("AdminPhantom.class"), "MasterHandler did not register AdminPhantom.");
-		PhantomAssertions.assertTrue(access.contains("command=\"phantom\"") && access.contains("accessLevel=\"100\"") && access.contains("requireConfirm=\"false\""), "Phantom admin access contract is incomplete.");
+		PhantomAssertions.assertTrue(access.contains("command=\"phantom\"") && access.contains("accessLevel=\"100\"") && access.contains("confirmDlg=\"false\"") && !access.contains("requireConfirm="), "Phantom admin access contract is incomplete.");
 		PhantomAssertions.assertFalse(trace.contains("PhantomDomainRef") || trace.contains("Player") || trace.contains("Chat"), "Selected trace source admitted domain, player or chat payload types.");
 		PhantomAssertions.assertFalse(trace.contains("Thread") || trace.contains("Timer") || trace.contains("Scheduled") || trace.contains("poll("), "Selected trace introduced active polling or scheduling.");
 	}
