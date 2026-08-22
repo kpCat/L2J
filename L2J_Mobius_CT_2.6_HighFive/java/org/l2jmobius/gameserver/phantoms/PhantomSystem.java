@@ -431,7 +431,8 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
 				}
 				partyParticipation.install(_partyCoordinator);
-				_clanService = new PhantomClanService(productionGoals, new PhantomClanStore(productionProfiles), new L2jPhantomClanBackend(productionProfiles, _materializationService), System::currentTimeMillis);
+				final PhantomPvpPolicy pvpPolicy = PhantomPvpPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/pvp/pvp-policy-v1.xml").toPath());
+				_clanService = new PhantomClanService(productionGoals, new PhantomClanStore(productionProfiles), new L2jPhantomClanBackend(productionProfiles, _materializationService, _socialService, pvpPolicy), System::currentTimeMillis);
 				if (!_clanService.start())
 				{
 					throw new IllegalStateException("Phantom clan organization service could not enter the running state.");
@@ -472,7 +473,6 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom conversation service could not enter the running state.");
 				}
-				final PhantomPvpPolicy pvpPolicy = PhantomPvpPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/pvp/pvp-policy-v1.xml").toPath());
 				final PhantomPvpSocialBridge pvpSocial = new PhantomPvpSocialBridge(_socialService);
 				_pvpService = new PhantomPvpService(
 					pvpPolicy,

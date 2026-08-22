@@ -33,6 +33,7 @@ import org.l2jmobius.gameserver.model.clan.ClanAllianceMembershipProofGoal027ESu
 import org.l2jmobius.gameserver.model.clan.ClanSocialDomainGoal027CSuite;
 import org.l2jmobius.gameserver.model.clan.ClanSocialRetirementGoal027DSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomServerShutdownHandoffSuite;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanGoal027Checkpoint2Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerPerformanceSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomPopulationPerformanceSuite;
@@ -398,6 +399,7 @@ public final class PhantomTestLauncher
 			case "clan-social-domain-goal027c" -> new ClanSocialDomainGoal027CSuite();
 			case "clan-social-retirement-goal027d" -> new ClanSocialRetirementGoal027DSuite();
 			case "clan-alliance-membership-proof-goal027e" -> new ClanAllianceMembershipProofGoal027ESuite();
+			case "clan-checkpoint2-goal027" -> new PhantomClanGoal027Checkpoint2Suite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

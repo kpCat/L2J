@@ -66,6 +66,7 @@
 	<property name="phantom.goal026cp5.seed" value="26002652" />
 	<property name="phantom.goal026d.seed" value="26002653" />
 	<property name="phantom.goal027cp1.seed" value="27002701" />
+	<property name="phantom.goal027cp2.seed" value="27002702" />
 	<property name="phantom.goal027a.seed" value="27002711" />
 	<property name="phantom.goal027b.seed" value="27002712" />
 	<property name="phantom.goal027c.seed" value="27002730" />
@@ -3082,6 +3083,14 @@
 			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
 			<arg value="clan-alliance-membership-proof-goal027e" />
 			<arg value="${phantom.goal027e.seed}" />
+		</java>
+	</target>
+	<target name="phantom-clan-checkpoint2-goal027-test" depends="compile-tests" description="Run Goal 027 CP2 alliance, war and diplomacy focused scenarios.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="clan-checkpoint2-goal027" />
+			<arg value="${phantom.goal027cp2.seed}" />
 		</java>
 	</target>
 	<target name="phantom-clan-checkpoint1-goal027-test" depends="phantom-clan-creation-restart-goal027cp1-test,phantom-clan-recruitment-goal027cp1-test,phantom-clan-roles-goal027cp1-test,phantom-clan-treasury-goal027cp1-test,phantom-clan-chat-decision-goal027cp1-test,phantom-profile-persistence-test,phantom-chat-observation-test" description="Run the final Goal 027 CP1 persistent clan organization aggregate and directly affected regressions." />

@@ -13,6 +13,9 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.ContributionState;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.DiplomacyAction;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.DiplomacyPhase;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.DiplomacyState;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.OrganizationMetadata;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.PersistencePort;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.RoleKey;
@@ -24,7 +27,8 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 public final class PhantomClanStore implements PersistencePort
 {
 	public static final String COMPONENT_TYPE = "clan.organization";
-	public static final int SCHEMA_VERSION = 1;
+	public static final int LEGACY_SCHEMA_VERSION = 1;
+	public static final int SCHEMA_VERSION = 2;
 	public static final int MAX_PAYLOAD_BYTES = 8192;
 	private final PhantomProfileRepository _profiles;
 
@@ -36,7 +40,7 @@ public final class PhantomClanStore implements PersistencePort
 	@Override
 	public Optional<StoredMetadata> load(long profileId)
 	{
-		return _profiles.findComponent(profileId, COMPONENT_TYPE).map(this::decode);
+		return _profiles.findComponent(profileId, COMPONENT_TYPE).map(PhantomClanStore::decode);
 	}
 
 	@Override
@@ -49,7 +53,7 @@ public final class PhantomClanStore implements PersistencePort
 		return decode(component);
 	}
 
-	private byte[] encode(OrganizationMetadata metadata)
+	static byte[] encode(OrganizationMetadata metadata)
 	{
 		try
 		{
@@ -77,6 +81,19 @@ public final class PhantomClanStore implements PersistencePort
 				string(output, metadata.canonicalEvidenceHash(), 64);
 				string(output, metadata.intentEvidenceHash(), 64);
 				output.writeLong(metadata.updatedEpochMillis());
+				output.writeByte(metadata.diplomacy().action().ordinal());
+				output.writeByte(metadata.diplomacy().phase().ordinal());
+				output.writeLong(metadata.diplomacy().goalId());
+				output.writeLong(metadata.diplomacy().goalRevision());
+				output.writeInt(metadata.diplomacy().counterpartClanId());
+				output.writeInt(metadata.diplomacy().allianceLeaderClanId());
+				output.writeLong(metadata.diplomacy().allianceGeneration());
+				output.writeLong(metadata.diplomacy().membershipCounter());
+				output.writeLong(metadata.diplomacy().warId());
+				output.writeLong(metadata.diplomacy().decisionEpoch());
+				output.writeLong(metadata.diplomacy().cooldownUntilEpochMillis());
+				output.writeLong(metadata.diplomacy().happenedEpochMinute());
+				string(output, metadata.diplomacy().evidenceHash(), 64);
 			}
 			final byte[] payload = bytes.toByteArray();
 			if (payload.length > MAX_PAYLOAD_BYTES)
@@ -95,9 +112,10 @@ public final class PhantomClanStore implements PersistencePort
 		}
 	}
 
-	private StoredMetadata decode(PhantomProfileComponent component)
+	static StoredMetadata decode(PhantomProfileComponent component)
 	{
-		if (component.componentSchemaVersion() != SCHEMA_VERSION)
+		final int schemaVersion = component.componentSchemaVersion();
+		if ((schemaVersion != LEGACY_SCHEMA_VERSION) && (schemaVersion != SCHEMA_VERSION))
 		{
 			throw new IllegalArgumentException("Unknown clan organization schema version.");
 		}
@@ -108,7 +126,7 @@ public final class PhantomClanStore implements PersistencePort
 		}
 		try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload)))
 		{
-			if (input.readInt() != SCHEMA_VERSION)
+			if (input.readInt() != schemaVersion)
 			{
 				throw new IllegalArgumentException("Unknown clan organization payload version.");
 			}
@@ -137,11 +155,20 @@ public final class PhantomClanStore implements PersistencePort
 			final String canonicalHash = string(input, 64);
 			final String intentHash = string(input, 64);
 			final long updated = input.readLong();
+			final DiplomacyState diplomacy;
+			if (schemaVersion == LEGACY_SCHEMA_VERSION)
+			{
+				diplomacy = DiplomacyState.empty();
+			}
+			else
+			{
+				diplomacy = new DiplomacyState(enumValue(input, DiplomacyAction.class), enumValue(input, DiplomacyPhase.class), input.readLong(), input.readLong(), input.readInt(), input.readInt(), input.readLong(), input.readLong(), input.readLong(), input.readLong(), input.readLong(), input.readLong(), string(input, 64));
+			}
 			if (input.available() != 0)
 			{
 				throw new IllegalArgumentException("Trailing clan organization payload data.");
 			}
-			return new StoredMetadata(component.rowVersion(), new OrganizationMetadata(clanId, clanName, leaderObjectId, role, goalId, goalRevision, contributionBudget, contributionItemObjectId, contributionAmount, contributionInventoryBefore, contributionWarehouseBefore, contributionState, relations, canonicalHash, intentHash, updated));
+			return new StoredMetadata(component.rowVersion(), new OrganizationMetadata(clanId, clanName, leaderObjectId, role, goalId, goalRevision, contributionBudget, contributionItemObjectId, contributionAmount, contributionInventoryBefore, contributionWarehouseBefore, contributionState, relations, canonicalHash, intentHash, updated, diplomacy));
 		}
 		catch (IllegalArgumentException exception)
 		{

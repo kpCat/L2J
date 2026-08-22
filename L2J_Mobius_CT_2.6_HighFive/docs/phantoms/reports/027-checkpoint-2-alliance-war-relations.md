@@ -1,191 +1,173 @@
-# Goal 027 Checkpoint 2 — alliances, relations and war lifecycle (resumed)
+# Goal 027 — Checkpoint 2: alliance, war and relations
 
 ## Status
 
-`BLOCKED_NATIVE_SOCIAL_SEAM_REQUIRED`
-
-Checkpoint 2 не реализован. Accepted Goal 027C/027D seam достаточен для exact alliance/war identity, membership ABA, war-id replay и retirement fencing, но не предоставляет Phantom caller безопасное доказательство полного current alliance member set для autonomous dissolve.
-
-## Review state
-
-`BLOCKED`
-
-Delivery state:
-
-- Goal 027C: `ACCEPT after Goal 027D` (frozen accepted seam, не изменялся);
-- Goal 027D: `ACCEPT` (frozen accepted seam, не изменялся);
-- Goal 027 Checkpoint 2: `BLOCKED_NATIVE_SOCIAL_SEAM_REQUIRED`;
-- Goal 027 overall: `IN_PROGRESS_BLOCKED_NATIVE_SOCIAL_SEAM_REQUIRED`.
-
-SUCCESS-only статусы `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW` и `IN_PROGRESS_PENDING_CP2_INDEPENDENT_REVIEW` не выставлялись.
-
-## occurred_context_compaction
-
-`yes`
+- Goal 027E: `ACCEPT` (frozen baseline, без изменений).
+- CP2: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+- Goal 027: `IN_PROGRESS_PENDING_CP2_INDEPENDENT_REVIEW`.
+- Required parent: `b15f3ade1fdce99545b5bc576786d545e9c567de`.
+- Branch: `feature/phantom-world`.
+- `occurred_context_compaction: yes`.
 
 ## Summary
 
-Read-first audit и частичная pre-test реализация выявили safety gap. Phantom-side causal managed peer refs не являются доказательством полного canonical alliance membership. Возможен exact контрпример: Phantom leader A создаёт G1, managed Phantom B вступает через CP2, затем REAL clan C вручную вступает в G1 через штатный REAL path. Phantom metadata знает только A/B, но native `ClanAllianceService.dissolve(A, G1)` корректно и намеренно отсоединит A/B/C.
+CP2 реализован поверх существующих `PhantomClanService`, `PhantomClanStore`, `L2jPhantomClanBackend` и `PhantomClanDecision`. Добавлены создание альянса, двустороннее later-pulse согласие на join, exact leave, proof-only dissolve, evidence-backed объявление войны, exact stop, двусторонний peace, relation events Goal018, restart-persistent hysteresis и alliance chat через Goal020 generated dispatch.
 
-Ослабленный predicate, проверявший только actor и causal Phantom peers, удалён. Вся незавершённая CP2 production/schema/Decision/social/chat реализация полностью откатана до required parent; новый bridge и незавершённый test suite удалены. Frozen native 027C/027D seam не менялся. Existing CP1 schema version 1, bounds 64/256 и runtime behavior сохранены.
-
-Leave собственного non-leader Phantom clan этим blocker не затронут, однако TASK требует единый coherent vertical slice, включающий safe dissolve; частичный delivery не выдавался за SUCCESS.
-
-## Baseline
-
-- repository root: `C:/Users/endim/L2J_Mobius`;
-- module: `C:/Users/endim/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive`;
-- branch: `feature/phantom-world`;
-- upstream: `origin/feature/phantom-world`;
-- required parent / initial HEAD: exact `9b8126860bc4f59dc03c316a75e9d2ce6f79ec79`;
-- user-owned untracked task packages: read-only, не изменялись и не staged;
-- production DB `l2jmobiush5`: не использовалась.
-
-## Read-first evidence
-
-Прочитаны `Agents.md`, root `README.md`, master plan, roadmap, workflow/task standards, полный resumed CP2 package, отчёты CP1/027A/027B/027C/027D, current Phantom clan/store/backend/Decision/system/social/chat/PvP code, accepted `ClanAllianceService`, `ClanWarService`, `ClanSocialRepository`, `ClanSocialMutationFence`, `ClanTable` и focused test/build patterns. Parent `AGENTS.md` и module `README.md` не найдены. Manifest SHA-256 resumed package до реализации совпал 6/6.
-
-Локальные принятые паттерны: exact `AllianceIdentity`, `MembershipEpoch`, exact `WarIdentity.warId`, native retirement fence, Goal 018 idempotent social events, Goal 020 generated chat observation, Goal 025 durable policy cooldown и CP1 bounded caller-driven lifecycle.
-
-## Exact native safety audit
-
-Public `ClanAllianceService` предоставляет:
-
-- `currentIdentity(Clan)`;
-- `create(Player, String)`;
-- `join(Player, Player, AllianceIdentity, MembershipEpoch)`;
-- `leave(Player, AllianceIdentity)`;
-- `expel(Player, Clan, AllianceIdentity)`;
-- `dissolve(Player, AllianceIdentity)`.
-
-Public bounded exact membership observation отсутствует. Внутренний `StateAccess.allies(int)` package-private. Production `LiveStateAccess.allies(int)` вызывает `ClanTable.getClanAllies(int)`. Реализация `ClanTable.getClanAllies(int)` проходит по всей `_clans.values()`, то есть это запрещённый global registry scan, а не O(alliance-size) source.
-
-`ClanSocialRepository` внутри native service атомарно валидирует exact durable membership/epochs при dissolve, но не является public observation/command contract для Phantom caller; прямой SQL или вызов internal repository из Phantom нарушил бы canonical ownership.
-
-Даже отдельный read-only snapshot без compare-on-mutate недостаточен: REAL C может вступить между Phantom proof и `dissolve`. Native dissolve заново захватит уже расширенный A/B/C set и безопасно для native semantics, но небезопасно для запрета autonomous REAL mutation. Поэтому proof должен быть exact-incarnation и revalidated внутри той же native mutation fence.
-
-## Smallest missing seam
-
-Нужен bounded native contract уровня `ClanAllianceService`, не Phantom-owned registry:
-
-1. получить для captured `AllianceIdentity` exact current member proof в O(alliance-size), содержащий полный sorted clan-id set и per-member membership epoch/generation;
-2. передать этот proof в autonomous dissolve command либо получить одноразовый proof token;
-3. внутри native retirement/mutation fence сравнить identity и exact member epochs/set перед mutation;
-4. при любом неизвестном member, REAL-only C, membership ABA или concurrent join вернуть typed `STALE`/`INELIGIBLE` с zero mutation;
-5. позволить Phantom caller сравнить exact canonical set с bounded causal managed clan set без global ClanTable/profile scan.
-
-Минимальная форма — `AllianceMembershipProof` плюс exact expected-proof overload для dissolve. Добавление только count или отдельного unfenced snapshot не закрывает TOCTOU.
-
-## Frozen seam decision
-
-Goal 027C/027D не изменялись «для удобства». Packet/request emulation, client handler calls, `ClanTable.getClans()`/`getClanAllies()` scan, persisted Phantom metadata trust, direct SQL/social setters и второй clan engine не использовались.
-
-Это ровно предусмотренный TASK STOP: `BLOCKED_NATIVE_SOCIAL_SEAM_REQUIRED`.
+Новый native blocker не обнаружен. Frozen native seam Goal027C/027D/027E не изменялся. Packet/request emulation, direct native SQL/setters, global clan/profile scans, random discovery и автономная мутация REAL-only кланов не добавлены.
 
 ## Changed files
 
-Финальный delivery изменяет ровно один tracked file:
+1. `build.xml` — seed и focused target CP2.
+2. `java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java` — передача существующих Goal018/Goal025 сервисов в clan backend.
+3. `java/org/l2jmobius/gameserver/phantoms/clan/L2jPhantomClanBackend.java` — exact native alliance/war adapters, social evidence/events, generated alliance chat и pair leases.
+4. `java/org/l2jmobius/gameserver/phantoms/clan/PhantomClanDecision.java` — CP2 candidate/action registrations.
+5. `java/org/l2jmobius/gameserver/phantoms/clan/PhantomClanService.java` — CP2 contracts, lifecycle, proofs, consent, replay и hysteresis.
+6. `java/org/l2jmobius/gameserver/phantoms/clan/PhantomClanStore.java` — `clan.organization` schema v2 с чтением v1.
+7. `test/java/org/l2jmobius/gameserver/phantoms/clan/PhantomClanGoal027Checkpoint2Suite.java` — 8 compound scenarios.
+8. `test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java` — регистрация focused suite.
+9. `docs/phantoms/reports/027-checkpoint-2-alliance-war-relations.md` — этот отчёт.
 
-- `docs/phantoms/reports/027-checkpoint-2-alliance-war-relations.md` — resumed blocker audit, smallest missing seam, rollback и verification evidence.
+User task packages остались read-only и не входят в scope/staging.
 
-Production Java, tests, `build.xml`, schema/SQL, master plan, roadmap, frozen 027C/027D files и task packages в финальный diff не входят.
+## Goal and action keys
 
-## Goal/action keys
+Goal keys:
 
-CP2 goal/action keys не доставлены из-за STOP. Планировавшиеся `clan.alliance.create`, `clan.alliance.join`, `clan.alliance.leave`, `clan.alliance.dissolve`, `clan.war.declare`, `clan.war.peace`, `clan.alliance.chat` и соответствующие Decision actions отсутствуют в финальном production code. CP1 keys остаются без изменений.
+- `clan.alliance.create`
+- `clan.alliance.join`
+- `clan.alliance.leave`
+- `clan.alliance.dissolve`
+- `clan.war.declare`
+- `clan.war.stop`
+- `clan.war.peace`
+- `clan.alliance.chat`
 
-## Identity and replay rules
+Decision action keys:
 
-Не доставлены как Phantom behavior. Accepted native identities остаются frozen truth:
+- `clan.alliance.create.advance`
+- `clan.alliance.join.advance`
+- `clan.alliance.leave.advance`
+- `clan.alliance.dissolve.advance`
+- `clan.war.declare.advance`
+- `clan.war.stop.advance`
+- `clan.war.peace.advance`
+- `clan.alliance.chat.advance`
 
-- alliance incarnation: exact `AllianceIdentity(leaderClanId, generation)`;
-- join target ABA fence: exact `MembershipEpoch(clanId, allianceId, generation, counter)`;
-- war incarnation: exact `WarIdentity` и `warId`;
-- retirement: accepted Goal 027D fence.
+## Architecture and exact semantics
 
-G1/W1 replay logic не добавлялась, потому что safe G1 dissolve precondition нельзя доказать через public seam. Existing 027C/027D replay guarantees не изменены.
+### Consent and native identity
 
-## Consent protocol
+- Alliance join source выполняет public `checkInvite`, сохраняет в bounded in-memory offer exact `AllianceIdentity` и exact target `MembershipEpoch`; повторный source pulse не обновляет proof молча.
+- Только более поздний pulse managed-Phantom target может принять exact offer. Native join получает именно captured identity+epoch; stale epoch/ABA даёт zero mutation.
+- Peace аналогично требует отдельные managed-Phantom intents на обеих сторонах и более поздний target pulse. Offer содержит captured `WarIdentity`; повторный source pulse не обновляет `warId`.
+- Consent ledgers очищаются при stop/restart и ограничены 64 entries каждый. Потеря offer после restart безопасна: требуется новый bilateral consent, mutation не повторяется автоматически.
+- REAL-only peer отклоняется до native mutation: join, dissolve, war declare и peace требуют managed-Phantom leaders relevant sides.
 
-Bilateral later-pulse Phantom join/peace protocol не доставлен. Частичная реализация source offer + target later accept была удалена вместе со всем CP2 vertical slice. REAL-only clans не auto-mutating. Smallest missing dissolve proof должен быть закрыт отдельной accepted native corrective task до повторного CP2 resume.
+### Leave and dissolve proof
 
-## Relation and anti-oscillation semantics
+- Leave выполняется только для exact наблюдаемой `AllianceIdentity`; G1 action не может покинуть G2.
+- Autonomous dissolve всегда начинает с public `captureMembershipProof(identity)`.
+- Causal managed clan set строится только из actor clan, explicit goal refs и persisted bounded relation refs; используются только exact lookups, без discovery/scan.
+- Sorted proof clan ids сравниваются exact equality с sorted managed clan ids. Unknown или REAL-only C означает mismatch и блокировку до native dissolve.
+- Единственный apply path backend — public `dissolveWithProof(actor, proof)`. Native proof CAS повторно проверяет membership epochs и generation, поэтому old proof, membership ABA и G1→G2 дают zero mutation.
 
-Goal 018-backed events, durable hysteresis и Goal 020 alliance chat не доставлены. Частично подготовленные mappings были удалены, чтобы canonical failure/blocker не стал shadow/fake success. Native reputation не заменён Phantom score, CP1 `relationReferences` и schema v1 сохранены без изменений.
+### War evidence, stop and peace
 
-## Persistence / DB / migrations
+- Declare разрешён только для двух managed-Phantom clan leaders, которые не состоят в одном alliance.
+- Goal018 snapshot читается с bounded memory limit 8. Hostility вычисляется детерминированно из relationship/reputation dimensions; gate требует score `>= 600` и хотя бы один active concrete hostile event (`agreement.broken`, `farming.conflict.escalated`, `pvp.attack.received`, `pvp.death.suffered`). Friendly/weak/unknown evidence не вызывает native declare.
+- Evidence authority включает Goal025 policy hash, Goal018 authority hash, scores и sorted bounded event proofs.
+- Native declare возвращает/captures exact `warId`; active same war reconciles без duplicate declare.
+- Direct stop передаёт exact current/persisted `warId`. W1 persisted state не применяется к W2.
+- Bilateral peace принимает только captured `WarIdentity`; stale W1 offer не завершает W2.
 
-- production DB не подключалась и не изменялась;
-- test DB не требовалась и не изменялась;
-- migrations отсутствуют;
-- `clan.organization` остаётся schema v1;
-- existing role/contribution/relation refs не переписывались.
+### Replay, relation events and hysteresis
 
-## Commands and results
+- Mutation intents проходят persisted `PREPARED` → `COMPLETED` state с goal id/revision, alliance generation или warId, decision epoch, evidence hash и happened minute.
+- Goal018 terminal relation events используют стабильный event id, двустороннюю запись и штатную idempotent durability: join/stop/peace — `agreement.fulfilled`; leave/dissolve/declare — `agreement.broken`.
+- Повтор после restart переиздаёт тот же deterministic event id и не создаёт второй social effect.
+- Inverse-action hysteresis использует существующий Goal025 `pairCooldownSeconds`; deadline сохраняется в `clan.organization`, поэтому restart его не сбрасывает.
+- Alliance chat проверяет exact current alliance generation и вызывает `ChatType.ALLIANCE` через `ChatObservationService.openGeneratedDispatch`. `PREPARED` после restart считается uncertain-completed и не пересылается; G1 action не отправляется в G2.
 
-Baseline/read-only:
+### Persistence compatibility
 
-- `git status --short --branch` — branch/upstream correct; initial tracked diff empty; только user-owned untracked task packages;
-- `git rev-parse HEAD` — exact `9b8126860bc4f59dc03c316a75e9d2ce6f79ec79`;
-- `git branch --show-current` — `feature/phantom-world`;
-- `git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'` — `origin/feature/phantom-world`;
-- resumed task manifest — SHA-256 6/6 matched.
+`clan.organization` evolved с schema v1 до v2. V2 дописывает diplomacy state после неизменённого CP1 prefix. Decoder принимает component/payload v1 и создаёт empty diplomacy state; последующий v2 save/reload сохраняет CP1 clan, role, contribution, refs и evidence поля без потерь.
 
-Native seam audit:
+DB migration и новые config keys не добавлялись. Production DB `l2jmobiush5` не использовалась и не изменялась; reprovision не выполнялся. DB-backed gates использовали существующий project test configuration/schema.
 
-- `rg` по `ClanAllianceService`, `ClanTable`, `Clan`, `ClanSocialRepository` — public exact member observation не найден;
-- `ClanAllianceService.StateAccess.allies` — package-private;
-- `ClanAllianceService.LiveStateAccess.allies` — delegates to `ClanTable.getClanAllies`;
-- `ClanTable.getClanAllies` — full `_clans.values()` scan;
-- public `ClanAllianceService` observation — только `currentIdentity(Clan)`.
+## Focused suite
 
-Rollback verification:
+`phantom-clan-checkpoint2-goal027-test`, seed `27002702`: **8/8 PASS**.
 
-- clean-filtered `git hash-object --path` пяти ранее изменённых production files exact совпал с index blob SHA для каждого;
-- `ant compile` — exit 0, `BUILD SUCCESSFUL`, 2203 production sources, 14 seconds;
-- CP2 production bridge/test-temp удалены;
-- frozen 027C/027D files имеют zero diff.
+1. Alliance create/restart reconciliation, no G2 duplication.
+2. Bilateral later-pulse join, exact epoch/ABA, repeated-source non-refresh, REAL-only safety.
+3. Exact leave; safe proof dissolve; unexpected REAL C block; old G1 proof against G2 zero mutation.
+4. Evidence-backed declare/restart; friendly, score-only and REAL-only negative controls.
+5. Exact stop; W1/W2 stale fences; bilateral peace; repeated-source non-refresh.
+6. Goal018 bilateral event idempotency and restart-persistent hysteresis.
+7. Goal020 alliance chat G1/G2/restart semantics; v1 decode and v2 CP1 state preservation.
+8. Native failure/source contract and 64/256/16 bounds.
 
-SUCCESS-only final order не запускался: CP2 focused target не создавался, 027D/027C/027B/027A/CP1 и Goal018/020/025 regressions не повторялись, final `jar` не запускался. Причина — обязательный STOP до допустимой source implementation. Broad aggregates, performance, soak, stress и plain `ant verify` также не запускались.
+Во время self-review focused suite запускался повторно после точечных regression additions. Один промежуточный test-only запуск завершился compile error из-за неверного имени fake counter; имя исправлено, после чего финальная последовательность начата заново с CP2. Production compile в этом промежуточном запуске был успешен.
 
-## Performance / concurrency / lifecycle
+## Final gates in required order
 
-Финальный production runtime равен required parent: новых scans, DB calls, locks, queues, timers, workers, threads, schedulers, schemas или lifecycle state нет. Existing CP1 64 active / 256 terminal bounds сохранены.
+1. `ant phantom-clan-checkpoint2-goal027-test` — PASS, 8/8, 22 s.
+2. `ant phantom-clan-alliance-membership-proof-goal027e-test` — PASS, 6/6, 21 s.
+3. `ant phantom-clan-social-retirement-goal027d-test` — PASS, 6/6, 22 s.
+4. `ant phantom-clan-social-domain-goal027c-test` — PASS, 6/6, 16 s. Controlled notification-failure warnings являются частью negative scenarios; suite успешен.
+5. `ant phantom-clan-checkpoint1-goal027-test` — PASS: CP1 focused 6/6, profile persistence 18/18, chat observation 2/2, 16 s.
+6. Exact Goal018 regression: `ant phantom-social-events-test` — PASS, 4/4, 16 s.
+7. Exact Goal020 regressions:
+   - `ant phantom-conversation-outbound-chat-test` — PASS, 3/3, 33 s.
+   - `ant phantom-conversation-restart-idempotency-test` — PASS, 5/5, 18 s.
+8. Exact Goal025 regressions:
+   - `ant phantom-pvp-policy-test` — PASS, 2/2, 17 s.
+   - `ant phantom-pvp-restart-test` — PASS, 1/1, 15 s.
+9. Ровно один финальный `ant jar` — PASS, 14 s; штатно созданы и скопированы `GameServer.jar`/`LoginServer.jar`.
 
-## Deviations
+Broad Goal018/020/025 aggregates, `verify`, performance, stress и soak не запускались по task contract.
 
-- Реализация и mandatory CP2 tests не завершены из-за concrete missing native safety contract.
-- Первая попытка exact global membership proof через `ClanTable.getClanAllies()` была отклонена как запрещённый global scan и не попала в source.
-- Временный causal-peer-only safety predicate был признан недостаточным по контрпримеру A/B + REAL C и полностью удалён.
-- `apply_patch` не смог писать из-за Windows ACL; bounded temporary-file fallback использован только для отчёта. Production rollback выполнен exact reverse diff, затем подтверждён index blob hashes.
-- Git modified stat-flags пяти rollback files на Windows могли отображаться до index refresh, однако `git diff`/`git diff --cached` пусты и clean-filtered hashes exact совпадают; эти paths не входят в commit.
+## Bounds and performance
 
-## Scope and encoding audit
+- Сохранены 64 active operations, 256 terminal receipts и 16 relation refs.
+- Join/peace ledgers bounded по active scale (64), без нового worker/thread/future.
+- Lifecycle остаётся caller-driven; expensive global discovery отсутствует.
+- Pair materialization leases берутся в стабильном порядке и освобождаются reverse-order через `AutoCloseable`.
+- Social evidence читает максимум 8 memories; dissolve работает с proof и максимум 16 causal refs.
+- Нового hot-path log spam нет.
 
-`PASS`
+## Deviations, limitations and risks
 
-- final tracked diff allowlist: только этот report;
-- frozen 027C/027D diff: empty;
-- other chronicles: zero;
-- task packages: unchanged/untracked/not staged; resumed manifest SHA-256 6/6 PASS;
-- CRLF-safe `git -c core.whitespace=cr-at-eol diff --check`: PASS;
-- strict UTF-8 decode изменённого файла: PASS;
-- mojibake-маркеры в изменённом файле проверены: совпадений нет;
-- escaped Cyrillic в изменённом файле проверены: совпадений нет.
+- `apply_patch` был недоступен из-за Windows sandbox ACL (`apply deny-read ACLs`); согласно локальному Windows contract изменения внесены bounded exact-anchor PowerShell replacements/incremental UTF-8 writes. Большие source files целиком через shell не заменялись.
+- Consent offers намеренно не persistent: restart требует повторного двустороннего later-pulse consent; это fail-closed и не создаёт mutation replay.
+- Alliance chat `PREPARED` recovery suppresses resend при неопределённости, поэтому после crash возможна потеря сообщения, но не duplicate dispatch.
+- Независимый CP2 review ещё не выполнен; Goal027 overall не помечен ACCEPT.
 
-## Risks
+## Static and encoding checks
 
-До native corrective task autonomous alliance dissolve для Phantom запрещён. Реализация create/join/leave/war отдельно не должна обходить coherent CP2 gate или превращать partial slice в SUCCESS.
+- Strict UTF-8 decode всех 9 changed files: PASS, 0 failures.
+- Mojibake-маркеры в изменённых файлах проверены: PASS, 0 files.
+- Escaped Cyrillic в изменённых файлах проверены: PASS, 0 files.
+- `git -c core.whitespace=cr-at-eol diff --check`: PASS перед staging; cached check выполняется после exact staging.
+- Source-contract assertions в CP2 suite подтвердили отсутствие global clan discovery, packet/request war emulation, direct `java.sql` и ordinary alliance dissolve path; `dissolveWithProof` и Goal020 generated dispatch присутствуют.
+- Frozen Goal027C/027D/027E production files отсутствуют в changed-file inventory.
 
-## Git delivery
+## Git/process
 
-- branch: `feature/phantom-world`;
-- required parent: `9b8126860bc4f59dc03c316a75e9d2ce6f79ec79`;
-- intended subject: `docs(phantoms): record Goal 027 dissolve safety blocker`;
-- ordinary commit/push only;
-- no amend/rebase/reset/squash/merge/force push;
-- exact commit SHA и push result возвращаются в финальном сообщении.
+Git-команды использовались, поскольку task package и `Agents.md` прямо требуют parent/branch/scope/diff/commit/push контроль. Выполнялись только разрешённые read-only inspections и delivery operations:
+
+- `git status --short --branch`, `git status --short`
+- `git rev-parse HEAD`, `git branch --show-current`
+- `git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'`
+- `git diff --stat`, `git diff --name-only`, bounded `git diff -- <exact paths>`
+- `git -c core.whitespace=cr-at-eol diff --check`
+- после отчёта: exact-path `git add`, `git diff --cached --name-only`, `git diff --cached --stat`, `git diff --cached --check`, `git commit`, `git push`, `git rev-parse HEAD` и `git rev-parse HEAD^`.
+
+Commit subject: `feat(phantoms): add alliance and war diplomacy`.
+
+- Commit SHA: создаётся тем же atomic commit; exact SHA возвращается в финальном сообщении.
+- Push result: фиксируется в финальном сообщении после `git push origin feature/phantom-world`.
 
 ## Next step
 
-Создать отдельную corrective task для bounded exact `AllianceMembershipProof` + compare-on-dissolve contract внутри native `ClanAllianceService` fence. После independent acceptance повторно resume CP2 и добавить обязательный deterministic case: managed A/B + canonical unexpected REAL C => autonomous dissolve returns non-success and leaves exact G1/A/B/C unchanged.
+Независимый review CP2. До его результата Goal027 остаётся `IN_PROGRESS_PENDING_CP2_INDEPENDENT_REVIEW`; следующий Goal/Slice не начинается.
