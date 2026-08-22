@@ -877,7 +877,8 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		private final Map<String, ClanSocialRepository.WarRow> _wars = new HashMap<>();
 		private long _nextAllianceGeneration = 1;
 		private long _nextWarId = 100;
-		private boolean failAllianceWrites;
+		boolean failAllianceReads;
+		boolean failAllianceWrites;
 		private boolean failWarCreate;
 		private boolean failWarDelete;
 
@@ -911,6 +912,19 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 			return state;
 		}
 
+		@Override
+		public List<MembershipEpoch> loadAllianceMembership(int allianceId, long generation) throws SQLException
+		{
+			if (failAllianceReads)
+			{
+				throw new SQLException("controlled alliance membership read failure");
+			}
+			return _alliances.values().stream()
+				.filter(row -> (row.allianceId() == allianceId) && (row.generation() == generation))
+				.sorted(java.util.Comparator.comparingInt(DurableAlliance::clanId))
+				.map(row -> new MembershipEpoch(row.clanId(), row.allianceId(), row.generation(), row.generationCounter()))
+				.toList();
+		}
 		@Override
 		public long createAlliance(int leaderClanId, long expectedGeneration, long expectedGenerationCounter, String allianceName) throws SQLException, StaleStateException
 		{

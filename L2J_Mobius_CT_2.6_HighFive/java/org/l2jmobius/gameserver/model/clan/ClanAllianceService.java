@@ -97,6 +97,48 @@ public final class ClanAllianceService
 		}
 	}
 
+	public record AllianceMembershipProof(AllianceIdentity identity, List<MembershipEpoch> memberEpochs)
+	{
+		public AllianceMembershipProof
+		{
+			Objects.requireNonNull(identity);
+			memberEpochs = List.copyOf(Objects.requireNonNull(memberEpochs));
+			if (memberEpochs.isEmpty())
+			{
+				throw new IllegalArgumentException("Alliance membership proof must contain its leader clan.");
+			}
+			int previousClanId = 0;
+			boolean containsLeader = false;
+			for (MembershipEpoch memberEpoch : memberEpochs)
+			{
+				Objects.requireNonNull(memberEpoch);
+				if ((memberEpoch.clanId() <= previousClanId) || (memberEpoch.allianceId() != identity.leaderClanId()) || (memberEpoch.generation() != identity.generation()))
+				{
+					throw new IllegalArgumentException("Alliance membership proof must be sorted, unique and match its alliance identity.");
+				}
+				containsLeader |= memberEpoch.clanId() == identity.leaderClanId();
+				previousClanId = memberEpoch.clanId();
+			}
+			if (!containsLeader)
+			{
+				throw new IllegalArgumentException("Alliance membership proof does not contain its leader clan.");
+			}
+		}
+	}
+
+	public record ProofResult(Status status, Reason reason, AllianceMembershipProof proof)
+	{
+		public ProofResult
+		{
+			Objects.requireNonNull(status);
+			Objects.requireNonNull(reason);
+		}
+
+		public boolean successful()
+		{
+			return status == Status.SUCCESS;
+		}
+	}
 	public record Result(Status status, Reason reason, AllianceIdentity identity, MembershipEpoch targetEpoch)
 	{
 		public Result
@@ -192,6 +234,49 @@ public final class ClanAllianceService
 		return Optional.ofNullable(snapshot == null ? null : snapshot.identity());
 	}
 
+	public ProofResult captureMembershipProof(AllianceIdentity expectedIdentity)
+	{
+		if (expectedIdentity == null)
+		{
+			return proofStale();
+		}
+		final ProofResult observed = readMembershipProof(expectedIdentity);
+		if (!observed.successful())
+		{
+			return observed;
+		}
+		final long[] keys = observed.proof().memberEpochs().stream().mapToLong(member -> ClanSocialMutationFence.clanKey(member.clanId())).toArray();
+		return _fence.execute(keys, () ->
+		{
+			if (observed.proof().memberEpochs().stream().anyMatch(member -> _fence.isRetiring(member.clanId())))
+			{
+				return proofIneligible(Reason.CLAN_RETIRING);
+			}
+			final ProofResult current = readMembershipProof(expectedIdentity);
+			if (!current.successful())
+			{
+				return current;
+			}
+			return observed.proof().equals(current.proof()) ? current : proofStale();
+		});
+	}
+
+	private ProofResult readMembershipProof(AllianceIdentity expectedIdentity)
+	{
+		try
+		{
+			final AllianceMembershipProof proof = new AllianceMembershipProof(expectedIdentity, _persistence.loadAllianceMembership(expectedIdentity.leaderClanId(), expectedIdentity.generation()));
+			return new ProofResult(Status.SUCCESS, Reason.NONE, proof);
+		}
+		catch (IllegalArgumentException e)
+		{
+			return proofStale();
+		}
+		catch (SQLException e)
+		{
+			return proofPersistenceFailure();
+		}
+	}
 	public Result create(Player player, String allianceName)
 	{
 		return create(actor(player), allianceName);
@@ -544,6 +629,88 @@ public final class ClanAllianceService
 				return persistenceFailure();
 			}
 		});
+	}
+	public Result dissolveWithProof(Player player, AllianceMembershipProof proof)
+	{
+		return dissolveWithProof(actor(player), proof);
+	}
+
+	Result dissolveWithProof(Actor actor, AllianceMembershipProof proof)
+	{
+		if (proof == null)
+		{
+			return stale();
+		}
+		final long[] keys = proof.memberEpochs().stream().mapToLong(member -> ClanSocialMutationFence.clanKey(member.clanId())).toArray();
+		return _fence.execute(keys, () -> dissolveWithProofLocked(actor, proof));
+	}
+
+	private Result dissolveWithProofLocked(Actor actor, AllianceMembershipProof proof)
+	{
+		if (proof.memberEpochs().stream().anyMatch(member -> _fence.isRetiring(member.clanId())))
+		{
+			return ineligible(Reason.CLAN_RETIRING);
+		}
+		final ClanSnapshot leader = _state.clan(actor.clanId());
+		if (leader == null)
+		{
+			return ineligible(Reason.CLAN_NOT_FOUND);
+		}
+		if (leader.allianceId() == 0)
+		{
+			return ineligible(Reason.NOT_ALLIED);
+		}
+		if (!actor.clanLeader() || (leader.clanId() != leader.allianceId()))
+		{
+			return ineligible(Reason.NOT_ALLIANCE_LEADER);
+		}
+		if (!Objects.equals(leader.identity(), proof.identity()))
+		{
+			return stale();
+		}
+		if (actor.insideSiege())
+		{
+			return ineligible(Reason.ACTOR_IN_SIEGE);
+		}
+		final List<ClanSnapshot> current = new ArrayList<>(proof.memberEpochs().size());
+		final Map<Integer, Long> memberEpochs = new LinkedHashMap<>();
+		for (MembershipEpoch expectedMember : proof.memberEpochs())
+		{
+			final ClanSnapshot member = _state.clan(expectedMember.clanId());
+			if ((member == null) || !expectedMember.equals(member.membershipEpoch()))
+			{
+				return stale();
+			}
+			current.add(member);
+			memberEpochs.put(expectedMember.clanId(), expectedMember.counter());
+		}
+		final List<Integer> memberIds = proof.memberEpochs().stream().map(MembershipEpoch::clanId).toList();
+		final long leaderPenalty = _clock.getAsLong() + TimeUnit.DAYS.toMillis(PlayerConfig.ALT_CREATE_ALLY_DAYS_WHEN_DISSOLVED);
+		final int oldCrestId = leader.allianceCrestId();
+		try
+		{
+			_persistence.dissolveAlliance(leader.clanId(), proof.identity().leaderClanId(), proof.identity().generation(), memberEpochs, leaderPenalty);
+			for (ClanSnapshot member : current)
+			{
+				final boolean allianceLeader = member.clanId() == leader.clanId();
+				_state.apply(new AllianceState(member.clanId(), 0, null, 0, Math.addExact(member.allianceGenerationCounter(), 1), 0, allianceLeader ? leaderPenalty : 0, allianceLeader ? Clan.PENALTY_TYPE_DISSOLVE_ALLY : 0));
+				notifySafely("alliance member broadcast", () -> _state.broadcastUserInfo(member.clanId()));
+			}
+			if (oldCrestId != 0)
+			{
+				notifySafely("alliance crest cleanup", () -> _state.removeCrest(oldCrestId));
+			}
+			notifySafely("alliance dissolve broadcast", () -> _state.broadcastDissolved(memberIds));
+			return success(proof.identity());
+		}
+		catch (ClanSocialRepository.StaleStateException | ArithmeticException e)
+		{
+			return stale();
+		}
+		catch (SQLException e)
+		{
+			return persistenceFailure();
+		}
 	}
 	public Result dissolve(Player player, AllianceIdentity expectedIdentity)
 	{
@@ -924,6 +1091,20 @@ public final class ClanAllianceService
 		return true;
 	}
 
+	private static ProofResult proofIneligible(Reason reason)
+	{
+		return new ProofResult(Status.INELIGIBLE, reason, null);
+	}
+
+	private static ProofResult proofStale()
+	{
+		return new ProofResult(Status.STALE, Reason.STALE_IDENTITY, null);
+	}
+
+	private static ProofResult proofPersistenceFailure()
+	{
+		return new ProofResult(Status.PERSISTENCE_FAILURE, Reason.PERSISTENCE_ERROR, null);
+	}
 	private static Result success(AllianceIdentity identity)
 	{
 		return new Result(Status.SUCCESS, Reason.NONE, identity);

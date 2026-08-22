@@ -20,6 +20,7 @@ import org.l2jmobius.commons.database.DatabaseFactory;
  */
 interface ClanSocialPersistence
 {
+	List<ClanAllianceService.MembershipEpoch> loadAllianceMembership(int allianceId, long generation) throws SQLException;
 	long createAlliance(int leaderClanId, long expectedGeneration, long expectedGenerationCounter, String allianceName) throws SQLException, ClanSocialRepository.StaleStateException;
 	void joinAlliance(int leaderClanId, int targetClanId, int allianceId, long generation, String allianceName, int allianceCrestId, long targetExpectedGeneration, long targetExpectedGenerationCounter) throws SQLException, ClanSocialRepository.StaleStateException;
 	void leaveAlliance(int clanId, int allianceId, long generation, long expectedGenerationCounter, long penaltyExpiryTime, int penaltyType) throws SQLException, ClanSocialRepository.StaleStateException;
@@ -77,6 +78,25 @@ final class ClanSocialRepository implements ClanSocialPersistence
 	static ClanSocialRepository getInstance()
 	{
 		return INSTANCE;
+	}
+	@Override
+	public List<ClanAllianceService.MembershipEpoch> loadAllianceMembership(int allianceId, long generation) throws SQLException
+	{
+		final List<ClanAllianceService.MembershipEpoch> members = new ArrayList<>();
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("SELECT clan_id, ally_id, ally_generation, ally_generation_counter FROM clan_data WHERE ally_id=? AND ally_generation=? ORDER BY clan_id"))
+		{
+			statement.setInt(1, allianceId);
+			statement.setLong(2, generation);
+			try (ResultSet result = statement.executeQuery())
+			{
+				while (result.next())
+				{
+					members.add(new ClanAllianceService.MembershipEpoch(result.getInt("clan_id"), result.getInt("ally_id"), result.getLong("ally_generation"), result.getLong("ally_generation_counter")));
+				}
+			}
+		}
+		return List.copyOf(members);
 	}
 	@Override
 	public long createAlliance(int leaderClanId, long expectedGeneration, long expectedGenerationCounter, String allianceName) throws SQLException, StaleStateException

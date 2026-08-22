@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
+import org.l2jmobius.gameserver.model.clan.ClanAllianceMembershipProofGoal027ESuite;
 import org.l2jmobius.gameserver.model.clan.ClanSocialDomainGoal027CSuite;
 import org.l2jmobius.gameserver.model.clan.ClanSocialRetirementGoal027DSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomServerShutdownHandoffSuite;
@@ -396,6 +397,7 @@ public final class PhantomTestLauncher
 			case "clan-expired-replay-goal027b" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.EXPIRY_REPLAY_027B);
 			case "clan-social-domain-goal027c" -> new ClanSocialDomainGoal027CSuite();
 			case "clan-social-retirement-goal027d" -> new ClanSocialRetirementGoal027DSuite();
+			case "clan-alliance-membership-proof-goal027e" -> new ClanAllianceMembershipProofGoal027ESuite();
 			case "lifecycle-control" -> new PhantomLifecycleFailureControlSuite();
 			default -> null;
 		};

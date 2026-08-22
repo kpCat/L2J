@@ -70,6 +70,7 @@
 	<property name="phantom.goal027b.seed" value="27002712" />
 	<property name="phantom.goal027c.seed" value="27002730" />
 	<property name="phantom.goal027d.seed" value="27002740" />
+	<property name="phantom.goal027e.seed" value="27002750" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -3075,6 +3076,14 @@
 		</java>
 	</target>
 
+	<target name="phantom-clan-alliance-membership-proof-goal027e-test" depends="compile-tests" description="Run focused Goal 027E bounded exact alliance membership proof tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="clan-alliance-membership-proof-goal027e" />
+			<arg value="${phantom.goal027e.seed}" />
+		</java>
+	</target>
 	<target name="phantom-clan-checkpoint1-goal027-test" depends="phantom-clan-creation-restart-goal027cp1-test,phantom-clan-recruitment-goal027cp1-test,phantom-clan-roles-goal027cp1-test,phantom-clan-treasury-goal027cp1-test,phantom-clan-chat-decision-goal027cp1-test,phantom-profile-persistence-test,phantom-chat-observation-test" description="Run the final Goal 027 CP1 persistent clan organization aggregate and directly affected regressions." />
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->
