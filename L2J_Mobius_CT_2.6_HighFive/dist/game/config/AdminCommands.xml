@@ -382,6 +382,9 @@
 	<!-- ADMIN FAKE PLAYERS -->
 	<admin command="fakechat" description="Send a fake chat message appearing to come from a fake player." accessLevel="100" />
 
+	<!-- PHANTOM WORLD OBSERVABILITY -->
+	<admin command="phantom" description="Display Phantom World status or selected profile decision trace." accessLevel="100" requireConfirm="false" />
+
 	<!-- ADMIN ONLINE -->
 	<admin command="online" description="Display a list of all currently online players." accessLevel="100" />
 

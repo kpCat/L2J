@@ -190,6 +190,7 @@ public final class PhantomTestLauncher
 			case "scenario" -> new PhantomScenarioSmokeSuite();
 			case "performance" -> new PhantomPerformanceSmokeSuite();
 			case "skeleton" -> new PhantomSkeletonSuite();
+			case "operator-observability-selected-trace" -> new PhantomOperatorObservabilitySuite();
 			case "headless-player" -> new PhantomHeadlessPlayerSuite();
 			case "headless-player-performance" -> new PhantomHeadlessPlayerPerformanceSuite();
 			case "profile-persistence" -> new PhantomProfilePersistenceSuite();

@@ -51,6 +51,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	private final PhantomCandidateRegistry _candidateRegistry;
 	private final PhantomStepHandlerRegistry _handlerRegistry;
 	private final PhantomMetrics _metrics;
+	private final DecisionObserver _observer;
 	private final PhantomUtilitySelector _selector = new PhantomUtilitySelector();
 	private final int _maximumAttachedProfiles;
 	private final Map<Long, RuntimeSlot> _slots = new HashMap<>();
@@ -60,10 +61,16 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 
 	public PhantomDecisionEngine(PhantomGoalStore store, PhantomCandidateRegistry candidateRegistry, PhantomStepHandlerRegistry handlerRegistry, PhantomMetrics metrics, int maximumAttachedProfiles)
 	{
+		this(store, candidateRegistry, handlerRegistry, metrics, maximumAttachedProfiles, null);
+	}
+
+	public PhantomDecisionEngine(PhantomGoalStore store, PhantomCandidateRegistry candidateRegistry, PhantomStepHandlerRegistry handlerRegistry, PhantomMetrics metrics, int maximumAttachedProfiles, DecisionObserver observer)
+	{
 		_store = Objects.requireNonNull(store, "Goal store must not be null.");
 		_candidateRegistry = Objects.requireNonNull(candidateRegistry, "Candidate registry must not be null.");
 		_handlerRegistry = Objects.requireNonNull(handlerRegistry, "Handler registry must not be null.");
 		_metrics = Objects.requireNonNull(metrics, "Metrics must not be null.");
+		_observer = observer;
 		if (maximumAttachedProfiles < 1)
 		{
 			throw new IllegalArgumentException("Maximum attached profiles must be positive.");
@@ -335,6 +342,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		}
 		if (handlerClaim == null)
 		{
+			notifyObserver(workItem);
 			return;
 		}
 
@@ -359,6 +367,33 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		if (terminalClaim != null)
 		{
 			reconcileTerminal(terminalClaim, executeReplace(terminalClaim));
+		}
+		notifyObserver(workItem);
+	}
+
+	private void notifyObserver(PhantomActivityWorkItem workItem)
+	{
+		if (_observer == null)
+		{
+			return;
+		}
+		final RuntimeSnapshot snapshot;
+		synchronized (_monitor)
+		{
+			final RuntimeSlot slot = _slots.get(workItem.profileId());
+			if (slot == null)
+			{
+				return;
+			}
+			snapshot = snapshotLocked(slot);
+		}
+		try
+		{
+			_observer.onDecision(workItem.effectiveState(), snapshot);
+		}
+		catch (Throwable ignored)
+		{
+			// Diagnostics must never change or fail the canonical decision result.
 		}
 	}
 
@@ -1108,6 +1143,12 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	private static long saturatingAdd(long left, long right)
 	{
 		return left > (Long.MAX_VALUE - right) ? Long.MAX_VALUE : left + right;
+	}
+
+	@FunctionalInterface
+	public interface DecisionObserver
+	{
+		void onDecision(PhantomActivityState activityState, RuntimeSnapshot snapshot);
 	}
 
 	public enum State

@@ -30,6 +30,7 @@ import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityOverloadLevel;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSinkBridge;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomCompositeSchedulerControlPort;
@@ -173,6 +174,7 @@ public final class PhantomSystem
 	private final PhantomMetrics _metrics;
 	private PhantomScheduler _scheduler;
 	private final PhantomDiagnosticTrace _trace;
+	private final PhantomSelectedDecisionTrace _selectedDecisionTrace;
 	private final boolean _productionMaterialization;
 	private PhantomMaterializationService _materializationService;
 	private PhantomDecisionEngine _decisionEngine;
@@ -214,6 +216,7 @@ public final class PhantomSystem
 		_settings = Objects.requireNonNull(settings);
 		_productionMaterialization = productionMaterialization;
 		_metrics = new PhantomMetrics();
+		_selectedDecisionTrace = new PhantomSelectedDecisionTrace(settings.diagnosticsEnabled(), TRACE_CAPACITY);
 		if (settings.enabled())
 		{
 			_trace = new PhantomDiagnosticTrace(settings.diagnosticsEnabled(), TRACE_CAPACITY, TRACE_SAMPLE_EVERY, _metrics);
@@ -517,7 +520,7 @@ public final class PhantomSystem
 				riftDecision.registerHandlers(handlerRegistry);
 				raidDecision.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
-				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles());
+				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace::observe : null);
 				_decisionEngine.start();
 				_populationManager.installDecisionEngine(_decisionEngine);
 				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService))))
@@ -1109,7 +1112,7 @@ public final class PhantomSystem
 
 	public synchronized Snapshot snapshot()
 	{
-		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _semanticUnderstandingService != null ? _semanticUnderstandingService.snapshot() : PhantomSemanticUnderstandingService.Snapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _backgroundService != null ? _backgroundService.snapshot() : null, _populationManager != null ? _populationManager.snapshot() : PhantomPopulationManager.Snapshot.inactive(), _socialService != null ? _socialService.snapshot() : PhantomSocialService.Snapshot.inactive(), _conversationService != null ? _conversationService.snapshot() : PhantomConversationService.Snapshot.inactive(), _conversationExecutionService != null ? _conversationExecutionService.snapshot() : PhantomConversationExecutionService.Snapshot.inactive(), ChatObservationService.getInstance().snapshot(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled());
+		return new Snapshot(_state, _settings, _scheduler != null ? _scheduler.snapshot() : PhantomScheduler.SchedulerSnapshot.inactive(), _decisionEngine != null ? _decisionEngine.snapshot() : PhantomDecisionEngine.EngineSnapshot.inactive(), _navigationService != null ? _navigationService.snapshot() : PhantomNavigationService.ServiceSnapshot.inactive(), _topologyService != null ? _topologyService.snapshot() : PhantomTopologyService.ServiceSnapshot.inactive(), _gameKnowledgeService != null ? _gameKnowledgeService.snapshot() : PhantomGameKnowledgeService.ServiceSnapshot.inactive(), _semanticUnderstandingService != null ? _semanticUnderstandingService.snapshot() : PhantomSemanticUnderstandingService.Snapshot.inactive(), _progressionService != null ? _progressionService.snapshot() : PhantomProgressionService.ServiceSnapshot.inactive(), _combatService != null ? _combatService.snapshot() : PhantomCombatService.ServiceSnapshot.inactive(), _backgroundService != null ? _backgroundService.snapshot() : null, _populationManager != null ? _populationManager.snapshot() : PhantomPopulationManager.Snapshot.inactive(), _socialService != null ? _socialService.snapshot() : PhantomSocialService.Snapshot.inactive(), _conversationService != null ? _conversationService.snapshot() : PhantomConversationService.Snapshot.inactive(), _conversationExecutionService != null ? _conversationExecutionService.snapshot() : PhantomConversationExecutionService.Snapshot.inactive(), ChatObservationService.getInstance().snapshot(), _metrics.snapshot(), _trace != null ? _trace.snapshot() : PhantomDiagnosticTrace.Snapshot.disabled(), _selectedDecisionTrace.snapshot());
 	}
 
 	public synchronized PhantomPartyCoordinator.Snapshot partySnapshot()
@@ -1190,6 +1193,62 @@ public final class PhantomSystem
 	public static synchronized boolean hasConfiguredInstance()
 	{
 		return _configuredInstance != null;
+	}
+
+	public static synchronized OperatorStatus operatorStatus()
+	{
+		final PhantomPlayersConfig.Settings settings = PhantomPlayersConfig.settings();
+		final PhantomSystem configured = _configuredInstance;
+		if (configured == null)
+		{
+			return OperatorStatus.notRunning(settings.enabled(), settings.diagnosticsEnabled());
+		}
+		final Snapshot snapshot = configured.snapshot();
+		final PhantomMetrics.Snapshot metrics = snapshot.metrics();
+		return new OperatorStatus(
+			settings.enabled(),
+			settings.diagnosticsEnabled(),
+			true,
+			snapshot.state(),
+			snapshot.scheduler().state(),
+			snapshot.decision().state(),
+			metrics.activeCurrent(),
+			metrics.activePeak(),
+			metrics.activity().stateCounts(),
+			snapshot.scheduler().overloadLevel(),
+			snapshot.scheduler().peakOverloadLevel(),
+			snapshot.scheduler().ready(),
+			snapshot.scheduler().due(),
+			snapshot.scheduler().capacity(),
+			metrics.queueAccepted(),
+			metrics.queueRejected(),
+			metrics.shutdownFailures(),
+			snapshot.selectedTrace());
+	}
+
+	public static synchronized PhantomSelectedDecisionTrace.SelectionStatus selectOperatorTrace(long profileId)
+	{
+		final PhantomSystem configured = _configuredInstance;
+		if (configured == null)
+		{
+			return PhantomPlayersConfig.settings().diagnosticsEnabled() ? PhantomSelectedDecisionTrace.SelectionStatus.NOT_ATTACHED : PhantomSelectedDecisionTrace.SelectionStatus.DISABLED;
+		}
+		if (!configured._selectedDecisionTrace.snapshot().enabled())
+		{
+			return PhantomSelectedDecisionTrace.SelectionStatus.DISABLED;
+		}
+		final PhantomDecisionEngine engine = configured._decisionEngine;
+		return engine == null ? PhantomSelectedDecisionTrace.SelectionStatus.NOT_ATTACHED : configured._selectedDecisionTrace.select(profileId, engine.find(profileId).orElse(null));
+	}
+
+	public static synchronized PhantomSelectedDecisionTrace.Snapshot clearOperatorTrace()
+	{
+		if (_configuredInstance == null)
+		{
+			return PhantomSelectedDecisionTrace.Snapshot.disabled();
+		}
+		_configuredInstance._selectedDecisionTrace.clear();
+		return _configuredInstance._selectedDecisionTrace.snapshot();
 	}
 
 	public static synchronized boolean isMaterializationManaged(Player player)
@@ -1427,8 +1486,21 @@ public final class PhantomSystem
 		_combatService.start();
 	}
 
-	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomSemanticUnderstandingService.Snapshot semanticUnderstanding, PhantomProgressionService.ServiceSnapshot progression, PhantomCombatService.ServiceSnapshot combat, PhantomBackgroundService.Snapshot background, PhantomPopulationManager.Snapshot population, PhantomSocialService.Snapshot social, PhantomConversationService.Snapshot conversation, PhantomConversationExecutionService.Snapshot conversationExecution, ChatObservationService.Snapshot chatObservation, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace)
+	public record Snapshot(State state, PhantomPlayersConfig.Settings settings, PhantomScheduler.SchedulerSnapshot scheduler, PhantomDecisionEngine.EngineSnapshot decision, PhantomNavigationService.ServiceSnapshot navigation, PhantomTopologyService.ServiceSnapshot topology, PhantomGameKnowledgeService.ServiceSnapshot gameKnowledge, PhantomSemanticUnderstandingService.Snapshot semanticUnderstanding, PhantomProgressionService.ServiceSnapshot progression, PhantomCombatService.ServiceSnapshot combat, PhantomBackgroundService.Snapshot background, PhantomPopulationManager.Snapshot population, PhantomSocialService.Snapshot social, PhantomConversationService.Snapshot conversation, PhantomConversationExecutionService.Snapshot conversationExecution, ChatObservationService.Snapshot chatObservation, PhantomMetrics.Snapshot metrics, PhantomDiagnosticTrace.Snapshot trace, PhantomSelectedDecisionTrace.Snapshot selectedTrace)
 	{
+	}
+
+	public record OperatorStatus(boolean configuredEnabled, boolean diagnosticsEnabled, boolean runtimeConfigured, State runtimeState, PhantomScheduler.SchedulerState schedulerState, PhantomDecisionEngine.State decisionState, long activeCurrent, long activePeak, java.util.List<Long> activityStateCounts, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel, int queueReady, int queueDue, int queueCapacity, long queueAccepted, long queueRejected, long shutdownFailures, PhantomSelectedDecisionTrace.Snapshot selectedTrace)
+	{
+		public OperatorStatus
+		{
+			activityStateCounts = java.util.List.copyOf(activityStateCounts);
+		}
+
+		private static OperatorStatus notRunning(boolean configuredEnabled, boolean diagnosticsEnabled)
+		{
+			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, false, null, PhantomScheduler.SchedulerState.STOPPED, PhantomDecisionEngine.State.STOPPED, 0, 0, java.util.List.of(0L, 0L, 0L, 0L, 0L), PhantomActivityOverloadLevel.NORMAL, PhantomActivityOverloadLevel.NORMAL, 0, 0, 0, 0, 0, 0, PhantomSelectedDecisionTrace.Snapshot.disabled());
+		}
 	}
 
 	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration, PhantomGameKnowledgeService.State knowledgeState, PhantomProgressionService.State progressionState, String progressionCatalogHash, int progressionOperations, int progressionActorLeases, PhantomCombatService.ServiceState combatState, int combatActiveSessions, int combatTerminalSessions, int combatQueuedSessions, int combatWorkers, int combatActorLeases, PhantomPopulationManager.Snapshot population, PhantomSocialService.ServiceState socialState, String socialCatalogHash, int socialCacheEntries, int socialOperations, int socialWrites, PhantomConversationService.ServiceState conversationState, int conversationIngress, int conversationBatches, int conversationOperations, int conversationPersistence, boolean chatObserverRegistered)
