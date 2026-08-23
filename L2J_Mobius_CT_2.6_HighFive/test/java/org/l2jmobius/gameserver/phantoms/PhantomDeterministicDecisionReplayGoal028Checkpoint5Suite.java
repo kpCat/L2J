@@ -128,9 +128,21 @@ public final class PhantomDeterministicDecisionReplayGoal028Checkpoint5Suite imp
 		PhantomAssertions.assertEquals(ReplayStatus.FAIL, outranked.status(), "Visible outranker did not fail replay.");
 		PhantomAssertions.assertEquals(1, outranked.candidateMismatch(), "Candidate mismatch count drifted.");
 
+		final var hiddenScoreOutranked = PhantomDecisionReplay.replay(single(view(1, 1, RuntimeState.EXECUTING, PhantomGoalStatus.ACTIVE, "candidate.z", 600, 0, "reason.a", eligible("candidate.a", 700))));
+		PhantomAssertions.assertEquals(ReplayStatus.FAIL, hiddenScoreOutranked.status(), "Visible score outranker of hidden selected candidate did not fail replay.");
+		PhantomAssertions.assertEquals(1, hiddenScoreOutranked.candidateMismatch(), "Hidden-selected score outranker was not a mismatch.");
+
+		final var hiddenTieOutranked = PhantomDecisionReplay.replay(single(view(1, 1, RuntimeState.EXECUTING, PhantomGoalStatus.ACTIVE, "candidate.z", 700, 0, "reason.a", eligible("candidate.a", 700))));
+		PhantomAssertions.assertEquals(ReplayStatus.FAIL, hiddenTieOutranked.status(), "Visible tie-break outranker of hidden selected candidate did not fail replay.");
+		PhantomAssertions.assertEquals(1, hiddenTieOutranked.candidateMismatch(), "Hidden-selected tie-break outranker was not a mismatch.");
+
 		final var outsideTop = PhantomDecisionReplay.replay(single(view(1, 1, RuntimeState.EXECUTING, PhantomGoalStatus.ACTIVE, "candidate.z", 900, 0, "reason.a", eligible("candidate.a", 700))));
 		PhantomAssertions.assertEquals(ReplayStatus.PASS, outsideTop.status(), "Selected candidate outside top8 was treated as mismatch.");
 		PhantomAssertions.assertEquals(1, outsideTop.candidateUnverifiable(), "Outside-top8 evidence was not unverifiable.");
+
+		final var hiddenTieNotOutranked = PhantomDecisionReplay.replay(single(view(1, 1, RuntimeState.EXECUTING, PhantomGoalStatus.ACTIVE, "candidate.a", 700, 0, "reason.a", eligible("candidate.z", 700))));
+		PhantomAssertions.assertEquals(ReplayStatus.PASS, hiddenTieNotOutranked.status(), "Lexicographically later visible tie was treated as hidden-selected mismatch.");
+		PhantomAssertions.assertEquals(1, hiddenTieNotOutranked.candidateUnverifiable(), "Hidden selected candidate without visible outranker was not unverifiable.");
 
 		final var nullEligible = PhantomDecisionReplay.replay(single(view(1, 1, RuntimeState.NO_CANDIDATE, PhantomGoalStatus.ACTIVE, null, -1, -1, "candidate.none", eligible("candidate.a", 700))));
 		PhantomAssertions.assertEquals(ReplayStatus.FAIL, nullEligible.status(), "Null selection with visible eligible candidate did not fail.");

@@ -158,6 +158,13 @@ public final class PhantomDecisionReplay
 		{
 			return candidates.stream().anyMatch(candidate -> candidate.status() == EvaluationStatus.ELIGIBLE) ? CandidateCheck.mismatch("null selection contradicts visible eligible candidate") : CandidateCheck.unverifiable();
 		}
+		for (CandidateEvaluation candidate : candidates)
+		{
+			if ((candidate.status() == EvaluationStatus.ELIGIBLE) && ((candidate.score() > decision.score()) || ((candidate.score() == decision.score()) && (candidate.candidateKey().compareTo(decision.candidateKey()) < 0))))
+			{
+				return CandidateCheck.mismatch("visible eligible candidate outranks selected candidate");
+			}
+		}
 		CandidateEvaluation selected = null;
 		for (CandidateEvaluation candidate : candidates)
 		{
@@ -174,13 +181,6 @@ public final class PhantomDecisionReplay
 		if ((selected.status() != EvaluationStatus.ELIGIBLE) || (selected.score() != decision.score()))
 		{
 			return CandidateCheck.mismatch("selected candidate status or score contradicts visible explanation");
-		}
-		for (CandidateEvaluation candidate : candidates)
-		{
-			if ((candidate.status() == EvaluationStatus.ELIGIBLE) && ((candidate.score() > decision.score()) || ((candidate.score() == decision.score()) && (candidate.candidateKey().compareTo(decision.candidateKey()) < 0))))
-			{
-				return CandidateCheck.mismatch("visible eligible candidate outranks selected candidate");
-			}
 		}
 		return CandidateCheck.verified();
 	}
