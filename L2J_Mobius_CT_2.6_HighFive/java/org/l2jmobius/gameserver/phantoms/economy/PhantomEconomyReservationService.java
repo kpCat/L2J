@@ -718,6 +718,36 @@ public final class PhantomEconomyReservationService
 		}
 	}
 
+	public List<AuditRecord> findAudit(long profileId, int limit)
+	{
+		if (profileId <= 0)
+		{
+			throw new IllegalArgumentException("Profile ID must be positive.");
+		}
+		if ((limit < 1) || (limit > 256))
+		{
+			throw new IllegalArgumentException("Economy audit limit must be between 1 and 256.");
+		}
+		final List<AuditRecord> result = new ArrayList<>();
+		try (Connection connection = _connections.open(); PreparedStatement statement = connection.prepareStatement("SELECT audit_id,operation_id,operation_kind,terminal_state,result_code,reason_key,items_consumed,items_produced,adena_source,adena_sink,crystals_produced,target_items_destroyed FROM phantom_economy_audit WHERE profile_id=? ORDER BY audit_id DESC LIMIT ?"))
+		{
+			statement.setLong(1, profileId);
+			statement.setInt(2, limit);
+			try (ResultSet rows = statement.executeQuery())
+			{
+				while (rows.next())
+				{
+					result.add(new AuditRecord(rows.getLong(1), rows.getString(2), PhantomEconomyOperation.Kind.valueOf(rows.getString(3)), State.valueOf(rows.getString(4)), PhantomEconomyOperation.Result.valueOf(rows.getString(5)), rows.getString(6), rows.getLong(7), rows.getLong(8), rows.getLong(9), rows.getLong(10), rows.getLong(11), rows.getLong(12)));
+				}
+			}
+			return List.copyOf(result);
+		}
+		catch (SQLException exception)
+		{
+			throw persistenceFailure("find economy audit", exception);
+		}
+	}
+
 	public int nextAttempt(long profileId, long goalId, PhantomEconomyOperation.Kind kind, int maximum)
 	{
 		if ((profileId <= 0) || (goalId <= 0) || (kind == null) || (maximum < 1) || (maximum > 32))
@@ -1307,6 +1337,17 @@ public final class PhantomEconomyReservationService
 
 	public record Snapshot(boolean admissionOpen, long prepared, long reserved, long dispatched, long committed, long aborted, long conflicts, long expired, long inconsistent, long currentOperations, long currentReservations)
 	{
+	}
+
+	public record AuditRecord(long auditId, String operationId, PhantomEconomyOperation.Kind kind, State state, PhantomEconomyOperation.Result result, String reason, long itemsConsumed, long itemsProduced, long adenaSource, long adenaSink, long crystalsProduced, long targetItemsDestroyed)
+	{
+		public AuditRecord
+		{
+			if ((auditId <= 0) || (operationId == null) || !operationId.matches("[0-9a-f]{64}") || (kind == null) || (state == null) || !state.terminal() || (result == null) || (reason == null) || (itemsConsumed < 0) || (itemsProduced < 0) || (adenaSource < 0) || (adenaSink < 0) || (crystalsProduced < 0) || (targetItemsDestroyed < 0))
+			{
+				throw new IllegalArgumentException("Invalid economy audit record.");
+			}
+		}
 	}
 
 	public record StoredOperation(String operationId, long profileId, int characterObjectId, long goalId, long goalRevision, PhantomEconomyOperation.Kind kind, State state, int attempt, String intentId, String authorityHash, String intentHash, long activityGeneration, long activityTick, long rowVersion)

@@ -32,6 +32,8 @@ import java.util.regex.Pattern;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceMembershipProofGoal027ESuite;
 import org.l2jmobius.gameserver.model.clan.ClanSocialDomainGoal027CSuite;
 import org.l2jmobius.gameserver.model.clan.ClanSocialRetirementGoal027DSuite;
+import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4Suite;
+import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4Suite.Mode;
 import org.l2jmobius.gameserver.phantoms.PhantomOperatorRuntimeControlsSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomServerShutdownHandoffSuite;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanGoal027Checkpoint2Suite;
@@ -194,6 +196,8 @@ public final class PhantomTestLauncher
 			case "operator-observability-selected-trace" -> new PhantomOperatorObservabilitySuite();
 			case "operator-runtime-controls" -> new PhantomOperatorRuntimeControlsSuite();
 			case "selected-slow-stuck-diagnostics" -> new PhantomSelectedSlowStuckDiagnosticsSuite();
+			case "economic-audit-goal028-checkpoint4" -> new PhantomEconomicAuditGoal028Checkpoint4Suite();
+			case "economic-audit-goal022" -> new PhantomEconomicAuditGoal028Checkpoint4Suite(Mode.GOAL022);
 			case "headless-player" -> new PhantomHeadlessPlayerSuite();
 			case "headless-player-performance" -> new PhantomHeadlessPlayerPerformanceSuite();
 			case "profile-persistence" -> new PhantomProfilePersistenceSuite();

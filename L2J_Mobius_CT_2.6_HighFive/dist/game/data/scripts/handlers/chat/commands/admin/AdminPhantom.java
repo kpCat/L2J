@@ -28,7 +28,10 @@ import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.DecisionVi
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.SelectionStatus;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.Snapshot;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
+import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView;
+import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView.CountDelta;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorControlResult;
+import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorEconomicAudit;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorStatus;
 
 public class AdminPhantom implements IAdminCommandHandler
@@ -60,6 +63,21 @@ public class AdminPhantom implements IAdminCommandHandler
 		if (arguments.equals("status"))
 		{
 			sendStatus(activeChar);
+			return true;
+		}
+		if (arguments.startsWith("economy "))
+		{
+			final long profileId;
+			try
+			{
+				profileId = Long.parseLong(arguments.substring(8).trim());
+			}
+			catch (NumberFormatException e)
+			{
+				sendUsage(activeChar);
+				return false;
+			}
+			sendEconomicAudit(activeChar, PhantomSystem.operatorEconomicAudit(profileId));
 			return true;
 		}
 		if (arguments.equals("trace clear"))
@@ -117,6 +135,45 @@ public class AdminPhantom implements IAdminCommandHandler
 		sendTrace(activeChar, status.selectedTrace());
 	}
 
+	private static void sendEconomicAudit(Player activeChar, OperatorEconomicAudit result)
+	{
+		activeChar.sendSysMessage("Phantom economy audit: profileId=" + result.profileId() + ", result=" + result.code() + ".");
+		if (result.snapshot() == null)
+		{
+			return;
+		}
+		final PhantomEconomicAuditView.Snapshot snapshot = result.snapshot();
+		final var current = snapshot.current();
+		if (current.status() == PhantomEconomicAuditView.CurrentStatus.AVAILABLE)
+		{
+			activeChar.sendSysMessage("Phantom economy current: operation=" + current.operationId() + ", goal=" + current.goalId() + "/r" + current.goalRevision() + ", kind=" + current.kind() + ", state=" + current.state() + ", attempt=" + current.attempt() + ", reservations=" + current.reservationCount() + ".");
+		}
+		else
+		{
+			activeChar.sendSysMessage("Phantom economy current: " + current.status().name().toLowerCase() + ".");
+		}
+		final var summary = snapshot.retainedSummary();
+		activeChar.sendSysMessage("Phantom economy retained-window (max 256, not lifetime): rows=" + summary.retainedRows() + ", states=" + summary.stateCounts() + ", itemsConsumed=" + summary.itemsConsumed() + ", itemsProduced=" + summary.itemsProduced() + ", adenaSource=" + summary.adenaSource() + ", adenaSink=" + summary.adenaSink() + ", crystalsProduced=" + summary.crystalsProduced() + ", targetItemsDestroyed=" + summary.targetItemsDestroyed() + ", totalsSaturated=" + summary.totalsSaturated() + ".");
+		for (int index = 0; index < Math.min(PhantomEconomicAuditView.RENDER_LIMIT, snapshot.newestAudit().size()); index++)
+		{
+			final var audit = snapshot.newestAudit().get(index);
+			activeChar.sendSysMessage("Phantom economy retained row: auditId=" + audit.auditId() + ", operation=" + audit.operationId() + ", kind=" + audit.kind() + ", state=" + audit.state() + ", result=" + audit.result() + ", reason=" + audit.reason() + ", items=" + audit.itemsConsumed() + "/" + audit.itemsProduced() + ", adena=" + audit.adenaSource() + "/" + audit.adenaSink() + ", crystals=" + audit.crystalsProduced() + ", destroyed=" + audit.targetItemsDestroyed() + ".");
+		}
+		final var receipt = snapshot.latestReceipt();
+		if (receipt == null)
+		{
+			activeChar.sendSysMessage("Phantom economy latest receipt: none.");
+			return;
+		}
+		activeChar.sendSysMessage("Phantom economy latest receipt: operation=" + receipt.operationKey() + ", goal=" + receipt.goalId() + "/r" + receipt.goalRevision() + ", kind=" + receipt.kind() + ", state=" + receipt.state() + ", resume=" + receipt.resumeCount() + ".");
+		activeChar.sendSysMessage("Phantom economy receipt deltas: primary=" + delta(receipt.primary()) + ", secondary=" + delta(receipt.secondary()) + ", object=" + delta(receipt.object()) + ", positionChanged=" + receipt.positionChanged() + ".");
+	}
+
+	private static String delta(CountDelta delta)
+	{
+		return delta.before() + "->" + delta.expectedAfter() + " (" + (delta.delta() >= 0 ? "+" : "") + delta.delta() + ")";
+	}
+
 	private static void sendTrace(Player activeChar, Snapshot trace)
 	{
 		activeChar.sendSysMessage("Phantom selected trace: enabled=" + trace.enabled() + ", profileId=" + trace.selectedProfileId() + ", attached=" + trace.attached() + ", size=" + trace.history().size() + "/" + trace.capacity() + ", recorded=" + trace.recorded() + ", dropped=" + trace.dropped() + ", health=" + trace.health() + ", ageMs=" + trace.ageMillis() + ", slowMs=" + trace.slowThresholdMillis() + ", stuckMs=" + trace.stuckThresholdMillis() + ".");
@@ -145,7 +202,7 @@ public class AdminPhantom implements IAdminCommandHandler
 
 	private static void sendUsage(Player activeChar)
 	{
-		activeChar.sendSysMessage("Usage: //phantom enable | //phantom drain | //phantom disable | //phantom status | //phantom trace <profileId> | //phantom trace clear");
+		activeChar.sendSysMessage("Usage: //phantom enable | //phantom drain | //phantom disable | //phantom status | //phantom trace <profileId> | //phantom trace clear | //phantom economy <profileId>");
 	}
 
 	@Override

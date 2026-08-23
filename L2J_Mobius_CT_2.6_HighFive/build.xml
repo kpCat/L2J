@@ -180,6 +180,32 @@
 		</java>
 	</target>
 
+	<target name="phantom-economic-audit-goal028cp4-test" depends="compile-tests" description="Run resumed Goal 028 CP4 bounded read-only economic audit tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="economic-audit-goal028-checkpoint4" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-economic-audit-goal022-test" depends="compile-tests" description="Run exact touched Goal 022 SELECT and retained-summary contracts for Goal 028 CP4.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="economic-audit-goal022" />
+			<arg value="${phantom.goal022c1.seed}" />
+		</java>
+	</target>
+	<target name="phantom-commerce-receipt-goal028cp4-test" depends="compile-tests" description="Run exact touched Goal 014 receipt tests for Goal 028 CP4.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="commerce-receipt" />
+			<arg value="${phantom.goal014.seed}" />
+		</java>
+	</target>
+
 	<target name="phantom-headless-player-test" depends="compile-tests" description="Run the bounded canonical headless Player feasibility suite.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="240000" dir="${datapack}/game">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

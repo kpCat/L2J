@@ -187,6 +187,8 @@ public final class PhantomSystem
 	private PhantomProgressionService _progressionService;
 	private PhantomCombatService _combatService;
 	private PhantomCommerceService _commerceService;
+	private PhantomCommerceReceiptStore _commerceReceiptStore;
+	private PhantomEconomicAuditView _economicAuditView;
 	private PhantomEconomyReservationService _economyReservations;
 	private PhantomEconomyService _economyService;
 	private PhantomEconomyOfferService _economyOffers;
@@ -341,7 +343,9 @@ public final class PhantomSystem
 				_multipartyEconomyService.reconcileStartup(System.currentTimeMillis());
 				_phantomStoreService = new PhantomStoreService(productionProfiles, _materializationService);
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
-				_commerceService = new PhantomCommerceService(commerceCatalog, new PhantomCommerceReceiptStore(productionProfiles), productionGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
+				_commerceReceiptStore = new PhantomCommerceReceiptStore(productionProfiles);
+				_commerceService = new PhantomCommerceService(commerceCatalog, _commerceReceiptStore, productionGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
+				_economicAuditView = new PhantomEconomicAuditView(_economyReservations, _commerceReceiptStore);
 				if (!_commerceService.start())
 				{
 					throw new IllegalStateException("Phantom commerce service could not enter the running state.");
@@ -1313,6 +1317,32 @@ public final class PhantomSystem
 			snapshot.selectedTrace());
 	}
 
+	public static synchronized OperatorEconomicAudit operatorEconomicAudit(long profileId)
+	{
+		if (profileId <= 0)
+		{
+			return new OperatorEconomicAudit(EconomicAuditCode.INVALID, profileId, null);
+		}
+		final PhantomSystem configured = _configuredInstance;
+		if (configured == null)
+		{
+			return new OperatorEconomicAudit(EconomicAuditCode.RUNTIME_NOT_CONFIGURED, profileId, null);
+		}
+		if ((configured._state != State.RUNNING) || (configured._economicAuditView == null))
+		{
+			return new OperatorEconomicAudit(EconomicAuditCode.ECONOMY_UNAVAILABLE, profileId, null);
+		}
+		try
+		{
+			final PhantomEconomicAuditView.Snapshot snapshot = configured._economicAuditView.read(profileId);
+			return new OperatorEconomicAudit(snapshot.empty() ? EconomicAuditCode.EMPTY : EconomicAuditCode.AVAILABLE, profileId, snapshot);
+		}
+		catch (RuntimeException exception)
+		{
+			return new OperatorEconomicAudit(EconomicAuditCode.READ_FAILED, profileId, null);
+		}
+	}
+
 	public static synchronized PhantomSelectedDecisionTrace.SelectionStatus selectOperatorTrace(long profileId)
 	{
 		final PhantomSystem configured = _configuredInstance;
@@ -1435,6 +1465,24 @@ public final class PhantomSystem
 	static synchronized PhantomScheduler configuredScheduler()
 	{
 		return _configuredInstance == null ? null : _configuredInstance._scheduler;
+	}
+
+	static synchronized void configureEconomicAuditForTesting(PhantomEconomicAuditView view, State state)
+	{
+		if (_configuredInstance != null)
+		{
+			throw new IllegalStateException("A configured PhantomSystem instance already exists.");
+		}
+		final PhantomSystem configured = new PhantomSystem(new PhantomPlayersConfig.Settings(true, false, 1), false);
+		configured._economicAuditView = view;
+		configured._state = Objects.requireNonNull(state);
+		_configuredInstance = configured;
+	}
+
+	static synchronized void resetEconomicAuditForTesting()
+	{
+		_configuredInstance = null;
+		_operatorMode = OperatorMode.AUTO;
 	}
 
 	static synchronized void configureOperatorRuntimeForTesting(boolean failShutdown)
@@ -1648,6 +1696,29 @@ public final class PhantomSystem
 
 	public record OperatorControlResult(OperatorControlCode code, OperatorMode desiredMode, boolean desiredRuntimeEnabled, boolean runtimeConfigured, State runtimeState)
 	{
+	}
+
+	public enum EconomicAuditCode
+	{
+		AVAILABLE,
+		EMPTY,
+		INVALID,
+		RUNTIME_NOT_CONFIGURED,
+		ECONOMY_UNAVAILABLE,
+		READ_FAILED
+	}
+
+	public record OperatorEconomicAudit(EconomicAuditCode code, long profileId, PhantomEconomicAuditView.Snapshot snapshot)
+	{
+		public OperatorEconomicAudit
+		{
+			Objects.requireNonNull(code);
+			final boolean available = (code == EconomicAuditCode.AVAILABLE) || (code == EconomicAuditCode.EMPTY);
+			if (available != (snapshot != null))
+			{
+				throw new IllegalArgumentException("Economic audit status and snapshot do not match.");
+			}
+		}
 	}
 
 	public record OperatorStatus(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, boolean desiredRuntimeEnabled, boolean runtimeConfigured, State runtimeState, PhantomScheduler.SchedulerState schedulerState, PhantomDecisionEngine.State decisionState, long activeCurrent, long activePeak, java.util.List<Long> activityStateCounts, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel, int queueReady, int queueDue, int queueCapacity, long queueAccepted, long queueRejected, long shutdownFailures, PhantomSelectedDecisionTrace.Snapshot selectedTrace)
