@@ -153,6 +153,15 @@
 		</java>
 	</target>
 
+	<target name="phantom-deterministic-replay-goal028cp5-test" depends="compile-tests" description="Run Goal 028 CP5 deterministic selected-decision diagnostic replay tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="deterministic-decision-replay-goal028cp5" />
+			<arg value="28002805" />
+		</java>
+	</target>
+
 	<target name="phantom-operator-observability-goal028cp1-test" depends="compile-tests" description="Run Goal 028 CP1 operator status and selected decision trace tests.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

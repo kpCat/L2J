@@ -32,6 +32,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView;
 import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView.CountDelta;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorControlResult;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorEconomicAudit;
+import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorReplayResult;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorStatus;
 
 public class AdminPhantom implements IAdminCommandHandler
@@ -45,6 +46,21 @@ public class AdminPhantom implements IAdminCommandHandler
 	public boolean onCommand(String command, Player activeChar)
 	{
 		final String arguments = command.length() > 13 ? command.substring(13).trim() : "";
+		if (arguments.equals("replay capture"))
+		{
+			sendReplay(activeChar, PhantomSystem.operatorReplayCapture());
+			return true;
+		}
+		if (arguments.equals("replay run"))
+		{
+			sendReplay(activeChar, PhantomSystem.operatorReplayRun());
+			return true;
+		}
+		if (arguments.equals("replay clear"))
+		{
+			sendReplay(activeChar, PhantomSystem.operatorReplayClear());
+			return true;
+		}
 		if (arguments.equals("enable"))
 		{
 			sendControl(activeChar, "enable", PhantomSystem.operatorEnable());
@@ -116,6 +132,20 @@ public class AdminPhantom implements IAdminCommandHandler
 		}
 		sendUsage(activeChar);
 		return false;
+	}
+
+	private static void sendReplay(Player activeChar, OperatorReplayResult result)
+	{
+		activeChar.sendSysMessage("Phantom replay: result=" + result.code() + ", profileId=" + result.profileId() + ", frames=" + result.frameCount() + ", digest=" + (result.digest() == null ? "none" : result.digest()) + ".");
+		if (result.replay() != null)
+		{
+			final var replay = result.replay();
+			activeChar.sendSysMessage("Phantom replay diagnostics: health=" + replay.finalHealth() + ", slow/stuck/attention=" + replay.firstSlowFrame() + "/" + replay.firstStuckFrame() + "/" + replay.firstAttentionFrame() + ", candidates=" + replay.candidateVerified() + "/" + replay.candidateUnverifiable() + "/" + replay.candidateMismatch() + ".");
+			if (replay.firstFailureFrame() >= 0)
+			{
+				activeChar.sendSysMessage("Phantom replay failure: frame=" + replay.firstFailureFrame() + ", reason=" + replay.failureReason() + ".");
+			}
+		}
 	}
 
 	private static void sendControl(Player activeChar, String action, OperatorControlResult result)
@@ -202,7 +232,7 @@ public class AdminPhantom implements IAdminCommandHandler
 
 	private static void sendUsage(Player activeChar)
 	{
-		activeChar.sendSysMessage("Usage: //phantom enable | //phantom drain | //phantom disable | //phantom status | //phantom trace <profileId> | //phantom trace clear | //phantom economy <profileId>");
+		activeChar.sendSysMessage("Usage: //phantom enable | //phantom drain | //phantom disable | //phantom status | //phantom trace <profileId> | //phantom trace clear | //phantom replay capture | //phantom replay run | //phantom replay clear | //phantom economy <profileId>");
 	}
 
 	@Override

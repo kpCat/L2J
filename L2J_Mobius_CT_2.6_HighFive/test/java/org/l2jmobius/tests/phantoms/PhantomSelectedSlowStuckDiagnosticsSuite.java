@@ -143,12 +143,14 @@ public final class PhantomSelectedSlowStuckDiagnosticsSuite implements PhantomTe
 	private void testStaticContracts(PhantomTestContext context) throws Exception
 	{
 		final String trace = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/PhantomSelectedDecisionTrace.java"));
+		final String healthModel = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/PhantomDecisionHealthModel.java"));
 		final String admin = Files.readString(context.moduleRoot().resolve("dist/game/data/scripts/handlers/chat/commands/admin/AdminPhantom.java"));
-		final int fingerprintStart = trace.indexOf("private record ProgressFingerprint");
-		final String fingerprint = trace.substring(fingerprintStart);
-		PhantomAssertions.assertTrue(fingerprintStart >= 0, "Bounded structural fingerprint is missing.");
+		final int fingerprintStart = healthModel.indexOf("public record ProgressFingerprint");
+		final String fingerprint = healthModel.substring(fingerprintStart);
+		PhantomAssertions.assertTrue(fingerprintStart >= 0, "Bounded structural fingerprint is missing from the shared health model.");
 		PhantomAssertions.assertFalse(fingerprint.contains("decisionSequence") || fingerprint.contains("activityState") || fingerprint.contains("goalType"), "Fingerprint admitted non-progress sequence/activity/type fields.");
 		PhantomAssertions.assertTrue(fingerprint.contains("goalRevision") && fingerprint.contains("runtimeState") && fingerprint.contains("topCandidates"), "Fingerprint omitted required structural reason-view fields.");
+		PhantomAssertions.assertTrue(trace.contains("PhantomDecisionHealthModel.fingerprint") && trace.contains("PhantomDecisionHealthModel.classify"), "Live trace does not use the shared replay health model.");
 		PhantomAssertions.assertTrue(trace.contains("MAX_CAPACITY = 64") && trace.contains("Math.min(PhantomDecisionEngine.MAX_EXPLANATIONS"), "Selected trace or candidate explanation bounds drifted.");
 		PhantomAssertions.assertFalse(trace.contains("new Thread") || trace.contains("Timer") || trace.contains("Scheduled") || trace.contains("poll(") || trace.contains("Thread.sleep"), "Diagnostics introduced active execution or sleeps.");
 		for (String forbidden : List.of(".reload(", ".replan(", ".setGoal(", ".clearGoal(", ".operatorEnable(", ".operatorDrain(", ".operatorDisable("))

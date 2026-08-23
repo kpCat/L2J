@@ -170,6 +170,7 @@ public final class PhantomSystem
 
 	private static PhantomSystem _configuredInstance;
 	private static OperatorMode _operatorMode = OperatorMode.AUTO;
+	private static PhantomDecisionReplay.Bundle _operatorReplayBundle;
 
 	private final PhantomPlayersConfig.Settings _settings;
 	private final PhantomMetrics _metrics;
@@ -1343,6 +1344,58 @@ public final class PhantomSystem
 		}
 	}
 
+	public static synchronized OperatorReplayResult operatorReplayCapture()
+	{
+		final PhantomSystem configured = _configuredInstance;
+		if ((configured == null) || (configured._state != State.RUNNING))
+		{
+			return OperatorReplayResult.empty(OperatorReplayCode.RUNTIME_NOT_CONFIGURED);
+		}
+		final PhantomSelectedDecisionTrace.CaptureResult capture = configured._selectedDecisionTrace.captureReplay();
+		if (capture.status() != PhantomSelectedDecisionTrace.CaptureStatus.CAPTURED)
+		{
+			return OperatorReplayResult.empty(switch (capture.status())
+			{
+				case TRACE_DISABLED -> OperatorReplayCode.TRACE_DISABLED;
+				case NO_SELECTION -> OperatorReplayCode.NO_SELECTION;
+				case NO_HISTORY -> OperatorReplayCode.NO_HISTORY;
+				case CAPTURED -> throw new IllegalStateException("Captured replay bundle is missing.");
+			});
+		}
+		try
+		{
+			final PhantomDecisionReplay.Bundle candidate = capture.bundle();
+			final String digest = PhantomDecisionReplay.digest(candidate);
+			_operatorReplayBundle = candidate;
+			return new OperatorReplayResult(OperatorReplayCode.CAPTURED, candidate.profileId(), candidate.frames().size(), digest, null);
+		}
+		catch (RuntimeException exception)
+		{
+			return OperatorReplayResult.empty(OperatorReplayCode.CAPTURE_FAILED);
+		}
+	}
+
+	public static synchronized OperatorReplayResult operatorReplayRun()
+	{
+		final PhantomDecisionReplay.Bundle frozen = _operatorReplayBundle;
+		if (frozen == null)
+		{
+			return OperatorReplayResult.empty(OperatorReplayCode.NO_CAPTURE);
+		}
+		final PhantomDecisionReplay.ReplayResult replay = PhantomDecisionReplay.replay(frozen);
+		return new OperatorReplayResult(replay.status() == PhantomDecisionReplay.ReplayStatus.PASS ? OperatorReplayCode.REPLAY_PASS : OperatorReplayCode.REPLAY_FAIL, replay.profileId(), replay.frameCount(), replay.digest(), replay);
+	}
+
+	public static synchronized OperatorReplayResult operatorReplayClear()
+	{
+		if (_operatorReplayBundle == null)
+		{
+			return OperatorReplayResult.empty(OperatorReplayCode.NO_CAPTURE);
+		}
+		_operatorReplayBundle = null;
+		return OperatorReplayResult.empty(OperatorReplayCode.CLEARED);
+	}
+
 	public static synchronized PhantomSelectedDecisionTrace.SelectionStatus selectOperatorTrace(long profileId)
 	{
 		final PhantomSystem configured = _configuredInstance;
@@ -1467,6 +1520,11 @@ public final class PhantomSystem
 		return _configuredInstance == null ? null : _configuredInstance._scheduler;
 	}
 
+	static synchronized PhantomSelectedDecisionTrace configuredSelectedTraceForTesting()
+	{
+		return _configuredInstance == null ? null : _configuredInstance._selectedDecisionTrace;
+	}
+
 	static synchronized void configureEconomicAuditForTesting(PhantomEconomicAuditView view, State state)
 	{
 		if (_configuredInstance != null)
@@ -1487,12 +1545,22 @@ public final class PhantomSystem
 
 	static synchronized void configureOperatorRuntimeForTesting(boolean failShutdown)
 	{
+		configureOperatorRuntimeForTesting(failShutdown, false);
+	}
+
+	static synchronized void configureOperatorReplayForTesting()
+	{
+		configureOperatorRuntimeForTesting(false, true);
+	}
+
+	private static void configureOperatorRuntimeForTesting(boolean failShutdown, boolean diagnosticsEnabled)
+	{
 		if (_configuredInstance != null)
 		{
 			throw new IllegalStateException("A configured PhantomSystem instance already exists.");
 		}
 		_operatorMode = OperatorMode.AUTO;
-		final PhantomSystem configured = new PhantomSystem(new PhantomPlayersConfig.Settings(true, false, 1), false);
+		final PhantomSystem configured = new PhantomSystem(new PhantomPlayersConfig.Settings(true, diagnosticsEnabled, 1), false);
 		configured._scheduler = new PhantomScheduler(
 			1,
 			configured._settings.schedulerPulseMillis(),
@@ -1696,6 +1764,33 @@ public final class PhantomSystem
 
 	public record OperatorControlResult(OperatorControlCode code, OperatorMode desiredMode, boolean desiredRuntimeEnabled, boolean runtimeConfigured, State runtimeState)
 	{
+	}
+
+	public enum OperatorReplayCode
+	{
+		CAPTURED,
+		REPLAY_PASS,
+		REPLAY_FAIL,
+		CLEARED,
+		NO_CAPTURE,
+		RUNTIME_NOT_CONFIGURED,
+		TRACE_DISABLED,
+		NO_SELECTION,
+		NO_HISTORY,
+		CAPTURE_FAILED
+	}
+
+	public record OperatorReplayResult(OperatorReplayCode code, long profileId, int frameCount, String digest, PhantomDecisionReplay.ReplayResult replay)
+	{
+		public OperatorReplayResult
+		{
+			Objects.requireNonNull(code);
+		}
+
+		private static OperatorReplayResult empty(OperatorReplayCode code)
+		{
+			return new OperatorReplayResult(code, 0, 0, null, null);
+		}
 	}
 
 	public enum EconomicAuditCode

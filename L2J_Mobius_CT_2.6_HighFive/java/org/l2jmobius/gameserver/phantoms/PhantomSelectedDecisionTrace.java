@@ -43,6 +43,7 @@ public final class PhantomSelectedDecisionTrace implements PhantomDecisionEngine
 	private final boolean _enabled;
 	private final int _capacity;
 	private final DecisionView[] _entries;
+	private final ReplayMetadata[] _replayMetadata;
 	private final long _slowThresholdMillis;
 	private final long _stuckThresholdMillis;
 	private final LongSupplier _nanoClock;
@@ -52,7 +53,7 @@ public final class PhantomSelectedDecisionTrace implements PhantomDecisionEngine
 	private int _start;
 	private int _size;
 	private DecisionView _current;
-	private ProgressFingerprint _progressFingerprint;
+	private PhantomDecisionHealthModel.ProgressFingerprint _progressFingerprint;
 	private long _progressBaselineNanos;
 	private long _lastNowNanos;
 	private boolean _hasProgressBaseline;
@@ -68,13 +69,11 @@ public final class PhantomSelectedDecisionTrace implements PhantomDecisionEngine
 		{
 			throw new IllegalArgumentException("Enabled selected trace requires capacity between 1 and 64.");
 		}
-		if ((slowThresholdMillis <= 0) || (slowThresholdMillis >= stuckThresholdMillis))
-		{
-			throw new IllegalArgumentException("Selected trace thresholds require 0 < slow < stuck.");
-		}
+		PhantomDecisionHealthModel.validateThresholds(slowThresholdMillis, stuckThresholdMillis);
 		_enabled = enabled;
 		_capacity = enabled ? capacity : 0;
 		_entries = enabled ? new DecisionView[capacity] : null;
+		_replayMetadata = enabled ? new ReplayMetadata[capacity] : null;
 		_slowThresholdMillis = slowThresholdMillis;
 		_stuckThresholdMillis = stuckThresholdMillis;
 		_nanoClock = Objects.requireNonNull(nanoClock, "Monotonic clock must not be null.");
@@ -157,17 +156,23 @@ public final class PhantomSelectedDecisionTrace implements PhantomDecisionEngine
 			return;
 		}
 		final DecisionView entry = DecisionView.from(activityState, snapshot);
-		updateProgress(entry, monotonicNow(logicalNowNanos));
+		final long observationNanos = monotonicNow(logicalNowNanos);
+		updateProgress(entry, observationNanos);
+		final long unchangedAgeNanos = unchangedAgeNanos(observationNanos);
+		final ReplayMetadata metadata = new ReplayMetadata(observationNanos, unchangedAgeNanos, PhantomDecisionHealthModel.classify(entry, unchangedAgeNanos, true, _slowThresholdMillis, _stuckThresholdMillis));
 		_current = entry;
 		_recorded++;
 		if (_size < _capacity)
 		{
-			_entries[(_start + _size) % _capacity] = entry;
+			final int target = (_start + _size) % _capacity;
+			_entries[target] = entry;
+			_replayMetadata[target] = metadata;
 			_size++;
 		}
 		else
 		{
 			_entries[_start] = entry;
+			_replayMetadata[_start] = metadata;
 			_start = (_start + 1) % _capacity;
 			_dropped++;
 		}
@@ -193,44 +198,51 @@ public final class PhantomSelectedDecisionTrace implements PhantomDecisionEngine
 		return new Snapshot(true, _capacity, _selectedProfileId, _selectedProfileId > 0 && attached, _recorded, _dropped, _current, List.copyOf(history), health.health(), health.ageMillis(), _slowThresholdMillis, _stuckThresholdMillis);
 	}
 
+	public synchronized CaptureResult captureReplay()
+	{
+		if (!_enabled)
+		{
+			return new CaptureResult(CaptureStatus.TRACE_DISABLED, null);
+		}
+		if (_selectedProfileId <= 0)
+		{
+			return new CaptureResult(CaptureStatus.NO_SELECTION, null);
+		}
+		if (_size == 0)
+		{
+			return new CaptureResult(CaptureStatus.NO_HISTORY, null);
+		}
+		final List<PhantomDecisionReplay.Frame> frames = new ArrayList<>(_size);
+		final long firstObservationNanos = _replayMetadata[_start].observationNanos();
+		for (int index = 0; index < _size; index++)
+		{
+			final int source = (_start + index) % _capacity;
+			final ReplayMetadata metadata = _replayMetadata[source];
+			final long relativeNanos = metadata.observationNanos() - firstObservationNanos;
+			frames.add(new PhantomDecisionReplay.Frame(relativeNanos < 0 ? Long.MAX_VALUE : relativeNanos, metadata.unchangedAgeNanos(), metadata.health(), _entries[source]));
+		}
+		return new CaptureResult(CaptureStatus.CAPTURED, new PhantomDecisionReplay.Bundle(PhantomDecisionReplay.SCHEMA_VERSION, _selectedProfileId, _slowThresholdMillis, _stuckThresholdMillis, frames));
+	}
+
 	private HealthView health(boolean attached, long nowNanos)
 	{
 		if ((_selectedProfileId <= 0) || (_current == null) || !attached)
 		{
 			return new HealthView(Health.IDLE, 0);
 		}
-		if ((_current.runtimeState() == PhantomDecisionEngine.RuntimeState.PERSISTENCE_CONFLICT_REQUIRES_EXPLICIT_RELOAD) || (_current.runtimeState() == PhantomDecisionEngine.RuntimeState.PERSISTENCE_FAILURE_REQUIRES_EXPLICIT_RELOAD))
-		{
-			return new HealthView(Health.ATTENTION, ageMillis(nowNanos));
-		}
-		if ((_current.goalId() <= 0) || (_current.goalStatus() != PhantomGoalStatus.ACTIVE) || (_current.runtimeState() == PhantomDecisionEngine.RuntimeState.NO_GOAL) || (_current.runtimeState() == PhantomDecisionEngine.RuntimeState.TERMINAL))
-		{
-			return new HealthView(Health.IDLE, 0);
-		}
-		final long ageMillis = ageMillis(nowNanos);
-		if (_current.runtimeState() == PhantomDecisionEngine.RuntimeState.WAITING_RETRY)
-		{
-			return new HealthView(Health.WAITING, ageMillis);
-		}
-		if (ageMillis >= _stuckThresholdMillis)
-		{
-			return new HealthView(Health.STUCK, ageMillis);
-		}
-		if (ageMillis >= _slowThresholdMillis)
-		{
-			return new HealthView(Health.SLOW, ageMillis);
-		}
-		return new HealthView(Health.HEALTHY, ageMillis);
+		final long unchangedAgeNanos = unchangedAgeNanos(nowNanos);
+		final Health health = PhantomDecisionHealthModel.classify(_current, unchangedAgeNanos, true, _slowThresholdMillis, _stuckThresholdMillis);
+		return new HealthView(health, health == Health.IDLE ? 0 : unchangedAgeNanos / 1_000_000L);
 	}
 
-	private long ageMillis(long nowNanos)
+	private long unchangedAgeNanos(long nowNanos)
 	{
 		if (!_hasProgressBaseline || (nowNanos < _progressBaselineNanos))
 		{
 			return 0;
 		}
 		final long ageNanos = nowNanos - _progressBaselineNanos;
-		return ageNanos < 0 ? Long.MAX_VALUE : ageNanos / 1_000_000L;
+		return ageNanos < 0 ? Long.MAX_VALUE : ageNanos;
 	}
 
 	private long monotonicNow(long candidateNanos)
@@ -244,7 +256,7 @@ public final class PhantomSelectedDecisionTrace implements PhantomDecisionEngine
 
 	private void updateProgress(DecisionView entry, long logicalNowNanos)
 	{
-		final ProgressFingerprint fingerprint = ProgressFingerprint.from(entry);
+		final PhantomDecisionHealthModel.ProgressFingerprint fingerprint = PhantomDecisionHealthModel.fingerprint(entry);
 		if (!_hasProgressBaseline || !fingerprint.equals(_progressFingerprint))
 		{
 			_progressFingerprint = fingerprint;
@@ -255,7 +267,7 @@ public final class PhantomSelectedDecisionTrace implements PhantomDecisionEngine
 
 	private void resetProgress(DecisionView entry, long logicalNowNanos)
 	{
-		_progressFingerprint = ProgressFingerprint.from(entry);
+		_progressFingerprint = PhantomDecisionHealthModel.fingerprint(entry);
 		_progressBaselineNanos = logicalNowNanos;
 		_lastNowNanos = logicalNowNanos;
 		_hasProgressBaseline = true;
@@ -266,6 +278,7 @@ public final class PhantomSelectedDecisionTrace implements PhantomDecisionEngine
 		if (_entries != null)
 		{
 			java.util.Arrays.fill(_entries, null);
+			java.util.Arrays.fill(_replayMetadata, null);
 		}
 		_recorded = 0;
 		_dropped = 0;
@@ -277,6 +290,7 @@ public final class PhantomSelectedDecisionTrace implements PhantomDecisionEngine
 		_lastNowNanos = 0;
 		_hasProgressBaseline = false;
 	}
+
 	public enum SelectionStatus
 	{
 		SELECTED,
@@ -324,16 +338,27 @@ public final class PhantomSelectedDecisionTrace implements PhantomDecisionEngine
 	{
 	}
 
-	private record ProgressFingerprint(long goalId, long goalRevision, PhantomGoalStatus goalStatus, PhantomDecisionEngine.RuntimeState runtimeState, String candidateKey, int score, long planId, int step, int attempt, PhantomStepResult.Type lastResult, String reasonKey, List<CandidateEvaluation> topCandidates)
+	public enum CaptureStatus
 	{
-		private ProgressFingerprint
-		{
-			topCandidates = List.copyOf(topCandidates);
-		}
+		CAPTURED,
+		TRACE_DISABLED,
+		NO_SELECTION,
+		NO_HISTORY
+	}
 
-		private static ProgressFingerprint from(DecisionView view)
+	public record CaptureResult(CaptureStatus status, PhantomDecisionReplay.Bundle bundle)
+	{
+		public CaptureResult
 		{
-			return new ProgressFingerprint(view.goalId(), view.goalRevision(), view.goalStatus(), view.runtimeState(), view.candidateKey(), view.score(), view.planId(), view.step(), view.attempt(), view.lastResult(), view.reasonKey(), view.topCandidates());
+			Objects.requireNonNull(status);
+			if ((status == CaptureStatus.CAPTURED) != (bundle != null))
+			{
+				throw new IllegalArgumentException("Capture status and bundle do not match.");
+			}
 		}
+	}
+
+	private record ReplayMetadata(long observationNanos, long unchangedAgeNanos, Health health)
+	{
 	}
 }
