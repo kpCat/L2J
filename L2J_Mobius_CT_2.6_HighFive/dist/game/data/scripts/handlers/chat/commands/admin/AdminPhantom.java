@@ -28,6 +28,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.DecisionVi
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.SelectionStatus;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.Snapshot;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
+import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorControlResult;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorStatus;
 
 public class AdminPhantom implements IAdminCommandHandler
@@ -41,6 +42,21 @@ public class AdminPhantom implements IAdminCommandHandler
 	public boolean onCommand(String command, Player activeChar)
 	{
 		final String arguments = command.length() > 13 ? command.substring(13).trim() : "";
+		if (arguments.equals("enable"))
+		{
+			sendControl(activeChar, "enable", PhantomSystem.operatorEnable());
+			return true;
+		}
+		if (arguments.equals("drain"))
+		{
+			sendControl(activeChar, "drain", PhantomSystem.operatorDrain());
+			return true;
+		}
+		if (arguments.equals("disable"))
+		{
+			sendControl(activeChar, "disable", PhantomSystem.operatorDisable());
+			return true;
+		}
 		if (arguments.equals("status"))
 		{
 			sendStatus(activeChar);
@@ -84,10 +100,15 @@ public class AdminPhantom implements IAdminCommandHandler
 		return false;
 	}
 
+	private static void sendControl(Player activeChar, String action, OperatorControlResult result)
+	{
+		activeChar.sendSysMessage("Phantom " + action + ": result=" + result.code() + ", desiredMode=" + result.desiredMode() + ", desiredRunning=" + result.desiredRuntimeEnabled() + ", runtimeConfigured=" + result.runtimeConfigured() + ", runtime=" + result.runtimeState() + ".");
+	}
+
 	private static void sendStatus(Player activeChar)
 	{
 		final OperatorStatus status = PhantomSystem.operatorStatus();
-		activeChar.sendSysMessage("Phantom status: configured=" + status.configuredEnabled() + ", diagnostics=" + status.diagnosticsEnabled() + ", runtimeConfigured=" + status.runtimeConfigured() + ", runtime=" + status.runtimeState() + ".");
+		activeChar.sendSysMessage("Phantom status: configured=" + status.configuredEnabled() + ", diagnostics=" + status.diagnosticsEnabled() + ", operatorMode=" + status.operatorMode() + ", desiredRunning=" + status.desiredRuntimeEnabled() + ", runtimeConfigured=" + status.runtimeConfigured() + ", runtime=" + status.runtimeState() + ".");
 		activeChar.sendSysMessage("Phantom execution: scheduler=" + status.schedulerState() + ", decision=" + status.decisionState() + ", active=" + status.activeCurrent() + ", activePeak=" + status.activePeak() + ".");
 		final var states = status.activityStateCounts();
 		activeChar.sendSysMessage("Phantom activity: ACTIVE=" + states.get(0) + ", NEARBY_PERCEPTIBLE=" + states.get(1) + ", WARM=" + states.get(2) + ", BACKGROUND=" + states.get(3) + ", SLEEPING=" + states.get(4) + ".");
@@ -124,7 +145,7 @@ public class AdminPhantom implements IAdminCommandHandler
 
 	private static void sendUsage(Player activeChar)
 	{
-		activeChar.sendSysMessage("Usage: //phantom status | //phantom trace <profileId> | //phantom trace clear");
+		activeChar.sendSysMessage("Usage: //phantom enable | //phantom drain | //phantom disable | //phantom status | //phantom trace <profileId> | //phantom trace clear");
 	}
 
 	@Override

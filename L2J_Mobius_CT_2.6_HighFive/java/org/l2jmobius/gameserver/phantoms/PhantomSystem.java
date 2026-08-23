@@ -169,6 +169,7 @@ public final class PhantomSystem
 	public static final long SOCIAL_PERSONALITY_SEED = 18001801L;
 
 	private static PhantomSystem _configuredInstance;
+	private static OperatorMode _operatorMode = OperatorMode.AUTO;
 
 	private final PhantomPlayersConfig.Settings _settings;
 	private final PhantomMetrics _metrics;
@@ -176,6 +177,7 @@ public final class PhantomSystem
 	private final PhantomDiagnosticTrace _trace;
 	private final PhantomSelectedDecisionTrace _selectedDecisionTrace;
 	private final boolean _productionMaterialization;
+	private boolean _shutdownFailureForTesting;
 	private PhantomMaterializationService _materializationService;
 	private PhantomDecisionEngine _decisionEngine;
 	private PhantomNavigationService _navigationService;
@@ -685,6 +687,14 @@ public final class PhantomSystem
 
 	public synchronized boolean shutdown()
 	{
+		if (_shutdownFailureForTesting && (_state == State.RUNNING))
+		{
+			_scheduler.beginStop();
+			_metrics.recordShutdownFailure();
+			_state = State.FAILED;
+			return false;
+		}
+
 		if (_state == State.STOPPED)
 		{
 			return false;
@@ -1152,6 +1162,15 @@ public final class PhantomSystem
 
 	public static synchronized boolean startConfigured()
 	{
+		if ((_operatorMode == OperatorMode.DRAINED) || (_operatorMode == OperatorMode.DISABLED))
+		{
+			return false;
+		}
+		return startConfiguredInternal();
+	}
+
+	private static boolean startConfiguredInternal()
+	{
 		if (!PhantomPlayersConfig.isEnabled() || (_configuredInstance != null))
 		{
 			return false;
@@ -1174,13 +1193,71 @@ public final class PhantomSystem
 		}
 	}
 
-	public static synchronized boolean shutdownIfStarted()
+	public static synchronized OperatorControlResult operatorEnable()
 	{
-		if (_configuredInstance == null)
+		if (_configuredInstance != null)
 		{
-			return false;
+			final State actualState = _configuredInstance.snapshot().state();
+			if (actualState == State.RUNNING)
+			{
+				_operatorMode = OperatorMode.ENABLED;
+				return operatorControlResult(OperatorControlCode.ALREADY_RUNNING);
+			}
+			if (actualState == State.STOPPED)
+			{
+				_configuredInstance = null;
+			}
+			else
+			{
+				return operatorControlResult(OperatorControlCode.OWNER_BUSY);
+			}
 		}
 
+		_operatorMode = OperatorMode.ENABLED;
+		if (!PhantomPlayersConfig.isEnabled())
+		{
+			return operatorControlResult(OperatorControlCode.CONFIG_DISABLED);
+		}
+		try
+		{
+			return operatorControlResult(startConfiguredInternal() ? OperatorControlCode.STARTED : OperatorControlCode.OWNER_BUSY);
+		}
+		catch (RuntimeException e)
+		{
+			return operatorControlResult(OperatorControlCode.START_FAILED);
+		}
+	}
+
+	public static synchronized OperatorControlResult operatorDrain()
+	{
+		return requestOperatorStop(OperatorMode.DRAINED, OperatorControlCode.DRAINED, OperatorControlCode.ALREADY_DRAINED);
+	}
+
+	public static synchronized OperatorControlResult operatorDisable()
+	{
+		return requestOperatorStop(OperatorMode.DISABLED, OperatorControlCode.DISABLED, OperatorControlCode.ALREADY_DISABLED);
+	}
+
+	private static OperatorControlResult requestOperatorStop(OperatorMode requestedMode, OperatorControlCode stoppedCode, OperatorControlCode alreadyCode)
+	{
+		final boolean alreadyRequested = _operatorMode == requestedMode;
+		_operatorMode = requestedMode;
+		if (_configuredInstance == null)
+		{
+			return operatorControlResult(alreadyRequested ? alreadyCode : stoppedCode);
+		}
+
+		shutdownConfiguredInstance();
+		return operatorControlResult(_configuredInstance == null ? stoppedCode : OperatorControlCode.SHUTDOWN_FAILED);
+	}
+
+	public static synchronized boolean shutdownIfStarted()
+	{
+		return (_configuredInstance != null) && shutdownConfiguredInstance();
+	}
+
+	private static boolean shutdownConfiguredInstance()
+	{
 		final PhantomSystem configured = _configuredInstance;
 		final boolean stopped = configured.shutdown();
 		if (configured.snapshot().state() == State.STOPPED)
@@ -1188,6 +1265,12 @@ public final class PhantomSystem
 			_configuredInstance = null;
 		}
 		return stopped;
+	}
+
+	private static OperatorControlResult operatorControlResult(OperatorControlCode code)
+	{
+		final OperatorStatus status = operatorStatus();
+		return new OperatorControlResult(code, status.operatorMode(), status.desiredRuntimeEnabled(), status.runtimeConfigured(), status.runtimeState());
 	}
 
 	public static synchronized boolean hasConfiguredInstance()
@@ -1201,13 +1284,15 @@ public final class PhantomSystem
 		final PhantomSystem configured = _configuredInstance;
 		if (configured == null)
 		{
-			return OperatorStatus.notRunning(settings.enabled(), settings.diagnosticsEnabled());
+			return OperatorStatus.notRunning(settings.enabled(), settings.diagnosticsEnabled(), _operatorMode);
 		}
 		final Snapshot snapshot = configured.snapshot();
 		final PhantomMetrics.Snapshot metrics = snapshot.metrics();
 		return new OperatorStatus(
 			settings.enabled(),
 			settings.diagnosticsEnabled(),
+			_operatorMode,
+			desiredRuntimeEnabled(settings.enabled(), _operatorMode),
 			true,
 			snapshot.state(),
 			snapshot.scheduler().state(),
@@ -1350,6 +1435,53 @@ public final class PhantomSystem
 		return _configuredInstance == null ? null : _configuredInstance._scheduler;
 	}
 
+	static synchronized void configureOperatorRuntimeForTesting(boolean failShutdown)
+	{
+		if (_configuredInstance != null)
+		{
+			throw new IllegalStateException("A configured PhantomSystem instance already exists.");
+		}
+		_operatorMode = OperatorMode.AUTO;
+		final PhantomSystem configured = new PhantomSystem(new PhantomPlayersConfig.Settings(true, false, 1), false);
+		configured._scheduler = new PhantomScheduler(
+			1,
+			configured._settings.schedulerPulseMillis(),
+			configured._settings.schedulerProfilesPerPulse(),
+			org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy.productionDefaults(configured._settings.schedulerPulseMillis()),
+			System::nanoTime,
+			(pulse, period) -> null,
+			false,
+			configured._metrics,
+			configured._trace,
+			PhantomActivityMaterializationPort.noop(),
+			PhantomActivityWorkSink.noop());
+		if (!configured._scheduler.start())
+		{
+			throw new IllegalStateException("The operator test Phantom scheduler could not start.");
+		}
+		configured._shutdownFailureForTesting = failShutdown;
+		configured._metrics.recordLifecycleStart();
+		configured._state = State.RUNNING;
+		_configuredInstance = configured;
+	}
+
+	static synchronized void releaseOperatorShutdownFailureForTesting()
+	{
+		if (_configuredInstance != null)
+		{
+			_configuredInstance._shutdownFailureForTesting = false;
+		}
+	}
+
+	static synchronized void resetOperatorModeForTesting()
+	{
+		if (_configuredInstance != null)
+		{
+			throw new IllegalStateException("Cannot reset operator mode while a configured instance exists.");
+		}
+		_operatorMode = OperatorMode.AUTO;
+	}
+
 	static synchronized void configureForTesting(PhantomMaterializationService materializationService)
 	{
 		Objects.requireNonNull(materializationService, "materializationService");
@@ -1427,6 +1559,28 @@ public final class PhantomSystem
 		_configuredInstance = configured;
 	}
 
+	public enum OperatorMode
+	{
+		AUTO,
+		ENABLED,
+		DRAINED,
+		DISABLED
+	}
+
+	public enum OperatorControlCode
+	{
+		STARTED,
+		ALREADY_RUNNING,
+		CONFIG_DISABLED,
+		OWNER_BUSY,
+		START_FAILED,
+		DRAINED,
+		ALREADY_DRAINED,
+		DISABLED,
+		ALREADY_DISABLED,
+		SHUTDOWN_FAILED
+	}
+
 	public enum State
 	{
 		NEW,
@@ -1490,17 +1644,26 @@ public final class PhantomSystem
 	{
 	}
 
-	public record OperatorStatus(boolean configuredEnabled, boolean diagnosticsEnabled, boolean runtimeConfigured, State runtimeState, PhantomScheduler.SchedulerState schedulerState, PhantomDecisionEngine.State decisionState, long activeCurrent, long activePeak, java.util.List<Long> activityStateCounts, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel, int queueReady, int queueDue, int queueCapacity, long queueAccepted, long queueRejected, long shutdownFailures, PhantomSelectedDecisionTrace.Snapshot selectedTrace)
+	public record OperatorControlResult(OperatorControlCode code, OperatorMode desiredMode, boolean desiredRuntimeEnabled, boolean runtimeConfigured, State runtimeState)
+	{
+	}
+
+	public record OperatorStatus(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, boolean desiredRuntimeEnabled, boolean runtimeConfigured, State runtimeState, PhantomScheduler.SchedulerState schedulerState, PhantomDecisionEngine.State decisionState, long activeCurrent, long activePeak, java.util.List<Long> activityStateCounts, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel, int queueReady, int queueDue, int queueCapacity, long queueAccepted, long queueRejected, long shutdownFailures, PhantomSelectedDecisionTrace.Snapshot selectedTrace)
 	{
 		public OperatorStatus
 		{
 			activityStateCounts = java.util.List.copyOf(activityStateCounts);
 		}
 
-		private static OperatorStatus notRunning(boolean configuredEnabled, boolean diagnosticsEnabled)
+		private static OperatorStatus notRunning(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode)
 		{
-			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, false, null, PhantomScheduler.SchedulerState.STOPPED, PhantomDecisionEngine.State.STOPPED, 0, 0, java.util.List.of(0L, 0L, 0L, 0L, 0L), PhantomActivityOverloadLevel.NORMAL, PhantomActivityOverloadLevel.NORMAL, 0, 0, 0, 0, 0, 0, PhantomSelectedDecisionTrace.Snapshot.disabled());
+			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), false, null, PhantomScheduler.SchedulerState.STOPPED, PhantomDecisionEngine.State.STOPPED, 0, 0, java.util.List.of(0L, 0L, 0L, 0L, 0L), PhantomActivityOverloadLevel.NORMAL, PhantomActivityOverloadLevel.NORMAL, 0, 0, 0, 0, 0, 0, PhantomSelectedDecisionTrace.Snapshot.disabled());
 		}
+	}
+
+	private static boolean desiredRuntimeEnabled(boolean configuredEnabled, OperatorMode operatorMode)
+	{
+		return configuredEnabled && ((operatorMode == OperatorMode.AUTO) || (operatorMode == OperatorMode.ENABLED));
 	}
 
 	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration, PhantomGameKnowledgeService.State knowledgeState, PhantomProgressionService.State progressionState, String progressionCatalogHash, int progressionOperations, int progressionActorLeases, PhantomCombatService.ServiceState combatState, int combatActiveSessions, int combatTerminalSessions, int combatQueuedSessions, int combatWorkers, int combatActorLeases, PhantomPopulationManager.Snapshot population, PhantomSocialService.ServiceState socialState, String socialCatalogHash, int socialCacheEntries, int socialOperations, int socialWrites, PhantomConversationService.ServiceState conversationState, int conversationIngress, int conversationBatches, int conversationOperations, int conversationPersistence, boolean chatObserverRegistered)
