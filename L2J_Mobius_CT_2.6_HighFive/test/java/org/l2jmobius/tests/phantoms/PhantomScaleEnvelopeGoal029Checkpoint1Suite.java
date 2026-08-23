@@ -21,14 +21,13 @@
 package org.l2jmobius.gameserver.phantoms;
 
 import java.lang.reflect.Field;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.EnumSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
@@ -57,9 +56,7 @@ import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService.SubmissionStatus;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
-import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationSnapshot;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
-import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 import org.l2jmobius.tests.phantoms.PhantomTestContext;
 import org.l2jmobius.tests.phantoms.PhantomTestRegistry;
@@ -106,7 +103,7 @@ public final class PhantomScaleEnvelopeGoal029Checkpoint1Suite implements Phanto
 			registry.add("01-baseline-envelope-disabled-defaults", this::testBaselineEnvelope);
 			registry.add("02-scheduler-10k-cap-two-sweep-fairness", this::testSchedulerCapacityAndFairness);
 			registry.add("03-scheduler-overload-wave-and-recovery", this::testOverloadWaveAndRecovery);
-			registry.add("04-materialization-cap32-retained-recovery", this::testMaterializationCapacity);
+			registry.add("04-production-materialization-cap-source-wiring", this::testMaterializationCapacity);
 			registry.add("05-navigation-production-saturation-recovery", this::testNavigationSaturation);
 			registry.add("06-pure-assessment-and-structural-source-bounds", this::testAssessmentAndStructuralBounds);
 			return;
@@ -118,7 +115,7 @@ public final class PhantomScaleEnvelopeGoal029Checkpoint1Suite implements Phanto
 		}
 		else if (_mode == Mode.MATERIALIZATION)
 		{
-			registry.add("01-materialization-cap32-retained-recovery", this::testMaterializationCapacity);
+			registry.add("01-production-materialization-cap-source-wiring", this::testMaterializationCapacity);
 		}
 		else
 		{
@@ -276,32 +273,38 @@ public final class PhantomScaleEnvelopeGoal029Checkpoint1Suite implements Phanto
 		stop(scheduler);
 	}
 
-	private void testMaterializationCapacity(PhantomTestContext context)
+	private void testMaterializationCapacity(PhantomTestContext context) throws Exception
 	{
-		final MaterializationSnapshotFixture fixture = new MaterializationSnapshotFixture(32);
-		int peak = 0;
-		for (long profileId = 1; profileId <= 32; profileId++)
-		{
-			PhantomAssertions.assertTrue(fixture.admit(profileId, 1000 + (int) profileId), "Canonical cap fixture rejected admission " + profileId + ".");
-			peak = Math.max(peak, fixture.snapshot().retainedEntries());
-		}
-		PhantomAssertions.assertFalse(fixture.admit(33, 1033), "33rd actor exceeded materialization cap.");
-		PhantomAssertions.assertEquals(32, fixture.snapshot().retainedEntries(), "Rejected 33rd actor changed retained ownership.");
-		PhantomAssertions.assertFalse(fixture.release(1, false), "Injected retained cleanup failure released capacity.");
-		PhantomAssertions.assertFalse(fixture.admit(33, 1033), "Retained cleanup failure was bypassed.");
-		PhantomAssertions.assertFalse(fixture.admit(1, 2001), "Retained profile identity was duplicated.");
-		PhantomAssertions.assertFalse(fixture.admit(100, 1002), "Retained character identity was duplicated.");
-		PhantomAssertions.assertTrue(fixture.release(1, true), "Successful release did not free ownership.");
-		PhantomAssertions.assertTrue(fixture.admit(33, 1033), "Later admission did not reuse released capacity.");
-		peak = Math.max(peak, fixture.snapshot().retainedEntries());
-		PhantomAssertions.assertTrue(peak <= 32, "Materialization peak exceeded cap.");
-		PhantomAssertions.assertEquals(Verdict.AT_CAPACITY, envelope().assess(emptyScheduler(), fixture.snapshot(), emptyNavigation()).verdict(), "Valid cap32 snapshot was not accepted at capacity.");
-		context.record("materialization.cap", 32);
-		context.record("materialization.peak", peak);
-		context.record("materialization.retainedCleanupBlockedAdmission", true);
-		context.record("materialization.releaseReadmission", true);
-	}
+		final Path moduleRoot = context.moduleRoot();
+		final String configSource = Files.readString(moduleRoot.resolve(Path.of("java", "org", "l2jmobius", "gameserver", "config", "custom", "PhantomPlayersConfig.java")));
+		final String systemSource = Files.readString(moduleRoot.resolve(Path.of("java", "org", "l2jmobius", "gameserver", "phantoms", "PhantomSystem.java")));
+		final String serviceSource = Files.readString(moduleRoot.resolve(Path.of("java", "org", "l2jmobius", "gameserver", "phantoms", "player", "PhantomMaterializationService.java")));
+		final String productionSuiteSource = Files.readString(moduleRoot.resolve(Path.of("test", "java", "org", "l2jmobius", "tests", "phantoms", "PhantomProductionMaterializationSuite.java")));
 
+		PhantomAssertions.assertTrue(configSource.contains("public static final int DEFAULT_MAX_MATERIALIZED_PHANTOMS = 32;"), "Canonical default materialization cap is not 32.");
+		PhantomAssertions.assertTrue(systemSource.contains("new PhantomMaterializationService(profileRepository, PhantomIdentityLeaseRegistry.getInstance(), _metrics, _trace, _settings.maxMaterializedPhantoms(), lifecycleBridge)"), "PhantomSystem does not wire validated maxMaterializedPhantoms into the real service.");
+		PhantomAssertions.assertTrue(serviceSource.contains("_permits = new Semaphore(maximumMaterialized, true);"), "Real service does not construct the fair capacity semaphore.");
+		PhantomAssertions.assertTrue(serviceSource.contains("if (!_permits.tryAcquire())") && serviceSource.contains("return rejectMaterialization(ResultStatus.CAPACITY_REACHED);"), "Real materialization does not map failed permit admission to CAPACITY_REACHED.");
+		final int releaseStart = serviceSource.indexOf("private void releaseStoredEntry(Entry entry)");
+		final int releaseEnd = serviceSource.indexOf("public Optional<ActionLease> tryAcquireAction", releaseStart);
+		PhantomAssertions.assertTrue((releaseStart >= 0) && (releaseEnd > releaseStart), "Canonical stored-entry release method is missing.");
+		final String releaseSource = serviceSource.substring(releaseStart, releaseEnd);
+		PhantomAssertions.assertTrue(releaseSource.contains("state() != State.STORED") && releaseSource.contains("if (entry._permitHeld)") && releaseSource.contains("entry._permitHeld = false;") && releaseSource.contains("_permits.release();"), "Canonical STORED entry release does not return its held permit.");
+
+		PhantomAssertions.assertTrue(productionSuiteSource.contains("registry.add(\"05-cap-release-and-readmission\", _ -> testCapacity());"), "Production case 05 is not registered.");
+		PhantomAssertions.assertTrue(productionSuiteSource.contains("registry.add(\"12-action-timeout-retains-cap-and-retries\", _ -> testActionTimeout());"), "Production case 12 is not registered.");
+		PhantomAssertions.assertTrue(productionSuiteSource.contains("registry.add(\"13-operation-failure-retains-and-retries\", _ -> testCleanupOperationFailure());"), "Production case 13 is not registered.");
+		final int factoryStart = productionSuiteSource.indexOf("private ServiceFixture service(int capacity)");
+		final int factoryEnd = productionSuiteSource.indexOf("private PhantomProfile createProfile", factoryStart);
+		PhantomAssertions.assertTrue((factoryStart >= 0) && (factoryEnd > factoryStart), "Production service(int capacity) factory is missing.");
+		final String factorySource = productionSuiteSource.substring(factoryStart, factoryEnd);
+		PhantomAssertions.assertTrue(factorySource.contains("return service(capacity, PhantomMaterializedPlayer.FailureInjector.none(), 5000, 10000);") && factorySource.contains("new PhantomMaterializationService(") && factorySource.contains("metrics, trace, capacity, failureInjector"), "Production service(int capacity) path does not construct the real PhantomMaterializationService with the requested capacity.");
+		PhantomAssertions.assertFalse(productionSuiteSource.contains("MaterializationSnapshotFixture"), "Production materialization suite references the removed fake fixture.");
+		context.record("materialization.defaultCap", 32);
+		context.record("materialization.systemWiring", "_settings.maxMaterializedPhantoms()");
+		context.record("materialization.productionCases", "05/12/13");
+		context.record("materialization.serviceFactory", "PhantomMaterializationService");
+	}
 	private void testNavigationSaturation(PhantomTestContext context)
 	{
 		final PhantomNavigationPolicy policy = PhantomNavigationPolicy.productionDefaults();
@@ -349,20 +352,16 @@ public final class PhantomScaleEnvelopeGoal029Checkpoint1Suite implements Phanto
 	private void testAssessmentAndStructuralBounds(PhantomTestContext context)
 	{
 		final PhantomScaleEnvelope envelope = envelope();
-		final MaterializationSnapshotFixture materialization = new MaterializationSnapshotFixture(32);
-		for (long profileId = 1; profileId <= 32; profileId++)
-		{
-			materialization.admit(profileId, 2000 + (int) profileId);
-		}
+		final PhantomMaterializationService.ServiceSnapshot materialization = new PhantomMaterializationService.ServiceSnapshot(ServiceState.RUNNING, 32, 32, 0, List.of());
 		final SchedulerSnapshot schedulerAtCap = new SchedulerSnapshot(SchedulerState.RUNNING, 10_000, 10_000, 0, 10_000, 1, 1, false, PhantomActivityOverloadLevel.CRITICAL, PhantomActivityOverloadLevel.CRITICAL);
 		final PhantomNavigationService.ServiceSnapshot navigationAtCap = new PhantomNavigationService.ServiceSnapshot(PhantomNavigationService.ServiceState.RUNNING, 256, 256, 256, 256, 2, 2, 2, 1024, 1024, 1024, 10_000, 10_000, 10_000);
-		final var valid = envelope.assess(schedulerAtCap, materialization.snapshot(), navigationAtCap);
+		final var valid = envelope.assess(schedulerAtCap, materialization, navigationAtCap);
 		PhantomAssertions.assertEquals(Verdict.AT_CAPACITY, valid.verdict(), "Snapshots exactly at capacity were rejected.");
 		PhantomAssertions.assertEquals(PhantomActivityOverloadLevel.CRITICAL, valid.overloadLevel(), "Assessment replaced scheduler overload truth.");
 
 		final SchedulerSnapshot impossibleScheduler = new SchedulerSnapshot(SchedulerState.RUNNING, 10_001, 10_001, 10_001, 10_000, 2, 1, false, PhantomActivityOverloadLevel.HIGH, PhantomActivityOverloadLevel.CRITICAL);
 		final PhantomNavigationService.ServiceSnapshot impossibleNavigation = new PhantomNavigationService.ServiceSnapshot(PhantomNavigationService.ServiceState.RUNNING, 10_001, 257, 256, 257, 3, 2, 3, 1025, 1024, 1025, 10_001, 10_001, 10_001);
-		final var invalid = envelope.assess(impossibleScheduler, materialization.snapshot(), impossibleNavigation);
+		final var invalid = envelope.assess(impossibleScheduler, materialization, impossibleNavigation);
 		PhantomAssertions.assertEquals(Verdict.VIOLATED, invalid.verdict(), "Impossible snapshots were normalized.");
 		PhantomAssertions.assertTrue(invalid.violations().contains(Violation.SCHEDULER_REGISTERED_EXCEEDED), "Scheduler violation was not typed.");
 		PhantomAssertions.assertTrue(invalid.violations().contains(Violation.NAVIGATION_QUEUE_EXCEEDED), "Navigation queue violation was not typed.");
@@ -476,46 +475,6 @@ public final class PhantomScaleEnvelopeGoal029Checkpoint1Suite implements Phanto
 		private void advanceMillis(long millis)
 		{
 			_now += millis * 1_000_000L;
-		}
-	}
-
-	private static final class MaterializationSnapshotFixture
-	{
-		private final int _capacity;
-		private final Map<Long, MaterializationSnapshot> _byProfile = new LinkedHashMap<>();
-		private final Map<Integer, Long> _byCharacter = new LinkedHashMap<>();
-
-		private MaterializationSnapshotFixture(int capacity)
-		{
-			_capacity = capacity;
-		}
-
-		private boolean admit(long profileId, int characterObjectId)
-		{
-			if ((_byProfile.size() >= _capacity) || _byProfile.containsKey(profileId) || _byCharacter.containsKey(characterObjectId))
-			{
-				return false;
-			}
-			_byProfile.put(profileId, new MaterializationSnapshot(profileId, characterObjectId, State.ACTIVE, true, true, true, true, 0, true, 1, 0));
-			_byCharacter.put(characterObjectId, profileId);
-			return true;
-		}
-
-		private boolean release(long profileId, boolean cleanupSucceeded)
-		{
-			final MaterializationSnapshot current = _byProfile.get(profileId);
-			if ((current == null) || !cleanupSucceeded)
-			{
-				return false;
-			}
-			_byProfile.remove(profileId);
-			_byCharacter.remove(current.characterObjectId());
-			return true;
-		}
-
-		private PhantomMaterializationService.ServiceSnapshot snapshot()
-		{
-			return new PhantomMaterializationService.ServiceSnapshot(ServiceState.RUNNING, _capacity, _capacity - _byProfile.size(), _byProfile.size(), List.copyOf(_byProfile.values()));
 		}
 	}
 
