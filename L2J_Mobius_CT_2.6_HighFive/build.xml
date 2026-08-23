@@ -291,6 +291,42 @@
 		</java>
 	</target>
 
+	<target name="phantom-scale-envelope-goal029cp1-test" depends="compile-tests" description="Run Goal 029 CP1 deterministic structural scale envelope contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="scale-envelope-goal029cp1" />
+			<arg value="29002901" />
+		</java>
+	</target>
+
+	<target name="phantom-scale-scheduler-goal029cp1-test" depends="compile-tests" description="Run exact Goal 029 CP1 scheduler capacity, fairness and overload contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="scale-scheduler-goal029cp1" />
+			<arg value="29002901" />
+		</java>
+	</target>
+
+	<target name="phantom-scale-materialization-goal029cp1-test" depends="compile-tests" description="Run exact Goal 029 CP1 materialization cap and retained ownership contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="scale-materialization-goal029cp1" />
+			<arg value="29002901" />
+		</java>
+	</target>
+
+	<target name="phantom-scale-navigation-goal029cp1-test" depends="compile-tests" description="Run exact Goal 029 CP1 navigation saturation and recovery contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="scale-navigation-goal029cp1" />
+			<arg value="29002901" />
+		</java>
+	</target>
+
 	<target name="phantom-activity-scheduler-test" depends="compile-tests" description="Run deterministic shared Phantom activity scheduler tests.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

@@ -37,6 +37,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4S
 import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4Suite.Mode;
 import org.l2jmobius.gameserver.phantoms.PhantomOperatorRuntimeControlsSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomServerShutdownHandoffSuite;
+import org.l2jmobius.gameserver.phantoms.PhantomScaleEnvelopeGoal029Checkpoint1Suite;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanGoal027Checkpoint2Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerPerformanceSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerSuite;
@@ -194,6 +195,10 @@ public final class PhantomTestLauncher
 			case "scenario" -> new PhantomScenarioSmokeSuite();
 			case "performance" -> new PhantomPerformanceSmokeSuite();
 			case "skeleton" -> new PhantomSkeletonSuite();
+			case "scale-envelope-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite();
+			case "scale-scheduler-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite(PhantomScaleEnvelopeGoal029Checkpoint1Suite.Mode.SCHEDULER);
+			case "scale-materialization-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite(PhantomScaleEnvelopeGoal029Checkpoint1Suite.Mode.MATERIALIZATION);
+			case "scale-navigation-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite(PhantomScaleEnvelopeGoal029Checkpoint1Suite.Mode.NAVIGATION);
 			case "deterministic-decision-replay-goal028cp5" -> new PhantomDeterministicDecisionReplayGoal028Checkpoint5Suite();
 			case "operator-observability-selected-trace" -> new PhantomOperatorObservabilitySuite();
 			case "operator-runtime-controls" -> new PhantomOperatorRuntimeControlsSuite();
