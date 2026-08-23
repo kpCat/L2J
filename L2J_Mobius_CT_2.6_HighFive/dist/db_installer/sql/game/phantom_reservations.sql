@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS `phantom_economy_audit`
     PRIMARY KEY (`audit_id`),
     UNIQUE KEY `uq_phantom_economy_audit_operation` (`operation_id`),
     KEY `idx_phantom_economy_audit_profile_created` (`profile_id`, `created_at`, `audit_id`),
+    KEY `idx_phantom_economy_audit_profile_audit` (`profile_id`, `audit_id`),
     CONSTRAINT `fk_phantom_economy_audit_profile`
         FOREIGN KEY (`profile_id`)
         REFERENCES `phantom_profiles` (`profile_id`)
