@@ -400,7 +400,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		}
 		try
 		{
-			_observer.onDecision(workItem.effectiveState(), snapshot);
+			_observer.onDecision(workItem.effectiveState(), snapshot, workItem.logicalNowNanos());
 		}
 		catch (Throwable ignored)
 		{
@@ -1165,6 +1165,11 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		}
 
 		void onDecision(PhantomActivityState activityState, RuntimeSnapshot snapshot);
+
+		default void onDecision(PhantomActivityState activityState, RuntimeSnapshot snapshot, long logicalNowNanos)
+		{
+			onDecision(activityState, snapshot);
+		}
 	}
 
 	public enum State

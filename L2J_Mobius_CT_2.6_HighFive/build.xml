@@ -171,6 +171,15 @@
 		</java>
 	</target>
 
+	<target name="phantom-selected-slow-stuck-goal028cp3-test" depends="compile-tests" description="Run Goal 028 CP3 selected Phantom slow/stuck diagnostics tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="selected-slow-stuck-diagnostics" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
 	<target name="phantom-headless-player-test" depends="compile-tests" description="Run the bounded canonical headless Player feasibility suite.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="240000" dir="${datapack}/game">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

@@ -119,7 +119,7 @@ public class AdminPhantom implements IAdminCommandHandler
 
 	private static void sendTrace(Player activeChar, Snapshot trace)
 	{
-		activeChar.sendSysMessage("Phantom selected trace: enabled=" + trace.enabled() + ", profileId=" + trace.selectedProfileId() + ", size=" + trace.history().size() + "/" + trace.capacity() + ", recorded=" + trace.recorded() + ", dropped=" + trace.dropped() + ".");
+		activeChar.sendSysMessage("Phantom selected trace: enabled=" + trace.enabled() + ", profileId=" + trace.selectedProfileId() + ", attached=" + trace.attached() + ", size=" + trace.history().size() + "/" + trace.capacity() + ", recorded=" + trace.recorded() + ", dropped=" + trace.dropped() + ", health=" + trace.health() + ", ageMs=" + trace.ageMillis() + ", slowMs=" + trace.slowThresholdMillis() + ", stuckMs=" + trace.stuckThresholdMillis() + ".");
 		if (trace.current() != null)
 		{
 			activeChar.sendSysMessage("Phantom current: " + format(trace.current()));
@@ -133,7 +133,7 @@ public class AdminPhantom implements IAdminCommandHandler
 
 	private static String format(DecisionView view)
 	{
-		return "activity=" + view.activityState() + ", profileId=" + view.profileId() + ", goal=" + view.goalId() + "/" + view.goalType() + "/" + view.goalStatus() + ", runtime=" + view.runtimeState() + ", decision=" + view.decisionSequence() + ", candidate=" + view.candidateKey() + ", score=" + view.score() + ", plan=" + view.planId() + ", step=" + view.step() + ", attempt=" + view.attempt() + ", result=" + view.lastResult() + ", reason=" + view.reasonKey() + ".";
+		return "activity=" + view.activityState() + ", profileId=" + view.profileId() + ", goal=" + view.goalId() + "/" + view.goalType() + "/r" + view.goalRevision() + "/" + view.goalStatus() + ", runtime=" + view.runtimeState() + ", decision=" + view.decisionSequence() + ", candidate=" + view.candidateKey() + ", score=" + view.score() + ", plan=" + view.planId() + ", step=" + view.step() + ", attempt=" + view.attempt() + ", result=" + view.lastResult() + ", reason=" + view.reasonKey() + ".";
 	}
 
 	private static String candidates(DecisionView view)

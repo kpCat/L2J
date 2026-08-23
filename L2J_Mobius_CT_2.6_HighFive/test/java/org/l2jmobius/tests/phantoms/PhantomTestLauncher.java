@@ -193,6 +193,7 @@ public final class PhantomTestLauncher
 			case "skeleton" -> new PhantomSkeletonSuite();
 			case "operator-observability-selected-trace" -> new PhantomOperatorObservabilitySuite();
 			case "operator-runtime-controls" -> new PhantomOperatorRuntimeControlsSuite();
+			case "selected-slow-stuck-diagnostics" -> new PhantomSelectedSlowStuckDiagnosticsSuite();
 			case "headless-player" -> new PhantomHeadlessPlayerSuite();
 			case "headless-player-performance" -> new PhantomHeadlessPlayerPerformanceSuite();
 			case "profile-persistence" -> new PhantomProfilePersistenceSuite();
