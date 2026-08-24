@@ -195,7 +195,8 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			long cursor = 0;
 			while (true)
 			{
-				final List<ManagedSnapshot> page = _store.loadManagedAfter(cursor, Math.min(256, (_maximumScheduled - restoreIds.size()) + 1));
+				final int pageSize = Math.min(256, (_maximumScheduled - restoreIds.size()) + 1);
+				final List<ManagedSnapshot> page = _store.loadManagedAfter(cursor, pageSize);
 				if ((restoreIds.size() + page.size()) > _maximumScheduled)
 				{
 					throw new IllegalStateException("Managed population exceeds configured scheduler capacity.");
@@ -216,7 +217,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 						}
 					}
 				}
-				if (page.size() < Math.min(256, (_maximumScheduled - restoreIds.size()) + 1))
+				if (page.size() < pageSize)
 				{
 					break;
 				}

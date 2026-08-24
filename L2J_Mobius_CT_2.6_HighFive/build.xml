@@ -72,6 +72,7 @@
 	<property name="phantom.goal027c.seed" value="27002730" />
 	<property name="phantom.goal027d.seed" value="27002740" />
 	<property name="phantom.goal027e.seed" value="27002750" />
+	<property name="phantom.goal029cp2.seed" value="29002902" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -291,6 +292,20 @@
 		</java>
 	</target>
 
+	<target name="phantom-scale-environment-goal029cp2-test" depends="compile-tests" description="Run Goal 029 CP2 guarded DB, Hikari, JVM memory and scheduler spike budgets.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="1200000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="scale-environment-goal029cp2" />
+			<arg value="${phantom.goal029cp2.seed}" />
+		</java>
+	</target>
 	<target name="phantom-scale-envelope-goal029cp1-test" depends="compile-tests" description="Run Goal 029 CP1 deterministic structural scale envelope contracts.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
