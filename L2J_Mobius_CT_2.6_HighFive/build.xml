@@ -74,6 +74,7 @@
 	<property name="phantom.goal027e.seed" value="27002750" />
 	<property name="phantom.goal029cp2.seed" value="29002902" />
 	<property name="phantom.goal029cp3.seed" value="29002903" />
+	<property name="phantom.goal030cp1.seed" value="30003001" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -290,6 +291,20 @@
 			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
 			<arg value="server-shutdown-handoff" />
 			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-release-baseline-goal030cp1-test" depends="compile-tests" description="Run Goal 030 CP1 release coverage and shipped-disabled fresh-bootstrap baseline tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="release-baseline-goal030cp1" />
+			<arg value="${phantom.goal030cp1.seed}" />
 		</java>
 	</target>
 
