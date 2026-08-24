@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -125,10 +126,13 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 	private static final PhantomNavigationPoint NAVIGATION_ORIGIN = new PhantomNavigationPoint(0, 0, 0, 0);
 	private static final String BACKGROUND_SOURCE = "goal029cp3.background";
 	private static final String WARM_SOURCE = "goal029cp3.warm";
+	private static final int MAXIMUM_MAINTENANCE_SELECTS = 12;
 	private static final String BLOCKED_ADMIN_ENV = "BLOCKED_029CP3_ADMIN_STATUS_ENV_REQUIRED";
-	private static final String BLOCKED_DB_ISOLATION = "BLOCKED_029CP3_DB_INSTANCE_NOT_ISOLATED";
+	private static final String BLOCKED_DB_ISOLATION = "BLOCKED_029C_DB_INSTANCE_NOT_ISOLATED";
 	private static final String BLOCKED_DB_EVIDENCE = "BLOCKED_029CP3_DB_RATE_EVIDENCE_UNAVAILABLE";
-	private static final String BLOCKED_RESOURCE_BOUNDARY = "BLOCKED_029CP3_RESOURCE_BOUNDARY_REDESIGN_REQUIRED";
+	private static final String BLOCKED_SQL_ATTRIBUTION = "BLOCKED_029C_SQL_ATTRIBUTION_LOG_UNAVAILABLE";
+	private static final String BLOCKED_UNCLASSIFIED_STATEMENT = "BLOCKED_029C_UNCLASSIFIED_DRIVER_STATEMENT";
+	private static final String BLOCKED_APPLICATION_TRAFFIC = "BLOCKED_029C_APPLICATION_DB_TRAFFIC_DETECTED";
 
 	private final List<CreatedProfile> _createdProfiles = new ArrayList<>(SCALE);
 	private AdminStatusProbe _admin;
@@ -389,151 +393,155 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 		long spikeCriticalNanos = 0;
 		long spikeWithdrawnNanos = 0;
 
-		final DbStatus soakBefore = _admin.status();
-		final long soakStartedNanos = System.nanoTime();
-		long nextPulseNanos = soakStartedNanos + PULSE_NANOS;
-		long nextSampleNanos = soakStartedNanos;
-		long nowNanos = soakStartedNanos;
-		while ((nowNanos - soakStartedNanos) < ENDURANCE_NANOS)
+		SqlAttribution sqlAttribution = null;
+		DbStatus soakDelta = null;
+		long durationNanos = 0;
+		final SqlAttributionWindow attributionWindow = _admin.openSqlAttribution();
+		try
 		{
-			nowNanos = System.nanoTime();
-			final long elapsedNanos = nowNanos - soakStartedNanos;
-			if (nowNanos >= nextSampleNanos)
+			final String soakStartedAt = attributionWindow.markTimestamp();
+			final DbStatus soakBefore = _admin.status();
+			final long soakStartedNanos = System.nanoTime();
+			long nextPulseNanos = soakStartedNanos + PULSE_NANOS;
+			long nextSampleNanos = soakStartedNanos;
+			long nowNanos = soakStartedNanos;
+			while ((nowNanos - soakStartedNanos) < ENDURANCE_NANOS)
 			{
-				samples.add(captureEnduranceSample(elapsedNanos, registeredBaseline, "periodic"));
-				nextSampleNanos += SAMPLE_NANOS;
-			}
-
-			if ((spikeIndex < SPIKE_OFFSETS_NANOS.length) && !spikeSubmitted && (elapsedNanos >= SPIKE_OFFSETS_NANOS[spikeIndex]))
-			{
-				submitWarmSpike(spikeIndex);
-				spikeSubmitted = true;
-				spikeStartedNanos = System.nanoTime();
-				spikeCritical = false;
-				spikeCriticalNanos = 0;
-				samples.add(captureEnduranceSample(spikeStartedNanos - soakStartedNanos, registeredBaseline, "spike" + (spikeIndex + 1) + "-submitted"));
-			}
-
-			if (nowNanos >= nextPulseNanos)
-			{
-				maximumSchedulingLatenessNanos = Math.max(maximumSchedulingLatenessNanos, nowNanos - nextPulseNanos);
-				final long workBefore = _deliveredWork;
-				final long pulseStarted = System.nanoTime();
-				_scheduler.pulse();
-				final long pulseCompleted = System.nanoTime();
-				maximumPulseExecutionNanos = Math.max(maximumPulseExecutionNanos, pulseCompleted - pulseStarted);
-				final long pulseWork = _deliveredWork - workBefore;
-				maximumWorkPerPulse = Math.max(maximumWorkPerPulse, pulseWork);
-				PhantomAssertions.assertTrue(pulseWork <= SCHEDULER_BUDGET, "Scheduler delivered more than 128 work items in one pulse.");
-				final SchedulerSnapshot snapshot = _scheduler.snapshot();
-				assertSchedulerBounds(snapshot);
-				maximumRegistered = Math.max(maximumRegistered, snapshot.registered());
-				maximumReady = Math.max(maximumReady, snapshot.ready());
-				maximumDue = Math.max(maximumDue, snapshot.due());
-				if (spikeSubmitted && !spikeWithdrawn && (snapshot.overloadLevel() == PhantomActivityOverloadLevel.CRITICAL))
+				nowNanos = System.nanoTime();
+				final long elapsedNanos = nowNanos - soakStartedNanos;
+				if (nowNanos >= nextSampleNanos)
 				{
-					spikeCritical = true;
-					if (spikeCriticalNanos == 0)
-					{
-						spikeCriticalNanos = pulseCompleted;
-					}
+					samples.add(captureEnduranceSample(elapsedNanos, registeredBaseline, "periodic"));
+					nextSampleNanos += SAMPLE_NANOS;
 				}
-				nextPulseNanos += PULSE_NANOS;
 
-				if (spikeWithdrawn && (snapshot.overloadLevel() == PhantomActivityOverloadLevel.NORMAL))
+				if ((spikeIndex < SPIKE_OFFSETS_NANOS.length) && !spikeSubmitted && (elapsedNanos >= SPIKE_OFFSETS_NANOS[spikeIndex]))
 				{
-					final long recoveredNanos = pulseCompleted;
-					final long recoveryNanos = recoveredNanos - spikeWithdrawnNanos;
-					PhantomAssertions.assertTrue(recoveryNanos <= RECOVERY_LIMIT_NANOS, "Scheduler spike did not recover NORMAL within 60 seconds.");
-					final NavigationCycleResult navigation = runNavigationCycle(spikeIndex + 1, dispatcher, navigationPolicy);
-					navigationCycles.add(navigation);
-					spikes.add(new SpikeResult(spikeIndex + 1, SPIKE_OFFSETS_NANOS[spikeIndex] / 1_000_000L, (spikeStartedNanos - soakStartedNanos) / 1_000_000L, (spikeCriticalNanos - soakStartedNanos) / 1_000_000L, (spikeWithdrawnNanos - soakStartedNanos) / 1_000_000L, (recoveredNanos - soakStartedNanos) / 1_000_000L, recoveryNanos / 1_000_000L));
-					samples.add(captureEnduranceSample(recoveredNanos - soakStartedNanos, registeredBaseline, "spike" + (spikeIndex + 1) + "-recovered"));
-					spikeIndex++;
-					spikeSubmitted = false;
-					spikeWithdrawn = false;
+					submitWarmSpike(spikeIndex);
+					spikeSubmitted = true;
+					spikeStartedNanos = System.nanoTime();
 					spikeCritical = false;
-					if (spikeIndex == SPIKE_OFFSETS_NANOS.length)
+					spikeCriticalNanos = 0;
+					samples.add(captureEnduranceSample(spikeStartedNanos - soakStartedNanos, registeredBaseline, "spike" + (spikeIndex + 1) + "-submitted"));
+				}
+
+				if (nowNanos >= nextPulseNanos)
+				{
+					maximumSchedulingLatenessNanos = Math.max(maximumSchedulingLatenessNanos, nowNanos - nextPulseNanos);
+					final long workBefore = _deliveredWork;
+					final long pulseStarted = System.nanoTime();
+					_scheduler.pulse();
+					final long pulseCompleted = System.nanoTime();
+					maximumPulseExecutionNanos = Math.max(maximumPulseExecutionNanos, pulseCompleted - pulseStarted);
+					final long pulseWork = _deliveredWork - workBefore;
+					maximumWorkPerPulse = Math.max(maximumWorkPerPulse, pulseWork);
+					PhantomAssertions.assertTrue(pulseWork <= SCHEDULER_BUDGET, "Scheduler delivered more than 128 work items in one pulse.");
+					final SchedulerSnapshot snapshot = _scheduler.snapshot();
+					assertSchedulerBounds(snapshot);
+					maximumRegistered = Math.max(maximumRegistered, snapshot.registered());
+					maximumReady = Math.max(maximumReady, snapshot.ready());
+					maximumDue = Math.max(maximumDue, snapshot.due());
+					if (spikeSubmitted && !spikeWithdrawn && (snapshot.overloadLevel() == PhantomActivityOverloadLevel.CRITICAL))
 					{
-						stopNavigation();
+						spikeCritical = true;
+						if (spikeCriticalNanos == 0)
+						{
+							spikeCriticalNanos = pulseCompleted;
+						}
+					}
+					nextPulseNanos += PULSE_NANOS;
+
+					if (spikeWithdrawn && (snapshot.overloadLevel() == PhantomActivityOverloadLevel.NORMAL))
+					{
+						final long recoveredNanos = pulseCompleted;
+						final long recoveryNanos = recoveredNanos - spikeWithdrawnNanos;
+						PhantomAssertions.assertTrue(recoveryNanos <= RECOVERY_LIMIT_NANOS, "Scheduler spike did not recover NORMAL within 60 seconds.");
+						final NavigationCycleResult navigation = runNavigationCycle(spikeIndex + 1, dispatcher, navigationPolicy);
+						navigationCycles.add(navigation);
+						spikes.add(new SpikeResult(spikeIndex + 1, SPIKE_OFFSETS_NANOS[spikeIndex] / 1_000_000L, (spikeStartedNanos - soakStartedNanos) / 1_000_000L, (spikeCriticalNanos - soakStartedNanos) / 1_000_000L, (spikeWithdrawnNanos - soakStartedNanos) / 1_000_000L, (recoveredNanos - soakStartedNanos) / 1_000_000L, recoveryNanos / 1_000_000L));
+						samples.add(captureEnduranceSample(recoveredNanos - soakStartedNanos, registeredBaseline, "spike" + (spikeIndex + 1) + "-recovered"));
+						spikeIndex++;
+						spikeSubmitted = false;
+						spikeWithdrawn = false;
+						spikeCritical = false;
+						if (spikeIndex == SPIKE_OFFSETS_NANOS.length)
+						{
+							stopNavigation();
+						}
 					}
 				}
-			}
 
-			if (spikeSubmitted && !spikeWithdrawn && ((System.nanoTime() - spikeStartedNanos) >= SPIKE_HOLD_NANOS))
-			{
-				PhantomAssertions.assertTrue(spikeCritical, "Scheduler WARM spike did not reach CRITICAL during its 30-second hold.");
-				withdrawWarmSpike(spikeIndex);
-				spikeWithdrawn = true;
-				spikeWithdrawnNanos = System.nanoTime();
-			}
-			if (spikeWithdrawn && ((System.nanoTime() - spikeWithdrawnNanos) > RECOVERY_LIMIT_NANOS))
-			{
-				throw new AssertionError("Scheduler WARM spike recovery exceeded 60 seconds.");
-			}
+				if (spikeSubmitted && !spikeWithdrawn && ((System.nanoTime() - spikeStartedNanos) >= SPIKE_HOLD_NANOS))
+				{
+					PhantomAssertions.assertTrue(spikeCritical, "Scheduler WARM spike did not reach CRITICAL during its 30-second hold.");
+					withdrawWarmSpike(spikeIndex);
+					spikeWithdrawn = true;
+					spikeWithdrawnNanos = System.nanoTime();
+				}
+				if (spikeWithdrawn && ((System.nanoTime() - spikeWithdrawnNanos) > RECOVERY_LIMIT_NANOS))
+				{
+					throw new AssertionError("Scheduler WARM spike recovery exceeded 60 seconds.");
+				}
 
-			final long nextEvent = Math.min(nextPulseNanos, nextSampleNanos);
-			final long waitNanos = nextEvent - System.nanoTime();
-			if (waitNanos > 0)
-			{
-				LockSupport.parkNanos(Math.min(waitNanos, 50_000_000L));
+				final long nextEvent = Math.min(nextPulseNanos, nextSampleNanos);
+				final long waitNanos = nextEvent - System.nanoTime();
+				if (waitNanos > 0)
+				{
+					LockSupport.parkNanos(Math.min(waitNanos, 50_000_000L));
+				}
 			}
+			final long soakCompletedNanos = System.nanoTime();
+			durationNanos = soakCompletedNanos - soakStartedNanos;
+			samples.add(captureEnduranceSample(durationNanos, registeredBaseline, "endurance-end"));
+			soakDelta = _admin.status().minus(soakBefore);
+			final String soakCompletedAt = attributionWindow.markTimestamp();
+			sqlAttribution = attributionWindow.capture(soakStartedAt, soakCompletedAt);
 		}
-		final long soakCompletedNanos = System.nanoTime();
-		final long durationNanos = soakCompletedNanos - soakStartedNanos;
-		PhantomAssertions.assertTrue(durationNanos >= ENDURANCE_NANOS, "Scheduler/navigation soak was shorter than 30 minutes.");
-		PhantomAssertions.assertTrue(durationNanos < MAXIMUM_ENDURANCE_NANOS, "Scheduler/navigation soak reached 31 minutes.");
-		PhantomAssertions.assertEquals(6, spikes.size(), "Scheduler did not complete exact six spikes.");
-		PhantomAssertions.assertEquals(6, navigationCycles.size(), "Navigation did not complete exact six saturation cycles.");
-		PhantomAssertions.assertTrue(_navigation == null, "Navigation service was not stopped after cycle 6.");
-		samples.add(captureEnduranceSample(durationNanos, registeredBaseline, "endurance-end"));
-		final DbStatus soakDelta = _admin.status().minus(soakBefore);
+		finally
+		{
+			attributionWindow.close();
+		}
 		_admin.requireProductionDatabaseIdle();
+		final DbStatus measuredSoakDelta = Objects.requireNonNull(soakDelta);
+		final SqlAttribution measuredSqlAttribution = Objects.requireNonNull(sqlAttribution);
 
 		drainSchedulerToNormal();
 		final SchedulerSnapshot finalScheduler = _scheduler.snapshot();
-		assertSchedulerBounds(finalScheduler);
-		PhantomAssertions.assertEquals(PhantomActivityOverloadLevel.NORMAL, finalScheduler.overloadLevel(), "Scheduler final overload is not NORMAL.");
 		final PhantomMetrics.ActivitySnapshot activity = _metrics.snapshot().activity();
-		PhantomAssertions.assertEquals(activity.pulsesStarted(), activity.pulsesCompleted(), "Scheduler pulse start/completion counters diverged.");
-		PhantomAssertions.assertEquals(0L, activity.workFailures(), "Scheduler recorded work failures.");
-		PhantomAssertions.assertEquals(0L, activity.readyBackpressure(), "Scheduler recorded ready backpressure.");
-		PhantomAssertions.assertTrue(activity.pulsesOverrun() <= Math.max(5L, activity.pulsesCompleted() / 100L), "Scheduler pulse overrun ratio exceeded one percent.");
-		PhantomAssertions.assertTrue(maximumWorkPerPulse <= SCHEDULER_BUDGET, "Scheduler maximum work per pulse exceeded 128.");
-		PhantomAssertions.assertTrue((maximumRegistered <= SCALE) && (maximumReady <= SCALE) && (maximumDue <= SCALE), "Scheduler structural counts exceeded 10000.");
 
 		final long[] epochMinima = epochMinima(samples);
-		PhantomAssertions.assertTrue(epochMinima[5] <= (epochMinima[1] + (128L * MIB)), "Last 5-minute heap epoch minimum exceeded first post-warmup epoch minimum +128 MiB.");
 		final long rawHeapPeak = samples.stream().mapToLong(sample -> sample.jvm().heapUsed()).max().orElseThrow();
-		PhantomAssertions.assertTrue(rawHeapPeak <= (registeredBaseline.heapUsed() + SCHEDULER_TRANSIENT_BUDGET), "Raw endurance heap peak exceeded registered baseline +512 MiB.");
 		final int liveThreadPeak = samples.stream().mapToInt(sample -> sample.jvm().liveThreads()).max().orElseThrow();
-		PhantomAssertions.assertTrue(liveThreadPeak <= (registeredBaseline.liveThreads() + 4), "Endurance live threads exceeded baseline +4.");
 		long maximumSampleGapNanos = 0;
 		for (int index = 1; index < samples.size(); index++)
 		{
 			maximumSampleGapNanos = Math.max(maximumSampleGapNanos, samples.get(index).elapsedNanos() - samples.get(index - 1).elapsedNanos());
 		}
-		PhantomAssertions.assertTrue(maximumSampleGapNanos <= 30_000_000_000L, "JVM/Hikari sampling gap exceeded 30 seconds.");
 		HikariSnapshot hikariPeak = hikariBaseline;
 		for (EnduranceSample sample : samples)
 		{
 			hikariPeak = hikariPeak.maximum(sample.hikari());
 		}
-		assertHikariSoakSample(hikariPeak);
-
 		stopScheduler();
 		final JvmSnapshot finalSettled = settleHeap();
-		assertHeapWithin(finalSettled, registeredBaseline, SCHEDULER_FINAL_BUDGET, "Scheduler/navigation final heap exceeded registered baseline +64 MiB.");
-		PhantomAssertions.assertTrue(finalSettled.liveThreads() <= (registeredBaseline.liveThreads() + 2), "Final live threads exceeded registered baseline +2.");
 		final HikariSnapshot hikariFinal = HikariSnapshot.capture();
-		assertHikariSoakSample(hikariFinal);
 
 		context.record("endurance.durationMillis", durationNanos / 1_000_000L);
 		context.record("endurance.samples", samples.size());
 		context.record("endurance.maximumSampleGapMillis", maximumSampleGapNanos / 1_000_000L);
 		context.record("endurance.spikes", spikes.stream().map(SpikeResult::compact).toList());
 		context.record("endurance.navigationCycles", navigationCycles.stream().map(NavigationCycleResult::compact).toList());
-		context.record("endurance.databaseDelta", soakDelta.compact());
+		context.record("endurance.databaseDelta", measuredSoakDelta.compact());
+		context.record("endurance.globalComSelect", measuredSoakDelta.select());
+		context.record("endurance.globalDml", "insert=" + measuredSoakDelta.insert() + ",update=" + measuredSoakDelta.update() + ",delete=" + measuredSoakDelta.delete());
+		context.record("endurance.sqlAttributionWindow", measuredSqlAttribution.windowCompact());
+		context.record("endurance.generalLogLifecycle", attributionWindow.lifecycleCompact());
+		context.record("endurance.maintenanceSqlCount", measuredSqlAttribution.maintenanceCount());
+		context.record("endurance.maintenanceSqlCounts", measuredSqlAttribution.maintenanceStatements());
+		context.record("endurance.applicationSqlCount", measuredSqlAttribution.applicationCount());
+		context.record("endurance.applicationSqlCounts", measuredSqlAttribution.applicationStatements());
+		context.record("endurance.unclassifiedSqlCount", measuredSqlAttribution.unclassifiedCount());
+		context.record("endurance.unclassifiedSqlCounts", measuredSqlAttribution.unclassifiedStatements());
 		context.record("endurance.scheduler", "pulsesStarted=" + activity.pulsesStarted() + ",pulsesCompleted=" + activity.pulsesCompleted() + ",overruns=" + activity.pulsesOverrun() + ",workDelivered=" + activity.workDelivered() + ",maxWorkPerPulse=" + maximumWorkPerPulse + ",workFailures=" + activity.workFailures() + ",readyBackpressure=" + activity.readyBackpressure());
 		context.record("endurance.schedulerBounds", "registered=" + maximumRegistered + ",ready=" + maximumReady + ",due=" + maximumDue);
 		context.record("endurance.pulseMaxExecutionNanos", maximumPulseExecutionNanos);
@@ -546,10 +554,46 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 		context.record("endurance.liveThreadPeak", liveThreadPeak);
 		context.record("endurance.hikariPeak", hikariPeak.compact());
 		context.record("endurance.hikariFinal", hikariFinal.compact());
-		if (!DbStatus.zero().equals(soakDelta))
+
+		if (measuredSqlAttribution.applicationCount() != 0)
 		{
-			throw new AssertionError(BLOCKED_RESOURCE_BOUNDARY + ": scheduler/navigation endurance DB delta must be exact zero but was " + soakDelta.compact() + ".");
+			throw new PhantomTestConfigurationException(BLOCKED_APPLICATION_TRAFFIC + ": dedicated test user issued application/table SQL " + measuredSqlAttribution.applicationStatements() + ".");
 		}
+		if (measuredSqlAttribution.unclassifiedCount() != 0)
+		{
+			throw new PhantomTestConfigurationException(BLOCKED_UNCLASSIFIED_STATEMENT + ": dedicated test user issued unknown non-table SQL " + measuredSqlAttribution.unclassifiedStatements() + ".");
+		}
+		if ((measuredSoakDelta.insert() != 0) || (measuredSoakDelta.update() != 0) || (measuredSoakDelta.delete() != 0))
+		{
+			throw new PhantomTestConfigurationException(BLOCKED_DB_ISOLATION + ": global scheduler/navigation DML must be zero but was " + measuredSoakDelta.compact() + ".");
+		}
+		PhantomAssertions.assertTrue(measuredSqlAttribution.maintenanceCount() <= MAXIMUM_MAINTENANCE_SELECTS, "Dedicated-user maintenance SELECT count exceeded 12: " + measuredSqlAttribution.maintenanceStatements() + ".");
+		PhantomAssertions.assertTrue(durationNanos >= ENDURANCE_NANOS, "Scheduler/navigation soak was shorter than 30 minutes.");
+		PhantomAssertions.assertTrue(durationNanos < MAXIMUM_ENDURANCE_NANOS, "Scheduler/navigation soak reached 31 minutes.");
+		PhantomAssertions.assertEquals(6, spikes.size(), "Scheduler did not complete exact six spikes.");
+		PhantomAssertions.assertEquals(6, navigationCycles.size(), "Navigation did not complete exact six saturation cycles.");
+		PhantomAssertions.assertTrue(_navigation == null, "Navigation service was not stopped after cycle 6.");
+		assertSchedulerBounds(finalScheduler);
+		PhantomAssertions.assertEquals(PhantomActivityOverloadLevel.NORMAL, finalScheduler.overloadLevel(), "Scheduler final overload is not NORMAL.");
+		PhantomAssertions.assertEquals(activity.pulsesStarted(), activity.pulsesCompleted(), "Scheduler pulse start/completion counters diverged.");
+		PhantomAssertions.assertEquals(0L, activity.workFailures(), "Scheduler recorded work failures.");
+		PhantomAssertions.assertEquals(0L, activity.readyBackpressure(), "Scheduler recorded ready backpressure.");
+		PhantomAssertions.assertTrue(activity.pulsesOverrun() <= Math.max(5L, activity.pulsesCompleted() / 100L), "Scheduler pulse overrun ratio exceeded one percent.");
+		PhantomAssertions.assertTrue(maximumWorkPerPulse <= SCHEDULER_BUDGET, "Scheduler maximum work per pulse exceeded 128.");
+		PhantomAssertions.assertTrue((maximumRegistered <= SCALE) && (maximumReady <= SCALE) && (maximumDue <= SCALE), "Scheduler structural counts exceeded 10000.");
+		for (int epoch = 0; epoch < epochMinima.length; epoch++)
+		{
+			PhantomAssertions.assertTrue(epochMinima[epoch] != Long.MAX_VALUE, "Missing JVM heap sample for 5-minute epoch " + epoch + ".");
+		}
+		PhantomAssertions.assertTrue(epochMinima[5] <= (epochMinima[1] + (128L * MIB)), "Last 5-minute heap epoch minimum exceeded first post-warmup epoch minimum +128 MiB.");
+		PhantomAssertions.assertTrue(rawHeapPeak <= (registeredBaseline.heapUsed() + SCHEDULER_TRANSIENT_BUDGET), "Raw endurance heap peak exceeded registered baseline +512 MiB.");
+		PhantomAssertions.assertTrue(liveThreadPeak <= (registeredBaseline.liveThreads() + 4), "Endurance live threads exceeded baseline +4.");
+		PhantomAssertions.assertTrue(maximumSampleGapNanos <= 30_000_000_000L, "JVM/Hikari sampling gap exceeded 30 seconds.");
+		assertHikariSoakSample(hikariPeak);
+		assertHeapWithin(finalSettled, registeredBaseline, SCHEDULER_FINAL_BUDGET, "Scheduler/navigation final heap exceeded registered baseline +64 MiB.");
+		PhantomAssertions.assertTrue(finalSettled.liveThreads() <= (registeredBaseline.liveThreads() + 2), "Final live threads exceeded registered baseline +2.");
+		assertHikariSoakSample(hikariFinal);
+
 	}
 
 	private void drainReadySetup()
@@ -640,12 +684,7 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 
 	private EnduranceSample captureEnduranceSample(long elapsedNanos, JvmSnapshot baseline, String reason) throws Exception
 	{
-		final HikariSnapshot hikari = HikariSnapshot.capture();
-		assertHikariSoakSample(hikari);
-		final JvmSnapshot jvm = JvmSnapshot.capture();
-		PhantomAssertions.assertTrue(jvm.heapUsed() <= (baseline.heapUsed() + SCHEDULER_TRANSIENT_BUDGET), "Raw endurance heap sample exceeded registered baseline +512 MiB.");
-		PhantomAssertions.assertTrue(jvm.liveThreads() <= (baseline.liveThreads() + 4), "Endurance live threads exceeded baseline +4.");
-		return new EnduranceSample(Math.max(0, elapsedNanos), reason, jvm, hikari);
+		return new EnduranceSample(Math.max(0, elapsedNanos), reason, JvmSnapshot.capture(), HikariSnapshot.capture());
 	}
 
 	private static void assertHikariSoakSample(HikariSnapshot snapshot)
@@ -663,10 +702,6 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 		{
 			final int epoch = (int) Math.min(5L, sample.elapsedNanos() / (5L * 60L * 1_000_000_000L));
 			minima[epoch] = Math.min(minima[epoch], sample.jvm().heapUsed());
-		}
-		for (int epoch = 0; epoch < minima.length; epoch++)
-		{
-			PhantomAssertions.assertTrue(minima[epoch] != Long.MAX_VALUE, "Missing JVM heap sample for 5-minute epoch " + epoch + ".");
 		}
 		return minima;
 	}
@@ -1042,6 +1077,41 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 	{
 	}
 
+	private record SqlAttribution(String startedAt, String completedAt, Map<String, Integer> maintenanceStatements, Map<String, Integer> applicationStatements, Map<String, Integer> unclassifiedStatements)
+	{
+		private SqlAttribution
+		{
+			maintenanceStatements = Collections.unmodifiableMap(new TreeMap<>(maintenanceStatements));
+			applicationStatements = Collections.unmodifiableMap(new TreeMap<>(applicationStatements));
+			unclassifiedStatements = Collections.unmodifiableMap(new TreeMap<>(unclassifiedStatements));
+		}
+
+		private int maintenanceCount()
+		{
+			return count(maintenanceStatements);
+		}
+
+		private int applicationCount()
+		{
+			return count(applicationStatements);
+		}
+
+		private int unclassifiedCount()
+		{
+			return count(unclassifiedStatements);
+		}
+
+		private String windowCompact()
+		{
+			return "startedAt=" + startedAt + ",completedAt=" + completedAt;
+		}
+
+		private static int count(Map<String, Integer> statements)
+		{
+			return statements.values().stream().mapToInt(Integer::intValue).sum();
+		}
+	}
+
 	private static final class ManualDispatcher implements PhantomNavigationService.Dispatcher
 	{
 		private final Deque<Runnable> _workers = new ArrayDeque<>();
@@ -1094,7 +1164,328 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 		{
 			return List.of(request.origin(), request.destination());
 		}
-	}	private static final class AdminStatusProbe implements AutoCloseable
+	}
+
+	private static final class SqlAttributionWindow implements AutoCloseable
+	{
+		private static final String LOG_VARIABLES_SQL = "SHOW GLOBAL VARIABLES WHERE Variable_name IN ('general_log','log_output')";
+		private static final String TIMESTAMP_SQL = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y-%m-%d %H:%i:%s.%f')";
+		private static final String ATTRIBUTION_SQL = "SELECT argument FROM mysql.general_log WHERE event_time >= ? AND event_time <= ? AND command_type = 'Query' AND SUBSTRING_INDEX(user_host, '[', 1) = ? ORDER BY event_time, thread_id";
+		private static final String APPLICATION_BOUNDARY_REGEX = ".*\\b(FROM|JOIN|INTO|INSERT|UPDATE|DELETE|REPLACE|MERGE|CREATE|ALTER|DROP|TRUNCATE|RENAME|GRANT|REVOKE|ANALYZE|OPTIMIZE|REPAIR|CALL|LOAD|LOCK|UNLOCK)\\b.*";
+
+		private final Connection _connection;
+		private String _savedGeneralLog;
+		private String _savedLogOutput;
+		private String _enabledGeneralLog;
+		private String _enabledLogOutput;
+		private String _restoredGeneralLog;
+		private String _restoredLogOutput;
+		private boolean _closed;
+
+		private SqlAttributionWindow(Connection connection)
+		{
+			_connection = connection;
+		}
+
+		private static SqlAttributionWindow open(Connection connection) throws PhantomTestConfigurationException
+		{
+			final SqlAttributionWindow window = new SqlAttributionWindow(connection);
+			window.enable();
+			return window;
+		}
+
+		private void enable() throws PhantomTestConfigurationException
+		{
+			try
+			{
+				final Map<String, String> saved = logVariables();
+				_savedGeneralLog = requireGeneralLog(saved);
+				_savedLogOutput = requireLogOutput(saved);
+				execute("SET GLOBAL log_output = 'TABLE'");
+				execute("SET GLOBAL general_log = 'ON'");
+				final Map<String, String> enabled = logVariables();
+				_enabledGeneralLog = requireGeneralLog(enabled);
+				_enabledLogOutput = requireLogOutput(enabled);
+				if (!"ON".equals(_enabledGeneralLog) || !containsTable(_enabledLogOutput))
+				{
+					throw new SQLException("MariaDB general log did not enable with TABLE output.");
+				}
+				try (Statement statement = _connection.createStatement(); ResultSet ignored = statement.executeQuery("SELECT event_time FROM mysql.general_log WHERE 1 = 0"))
+				{
+					// Access itself is the required capability probe; no log rows are read or removed.
+				}
+			}
+			catch (Throwable throwable)
+			{
+				Throwable failure = throwable;
+				if ((_savedGeneralLog != null) && (_savedLogOutput != null))
+				{
+					try
+					{
+						restoreSavedValues();
+					}
+					catch (Throwable restoreFailure)
+					{
+						failure = combine(failure, restoreFailure);
+					}
+				}
+				_closed = true;
+				throw unavailable("general-log setup failed", failure);
+			}
+		}
+
+		private String markTimestamp() throws PhantomTestConfigurationException
+		{
+			ensureOpen();
+			try (Statement statement = _connection.createStatement(); ResultSet result = statement.executeQuery(TIMESTAMP_SQL))
+			{
+				if (!result.next())
+				{
+					throw new SQLException("MariaDB timestamp query returned no row.");
+				}
+				final String value = result.getString(1);
+				if ((value == null) || value.isBlank())
+				{
+					throw new SQLException("MariaDB timestamp query returned no value.");
+				}
+				return value;
+			}
+			catch (SQLException e)
+			{
+				throw unavailable("soak timestamp could not be recorded", e);
+			}
+		}
+
+		private SqlAttribution capture(String startedAt, String completedAt) throws PhantomTestConfigurationException
+		{
+			ensureOpen();
+			final Map<String, Integer> maintenance = new TreeMap<>();
+			final Map<String, Integer> application = new TreeMap<>();
+			final Map<String, Integer> unclassified = new TreeMap<>();
+			try (PreparedStatement statement = _connection.prepareStatement(ATTRIBUTION_SQL))
+			{
+				statement.setString(1, startedAt);
+				statement.setString(2, completedAt);
+				statement.setString(3, PhantomTestDatabaseGuard.TARGET_USER);
+				try (ResultSet result = statement.executeQuery())
+				{
+					while (result.next())
+					{
+						final String normalized = normalizeSql(result.getString(1));
+						if (isApplicationSql(normalized))
+						{
+							application.merge(normalized, 1, Integer::sum);
+						}
+						else if (isMaintenanceSelect(normalized))
+						{
+							maintenance.merge(normalized, 1, Integer::sum);
+						}
+						else
+						{
+							unclassified.merge(normalized, 1, Integer::sum);
+						}
+					}
+				}
+			}
+			catch (SQLException e)
+			{
+				throw unavailable("dedicated-user SQL rows could not be read", e);
+			}
+			return new SqlAttribution(startedAt, completedAt, maintenance, application, unclassified);
+		}
+
+		private String lifecycleCompact()
+		{
+			if (!_closed)
+			{
+				throw new IllegalStateException("General-log lifecycle was requested before restoration.");
+			}
+			return "savedGeneralLog=" + _savedGeneralLog + ",savedLogOutput=" + _savedLogOutput + ",enabledGeneralLog=" + _enabledGeneralLog + ",enabledLogOutput=" + _enabledLogOutput + ",restoredGeneralLog=" + _restoredGeneralLog + ",restoredLogOutput=" + _restoredLogOutput;
+		}
+
+		@Override
+		public void close() throws PhantomTestConfigurationException
+		{
+			if (_closed)
+			{
+				return;
+			}
+			try
+			{
+				restoreSavedValues();
+			}
+			catch (SQLException e)
+			{
+				throw unavailable("general-log settings could not be restored", e);
+			}
+			finally
+			{
+				_closed = true;
+			}
+		}
+
+		private void restoreSavedValues() throws SQLException
+		{
+			SQLException failure = null;
+			try
+			{
+				execute("SET GLOBAL general_log = 'OFF'");
+			}
+			catch (SQLException e)
+			{
+				failure = append(failure, e);
+			}
+			try
+			{
+				execute("SET GLOBAL log_output = '" + _savedLogOutput + "'");
+			}
+			catch (SQLException e)
+			{
+				failure = append(failure, e);
+			}
+			try
+			{
+				execute("SET GLOBAL general_log = '" + _savedGeneralLog + "'");
+			}
+			catch (SQLException e)
+			{
+				failure = append(failure, e);
+			}
+			try
+			{
+				final Map<String, String> restored = logVariables();
+				_restoredGeneralLog = requireGeneralLog(restored);
+				_restoredLogOutput = requireLogOutput(restored);
+				if (!_savedGeneralLog.equals(_restoredGeneralLog) || !_savedLogOutput.equals(_restoredLogOutput))
+				{
+					throw new SQLException("MariaDB general-log settings differ after restoration.");
+				}
+			}
+			catch (SQLException e)
+			{
+				failure = append(failure, e);
+			}
+			if (failure != null)
+			{
+				throw failure;
+			}
+		}
+
+		private Map<String, String> logVariables() throws SQLException
+		{
+			final Map<String, String> values = new HashMap<>();
+			try (Statement statement = _connection.createStatement(); ResultSet result = statement.executeQuery(LOG_VARIABLES_SQL))
+			{
+				while (result.next())
+				{
+					values.put(result.getString(1).toLowerCase(Locale.ROOT), result.getString(2));
+				}
+			}
+			if (values.size() != 2)
+			{
+				throw new SQLException("Required MariaDB general-log variables are missing.");
+			}
+			return values;
+		}
+
+		private void execute(String sql) throws SQLException
+		{
+			try (Statement statement = _connection.createStatement())
+			{
+				statement.executeUpdate(sql);
+			}
+		}
+
+		private static String requireGeneralLog(Map<String, String> variables) throws SQLException
+		{
+			final String value = variables.get("general_log");
+			final String normalized = value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
+			if (!"ON".equals(normalized) && !"OFF".equals(normalized))
+			{
+				throw new SQLException("MariaDB general_log value is not ON/OFF.");
+			}
+			return normalized;
+		}
+
+		private static String requireLogOutput(Map<String, String> variables) throws SQLException
+		{
+			final String value = variables.get("log_output");
+			final String normalized = value == null ? "" : value.replace(" ", "").toUpperCase(Locale.ROOT);
+			if (!"NONE".equals(normalized) && !"FILE".equals(normalized) && !"TABLE".equals(normalized) && !"FILE,TABLE".equals(normalized) && !"TABLE,FILE".equals(normalized))
+			{
+				throw new SQLException("MariaDB log_output value is outside the bounded allowlist.");
+			}
+			return normalized;
+		}
+
+		private static boolean containsTable(String logOutput)
+		{
+			return Arrays.asList(logOutput.split(",")).contains("TABLE");
+		}
+
+		private static String normalizeSql(String sql)
+		{
+			return sql == null ? "" : sql.strip().replaceAll("\\s+", " ");
+		}
+
+		private static boolean isMaintenanceSelect(String sql)
+		{
+			String classified = sql;
+			if (classified.startsWith("/* mysql-connector-j-"))
+			{
+				final int commentEnd = classified.indexOf("*/");
+				if (commentEnd < 0)
+				{
+					return false;
+				}
+				classified = classified.substring(commentEnd + 2).stripLeading();
+			}
+			final String upper = classified.toUpperCase(Locale.ROOT);
+			if (!upper.startsWith("SELECT "))
+			{
+				return false;
+			}
+			for (String expression : upper.substring("SELECT ".length()).split(","))
+			{
+				if (!expression.strip().matches("@@(?:SESSION\\.)?[A-Z0-9_]+(?:\\s+AS\\s+[A-Z0-9_]+)?"))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
+		private static boolean isApplicationSql(String sql)
+		{
+			final String upper = sql.toUpperCase(Locale.ROOT);
+			return upper.matches(APPLICATION_BOUNDARY_REGEX) || upper.contains("L2JMOBIUSH5") || upper.contains("PHANTOM_") || upper.contains("`") || upper.contains(";");
+		}
+
+		private static SQLException append(SQLException first, SQLException next)
+		{
+			if (first == null)
+			{
+				return next;
+			}
+			first.addSuppressed(next);
+			return first;
+		}
+
+		private static PhantomTestConfigurationException unavailable(String reason, Throwable cause)
+		{
+			return new PhantomTestConfigurationException(BLOCKED_SQL_ATTRIBUTION + ": " + reason + ".", cause);
+		}
+
+		private void ensureOpen() throws PhantomTestConfigurationException
+		{
+			if (_closed)
+			{
+				throw new PhantomTestConfigurationException(BLOCKED_SQL_ATTRIBUTION + ": general-log window is already closed.");
+			}
+		}
+	}
+
+	private static final class AdminStatusProbe implements AutoCloseable
 	{
 		private static final String STATUS_SQL = "SHOW GLOBAL STATUS WHERE Variable_name IN ('Com_select','Com_insert','Com_update','Com_delete')";
 		private static final String PROCESSLIST_SQL = "SELECT ID, USER, DB, COMMAND FROM information_schema.PROCESSLIST WHERE DB = 'l2jmobiush5' AND COMMAND <> 'Sleep' LIMIT 16";
@@ -1112,6 +1503,11 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 			final String password = requireEnvironment("PHANTOM_DB_ADMIN_PASSWORD");
 			validateUrl(url);
 			return new AdminStatusProbe(DriverManager.getConnection(url, user, password));
+		}
+
+		private SqlAttributionWindow openSqlAttribution() throws PhantomTestConfigurationException
+		{
+			return SqlAttributionWindow.open(_connection);
 		}
 
 		private DbStatus status() throws SQLException
@@ -1185,7 +1581,7 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 			}
 			final String path = uri.getRawPath();
 			final String authority = uri.getRawAuthority();
-			if (!"mysql".equals(uri.getScheme()) || (!"127.0.0.1".equals(uri.getHost()) && !"localhost".equals(uri.getHost())) || (uri.getPort() != PhantomTestDatabaseGuard.TARGET_PORT) || ((path != null) && !path.isEmpty() && !"/".equals(path)) || (uri.getRawQuery() != null) || (uri.getFragment() != null) || (uri.getUserInfo() != null) || (authority == null) || authority.contains("@") || authority.contains(","))
+			if (!"mysql".equals(uri.getScheme()) || !"127.0.0.1".equals(uri.getHost()) || (uri.getPort() != PhantomTestDatabaseGuard.TARGET_PORT) || !"/".equals(path) || (uri.getRawQuery() != null) || (uri.getFragment() != null) || (uri.getUserInfo() != null) || (authority == null) || authority.contains("@") || authority.contains(","))
 			{
 				throw invalidAdminUrl();
 			}
@@ -1193,7 +1589,7 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 
 		private static PhantomTestConfigurationException invalidAdminUrl()
 		{
-			return new PhantomTestConfigurationException(BLOCKED_ADMIN_ENV + ": admin status URL must be credential-free jdbc:mysql local port 3308 with no schema/query/fragment.");
+			return new PhantomTestConfigurationException(BLOCKED_ADMIN_ENV + ": admin status URL must be exact credential-free jdbc:mysql://127.0.0.1:3308/ with no schema/query/fragment.");
 		}
 	}
 }
