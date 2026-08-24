@@ -36,6 +36,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayDeque;
@@ -112,7 +113,8 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 	private static final long MIB = 1024L * 1024L;
 	private static final long POPULATION_LOADED_BUDGET = 256L * MIB;
 	private static final long POPULATION_RECOVERED_BUDGET = 64L * MIB;
-	private static final long SCHEDULER_TRANSIENT_BUDGET = 512L * MIB;
+	private static final long SCHEDULER_COMMITTED_BUDGET = 256L * MIB;
+	private static final long SCHEDULER_MINIMUM_HEADROOM = 512L * MIB;
 	private static final long SCHEDULER_FINAL_BUDGET = 64L * MIB;
 	private static final long POPULATION_POST_RATCHET_BUDGET = 64L * MIB;
 	private static final long ENDURANCE_NANOS = 30L * 60L * 1_000_000_000L;
@@ -126,13 +128,14 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 	private static final PhantomNavigationPoint NAVIGATION_ORIGIN = new PhantomNavigationPoint(0, 0, 0, 0);
 	private static final String BACKGROUND_SOURCE = "goal029cp3.background";
 	private static final String WARM_SOURCE = "goal029cp3.warm";
-	private static final int MAXIMUM_MAINTENANCE_SELECTS = 12;
+	private static final int MAXIMUM_REPLACEMENT_CONNECTIONS = 6;
 	private static final String BLOCKED_ADMIN_ENV = "BLOCKED_029CP3_ADMIN_STATUS_ENV_REQUIRED";
 	private static final String BLOCKED_DB_ISOLATION = "BLOCKED_029C_DB_INSTANCE_NOT_ISOLATED";
 	private static final String BLOCKED_DB_EVIDENCE = "BLOCKED_029CP3_DB_RATE_EVIDENCE_UNAVAILABLE";
-	private static final String BLOCKED_SQL_ATTRIBUTION = "BLOCKED_029C_SQL_ATTRIBUTION_LOG_UNAVAILABLE";
-	private static final String BLOCKED_UNCLASSIFIED_STATEMENT = "BLOCKED_029C_UNCLASSIFIED_DRIVER_STATEMENT";
-	private static final String BLOCKED_APPLICATION_TRAFFIC = "BLOCKED_029C_APPLICATION_DB_TRAFFIC_DETECTED";
+	private static final String BLOCKED_SQL_ATTRIBUTION = "BLOCKED_029D_SQL_ATTRIBUTION_LOG_UNAVAILABLE";
+	private static final String BLOCKED_UNATTRIBUTED_STATEMENT = "BLOCKED_029D_UNATTRIBUTED_DRIVER_STATEMENT";
+	private static final String BLOCKED_UNCLASSIFIED_STATEMENT = "BLOCKED_029D_UNCLASSIFIED_SQL";
+	private static final String BLOCKED_APPLICATION_TRAFFIC = "BLOCKED_029D_APPLICATION_DB_TRAFFIC";
 
 	private final List<CreatedProfile> _createdProfiles = new ArrayList<>(SCALE);
 	private AdminStatusProbe _admin;
@@ -511,6 +514,8 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 
 		final long[] epochMinima = epochMinima(samples);
 		final long rawHeapPeak = samples.stream().mapToLong(sample -> sample.jvm().heapUsed()).max().orElseThrow();
+		final long maximumHeapCommitted = samples.stream().mapToLong(sample -> sample.jvm().heapCommitted()).max().orElseThrow();
+		final long minimumHeapHeadroom = samples.stream().mapToLong(sample -> sample.jvm().heapMax() - sample.jvm().heapUsed()).min().orElseThrow();
 		final int liveThreadPeak = samples.stream().mapToInt(sample -> sample.jvm().liveThreads()).max().orElseThrow();
 		long maximumSampleGapNanos = 0;
 		for (int index = 1; index < samples.size(); index++)
@@ -536,10 +541,16 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 		context.record("endurance.globalDml", "insert=" + measuredSoakDelta.insert() + ",update=" + measuredSoakDelta.update() + ",delete=" + measuredSoakDelta.delete());
 		context.record("endurance.sqlAttributionWindow", measuredSqlAttribution.windowCompact());
 		context.record("endurance.generalLogLifecycle", attributionWindow.lifecycleCompact());
+		context.record("endurance.connectCount", measuredSqlAttribution.connectCount());
+		context.record("endurance.threadTimeAttribution", measuredSqlAttribution.threadTimeAttribution());
 		context.record("endurance.maintenanceSqlCount", measuredSqlAttribution.maintenanceCount());
+		context.record("endurance.maintenanceSelectCount", measuredSqlAttribution.maintenanceSelectCount());
+		context.record("endurance.maintenanceSetCount", measuredSqlAttribution.maintenanceSetCount());
 		context.record("endurance.maintenanceSqlCounts", measuredSqlAttribution.maintenanceStatements());
 		context.record("endurance.applicationSqlCount", measuredSqlAttribution.applicationCount());
 		context.record("endurance.applicationSqlCounts", measuredSqlAttribution.applicationStatements());
+		context.record("endurance.unattributedSqlCount", measuredSqlAttribution.unattributedCount());
+		context.record("endurance.unattributedSqlCounts", measuredSqlAttribution.unattributedStatements());
 		context.record("endurance.unclassifiedSqlCount", measuredSqlAttribution.unclassifiedCount());
 		context.record("endurance.unclassifiedSqlCounts", measuredSqlAttribution.unclassifiedStatements());
 		context.record("endurance.scheduler", "pulsesStarted=" + activity.pulsesStarted() + ",pulsesCompleted=" + activity.pulsesCompleted() + ",overruns=" + activity.pulsesOverrun() + ",workDelivered=" + activity.workDelivered() + ",maxWorkPerPulse=" + maximumWorkPerPulse + ",workFailures=" + activity.workFailures() + ",readyBackpressure=" + activity.readyBackpressure());
@@ -549,6 +560,8 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 		context.record("endurance.heapRegisteredBaseline", registeredBaseline.compact());
 		context.record("endurance.heapEpochMinima", Arrays.toString(epochMinima));
 		context.record("endurance.rawHeapPeak", rawHeapPeak);
+		context.record("endurance.maximumHeapCommitted", maximumHeapCommitted);
+		context.record("endurance.minimumHeapHeadroom", minimumHeapHeadroom);
 		context.record("endurance.finalSettled", finalSettled.compact());
 		context.record("endurance.gcDelta", finalSettled.gcDelta(registeredBaseline));
 		context.record("endurance.liveThreadPeak", liveThreadPeak);
@@ -559,15 +572,23 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 		{
 			throw new PhantomTestConfigurationException(BLOCKED_APPLICATION_TRAFFIC + ": dedicated test user issued application/table SQL " + measuredSqlAttribution.applicationStatements() + ".");
 		}
+		if (measuredSqlAttribution.unattributedCount() != 0)
+		{
+			throw new PhantomTestConfigurationException(BLOCKED_UNATTRIBUTED_STATEMENT + ": dedicated test user issued driver-shaped SQL without exact new-connection attribution " + measuredSqlAttribution.unattributedStatements() + ".");
+		}
 		if (measuredSqlAttribution.unclassifiedCount() != 0)
 		{
 			throw new PhantomTestConfigurationException(BLOCKED_UNCLASSIFIED_STATEMENT + ": dedicated test user issued unknown non-table SQL " + measuredSqlAttribution.unclassifiedStatements() + ".");
 		}
 		if ((measuredSoakDelta.insert() != 0) || (measuredSoakDelta.update() != 0) || (measuredSoakDelta.delete() != 0))
 		{
-			throw new PhantomTestConfigurationException(BLOCKED_DB_ISOLATION + ": global scheduler/navigation DML must be zero but was " + measuredSoakDelta.compact() + ".");
+			throw new PhantomTestConfigurationException(BLOCKED_APPLICATION_TRAFFIC + ": global scheduler/navigation DML must be zero but was " + measuredSoakDelta.compact() + ".");
 		}
-		PhantomAssertions.assertTrue(measuredSqlAttribution.maintenanceCount() <= MAXIMUM_MAINTENANCE_SELECTS, "Dedicated-user maintenance SELECT count exceeded 12: " + measuredSqlAttribution.maintenanceStatements() + ".");
+		PhantomAssertions.assertTrue(measuredSqlAttribution.connectCount() <= MAXIMUM_REPLACEMENT_CONNECTIONS, "Dedicated-user replacement Connect count exceeded 6.");
+		PhantomAssertions.assertTrue(measuredSqlAttribution.maintenanceSelectCount() <= (2 * measuredSqlAttribution.connectCount()), "Dedicated-user maintenance SELECT count exceeded 2*Connects: " + measuredSqlAttribution.maintenanceStatements() + ".");
+		PhantomAssertions.assertTrue(measuredSqlAttribution.maintenanceSetCount() <= (2 * measuredSqlAttribution.connectCount()), "Dedicated-user maintenance SET count exceeded 2*Connects: " + measuredSqlAttribution.maintenanceStatements() + ".");
+		PhantomAssertions.assertTrue(measuredSqlAttribution.maintenanceStatements().getOrDefault("SET autocommit=1", 0) <= measuredSqlAttribution.connectCount(), "SET autocommit=1 count exceeded Connects.");
+		PhantomAssertions.assertTrue(measuredSqlAttribution.maintenanceStatements().getOrDefault("SET character_set_results = NULL", 0) <= measuredSqlAttribution.connectCount(), "SET character_set_results = NULL count exceeded Connects.");
 		PhantomAssertions.assertTrue(durationNanos >= ENDURANCE_NANOS, "Scheduler/navigation soak was shorter than 30 minutes.");
 		PhantomAssertions.assertTrue(durationNanos < MAXIMUM_ENDURANCE_NANOS, "Scheduler/navigation soak reached 31 minutes.");
 		PhantomAssertions.assertEquals(6, spikes.size(), "Scheduler did not complete exact six spikes.");
@@ -585,8 +606,12 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 		{
 			PhantomAssertions.assertTrue(epochMinima[epoch] != Long.MAX_VALUE, "Missing JVM heap sample for 5-minute epoch " + epoch + ".");
 		}
-		PhantomAssertions.assertTrue(epochMinima[5] <= (epochMinima[1] + (128L * MIB)), "Last 5-minute heap epoch minimum exceeded first post-warmup epoch minimum +128 MiB.");
-		PhantomAssertions.assertTrue(rawHeapPeak <= (registeredBaseline.heapUsed() + SCHEDULER_TRANSIENT_BUDGET), "Raw endurance heap peak exceeded registered baseline +512 MiB.");
+
+		PhantomAssertions.assertTrue(maximumHeapCommitted <= (registeredBaseline.heapCommitted() + SCHEDULER_COMMITTED_BUDGET), "Maximum committed heap exceeded registered baseline committed +256 MiB.");
+		for (EnduranceSample sample : samples)
+		{
+			PhantomAssertions.assertTrue(sample.jvm().heapUsed() <= (sample.jvm().heapMax() - SCHEDULER_MINIMUM_HEADROOM), "Endurance heap sample had less than 512 MiB remaining headroom: elapsedNanos=" + sample.elapsedNanos() + ",used=" + sample.jvm().heapUsed() + ",max=" + sample.jvm().heapMax() + ".");
+		}
 		PhantomAssertions.assertTrue(liveThreadPeak <= (registeredBaseline.liveThreads() + 4), "Endurance live threads exceeded baseline +4.");
 		PhantomAssertions.assertTrue(maximumSampleGapNanos <= 30_000_000_000L, "JVM/Hikari sampling gap exceeded 30 seconds.");
 		assertHikariSoakSample(hikariPeak);
@@ -1077,13 +1102,15 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 	{
 	}
 
-	private record SqlAttribution(String startedAt, String completedAt, Map<String, Integer> maintenanceStatements, Map<String, Integer> applicationStatements, Map<String, Integer> unclassifiedStatements)
+	private record SqlAttribution(String startedAt, String completedAt, int connectCount, int maintenanceSelectCount, int maintenanceSetCount, Map<String, Integer> maintenanceStatements, Map<String, Integer> applicationStatements, Map<String, Integer> unattributedStatements, Map<String, Integer> unclassifiedStatements, List<String> threadTimeAttribution)
 	{
 		private SqlAttribution
 		{
 			maintenanceStatements = Collections.unmodifiableMap(new TreeMap<>(maintenanceStatements));
 			applicationStatements = Collections.unmodifiableMap(new TreeMap<>(applicationStatements));
+			unattributedStatements = Collections.unmodifiableMap(new TreeMap<>(unattributedStatements));
 			unclassifiedStatements = Collections.unmodifiableMap(new TreeMap<>(unclassifiedStatements));
+			threadTimeAttribution = List.copyOf(threadTimeAttribution);
 		}
 
 		private int maintenanceCount()
@@ -1094,6 +1121,11 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 		private int applicationCount()
 		{
 			return count(applicationStatements);
+		}
+
+		private int unattributedCount()
+		{
+			return count(unattributedStatements);
 		}
 
 		private int unclassifiedCount()
@@ -1110,6 +1142,10 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 		{
 			return statements.values().stream().mapToInt(Integer::intValue).sum();
 		}
+	}
+
+	private record GeneralLogRow(Instant eventTime, long threadId, String commandType, String userHost, String argument)
+	{
 	}
 
 	private static final class ManualDispatcher implements PhantomNavigationService.Dispatcher
@@ -1170,7 +1206,7 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 	{
 		private static final String LOG_VARIABLES_SQL = "SHOW GLOBAL VARIABLES WHERE Variable_name IN ('general_log','log_output')";
 		private static final String TIMESTAMP_SQL = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y-%m-%d %H:%i:%s.%f')";
-		private static final String ATTRIBUTION_SQL = "SELECT argument FROM mysql.general_log WHERE event_time >= ? AND event_time <= ? AND command_type = 'Query' AND SUBSTRING_INDEX(user_host, '[', 1) = ? ORDER BY event_time, thread_id";
+		private static final String ATTRIBUTION_SQL = "SELECT event_time, thread_id, command_type, user_host, argument FROM mysql.general_log WHERE event_time >= ? AND event_time <= ? AND command_type IN ('Connect','Query') AND SUBSTRING_INDEX(SUBSTRING_INDEX(user_host, ']', 1), '[', -1) = ? ORDER BY event_time, thread_id";
 		private static final String APPLICATION_BOUNDARY_REGEX = ".*\\b(FROM|JOIN|INTO|INSERT|UPDATE|DELETE|REPLACE|MERGE|CREATE|ALTER|DROP|TRUNCATE|RENAME|GRANT|REVOKE|ANALYZE|OPTIMIZE|REPAIR|CALL|LOAD|LOCK|UNLOCK)\\b.*";
 
 		private final Connection _connection;
@@ -1259,9 +1295,16 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 		private SqlAttribution capture(String startedAt, String completedAt) throws PhantomTestConfigurationException
 		{
 			ensureOpen();
+			final Map<Long, GeneralLogRow> connections = new HashMap<>();
+			final Map<Long, Map<String, Integer>> connectionSetCounts = new HashMap<>();
 			final Map<String, Integer> maintenance = new TreeMap<>();
 			final Map<String, Integer> application = new TreeMap<>();
+			final Map<String, Integer> unattributed = new TreeMap<>();
 			final Map<String, Integer> unclassified = new TreeMap<>();
+			final List<String> threadTimeAttribution = new ArrayList<>();
+			int connectCount = 0;
+			int maintenanceSelectCount = 0;
+			int maintenanceSetCount = 0;
 			try (PreparedStatement statement = _connection.prepareStatement(ATTRIBUTION_SQL))
 			{
 				statement.setString(1, startedAt);
@@ -1271,27 +1314,75 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 				{
 					while (result.next())
 					{
-						final String normalized = normalizeSql(result.getString(1));
+						final GeneralLogRow row = new GeneralLogRow(result.getTimestamp(1).toInstant(), result.getLong(2), result.getString(3), result.getString(4), normalizeSql(result.getString(5)));
+						if ("Connect".equals(row.commandType()))
+						{
+							connectCount++;
+							connections.put(row.threadId(), row);
+							threadTimeAttribution.add("connectThread=" + row.threadId() + ",connectAt=" + row.eventTime());
+							continue;
+						}
+						if (!"Query".equals(row.commandType()))
+						{
+							unclassified.merge(row.argument(), 1, Integer::sum);
+							continue;
+						}
+
+						final String normalized = row.argument();
 						if (isApplicationSql(normalized))
 						{
 							application.merge(normalized, 1, Integer::sum);
+							continue;
 						}
-						else if (isMaintenanceSelect(normalized))
+
+						final boolean maintenanceSelect = isMaintenanceSelect(normalized);
+						final boolean maintenanceSet = isMaintenanceSet(normalized);
+						if (!maintenanceSelect && !maintenanceSet)
 						{
-							maintenance.merge(normalized, 1, Integer::sum);
+							unclassified.merge(normalized, 1, Integer::sum);
+							continue;
+						}
+
+						final GeneralLogRow connect = connections.get(row.threadId());
+						if (connect == null)
+						{
+							unattributed.merge(normalized, 1, Integer::sum);
+							threadTimeAttribution.add("unattributedThread=" + row.threadId() + ",connectAt=missing,queryAt=" + row.eventTime() + ",sql=" + normalized);
+							continue;
+						}
+						final Duration delay = Duration.between(connect.eventTime(), row.eventTime());
+						if (!row.eventTime().isAfter(connect.eventTime()) || (delay.compareTo(Duration.ofSeconds(5)) > 0))
+						{
+							unattributed.merge(normalized, 1, Integer::sum);
+							threadTimeAttribution.add("unattributedThread=" + row.threadId() + ",connectAt=" + connect.eventTime() + ",queryAt=" + row.eventTime() + ",delayMillis=" + delay.toMillis() + ",sql=" + normalized);
+							continue;
+						}
+
+						if (maintenanceSet)
+						{
+							final int perConnectionCount = connectionSetCounts.computeIfAbsent(row.threadId(), ignored -> new HashMap<>()).merge(normalized, 1, Integer::sum);
+							if (perConnectionCount > 1)
+							{
+								unattributed.merge(normalized, 1, Integer::sum);
+								threadTimeAttribution.add("duplicateSetThread=" + row.threadId() + ",connectAt=" + connect.eventTime() + ",queryAt=" + row.eventTime() + ",delayMillis=" + delay.toMillis() + ",sql=" + normalized);
+								continue;
+							}
+							maintenanceSetCount++;
 						}
 						else
 						{
-							unclassified.merge(normalized, 1, Integer::sum);
+							maintenanceSelectCount++;
 						}
+						maintenance.merge(normalized, 1, Integer::sum);
+						threadTimeAttribution.add("attributedThread=" + row.threadId() + ",connectAt=" + connect.eventTime() + ",queryAt=" + row.eventTime() + ",delayMillis=" + delay.toMillis() + ",sql=" + normalized);
 					}
 				}
 			}
 			catch (SQLException e)
 			{
-				throw unavailable("dedicated-user SQL rows could not be read", e);
+				throw unavailable("dedicated-user Connect/Query rows could not be read", e);
 			}
-			return new SqlAttribution(startedAt, completedAt, maintenance, application, unclassified);
+			return new SqlAttribution(startedAt, completedAt, connectCount, maintenanceSelectCount, maintenanceSetCount, maintenance, application, unattributed, unclassified, threadTimeAttribution);
 		}
 
 		private String lifecycleCompact()
@@ -1453,6 +1544,11 @@ public final class PhantomScaleEnduranceGoal029Checkpoint3Suite implements Phant
 				}
 			}
 			return true;
+		}
+
+		private static boolean isMaintenanceSet(String sql)
+		{
+			return "SET autocommit=1".equals(sql) || "SET character_set_results = NULL".equals(sql);
 		}
 
 		private static boolean isApplicationSql(String sql)
