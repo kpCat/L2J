@@ -25,20 +25,20 @@
 		<dimension code="204" key="hostility" decayPerDay="20"/>
 	</reputation>
 	<events>
-		<event code="1001" key="party.invite.accepted.outbound" ttlMinutes="43200" salience="500">
+		<event code="1001" key="party.invite.accepted.outbound" ttlMinutes="43200" salience="500" socialClass="SUPPORTIVE" reputationShockBp="500">
 			<delta source="relationship.trust" value="120"/>
 			<delta source="relationship.respect" value="50"/>
 			<delta source="reputation.reliability" value="60"/>
 			<agreement key="offered" value="1"/>
 			<agreement key="accepted" value="1"/>
 		</event>
-		<event code="1002" key="party.invite.accepted.inbound" ttlMinutes="43200" salience="500">
+		<event code="1002" key="party.invite.accepted.inbound" ttlMinutes="43200" salience="500" socialClass="SUPPORTIVE" reputationShockBp="500">
 			<delta source="relationship.trust" value="100"/>
 			<delta source="relationship.friendship" value="50"/>
 			<delta source="reputation.helpfulness" value="30"/>
 			<agreement key="accepted" value="1"/>
 		</event>
-		<event code="1003" key="party.invite.refused.outbound" ttlMinutes="21600" salience="400">
+		<event code="1003" key="party.invite.refused.outbound" ttlMinutes="21600" salience="400" socialClass="ROUTINE_NEGATIVE" reputationShockBp="500">
 			<delta source="relationship.trust" value="-30"/>
 			<delta source="relationship.anger" value="50"/>
 			<delta source="relationship.rivalry" value="20"/>
@@ -46,99 +46,99 @@
 			<agreement key="offered" value="1"/>
 			<agreement key="refused" value="1"/>
 		</event>
-		<event code="1004" key="party.invite.refused.inbound" ttlMinutes="21600" salience="350">
+		<event code="1004" key="party.invite.refused.inbound" ttlMinutes="21600" salience="350" socialClass="ROUTINE_NEGATIVE" reputationShockBp="500">
 			<delta source="relationship.trust" value="-20"/>
 			<delta source="relationship.anger" value="30"/>
 			<agreement key="refused" value="1"/>
 		</event>
-		<event code="1005" key="party.invite.expired.outbound" ttlMinutes="10080" salience="250">
+		<event code="1005" key="party.invite.expired.outbound" ttlMinutes="10080" salience="250" socialClass="ROUTINE_NEGATIVE" reputationShockBp="1000">
 			<delta source="reputation.reliability" value="-40"/>
 			<agreement key="offered" value="1"/>
 			<agreement key="refused" value="1"/>
 		</event>
-		<event code="1006" key="party.invite.expired.inbound" ttlMinutes="10080" salience="200">
+		<event code="1006" key="party.invite.expired.inbound" ttlMinutes="10080" salience="200" socialClass="ROUTINE_NEGATIVE" reputationShockBp="1000">
 			<delta source="reputation.reliability" value="-20"/>
 			<agreement key="refused" value="1"/>
 		</event>
-		<event code="1007" key="party.member.joined" ttlMinutes="129600" salience="700">
+		<event code="1007" key="party.member.joined" ttlMinutes="129600" salience="700" socialClass="SUPPORTIVE" reputationShockBp="500">
 			<delta source="relationship.trust" value="80"/>
 			<delta source="relationship.friendship" value="100"/>
 			<delta source="reputation.reliability" value="50"/>
 		</event>
-		<event code="1008" key="party.member.left" ttlMinutes="129600" salience="650">
+		<event code="1008" key="party.member.left" ttlMinutes="129600" salience="650" socialClass="ROUTINE_NEGATIVE" reputationShockBp="1000">
 			<delta source="relationship.friendship" value="-80"/>
 			<delta source="reputation.reliability" value="-50"/>
 		</event>
-		<event code="1009" key="party.member.expelled" ttlMinutes="259200" salience="1000">
+		<event code="1009" key="party.member.expelled" ttlMinutes="259200" salience="1000" socialClass="BETRAYAL" reputationShockBp="8500">
 			<delta source="relationship.trust" value="-300"/>
 			<delta source="relationship.anger" value="300"/>
 			<delta source="reputation.hostility" value="200"/>
 		</event>
-		<event code="1010" key="party.leader.transferred" ttlMinutes="129600" salience="700">
+		<event code="1010" key="party.leader.transferred" ttlMinutes="129600" salience="700" socialClass="NEUTRAL" reputationShockBp="0">
 			<delta source="relationship.respect" value="180"/>
 			<delta source="reputation.competence" value="100"/>
 		</event>
-		<event code="1011" key="party.support.received" ttlMinutes="129600" salience="800">
+		<event code="1011" key="party.support.received" ttlMinutes="129600" salience="800" socialClass="SUPPORTIVE" reputationShockBp="1000">
 			<delta source="relationship.trust" value="120"/>
 			<delta source="reputation.helpfulness" value="200"/>
 		</event>
-		<event code="1012" key="agreement.fulfilled" ttlMinutes="525600" salience="1200">
+		<event code="1012" key="agreement.fulfilled" ttlMinutes="525600" salience="1200" socialClass="SUPPORTIVE" reputationShockBp="1000">
 			<delta source="relationship.trust" value="250"/>
 			<delta source="reputation.reliability" value="300"/>
 			<agreement key="fulfilled" value="1"/>
 		</event>
-		<event code="1013" key="agreement.broken" ttlMinutes="525600" salience="1800">
+		<event code="1013" key="agreement.broken" ttlMinutes="525600" salience="1800" socialClass="BETRAYAL" reputationShockBp="9000">
 			<delta source="relationship.trust" value="-500"/>
 			<delta source="relationship.anger" value="300"/>
 			<delta source="reputation.reliability" value="-500"/>
 			<delta source="reputation.hostility" value="200"/>
 			<agreement key="broken" value="1"/>
 		</event>
-		<event code="1014" key="debt.incurred" ttlMinutes="525600" salience="900">
+		<event code="1014" key="debt.incurred" ttlMinutes="525600" salience="900" socialClass="NEUTRAL" reputationShockBp="0">
 			<delta source="relationship.debt" value="500"/>
 		</event>
-		<event code="1015" key="debt.repaid" ttlMinutes="525600" salience="900">
+		<event code="1015" key="debt.repaid" ttlMinutes="525600" salience="900" socialClass="SUPPORTIVE" reputationShockBp="1000">
 			<delta source="relationship.trust" value="100"/>
 			<delta source="relationship.debt" value="-500"/>
 			<delta source="reputation.reliability" value="100"/>
 		</event>
-		<event code="1016" key="farming.agreement.offered" ttlMinutes="10080" salience="300">
+		<event code="1016" key="farming.agreement.offered" ttlMinutes="10080" salience="300" socialClass="NEUTRAL" reputationShockBp="0">
 			<agreement key="offered" value="1"/>
 		</event>
-		<event code="1017" key="farming.agreement.accepted" ttlMinutes="43200" salience="450">
+		<event code="1017" key="farming.agreement.accepted" ttlMinutes="43200" salience="450" socialClass="SUPPORTIVE" reputationShockBp="500">
 			<delta source="relationship.trust" value="40"/>
 			<delta source="reputation.reliability" value="20"/>
 			<agreement key="accepted" value="1"/>
 		</event>
-		<event code="1018" key="farming.agreement.refused" ttlMinutes="21600" salience="450">
+		<event code="1018" key="farming.agreement.refused" ttlMinutes="21600" salience="450" socialClass="ROUTINE_NEGATIVE" reputationShockBp="750">
 			<delta source="relationship.anger" value="30"/>
 			<delta source="relationship.rivalry" value="20"/>
 			<agreement key="refused" value="1"/>
 		</event>
-		<event code="1019" key="farming.conflict.escalated" ttlMinutes="43200" salience="700">
+		<event code="1019" key="farming.conflict.escalated" ttlMinutes="43200" salience="700" socialClass="HOSTILE_COMBAT" reputationShockBp="3000">
 			<delta source="relationship.anger" value="100"/>
 			<delta source="relationship.rivalry" value="80"/>
 			<delta source="reputation.hostility" value="60"/>
 		</event>
-		<event code="1020" key="pvp.attack.received" ttlMinutes="43200" salience="900">
+		<event code="1020" key="pvp.attack.received" ttlMinutes="43200" salience="900" socialClass="HOSTILE_COMBAT" reputationShockBp="3500">
 			<delta source="relationship.trust" value="-180"/>
 			<delta source="relationship.anger" value="260"/>
 			<delta source="relationship.rivalry" value="160"/>
 			<delta source="reputation.hostility" value="180"/>
 		</event>
-		<event code="1021" key="pvp.kill.caused" ttlMinutes="43200" salience="700">
+		<event code="1021" key="pvp.kill.caused" ttlMinutes="43200" salience="700" socialClass="HOSTILE_COMBAT" reputationShockBp="3500">
 			<delta source="relationship.fear" value="-80"/>
 			<delta source="relationship.respect" value="80"/>
 			<delta source="relationship.rivalry" value="100"/>
 		</event>
-		<event code="1022" key="pvp.death.suffered" ttlMinutes="129600" salience="1400">
+		<event code="1022" key="pvp.death.suffered" ttlMinutes="129600" salience="1400" socialClass="HOSTILE_COMBAT" reputationShockBp="4500">
 			<delta source="relationship.trust" value="-220"/>
 			<delta source="relationship.fear" value="180"/>
 			<delta source="relationship.anger" value="420"/>
 			<delta source="relationship.rivalry" value="300"/>
 			<delta source="reputation.hostility" value="220"/>
 		</event>
-		<event code="1023" key="pvp.help.received" ttlMinutes="129600" salience="950">
+		<event code="1023" key="pvp.help.received" ttlMinutes="129600" salience="950" socialClass="SUPPORTIVE" reputationShockBp="1000">
 			<delta source="relationship.trust" value="180"/>
 			<delta source="relationship.friendship" value="160"/>
 			<delta source="reputation.helpfulness" value="240"/>

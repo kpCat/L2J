@@ -39,6 +39,24 @@ public final class PhantomSocialModel
 	{
 	}
 
+	public enum AffiliationKind
+	{
+		NONE,
+		SAME_CLAN,
+		SAME_ALLIANCE,
+		CLAN_WAR
+	}
+
+	public record SocialEventContext(AffiliationKind affiliation)
+	{
+		public static final SocialEventContext NONE = new SocialEventContext(AffiliationKind.NONE);
+
+		public SocialEventContext
+		{
+			Objects.requireNonNull(affiliation, "Social event affiliation must not be null.");
+		}
+	}
+
 	public enum SubjectKind
 	{
 		PHANTOM_PROFILE(1),
@@ -103,8 +121,13 @@ public final class PhantomSocialModel
 		}
 	}
 
-	public record SocialEvent(long ownerProfileId, String eventId, String eventKey, SubjectRef subject, long happenedEpochMinute, int magnitude, String evidenceHash)
+	public record SocialEvent(long ownerProfileId, String eventId, String eventKey, SubjectRef subject, long happenedEpochMinute, int magnitude, String evidenceHash, SocialEventContext context)
 	{
+		public SocialEvent(long ownerProfileId, String eventId, String eventKey, SubjectRef subject, long happenedEpochMinute, int magnitude, String evidenceHash)
+		{
+			this(ownerProfileId, eventId, eventKey, subject, happenedEpochMinute, magnitude, evidenceHash, SocialEventContext.NONE);
+		}
+
 		public SocialEvent
 		{
 			if (ownerProfileId <= 0)
@@ -123,6 +146,7 @@ public final class PhantomSocialModel
 				throw new IllegalArgumentException("Social event magnitude must be between 1 and 10000.");
 			}
 			evidenceHash = requireHash(evidenceHash, "Social event evidence hash");
+			Objects.requireNonNull(context, "Social event context must not be null.");
 		}
 	}
 

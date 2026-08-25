@@ -24,9 +24,13 @@ Checksum старого scenario smoke не считается end-to-end док
 ## Последовательность Goal 030
 
 1. CP1 — `ACCEPT`: release baseline, fresh bootstrap, coverage closure и disabled no-mutation regression.
-2. Goal030A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`: humanization hardening имён и creation-time role ecology без DB/state/hot-path расширения.
-3. CP2 — `NOT_STARTED_AFTER_030A`: автономный cross-domain alpha-сценарий на едином мире; пакет должен быть сформирован заново поверх независимо принятого Goal030A.
-4. CP3: финальное решение о выпуске, rollback и release-level restart/failure recovery.
+2. Goal030A — `ACCEPT`: humanization hardening имён и creation-time role ecology без DB/state/hot-path расширения.
+3. Goal030B — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`: transient affiliation semantics и инерция личной воспринимаемой репутации без DB/state/owner integration.
+4. Goal030C — `NOT_STARTED`: canonical clan/alliance/war context wiring, expulsion/leadership/directive social events и PK/karma recovery.
+5. CP2 — `NOT_STARTED_AFTER_HUMANIZATION`: автономный cross-domain alpha-сценарий на едином мире; пакет должен быть сформирован заново после независимого принятия 030B и завершения 030C.
+6. CP3: финальное решение о выпуске, rollback и release-level restart/failure recovery.
+
+Release sequence: `CP1 -> 030A -> 030B -> 030C -> CP2 -> CP3`. Coverage matrix и число её строк не меняются.
 
 ## Rollback
 

@@ -277,6 +277,7 @@ public final class PhantomTestLauncher
 			case "acquisition-background-parity" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.ACQUISITION_PARITY);
 			case "acquisition-atomic-restart" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.ACQUISITION_ATOMIC_RESTART);
 			case "population-humanization-goal030a" -> new PhantomPopulationHumanizationGoal030ASuite();
+			case "social-humanization-goal030b" -> new PhantomSocialHumanizationGoal030BSuite();
 			case "population-catalog" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.CATALOG);
 			case "population-schedule" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.SCHEDULE);
 			case "population-creation" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.CREATION);

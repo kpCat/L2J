@@ -49,6 +49,9 @@ import org.l2jmobius.gameserver.phantoms.social.PhantomSocialReceiptLedger.Recei
  */
 public final class PhantomSocialService implements PhantomSocialEventSink
 {
+	private static final int BASIS_POINTS = 10000;
+	private static final int MAX_REPUTATION_REVERSAL_RESISTANCE_BP = 7000;
+
 	public interface PersistencePort
 	{
 		boolean profileExists(long profileId);
@@ -542,11 +545,15 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 
 		final RelationshipRecord current = relationships.get(targetIndex);
 		final List<Integer> values = new ArrayList<>(current.values());
+		final int affiliationMultiplierBp = _catalog.affiliationMultiplierBp(event.context().affiliation(), definition.socialClass());
 		for (Map.Entry<Integer, Integer> delta : definition.dimensionDeltas().entrySet())
 		{
 			final long scaled = ((long) delta.getValue() * event.magnitude()) / 1000L;
-			final int aged = decay(PhantomSocialModel.clamp(scaled), eventAge, _catalog.dimensions().get(delta.getKey()).decayPerDay());
-			values.set(delta.getKey(), PhantomSocialModel.clamp((long) values.get(delta.getKey()) + aged));
+			final DimensionDefinition dimension = _catalog.dimensions().get(delta.getKey());
+			final int affiliated = PhantomSocialModel.clamp(scaleBasisPoints(scaled, affiliationMultiplierBp));
+			final int aged = decay(affiliated, eventAge, dimension.decayPerDay());
+			final int effectiveDelta = applyReputationReversalInertia(values.get(delta.getKey()), aged, dimension.group(), definition.reputationShockBp());
+			values.set(delta.getKey(), PhantomSocialModel.clamp((long) values.get(delta.getKey()) + effectiveDelta));
 		}
 		final List<Integer> agreements = new ArrayList<>(current.agreements());
 		for (int index = 0; index < agreements.size(); index++)
@@ -556,7 +563,8 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 		relationships.set(targetIndex, current.withValues(values, agreements, effectiveMinute, effectiveMinute));
 
 		final List<MemoryRecord> memories = new ArrayList<>(projected.memories());
-		final int baseSalience = (int) Math.min(PhantomSocialModel.MAX_VALUE, ((long) definition.salience() * event.magnitude()) / 1000L);
+		final long magnitudeSalience = ((long) definition.salience() * event.magnitude()) / 1000L;
+		final int baseSalience = (int) Math.min(PhantomSocialModel.MAX_VALUE, scaleBasisPoints(magnitudeSalience, affiliationMultiplierBp));
 		final int salience = Math.max(0, decay(baseSalience, eventAge, _catalog.limits().memoryDecayPerDay()));
 		if ((salience >= _catalog.limits().memorySalienceThreshold()) && (event.happenedEpochMinute() <= (Long.MAX_VALUE - definition.ttlMinutes())))
 		{
@@ -572,6 +580,22 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 			memories.remove(evicted);
 		}
 		return new SocialState(projected.authorityHash(), projected.personalitySeed(), effectiveMinute, projected.traits(), relationships, memories);
+	}
+
+	private static long scaleBasisPoints(long value, int multiplierBp)
+	{
+		return (value * multiplierBp) / BASIS_POINTS;
+	}
+
+	private static int applyReputationReversalInertia(int currentValue, int delta, DimensionGroup group, int reputationShockBp)
+	{
+		if ((group != DimensionGroup.REPUTATION) || (currentValue == 0) || (delta == 0) || (((long) currentValue * delta) >= 0))
+		{
+			return delta;
+		}
+		final long baseResistance = Math.min(MAX_REPUTATION_REVERSAL_RESISTANCE_BP, (Math.abs((long) currentValue) * MAX_REPUTATION_REVERSAL_RESISTANCE_BP) / PhantomSocialModel.MAX_VALUE);
+		final long effectiveResistance = (baseResistance * (BASIS_POINTS - reputationShockBp)) / BASIS_POINTS;
+		return (int) scaleBasisPoints(delta, (int) (BASIS_POINTS - effectiveResistance));
 	}
 
 	private SocialState advanceLogicalMinuteOnly(SocialState state, long effectiveMinute)

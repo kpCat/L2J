@@ -22,6 +22,7 @@ import java.util.TreeMap;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.AffiliationKind;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialState;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -71,6 +72,15 @@ public final class PhantomSocialCatalog
 		AGREEMENT
 	}
 
+	public enum EventSocialClass
+	{
+		SUPPORTIVE,
+		ROUTINE_NEGATIVE,
+		BETRAYAL,
+		HOSTILE_COMBAT,
+		NEUTRAL
+	}
+
 	public record TraitDefinition(int code, String key)
 	{
 		public TraitDefinition
@@ -99,16 +109,17 @@ public final class PhantomSocialCatalog
 		}
 	}
 
-	public record EventDefinition(int code, String key, int ttlMinutes, int salience, Map<Integer, Integer> dimensionDeltas, List<Integer> agreementDeltas)
+	public record EventDefinition(int code, String key, int ttlMinutes, int salience, EventSocialClass socialClass, int reputationShockBp, Map<Integer, Integer> dimensionDeltas, List<Integer> agreementDeltas)
 	{
 		public EventDefinition
 		{
 			requireCode(code);
 			key = PhantomSocialModel.requireKey(key, "Social event key");
-			if ((ttlMinutes < 1) || (ttlMinutes > 5_256_000) || (salience < 0) || (salience > PhantomSocialModel.MAX_VALUE))
+			if ((ttlMinutes < 1) || (ttlMinutes > 5_256_000) || (salience < 0) || (salience > PhantomSocialModel.MAX_VALUE) || (reputationShockBp < 0) || (reputationShockBp > 10000))
 			{
-				throw new IllegalArgumentException("Social event TTL or salience is outside bounds.");
+				throw new IllegalArgumentException("Social event TTL, salience or reputation shock is outside bounds.");
 			}
+			Objects.requireNonNull(socialClass, "Social event class must not be null.");
 			dimensionDeltas = Collections.unmodifiableMap(new TreeMap<>(dimensionDeltas));
 			if ((agreementDeltas == null) || (agreementDeltas.size() != PhantomSocialModel.AGREEMENT_COUNT))
 			{
@@ -284,6 +295,38 @@ public final class PhantomSocialCatalog
 		return result;
 	}
 
+	public List<EventDefinition> events()
+	{
+		return _eventsByCode.values().stream().toList();
+	}
+
+	public int affiliationMultiplierBp(AffiliationKind affiliation, EventSocialClass socialClass)
+	{
+		Objects.requireNonNull(affiliation, "Social affiliation must not be null.");
+		Objects.requireNonNull(socialClass, "Social event class must not be null.");
+		return switch (affiliation)
+		{
+			case NONE -> 10000;
+			case SAME_CLAN -> switch (socialClass)
+			{
+				case SUPPORTIVE -> 12000;
+				case ROUTINE_NEGATIVE -> 7000;
+				case BETRAYAL -> 13000;
+				case HOSTILE_COMBAT -> 8500;
+				case NEUTRAL -> 10000;
+			};
+			case SAME_ALLIANCE -> switch (socialClass)
+			{
+				case SUPPORTIVE -> 11000;
+				case ROUTINE_NEGATIVE -> 8500;
+				case BETRAYAL -> 11500;
+				case HOSTILE_COMBAT -> 9250;
+				case NEUTRAL -> 10000;
+			};
+			case CLAN_WAR -> socialClass == EventSocialClass.HOSTILE_COMBAT ? 7000 : 10000;
+		};
+	}
+
 	public ModifierDefinition requireModifier(String key)
 	{
 		final ModifierDefinition result = _modifiers.get(key);
@@ -384,7 +427,7 @@ public final class PhantomSocialCatalog
 		final List<EventDefinition> result = new ArrayList<>();
 		for (Element element : children(parent, "event"))
 		{
-			requireElement(element, "event", List.of("code", "key", "ttlMinutes", "salience"));
+			requireElement(element, "event", List.of("code", "key", "ttlMinutes", "salience", "socialClass", "reputationShockBp"));
 			final int code = strictInt(element.getAttribute("code"), 1, 65535);
 			requireUniqueCode(globalCodes, code);
 			final Map<Integer, Integer> deltas = new HashMap<>();
@@ -434,7 +477,16 @@ public final class PhantomSocialCatalog
 			{
 				throw new IllegalArgumentException("Social event has no declared effect.");
 			}
-			result.add(new EventDefinition(code, element.getAttribute("key"), strictInt(element.getAttribute("ttlMinutes"), 1, 5_256_000), strictInt(element.getAttribute("salience"), 0, PhantomSocialModel.MAX_VALUE), deltas, agreements));
+			final EventSocialClass socialClass;
+			try
+			{
+				socialClass = EventSocialClass.valueOf(element.getAttribute("socialClass"));
+			}
+			catch (IllegalArgumentException e)
+			{
+				throw new IllegalArgumentException("Unknown social event class.", e);
+			}
+			result.add(new EventDefinition(code, element.getAttribute("key"), strictInt(element.getAttribute("ttlMinutes"), 1, 5_256_000), strictInt(element.getAttribute("salience"), 0, PhantomSocialModel.MAX_VALUE), socialClass, strictInt(element.getAttribute("reputationShockBp"), 0, 10000), deltas, agreements));
 		}
 		final Map<String, EventDefinition> byKey = indexByKey(result, EventDefinition::key, "event");
 		indexByCode(result, EventDefinition::code, "event");
