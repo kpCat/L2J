@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<karmaRecoveryPolicy id="high-five-karma-recovery-v1" version="1" suppressProactiveNonWar="true" yieldToActualAttack="true" allowYieldInClanWar="false" allowYieldWhileInParty="false" requireExperienceRecovered="true" maxIntentionalDeathDropRiskBasisPoints="0"/>

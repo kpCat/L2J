@@ -512,7 +512,9 @@ public final class PhantomSystem
 					_combatService,
 					new PhantomPvpConversationBridge(_conversationExecutionService),
 					pvpSocial,
-					new PhantomPvpRetreatCoordinator(_navigationService, _topologyService, _combatService));
+					new PhantomPvpRetreatCoordinator(_navigationService, _topologyService, _combatService),
+					org.l2jmobius.gameserver.phantoms.pvp.PhantomKarmaRecoveryPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/pvp/high-five-karma-recovery-v1.xml").toPath()),
+					new org.l2jmobius.gameserver.phantoms.pvp.L2jPhantomKarmaRecoveryContext(_materializationService));
 				if (!_pvpService.start())
 				{
 					throw new IllegalStateException("Phantom PvP service could not enter the running state.");

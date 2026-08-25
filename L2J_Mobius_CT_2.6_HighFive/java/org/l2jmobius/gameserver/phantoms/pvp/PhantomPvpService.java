@@ -58,11 +58,11 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		FAILED
 	}
 
-	public record ServiceSnapshot(State state, int trackedProfiles, int readyProfiles, int activeOwnerships, int claims, boolean pulseOwned, long pulses, long processed, long encounters, long warnings, long helps, long engagements, long retreats, long cooldowns, long failures)
+	public record ServiceSnapshot(State state, int trackedProfiles, int readyProfiles, int activeOwnerships, int claims, boolean pulseOwned, long pulses, long processed, long encounters, long warnings, long helps, long engagements, long retreats, long cooldowns, long failures, long karmaRecoveryObserved, long karmaProactiveSuppressed, long karmaYieldPulses, long karmaUnsafe, long karmaXpDebtBlocked)
 	{
 		public static ServiceSnapshot inactive()
 		{
-			return new ServiceSnapshot(State.STOPPED, 0, 0, 0, 0, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+			return new ServiceSnapshot(State.STOPPED, 0, 0, 0, 0, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 		}
 	}
 
@@ -76,6 +76,8 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private final PhantomPvpConversationBridge _conversation;
 	private final PhantomPvpSocialBridge _social;
 	private final PhantomPvpRetreatCoordinator _retreat;
+	private final PhantomKarmaRecoveryPolicy _karmaRecoveryPolicy;
+	private final PhantomKarmaRecoveryContextPort _karmaRecoveryContext;
 	private final LongSupplier _clock;
 	private final ArrayBlockingQueue<Long> _ready = new ArrayBlockingQueue<>(MAXIMUM_TRACKED_PROFILES);
 	private final Set<Long> _membership = ConcurrentHashMap.newKeySet();
@@ -91,14 +93,29 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private final LongAdder _retreats = new LongAdder();
 	private final LongAdder _cooldowns = new LongAdder();
 	private final LongAdder _failures = new LongAdder();
+	private final LongAdder _karmaRecoveryObserved = new LongAdder();
+	private final LongAdder _karmaProactiveSuppressed = new LongAdder();
+	private final LongAdder _karmaYieldPulses = new LongAdder();
+	private final LongAdder _karmaUnsafe = new LongAdder();
+	private final LongAdder _karmaXpDebtBlocked = new LongAdder();
 	private volatile State _state = State.NEW;
 
 	public PhantomPvpService(PhantomPvpPolicy policy, PhantomPvpPersistencePort store, PhantomPvpContext context, PhantomCombatService combat, PhantomPvpConversationBridge conversation, PhantomPvpSocialBridge social, PhantomPvpRetreatCoordinator retreat)
 	{
-		this(policy, store, context, combat, conversation, social, retreat, PhantomPvpService::epochNanos);
+		this(policy, store, context, combat, conversation, social, retreat, PhantomKarmaRecoveryPolicy.neutral(), PhantomKarmaRecoveryContextPort.noop(), PhantomPvpService::epochNanos);
 	}
 
 	public PhantomPvpService(PhantomPvpPolicy policy, PhantomPvpPersistencePort store, PhantomPvpContext context, PhantomCombatService combat, PhantomPvpConversationBridge conversation, PhantomPvpSocialBridge social, PhantomPvpRetreatCoordinator retreat, LongSupplier clock)
+	{
+		this(policy, store, context, combat, conversation, social, retreat, PhantomKarmaRecoveryPolicy.neutral(), PhantomKarmaRecoveryContextPort.noop(), clock);
+	}
+
+	public PhantomPvpService(PhantomPvpPolicy policy, PhantomPvpPersistencePort store, PhantomPvpContext context, PhantomCombatService combat, PhantomPvpConversationBridge conversation, PhantomPvpSocialBridge social, PhantomPvpRetreatCoordinator retreat, PhantomKarmaRecoveryPolicy karmaRecoveryPolicy, PhantomKarmaRecoveryContextPort karmaRecoveryContext)
+	{
+		this(policy, store, context, combat, conversation, social, retreat, karmaRecoveryPolicy, karmaRecoveryContext, PhantomPvpService::epochNanos);
+	}
+
+	public PhantomPvpService(PhantomPvpPolicy policy, PhantomPvpPersistencePort store, PhantomPvpContext context, PhantomCombatService combat, PhantomPvpConversationBridge conversation, PhantomPvpSocialBridge social, PhantomPvpRetreatCoordinator retreat, PhantomKarmaRecoveryPolicy karmaRecoveryPolicy, PhantomKarmaRecoveryContextPort karmaRecoveryContext, LongSupplier clock)
 	{
 		_policy = Objects.requireNonNull(policy);
 		_store = Objects.requireNonNull(store);
@@ -107,6 +124,8 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		_conversation = Objects.requireNonNull(conversation);
 		_social = Objects.requireNonNull(social);
 		_retreat = Objects.requireNonNull(retreat);
+		_karmaRecoveryPolicy = Objects.requireNonNull(karmaRecoveryPolicy);
+		_karmaRecoveryContext = Objects.requireNonNull(karmaRecoveryContext);
 		_clock = Objects.requireNonNull(clock);
 	}
 
@@ -222,6 +241,31 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 				return;
 			}
 			_encounters.increment();
+		}
+		final var recoverySnapshot = _karmaRecoveryContext.observe(profileId, observed.candidate().counterpart().currentObjectId());
+		final var recovery = _karmaRecoveryPolicy.evaluate(observed.candidate().source(), observed.risk().targetAutoAttackable(), recoverySnapshot);
+		if (recoverySnapshot.available() && (recoverySnapshot.karma() > 0))
+		{
+			_karmaRecoveryObserved.increment();
+		}
+		if (recovery.reason() == PhantomKarmaRecoveryPolicy.Reason.XP_DEBT)
+		{
+			_karmaXpDebtBlocked.increment();
+		}
+		else if (recovery.reason() == PhantomKarmaRecoveryPolicy.Reason.UNSAFE)
+		{
+			_karmaUnsafe.increment();
+		}
+		if (recovery.decision() == PhantomKarmaRecoveryPolicy.Decision.SUPPRESS_PROACTIVE)
+		{
+			_karmaProactiveSuppressed.increment();
+			save(stored, cooldown(stored.encounter(), now, "pvp.karma_recovery.proactive_suppressed"));
+			return;
+		}
+		if (recovery.decision() == PhantomKarmaRecoveryPolicy.Decision.YIELD)
+		{
+			_karmaYieldPulses.increment();
+			return;
 		}
 		if (observed.candidate().source() == Source.ACTUAL_ATTACK)
 		{
@@ -644,7 +688,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 
 	public ServiceSnapshot snapshot()
 	{
-		return new ServiceSnapshot(_state, _membership.size(), _ready.size(), _ownerships.size(), _claims.get(), _pulseOwner.get(), _pulses.sum(), _processed.sum(), _encounters.sum(), _warnings.sum(), _helps.sum(), _engagements.sum(), _retreats.sum(), _cooldowns.sum(), _failures.sum());
+		return new ServiceSnapshot(_state, _membership.size(), _ready.size(), _ownerships.size(), _claims.get(), _pulseOwner.get(), _pulses.sum(), _processed.sum(), _encounters.sum(), _warnings.sum(), _helps.sum(), _engagements.sum(), _retreats.sum(), _cooldowns.sum(), _failures.sum(), _karmaRecoveryObserved.sum(), _karmaProactiveSuppressed.sum(), _karmaYieldPulses.sum(), _karmaUnsafe.sum(), _karmaXpDebtBlocked.sum());
 	}
 
 	private static final class Ownership
