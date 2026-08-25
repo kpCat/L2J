@@ -398,6 +398,7 @@ public final class PhantomTestLauncher
 			case "farming-lifecycle-performance" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "farming-lifecycle-corrections" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.LIFECYCLE_CORRECTIONS);
 			case "farming-restart-corrections" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.RESTART_CORRECTIONS);
+			case "farming-decision-utility-goal030cp2b" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.DECISION_UTILITY);
 			case "karma-recovery-policy-goal030c2b" -> new PhantomKarmaRecoveryPolicyGoal030C2BSuite();
 			case "karma-recovery-native-goal030c2b" -> new PhantomKarmaRecoveryNativeGoal030C2BSuite();
 			case "pvp-policy" -> new PhantomPvpSuite(PhantomPvpSuite.Mode.POLICY);

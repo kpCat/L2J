@@ -24,6 +24,7 @@ import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingService.AdvanceRe
 /** One bounded claim/negotiation transition per existing Decision pulse. */
 public final class PhantomFarmingDecision
 {
+	private static final int CONFLICT_UTILITY_SCORE = 1000;
 	private static final Set<PhantomActivityState> STATES = Set.of(PhantomActivityState.ACTIVE, PhantomActivityState.WARM, PhantomActivityState.BACKGROUND);
 	private static final long STEP_TIMEOUT_MILLIS = 30_000;
 	private static final long RETRY_DELAY_MILLIS = 1000;
@@ -44,9 +45,9 @@ public final class PhantomFarmingDecision
 			List.of(new PhantomWeightedConsideration("score.farming.conflict", 1, context ->
 			{
 				final boolean work = _service.hasWork(context.profileId());
-				return new PhantomConsideration.Evaluation(work ? 1100 : 0, work ? "farming.conflict.required" : "farming.conflict.none");
+				return new PhantomConsideration.Evaluation(work ? CONFLICT_UTILITY_SCORE : 0, work ? "farming.conflict.required" : "farming.conflict.none");
 			})),
-			1100,
+			CONFLICT_UTILITY_SCORE,
 			this::plan));
 	}
 

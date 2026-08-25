@@ -28,10 +28,23 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Has
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Phase;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Status;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.conversation.L2jPhantomConversationExecutionPort;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionCandidate;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector.CandidateEvaluation;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector.EvaluationStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector.Selection;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.ResultStatus;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort.Gate;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingDecision;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConflictPort.Outcome;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConversationFacts.FactType;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingModel;
@@ -68,11 +81,13 @@ public final class PhantomFarmingSuite implements PhantomTestSuite
 		RESTART_FAULT,
 		LIFECYCLE_PERFORMANCE,
 		LIFECYCLE_CORRECTIONS,
-		RESTART_CORRECTIONS
+		RESTART_CORRECTIONS,
+		DECISION_UTILITY
 	}
 
 	private static final long SEED = 24002401L;
 	private static final long CORRECTIVE_SEED = 24002402L;
+	private static final long DECISION_UTILITY_SEED = 30003022L;
 	private final Mode _mode;
 
 	public PhantomFarmingSuite(Mode mode)
@@ -89,7 +104,7 @@ public final class PhantomFarmingSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context)
 	{
-		final long expected = Set.of(Mode.LIFECYCLE_CORRECTIONS, Mode.RESTART_CORRECTIONS).contains(_mode) ? CORRECTIVE_SEED : SEED;
+		final long expected = _mode == Mode.DECISION_UTILITY ? DECISION_UTILITY_SEED : Set.of(Mode.LIFECYCLE_CORRECTIONS, Mode.RESTART_CORRECTIONS).contains(_mode) ? CORRECTIVE_SEED : SEED;
 		PhantomAssertions.assertEquals(expected, context.seed(), "Goal 024 mode used the wrong deterministic seed.");
 	}
 
@@ -108,7 +123,48 @@ public final class PhantomFarmingSuite implements PhantomTestSuite
 			case LIFECYCLE_PERFORMANCE -> lifecyclePerformance(registry);
 			case LIFECYCLE_CORRECTIONS -> lifecycleCorrections(registry);
 			case RESTART_CORRECTIONS -> restartCorrections(registry);
+			case DECISION_UTILITY -> decisionUtility(registry);
 		}
+	}
+
+	private void decisionUtility(PhantomTestRegistry registry)
+	{
+		registry.add("01-real-farming-candidate-obeys-global-utility-bounds", context ->
+		{
+			try (Fixture fixture = fixture(context, 2, (a, b) -> false, neutral(), PhantomFarmingService.FaultInjector.NONE))
+			{
+				final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
+				new PhantomFarmingDecision(fixture.service).registerCandidates(candidates);
+				candidates.seal();
+				PhantomAssertions.assertEquals(1, candidates.snapshot().size(), "Farming decision registered an unexpected candidate count.");
+				final PhantomDecisionCandidate candidate = candidates.snapshot().get(0);
+				PhantomAssertions.assertEquals("candidate.farming.conflict", candidate.key(), "Farming decision registered the wrong candidate.");
+				PhantomAssertions.assertEquals(1000, candidate.minimumAcceptedScore(), "Farming candidate threshold escaped the global utility bound.");
+
+				final PhantomUtilitySelector selector = new PhantomUtilitySelector();
+				final PhantomPlanningContext planning = planningContext(1);
+				final Selection noWork = selector.select(candidates.snapshot(), planning);
+				final CandidateEvaluation noWorkEvaluation = noWork.explanations().get(0);
+				PhantomAssertions.assertEquals(0, noWorkEvaluation.score(), "No-work farming consideration was not zero.");
+				PhantomAssertions.assertEquals(EvaluationStatus.BELOW_THRESHOLD, noWorkEvaluation.status(), "No-work farming candidate remained eligible.");
+
+				putPair(fixture, false, false, 500, 500);
+				fixture.service.advance(1);
+				fixture.service.advance(2);
+				PhantomAssertions.assertTrue(fixture.service.hasWork(1), "Deterministic conflict did not create farming work.");
+				final Selection conflict = selector.select(candidates.snapshot(), planning);
+				final CandidateEvaluation conflictEvaluation = conflict.explanations().get(0);
+				PhantomAssertions.assertEquals(1000, conflictEvaluation.score(), "Conflict farming consideration escaped the global utility bound.");
+				PhantomAssertions.assertEquals(EvaluationStatus.ELIGIBLE, conflictEvaluation.status(), "Conflict farming candidate was not eligible.");
+				PhantomAssertions.assertEquals("candidate.farming.conflict", conflict.candidate().key(), "Utility selector did not select the sole eligible farming candidate.");
+			}
+		});
+	}
+
+	private static PhantomPlanningContext planningContext(long profileId)
+	{
+		final PhantomGoal goal = new PhantomGoal(1000 + profileId, "acquire.item", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profileId)), new PhantomDomainRef("item", "57"), 10, 0, null, List.of(), null, "acquisition.item", 500, 0, 0, 0, Map.of(), "farming.utility.test", 1);
+		return new PhantomPlanningContext(profileId, goal, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, 1, 1);
 	}
 
 	private void resourcePolicy(PhantomTestRegistry registry)

@@ -140,3 +140,9 @@ Production behavior, APIs, control flow, database schema/migrations, shipped con
 - Commit SHA: current task commit; exact SHA is returned in the final message because the report itself is part of the commit.
 - Push: performed after final diff/encoding checks; exact result is returned in the final message.
 - Required next bounded task: decide and test the production farming candidate score/threshold correction so both evaluation and `minimumAcceptedScore` obey the canonical `0..1000` contract, then resume CP2 with a fresh runtime budget. CP3 must not start.
+
+## Successor CP2B outcome
+
+Corrective CP2B на exact parent `fc0e5cce104ea633bae1c5d26935d7c0d7ef8db9` устранил farming utility blocker (`1100/1100` → `1000/1000`) без изменения global decision core/tie-break. Focused DB-free utility regression и existing Goal024A acquisition integration gate прошли.
+
+Fresh CP2B runtime run 1/2 прошёл первый production causal case до materialization/autonomous decision, но human WHISPER не был фактически доставлен: native `ChatWhisper` отвергает headless receiver при null `GameClient`, хотя у Phantom attached `HeadlessPlayerOutboundSession`. Это новый production owner defect, а не fixture/API correction; run 2 не выполнялся. Итог CP2B: `BLOCKED_030CP2_PRODUCTION_BEHAVIOR_DEFECT`. CP2/matrix остаются `BLOCKED / 11 COVERED_PRIOR / 6 COVERED_CP1 / 0 COVERED_CP2 / 3 PENDING_GOAL030`; final PASS-only gates и jar не запускались.

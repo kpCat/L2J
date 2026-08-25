@@ -54,6 +54,7 @@
 	<property name="phantom.goal023c.seed" value="23002313" />
 	<property name="phantom.goal024.seed" value="24002401" />
 	<property name="phantom.goal024a.seed" value="24002402" />
+	<property name="phantom.goal030cp2b.seed" value="30003022" />
 	<property name="phantom.goal025.seed" value="25002501" />
 	<property name="phantom.goal025a.seed" value="25002511" />
 	<property name="phantom.goal026cp1.seed" value="26002601" />
@@ -314,6 +315,14 @@
 			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
 			<arg value="release-baseline-goal030cp1" />
 			<arg value="${phantom.goal030cp1.seed}" />
+		</java>
+	</target>
+	<target name="phantom-farming-decision-utility-goal030cp2b-test" depends="compile-tests" description="Run Goal 030 CP2B farming decision utility bound regression.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="farming-decision-utility-goal030cp2b" />
+			<arg value="${phantom.goal030cp2b.seed}" />
 		</java>
 	</target>
 	<target name="phantom-master-handler-java8-compat-goal030cp2a-test" depends="compile-tests" description="Run Goal 030 CP2A canonical MasterHandler Java 8 compatibility smoke.">
