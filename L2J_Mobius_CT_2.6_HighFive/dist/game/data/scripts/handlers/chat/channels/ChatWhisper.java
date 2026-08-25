@@ -99,7 +99,7 @@ public class ChatWhisper implements IChatHandler
 				return;
 			}
 			
-			if ((receiver.getClient() == null) || receiver.getClient().isDetached())
+			if (receiver.isInOfflineMode())
 			{
 				activeChar.sendMessage("Player is in offline mode.");
 				return;

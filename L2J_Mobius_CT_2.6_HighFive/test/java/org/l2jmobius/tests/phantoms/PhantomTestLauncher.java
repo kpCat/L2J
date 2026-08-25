@@ -37,6 +37,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4S
 import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4Suite.Mode;
 import org.l2jmobius.gameserver.phantoms.PhantomOperatorRuntimeControlsSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite;
+import org.l2jmobius.gameserver.phantoms.PhantomHeadlessWhisperDeliveryGoal030CP2CSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomMasterHandlerJava8CompatibilityGoal030CP2ASuite;
 import org.l2jmobius.gameserver.phantoms.PhantomReleaseBaselineGoal030Checkpoint1Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomServerShutdownHandoffSuite;
@@ -208,6 +209,7 @@ public final class PhantomTestLauncher
 			case "scale-environment-goal029cp2" -> new PhantomScaleEnvironmentGoal029Checkpoint2Suite();
 			case "release-baseline-goal030cp1" -> new PhantomReleaseBaselineGoal030Checkpoint1Suite();
 			case "master-handler-java8-compat-goal030cp2a" -> new PhantomMasterHandlerJava8CompatibilityGoal030CP2ASuite();
+			case "headless-whisper-delivery-goal030cp2c" -> new PhantomHeadlessWhisperDeliveryGoal030CP2CSuite();
 			case "cross-domain-autonomous-alpha-goal030cp2" -> new PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite();
 			case "scale-endurance-goal029cp3" -> new PhantomScaleEnduranceGoal029Checkpoint3Suite();
 			case "scale-envelope-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite();

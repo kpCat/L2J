@@ -35,6 +35,7 @@ Real production evidence:
 
 Existing case `acquisition-farming-lifecycle.01-real-goal021-switch-fulfils-old-move-exactly-once` подтвердил frozen Goal021↔Goal024 production ownership/lifecycle gate. Goal024 aggregate и `verify` не запускались.
 
+
 ## Fresh CP2 runtime
 
 Target `phantom-cross-domain-autonomous-alpha-goal030cp2-test`, seed `30003002`, fresh successor budget:
@@ -69,6 +70,7 @@ Pending remain: `activity-materialization: CP2`, `restart-failure-recovery: CP3`
 - MasterHandler smoke: NOT RUN; script/compiler/handler files were not changed.
 - `jar`: NOT RUN, count `0`.
 - 030A/B/C, Goal024 aggregate, soak, `verify`, geodata: NOT RUN.
+
 
 ## Changed files
 
@@ -108,3 +110,9 @@ Production behavior change is limited to the two illegal farming utility values 
 ## Next step
 
 A separate bounded corrective task must define and test the canonical native WHISPER/headless recipient delivery seam without creating a fake/null-network `GameClient`. After independent review, CP2 can resume with a fresh runtime budget. CP3 must not start.
+
+## Successor CP2C outcome
+
+Corrective CP2C на exact parent `7374e5cc3f6bcceeeb48c264585a029cc3fd9c8e` устранил native headless WHISPER blocker одной semantic заменой: direct receiver GameClient predicate → `receiver.isInOfflineMode()`. Focused canonical MasterHandler/headless regression seed `30003023` прошёл 3/3 и доказал exact `CreatureSay.runImpl`/`publishDelivered` path для null-client HEADLESS receiver, а transportless negative сохранил offline rejection.
+
+Fresh CP2C runs 1/2 и 2/2 дошли дальше прежнего blocker: real WHISPER delivery и Population/Scheduler/materialization/autonomy подтверждены. После единственной visibility fixture correction Conversation/Party execution всё равно не создал real invitation, ITEM57 outbound не завершился, execution entries остались in-flight. Итог `BLOCKED_030CP2_PRODUCTION_BEHAVIOR_DEFECT`; CP2/matrix остаются `BLOCKED / 11 COVERED_PRIOR / 6 COVERED_CP1 / 0 COVERED_CP2 / 3 PENDING_GOAL030`; final PASS-only gates и jar не запускались.

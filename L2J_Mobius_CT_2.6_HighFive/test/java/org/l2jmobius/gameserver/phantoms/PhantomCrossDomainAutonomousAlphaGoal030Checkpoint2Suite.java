@@ -170,6 +170,10 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		PhantomAssertions.assertTrue(_phantom.hasHeadlessOutboundSession(), "Materialized CP2 Phantom has no headless outbound session.");
 		PhantomAssertions.assertEquals(OwnerKind.PHANTOM, PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(_phantom.getObjectId()), "Materialized CP2 Phantom has no PHANTOM lease.");
 		PhantomAssertions.assertEquals(1, _materialization.snapshot().maximumMaterialized(), "Production materialization cap drifted.");
+		final String humanOrigin = _human.getX() + "," + _human.getY() + "," + _human.getZ();
+		_human.setXYZ(_phantom.getX() + 20, _phantom.getY(), _phantom.getZ());
+		PhantomAssertions.assertTrue(_human.isVisibleFor(_phantom) && _phantom.isVisibleFor(_human), "CP2 participants are not mutually visible for canonical Party invitation.");
+		context.record("goal030cp2.fixtureVisibility", "humanOrigin=" + humanOrigin + ",phantom=" + _phantom.getX() + "," + _phantom.getY() + "," + _phantom.getZ() + ",distance=20");
 		PhantomAssertions.assertTrue(_materialization.snapshot().retainedEntries() <= 1, "Production materialization exceeded cap one.");
 		PhantomAssertions.assertTrue(PhantomSystem.operatorStatus().activePeak() <= 1, "Production ACTIVE peak exceeded cap one.");
 
