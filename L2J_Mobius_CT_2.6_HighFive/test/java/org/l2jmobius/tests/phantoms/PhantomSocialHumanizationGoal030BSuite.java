@@ -3,6 +3,9 @@
  */
 package org.l2jmobius.tests.phantoms;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -47,6 +50,7 @@ public final class PhantomSocialHumanizationGoal030BSuite implements PhantomTest
 		registry.add("05-repeated-evidence-can-reverse-reputation", this::testRepeatedReversal);
 		registry.add("06-non-reputation-dimensions-unchanged", this::testRelationshipCompatibility);
 		registry.add("07-context-default-backward-compatibility", this::testBackwardCompatibility);
+		registry.add("08-affiliation-policy-invalid-catalogs-fail-closed", this::testInvalidAffiliationCatalogs);
 	}
 
 	private void testStrictCatalog(PhantomTestContext context)
@@ -69,6 +73,25 @@ public final class PhantomSocialHumanizationGoal030BSuite implements PhantomTest
 		}
 		context.record("goal030b.catalogHash", _catalog.hash());
 		context.record("goal030b.eventCount", _catalog.events().size());
+	}
+
+	private void testInvalidAffiliationCatalogs(PhantomTestContext context) throws Exception
+	{
+		final String source = Files.readString(context.moduleRoot().resolve("dist/game/data/phantoms/social/high-five-social-v1.xml"), StandardCharsets.UTF_8);
+		final String sameClan = affiliationRow(source, "SAME_CLAN");
+		final String clanWar = affiliationRow(source, "CLAN_WAR");
+		final String policySection = affiliationPolicySection(source);
+
+		rejectCatalog(context, "missing-same-clan", replaceExact(source, sameClan, ""));
+		rejectCatalog(context, "duplicate-clan-war", replaceExact(source, "	</affiliationMultipliers>", clanWar + System.lineSeparator() + "	</affiliationMultipliers>"));
+		rejectCatalog(context, "missing-multiplier", replaceExact(source, "			<multiplier socialClass=\"BETRAYAL\" basisPoints=\"13000\"/>", "			<multiplier socialClass=\"BETRAYAL\"/>"));
+		rejectCatalog(context, "unknown-affiliation", replaceExact(source, "<affiliation kind=\"SAME_ALLIANCE\">", "<affiliation kind=\"UNKNOWN\">"));
+		rejectCatalog(context, "out-of-range", replaceExact(source, "basisPoints=\"13000\"", "basisPoints=\"20001\""));
+		rejectCatalog(context, "extra-attribute", replaceExact(source, "<affiliation kind=\"NONE\">", "<affiliation kind=\"NONE\" extra=\"forbidden\">"));
+		final String withoutPolicy = replaceExact(source, policySection, "");
+		rejectCatalog(context, "bad-section-order", replaceExact(withoutPolicy, "	</traits>", "	</traits>" + System.lineSeparator() + policySection));
+
+		context.record("goal030b.affiliationParserNegativeCases", 7);
 	}
 
 	private void assertMultiplier(AffiliationKind affiliation, int supportive, int routineNegative, int betrayal, int hostileCombat, int neutral)
@@ -317,6 +340,62 @@ public final class PhantomSocialHumanizationGoal030BSuite implements PhantomTest
 	private static String join(List<Integer> values)
 	{
 		return values.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
+	}
+
+	private static String affiliationRow(String source, String kind)
+	{
+		final String start = "		<affiliation kind=\"" + kind + "\">";
+		final int startIndex = uniqueIndex(source, start);
+		final String end = "		</affiliation>";
+		final int endIndex = source.indexOf(end, startIndex);
+		if (endIndex < 0)
+		{
+			throw new IllegalArgumentException("Affiliation row anchor is malformed.");
+		}
+		return source.substring(startIndex, endIndex + end.length());
+	}
+
+	private static String affiliationPolicySection(String source)
+	{
+		final String start = "	<affiliationMultipliers>";
+		final int startIndex = uniqueIndex(source, start);
+		final String end = "	</affiliationMultipliers>";
+		final int endIndex = uniqueIndex(source, end);
+		if (endIndex < startIndex)
+		{
+			throw new IllegalArgumentException("Affiliation policy section anchor is malformed.");
+		}
+		return source.substring(startIndex, endIndex + end.length());
+	}
+
+	private static String replaceExact(String source, String anchor, String replacement)
+	{
+		final int index = uniqueIndex(source, anchor);
+		return source.substring(0, index) + replacement + source.substring(index + anchor.length());
+	}
+
+	private static int uniqueIndex(String source, String anchor)
+	{
+		final int index = source.indexOf(anchor);
+		if ((index < 0) || (source.indexOf(anchor, index + anchor.length()) >= 0))
+		{
+			throw new IllegalArgumentException("Test mutation anchor is missing or duplicated.");
+		}
+		return index;
+	}
+
+	private static void rejectCatalog(PhantomTestContext context, String name, String content) throws Exception
+	{
+		final Path path = Files.createTempFile(context.reportsDirectory(), "social-030b1-invalid-" + name + '-', ".xml");
+		try
+		{
+			Files.writeString(path, content, StandardCharsets.UTF_8);
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomSocialCatalog.load(path), "Invalid Goal 030B1 affiliation catalog was accepted: " + name);
+		}
+		finally
+		{
+			Files.deleteIfExists(path);
+		}
 	}
 
 	private static void stop(PhantomSocialService service)

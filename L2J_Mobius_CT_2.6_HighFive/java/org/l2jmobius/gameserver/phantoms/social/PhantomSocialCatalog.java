@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
@@ -58,6 +59,7 @@ public final class PhantomSocialCatalog
 		"conversation.warmth",
 		"conflict.escalation");
 	private static final List<String> AGREEMENT_KEYS = List.of("offered", "accepted", "fulfilled", "broken", "refused");
+	private static final int MAX_AFFILIATION_MULTIPLIER_BP = 20000;
 
 	public enum DimensionGroup
 	{
@@ -174,9 +176,10 @@ public final class PhantomSocialCatalog
 	private final Map<Integer, EventDefinition> _eventsByCode;
 	private final Map<String, ModifierDefinition> _modifiers;
 	private final Limits _limits;
+	private final Map<AffiliationKind, Map<EventSocialClass, Integer>> _affiliationMultipliers;
 	private final String _hash;
 
-	private PhantomSocialCatalog(List<TraitDefinition> traits, List<DimensionDefinition> dimensions, List<EventDefinition> events, List<ModifierDefinition> modifiers, Limits limits, String hash)
+	private PhantomSocialCatalog(List<TraitDefinition> traits, List<DimensionDefinition> dimensions, List<EventDefinition> events, List<ModifierDefinition> modifiers, Limits limits, Map<AffiliationKind, Map<EventSocialClass, Integer>> affiliationMultipliers, String hash)
 	{
 		_traitsByKey = indexByKey(traits, TraitDefinition::key, "trait");
 		_traitsByCode = indexByCode(traits, TraitDefinition::code, "trait");
@@ -186,6 +189,7 @@ public final class PhantomSocialCatalog
 		_eventsByCode = indexByCode(events, EventDefinition::code, "event");
 		_modifiers = indexByKey(modifiers, ModifierDefinition::key, "modifier");
 		_limits = Objects.requireNonNull(limits);
+		_affiliationMultipliers = Objects.requireNonNull(affiliationMultipliers);
 		_hash = PhantomSocialModel.requireHash(hash, "Social catalog hash");
 	}
 
@@ -214,7 +218,7 @@ public final class PhantomSocialCatalog
 				throw new IllegalArgumentException("Unknown social catalog version.");
 			}
 			final List<Element> sections = childElements(root);
-			final List<String> expectedSections = List.of("limits", "traits", "relationships", "reputation", "events", "modifiers");
+			final List<String> expectedSections = List.of("limits", "affiliationMultipliers", "traits", "relationships", "reputation", "events", "modifiers");
 			if (!sections.stream().map(Element::getTagName).toList().equals(expectedSections))
 			{
 				throw new IllegalArgumentException("Social catalog sections are missing, duplicated or out of order.");
@@ -233,17 +237,18 @@ public final class PhantomSocialCatalog
 				strictInt(limitsElement.getAttribute("memoryDecayPerDay"), 0, PhantomSocialModel.MAX_VALUE));
 			requireNoChildren(limitsElement);
 
+			final Map<AffiliationKind, Map<EventSocialClass, Integer>> affiliationMultipliers = parseAffiliationMultipliers(sections.get(1));
 			final Set<Integer> globalCodes = new HashSet<>();
-			final List<TraitDefinition> traits = parseTraits(sections.get(1), globalCodes);
+			final List<TraitDefinition> traits = parseTraits(sections.get(2), globalCodes);
 			final List<DimensionDefinition> dimensions = new ArrayList<>();
-			dimensions.addAll(parseDimensions(sections.get(2), DimensionGroup.RELATIONSHIP, 0, REQUIRED_RELATIONSHIPS, globalCodes));
-			dimensions.addAll(parseDimensions(sections.get(3), DimensionGroup.REPUTATION, REQUIRED_RELATIONSHIPS.size(), REQUIRED_REPUTATION, globalCodes));
+			dimensions.addAll(parseDimensions(sections.get(3), DimensionGroup.RELATIONSHIP, 0, REQUIRED_RELATIONSHIPS, globalCodes));
+			dimensions.addAll(parseDimensions(sections.get(4), DimensionGroup.REPUTATION, REQUIRED_RELATIONSHIPS.size(), REQUIRED_REPUTATION, globalCodes));
 			final Map<String, DimensionDefinition> dimensionsBySource = indexByKey(dimensions, DimensionDefinition::sourceKey, "dimension");
-			final List<EventDefinition> events = parseEvents(sections.get(4), dimensionsBySource, globalCodes);
+			final List<EventDefinition> events = parseEvents(sections.get(5), dimensionsBySource, globalCodes);
 			final Map<String, TraitDefinition> traitsByKey = indexByKey(traits, TraitDefinition::key, "trait");
-			final List<ModifierDefinition> modifiers = parseModifiers(sections.get(5), traitsByKey, dimensionsBySource);
+			final List<ModifierDefinition> modifiers = parseModifiers(sections.get(6), traitsByKey, dimensionsBySource);
 			final String hash = HexFormat.of().withUpperCase().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
-			return new PhantomSocialCatalog(traits, dimensions, events, modifiers, limits, hash);
+			return new PhantomSocialCatalog(traits, dimensions, events, modifiers, limits, affiliationMultipliers, hash);
 		}
 		catch (RuntimeException e)
 		{
@@ -304,27 +309,7 @@ public final class PhantomSocialCatalog
 	{
 		Objects.requireNonNull(affiliation, "Social affiliation must not be null.");
 		Objects.requireNonNull(socialClass, "Social event class must not be null.");
-		return switch (affiliation)
-		{
-			case NONE -> 10000;
-			case SAME_CLAN -> switch (socialClass)
-			{
-				case SUPPORTIVE -> 12000;
-				case ROUTINE_NEGATIVE -> 7000;
-				case BETRAYAL -> 13000;
-				case HOSTILE_COMBAT -> 8500;
-				case NEUTRAL -> 10000;
-			};
-			case SAME_ALLIANCE -> switch (socialClass)
-			{
-				case SUPPORTIVE -> 11000;
-				case ROUTINE_NEGATIVE -> 8500;
-				case BETRAYAL -> 11500;
-				case HOSTILE_COMBAT -> 9250;
-				case NEUTRAL -> 10000;
-			};
-			case CLAN_WAR -> socialClass == EventSocialClass.HOSTILE_COMBAT ? 7000 : 10000;
-		};
+		return Objects.requireNonNull(_affiliationMultipliers.get(affiliation).get(socialClass), "Social affiliation multiplier must be present.");
 	}
 
 	public ModifierDefinition requireModifier(String key)
@@ -371,6 +356,63 @@ public final class PhantomSocialCatalog
 			throw new IllegalArgumentException("Agreement index is outside bounds.");
 		}
 		return AGREEMENT_KEYS.get(index);
+	}
+
+	private static Map<AffiliationKind, Map<EventSocialClass, Integer>> parseAffiliationMultipliers(Element parent)
+	{
+		requireElement(parent, "affiliationMultipliers", List.of());
+		final Map<AffiliationKind, Map<EventSocialClass, Integer>> result = new EnumMap<>(AffiliationKind.class);
+		final List<Element> rows = children(parent, "affiliation");
+		if (rows.size() != AffiliationKind.values().length)
+		{
+			throw new IllegalArgumentException("Social affiliation multiplier rows are incomplete or excessive.");
+		}
+		for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++)
+		{
+			final Element row = rows.get(rowIndex);
+			requireElement(row, "affiliation", List.of("kind"));
+			final AffiliationKind affiliation;
+			try
+			{
+				affiliation = AffiliationKind.valueOf(row.getAttribute("kind"));
+			}
+			catch (IllegalArgumentException e)
+			{
+				throw new IllegalArgumentException("Unknown social affiliation kind.", e);
+			}
+			if ((affiliation != AffiliationKind.values()[rowIndex]) || result.containsKey(affiliation))
+			{
+				throw new IllegalArgumentException("Social affiliation multiplier rows are duplicated or out of canonical order.");
+			}
+
+			final Map<EventSocialClass, Integer> multipliers = new EnumMap<>(EventSocialClass.class);
+			final List<Element> cells = children(row, "multiplier");
+			if (cells.size() != EventSocialClass.values().length)
+			{
+				throw new IllegalArgumentException("Social affiliation multiplier cells are incomplete or excessive.");
+			}
+			for (int cellIndex = 0; cellIndex < cells.size(); cellIndex++)
+			{
+				final Element cell = cells.get(cellIndex);
+				requireElement(cell, "multiplier", List.of("socialClass", "basisPoints"));
+				requireNoChildren(cell);
+				final EventSocialClass socialClass;
+				try
+				{
+					socialClass = EventSocialClass.valueOf(cell.getAttribute("socialClass"));
+				}
+				catch (IllegalArgumentException e)
+				{
+					throw new IllegalArgumentException("Unknown social event class in affiliation policy.", e);
+				}
+				if ((socialClass != EventSocialClass.values()[cellIndex]) || (multipliers.put(socialClass, strictInt(cell.getAttribute("basisPoints"), 0, MAX_AFFILIATION_MULTIPLIER_BP)) != null))
+				{
+					throw new IllegalArgumentException("Social affiliation multiplier cells are duplicated or out of canonical order.");
+				}
+			}
+			result.put(affiliation, Collections.unmodifiableMap(multipliers));
+		}
+		return Collections.unmodifiableMap(result);
 	}
 
 	private static List<TraitDefinition> parseTraits(Element parent, Set<Integer> globalCodes)

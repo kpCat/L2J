@@ -1,6 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <socialCatalog version="1">
 	<limits relationships="24" memories="24" memorySalienceThreshold="100" memoryDecayPerDay="20" eviction="expired-lowest-salience-oldest-hash"/>
+	<affiliationMultipliers>
+		<affiliation kind="NONE">
+			<multiplier socialClass="SUPPORTIVE" basisPoints="10000"/>
+			<multiplier socialClass="ROUTINE_NEGATIVE" basisPoints="10000"/>
+			<multiplier socialClass="BETRAYAL" basisPoints="10000"/>
+			<multiplier socialClass="HOSTILE_COMBAT" basisPoints="10000"/>
+			<multiplier socialClass="NEUTRAL" basisPoints="10000"/>
+		</affiliation>
+		<affiliation kind="SAME_CLAN">
+			<multiplier socialClass="SUPPORTIVE" basisPoints="12000"/>
+			<multiplier socialClass="ROUTINE_NEGATIVE" basisPoints="7000"/>
+			<multiplier socialClass="BETRAYAL" basisPoints="13000"/>
+			<multiplier socialClass="HOSTILE_COMBAT" basisPoints="8500"/>
+			<multiplier socialClass="NEUTRAL" basisPoints="10000"/>
+		</affiliation>
+		<affiliation kind="SAME_ALLIANCE">
+			<multiplier socialClass="SUPPORTIVE" basisPoints="11000"/>
+			<multiplier socialClass="ROUTINE_NEGATIVE" basisPoints="8500"/>
+			<multiplier socialClass="BETRAYAL" basisPoints="11500"/>
+			<multiplier socialClass="HOSTILE_COMBAT" basisPoints="9250"/>
+			<multiplier socialClass="NEUTRAL" basisPoints="10000"/>
+		</affiliation>
+		<affiliation kind="CLAN_WAR">
+			<multiplier socialClass="SUPPORTIVE" basisPoints="10000"/>
+			<multiplier socialClass="ROUTINE_NEGATIVE" basisPoints="10000"/>
+			<multiplier socialClass="BETRAYAL" basisPoints="10000"/>
+			<multiplier socialClass="HOSTILE_COMBAT" basisPoints="7000"/>
+			<multiplier socialClass="NEUTRAL" basisPoints="10000"/>
+		</affiliation>
+	</affiliationMultipliers>
 	<traits>
 		<trait code="1" key="persistence"/>
 		<trait code="2" key="caution"/>
