@@ -36,6 +36,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomDeterministicDecisionReplayGoal0
 import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4Suite.Mode;
 import org.l2jmobius.gameserver.phantoms.PhantomOperatorRuntimeControlsSuite;
+import org.l2jmobius.gameserver.phantoms.PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomReleaseBaselineGoal030Checkpoint1Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomServerShutdownHandoffSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomScaleEnvelopeGoal029Checkpoint1Suite;
@@ -205,6 +206,7 @@ public final class PhantomTestLauncher
 			case "skeleton" -> new PhantomSkeletonSuite();
 			case "scale-environment-goal029cp2" -> new PhantomScaleEnvironmentGoal029Checkpoint2Suite();
 			case "release-baseline-goal030cp1" -> new PhantomReleaseBaselineGoal030Checkpoint1Suite();
+			case "cross-domain-autonomous-alpha-goal030cp2" -> new PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite();
 			case "scale-endurance-goal029cp3" -> new PhantomScaleEnduranceGoal029Checkpoint3Suite();
 			case "scale-envelope-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite();
 			case "scale-scheduler-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite(PhantomScaleEnvelopeGoal029Checkpoint1Suite.Mode.SCHEDULER);

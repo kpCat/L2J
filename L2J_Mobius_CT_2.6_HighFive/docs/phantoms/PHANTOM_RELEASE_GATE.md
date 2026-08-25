@@ -28,9 +28,9 @@ Checksum старого scenario smoke не считается end-to-end док
 3. Goal030B — `ACCEPT after Goal 030B1`: transient affiliation semantics и инерция личной воспринимаемой репутации без DB/state/owner integration.
 4. Goal030B1 — `ACCEPT`: affiliation multiplier policy перенесена в authoritative social XML и защищена strict fail-closed parser controls.
 5. Goal030C1 — `ACCEPT`: canonical clan/alliance/war context подключён к Clan/Party/PvP, штатное изгнание создаёт точную личную betrayal-memory, native лидерство остаётся источником истины.
-6. Goal030C2A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`: bounded директивы native лидера через реальный CLAN delivery управляют Scheduler relevance с social obedience и без второго chat observer.
-7. Goal030C2B — `NOT_STARTED`: PK/karma recovery.
-8. CP2 — `NOT_STARTED_AFTER_HUMANIZATION`: автономный cross-domain alpha-сценарий на едином мире; пакет должен быть сформирован заново после независимого принятия 030C2A и завершения 030C2B.
+6. Goal030C2A — `ACCEPT`: bounded директивы native лидера через реальный CLAN delivery управляют Scheduler relevance с social obedience и без второго chat observer.
+7. Goal030C2B — `ACCEPT`: native karma recovery strategy использует production DecisionEngine и штатные Player/PvP owners.
+8. CP2 — `IN_PROGRESS`: автономный cross-domain alpha-сценарий на едином production-composed мире.
 9. CP3: финальное решение о выпуске, rollback и release-level restart/failure recovery.
 
 Release sequence: `CP1 -> 030A -> 030B/030B1 -> 030C1 -> 030C2A -> 030C2B -> CP2 -> CP3`. Coverage matrix и число её строк не меняются.

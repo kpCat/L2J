@@ -1230,7 +1230,20 @@ public final class PhantomSystem
 			return false;
 		}
 
-		final PhantomSystem candidate = new PhantomSystem(PhantomPlayersConfig.settings(), true);
+		return startConfiguredCandidate(new PhantomSystem(PhantomPlayersConfig.settings(), true));
+	}
+
+	static synchronized boolean startConfiguredForTesting(PhantomPlayersConfig.Settings settings)
+	{
+		if (_configuredInstance != null)
+		{
+			return false;
+		}
+		return startConfiguredCandidate(new PhantomSystem(Objects.requireNonNull(settings), true));
+	}
+
+	private static boolean startConfiguredCandidate(PhantomSystem candidate)
+	{
 		try
 		{
 			if (!candidate.start())
