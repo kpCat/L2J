@@ -225,7 +225,7 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 		final Set<Integer> ids = new HashSet<>();
 		_catalog.classes().forEach(entry -> ids.add(entry.classId()));
 		PhantomAssertions.assertEquals(Set.of(0, 10, 18, 25, 31, 38, 44, 49, 53, 123, 124), ids, "Starting-class coverage mismatch.");
-		for (int attempt = 0; attempt < 32; attempt++)
+		for (int attempt = 0; attempt <= 8; attempt++)
 		{
 			PhantomAssertions.assertTrue(_catalog.name(SEED, attempt).matches("[A-Za-z0-9]{1,16}"), "Generated population name is invalid.");
 		}

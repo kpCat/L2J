@@ -42,6 +42,7 @@ import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -69,17 +70,25 @@ public final class PhantomPopulationCatalog
 	public static final int MAX_WINDOWS_PER_TEMPLATE = 128;
 	private static final int MINUTES_PER_WEEK = 7 * 24 * 60;
 
-	private final List<String> _prefixes;
-	private final List<String> _suffixes;
+	private final List<NameStyleEntry> _nameStyles;
+	private final List<String> _primaryRoots;
+	private final List<String> _secondaryRoots;
+	private final List<String> _slangRoots;
+	private final Set<String> _reservedTokens;
 	private final List<ClassEntry> _classes;
+	private final Map<CareerArchetype, ArchetypeEntry> _archetypes;
 	private final Map<String, ScheduleTemplate> _templates;
 	private final String _hash;
 
-	private PhantomPopulationCatalog(List<String> prefixes, List<String> suffixes, List<ClassEntry> classes, Map<String, ScheduleTemplate> templates, String hash)
+	private PhantomPopulationCatalog(Names names, List<ClassEntry> classes, Map<CareerArchetype, ArchetypeEntry> archetypes, Map<String, ScheduleTemplate> templates, String hash)
 	{
-		_prefixes = List.copyOf(prefixes);
-		_suffixes = List.copyOf(suffixes);
+		_nameStyles = List.copyOf(names.styles());
+		_primaryRoots = List.copyOf(names.primaryRoots());
+		_secondaryRoots = List.copyOf(names.secondaryRoots());
+		_slangRoots = List.copyOf(names.slangRoots());
+		_reservedTokens = Set.copyOf(names.reservedTokens());
 		_classes = List.copyOf(classes);
+		_archetypes = Collections.unmodifiableMap(new LinkedHashMap<>(archetypes));
 		_templates = Collections.unmodifiableMap(new LinkedHashMap<>(templates));
 		_hash = hash;
 	}
@@ -113,15 +122,16 @@ public final class PhantomPopulationCatalog
 				throw new IllegalArgumentException("Population catalog version must be 1.");
 			}
 			final List<Element> rootChildren = childElements(root);
-			if ((rootChildren.size() != 3) || !"names".equals(rootChildren.get(0).getTagName()) || !"classes".equals(rootChildren.get(1).getTagName()) || !"schedules".equals(rootChildren.get(2).getTagName()))
+			if ((rootChildren.size() != 4) || !"names".equals(rootChildren.get(0).getTagName()) || !"classes".equals(rootChildren.get(1).getTagName()) || !"archetypes".equals(rootChildren.get(2).getTagName()) || !"schedules".equals(rootChildren.get(3).getTagName()))
 			{
-				throw new IllegalArgumentException("Population catalog must contain names, classes and schedules in canonical order.");
+				throw new IllegalArgumentException("Population catalog must contain names, classes, archetypes and schedules in canonical order.");
 			}
 			final Names names = parseNames(rootChildren.get(0));
 			final List<ClassEntry> classes = parseClasses(rootChildren.get(1));
-			final Map<String, ScheduleTemplate> templates = parseSchedules(rootChildren.get(2), zoneId);
+			final Map<CareerArchetype, ArchetypeEntry> archetypes = parseArchetypes(rootChildren.get(2), classes);
+			final Map<String, ScheduleTemplate> templates = parseSchedules(rootChildren.get(3), zoneId);
 			final String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
-			return new PhantomPopulationCatalog(names.prefixes(), names.suffixes(), classes, templates, hash);
+			return new PhantomPopulationCatalog(names, classes, archetypes, templates, hash);
 		}
 		catch (IllegalArgumentException e)
 		{
@@ -133,17 +143,81 @@ public final class PhantomPopulationCatalog
 		}
 	}
 
-	public String name(long deterministicValue, int attempt)
+	public NameCandidate chooseName(long identitySeed, int attempt)
 	{
-		if ((attempt < 0) || (attempt > 255))
+		if ((attempt < 0) || (attempt > 8))
 		{
 			throw new IllegalArgumentException("Name inputs are outside bounded deterministic range.");
 		}
-		final String prefix = _prefixes.get(index(deterministicValue + attempt, _prefixes.size()));
-		final String suffix = _suffixes.get(index(Long.rotateLeft(deterministicValue, 17) + attempt, _suffixes.size()));
-		final String discriminator = Long.toUnsignedString(deterministicValue + attempt, 36);
-		final String candidate = prefix + suffix + discriminator.substring(Math.max(0, discriminator.length() - 3));
-		return candidate.substring(0, Math.min(16, candidate.length()));
+		final long mixed = mix64(identitySeed + (0x9e3779b97f4a7c15L * (attempt + 1L)));
+		final NameStyle style = attempt >= 6 ? ((attempt & 1) == 0 ? NameStyle.DIGITS : NameStyle.LEET) : weighted(_nameStyles, mixed, NameStyleEntry::weight).style();
+		final String primary = _primaryRoots.get(index(mixed, _primaryRoots.size()));
+		final String secondary = _secondaryRoots.get(index(Long.rotateLeft(mixed, 19), _secondaryRoots.size()));
+		final String slang = _slangRoots.get(index(Long.rotateLeft(mixed, 37), _slangRoots.size()));
+		final int variant = index(Long.rotateLeft(mixed, 51), 6);
+		final String rawValue = switch (style)
+		{
+			case CLEAN -> legacyBlend(primary, secondary, 2 + (variant % 3));
+			case COMPOUND -> compound(primary, secondary, variant);
+			case TRANSLIT_SLANG -> bounded((variant & 1) == 0 ? slang + tail(primary, 2 + (variant % 3)) : primary + tail(slang, 2 + (variant % 3)), 16);
+			case DECORATED -> decorated(primary + tail(secondary, 2 + (variant % 3)), variant);
+			case DIGITS -> digits(primary, mixed, variant);
+			case LEET -> leet(bounded((variant & 1) == 0 ? primary + tail(secondary, 3) : slang + tail(primary, 3), 16));
+		};
+		final String value = avoidReserved(rawValue, _reservedTokens);
+		final String lower = value.toLowerCase(Locale.ROOT);
+		if (!value.matches("[A-Za-z0-9]{1,16}") || _reservedTokens.stream().anyMatch(lower::contains))
+		{
+			throw new IllegalStateException("Population nickname policy produced an unsafe candidate.");
+		}
+		final List<String> sourceRoots = switch (style)
+		{
+			case CLEAN, COMPOUND -> List.of(primary, secondary);
+			case TRANSLIT_SLANG -> List.of(slang, primary);
+			case DECORATED, DIGITS -> List.of(primary);
+			case LEET -> (variant & 1) == 0 ? List.of(primary, secondary) : List.of(slang, primary);
+		};
+		return new NameCandidate(value, style, sourceRoots);
+	}
+
+	public String name(long deterministicValue, int attempt)
+	{
+		return chooseName(deterministicValue, attempt).value();
+	}
+
+	public CareerArchetype chooseArchetype(long deterministicSeed, long creationOrdinal)
+	{
+		if (creationOrdinal < 1)
+		{
+			throw new IllegalArgumentException("Creation ordinal must be positive.");
+		}
+		final int[] multipliers =
+		{
+			1, 3, 7, 9, 11, 13, 17, 19, 21, 23, 27, 29, 31, 33, 37, 39, 41, 43, 47, 49
+		};
+		final long mixed = mix64(deterministicSeed ^ 0x4f1bbcdc6765d2f9L);
+		final int multiplier = multipliers[index(mixed, multipliers.length)];
+		int slot = (int) Math.floorMod(((creationOrdinal - 1) * multiplier) + index(Long.rotateLeft(mixed, 23), 100), 100);
+		for (ArchetypeEntry entry : _archetypes.values())
+		{
+			slot -= entry.weight();
+			if (slot < 0)
+			{
+				return entry.archetype();
+			}
+		}
+		throw new IllegalStateException("Career archetype cycle exhausted.");
+	}
+
+	public ClassEntry chooseClass(long deterministicValue, CareerArchetype archetype)
+	{
+		final ArchetypeEntry entry = _archetypes.get(Objects.requireNonNull(archetype, "Career archetype must not be null."));
+		if (entry == null)
+		{
+			throw new IllegalArgumentException("Unknown career archetype.");
+		}
+		final ArchetypeClass selected = weighted(entry.classes(), mix64(deterministicValue ^ archetype.ordinal()), ArchetypeClass::weight);
+		return _classes.stream().filter(value -> value.classId() == selected.classId()).findFirst().orElseThrow();
 	}
 
 	public ClassEntry chooseClass(long deterministicValue)
@@ -151,6 +225,11 @@ public final class PhantomPopulationCatalog
 		return weighted(_classes, deterministicValue, ClassEntry::weight);
 	}
 
+	public boolean supports(ClassEntry classEntry, CareerArchetype archetype)
+	{
+		final ArchetypeEntry entry = _archetypes.get(archetype);
+		return (entry != null) && entry.classes().stream().anyMatch(value -> value.classId() == classEntry.classId());
+	}
 	public ScheduleTemplate chooseSchedule(long deterministicValue)
 	{
 		return weighted(new ArrayList<>(_templates.values()), deterministicValue, ScheduleTemplate::weight);
@@ -196,6 +275,35 @@ public final class PhantomPopulationCatalog
 	{
 		return _classes;
 	}
+	public List<NameStyleEntry> nameStyles()
+	{
+		return _nameStyles;
+	}
+
+	public List<String> primaryRoots()
+	{
+		return _primaryRoots;
+	}
+
+	public List<String> secondaryRoots()
+	{
+		return _secondaryRoots;
+	}
+
+	public List<String> slangRoots()
+	{
+		return _slangRoots;
+	}
+
+	public Set<String> reservedTokens()
+	{
+		return _reservedTokens;
+	}
+
+	public Map<CareerArchetype, ArchetypeEntry> archetypes()
+	{
+		return _archetypes;
+	}
 
 	public Map<String, ScheduleTemplate> templates()
 	{
@@ -211,34 +319,84 @@ public final class PhantomPopulationCatalog
 	{
 		requireElement(element, "names");
 		requireExactAttributes(element, Set.of());
-		final List<String> prefixes = new ArrayList<>();
-		final List<String> suffixes = new ArrayList<>();
+		final List<NameStyleEntry> styles = new ArrayList<>();
+		final Set<String> reserved = new HashSet<>();
+		final List<String> primary = new ArrayList<>();
+		final List<String> secondary = new ArrayList<>();
+		final List<String> slang = new ArrayList<>();
 		for (Element child : childElements(element))
 		{
-			requireExactAttributes(child, Set.of("value"));
-			final String value = child.getAttribute("value");
-			if (!value.matches("[A-Za-z][A-Za-z0-9]{0,7}"))
+			switch (child.getTagName())
 			{
-				throw new IllegalArgumentException("Population name fragment must be 1..8 ASCII alphanumeric characters.");
-			}
-			if ("prefix".equals(child.getTagName()))
-			{
-				prefixes.add(value);
-			}
-			else if ("suffix".equals(child.getTagName()))
-			{
-				suffixes.add(value);
-			}
-			else
-			{
-				throw new IllegalArgumentException("Unexpected element in population names: " + child.getTagName());
+				case "style" ->
+				{
+					requireExactAttributes(child, Set.of("key", "weight"));
+					styles.add(new NameStyleEntry(NameStyle.valueOf(child.getAttribute("key")), boundedInteger(child.getAttribute("weight"), 1, 100, "name style weight")));
+				}
+				case "reserved" ->
+				{
+					requireExactAttributes(child, Set.of("value"));
+					final String value = child.getAttribute("value").toLowerCase(Locale.ROOT);
+					if (!value.matches("[a-z0-9]{2,16}") || !reserved.add(value))
+					{
+						throw new IllegalArgumentException("Population reserved tokens must be unique lowercase ASCII values.");
+					}
+				}
+				case "primary" -> addNameRoot(child, primary);
+				case "secondary" -> addNameRoot(child, secondary);
+				case "slang" -> addNameRoot(child, slang);
+				default -> throw new IllegalArgumentException("Unexpected element in population names: " + child.getTagName());
 			}
 		}
-		requireUniqueBounded(prefixes, "name prefixes");
-		requireUniqueBounded(suffixes, "name suffixes");
-		return new Names(prefixes, suffixes);
+		final Map<NameStyle, Integer> requiredWeights = Map.of(NameStyle.CLEAN, 35, NameStyle.COMPOUND, 25, NameStyle.TRANSLIT_SLANG, 18, NameStyle.DECORATED, 10, NameStyle.DIGITS, 8, NameStyle.LEET, 4);
+		final Map<NameStyle, Integer> actualWeights = new LinkedHashMap<>();
+		styles.forEach(style ->
+		{
+			if (actualWeights.put(style.style(), style.weight()) != null)
+			{
+				throw new IllegalArgumentException("Population name styles must be unique.");
+			}
+		});
+		if (!actualWeights.equals(requiredWeights) || (styles.stream().mapToInt(NameStyleEntry::weight).sum() != 100))
+		{
+			throw new IllegalArgumentException("Population name style weights must be CLEAN35/COMPOUND25/TRANSLIT_SLANG18/DECORATED10/DIGITS8/LEET4.");
+		}
+		if (!reserved.containsAll(Set.of("admin", "administrator", "gm", "gamemaster", "npc", "server", "l2j", "phantom")))
+		{
+			throw new IllegalArgumentException("Population reserved nickname tokens are incomplete.");
+		}
+		requireNameCorpus(primary, 96, "primary roots");
+		requireNameCorpus(secondary, 32, "secondary roots");
+		requireNameCorpus(slang, 24, "translit/slang roots");
+		return new Names(styles, primary, secondary, slang, reserved);
 	}
 
+	private static void addNameRoot(Element element, List<String> target)
+	{
+		requireExactAttributes(element, Set.of("value"));
+		final String value = element.getAttribute("value");
+		if (!value.matches("[A-Za-z][A-Za-z0-9]{1,11}"))
+		{
+			throw new IllegalArgumentException("Population name roots must be 2..12 ASCII alphanumeric characters.");
+		}
+		target.add(value);
+	}
+
+	private static void requireNameCorpus(List<String> values, int minimum, String label)
+	{
+		final Set<String> normalized = new HashSet<>();
+		for (String value : values)
+		{
+			if (!normalized.add(value.toLowerCase(Locale.ROOT)))
+			{
+				throw new IllegalArgumentException("Population " + label + " must be case-insensitively unique.");
+			}
+		}
+		if ((values.size() < minimum) || (values.size() > MAX_NAMES))
+		{
+			throw new IllegalArgumentException("Population " + label + " corpus is outside bounded size.");
+		}
+	}
 	private static List<ClassEntry> parseClasses(Element element)
 	{
 		requireElement(element, "classes");
@@ -276,6 +434,48 @@ public final class PhantomPopulationCatalog
 		return List.copyOf(entries);
 	}
 
+	private static Map<CareerArchetype, ArchetypeEntry> parseArchetypes(Element element, List<ClassEntry> classes)
+	{
+		requireElement(element, "archetypes");
+		requireExactAttributes(element, Set.of());
+		final Set<Integer> startingClassIds = new HashSet<>();
+		classes.forEach(entry -> startingClassIds.add(entry.classId()));
+		final Set<Integer> reachableClassIds = new HashSet<>();
+		final Map<CareerArchetype, ArchetypeEntry> entries = new LinkedHashMap<>();
+		for (Element child : childElements(element))
+		{
+			requireElement(child, "archetype");
+			requireExactAttributes(child, Set.of("key", "weight"));
+			final CareerArchetype archetype = CareerArchetype.valueOf(child.getAttribute("key"));
+			final int weight = boundedInteger(child.getAttribute("weight"), 1, 100, "career archetype weight");
+			final List<ArchetypeClass> eligible = new ArrayList<>();
+			final Set<Integer> localIds = new HashSet<>();
+			for (Element classElement : childElements(child))
+			{
+				requireElement(classElement, "class");
+				requireExactAttributes(classElement, Set.of("id", "weight"));
+				final int classId = boundedInteger(classElement.getAttribute("id"), 0, 255, "archetype class ID");
+				if (!startingClassIds.contains(classId) || !localIds.add(classId))
+				{
+					throw new IllegalArgumentException("Career archetypes may reference each canonical starting class at most once.");
+				}
+				eligible.add(new ArchetypeClass(classId, boundedInteger(classElement.getAttribute("weight"), 1, 1_000_000, "archetype class weight")));
+				reachableClassIds.add(classId);
+			}
+			if (eligible.isEmpty() || (entries.put(archetype, new ArchetypeEntry(archetype, weight, List.copyOf(eligible))) != null))
+			{
+				throw new IllegalArgumentException("Career archetypes must be unique and non-empty.");
+			}
+		}
+		final Map<CareerArchetype, Integer> requiredWeights = Map.of(CareerArchetype.DAMAGE, 55, CareerArchetype.TANK, 8, CareerArchetype.HEALER, 8, CareerArchetype.ENHANCEMENT, 12, CareerArchetype.CONTROL, 7, CareerArchetype.ECONOMY, 10);
+		final Map<CareerArchetype, Integer> actualWeights = new HashMap<>();
+		entries.forEach((key, value) -> actualWeights.put(key, value.weight()));
+		if (!actualWeights.equals(requiredWeights) || (entries.values().stream().mapToInt(ArchetypeEntry::weight).sum() != 100) || !reachableClassIds.equals(startingClassIds))
+		{
+			throw new IllegalArgumentException("Career ecology must have exact 55/8/8/12/7/10 weights and cover every starting class.");
+		}
+		return Collections.unmodifiableMap(new LinkedHashMap<>(entries));
+	}
 	private static Map<String, ScheduleTemplate> parseSchedules(Element element, ZoneId zoneId)
 	{
 		requireElement(element, "schedules");
@@ -410,10 +610,94 @@ public final class PhantomPopulationCatalog
 	private static void evaluateZoneCompatibility(ScheduleTemplate template, ZoneId zoneId)
 	{
 		final Instant probe = Instant.parse("2026-01-01T00:00:00Z");
-		final PhantomPopulationCatalog temporary = new PhantomPopulationCatalog(List.of("A"), List.of("B"), List.of(), Map.of(template.id(), template), "");
+		final PhantomPopulationCatalog temporary = new PhantomPopulationCatalog(new Names(List.of(), List.of(), List.of(), List.of(), Set.of()), List.of(), Map.of(), Map.of(template.id(), template), "");
 		temporary.evaluate(template.id(), probe, zoneId, 0);
 	}
 
+	private static String compound(String primary, String secondary, int variant)
+	{
+		return bounded((variant & 1) == 0 ? primary + secondary : secondary + primary, 16);
+	}
+	private static String legacyBlend(String primary, String secondary, int secondaryLength)
+	{
+		return bounded(primary + tail(secondary, secondaryLength), 13);
+	}
+
+	private static String tail(String value, int length)
+	{
+		return value.substring(0, Math.min(length, value.length())).toLowerCase(Locale.ROOT);
+	}
+
+	private static String decorated(String primary, int variant)
+	{
+		final String base = bounded(primary, 12);
+		return switch (variant)
+		{
+			case 0 -> "xX" + base + "Xx";
+			case 1 -> "Oo" + base + "oO";
+			case 2 -> "II" + base + "II";
+			case 3 -> "Xx" + base + "xV";
+			case 4 -> "oO" + base + "Oz";
+			default -> "lI" + base + "Il";
+		};
+	}
+
+	private static String digits(String primary, long mixed, int variant)
+	{
+		final int number = index(Long.rotateLeft(mixed, 29) + variant, 100);
+		return bounded(primary, 12) + String.format(Locale.ROOT, "%02d", number);
+	}
+
+	private static String leet(String value)
+	{
+		final StringBuilder result = new StringBuilder(value);
+		boolean replaced = false;
+		for (int i = 0; i < result.length(); i++)
+		{
+			final char replacement = switch (Character.toLowerCase(result.charAt(i)))
+			{
+				case 'a' -> '4';
+				case 'e' -> '3';
+				case 'i' -> '1';
+				case 'o' -> '0';
+				case 's' -> '5';
+				case 't' -> '7';
+				default -> 0;
+			};
+			if ((replacement != 0) && (!replaced || ((i & 1) == 0)))
+			{
+				result.setCharAt(i, replacement);
+				replaced = true;
+			}
+		}
+		return replaced ? result.toString() : bounded(value, 14) + "1";
+	}
+
+	private static String avoidReserved(String value, Set<String> reservedTokens)
+	{
+		final StringBuilder result = new StringBuilder(value);
+		for (String token : reservedTokens)
+		{
+			int position;
+			while ((position = result.toString().toLowerCase(Locale.ROOT).indexOf(token)) >= 0)
+			{
+				result.setCharAt(position, Character.toLowerCase(result.charAt(position)) == 'x' ? 'y' : 'x');
+			}
+		}
+		return result.toString();
+	}
+	private static String bounded(String value, int maximumLength)
+	{
+		return value.substring(0, Math.min(maximumLength, value.length()));
+	}
+
+	private static long mix64(long value)
+	{
+		long mixed = value;
+		mixed = (mixed ^ (mixed >>> 30)) * 0xbf58476d1ce4e5b9L;
+		mixed = (mixed ^ (mixed >>> 27)) * 0x94d049bb133111ebL;
+		return mixed ^ (mixed >>> 31);
+	}
 	private static <T> T weighted(List<T> values, long deterministicValue, java.util.function.ToIntFunction<T> weight)
 	{
 		long total = 0;
@@ -500,6 +784,47 @@ public final class PhantomPopulationCatalog
 		}
 	}
 
+	public enum NameStyle
+	{
+		CLEAN,
+		COMPOUND,
+		TRANSLIT_SLANG,
+		DECORATED,
+		DIGITS,
+		LEET
+	}
+
+	public enum CareerArchetype
+	{
+		DAMAGE,
+		TANK,
+		HEALER,
+		ENHANCEMENT,
+		CONTROL,
+		ECONOMY
+	}
+
+	public record NameCandidate(String value, NameStyle style, List<String> sourceRoots)
+	{
+		public NameCandidate
+		{
+			Objects.requireNonNull(value, "Nickname value must not be null.");
+			Objects.requireNonNull(style, "Nickname style must not be null.");
+			sourceRoots = List.copyOf(sourceRoots);
+		}
+	}
+
+	public record NameStyleEntry(NameStyle style, int weight)
+	{
+	}
+
+	public record ArchetypeClass(int classId, int weight)
+	{
+	}
+
+	public record ArchetypeEntry(CareerArchetype archetype, int weight, List<ArchetypeClass> classes)
+	{
+	}
 	public enum SexPolicy
 	{
 		BOTH,
@@ -537,7 +862,7 @@ public final class PhantomPopulationCatalog
 	{
 	}
 
-	private record Names(List<String> prefixes, List<String> suffixes)
+	private record Names(List<NameStyleEntry> styles, List<String> primaryRoots, List<String> secondaryRoots, List<String> slangRoots, Set<String> reservedTokens)
 	{
 	}
 }

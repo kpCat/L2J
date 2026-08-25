@@ -23,9 +23,10 @@ Checksum старого scenario smoke не считается end-to-end док
 
 ## Последовательность Goal 030
 
-1. CP1: release baseline, fresh bootstrap, coverage closure и disabled no-mutation regression.
-2. CP2: автономный cross-domain alpha-сценарий на едином мире.
-3. CP3: финальное решение о выпуске, rollback и release-level restart/failure recovery.
+1. CP1 — `ACCEPT`: release baseline, fresh bootstrap, coverage closure и disabled no-mutation regression.
+2. Goal030A — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`: humanization hardening имён и creation-time role ecology без DB/state/hot-path расширения.
+3. CP2 — `NOT_STARTED_AFTER_030A`: автономный cross-domain alpha-сценарий на едином мире; пакет должен быть сформирован заново поверх независимо принятого Goal030A.
+4. CP3: финальное решение о выпуске, rollback и release-level restart/failure recovery.
 
 ## Rollback
 

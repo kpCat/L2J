@@ -1,22 +1,191 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <populationCatalog version="1">
 	<names>
-		<prefix value="Ari"/>
-		<prefix value="Bren"/>
-		<prefix value="Cora"/>
-		<prefix value="Darin"/>
-		<prefix value="Elen"/>
-		<prefix value="Fenn"/>
-		<prefix value="Galen"/>
-		<prefix value="Hale"/>
-		<suffix value="dor"/>
-		<suffix value="iel"/>
-		<suffix value="mir"/>
-		<suffix value="nor"/>
-		<suffix value="rin"/>
-		<suffix value="sen"/>
-		<suffix value="val"/>
-		<suffix value="wyn"/>
+		<style key="CLEAN" weight="35"/>
+		<style key="COMPOUND" weight="25"/>
+		<style key="TRANSLIT_SLANG" weight="18"/>
+		<style key="DECORATED" weight="10"/>
+		<style key="DIGITS" weight="8"/>
+		<style key="LEET" weight="4"/>
+		<reserved value="admin"/>
+		<reserved value="administrator"/>
+		<reserved value="gm"/>
+		<reserved value="gamemaster"/>
+		<reserved value="npc"/>
+		<reserved value="server"/>
+		<reserved value="l2j"/>
+		<reserved value="phantom"/>
+		<primary value="Raven"/>
+		<primary value="Morfey"/>
+		<primary value="Hunter"/>
+		<primary value="Rider"/>
+		<primary value="Storm"/>
+		<primary value="Shadow"/>
+		<primary value="Wolf"/>
+		<primary value="Volk"/>
+		<primary value="Sokol"/>
+		<primary value="Vortex"/>
+		<primary value="Frost"/>
+		<primary value="Flame"/>
+		<primary value="Spark"/>
+		<primary value="Blade"/>
+		<primary value="Arrow"/>
+		<primary value="Archer"/>
+		<primary value="Knight"/>
+		<primary value="Rogue"/>
+		<primary value="Mystic"/>
+		<primary value="Oracle"/>
+		<primary value="Titan"/>
+		<primary value="Ghost"/>
+		<primary value="Silent"/>
+		<primary value="Dark"/>
+		<primary value="Light"/>
+		<primary value="Brave"/>
+		<primary value="Lucky"/>
+		<primary value="Crazy"/>
+		<primary value="Quick"/>
+		<primary value="Steel"/>
+		<primary value="Iron"/>
+		<primary value="Silver"/>
+		<primary value="Golden"/>
+		<primary value="Red"/>
+		<primary value="Blue"/>
+		<primary value="White"/>
+		<primary value="Black"/>
+		<primary value="Night"/>
+		<primary value="Dawn"/>
+		<primary value="Dusk"/>
+		<primary value="Moon"/>
+		<primary value="Solar"/>
+		<primary value="Star"/>
+		<primary value="Sky"/>
+		<primary value="Wind"/>
+		<primary value="River"/>
+		<primary value="Stone"/>
+		<primary value="Rock"/>
+		<primary value="Eagle"/>
+		<primary value="Hawk"/>
+		<primary value="Falcon"/>
+		<primary value="Lynx"/>
+		<primary value="Tiger"/>
+		<primary value="Lion"/>
+		<primary value="Fox"/>
+		<primary value="Bear"/>
+		<primary value="Dragon"/>
+		<primary value="Phoenix"/>
+		<primary value="Cobra"/>
+		<primary value="Viper"/>
+		<primary value="Scorpion"/>
+		<primary value="Shark"/>
+		<primary value="Kraken"/>
+		<primary value="Atlas"/>
+		<primary value="Orion"/>
+		<primary value="Sirius"/>
+		<primary value="Vega"/>
+		<primary value="Mars"/>
+		<primary value="Loki"/>
+		<primary value="Odin"/>
+		<primary value="Thor"/>
+		<primary value="Ares"/>
+		<primary value="Neo"/>
+		<primary value="Max"/>
+		<primary value="Alex"/>
+		<primary value="Denis"/>
+		<primary value="Roman"/>
+		<primary value="Kirill"/>
+		<primary value="Timur"/>
+		<primary value="Arsen"/>
+		<primary value="Mark"/>
+		<primary value="Leo"/>
+		<primary value="Niko"/>
+		<primary value="Andy"/>
+		<primary value="Mike"/>
+		<primary value="John"/>
+		<primary value="Jack"/>
+		<primary value="Nick"/>
+		<primary value="Rick"/>
+		<primary value="Ray"/>
+		<primary value="Ron"/>
+		<primary value="Dan"/>
+		<primary value="Sam"/>
+		<primary value="Kent"/>
+		<primary value="Troy"/>
+		<primary value="Flint"/>
+		<primary value="Sonic"/>
+		<primary value="Turbo"/>
+		<primary value="Zero"/>
+		<primary value="Omega"/>
+		<primary value="Alpha"/>
+		<secondary value="Soul"/>
+		<secondary value="Heart"/>
+		<secondary value="Mind"/>
+		<secondary value="Dream"/>
+		<secondary value="Spirit"/>
+		<secondary value="Fury"/>
+		<secondary value="Wrath"/>
+		<secondary value="Force"/>
+		<secondary value="Might"/>
+		<secondary value="Edge"/>
+		<secondary value="Fang"/>
+		<secondary value="Claw"/>
+		<secondary value="Wing"/>
+		<secondary value="Eye"/>
+		<secondary value="Hand"/>
+		<secondary value="Lord"/>
+		<secondary value="King"/>
+		<secondary value="Queen"/>
+		<secondary value="Prince"/>
+		<secondary value="Guard"/>
+		<secondary value="Mentor"/>
+		<secondary value="Step"/>
+		<secondary value="Dash"/>
+		<secondary value="Quest"/>
+		<secondary value="Bane"/>
+		<secondary value="Ward"/>
+		<secondary value="Herald"/>
+		<secondary value="Voice"/>
+		<secondary value="Chant"/>
+		<secondary value="Rhythm"/>
+		<secondary value="Thread"/>
+		<secondary value="Crash"/>
+		<secondary value="Forge"/>
+		<secondary value="Scythe"/>
+		<secondary value="Angel"/>
+		<secondary value="Demon"/>
+		<secondary value="Hero"/>
+		<secondary value="Legend"/>
+		<secondary value="Champion"/>
+		<secondary value="Stride"/>
+		<slang value="Zloy"/>
+		<slang value="Dobriy"/>
+		<slang value="Snaiper"/>
+		<slang value="Nagibator"/>
+		<slang value="Povar"/>
+		<slang value="Babulya"/>
+		<slang value="Dedok"/>
+		<slang value="Batya"/>
+		<slang value="Brat"/>
+		<slang value="Korol"/>
+		<slang value="Volk"/>
+		<slang value="Kot"/>
+		<slang value="Bars"/>
+		<slang value="Grom"/>
+		<slang value="Tuman"/>
+		<slang value="Veter"/>
+		<slang value="Orel"/>
+		<slang value="Voron"/>
+		<slang value="Lis"/>
+		<slang value="Medved"/>
+		<slang value="Kaban"/>
+		<slang value="Zver"/>
+		<slang value="Krutoy"/>
+		<slang value="Boec"/>
+		<slang value="Tankist"/>
+		<slang value="Hiler"/>
+		<slang value="Bafer"/>
+		<slang value="Spoiler"/>
+		<slang value="Kraft"/>
+		<slang value="Shaman"/>
 	</names>
 	<classes>
 		<class id="0" sex="BOTH" weight="12"/>
@@ -31,6 +200,47 @@
 		<class id="123" sex="MALE" weight="6"/>
 		<class id="124" sex="FEMALE" weight="6"/>
 	</classes>
+	<archetypes>
+		<archetype key="DAMAGE" weight="55">
+			<class id="0" weight="10"/>
+			<class id="10" weight="10"/>
+			<class id="18" weight="10"/>
+			<class id="25" weight="10"/>
+			<class id="31" weight="10"/>
+			<class id="38" weight="10"/>
+			<class id="44" weight="10"/>
+			<class id="49" weight="8"/>
+			<class id="123" weight="6"/>
+			<class id="124" weight="6"/>
+		</archetype>
+		<archetype key="TANK" weight="8">
+			<class id="0" weight="1"/>
+			<class id="18" weight="1"/>
+			<class id="31" weight="1"/>
+		</archetype>
+		<archetype key="HEALER" weight="8">
+			<class id="10" weight="1"/>
+			<class id="25" weight="1"/>
+			<class id="38" weight="1"/>
+		</archetype>
+		<archetype key="ENHANCEMENT" weight="12">
+			<class id="10" weight="2"/>
+			<class id="18" weight="2"/>
+			<class id="31" weight="2"/>
+			<class id="38" weight="1"/>
+			<class id="49" weight="3"/>
+			<class id="124" weight="1"/>
+		</archetype>
+		<archetype key="CONTROL" weight="7">
+			<class id="10" weight="2"/>
+			<class id="49" weight="2"/>
+			<class id="123" weight="1"/>
+			<class id="124" weight="1"/>
+		</archetype>
+		<archetype key="ECONOMY" weight="10">
+			<class id="53" weight="1"/>
+		</archetype>
+	</archetypes>
 	<schedules>
 		<template id="morning" weight="3" maxPhaseMinutes="20">
 			<window days="MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY" start="06:30" end="08:00" state="WARM"/>

@@ -69,6 +69,7 @@ import org.l2jmobius.gameserver.model.item.holders.InitialEquipment;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.ClassEntry;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.ScheduleTemplate;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.CreationStage;
@@ -135,7 +136,8 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 		return decode(_profiles.createWithComponent(PhantomPopulationState.COMPONENT_TYPE, PhantomPopulationState.SCHEMA_VERSION, profileId ->
 		{
 			final long identitySeed = mix(deterministicSeed, profileId);
-			final ClassEntry classEntry = _catalog.chooseClass(identitySeed);
+			final CareerArchetype archetype = _catalog.chooseArchetype(deterministicSeed, creationOrdinal);
+			final ClassEntry classEntry = _catalog.chooseClass(identitySeed, archetype);
 			final boolean female = classEntry.sex().female(identitySeed >>> 7);
 			final ScheduleTemplate schedule = _catalog.chooseSchedule(identitySeed >>> 13);
 			final PlayerTemplate template = requireTemplate(classEntry.classId());

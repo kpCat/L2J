@@ -75,6 +75,7 @@
 	<property name="phantom.goal029cp2.seed" value="29002902" />
 	<property name="phantom.goal029cp3.seed" value="29002903" />
 	<property name="phantom.goal030cp1.seed" value="30003001" />
+	<property name="phantom.goal030a.seed" value="30003010" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -305,6 +306,14 @@
 			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
 			<arg value="release-baseline-goal030cp1" />
 			<arg value="${phantom.goal030cp1.seed}" />
+		</java>
+	</target>
+	<target name="phantom-population-humanization-goal030a-test" depends="compile-tests" description="Run Goal 030A DB-free legacy nickname and creation-time role ecology contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="population-humanization-goal030a" />
+			<arg value="${phantom.goal030a.seed}" />
 		</java>
 	</target>
 
