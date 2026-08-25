@@ -90,3 +90,9 @@ Gameplay features, owners, dependencies, static config mutation, copied wiring �
 - SHA: текущий BLOCKED commit; точный SHA — в финальном сообщении, поскольку отчёт входит в commit.
 - Push: после diff/encoding checks.
 - User task packages: read-only, не staged.
+
+## Successor Goal 030 CP2A outcome
+
+Successor `030-checkpoint-2a-java8-handler-unblock-and-resume` на exact parent `bbbe7bfd86f2ef87fc61d346c818c730fcc3c0dc` устранил шесть Java 10 `final var` в `AdminPhantom.java` exact Java 8 типами. Новый DB-free canonical MasterHandler smoke (seed `30003021`, cwd `dist/game`, timeout `120000 ms`) прошёл: `ScriptExecutor` сохранил `-source 1.8 -target 1.8`, `ScriptEngine.MASTER_HANDLER_FILE` выполнился, native WHISPER зарегистрирован exact class `handlers.chat.channels.ChatWhisper`.
+
+Свежий successor CP2 run 1/2 (seed `30003002`) затем остановился в `beforeAll` до старта `PhantomSystem`: production `java/org/l2jmobius/gameserver/phantoms/farming/PhantomFarmingDecision.java:49` передаёт `minimumAcceptedScore = 1100`, нарушая canonical `PhantomDecisionCandidate` range `0..1000`. По task-контракту это `BLOCKED_030CP2_PRODUCTION_BEHAVIOR_DEFECT`; production owner не менялся, run 2 не выполнялся. CP2 остаётся `BLOCKED / IN_PROGRESS`, `activity-materialization` остаётся `PENDING_GOAL030 / CP2`, matrix остаётся `11 COVERED_PRIOR / 6 COVERED_CP1 / 0 COVERED_CP2 / 3 PENDING_GOAL030`. PASS-only final gates и `jar` не запускались.

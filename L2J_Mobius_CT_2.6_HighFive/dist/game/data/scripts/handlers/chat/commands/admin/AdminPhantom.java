@@ -20,20 +20,26 @@
  */
 package handlers.chat.commands.admin;
 
+import java.util.List;
 import java.util.StringJoiner;
 
 import org.l2jmobius.gameserver.handler.IAdminCommandHandler;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.phantoms.PhantomDecisionReplay.ReplayResult;
+import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView;
+import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView.CountDelta;
+import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView.CurrentOperation;
+import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView.ReceiptView;
+import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView.RetainedSummary;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.DecisionView;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.SelectionStatus;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.Snapshot;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
-import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView;
-import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView.CountDelta;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorControlResult;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorEconomicAudit;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorReplayResult;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorStatus;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService.AuditRecord;
 
 public class AdminPhantom implements IAdminCommandHandler
 {
@@ -139,7 +145,7 @@ public class AdminPhantom implements IAdminCommandHandler
 		activeChar.sendSysMessage("Phantom replay: result=" + result.code() + ", profileId=" + result.profileId() + ", frames=" + result.frameCount() + ", digest=" + (result.digest() == null ? "none" : result.digest()) + ".");
 		if (result.replay() != null)
 		{
-			final var replay = result.replay();
+			final ReplayResult replay = result.replay();
 			activeChar.sendSysMessage("Phantom replay diagnostics: health=" + replay.finalHealth() + ", slow/stuck/attention=" + replay.firstSlowFrame() + "/" + replay.firstStuckFrame() + "/" + replay.firstAttentionFrame() + ", candidates=" + replay.candidateVerified() + "/" + replay.candidateUnverifiable() + "/" + replay.candidateMismatch() + ".");
 			if (replay.firstFailureFrame() >= 0)
 			{
@@ -158,7 +164,7 @@ public class AdminPhantom implements IAdminCommandHandler
 		final OperatorStatus status = PhantomSystem.operatorStatus();
 		activeChar.sendSysMessage("Phantom status: configured=" + status.configuredEnabled() + ", diagnostics=" + status.diagnosticsEnabled() + ", operatorMode=" + status.operatorMode() + ", desiredRunning=" + status.desiredRuntimeEnabled() + ", runtimeConfigured=" + status.runtimeConfigured() + ", runtime=" + status.runtimeState() + ".");
 		activeChar.sendSysMessage("Phantom execution: scheduler=" + status.schedulerState() + ", decision=" + status.decisionState() + ", active=" + status.activeCurrent() + ", activePeak=" + status.activePeak() + ".");
-		final var states = status.activityStateCounts();
+		final List<Long> states = status.activityStateCounts();
 		activeChar.sendSysMessage("Phantom activity: ACTIVE=" + states.get(0) + ", NEARBY_PERCEPTIBLE=" + states.get(1) + ", WARM=" + states.get(2) + ", BACKGROUND=" + states.get(3) + ", SLEEPING=" + states.get(4) + ".");
 		activeChar.sendSysMessage("Phantom load: overload=" + status.overloadLevel() + ", overloadPeak=" + status.peakOverloadLevel() + ", ready=" + status.queueReady() + ", due=" + status.queueDue() + ", capacity=" + status.queueCapacity() + ", accepted=" + status.queueAccepted() + ", rejected=" + status.queueRejected() + ".");
 		activeChar.sendSysMessage("Phantom shutdownFailures=" + status.shutdownFailures() + ".");
@@ -173,7 +179,7 @@ public class AdminPhantom implements IAdminCommandHandler
 			return;
 		}
 		final PhantomEconomicAuditView.Snapshot snapshot = result.snapshot();
-		final var current = snapshot.current();
+		final CurrentOperation current = snapshot.current();
 		if (current.status() == PhantomEconomicAuditView.CurrentStatus.AVAILABLE)
 		{
 			activeChar.sendSysMessage("Phantom economy current: operation=" + current.operationId() + ", goal=" + current.goalId() + "/r" + current.goalRevision() + ", kind=" + current.kind() + ", state=" + current.state() + ", attempt=" + current.attempt() + ", reservations=" + current.reservationCount() + ".");
@@ -182,14 +188,14 @@ public class AdminPhantom implements IAdminCommandHandler
 		{
 			activeChar.sendSysMessage("Phantom economy current: " + current.status().name().toLowerCase() + ".");
 		}
-		final var summary = snapshot.retainedSummary();
+		final RetainedSummary summary = snapshot.retainedSummary();
 		activeChar.sendSysMessage("Phantom economy retained-window (max 256, not lifetime): rows=" + summary.retainedRows() + ", states=" + summary.stateCounts() + ", itemsConsumed=" + summary.itemsConsumed() + ", itemsProduced=" + summary.itemsProduced() + ", adenaSource=" + summary.adenaSource() + ", adenaSink=" + summary.adenaSink() + ", crystalsProduced=" + summary.crystalsProduced() + ", targetItemsDestroyed=" + summary.targetItemsDestroyed() + ", totalsSaturated=" + summary.totalsSaturated() + ".");
 		for (int index = 0; index < Math.min(PhantomEconomicAuditView.RENDER_LIMIT, snapshot.newestAudit().size()); index++)
 		{
-			final var audit = snapshot.newestAudit().get(index);
+			final AuditRecord audit = snapshot.newestAudit().get(index);
 			activeChar.sendSysMessage("Phantom economy retained row: auditId=" + audit.auditId() + ", operation=" + audit.operationId() + ", kind=" + audit.kind() + ", state=" + audit.state() + ", result=" + audit.result() + ", reason=" + audit.reason() + ", items=" + audit.itemsConsumed() + "/" + audit.itemsProduced() + ", adena=" + audit.adenaSource() + "/" + audit.adenaSink() + ", crystals=" + audit.crystalsProduced() + ", destroyed=" + audit.targetItemsDestroyed() + ".");
 		}
-		final var receipt = snapshot.latestReceipt();
+		final ReceiptView receipt = snapshot.latestReceipt();
 		if (receipt == null)
 		{
 			activeChar.sendSysMessage("Phantom economy latest receipt: none.");
