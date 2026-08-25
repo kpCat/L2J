@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<clanDirectiveCatalog version="1">
+	<directives>
+		<directive kind="ASSEMBLE" baseScore="600" effect="ACTIVE" ttlSeconds="120">
+			<alias>сбор</alias>
+			<alias>го сбор</alias>
+			<alias>сбор клана</alias>
+			<alias>все на сбор</alias>
+			<alias>онлайн на сбор</alias>
+			<alias>sbor</alias>
+			<alias>go sbor</alias>
+		</directive>
+		<directive kind="STANDBY" baseScore="250" effect="WARM" ttlSeconds="300">
+			<alias>готовность</alias>
+			<alias>будьте готовы</alias>
+			<alias>держим онлайн</alias>
+			<alias>standby</alias>
+		</directive>
+		<directive kind="DISMISS" baseScore="1000" effect="WITHDRAW" ttlSeconds="0">
+			<alias>отбой</alias>
+			<alias>расходимся</alias>
+			<alias>сбор окончен</alias>
+			<alias>otboy</alias>
+		</directive>
+	</directives>
+</clanDirectiveCatalog>

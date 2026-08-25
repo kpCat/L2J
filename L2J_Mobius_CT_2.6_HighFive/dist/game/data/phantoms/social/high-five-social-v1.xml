@@ -181,6 +181,14 @@
 			<delta source="reputation.reliability" value="-200"/>
 			<delta source="reputation.hostility" value="250"/>
 		</event>
+		<event code="1025" key="clan.directive.accepted" ttlMinutes="43200" salience="500" socialClass="SUPPORTIVE" reputationShockBp="500">
+			<delta source="relationship.respect" value="40"/>
+			<delta source="reputation.reliability" value="20"/>
+		</event>
+		<event code="1026" key="clan.directive.refused" ttlMinutes="21600" salience="500" socialClass="ROUTINE_NEGATIVE" reputationShockBp="500">
+			<delta source="relationship.respect" value="-20"/>
+			<delta source="relationship.anger" value="20"/>
+		</event>
 	</events>
 	<modifiers>
 		<modifier key="goal.persistence" minimum="-3000" maximum="3000">
@@ -223,6 +231,16 @@
 			<weight source="relationship.anger" value="1000"/>
 			<weight source="relationship.rivalry" value="800"/>
 			<weight source="reputation.hostility" value="900"/>
+		</modifier>
+		<modifier key="clan.directive.obedience" minimum="-3000" maximum="3000">
+			<weight source="trait.loyalty" value="900"/>
+			<weight source="relationship.trust" value="700"/>
+			<weight source="relationship.respect" value="700"/>
+			<weight source="reputation.competence" value="500"/>
+			<weight source="reputation.reliability" value="400"/>
+			<weight source="relationship.anger" value="-700"/>
+			<weight source="relationship.rivalry" value="-500"/>
+			<weight source="reputation.hostility" value="-600"/>
 		</modifier>
 	</modifiers>
 </socialCatalog>

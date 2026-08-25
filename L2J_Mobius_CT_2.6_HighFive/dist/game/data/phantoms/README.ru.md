@@ -85,3 +85,32 @@ Transient-контекст события различает `NONE`, `SAME_CLAN`
 6. ровно один финальный `ant jar`
 
 Первый target выполняется в forked JVM из `dist/game`, использует seed `30003031`, проверяет точные clan/alliance/war context, изгнание, native leader truth, idempotency и cleanup. Эта цепочка не provision-ит и не меняет schema, не запускает CP1/CP2, soak, `verify` или geodata. Directive social events и PK/karma recovery остаются scope Goal030C2.
+
+## Директивы лидера клана Goal030C2A
+
+Директивы поступают только через фактически доставленные сообщения штатного канала `CLAN`. Единственный глобальный observer остаётся у `PhantomConversationService`; он передаёт подходящую `CLIENT_CHAT`-доставку в worker-free side-channel. Сообщения `PHANTOM_GENERATED` не рассматриваются как команды.
+
+Источник authority — только текущий `clan.getLeaderId()` той же канонической nonzero `Clan`, что у materialized recipient. Обычный участник, бывший лидер после transfer, союзник, военный противник, outsider и unresolved Player не получают полномочий. Кэш лидера, DB-запросы, сканирование World/ClanTable, отдельные потоки и таймеры не используются.
+
+Authoritative каталог `clan/high-five-clan-directives-v1.xml` задаёт три bounded-команды:
+
+- `ASSEMBLE`: `сбор`, `го сбор`, `сбор клана`, `все на сбор`, `онлайн на сбор`, `sbor`, `go sbor`; base score `600`, Scheduler state `ACTIVE`, TTL `120000` мс;
+- `STANDBY`: `готовность`, `будьте готовы`, `держим онлайн`, `standby`; base score `250`, Scheduler state `WARM`, TTL `300000` мс;
+- `DISMISS`: `отбой`, `расходимся`, `сбор окончен`, `otboy`; base score `1000`, снимает только source `clan.directive.<clanId>`, которым владеет этот directive service.
+
+Нормализация ограничена NFKC, lower-case, `ё` → `е`, схлопыванием пробелов и краевой пунктуации. Неизвестные, составные и неоднозначные фразы игнорируются. Итоговый obedience score ограничен диапазоном `[-3000, 3000]`: `ACCEPT` при score не ниже `300`, `REFUSE` при score не выше `-300`, иначе `DEFER`.
+
+`clan.directive.obedience` использует authoritative social weights: loyalty `+900`, trust `+700`, respect `+700`, competence `+500`, reliability `+400`, anger `-700`, rivalry `-500`, hostility `-600`. Принятие и отказ записывают `clan.directive.accepted`/`clan.directive.refused` с exact leader subject и `SAME_CLAN`; defer не создаёт social event.
+
+### Быстрые проверки Goal030C2A
+
+Используйте уже подготовленную allowlisted базу `l2jmobiush5_phantom_test` и запускайте строго по порядку:
+
+1. `ant phantom-clan-directive-policy-goal030c2a-test`
+2. `ant phantom-clan-directive-integration-goal030c2a-test`
+3. `ant phantom-clan-affiliation-humanization-goal030c1-test`
+4. `ant phantom-conversation-understanding-test`
+5. `ant phantom-social-humanization-goal030b-test`
+6. ровно один финальный `ant jar`
+
+Policy target DB-free, forked, seed `30003032`, timeout 120 секунд. Integration target запускается из `dist/game`, seed `30003033`, timeout 180 секунд, использует существующие config/manifest и не выполняет provisioning. Цепочка не запускает aggregate tests, CP1/CP2, soak, `verify`, geodata или schema migration.

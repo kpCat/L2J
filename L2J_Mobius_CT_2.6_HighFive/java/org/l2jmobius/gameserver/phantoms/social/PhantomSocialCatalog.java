@@ -50,14 +50,18 @@ public final class PhantomSocialCatalog
 		"agreement.fulfilled",
 		"agreement.broken",
 		"debt.incurred",
-		"debt.repaid");
+		"debt.repaid",
+		"clan.member.expelled",
+		"clan.directive.accepted",
+		"clan.directive.refused");
 	private static final Set<String> REQUIRED_MODIFIERS = Set.of(
 		"goal.persistence",
 		"risk.tolerance",
 		"party.invite.preference",
 		"party.support.priority",
 		"conversation.warmth",
-		"conflict.escalation");
+		"conflict.escalation",
+		"clan.directive.obedience");
 	private static final List<String> AGREEMENT_KEYS = List.of("offered", "accepted", "fulfilled", "broken", "refused");
 	private static final int MAX_AFFILIATION_MULTIPLIER_BP = 20000;
 

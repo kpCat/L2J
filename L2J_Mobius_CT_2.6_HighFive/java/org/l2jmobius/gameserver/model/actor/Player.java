@@ -8052,7 +8052,7 @@ public class Player extends Playable
 	 */
 	public boolean isInOfflineMode()
 	{
-		return (_client == null) || _client.isDetached();
+		return !hasHeadlessOutboundSession() && ((_client == null) || _client.isDetached());
 	}
 	
 	public boolean isIn7sDungeon()

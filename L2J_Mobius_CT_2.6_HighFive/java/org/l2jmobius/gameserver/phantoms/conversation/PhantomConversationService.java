@@ -30,6 +30,7 @@ import org.l2jmobius.gameserver.model.chat.ChatObservationService.DispatchDescri
 import org.l2jmobius.gameserver.model.chat.ChatObservationService.Origin;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanDirectiveIngressPort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationCatalog.ProposalMapping;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore.HandoffResult;
@@ -161,6 +162,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	private final PhantomConversationPlanSink _plans;
 	private final PhantomIdentityLeaseRegistry _identities;
 	private final ChatObservationService _observation;
+	private final PhantomClanDirectiveIngressPort _directiveIngress;
 	private final PhaseObserver _phaseObserver;
 	private final ArrayBlockingQueue<IngressEvent> _ingress;
 	private final Object _lifecycle = new Object();
@@ -199,10 +201,20 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 
 	public PhantomConversationService(PhantomConversationCatalog catalog, PhantomConversationStore store, ContextPort context, PhantomSemanticUnderstandingService semantic, PhantomSocialService social, PhantomConversationPlanSink plans, PhantomIdentityLeaseRegistry identities, ChatObservationService observation)
 	{
-		this(catalog, store, context, semantic, social, plans, identities, observation, PhaseObserver.NONE);
+		this(catalog, store, context, semantic, social, plans, identities, observation, PhaseObserver.NONE, PhantomClanDirectiveIngressPort.noop());
 	}
 
 	public PhantomConversationService(PhantomConversationCatalog catalog, PhantomConversationStore store, ContextPort context, PhantomSemanticUnderstandingService semantic, PhantomSocialService social, PhantomConversationPlanSink plans, PhantomIdentityLeaseRegistry identities, ChatObservationService observation, PhaseObserver phaseObserver)
+	{
+		this(catalog, store, context, semantic, social, plans, identities, observation, phaseObserver, PhantomClanDirectiveIngressPort.noop());
+	}
+
+	public PhantomConversationService(PhantomConversationCatalog catalog, PhantomConversationStore store, ContextPort context, PhantomSemanticUnderstandingService semantic, PhantomSocialService social, PhantomConversationPlanSink plans, PhantomIdentityLeaseRegistry identities, ChatObservationService observation, PhantomClanDirectiveIngressPort directiveIngress)
+	{
+		this(catalog, store, context, semantic, social, plans, identities, observation, PhaseObserver.NONE, directiveIngress);
+	}
+
+	public PhantomConversationService(PhantomConversationCatalog catalog, PhantomConversationStore store, ContextPort context, PhantomSemanticUnderstandingService semantic, PhantomSocialService social, PhantomConversationPlanSink plans, PhantomIdentityLeaseRegistry identities, ChatObservationService observation, PhaseObserver phaseObserver, PhantomClanDirectiveIngressPort directiveIngress)
 	{
 		_catalog = Objects.requireNonNull(catalog);
 		_store = Objects.requireNonNull(store);
@@ -212,6 +224,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		_plans = Objects.requireNonNull(plans);
 		_identities = Objects.requireNonNull(identities);
 		_observation = Objects.requireNonNull(observation);
+		_directiveIngress = Objects.requireNonNull(directiveIngress);
 		_phaseObserver = Objects.requireNonNull(phaseObserver);
 		_ingress = new ArrayBlockingQueue<>(catalog.limits().ingressQueue());
 		_cache = new LinkedHashMap<>(Math.min(256, catalog.limits().cacheEntries()), 0.75f, true)
@@ -260,6 +273,17 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	public boolean onDelivered(ChatObservationService.DeliveredObservation delivered)
 	{
 		final DispatchDescriptor dispatch = delivered.dispatch();
+		if (dispatch.origin() == Origin.CLIENT_CHAT)
+		{
+			try
+			{
+				_directiveIngress.onDelivered(delivered);
+			}
+			catch (RuntimeException exception)
+			{
+				_failures.increment();
+			}
+		}
 		if ((dispatch.origin() != Origin.CLIENT_CHAT) || !_catalog.supports(dispatch.chatType()) || (_identities.getOwnerKind(delivered.recipientObjectId()) != OwnerKind.PHANTOM))
 		{
 			_ingressIgnored.increment();

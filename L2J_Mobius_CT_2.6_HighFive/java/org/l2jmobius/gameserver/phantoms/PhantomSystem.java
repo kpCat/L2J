@@ -59,6 +59,8 @@ import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceDecision;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService;
 import org.l2jmobius.gameserver.phantoms.clan.L2jPhantomClanBackend;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanDirectiveCatalog;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanDirectiveService;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanSocialLifecycleObserver;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanDecision;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService;
@@ -205,6 +207,7 @@ public final class PhantomSystem
 	private PhantomPartyCoordinator _partyCoordinator;
 	private PhantomClanService _clanService;
 	private PhantomClanSocialLifecycleObserver _clanSocialLifecycleObserver;
+	private PhantomClanDirectiveService _clanDirectiveService;
 	private PhantomRaidReadinessService _raidReadinessService;
 	private PhantomRaidRecruitmentService _raidRecruitmentService;
 	private PhantomRaidAssemblyService _raidAssemblyService;
@@ -483,7 +486,14 @@ public final class PhantomSystem
 				final PhantomConversationExecutionCatalog conversationExecutionCatalog = PhantomConversationExecutionCatalog.load(conversationExecutionCatalogFile.toPath());
 				final PhantomConversationExecutionStore conversationExecutionStore = new PhantomConversationExecutionStore(productionProfiles, conversationExecutionCatalog);
 				final PhantomConversationPlanSink.Bridge conversationExecutionSignal = PhantomConversationPlanSink.bridge();
-				_conversationService = new PhantomConversationService(conversationCatalog, new PhantomConversationStore(productionProfiles, conversationExecutionStore), new L2jPhantomConversationContextPort(_materializationService, _topologyService.query()), _semanticUnderstandingService, _socialService, conversationExecutionSignal, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance());
+				final File clanDirectiveCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/clan/high-five-clan-directives-v1.xml");
+				final PhantomClanDirectiveCatalog clanDirectiveCatalog = PhantomClanDirectiveCatalog.load(clanDirectiveCatalogFile.toPath());
+				_clanDirectiveService = new PhantomClanDirectiveService(clanDirectiveCatalog, _materializationService, _socialService, new PhantomSchedulerRelevanceSignalPort(_scheduler));
+				if (!_clanDirectiveService.start())
+				{
+					throw new IllegalStateException("Phantom clan directive service could not enter the running state.");
+				}
+				_conversationService = new PhantomConversationService(conversationCatalog, new PhantomConversationStore(productionProfiles, conversationExecutionStore), new L2jPhantomConversationContextPort(_materializationService, _topologyService.query()), _semanticUnderstandingService, _socialService, conversationExecutionSignal, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance(), _clanDirectiveService);
 				_conversationExecutionService = new PhantomConversationExecutionService(conversationExecutionCatalog, conversationExecutionStore, productionGoals, new L2jPhantomConversationExecutionPort(conversationExecutionCatalog, _gameKnowledgeService, _topologyService.query(), _partyCoordinator, _materializationService, ChatObservationService.getInstance(), riftService, _farmingService));
 				conversationExecutionSignal.install(_conversationExecutionService);
 				if (!_conversationExecutionService.start())
@@ -584,6 +594,10 @@ public final class PhantomSystem
 					_state = State.FAILED;
 					throw e;
 				}
+			}
+			if (_clanDirectiveService != null)
+			{
+				_clanDirectiveService.close();
 			}
 			if (_conversationExecutionService != null)
 			{
@@ -776,6 +790,10 @@ public final class PhantomSystem
 					_state = State.FAILED;
 					return false;
 				}
+			}
+			if (_clanDirectiveService != null)
+			{
+				_clanDirectiveService.close();
 			}
 			if (_conversationExecutionService != null)
 			{
@@ -991,6 +1009,10 @@ public final class PhantomSystem
 					_metrics.recordShutdownFailure();
 					return false;
 				}
+			}
+			if (_clanDirectiveService != null)
+			{
+				_clanDirectiveService.close();
 			}
 			if ((_conversationExecutionService != null) && (_conversationExecutionService.snapshot().state() != PhantomConversationExecutionService.State.STOPPED))
 			{

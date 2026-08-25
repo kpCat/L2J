@@ -59,7 +59,7 @@ public final class PhantomSocialHumanizationGoal030BSuite implements PhantomTest
 		assertMultiplier(AffiliationKind.SAME_CLAN, 12000, 7000, 13000, 8500, 10000);
 		assertMultiplier(AffiliationKind.SAME_ALLIANCE, 11000, 8500, 11500, 9250, 10000);
 		assertMultiplier(AffiliationKind.CLAN_WAR, 10000, 10000, 10000, 7000, 10000);
-		PhantomAssertions.assertEquals(24, _catalog.events().size(), "Authoritative social event count changed.");
+		PhantomAssertions.assertEquals(26, _catalog.events().size(), "Authoritative social event count changed.");
 		for (var event : _catalog.events())
 		{
 			PhantomAssertions.assertTrue((event.reputationShockBp() >= 0) && (event.reputationShockBp() <= 10000), "Reputation shock is outside basis-point bounds.");
@@ -91,7 +91,9 @@ public final class PhantomSocialHumanizationGoal030BSuite implements PhantomTest
 		final String withoutPolicy = replaceExact(source, policySection, "");
 		rejectCatalog(context, "bad-section-order", replaceExact(withoutPolicy, "	</traits>", "	</traits>" + System.lineSeparator() + policySection));
 
-		context.record("goal030b.affiliationParserNegativeCases", 7);
+		rejectCatalog(context, "missing-required-clan-expulsion", replaceExact(source, eventSection(source, "clan.member.expelled"), ""));
+
+		context.record("goal030b.affiliationParserNegativeCases", 8);
 	}
 
 	private void assertMultiplier(AffiliationKind affiliation, int supportive, int routineNegative, int betrayal, int hostileCombat, int neutral)
@@ -368,6 +370,28 @@ public final class PhantomSocialHumanizationGoal030BSuite implements PhantomTest
 		return source.substring(startIndex, endIndex + end.length());
 	}
 
+	private static String eventSection(String source, String key)
+	{
+		final String marker = " key=\"" + key + "\"";
+		final int markerIndex = uniqueIndex(source, marker);
+		final int startIndex = source.lastIndexOf("\t\t<event ", markerIndex);
+		final String end = "\t\t</event>";
+		final int endIndex = source.indexOf(end, markerIndex);
+		if ((startIndex < 0) || (endIndex < 0))
+		{
+			throw new IllegalArgumentException("Social event section anchor is malformed.");
+		}
+		int after = endIndex + end.length();
+		if ((after < source.length()) && (source.charAt(after) == '\r'))
+		{
+			after++;
+		}
+		if ((after < source.length()) && (source.charAt(after) == '\n'))
+		{
+			after++;
+		}
+		return source.substring(startIndex, after);
+	}
 	private static String replaceExact(String source, String anchor, String replacement)
 	{
 		final int index = uniqueIndex(source, anchor);
