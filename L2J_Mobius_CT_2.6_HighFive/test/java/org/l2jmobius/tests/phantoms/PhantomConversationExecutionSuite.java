@@ -12,11 +12,19 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.network.enums.ChatType;
+import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityOverloadLevel;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog.Kind;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCodec;
@@ -38,6 +46,8 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore.HandoffStatus;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationGoalRuntimePort;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationGoalRuntimePort.SyncStatus;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.Authorization;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationActionProposal;
@@ -45,10 +55,21 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.C
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationState;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationSubject;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.DeliveryPolicy;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomConsideration;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionCandidate;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomPlan;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomPlanStep;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomWeightedConsideration;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.SlotType;
@@ -63,6 +84,7 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		QUERY_EXECUTION,
 		PARTY_ACTIONS,
 		RESTART_IDEMPOTENCY,
+		RUNTIME_SYNC_GOAL030_CP2,
 		LIFECYCLE_PERFORMANCE
 	}
 
@@ -86,6 +108,7 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		{
 			case CATALOG_CODEC -> "conversation-execution-catalog-codec";
 			case LIFECYCLE_PERFORMANCE -> "conversation-execution-lifecycle-performance";
+			case RUNTIME_SYNC_GOAL030_CP2 -> "conversation-decision-runtime-sync-goal030cp2";
 			default -> "conversation-" + _mode.name().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
 		};
 	}
@@ -93,7 +116,8 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(SEED, context.seed(), "Checkpoint 2 execution suite used the wrong seed.");
+		final long expectedSeed = _mode == Mode.RUNTIME_SYNC_GOAL030_CP2 ? 30003024L : SEED;
+		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Checkpoint 2 execution suite used the wrong seed.");
 		_catalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml"));
 		final String config = System.getProperty("phantom.test.config");
 		if ((config == null) || config.isBlank())
@@ -138,6 +162,7 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			case QUERY_EXECUTION -> queries(registry);
 			case PARTY_ACTIONS -> actions(registry);
 			case RESTART_IDEMPOTENCY -> restart(registry);
+			case RUNTIME_SYNC_GOAL030_CP2 -> runtimeSyncGoal030Cp2(registry);
 			case LIFECYCLE_PERFORMANCE -> lifecycle(registry);
 		}
 	}
@@ -669,6 +694,168 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		});
 	}
 
+	private void runtimeSyncGoal030Cp2(PhantomTestRegistry registry)
+	{
+		registry.add("01-external-goal-mutation-syncs-attached-runtime", context ->
+		{
+			final PhantomProfile profile = profile();
+			final PhantomConversationExecutionStore store = store();
+			final ConversationResponsePlan plan = plan(profile.profileId(), 90_001, "party.invite", new PhantomDomainRef("character.object", "777"), List.of(SlotValue.domain(SlotType.TARGET_PLAYER, new PhantomDomainRef("character.object", "777"), -1, -1)));
+			store.handoff(profile.profileId(), -1, conversationState(100), ExecutionEntry.prepared(plan));
+			final AtomicInteger handlerCalls = new AtomicInteger();
+			final PhantomDecisionEngine engine = runtimeSyncEngine(_goals, handlerCalls);
+			PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(profile.profileId()), "Decision runtime did not attach the external-goal profile.");
+			final MemoryPort executionPort = new MemoryPort();
+			final PhantomConversationExecutionService service = new PhantomConversationExecutionService(_catalog, store, _goals, executionPort, PhantomConversationGoalRuntimePort.decisionEngine(engine), () -> 101, PhantomConversationExecutionService.PhaseObserver.NONE);
+			PhantomAssertions.assertTrue(service.start(), "Runtime-sync execution service did not start.");
+			service.publish(plan);
+			drive(service, 8);
+
+			final StoredGoal durable = _goals.load(profile.profileId()).orElseThrow();
+			final ExecutionEntry submitted = store.load(profile.profileId()).orElseThrow().state().entry(ExecutionEntry.prepared(plan).planId());
+			final PhantomDecisionEngine.RuntimeSnapshot runtime = engine.find(profile.profileId()).orElseThrow();
+			PhantomAssertions.assertEquals(ActionState.SUBMITTED, submitted.actionState(), "Conversation execution was not atomically retained as SUBMITTED.");
+			PhantomAssertions.assertEquals("party.form", durable.goal().goalType(), "Conversation installed the wrong durable Goal type.");
+			PhantomAssertions.assertEquals(durable.goal().goalId(), runtime.goalId(), "Decision runtime did not synchronize the exact durable goalId.");
+			PhantomAssertions.assertEquals(durable.goal().revision(), runtime.goalRevision(), "Decision runtime did not synchronize the exact durable revision.");
+			engine.accept(runtimeSyncWork(profile.profileId(), 1));
+			PhantomAssertions.assertEquals(1, handlerCalls.get(), "Synchronized runtime did not process the relevant Decision candidate.");
+			PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, engine.find(profile.profileId()).orElseThrow().goalStatus(), "Processed Decision candidate did not terminalize the runtime Goal.");
+			context.record("goal030cp2.sync.goalId", durable.goal().goalId());
+			context.record("goal030cp2.sync.revision", durable.goal().revision());
+			stop(service);
+			stop(engine);
+		});
+
+		registry.add("02-busy-reload-retries-without-duplicate-goal", context ->
+		{
+			final PhantomProfile profile = profile();
+			final PhantomConversationExecutionStore store = store();
+			final ConversationResponsePlan plan = plan(profile.profileId(), 90_002, "party.invite", new PhantomDomainRef("character.object", "777"), List.of(SlotValue.domain(SlotType.TARGET_PLAYER, new PhantomDomainRef("character.object", "777"), -1, -1)));
+			final ExecutionEntry prepared = ExecutionEntry.prepared(plan);
+			store.handoff(profile.profileId(), -1, conversationState(100), prepared);
+			final BlockingLoadGoalStore blockingGoals = new BlockingLoadGoalStore(_goals);
+			final PhantomDecisionEngine engine = runtimeSyncEngine(blockingGoals, new AtomicInteger());
+			PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(profile.profileId()), "BUSY profile did not attach.");
+			blockingGoals.blockNextLoad(profile.profileId());
+			final AtomicReference<PhantomDecisionEngine.ReloadResult> blockingReload = new AtomicReference<>();
+			final Thread reloadThread = new Thread(() -> blockingReload.set(engine.reload(profile.profileId())), "goal030cp2-runtime-reload");
+			reloadThread.start();
+			blockingGoals.awaitBlocked();
+
+			final AtomicInteger syncCalls = new AtomicInteger();
+			final AtomicReference<SyncStatus> firstStatus = new AtomicReference<>();
+			final PhantomConversationGoalRuntimePort canonical = PhantomConversationGoalRuntimePort.decisionEngine(engine);
+			final PhantomConversationGoalRuntimePort observed = (profileId, goalId, minimumRevision) ->
+			{
+				final SyncStatus status = canonical.synchronize(profileId, goalId, minimumRevision);
+				if (syncCalls.getAndIncrement() == 0)
+				{
+					firstStatus.set(status);
+				}
+				return status;
+			};
+			final MemoryPort executionPort = new MemoryPort();
+			final PhantomConversationExecutionService service = new PhantomConversationExecutionService(_catalog, store, _goals, executionPort, observed, () -> 101, PhantomConversationExecutionService.PhaseObserver.NONE);
+			PhantomAssertions.assertTrue(service.start(), "BUSY retry execution service did not start.");
+			service.publish(plan);
+			for (int pulse = 0; (pulse < 8) && (executionPort.goalPreparations.get() == 0); pulse++)
+			{
+				service.onPulse();
+			}
+
+			final StoredGoal firstDurable = _goals.load(profile.profileId()).orElseThrow();
+			final var firstExecution = store.load(profile.profileId()).orElseThrow();
+			PhantomAssertions.assertEquals(SyncStatus.BUSY, firstStatus.get(), "Legitimate Decision reload BUSY was not surfaced by the runtime port.");
+			PhantomAssertions.assertEquals(1, syncCalls.get(), "BUSY synchronization spun inside one execution pulse.");
+			PhantomAssertions.assertEquals(1, firstExecution.state().entries().size(), "BUSY synchronization duplicated the durable execution entry.");
+			PhantomAssertions.assertEquals(ActionState.SUBMITTED, firstExecution.state().entry(prepared.planId()).actionState(), "BUSY synchronization did not retain the same SUBMITTED entry.");
+			PhantomAssertions.assertEquals(1, executionPort.goalPreparations.get(), "BUSY synchronization prepared a second Goal.");
+
+			blockingGoals.release();
+			reloadThread.join(TimeUnit.SECONDS.toMillis(2));
+			PhantomAssertions.assertFalse(reloadThread.isAlive(), "Blocking Decision reload did not quiesce.");
+			PhantomAssertions.assertEquals(PhantomDecisionEngine.ReloadResult.RELOADED, blockingReload.get(), "Legitimate in-flight reload did not complete.");
+			service.onPulse();
+			final StoredGoal retriedDurable = _goals.load(profile.profileId()).orElseThrow();
+			final var retriedExecution = store.load(profile.profileId()).orElseThrow();
+			final PhantomDecisionEngine.RuntimeSnapshot runtime = engine.find(profile.profileId()).orElseThrow();
+			PhantomAssertions.assertEquals(firstDurable.goal().goalId(), retriedDurable.goal().goalId(), "BUSY retry replaced the durable goalId.");
+			PhantomAssertions.assertEquals(firstDurable.goal().revision(), retriedDurable.goal().revision(), "BUSY retry changed the durable Goal revision.");
+			PhantomAssertions.assertEquals(1, retriedExecution.state().entries().size(), "BUSY retry duplicated the execution entry.");
+			PhantomAssertions.assertEquals(1, executionPort.goalPreparations.get(), "BUSY retry prepared the Goal twice.");
+			PhantomAssertions.assertEquals(retriedDurable.goal().goalId(), runtime.goalId(), "Later retry did not synchronize the exact runtime goalId.");
+			PhantomAssertions.assertEquals(retriedDurable.goal().revision(), runtime.goalRevision(), "Later retry did not synchronize the exact runtime revision.");
+			context.record("goal030cp2.busy.syncCalls", syncCalls.get());
+			stop(service);
+			stop(engine);
+		});
+
+		registry.add("03-submitted-goal-does-not-starve-newer-query", context ->
+		{
+			final PhantomProfile profile = profile();
+			final PhantomConversationExecutionStore store = store();
+			final ConversationResponsePlan goalPlan = plan(profile.profileId(), 90_003, "party.invite", new PhantomDomainRef("character.object", "777"), List.of(SlotValue.domain(SlotType.TARGET_PLAYER, new PhantomDomainRef("character.object", "777"), -1, -1)));
+			final ExecutionEntry goalEntry = ExecutionEntry.prepared(goalPlan);
+			store.handoff(profile.profileId(), -1, conversationState(100), goalEntry);
+			final MemoryPort port = new MemoryPort();
+			final PhantomConversationExecutionService service = service(store, port, 101);
+			service.publish(goalPlan);
+			service.onPulse();
+			final var submittedStored = store.load(profile.profileId()).orElseThrow();
+			PhantomAssertions.assertEquals(ActionState.SUBMITTED, submittedStored.state().entry(goalEntry.planId()).actionState(), "Fixture Goal did not reach SUBMITTED.");
+
+			final ConversationResponsePlan queryPlan = planAt(profile.profileId(), 90_004, "item.source", null, List.of(SlotValue.domain(SlotType.ITEM, new PhantomDomainRef("item", "57"), -1, -1)), 101);
+			final ExecutionEntry queryEntry = ExecutionEntry.prepared(queryPlan);
+			store.save(profile.profileId(), submittedStored.rowVersion(), submittedStored.state().add(queryEntry));
+			service.publish(queryPlan);
+			drive(service, 16);
+			final var completed = store.load(profile.profileId()).orElseThrow().state();
+			PhantomAssertions.assertEquals(1, port.queryCalls.get(), "Newer real ITEM57 query was starved by the SUBMITTED Goal.");
+			PhantomAssertions.assertEquals(1L, port.dispatchedPlanIds.stream().filter(queryEntry.planId()::equals).count(), "Newer query did not complete one exact outbound dispatch.");
+			PhantomAssertions.assertEquals(ActionState.SUBMITTED, completed.entry(goalEntry.planId()).actionState(), "QUERY processing duplicated or stole the owned SUBMITTED Goal.");
+			PhantomAssertions.assertTrue(completed.receipts().stream().anyMatch(receipt -> receipt.planId().equals(queryEntry.planId()) && (receipt.actionState() == ActionState.COMPLETED) && (receipt.outboundState() == OutboundState.SENT)), "QUERY did not terminalize independently with SENT outbound evidence.");
+			context.record("goal030cp2.query.itemId", 57);
+			context.record("goal030cp2.query.outbound", port.dispatchCalls.get());
+			stop(service);
+		});
+	}
+
+	private static PhantomDecisionEngine runtimeSyncEngine(PhantomGoalStore goals, AtomicInteger handlerCalls)
+	{
+		final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
+		candidates.register(new PhantomDecisionCandidate(
+			"candidate.goal030cp2.runtime-sync",
+			Set.of("party.form"),
+			Set.of(PhantomActivityState.WARM),
+			List.of(),
+			List.of(new PhantomWeightedConsideration("score.goal030cp2.runtime-sync", 1, ignored -> new PhantomConsideration.Evaluation(1000, "score.goal030cp2.runtime-sync"))),
+			0,
+			planning -> new PhantomPlan(planning.decisionSequence(), planning.goal().goalId(), "candidate.goal030cp2.runtime-sync", List.of(new PhantomPlanStep(0, "action.goal030cp2.runtime-sync", null, Map.of(), 1000, 1, "reason.goal030cp2.runtime-sync")), 1000, planning.logicalNowNanos())));
+		candidates.seal();
+		final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
+		handlers.register("action.goal030cp2.runtime-sync", ignored ->
+		{
+			handlerCalls.incrementAndGet();
+			return PhantomStepResult.of(PhantomStepResult.Type.COMPLETE_GOAL, "goal030cp2.runtime-sync.complete");
+		});
+		handlers.seal();
+		final PhantomDecisionEngine engine = new PhantomDecisionEngine(goals, candidates, handlers, new PhantomMetrics(), 1);
+		engine.start();
+		return engine;
+	}
+
+	private static PhantomActivityWorkItem runtimeSyncWork(long profileId, long tickSequence)
+	{
+		return new PhantomActivityWorkItem(profileId, PhantomActivityState.WARM, 1, tickSequence, tickSequence, PhantomActivityOverloadLevel.NORMAL);
+	}
+
+	private static void stop(PhantomDecisionEngine engine)
+	{
+		engine.beginStop();
+		PhantomAssertions.assertTrue(engine.finishStop(), "Runtime-sync Decision engine did not finish stop.");
+	}
+
 	private void lifecycle(PhantomTestRegistry registry)
 	{
 		registry.add("01-10k-durable-envelope-records-and-bounded-shared-pulses", context ->
@@ -892,12 +1079,90 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 	{
 	}
 
+	private static final class BlockingLoadGoalStore implements PhantomGoalStore
+	{
+		private final PhantomGoalStore _delegate;
+		private volatile long _blockedProfileId;
+		private volatile CountDownLatch _blocked = new CountDownLatch(0);
+		private volatile CountDownLatch _release = new CountDownLatch(0);
+
+		private BlockingLoadGoalStore(PhantomGoalStore delegate)
+		{
+			_delegate = delegate;
+		}
+
+		private void blockNextLoad(long profileId)
+		{
+			_blockedProfileId = profileId;
+			_blocked = new CountDownLatch(1);
+			_release = new CountDownLatch(1);
+		}
+
+		private void awaitBlocked() throws InterruptedException
+		{
+			PhantomAssertions.assertTrue(_blocked.await(2, TimeUnit.SECONDS), "Decision reload did not enter the controlled GoalStore load.");
+		}
+
+		private void release()
+		{
+			_release.countDown();
+		}
+
+		@Override
+		public boolean profileExists(long profileId)
+		{
+			return _delegate.profileExists(profileId);
+		}
+
+		@Override
+		public Optional<StoredGoal> load(long profileId)
+		{
+			if (_blockedProfileId == profileId)
+			{
+				_blocked.countDown();
+				try
+				{
+					if (!_release.await(2, TimeUnit.SECONDS))
+					{
+						throw new AssertionError("Timed out waiting to release controlled Decision reload.");
+					}
+				}
+				catch (InterruptedException exception)
+				{
+					Thread.currentThread().interrupt();
+					throw new AssertionError(exception);
+				}
+				_blockedProfileId = 0;
+			}
+			return _delegate.load(profileId);
+		}
+
+		@Override
+		public StoredGoal insert(long profileId, PhantomGoal goal)
+		{
+			return _delegate.insert(profileId, goal);
+		}
+
+		@Override
+		public StoredGoal replace(long profileId, long expectedRowVersion, PhantomGoal goal)
+		{
+			return _delegate.replace(profileId, expectedRowVersion, goal);
+		}
+
+		@Override
+		public void delete(long profileId, long expectedRowVersion)
+		{
+			_delegate.delete(profileId, expectedRowVersion);
+		}
+	}
+
 	private static final class MemoryPort implements PhantomConversationExecutionPort
 	{
 		private final AtomicInteger queryCalls = new AtomicInteger();
 		private final AtomicInteger goalPreparations = new AtomicInteger();
 		private final AtomicInteger partyResponses = new AtomicInteger();
 		private final AtomicInteger dispatchCalls = new AtomicInteger();
+		private final List<String> dispatchedPlanIds = new ArrayList<>();
 		private QueryResult query = factResult(ResultStatus.COMPLETED);
 		private PendingInvitation pending;
 		private ExecutionEntry lastPreparedEntry;
@@ -976,6 +1241,7 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		public OutboundResult dispatch(long profileId, ExecutionEntry entry)
 		{
 			dispatchCalls.incrementAndGet();
+			dispatchedPlanIds.add(entry.planId());
 			return new OutboundResult(ResultStatus.COMPLETED, 1);
 		}
 	}

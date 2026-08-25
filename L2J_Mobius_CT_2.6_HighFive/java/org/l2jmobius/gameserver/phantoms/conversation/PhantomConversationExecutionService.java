@@ -33,6 +33,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort.ResultStatus;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore.GoalMutationResult;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore.StoredExecution;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationGoalRuntimePort.SyncStatus;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationResponsePlan;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
@@ -108,6 +109,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 	private final PhantomConversationExecutionStore _store;
 	private final PhantomGoalStateStore _goals;
 	private final PhantomConversationExecutionPort _port;
+	private final PhantomConversationGoalRuntimePort _goalRuntime;
 	private final LongSupplier _clock;
 	private final PhaseObserver _phaseObserver;
 	private final ArrayBlockingQueue<Long> _ready;
@@ -142,15 +144,26 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 
 	public PhantomConversationExecutionService(PhantomConversationExecutionCatalog catalog, PhantomConversationExecutionStore store, PhantomGoalStateStore goals, PhantomConversationExecutionPort port)
 	{
-		this(catalog, store, goals, port, () -> System.currentTimeMillis() / 60000L, PhaseObserver.NONE);
+		this(catalog, store, goals, port, PhantomConversationGoalRuntimePort.NOOP, () -> System.currentTimeMillis() / 60000L, PhaseObserver.NONE);
+	}
+
+	public PhantomConversationExecutionService(PhantomConversationExecutionCatalog catalog, PhantomConversationExecutionStore store, PhantomGoalStateStore goals, PhantomConversationExecutionPort port, PhantomConversationGoalRuntimePort goalRuntime)
+	{
+		this(catalog, store, goals, port, goalRuntime, () -> System.currentTimeMillis() / 60000L, PhaseObserver.NONE);
 	}
 
 	public PhantomConversationExecutionService(PhantomConversationExecutionCatalog catalog, PhantomConversationExecutionStore store, PhantomGoalStateStore goals, PhantomConversationExecutionPort port, LongSupplier clock, PhaseObserver phaseObserver)
+	{
+		this(catalog, store, goals, port, PhantomConversationGoalRuntimePort.NOOP, clock, phaseObserver);
+	}
+
+	public PhantomConversationExecutionService(PhantomConversationExecutionCatalog catalog, PhantomConversationExecutionStore store, PhantomGoalStateStore goals, PhantomConversationExecutionPort port, PhantomConversationGoalRuntimePort goalRuntime, LongSupplier clock, PhaseObserver phaseObserver)
 	{
 		_catalog = Objects.requireNonNull(catalog);
 		_store = Objects.requireNonNull(store);
 		_goals = Objects.requireNonNull(goals);
 		_port = Objects.requireNonNull(port);
+		_goalRuntime = Objects.requireNonNull(goalRuntime);
 		_clock = Objects.requireNonNull(clock);
 		_phaseObserver = Objects.requireNonNull(phaseObserver);
 		_ready = new ArrayBlockingQueue<>(catalog.limits().executionQueue());
@@ -619,7 +632,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			final ExecutionEntry next = entry.withAction(goal.goal().status() == PhantomGoalStatus.COMPLETED ? ActionState.COMPLETED : ActionState.REJECTED, entry.goalId(), goal.goal().revision(), entry.reasonKey(), now());
 			return save(stored, next);
 		}
-		return stored;
+		return synchronizeSubmittedGoal(stored, entry, goal.goal());
 	}
 
 	private StoredExecution resolveMissingSubmittedInvitation(StoredExecution stored, ExecutionEntry entry)
@@ -679,7 +692,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			if (owned(entry, current.goal()))
 			{
 				final ExecutionEntry next = entry.withResult(_catalog.render("goal.submitted", entry.style(), null), "goal.submitted").withAction(ActionState.SUBMITTED, current.goal().goalId(), current.goal().revision(), "goal.submitted", now());
-				return save(stored, next);
+				return synchronizeSubmittedGoal(save(stored, next), next, current.goal());
 			}
 			if (!_port.allowsGoalSupersession(stored.profileId(), entry, current.goal()))
 			{
@@ -699,7 +712,34 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		final ExecutionState nextState = stored.state().replace(submitted);
 		final GoalMutationResult result = _store.mutateGoal(stored.profileId(), stored.rowVersion(), nextState, _goals, current == null ? -1 : current.rowVersion(), goal);
 		_goalsSubmitted.increment();
-		return result.execution();
+		return synchronizeSubmittedGoal(result.execution(), submitted, result.goal().goal());
+	}
+
+	private StoredExecution synchronizeSubmittedGoal(StoredExecution stored, ExecutionEntry entry, PhantomGoal goal)
+	{
+		final SyncStatus status;
+		try
+		{
+			status = Objects.requireNonNull(_goalRuntime.synchronize(stored.profileId(), goal.goalId(), goal.revision()));
+		}
+		catch (RuntimeException exception)
+		{
+			_failures.increment();
+			return failGoalSynchronization(stored, entry);
+		}
+		if (status == SyncStatus.FAILED)
+		{
+			_failures.increment();
+			return failGoalSynchronization(stored, entry);
+		}
+		return stored;
+	}
+
+	private StoredExecution failGoalSynchronization(StoredExecution stored, ExecutionEntry entry)
+	{
+		_uncertain.increment();
+		final ExecutionEntry uncertain = entry.withResult(_catalog.render("execution.failed", entry.style(), null), "execution.failed").withAction(ActionState.UNCERTAIN, entry.goalId(), entry.goalRevision(), "execution.failed", now());
+		return save(stored, uncertain);
 	}
 
 	private static PhantomGoal withRevision(PhantomGoal goal, long revision)

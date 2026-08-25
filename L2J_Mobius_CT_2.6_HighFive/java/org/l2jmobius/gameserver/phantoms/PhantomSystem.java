@@ -71,6 +71,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationCatalog
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationGoalRuntimePort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBridge;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationPlanSink;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService;
@@ -486,6 +487,7 @@ public final class PhantomSystem
 				final PhantomConversationExecutionCatalog conversationExecutionCatalog = PhantomConversationExecutionCatalog.load(conversationExecutionCatalogFile.toPath());
 				final PhantomConversationExecutionStore conversationExecutionStore = new PhantomConversationExecutionStore(productionProfiles, conversationExecutionCatalog);
 				final PhantomConversationPlanSink.Bridge conversationExecutionSignal = PhantomConversationPlanSink.bridge();
+				final PhantomConversationGoalRuntimePort.Bridge conversationGoalRuntime = PhantomConversationGoalRuntimePort.bridge();
 				final File clanDirectiveCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/clan/high-five-clan-directives-v1.xml");
 				final PhantomClanDirectiveCatalog clanDirectiveCatalog = PhantomClanDirectiveCatalog.load(clanDirectiveCatalogFile.toPath());
 				_clanDirectiveService = new PhantomClanDirectiveService(clanDirectiveCatalog, _materializationService, _socialService, new PhantomSchedulerRelevanceSignalPort(_scheduler));
@@ -494,7 +496,7 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom clan directive service could not enter the running state.");
 				}
 				_conversationService = new PhantomConversationService(conversationCatalog, new PhantomConversationStore(productionProfiles, conversationExecutionStore), new L2jPhantomConversationContextPort(_materializationService, _topologyService.query()), _semanticUnderstandingService, _socialService, conversationExecutionSignal, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance(), _clanDirectiveService);
-				_conversationExecutionService = new PhantomConversationExecutionService(conversationExecutionCatalog, conversationExecutionStore, productionGoals, new L2jPhantomConversationExecutionPort(conversationExecutionCatalog, _gameKnowledgeService, _topologyService.query(), _partyCoordinator, _materializationService, ChatObservationService.getInstance(), riftService, _farmingService));
+				_conversationExecutionService = new PhantomConversationExecutionService(conversationExecutionCatalog, conversationExecutionStore, productionGoals, new L2jPhantomConversationExecutionPort(conversationExecutionCatalog, _gameKnowledgeService, _topologyService.query(), _partyCoordinator, _materializationService, ChatObservationService.getInstance(), riftService, _farmingService), conversationGoalRuntime);
 				conversationExecutionSignal.install(_conversationExecutionService);
 				if (!_conversationExecutionService.start())
 				{
@@ -552,6 +554,7 @@ public final class PhantomSystem
 				handlerRegistry.seal();
 				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null);
 				_decisionEngine.start();
+				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
 				_populationManager.installDecisionEngine(_decisionEngine);
 				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService))))
 				{

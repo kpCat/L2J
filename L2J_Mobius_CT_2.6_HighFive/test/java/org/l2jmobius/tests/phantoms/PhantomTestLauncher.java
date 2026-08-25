@@ -210,6 +210,7 @@ public final class PhantomTestLauncher
 			case "release-baseline-goal030cp1" -> new PhantomReleaseBaselineGoal030Checkpoint1Suite();
 			case "master-handler-java8-compat-goal030cp2a" -> new PhantomMasterHandlerJava8CompatibilityGoal030CP2ASuite();
 			case "headless-whisper-delivery-goal030cp2c" -> new PhantomHeadlessWhisperDeliveryGoal030CP2CSuite();
+			case "conversation-decision-runtime-sync-goal030cp2" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.RUNTIME_SYNC_GOAL030_CP2);
 			case "cross-domain-autonomous-alpha-goal030cp2" -> new PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite();
 			case "scale-endurance-goal029cp3" -> new PhantomScaleEnduranceGoal029Checkpoint3Suite();
 			case "scale-envelope-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite();
