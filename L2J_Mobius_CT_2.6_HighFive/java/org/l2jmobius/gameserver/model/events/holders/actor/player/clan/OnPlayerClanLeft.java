@@ -16,6 +16,8 @@
  */
 package org.l2jmobius.gameserver.model.events.holders.actor.player.clan;
 
+import java.util.Objects;
+
 import org.l2jmobius.gameserver.model.clan.Clan;
 import org.l2jmobius.gameserver.model.clan.ClanMember;
 import org.l2jmobius.gameserver.model.events.EventType;
@@ -26,13 +28,41 @@ import org.l2jmobius.gameserver.model.events.holders.IBaseEvent;
  */
 public class OnPlayerClanLeft implements IBaseEvent
 {
+	public enum DepartureKind
+	{
+		UNKNOWN,
+		VOLUNTARY,
+		EXPELLED,
+		CLAN_DISSOLVED
+	}
+
 	private final ClanMember _clanMember;
 	private final Clan _clan;
+	private final DepartureKind _departureKind;
+	private final int _initiatorObjectId;
+	private final long _happenedEpochMinute;
 	
 	public OnPlayerClanLeft(ClanMember clanMember, Clan clan)
 	{
-		_clanMember = clanMember;
-		_clan = clan;
+		this(clanMember, clan, DepartureKind.UNKNOWN, 0);
+	}
+
+	public OnPlayerClanLeft(ClanMember clanMember, Clan clan, DepartureKind departureKind, int initiatorObjectId)
+	{
+		this(clanMember, clan, departureKind, initiatorObjectId, System.currentTimeMillis() / 60000L);
+	}
+
+	public OnPlayerClanLeft(ClanMember clanMember, Clan clan, DepartureKind departureKind, int initiatorObjectId, long happenedEpochMinute)
+	{
+		_clanMember = Objects.requireNonNull(clanMember);
+		_clan = Objects.requireNonNull(clan);
+		_departureKind = Objects.requireNonNull(departureKind);
+		if ((initiatorObjectId < 0) || (happenedEpochMinute < 0))
+		{
+			throw new IllegalArgumentException("Invalid clan departure metadata.");
+		}
+		_initiatorObjectId = initiatorObjectId;
+		_happenedEpochMinute = happenedEpochMinute;
 	}
 	
 	public ClanMember getClanMember()
@@ -43,6 +73,21 @@ public class OnPlayerClanLeft implements IBaseEvent
 	public Clan getClan()
 	{
 		return _clan;
+	}
+
+	public DepartureKind getDepartureKind()
+	{
+		return _departureKind;
+	}
+
+	public int getInitiatorObjectId()
+	{
+		return _initiatorObjectId;
+	}
+
+	public long getHappenedEpochMinute()
+	{
+		return _happenedEpochMinute;
 	}
 	
 	@Override

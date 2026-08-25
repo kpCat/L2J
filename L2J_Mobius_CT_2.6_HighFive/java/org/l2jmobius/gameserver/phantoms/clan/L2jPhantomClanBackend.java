@@ -4,6 +4,7 @@
 package org.l2jmobius.gameserver.phantoms.clan;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -50,6 +51,7 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.Action
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpPolicy;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialAffiliationContextPort;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialEvent;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef;
@@ -67,13 +69,19 @@ public final class L2jPhantomClanBackend implements Backend
 	private final ChatObservationService _chatObservation;
 	private final PhantomSocialService _social;
 	private final PhantomPvpPolicy _pvpPolicy;
+	private final PhantomSocialAffiliationContextPort _affiliationContexts;
 
 	public L2jPhantomClanBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization)
 	{
-		this(profiles, materialization, null, null);
+		this(profiles, materialization, null, null, PhantomSocialAffiliationContextPort.noop());
 	}
 
 	public L2jPhantomClanBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomSocialService social, PhantomPvpPolicy pvpPolicy)
+	{
+		this(profiles, materialization, social, pvpPolicy, PhantomSocialAffiliationContextPort.noop());
+	}
+
+	public L2jPhantomClanBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomSocialService social, PhantomPvpPolicy pvpPolicy, PhantomSocialAffiliationContextPort affiliationContexts)
 	{
 		_profiles = profiles;
 		_materialization = materialization;
@@ -83,6 +91,7 @@ public final class L2jPhantomClanBackend implements Backend
 		_chatObservation = ChatObservationService.getInstance();
 		_social = social;
 		_pvpPolicy = pvpPolicy;
+		_affiliationContexts = Objects.requireNonNull(affiliationContexts);
 	}
 
 	@Override
@@ -518,7 +527,8 @@ public final class L2jPhantomClanBackend implements Backend
 			return false;
 		}
 		final String eventId = PhantomSocialModel.sha256("clan.social|goal027cp2|" + eventKey + "|" + ownerProfileId + "|" + subject.profileId() + "|" + operationId);
-		return _social.record(new SocialEvent(ownerProfileId, eventId, eventKey, SubjectRef.phantom(subject.profileId()), happenedEpochMinute, 1000, evidenceHash)).durable();
+		final SubjectRef socialSubject = SubjectRef.phantom(subject.profileId());
+		return _social.record(new SocialEvent(ownerProfileId, eventId, eventKey, socialSubject, happenedEpochMinute, 1000, evidenceHash, _affiliationContexts.resolve(ownerProfileId, socialSubject))).durable();
 	}
 
 	@Override

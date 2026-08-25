@@ -62,6 +62,7 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RouteMani
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStatus;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.TacticalDirective;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialAffiliationContextPort;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialEventSink;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialEvent;
@@ -221,6 +222,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final Supplier<String> _topologyHash;
 	private final LongSupplier _clock;
 	private final PhantomSocialEventSink _socialEvents;
+	private final PhantomSocialAffiliationContextPort _affiliationContexts;
 	private final LongSupplier _socialClock;
 	private final int _operationBudget;
 	private final ArrayBlockingQueue<ManagedInvitation> _inbound = new ArrayBlockingQueue<>(MAX_INBOUND_INVITES);
@@ -250,10 +252,15 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	public PhantomPartyCoordinator(PhantomPartyPersistencePort store, PhantomGoalStore goals, PhantomPartyBackend backend, PhantomPartyRoleCatalog roleCatalog, PhantomPartyRouteCoordinator routes, PhantomPartyTactics tactics, Supplier<String> topologyHash, LongSupplier clock, int operationBudget)
 	{
-		this(store, goals, backend, roleCatalog, routes, tactics, topologyHash, clock, operationBudget, PhantomSocialEventSink.noop(), () -> System.currentTimeMillis() / 60000L);
+		this(store, goals, backend, roleCatalog, routes, tactics, topologyHash, clock, operationBudget, PhantomSocialEventSink.noop(), () -> System.currentTimeMillis() / 60000L, PhantomSocialAffiliationContextPort.noop());
 	}
 
 	public PhantomPartyCoordinator(PhantomPartyPersistencePort store, PhantomGoalStore goals, PhantomPartyBackend backend, PhantomPartyRoleCatalog roleCatalog, PhantomPartyRouteCoordinator routes, PhantomPartyTactics tactics, Supplier<String> topologyHash, LongSupplier clock, int operationBudget, PhantomSocialEventSink socialEvents, LongSupplier socialClock)
+	{
+		this(store, goals, backend, roleCatalog, routes, tactics, topologyHash, clock, operationBudget, socialEvents, socialClock, PhantomSocialAffiliationContextPort.noop());
+	}
+
+	public PhantomPartyCoordinator(PhantomPartyPersistencePort store, PhantomGoalStore goals, PhantomPartyBackend backend, PhantomPartyRoleCatalog roleCatalog, PhantomPartyRouteCoordinator routes, PhantomPartyTactics tactics, Supplier<String> topologyHash, LongSupplier clock, int operationBudget, PhantomSocialEventSink socialEvents, LongSupplier socialClock, PhantomSocialAffiliationContextPort affiliationContexts)
 	{
 		_store = Objects.requireNonNull(store);
 		_goals = Objects.requireNonNull(goals);
@@ -266,6 +273,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		_clock = Objects.requireNonNull(clock);
 		_socialEvents = Objects.requireNonNull(socialEvents);
 		_socialClock = Objects.requireNonNull(socialClock);
+		_affiliationContexts = Objects.requireNonNull(affiliationContexts);
 		if ((operationBudget < 10) || (operationBudget > 10000))
 		{
 			throw new IllegalArgumentException("Party operation budget must be between 10 and 10000.");
@@ -2374,7 +2382,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final String evidence = PhantomSocialModel.sha256("party.evidence|" + sourceIdentity);
 		try
 		{
-			final PhantomSocialEventSink.Result result = _socialEvents.record(new SocialEvent(ownerProfileId, eventId, eventKey, subject, Math.max(0, _socialClock.getAsLong()), 1000, evidence));
+			final PhantomSocialEventSink.Result result = _socialEvents.record(new SocialEvent(ownerProfileId, eventId, eventKey, subject, Math.max(0, _socialClock.getAsLong()), 1000, evidence, _affiliationContexts.resolve(ownerProfileId, subject)));
 			if (result.status() == PhantomSocialEventSink.Status.RECORDED)
 			{
 				_socialEventsRecorded.incrementAndGet();

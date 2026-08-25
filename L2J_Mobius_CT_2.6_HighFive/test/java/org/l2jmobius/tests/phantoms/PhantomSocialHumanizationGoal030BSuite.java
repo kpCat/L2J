@@ -59,7 +59,7 @@ public final class PhantomSocialHumanizationGoal030BSuite implements PhantomTest
 		assertMultiplier(AffiliationKind.SAME_CLAN, 12000, 7000, 13000, 8500, 10000);
 		assertMultiplier(AffiliationKind.SAME_ALLIANCE, 11000, 8500, 11500, 9250, 10000);
 		assertMultiplier(AffiliationKind.CLAN_WAR, 10000, 10000, 10000, 7000, 10000);
-		PhantomAssertions.assertEquals(23, _catalog.events().size(), "Authoritative social event count changed.");
+		PhantomAssertions.assertEquals(24, _catalog.events().size(), "Authoritative social event count changed.");
 		for (var event : _catalog.events())
 		{
 			PhantomAssertions.assertTrue((event.reputationShockBp() >= 0) && (event.reputationShockBp() <= 10000), "Reputation shock is outside basis-point bounds.");

@@ -38,7 +38,7 @@ Transient-контекст события различает `NONE`, `SAME_CLAN`
 
 Сложившаяся воспринимаемая репутация обладает инерцией: слабое свидетельство противоположного знака частично сопротивляется развороту. `reputationShockBp` задаёт силу события пробить эту инерцию; предательство имеет высокий shock, обычная поддержка и мелкое трение — низкий. Однонаправленные изменения репутации и все измерения отношений не подавляются.
 
-`CLAN_WAR` уже имеет отдельную семантику: ожидаемый военный бой создаёт меньше личной злости и враждебности, но не стирает страх и соперничество. Каноническое определение clan/alliance/war context и его production wiring отложены до Goal030C; здесь нет обращения к `Player`, `ClanTable` или `ClanWar`.
+`CLAN_WAR` имеет отдельную семантику: ожидаемый военный бой создаёт меньше личной злости и враждебности, но не стирает страх и соперничество. Goal030C1 определяет transient-контекст канонически по точным live `Player`/`Clan` identity: приоритет `SAME_CLAN`, затем активная война, затем `SAME_ALLIANCE`, иначе `NONE`. Resolver не выполняет DB-запросы, глобальные scans, cache refresh или фоновые задачи.
 
 ## Безопасное редактирование
 
@@ -72,3 +72,16 @@ Transient-контекст события различает `NONE`, `SAME_CLAN`
 5. ровно один финальный `ant jar`
 
 Цепочка Goal030B полностью DB-free до сборки: она не запускает provisioning, aggregate social tests, Clan/PvP integration, CP1/CP2, soak, `verify` или geodata.
+
+## Быстрые проверки Goal030C1
+
+Используйте уже подготовленную allowlisted базу `l2jmobiush5_phantom_test` и запускайте строго по порядку:
+
+1. `ant phantom-clan-affiliation-humanization-goal030c1-test`
+2. `ant phantom-clan-social-domain-goal027c-test`
+3. `ant phantom-clan-checkpoint2-goal027-test`
+4. `ant phantom-pvp-warning-social-test`
+5. `ant phantom-social-humanization-goal030b-test`
+6. ровно один финальный `ant jar`
+
+Первый target выполняется в forked JVM из `dist/game`, использует seed `30003031`, проверяет точные clan/alliance/war context, изгнание, native leader truth, idempotency и cleanup. Эта цепочка не provision-ит и не меняет schema, не запускает CP1/CP2, soak, `verify` или geodata. Directive social events и PK/karma recovery остаются scope Goal030C2.

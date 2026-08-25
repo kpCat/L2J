@@ -173,6 +173,14 @@
 			<delta source="relationship.friendship" value="160"/>
 			<delta source="reputation.helpfulness" value="240"/>
 		</event>
+		<event code="1024" key="clan.member.expelled" ttlMinutes="525600" salience="1500" socialClass="BETRAYAL" reputationShockBp="9000">
+			<delta source="relationship.trust" value="-400"/>
+			<delta source="relationship.respect" value="-150"/>
+			<delta source="relationship.anger" value="350"/>
+			<delta source="relationship.rivalry" value="120"/>
+			<delta source="reputation.reliability" value="-200"/>
+			<delta source="reputation.hostility" value="250"/>
+		</event>
 	</events>
 	<modifiers>
 		<modifier key="goal.persistence" minimum="-3000" maximum="3000">

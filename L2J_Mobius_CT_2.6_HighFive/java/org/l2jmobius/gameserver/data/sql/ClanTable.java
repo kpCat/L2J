@@ -49,6 +49,7 @@ import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
 import org.l2jmobius.gameserver.model.clan.ClanSocialMutationFence;
 import org.l2jmobius.gameserver.model.clan.ClanWarService;
 import org.l2jmobius.gameserver.model.clan.ClanMember;
+import org.l2jmobius.gameserver.model.events.holders.actor.player.clan.OnPlayerClanLeft.DepartureKind;
 import org.l2jmobius.gameserver.model.clan.ClanPrivileges;
 import org.l2jmobius.gameserver.model.events.EventDispatcher;
 import org.l2jmobius.gameserver.model.events.EventType;
@@ -307,11 +308,12 @@ public class ClanTable
 		}
 		
 		final ClanMember leaderMember = clan.getLeader();
+		final int leaderObjectId = leaderMember == null ? 0 : leaderMember.getObjectId();
 		clan.getWarehouse().destroyAllItems(ItemProcessType.DESTROY, leaderMember == null ? null : clan.getLeader().getPlayer(), null);
 		
 		for (ClanMember member : clan.getMembers())
 		{
-			clan.removeClanMember(member.getObjectId(), 0);
+			clan.removeClanMember(member.getObjectId(), 0, DepartureKind.CLAN_DISSOLVED, leaderObjectId);
 		}
 		
 		try (Connection con = DatabaseFactory.getConnection())

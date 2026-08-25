@@ -61,6 +61,7 @@ import org.l2jmobius.gameserver.model.events.EventType;
 import org.l2jmobius.gameserver.model.events.holders.actor.player.clan.OnPlayerClanJoin;
 import org.l2jmobius.gameserver.model.events.holders.actor.player.clan.OnPlayerClanLeaderChange;
 import org.l2jmobius.gameserver.model.events.holders.actor.player.clan.OnPlayerClanLeft;
+import org.l2jmobius.gameserver.model.events.holders.actor.player.clan.OnPlayerClanLeft.DepartureKind;
 import org.l2jmobius.gameserver.model.events.holders.actor.player.clan.OnPlayerClanLvlUp;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.itemcontainer.ClanWarehouse;
@@ -431,6 +432,11 @@ public class Clan
 	 */
 	public void removeClanMember(int objectId, long clanJoinExpiryTime)
 	{
+		removeClanMember(objectId, clanJoinExpiryTime, DepartureKind.UNKNOWN, 0);
+	}
+
+	public void removeClanMember(int objectId, long clanJoinExpiryTime, DepartureKind departureKind, int initiatorObjectId)
+	{
 		final ClanMember exMember = _members.remove(objectId);
 		if (exMember == null)
 		{
@@ -551,7 +557,7 @@ public class Clan
 		// Notify to scripts
 		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_CLAN_LEFT))
 		{
-			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerClanLeft(exMember, this));
+			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerClanLeft(exMember, this, departureKind, initiatorObjectId));
 		}
 	}
 	

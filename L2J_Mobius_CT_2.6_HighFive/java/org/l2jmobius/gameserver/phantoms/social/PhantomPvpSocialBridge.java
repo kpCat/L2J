@@ -67,10 +67,17 @@ public final class PhantomPvpSocialBridge
 
 	private static final Set<String> REVENGE_EVENTS = Set.of(EventKind.ATTACK_RECEIVED.eventKey(), EventKind.DEATH_SUFFERED.eventKey());
 	private final PhantomSocialService _social;
+	private final PhantomSocialAffiliationContextPort _affiliationContexts;
 
 	public PhantomPvpSocialBridge(PhantomSocialService social)
 	{
+		this(social, PhantomSocialAffiliationContextPort.noop());
+	}
+
+	public PhantomPvpSocialBridge(PhantomSocialService social, PhantomSocialAffiliationContextPort affiliationContexts)
+	{
 		_social = Objects.requireNonNull(social);
+		_affiliationContexts = Objects.requireNonNull(affiliationContexts);
 	}
 
 	public Delivery record(long ownerProfileId, SubjectRef subject, EventKind kind, String operationId, String evidenceHash, long minute, int magnitude)
@@ -84,7 +91,7 @@ public final class PhantomPvpSocialBridge
 			throw new IllegalArgumentException("Invalid typed PvP social event.");
 		}
 		final String eventId = PhantomSocialModel.sha256("pvp.social|" + kind.name() + '|' + ownerProfileId + '|' + subject.stableKey() + '|' + operationId);
-		final PhantomSocialEventSink.Result result = _social.record(new SocialEvent(ownerProfileId, eventId, kind.eventKey(), subject, minute, magnitude, evidenceHash));
+		final PhantomSocialEventSink.Result result = _social.record(new SocialEvent(ownerProfileId, eventId, kind.eventKey(), subject, minute, magnitude, evidenceHash, _affiliationContexts.resolve(ownerProfileId, subject)));
 		return new Delivery(result.durable(), result.status(), eventId);
 	}
 

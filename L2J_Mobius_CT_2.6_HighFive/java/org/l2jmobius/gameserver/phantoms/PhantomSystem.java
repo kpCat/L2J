@@ -59,6 +59,7 @@ import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceDecision;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService;
 import org.l2jmobius.gameserver.phantoms.clan.L2jPhantomClanBackend;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanSocialLifecycleObserver;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanDecision;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanStore;
@@ -149,7 +150,9 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionStepHandlers;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticGrounding;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticUnderstandingService;
+import org.l2jmobius.gameserver.phantoms.social.L2jPhantomSocialAffiliationContextResolver;
 import org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialAffiliationContextPort;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialStore;
@@ -201,6 +204,7 @@ public final class PhantomSystem
 	private PhantomPopulationManager _populationManager;
 	private PhantomPartyCoordinator _partyCoordinator;
 	private PhantomClanService _clanService;
+	private PhantomClanSocialLifecycleObserver _clanSocialLifecycleObserver;
 	private PhantomRaidReadinessService _raidReadinessService;
 	private PhantomRaidRecruitmentService _raidRecruitmentService;
 	private PhantomRaidAssemblyService _raidAssemblyService;
@@ -424,6 +428,7 @@ public final class PhantomSystem
 				final L2jPhantomRaidAttemptRuntime raidRuntime = new L2jPhantomRaidAttemptRuntime(_combatService, raidTactics, raidRoutes, () -> _topologyService.query().snapshot().canonicalHash(), System::nanoTime);
 				_raidAttemptService = new PhantomRaidAttemptService(productionGoals, _raidAssemblyService, _raidReadinessService, partyBackend, raidAuthority, raidCatalog, raidScripts, raidRuntime, System::currentTimeMillis, System::nanoTime, () -> NpcConfig.RAID_DISABLE_CURSE);
 				final PhantomRaidDecision raidDecision = new PhantomRaidDecision(_raidAssemblyService, _raidAttemptService);
+				final PhantomSocialAffiliationContextPort socialAffiliations = new L2jPhantomSocialAffiliationContextResolver(_materializationService);
 				_partyCoordinator = new PhantomPartyCoordinator(
 					new PhantomPartyStore(productionProfiles),
 					productionGoals,
@@ -435,17 +440,23 @@ public final class PhantomSystem
 					System::nanoTime,
 					_settings.partyOperationsPerPulse(),
 					_socialService,
-					() -> System.currentTimeMillis() / 60000L);
+					() -> System.currentTimeMillis() / 60000L,
+					socialAffiliations);
 				if (!_partyCoordinator.start())
 				{
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
 				}
 				partyParticipation.install(_partyCoordinator);
 				final PhantomPvpPolicy pvpPolicy = PhantomPvpPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/pvp/pvp-policy-v1.xml").toPath());
-				_clanService = new PhantomClanService(productionGoals, new PhantomClanStore(productionProfiles), new L2jPhantomClanBackend(productionProfiles, _materializationService, _socialService, pvpPolicy), System::currentTimeMillis);
+				_clanService = new PhantomClanService(productionGoals, new PhantomClanStore(productionProfiles), new L2jPhantomClanBackend(productionProfiles, _materializationService, _socialService, pvpPolicy, socialAffiliations), System::currentTimeMillis);
 				if (!_clanService.start())
 				{
 					throw new IllegalStateException("Phantom clan organization service could not enter the running state.");
+				}
+				_clanSocialLifecycleObserver = new PhantomClanSocialLifecycleObserver(productionProfiles, _socialService);
+				if (!_clanSocialLifecycleObserver.install())
+				{
+					throw new IllegalStateException("Phantom clan social lifecycle observer could not be installed.");
 				}
 				final PhantomClanDecision clanDecision = new PhantomClanDecision(_clanService);
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
@@ -483,7 +494,7 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom conversation service could not enter the running state.");
 				}
-				final PhantomPvpSocialBridge pvpSocial = new PhantomPvpSocialBridge(_socialService);
+				final PhantomPvpSocialBridge pvpSocial = new PhantomPvpSocialBridge(_socialService, socialAffiliations);
 				_pvpService = new PhantomPvpService(
 					pvpPolicy,
 					new PhantomPvpStore(productionProfiles),
@@ -577,6 +588,10 @@ public final class PhantomSystem
 			if (_conversationExecutionService != null)
 			{
 				_conversationExecutionService.beginStop();
+			}
+			if (_clanSocialLifecycleObserver != null)
+			{
+				_clanSocialLifecycleObserver.close();
 			}
 			if (_clanService != null)
 			{
@@ -780,6 +795,10 @@ public final class PhantomSystem
 					_state = State.FAILED;
 					return false;
 				}
+			}
+			if (_clanSocialLifecycleObserver != null)
+			{
+				_clanSocialLifecycleObserver.close();
 			}
 			if (_clanService != null)
 			{
@@ -990,6 +1009,10 @@ public final class PhantomSystem
 					_metrics.recordShutdownFailure();
 					return false;
 				}
+			}
+			if (_clanSocialLifecycleObserver != null)
+			{
+				_clanSocialLifecycleObserver.close();
 			}
 			if (_clanService != null)
 			{

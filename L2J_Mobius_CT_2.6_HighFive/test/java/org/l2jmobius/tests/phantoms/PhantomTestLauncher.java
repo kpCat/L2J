@@ -42,6 +42,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomScaleEnvelopeGoal029Checkpoint1S
 import org.l2jmobius.gameserver.phantoms.PhantomScaleEnvironmentGoal029Checkpoint2Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomScaleEnduranceGoal029Checkpoint3Suite;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanGoal027Checkpoint2Suite;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanAffiliationHumanizationGoal030C1Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerPerformanceSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomPopulationPerformanceSuite;
@@ -420,6 +421,7 @@ public final class PhantomTestLauncher
 			case "clan-consent-chat-goal027a" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.CONSENT_CHAT_027A);
 			case "clan-expired-replay-goal027b" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.EXPIRY_REPLAY_027B);
 			case "clan-social-domain-goal027c" -> new ClanSocialDomainGoal027CSuite();
+			case "clan-affiliation-humanization-goal030c1" -> new PhantomClanAffiliationHumanizationGoal030C1Suite();
 			case "clan-social-retirement-goal027d" -> new ClanSocialRetirementGoal027DSuite();
 			case "clan-alliance-membership-proof-goal027e" -> new ClanAllianceMembershipProofGoal027ESuite();
 			case "clan-checkpoint2-goal027" -> new PhantomClanGoal027Checkpoint2Suite();
