@@ -416,6 +416,10 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			}
 			_entriesLoaded.increment();
 			ExecutionEntry entry = selectEntry(stored.state());
+			if (needsTerminalSynchronization(entry))
+			{
+				return processTerminalGoal(stored, entry);
+			}
 			if (entry.outboundState() == OutboundState.DISPATCHING)
 			{
 				entry = entry.withOutbound(OutboundState.UNCERTAIN, "execution.failed", now());
@@ -429,23 +433,16 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			}
 			if (now() >= entry.expiryMinute())
 			{
-				entry = expire(entry);
-				final ExpiryOutcome expiry = expireOwnedGoal(stored, entry);
-				if (expiry == ExpiryOutcome.BUDGET)
+				stored = expireOwnedGoal(stored, expire(entry));
+				entry = stored.state().entry(entry.planId());
+				if (needsTerminalSynchronization(entry))
 				{
-					return 1;
+					return processTerminalGoal(stored, entry);
 				}
-				if (expiry == ExpiryOutcome.CAPACITY)
-				{
-					return capacityRetry(stored.state());
-				}
-				if (expiry == ExpiryOutcome.NOT_OWNED)
+				if (entry.terminal())
 				{
 					final FinalStoreResult terminal = storeFinal(stored, entry);
-					if ((terminal == null) || !terminal.compacted())
-					{
-						return terminal == null ? 1 : capacityRetry(stored.state());
-					}
+					return terminal == null ? 1 : terminal.compacted() ? 1 : capacityRetry(stored.state());
 				}
 				return 1;
 			}
@@ -476,6 +473,10 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 				{
 					return 0;
 				}
+			}
+			if (needsTerminalSynchronization(entry))
+			{
+				return processTerminalGoal(stored, entry);
 			}
 			if (entry.outboundState() == OutboundState.PREPARED)
 			{
@@ -611,7 +612,12 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			_partyResponses.increment();
 			if ((result == ResultStatus.COMPLETED) || (result == ResultStatus.IDEMPOTENT))
 			{
-				final ExecutionEntry next = entry.withResult(_catalog.render("party.accepted", entry.style(), null), "party.accepted").withAction(ActionState.COMPLETED, entry.goalId(), entry.goalRevision(), "party.accepted", now());
+				final StoredGoal current = _goals.load(stored.profileId()).orElse(null);
+				if ((current == null) || !owned(entry, current.goal()))
+				{
+					return failGoalSynchronization(stored, entry);
+				}
+				final ExecutionEntry next = entry.withResult(_catalog.render("party.accepted", entry.style(), null), "party.accepted").withAction(ActionState.COMPLETED, entry.goalId(), current.goal().revision(), "party.accepted", now());
 				return save(stored, next);
 			}
 			return rejectSubmittedGoal(stored, entry, "party.stale");
@@ -655,7 +661,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			final ExecutionEntry resolved = entry.withResult(_catalog.render(reason, entry.style(), null), reason).withAction(completed ? ActionState.COMPLETED : ActionState.REJECTED, entry.goalId(), current == null ? entry.goalRevision() : current.goal().revision(), reason, now());
 			if (!completed && (current != null) && (current.goal().status() == PhantomGoalStatus.ACTIVE) && owned(entry, current.goal()))
 			{
-				return _store.mutateGoal(stored.profileId(), stored.rowVersion(), stored.state().replace(resolved), _goals, current.rowVersion(), current.goal().withStatus(PhantomGoalStatus.ABANDONED)).execution();
+				return abandonOwnedGoal(stored, resolved, current);
 			}
 			return save(stored, resolved);
 		}
@@ -679,9 +685,9 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		final StoredGoal current = _goals.load(stored.profileId()).orElse(null);
 		if ((current != null) && (current.goal().status() == PhantomGoalStatus.ACTIVE) && (current.goal().revision() == entry.goalRevision()) && owned(entry, current.goal()))
 		{
-			return _store.mutateGoal(stored.profileId(), stored.rowVersion(), stored.state().replace(rejected), _goals, current.rowVersion(), current.goal().withStatus(PhantomGoalStatus.ABANDONED)).execution();
+			return abandonOwnedGoal(stored, rejected, current);
 		}
-		return save(stored, rejected);
+		return save(stored, (current != null) && owned(entry, current.goal()) ? rejected.withAction(ActionState.REJECTED, current.goal().goalId(), current.goal().revision(), reason, now()) : rejected);
 	}
 
 	private StoredExecution submitGoal(StoredExecution stored, ExecutionEntry entry)
@@ -735,6 +741,58 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		return stored;
 	}
 
+	private static boolean needsTerminalSynchronization(ExecutionEntry entry)
+	{
+		return (entry.goalId() != 0) && Set.of(ActionState.COMPLETED, ActionState.REJECTED, ActionState.EXPIRED).contains(entry.actionState());
+	}
+
+	// Terminal action + exact revision remains durable until the runtime acknowledges it.
+	// BUSY/UNAVAILABLE use the existing delayed queue; recovery retries without mutating Goal.
+	private long processTerminalGoal(StoredExecution stored, ExecutionEntry entry)
+	{
+		if (!spend(Phase.GOAL_OBSERVE, stored.profileId()))
+		{
+			return 1;
+		}
+		SyncStatus status;
+		try
+		{
+			status = Objects.requireNonNull(_goalRuntime.synchronize(stored.profileId(), entry.goalId(), entry.goalRevision()));
+		}
+		catch (RuntimeException exception)
+		{
+			status = SyncStatus.FAILED;
+		}
+		if ((status == SyncStatus.BUSY) || (status == SyncStatus.UNAVAILABLE))
+		{
+			return 10;
+		}
+		if (status == SyncStatus.FAILED)
+		{
+			_failures.increment();
+			stored = failGoalSynchronization(stored, entry);
+			entry = stored.state().entry(entry.planId());
+		}
+		if (entry.outboundState() == OutboundState.DISPATCHING)
+		{
+			entry = entry.withOutbound(OutboundState.UNCERTAIN, "execution.failed", now());
+			_uncertain.increment();
+		}
+		if (entry.outboundState() == OutboundState.PREPARED)
+		{
+			return dispatch(stored, entry) ? 1 : 10;
+		}
+		final FinalStoreResult terminal = storeFinal(stored, entry);
+		return terminal == null ? 1 : terminal.compacted() ? 1 : capacityRetry(stored.state());
+	}
+
+	private StoredExecution abandonOwnedGoal(StoredExecution stored, ExecutionEntry terminal, StoredGoal current)
+	{
+		final PhantomGoal abandoned = current.goal().withStatus(PhantomGoalStatus.ABANDONED);
+		final ExecutionEntry pending = terminal.withAction(terminal.actionState(), abandoned.goalId(), abandoned.revision(), terminal.reasonKey(), now());
+		return _store.mutateGoal(stored.profileId(), stored.rowVersion(), stored.state().replace(pending), _goals, current.rowVersion(), abandoned).execution();
+	}
+
 	private StoredExecution failGoalSynchronization(StoredExecution stored, ExecutionEntry entry)
 	{
 		_uncertain.increment();
@@ -744,7 +802,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 
 	private static PhantomGoal withRevision(PhantomGoal goal, long revision)
 	{
-		return new PhantomGoal(goal.goalId(), goal.goalType(), goal.status(), goal.subject(), goal.target(), goal.requiredAmount(), goal.currentAmount(), goal.acquisitionMethod(), goal.validSources(), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), goal.deadlineEpochMillis(), goal.constraints(), goal.reasonKey(), revision);
+		return new PhantomGoal(goal.goalId(), goal.goalType(), goal.status(), goal.subject(), goal.target(), goal.requiredAmount(), goal.currentAmount(), goal.acquisitionMethod(), goal.validSources(), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), goal.deadlineEpochMillis(), goal.constraints(), goal.reasonKey(), revision, goal.payloadText());
 	}
 
 	private boolean dispatch(StoredExecution stored, ExecutionEntry entry)
@@ -840,36 +898,28 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		return next.withResult(_catalog.render("execution.expired", next.style(), null), "execution.expired");
 	}
 
-	private ExpiryOutcome expireOwnedGoal(StoredExecution stored, ExecutionEntry expired)
+	private StoredExecution expireOwnedGoal(StoredExecution stored, ExecutionEntry expired)
 	{
 		if ((expired.goalId() == 0) || (expired.actionState() != ActionState.EXPIRED))
 		{
-			return ExpiryOutcome.NOT_OWNED;
+			return save(stored, expired);
 		}
 		if (remainingBudget() < 2)
 		{
-			return ExpiryOutcome.BUDGET;
+			return stored;
 		}
 		spend(Phase.GOAL_OBSERVE, stored.profileId());
 		final StoredGoal current = _goals.load(stored.profileId()).orElse(null);
-		if ((current == null) || (current.goal().status() != PhantomGoalStatus.ACTIVE) || (current.goal().revision() != expired.goalRevision()) || !owned(expired, current.goal()))
-		{
-			return ExpiryOutcome.NOT_OWNED;
-		}
 		spend(Phase.TERMINAL_STORE, stored.profileId());
-		final long replayFloor = Math.max(0, now() - _catalog.limits().replayHorizonMinutes());
-		ExecutionState next = stored.state().pruneReceipts(replayFloor).replace(expired);
-		final boolean compacted = expired.terminal() && (next.receipts().size() < PhantomConversationExecutionModel.MAX_RECEIPTS);
-		if (compacted)
+		if ((current != null) && owned(expired, current.goal()))
 		{
-			next = next.compact(expired.planId());
+			if ((current.goal().status() == PhantomGoalStatus.ACTIVE) && (current.goal().revision() == expired.goalRevision()))
+			{
+				return abandonOwnedGoal(stored, expired, current);
+			}
+			expired = expired.withAction(ActionState.EXPIRED, current.goal().goalId(), current.goal().revision(), expired.reasonKey(), now());
 		}
-		_store.mutateGoal(stored.profileId(), stored.rowVersion(), next, _goals, current.rowVersion(), current.goal().withStatus(PhantomGoalStatus.ABANDONED));
-		if (compacted)
-		{
-			_terminalReceipts.increment();
-		}
-		return compacted ? ExpiryOutcome.MUTATED : ExpiryOutcome.CAPACITY;
+		return save(stored, expired);
 	}
 
 	private Optional<PendingInvitation> exactInvitation(long profileId, ExecutionEntry entry)
@@ -1040,13 +1090,17 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		{
 			return 0;
 		}
-		if (entry.terminal() && (liveReceipts < PhantomConversationExecutionModel.MAX_RECEIPTS))
+		if (entry.terminal() && !needsTerminalSynchronization(entry) && (liveReceipts < PhantomConversationExecutionModel.MAX_RECEIPTS))
 		{
 			return 1;
 		}
 		if (entry.actionState() == ActionState.PREPARED)
 		{
 			return 2;
+		}
+		if (needsTerminalSynchronization(entry))
+		{
+			return 4;
 		}
 		if (entry.outboundState() == OutboundState.PREPARED)
 		{
@@ -1084,13 +1138,5 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 
 	private record FinalStoreResult(StoredExecution stored, boolean compacted)
 	{
-	}
-
-	private enum ExpiryOutcome
-	{
-		NOT_OWNED,
-		MUTATED,
-		CAPACITY,
-		BUDGET
 	}
 }

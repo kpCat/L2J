@@ -432,6 +432,7 @@ public final class PhantomTestLauncher
 			case "clan-roles-goal027cp1" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.ROLES);
 			case "clan-treasury-goal027cp1" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.TREASURY);
 			case "clan-chat-decision-goal027cp1" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.CHAT_DECISION);
+			case "natural-clan-chat-goal030cp2" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.NATURAL_CHAT_030CP2);
 			case "clan-consent-chat-goal027a" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.CONSENT_CHAT_027A);
 			case "clan-expired-replay-goal027b" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.EXPIRY_REPLAY_027B);
 			case "clan-social-domain-goal027c" -> new ClanSocialDomainGoal027CSuite();

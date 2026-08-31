@@ -696,6 +696,21 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 
 	private void runtimeSyncGoal030Cp2(PhantomTestRegistry registry)
 	{
+		registry.add("04-terminal-busy-unavailable-restart-exact", context ->
+		{
+			for (String route : List.of("missing", "reject", "expire"))
+			{
+				terminalRuntimeSync(context, route, false);
+			}
+		});
+		registry.add("05-terminal-sync-failure-is-uncertain", context ->
+		{
+			for (String route : List.of("missing", "reject", "expire"))
+			{
+				terminalRuntimeSync(context, route, true);
+			}
+		});
+		registry.add("06-goal-payload-profile-reopen", this::payloadProfileReopen);
 		registry.add("01-external-goal-mutation-syncs-attached-runtime", context ->
 		{
 			final PhantomProfile profile = profile();
@@ -819,6 +834,123 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			context.record("goal030cp2.query.outbound", port.dispatchCalls.get());
 			stop(service);
 		});
+	}
+
+	private void payloadProfileReopen(PhantomTestContext context)
+	{
+		final PhantomProfile profile = profile();
+		_repository.insertComponent(profile.profileId(), PhantomGoalStateStore.COMPONENT_TYPE, 1, java.util.HexFormat.of().parseHex(PhantomClanGoal027Checkpoint1Suite.LEGACY_CHAT_HEX));
+		final PhantomGoalStateStore reopened = new PhantomGoalStateStore(PhantomProfileRepository.open());
+		final StoredGoal legacy = reopened.load(profile.profileId()).orElseThrow();
+		PhantomAssertions.assertTrue(legacy.goal().payloadText() == null, "Stored legacy v1 did not reopen.");
+		final String text = "Собираемся у склада, через пять минут идём на рейд. Проверьте припасы и ждите приглашения!";
+		final PhantomGoal goal = new PhantomGoal(70, "clan.chat", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profile.profileId())), new PhantomDomainRef("clan.id", "42"), 1, 0, null, List.of(), null, "clan.organization", 700, 0, 0, 9_000_000, Map.of("text", (long) text.codePointCount(0, text.length())), "clan.test", 1, text);
+		reopened.replace(profile.profileId(), legacy.rowVersion(), goal);
+		final PhantomGoalStateStore restarted = new PhantomGoalStateStore(PhantomProfileRepository.open());
+		PhantomAssertions.assertEquals(goal, restarted.load(profile.profileId()).orElseThrow().goal(), "Profile store reopen lost exact v2 payload.");
+		final var component = _repository.findComponent(profile.profileId(), PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
+		PhantomAssertions.assertEquals(1, component.componentSchemaVersion(), "Outer component schema changed.");
+		PhantomAssertions.assertTrue(component.payload().length <= 4096, "Component payload exceeded storage cap.");
+		final PhantomConversationExecutionStore executionStore = store();
+		final ConversationResponsePlan plan = plan(profile.profileId(), 92_001, "party.invite", new PhantomDomainRef("character.object", "777"), List.of());
+		executionStore.handoff(profile.profileId(), -1, conversationState(100), ExecutionEntry.prepared(plan));
+		final MemoryPort port = new MemoryPort();
+		port.allowSupersession = true;
+		port.goalPayloadText = text;
+		final PhantomConversationExecutionService service = service(executionStore, port, 101);
+		service.publish(plan);
+		drive(service, 8);
+		PhantomAssertions.assertEquals(text, _goals.load(profile.profileId()).orElseThrow().goal().payloadText(), "Conversation withRevision copy lost generic payload.");
+		PhantomAssertions.assertEquals(2L, _goals.load(profile.profileId()).orElseThrow().goal().revision(), "Payload copy did not exercise supersession revision helper.");
+		stop(service);
+		context.record("goal030cp2.chat.profileReopen", "legacy v1 -> exact Russian v2; outer schema 1; <=4096 bytes");
+	}
+
+	private void terminalRuntimeSync(PhantomTestContext context, String route, boolean failed)
+	{
+		final PhantomProfile profile = profile();
+		final PhantomConversationExecutionStore store = store();
+		final boolean expiry = route.equals("expire");
+		final ConversationResponsePlan plan = plan(profile.profileId(), 91_001, expiry ? "party.invite" : "party.accept", expiry ? new PhantomDomainRef("character.object", "777") : null, List.of());
+		final ExecutionEntry prepared = ExecutionEntry.prepared(plan);
+		store.handoff(profile.profileId(), -1, conversationState(100), prepared);
+		final MemoryPort port = new MemoryPort();
+		port.pending = new PendingInvitation(41, 777, 888, "Speaker", new PhantomDomainRef("character.object", "777"));
+		final PhantomConversationExecutionService submitter = service(store, port, 101);
+		submitter.publish(plan);
+		for (int pulse = 0; (pulse < 8) && (port.goalPreparations.get() == 0); pulse++)
+		{
+			submitter.onPulse();
+		}
+		stop(submitter);
+		final StoredGoal active = _goals.load(profile.profileId()).orElseThrow();
+		PhantomAssertions.assertEquals(ActionState.SUBMITTED, store.load(profile.profileId()).orElseThrow().state().entry(prepared.planId()).actionState(), "Terminal fixture did not submit.");
+		port.pending = route.equals("reject") ? port.pending : null;
+		port.response = ResultStatus.REJECTED;
+		port.reconciliation = ResultStatus.REJECTED;
+		final PhantomDecisionEngine engine = runtimeSyncEngine(_goals, new AtomicInteger());
+		PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(profile.profileId()), "Terminal fixture runtime did not attach.");
+		final AtomicReference<SyncStatus> result = new AtomicReference<>(failed ? SyncStatus.FAILED : SyncStatus.BUSY);
+		final AtomicInteger syncCalls = new AtomicInteger();
+		final PhantomConversationGoalRuntimePort blocked = (profileId, goalId, revision) ->
+		{
+			syncCalls.incrementAndGet();
+			PhantomAssertions.assertEquals(active.goal().goalId(), goalId, "Terminal sync changed identity.");
+			PhantomAssertions.assertEquals(active.goal().revision() + 1, revision, "Terminal sync used the old revision.");
+			return result.get();
+		};
+		final long minute = expiry ? 500 : 101;
+		final PhantomConversationExecutionService terminal = new PhantomConversationExecutionService(_catalog, store, _goals, port, blocked, () -> minute, PhantomConversationExecutionService.PhaseObserver.NONE);
+		PhantomAssertions.assertTrue(terminal.start(), "Terminal service did not start.");
+		drive(terminal, 8);
+		final StoredGoal abandoned = _goals.load(profile.profileId()).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomGoalStatus.ABANDONED, abandoned.goal().status(), "Terminal route did not abandon its owned goal.");
+		PhantomAssertions.assertTrue(syncCalls.get() > 0, "Terminal route never called runtime sync.");
+		if (failed)
+		{
+			final ExecutionReceipt receipt = store.load(profile.profileId()).orElseThrow().state().receipts().getFirst();
+			PhantomAssertions.assertEquals(ActionState.UNCERTAIN, receipt.actionState(), "FAILED sync was reported as a safe terminal result.");
+		}
+		else
+		{
+			final var pending = store.load(profile.profileId()).orElseThrow();
+			PhantomAssertions.assertTrue(pending.state().receipts().isEmpty(), "BUSY terminal was compacted before runtime sync.");
+			PhantomAssertions.assertEquals(abandoned.goal().revision(), pending.state().entry(prepared.planId()).goalRevision(), "Durable terminal entry lost exact revision.");
+			final int responses = port.partyResponses.get();
+			result.set(SyncStatus.UNAVAILABLE);
+			drive(terminal, 12);
+			PhantomAssertions.assertEquals(pending.rowVersion(), store.load(profile.profileId()).orElseThrow().rowVersion(), "Retry rewrote the same durable execution.");
+			PhantomAssertions.assertEquals(abandoned.rowVersion(), _goals.load(profile.profileId()).orElseThrow().rowVersion(), "Retry mutated the goal twice.");
+			PhantomAssertions.assertEquals(responses, port.partyResponses.get(), "Retry repeated the Party mutation.");
+			if (route.equals("missing"))
+			{
+				final ConversationResponsePlan queryPlan = planAt(profile.profileId(), 91_002, "item.source", null, List.of(SlotValue.domain(SlotType.ITEM, new PhantomDomainRef("item", "57"), -1, -1)), minute);
+				final var beforeQuery = store.load(profile.profileId()).orElseThrow();
+				store.save(profile.profileId(), beforeQuery.rowVersion(), beforeQuery.state().add(ExecutionEntry.prepared(queryPlan)));
+				terminal.publish(queryPlan);
+				drive(terminal, 16);
+				PhantomAssertions.assertEquals(1, port.queryCalls.get(), "Terminal sync retry starved a newer QUERY.");
+				PhantomAssertions.assertTrue(store.load(profile.profileId()).orElseThrow().state().entry(prepared.planId()) != null, "QUERY compacted unsynchronized terminal goal.");
+			}
+			stop(terminal);
+			final PhantomConversationExecutionService restarted = new PhantomConversationExecutionService(_catalog, store(), _goals, port, PhantomConversationGoalRuntimePort.decisionEngine(engine), () -> minute, PhantomConversationExecutionService.PhaseObserver.NONE);
+			PhantomAssertions.assertTrue(restarted.start(), "Terminal restart failed.");
+			drive(restarted, 16);
+			final var runtime = engine.find(profile.profileId()).orElseThrow();
+			PhantomAssertions.assertEquals(abandoned.goal().revision(), runtime.goalRevision(), "Restart did not synchronize the exact terminal revision.");
+			PhantomAssertions.assertEquals(PhantomGoalStatus.ABANDONED, runtime.goalStatus(), "Runtime remained active after terminal sync.");
+			final var completed = store.load(profile.profileId()).orElseThrow().state();
+			PhantomAssertions.assertTrue(completed.entries().isEmpty(), "Synchronized terminal was not compacted.");
+			PhantomAssertions.assertEquals(1L, completed.receipts().stream().filter(receipt -> receipt.planId().equals(prepared.planId())).count(), "Terminal replay duplicated its receipt.");
+			restarted.publish(plan);
+			drive(restarted, 4);
+			PhantomAssertions.assertEquals(abandoned.rowVersion(), _goals.load(profile.profileId()).orElseThrow().rowVersion(), "Terminal replay changed durable Goal.");
+			PhantomAssertions.assertEquals(expiry ? 0 : route.equals("missing") ? 2 : 1, port.dispatchCalls.get(), "Terminal replay spammed outbound text.");
+			stop(restarted);
+		}
+		context.record("goal030cp2.terminal." + route + (failed ? ".failed" : ".restart"), "exact revision; no duplicate mutation; " + (failed ? "UNCERTAIN" : "BUSY/UNAVAILABLE retained; synchronized before compact"));
+		stop(terminal);
+		stop(engine);
 	}
 
 	private static PhantomDecisionEngine runtimeSyncEngine(PhantomGoalStore goals, AtomicInteger handlerCalls)
@@ -1168,7 +1300,9 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		private ExecutionEntry lastPreparedEntry;
 		private PendingInvitation lastResponseInvitation;
 		private ResultStatus reconciliation = ResultStatus.UNCERTAIN;
+		private ResultStatus response = ResultStatus.COMPLETED;
 		private boolean allowSupersession;
+		private String goalPayloadText;
 		private boolean throwAfterResponse;
 		private boolean accepted;
 
@@ -1196,7 +1330,7 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 				constraints.put("party.invitee", (long) entry.invitationBinding().inviteeObjectId());
 			}
 			final String type = entry.proposalKey().equals("party.accept") ? "party.join" : entry.proposalKey().equals("party.invite") ? "party.form" : entry.proposalKey();
-			final PhantomGoal goal = new PhantomGoal(goalId, type, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("party", "general"), entry.target(), 1, 0, null, List.of(), null, "conversation.action", 700, 0, 0, (nowMinute + 120) * 60000L, constraints, "conversation." + entry.proposalKey(), 0);
+			final PhantomGoal goal = new PhantomGoal(goalId, type, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("party", "general"), entry.target(), 1, 0, null, List.of(), null, "conversation.action", 700, 0, 0, (nowMinute + 120) * 60000L, constraints, "conversation." + entry.proposalKey(), 0, goalPayloadText);
 			return new GoalPreparation(ResultStatus.COMPLETED, goal);
 		}
 
@@ -1223,7 +1357,7 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			{
 				throw new IllegalStateException("Injected post-response failure.");
 			}
-			return ResultStatus.COMPLETED;
+			return response;
 		}
 
 		@Override

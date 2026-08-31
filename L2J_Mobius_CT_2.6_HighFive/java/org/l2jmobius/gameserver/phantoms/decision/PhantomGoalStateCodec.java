@@ -45,6 +45,11 @@ public final class PhantomGoalStateCodec
 
 	public byte[] encode(PhantomGoal goal)
 	{
+		return encode(goal, PhantomGoal.SCHEMA_VERSION);
+	}
+
+	private byte[] encode(PhantomGoal goal, int schemaVersion)
+	{
 		try
 		{
 			final ByteArrayOutputStream bytes = new ByteArrayOutputStream(384);
@@ -52,7 +57,7 @@ public final class PhantomGoalStateCodec
 			{
 				output.writeInt(MAGIC);
 				output.writeShort(FORMAT_VERSION);
-				output.writeShort(PhantomGoal.SCHEMA_VERSION);
+				output.writeShort(schemaVersion);
 				output.writeLong(goal.goalId());
 				output.writeLong(goal.revision());
 				output.writeByte(statusCode(goal.status()));
@@ -80,6 +85,10 @@ public final class PhantomGoalStateCodec
 					output.writeLong(constraint.getValue());
 				}
 				writeString(output, goal.reasonKey(), MAX_KEY_BYTES);
+				if (schemaVersion >= 2)
+				{
+					writeOptionalString(output, goal.payloadText(), PhantomGoal.MAX_PAYLOAD_UTF8_BYTES);
+				}
 			}
 			final byte[] payload = bytes.toByteArray();
 			if (payload.length > PhantomProfileComponent.MAX_PAYLOAD_BYTES)
@@ -117,7 +126,8 @@ public final class PhantomGoalStateCodec
 				{
 					throw new IllegalArgumentException("Unknown goal.runtime binary format version.");
 				}
-				if (input.readUnsignedShort() != PhantomGoal.SCHEMA_VERSION)
+				final int schemaVersion = input.readUnsignedShort();
+				if ((schemaVersion != 1) && (schemaVersion != PhantomGoal.SCHEMA_VERSION))
 				{
 					throw new IllegalArgumentException("Unknown goal schema version.");
 				}
@@ -161,12 +171,13 @@ public final class PhantomGoalStateCodec
 					}
 				}
 				final String reasonKey = readString(input, bytes, MAX_KEY_BYTES);
+				final String payloadText = schemaVersion >= 2 ? readOptionalString(input, bytes, PhantomGoal.MAX_PAYLOAD_UTF8_BYTES) : null;
 				if (bytes.available() != 0)
 				{
 					throw new IllegalArgumentException("Trailing bytes after goal.runtime payload.");
 				}
-				final PhantomGoal goal = new PhantomGoal(goalId, goalType, status, subject, target, requiredAmount, currentAmount, acquisitionMethod, validSources, selectedAnchor, purposeKey, priority, riskBudget, expenseBudget, deadlineEpochMillis, constraints, reasonKey, revision);
-				if (!Arrays.equals(payload, encode(goal)))
+				final PhantomGoal goal = new PhantomGoal(goalId, goalType, status, subject, target, requiredAmount, currentAmount, acquisitionMethod, validSources, selectedAnchor, purposeKey, priority, riskBudget, expenseBudget, deadlineEpochMillis, constraints, reasonKey, revision, payloadText);
+				if (!Arrays.equals(payload, encode(goal, schemaVersion)))
 				{
 					throw new IllegalArgumentException("Non-canonical goal.runtime payload.");
 				}

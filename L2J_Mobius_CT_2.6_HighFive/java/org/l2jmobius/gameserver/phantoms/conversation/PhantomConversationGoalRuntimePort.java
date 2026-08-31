@@ -19,9 +19,9 @@ public interface PhantomConversationGoalRuntimePort
 		FAILED
 	}
 
-	PhantomConversationGoalRuntimePort NOOP = (profileId, goalId, minimumRevision) -> SyncStatus.SYNCHRONIZED;
+	PhantomConversationGoalRuntimePort NOOP = (profileId, goalId, exactRevision) -> SyncStatus.SYNCHRONIZED;
 
-	SyncStatus synchronize(long profileId, long goalId, long minimumRevision);
+	SyncStatus synchronize(long profileId, long goalId, long exactRevision);
 
 	static Bridge bridge()
 	{
@@ -31,10 +31,10 @@ public interface PhantomConversationGoalRuntimePort
 	static PhantomConversationGoalRuntimePort decisionEngine(PhantomDecisionEngine engine)
 	{
 		Objects.requireNonNull(engine);
-		return (profileId, goalId, minimumRevision) ->
+		return (profileId, goalId, exactRevision) ->
 		{
 			final PhantomDecisionEngine.RuntimeSnapshot current = engine.find(profileId).orElse(null);
-			if ((current != null) && (current.goalId() == goalId) && (current.goalRevision() >= minimumRevision))
+			if ((current != null) && (current.goalId() == goalId) && (current.goalRevision() == exactRevision))
 			{
 				return SyncStatus.SYNCHRONIZED;
 			}
@@ -43,7 +43,7 @@ public interface PhantomConversationGoalRuntimePort
 				case RELOADED ->
 				{
 					final PhantomDecisionEngine.RuntimeSnapshot reloaded = engine.find(profileId).orElse(null);
-					yield (reloaded != null) && (reloaded.goalId() == goalId) && (reloaded.goalRevision() >= minimumRevision) ? SyncStatus.SYNCHRONIZED : SyncStatus.FAILED;
+					yield (reloaded != null) && (reloaded.goalId() == goalId) && (reloaded.goalRevision() == exactRevision) ? SyncStatus.SYNCHRONIZED : SyncStatus.FAILED;
 				}
 				case BUSY -> SyncStatus.BUSY;
 				case REJECTED, NOT_RUNNING -> SyncStatus.UNAVAILABLE;
@@ -66,14 +66,14 @@ public interface PhantomConversationGoalRuntimePort
 		}
 
 		@Override
-		public SyncStatus synchronize(long profileId, long goalId, long minimumRevision)
+		public SyncStatus synchronize(long profileId, long goalId, long exactRevision)
 		{
 			final PhantomConversationGoalRuntimePort delegate;
 			synchronized (this)
 			{
 				delegate = _delegate;
 			}
-			return delegate == null ? SyncStatus.UNAVAILABLE : Objects.requireNonNull(delegate.synchronize(profileId, goalId, minimumRevision));
+			return delegate == null ? SyncStatus.UNAVAILABLE : Objects.requireNonNull(delegate.synchronize(profileId, goalId, exactRevision));
 		}
 	}
 }

@@ -4,6 +4,8 @@
 package org.l2jmobius.tests.phantoms;
 
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,7 @@ import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.WithdrawalOutco
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomPlan;
@@ -54,6 +57,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		TREASURY,
 		CHAT_DECISION,
 		CONSENT_CHAT_027A,
+		NATURAL_CHAT_030CP2,
 		EXPIRY_REPLAY_027B
 	}
 
@@ -71,13 +75,13 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 	@Override
 	public String id()
 	{
-		return "clan-goal027cp1-" + _mode.name().toLowerCase();
+		return _mode == Mode.NATURAL_CHAT_030CP2 ? "natural-clan-chat-goal030cp2" : "clan-goal027cp1-" + _mode.name().toLowerCase();
 	}
 
 	@Override
 	public void beforeAll(PhantomTestContext context)
 	{
-		final long expectedSeed = _mode == Mode.EXPIRY_REPLAY_027B ? EXPIRY_REPLAY_SEED : _mode == Mode.CONSENT_CHAT_027A ? CORRECTIVE_SEED : SEED;
+		final long expectedSeed = _mode == Mode.NATURAL_CHAT_030CP2 ? 30003025L : _mode == Mode.EXPIRY_REPLAY_027B ? EXPIRY_REPLAY_SEED : _mode == Mode.CONSENT_CHAT_027A ? CORRECTIVE_SEED : SEED;
 		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Goal 027 clan suite used the wrong seed.");
 	}
 
@@ -100,6 +104,12 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 				registry.add("01-exact-consent-cleanup-lifecycle", this::consentCorrections);
 				registry.add("02-explicit-clan-chat-decision", this::chatCorrections);
 			}
+			case NATURAL_CHAT_030CP2 ->
+			{
+				registry.add("01-legacy-v1-and-exact-v2-codec", this::naturalCodec);
+				registry.add("02-bounded-unicode-and-key-safety", this::naturalBounds);
+				registry.add("03-natural-and-legacy-chat-no-spam", this::naturalDispatch);
+			}
 			case EXPIRY_REPLAY_027B ->
 			{
 				registry.add("01-first-touch-expiry-terminal-replay", this::expiredReplayWithInvitation);
@@ -108,6 +118,76 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 				registry.add("04-real-invitation-remains-manual", this::realInvitationRemainsManual);
 			}
 		}
+	}
+
+	private static final String NATURAL_TEXT = "Собираемся у склада, через пять минут идём на рейд. Проверьте припасы и ждите приглашения!";
+	static final String LEGACY_CHAT_HEX = "504757310001000100000000000000460000000000000000010009636c616e2e6368617401000770726f66696c65000131010007636c616e2e69640002343200000000000000010000000000000000010015617373656d626c652d61742d77617265686f75736500000011636c616e2e6f7267616e697a6174696f6e02bc000000000000000000000000000000000000000000018a880100047465787400000000000000150009636c616e2e74657374";
+
+	private static PhantomGoal naturalGoal(String text)
+	{
+		return new PhantomGoal(70, PhantomClanService.CHAT_GOAL, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "1"), new PhantomDomainRef("clan.id", "42"), 1, 0, null, List.of(), null, "clan.organization", 700, 0, 0, NOW + 100_000, Map.of("text", (long) text.codePointCount(0, text.length())), "clan.test", 0, text);
+	}
+
+	private void naturalCodec(PhantomTestContext context)
+	{
+		final PhantomGoalStateCodec codec = new PhantomGoalStateCodec();
+		final byte[] legacy = HexFormat.of().parseHex(LEGACY_CHAT_HEX);
+		final PhantomGoal decoded = codec.decode(legacy);
+		PhantomAssertions.assertTrue(decoded.payloadText() == null, "Legacy v1 acquired an invented payload.");
+		PhantomAssertions.assertEquals("assemble-at-warehouse", decoded.acquisitionMethod(), "Legacy text changed.");
+		final PhantomGoal natural = naturalGoal(NATURAL_TEXT);
+		final byte[] encoded = codec.encode(natural);
+		PhantomAssertions.assertEquals(2, (int) encoded[7], "New writes did not use inner schema v2.");
+		PhantomAssertions.assertEquals(natural, codec.decode(encoded), "v2 did not preserve exact Russian payload.");
+		PhantomAssertions.assertEquals(NATURAL_TEXT, natural.withStatus(PhantomGoalStatus.COMPLETED).payloadText(), "Status copy lost payload.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> codec.decode(Arrays.copyOf(encoded, encoded.length + 1)), "v2 accepted trailing bytes.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> codec.decode(Arrays.copyOf(legacy, legacy.length + 1)), "v1 accepted trailing bytes.");
+		final byte[] malformed = encoded.clone();
+		malformed[malformed.length - 1] = (byte) 0xff;
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> codec.decode(malformed), "Malformed UTF-8 was accepted.");
+		final byte[] noncanonical = legacy.clone();
+		noncanonical[36] = 2;
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> codec.decode(noncanonical), "Noncanonical legacy boolean was accepted.");
+		context.record("goal030cp2.chat.innerSchemas", "v1-read/v2-write; exact payload; outer unchanged");
+	}
+
+	private void naturalBounds(PhantomTestContext context)
+	{
+		PhantomAssertions.assertTrue(NATURAL_TEXT.length() > 64, "Natural fixture does not exceed old key cap.");
+		final String supplementary = new String(Character.toChars(0x1f600)).repeat(105);
+		PhantomAssertions.assertEquals(supplementary, new PhantomGoalStateCodec().decode(new PhantomGoalStateCodec().encode(naturalGoal(supplementary))).payloadText(), "105 code points / 420 bytes did not round-trip.");
+		for (String invalid : List.of("я".repeat(106), " ", "строка\nстрока", String.valueOf((char) 0xd800), String.valueOf((char) 0xdc00)))
+		{
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> naturalGoal(invalid), "Invalid payload was accepted.");
+		}
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> goal(1, 71, "acquire.item", null, "обычный метод", List.of(), 1, 0, 0), "Acquisition method stopped being key-only.");
+		context.record("goal030cp2.chat.bounds", "105 code points / 420 bytes; invalid Unicode rejected; DecisionKey unchanged");
+	}
+
+	private void naturalDispatch(PhantomTestContext context)
+	{
+		for (PhantomGoal chat : List.of(naturalGoal(NATURAL_TEXT), new PhantomGoalStateCodec().decode(HexFormat.of().parseHex(LEGACY_CHAT_HEX)), naturalGoal(new String(Character.toChars(0x1f600)).repeat(105))))
+		{
+			final Fixture fixture = new Fixture();
+			fixture.backend.addPhantom(1, 100);
+			fixture.backend.putClan(100, 100);
+			fixture.goals.put(1, chat);
+			final PhantomClanService service = fixture.service();
+			PhantomAssertions.assertEquals(OperationStatus.COMPLETE, service.advance(1, 70, 0).status(), "Natural/legacy clan chat did not complete.");
+			PhantomAssertions.assertEquals(OperationStatus.COMPLETE, service.advance(1, 70, 0).status(), "Terminal chat receipt did not replay.");
+			final String expected = chat.payloadText() == null ? chat.acquisitionMethod() : chat.payloadText();
+			PhantomAssertions.assertEquals(expected, fixture.backend.lastChatText, "Backend did not receive exact text.");
+			PhantomAssertions.assertEquals(ChatOutcome.DELIVERED, service.postClanChat(1, 70, 0, expected).outcome(), "Exact post replay failed.");
+			for (String invalid : List.of("я".repeat(106), String.valueOf((char) 0xd800), "две\nстроки"))
+			{
+				PhantomAssertions.assertEquals(ChatOutcome.REJECTED, service.postClanChat(1, 70, 0, invalid).outcome(), "Invalid direct text was dispatched.");
+			}
+			PhantomAssertions.assertEquals(1, fixture.backend.chatCalls, "Replay/invalid payload spammed clan chat.");
+			service.beginStop();
+			PhantomAssertions.assertTrue(service.finishStop(), "Natural chat service did not stop.");
+		}
+		context.record("goal030cp2.chat.exactText", NATURAL_TEXT);
+		context.record("goal030cp2.chat.dispatch", "exact Russian >64; legacy v1; 105 supplementary; once each");
 	}
 
 	private void creationRestart(PhantomTestContext context)

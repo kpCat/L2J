@@ -20,17 +20,25 @@
  */
 package org.l2jmobius.gameserver.phantoms.decision;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
-public record PhantomGoal(long goalId, String goalType, PhantomGoalStatus status, PhantomDomainRef subject, PhantomDomainRef target, long requiredAmount, long currentAmount, String acquisitionMethod, List<PhantomDomainRef> validSources, PhantomDomainRef selectedAnchor, String purposeKey, int priority, long riskBudget, long expenseBudget, long deadlineEpochMillis, Map<String, Long> constraints, String reasonKey, long revision)
+public record PhantomGoal(long goalId, String goalType, PhantomGoalStatus status, PhantomDomainRef subject, PhantomDomainRef target, long requiredAmount, long currentAmount, String acquisitionMethod, List<PhantomDomainRef> validSources, PhantomDomainRef selectedAnchor, String purposeKey, int priority, long riskBudget, long expenseBudget, long deadlineEpochMillis, Map<String, Long> constraints, String reasonKey, long revision, String payloadText)
 {
-	public static final int SCHEMA_VERSION = 1;
+	public static final int SCHEMA_VERSION = 2;
+	public static final int MAX_PAYLOAD_CODE_POINTS = 105;
+	public static final int MAX_PAYLOAD_UTF8_BYTES = 420;
 	public static final int MAX_VALID_SOURCES = 16;
 	public static final int MAX_CONSTRAINTS = 16;
+
+	public PhantomGoal(long goalId, String goalType, PhantomGoalStatus status, PhantomDomainRef subject, PhantomDomainRef target, long requiredAmount, long currentAmount, String acquisitionMethod, List<PhantomDomainRef> validSources, PhantomDomainRef selectedAnchor, String purposeKey, int priority, long riskBudget, long expenseBudget, long deadlineEpochMillis, Map<String, Long> constraints, String reasonKey, long revision)
+	{
+		this(goalId, goalType, status, subject, target, requiredAmount, currentAmount, acquisitionMethod, validSources, selectedAnchor, purposeKey, priority, riskBudget, expenseBudget, deadlineEpochMillis, constraints, reasonKey, revision, null);
+	}
 
 	public PhantomGoal
 	{
@@ -45,6 +53,10 @@ public record PhantomGoal(long goalId, String goalType, PhantomGoalStatus status
 			throw new IllegalArgumentException("Goal amounts must satisfy 0 <= current <= required.");
 		}
 		acquisitionMethod = acquisitionMethod == null ? null : PhantomDecisionKey.require(acquisitionMethod, "Acquisition method");
+		if ((payloadText != null) && !validPayloadText(payloadText))
+		{
+			throw new IllegalArgumentException("Goal payload must be valid single-line UTF-8 text within 105 code points and 420 bytes.");
+		}
 		if (validSources == null)
 		{
 			throw new NullPointerException("Valid sources must not be null.");
@@ -90,8 +102,15 @@ public record PhantomGoal(long goalId, String goalType, PhantomGoalStatus status
 		}
 	}
 
+	public static boolean validPayloadText(String text)
+	{
+		return (text != null) && !text.isBlank() && (text.codePointCount(0, text.length()) <= MAX_PAYLOAD_CODE_POINTS)
+			&& text.codePoints().noneMatch(codePoint -> ((codePoint >= Character.MIN_SURROGATE) && (codePoint <= Character.MAX_SURROGATE)) || Character.isISOControl(codePoint) || (codePoint == 0x2028) || (codePoint == 0x2029))
+			&& (text.getBytes(StandardCharsets.UTF_8).length <= MAX_PAYLOAD_UTF8_BYTES);
+	}
+
 	public PhantomGoal withStatus(PhantomGoalStatus replacementStatus)
 	{
-		return new PhantomGoal(goalId, goalType, replacementStatus, subject, target, requiredAmount, currentAmount, acquisitionMethod, validSources, selectedAnchor, purposeKey, priority, riskBudget, expenseBudget, deadlineEpochMillis, constraints, reasonKey, Math.addExact(revision, 1));
+		return new PhantomGoal(goalId, goalType, replacementStatus, subject, target, requiredAmount, currentAmount, acquisitionMethod, validSources, selectedAnchor, purposeKey, priority, riskBudget, expenseBudget, deadlineEpochMillis, constraints, reasonKey, Math.addExact(revision, 1), payloadText);
 	}
 }

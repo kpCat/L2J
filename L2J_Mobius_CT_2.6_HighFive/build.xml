@@ -348,6 +348,14 @@
 			<arg value="${phantom.goal030cp2c.seed}" />
 		</java>
 	</target>
+	<target name="phantom-natural-clan-chat-goal030cp2-test" depends="compile-tests" description="Run Goal030 CP2 natural clan chat and legacy/v2 goal codec contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="natural-clan-chat-goal030cp2" />
+			<arg value="30003025" />
+		</java>
+	</target>
 	<target name="phantom-conversation-decision-runtime-sync-goal030cp2-test" depends="compile-tests" description="Run Goal 030 CP2 Conversation durable-to-Decision runtime synchronization regressions.">
 		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
 		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />

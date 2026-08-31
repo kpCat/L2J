@@ -558,7 +558,7 @@ public final class PhantomClanService
 
 	public synchronized ChatResult postClanChat(long profileId, long goalId, long goalRevision, String text)
 	{
-		if ((_state != State.RUNNING) || (text == null) || text.isBlank() || (text.length() > MAX_CHAT_TEXT))
+		if ((_state != State.RUNNING) || !PhantomGoal.validPayloadText(text))
 		{
 			return new ChatResult(ChatOutcome.REJECTED, 0);
 		}
@@ -771,7 +771,7 @@ public final class PhantomClanService
 	private AdvanceResult advanceChat(Operation operation)
 	{
 		final PhantomGoal goal = operation._goal;
-		final String text = goal.acquisitionMethod();
+		final String text = chatText(goal);
 		if (!validChatContract(goal, text))
 		{
 			return terminalize(operation, OperationStatus.FAILED, "clan.chat.contract", null);
@@ -1759,7 +1759,12 @@ public final class PhantomClanService
 
 	private static boolean validChatContract(PhantomGoal goal, String text)
 	{
-		return (goal.target() != null) && SetTarget.valid(goal.target()) && goal.validSources().isEmpty() && (goal.constraints().size() == 1) && (text != null) && !text.isBlank() && (text.length() <= MAX_CHAT_TEXT) && Objects.equals(goal.constraints().get(CHAT_TEXT_CONSTRAINT), (long) text.length()) && Objects.equals(goal.acquisitionMethod(), text);
+		return (goal.target() != null) && SetTarget.valid(goal.target()) && goal.validSources().isEmpty() && (goal.constraints().size() == 1) && PhantomGoal.validPayloadText(text) && (text.codePointCount(0, text.length()) <= MAX_CHAT_TEXT) && Objects.equals(goal.constraints().get(CHAT_TEXT_CONSTRAINT), (long) text.codePointCount(0, text.length())) && Objects.equals(chatText(goal), text);
+	}
+
+	private static String chatText(PhantomGoal goal)
+	{
+		return goal.payloadText() == null ? goal.acquisitionMethod() : goal.payloadText();
 	}
 
 	private static boolean validCommon(long profileId, PhantomGoal goal, long now)
