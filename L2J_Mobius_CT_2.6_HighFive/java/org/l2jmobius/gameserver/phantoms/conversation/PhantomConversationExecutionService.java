@@ -687,7 +687,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		{
 			return abandonOwnedGoal(stored, rejected, current);
 		}
-		return save(stored, (current != null) && owned(entry, current.goal()) ? rejected.withAction(ActionState.REJECTED, current.goal().goalId(), current.goal().revision(), reason, now()) : rejected);
+		return save(stored, (current != null) && owned(entry, current.goal()) ? rejected.withGoalRevision(current.goal().revision()) : rejected);
 	}
 
 	private StoredExecution submitGoal(StoredExecution stored, ExecutionEntry entry)
@@ -770,7 +770,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 		if (status == SyncStatus.FAILED)
 		{
 			_failures.increment();
-			stored = failGoalSynchronization(stored, entry);
+			stored = failTerminalGoalSynchronization(stored, entry);
 			entry = stored.state().entry(entry.planId());
 		}
 		if (entry.outboundState() == OutboundState.DISPATCHING)
@@ -789,8 +789,15 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 	private StoredExecution abandonOwnedGoal(StoredExecution stored, ExecutionEntry terminal, StoredGoal current)
 	{
 		final PhantomGoal abandoned = current.goal().withStatus(PhantomGoalStatus.ABANDONED);
-		final ExecutionEntry pending = terminal.withAction(terminal.actionState(), abandoned.goalId(), abandoned.revision(), terminal.reasonKey(), now());
+		final ExecutionEntry pending = terminal.withGoalRevision(abandoned.revision());
 		return _store.mutateGoal(stored.profileId(), stored.rowVersion(), stored.state().replace(pending), _goals, current.rowVersion(), abandoned).execution();
+	}
+
+	private StoredExecution failTerminalGoalSynchronization(StoredExecution stored, ExecutionEntry entry)
+	{
+		_uncertain.increment();
+		final ExecutionEntry uncertain = entry.withResult(_catalog.render("execution.failed", entry.style(), null), "execution.failed").withTerminalSynchronizationFailure("execution.failed");
+		return save(stored, uncertain);
 	}
 
 	private StoredExecution failGoalSynchronization(StoredExecution stored, ExecutionEntry entry)
@@ -917,7 +924,7 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 			{
 				return abandonOwnedGoal(stored, expired, current);
 			}
-			expired = expired.withAction(ActionState.EXPIRED, current.goal().goalId(), current.goal().revision(), expired.reasonKey(), now());
+			expired = expired.withGoalRevision(current.goal().revision());
 		}
 		return save(stored, expired);
 	}

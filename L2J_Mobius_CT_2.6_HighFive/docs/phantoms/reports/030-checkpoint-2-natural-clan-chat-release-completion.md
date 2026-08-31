@@ -140,6 +140,33 @@ CP2 runtime run count remains `0`; CP2 E2E evidence remains none. PASS-only fina
 
 Authoritative log: `.phantom-local/logs/goal030cp2-verification/04-runtime-sync-authorized-additional.log` (local, not committed).
 
-Current unfinished blocker for independent review: explain why terminal route fixture retains ACTIVE owned Goal in case 04 and why case 05 has no terminal receipt. The task forbids masking these failures with another correction/run.
+Historical blocker at commit `29c282b2acad93c381b37e40a4b550da4990919c`: terminal route fixture retained an ACTIVE owned Goal in case 04 and case 05 had no terminal receipt. The confirmed production causes and repair are recorded below.
 
 `occurred_context_compaction: no`
+## Confirmed terminal Goal synchronization repair
+
+Required parent/current remote before correction: `29c282b2acad93c381b37e40a4b550da4990919c`.
+
+Defect A was a production model/API mismatch. `abandonOwnedGoal` first built a terminal `REJECTED`, `EXPIRED`, or `COMPLETED` execution and then called the transition API `withAction` with the same terminal state to bind the newly incremented ABANDONED Goal revision. The model correctly rejected terminal self-transitions before the atomic Goal/execution mutation, leaving the persistent Goal ACTIVE. `ExecutionEntry.withGoalRevision` now performs only a non-regressive exact revision rebind for an already goal-bound terminal action. It preserves action/outbound states, text, reason, attempts, and terminal minute. The common action transition graph remains unchanged. `abandonOwnedGoal` and the existing terminal reconciliation paths use this API.
+
+Defect B was the corresponding FAILED-barrier mismatch. The terminal runtime synchronization path reused the SUBMITTED failure helper and therefore attempted an illegal terminal-to-UNCERTAIN ordinary action transition. `ExecutionEntry.withTerminalSynchronizationFailure` is terminal-only, preserves the exact goal ID/revision and attempt evidence, records UNCERTAIN without claiming synchronization, and preserves terminal-minute semantics. `processTerminalGoal` now uses a separate terminal failure helper; initial SUBMITTED synchronization failure behavior is unchanged.
+
+Changed production files:
+- `java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionModel.java`
+- `java/org/l2jmobius/gameserver/phantoms/conversation/PhantomConversationExecutionService.java`
+
+Verification from this correction:
+1. `compile-tests`: **PASS**, 2219 production + 123 test sources; two unrelated JDK removal warnings.
+2. ONE fresh `phantom-conversation-decision-runtime-sync-goal030cp2-test`, seed `30003024`: **PASS 6/6**.
+   - PASS 01: external Goal mutation synchronizes the attached Decision runtime.
+   - PASS 02: BUSY reload retries without a duplicate Goal.
+   - PASS 03: a submitted Goal does not starve a newer QUERY.
+   - PASS 04: all missing/reject/expire terminal routes retain the exact ABANDONED revision through BUSY/UNAVAILABLE and restart, synchronize before compaction, and avoid duplicate mutation/action.
+   - PASS 05: all terminal FAILED routes persist UNCERTAIN failure evidence and one terminal receipt without a false synchronized result or duplicate mutation.
+   - PASS 06: legacy-v1/v2 payload profile reopen and payload-preserving revision copy remain green.
+
+The automatic context compaction occurred while reading the new authoritative task. Per its explicit stop rule, this delivery ended after the safe coherent production correction and focused gate. CP2 runtime run count for this correction remains `0`; no new CP2 E2E evidence is claimed. Natural chat and PASS-only release regressions were not rerun. Standalone `ant jar` count remains `0`.
+
+Release matrix delta: none in this PARTIAL delivery. Goal027 remains ACCEPT; Goal030 CP2 remains BLOCKED / IN_PROGRESS pending the unrun CP2 release flow; activity-materialization remains PENDING_GOAL030:CP2; Goal030 overall remains IN_PROGRESS.
+
+`occurred_context_compaction: yes`

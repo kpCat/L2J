@@ -155,6 +155,24 @@ public final class PhantomConversationExecutionModel
 			return copy(outboundState, next, nextGoalId, nextGoalRevision, reason, actionAttempts + 1, outboundAttempts, PhantomConversationExecutionModel.terminalMinute(outboundState, next, nowMinute));
 		}
 
+		public ExecutionEntry withGoalRevision(long nextGoalRevision)
+		{
+			if ((goalId == 0) || !Set.of(ActionState.COMPLETED, ActionState.REJECTED, ActionState.EXPIRED).contains(actionState) || (nextGoalRevision < 1) || (nextGoalRevision < goalRevision))
+			{
+				throw new IllegalArgumentException("Only a goal-bound terminal action can advance its exact Goal revision.");
+			}
+			return copy(outboundState, actionState, goalId, nextGoalRevision, reasonKey, actionAttempts, outboundAttempts, terminalMinute);
+		}
+
+		public ExecutionEntry withTerminalSynchronizationFailure(String reason)
+		{
+			if ((goalId == 0) || !Set.of(ActionState.COMPLETED, ActionState.REJECTED, ActionState.EXPIRED).contains(actionState))
+			{
+				throw new IllegalArgumentException("Only a goal-bound terminal action can record a synchronization failure.");
+			}
+			return copy(outboundState, ActionState.UNCERTAIN, goalId, goalRevision, reason, actionAttempts, outboundAttempts, terminalMinute);
+		}
+
 		public ExecutionEntry withResult(String nextText, String reason)
 		{
 			return new ExecutionEntry(planId, observationHash, channel, counterpart, responseAct, style, nextText, proposalKey, target, arguments, invitationBinding, createdMinute, expiryMinute, outboundState, actionState, goalId, goalRevision, reason, actionAttempts, outboundAttempts, terminalMinute);
