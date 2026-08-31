@@ -119,3 +119,27 @@ Continuation changed only the runtime-sync focused fixture suite and this report
 
 `occurred_context_compaction: no`
 Final continuation static checks: git diff --check PASS; exact two-file task scope confirmed; strict UTF-8 PASS; mojibake markers PASS; escaped Cyrillic PASS.
+
+## Explicitly authorized additional runtime-sync run
+
+Required parent/current remote before run: `8c632197e050e81516a0e567962118b596286144`.
+
+Exactly one additional `phantom-conversation-decision-runtime-sync-goal030cp2-test` run was executed with seed `30003024`, using the already committed compile-green post-run2 fixture correction.
+
+Result: **FAIL 4/6**, `BUILD FAILED`.
+- PASS: 01 external Goal mutation -> exact Decision runtime sync.
+- PASS: 02 BUSY reload retry without duplicate Goal.
+- PASS: 03 newer QUERY not starved by submitted Goal.
+- FAIL: 04 terminal BUSY/UNAVAILABLE/restart — `Terminal route did not abandon its owned goal. Expected <ABANDONED> but was <ACTIVE>.`
+- FAIL: 05 terminal FAILED -> UNCERTAIN — `java.util.NoSuchElementException: No value present` while reading the expected terminal receipt.
+- PASS: 06 legacy/v2 payload profile reopen and withRevision preservation.
+
+Observed state changed from the preceding run only by case 06 becoming green; cases 04 and 05 remained reproducibly red. No subsequent runtime-sync run, fixture correction or production change was made, as required.
+
+CP2 runtime run count remains `0`; CP2 E2E evidence remains none. PASS-only final gates and aggregate were not run. Jar count remains `0`. Release matrix remains unchanged: Goal027 ACCEPT; Goal030 CP2 BLOCKED / IN_PROGRESS; activity-materialization PENDING_GOAL030:CP2; Goal030 overall IN_PROGRESS.
+
+Authoritative log: `.phantom-local/logs/goal030cp2-verification/04-runtime-sync-authorized-additional.log` (local, not committed).
+
+Current unfinished blocker for independent review: explain why terminal route fixture retains ACTIVE owned Goal in case 04 and why case 05 has no terminal receipt. The task forbids masking these failures with another correction/run.
+
+`occurred_context_compaction: no`
