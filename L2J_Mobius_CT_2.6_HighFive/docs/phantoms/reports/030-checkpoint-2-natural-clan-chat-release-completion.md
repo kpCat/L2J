@@ -1,9 +1,9 @@
 # Goal 030 CP2 — natural clan chat and release completion
 
-Verdict: **BLOCKED — implementation delivered, runtime verification unavailable**.
-Date: 2026-08-31. Branch: `feature/phantom-world`.
-Required parent: `0e6ef8c00cdec8755c4c93991dd7d2aed87a04da` (verified local HEAD before changes).
-Required commit subject: `fix(phantoms): complete clan chat and alpha release gate`.
+Verdict: **BLOCKED — natural gate green; runtime-sync gate exhausted its permitted rerun without green**.
+Continuation date: 2026-09-01. Branch: `feature/phantom-world`.
+Continuation required parent: `8e826173b97d06530eec5e8f9910020ed5cf99d5` (verified local and remote HEAD before gates).
+Continuation required commit subject: `fix(phantoms): complete alpha release verification`.
 
 ## Delivered block
 
@@ -36,7 +36,7 @@ Extended existing `phantom-conversation-decision-runtime-sync-goal030cp2-test`, 
 
 These are implemented test assertions, not observed runtime results.
 
-## Gate ledger and blocker
+## Historical environment-blocked gate ledger
 
 - Default shell / apply_patch failed before access: sandbox CryptUnprotectData 2148073483. Escalated bounded shell operations worked. apply_patch attempts: 1, applied: 0; bounded incremental UTF-8 edits used instead.
 - Bare ant resolution attempt: unavailable in PATH, no compiler/test started. The shell wrapper returned 0 despite command resolution failure; this is NOT a green gate.
@@ -59,7 +59,7 @@ No release-matrix delta: 11 COVERED_PRIOR / 6 COVERED_CP1 / 0 COVERED_CP2 / 3 PE
 CP2 remains BLOCKED / IN_PROGRESS; Goal030 overall remains IN_PROGRESS. Goal027 ACCEPT is not reopened.
 Activity-materialization remains PENDING_GOAL030:CP2; restart-failure-recovery and rollback-release-control remain pending CP3.
 
-Unfinished: provide JDK 25 executable path, run natural gate, then existing runtime-sync gate (with its one allowed correction/rerun), then CP2 run1; only after PASS run the requested release regressions, final aggregate and exactly one jar. Promote docs/matrix only on observed green evidence. Compilation and behavioral correctness remain unverified until these gates run. No further product slice was started.
+Unfinished: runtime-sync post-run2 fixture correction is compile-green but cannot receive a third runtime run under the task budget. CP2 remains forbidden until runtime-sync is green. Promote docs/matrix only on observed green evidence; no further product slice was started.
 
 ## Scope and process
 
@@ -90,3 +90,32 @@ Commit SHA, local HEAD, remote HEAD and push result are recorded in the final re
 
 - mojibake-маркеры в изменённых файлах проверены: PASS, 10 файлов (после исправления quoting диагностической команды).
 - escaped Cyrillic в изменённых файлах проверены: PASS, 10 файлов.
+
+## 2026-09-01 verification continuation
+
+Environment sanity:
+- `java --version`: PASS, Temurin OpenJDK 25.0.4.1 LTS.
+- `javac --version`: PASS, 25.0.4.1.
+- `ant -version`: PASS, Apache Ant 1.10.17.
+- Existing isolated DB/config/manifest used; provisioning was not run; production DB was not used.
+
+Ordered gates:
+1. `phantom-natural-clan-chat-goal030cp2-test`, seed `30003025`: **PASS 3/3**, runtime run 1. Observed legacy-v1/v2 codec, exact bounded Unicode and natural/legacy no-spam cases.
+2. `phantom-conversation-decision-runtime-sync-goal030cp2-test`, seed `30003024`:
+   - run 1: **FAIL 2/6**. Existing exact sync and QUERY cases passed; four new task-owned fixtures exposed cross-profile recovery counting, premature due-pulse expectations and missing required Party invite slots.
+   - one task-owned fixture isolation/pulse correction applied; no production file changed.
+   - run 2 (the only permitted rerun): **FAIL 3/6**. Existing cases 01-03 all passed, including BUSY retry/no duplicate Goal and QUERY priority. Terminal/payload fixture cases 04-06 remained red.
+   - post-run2 source-backed fixture completion added required TARGET_PLAYER slots and allowed FAILED terminal retry to reach pulse +10. A third runtime run was intentionally not performed.
+3. Post-run2 `compile-tests`: **PASS**, 2219 production + 123 test sources, two unrelated removal warnings.
+4. `phantom-cross-domain-autonomous-alpha-goal030cp2-test`: **NOT RUN**, runtime runs `0`; prerequisite runtime-sync was not green.
+5. PASS-only natural rerun, Goal027A consent chat, CP1 baseline, Conversation CP2, Party integration, production materialization and final CP2 aggregate: **NOT RUN**.
+6. Standalone `ant jar`: **NOT RUN**, count `0`.
+
+Actually observed CP2 E2E evidence: **none**. Population/materialization, autonomous Decision, native WHISPER, real Party invite/accept, durable runtime visibility, ITEM57 response, leave/social evidence, rematerialization and clean shutdown are not claimed.
+
+Release matrix delta: **none**. Goal027 remains ACCEPT. Goal030 CP2 remains BLOCKED / IN_PROGRESS; activity-materialization remains PENDING_GOAL030:CP2; Goal030 overall remains IN_PROGRESS.
+
+Continuation changed only the runtime-sync focused fixture suite and this report. Natural production implementation was not rewritten. Runtime logs are under `.phantom-local/logs/goal030cp2-verification/` and are not committed.
+
+`occurred_context_compaction: no`
+Final continuation static checks: git diff --check PASS; exact two-file task scope confirmed; strict UTF-8 PASS; mojibake markers PASS; escaped Cyrillic PASS.

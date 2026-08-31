@@ -761,9 +761,13 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			final AtomicInteger syncCalls = new AtomicInteger();
 			final AtomicReference<SyncStatus> firstStatus = new AtomicReference<>();
 			final PhantomConversationGoalRuntimePort canonical = PhantomConversationGoalRuntimePort.decisionEngine(engine);
-			final PhantomConversationGoalRuntimePort observed = (profileId, goalId, minimumRevision) ->
+			final PhantomConversationGoalRuntimePort observed = (observedProfileId, goalId, minimumRevision) ->
 			{
-				final SyncStatus status = canonical.synchronize(profileId, goalId, minimumRevision);
+				if (observedProfileId != profile.profileId())
+				{
+					return canonical.synchronize(observedProfileId, goalId, minimumRevision);
+				}
+				final SyncStatus status = canonical.synchronize(observedProfileId, goalId, minimumRevision);
 				if (syncCalls.getAndIncrement() == 0)
 				{
 					firstStatus.set(status);
@@ -791,7 +795,7 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			reloadThread.join(TimeUnit.SECONDS.toMillis(2));
 			PhantomAssertions.assertFalse(reloadThread.isAlive(), "Blocking Decision reload did not quiesce.");
 			PhantomAssertions.assertEquals(PhantomDecisionEngine.ReloadResult.RELOADED, blockingReload.get(), "Legitimate in-flight reload did not complete.");
-			service.onPulse();
+			drive(service, 16);
 			final StoredGoal retriedDurable = _goals.load(profile.profileId()).orElseThrow();
 			final var retriedExecution = store.load(profile.profileId()).orElseThrow();
 			final PhantomDecisionEngine.RuntimeSnapshot runtime = engine.find(profile.profileId()).orElseThrow();
@@ -852,14 +856,18 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(1, component.componentSchemaVersion(), "Outer component schema changed.");
 		PhantomAssertions.assertTrue(component.payload().length <= 4096, "Component payload exceeded storage cap.");
 		final PhantomConversationExecutionStore executionStore = store();
-		final ConversationResponsePlan plan = plan(profile.profileId(), 92_001, "party.invite", new PhantomDomainRef("character.object", "777"), List.of());
+		final PhantomDomainRef invitee = new PhantomDomainRef("character.object", "777");
+		final ConversationResponsePlan plan = plan(profile.profileId(), 92_001, "party.invite", invitee, List.of(SlotValue.domain(SlotType.TARGET_PLAYER, invitee, -1, -1)));
 		executionStore.handoff(profile.profileId(), -1, conversationState(100), ExecutionEntry.prepared(plan));
 		final MemoryPort port = new MemoryPort();
 		port.allowSupersession = true;
 		port.goalPayloadText = text;
 		final PhantomConversationExecutionService service = service(executionStore, port, 101);
 		service.publish(plan);
-		drive(service, 8);
+		for (int pulse = 0; (pulse < 128) && (_goals.load(profile.profileId()).orElseThrow().goal().revision() < 2); pulse++)
+		{
+			service.onPulse();
+		}
 		PhantomAssertions.assertEquals(text, _goals.load(profile.profileId()).orElseThrow().goal().payloadText(), "Conversation withRevision copy lost generic payload.");
 		PhantomAssertions.assertEquals(2L, _goals.load(profile.profileId()).orElseThrow().goal().revision(), "Payload copy did not exercise supersession revision helper.");
 		stop(service);
@@ -871,7 +879,9 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		final PhantomProfile profile = profile();
 		final PhantomConversationExecutionStore store = store();
 		final boolean expiry = route.equals("expire");
-		final ConversationResponsePlan plan = plan(profile.profileId(), 91_001, expiry ? "party.invite" : "party.accept", expiry ? new PhantomDomainRef("character.object", "777") : null, List.of());
+		final PhantomDomainRef invitee = expiry ? new PhantomDomainRef("character.object", "777") : null;
+		final List<SlotValue> slots = expiry ? List.of(SlotValue.domain(SlotType.TARGET_PLAYER, invitee, -1, -1)) : List.of();
+		final ConversationResponsePlan plan = plan(profile.profileId(), 91_001, expiry ? "party.invite" : "party.accept", invitee, slots);
 		final ExecutionEntry prepared = ExecutionEntry.prepared(plan);
 		store.handoff(profile.profileId(), -1, conversationState(100), prepared);
 		final MemoryPort port = new MemoryPort();
@@ -892,8 +902,12 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(profile.profileId()), "Terminal fixture runtime did not attach.");
 		final AtomicReference<SyncStatus> result = new AtomicReference<>(failed ? SyncStatus.FAILED : SyncStatus.BUSY);
 		final AtomicInteger syncCalls = new AtomicInteger();
-		final PhantomConversationGoalRuntimePort blocked = (profileId, goalId, revision) ->
+		final PhantomConversationGoalRuntimePort blocked = (synchronizedProfileId, goalId, revision) ->
 		{
+			if (synchronizedProfileId != profile.profileId())
+			{
+				return SyncStatus.UNAVAILABLE;
+			}
 			syncCalls.incrementAndGet();
 			PhantomAssertions.assertEquals(active.goal().goalId(), goalId, "Terminal sync changed identity.");
 			PhantomAssertions.assertEquals(active.goal().revision() + 1, revision, "Terminal sync used the old revision.");
@@ -902,7 +916,8 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		final long minute = expiry ? 500 : 101;
 		final PhantomConversationExecutionService terminal = new PhantomConversationExecutionService(_catalog, store, _goals, port, blocked, () -> minute, PhantomConversationExecutionService.PhaseObserver.NONE);
 		PhantomAssertions.assertTrue(terminal.start(), "Terminal service did not start.");
-		drive(terminal, 8);
+		terminal.publish(plan);
+		drive(terminal, failed ? 16 : 8);
 		final StoredGoal abandoned = _goals.load(profile.profileId()).orElseThrow();
 		PhantomAssertions.assertEquals(PhantomGoalStatus.ABANDONED, abandoned.goal().status(), "Terminal route did not abandon its owned goal.");
 		PhantomAssertions.assertTrue(syncCalls.get() > 0, "Terminal route never called runtime sync.");
@@ -935,7 +950,8 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			stop(terminal);
 			final PhantomConversationExecutionService restarted = new PhantomConversationExecutionService(_catalog, store(), _goals, port, PhantomConversationGoalRuntimePort.decisionEngine(engine), () -> minute, PhantomConversationExecutionService.PhaseObserver.NONE);
 			PhantomAssertions.assertTrue(restarted.start(), "Terminal restart failed.");
-			drive(restarted, 16);
+			restarted.publish(plan);
+			drive(restarted, 32);
 			final var runtime = engine.find(profile.profileId()).orElseThrow();
 			PhantomAssertions.assertEquals(abandoned.goal().revision(), runtime.goalRevision(), "Restart did not synchronize the exact terminal revision.");
 			PhantomAssertions.assertEquals(PhantomGoalStatus.ABANDONED, runtime.goalStatus(), "Runtime remained active after terminal sync.");
