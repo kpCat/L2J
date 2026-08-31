@@ -170,3 +170,40 @@ The automatic context compaction occurred while reading the new authoritative ta
 Release matrix delta: none in this PARTIAL delivery. Goal027 remains ACCEPT; Goal030 CP2 remains BLOCKED / IN_PROGRESS pending the unrun CP2 release flow; activity-materialization remains PENDING_GOAL030:CP2; Goal030 overall remains IN_PROGRESS.
 
 `occurred_context_compaction: yes`
+
+## CP2 continuation from the independently accepted runtime-sync baseline
+
+Required parent and remote baseline: `e16ecc828e8d4c52308d3d4ab18367ed2ca2a7d0`.
+
+The authorized main target was run once with seed `30003002`:
+
+`ant -Dbuild=C:/Users/ZBook/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/.phantom-local/build-goal030cp2-verification phantom-cross-domain-autonomous-alpha-goal030cp2-test`
+
+Result: **FAIL 2/6**, `BUILD FAILED`.
+
+- PASS 01: production population scheduler materialization.
+- FAIL 02: real whisper `party.invite` did not produce a real Party invitation.
+- FAIL 03: real whisper `item.acquire.query` did not produce exactly one actual generated response.
+- FAIL 04: real whisper `party.leave` did not durably persist semantic intent `party.leave`.
+- PASS 05: withdrawal/reactivation retained the same identity and memory.
+- FAIL 06: canonical shutdown still observed in-flight Conversation execution entries.
+
+Observed E2E evidence:
+
+- materialized profile `29`, character `268480994`, name `Medvedsky` in isolated database `l2jmobiush5_phantom_test`;
+- headless lease cap applied as `true/PHANTOM/1`;
+- production materialization completed in `116 ms` and population initialization in `13787 ms`;
+- the same durable identity and memory reopened as `29/268480994/personality=18001801` after `2140 ms` offline and `89 ms` reactivation;
+- the autonomous candidate was `candidate.acquisition.item`, recorded as `evaluated:BLOCKED:candidate.unsupported`.
+
+The evidence localizes a plausible interaction between the already active autonomous acquisition Goal and Conversation Goal admission: `party.invite` cannot supersede that unrelated active Goal under the current source-backed policy. The fixture cleans persistent runtime state in `afterAll`, so this run does not conclusively prove that interaction as the sole root cause. Cases 04 and 06 followed the earlier failed interaction in the same sequential suite and are recorded as downstream/cascade evidence, not as independently localized defects. No single safe correction was established before the task's first automatic context compaction.
+
+Per the explicit compaction stop rule, discovery stopped after this coherent run1 evidence. No production or test file was changed, CP2 run2 was not consumed, and no new defect correction is claimed. CP2 runtime counts are run1 `1`, run2 `0`.
+
+PASS-only release gates were not run: focused natural chat and codec, Goal027A consent chat, Goal030 CP1 baseline, Conversation checkpoint 2, party server integration, production materialization, and the final CP2 aggregate. Standalone `ant jar` count is `0`.
+
+Release matrix delta: none. Goal027 remains ACCEPT; Goal030 CP2 remains BLOCKED / IN_PROGRESS; activity-materialization remains PENDING_GOAL030:CP2; Goal030 overall remains IN_PROGRESS. The required next work is exact source-backed localization of the CP2 run1 blocker, followed by at most one bounded correction and the still-available run2 in a new task with full context.
+
+Authoritative report: `.phantom-local/build-goal030cp2-verification/phantom-test/reports/cross-domain-autonomous-alpha-goal030cp2.txt` (local, not committed).
+
+`occurred_context_compaction: yes`
