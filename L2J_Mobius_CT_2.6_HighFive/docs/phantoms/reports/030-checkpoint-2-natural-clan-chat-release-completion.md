@@ -207,3 +207,93 @@ Release matrix delta: none. Goal027 remains ACCEPT; Goal030 CP2 remains BLOCKED 
 Authoritative report: `.phantom-local/build-goal030cp2-verification/phantom-test/reports/cross-domain-autonomous-alpha-goal030cp2.txt` (local, not committed).
 
 `occurred_context_compaction: yes`
+
+## Goal030 CP2 run2 — readiness fixture correction
+
+Required parent/current remote before correction: `9c8fd56a62f2d743c613965a5e8933238c15d8a9`.
+Branch: `feature/phantom-world`.
+Correction date: 2026-09-01.
+
+Единственная разрешённая correction была test-fixture only:
+
+- изменён только `test/java/org/l2jmobius/gameserver/phantoms/PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite.java`;
+- перед первым Conversation WHISPER добавлен bounded production-readiness barrier, который только наблюдает persistent `goal.runtime` и `conversation.execution`;
+- barrier требует полного отсутствия bootstrap `goal.runtime` component и нулевого числа execution entries, не очищает/не заменяет Goal и не вызывает production actions;
+- autonomous evidence теперь берётся только из реально selected Decision; `topCandidates()` и `BLOCKED/candidate.unsupported` больше не принимаются за успех;
+- `candidate.population.bootstrap` допускается как фактический production lifecycle Decision, а после party invite fixture требует selected `candidate.party.form`;
+- после party invite/accept/social, ITEM57 response и party leave/social добавлены отдельные bounded execution-compaction fences без ручной очистки entries, receipts или Goal;
+- ITEM57 timeout сохраняет persisted semantic intent/slots, execution action/outbound/reason/text, receipts, generated delivery delta и captured WHISPER state.
+
+`apply_patch` был вызван один раз и завершился до чтения/мутации файла с `CryptUnprotectData failed: 2148073483`; applied changes: `0`. Повтор не выполнялся. Correction внесена bounded incremental exact-anchor replacements с атомарной UTF-8-no-BOM заменой файла.
+
+### Verification
+
+1. `compile-tests`: **PASS** — 2219 production + 123 test sources; две несвязанные JDK removal warnings.
+2. Ровно ONE `phantom-cross-domain-autonomous-alpha-goal030cp2-test`, seed `30003002` (CP2 run2): **FAIL 2/6**, `BUILD FAILED`.
+   - PASS 01: production Population/Scheduler/materialization.
+   - FAIL 02: `party.invite` не породил real Party invitation за bounded timeout.
+   - FAIL 03: ITEM57 не дал ровно один actual generated response.
+   - FAIL 04: `party.leave` не стал новым durable semantic intent.
+   - PASS 05: withdrawal/reactivation сохранил exact identity и memory.
+   - FAIL 06: перед canonical shutdown остались in-flight Conversation execution entries.
+
+CP2 run2 больше не запускался и запускаться в этой задаче не будет. Новых corrections после run2 не внесено.
+
+### Доказанное bootstrap/readiness и autonomous evidence
+
+До первого WHISPER authoritative report зафиксировал:
+
+- selected autonomous candidate: `candidate.population.bootstrap`;
+- selected reason: `population.creation.ready`;
+- persistent `goal.runtime=absent`;
+- initial `conversation.execution=absent`;
+- profile `30`, character `268480994`, name `Turbovoic`, class/sex `18/female`;
+- Population ready `12485 ms`, materialization `117 ms`;
+- headless/lease/cap: `true/PHANTOM/1`.
+
+Следовательно исходный `population.bootstrap` race для run2 действительно закрыт fixture barrier. `BLOCKED/candidate.unsupported` не использовался как autonomous success. Selected `candidate.party.form` не был зафиксирован: case02 остановился раньше на отсутствии canonical Party invitation.
+
+### ITEM57 exact run2 evidence
+
+На timeout case03 persisted state всё ещё относился к предыдущему запросу:
+
+- semantic intent: `party.invite`;
+- slots: `TARGET_PLAYER=character.object:268435465`;
+- execution row version: `6`;
+- proposal/target: `party.invite` / `character.object:268435465`;
+- action/outbound/reason: `SUBMITTED` / `SENT` / `goal.submitted`;
+- execution text: `Цель передана планировщику.`;
+- terminal receipt: `action=NONE`, `outbound=SENT`, `reason=execution.prepared`;
+- generated delivery delta: `2`;
+- WHISPER call delta: `2`;
+- captured generated message: `Ответ пока не планируется из-за паузы.`; style `neutral`; proposal key `null`.
+
+Это показывает незавершённую предыдущую `party.invite` execution boundary; case03/04/06 остаются downstream evidence после красного case02, а не основанием для второго слепого исправления. Exact unfinished blocker: production Conversation `party.invite` остался `SUBMITTED/SENT` с `goal.submitted`, но canonical Party invitation не появился и execution не compacted.
+
+### PASS-only gates и release truth
+
+Из-за красного CP2 run2 не запускались:
+
+- `phantom-natural-clan-chat-goal030cp2-test`;
+- `phantom-clan-consent-chat-goal027a-test`;
+- `phantom-release-baseline-goal030cp1-test`;
+- `phantom-conversation-checkpoint2-test`;
+- `phantom-party-server-integration-test`;
+- `phantom-production-materialization-test`;
+- standalone `ant jar`.
+
+Jar count: `0`. Provisioning, production DB, plain `ant verify`, запрещённые aggregates/stress/soak/geodata не запускались.
+
+Release matrix delta: **none**. Goal027 остаётся `ACCEPT`; Goal030 CP2 остаётся `BLOCKED / IN_PROGRESS`; `activity-materialization` остаётся `PENDING_GOAL030:CP2`; Goal030 overall остаётся `IN_PROGRESS`. Roadmap, master plan и TSV matrix не изменены, потому что green evidence отсутствует.
+
+Authoritative local report: `.phantom-local/build-goal030cp2-verification/phantom-test/reports/cross-domain-autonomous-alpha-goal030cp2.txt` (не коммитится).
+
+`occurred_context_compaction: no`
+
+Final run2 static checks:
+
+- `git diff --check`: PASS;
+- exact delivery diff: two HighFive files — CP2 fixture и существующий Goal030 report;
+- strict UTF-8 без BOM и final newline: PASS, 2 файла;
+- mojibake-маркеры в изменённых файлах проверены: PASS, 2 файла;
+- escaped Cyrillic в изменённых файлах проверены: PASS, 2 файла.

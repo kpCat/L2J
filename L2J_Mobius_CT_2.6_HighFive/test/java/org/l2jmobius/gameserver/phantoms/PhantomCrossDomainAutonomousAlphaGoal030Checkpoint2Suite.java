@@ -35,6 +35,7 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore.StoredExecution;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationSession;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStateCodec;
@@ -183,6 +184,7 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		context.record("goal030cp2.materialization.headlessLeaseCap", "true/PHANTOM/1");
 		context.record("goal030cp2.autonomousCandidate", evidence.candidateKey());
 		context.record("goal030cp2.autonomousCandidateStatus", evidence.status());
+		awaitConversationReadiness(context);
 	}
 
 	private void inviteAcceptAndRemember(PhantomTestContext context) throws Exception
@@ -212,12 +214,16 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		_socialAfterParty = _socialStore.load(_managed.profile().profileId()).orElseThrow();
 		PhantomAssertions.assertTrue(PartyInvitationService.getInstance().observe(_human).isEmpty(), "Accepted Party retained a stale invitation.");
 		PhantomAssertions.assertEquals(1, Collections.frequency(_humanOutput.snapshot().recordedPacketClasses(), "AskJoinParty"), "Human received other than exactly one real Party prompt.");
+		await(10_000, () -> selectedEvidence("candidate.party.form") != null, "Conversation party.invite produced no selected candidate.party.form Decision evidence.");
+		final CandidateEvidence partyDecision = selectedEvidence("candidate.party.form");
 		context.record("goal030cp2.utterance1", "пригласи меня -> party.invite -> party.form");
 		context.record("goal030cp2.party", "invitation=" + invitation.identity().sequence() + ",canonicalMembers=" + _human.getParty().getMemberCount());
+		context.record("goal030cp2.partyDecision", partyDecision.candidateKey() + "/" + partyDecision.status());
 		context.record("goal030cp2.social.traits", _socialAfterParty.state().traits());
 		context.record("goal030cp2.social.relationship", _socialAfterParty.state().relationship(SubjectRef.character(_human.getObjectId())));
 		context.record("goal030cp2.social.receiptDelta", _socialAfterParty.receipts().receipts().size() - receiptsBefore);
 		context.record("goal030cp2.social.events", _socialAfterParty.state().memories().stream().map(memory -> memory.eventCode()).toList());
+		awaitConversationQuiescence(context, "party-invite-accept-social");
 	}
 
 	private void queryAdena(PhantomTestContext context) throws Exception
@@ -225,7 +231,7 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		final long generatedBefore = ChatObservationService.getInstance().snapshot().generatedDeliveries();
 		final int callsBefore = _whisper.calls();
 		dispatchWhisper("где взять адену");
-		await(10_000, () -> (ChatObservationService.getInstance().snapshot().generatedDeliveries() == (generatedBefore + 1)) && (_whisper.calls() >= (callsBefore + 2)) && (_whisper.lastGenerated() != null), "item.acquire.query did not produce exactly one actual generated response.");
+		awaitAdenaResponse(generatedBefore, callsBefore);
 		assertSemantic("item.acquire.query", "57");
 		final CapturedMessage response = _whisper.lastGenerated();
 		PhantomAssertions.assertTrue(!response.text().isBlank() && !response.text().equals("где взять адену"), "Generated adena response text is absent or looped back.");
@@ -235,6 +241,7 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		context.record("goal030cp2.adena.response", response.text());
 		context.record("goal030cp2.adena.style", response.style());
 		context.record("goal030cp2.adena.outbound", "generatedDeliveries=1,proposal=" + response.proposalKey());
+		awaitConversationQuiescence(context, "item57-generated-response");
 	}
 	private void leaveParty(PhantomTestContext context) throws Exception
 	{
@@ -253,6 +260,7 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		}
 		context.record("goal030cp2.utterance3", "покинь группу -> party.leave -> canonical leave");
 		context.record("goal030cp2.leave.socialReceiptDelta", _socialStore.load(current.profileId()).orElseThrow().receipts().receipts().size() - receiptsBefore);
+		awaitConversationQuiescence(context, "party-leave-social");
 	}
 
 	private void offlineOnlineContinuity(PhantomTestContext context) throws Exception
@@ -402,10 +410,34 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 
 	private CandidateEvidence autonomousEvidence()
 	{
+		for (DecisionView view : decisionViews())
+		{
+			if ("candidate.population.bootstrap".equals(view.candidateKey()) || nonPopulation(view.candidateKey()))
+			{
+				return new CandidateEvidence(view.candidateKey(), "selected:" + view.reasonKey());
+			}
+		}
+		return null;
+	}
+
+	private CandidateEvidence selectedEvidence(String candidateKey)
+	{
+		for (DecisionView view : decisionViews())
+		{
+			if (candidateKey.equals(view.candidateKey()))
+			{
+				return new CandidateEvidence(view.candidateKey(), "selected:" + view.reasonKey());
+			}
+		}
+		return null;
+	}
+
+	private static List<DecisionView> decisionViews()
+	{
 		final PhantomSelectedDecisionTrace trace = PhantomSystem.configuredSelectedTraceForTesting();
 		if (trace == null)
 		{
-			return null;
+			return List.of();
 		}
 		final var snapshot = trace.snapshot();
 		final List<DecisionView> views = new ArrayList<>(snapshot.history());
@@ -413,26 +445,95 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		{
 			views.add(snapshot.current());
 		}
-		for (DecisionView view : views)
-		{
-			if (nonPopulation(view.candidateKey()))
-			{
-				return new CandidateEvidence(view.candidateKey(), "selected:" + view.reasonKey());
-			}
-			for (var candidate : view.topCandidates())
-			{
-				if (nonPopulation(candidate.candidateKey()))
-				{
-					return new CandidateEvidence(candidate.candidateKey(), "evaluated:" + candidate.status() + ":" + candidate.reasonKey());
-				}
-			}
-		}
-		return null;
+		return views;
 	}
 
 	private static boolean nonPopulation(String candidateKey)
 	{
 		return (candidateKey != null) && !candidateKey.isBlank() && !candidateKey.contains("population");
+	}
+
+	private void awaitConversationReadiness(PhantomTestContext context) throws Exception
+	{
+		final long deadline = System.nanoTime() + 10_000_000_000L;
+		ConversationReadiness evidence = conversationReadiness();
+		while (!evidence.ready() && (System.nanoTime() < deadline))
+		{
+			Thread.sleep(20);
+			evidence = conversationReadiness();
+		}
+		if (!evidence.ready())
+		{
+			throw new AssertionError("population.bootstrap cleanup did not complete: goal.runtime=" + evidence.goalRuntime() + ", conversation.execution=" + evidence.conversationExecution());
+		}
+		context.record("goal030cp2.bootstrapReadiness", "goal.runtime=" + evidence.goalRuntime() + ",conversation.execution=" + evidence.conversationExecution());
+	}
+
+	private ConversationReadiness conversationReadiness()
+	{
+		final var goalComponent = _profiles.findComponent(_managed.profile().profileId(), PhantomGoalStateStore.COMPONENT_TYPE);
+		final String goalRuntime;
+		if (goalComponent.isEmpty())
+		{
+			goalRuntime = "absent";
+		}
+		else
+		{
+			final PhantomGoal goal = _goalCodec.decode(goalComponent.get().payload());
+			goalRuntime = goal.goalType() + "/" + goal.status() + "/revision=" + goal.revision();
+		}
+		final StoredExecution execution = _executionStore.load(_managed.profile().profileId()).orElse(null);
+		final int entries = execution == null ? 0 : execution.state().entries().size();
+		final String conversationExecution = execution == null ? "absent" : "entries=" + entries + ",receipts=" + execution.state().receipts().size() + ",rowVersion=" + execution.rowVersion();
+		return new ConversationReadiness(goalComponent.isEmpty() && (entries == 0), goalRuntime, conversationExecution);
+	}
+
+	private void awaitConversationQuiescence(PhantomTestContext context, String boundary) throws Exception
+	{
+		final long deadline = System.nanoTime() + 10_000_000_000L;
+		StoredExecution execution = _executionStore.load(_managed.profile().profileId()).orElse(null);
+		while ((execution != null) && !execution.state().entries().isEmpty() && (System.nanoTime() < deadline))
+		{
+			Thread.sleep(20);
+			execution = _executionStore.load(_managed.profile().profileId()).orElse(null);
+		}
+		if ((execution != null) && !execution.state().entries().isEmpty())
+		{
+			throw new AssertionError("Conversation execution did not quiesce after " + boundary + ": " + executionEvidence(execution));
+		}
+		context.record("goal030cp2.quiescence." + boundary, execution == null ? "component=absent" : "entries=0,receipts=" + execution.state().receipts().size() + ",rowVersion=" + execution.rowVersion());
+	}
+
+	private void awaitAdenaResponse(long generatedBefore, int callsBefore) throws Exception
+	{
+		final long deadline = System.nanoTime() + 10_000_000_000L;
+		while ((System.nanoTime() < deadline) && !adenaResponseReady(generatedBefore, callsBefore))
+		{
+			Thread.sleep(20);
+		}
+		if (adenaResponseReady(generatedBefore, callsBefore))
+		{
+			return;
+		}
+		final ConversationSession session = conversationSession();
+		final StoredExecution execution = _executionStore.load(_managed.profile().profileId()).orElse(null);
+		throw new AssertionError("item.acquire.query did not produce exactly one actual generated response: persistedSemantic=" + (session == null ? "absent" : session.previousIntent() + "/slots=" + session.previousSlots()) + ", queryResultStatus=" + executionEvidence(execution) + ", generatedDeliveryDelta=" + (ChatObservationService.getInstance().snapshot().generatedDeliveries() - generatedBefore) + ", whisperCallsDelta=" + (_whisper.calls() - callsBefore) + ", capturedWhisper=" + _whisper.lastGenerated());
+	}
+
+	private boolean adenaResponseReady(long generatedBefore, int callsBefore)
+	{
+		return (ChatObservationService.getInstance().snapshot().generatedDeliveries() == (generatedBefore + 1)) && (_whisper.calls() >= (callsBefore + 2)) && (_whisper.lastGenerated() != null);
+	}
+
+	private static String executionEvidence(StoredExecution execution)
+	{
+		if (execution == null)
+		{
+			return "component=absent";
+		}
+		final String entries = execution.state().entries().stream().map(entry -> entry.planId() + "{proposal=" + entry.proposalKey() + ",target=" + entry.target() + ",arguments=" + entry.arguments() + ",action=" + entry.actionState() + ",outbound=" + entry.outboundState() + ",reason=" + entry.reasonKey() + ",text=" + entry.text() + "}").toList().toString();
+		final String receipts = execution.state().receipts().stream().map(receipt -> receipt.planId() + "{action=" + receipt.actionState() + ",outbound=" + receipt.outboundState() + ",reason=" + receipt.reasonKey() + "}").toList().toString();
+		return "rowVersion=" + execution.rowVersion() + ",entries=" + entries + ",receipts=" + receipts;
 	}
 
 	private void dispatchWhisper(String text)
@@ -602,6 +703,10 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		{
 			return _lastGenerated;
 		}
+	}
+
+	private record ConversationReadiness(boolean ready, String goalRuntime, String conversationExecution)
+	{
 	}
 
 	private record CandidateEvidence(String candidateKey, String status)
