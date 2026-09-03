@@ -43,6 +43,10 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStateCodec;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.PartyOperation;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.PartyState;
 import org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -75,6 +79,7 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 	private final PhantomPopulationStateCodec _populationCodec = new PhantomPopulationStateCodec();
 	private final PhantomConversationStateCodec _conversationCodec = new PhantomConversationStateCodec();
 	private final PhantomGoalStateCodec _goalCodec = new PhantomGoalStateCodec();
+	private final PhantomPartyStateCodec _partyCodec = new PhantomPartyStateCodec();
 	private PhantomProfileRepository _profiles;
 	private PhantomScheduler _scheduler;
 	private PhantomMaterializationService _materialization;
@@ -93,6 +98,7 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 	private StoredState _socialBeforeOffline;
 	private long _populationStartedNanos;
 	private long _materializedNanos;
+	private long _lastClientEpochMillis;
 	private boolean _environmentInitialized;
 	private boolean _shutdownComplete;
 
@@ -189,17 +195,26 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 
 	private void inviteAcceptAndRemember(PhantomTestContext context) throws Exception
 	{
-		final int callsBefore = _whisper.calls();
+		final int callsBefore = _whisper.clientCalls();
 		final long clientBefore = ChatObservationService.getInstance().snapshot().clientDeliveries();
+		context.record("goal030cp2.schedulerBeforeInvite", _scheduler.find(_managed.profile().profileId()).orElse(null));
 		dispatchWhisper("пригласи меня");
-		await(10_000, () -> PartyInvitationService.getInstance().observe(_human).isPresent(), "Conversation party.invite did not produce a real Party invitation.");
+		context.record("goal030cp2.clientEpoch.partyInvite", _lastClientEpochMillis);
+		awaitPartyInvitation(context);
 		final InvitationSnapshot invitation = PartyInvitationService.getInstance().observe(_human).orElseThrow();
 		PhantomAssertions.assertEquals(_phantom.getObjectId(), invitation.requesterObjectId(), "Party invitation requester is not the CP2 Phantom.");
 		PhantomAssertions.assertEquals(_human.getObjectId(), invitation.inviteeObjectId(), "Party invitation target is not the CP2 human.");
 		PhantomAssertions.assertTrue(invitation.managedRequester() && !invitation.managedInvitee(), "Party invitation did not use managed-to-ordinary delivery.");
-		PhantomAssertions.assertEquals(callsBefore + 1, _whisper.calls(), "Inbound party request invoked WHISPER handler more than once.");
+		PhantomAssertions.assertEquals(callsBefore + 1, _whisper.clientCalls(), "Inbound party request invoked WHISPER handler more than once.");
 		PhantomAssertions.assertTrue(ChatObservationService.getInstance().snapshot().clientDeliveries() > clientBefore, "Real party request produced no CLIENT_CHAT delivery.");
 		assertSemantic("party.invite", null);
+		final PhantomGoal inviteGoal = _goalCodec.decode(_profiles.findComponent(_managed.profile().profileId(), PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow().payload());
+		PhantomAssertions.assertEquals("party.form", inviteGoal.goalType(), "Canonical invitation did not retain the exact Conversation Party Goal.");
+		PhantomAssertions.assertEquals(PhantomGoalStatus.ACTIVE, inviteGoal.status(), "Party Goal became terminal before ordinary human consent.");
+		final StoredExecution inviteExecution = _executionStore.load(_managed.profile().profileId()).orElseThrow();
+		PhantomAssertions.assertTrue(inviteExecution.state().entries().stream().anyMatch(entry -> "party.invite".equals(entry.proposalKey()) && (entry.goalId() == inviteGoal.goalId()) && (entry.goalRevision() == inviteGoal.revision())), "Canonical invitation was not bound to the durable Conversation Goal.");
+		context.record("goal030cp2.partyGoal", inviteGoal.goalId() + "/" + inviteGoal.goalType() + "/" + inviteGoal.revision() + "/" + inviteGoal.status() + "/target=" + inviteGoal.target());
+		context.record("goal030cp2.partyExecutionBeforeConsent", executionEvidence(inviteExecution));
 
 		_socialBeforeParty = _socialStore.load(_managed.profile().profileId()).orElseThrow(() -> new AssertionError("Conversation did not initialize durable SocialStore state before Party formation."));
 		final int receiptsBefore = _socialBeforeParty.receipts().receipts().size();
@@ -229,38 +244,42 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 	private void queryAdena(PhantomTestContext context) throws Exception
 	{
 		final long generatedBefore = ChatObservationService.getInstance().snapshot().generatedDeliveries();
+		final long generatedScopesBefore = ChatObservationService.getInstance().snapshot().generatedScopes();
 		final int callsBefore = _whisper.calls();
 		dispatchWhisper("где взять адену");
+		context.record("goal030cp2.clientEpoch.item57", _lastClientEpochMillis);
 		awaitAdenaResponse(generatedBefore, callsBefore);
 		assertSemantic("item.acquire.query", "57");
 		final CapturedMessage response = _whisper.lastGenerated();
 		PhantomAssertions.assertTrue(!response.text().isBlank() && !response.text().equals("где взять адену"), "Generated adena response text is absent or looped back.");
 		PhantomAssertions.assertEquals("item.acquire", response.proposalKey(), "Adena response did not use production acquisition authority.");
-		PhantomAssertions.assertEquals(generatedBefore + 1, ChatObservationService.getInstance().snapshot().generatedDeliveries(), "Adena query produced duplicate generated delivery.");
+		awaitConversationQuiescence(context, "item57-generated-response");
+		PhantomAssertions.assertEquals(generatedScopesBefore + 1, ChatObservationService.getInstance().snapshot().generatedScopes(), "Adena query produced other than one actual generated response.");
+		PhantomAssertions.assertEquals(callsBefore + 2, _whisper.calls(), "Adena query invoked other than one client and one generated WHISPER.");
+		PhantomAssertions.assertEquals(generatedBefore + 2, ChatObservationService.getInstance().snapshot().generatedDeliveries(), "Adena response did not deliver exactly once to the human and once to the sender echo.");
 		context.record("goal030cp2.utterance2", "где взять адену -> item.acquire.query -> ITEM57");
 		context.record("goal030cp2.adena.response", response.text());
 		context.record("goal030cp2.adena.style", response.style());
-		context.record("goal030cp2.adena.outbound", "generatedDeliveries=1,proposal=" + response.proposalKey());
-		awaitConversationQuiescence(context, "item57-generated-response");
+		context.record("goal030cp2.adena.outbound", "generatedDispatches=1,generatedDeliveries=2,proposal=" + response.proposalKey());
 	}
 	private void leaveParty(PhantomTestContext context) throws Exception
 	{
 		final int receiptsBefore = _socialStore.load(_managed.profile().profileId()).orElseThrow().receipts().receipts().size();
 		dispatchWhisper("покинь группу");
+		context.record("goal030cp2.clientEpoch.partyLeave", _lastClientEpochMillis);
 		await(10_000, () -> !_phantom.isInParty() && !_human.isInParty(), "Conversation party.leave did not reach canonical Party leave.");
 		assertSemantic("party.leave", null);
 		PhantomAssertions.assertTrue(PartyInvitationService.getInstance().observe(_human).isEmpty(), "Party leave retained a stale invitation.");
 		await(10_000, () -> _socialStore.load(_managed.profile().profileId()).map(state -> state.receipts().receipts().size() > receiptsBefore).orElse(false), "Party leave did not durably advance the social receipt.");
+		// Canonical/social side effects precede Decision terminal persistence and Conversation compaction.
+		awaitConversationQuiescence(context, "party-leave-social");
 		final PhantomProfile current = _profiles.find(_managed.profile().profileId()).orElseThrow();
-		final var goalComponent = _profiles.findComponent(current.profileId(), PhantomGoalStateStore.COMPONENT_TYPE);
-		if (goalComponent.isPresent())
-		{
-			final PhantomGoal goal = _goalCodec.decode(goalComponent.get().payload());
-			PhantomAssertions.assertFalse((goal.status() == PhantomGoalStatus.ACTIVE) && goal.goalType().equals("party.leave"), "Party leave retained an ACTIVE conversation Goal.");
-		}
+		final PhantomGoal goal = _goalCodec.decode(_profiles.findComponent(current.profileId(), PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow().payload());
+		PhantomAssertions.assertEquals("party.leave", goal.goalType(), "Canonical leave lost the exact conversation Goal type.");
+		PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, goal.status(), "Canonical leave did not complete the conversation Goal.");
+		context.record("goal030cp2.leaveGoal", goal.goalId() + "/" + goal.goalType() + "/" + goal.revision() + "/" + goal.status());
 		context.record("goal030cp2.utterance3", "покинь группу -> party.leave -> canonical leave");
 		context.record("goal030cp2.leave.socialReceiptDelta", _socialStore.load(current.profileId()).orElseThrow().receipts().receipts().size() - receiptsBefore);
-		awaitConversationQuiescence(context, "party-leave-social");
 	}
 
 	private void offlineOnlineContinuity(PhantomTestContext context) throws Exception
@@ -522,7 +541,60 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 
 	private boolean adenaResponseReady(long generatedBefore, int callsBefore)
 	{
-		return (ChatObservationService.getInstance().snapshot().generatedDeliveries() == (generatedBefore + 1)) && (_whisper.calls() >= (callsBefore + 2)) && (_whisper.lastGenerated() != null);
+		return (ChatObservationService.getInstance().snapshot().generatedDeliveries() == (generatedBefore + 2)) && (_whisper.calls() >= (callsBefore + 2)) && (_whisper.lastGenerated() != null);
+	}
+
+	private void awaitPartyInvitation(PhantomTestContext context) throws Exception
+	{
+		final long deadline = System.nanoTime() + 10_000_000_000L;
+		while ((System.nanoTime() < deadline) && PartyInvitationService.getInstance().observe(_human).isEmpty())
+		{
+			Thread.sleep(20);
+		}
+		if (PartyInvitationService.getInstance().observe(_human).isPresent())
+		{
+			return;
+		}
+		final long profileId = _managed.profile().profileId();
+		final var goalComponent = _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE);
+		if (goalComponent.isEmpty())
+		{
+			context.record("goal030cp2.partyInviteTimeout.goal", "component=absent");
+		}
+		else
+		{
+			final PhantomGoal goal = _goalCodec.decode(goalComponent.get().payload());
+			context.record("goal030cp2.partyInviteTimeout.goal", "goalId=" + goal.goalId() + ",goalType=" + goal.goalType() + ",status=" + goal.status() + ",revision=" + goal.revision() + ",target=" + goal.target() + ",reasonKey=" + goal.reasonKey());
+		}
+		context.record("goal030cp2.partyInviteTimeout.execution", executionEvidence(_executionStore.load(profileId).orElse(null)));
+		final List<DecisionView> views = decisionViews();
+		final List<DecisionView> relevant = views.stream().filter(view -> "party.form".equals(view.goalType()) || "candidate.party.form".equals(view.candidateKey())).toList();
+		context.record("goal030cp2.partyInviteTimeout.partyFormSelected", relevant.stream().anyMatch(view -> "candidate.party.form".equals(view.candidateKey())));
+		context.record("goal030cp2.partyInviteTimeout.decisionCurrent", views.isEmpty() ? "absent" : decisionEvidence(views.getLast()));
+		context.record("goal030cp2.partyInviteTimeout.decisionHistory", relevant.stream().skip(Math.max(0, relevant.size() - 8)).map(PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite::decisionEvidence).toList());
+		context.record("goal030cp2.partyInviteTimeout.scheduler", _scheduler.find(profileId).orElse(null));
+		final var partyComponent = _profiles.findComponent(profileId, PhantomPartyModel.COMPONENT_TYPE);
+		if (partyComponent.isEmpty())
+		{
+			context.record("goal030cp2.partyInviteTimeout.partyState", "component=absent");
+		}
+		else
+		{
+			final PartyState state = _partyCodec.decode(partyComponent.get().payload());
+			final PartyOperation operation = state.operation();
+			context.record("goal030cp2.partyInviteTimeout.partyState", "component=present,status=" + state.status() + ",groupGeneration=" + state.groupGeneration() + ",leader=" + state.leader() + ",operation=" + (operation == null ? "absent" : operation.kind() + "/" + operation.phase() + ",member=" + operation.member() + ",leaderGoalId=" + operation.leaderGoalId() + ",leaderGoalRevision=" + operation.leaderGoalRevision() + ",invitationSequence=" + operation.invitationSequence() + ",failureKey=" + operation.failureKey()) + ",lastFailureKey=" + state.lastFailureKey());
+		}
+		final Player requesterRelationship = _phantom.getActiveRequester();
+		final Player inviteeRelationship = _human.getActiveRequester();
+		context.record("goal030cp2.partyInviteTimeout.canonical", "mutuallyVisible=" + (_human.isVisibleFor(_phantom) && _phantom.isVisibleFor(_human)) + ",requesterProcessing=" + _phantom.isProcessingRequest() + ",inviteeProcessing=" + _human.isProcessingRequest() + ",requesterParty=" + _phantom.isInParty() + ",inviteeParty=" + _human.isInParty() + ",requesterActiveRequester=" + (requesterRelationship == null ? "absent" : requesterRelationship.getObjectId()) + ",inviteeActiveRequester=" + (inviteeRelationship == null ? "absent" : inviteeRelationship.getObjectId()) + ",invitation=" + PartyInvitationService.getInstance().observe(_human));
+		final List<String> packets = _humanOutput.snapshot().recordedPacketClasses();
+		context.record("goal030cp2.partyInviteTimeout.humanPackets", packets + ",AskJoinPartyCount=" + Collections.frequency(packets, "AskJoinParty"));
+		throw new AssertionError("Conversation party.invite did not produce a real Party invitation; exact boundary evidence recorded.");
+	}
+
+	private static String decisionEvidence(DecisionView view)
+	{
+		return "goal=" + view.goalId() + "/" + view.goalType() + "/" + view.goalRevision() + "/" + view.goalStatus() + ",runtime=" + view.runtimeState() + ",decisionSequence=" + view.decisionSequence() + ",selected=" + view.candidateKey() + ",plan=" + view.planId() + ",step=" + view.step() + ",attempt=" + view.attempt() + ",lastResult=" + view.lastResult() + ",reasonKey=" + view.reasonKey();
 	}
 
 	private static String executionEvidence(StoredExecution execution)
@@ -531,7 +603,7 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		{
 			return "component=absent";
 		}
-		final String entries = execution.state().entries().stream().map(entry -> entry.planId() + "{proposal=" + entry.proposalKey() + ",target=" + entry.target() + ",arguments=" + entry.arguments() + ",action=" + entry.actionState() + ",outbound=" + entry.outboundState() + ",reason=" + entry.reasonKey() + ",text=" + entry.text() + "}").toList().toString();
+		final String entries = execution.state().entries().stream().map(entry -> entry.planId() + "{proposal=" + entry.proposalKey() + ",target=" + entry.target() + ",arguments=" + entry.arguments() + ",action=" + entry.actionState() + ",outbound=" + entry.outboundState() + ",goalId=" + entry.goalId() + ",goalRevision=" + entry.goalRevision() + ",actionAttempts=" + entry.actionAttempts() + ",outboundAttempts=" + entry.outboundAttempts() + ",reason=" + entry.reasonKey() + ",text=" + entry.text() + "}").toList().toString();
 		final String receipts = execution.state().receipts().stream().map(receipt -> receipt.planId() + "{action=" + receipt.actionState() + ",outbound=" + receipt.outboundState() + ",reason=" + receipt.reasonKey() + "}").toList().toString();
 		return "rowVersion=" + execution.rowVersion() + ",entries=" + entries + ",receipts=" + receipts;
 	}
@@ -539,7 +611,9 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 	private void dispatchWhisper(String text)
 	{
 		final ChatObservationService observation = ChatObservationService.getInstance();
-		try (var scope = observation.openClientDispatch(_human.getObjectId(), _human.getName(), ChatType.WHISPER, _phantom.getName(), text, System.currentTimeMillis()))
+		final long epochMillis = _lastClientEpochMillis == 0 ? System.currentTimeMillis() : Math.max(System.currentTimeMillis(), Math.addExact(_lastClientEpochMillis, 61_000));
+		_lastClientEpochMillis = epochMillis;
+		try (var scope = observation.openClientDispatch(_human.getObjectId(), _human.getName(), ChatType.WHISPER, _phantom.getName(), text, epochMillis))
 		{
 			PhantomAssertions.assertTrue(scope.descriptor() != null, "CLIENT_CHAT WHISPER scope is inert.");
 			ChatHandler.getInstance().getHandler(ChatType.WHISPER).onChat(ChatType.WHISPER, _human, _phantom.getName(), text);
@@ -663,6 +737,7 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 	{
 		private final IChatHandler _delegate;
 		private int _calls;
+		private int _clientCalls;
 		private CapturedMessage _lastGenerated;
 
 		private CapturingWhisperHandler(IChatHandler delegate)
@@ -674,6 +749,10 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		public synchronized void onChat(ChatType type, Player active, String target, String text)
 		{
 			_calls++;
+			if (active == _human)
+			{
+				_clientCalls++;
+			}
 			if ((active != null) && (active == _phantom) && (_executionStore != null) && (_managed != null))
 			{
 				final ExecutionEntry entry = _executionStore.load(_managed.profile().profileId()).map(stored -> stored.state().entries().stream().filter(value -> value.text().equals(text)).findFirst().orElse(null)).orElse(null);
@@ -697,6 +776,11 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		private synchronized int calls()
 		{
 			return _calls;
+		}
+
+		private synchronized int clientCalls()
+		{
+			return _clientCalls;
 		}
 
 		private synchronized CapturedMessage lastGenerated()

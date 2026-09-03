@@ -17,6 +17,7 @@ Fresh bootstrap выполняется только существующей ц�
 
 - `COVERED_PRIOR` — домен закрыт принятым focused evidence Goals 001–029.
 - `COVERED_CP1` — foundation повторно подтверждается на fresh bootstrap в CP1 либо самим CP1 suite.
+- `COVERED_CP2` — release-specific cross-domain evidence подтверждено полным CP2 production-composed сценарием.
 - `PENDING_GOAL030` — release-specific evidence отложен только на указанный CP2 или CP3.
 
 Checksum старого scenario smoke не считается end-to-end доказательством живого мира.
@@ -30,7 +31,7 @@ Checksum старого scenario smoke не считается end-to-end док
 5. Goal030C1 — `ACCEPT`: canonical clan/alliance/war context подключён к Clan/Party/PvP, штатное изгнание создаёт точную личную betrayal-memory, native лидерство остаётся источником истины.
 6. Goal030C2A — `ACCEPT`: bounded директивы native лидера через реальный CLAN delivery управляют Scheduler relevance с social obedience и без второго chat observer.
 7. Goal030C2B — `ACCEPT`: native karma recovery strategy использует production DecisionEngine и штатные Player/PvP owners.
-8. CP2 — `IN_PROGRESS`: автономный cross-domain alpha-сценарий на едином production-composed мире.
+8. CP2 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`: автономный cross-domain alpha-сценарий прошёл 6/6 на едином production-composed мире; независимое review остаётся обязательным.
 9. CP3: финальное решение о выпуске, rollback и release-level restart/failure recovery.
 
 Release sequence: `CP1 -> 030A -> 030B/030B1 -> 030C1 -> 030C2A -> 030C2B -> CP2 -> CP3`. Coverage matrix и число её строк не меняются.

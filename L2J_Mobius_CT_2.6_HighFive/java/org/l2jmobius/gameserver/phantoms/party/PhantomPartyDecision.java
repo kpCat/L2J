@@ -81,7 +81,12 @@ public final class PhantomPartyDecision
 			return Set.of(CommandOutcome.ACCEPTED, CommandOutcome.IDEMPOTENT).contains(invited) ? PhantomStepResult.retry(50, "party.invite.await") : PhantomStepResult.of(PhantomStepResult.Type.REPLAN, "party.invite.replan");
 		});
 		registry.register(JOIN_ACTION, context -> _coordinator.committed(context.profileId()) ? PhantomStepResult.of(PhantomStepResult.Type.SUCCESS, "party.join.committed") : PhantomStepResult.retry(50, "party.join.await"));
-		registry.register(LEAVE_ACTION, context -> commandResult(_coordinator.leave(context.profileId(), context.goal().goalId(), context.goal().revision(), generation(context.step().numericArguments())), "party.leave"));
+		registry.register(LEAVE_ACTION, context ->
+		{
+			final CommandOutcome outcome = _coordinator.leave(context.profileId(), context.goal().goalId(), context.goal().revision(), generation(context.step().numericArguments()));
+			// Canonical leave is the terminal objective, not another successful plan step.
+			return Set.of(CommandOutcome.ACCEPTED, CommandOutcome.IDEMPOTENT).contains(outcome) ? PhantomStepResult.of(PhantomStepResult.Type.COMPLETE_GOAL, "party.leave.committed") : commandResult(outcome, "party.leave");
+		});
 		registry.register(EXPEL_ACTION, context -> commandResult(_coordinator.expelTarget(context.profileId(), context.goal().goalId(), context.goal().revision(), generation(context.step().numericArguments()), context.step().target()), "party.expel_member"));
 		registry.register(TRANSFER_LEADER_ACTION, context -> commandResult(_coordinator.transferLeaderTarget(context.profileId(), context.goal().goalId(), context.goal().revision(), generation(context.step().numericArguments()), context.step().target()), "party.transfer_leader"));
 		registry.register(TRAVEL_ACTION, context ->

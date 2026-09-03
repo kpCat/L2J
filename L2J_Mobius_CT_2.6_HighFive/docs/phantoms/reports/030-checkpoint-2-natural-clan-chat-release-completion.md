@@ -1,5 +1,13 @@
 # Goal 030 CP2 — natural clan chat and release completion
 
+## Current continuation verdict — 2026-09-03
+
+**IMPLEMENTED_PENDING_INDEPENDENT_REVIEW: CP2 is 6/6 and all required focused/release gates are green.** The Party invitation and terminal leave blockers are corrected and verified. The terminal `party.leave` result is proven by authoritative canonical/durable effects; it does not require selected-candidate retention after Decision terminal reconciliation clears that evidence. Earlier blocked checkpoints below remain historical.
+
+Required parent: `0fead9f5388ebd4161027490d7a99cd1e974c43d`; branch: `feature/phantom-world`; trusted origin: `https://github.com/kpCat/L2J`. `occurred_context_compaction: yes`.
+
+## Historical delivery record — 2026-09-01
+
 Verdict: **BLOCKED — natural gate green; runtime-sync gate exhausted its permitted rerun without green**.
 Continuation date: 2026-09-01. Branch: `feature/phantom-world`.
 Continuation required parent: `8e826173b97d06530eec5e8f9910020ed5cf99d5` (verified local and remote HEAD before gates).
@@ -297,3 +305,163 @@ Final run2 static checks:
 - strict UTF-8 без BOM и final newline: PASS, 2 файла;
 - mojibake-маркеры в изменённых файлах проверены: PASS, 2 файла;
 - escaped Cyrillic в изменённых файлах проверены: PASS, 2 файла.
+
+## 2026-09-03 Conversation → Decision → Party continuation checkpoint
+
+Authoritative task: attached `/goal` in the current conversation; required parent/current HEAD before work `0fead9f5388ebd4161027490d7a99cd1e974c43d`, branch `feature/phantom-world`, trusted origin `https://github.com/kpCat/L2J`. Only HighFive is in scope. The current task explicitly supersedes historical first-compaction/micro-stop rules and permits up to three narrow correction cycles for this one blocker. Goal030 overall remains IN_PROGRESS; independent review remains required.
+
+Checkpoint, not final delivery:
+
+- Initial `compile-tests`: PASS (2219 production, 123 test sources; two existing JDK removal warnings).
+- CP2 continuation attempt 1, seed `30003002`: FAIL 2/6. PASS 01 and 05; FAIL 02, 03, 04, 06.
+- Exact diagnostic branch: B. Profile 31, character 268480994; `party.form` Goal 412717422131165312/revision 0 ACTIVE; execution SUBMITTED/SENT, one action attempt and one outbound attempt. Scheduler ACTIVE/STABLE, tickSequence 5 → 72. Selected `candidate.party.form`, last result REPLAN / `handler.failed`; `party.state` absent; canonical invitation absent; AskJoinParty count 0; both participants visible and not processing requests.
+- Source-localized cause: production `PhantomTopologySnapshot.canonicalHash()` is lowercase SHA-256, while PartyState required uppercase topologyHash. Coordinator form constructs that state before its first save, causing the exact observed handler exception.
+- Narrow correction applied in the working tree: Party topology-hash fields preserve the source string and accept production lowercase plus legacy uppercase; Party-owned identity hashes stay strict uppercase. One focused canonical-hash codec regression added to the existing Party server integration suite.
+- Fixture CLIENT_CHAT epochs are now monotonic with +61,000 ms minimum. Observed epochs: 1788450172087, 1788450233087, 1788450294087. Attempt 1 reached semantic `item.acquire.query` with ITEM57 and a real `query.ok` response; no cooldown response. Source and runtime also proved that one native WHISPER yields two delivery observations (human recipient and sender echo), so fixture response counting now checks one generated dispatch and both deliveries. Client-call counting is separate from generated calls.
+- Preserved authoritative diagnostic report: `.phantom-local/logs/goal030cp2-party-flow/01-cp2-diagnostic-report.txt`; Ant log beside it. These local outputs are not committed.
+- CP2 continuation attempt 2: FAIL 4/6. PASS 01, 02, 03, 05. Canonical invite/one AskJoinParty/exact human accept/social/quiescence and ITEM57/one generated dispatch/two native deliveries/quiescence passed. FAIL 04: canonical leave and social receipt succeeded but party.leave Goal stayed ACTIVE; FAIL 06: its execution stayed in flight. Report preserved as `02-cp2-correction-report.txt` beside attempt 1.
+- Exact remaining boundary: Party leave handler returned SUCCESS; `PhantomDecisionEngine.applyHandlerResultLocked` completes only the plan step for SUCCESS and replans the still-ACTIVE Goal. Party leave now returns the existing COMPLETE_GOAL result only for ACCEPTED/IDEMPOTENT canonical outcomes. Other commands/outcomes are unchanged. CP2 case04 now waits for existing asynchronous execution quiescence before requiring the durable party.leave Goal to be COMPLETED; this is the focused end-to-end terminal regression.
+- After automatic compaction, reread the authoritative attachment, unchanged parent HEAD, current diff inventory and this checkpoint. Critical identity/invariants recovered; continue in the same task. Next: final affected Party regression and CP2 attempt 3, then PASS-only gates if 6/6. No Conversation/Decision sync implementation change; no acquisition, cooldown, catalog, canonical invitation seam, provisioning, or production DB change. Jar count 0. No release matrix delta yet.
+- Current changed delivery files: Party model, Party Decision adapter, CP2 fixture, Party integration suite, this report. Pre-existing CP1-suite modifications and untracked user task packages remain excluded.
+
+`occurred_context_compaction: yes`
+
+## Final continuation record — 2026-09-03
+
+### Exact causes and retained corrections
+
+1. **party.invite, diagnostic branch B:** selected `candidate.party.form`, ACTIVE/STABLE advancing Scheduler and ACTIVE durable Goal, but `handler.failed` and absent `party.state`. `PhantomTopologySnapshot.canonicalHash()` produces lowercase SHA-256; `PhantomPartyCoordinator.formForGoal` constructs PartyState before saving, and Party's uppercase-only topology validator rejected that production value. `PhantomPartyModel` now accepts homogeneous lowercase production topology hashes and legacy uppercase topology hashes without rewriting them. Party-owned hashes remain strict uppercase. Both PartyState and RouteManifest preserve exact topology evidence; route equality semantics and canonical authority are unchanged.
+2. **Canonical leave terminal boundary:** the successful Party leave handler returned SUCCESS, which only finishes a plan step and replans the ACTIVE Goal. The handler now returns the existing COMPLETE_GOAL result for ACCEPTED/IDEMPOTENT leave only, following the local Clan Decision terminal-result pattern. Other commands and rejection handling are unchanged. Final run observed Goal `1101651299909735998/party.leave/3/COMPLETED`, empty execution entries and clean shutdown.
+3. **Fixture corrections:** each real CLIENT_CHAT WHISPER uses test-owned monotonic epochs separated by at least 61,000 ms through the existing `openClientDispatch`. Native WHISPER remains in use; production cooldown/catalog and generated responses are not altered. One actual generated WHISPER has two delivery observations (human plus sender echo), so the fixture independently checks one generated dispatch, one generated handler call and two delivery observations. Client calls are counted separately. Leave waits for the existing asynchronous Conversation quiescence before checking durable COMPLETED status.
+
+The two production corrections compile and have observed runtime evidence; no unstable or uncompilable production experiment remains. No Conversation/Decision synchronization implementation, acquisition behavior, Goal schema, canonical invitation service, configuration, DB schema or dependency was changed. No retry/ABORTED-claim change was justified by the observed invitation failure.
+
+### Attempts and affected regression
+
+All CP2 attempts used seed `30003002` and the same isolated loopback DB `l2jmobiush5_phantom_test:3308`. No provisioning was performed.
+
+| Continuation attempt | Result | Exact boundary |
+| --- | --- | --- |
+| 1, diagnostic | FAIL 2/6 | Branch B proved; invitation absent, lowercase topology hash rejected before Party state save |
+| 2, topology/counter correction | FAIL 4/6 | Invite and ITEM57 passed; canonical leave/social completed but ACTIVE Goal/execution remained |
+| 3, terminal leave correction | FAIL 5/6 | Canonical leave, COMPLETED Goal, quiescence and shutdown succeeded; selected leave candidate trace absent |
+
+Final CP2 case results:
+
+| Case | Result | Observed evidence |
+| --- | --- | --- |
+| 01 Population/Scheduler/materialization | PASS | selected population bootstrap; readiness goal.runtime/execution absent; profile 47, character 268480994, RockClaw, class 38/male; one PHANTOM lease |
+| 02 real invite/accept/social | PASS | exact durable party.form Goal, selected candidate.party.form, canonical invitation sequence 1, exactly one AskJoinParty, ordinary human ACCEPT, two canonical members, social receipt +1, execution entries 0 |
+| 03 ITEM57 generated response | PASS | item.acquire.query; `Факты: предмет=item:57, источник=drop`; generated dispatches 1, deliveries 2; execution entries 0 |
+| 04 real leave | FAIL | party.leave semantic, both players outside canonical Party, no invitation, social advance, Goal COMPLETED revision 3, execution entries 0; then selected candidate.party.leave assertion timed out |
+| 05 withdraw/reactivate | PASS | same profile 47/character 268480994/personality 18001801, social/conversation memory and no duplicate identity |
+| 06 shutdown/exact cleanup | PASS | owner false, Scheduler STOPPED, materialization 0, lease/observer/Party false, DB residue 0 |
+
+Final fixture epochs: `1788451525622`, `1788451586622`, `1788451647622` (each delta exactly 61,000 ms). Execution receipt totals after invite, query and leave: 1, 2, 3; no in-flight entries after each completed action. Production scenario time: 30,542 ms, including the failed selected-trace wait.
+
+`compile-tests`: PASS before diagnostic and after the first production correction; every later focused Ant target also compiled the final source set successfully (2219 production, 123 test sources; two existing removal warnings).
+
+`phantom-party-server-integration-test`, seed `17001701`: **PASS 10/10**, run once after the final production Party change. New case10 exercises the real production topology hash through PartyState/RouteManifest codec round-trip, legacy uppercase compatibility, malformed rejection and unchanged Party-owned uppercase validation. CP2 case04 protects terminal leave completion and currently also exposes the unresolved trace contract.
+
+Conversation/Decision sync code was not changed, so the accepted seed `30003024` runtime-sync 6/6 baseline was not reopened or rerun. The final leave completion and Conversation compaction were observed in the production-composed CP2 run, not by manual Decision invocation.
+
+### Remaining blocker and stop boundary
+
+Exact red message: `Conversation party.leave produced no selected candidate.party.leave Decision evidence.`
+
+Read-only source localization after attempt 3: `PhantomDecisionEngine.accept` applies the handler result, executes/reconciles terminal persistence, and only then calls `notifyObserver`. Successful `reconcileTerminal` calls `resetDecisionEvidenceLocked`, clearing selectedCandidateKey, selectedScore, lastResult and explanations. A one-step terminal leave therefore need not publish a view containing its selected candidate. The added strict fixture assertion is incompatible with that current observation sequence; it is not evidence that canonical leave failed. No terminal-trace production change or assertion weakening was made after the exhausted budget. A follow-up needs an explicitly authorized bounded trace/evidence correction and another CP2 verification before release gates can run.
+
+Three authorized diagnose/fix/verify cycles were used. No fourth CP2 run was made. No independent review is claimed and the success token is not emitted.
+
+### Release truth and remaining work
+
+PASS-only targets were **not run** because CP2 is not 6/6: natural clan chat, clan consent chat, release baseline CP1, conversation checkpoint2, production materialization. Party integration was the affected regression above and was not repeated. Standalone `ant jar` count: **0**.
+
+Release matrix delta: **none**. `activity-materialization` stays `PENDING_GOAL030:CP2`; Goal030 CP2 stays `BLOCKED / IN_PROGRESS`, not IMPLEMENTED_PENDING_INDEPENDENT_REVIEW. Goal027 stays ACCEPT; Goal030 overall stays IN_PROGRESS. Roadmap/master-plan/matrix remain unchanged. CP3 release-level restart/failure recovery and rollback/release control remain pending. Broad/historical aggregates, provisioning, production DB, soak, stress, geodata and plain `ant verify` were not run.
+
+### Exact delivery scope and local evidence
+
+Only these five HighFive paths belong to this continuation:
+
+- `java/org/l2jmobius/gameserver/phantoms/party/model/PhantomPartyModel.java` — topology hash invariant.
+- `java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyDecision.java` — terminal leave result.
+- `test/java/org/l2jmobius/gameserver/phantoms/PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite.java` — epochs, generated-response counts, durable/selected evidence and terminal regression.
+- `test/java/org/l2jmobius/tests/phantoms/PhantomPartyServerIntegrationSuite.java` — focused hash regression.
+- `docs/phantoms/reports/030-checkpoint-2-natural-clan-chat-release-completion.md` — this checkpoint/final evidence.
+
+Pre-existing modified `PhantomReleaseBaselineGoal030Checkpoint1Suite.java` and untracked user task packages are excluded and were not edited. No repository AGENTS.md or current code-map/pattern file was found in the initial read-first pass; supplied user instructions and the module workflow/task documents were used.
+
+Authoritative local reports, not committed: `.phantom-local/logs/goal030cp2-party-flow/01-cp2-diagnostic-report.txt`, `02-cp2-correction-report.txt`, `03-party-regression-report.txt`, `04-cp2-final-report.txt`; corresponding Ant logs are adjacent. Reports were copied before later targets could clear the build report directory.
+
+Ant commands used the module-local build override `-Dbuild=C:/Users/ZBook/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/.phantom-local/build-goal030cp2-party-flow` with the exact targets and logfile names listed above. No build output or credentials are committed.
+
+Final static validation and ordinary commit/push evidence are recorded in the final delivery response. Commit subject is exactly `fix(phantoms): close cp2 conversation party flow`; the subject does not override this BLOCKED verdict. Parent and pre-push remote HEAD were verified as `0fead9f5388ebd4161027490d7a99cd1e974c43d`.
+
+### Final static checks and Git authorization
+
+- `git diff --check`: PASS; exact content-diff inventory is the five delivery paths above, all within HighFive.
+- Strict UTF-8, no BOM, final newline: PASS for all five delivery files.
+- mojibake-маркеры в изменённых файлах проверены: PASS, 5 файлов.
+- escaped Cyrillic в изменённых файлах проверены: PASS, 5 файлов.
+- Excluded CP1 suite byte checksum before delivery: SHA-256 `AF0E8836E1FCC0B08B5F8F611064B7CDE279B336DE076133078BE81FD8F804EA`.
+
+Git was explicitly authorized by the current attached `/goal` for baseline/scope/diff verification and an ordinary commit/push. Read-only command forms used were `git status --short --branch`, `git rev-parse HEAD`, `git remote get-url origin`, `git ls-remote origin refs/heads/feature/phantom-world`, `git diff --stat`, `git diff --cached --stat`, `git diff --check`, `git diff --name-only`, `git diff --numstat -- test/java/org/l2jmobius/tests/phantoms/PhantomReleaseBaselineGoal030Checkpoint1Suite.java`, and `git diff --` with explicit task-owned paths from the exact allowlist above (Party model, Party Decision, CP2 fixture and Party integration suite).
+
+Final delivery commands use the module-relative five-path allowlist above as the exact PowerShell argument array `$deliveryFiles`: `git add -- $deliveryFiles`, `git diff --cached --check`, `git diff --cached --name-only`, `git diff --cached --stat`, `git commit -m "fix(phantoms): close cp2 conversation party flow" --only -- $deliveryFiles`, `git push origin feature/phantom-world`, `git rev-parse HEAD`, `git ls-remote origin refs/heads/feature/phantom-world`, and `git status --short --branch`. Final command outcomes and commit/local/remote SHAs are reported in the delivery message rather than inserting a self-referential commit hash into this file. No amend, rebase, reset, restore, force push or history rewrite is authorized or used.
+
+Prior delivery attempt, before automatic continuation: the safety mechanism rejected the combined commit/push command before process creation, despite the explicit destination authorization in the current task. Neither commit nor push executed then; no alternate publication path was attempted. All five delivery files remained staged. Subsequent read-only checks confirmed local HEAD and remote branch HEAD both remained `0fead9f5388ebd4161027490d7a99cd1e974c43d`; new commit SHA at that checkpoint: none. The excluded CP1 suite checksum was unchanged.
+
+Automatic continuation revalidated the same five staged paths, clean staged whitespace check, actual origin `https://github.com/kpCat/L2J`, and explicit commit/push authorization in the user-attached task (lines 17–23 and 492–517). The updated execution policy permits an authorization-backed retry after those checks. Publication outcome is reported by the final response. No fourth CP2 run or new production correction is authorized by the automatic continuation; additional run-budget approval is still required. Goal030 remains incomplete, independently of publication outcome.
+
+The authorization-backed local-only commit retry was also rejected before process creation. Auto-review explicitly acknowledged the exact attached-task authorization but treated the general AGENTS.md commit prohibition as controlling. No commit, push or history mutation occurred; no workaround was attempted. Further publication is blocked on an explicit resolution of that instruction conflict. The five-file checkpoint remains staged, and the CP2 correction/run budget remains exhausted at 5/6.
+
+## Resumed completion verification — 2026-09-03
+
+The user explicitly superseded the previous attempt limit and confirmed the actual module `Agents.md` Git contract. Only the incorrect fixture requirement for terminal selected-trace retention was removed. `PhantomDecisionEngine` and `PhantomSelectedDecisionTrace` were not changed. Invite-side selected `candidate.party.form` evidence remains required and passed.
+
+### Final CP2 evidence
+
+`phantom-cross-domain-autonomous-alpha-goal030cp2-test`, seed `30003002`: **PASS 6/6**.
+
+1. Population/Scheduler/materialization: PASS; readiness had no Goal/runtime execution residue, profile 48 materialized as character 268480994 with one PHANTOM lease.
+2. Real WHISPER invite/accept/social: PASS; exact `party.form` Goal, selected `candidate.party.form`, one canonical invitation, exactly one `AskJoinParty`, ordinary human ACCEPT, both canonical members, social advance, execution quiescence.
+3. ITEM57: PASS; exact `item.acquire.query`, response `Факты: предмет=item:57, источник=drop`, one generated dispatch/two native delivery observations, execution quiescence.
+4. Real WHISPER leave: PASS; exact `party.leave`, both Players outside Party, no stale invitation, social receipt +1, durable Goal `570827874958778188/party.leave/3/COMPLETED`, execution quiescence.
+5. Withdrawal/reactivation: PASS; same profile 48, character 268480994 and personality 18001801, no duplicate identity or memory loss.
+6. Canonical shutdown: PASS; Scheduler STOPPED, materialization/lease/observer/Party/DB residue all clean.
+
+CLIENT_CHAT fixture epochs were `1788457665842`, `1788457726842`, `1788457787842`, exactly +61,000 ms between utterances. Total scenario time was 15,704 ms. No direct test-side Party leave, production cooldown change or 60-second sleep was used.
+
+### Required gates
+
+- `compile-tests`: PASS, 2219 production and 123 test sources; two existing JDK removal warnings.
+- `phantom-natural-clan-chat-goal030cp2-test`, seed `30003025`: PASS 3/3.
+- `phantom-clan-consent-chat-goal027a-test`, seed `27002711`: PASS 2/2.
+- `phantom-release-baseline-goal030cp1-test`, seed `30003001`: PASS 3/3.
+- `phantom-conversation-checkpoint2-test`: PASS, 9 suites / 38 cases.
+- `phantom-party-server-integration-test`, seed `17001701`: PASS 10/10 after the final production Party changes; not repeated after fixture-only correction.
+- `phantom-production-materialization-test`, seed `20260725001`: PASS 20/20.
+
+Preserved local evidence is under `.phantom-local/logs/goal030cp2-party-flow/`: continuation compile `05`, final CP2/report `06`, natural chat/report `07`, clan consent/report `08`, CP1/report `09`, conversation aggregate plus nine reports `10`, and materialization/report `11`. These files are not committed.
+
+### Factual release delta
+
+- Goal027: `ACCEPT`.
+- Goal030 CP2: `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`.
+- `activity-materialization`: `COVERED_CP2`, backed by `phantom-cross-domain-autonomous-alpha-goal030cp2-test`.
+- Goal030 overall: `IN_PROGRESS`.
+- Remaining work: CP3 release-level restart/failure recovery, rollback/release control and final release decision.
+
+The coverage matrix retains 20 rows. Pending release domains are reduced from three to two, both CP3. Master plan, release gate and all current Goal030 roadmap summaries carry the same CP2 status while preserving the independent-review gate and overall IN_PROGRESS status. The unrelated CP1 suite has the exact same Git blob hash as HEAD (`64d7218f4e2e7b2f7341af3d76452ece41b4688e`) and is excluded.
+
+Exactly one standalone `ant jar` was executed after the factual updates: **PASS** in 15 seconds. It compiled 2219 production sources and built LoginServer.jar, GameServer.jar and DatabaseInstaller.jar, copying the two server jars through the existing Ant target. Jar invocation count for this task: **1**.
+
+### Final delivery inventory
+
+This inventory and the resumed completion status supersede earlier five-file checkpoint/Git wording in this historical report. The coherent delivery contains exactly nine HighFive files:
+
+- production: `java/org/l2jmobius/gameserver/phantoms/party/model/PhantomPartyModel.java`, `java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyDecision.java`;
+- tests: `test/java/org/l2jmobius/gameserver/phantoms/PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite.java`, `test/java/org/l2jmobius/tests/phantoms/PhantomPartyServerIntegrationSuite.java`;
+- release truth: `PHANTOM_DEVELOPMENT_MASTER_PLAN.md`, `docs/PHANTOM_BOTS_ROADMAP.md`, `docs/phantoms/PHANTOM_RELEASE_GATE.md`, `docs/phantoms/reports/030-checkpoint-2-natural-clan-chat-release-completion.md`, `test/resources/phantoms/release/goal030-release-coverage.tsv`.
+
+The final commit uses this exact nine-path allowlist with subject `fix(phantoms): close cp2 conversation party flow`, followed by ordinary `git push origin feature/phantom-world`. The pre-existing CP1 status-only anomaly and all untracked user task packages remain excluded. Final encoding/diff checks and commit/local/remote SHAs are reported after execution.

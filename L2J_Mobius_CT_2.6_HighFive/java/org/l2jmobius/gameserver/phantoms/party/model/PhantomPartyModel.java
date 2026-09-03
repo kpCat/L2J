@@ -30,6 +30,7 @@ public final class PhantomPartyModel
 	public static final int MAX_ROUTE_WAYPOINTS = 64;
 	private static final Pattern KEY = Pattern.compile("^[a-z][a-z0-9_.-]{0,63}$");
 	private static final Pattern SHA256 = Pattern.compile("^[A-F0-9]{64}$");
+	private static final Pattern TOPOLOGY_SHA256 = Pattern.compile("^(?:[a-f0-9]{64}|[A-F0-9]{64})$");
 
 	public enum StateStatus
 	{
@@ -268,7 +269,7 @@ public final class PhantomPartyModel
 			}
 			waypoints = List.copyOf(waypoints);
 			Objects.requireNonNull(status, "Route status must not be null.");
-			topologyHash = requireHash(topologyHash, "Route topology hash");
+			topologyHash = requireTopologyHash(topologyHash, "Route topology hash");
 			navigationHash = requireHash(navigationHash, "Route navigation hash");
 		}
 
@@ -324,7 +325,7 @@ public final class PhantomPartyModel
 			requirements = boundedCopy(requirements, MAX_REQUIREMENTS, "Party role requirements");
 			assignments = boundedCopy(assignments, MAX_ASSIGNMENTS, "Party role assignments");
 			progressionHash = requireHash(progressionHash, "Party progression hash");
-			topologyHash = requireHash(topologyHash, "Party topology hash");
+			topologyHash = requireTopologyHash(topologyHash, "Party topology hash");
 			lastFailureKey = lastFailureKey == null || lastFailureKey.isEmpty() ? "" : requireKey(lastFailureKey, "Party failure key");
 			if ((status == StateStatus.LEADER) && (leader.kind() != MemberKind.PHANTOM))
 			{
@@ -427,6 +428,17 @@ public final class PhantomPartyModel
 		if (!SHA256.matcher(value).matches())
 		{
 			throw new IllegalArgumentException(label + " must be an uppercase SHA-256.");
+		}
+		return value;
+	}
+
+	private static String requireTopologyHash(String value, String label)
+	{
+		Objects.requireNonNull(value, label + " must not be null.");
+		// Topology owns its lowercase canonical hash; retain legacy uppercase claims unchanged.
+		if (!TOPOLOGY_SHA256.matcher(value).matches())
+		{
+			throw new IllegalArgumentException(label + " must be a canonical SHA-256.");
 		}
 		return value;
 	}

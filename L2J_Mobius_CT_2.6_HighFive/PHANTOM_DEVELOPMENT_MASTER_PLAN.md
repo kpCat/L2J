@@ -824,7 +824,7 @@ Status: `IN_PROGRESS`; Checkpoint 1 — `ACCEPTED`; Goal 027A — `ACCEPTED`; Go
 
 ### 030. Масштабирование и release candidate
 
-Status: `IN_PROGRESS`; Checkpoint 1, Goal030A, Goal030B/030B1, Goal030C1, Goal030C2A и Goal030C2B — `ACCEPT`; Checkpoint 2 — `IN_PROGRESS`; Checkpoint 3 — `NOT_STARTED`.
+Status: `IN_PROGRESS`; Checkpoint 1, Goal030A, Goal030B/030B1, Goal030C1, Goal030C2A и Goal030C2B — `ACCEPT`; Checkpoint 2 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 3 — `NOT_STARTED`.
 
 - 10 → 25 → 50 → 100 → 250 → 500 профилей;
 - controlled materialization;

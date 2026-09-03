@@ -44,6 +44,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PartySnapshot;
@@ -54,6 +55,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleMatcher;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStateCodec;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
@@ -63,6 +65,8 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.Operation
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.OperationPhase;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.PartyOperation;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.PartyState;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RouteManifest;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RouteStatus;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStatus;
 import org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
@@ -90,6 +94,9 @@ import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftPolicy;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftReadinessService;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService.InviteStatus;
+import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologySnapshot;
 
 /**
  * Real test-DB, materialized Player, ordinary outbound-session and canonical
@@ -133,6 +140,25 @@ public final class PhantomPartyServerIntegrationSuite implements PhantomTestSuit
 		registry.add("07-rift-production-provider-negative-relationship-refuses", this::testRiftRefusal);
 		registry.add("08-rift-production-provider-unavailable-evidence-defers-until-expiry", this::testRiftDeferExpiry);
 		registry.add("09-command-channel-exact-consent-and-dismiss-seam", _ -> testCommandChannelBackendSeam());
+		registry.add("10-party-state-preserves-canonical-topology-hash", this::testCanonicalTopologyHash);
+	}
+
+	private void testCanonicalTopologyHash(PhantomTestContext context)
+	{
+		final String topologyHash = PhantomTopologySnapshot.empty(new L2jTopologyValidationBackend(), PhantomTopologyPolicy.productionDefaults()).canonicalHash();
+		PhantomAssertions.assertTrue(topologyHash.matches("[a-f0-9]{64}") && !topologyHash.equals(topologyHash.toUpperCase(java.util.Locale.ROOT)), "Regression did not use the production lowercase topology hash.");
+		final MemberRef leader = MemberRef.phantom(1, 1);
+		final PhantomDomainRef objective = new PhantomDomainRef("party", "general");
+		final RouteManifest route = new RouteManifest(ZERO, 1, objective, List.of(new PhantomNavigationPoint(1, 2, 3, 0)), 0, 250, 1500, RouteStatus.MOVING, topologyHash, ZERO);
+		final PartyState state = new PartyState(ZERO, 1, 0, StateStatus.FORMING, leader, "", ZERO, List.of(leader), List.of(), ObjectiveMode.GENERAL_PVE, objective, List.of(), List.of(), route, null, ZERO, topologyHash, "");
+		final PhantomPartyStateCodec codec = new PhantomPartyStateCodec();
+		PhantomAssertions.assertEquals(state, codec.decode(codec.encode(state)), "Canonical topology hash changed across Party state/route codec round-trip.");
+		final String legacyHash = topologyHash.toUpperCase(java.util.Locale.ROOT);
+		final PartyState legacy = new PartyState(ZERO, 1, 0, StateStatus.FORMING, leader, "", ZERO, List.of(leader), List.of(), ObjectiveMode.GENERAL_PVE, objective, List.of(), List.of(), null, null, ZERO, legacyHash, "");
+		PhantomAssertions.assertEquals(legacy, codec.decode(codec.encode(legacy)), "Legacy uppercase Party topology evidence changed.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomPartyModel.requireHash(topologyHash, "Party-owned identity"), "Topology compatibility weakened uppercase Party-owned identity validation.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new PartyState(ZERO, 1, 0, StateStatus.FORMING, leader, "", ZERO, List.of(leader), List.of(), ObjectiveMode.GENERAL_PVE, objective, List.of(), List.of(), null, null, ZERO, "g" + topologyHash.substring(1), ""), "Malformed topology hash entered durable Party state.");
+		context.record("partyIntegration.canonicalTopologyHash", topologyHash);
 	}
 
 	private void testCancelRetry() throws Exception
