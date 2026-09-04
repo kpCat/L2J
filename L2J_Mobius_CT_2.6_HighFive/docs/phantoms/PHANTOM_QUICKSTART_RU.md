@@ -4,11 +4,11 @@
 
 ## 1. Что уже умеет текущий release
 
-Goal030 принят: 20 доменов release matrix покрыты, pending-доменов нет. Phantom World создаёт durable профиль, аккаунт и обычного `Player`, использует общий Scheduler/Decision pipeline, World, combat, progression, economy, party, rift, PvP, raid, social/conversation и clan owners. Поддержаны restart, operator status/trace, `drain` и `disable`.
+Goal030 принят: 20 доменов release matrix покрыты, pending-доменов нет. Phantom World создаёт durable профиль, аккаунт и обычного `Player`, использует общий Scheduler/Decision pipeline, World, combat, progression, economy, party, rift, PvP, raid, social/conversation и clan owners. Поддержаны restart, operator status/trace, `drain`, `disable` и безопасный двухфазный Phantom-only reset/reseed.
 
 ## 2. Что НЕ входит в текущий release
 
-Не реализованы siege AI, автоматизация class quests, Kamaloka и Pailaka. Quest acquisition catalog покрывает только ограниченные kill/collection drop subsets Q102/Q152; это не generic whitelist quest adapter и не quest solver. Полный исходный master-plan vision шире принятого Goal030 slice.
+Не реализованы living population ecology/gameplay knobs, siege AI, автоматизация class quests, Kamaloka и Pailaka. Quest acquisition catalog покрывает только ограниченные kill/collection drop subsets Q102/Q152; это не generic whitelist quest adapter и не quest solver. Полный исходный master-plan vision шире принятого Goal030 slice. Текущие настройки и отложенные Goal033 knobs перечислены в `docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md`.
 
 ## 3. Требования: JDK, Ant, MariaDB, jars, data и geodata
 
@@ -159,3 +159,48 @@ ant phantom-local-play-preflight
 3. Не удаляйте `phantom_profiles`, `phantom_profile_components`, связанные `characters`/`accounts` и не запускайте DB reset.
 4. Запустите `dist\game\GameServer.bat` снова. Population восстанавливает те же profile ID, character object ID и reserved account; не создавайте параллельный GameServer.
 5. Проверьте `//phantom status`. Для полного выключения после drain используйте disable и верните safe config из раздела 14.
+
+## 17. Как безопасно сбросить только Phantom population
+
+Reset — явная operator-команда, а не startup flag. Сначала выполните read-only preview:
+
+```text
+//phantom reset preview
+```
+
+Preview показывает:
+
+- exact число Phantom profiles, characters и reserved accounts;
+- категории и row counts, которые будут удалены или безопасно detached;
+- mail/history и другие world effects, которые сохраняются;
+- `snapshotHash`;
+- blockers;
+- одноразовый `TOKEN`, действующий 120 секунд, только если операция безопасна.
+
+Если список `blocked` не пуст, token не выдаётся и confirm невозможен. Исправьте указанное shared состояние штатным владельцем: например, завершите item auction, clan/wedding/cursed-weapon lifecycle. Не удаляйте shared rows вручную.
+
+Reset без нового населения:
+
+```text
+//phantom reset confirm <TOKEN>
+```
+
+Reset и немедленный reseed по уже загруженному preset:
+
+```text
+//phantom reset confirm <TOKEN> reseed
+```
+
+Отмена preview:
+
+```text
+//phantom reset cancel
+```
+
+Confirm принимает только текущий snapshot и один раз. Wrong, expired, cancelled, already-used или stale token ничего не удаляет. Перед транзакцией runtime проходит canonical drain; `SHUTDOWN_FAILED` означает полный отказ без reset mutation.
+
+`RESET_COMPLETE` означает, что старые Phantom profiles/characters/accounts удалены. `RESET_RESEEDED` означает, что существующий PopulationManager начал создавать новое население. `RESET_CONFIG_DISABLED` означает, что reset успешно завершён, но reseed не запускался, потому что загружен `EnablePhantomSystem=False`. Для изменения preset остановите сервер, измените config и перезапустите его: команда не перечитывает файл.
+
+Reset не является «машиной времени»: он не отбирает предметы у людей, не откатывает завершённые сделки, mail, PvP/форумную историю и законные изменения мира. Только доказанное private Phantom state удаляется; безопасные bilateral relations detach, неоднозначная shared ownership блокирует всю операцию.
+
+Automated Goal032 tests используют только guarded throwaway DB `127.0.0.1:3308/l2jmobiush5_phantom_test`. Ни server startup, ни preflight, ни эти tests не изменяют production DB автоматически; production reset происходит только после GM preview и explicit confirm.

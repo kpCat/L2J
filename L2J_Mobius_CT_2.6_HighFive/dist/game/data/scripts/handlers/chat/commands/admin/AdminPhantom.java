@@ -34,6 +34,8 @@ import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditView.RetainedSummar
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.DecisionView;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.SelectionStatus;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.Snapshot;
+import org.l2jmobius.gameserver.phantoms.PhantomPopulationResetService.ResetPreview;
+import org.l2jmobius.gameserver.phantoms.PhantomPopulationResetService.ResetResult;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorControlResult;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorEconomicAudit;
@@ -80,6 +82,27 @@ public class AdminPhantom implements IAdminCommandHandler
 		if (arguments.equals("disable"))
 		{
 			sendControl(activeChar, "disable", PhantomSystem.operatorDisable());
+			return true;
+		}
+		if (arguments.equals("reset preview"))
+		{
+			sendResetPreview(activeChar, PhantomSystem.operatorResetPreview());
+			return true;
+		}
+		if (arguments.equals("reset cancel"))
+		{
+			activeChar.sendSysMessage(PhantomSystem.operatorResetCancel() ? "Phantom reset confirmation cancelled." : "Phantom reset: no confirmation is armed.");
+			return true;
+		}
+		if (arguments.startsWith("reset confirm "))
+		{
+			final String[] values = arguments.substring("reset confirm ".length()).trim().split("\\s+");
+			if ((values.length < 1) || (values.length > 2) || ((values.length == 2) && !values[1].equals("reseed")))
+			{
+				sendUsage(activeChar);
+				return false;
+			}
+			sendResetResult(activeChar, PhantomSystem.operatorResetConfirm(values[0], values.length == 2));
 			return true;
 		}
 		if (arguments.equals("status"))
@@ -157,6 +180,24 @@ public class AdminPhantom implements IAdminCommandHandler
 	private static void sendControl(Player activeChar, String action, OperatorControlResult result)
 	{
 		activeChar.sendSysMessage("Phantom " + action + ": result=" + result.code() + ", desiredMode=" + result.desiredMode() + ", desiredRunning=" + result.desiredRuntimeEnabled() + ", runtimeConfigured=" + result.runtimeConfigured() + ", runtime=" + result.runtimeState() + ".");
+	}
+
+	private static void sendResetPreview(Player activeChar, ResetPreview preview)
+	{
+		activeChar.sendSysMessage("Phantom reset preview: safe=" + preview.safe() + ", identities=" + preview.identities() + ", characters=" + preview.characters() + ", accounts=" + preview.accounts() + ", snapshot=" + preview.snapshotHash() + ".");
+		activeChar.sendSysMessage("Phantom reset will delete/detach: " + preview.deleteCounts() + ".");
+		activeChar.sendSysMessage("Phantom reset will preserve world/history: " + preview.preserveCounts() + ".");
+		if (!preview.blockers().isEmpty())
+		{
+			activeChar.sendSysMessage("Phantom reset blocked: " + preview.blockers() + ".");
+			return;
+		}
+		activeChar.sendSysMessage("Phantom reset armed until epochMs=" + preview.expiresAt() + ". Confirm once with //phantom reset confirm " + preview.confirmationToken() + " [reseed].");
+	}
+
+	private static void sendResetResult(Player activeChar, ResetResult result)
+	{
+		activeChar.sendSysMessage("Phantom reset: result=" + result.code() + ", identities=" + result.identities() + ", committed=" + result.resetCommitted() + ", reseeded=" + result.reseeded() + ", detail=" + result.detail());
 	}
 
 	private static void sendStatus(Player activeChar)
@@ -238,7 +279,7 @@ public class AdminPhantom implements IAdminCommandHandler
 
 	private static void sendUsage(Player activeChar)
 	{
-		activeChar.sendSysMessage("Usage: //phantom enable | //phantom drain | //phantom disable | //phantom status | //phantom trace <profileId> | //phantom trace clear | //phantom replay capture | //phantom replay run | //phantom replay clear | //phantom economy <profileId>");
+		activeChar.sendSysMessage("Usage: //phantom enable | //phantom drain | //phantom disable | //phantom reset preview | //phantom reset confirm <TOKEN> [reseed] | //phantom reset cancel | //phantom status | //phantom trace <profileId> | //phantom trace clear | //phantom replay capture | //phantom replay run | //phantom replay clear | //phantom economy <profileId>");
 	}
 
 	@Override

@@ -36,6 +36,8 @@ import org.l2jmobius.gameserver.phantoms.PhantomDeterministicDecisionReplayGoal0
 import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4Suite.Mode;
 import org.l2jmobius.gameserver.phantoms.PhantomOperatorRuntimeControlsSuite;
+import org.l2jmobius.gameserver.phantoms.PhantomPopulationResetOwnershipGoal032Suite;
+import org.l2jmobius.gameserver.phantoms.PhantomPopulationResetReseedGoal032Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomHeadlessWhisperDeliveryGoal030CP2CSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomMasterHandlerJava8CompatibilityGoal030CP2ASuite;
@@ -220,6 +222,9 @@ public final class PhantomTestLauncher
 			case "local-play-preflight-goal031" -> new PhantomLocalPlayGoal031Suite(PhantomLocalPlayGoal031Suite.Mode.PREFLIGHT);
 			case "local-play-readiness-goal031" -> new PhantomLocalPlayReadinessGoal031Suite();
 			case "local-play-documentation-goal031" -> new PhantomLocalPlayGoal031Suite(PhantomLocalPlayGoal031Suite.Mode.DOCUMENTATION);
+			case "population-reset-ownership-goal032" -> new PhantomPopulationResetOwnershipGoal032Suite();
+			case "population-reset-reseed-goal032" -> new PhantomPopulationResetReseedGoal032Suite();
+			case "population-reset-documentation-goal032" -> new PhantomPopulationResetDocumentationGoal032Suite();
 			case "scale-endurance-goal029cp3" -> new PhantomScaleEnduranceGoal029Checkpoint3Suite();
 			case "scale-envelope-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite();
 			case "scale-scheduler-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite(PhantomScaleEnvelopeGoal029Checkpoint1Suite.Mode.SCHEDULER);

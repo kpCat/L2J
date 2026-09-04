@@ -4,8 +4,8 @@
 **Модуль:** `L2J_Mobius_CT_2.6_HighFive`  
 **Целевая ветка:** `feature/phantom-world`  
 **Путь документа:** `docs/PHANTOM_BOTS_ROADMAP.md`  
-**Версия дорожной карты:** 2  
-**Дата архитектурного аудита:** 2026-07-25  
+**Версия дорожной карты:** 3
+**Дата архитектурного аудита:** 2026-09-04
 **Статус:** обязательный ориентир для постановки GOAL, независимого ревью и контроля прогресса
 
 ## 1. Текущее состояние
@@ -1046,6 +1046,21 @@ conversation, clans, restart/failure recovery, soak, operator docs and rollback.
 **Gate:** end-to-end alpha scenarios, disabled regression and release decision.  
 **Follow-up risk:** `VERY_HIGH` — cross-system integration/release stabilization.
 
+## Roadmap v3 — конечный post-release path
+
+Goal031 local-play readiness — `SUCCESS`: versioned preset 10/5, read-only preflight, quick-start и production-composed restart/rollback evidence.
+
+1. **Goal032 — Phantom-only reset/reseed + operator tuning + Roadmap v3 — `SUCCESS`.** Exact ownership preview, one-time 120-second confirmation, drain-before-mutation, transactional private cleanup, shared/human safety blockers, empty no-op и optional reseed через существующий PopulationManager.
+2. **Goal033 — Living population ecology.** Независимые даты/фазы старта и progression pace, slow/normal/fast/outlier cohorts, устойчивые low/mid/high уровни, новые low-level entrants, online schedules, personality/archetype distribution и валидируемые gameplay presets. Никакого rubber-band к уровню human player.
+3. **Goal034 — automated black-box local stack acceptance.** Guarded throwaway DB, реальные LoginServer и GameServer processes, registration/readiness, Phantom lifecycle, restart и graceful shutdown с bounded artifacts; production DB запрещена, ручной запуск пользователем не является gate.
+4. **Goal035 — siege gameplay slice.** Registration, schedule awareness, gathering, roles, attack/defense и retreat/recovery через native siege owners.
+5. **Goal036 — bounded whitelist quests + instances slice.** Generic, но ограниченный lifecycle; class-transfer path; Kamaloka/Pailaka только в явно supported scenarios; без universal solver.
+6. **Goal037 — final full-vision release gate + freeze.** Fresh install/upgrade, safe shipped config, presets, reset/reseed, ecology, black-box stack, restart/recovery/rollback, siege, supported quests/instances, scale и documentation consistency.
+
+После `ACCEPT` Goal037 статус заявленного scope становится `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`. Новые feature goals автоматически не создаются: только proven bugfix/regression либо новая явная пользовательская feature request.
+
+Промежуточный QA не перекладывается на пользователя. Каждый Goal обязан иметь deterministic/guarded/production-composed evidence по своему риску; ручная игра — финальная пользовательская проверка опыта, а не обязательный технический gate.
+
 ---
 
 ## 13. Сводная оценка риска suffix-подзач
@@ -1395,7 +1410,7 @@ Overall:
 11. Добавлены explicit DAG, per-goal boundaries и follow-up risk matrix.
 12. Обновлён фактический статус Task 004/004A.
 
-Количество основных GOAL остаётся 30, пользовательские возможности не урезаны.
+Исторические Goal001–030 не перенумеровываются и их accepted semantics не переписываются. Roadmap v3 добавляет конечный post-release path Goal031–037.
 
 ---
 

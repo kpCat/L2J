@@ -1,10 +1,11 @@
 # Phantom World: текущий статус
 
-Дата сверки: 2026-09-04. Source of truth для release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv` и принятый `docs/phantoms/reports/030-checkpoint-3-release-decision.md`. Статусы полного vision основаны на production code/data/tests, а не на историческом номере Goal.
+Дата сверки: 2026-09-04. Source of truth для release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv` и принятый `docs/phantoms/reports/030-checkpoint-3-release-decision.md`; для operator reset/tuning и Roadmap v3 — `docs/phantoms/reports/032-phantom-reset-operator-control.md`. Статусы полного vision основаны на production code/data/tests, а не на историческом номере Goal.
 
 | Capability/domain | Implementation status | Release evidence | Known limitation | Next action |
 |---|---|---|---|---|
 | **Goal030 accepted 20-domain release slice** | **20 covered / 0 pending; ACCEPT** | Goal030 CP1/CP2/CP3 | Shipped disabled/fail-closed; это не весь original vision | Поддерживать release gates |
+| **Goal032 Phantom-only reset/reseed** | **SUCCESS** | Goal032 ownership 3/3; reset/reseed 2/2; focused regressions | Shared state без безопасного owner блокирует reset | Следующий Goal033 ecology |
 | Fresh bootstrap | IMPLEMENTED_AND_RELEASE_COVERED | matrix `fresh-bootstrap`; `prepare-phantom-test-db` | Production schema apply только явным installer action | Preflight перед запуском |
 | Population | IMPLEMENTED_AND_RELEASE_COVERED | matrix `population`; `phantom-population-server-integration-test` | Target/caps задаются config | Preset 10/5 для local play |
 | Progression | IMPLEMENTED_AND_RELEASE_COVERED | matrix `progression`; `phantom-progression-production-composition-test` | Использует accepted High Five capability catalog | Поддерживать catalog parity |
@@ -33,5 +34,18 @@
 | Kamaloka | DEFERRED_NOT_IMPLEMENTED | Phantom production owner/data/test не найдены | Instance flow не реализован | Будущий instance/quest slice |
 | Pailaka | DEFERRED_NOT_IMPLEMENTED | Phantom production owner/data/test не найдены | Instance/quest flow не реализован | Будущий instance/quest slice |
 | Full-scope release gate после gameplay gaps | DEFERRED_NOT_IMPLEMENTED | Goal030 gate относится только к 20-domain slice | Нельзя переименовывать Goal030 в full vision | Gate после siege и quest/instance slices |
+
+## Roadmap v3
+
+| Goal | Статус | Bounded outcome |
+|---|---|---|
+| Goal032 — Phantom-only reset/reseed + operator tuning | SUCCESS | Preview/confirm/cancel, exact private cleanup, optional reseed, tuning guide |
+| Goal033 — Living population ecology | NEXT | Independent progression cohorts, entrants, schedules, personality и gameplay knobs |
+| Goal034 — Automated black-box local stack acceptance | PLANNED | Real LoginServer/GameServer on guarded throwaway DB без ручного QA |
+| Goal035 — Siege gameplay slice | PLANNED | Native siege registration/schedule/gathering/roles/attack/defense/retreat |
+| Goal036 — Bounded quests/instances slice | PLANNED | Whitelist lifecycle, class transfer, supported Kamaloka/Pailaka |
+| Goal037 — Final full-vision release gate + freeze | PLANNED | Finite final acceptance; после ACCEPT нет automatic new goals |
+
+Shipped config по-прежнему `EnablePhantomSystem=False`, population/ACTIVE `0/0`; destructive auto-reset flag отсутствует. Reset вызывается только GM-командой после read-only preview и одноразового confirm. Automated tests работают только с allowlisted test DB; ручная игра пользователя остаётся финальной experience validation, а не промежуточным техническим gate.
 
 `UNKNOWN_REQUIRES_EVIDENCE` после аудита не осталось: каждый спорный пункт либо имеет конкретный owner/test, либо явно не найден и отложен. Эта таблица не меняет исторические ACCEPT baselines.

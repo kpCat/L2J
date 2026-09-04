@@ -1,21 +1,26 @@
 Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Актуальный baseline — HEAD ветки origin/feature/phantom-world, содержащий Goal031. Его parent exact:
-7709dd755390b61aba574dbd09af70a74a6249c1 — phantom(goal-030): complete cp3 release gate.
+Актуальный baseline — HEAD ветки origin/feature/phantom-world, содержащий Goal032. Required parent Goal032:
+89a292d34880faafbfa40e1d688d9765469485d6 — accepted Goal031 local-play readiness.
 Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
 
 Состояние release:
 - Goal030 — ACCEPT;
 - release matrix — 20 covered domains / 0 pending;
 - Goal031 local-play readiness — SUCCESS;
+- Goal032 Phantom-only reset/reseed + operator tuning + Roadmap v3 — SUCCESS;
 - shipped dist/game/config/Custom/PhantomPlayers.ini остаётся safe: EnablePhantomSystem=False, population=0, ACTIVE=0;
 - local-play preset 10/5: docs/phantoms/examples/PhantomPlayers.local-play.ini;
 - read-only operator entrypoint: ant phantom-local-play-preflight;
 - quick-start: docs/phantoms/PHANTOM_QUICKSTART_RU.md;
 - authoritative status: docs/phantoms/PHANTOM_CURRENT_STATUS.md;
 - Goal031 report: docs/phantoms/reports/031-local-play-readiness.md.
+- Goal032 report: docs/phantoms/reports/032-phantom-reset-operator-control.md;
+- operator tuning: docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md.
 
 Goal031 доказал guarded production-composed путь: 10 durable identities, Scheduler/Decision, real headless Player в World, autonomous decision trace, restart без duplicate rows, bounded shutdown retry и drain/disable rollback. GameServer запускает PhantomSystem только после World/data/scripts/managers и восстановления offline owners.
+
+Goal032 добавил явный `//phantom reset preview` → one-time 120-second `confirm`/`cancel` workflow, exact ownership validation, canonical drain-before-mutation, transactional Phantom-private cleanup, human/shared-state guards, empty no-op и optional reseed через существующий PopulationManager. Auto-reset при startup отсутствует; shipped safe defaults не изменены.
 
 Не объявляй готовыми исходные gameplay gaps:
 - siege AI — DEFERRED_NOT_IMPLEMENTED;
@@ -24,6 +29,8 @@ Goal031 доказал guarded production-composed путь: 10 durable identiti
 - Kamaloka — DEFERRED_NOT_IMPLEMENTED;
 - Pailaka — DEFERRED_NOT_IMPLEMENTED.
 
-Следующий реальный шаг: подготовить отдельный bounded task package для siege gameplay slice (registration/schedule/gathering/roles/attack/defense/retreat) с production/test evidence. Не смешивать его с quest/instance slice; quests/Kamaloka/Pailaka должны идти отдельной будущей задачей, а full-scope release gate — только после обоих gameplay slices.
+Следующий реальный шаг: **Goal033 — Living population ecology**. Подготовить один bounded task package для независимых фаз старта/progression pace, устойчивых low/mid/high cohorts, новых low-level entrants, online schedules, personality/archetype distribution и валидируемых user-facing gameplay knobs/presets. Не привязывать уровень Phantom к уровню human player и не смешивать Goal033 с black-box stack или siege.
 
-Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, docs/phantoms/PHANTOM_QUICKSTART_RU.md и отчёт Goal031. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults.
+Authoritative finite tail после Goal033: Goal034 automated black-box Login/Game stack на guarded throwaway DB; Goal035 siege; Goal036 bounded quests/instances; Goal037 final full-vision gate + freeze. После ACCEPT Goal037 не планировать новые goals автоматически.
+
+Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md, docs/phantoms/PHANTOM_QUICKSTART_RU.md и отчёт Goal032. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.

@@ -844,12 +844,18 @@ Status: `ACCEPT`; Checkpoint 1, Goal030A, Goal030B/030B1, Goal030C1, Goal030C2A,
 
 Goal030 принят как конкретный 20-domain release slice с 0 pending, а не как доказательство всей исходной vision. Нумерация хвоста исторически drifted: фактический Goal028 реализовал operator controls/diagnostics/replay, фактический Goal029 — scale/soak/overload, Goal030 — release coverage и rollback. Поэтому исходные sections 028/029 сохраняются как намерение, но их gameplay scope помечен `DEFERRED_NOT_IMPLEMENTED`; bounded Q102/Q152 acquisition subset имеет статус `PARTIAL` относительно generic quest adapter.
 
-Post-release roadmap:
+Goal031 local-play readiness — `SUCCESS`: safe preset 10/5, read-only preflight, quick-start, current status и production-composed restart/rollback evidence.
 
-1. Goal 031 local-play readiness — `SUCCESS`: safe preset 10/5, read-only preflight, quick-start, current status и production-composed restart/rollback evidence.
-2. Отдельный будущий Goal — siege registration/schedule/gathering/roles/attack/defense/retreat.
-3. Отдельный будущий Goal — generic whitelist quests, class quest, Kamaloka и Pailaka без универсального solver.
-4. Отдельный full-scope release gate — только после этих gameplay slices; Goal030 ACCEPT и его historical baselines не переопределяются.
+### Roadmap v3: конечный post-release path
+
+1. **Goal032 — Phantom-only reset/reseed + operator tuning contract + Roadmap v3 — `SUCCESS`.** Read-only preview, short-lived one-time confirm, canonical drain, exact ownership transaction, human/shared-state guards, optional reseed и полный current-config guide. Auto-reset при startup отсутствует.
+2. **Goal033 — Living population ecology.** Независимые фазы старта и темпы progression, устойчивые low/mid/high cohorts, новые low-level entrants, online schedules, personality/archetype distribution и user-facing gameplay presets/knobs. Уровень Phantom не привязывается к уровню human player.
+3. **Goal034 — automated black-box local stack acceptance.** Guarded throwaway DB, реальные LoginServer/GameServer processes, registration/startup/Phantom lifecycle/restart/graceful shutdown и bounded logs без production DB и без обязательного ручного QA пользователя.
+4. **Goal035 — siege gameplay slice.** Native registration/schedule/gathering/roles/attack/defense/retreat owners, bounded data и tests.
+5. **Goal036 — bounded quests/instances slice.** Generic whitelist lifecycle, class-transfer path, Kamaloka/Pailaka только в заявленном supported scope; не universal solver.
+6. **Goal037 — final full-vision release gate + freeze.** Fresh install/upgrade, safe config, local presets, reset/reseed, ecology, black-box stack, accepted gameplay slices, restart/recovery/rollback и documentation consistency.
+
+После `ACCEPT` Goal037 новые goals автоматически не планируются. Допустимы только proven bugfix/regression или новая явная пользовательская feature request. Automated evidence обязателен для каждого промежуточного Goal; ручная игра пользователя — финальная experience validation и удовольствие, а не основной технический QA.
 
 ---
 

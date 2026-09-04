@@ -177,6 +177,7 @@ public final class PhantomSystem
 	private static PhantomSystem _configuredInstance;
 	private static OperatorMode _operatorMode = OperatorMode.AUTO;
 	private static PhantomDecisionReplay.Bundle _operatorReplayBundle;
+	private static PhantomPopulationResetService _populationResetService;
 
 	private final PhantomPlayersConfig.Settings _settings;
 	private final PhantomMetrics _metrics;
@@ -1354,6 +1355,43 @@ public final class PhantomSystem
 		return requestOperatorStop(OperatorMode.DISABLED, OperatorControlCode.DISABLED, OperatorControlCode.ALREADY_DISABLED);
 	}
 
+	public static synchronized PhantomPopulationResetService.ResetPreview operatorResetPreview()
+	{
+		return populationResetService().preview();
+	}
+
+	public static synchronized PhantomPopulationResetService.ResetResult operatorResetConfirm(String token, boolean reseed)
+	{
+		return populationResetService().confirm(token, reseed);
+	}
+
+	public static synchronized boolean operatorResetCancel()
+	{
+		return (_populationResetService != null) && _populationResetService.cancel();
+	}
+
+	private static PhantomPopulationResetService populationResetService()
+	{
+		if (_populationResetService == null)
+		{
+			_populationResetService = new PhantomPopulationResetService(new PhantomPopulationResetService.Lifecycle()
+			{
+				@Override
+				public OperatorControlResult drain()
+				{
+					return operatorDrain();
+				}
+
+				@Override
+				public OperatorControlResult reseed()
+				{
+					return operatorEnable();
+				}
+			});
+		}
+		return _populationResetService;
+	}
+
 	private static OperatorControlResult requestOperatorStop(OperatorMode requestedMode, OperatorControlCode stoppedCode, OperatorControlCode alreadyCode)
 	{
 		final boolean alreadyRequested = _operatorMode == requestedMode;
@@ -1716,6 +1754,7 @@ public final class PhantomSystem
 			throw new IllegalStateException("Cannot reset operator mode while a configured instance exists.");
 		}
 		_operatorMode = OperatorMode.AUTO;
+		_populationResetService = null;
 	}
 
 	static synchronized void configureForTesting(PhantomMaterializationService materializationService)
