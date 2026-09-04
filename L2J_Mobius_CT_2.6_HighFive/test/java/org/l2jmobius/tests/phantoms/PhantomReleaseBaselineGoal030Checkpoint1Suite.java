@@ -28,7 +28,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -76,11 +75,29 @@ public final class PhantomReleaseBaselineGoal030Checkpoint1Suite implements Phan
 		"scale-soak-overload",
 		"disabled-regression",
 		"rollback-release-control");
-	private static final Map<String, String> REQUIRED_PENDING = Map.of(
-		"activity-materialization", "CP2",
-		"restart-failure-recovery", "CP3",
-		"rollback-release-control", "CP3");
-	private static final Set<String> STATUSES = Set.of("COVERED_PRIOR", "COVERED_CP1", "PENDING_GOAL030");
+	private static final Map<String, String> FIXED_STATUSES = Map.ofEntries(
+		Map.entry("fresh-bootstrap", "COVERED_CP1"),
+		Map.entry("population", "COVERED_CP1"),
+		Map.entry("progression", "COVERED_CP1"),
+		Map.entry("topology-navigation-knowledge", "COVERED_PRIOR"),
+		Map.entry("combat", "COVERED_PRIOR"),
+		Map.entry("farming", "COVERED_PRIOR"),
+		Map.entry("acquisition-spoil", "COVERED_PRIOR"),
+		Map.entry("craft-trade-commerce-economy", "COVERED_PRIOR"),
+		Map.entry("party", "COVERED_PRIOR"),
+		Map.entry("rift", "COVERED_PRIOR"),
+		Map.entry("pvp", "COVERED_PRIOR"),
+		Map.entry("raid", "COVERED_PRIOR"),
+		Map.entry("conversation-semantic-social", "COVERED_PRIOR"),
+		Map.entry("clans-alliances-reputation-wars", "COVERED_PRIOR"),
+		Map.entry("operator-observability-replay", "COVERED_CP1"),
+		Map.entry("scale-soak-overload", "COVERED_CP1"),
+		Map.entry("disabled-regression", "COVERED_CP1"));
+	private static final Map<String, ReleaseProgression> RELEASE_PROGRESSIONS = Map.of(
+		"activity-materialization", new ReleaseProgression("CP2", "COVERED_CP2", "phantom-cross-domain-autonomous-alpha-goal030cp2-test"),
+		"restart-failure-recovery", new ReleaseProgression("CP3", "COVERED_CP3", "phantom-restart-failure-recovery-goal030cp3-test"),
+		"rollback-release-control", new ReleaseProgression("CP3", "COVERED_CP3", "phantom-release-decision-rollback-goal030cp3-test"));
+	private static final Set<String> STATUSES = Set.of("COVERED_PRIOR", "COVERED_CP1", "COVERED_CP2", "COVERED_CP3", "PENDING_GOAL030");
 	private static final Pattern GOAL = Pattern.compile("Goal(\\d{3})");
 	private static final Pattern BUILD_TARGET = Pattern.compile("<target\\s+name=\"([^\"]+)\"");
 
@@ -184,7 +201,6 @@ public final class PhantomReleaseBaselineGoal030Checkpoint1Suite implements Phan
 
 		final Map<String, CoverageRow> rows = new HashMap<>();
 		final Map<String, Integer> statusCounts = new HashMap<>();
-		final Map<String, String> pending = new HashMap<>();
 		for (int lineNumber = 2; lineNumber <= lines.size(); lineNumber++)
 		{
 			final String line = lines.get(lineNumber - 1);
@@ -198,22 +214,44 @@ public final class PhantomReleaseBaselineGoal030Checkpoint1Suite implements Phan
 			validateOwners(row);
 			validateEvidence(row, existingTargets);
 			statusCounts.merge(row.status(), 1, Integer::sum);
-			if ("PENDING_GOAL030".equals(row.status()))
-			{
-				pending.put(row.domainId(), row.checkpoint());
-			}
 		}
 
 		PhantomAssertions.assertEquals(REQUIRED_DOMAINS, rows.keySet(), "Goal030 release coverage domains are incomplete.");
-		PhantomAssertions.assertEquals(REQUIRED_PENDING, pending, "Goal030 pending coverage is not limited to the release-specific CP2/CP3 gaps.");
+		FIXED_STATUSES.forEach((domainId, expectedStatus) -> PhantomAssertions.assertEquals(expectedStatus, rows.get(domainId).status(), "Accepted coverage class changed for release domain: " + domainId));
+		RELEASE_PROGRESSIONS.forEach((domainId, progression) -> validateReleaseProgression(rows.get(domainId), progression));
 		PhantomAssertions.assertEquals(11, statusCounts.getOrDefault("COVERED_PRIOR", 0), "Unexpected prior-coverage row count.");
 		PhantomAssertions.assertEquals(6, statusCounts.getOrDefault("COVERED_CP1", 0), "Unexpected CP1-coverage row count.");
-		PhantomAssertions.assertEquals(3, statusCounts.getOrDefault("PENDING_GOAL030", 0), "Unexpected Goal030 pending row count.");
+		final int expectedCoveredCp2 = "COVERED_CP2".equals(rows.get("activity-materialization").status()) ? 1 : 0;
+		final int expectedCoveredCp3 = ("COVERED_CP3".equals(rows.get("restart-failure-recovery").status()) ? 1 : 0) + ("COVERED_CP3".equals(rows.get("rollback-release-control").status()) ? 1 : 0);
+		final int expectedPending = 3 - expectedCoveredCp2 - expectedCoveredCp3;
+		PhantomAssertions.assertEquals(expectedCoveredCp2, statusCounts.getOrDefault("COVERED_CP2", 0), "Unexpected CP2-coverage row count.");
+		PhantomAssertions.assertEquals(expectedCoveredCp3, statusCounts.getOrDefault("COVERED_CP3", 0), "Unexpected CP3-coverage row count.");
+		PhantomAssertions.assertEquals(expectedPending, statusCounts.getOrDefault("PENDING_GOAL030", 0), "Unexpected Goal030 pending row count.");
+		final List<String> pendingDomains = RELEASE_PROGRESSIONS.entrySet().stream()
+			.filter(entry -> "PENDING_GOAL030".equals(rows.get(entry.getKey()).status()))
+			.map(entry -> entry.getKey() + ":" + entry.getValue().checkpoint())
+			.sorted()
+			.toList();
 		context.record("releaseCoverage.rows", rows.size());
-		context.record("releaseCoverage.coveredPrior", statusCounts.get("COVERED_PRIOR"));
-		context.record("releaseCoverage.coveredCp1", statusCounts.get("COVERED_CP1"));
-		context.record("releaseCoverage.pendingGoal030", statusCounts.get("PENDING_GOAL030"));
-		context.record("releaseCoverage.pendingDomains", String.join(",", new LinkedHashSet<>(List.of("activity-materialization:CP2", "restart-failure-recovery:CP3", "rollback-release-control:CP3"))));
+		context.record("releaseCoverage.coveredPrior", statusCounts.getOrDefault("COVERED_PRIOR", 0));
+		context.record("releaseCoverage.coveredCp1", statusCounts.getOrDefault("COVERED_CP1", 0));
+		context.record("releaseCoverage.coveredCp2", statusCounts.getOrDefault("COVERED_CP2", 0));
+		context.record("releaseCoverage.coveredCp3", statusCounts.getOrDefault("COVERED_CP3", 0));
+		context.record("releaseCoverage.pendingGoal030", statusCounts.getOrDefault("PENDING_GOAL030", 0));
+		context.record("releaseCoverage.pendingDomains", String.join(",", pendingDomains));
+	}
+
+	private static void validateReleaseProgression(CoverageRow row, ReleaseProgression progression)
+	{
+		if ("PENDING_GOAL030".equals(row.status()))
+		{
+			PhantomAssertions.assertEquals(progression.checkpoint(), row.checkpoint(), "Pending release domain names the wrong checkpoint: " + row.domainId());
+			PhantomAssertions.assertEquals("pending:" + progression.target(), row.antTargets(), "Pending release domain names the wrong planned target: " + row.domainId());
+			return;
+		}
+		PhantomAssertions.assertEquals(progression.coveredStatus(), row.status(), "Release domain has an illegal coverage transition: " + row.domainId());
+		PhantomAssertions.assertEquals("-", row.checkpoint(), "Covered release domain retained a checkpoint: " + row.domainId());
+		PhantomAssertions.assertEquals(progression.target(), row.antTargets(), "Covered release domain names the wrong actual target: " + row.domainId());
 	}
 
 	private void validateLineage(CoverageRow row)
@@ -244,7 +282,7 @@ public final class PhantomReleaseBaselineGoal030Checkpoint1Suite implements Phan
 
 	private static void validateEvidence(CoverageRow row, Set<String> existingTargets)
 	{
-		PhantomAssertions.assertTrue(STATUSES.contains(row.status()), "Release domain has an unsupported CP1 status: " + row.domainId());
+		PhantomAssertions.assertTrue(STATUSES.contains(row.status()), "Release domain has an unsupported status: " + row.domainId());
 		PhantomAssertions.assertFalse(row.evidenceType().isBlank(), "Release domain has no evidence type: " + row.domainId());
 		if ("PENDING_GOAL030".equals(row.status()))
 		{
@@ -391,6 +429,10 @@ public final class PhantomReleaseBaselineGoal030Checkpoint1Suite implements Phan
 	}
 
 	private record CoverageRow(String domainId, String goalLineage, String productionOwnerPaths, String antTargets, String evidenceType, String status, String checkpoint)
+	{
+	}
+
+	private record ReleaseProgression(String checkpoint, String coveredStatus, String target)
 	{
 	}
 }

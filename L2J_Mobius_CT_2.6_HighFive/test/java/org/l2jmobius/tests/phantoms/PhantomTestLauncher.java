@@ -39,7 +39,9 @@ import org.l2jmobius.gameserver.phantoms.PhantomOperatorRuntimeControlsSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomHeadlessWhisperDeliveryGoal030CP2CSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomMasterHandlerJava8CompatibilityGoal030CP2ASuite;
+import org.l2jmobius.gameserver.phantoms.PhantomReleaseDecisionRollbackGoal030Checkpoint3Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomReleaseBaselineGoal030Checkpoint1Suite;
+import org.l2jmobius.gameserver.phantoms.PhantomRestartFailureRecoveryGoal030Checkpoint3Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomServerShutdownHandoffSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomScaleEnvelopeGoal029Checkpoint1Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomScaleEnvironmentGoal029Checkpoint2Suite;
@@ -212,6 +214,8 @@ public final class PhantomTestLauncher
 			case "headless-whisper-delivery-goal030cp2c" -> new PhantomHeadlessWhisperDeliveryGoal030CP2CSuite();
 			case "conversation-decision-runtime-sync-goal030cp2" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.RUNTIME_SYNC_GOAL030_CP2);
 			case "cross-domain-autonomous-alpha-goal030cp2" -> new PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite();
+			case "restart-failure-recovery-goal030cp3" -> new PhantomRestartFailureRecoveryGoal030Checkpoint3Suite();
+			case "release-decision-rollback-goal030cp3" -> new PhantomReleaseDecisionRollbackGoal030Checkpoint3Suite();
 			case "scale-endurance-goal029cp3" -> new PhantomScaleEnduranceGoal029Checkpoint3Suite();
 			case "scale-envelope-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite();
 			case "scale-scheduler-goal029cp1" -> new PhantomScaleEnvelopeGoal029Checkpoint1Suite(PhantomScaleEnvelopeGoal029Checkpoint1Suite.Mode.SCHEDULER);

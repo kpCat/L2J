@@ -993,6 +993,26 @@ public final class PhantomSystem
 			{
 				_raidAssemblyService.beginStop();
 			}
+			if (_multipartyEconomyService != null)
+			{
+				if (!_multipartyEconomyService.shutdown(System.currentTimeMillis()).successful())
+				{
+					_metrics.recordShutdownFailure();
+					return false;
+				}
+			}
+			if (_phantomStoreService != null)
+			{
+				if (!_phantomStoreService.shutdown().successful())
+				{
+					_metrics.recordShutdownFailure();
+					return false;
+				}
+			}
+			if (_economyReservations != null)
+			{
+				_economyReservations.shutdown(System.currentTimeMillis());
+			}
 			if ((_pvpService != null) && (_pvpService.snapshot().state() != PhantomPvpService.State.STOPPED))
 			{
 				_pvpService.beginStop();
@@ -1073,6 +1093,11 @@ public final class PhantomSystem
 					return false;
 				}
 			}
+			_scheduler.beginStop();
+			if (_decisionEngine != null)
+			{
+				_decisionEngine.beginStop();
+			}
 			if ((_acquisitionService != null) && (_acquisitionService.snapshot().state() == PhantomAcquisitionService.ServiceState.RUNNING))
 			{
 				_acquisitionService.beginStop();
@@ -1084,6 +1109,7 @@ public final class PhantomSystem
 			}
 			if (_combatService != null)
 			{
+				_combatService.beginStop();
 				_combatService.retryFailedCleanup();
 			}
 			if ((_combatService != null) && (_combatService.snapshot().state() != PhantomCombatService.ServiceState.STOPPED) && !_combatService.finishStop())
@@ -1091,10 +1117,18 @@ public final class PhantomSystem
 				_metrics.recordShutdownFailure();
 				return false;
 			}
+			if (_progressionService != null)
+			{
+				_progressionService.beginStop();
+			}
 			if ((_progressionService != null) && (_progressionService.snapshot().state() != PhantomProgressionService.State.STOPPED) && !_progressionService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
 				return false;
+			}
+			if (_commerceService != null)
+			{
+				_commerceService.beginStop();
 			}
 			if ((_commerceService != null) && (_commerceService.snapshot().state() != PhantomCommerceService.StateSnapshot.STOPPED) && !_commerceService.finishStop())
 			{
@@ -1135,6 +1169,18 @@ public final class PhantomSystem
 					_metrics.recordShutdownFailure();
 					return false;
 				}
+			}
+			if (_gameKnowledgeService != null)
+			{
+				_gameKnowledgeService.beginStop();
+			}
+			if (_topologyService != null)
+			{
+				_topologyService.beginStop();
+			}
+			if (_navigationService != null)
+			{
+				_navigationService.beginStop();
 			}
 			if ((_gameKnowledgeService != null) && (_gameKnowledgeService.snapshot().state() != PhantomGameKnowledgeService.State.STOPPED) && !_gameKnowledgeService.finishStop())
 			{
@@ -1652,6 +1698,15 @@ public final class PhantomSystem
 		{
 			_configuredInstance._shutdownFailureForTesting = false;
 		}
+	}
+
+	static synchronized void injectConfiguredShutdownFailureForTesting()
+	{
+		if ((_configuredInstance == null) || (_configuredInstance._state != State.RUNNING))
+		{
+			throw new IllegalStateException("A running configured PhantomSystem instance is required.");
+		}
+		_configuredInstance._shutdownFailureForTesting = true;
 	}
 
 	static synchronized void resetOperatorModeForTesting()

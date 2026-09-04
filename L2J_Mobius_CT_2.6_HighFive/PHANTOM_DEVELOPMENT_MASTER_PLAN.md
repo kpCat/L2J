@@ -824,7 +824,7 @@ Status: `IN_PROGRESS`; Checkpoint 1 — `ACCEPTED`; Goal 027A — `ACCEPTED`; Go
 
 ### 030. Масштабирование и release candidate
 
-Status: `IN_PROGRESS`; Checkpoint 1, Goal030A, Goal030B/030B1, Goal030C1, Goal030C2A и Goal030C2B — `ACCEPT`; Checkpoint 2 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 3 — `NOT_STARTED`.
+Status: `ACCEPT`; Checkpoint 1, Goal030A, Goal030B/030B1, Goal030C1, Goal030C2A, Goal030C2B, Checkpoint 2 и Checkpoint 3 — `ACCEPT`. Финальная matrix содержит 20 covered domains и 0 pending; release decision — `ACCEPT`, shipped runtime остаётся disabled by default / fail-closed.
 
 - 10 → 25 → 50 → 100 → 250 → 500 профилей;
 - controlled materialization;

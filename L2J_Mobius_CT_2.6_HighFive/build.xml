@@ -78,6 +78,8 @@
 	<property name="phantom.goal030cp1.seed" value="30003001" />
 	<property name="phantom.goal030cp2.seed" value="30003002" />
 	<property name="phantom.goal030cp2.sync.seed" value="30003024" />
+	<property name="phantom.goal030cp3.restart.seed" value="30003003" />
+	<property name="phantom.goal030cp3.rollback.seed" value="30003004" />
 	<property name="phantom.goal030cp2a.seed" value="30003021" />
 	<property name="phantom.goal030cp2c.seed" value="30003023" />
 	<property name="phantom.goal030a.seed" value="30003010" />
@@ -380,6 +382,32 @@
 			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
 			<arg value="cross-domain-autonomous-alpha-goal030cp2" />
 			<arg value="${phantom.goal030cp2.seed}" />
+		</java>
+	</target>
+	<target name="phantom-restart-failure-recovery-goal030cp3-test" depends="compile-tests" description="Run Goal 030 CP3 production-composed restart and failed-shutdown recovery tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="restart-failure-recovery-goal030cp3" />
+			<arg value="${phantom.goal030cp3.restart.seed}" />
+		</java>
+	</target>
+	<target name="phantom-release-decision-rollback-goal030cp3-test" depends="compile-tests" description="Run Goal 030 CP3 production-composed rollback and shipped fail-closed release-control tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="release-decision-rollback-goal030cp3" />
+			<arg value="${phantom.goal030cp3.rollback.seed}" />
 		</java>
 	</target>
 	<target name="phantom-population-humanization-goal030a-test" depends="compile-tests" description="Run Goal 030A DB-free legacy nickname and creation-time role ecology contracts.">

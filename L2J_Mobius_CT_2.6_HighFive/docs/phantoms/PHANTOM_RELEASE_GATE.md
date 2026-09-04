@@ -18,6 +18,7 @@ Fresh bootstrap выполняется только существующей ц�
 - `COVERED_PRIOR` — домен закрыт принятым focused evidence Goals 001–029.
 - `COVERED_CP1` — foundation повторно подтверждается на fresh bootstrap в CP1 либо самим CP1 suite.
 - `COVERED_CP2` — release-specific cross-domain evidence подтверждено полным CP2 production-composed сценарием.
+- `COVERED_CP3` — release-specific restart/failure recovery и rollback evidence подтверждено CP3 production-composed сценариями после полного release-gate PASS.
 - `PENDING_GOAL030` — release-specific evidence отложен только на указанный CP2 или CP3.
 
 Checksum старого scenario smoke не считается end-to-end доказательством живого мира.
@@ -31,8 +32,8 @@ Checksum старого scenario smoke не считается end-to-end док
 5. Goal030C1 — `ACCEPT`: canonical clan/alliance/war context подключён к Clan/Party/PvP, штатное изгнание создаёт точную личную betrayal-memory, native лидерство остаётся источником истины.
 6. Goal030C2A — `ACCEPT`: bounded директивы native лидера через реальный CLAN delivery управляют Scheduler relevance с social obedience и без второго chat observer.
 7. Goal030C2B — `ACCEPT`: native karma recovery strategy использует production DecisionEngine и штатные Player/PvP owners.
-8. CP2 — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`: автономный cross-domain alpha-сценарий прошёл 6/6 на едином production-composed мире; независимое review остаётся обязательным.
-9. CP3: финальное решение о выпуске, rollback и release-level restart/failure recovery.
+8. CP2 — `ACCEPT`: автономный cross-domain alpha-сценарий прошёл 6/6 на едином production-composed мире и принят независимым review.
+9. CP3 — `ACCEPT`: production-composed restart/failure recovery и rollback targets прошли 3/3 каждый; CP1 progression validator прошёл 3/3 на final matrix, affected regressions и единственный `ant jar` прошли.
 
 Release sequence: `CP1 -> 030A -> 030B/030B1 -> 030C1 -> 030C2A -> 030C2B -> CP2 -> CP3`. Coverage matrix и число её строк не меняются.
 
@@ -41,3 +42,5 @@ Release sequence: `CP1 -> 030A -> 030B/030B1 -> 030C1 -> 030C2A -> 030C2B -> CP2
 Rollback использует существующие operator controls: сначала bounded drain, затем disable. Shipped disabled config остаётся последним fail-closed барьером и не допускает автоматический запуск runtime после рестарта.
 
 CP1 доказывает целостность baseline, guarded bootstrap, полное отображение release-доменов и инертность выключенной конфигурации. CP1 не доказывает cross-domain автономность, release-level restart/failure recovery и не принимает финальное решение о выпуске.
+
+Финальное release decision: `ACCEPT`; Goal030 overall — `ACCEPT`. Coverage matrix содержит `11 COVERED_PRIOR`, `6 COVERED_CP1`, `1 COVERED_CP2`, `2 COVERED_CP3`, `0 PENDING_GOAL030`. Shipped runtime остаётся disabled by default / fail-closed; ACCEPT не включает автоматический запуск после server restart.
