@@ -217,14 +217,6 @@ public class GameServer
 		printSection("ThreadPool");
 		ThreadPool.init();
 		
-		if (PhantomPlayersConfig.isEnabled())
-		{
-			printSection("Phantom World");
-			if (!PhantomSystem.startConfigured())
-			{
-				throw new IllegalStateException("Phantom World skeleton failed to start.");
-			}
-		}
 
 		// Start game time task manager early
 		GameTimeTaskManager.getInstance();
@@ -457,6 +449,16 @@ public class GameServer
 		if (OfflinePlayConfig.ENABLE_OFFLINE_PLAY_COMMAND && OfflinePlayConfig.RESTORE_AUTO_PLAY_OFFLINERS)
 		{
 			OfflinePlayTable.getInstance().restoreOfflinePlayers();
+		}
+
+		// Phantom World depends on the fully initialized World, data, scripts, managers, and restored offline owners.
+		if (PhantomPlayersConfig.isEnabled())
+		{
+			printSection("Phantom World");
+			if (!PhantomSystem.startConfigured())
+			{
+				throw new IllegalStateException("Phantom World failed to start.");
+			}
 		}
 		
 		if (ServerConfig.SERVER_RESTART_SCHEDULE_ENABLED)

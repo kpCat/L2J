@@ -89,6 +89,9 @@
 	<property name="phantom.goal030c2a.integration.seed" value="30003033" />
 	<property name="phantom.goal030c2b.policy.seed" value="30003034" />
 	<property name="phantom.goal030c2b.native.seed" value="30003035" />
+	<property name="phantom.goal031.preflight.seed" value="31003100" />
+	<property name="phantom.goal031.readiness.seed" value="31003101" />
+	<property name="phantom.goal031.documentation.seed" value="31003102" />
 	<property name="phantom.goal015.production.unblock.seed" value="15001502" />
 	<property name="phantom.test.config" location=".phantom-local/Database.test.ini" />
 	<property name="phantom.test.schema.manifest" location=".phantom-local/schema-manifest.properties" />
@@ -410,6 +413,48 @@
 			<arg value="${phantom.goal030cp3.rollback.seed}" />
 		</java>
 	</target>
+	<target name="phantom-local-play-preflight" depends="compile-tests" description="Run the read-only production Phantom local-play preflight.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomLocalPlayPreflight" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<arg value="production" />
+		</java>
+	</target>
+	<target name="phantom-local-play-preflight-test" depends="compile-tests" description="Run Goal031 DB-free and guarded test-DB preflight regressions.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="180000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="local-play-preflight-goal031" />
+			<arg value="${phantom.goal031.preflight.seed}" />
+		</java>
+	</target>
+	<target name="phantom-local-play-readiness-test" depends="compile-tests" description="Run Goal031 10/5 production-composed local-play, restart and rollback smoke.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="local-play-readiness-goal031" />
+			<arg value="${phantom.goal031.readiness.seed}" />
+		</java>
+	</target>
+	<target name="phantom-local-play-documentation-test" depends="compile-tests" description="Run Goal031 deterministic documentation consistency checks.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="local-play-documentation-goal031" />
+			<arg value="${phantom.goal031.documentation.seed}" />
+		</java>
+	</target>
+
 	<target name="phantom-population-humanization-goal030a-test" depends="compile-tests" description="Run Goal 030A DB-free legacy nickname and creation-time role ecology contracts.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

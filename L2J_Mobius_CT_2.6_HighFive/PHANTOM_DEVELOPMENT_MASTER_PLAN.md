@@ -793,7 +793,7 @@ Checkpoint 1/026A закрепили passive read-only raid/epic authority и т
 
 ### 027. Clans, alliances и wars
 
-Status: `IN_PROGRESS`; Checkpoint 1 — `ACCEPTED`; Goal 027A — `ACCEPTED`; Goal 027B — `ACCEPTED`; Goal 027C — `IMPLEMENTED_PENDING_INDEPENDENT_REVIEW`; Checkpoint 2 — `BLOCKED_PENDING_027C_INDEPENDENT_REVIEW`.
+Status: `ACCEPT`; Checkpoint 1/Goal027A/Goal027B/Goal027C/Checkpoint 2 сведены принятым Goal030 release gate. Исторические промежуточные статусы выше не переписываются задним числом; release matrix подтверждает `clans-alliances-reputation-wars` как `COVERED_PRIOR`.
 
 - creation;
 - leadership;
@@ -805,6 +805,8 @@ Status: `IN_PROGRESS`; Checkpoint 1 — `ACCEPTED`; Goal 027A — `ACCEPTED`; Go
 
 ### 028. Sieges
 
+Original-plan scope: `DEFERRED_NOT_IMPLEMENTED`. Фактический Goal028 был использован для operator controls/diagnostics/replay; Phantom siege production owner/data/test не найдены.
+
 - registration;
 - schedule;
 - gathering;
@@ -814,6 +816,8 @@ Status: `IN_PROGRESS`; Checkpoint 1 — `ACCEPTED`; Goal 027A — `ACCEPTED`; Go
 - первый сценарий одного замка.
 
 ### 029. Whitelist quests, Kamaloka и Pailaka
+
+Original-plan scope: `DEFERRED_NOT_IMPLEMENTED` как полный slice. Фактический Goal029 был использован для scale/soak; есть только PARTIAL bounded Q102/Q152 acquisition subset, но нет generic adapter, class quest automation, Kamaloka или Pailaka owners/tests.
 
 - adapter framework;
 - kill/collect;
@@ -835,6 +839,17 @@ Status: `ACCEPT`; Checkpoint 1, Goal030A, Goal030B/030B1, Goal030C1, Goal030C2A,
 - economy balance;
 - default-safe config;
 - release tag.
+
+### Reconciliation после Goal030
+
+Goal030 принят как конкретный 20-domain release slice с 0 pending, а не как доказательство всей исходной vision. Нумерация хвоста исторически drifted: фактический Goal028 реализовал operator controls/diagnostics/replay, фактический Goal029 — scale/soak/overload, Goal030 — release coverage и rollback. Поэтому исходные sections 028/029 сохраняются как намерение, но их gameplay scope помечен `DEFERRED_NOT_IMPLEMENTED`; bounded Q102/Q152 acquisition subset имеет статус `PARTIAL` относительно generic quest adapter.
+
+Post-release roadmap:
+
+1. Goal 031 local-play readiness — `SUCCESS`: safe preset 10/5, read-only preflight, quick-start, current status и production-composed restart/rollback evidence.
+2. Отдельный будущий Goal — siege registration/schedule/gathering/roles/attack/defense/retreat.
+3. Отдельный будущий Goal — generic whitelist quests, class quest, Kamaloka и Pailaka без универсального solver.
+4. Отдельный full-scope release gate — только после этих gameplay slices; Goal030 ACCEPT и его historical baselines не переопределяются.
 
 ---
 

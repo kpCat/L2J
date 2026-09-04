@@ -1,143 +1,29 @@
-Я начинаю отдельный проектный диалог по разработке Phantom World для L2J Mobius High Five.
+Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Работай со мной только на русском языке.
+Актуальный baseline — HEAD ветки origin/feature/phantom-world, содержащий Goal031. Его parent exact:
+7709dd755390b61aba574dbd09af70a74a6249c1 — phantom(goal-030): complete cp3 release gate.
+Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
 
-## Репозиторий и пути
+Состояние release:
+- Goal030 — ACCEPT;
+- release matrix — 20 covered domains / 0 pending;
+- Goal031 local-play readiness — SUCCESS;
+- shipped dist/game/config/Custom/PhantomPlayers.ini остаётся safe: EnablePhantomSystem=False, population=0, ACTIVE=0;
+- local-play preset 10/5: docs/phantoms/examples/PhantomPlayers.local-play.ini;
+- read-only operator entrypoint: ant phantom-local-play-preflight;
+- quick-start: docs/phantoms/PHANTOM_QUICKSTART_RU.md;
+- authoritative status: docs/phantoms/PHANTOM_CURRENT_STATUS.md;
+- Goal031 report: docs/phantoms/reports/031-local-play-readiness.md.
 
-GitHub:
-https://github.com/kpCat/L2J
+Goal031 доказал guarded production-composed путь: 10 durable identities, Scheduler/Decision, real headless Player в World, autonomous decision trace, restart без duplicate rows, bounded shutdown retry и drain/disable rollback. GameServer запускает PhantomSystem только после World/data/scripts/managers и восстановления offline owners.
 
-Корень Git-репозитория:
-C:\Users\endim\L2J_Mobius\
+Не объявляй готовыми исходные gameplay gaps:
+- siege AI — DEFERRED_NOT_IMPLEMENTED;
+- generic whitelist quest adapter — PARTIAL (есть только bounded Q102/Q152 acquisition subset);
+- class quest automation — DEFERRED_NOT_IMPLEMENTED;
+- Kamaloka — DEFERRED_NOT_IMPLEMENTED;
+- Pailaka — DEFERRED_NOT_IMPLEMENTED.
 
-Единственный рабочий модуль:
-C:\Users\endim\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\
+Следующий реальный шаг: подготовить отдельный bounded task package для siege gameplay slice (registration/schedule/gathering/roles/attack/defense/retreat) с production/test evidence. Не смешивать его с quest/instance slice; quests/Kamaloka/Pailaka должны идти отдельной будущей задачей, а full-scope release gate — только после обоих gameplay slices.
 
-Codex я запускаю именно в:
-C:\Users\endim\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\
-
-Рабочие конфиги GameServer:
-C:\Users\endim\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\dist\game\config\
-
-Другие хроники изменять запрещено.
-
-## Текущее состояние
-
-- L2J Mobius CT 2.6 High Five.
-- JDK 25.
-- Apache Ant.
-- Цель `jar` собирает и автоматически копирует GameServer.jar и LoginServer.jar в рабочий dist.
-- MariaDB: 127.0.0.1:3308.
-- База: l2jmobiush5.
-- Локальные реквизиты: root/root.
-- LoginServer и GameServer запускаются.
-- GameServer регистрируется в LoginServer.
-- Клиент High Five подключается.
-- Аккаунт и персонаж создаются.
-- Геодата пока отсутствует, pathfinding отключён.
-- В проекте есть Fake Players на базе NPC, но конечная цель требует полноценной социальной и экономической симуляции.
-
-## Главный документ
-
-В корне рабочего модуля находится:
-
-PHANTOM_DEVELOPMENT_MASTER_PLAN.md
-
-Это основной источник целей, архитектурных принципов, порядка задач и критериев качества.
-
-Также находятся:
-
-docs/phantoms/CODEX_WORKFLOW_CONTRACT.md
-docs/phantoms/TASK_PACKAGE_STANDARD.md
-docs/phantoms/CODEX_REPORT_TEMPLATE.md
-
-Перед формированием каждой задачи обязательно:
-
-1. прочитай master plan;
-2. прочитай отчёт предыдущей задачи;
-3. проверь commit/diff предыдущей задачи в GitHub;
-4. проверь актуальный код;
-5. сверяйся с текущим этапом плана;
-6. не уводи проект в сторону;
-7. не заставляй Codex изобретать архитектуру там, где её можно заранее определить;
-8. заранее учитывай ошибки, lifecycle, concurrency, БД, конфиги, производительность, rollback и автоматические тесты.
-
-## Цель
-
-Создать автономных псевдоигроков, которые:
-
-- появляются с первого уровня;
-- качаются и развиваются;
-- покупают расходники и экипировку;
-- продают лут;
-- фармят;
-- конкурируют за споты и комнаты катакомб;
-- вступают в PvP/PK;
-- используют стандартные karma/drop последствия;
-- формируют партии;
-- приглашают настоящего игрока;
-- ходят на рейдов и эпиков;
-- торгуют через private store, торговый чат, личку, direct trade и mail;
-- торгуются;
-- имеют характер, память и репутацию;
-- реагируют на сообщения действиями;
-- создают кланы и альянсы;
-- ведут войны;
-- участвуют в осадах;
-- поддерживают ограниченный whitelist квестов, Kamaloka и Pailaka;
-- работают производительно без отдельного потока на каждого фантома.
-
-Runtime не должен обязательно зависеть от LLM. Для русского общения нужен Semantic Pack: нормализация, жаргон, транслит, ограниченный fuzzy matching, intents, entities, контекст, память и шаблонная генерация.
-
-## Рабочий цикл
-
-1. Ты готовишь максимально продуманную задачу для Codex в ZIP-архиве.
-2. Архив распаковывается в рабочий модуль.
-3. Основной файл:
-   docs/phantoms/tasks/NNN-short-name/TASK.md
-4. Отдельно в чате ты даёшь короткий точный prompt:
-   /goal Выполни задачу из ...
-5. Я запускаю Codex на модели Sol, effort Very High.
-6. Codex независимо от результата обязан:
-   - создать отчёт;
-   - выполнить автоматические проверки;
-   - закоммитить;
-   - запушить;
-   - указать commit SHA.
-7. При блокировке Codex не оставляет сломанный production-код: откатывает опасную часть, коммитит безопасный аудит/тесты/отчёт и пушит статус BLOCKED.
-8. Я присылаю тебе отчёт Codex.
-9. Ты читаешь отчёт и проверяешь реальный diff/commit в GitHub.
-10. Ты выдаёшь вердикт.
-11. Только после ревью готовишь следующую задачу.
-
-## Качество
-
-Ручные проверки с моей стороны нежелательны и допустимы только в крайнем случае, когда поведение нельзя надёжно проверить автоматически.
-
-Каждая задача должна включать:
-
-- автоматические тесты;
-- детерминированный seed;
-- отдельную тестовую БД;
-- feature flags;
-- команды проверки;
-- критерии приёмки;
-- отчёт;
-- commit/push;
-- безопасное поведение при ошибке;
-- отсутствие постоянного high-frequency логирования.
-
-В Java нет стандартного препроцессора как в C/C++. Не создавай самодельный препроцессор. Для диагностики используй конфиги, уровни логирования, ленивые сообщения, sampling, агрегированные метрики и trace только для выбранных фантомов.
-
-## Ограничение по задачам
-
-Цель — примерно 30 содержательных задач. Нельзя дробить работу на десятки пустых шагов, но нельзя и делать огромные непроверяемые задачи.
-
-## Первое действие в этом диалоге
-
-1. Открой и прочитай PHANTOM_DEVELOPMENT_MASTER_PLAN.md из репозитория.
-2. Проверь актуальное состояние репозитория.
-3. Не пиши production-код самостоятельно.
-4. Подготовь ZIP-пакет задачи 001: baseline и полный архитектурный аудит.
-5. Отдельно дай точный prompt для Codex.
-6. Перечисли, что именно будешь проверять после получения отчёта Codex.
+Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, docs/phantoms/PHANTOM_QUICKSTART_RU.md и отчёт Goal031. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults.
