@@ -208,6 +208,10 @@ public class AdminPhantom implements IAdminCommandHandler
 		final List<Long> states = status.activityStateCounts();
 		activeChar.sendSysMessage("Phantom activity: ACTIVE=" + states.get(0) + ", NEARBY_PERCEPTIBLE=" + states.get(1) + ", WARM=" + states.get(2) + ", BACKGROUND=" + states.get(3) + ", SLEEPING=" + states.get(4) + ".");
 		activeChar.sendSysMessage("Phantom load: overload=" + status.overloadLevel() + ", overloadPeak=" + status.peakOverloadLevel() + ", ready=" + status.queueReady() + ", due=" + status.queueDue() + ", capacity=" + status.queueCapacity() + ", accepted=" + status.queueAccepted() + ", rejected=" + status.queueRejected() + ".");
+		final var ecology = status.ecology();
+		activeChar.sendSysMessage("Phantom ecology: enabled=" + ecology.enabled() + ", preset=" + ecology.preset() + ", managed=" + ecology.managed() + ", archived=" + ecology.archived() + ", newcomers=" + ecology.newcomers() + ", pendingCatchup=" + ecology.pendingCatchup() + ", turnoverPaused=" + ecology.turnoverPaused() + ".");
+		activeChar.sendSysMessage("Phantom ecology cohorts: pace=" + ecology.paceHistogram() + ", personality=" + ecology.personalityHistogram() + ", level=" + status.levelHistogram() + ", schedule=" + ecology.scheduleHistogram() + ".");
+		activeChar.sendSysMessage("Phantom ecology work: profiles=" + ecology.lastPulseProfiles() + "/" + ecology.maximumPulseProfiles() + ", intervals=" + ecology.lastPulseIntervals() + "/" + ecology.maximumPulseIntervals() + ", productiveMinutes=" + ecology.productiveMinutes() + ", calendarMinutes=" + ecology.calendarMinutes() + ", failures=" + ecology.failures() + ".");
 		activeChar.sendSysMessage("Phantom shutdownFailures=" + status.shutdownFailures() + ".");
 		sendTrace(activeChar, status.selectedTrace());
 	}

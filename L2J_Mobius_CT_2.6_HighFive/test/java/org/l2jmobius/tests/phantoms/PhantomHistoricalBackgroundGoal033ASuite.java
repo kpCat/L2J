@@ -27,6 +27,7 @@ import java.sql.PreparedStatement;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
@@ -38,6 +39,7 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.network.GameClient;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.Status;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStateCodec;
@@ -54,6 +56,8 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Clock;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashes;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Position;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultPoint;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.ObjectIdAllocator;
@@ -237,16 +241,52 @@ public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTe
 		{
 			final var begun = runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed());
 			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, begun.status(), "Atomic fixture baseline failed: " + begun.reason());
+			final PhantomBackgroundCatchupStore catchupStore = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+			final Snapshot initialCatchup = catchupStore.load(profileId).orElseThrow();
+			final var initialGoal = runtime.goals().load(profileId).orElseThrow();
+			final PhantomBackgroundState initialBackground = runtime.transaction().load(profileId).state();
+			boolean branchSwitchPlanSelected = false;
+			branchSwitchSearch:
+			for (var departureAnchor : _production.topology().snapshot().anchorById().values().stream().sorted(Comparator.comparing(value -> value.id())).toList())
+			{
+				final Position departurePosition = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(departureAnchor, initialBackground.position().heading()).orElse(null);
+				if (departurePosition == null)
+				{
+					continue;
+				}
+				final Clock initialClock = initialBackground.clock();
+				final PhantomBackgroundState oneIntervalTravel = copyWithPositionAndClock(initialBackground, departurePosition, new Clock(initialClock.rngState(), 1, initialClock.residualEncounterMillis()));
+				for (long planOrdinal = 1; planOrdinal <= 64; planOrdinal++)
+				{
+					final var candidate = runtime.planner().replan(profileId, oneIntervalTravel, initialGoal.goal(), context.seed(), planOrdinal);
+					if (!candidate.ready() || (candidate.routeEdgeIds().size() != 1))
+					{
+						continue;
+					}
+					final var travel = _production.authority().advanceTravel(oneIntervalTravel, candidate.spec(), PhantomBackgroundService.FARM_TRAVEL_BUDGET_MILLIS);
+					if (!oneIntervalTravel.position().committedAnchorId().equals(candidate.spec().anchorId()) && travel.mutated() && travel.position().committedAnchorId().equals(candidate.spec().anchorId()))
+					{
+						final PhantomBackgroundCatchupState replanned = initialCatchup.state().withPlan(candidate.goal().goalId(), candidate.goal().revision(), planOrdinal, candidate.planIdentity(), candidate.generation().knowledgeGeneration(), candidate.generation().topologyGeneration());
+						catchupStore.replacePlan(profileId, initialCatchup, replanned, initialGoal, candidate.goal());
+						moveCanonicalFixture(oneIntervalTravel.identity().characterObjectId(), departurePosition);
+						final var backgroundComponent = _profiles.findComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+						_profiles.updateComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE, backgroundComponent.rowVersion(), PhantomBackgroundState.SCHEMA_VERSION, new PhantomBackgroundStateCodec().encode(oneIntervalTravel));
+						branchSwitchPlanSelected = true;
+						break branchSwitchSearch;
+					}
+				}
+			}
+			PhantomAssertions.assertTrue(branchSwitchPlanSelected, "Atomic replay fixture found no one-interval travel-to-farm branch switch.");
 			final byte[] catchupBeforeFault = componentPayload(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE);
 			final byte[] backgroundBeforeFault = componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE);
 
 			fault.set(FaultPoint.AFTER_CATCHUP_STATE_WRITE);
 			final var rolledBack = runtime.historical().advance(profileId, 1, 1);
 			PhantomAssertions.assertFalse(rolledBack.successful(), "Pre-commit catch-up fault was reported as success.");
-			PhantomAssertions.assertTrue(Arrays.equals(catchupBeforeFault, componentPayload(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE)), "Pre-commit failure advanced the catch-up cursor.");
+			final byte[] catchupAfterFault = componentPayload(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE);
+			PhantomAssertions.assertTrue(Arrays.equals(catchupBeforeFault, catchupAfterFault), "Pre-commit failure changed catch-up state. before=" + new PhantomBackgroundCatchupStateCodec().decode(catchupBeforeFault) + ", after=" + new PhantomBackgroundCatchupStateCodec().decode(catchupAfterFault));
 			PhantomAssertions.assertTrue(Arrays.equals(backgroundBeforeFault, componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE)), "Pre-commit failure changed canonical Background/player state.");
 
-			final PhantomBackgroundCatchupStore catchupStore = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
 			final Snapshot expected = catchupStore.load(profileId).orElseThrow();
 			final PhantomBackgroundCatchupState next = expected.state().advanceTo(expected.state().cursorEpochMinute() + 1);
 			final PhantomGoal goal = runtime.goals().load(profileId).orElseThrow().goal();
@@ -258,7 +298,7 @@ public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTe
 			final byte[] backgroundAfterCommit = componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE);
 
 			final var duplicate = runtime.background().advanceHistorical(profileId, goal, expected, next);
-			PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.IDEMPOTENT, duplicate.status(), "Duplicate historical identity was not idempotent.");
+			PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.IDEMPOTENT, duplicate.status(), "Duplicate historical identity was not idempotent: " + duplicate.reason());
 			PhantomAssertions.assertTrue(Arrays.equals(catchupAfterCommit, componentPayload(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE)), "Duplicate operation advanced the cursor twice.");
 			PhantomAssertions.assertTrue(Arrays.equals(backgroundAfterCommit, componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE)), "Duplicate operation changed EXP/items/resources twice.");
 
@@ -446,6 +486,25 @@ public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTe
 	private static PhantomBackgroundCatchupState copyWithHashes(PhantomBackgroundCatchupState state, Hashes hashes)
 	{
 		return new PhantomBackgroundCatchupState(state.status(), state.requestId(), state.deterministicSeed(), state.fromEpochMinute(), state.targetEpochMinute(), state.cursorEpochMinute(), state.planOrdinal(), state.intervalOrdinal(), state.generation(), state.knowledgeGeneration(), state.topologyGeneration(), state.goalId(), state.goalRevision(), state.planIdentity(), state.modelVersion(), hashes, state.failureReason());
+	}
+
+	private static PhantomBackgroundState copyWithPositionAndClock(PhantomBackgroundState state, Position position, Clock clock)
+	{
+		return new PhantomBackgroundState(state.state(), state.identity(), state.progress(), state.vitals(), position, state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), clock, state.receipt(), state.hashes());
+	}
+
+	private static void moveCanonicalFixture(int characterObjectId, Position position) throws Exception
+	{
+		try (Connection connection = DatabaseFactory.getConnection(); PreparedStatement statement = connection.prepareStatement("UPDATE characters SET x=?,y=?,z=?,heading=? WHERE charId=?"))
+		{
+			PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, connection.getCatalog(), "Goal033A position fixture touched a non-test database.");
+			statement.setInt(1, position.x());
+			statement.setInt(2, position.y());
+			statement.setInt(3, position.z());
+			statement.setInt(4, position.heading());
+			statement.setInt(5, characterObjectId);
+			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Goal033A position fixture character is absent.");
+		}
 	}
 
 	private void deleteProfileOnly(long profileId)

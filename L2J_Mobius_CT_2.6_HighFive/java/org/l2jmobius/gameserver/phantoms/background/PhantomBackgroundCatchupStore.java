@@ -83,6 +83,29 @@ public final class PhantomBackgroundCatchupStore
 		}
 	}
 
+	public Snapshot renewCompleted(long profileId, Snapshot expected, PhantomBackgroundCatchupState replacement)
+	{
+		requireSequentialRenewal(expected, replacement);
+		if ((replacement.goalId() != expected.state().goalId()) || (replacement.goalRevision() != expected.state().goalRevision()) || !replacement.planIdentity().equals(expected.state().planIdentity()))
+		{
+			throw new IllegalArgumentException("Sequential Background catch-up renewal is invalid.");
+		}
+		return decode(_profiles.updateComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE, expected.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, _codec.encode(replacement)));
+	}
+
+	public PlannedSnapshot renewCompletedWithPlan(long profileId, Snapshot expected, PhantomBackgroundCatchupState replacement, StoredGoal expectedGoal, PhantomGoal replacementGoal)
+	{
+		requireSequentialRenewal(expected, replacement);
+		if ((replacement.goalId() != replacementGoal.goalId()) || (replacement.goalRevision() != replacementGoal.revision()) || (expectedGoal.goal().goalId() != replacementGoal.goalId()) || (replacementGoal.revision() != Math.addExact(expectedGoal.goal().revision(), 1)))
+		{
+			throw new IllegalArgumentException("Sequential Background catch-up replacement plan is invalid.");
+		}
+		final List<PhantomProfileComponent> components = _profiles.mutateComponentsAtomically(profileId, List.of(
+			new ComponentMutation(PhantomBackgroundCatchupState.COMPONENT_TYPE, expected.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, _codec.encode(replacement)),
+			_goals.componentMutation(expectedGoal.rowVersion(), replacementGoal)));
+		return decodePlanned(components);
+	}
+
 	public Snapshot replace(long profileId, Snapshot expected, PhantomBackgroundCatchupState replacement)
 	{
 		requireSameRequest(expected.state(), replacement);
@@ -116,6 +139,11 @@ public final class PhantomBackgroundCatchupStore
 		final List<PhantomProfileComponent> components = _profiles.mutateComponentsAtomically(profileId, List.of(
 			new ComponentMutation(PhantomBackgroundCatchupState.COMPONENT_TYPE, expected.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, _codec.encode(planned)),
 			_goals.componentMutation(expectedGoalRowVersion, goal)));
+		return decodePlanned(components);
+	}
+
+	private PlannedSnapshot decodePlanned(List<PhantomProfileComponent> components)
+	{
 		if ((components.size() != 2) || !PhantomBackgroundCatchupState.COMPONENT_TYPE.equals(components.get(0).componentType()) || !PhantomGoalStateStore.COMPONENT_TYPE.equals(components.get(1).componentType()))
 		{
 			throw new IllegalStateException("Atomic catch-up plan returned an unexpected component set.");
@@ -143,6 +171,14 @@ public final class PhantomBackgroundCatchupStore
 		if (!expected.requestId().equals(replacement.requestId()) || (expected.generation() != replacement.generation()) || (replacement.cursorEpochMinute() < expected.cursorEpochMinute()))
 		{
 			throw new IllegalArgumentException("Catch-up replacement changed ownership or regressed its cursor.");
+		}
+	}
+
+	private static void requireSequentialRenewal(Snapshot expected, PhantomBackgroundCatchupState replacement)
+	{
+		if ((expected.state().status() != PhantomBackgroundCatchupState.Status.COMPLETE) || (replacement.status() != PhantomBackgroundCatchupState.Status.PENDING) || expected.state().requestId().equals(replacement.requestId()) || (replacement.fromEpochMinute() < expected.state().targetEpochMinute()) || (replacement.cursorEpochMinute() != replacement.fromEpochMinute()))
+		{
+			throw new IllegalArgumentException("Sequential Background catch-up renewal is invalid.");
 		}
 	}
 

@@ -41,6 +41,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomScheduler.UnregisterStatus;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.AttachResult;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.DetachResult;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ReloadResult;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationOwnershipPort;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationPersistencePort;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState;
@@ -158,8 +159,18 @@ public final class PhantomPopulationTestDoubles
 		@Override
 		public synchronized ManagedSnapshot createShell(long generation, long creationOrdinal, long deterministicSeed)
 		{
+			return createShell(generation, creationOrdinal, deterministicSeed, "evening");
+		}
+
+		@Override
+		public synchronized ManagedSnapshot createShell(long generation, long creationOrdinal, long deterministicSeed, String scheduleTemplate)
+		{
 			final long profileId = _nextProfileId++;
-			final ManagedSnapshot snapshot = seed(profileId, State.SHELL, CreationStage.SHELL_DURABLE, (int) (profileId % 20));
+			final ManagedSnapshot seeded = seed(profileId, State.SHELL, CreationStage.SHELL_DURABLE, (int) (profileId % 20));
+			final PhantomPopulationState source = seeded.state();
+			final PhantomPopulationState state = new PhantomPopulationState(source.state(), generation, creationOrdinal, source.catalogHash(), source.initializationAuthorityHash(), deterministicSeed, source.nameAttempt(), source.reservedAccount(), source.ownershipToken(), source.characterName(), source.classId(), source.female(), source.face(), source.hairColor(), source.hairStyle(), scheduleTemplate, source.schedulePhaseMinutes(), source.homeMapRegionId(), source.creationX(), source.creationY(), source.creationZ(), source.expectedCharacterObjectId(), source.actualCharacterObjectId(), source.creationStage(), source.initializationHash(), source.lastFailure());
+			final ManagedSnapshot snapshot = new ManagedSnapshot(seeded.profile(), seeded.component(), state);
+			_rows.put(profileId, snapshot);
 			_writes.incrementAndGet();
 			_afterCreate.run();
 			return snapshot;
@@ -402,6 +413,13 @@ public final class PhantomPopulationTestDoubles
 				_attached.remove(profileId);
 			}
 			return outcome;
+		}
+
+		@Override
+		public ReloadResult reload(long profileId)
+		{
+			_calls++;
+			return _attached.contains(profileId) ? ReloadResult.RELOADED : ReloadResult.REJECTED;
 		}
 
 		@Override

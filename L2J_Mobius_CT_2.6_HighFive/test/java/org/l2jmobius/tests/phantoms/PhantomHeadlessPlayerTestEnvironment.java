@@ -40,6 +40,7 @@ import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.commons.config.ThreadConfig;
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.config.ConfigLoader;
+import org.l2jmobius.gameserver.config.FeatureConfig;
 import org.l2jmobius.gameserver.data.sql.ClanHallTable;
 import org.l2jmobius.gameserver.data.sql.ClanTable;
 import org.l2jmobius.gameserver.data.sql.CharInfoTable;
@@ -148,11 +149,18 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	public void initialize(PhantomTestContext context) throws Exception
 	{
+		initialize(context, 0L);
+	}
+
+	public void initialize(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception
+	{
 		final Path workingDirectory = Path.of("").toAbsolutePath().normalize();
 		final Path expectedWorkingDirectory = context.moduleRoot().resolve("dist/game").normalize();
 		PhantomAssertions.assertEquals(expectedWorkingDirectory, workingDirectory, "Headless integration JVM must run from dist/game.");
 
 		ConfigLoader.init();
+		PhantomAssertions.assertTrue(minimumSevenSignsFestivalManagerStartMillis >= 0L, "Seven Signs Festival manager start override cannot be negative.");
+		FeatureConfig.ALT_FESTIVAL_MANAGER_START = Math.max(FeatureConfig.ALT_FESTIVAL_MANAGER_START, minimumSevenSignsFestivalManagerStartMillis);
 
 		final String configProperty = System.getProperty("phantom.test.config");
 		if ((configProperty == null) || configProperty.isBlank())

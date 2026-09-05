@@ -329,6 +329,10 @@ public final class PhantomPopulationHumanizationGoal030ASuite implements Phantom
 		expected.put("PhantomPartyOperationsPerPulse", "64");
 		expected.put("PhantomSocialCacheProfiles", "1024");
 		expected.put("PhantomPopulationTimeZone", "UTC");
+		expected.put("EnablePhantomEcology", "False");
+		expected.put("PhantomEcologyPreset", "LIVING");
+		expected.put("PhantomEcologyWorldAgeDays", "-1");
+		expected.put("PhantomEcologyArchiveLimit", "1000");
 		final Map<String, String> actual = new LinkedHashMap<>();
 		boolean russianComment = false;
 		for (String line : text.split("\\R"))

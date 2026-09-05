@@ -133,13 +133,19 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 
 	public ManagedSnapshot createShell(long generation, long creationOrdinal, long deterministicSeed)
 	{
+		return createShell(generation, creationOrdinal, deterministicSeed, null);
+	}
+
+	@Override
+	public ManagedSnapshot createShell(long generation, long creationOrdinal, long deterministicSeed, String scheduleTemplate)
+	{
 		return decode(_profiles.createWithComponent(PhantomPopulationState.COMPONENT_TYPE, PhantomPopulationState.SCHEMA_VERSION, profileId ->
 		{
 			final long identitySeed = mix(deterministicSeed, profileId);
 			final CareerArchetype archetype = _catalog.chooseArchetype(deterministicSeed, creationOrdinal);
 			final ClassEntry classEntry = _catalog.chooseClass(identitySeed, archetype);
 			final boolean female = classEntry.sex().female(identitySeed >>> 7);
-			final ScheduleTemplate schedule = _catalog.chooseSchedule(identitySeed >>> 13);
+			final ScheduleTemplate schedule = scheduleTemplate == null ? _catalog.chooseSchedule(identitySeed >>> 13) : Objects.requireNonNull(_catalog.templates().get(scheduleTemplate), "Ecology schedule is absent from the population catalog.");
 			final PlayerTemplate template = requireTemplate(classEntry.classId());
 			final Location creationLocation = PlayerCreationInitializer.resolveCreationLocation(template);
 			final PopulationInitializationContract authority = PopulationInitializationContract.resolve(_catalog.hash(), _zoneId, classEntry.classId(), creationLocation);
@@ -215,6 +221,77 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 	{
 		final PhantomProfileComponent component = _profiles.updateComponent(current.profile().profileId(), PhantomPopulationState.COMPONENT_TYPE, current.component().rowVersion(), PhantomPopulationState.SCHEMA_VERSION, _codec.encode(next));
 		return new ManagedSnapshot(current.profile(), component, next);
+	}
+
+	@Override
+	public Map<String, Integer> levelHistogram(List<ManagedSnapshot> snapshots)
+	{
+		Objects.requireNonNull(snapshots, "Population snapshots must not be null.");
+		final Map<String, Integer> histogram = new LinkedHashMap<>();
+		final List<Integer> objectIds = new ArrayList<>();
+		for (ManagedSnapshot snapshot : snapshots)
+		{
+			if (snapshot.profile().characterObjectId() == null)
+			{
+				histogram.merge("UNCREATED", 1, Integer::sum);
+			}
+			else
+			{
+				objectIds.add(snapshot.profile().characterObjectId());
+			}
+		}
+		for (int offset = 0; offset < objectIds.size(); offset += MANAGED_PAGE_SIZE)
+		{
+			final List<Integer> page = objectIds.subList(offset, Math.min(objectIds.size(), offset + MANAGED_PAGE_SIZE));
+			final String placeholders = String.join(",", java.util.Collections.nCopies(page.size(), "?"));
+			try (Connection connection = DatabaseFactory.getConnection();
+				PreparedStatement statement = connection.prepareStatement("SELECT level FROM characters WHERE charId IN (" + placeholders + ")"))
+			{
+				for (int index = 0; index < page.size(); index++)
+				{
+					statement.setInt(index + 1, page.get(index));
+				}
+				int found = 0;
+				try (ResultSet result = statement.executeQuery())
+				{
+					while (result.next())
+					{
+						histogram.merge(levelBucket(result.getInt("level")), 1, Integer::sum);
+						found++;
+					}
+				}
+				if (found < page.size())
+				{
+					histogram.merge("MISSING", page.size() - found, Integer::sum);
+				}
+			}
+			catch (SQLException e)
+			{
+				throw new IllegalStateException("Could not read the bounded Phantom level histogram.", e);
+			}
+		}
+		return Map.copyOf(histogram);
+	}
+
+	private static String levelBucket(int level)
+	{
+		if (level <= 19)
+		{
+			return "01-19";
+		}
+		if (level <= 39)
+		{
+			return "20-39";
+		}
+		if (level <= 60)
+		{
+			return "40-60";
+		}
+		if (level <= 75)
+		{
+			return "61-75";
+		}
+		return "76-85";
 	}
 
 	private CreationResult prepareAccount(ManagedSnapshot current)

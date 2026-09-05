@@ -1,7 +1,8 @@
 Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Актуальный baseline — HEAD ветки origin/feature/phantom-world, содержащий SUCCESS Goal033A. Exact required parent выполненного Goal033A:
-67cc9fc1911a37644064854d964fd8191d8f24f2 — accepted Goal033A1 baseline.
+Exact parent, на котором реализован Goal033:
+77d72eaff6858c6bc33741b380005d3e0fda7f81 — SUCCESS Goal033A.
+Goal033 закрывается commit subject `phantom(goal-033): implement living population ecology`; перед Goal034 возьми exact SHA из синхронного HEAD/origin после fetch, не пытайся встраивать self-SHA в этот commit.
 Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
 
 Состояние release:
@@ -9,7 +10,7 @@
 - release matrix — 20 covered domains / 0 pending;
 - Goal031 local-play readiness — SUCCESS;
 - Goal032 Phantom-only reset/reseed + operator tuning + Roadmap v3 — SUCCESS;
-- Goal033 living population ecology — READY_TO_REPEAT_AFTER_GOAL033A_SUCCESS;
+- Goal033 living population ecology — SUCCESS: production implementation, production-composed LIVING 10/5/restart и cross-goal DB regressions прошли на `l2jmobiush5_phantom_test` с cleanup;
 - Goal033A causal historical Background catch-up prerequisite — SUCCESS;
 - Goal033A1 canonical population topology ingress — SUCCESS; blocker Goal033A CLOSED BY Goal033A1;
 - shipped dist/game/config/Custom/PhantomPlayers.ini остаётся safe: EnablePhantomSystem=False, population=0, ACTIVE=0;
@@ -20,6 +21,7 @@
 - Goal031 report: docs/phantoms/reports/031-local-play-readiness.md.
 - Goal032 report: docs/phantoms/reports/032-phantom-reset-operator-control.md;
 - Goal033 report: docs/phantoms/reports/033-living-population-ecology.md;
+- Goal033 repeat report: docs/phantoms/reports/033-living-population-ecology-resume.md;
 - Goal033A historical blocked report: docs/phantoms/reports/033A-causal-background-catchup.md;
 - Goal033A SUCCESS report: docs/phantoms/reports/033A-causal-background-catchup-resume.md;
 - Goal033A1 report: docs/phantoms/reports/033A1-canonical-population-topology-ingress.md;
@@ -29,9 +31,11 @@ Goal031 доказал guarded production-composed путь: 10 durable identiti
 
 Goal032 добавил явный `//phantom reset preview` → one-time 120-second `confirm`/`cancel` workflow, exact ownership validation, canonical drain-before-mutation, transactional Phantom-private cleanup, human/shared-state guards, empty no-op и optional reseed через существующий PopulationManager. Auto-reset при startup отсутствует; shipped safe defaults не изменены.
 
-Goal033A1 закрыл topology-ingress blocker: все 11 managed-population starting classes и 38 authoritative creation positions сопоставлены unique exact instance-zero ingress anchors; семь real-spawn low-level farming destinations связаны 80 factual one-way `BACKGROUND` edges. Production Navigation, exact-anchor, travel/restart и negative gates PASS. `PlayerCreationInitializer`, creation coordinates и `exactAnchor()` не менялись; direct teleport/fallback отсутствуют. На этапе Goal033A1 planner/cursor/fence не реализовывались; они закрыты Goal033A ниже. Goal033 ecology не реализована.
+Goal033A1 закрыл topology-ingress blocker: все 11 managed-population starting classes и 38 authoritative creation positions сопоставлены unique exact instance-zero ingress anchors; семь real-spawn low-level farming destinations связаны 80 factual one-way `BACKGROUND` edges. Production Navigation, exact-anchor, travel/restart и negative gates PASS. `PlayerCreationInitializer`, creation coordinates и `exactAnchor()` не менялись; direct teleport/fallback отсутствуют. На этапе Goal033A1 planner/cursor/fence не реализовывались; они закрыты Goal033A ниже.
 
-Goal033A закрыл causal catch-up prerequisite: production planner потребляет Goal033A1 ingress/routes и собственный canonical level/class; initial READY/DEAD baseline проходит через existing materialization/store lifecycle; minute cursor и Background/player/inventory mutation атомарны и idempotent; restart/DEAD-idle semantics детерминированы; NORMAL materialization/Decision закрыты до COMPLETE. Direct XP/free resources/teleport, human-level input, второй Player lifecycle и новый scheduler отсутствуют. Goal033 ecology остаётся следующим отдельным этапом.
+Goal033A закрыл causal catch-up prerequisite: production planner потребляет Goal033A1 ingress/routes и собственный canonical level/class; initial READY/DEAD baseline проходит через existing materialization/store lifecycle; minute cursor и Background/player/inventory mutation атомарны и idempotent; restart/DEAD-idle semantics детерминированы; NORMAL materialization/Decision закрыты до COMPLETE. Direct XP/free resources/teleport, human-level input, второй Player lifecycle и новый scheduler отсутствуют.
+
+Повтор Goal033 реализовал durable `population.ecology`, FRESH/LIVING/MATURE, immutable low-discrepancy CASUAL/REGULAR/FAST/OUTLIER pace/personality/schedule assignment, schedule-aware causal windows через accepted Goal033A, restart-safe ongoing reconciliation, safe MANAGED→ARCHIVED turnover/replacement и bounded operator status с live level histogram. Human level не используется; direct XP/free resources/teleport, reward multipliers, второй lifecycle и новый timer/thread отсутствуют. Focused Goal033 7/7, production-composed LIVING 10/5 2/2, Goal033A 4/4 и Goal032/031/030CP3 DB regressions PASS на `l2jmobiush5_phantom_test`; созданные тестовые профили очищены. Production `l2jmobiush5` не использовалась.
 
 Не объявляй готовыми исходные gameplay gaps:
 - siege AI — DEFERRED_NOT_IMPLEMENTED;
@@ -40,7 +44,7 @@ Goal033A закрыл causal catch-up prerequisite: production planner потр�
 - Kamaloka — DEFERRED_NOT_IMPLEMENTED;
 - Pailaka — DEFERRED_NOT_IMPLEMENTED.
 
-Следующий реальный шаг: **Goal033 — Living population ecology** — повтор Goal033, не Goal034. Goal033A принят; сохраняй запрет direct XP/free resources/teleport и не расширяй scope за Goal033 task.
+Следующий реальный шаг: **Goal034 — Automated black-box local stack acceptance**. Используй guarded throwaway `l2jmobiush5_phantom_test`; production `l2jmobiush5` запрещена. Сохраняй запрет direct XP/free resources/teleport и не переоткрывай принятый Goal033 без найденной regression.
 
 Authoritative finite tail после Goal033: Goal034 automated black-box Login/Game stack на guarded throwaway DB; Goal035 siege; Goal036 bounded quests/instances; Goal037 final full-vision gate + freeze. После ACCEPT Goal037 не планировать новые goals автоматически.
 

@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -59,6 +60,12 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 		Optional<StoredState> load(long profileId);
 
 		StoredState save(long profileId, long expectedStateRowVersion, long expectedReceiptRowVersion, SocialState state, PhantomSocialReceiptLedger receipts);
+	}
+
+	@FunctionalInterface
+	public interface PersonalityInitializer
+	{
+		Map<Integer, Integer> traits(long profileId);
 	}
 
 	public record StoredState(long profileId, long stateRowVersion, long receiptRowVersion, SocialState state, PhantomSocialReceiptLedger receipts)
@@ -128,6 +135,7 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 	private final LongAdder _authorityStale = new LongAdder();
 	private final LongAdder _failures = new LongAdder();
 	private volatile ServiceState _state = ServiceState.NEW;
+	private volatile PersonalityInitializer _personalityInitializer;
 
 	public PhantomSocialService(PhantomSocialCatalog catalog, PersistencePort store, long personalitySeed, int cacheLimit)
 	{
@@ -175,6 +183,18 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 			}
 			_state = ServiceState.RUNNING;
 			return true;
+		}
+	}
+
+	public void installPersonalityInitializer(PersonalityInitializer initializer)
+	{
+		synchronized (_lifecycleLock)
+		{
+			if ((_state != ServiceState.RUNNING) || (_personalityInitializer != null))
+			{
+				throw new IllegalStateException("Social personality initializer can only be installed once while running.");
+			}
+			_personalityInitializer = Objects.requireNonNull(initializer, "Social personality initializer must not be null.");
 		}
 	}
 
@@ -496,11 +516,27 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 	private SocialState createState(long profileId)
 	{
 		final NavigableMap<Integer, Integer> traits = new TreeMap<>();
-		for (var trait : _catalog.traits())
+		final PersonalityInitializer initializer = _personalityInitializer;
+		if (initializer != null)
 		{
-			final String hash = PhantomSocialModel.sha256(_catalog.hash() + '|' + _personalitySeed + '|' + profileId + '|' + trait.code());
-			final long value = Long.parseUnsignedLong(hash.substring(0, 8), 16);
-			traits.put(trait.code(), (int) (value % 20001L) - 10000);
+			traits.putAll(initializer.traits(profileId));
+			if (!traits.isEmpty())
+			{
+				final Set<Integer> required = _catalog.traits().stream().map(PhantomSocialCatalog.TraitDefinition::code).collect(java.util.stream.Collectors.toSet());
+				if (!traits.keySet().equals(required) || traits.values().stream().anyMatch(value -> (value == null) || (value < PhantomSocialModel.MIN_VALUE) || (value > PhantomSocialModel.MAX_VALUE)))
+				{
+					throw new IllegalArgumentException("Social personality initializer returned an invalid trait vector.");
+				}
+			}
+		}
+		if (traits.isEmpty())
+		{
+			for (var trait : _catalog.traits())
+			{
+				final String hash = PhantomSocialModel.sha256(_catalog.hash() + '|' + _personalitySeed + '|' + profileId + '|' + trait.code());
+				final long value = Long.parseUnsignedLong(hash.substring(0, 8), 16);
+				traits.put(trait.code(), (int) (value % 20001L) - 10000);
+			}
 		}
 		return new SocialState(_catalog.hash(), _personalitySeed, 0, traits, List.of(), List.of());
 	}

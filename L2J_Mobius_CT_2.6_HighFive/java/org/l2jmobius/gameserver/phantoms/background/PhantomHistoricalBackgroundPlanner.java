@@ -82,6 +82,18 @@ public final class PhantomHistoricalBackgroundPlanner
 		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1));
 	}
 
+	public Result replaceFromState(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal)
+	{
+		Objects.requireNonNull(state, "state");
+		Objects.requireNonNull(previousGoal, "previousGoal");
+		if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(previousGoal.goalType()))
+		{
+			return Result.blocked("planner.previous_goal.unsupported");
+		}
+		final PhantomBackgroundState.Loadout loadout = state.loadout();
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), loadout.shotItemId(), loadout.shotsPerEncounter(), loadout.summonNpcId(), loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1));
+	}
+
 	public boolean remainsSuitable(PhantomBackgroundState state, PhantomGoal goal)
 	{
 		if (!state.hashes().equals(_authority.hashes()))

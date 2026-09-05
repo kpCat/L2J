@@ -366,6 +366,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final PhantomBackgroundGoalSpec spec = claim.spec();
 			final HistoricalIdentity historical = new HistoricalIdentity(expectedCatchup.requestId(), expectedCatchup.generation(), expectedCatchup.intervalOrdinal(), expectedCatchup.cursorEpochMinute(), nextCatchup.cursorEpochMinute(), expectedCatchup.planIdentity());
 			final PhantomBackgroundTransaction.CatchupMutation mutation = new PhantomBackgroundTransaction.CatchupMutation(expectedCatchup, catchup.rowVersion(), nextCatchup);
+			final OperationResult replay = reconcileHistoricalReplay(claim, goal, spec, historical, mutation);
+			if (replay != null)
+			{
+				return replay;
+			}
 			if (state.state() == State.DEAD)
 			{
 				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_DEAD_IDLE, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
@@ -422,6 +427,33 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				return commit(claim, command).withModel(batch.encounters(), batch.elapsedMillis(), batch.dead());
 			}
 		}
+	}
+
+	private OperationResult reconcileHistoricalReplay(OperationClaim claim, PhantomGoal goal, PhantomBackgroundGoalSpec spec, HistoricalIdentity historical, PhantomBackgroundTransaction.CatchupMutation catchup)
+	{
+		for (ActionKind actionKind : List.of(ActionKind.HISTORICAL_TRAVEL, ActionKind.HISTORICAL_FARM, ActionKind.HISTORICAL_DEAD_IDLE))
+		{
+			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(claim.profileId(), claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, actionKind, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
+			if (!claim.state().receipt().operationKey().equals(key.digest()))
+			{
+				continue;
+			}
+			final PhantomBackgroundTransaction.Result result = transaction(() -> _transactions.verifyCommittedHistoricalReplay(claim.profileId(), claim.characterObjectId(), goal, key, catchup));
+			if (result.status() == PhantomBackgroundTransaction.Status.IDEMPOTENT)
+			{
+				_idempotentOperations.incrementAndGet();
+				return OperationResult.idempotent("transaction.idempotent");
+			}
+			final OperationResult failure = mapTransactionFailure(result.status());
+			if (failure.status() == OperationStatus.INCONSISTENT)
+			{
+				claim.retainIdentity();
+				failStop();
+				_failedOperations.incrementAndGet();
+			}
+			return failure;
+		}
+		return null;
 	}
 	public OperationResult acquireItem(long profileId, PhantomGoal goal, long goalRowVersion, PhantomAcquisitionState acquisitionState, long acquisitionRowVersion, long activityGeneration, long tickSequence, PhantomActivityState activityState, long logicalNowNanos, long logicalMinute)
 	{

@@ -4,11 +4,11 @@
 
 ## 1. Что уже умеет текущий release
 
-Goal030 принят: 20 доменов release matrix покрыты, pending-доменов нет. Phantom World создаёт durable профиль, аккаунт и обычного `Player`, использует общий Scheduler/Decision pipeline, World, combat, progression, economy, party, rift, PvP, raid, social/conversation и clan owners. Поддержаны restart, operator status/trace, `drain`, `disable` и безопасный двухфазный Phantom-only reset/reseed.
+Goal030 принят: 20 доменов release matrix покрыты, pending-доменов нет. Phantom World создаёт durable профиль, аккаунт и обычного `Player`, использует общий Scheduler/Decision pipeline, World, combat, progression, economy, party, rift, PvP, raid, social/conversation и clan owners. Поддержаны restart, operator status/trace, `drain`, `disable` и безопасный двухфазный Phantom-only reset/reseed. Production implementation Goal033 дополнительно предоставляет opt-in durable ecology, FRESH/LIVING/MATURE assignments, causal catch-up через Goal033A, newcomer turnover и Social personality cohorts; shipped-конфиг оставляет её выключенной.
 
 ## 2. Что НЕ входит в текущий release
 
-Не реализованы living population ecology/gameplay knobs, siege AI, автоматизация class quests, Kamaloka и Pailaka. Quest acquisition catalog покрывает только ограниченные kill/collection drop subsets Q102/Q152; это не generic whitelist quest adapter и не quest solver. Полный исходный master-plan vision шире принятого Goal030 slice. Текущие настройки и отложенные Goal033 knobs перечислены в `docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md`.
+Goal033 принят как release `SUCCESS`: durable living ecology и production-composed LIVING 10/5/restart/reset-reseed gates подтверждены на guarded test DB. Не реализованы siege AI, автоматизация class quests, Kamaloka и Pailaka. Quest acquisition catalog покрывает только ограниченные kill/collection drop subsets Q102/Q152; это не generic whitelist quest adapter и не quest solver. Полный исходный master-plan vision шире принятого Goal030 slice. Текущие ecology-настройки перечислены в `docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md`.
 
 ## 3. Требования: JDK, Ant, MariaDB, jars, data и geodata
 
@@ -66,7 +66,7 @@ Copy-Item .\docs\phantoms\examples\PhantomPlayers.local-play.ini .\dist\game\con
 ant phantom-local-play-preflight
 ```
 
-Ожидаются `PRESET_RUNNABLE`, `DATA_PACKS_READY`, `PHANTOM_SCHEMA_READY`. Точный применённый preset даёт `PASS_WITH_WARNINGS`, потому что runtime config локально включён; это напоминание вернуть safe config после игры. Значения preset: enabled, population 10, ACTIVE 5, materialization cap 32. Пароли preflight не печатает, DB проверяет только read-only metadata.
+Ожидаются `PRESET_RUNNABLE`, `DATA_PACKS_READY`, `PHANTOM_SCHEMA_READY`. Точный применённый preset даёт `PASS_WITH_WARNINGS`, потому что runtime config локально включён; это напоминание вернуть safe config после игры. Значения preset: enabled, population 10, ACTIVE 5, materialization cap 32, ecology enabled, `LIVING`, automatic bounded world age (`-1`), archive cap 1000. Пароли preflight не печатает, DB проверяет только read-only metadata.
 
 ## 8. Как запустить LoginServer и GameServer стандартными .bat
 
@@ -101,6 +101,8 @@ Start-Process .\dist\game\GameServer.bat
 - `runtimeConfigured=true`, `runtime=RUNNING`;
 - `scheduler=RUNNING`, `decision=RUNNING`;
 - `active` в диапазоне 1..5 после bootstrap, `activePeak` не выше 32;
+- `Phantom ecology` показывает `enabled=true`, `preset=LIVING`, bounded managed/archived/newcomer/pendingCatchup counts;
+- `Phantom ecology cohorts` показывает pace/personality/level/schedule histograms, а `Phantom ecology work` — bounded profiles/intervals и failures;
 - `shutdownFailures=0` в устойчивом состоянии.
 
 `ready`, `due`, `accepted` являются рабочими очередями и могут быть нулевыми в момент снимка. Для видимости найдите Phantom рядом с населёнными зонами после bootstrap; durable population создаётся асинхронно.
@@ -151,6 +153,7 @@ ant phantom-local-play-preflight
 - `runtime=FAILED` или `SHUTDOWN_FAILED`: сначала повторите drain, затем проверьте status; не запускайте второй owner поверх retained runtime.
 - population 10, но visible ACTIVE нет: подождите bootstrap, проверьте `active`, `scheduler`, `decision`; ACTIVE-фантомы находятся в игровом мире, но не обязаны появляться рядом с конкретным GM.
 - `RUNTIME_ARTIFACTS_MISSING`: выполните `ant jar`.
+- `Phantom ecology` содержит `turnoverPaused`: проверьте archive cap и safe-boundary состояние; identities/history вручную не удаляйте.
 
 ## 16. Как не потерять и не продублировать durable identities при restart
 
@@ -203,4 +206,4 @@ Confirm принимает только текущий snapshot и один ра
 
 Reset не является «машиной времени»: он не отбирает предметы у людей, не откатывает завершённые сделки, mail, PvP/форумную историю и законные изменения мира. Только доказанное private Phantom state удаляется; безопасные bilateral relations detach, неоднозначная shared ownership блокирует всю операцию.
 
-Automated Goal032 tests используют только guarded throwaway DB `127.0.0.1:3308/l2jmobiush5_phantom_test`. Ни server startup, ни preflight, ни эти tests не изменяют production DB автоматически; production reset происходит только после GM preview и explicit confirm.
+Automated Goal032/Goal033 tests используют только guarded throwaway DB `127.0.0.1:3308/l2jmobiush5_phantom_test`. Guard отвергает production schema `l2jmobiush5` и legacy production schema `l2jmobius`. Ни server startup, ни preflight, ни эти tests не изменяют production DB автоматически; production reset происходит только после GM preview и explicit confirm.

@@ -21,6 +21,7 @@
 package org.l2jmobius.gameserver.phantoms.population;
 
 import java.util.List;
+import java.util.Map;
 
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.CreationResult;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot;
@@ -35,11 +36,21 @@ public interface PhantomPopulationPersistencePort
 
 	ManagedSnapshot createShell(long generation, long creationOrdinal, long deterministicSeed);
 
+	default ManagedSnapshot createShell(long generation, long creationOrdinal, long deterministicSeed, String scheduleTemplate)
+	{
+		return createShell(generation, creationOrdinal, deterministicSeed);
+	}
+
 	ManagedSnapshot reload(long profileId);
 
 	CreationResult advanceCreation(ManagedSnapshot current);
 
 	ManagedSnapshot updateState(ManagedSnapshot current, PhantomPopulationState next);
+
+	default Map<String, Integer> levelHistogram(List<ManagedSnapshot> snapshots)
+	{
+		return Map.of();
+	}
 
 	PopulationInitializationContract validateAuthority(ManagedSnapshot snapshot);
 }

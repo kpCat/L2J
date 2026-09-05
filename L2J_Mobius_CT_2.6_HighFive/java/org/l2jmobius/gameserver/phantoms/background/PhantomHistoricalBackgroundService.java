@@ -76,18 +76,50 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			return Result.rejected(ResultStatusCode.PROFILE_UNAVAILABLE, "catchup.profile.unlinked", null);
 		}
 		final Snapshot existing = _store.load(profileId).orElse(null);
-		if ((existing == null) && _materialization.find(profileId).isPresent())
+		if (((existing == null) || (existing.state().status() == Status.COMPLETE)) && _materialization.find(profileId).isPresent())
 		{
 			return Result.rejected(ResultStatusCode.NORMAL_MATERIALIZED, "catchup.normal_materialized", null);
 		}
 		final var generation = _planner.generation();
 		final String requestId = digest("BACKGROUND_CATCHUP_REQUEST_V1", profileId, fromEpochMinute, targetEpochMinute, deterministicSeed, generation.knowledgeGeneration(), generation.topologyGeneration(), generation.authorityHashes());
 		final long catchupGeneration = positiveLong(digest("BACKGROUND_CATCHUP_GENERATION_V1", requestId));
-		final PhantomBackgroundCatchupState initial = new PhantomBackgroundCatchupState(Status.PENDING, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, fromEpochMinute, 0, 0, catchupGeneration, generation.knowledgeGeneration(), generation.topologyGeneration(), 0, 0, "", PhantomBackgroundState.MODEL_VERSION, generation.authorityHashes(), "");
+		PhantomBackgroundCatchupState initial = new PhantomBackgroundCatchupState(Status.PENDING, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, fromEpochMinute, 0, 0, catchupGeneration, generation.knowledgeGeneration(), generation.topologyGeneration(), 0, 0, "", PhantomBackgroundState.MODEL_VERSION, generation.authorityHashes(), "");
 		final Snapshot claimed;
 		try
 		{
-			claimed = _store.claim(profileId, initial);
+			if ((existing != null) && !sameRequest(existing.state(), initial))
+			{
+				if ((existing.state().status() != Status.COMPLETE) || !existing.state().authorityHashes().equals(generation.authorityHashes()) || (existing.state().knowledgeGeneration() != generation.knowledgeGeneration()) || (existing.state().topologyGeneration() != generation.topologyGeneration()))
+				{
+					return Result.rejected(ResultStatusCode.CONFLICT, "catchup.claim.stale", existing);
+				}
+				final StoredGoal currentGoal = _goals.load(profileId).orElse(null);
+				if ((currentGoal != null) && (currentGoal.goal().goalId() == existing.state().goalId()) && (currentGoal.goal().revision() == existing.state().goalRevision()))
+				{
+					initial = initial.withPlan(existing.state().goalId(), existing.state().goalRevision(), existing.state().planOrdinal(), existing.state().planIdentity(), generation.knowledgeGeneration(), generation.topologyGeneration());
+					claimed = _store.renewCompleted(profileId, existing, initial);
+				}
+				else
+				{
+					final PhantomBackgroundState backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
+					if ((currentGoal == null) || (backgroundState == null) || ((backgroundState.state() != PhantomBackgroundState.State.READY) && (backgroundState.state() != PhantomBackgroundState.State.DEAD)))
+					{
+						return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.baseline_or_goal_missing", existing);
+					}
+					final long nextPlanOrdinal = Math.addExact(existing.state().planOrdinal(), 1);
+					final var replacement = _planner.replaceFromState(profileId, backgroundState, currentGoal.goal(), deterministicSeed, nextPlanOrdinal);
+					if (!replacement.ready())
+					{
+						return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, replacement.reasonKey(), existing);
+					}
+					initial = initial.withPlan(replacement.goal().goalId(), replacement.goal().revision(), nextPlanOrdinal, replacement.planIdentity(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration());
+					claimed = _store.renewCompletedWithPlan(profileId, existing, initial, currentGoal, replacement.goal()).catchup();
+				}
+			}
+			else
+			{
+				claimed = _store.claim(profileId, initial);
+			}
 		}
 		catch (RuntimeException exception)
 		{

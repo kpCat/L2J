@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecology schemaVersion="1" productiveBlockMinutes="15" maxProfilesPerPulse="4" maxIntervalsPerPulse="16" maxCalendarDaysPerPulse="14">
+	<personalities>
+		<personality id="BALANCED">
+			<trait key="persistence" center="500" spread="2500"/>
+			<trait key="caution" center="500" spread="2500"/>
+			<trait key="sociability" center="500" spread="2500"/>
+			<trait key="loyalty" center="500" spread="2500"/>
+			<trait key="empathy" center="500" spread="2500"/>
+			<trait key="assertiveness" center="500" spread="2500"/>
+		</personality>
+		<personality id="SOCIAL">
+			<trait key="persistence" center="1500" spread="1800"/>
+			<trait key="caution" center="0" spread="2200"/>
+			<trait key="sociability" center="6500" spread="2200"/>
+			<trait key="loyalty" center="4000" spread="2200"/>
+			<trait key="empathy" center="5000" spread="2200"/>
+			<trait key="assertiveness" center="1000" spread="2200"/>
+		</personality>
+		<personality id="COMPETITIVE">
+			<trait key="persistence" center="5000" spread="2000"/>
+			<trait key="caution" center="-2000" spread="2200"/>
+			<trait key="sociability" center="500" spread="2200"/>
+			<trait key="loyalty" center="500" spread="2200"/>
+			<trait key="empathy" center="-1500" spread="2200"/>
+			<trait key="assertiveness" center="6500" spread="2200"/>
+		</personality>
+		<personality id="CAUTIOUS">
+			<trait key="persistence" center="2500" spread="1800"/>
+			<trait key="caution" center="6500" spread="2200"/>
+			<trait key="sociability" center="-1000" spread="2200"/>
+			<trait key="loyalty" center="2000" spread="2000"/>
+			<trait key="empathy" center="1500" spread="2000"/>
+			<trait key="assertiveness" center="-2500" spread="2200"/>
+		</personality>
+		<personality id="GRINDER">
+			<trait key="persistence" center="7500" spread="1800"/>
+			<trait key="caution" center="2000" spread="1800"/>
+			<trait key="sociability" center="-2500" spread="2200"/>
+			<trait key="loyalty" center="1000" spread="2000"/>
+			<trait key="empathy" center="-500" spread="2000"/>
+			<trait key="assertiveness" center="2500" spread="2000"/>
+		</personality>
+		<personality id="TRADER">
+			<trait key="persistence" center="3000" spread="1800"/>
+			<trait key="caution" center="4000" spread="2000"/>
+			<trait key="sociability" center="3500" spread="2200"/>
+			<trait key="loyalty" center="1000" spread="2200"/>
+			<trait key="empathy" center="1000" spread="2200"/>
+			<trait key="assertiveness" center="2500" spread="2200"/>
+		</personality>
+	</personalities>
+	<presets>
+		<preset id="FRESH" defaultWorldAgeDays="7" newcomerDays="2" archiveMinimumDays="7" archiveDelayDays="14">
+			<ages>
+				<age minimumDays="0" maximumDays="1" weight="50"/>
+				<age minimumDays="2" maximumDays="3" weight="35"/>
+				<age minimumDays="4" maximumDays="7" weight="15"/>
+			</ages>
+			<paces>
+				<pace id="CASUAL" weight="50" productiveShareBasisPoints="2000"/>
+				<pace id="REGULAR" weight="40" productiveShareBasisPoints="4000"/>
+				<pace id="FAST" weight="9" productiveShareBasisPoints="6500"/>
+				<pace id="OUTLIER" weight="1" productiveShareBasisPoints="9000"/>
+			</paces>
+			<personalities>
+				<personality id="BALANCED" weight="30"/>
+				<personality id="SOCIAL" weight="20"/>
+				<personality id="COMPETITIVE" weight="15"/>
+				<personality id="CAUTIOUS" weight="20"/>
+				<personality id="GRINDER" weight="10"/>
+				<personality id="TRADER" weight="5"/>
+			</personalities>
+			<schedules>
+				<schedule id="morning" weight="30"/>
+				<schedule id="evening" weight="50"/>
+				<schedule id="late" weight="20"/>
+			</schedules>
+		</preset>
+		<preset id="LIVING" defaultWorldAgeDays="21" newcomerDays="2" archiveMinimumDays="14" archiveDelayDays="30">
+			<ages>
+				<age minimumDays="0" maximumDays="2" weight="20"/>
+				<age minimumDays="3" maximumDays="7" weight="30"/>
+				<age minimumDays="8" maximumDays="14" weight="30"/>
+				<age minimumDays="15" maximumDays="21" weight="20"/>
+			</ages>
+			<paces>
+				<pace id="CASUAL" weight="30" productiveShareBasisPoints="2500"/>
+				<pace id="REGULAR" weight="45" productiveShareBasisPoints="5000"/>
+				<pace id="FAST" weight="20" productiveShareBasisPoints="7500"/>
+				<pace id="OUTLIER" weight="5" productiveShareBasisPoints="9500"/>
+			</paces>
+			<personalities>
+				<personality id="BALANCED" weight="25"/>
+				<personality id="SOCIAL" weight="20"/>
+				<personality id="COMPETITIVE" weight="15"/>
+				<personality id="CAUTIOUS" weight="15"/>
+				<personality id="GRINDER" weight="15"/>
+				<personality id="TRADER" weight="10"/>
+			</personalities>
+			<schedules>
+				<schedule id="morning" weight="30"/>
+				<schedule id="evening" weight="50"/>
+				<schedule id="late" weight="20"/>
+			</schedules>
+		</preset>
+		<preset id="MATURE" defaultWorldAgeDays="60" newcomerDays="3" archiveMinimumDays="30" archiveDelayDays="60">
+			<ages>
+				<age minimumDays="0" maximumDays="3" weight="12"/>
+				<age minimumDays="4" maximumDays="14" weight="18"/>
+				<age minimumDays="15" maximumDays="35" weight="35"/>
+				<age minimumDays="36" maximumDays="60" weight="35"/>
+			</ages>
+			<paces>
+				<pace id="CASUAL" weight="25" productiveShareBasisPoints="2500"/>
+				<pace id="REGULAR" weight="40" productiveShareBasisPoints="5000"/>
+				<pace id="FAST" weight="27" productiveShareBasisPoints="7500"/>
+				<pace id="OUTLIER" weight="8" productiveShareBasisPoints="9500"/>
+			</paces>
+			<personalities>
+				<personality id="BALANCED" weight="20"/>
+				<personality id="SOCIAL" weight="15"/>
+				<personality id="COMPETITIVE" weight="20"/>
+				<personality id="CAUTIOUS" weight="15"/>
+				<personality id="GRINDER" weight="20"/>
+				<personality id="TRADER" weight="10"/>
+			</personalities>
+			<schedules>
+				<schedule id="morning" weight="30"/>
+				<schedule id="evening" weight="50"/>
+				<schedule id="late" weight="20"/>
+			</schedules>
+		</preset>
+	</presets>
+</ecology>

@@ -26,6 +26,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomScheduler.UnregisterStatus;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.AttachResult;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.DetachResult;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ReloadResult;
 
 /**
  * Exact scheduler/decision ownership statuses consumed by the population retry
@@ -44,6 +45,8 @@ public interface PhantomPopulationOwnershipPort
 	UnregisterStatus unregister(long profileId);
 
 	DetachResult detach(long profileId);
+
+	ReloadResult reload(long profileId);
 
 	boolean registered(long profileId);
 

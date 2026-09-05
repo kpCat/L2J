@@ -47,7 +47,7 @@ public final class PhantomPopulationResetDocumentationGoal032Suite implements Ph
 		final String gameServer = read(root, "java/org/l2jmobius/gameserver/GameServer.java");
 
 		final Set<String> shippedKeys = keys(shipped);
-		PhantomAssertions.assertEquals(13, shippedKeys.size(), "Shipped Phantom config key inventory changed.");
+		PhantomAssertions.assertEquals(17, shippedKeys.size(), "Shipped Phantom config key inventory changed.");
 		PhantomAssertions.assertEquals(shippedKeys, keys(preset), "Local-play preset key inventory differs from shipped config.");
 		for (String key : shippedKeys)
 		{
@@ -55,8 +55,9 @@ public final class PhantomPopulationResetDocumentationGoal032Suite implements Ph
 			PhantomAssertions.assertTrue(tuning.contains("`" + key + "`"), "Tuning guide omits shipped key " + key + ".");
 		}
 		PhantomAssertions.assertTrue(shipped.contains("EnablePhantomSystem = False") && shipped.contains("PhantomPopulationTarget = 0") && shipped.contains("PhantomPopulationActiveTarget = 0"), "Shipped fail-closed defaults changed.");
-		PhantomAssertions.assertTrue(tuning.contains("## Что можно крутить для количества ботов") && tuning.contains("## Что относится только к производительности") && tuning.contains("## Что не надо крутить без причины") && tuning.contains("## Каких gameplay-настроек пока нет"), "Required tuning guide sections are missing.");
-		PhantomAssertions.assertTrue(tuning.contains("Goal033 — Living population ecology"), "Tuning guide does not defer ecology knobs to Goal033.");
+		PhantomAssertions.assertTrue(shipped.contains("EnablePhantomEcology = False") && shipped.contains("PhantomEcologyPreset = LIVING") && preset.contains("EnablePhantomEcology = True"), "Ecology shipped/local-play defaults drifted.");
+		PhantomAssertions.assertTrue(tuning.contains("## Что можно крутить для количества ботов") && tuning.contains("## Что относится только к производительности") && tuning.contains("## Что не надо крутить без причины") && tuning.contains("## Настройки живой экологии"), "Required tuning guide sections are missing.");
+		PhantomAssertions.assertTrue(tuning.contains("Goal033 — Living population ecology"), "Tuning guide does not describe Goal033 ecology knobs.");
 
 		for (String command : List.of("//phantom reset preview", "//phantom reset confirm <TOKEN>", "//phantom reset cancel"))
 		{
@@ -73,12 +74,12 @@ public final class PhantomPopulationResetDocumentationGoal032Suite implements Ph
 		assertRoadmapOrder(handoff);
 		PhantomAssertions.assertTrue(roadmap.contains("Версия дорожной карты:** 3"), "Canonical roadmap is not v3.");
 		PhantomAssertions.assertTrue(roadmap.contains("FEATURE_COMPLETE_FOR_DECLARED_SCOPE") && roadmap.contains("ручная игра"), "Roadmap v3 omits finite freeze or QA philosophy.");
-		PhantomAssertions.assertTrue(status.contains("Goal032 Phantom-only reset/reseed") && status.contains("Следующий Goal033 ecology"), "Current status does not identify Goal032/Goal033.");
-		PhantomAssertions.assertTrue(handoff.contains("Следующий реальный шаг: **Goal033 — Living population ecology**"), "Handoff does not lead to Goal033.");
+		PhantomAssertions.assertTrue(status.contains("Goal032 Phantom-only reset/reseed") && status.contains("Goal033 living population ecology") && status.contains("Следующий Goal034"), "Current status does not preserve Goal032/Goal033 and the Goal034 transition.");
+		PhantomAssertions.assertTrue(handoff.contains("Следующий реальный шаг: **Goal034 — Automated black-box local stack acceptance**"), "Handoff does not lead to Goal034 after Goal033 SUCCESS.");
 
 		context.record("goal032.documentation.configKeys", shippedKeys);
 		context.record("goal032.documentation.commands", "preview,confirm,confirm-reseed,cancel");
-		context.record("goal032.documentation.roadmap", "v3:032>033>034>035>036>037,finite=true");
+		context.record("goal032.documentation.roadmap", "v3:032-success>033-success>034-next>035>036>037,finite=true");
 	}
 
 	private static String read(Path root, String relative) throws Exception

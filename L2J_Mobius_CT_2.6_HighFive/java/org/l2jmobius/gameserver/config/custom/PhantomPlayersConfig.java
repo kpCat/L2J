@@ -44,6 +44,9 @@ public final class PhantomPlayersConfig
 	public static final int DEFAULT_POPULATION_BOUNDARIES_PER_PULSE = 64;
 	public static final int DEFAULT_PARTY_OPERATIONS_PER_PULSE = 64;
 	public static final int DEFAULT_SOCIAL_CACHE_PROFILES = 1024;
+	public static final String DEFAULT_ECOLOGY_PRESET = "LIVING";
+	public static final int DEFAULT_ECOLOGY_WORLD_AGE_DAYS = -1;
+	public static final int DEFAULT_ECOLOGY_ARCHIVE_LIMIT = 1000;
 	public static final ZoneId DEFAULT_POPULATION_TIME_ZONE = ZoneId.of("UTC");
 
 	private static volatile Settings _settings = Settings.disabled();
@@ -87,12 +90,16 @@ public final class PhantomPlayersConfig
 			final Integer partyOperationsPerPulse = strictInteger(config.getValue("PhantomPartyOperationsPerPulse"), 10, 10000, DEFAULT_PARTY_OPERATIONS_PER_PULSE);
 			final Integer socialCacheProfiles = strictInteger(config.getValue("PhantomSocialCacheProfiles"), 16, 10000, DEFAULT_SOCIAL_CACHE_PROFILES);
 			final ZoneId populationTimeZone = strictZoneId(config.getValue("PhantomPopulationTimeZone"));
-			if ((populationTarget == null) || (populationActiveTarget == null) || (populationCreationInFlight == null) || (populationBoundariesPerPulse == null) || (partyOperationsPerPulse == null) || (socialCacheProfiles == null) || (populationTimeZone == null))
+			final Boolean ecologyEnabled = strictOptionalBoolean(config.getValue("EnablePhantomEcology"), false);
+			final String ecologyPreset = strictEcologyPreset(config.getValue("PhantomEcologyPreset"));
+			final Integer ecologyWorldAgeDays = strictWorldAgeDays(config.getValue("PhantomEcologyWorldAgeDays"));
+			final Integer ecologyArchiveLimit = strictInteger(config.getValue("PhantomEcologyArchiveLimit"), 1, 1_000_000, DEFAULT_ECOLOGY_ARCHIVE_LIMIT);
+			if ((populationTarget == null) || (populationActiveTarget == null) || (populationCreationInFlight == null) || (populationBoundariesPerPulse == null) || (partyOperationsPerPulse == null) || (socialCacheProfiles == null) || (populationTimeZone == null) || (ecologyEnabled == null) || (ecologyPreset == null) || (ecologyWorldAgeDays == null) || (ecologyArchiveLimit == null))
 			{
 				return Settings.disabled();
 			}
 			final boolean diagnosticsEnabled = enabled && strictBoolean(config.getValue("EnablePhantomDiagnostics"));
-			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone);
+			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit);
 		}
 		catch (RuntimeException e)
 		{
@@ -127,6 +134,40 @@ public final class PhantomPlayersConfig
 			return false;
 		}
 		return false;
+	}
+
+	private static Boolean strictOptionalBoolean(String value, boolean defaultValue)
+	{
+		if (value == null)
+		{
+			return defaultValue;
+		}
+		final String normalized = value.trim();
+		if (normalized.equalsIgnoreCase("true"))
+		{
+			return true;
+		}
+		if (normalized.equalsIgnoreCase("false"))
+		{
+			return false;
+		}
+		return null;
+	}
+
+	private static String strictEcologyPreset(String value)
+	{
+		final String normalized = value == null ? DEFAULT_ECOLOGY_PRESET : value.trim();
+		return normalized.equals("FRESH") || normalized.equals("LIVING") || normalized.equals("MATURE") ? normalized : null;
+	}
+
+	private static Integer strictWorldAgeDays(String value)
+	{
+		if (value == null)
+		{
+			return DEFAULT_ECOLOGY_WORLD_AGE_DAYS;
+		}
+		final String normalized = value.trim();
+		return "-1".equals(normalized) ? -1 : strictInteger(normalized, 0, 3650);
 	}
 
 	private static Integer strictCap(String value)
@@ -182,7 +223,7 @@ public final class PhantomPlayersConfig
 		}
 	}
 
-	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone)
+	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone, boolean ecologyEnabled, String ecologyPreset, int ecologyWorldAgeDays, int ecologyArchiveLimit)
 	{
 		public Settings
 		{
@@ -198,6 +239,10 @@ public final class PhantomPlayersConfig
 			partyOperationsPerPulse = enabled ? partyOperationsPerPulse : 0;
 			socialCacheProfiles = enabled ? socialCacheProfiles : 0;
 			populationTimeZone = enabled ? populationTimeZone : DEFAULT_POPULATION_TIME_ZONE;
+			ecologyEnabled = enabled && ecologyEnabled;
+			ecologyPreset = enabled ? ecologyPreset : DEFAULT_ECOLOGY_PRESET;
+			ecologyWorldAgeDays = enabled ? ecologyWorldAgeDays : DEFAULT_ECOLOGY_WORLD_AGE_DAYS;
+			ecologyArchiveLimit = enabled ? ecologyArchiveLimit : 0;
 			if (enabled && ((maxMaterializedPhantoms < 1) || (maxMaterializedPhantoms > 10000)))
 			{
 				throw new IllegalArgumentException("Enabled Phantom settings require a materialization cap between 1 and 10000.");
@@ -243,11 +288,28 @@ public final class PhantomPlayersConfig
 				throw new IllegalArgumentException("Social cache capacity must be between 16 and 10000 profiles.");
 			}
 			Objects.requireNonNull(populationTimeZone, "Population time zone must not be null.");
+			if (enabled && (!ecologyPreset.equals("FRESH") && !ecologyPreset.equals("LIVING") && !ecologyPreset.equals("MATURE")))
+			{
+				throw new IllegalArgumentException("Ecology preset must be FRESH, LIVING or MATURE.");
+			}
+			if (enabled && ((ecologyWorldAgeDays < -1) || (ecologyWorldAgeDays > 3650)))
+			{
+				throw new IllegalArgumentException("Ecology world age must be -1 or between 0 and 3650 days.");
+			}
+			if (enabled && ((ecologyArchiveLimit < 1) || (ecologyArchiveLimit > 1_000_000)))
+			{
+				throw new IllegalArgumentException("Ecology archive limit must be between 1 and 1000000.");
+			}
+		}
+
+		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone)
+		{
+			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, maxScheduledPhantomProfiles, schedulerPulseMillis, schedulerProfilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, false, DEFAULT_ECOLOGY_PRESET, DEFAULT_ECOLOGY_WORLD_AGE_DAYS, enabled ? DEFAULT_ECOLOGY_ARCHIVE_LIMIT : 0);
 		}
 
 		public Settings(boolean enabled, boolean diagnosticsEnabled)
 		{
-			this(enabled, diagnosticsEnabled, enabled ? DEFAULT_MAX_MATERIALIZED_PHANTOMS : 0, enabled ? DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES : 0, enabled ? DEFAULT_SCHEDULER_PULSE_MILLIS : 0, enabled ? DEFAULT_SCHEDULER_PROFILES_PER_PULSE : 0, DEFAULT_POPULATION_TARGET, DEFAULT_POPULATION_ACTIVE_TARGET, enabled ? DEFAULT_POPULATION_CREATION_IN_FLIGHT : 0, enabled ? DEFAULT_POPULATION_BOUNDARIES_PER_PULSE : 0, enabled ? DEFAULT_PARTY_OPERATIONS_PER_PULSE : 0, enabled ? DEFAULT_SOCIAL_CACHE_PROFILES : 0, DEFAULT_POPULATION_TIME_ZONE);
+			this(enabled, diagnosticsEnabled, enabled ? DEFAULT_MAX_MATERIALIZED_PHANTOMS : 0, enabled ? DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES : 0, enabled ? DEFAULT_SCHEDULER_PULSE_MILLIS : 0, enabled ? DEFAULT_SCHEDULER_PROFILES_PER_PULSE : 0, DEFAULT_POPULATION_TARGET, DEFAULT_POPULATION_ACTIVE_TARGET, enabled ? DEFAULT_POPULATION_CREATION_IN_FLIGHT : 0, enabled ? DEFAULT_POPULATION_BOUNDARIES_PER_PULSE : 0, enabled ? DEFAULT_PARTY_OPERATIONS_PER_PULSE : 0, enabled ? DEFAULT_SOCIAL_CACHE_PROFILES : 0, DEFAULT_POPULATION_TIME_ZONE, false, DEFAULT_ECOLOGY_PRESET, DEFAULT_ECOLOGY_WORLD_AGE_DAYS, enabled ? DEFAULT_ECOLOGY_ARCHIVE_LIMIT : 0);
 		}
 
 		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms)
@@ -267,7 +329,7 @@ public final class PhantomPlayersConfig
 
 		public static Settings disabled()
 		{
-			return new Settings(false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, DEFAULT_POPULATION_TIME_ZONE);
+			return new Settings(false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, DEFAULT_POPULATION_TIME_ZONE, false, DEFAULT_ECOLOGY_PRESET, DEFAULT_ECOLOGY_WORLD_AGE_DAYS, 0);
 		}
 	}
 }

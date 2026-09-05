@@ -146,6 +146,10 @@ import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpStore;
 
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationDecision;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyCatalog;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
@@ -209,6 +213,7 @@ public final class PhantomSystem
 	private PhantomAcquisitionService _acquisitionService;
 	private PhantomFarmingService _farmingService;
 	private PhantomPopulationManager _populationManager;
+	private PhantomPopulationEcologyService _populationEcology;
 	private PhantomPartyCoordinator _partyCoordinator;
 	private PhantomClanService _clanService;
 	private PhantomClanSocialLifecycleObserver _clanSocialLifecycleObserver;
@@ -266,11 +271,12 @@ public final class PhantomSystem
 			PhantomActivityWorkSinkBridge workSinkBridge = null;
 			PhantomMaterializationLifecycleBridge lifecycleBridge = null;
 			PhantomMaterializationLifecycleBridge pvpLifecycleBridge = null;
+			PhantomSocialCatalog socialCatalog = null;
 			if (_productionMaterialization)
 			{
 				profileRepository = PhantomProfileRepository.open();
 				final File socialCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/social/high-five-social-v1.xml");
-				final PhantomSocialCatalog socialCatalog = PhantomSocialCatalog.load(socialCatalogFile.toPath());
+				socialCatalog = PhantomSocialCatalog.load(socialCatalogFile.toPath());
 				_socialService = new PhantomSocialService(socialCatalog, new PhantomSocialStore(profileRepository, socialCatalog), SOCIAL_PERSONALITY_SEED, _settings.socialCacheProfiles(), () -> System.currentTimeMillis() / 60000L);
 				if (!_socialService.start())
 				{
@@ -457,6 +463,25 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
 				}
 				partyParticipation.install(_partyCoordinator);
+				if (_settings.ecologyEnabled())
+				{
+					final File ecologyCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-ecology-v1.xml");
+					final PhantomPopulationEcologyCatalog ecologyCatalog = PhantomPopulationEcologyCatalog.load(ecologyCatalogFile.toPath(), populationCatalog, Objects.requireNonNull(socialCatalog));
+					_populationEcology = new PhantomPopulationEcologyService(
+						ecologyCatalog,
+						populationCatalog,
+						new PhantomPopulationEcologyStore(productionProfiles),
+						_historicalBackgroundService,
+						profileId -> _materializationService.find(profileId).isPresent(),
+						profileId -> ecologySafetyBlock(profileId, productionGoals),
+						Clock.systemUTC(),
+						_settings.populationTimeZone(),
+						Preset.valueOf(_settings.ecologyPreset()),
+						_settings.ecologyWorldAgeDays(),
+						_settings.ecologyArchiveLimit());
+					_populationManager.installEcology(_populationEcology);
+					_socialService.installPersonalityInitializer(_populationEcology::initialPersonalityTraits);
+				}
 				final PhantomPvpPolicy pvpPolicy = PhantomPvpPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/pvp/pvp-policy-v1.xml").toPath());
 				_clanService = new PhantomClanService(productionGoals, new PhantomClanStore(productionProfiles), new L2jPhantomClanBackend(productionProfiles, _materializationService, _socialService, pvpPolicy, socialAffiliations), System::currentTimeMillis);
 				if (!_clanService.start())
@@ -663,10 +688,6 @@ public final class PhantomSystem
 			{
 				_semanticUnderstandingService.beginStop();
 			}
-			if (_gameKnowledgeService != null)
-			{
-				_gameKnowledgeService.beginStop();
-			}
 			if (_topologyService != null)
 			{
 				_topologyService.beginStop();
@@ -692,16 +713,20 @@ public final class PhantomSystem
 			}
 			final boolean acquisitionStopped = partyStopped && socialStopped && ((_acquisitionService == null) || _acquisitionService.finishStop());
 			final boolean combatStopped = acquisitionStopped && ((_combatService == null) || _combatService.finishStop());
-			final boolean progressionStopped = (_progressionService == null) || _progressionService.finishStop();
 			final boolean commerceStopped = (_commerceService == null) || _commerceService.finishStop();
 			final boolean populationStopped = (_populationManager == null) || _populationManager.finishStop();
 			boolean materializationStopped = _materializationService == null;
-			if (combatStopped && progressionStopped && commerceStopped && populationStopped && backgroundReadyForMaterializationShutdown() && (_materializationService != null))
+			if (combatStopped && commerceStopped && populationStopped && backgroundReadyForMaterializationShutdown() && (_materializationService != null))
 			{
 				materializationStopped = _materializationService.shutdown().state() == ServiceState.STOPPED;
 			}
 			final boolean backgroundStopped = populationStopped && ((_backgroundService == null) || (materializationStopped && _backgroundService.finishStop()));
-			if (backgroundStopped && (_scheduler != null))
+			final boolean progressionStopped = backgroundStopped && ((_progressionService == null) || _progressionService.finishStop());
+			if (backgroundStopped && (_gameKnowledgeService != null))
+			{
+				_gameKnowledgeService.beginStop();
+			}
+			if (backgroundStopped && progressionStopped && (_scheduler != null))
 			{
 				_scheduler.finishStop();
 			}
@@ -722,7 +747,7 @@ public final class PhantomSystem
 			{
 				_navigationService.finishStop();
 			}
-			_state = backgroundStopped && semanticStopped ? State.STOPPED : State.FAILED;
+			_state = backgroundStopped && progressionStopped && semanticStopped ? State.STOPPED : State.FAILED;
 			throw e;
 		}
 		_metrics.recordLifecycleStart();
@@ -871,10 +896,6 @@ public final class PhantomSystem
 			{
 				_semanticUnderstandingService.beginStop();
 			}
-			if (_gameKnowledgeService != null)
-			{
-				_gameKnowledgeService.beginStop();
-			}
 			if (_topologyService != null)
 			{
 				_topologyService.beginStop();
@@ -906,12 +927,6 @@ public final class PhantomSystem
 				return false;
 			}
 			if ((_combatService != null) && !_combatService.finishStop())
-			{
-				_metrics.recordShutdownFailure();
-				_state = State.FAILED;
-				return false;
-			}
-			if ((_progressionService != null) && !_progressionService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
@@ -949,6 +964,16 @@ public final class PhantomSystem
 				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
 				return false;
+			}
+			if ((_progressionService != null) && !_progressionService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				_state = State.FAILED;
+				return false;
+			}
+			if (_gameKnowledgeService != null)
+			{
+				_gameKnowledgeService.beginStop();
 			}
 			if (!_scheduler.finishStop())
 			{
@@ -1123,15 +1148,6 @@ public final class PhantomSystem
 				_metrics.recordShutdownFailure();
 				return false;
 			}
-			if (_progressionService != null)
-			{
-				_progressionService.beginStop();
-			}
-			if ((_progressionService != null) && (_progressionService.snapshot().state() != PhantomProgressionService.State.STOPPED) && !_progressionService.finishStop())
-			{
-				_metrics.recordShutdownFailure();
-				return false;
-			}
 			if (_commerceService != null)
 			{
 				_commerceService.beginStop();
@@ -1159,6 +1175,15 @@ public final class PhantomSystem
 				}
 			}
 			if ((_backgroundService != null) && (_backgroundService.snapshot().state() != PhantomBackgroundService.ServiceState.STOPPED) && !_backgroundService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				return false;
+			}
+			if (_progressionService != null)
+			{
+				_progressionService.beginStop();
+			}
+			if ((_progressionService != null) && (_progressionService.snapshot().state() != PhantomProgressionService.State.STOPPED) && !_progressionService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
 				return false;
@@ -1447,6 +1472,16 @@ public final class PhantomSystem
 		}
 		final Snapshot snapshot = configured.snapshot();
 		final PhantomMetrics.Snapshot metrics = snapshot.metrics();
+		final PhantomPopulationEcologyService.Snapshot ecology = configured._populationManager == null ? PhantomPopulationEcologyService.Snapshot.disabled() : configured._populationManager.ecologySnapshot();
+		final java.util.Map<String, Integer> levelHistogram;
+		try
+		{
+			levelHistogram = ecology.enabled() ? configured._populationManager.currentLevelHistogram() : java.util.Map.of();
+		}
+		catch (RuntimeException exception)
+		{
+			return OperatorStatus.readFailure(settings.enabled(), settings.diagnosticsEnabled(), _operatorMode, snapshot, metrics, ecology);
+		}
 		return new OperatorStatus(
 			settings.enabled(),
 			settings.diagnosticsEnabled(),
@@ -1467,6 +1502,8 @@ public final class PhantomSystem
 			metrics.queueAccepted(),
 			metrics.queueRejected(),
 			metrics.shutdownFailures(),
+			ecology,
+			levelHistogram,
 			snapshot.selectedTrace());
 	}
 
@@ -1978,22 +2015,49 @@ public final class PhantomSystem
 		}
 	}
 
-	public record OperatorStatus(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, boolean desiredRuntimeEnabled, boolean runtimeConfigured, State runtimeState, PhantomScheduler.SchedulerState schedulerState, PhantomDecisionEngine.State decisionState, long activeCurrent, long activePeak, java.util.List<Long> activityStateCounts, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel, int queueReady, int queueDue, int queueCapacity, long queueAccepted, long queueRejected, long shutdownFailures, PhantomSelectedDecisionTrace.Snapshot selectedTrace)
+	public record OperatorStatus(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, boolean desiredRuntimeEnabled, boolean runtimeConfigured, State runtimeState, PhantomScheduler.SchedulerState schedulerState, PhantomDecisionEngine.State decisionState, long activeCurrent, long activePeak, java.util.List<Long> activityStateCounts, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel, int queueReady, int queueDue, int queueCapacity, long queueAccepted, long queueRejected, long shutdownFailures, PhantomPopulationEcologyService.Snapshot ecology, java.util.Map<String, Integer> levelHistogram, PhantomSelectedDecisionTrace.Snapshot selectedTrace)
 	{
 		public OperatorStatus
 		{
 			activityStateCounts = java.util.List.copyOf(activityStateCounts);
+			levelHistogram = java.util.Map.copyOf(levelHistogram);
 		}
 
 		private static OperatorStatus notRunning(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode)
 		{
-			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), false, null, PhantomScheduler.SchedulerState.STOPPED, PhantomDecisionEngine.State.STOPPED, 0, 0, java.util.List.of(0L, 0L, 0L, 0L, 0L), PhantomActivityOverloadLevel.NORMAL, PhantomActivityOverloadLevel.NORMAL, 0, 0, 0, 0, 0, 0, PhantomSelectedDecisionTrace.Snapshot.disabled());
+			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), false, null, PhantomScheduler.SchedulerState.STOPPED, PhantomDecisionEngine.State.STOPPED, 0, 0, java.util.List.of(0L, 0L, 0L, 0L, 0L), PhantomActivityOverloadLevel.NORMAL, PhantomActivityOverloadLevel.NORMAL, 0, 0, 0, 0, 0, 0, PhantomPopulationEcologyService.Snapshot.disabled(), java.util.Map.of(), PhantomSelectedDecisionTrace.Snapshot.disabled());
+		}
+
+		private static OperatorStatus readFailure(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, Snapshot snapshot, PhantomMetrics.Snapshot metrics, PhantomPopulationEcologyService.Snapshot ecology)
+		{
+			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), true, snapshot.state(), snapshot.scheduler().state(), snapshot.decision().state(), metrics.activeCurrent(), metrics.activePeak(), metrics.activity().stateCounts(), snapshot.scheduler().overloadLevel(), snapshot.scheduler().peakOverloadLevel(), snapshot.scheduler().ready(), snapshot.scheduler().due(), snapshot.scheduler().capacity(), metrics.queueAccepted(), metrics.queueRejected(), metrics.shutdownFailures(), ecology, java.util.Map.of("UNAVAILABLE", Math.max(0, ecology.managed())), snapshot.selectedTrace());
 		}
 	}
 
 	private static boolean desiredRuntimeEnabled(boolean configuredEnabled, OperatorMode operatorMode)
 	{
 		return configuredEnabled && ((operatorMode == OperatorMode.AUTO) || (operatorMode == OperatorMode.ENABLED));
+	}
+
+	private String ecologySafetyBlock(long profileId, PhantomGoalStateStore goals)
+	{
+		if ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId)))
+		{
+			return "party";
+		}
+		if ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent())
+		{
+			return "economy";
+		}
+		final String goalType = goals.load(profileId)
+			.filter(stored -> stored.goal().status() == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE)
+			.map(stored -> stored.goal().goalType())
+			.orElse("");
+		if (goalType.startsWith("party.") || goalType.startsWith("raid.") || goalType.startsWith("clan.") || goalType.startsWith("economy.") || goalType.startsWith("rift.") || goalType.startsWith("pvp."))
+		{
+			return "critical_goal";
+		}
+		return "";
 	}
 
 	public record ConfiguredShutdownSnapshot(boolean configured, State systemState, ServiceState materializationServiceState, int retainedMaterializationEntries, PhantomNavigationService.ServiceState navigationState, int navigationActiveRequests, int navigationQueuedRequests, int navigationWorkers, PhantomTopologyService.State topologyState, int topologyRegisteredProfiles, int topologyEventsInFlight, long topologyGeneration, PhantomGameKnowledgeService.State knowledgeState, PhantomProgressionService.State progressionState, String progressionCatalogHash, int progressionOperations, int progressionActorLeases, PhantomCombatService.ServiceState combatState, int combatActiveSessions, int combatTerminalSessions, int combatQueuedSessions, int combatWorkers, int combatActorLeases, PhantomPopulationManager.Snapshot population, PhantomSocialService.ServiceState socialState, String socialCatalogHash, int socialCacheEntries, int socialOperations, int socialWrites, PhantomConversationService.ServiceState conversationState, int conversationIngress, int conversationBatches, int conversationOperations, int conversationPersistence, boolean chatObserverRegistered)

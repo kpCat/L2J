@@ -664,6 +664,47 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
+	public Result verifyCommittedHistoricalReplay(long profileId, int characterObjectId, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, CatchupMutation catchup)
+	{
+		Objects.requireNonNull(goal, "goal");
+		Objects.requireNonNull(operationKey, "operationKey");
+		Objects.requireNonNull(catchup, "catchup");
+		if ((operationKey.historical() == null) || (operationKey.profileId() != profileId) || (operationKey.characterObjectId() != characterObjectId) || (operationKey.goalId() != goal.goalId()) || (operationKey.goalRevision() != goal.revision()))
+		{
+			return Result.rejected(Status.CATCHUP_CONFLICT);
+		}
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, profileId), characterObjectId);
+				lockAndValidateGoal(connection, profileId, goal);
+				final LockedComponent catchupComponent = lockComponent(connection, profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE);
+				final LockedComponent component = requireStateComponent(lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE));
+				final PhantomBackgroundState stored = decodeState(component);
+				if (!stored.receipt().operationKey().equals(operationKey.digest()))
+				{
+					connection.rollback();
+					return Result.rejected(Status.STALE_OPERATION);
+				}
+				validateCommittedCatchup(catchupComponent, catchup);
+				connection.rollback();
+				final Result verification = reconcileVerifyPending(profileId, characterObjectId);
+				return verification.status() == Status.SUCCESS ? new Result(Status.IDEMPOTENT, verification.state()) : verification;
+			}
+			catch (Throwable failure)
+			{
+				rollback(connection, failure);
+				return failureResult(failure);
+			}
+		}
+		catch (SQLException | RuntimeException failure)
+		{
+			return failureResult(failure);
+		}
+	}
+
 	private LockedComponent lockAndValidateGoal(Connection connection, long profileId, PhantomGoal expected) throws SQLException
 	{
 		final LockedComponent goalComponent = lockComponent(connection, profileId, PhantomGoalStateStore.COMPONENT_TYPE);
