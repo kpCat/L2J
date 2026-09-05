@@ -892,11 +892,11 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				supported.add(npcId + "@" + anchor.id());
 			}
 		}
-		PhantomAssertions.assertEquals(16, audited.size(), "Deterministic FARMING anchor audit cardinality changed.");
+		PhantomAssertions.assertEquals(23, audited.size(), "Deterministic FARMING anchor audit cardinality changed.");
 		final String productionEvidence = audited.stream().filter(value -> value.startsWith(PRODUCTION_TARGET_NPC_ID + "@" + PRODUCTION_FARM_ANCHOR_ID + ":")).findFirst().orElseThrow(() -> new AssertionError("Shipped production farm pair is absent from the audit."));
 		PhantomAssertions.assertTrue(productionEvidence.contains(":leaveOnGround=" + PRODUCTION_GROUND_LOSS_ITEM_IDS + ":"), "Shipped production ground-loss corpus changed.");
 		PhantomAssertions.assertTrue(productionEvidence.contains(":autoAcquiredUnsupported=[]:supported=true"), "Shipped production pair is no longer fail-closed supported.");
-		PhantomAssertions.assertEquals(List.of(PRODUCTION_TARGET_NPC_ID + "@" + PRODUCTION_FARM_ANCHOR_ID), supported, "Exact supported production farm pair changed.");
+		PhantomAssertions.assertEquals(List.of(PRODUCTION_TARGET_NPC_ID + "@" + PRODUCTION_FARM_ANCHOR_ID, "20545@population.farming.human-fighter.20545", "22228@population.farming.kamael.22228"), supported, "Exact supported production farm pair changed.");
 		context.record("background.productionLootAudit", String.join("|", audited));
 	}
 

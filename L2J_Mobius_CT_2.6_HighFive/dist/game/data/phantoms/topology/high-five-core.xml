@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="2">
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="3">
 	<node id="giran.region" kind="WORLD_REGION" instanceId="0" form="CUBOID" minX="73000" maxX="93000" minY="138000" maxY="158000" minZ="-5000" maxZ="0" tags="city-cluster">
 		<source path="data/mapregion/giran_castle_town.xml" />
 	</node>
@@ -134,6 +134,382 @@
 		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />
 	</node>
 
+	<node id="population.ingress.human-fighter.01" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-71338" y="258271" z="-3104" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+	</node>
+	<node id="population.ingress.human-fighter.02" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-71417" y="258270" z="-3104" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+	</node>
+	<node id="population.ingress.human-fighter.03" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-71453" y="258305" z="-3104" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+	</node>
+	<node id="population.ingress.human-fighter.04" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-71467" y="258378" z="-3104" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+	</node>
+	<node id="population.ingress.human-mystic.01" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-90875" y="248162" z="-3568" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</node>
+	<node id="population.ingress.human-mystic.02" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-90954" y="248118" z="-3568" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</node>
+	<node id="population.ingress.human-mystic.03" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-90918" y="248070" z="-3568" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</node>
+	<node id="population.ingress.human-mystic.04" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-90890" y="248027" z="-3568" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</node>
+	<node id="population.ingress.elf.01" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="46045" y="41251" z="-3504" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</node>
+	<node id="population.ingress.elf.02" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="46117" y="41247" z="-3504" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</node>
+	<node id="population.ingress.elf.03" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="46182" y="41198" z="-3504" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</node>
+	<node id="population.ingress.elf.04" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="46115" y="41141" z="-3504" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</node>
+	<node id="population.ingress.elf.05" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="46048" y="41141" z="-3504" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</node>
+	<node id="population.ingress.elf.06" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="45978" y="41196" z="-3504" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</node>
+	<node id="population.ingress.dark-elf.01" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="28295" y="11063" z="-4232" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</node>
+	<node id="population.ingress.dark-elf.02" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="28302" y="11008" z="-4232" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</node>
+	<node id="population.ingress.dark-elf.03" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="28377" y="10916" z="-4232" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</node>
+	<node id="population.ingress.dark-elf.04" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="28456" y="10997" z="-4232" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</node>
+	<node id="population.ingress.dark-elf.05" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="28461" y="11044" z="-4232" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</node>
+	<node id="population.ingress.dark-elf.06" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="28395" y="11127" z="-4232" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</node>
+	<node id="population.ingress.orc.01" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-56733" y="-113459" z="-672" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</node>
+	<node id="population.ingress.orc.02" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-56686" y="-113470" z="-672" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</node>
+	<node id="population.ingress.orc.03" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-56728" y="-113610" z="-672" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</node>
+	<node id="population.ingress.orc.04" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-56693" y="-113610" z="-672" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</node>
+	<node id="population.ingress.orc.05" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-56743" y="-113757" z="-672" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</node>
+	<node id="population.ingress.orc.06" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-56682" y="-113730" z="-672" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</node>
+	<node id="population.ingress.dwarf.01" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="108644" y="-173947" z="-408" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</node>
+	<node id="population.ingress.dwarf.02" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="108678" y="-174002" z="-408" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</node>
+	<node id="population.ingress.dwarf.03" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="108505" y="-173964" z="-408" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</node>
+	<node id="population.ingress.dwarf.04" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="108512" y="-174026" z="-408" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</node>
+	<node id="population.ingress.dwarf.05" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="108549" y="-174075" z="-408" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</node>
+	<node id="population.ingress.dwarf.06" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="108576" y="-174122" z="-408" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</node>
+	<node id="population.ingress.kamael.01" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-125607" y="38452" z="1176" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</node>
+	<node id="population.ingress.kamael.02" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-125472" y="38450" z="1176" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</node>
+	<node id="population.ingress.kamael.03" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-125615" y="37771" z="1176" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</node>
+	<node id="population.ingress.kamael.04" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-125464" y="37776" z="1176" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</node>
+	<node id="population.ingress.kamael.05" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-125517" y="38267" z="1176" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</node>
+	<node id="population.ingress.kamael.06" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-125531" y="37944" z="1176" radius="1" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</node>
+	<node id="population.farming.human-fighter.20545" kind="FARMING_AREA" instanceId="0" form="POINT_RADIUS" x="-71081" y="254981" z="-3232" radius="213" tags="outdoor-farming">
+		<source path="data/stats/npcs/20500-20599.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+		<source path="config/Custom/RandomSpawns.ini" />
+	</node>
+	<node id="population.farming.human-mystic.20481" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3716" maxZ="-3316" tags="outdoor-farming">
+		<vertex x="-86772" y="250493" />
+		<vertex x="-84559" y="251151" />
+		<vertex x="-87181" y="252647" />
+		<vertex x="-87402" y="251080" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</node>
+	<node id="population.farming.elf.20534" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3736" maxZ="-3436" tags="outdoor-farming">
+		<vertex x="43468" y="41772" />
+		<vertex x="45208" y="42388" />
+		<vertex x="44456" y="43584" />
+		<vertex x="43372" y="43260" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</node>
+	<node id="population.farming.dark-elf.20529" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3788" maxZ="-3288" tags="outdoor-farming">
+		<vertex x="23945" y="12538" />
+		<vertex x="25276" y="11848" />
+		<vertex x="26784" y="13578" />
+		<vertex x="25225" y="15054" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</node>
+	<node id="population.farming.orc.20535" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-284" maxZ="-84" tags="outdoor-farming">
+		<vertex x="-50396" y="-115956" />
+		<vertex x="-48316" y="-116952" />
+		<vertex x="-48076" y="-115460" />
+		<vertex x="-49636" y="-115048" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</node>
+	<node id="population.farming.dwarf.20533" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-788" maxZ="-438" tags="outdoor-farming">
+		<vertex x="113960" y="-173988" />
+		<vertex x="115772" y="-173068" />
+		<vertex x="115908" y="-171992" />
+		<vertex x="115280" y="-172080" />
+		<vertex x="113908" y="-173304" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</node>
+	<node id="population.farming.kamael.22228" kind="FARMING_AREA" instanceId="0" form="POINT_RADIUS" x="-121558" y="37934" z="1416" radius="213" tags="outdoor-farming">
+		<source path="data/stats/npcs/22200-22299.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="config/Custom/RandomSpawns.ini" />
+	</node>
+	<node id="population.route.human-fighter.a1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-71656" y="257944" z="-3096" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</node>
+	<node id="population.route.human-fighter.a2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-71752" y="257768" z="-3112" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</node>
+	<node id="population.route.human-fighter.b1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-71720" y="257864" z="-3112" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</node>
+	<node id="population.route.human-fighter.c1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-72280" y="256680" z="-3120" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</node>
+	<node id="population.route.human-fighter.c2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-71512" y="255864" z="-3176" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</node>
+	<node id="population.route.human-fighter.c3" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-71080" y="254984" z="-3232" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</node>
+	<node id="population.route.human-mystic.a1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-89304" y="249848" z="-3568" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</node>
+	<node id="population.route.human-mystic.a2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-89144" y="249976" z="-3568" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</node>
+	<node id="population.route.human-mystic.b1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-90072" y="248328" z="-3568" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</node>
+	<node id="population.route.human-mystic.b2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-89240" y="249912" z="-3568" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</node>
+	<node id="population.route.human-mystic.c1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-87848" y="250568" z="-3616" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</node>
+	<node id="population.route.human-mystic.guard.30733" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-87847" y="250564" z="-3616" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+		<source path="data/stats/npcs/30700-30799.xml" />
+	</node>
+	<node id="population.route.dark-elf.a1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="25992" y="11112" z="-3720" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</node>
+	<node id="population.route.dark-elf.a2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="25720" y="11288" z="-3720" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</node>
+	<node id="population.route.dark-elf.a3" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="25304" y="13256" z="-3648" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</node>
+	<node id="population.route.orc.a1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-54685" y="-113715" z="-520" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</node>
+	<node id="population.route.orc.a2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-52637" y="-113715" z="-80" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</node>
+	<node id="population.route.orc.a3" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-50845" y="-113715" z="-168" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</node>
+	<node id="population.route.orc.a4" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-50077" y="-115763" z="-160" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</node>
+	<node id="population.route.dwarf.i03-w0" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="108552" y="-174024" z="-408" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</node>
+	<node id="population.route.dwarf.i06-w0" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="108616" y="-174152" z="-408" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</node>
+	<node id="population.route.dwarf.w1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="108728" y="-173944" z="-408" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</node>
+	<node id="population.route.dwarf.w2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="110440" y="-173944" z="-528" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</node>	<node id="population.route.dwarf.a1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="110436" y="-173947" z="-528" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</node>
+	<node id="population.route.dwarf.a2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="110948" y="-173435" z="-584" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</node>
+	<node id="population.route.dwarf.a3" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="112996" y="-173691" z="-608" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</node>
+	<node id="population.route.dwarf.a4" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="113508" y="-174203" z="-608" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</node>
+	<node id="population.route.kamael.a1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-125400" y="38408" z="1184" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.b1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-124072" y="38312" z="1176" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.c1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-124072" y="38184" z="1176" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.d1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-124024" y="38152" z="1184" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.a2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-125400" y="37816" z="1184" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.b2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-124104" y="37928" z="1176" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.d2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-124024" y="38072" z="1184" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.a3" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-125240" y="38376" z="1208" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.b3" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-124088" y="38344" z="1176" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.a4" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-125240" y="37848" z="1208" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.b4" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-124120" y="37896" z="1176" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.s1" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-122616" y="38152" z="1432" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.s2" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-122504" y="38264" z="1432" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.s3" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-122392" y="38440" z="1440" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</node>
+	<node id="population.route.kamael.guard.32136" kind="ROUTE_AREA" instanceId="0" form="POINT_RADIUS" x="-122400" y="38432" z="1440" radius="1" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/stats/npcs/32100-32199.xml" />
+	</node>
+
 	<anchor id="giran.city.center" role="CITY_CENTER" nodeId="giran.city" x="82480" y="149087" z="-3350" instanceId="0" mapRegionLocId="918" tolerance="0" tags="city-cluster">
 		<source path="data/mapregion/giran_castle_town.xml" />
 	</anchor>
@@ -210,6 +586,361 @@
 		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />
 	</anchor>
 
+	<anchor id="population.ingress.human-fighter.01" role="ROUTE" nodeId="population.ingress.human-fighter.01" x="-71338" y="258271" z="-3104" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+	</anchor>
+	<anchor id="population.ingress.human-fighter.02" role="ROUTE" nodeId="population.ingress.human-fighter.02" x="-71417" y="258270" z="-3104" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+	</anchor>
+	<anchor id="population.ingress.human-fighter.03" role="ROUTE" nodeId="population.ingress.human-fighter.03" x="-71453" y="258305" z="-3104" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+	</anchor>
+	<anchor id="population.ingress.human-fighter.04" role="ROUTE" nodeId="population.ingress.human-fighter.04" x="-71467" y="258378" z="-3104" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+	</anchor>
+	<anchor id="population.ingress.human-mystic.01" role="ROUTE" nodeId="population.ingress.human-mystic.01" x="-90875" y="248162" z="-3568" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.human-mystic.02" role="ROUTE" nodeId="population.ingress.human-mystic.02" x="-90954" y="248118" z="-3568" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.human-mystic.03" role="ROUTE" nodeId="population.ingress.human-mystic.03" x="-90918" y="248070" z="-3568" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.human-mystic.04" role="ROUTE" nodeId="population.ingress.human-mystic.04" x="-90890" y="248027" z="-3568" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.elf.01" role="ROUTE" nodeId="population.ingress.elf.01" x="46045" y="41251" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.elf.02" role="ROUTE" nodeId="population.ingress.elf.02" x="46117" y="41247" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.elf.03" role="ROUTE" nodeId="population.ingress.elf.03" x="46182" y="41198" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.elf.04" role="ROUTE" nodeId="population.ingress.elf.04" x="46115" y="41141" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.elf.05" role="ROUTE" nodeId="population.ingress.elf.05" x="46048" y="41141" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.elf.06" role="ROUTE" nodeId="population.ingress.elf.06" x="45978" y="41196" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.dark-elf.01" role="ROUTE" nodeId="population.ingress.dark-elf.01" x="28295" y="11063" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.dark-elf.02" role="ROUTE" nodeId="population.ingress.dark-elf.02" x="28302" y="11008" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.dark-elf.03" role="ROUTE" nodeId="population.ingress.dark-elf.03" x="28377" y="10916" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.dark-elf.04" role="ROUTE" nodeId="population.ingress.dark-elf.04" x="28456" y="10997" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.dark-elf.05" role="ROUTE" nodeId="population.ingress.dark-elf.05" x="28461" y="11044" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.dark-elf.06" role="ROUTE" nodeId="population.ingress.dark-elf.06" x="28395" y="11127" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.orc.01" role="ROUTE" nodeId="population.ingress.orc.01" x="-56733" y="-113459" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.orc.02" role="ROUTE" nodeId="population.ingress.orc.02" x="-56686" y="-113470" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.orc.03" role="ROUTE" nodeId="population.ingress.orc.03" x="-56728" y="-113610" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.orc.04" role="ROUTE" nodeId="population.ingress.orc.04" x="-56693" y="-113610" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.orc.05" role="ROUTE" nodeId="population.ingress.orc.05" x="-56743" y="-113757" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.orc.06" role="ROUTE" nodeId="population.ingress.orc.06" x="-56682" y="-113730" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</anchor>
+	<anchor id="population.ingress.dwarf.01" role="ROUTE" nodeId="population.ingress.dwarf.01" x="108644" y="-173947" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</anchor>
+	<anchor id="population.ingress.dwarf.02" role="ROUTE" nodeId="population.ingress.dwarf.02" x="108678" y="-174002" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</anchor>
+	<anchor id="population.ingress.dwarf.03" role="ROUTE" nodeId="population.ingress.dwarf.03" x="108505" y="-173964" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</anchor>
+	<anchor id="population.ingress.dwarf.04" role="ROUTE" nodeId="population.ingress.dwarf.04" x="108512" y="-174026" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</anchor>
+	<anchor id="population.ingress.dwarf.05" role="ROUTE" nodeId="population.ingress.dwarf.05" x="108549" y="-174075" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</anchor>
+	<anchor id="population.ingress.dwarf.06" role="ROUTE" nodeId="population.ingress.dwarf.06" x="108576" y="-174122" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</anchor>
+	<anchor id="population.ingress.kamael.01" role="ROUTE" nodeId="population.ingress.kamael.01" x="-125607" y="38452" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</anchor>
+	<anchor id="population.ingress.kamael.02" role="ROUTE" nodeId="population.ingress.kamael.02" x="-125472" y="38450" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</anchor>
+	<anchor id="population.ingress.kamael.03" role="ROUTE" nodeId="population.ingress.kamael.03" x="-125615" y="37771" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</anchor>
+	<anchor id="population.ingress.kamael.04" role="ROUTE" nodeId="population.ingress.kamael.04" x="-125464" y="37776" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</anchor>
+	<anchor id="population.ingress.kamael.05" role="ROUTE" nodeId="population.ingress.kamael.05" x="-125517" y="38267" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</anchor>
+	<anchor id="population.ingress.kamael.06" role="ROUTE" nodeId="population.ingress.kamael.06" x="-125531" y="37944" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</anchor>
+	<anchor id="population.farming.human-fighter.20545" role="FARMING" nodeId="population.farming.human-fighter.20545" x="-71081" y="254981" z="-3232" instanceId="0" npcId="20545" tolerance="213" tags="monster-spawn">
+		<source path="data/stats/npcs/20500-20599.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+		<source path="config/Custom/RandomSpawns.ini" />
+	</anchor>
+	<anchor id="population.farming.human-mystic.20481" role="FARMING" nodeId="population.farming.human-mystic.20481" x="-86478" y="251343" z="-3600" instanceId="0" tolerance="84" tags="monster-spawn">
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</anchor>
+	<anchor id="population.farming.elf.20534" role="FARMING" nodeId="population.farming.elf.20534" x="44126" y="42751" z="-3488" instanceId="0" tolerance="98" tags="monster-spawn">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</anchor>
+	<anchor id="population.farming.dark-elf.20529" role="FARMING" nodeId="population.farming.dark-elf.20529" x="25308" y="13254" z="-3648" instanceId="0" tolerance="110" tags="monster-spawn">
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</anchor>
+	<anchor id="population.farming.orc.20535" role="FARMING" nodeId="population.farming.orc.20535" x="-49106" y="-115854" z="-160" instanceId="0" tolerance="24" tags="monster-spawn">
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</anchor>
+	<anchor id="population.farming.dwarf.20533" role="FARMING" nodeId="population.farming.dwarf.20533" x="114966" y="-172886" z="-672" instanceId="0" tolerance="59" tags="monster-spawn">
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</anchor>
+	<anchor id="population.farming.kamael.22228" role="FARMING" nodeId="population.farming.kamael.22228" x="-121558" y="37934" z="1416" instanceId="0" npcId="22228" tolerance="213" tags="monster-spawn">
+		<source path="data/stats/npcs/22200-22299.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="config/Custom/RandomSpawns.ini" />
+	</anchor>
+	<anchor id="population.route.human-fighter.a1" role="ROUTE" nodeId="population.route.human-fighter.a1" x="-71656" y="257944" z="-3096" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</anchor>
+	<anchor id="population.route.human-fighter.a2" role="ROUTE" nodeId="population.route.human-fighter.a2" x="-71752" y="257768" z="-3112" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</anchor>
+	<anchor id="population.route.human-fighter.b1" role="ROUTE" nodeId="population.route.human-fighter.b1" x="-71720" y="257864" z="-3112" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</anchor>
+	<anchor id="population.route.human-fighter.c1" role="ROUTE" nodeId="population.route.human-fighter.c1" x="-72280" y="256680" z="-3120" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</anchor>
+	<anchor id="population.route.human-fighter.c2" role="ROUTE" nodeId="population.route.human-fighter.c2" x="-71512" y="255864" z="-3176" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</anchor>
+	<anchor id="population.route.human-fighter.c3" role="ROUTE" nodeId="population.route.human-fighter.c3" x="-71080" y="254984" z="-3232" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</anchor>
+	<anchor id="population.route.human-mystic.a1" role="ROUTE" nodeId="population.route.human-mystic.a1" x="-89304" y="249848" z="-3568" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</anchor>
+	<anchor id="population.route.human-mystic.a2" role="ROUTE" nodeId="population.route.human-mystic.a2" x="-89144" y="249976" z="-3568" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</anchor>
+	<anchor id="population.route.human-mystic.b1" role="ROUTE" nodeId="population.route.human-mystic.b1" x="-90072" y="248328" z="-3568" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</anchor>
+	<anchor id="population.route.human-mystic.b2" role="ROUTE" nodeId="population.route.human-mystic.b2" x="-89240" y="249912" z="-3568" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</anchor>
+	<anchor id="population.route.human-mystic.c1" role="ROUTE" nodeId="population.route.human-mystic.c1" x="-87848" y="250568" z="-3616" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</anchor>
+	<anchor id="population.route.human-mystic.guard.30733" role="ROUTE" nodeId="population.route.human-mystic.guard.30733" x="-87847" y="250564" z="-3616" instanceId="0" npcId="30733" tolerance="8" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+		<source path="data/stats/npcs/30700-30799.xml" />
+	</anchor>
+	<anchor id="population.route.dark-elf.a1" role="ROUTE" nodeId="population.route.dark-elf.a1" x="25992" y="11112" z="-3720" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</anchor>
+	<anchor id="population.route.dark-elf.a2" role="ROUTE" nodeId="population.route.dark-elf.a2" x="25720" y="11288" z="-3720" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</anchor>
+	<anchor id="population.route.dark-elf.a3" role="ROUTE" nodeId="population.route.dark-elf.a3" x="25304" y="13256" z="-3648" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</anchor>
+	<anchor id="population.route.orc.a1" role="ROUTE" nodeId="population.route.orc.a1" x="-54685" y="-113715" z="-520" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</anchor>
+	<anchor id="population.route.orc.a2" role="ROUTE" nodeId="population.route.orc.a2" x="-52637" y="-113715" z="-80" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</anchor>
+	<anchor id="population.route.orc.a3" role="ROUTE" nodeId="population.route.orc.a3" x="-50845" y="-113715" z="-168" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</anchor>
+	<anchor id="population.route.orc.a4" role="ROUTE" nodeId="population.route.orc.a4" x="-50077" y="-115763" z="-160" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</anchor>
+	<anchor id="population.route.dwarf.i03-w0" role="ROUTE" nodeId="population.route.dwarf.i03-w0" x="108552" y="-174024" z="-408" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</anchor>
+	<anchor id="population.route.dwarf.i06-w0" role="ROUTE" nodeId="population.route.dwarf.i06-w0" x="108616" y="-174152" z="-408" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</anchor>
+	<anchor id="population.route.dwarf.w1" role="ROUTE" nodeId="population.route.dwarf.w1" x="108728" y="-173944" z="-408" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</anchor>
+	<anchor id="population.route.dwarf.w2" role="ROUTE" nodeId="population.route.dwarf.w2" x="110440" y="-173944" z="-528" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</anchor>	<anchor id="population.route.dwarf.a1" role="ROUTE" nodeId="population.route.dwarf.a1" x="110436" y="-173947" z="-528" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</anchor>
+	<anchor id="population.route.dwarf.a2" role="ROUTE" nodeId="population.route.dwarf.a2" x="110948" y="-173435" z="-584" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</anchor>
+	<anchor id="population.route.dwarf.a3" role="ROUTE" nodeId="population.route.dwarf.a3" x="112996" y="-173691" z="-608" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</anchor>
+	<anchor id="population.route.dwarf.a4" role="ROUTE" nodeId="population.route.dwarf.a4" x="113508" y="-174203" z="-608" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.a1" role="ROUTE" nodeId="population.route.kamael.a1" x="-125400" y="38408" z="1184" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.b1" role="ROUTE" nodeId="population.route.kamael.b1" x="-124072" y="38312" z="1176" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.c1" role="ROUTE" nodeId="population.route.kamael.c1" x="-124072" y="38184" z="1176" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.d1" role="ROUTE" nodeId="population.route.kamael.d1" x="-124024" y="38152" z="1184" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.a2" role="ROUTE" nodeId="population.route.kamael.a2" x="-125400" y="37816" z="1184" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.b2" role="ROUTE" nodeId="population.route.kamael.b2" x="-124104" y="37928" z="1176" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.d2" role="ROUTE" nodeId="population.route.kamael.d2" x="-124024" y="38072" z="1184" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.a3" role="ROUTE" nodeId="population.route.kamael.a3" x="-125240" y="38376" z="1208" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.b3" role="ROUTE" nodeId="population.route.kamael.b3" x="-124088" y="38344" z="1176" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.a4" role="ROUTE" nodeId="population.route.kamael.a4" x="-125240" y="37848" z="1208" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.b4" role="ROUTE" nodeId="population.route.kamael.b4" x="-124120" y="37896" z="1176" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.s1" role="ROUTE" nodeId="population.route.kamael.s1" x="-122616" y="38152" z="1432" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.s2" role="ROUTE" nodeId="population.route.kamael.s2" x="-122504" y="38264" z="1432" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.s3" role="ROUTE" nodeId="population.route.kamael.s3" x="-122392" y="38440" z="1440" instanceId="0" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</anchor>
+	<anchor id="population.route.kamael.guard.32136" role="ROUTE" nodeId="population.route.kamael.guard.32136" x="-122400" y="38432" z="1440" instanceId="0" npcId="32136" tolerance="0" tags="population-route">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/stats/npcs/32100-32199.xml" />
+	</anchor>
+
 	<edge id="giran.city.shop.walk" fromNodeId="giran.city" toNodeId="giran.shop.30081" mode="WALK" bidirectional="true" baseCost="1" baseTravelMillis="5000" backgroundEligible="false" channels="LOCAL_CHAT,COMBAT,TARGETABILITY" fromAnchorId="giran.city.center" toAnchorId="giran.shop.30081">
 		<source path="data/mapregion/giran_castle_town.xml" />
 		<source path="data/spawns/Others/22_22.xml" />
@@ -222,5 +953,370 @@
 		<source path="data/Doors.xml" />
 		<source path="data/instances/SSQDisciplesNecropolisPast.xml" />
 		<source path="data/scripts/instances/SSQDisciplesNecropolisPast/SSQDisciplesNecropolisPast.java" />
+	</edge>
+	<edge id="population.travel.human-fighter.a1-a2" fromNodeId="population.route.human-fighter.a1" toNodeId="population.route.human-fighter.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1749" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-fighter.a1" toAnchorId="population.route.human-fighter.a2">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</edge>
+	<edge id="population.travel.human-fighter.a2-c1" fromNodeId="population.route.human-fighter.a2" toNodeId="population.route.human-fighter.c1" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="10517" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-fighter.a2" toAnchorId="population.route.human-fighter.c1">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</edge>
+	<edge id="population.travel.human-fighter.b1-c1" fromNodeId="population.route.human-fighter.b1" toNodeId="population.route.human-fighter.c1" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="11390" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-fighter.b1" toAnchorId="population.route.human-fighter.c1">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</edge>
+	<edge id="population.travel.human-fighter.c1-c2" fromNodeId="population.route.human-fighter.c1" toNodeId="population.route.human-fighter.c2" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="9757" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-fighter.c1" toAnchorId="population.route.human-fighter.c2">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</edge>
+	<edge id="population.travel.human-fighter.c2-c3" fromNodeId="population.route.human-fighter.c2" toNodeId="population.route.human-fighter.c3" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="8539" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-fighter.c2" toAnchorId="population.route.human-fighter.c3">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</edge>
+	<edge id="population.travel.human-fighter.c3-farm" fromNodeId="population.route.human-fighter.c3" toNodeId="population.farming.human-fighter.20545" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="28" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-fighter.c3" toAnchorId="population.farming.human-fighter.20545">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</edge>
+	<edge id="population.travel.human-fighter.i01" fromNodeId="population.ingress.human-fighter.01" toNodeId="population.route.human-fighter.a1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3967" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-fighter.01" toAnchorId="population.route.human-fighter.a1">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</edge>
+	<edge id="population.travel.human-fighter.i02" fromNodeId="population.ingress.human-fighter.02" toNodeId="population.route.human-fighter.b1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4406" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-fighter.02" toAnchorId="population.route.human-fighter.b1">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</edge>
+	<edge id="population.travel.human-fighter.i03" fromNodeId="population.ingress.human-fighter.03" toNodeId="population.route.human-fighter.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="5346" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-fighter.03" toAnchorId="population.route.human-fighter.a2">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</edge>
+	<edge id="population.travel.human-fighter.i04" fromNodeId="population.ingress.human-fighter.04" toNodeId="population.route.human-fighter.c1" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="16372" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-fighter.04" toAnchorId="population.route.human-fighter.c1">
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+		<source path="data/spawns/Others/17_25.xml" />
+	</edge>
+	<edge id="population.travel.human-mystic.a1-a2" fromNodeId="population.route.human-mystic.a1" toNodeId="population.route.human-mystic.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1708" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.a1" toAnchorId="population.route.human-mystic.a2">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="population.travel.human-mystic.a2-c1" fromNodeId="population.route.human-mystic.a2" toNodeId="population.route.human-mystic.c1" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="11881" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.a2" toAnchorId="population.route.human-mystic.c1">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="population.travel.human-mystic.b1-b2" fromNodeId="population.route.human-mystic.b1" toNodeId="population.route.human-mystic.b2" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="14911" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.b1" toAnchorId="population.route.human-mystic.b2">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="population.travel.human-mystic.b2-c1" fromNodeId="population.route.human-mystic.b2" toNodeId="population.route.human-mystic.c1" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="12830" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.b2" toAnchorId="population.route.human-mystic.c1">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="population.travel.human-mystic.c1-guard" fromNodeId="population.route.human-mystic.c1" toNodeId="population.route.human-mystic.guard.30733" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="35" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.c1" toAnchorId="population.route.human-mystic.guard.30733">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="population.travel.human-mystic.guard-farm" fromNodeId="population.route.human-mystic.guard.30733" toNodeId="population.farming.human-mystic.20481" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="13127" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.guard.30733" toAnchorId="population.farming.human-mystic.20481">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="population.travel.human-mystic.i01" fromNodeId="population.ingress.human-mystic.01" toNodeId="population.route.human-mystic.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="19205" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-mystic.01" toAnchorId="population.route.human-mystic.a1">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="population.travel.human-mystic.i02" fromNodeId="population.ingress.human-mystic.02" toNodeId="population.route.human-mystic.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="19923" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-mystic.02" toAnchorId="population.route.human-mystic.a1">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="population.travel.human-mystic.i03" fromNodeId="population.ingress.human-mystic.03" toNodeId="population.route.human-mystic.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="20011" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-mystic.03" toAnchorId="population.route.human-mystic.a1">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="population.travel.human-mystic.i04" fromNodeId="population.ingress.human-mystic.04" toNodeId="population.route.human-mystic.b1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="7264" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-mystic.04" toAnchorId="population.route.human-mystic.b1">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="population.travel.elf.i01" fromNodeId="population.ingress.elf.01" toNodeId="population.farming.elf.20534" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="19966" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.elf.01" toAnchorId="population.farming.elf.20534">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.elf.i02" fromNodeId="population.ingress.elf.02" toNodeId="population.farming.elf.20534" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="20454" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.elf.02" toAnchorId="population.farming.elf.20534">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.elf.i03" fromNodeId="population.ingress.elf.03" toNodeId="population.farming.elf.20534" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="21121" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.elf.03" toAnchorId="population.farming.elf.20534">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.elf.i04" fromNodeId="population.ingress.elf.04" toNodeId="population.farming.elf.20534" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="20976" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.elf.04" toAnchorId="population.farming.elf.20534">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.elf.i05" fromNodeId="population.ingress.elf.05" toNodeId="population.farming.elf.20534" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="20552" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.elf.05" toAnchorId="population.farming.elf.20534">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.elf.i06" fromNodeId="population.ingress.elf.06" toNodeId="population.farming.elf.20534" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="19823" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.elf.06" toAnchorId="population.farming.elf.20534">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dark-elf.a1-a2" fromNodeId="population.route.dark-elf.a1" toNodeId="population.route.dark-elf.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2656" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dark-elf.a1" toAnchorId="population.route.dark-elf.a2">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</edge>
+	<edge id="population.travel.dark-elf.a2-a3" fromNodeId="population.route.dark-elf.a2" toNodeId="population.route.dark-elf.a3" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="16499" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dark-elf.a2" toAnchorId="population.route.dark-elf.a3">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</edge>
+	<edge id="population.travel.dark-elf.a3-farm" fromNodeId="population.route.dark-elf.a3" toNodeId="population.farming.dark-elf.20529" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="37" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dark-elf.a3" toAnchorId="population.farming.dark-elf.20529">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</edge>
+	<edge id="population.travel.dark-elf.i01" fromNodeId="population.ingress.dark-elf.01" toNodeId="population.route.dark-elf.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="19343" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dark-elf.01" toAnchorId="population.route.dark-elf.a1">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</edge>
+	<edge id="population.travel.dark-elf.i02" fromNodeId="population.ingress.dark-elf.02" toNodeId="population.route.dark-elf.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="19413" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dark-elf.02" toAnchorId="population.route.dark-elf.a1">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</edge>
+	<edge id="population.travel.dark-elf.i03" fromNodeId="population.ingress.dark-elf.03" toNodeId="population.route.dark-elf.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="20060" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dark-elf.03" toAnchorId="population.route.dark-elf.a1">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</edge>
+	<edge id="population.travel.dark-elf.i04" fromNodeId="population.ingress.dark-elf.04" toNodeId="population.route.dark-elf.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="20650" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dark-elf.04" toAnchorId="population.route.dark-elf.a1">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</edge>
+	<edge id="population.travel.dark-elf.i05" fromNodeId="population.ingress.dark-elf.05" toNodeId="population.route.dark-elf.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="20676" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dark-elf.05" toAnchorId="population.route.dark-elf.a1">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</edge>
+	<edge id="population.travel.dark-elf.i06" fromNodeId="population.ingress.dark-elf.06" toNodeId="population.route.dark-elf.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="20140" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dark-elf.06" toAnchorId="population.route.dark-elf.a1">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</edge>
+	<edge id="population.travel.orc.a1-a2" fromNodeId="population.route.orc.a1" toNodeId="population.route.orc.a2" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="17904" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.orc.a1" toAnchorId="population.route.orc.a2">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="population.travel.orc.a2-a3" fromNodeId="population.route.orc.a2" toNodeId="population.route.orc.a3" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="15335" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.orc.a2" toAnchorId="population.route.orc.a3">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="population.travel.orc.a3-a4" fromNodeId="population.route.orc.a3" toNodeId="population.route.orc.a4" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="18695" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.orc.a3" toAnchorId="population.route.orc.a4">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="population.travel.orc.a4-farm" fromNodeId="population.route.orc.a4" toNodeId="population.farming.orc.20535" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="8336" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.orc.a4" toAnchorId="population.farming.orc.20535">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="population.travel.orc.i01" fromNodeId="population.ingress.orc.01" toNodeId="population.route.orc.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="17689" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.01" toAnchorId="population.route.orc.a1">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="population.travel.orc.i02" fromNodeId="population.ingress.orc.02" toNodeId="population.route.orc.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="17280" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.02" toAnchorId="population.route.orc.a1">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="population.travel.orc.i03" fromNodeId="population.ingress.orc.03" toNodeId="population.route.orc.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="17533" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.03" toAnchorId="population.route.orc.a1">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="population.travel.orc.i04" fromNodeId="population.ingress.orc.04" toNodeId="population.route.orc.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="17235" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.04" toAnchorId="population.route.orc.a1">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="population.travel.orc.i05" fromNodeId="population.ingress.orc.05" toNodeId="population.route.orc.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="17642" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.05" toAnchorId="population.route.orc.a1">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="population.travel.orc.i06" fromNodeId="population.ingress.orc.06" toNodeId="population.route.orc.a1" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="17119" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.06" toAnchorId="population.route.orc.a1">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.a1-a2" fromNodeId="population.route.dwarf.a1" toNodeId="population.route.dwarf.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="6316" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dwarf.a1" toAnchorId="population.route.dwarf.a2">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.a2-a3" fromNodeId="population.route.dwarf.a2" toNodeId="population.route.dwarf.a3" mode="BACKGROUND" bidirectional="false" baseCost="3" baseTravelMillis="17949" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dwarf.a2" toAnchorId="population.route.dwarf.a3">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.a3-a4" fromNodeId="population.route.dwarf.a3" toNodeId="population.route.dwarf.a4" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="6297" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dwarf.a3" toAnchorId="population.route.dwarf.a4">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.a4-farm" fromNodeId="population.route.dwarf.a4" toNodeId="population.farming.dwarf.20533" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="17094" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dwarf.a4" toAnchorId="population.farming.dwarf.20533">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.i01" fromNodeId="population.ingress.dwarf.01" toNodeId="population.route.dwarf.a1" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="15618" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.01" toAnchorId="population.route.dwarf.a1">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.i02" fromNodeId="population.ingress.dwarf.02" toNodeId="population.route.dwarf.w1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="666" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.02" toAnchorId="population.route.dwarf.w1">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.i03" fromNodeId="population.ingress.dwarf.03" toNodeId="population.route.dwarf.i03-w0" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="663" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.03" toAnchorId="population.route.dwarf.i03-w0">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.i04" fromNodeId="population.ingress.dwarf.04" toNodeId="population.route.dwarf.w1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2010" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.04" toAnchorId="population.route.dwarf.w1">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.i05" fromNodeId="population.ingress.dwarf.05" toNodeId="population.route.dwarf.w1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1929" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.05" toAnchorId="population.route.dwarf.w1">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.i06" fromNodeId="population.ingress.dwarf.06" toNodeId="population.route.dwarf.i06-w0" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="435" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.06" toAnchorId="population.route.dwarf.i06-w0">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.i03-w0-w1" fromNodeId="population.route.dwarf.i03-w0" toNodeId="population.route.dwarf.w1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1682" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dwarf.i03-w0" toAnchorId="population.route.dwarf.w1">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.i06-w0-w2" fromNodeId="population.route.dwarf.i06-w0" toNodeId="population.route.dwarf.w2" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="15998" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dwarf.i06-w0" toAnchorId="population.route.dwarf.w2">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.w1-w2" fromNodeId="population.route.dwarf.w1" toNodeId="population.route.dwarf.w2" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="14924" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dwarf.w1" toAnchorId="population.route.dwarf.w2">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="population.travel.dwarf.w2-a1" fromNodeId="population.route.dwarf.w2" toNodeId="population.route.dwarf.a1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="44" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dwarf.w2" toAnchorId="population.route.dwarf.a1">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>	<edge id="population.travel.kamael.a1-b1" fromNodeId="population.route.kamael.a1" toNodeId="population.route.kamael.b1" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="10914" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.a1" toAnchorId="population.route.kamael.b1">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.b1-c1" fromNodeId="population.route.kamael.b1" toNodeId="population.route.kamael.c1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1050" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.b1" toAnchorId="population.route.kamael.c1">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.c1-d1" fromNodeId="population.route.kamael.c1" toNodeId="population.route.kamael.d1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="478" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.c1" toAnchorId="population.route.kamael.d1">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.d1-s1" fromNodeId="population.route.kamael.d1" toNodeId="population.route.kamael.s1" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="11719" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.d1" toAnchorId="population.route.kamael.s1">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.a2-b2" fromNodeId="population.route.kamael.a2" toNodeId="population.route.kamael.b2" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="10663" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.a2" toAnchorId="population.route.kamael.b2">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.b2-d2" fromNodeId="population.route.kamael.b2" toNodeId="population.route.kamael.d2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1352" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.b2" toAnchorId="population.route.kamael.d2">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.d2-s1" fromNodeId="population.route.kamael.d2" toNodeId="population.route.kamael.s1" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="11737" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.d2" toAnchorId="population.route.kamael.s1">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.a3-b3" fromNodeId="population.route.kamael.a3" toNodeId="population.route.kamael.b3" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="9450" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.a3" toAnchorId="population.route.kamael.b3">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.b3-c1" fromNodeId="population.route.kamael.b3" toNodeId="population.route.kamael.c1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1319" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.b3" toAnchorId="population.route.kamael.c1">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.a4-b4" fromNodeId="population.route.kamael.a4" toNodeId="population.route.kamael.b4" mode="BACKGROUND" bidirectional="false" baseCost="2" baseTravelMillis="9193" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.a4" toAnchorId="population.route.kamael.b4">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.b4-d2" fromNodeId="population.route.kamael.b4" toNodeId="population.route.kamael.d2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1645" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.b4" toAnchorId="population.route.kamael.d2">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.s1-s2" fromNodeId="population.route.kamael.s1" toNodeId="population.route.kamael.s2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1299" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.s1" toAnchorId="population.route.kamael.s2">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.s2-s3" fromNodeId="population.route.kamael.s2" toNodeId="population.route.kamael.s3" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1712" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.s2" toAnchorId="population.route.kamael.s3">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.s3-guard" fromNodeId="population.route.kamael.s3" toNodeId="population.route.kamael.guard.32136" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="93" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.s3" toAnchorId="population.route.kamael.guard.32136">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.guard-farm" fromNodeId="population.route.kamael.guard.32136" toNodeId="population.farming.kamael.22228" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="8021" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.guard.32136" toAnchorId="population.farming.kamael.22228">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.i01" fromNodeId="population.ingress.kamael.01" toNodeId="population.route.kamael.a1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1736" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.01" toAnchorId="population.route.kamael.a1">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.i02" fromNodeId="population.ingress.kamael.02" toNodeId="population.route.kamael.a1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="687" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.02" toAnchorId="population.route.kamael.a1">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.i03" fromNodeId="population.ingress.kamael.03" toNodeId="population.route.kamael.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1802" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.03" toAnchorId="population.route.kamael.a2">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.i04" fromNodeId="population.ingress.kamael.04" toNodeId="population.route.kamael.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="623" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.04" toAnchorId="population.route.kamael.a2">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.i05" fromNodeId="population.ingress.kamael.05" toNodeId="population.route.kamael.a3" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2455" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.05" toAnchorId="population.route.kamael.a3">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="population.travel.kamael.i06" fromNodeId="population.ingress.kamael.06" toNodeId="population.route.kamael.a4" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2526" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.06" toAnchorId="population.route.kamael.a4">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
 	</edge>
 </topology>

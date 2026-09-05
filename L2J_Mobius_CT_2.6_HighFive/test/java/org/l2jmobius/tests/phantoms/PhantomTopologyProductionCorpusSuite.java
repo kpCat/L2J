@@ -101,10 +101,10 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 	{
 		PhantomAssertions.assertEquals("high-five-core", _snapshot.datasetId(), "Production topology dataset ID changed.");
 		PhantomAssertions.assertEquals(1, _snapshot.schemaVersion(), "Production topology schema version changed.");
-		PhantomAssertions.assertEquals(2, _snapshot.datasetVersion(), "Production topology dataset version changed.");
-		PhantomAssertions.assertEquals(23, _snapshot.nodes().size(), "Production topology node count changed.");
-		PhantomAssertions.assertEquals(23, _snapshot.anchors().size(), "Production topology anchor count changed.");
-		PhantomAssertions.assertEquals(3, _snapshot.edges().size(), "Production topology edge count changed.");
+		PhantomAssertions.assertEquals(3, _snapshot.datasetVersion(), "Production topology dataset version changed.");
+		PhantomAssertions.assertEquals(110, _snapshot.nodes().size(), "Production topology node count changed.");
+		PhantomAssertions.assertEquals(110, _snapshot.anchors().size(), "Production topology anchor count changed.");
+		PhantomAssertions.assertEquals(83, _snapshot.edges().size(), "Production topology edge count changed.");
 		PhantomAssertions.assertEquals(64, _snapshot.canonicalHash().length(), "Production topology canonical SHA-256 length changed.");
 	}
 
@@ -161,8 +161,8 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 		final var nodes = _snapshot.nodes().stream().filter(node -> (node.kind() == PhantomTopologyNodeKind.FARMING_AREA) && (node.area().form() == Form.POLYGON)).toList();
 		final var anchors = _snapshot.anchors().stream().filter(anchor -> (anchor.role() == PhantomTopologyAnchorRole.FARMING) && (_snapshot.nodeById().get(anchor.nodeId()).area().form() == Form.POLYGON)).toList();
 		final StringBuilder zDrift = new StringBuilder();
-		PhantomAssertions.assertEquals(15, nodes.size(), "Feasible factual territory node count changed.");
-		PhantomAssertions.assertEquals(15, anchors.size(), "Feasible factual territory anchor count changed.");
+		PhantomAssertions.assertEquals(20, nodes.size(), "Feasible factual territory node count changed.");
+		PhantomAssertions.assertEquals(20, anchors.size(), "Feasible factual territory anchor count changed.");
 		for (var node : nodes)
 		{
 			final var matching = anchors.stream().filter(anchor -> anchor.nodeId().equals(node.id())).toList();

@@ -1,7 +1,7 @@
 Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Актуальный baseline — HEAD ветки origin/feature/phantom-world, содержащий BLOCKED-аудит Goal033A. Required parent Goal033A:
-76c9ce8a444bd8cf2d2a8d4916ff14c8a57f — blocked Goal033 living population ecology.
+Актуальный baseline — HEAD ветки origin/feature/phantom-world, содержащий SUCCESS Goal033A1. Exact required parent выполненного Goal033A1:
+de457f01116ee42aeb06a8bc4a3b9fd8ac58f6a4 — historical Goal033A topology-ingress blocker baseline.
 Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
 
 Состояние release:
@@ -11,6 +11,7 @@
 - Goal032 Phantom-only reset/reseed + operator tuning + Roadmap v3 — SUCCESS;
 - Goal033 living population ecology — BLOCKED_033_CAUSAL_CATCHUP_ENTRYPOINT_REQUIRED;
 - Goal033A causal historical Background catch-up prerequisite — BLOCKED_033A_CANONICAL_TOPOLOGY_INGRESS_REQUIRED;
+- Goal033A1 canonical population topology ingress — SUCCESS; blocker Goal033A CLOSED BY Goal033A1;
 - shipped dist/game/config/Custom/PhantomPlayers.ini остаётся safe: EnablePhantomSystem=False, population=0, ACTIVE=0;
 - local-play preset 10/5: docs/phantoms/examples/PhantomPlayers.local-play.ini;
 - read-only operator entrypoint: ant phantom-local-play-preflight;
@@ -20,13 +21,14 @@
 - Goal032 report: docs/phantoms/reports/032-phantom-reset-operator-control.md;
 - Goal033 report: docs/phantoms/reports/033-living-population-ecology.md;
 - Goal033A report: docs/phantoms/reports/033A-causal-background-catchup.md;
+- Goal033A1 report: docs/phantoms/reports/033A1-canonical-population-topology-ingress.md;
 - operator tuning: docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md.
 
 Goal031 доказал guarded production-composed путь: 10 durable identities, Scheduler/Decision, real headless Player в World, autonomous decision trace, restart без duplicate rows, bounded shutdown retry и drain/disable rollback. GameServer запускает PhantomSystem только после World/data/scripts/managers и восстановления offline owners.
 
 Goal032 добавил явный `//phantom reset preview` → one-time 120-second `confirm`/`cancel` workflow, exact ownership validation, canonical drain-before-mutation, transactional Phantom-private cleanup, human/shared-state guards, empty no-op и optional reseed через существующий PopulationManager. Auto-reset при startup отсутствует; shipped safe defaults не изменены.
 
-Goal033A остановлен обязательным read-first gate до production implementation. `L2jPhantomBackgroundAuthority.capture()` и `BackgroundService.afterStore()` требуют, чтобы canonical `Player` уже находился ровно на одном topology anchor. Managed population создаётся в authoritative стартовых координатах, которых нет среди committed anchors; единственный shipped `BACKGROUND` edge соединяет `giran.route.north` с `giran.farming.22859`. Поэтому initial baseline нельзя получить причинно без запрещённого teleport/выдуманного route/второго lifecycle.
+Goal033A1 закрыл topology-ingress blocker: все 11 managed-population starting classes и 38 authoritative creation positions сопоставлены unique exact instance-zero ingress anchors; семь real-spawn low-level farming destinations связаны 80 factual one-way `BACKGROUND` edges. Production Navigation, exact-anchor, travel/restart и negative gates PASS. `PlayerCreationInitializer`, creation coordinates и `exactAnchor()` не менялись; direct teleport/fallback отсутствуют. Goal033A planner/cursor/fence и Goal033 ecology не реализованы.
 
 Не объявляй готовыми исходные gameplay gaps:
 - siege AI — DEFERRED_NOT_IMPLEMENTED;
@@ -35,8 +37,8 @@ Goal033A остановлен обязательным read-first gate до prod
 - Kamaloka — DEFERRED_NOT_IMPLEMENTED;
 - Pailaka — DEFERRED_NOT_IMPLEMENTED.
 
-Следующий реальный шаг: один bounded **canonical population topology-ingress prerequisite**. Он должен evidence-backed связать все authoritative population creation positions с actual instance-zero topology anchors и проверяемыми `BACKGROUND` routes к real-spawn `FARMING` anchors через existing Topology/Navigation authority. Нельзя изобретать координаты/маршруты, использовать direct teleport или смешивать этот unblock с planner/cursor/fence Goal033A. После ACCEPT повторить Goal033A; после его ACCEPT повторить Goal033.
+Следующий реальный шаг: повторить bounded **Goal033A causal historical Background catch-up prerequisite** на topology corpus Goal033A1. Реализовывать только явно разрешённые новым task planner/initial capture/exactly-once interval cursor/materialization fence; direct XP/free resources/teleport запрещены. После ACCEPT Goal033A повторить Goal033.
 
 Authoritative finite tail после Goal033: Goal034 automated black-box Login/Game stack на guarded throwaway DB; Goal035 siege; Goal036 bounded quests/instances; Goal037 final full-vision gate + freeze. После ACCEPT Goal037 не планировать новые goals автоматически.
 
-Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md, docs/phantoms/PHANTOM_QUICKSTART_RU.md и отчёт Goal032. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.
+Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, reports Goal033, Goal033A и Goal033A1, а также новый Goal033A task. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.

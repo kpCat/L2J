@@ -1,13 +1,14 @@
 # Phantom World: текущий статус
 
-Дата сверки: 2026-09-04. Source of truth для release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv` и принятый `docs/phantoms/reports/030-checkpoint-3-release-decision.md`; для operator reset/tuning и Roadmap v3 — `docs/phantoms/reports/032-phantom-reset-operator-control.md`; для Goal033 blocker — `docs/phantoms/reports/033-living-population-ecology.md`; для результата causal prerequisite — `docs/phantoms/reports/033A-causal-background-catchup.md`. Статусы полного vision основаны на production code/data/tests, а не на историческом номере Goal.
+Дата сверки: 2026-09-05. Source of truth для release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv` и принятый `docs/phantoms/reports/030-checkpoint-3-release-decision.md`; для operator reset/tuning и Roadmap v3 — `docs/phantoms/reports/032-phantom-reset-operator-control.md`; для Goal033 blocker — `docs/phantoms/reports/033-living-population-ecology.md`; для historical Goal033A result — `docs/phantoms/reports/033A-causal-background-catchup.md`; для закрывшего topology blocker Goal033A1 — `docs/phantoms/reports/033A1-canonical-population-topology-ingress.md`. Статусы полного vision основаны на production code/data/tests, а не на историческом номере Goal.
 
 | Capability/domain | Implementation status | Release evidence | Known limitation | Next action |
 |---|---|---|---|---|
 | **Goal030 accepted 20-domain release slice** | **20 covered / 0 pending; ACCEPT** | Goal030 CP1/CP2/CP3 | Shipped disabled/fail-closed; это не весь original vision | Поддерживать release gates |
 | **Goal032 Phantom-only reset/reseed** | **SUCCESS** | Goal032 ownership 3/3; reset/reseed 2/2; focused regressions | Shared state без безопасного owner блокирует reset | Следующий Goal033 ecology: BLOCKED; сохранять reset ownership |
 | **Goal033 living population ecology** | **BLOCKED_033_CAUSAL_CATCHUP_ENTRYPOINT_REQUIRED** | Read-first Background/Population/Progression/Social audit; Goal032/031/030 regressions PASS | Нет bounded deterministic Background entrypoint для canonical target/anchor, exactly-once interval cursor и materialization fence; direct XP запрещён | Отдельный causal Background prerequisite, затем повторить Goal033 |
-| **Goal033A causal historical Background catch-up** | **BLOCKED_033A_CANONICAL_TOPOLOGY_INGRESS_REQUIRED** | Read-first exact-anchor/topology audit; topology corpus 7/7; Background production audit 1/1; position canonicalization 2/2 | Population creation positions не являются topology anchors; от них нет factual `BACKGROUND` route к `FARMING` anchor, поэтому initial `afterStore()` baseline невозможен без запрещённого shortcut | Добавить отдельный evidence-backed topology-ingress prerequisite; затем повторить Goal033A |
+| **Goal033A causal historical Background catch-up** | **BLOCKED_033A_CANONICAL_TOPOLOGY_INGRESS_REQUIRED (historical)** | Historical read-first blocker сохранён; topology ingress закрыт Goal033A1 | Production catch-up planner/cursor/fence не добавлен | Повторить Goal033A |
+| **Goal033A1 canonical population topology ingress** | **SUCCESS; blocker CLOSED BY Goal033A1** | 38/38 exact ingress; 7 real farms; 80/80 factual Background edges; Goal033A1 4/4; focused regressions PASS | Не реализует historical catch-up или ecology | Повторить Goal033A |
 | Fresh bootstrap | IMPLEMENTED_AND_RELEASE_COVERED | matrix `fresh-bootstrap`; `prepare-phantom-test-db` | Production schema apply только явным installer action | Preflight перед запуском |
 | Population | IMPLEMENTED_AND_RELEASE_COVERED | matrix `population`; `phantom-population-server-integration-test` | Target/caps задаются config | Preset 10/5 для local play |
 | Progression | IMPLEMENTED_AND_RELEASE_COVERED | matrix `progression`; `phantom-progression-production-composition-test` | Использует accepted High Five capability catalog | Поддерживать catalog parity |
@@ -43,7 +44,8 @@
 |---|---|---|
 | Goal032 — Phantom-only reset/reseed + operator tuning | SUCCESS | Preview/confirm/cancel, exact private cleanup, optional reseed, tuning guide |
 | Goal033 — Living population ecology | BLOCKED_033_CAUSAL_CATCHUP_ENTRYPOINT_REQUIRED | Product code/config не добавлены; нужен bounded Background planning/capture/cursor/materialization prerequisite без direct XP |
-| Goal033A — Causal historical Background catch-up prerequisite | BLOCKED_033A_CANONICAL_TOPOLOGY_INGRESS_REQUIRED | Production catch-up не добавлен: canonical population creation positions не входят в topology graph, необходим factual topology-ingress slice |
+| Goal033A — Causal historical Background catch-up prerequisite | BLOCKED_033A_CANONICAL_TOPOLOGY_INGRESS_REQUIRED (historical) | Topology blocker закрыт Goal033A1; production catch-up planner/cursor/fence ещё не реализован |
+| Goal033A1 — Canonical population topology ingress | SUCCESS | 38/38 exact ingress, 7 real farming destinations, 80 factual Background edges; next — repeat Goal033A |
 | Goal034 — Automated black-box local stack acceptance | PLANNED | Real LoginServer/GameServer on guarded throwaway DB без ручного QA |
 | Goal035 — Siege gameplay slice | PLANNED | Native siege registration/schedule/gathering/roles/attack/defense/retreat |
 | Goal036 — Bounded quests/instances slice | PLANNED | Whitelist lifecycle, class transfer, supported Kamaloka/Pailaka |

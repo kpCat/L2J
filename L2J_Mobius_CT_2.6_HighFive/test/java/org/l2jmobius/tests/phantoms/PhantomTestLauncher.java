@@ -255,6 +255,7 @@ public final class PhantomTestLauncher
 			case "topology-signal-ledger" -> new PhantomTopologySignalLedgerSuite();
 			case "topology-generation" -> new PhantomTopologyGenerationSuite();
 			case "topology-corpus" -> new PhantomTopologyProductionCorpusSuite();
+			case "goal033a1-topology-ingress" -> new PhantomGoal033A1TopologyIngressSuite();
 			case "topology-performance" -> new PhantomTopologyPerformanceSuite();
 			case "knowledge-core" -> new PhantomGameKnowledgeCoreSuite();
 			case "knowledge-query-truth" -> new PhantomGameKnowledgeQueryTruthSuite();
