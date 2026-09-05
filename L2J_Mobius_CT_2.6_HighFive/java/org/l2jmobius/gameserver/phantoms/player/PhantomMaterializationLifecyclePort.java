@@ -31,6 +31,11 @@ public interface PhantomMaterializationLifecyclePort
 {
 	void beforeMaterialize(long profileId, int characterObjectId);
 
+	default void beforeMaterialize(long profileId, int characterObjectId, PhantomMaterializationService.MaterializationPurpose purpose, String ownerClaim)
+	{
+		beforeMaterialize(profileId, characterObjectId);
+	}
+
 	void afterPlayerLoad(long profileId, Player player);
 
 	void materializeSucceeded(long profileId, int characterObjectId);
@@ -41,6 +46,15 @@ public interface PhantomMaterializationLifecyclePort
 
 	void afterStore(long profileId, Player player);
 
+	final class AdmissionRejectedException extends IllegalStateException
+	{
+		private static final long serialVersionUID = 1L;
+
+		public AdmissionRejectedException(String message)
+		{
+			super(message);
+		}
+	}
 	static PhantomMaterializationLifecyclePort chain(PhantomMaterializationLifecyclePort first, PhantomMaterializationLifecyclePort second)
 	{
 		return new PhantomMaterializationLifecyclePort()
@@ -50,6 +64,13 @@ public interface PhantomMaterializationLifecyclePort
 			{
 				first.beforeMaterialize(profileId, characterObjectId);
 				second.beforeMaterialize(profileId, characterObjectId);
+			}
+
+			@Override
+			public void beforeMaterialize(long profileId, int characterObjectId, PhantomMaterializationService.MaterializationPurpose purpose, String ownerClaim)
+			{
+				first.beforeMaterialize(profileId, characterObjectId, purpose, ownerClaim);
+				second.beforeMaterialize(profileId, characterObjectId, purpose, ownerClaim);
 			}
 
 			@Override

@@ -63,6 +63,7 @@ import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
 import org.l2jmobius.gameserver.model.stats.Formulas;
 import org.l2jmobius.gameserver.model.stats.Stat;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.FarmInput;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.PlanningSnapshot;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.TravelAdvance;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.TravelAdvance.Status;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DeathPolicy;
@@ -207,6 +208,19 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		validateShot(player, spec, capability);
 		validateSummonResource(player, spec, capability);
 		return new ShotContract(capability.kind(), spec.shotItemId(), spec.shotsPerEncounter(), spec.summonResourceItemId(), spec.summonResourcesPerEncounter());
+	}
+
+	@Override
+	public PlanningSnapshot planningSnapshot(Player player)
+	{
+		Objects.requireNonNull(player, "player");
+		requireSupportedPlayer(player);
+		final PhantomTopologyAnchor anchor = exactAnchor(player, null);
+		final Capability capability = capability(player, null);
+		final PhantomBackgroundGoalSpec zeroResourceContract = new PhantomBackgroundGoalSpec(1, anchor.id(), 0, 0, 0, 0, 0);
+		validateShot(player, zeroResourceContract, capability);
+		validateSummonResource(player, zeroResourceContract, capability);
+		return new PlanningSnapshot(player.getLevel(), player.getActiveClass(), anchor.id(), 0, 0, 0, 0, 0);
 	}
 
 	@Override
@@ -497,7 +511,8 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			};
 			return new Capability(kind, rule.actionSkill().skillId(), rule.actionSkill().skillLevel(), skill.mpConsume(), 0, 0, null, null);
 		}
-		throw new IllegalArgumentException("No exact supported combat capability is currently ready.");
+		// Every canonical Player owns the ordinary physical attack represented by Loadout.none(); it consumes no skill MP or item resource.
+		return new Capability(ModelKind.MELEE, 0, 0, 0, 0, 0, null, null);
 	}
 
 	private Tracking tracking(Player player, PhantomBackgroundGoalSpec goal, Capability capability)

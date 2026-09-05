@@ -121,7 +121,7 @@ public final class PlayerCreationInitializer
 			statement.setInt(2, plan.creationLocation().getY());
 			statement.setInt(3, plan.creationLocation().getZ());
 			statement.setString(4, plan.title());
-			statement.setInt(5, plan.vitalityEnabled() ? plan.vitalityPoints() : 0);
+			statement.setInt(5, plan.vitalityPoints());
 			statement.setInt(6, objectId);
 			statement.executeUpdate();
 		}
@@ -141,7 +141,8 @@ public final class PlayerCreationInitializer
 		final long sp = mode == Mode.CLIENT ? PlayerConfig.STARTING_SP : 0;
 		final long adena = Math.max(0, PlayerConfig.STARTING_ADENA);
 		final String title = StartingTitleConfig.ENABLE_CUSTOM_STARTING_TITLE ? StartingTitleConfig.CUSTOM_STARTING_TITLE : "";
-		final int vitalityPoints = Math.min(PlayerConfig.STARTING_VITALITY_POINTS, PlayerStat.MAX_VITALITY_POINTS);
+		final boolean vitalityEnabled = PlayerConfig.ENABLE_VITALITY;
+		final int vitalityPoints = mode == Mode.POPULATION ? PlayerStat.MIN_VITALITY_POINTS : Math.min(PlayerConfig.STARTING_VITALITY_POINTS, PlayerStat.MAX_VITALITY_POINTS);
 		final Collection<InitialEquipment> classEquipment = InitialEquipmentData.getInstance().getClassEquipment(playerClass);
 		final List<InitialItemPlan> items = classEquipment == null ? List.of() : classEquipment.stream().map(equipment -> new InitialItemPlan(equipment.getId(), equipment.getCount(), equipment.isEquipped())).toList();
 		final List<InitialSkillPlan> skills = SkillTreeData.getInstance().getCompleteClassSkillTree(playerClass).values().stream()
@@ -166,7 +167,7 @@ public final class PlayerCreationInitializer
 			adena,
 			creationLocation,
 			title,
-			PlayerConfig.ENABLE_VITALITY,
+			vitalityEnabled,
 			vitalityPoints,
 			PlayerConfig.STARTING_LEVEL,
 			PlayerConfig.STARTING_SP,
@@ -200,7 +201,7 @@ public final class PlayerCreationInitializer
 		player.setXYZInvisible(plan.creationLocation().getX(), plan.creationLocation().getY(), plan.creationLocation().getZ());
 		player.setTitle(plan.title());
 
-		if (plan.vitalityEnabled() && ((mode == Mode.CLIENT) || (player.getVitalityPoints() != plan.vitalityPoints())))
+		if (((mode == Mode.POPULATION) && (player.getVitalityPoints() != plan.vitalityPoints())) || (plan.vitalityEnabled() && ((mode == Mode.CLIENT) || (player.getVitalityPoints() != plan.vitalityPoints()))))
 		{
 			player.setVitalityPoints(plan.vitalityPoints(), true);
 		}

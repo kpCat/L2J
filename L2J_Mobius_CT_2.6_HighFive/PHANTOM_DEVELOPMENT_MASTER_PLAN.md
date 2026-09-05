@@ -844,7 +844,7 @@ Status: `ACCEPT`; Checkpoint 1, Goal030A, Goal030B/030B1, Goal030C1, Goal030C2A,
 
 Goal030 принят как конкретный 20-domain release slice с 0 pending, а не как доказательство всей исходной vision. Нумерация хвоста исторически drifted: фактический Goal028 реализовал operator controls/diagnostics/replay, фактический Goal029 — scale/soak/overload, Goal030 — release coverage и rollback. Поэтому исходные sections 028/029 сохраняются как намерение, но их gameplay scope помечен `DEFERRED_NOT_IMPLEMENTED`; bounded Q102/Q152 acquisition subset имеет статус `PARTIAL` относительно generic quest adapter.
 
-Goal031 local-play readiness — `SUCCESS`: safe preset 10/5, read-only preflight, quick-start, current status и production-composed restart/rollback evidence.
+Goal 031 local-play readiness — `SUCCESS`: safe preset 10/5, read-only preflight, quick-start, current status и production-composed restart/rollback evidence.
 
 ### Roadmap v3: конечный post-release path
 

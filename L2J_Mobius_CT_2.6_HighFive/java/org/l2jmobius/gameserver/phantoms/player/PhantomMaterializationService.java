@@ -60,6 +60,12 @@ public final class PhantomMaterializationService
 		FAILED
 	}
 
+	public enum MaterializationPurpose
+	{
+		NORMAL,
+		HISTORICAL_BASELINE
+	}
+
 	public enum ResultStatus
 	{
 		SUCCESS,
@@ -80,6 +86,7 @@ public final class PhantomMaterializationService
 		MATERIALIZATION_FAILED_RETAINED,
 		CLEANUP_FAILED_RETAINED,
 		BACKGROUND_RECONCILIATION_BLOCKED,
+		CATCHUP_FENCED,
 		NOT_ACTIVE
 	}
 
@@ -163,6 +170,17 @@ public final class PhantomMaterializationService
 
 	public MaterializeResult materialize(long profileId)
 	{
+		return materialize(profileId, MaterializationPurpose.NORMAL, "");
+	}
+
+	public MaterializeResult materialize(long profileId, MaterializationPurpose purpose, String ownerClaim)
+	{
+		Objects.requireNonNull(purpose, "purpose");
+		ownerClaim = Objects.requireNonNullElse(ownerClaim, "");
+		if (((purpose == MaterializationPurpose.NORMAL) && !ownerClaim.isEmpty()) || ((purpose == MaterializationPurpose.HISTORICAL_BASELINE) && ownerClaim.isBlank()))
+		{
+			throw new IllegalArgumentException("Invalid materialization purpose claim.");
+		}
 		if (profileId <= 0)
 		{
 			throw new IllegalArgumentException("profileId must be positive");
@@ -194,15 +212,21 @@ public final class PhantomMaterializationService
 		}
 
 		final int characterObjectId = profile.characterObjectId();
+		final MaterializationLifecycleAttempt lifecycleAttempt = new MaterializationLifecycleAttempt(_lifecyclePort, profileId, characterObjectId);
 		try
 		{
-			_lifecyclePort.beforeMaterialize(profileId, characterObjectId);
+			_lifecyclePort.beforeMaterialize(profileId, characterObjectId, purpose, ownerClaim);
+		}
+		catch (PhantomMaterializationLifecyclePort.AdmissionRejectedException exception)
+		{
+			lifecycleAttempt.abortUnlessCompleted();
+			return rejectMaterialization(ResultStatus.CATCHUP_FENCED);
 		}
 		catch (RuntimeException exception)
 		{
+			lifecycleAttempt.abortUnlessCompleted();
 			return rejectMaterialization(ResultStatus.BACKGROUND_RECONCILIATION_BLOCKED);
 		}
-		final MaterializationLifecycleAttempt lifecycleAttempt = new MaterializationLifecycleAttempt(_lifecyclePort, profileId, characterObjectId);
 		try
 		{
 		final PhantomMaterializedPlayer.LifecycleSupport lifecycleSupport = new PhantomMaterializedPlayer.LifecycleSupport()

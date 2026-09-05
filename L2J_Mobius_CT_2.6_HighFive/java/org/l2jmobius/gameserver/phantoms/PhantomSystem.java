@@ -46,6 +46,8 @@ import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthorit
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
+import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner;
+import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend;
@@ -203,6 +205,7 @@ public final class PhantomSystem
 	private PhantomMultipartyEconomyService _multipartyEconomyService;
 	private PhantomStoreService _phantomStoreService;
 	private PhantomBackgroundService _backgroundService;
+	private PhantomHistoricalBackgroundService _historicalBackgroundService;
 	private PhantomAcquisitionService _acquisitionService;
 	private PhantomFarmingService _farmingService;
 	private PhantomPopulationManager _populationManager;
@@ -361,12 +364,13 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom commerce service could not enter the running state.");
 				}
 				final PhantomPartyParticipationPort.Bridge partyParticipation = PhantomPartyParticipationPort.bridge();
+				final L2jPhantomBackgroundAuthority backgroundAuthority = new L2jPhantomBackgroundAuthority(_gameKnowledgeService::query, _topologyService::query, _progressionService::catalog, _commerceService::catalog);
 				_backgroundService = new PhantomBackgroundService(
 					productionProfiles,
 					productionGoals,
 					PhantomIdentityLeaseRegistry.getInstance(),
 					new PhantomBackgroundTransaction(),
-					new L2jPhantomBackgroundAuthority(_gameKnowledgeService::query, _topologyService::query, _progressionService::catalog, _commerceService::catalog),
+					backgroundAuthority,
 					new PhantomBackgroundCompetitionRegistry(),
 					new PhantomSchedulerRelevanceSignalPort(_scheduler),
 					() -> _materializationService,
@@ -375,8 +379,9 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom background service could not enter the running state.");
 				}
+				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, new PhantomHistoricalBackgroundPlanner(_gameKnowledgeService.query(), _topologyService.query(), backgroundAuthority), _backgroundService, _materializationService);
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
-				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge));
+				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge)));
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
 				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
 				final File questCollectionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-quest-collection-v1.xml");
@@ -553,7 +558,7 @@ public final class PhantomSystem
 				riftDecision.registerHandlers(handlerRegistry);
 				raidDecision.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
-				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null);
+				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null, _historicalBackgroundService::permitsNormalOperation);
 				_decisionEngine.start();
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
 				_populationManager.installDecisionEngine(_decisionEngine);

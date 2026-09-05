@@ -106,6 +106,7 @@ public final class PhantomBackgroundTransaction
 	private final PhantomBackgroundStateCodec _stateCodec;
 	private final PhantomGoalStateCodec _goalCodec;
 	private final PhantomAcquisitionStateCodec _acquisitionCodec;
+	private final PhantomBackgroundCatchupStateCodec _catchupCodec = new PhantomBackgroundCatchupStateCodec();
 
 	public PhantomBackgroundTransaction()
 	{
@@ -439,6 +440,16 @@ public final class PhantomBackgroundTransaction
 				_faultInjector.inject(FaultPoint.AFTER_PROFILE_LOCK);
 				final LockedGoal lockedGoal = command.acquisition() == null ? new LockedGoal(lockAndValidateGoal(connection, expected.identity().profileId(), command.goal()), command.goal()) : lockAcquisitionGoal(connection, expected.identity().profileId());
 				_faultInjector.inject(FaultPoint.AFTER_GOAL_LOCK);
+				final LockedComponent catchupComponent;
+				if (command.catchup() != null)
+				{
+					catchupComponent = lockComponent(connection, expected.identity().profileId(), PhantomBackgroundCatchupState.COMPONENT_TYPE);
+					_faultInjector.inject(FaultPoint.AFTER_CATCHUP_LOCK);
+				}
+				else
+				{
+					catchupComponent = null;
+				}
 				final LockedComponent acquisitionComponent;
 				if (command.acquisition() != null)
 				{
@@ -458,6 +469,10 @@ public final class PhantomBackgroundTransaction
 					{
 						validateCommittedAcquisition(connection, command, lockedGoal, acquisitionComponent);
 					}
+					if (command.catchup() != null)
+					{
+						validateCommittedCatchup(catchupComponent, command.catchup());
+					}
 					connection.rollback();
 					final Result verification = reconcileVerifyPending(expected.identity().profileId(), expected.identity().characterObjectId());
 					return verification.status() == Status.SUCCESS ? new Result(Status.IDEMPOTENT, verification.state()) : verification;
@@ -465,6 +480,10 @@ public final class PhantomBackgroundTransaction
 				if (identityStatus != Status.SUCCESS)
 				{
 					throw new StateConflict(identityStatus);
+				}
+				if (command.catchup() != null)
+				{
+					validateExpectedCatchupComponent(catchupComponent, command);
 				}
 				if (command.acquisition() != null)
 				{
@@ -522,6 +541,11 @@ public final class PhantomBackgroundTransaction
 				final PhantomBackgroundState pending = completed.withState(State.VERIFY_PENDING);
 				writeComponent(connection, component, pending);
 				_faultInjector.inject(FaultPoint.AFTER_BACKGROUND_STATE_WRITE);
+				if (command.catchup() != null)
+				{
+					writeRawComponent(connection, catchupComponent, expected.identity().profileId(), PhantomBackgroundCatchupState.COMPONENT_TYPE, PhantomBackgroundCatchupState.SCHEMA_VERSION, _catchupCodec.encode(command.catchup().nextState()));
+					_faultInjector.inject(FaultPoint.AFTER_CATCHUP_STATE_WRITE);
+				}
 				PhantomAcquisitionState nextAcquisition = null;
 				PhantomGoal nextGoal = null;
 				if (command.acquisition() != null)
@@ -702,6 +726,52 @@ public final class PhantomBackgroundTransaction
 			throw new StateConflict(Status.ACQUISITION_CONFLICT);
 		}
 		return component;
+	}
+
+	private void validateExpectedCatchupComponent(LockedComponent component, Command command)
+	{
+		final CatchupMutation mutation = command.catchup();
+		final var identity = command.operationKey().historical();
+		if ((component == null) || (component.schemaVersion() != PhantomBackgroundCatchupState.SCHEMA_VERSION) || (component.rowVersion() != mutation.expectedRowVersion()) || (identity == null))
+		{
+			throw new StateConflict(Status.CATCHUP_CONFLICT);
+		}
+		final PhantomBackgroundCatchupState actual;
+		try
+		{
+			actual = _catchupCodec.decode(component.payload());
+		}
+		catch (RuntimeException exception)
+		{
+			throw new StateConflict(Status.CATCHUP_CONFLICT);
+		}
+		if (!Arrays.equals(_catchupCodec.encode(actual), _catchupCodec.encode(mutation.expectedState())) || !identity.requestId().equals(actual.requestId()) || (identity.catchupGeneration() != actual.generation()) || (identity.intervalOrdinal() != actual.intervalOrdinal()) || (identity.fromEpochMinute() != actual.cursorEpochMinute()) || (identity.nextEpochMinute() != mutation.nextState().cursorEpochMinute()) || !identity.planIdentity().equals(actual.planIdentity()))
+		{
+			throw new StateConflict(Status.CATCHUP_CONFLICT);
+		}
+	}
+
+	private void validateCommittedCatchup(LockedComponent component, CatchupMutation mutation)
+	{
+		if ((component == null) || (component.schemaVersion() != PhantomBackgroundCatchupState.SCHEMA_VERSION) || (component.rowVersion() != Math.addExact(mutation.expectedRowVersion(), 1)))
+		{
+			throw new StateConflict(Status.CATCHUP_CONFLICT);
+		}
+		try
+		{
+			if (!Arrays.equals(_catchupCodec.encode(_catchupCodec.decode(component.payload())), _catchupCodec.encode(mutation.nextState())))
+			{
+				throw new StateConflict(Status.CATCHUP_CONFLICT);
+			}
+		}
+		catch (RuntimeException exception)
+		{
+			if (exception instanceof StateConflict conflict)
+			{
+				throw conflict;
+			}
+			throw new StateConflict(Status.CATCHUP_CONFLICT);
+		}
 	}
 
 	private void validateExpectedAcquisitionGoal(LockedGoal locked, PhantomGoal expected, AcquisitionMutation acquisition)
@@ -908,16 +978,17 @@ public final class PhantomBackgroundTransaction
 		{
 			return Status.INCONSISTENT;
 		}
-		if (stored.state() != State.READY)
-		{
-			return Status.STATE_CONFLICT;
-		}
 		final String digest = command.operationKey().digest();
 		if (stored.receipt().operationKey().equals(digest))
 		{
 			return Status.IDEMPOTENT;
 		}
-		if ((stored.receipt().activityGeneration() > command.operationKey().activityGeneration()) || ((stored.receipt().activityGeneration() == command.operationKey().activityGeneration()) && (stored.receipt().tickSequence() >= command.operationKey().tickSequence())))
+		final boolean historicalDeadIdle = (stored.state() == State.DEAD) && (command.operationKey().historical() != null) && (command.operationKey().actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_DEAD_IDLE);
+		if ((stored.state() != State.READY) && !historicalDeadIdle)
+		{
+			return Status.STATE_CONFLICT;
+		}
+		if ((command.operationKey().historical() == null) && ((stored.receipt().activityGeneration() > command.operationKey().activityGeneration()) || ((stored.receipt().activityGeneration() == command.operationKey().activityGeneration()) && (stored.receipt().tickSequence() >= command.operationKey().tickSequence()))))
 		{
 			return Status.STALE_OPERATION;
 		}
@@ -1700,6 +1771,7 @@ public final class PhantomBackgroundTransaction
 		OBJECT_ID_EXHAUSTED,
 		PROGRESSION_CONFLICT,
 		ACQUISITION_CONFLICT,
+		CATCHUP_CONFLICT,
 		INCONSISTENT,
 		BACKEND_FAILURE,
 		COMMIT_OUTCOME_UNKNOWN,
@@ -1710,6 +1782,7 @@ public final class PhantomBackgroundTransaction
 	{
 		AFTER_PROFILE_LOCK,
 		AFTER_GOAL_LOCK,
+		AFTER_CATCHUP_LOCK,
 		AFTER_ACQUISITION_LOCK,
 		AFTER_BACKGROUND_LOCK,
 		AFTER_CHARACTER_LOCK,
@@ -1718,6 +1791,7 @@ public final class PhantomBackgroundTransaction
 		AFTER_QUEST_LOCKS,
 		AFTER_CANONICAL_WRITES,
 		AFTER_BACKGROUND_STATE_WRITE,
+		AFTER_CATCHUP_STATE_WRITE,
 		AFTER_GOAL_STATE_WRITE,
 		AFTER_ACQUISITION_STATE_WRITE,
 		BEFORE_OPERATION_COMMIT,
@@ -1771,11 +1845,16 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
-	public record Command(PhantomBackgroundState expectedState, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, Progress progress, Vitals vitals, Position position, Clock clock, Map<Integer, Long> itemDeltas, List<AutoGetSkill> autoGetSkills, List<Integer> additionalMutableItemIds, AcquisitionMutation acquisition)
+	public record Command(PhantomBackgroundState expectedState, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, Progress progress, Vitals vitals, Position position, Clock clock, Map<Integer, Long> itemDeltas, List<AutoGetSkill> autoGetSkills, List<Integer> additionalMutableItemIds, AcquisitionMutation acquisition, CatchupMutation catchup)
 	{
+		public Command(PhantomBackgroundState expectedState, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, Progress progress, Vitals vitals, Position position, Clock clock, Map<Integer, Long> itemDeltas, List<AutoGetSkill> autoGetSkills, List<Integer> additionalMutableItemIds, AcquisitionMutation acquisition)
+		{
+			this(expectedState, goal, operationKey, progress, vitals, position, clock, itemDeltas, autoGetSkills, additionalMutableItemIds, acquisition, null);
+		}
+
 		public Command(PhantomBackgroundState expectedState, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, Progress progress, Vitals vitals, Position position, Clock clock, Map<Integer, Long> itemDeltas, List<AutoGetSkill> autoGetSkills)
 		{
-			this(expectedState, goal, operationKey, progress, vitals, position, clock, itemDeltas, autoGetSkills, List.of(), null);
+			this(expectedState, goal, operationKey, progress, vitals, position, clock, itemDeltas, autoGetSkills, List.of(), null, null);
 		}
 
 		public Command
@@ -1801,6 +1880,18 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
+	public record CatchupMutation(PhantomBackgroundCatchupState expectedState, long expectedRowVersion, PhantomBackgroundCatchupState nextState)
+	{
+		public CatchupMutation
+		{
+			Objects.requireNonNull(expectedState, "expectedState");
+			Objects.requireNonNull(nextState, "nextState");
+			if ((expectedRowVersion < 0) || (!nextState.owns(expectedState.requestId()) || (nextState.generation() != expectedState.generation())) || (nextState.cursorEpochMinute() != Math.addExact(expectedState.cursorEpochMinute(), 1)) || (nextState.intervalOrdinal() != Math.addExact(expectedState.intervalOrdinal(), 1)))
+			{
+				throw new IllegalArgumentException("Invalid historical Background catchup mutation.");
+			}
+		}
+	}
 	public record AcquisitionMutation(PhantomAcquisitionState expectedState, long expectedStateRowVersion, long expectedGoalRowVersion, ReceiptKind receiptKind, long logicalMinute, Map<Integer, Integer> eligibilitySkills, Map<String, String> expectedQuestRows)
 	{
 		public AcquisitionMutation(PhantomAcquisitionState expectedState, long expectedStateRowVersion, long expectedGoalRowVersion, ReceiptKind receiptKind, long logicalMinute)

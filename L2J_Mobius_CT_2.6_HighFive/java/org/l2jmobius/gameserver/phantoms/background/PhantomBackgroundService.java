@@ -54,6 +54,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Manor
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.QuestFormula;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.ActionKind;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.AcquisitionIdentity;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.HistoricalIdentity;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.AcquisitionEligibilitySnapshot;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Clock;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State;
@@ -337,6 +338,91 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
+	public OperationResult advanceHistorical(long profileId, PhantomGoal goal, PhantomBackgroundCatchupStore.Snapshot catchup, PhantomBackgroundCatchupState nextCatchup)
+	{
+		Objects.requireNonNull(catchup, "catchup");
+		Objects.requireNonNull(nextCatchup, "nextCatchup");
+		final PhantomBackgroundCatchupState expectedCatchup = catchup.state();
+		if ((expectedCatchup.status() != PhantomBackgroundCatchupState.Status.RUNNING) || !expectedCatchup.authorityHashes().equals(_authority.hashes()) || (nextCatchup.cursorEpochMinute() != Math.addExact(expectedCatchup.cursorEpochMinute(), 1)))
+		{
+			return OperationResult.replan("catchup.state_or_hash_stale");
+		}
+		if (_partyParticipation.blocksBackground(profileId))
+		{
+			return retry("party.materialized_only");
+		}
+		final OperationClaim claim = acquire(profileId, goal, expectedCatchup.generation(), Math.addExact(expectedCatchup.intervalOrdinal(), 1));
+		if (!claim.acquired())
+		{
+			return claim.failure();
+		}
+		try (claim)
+		{
+			final PhantomBackgroundState state = claim.state();
+			if ((state.state() != State.READY) && (state.state() != State.DEAD))
+			{
+				return retry("state.not_ready");
+			}
+			final PhantomBackgroundGoalSpec spec = claim.spec();
+			final HistoricalIdentity historical = new HistoricalIdentity(expectedCatchup.requestId(), expectedCatchup.generation(), expectedCatchup.intervalOrdinal(), expectedCatchup.cursorEpochMinute(), nextCatchup.cursorEpochMinute(), expectedCatchup.planIdentity());
+			final PhantomBackgroundTransaction.CatchupMutation mutation = new PhantomBackgroundTransaction.CatchupMutation(expectedCatchup, catchup.rowVersion(), nextCatchup);
+			if (state.state() == State.DEAD)
+			{
+				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_DEAD_IDLE, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
+				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), state.position(), state.clock(), Map.of(), state.autoGetSkills(), List.of(), null, mutation);
+				return commit(claim, command);
+			}
+			if (!state.position().committedAnchorId().equals(spec.anchorId()))
+			{
+				final TravelAdvance advance;
+				try
+				{
+					advance = _authority.advanceTravel(state, spec, FARM_TRAVEL_BUDGET_MILLIS);
+				}
+				catch (RuntimeException exception)
+				{
+					return OperationResult.replan("catchup.travel.unsupported");
+				}
+				if (!advance.mutated())
+				{
+					return switch (advance.status())
+					{
+						case EDGE_CLOSED, NO_ROUTE -> retry("catchup.travel." + advance.status().name().toLowerCase());
+						default -> OperationResult.replan("catchup.travel." + advance.status().name().toLowerCase());
+					};
+				}
+				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_TRAVEL, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
+				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(), Map.of(), state.autoGetSkills(), List.of(), null, mutation);
+				return commit(claim, command);
+			}
+			final FarmInput input;
+			try
+			{
+				input = _authority.farmInput(state, spec);
+			}
+			catch (RuntimeException exception)
+			{
+				return OperationResult.replan("catchup.authority.unsupported");
+			}
+			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_FARM, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
+			try (PhantomBackgroundCompetitionRegistry.Reservation reservation = _competition.tryReserve(input.topologyNodeId(), spec.npcId(), input.spawnCapacity()))
+			{
+				if (reservation == null)
+				{
+					return retry("competition.capacity");
+				}
+				final BatchResult batch = _model.evaluate(new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false));
+				if (!batch.mutated())
+				{
+					return batch.reason() == PhantomBackgroundModel.ResultReason.TIME_BUDGET ? retry("model.time_budget") : OperationResult.replan("model." + batch.reason().name().toLowerCase());
+				}
+				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = _authority.autoGetSkills(state.identity(), batch.progress().level());
+				final Clock clock = new Clock(batch.nextRngState(), 0, 0);
+				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, batch.progress(), batch.vitals(), state.position(), clock, batch.inventoryDelta().itemDeltas(), autoSkills, List.of(), null, mutation);
+				return commit(claim, command).withModel(batch.encounters(), batch.elapsedMillis(), batch.dead());
+			}
+		}
+	}
 	public OperationResult acquireItem(long profileId, PhantomGoal goal, long goalRowVersion, PhantomAcquisitionState acquisitionState, long acquisitionRowVersion, long activityGeneration, long tickSequence, PhantomActivityState activityState, long logicalNowNanos, long logicalMinute)
 	{
 		if ((activityState != PhantomActivityState.BACKGROUND) || (acquisitionState == null) || (acquisitionState.selectedSource() == null))
@@ -818,6 +904,18 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	@Override
 	public void afterStore(long profileId, Player player)
 	{
+		try
+		{
+			afterStoreInternal(profileId, player);
+		}
+		finally
+		{
+			releaseStoreTransition(profileId);
+		}
+	}
+
+	private void afterStoreInternal(long profileId, Player player)
+	{
 		requireStoreTransition(profileId);
 		final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 		final PhantomBackgroundState previous = loaded.successful() ? loaded.state() : null;
@@ -1117,7 +1215,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		return switch (status)
 		{
-			case STALE_OPERATION, GOAL_STALE, HASH_STALE, STATE_CONFLICT, STATE_ABSENT, PROFILE_LINK_STALE -> OperationResult.replan("transaction." + status.name().toLowerCase());
+			case STALE_OPERATION, GOAL_STALE, HASH_STALE, STATE_CONFLICT, STATE_ABSENT, PROFILE_LINK_STALE, CATCHUP_CONFLICT -> OperationResult.replan("transaction." + status.name().toLowerCase());
 			case INCONSISTENT, CANONICAL_MISMATCH, ITEM_CONFLICT, ITEM_LIMIT, UNSUPPORTED_ITEM, UNSUPPORTED_INSTANCE, OBJECT_ID_EXHAUSTED, PROGRESSION_CONFLICT, ACQUISITION_CONFLICT -> OperationResult.inconsistent("transaction." + status.name().toLowerCase());
 			default -> retry("transaction." + status.name().toLowerCase());
 		};

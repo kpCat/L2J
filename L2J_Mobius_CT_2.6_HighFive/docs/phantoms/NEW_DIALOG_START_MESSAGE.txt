@@ -1,7 +1,7 @@
 Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Актуальный baseline — HEAD ветки origin/feature/phantom-world, содержащий SUCCESS Goal033A1. Exact required parent выполненного Goal033A1:
-de457f01116ee42aeb06a8bc4a3b9fd8ac58f6a4 — historical Goal033A topology-ingress blocker baseline.
+Актуальный baseline — HEAD ветки origin/feature/phantom-world, содержащий SUCCESS Goal033A. Exact required parent выполненного Goal033A:
+67cc9fc1911a37644064854d964fd8191d8f24f2 — accepted Goal033A1 baseline.
 Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
 
 Состояние release:
@@ -9,8 +9,8 @@ de457f01116ee42aeb06a8bc4a3b9fd8ac58f6a4 — historical Goal033A topology-ingres
 - release matrix — 20 covered domains / 0 pending;
 - Goal031 local-play readiness — SUCCESS;
 - Goal032 Phantom-only reset/reseed + operator tuning + Roadmap v3 — SUCCESS;
-- Goal033 living population ecology — BLOCKED_033_CAUSAL_CATCHUP_ENTRYPOINT_REQUIRED;
-- Goal033A causal historical Background catch-up prerequisite — BLOCKED_033A_CANONICAL_TOPOLOGY_INGRESS_REQUIRED;
+- Goal033 living population ecology — READY_TO_REPEAT_AFTER_GOAL033A_SUCCESS;
+- Goal033A causal historical Background catch-up prerequisite — SUCCESS;
 - Goal033A1 canonical population topology ingress — SUCCESS; blocker Goal033A CLOSED BY Goal033A1;
 - shipped dist/game/config/Custom/PhantomPlayers.ini остаётся safe: EnablePhantomSystem=False, population=0, ACTIVE=0;
 - local-play preset 10/5: docs/phantoms/examples/PhantomPlayers.local-play.ini;
@@ -20,7 +20,8 @@ de457f01116ee42aeb06a8bc4a3b9fd8ac58f6a4 — historical Goal033A topology-ingres
 - Goal031 report: docs/phantoms/reports/031-local-play-readiness.md.
 - Goal032 report: docs/phantoms/reports/032-phantom-reset-operator-control.md;
 - Goal033 report: docs/phantoms/reports/033-living-population-ecology.md;
-- Goal033A report: docs/phantoms/reports/033A-causal-background-catchup.md;
+- Goal033A historical blocked report: docs/phantoms/reports/033A-causal-background-catchup.md;
+- Goal033A SUCCESS report: docs/phantoms/reports/033A-causal-background-catchup-resume.md;
 - Goal033A1 report: docs/phantoms/reports/033A1-canonical-population-topology-ingress.md;
 - operator tuning: docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md.
 
@@ -28,7 +29,9 @@ Goal031 доказал guarded production-composed путь: 10 durable identiti
 
 Goal032 добавил явный `//phantom reset preview` → one-time 120-second `confirm`/`cancel` workflow, exact ownership validation, canonical drain-before-mutation, transactional Phantom-private cleanup, human/shared-state guards, empty no-op и optional reseed через существующий PopulationManager. Auto-reset при startup отсутствует; shipped safe defaults не изменены.
 
-Goal033A1 закрыл topology-ingress blocker: все 11 managed-population starting classes и 38 authoritative creation positions сопоставлены unique exact instance-zero ingress anchors; семь real-spawn low-level farming destinations связаны 80 factual one-way `BACKGROUND` edges. Production Navigation, exact-anchor, travel/restart и negative gates PASS. `PlayerCreationInitializer`, creation coordinates и `exactAnchor()` не менялись; direct teleport/fallback отсутствуют. Goal033A planner/cursor/fence и Goal033 ecology не реализованы.
+Goal033A1 закрыл topology-ingress blocker: все 11 managed-population starting classes и 38 authoritative creation positions сопоставлены unique exact instance-zero ingress anchors; семь real-spawn low-level farming destinations связаны 80 factual one-way `BACKGROUND` edges. Production Navigation, exact-anchor, travel/restart и negative gates PASS. `PlayerCreationInitializer`, creation coordinates и `exactAnchor()` не менялись; direct teleport/fallback отсутствуют. На этапе Goal033A1 planner/cursor/fence не реализовывались; они закрыты Goal033A ниже. Goal033 ecology не реализована.
+
+Goal033A закрыл causal catch-up prerequisite: production planner потребляет Goal033A1 ingress/routes и собственный canonical level/class; initial READY/DEAD baseline проходит через existing materialization/store lifecycle; minute cursor и Background/player/inventory mutation атомарны и idempotent; restart/DEAD-idle semantics детерминированы; NORMAL materialization/Decision закрыты до COMPLETE. Direct XP/free resources/teleport, human-level input, второй Player lifecycle и новый scheduler отсутствуют. Goal033 ecology остаётся следующим отдельным этапом.
 
 Не объявляй готовыми исходные gameplay gaps:
 - siege AI — DEFERRED_NOT_IMPLEMENTED;
@@ -37,8 +40,8 @@ Goal033A1 закрыл topology-ingress blocker: все 11 managed-population st
 - Kamaloka — DEFERRED_NOT_IMPLEMENTED;
 - Pailaka — DEFERRED_NOT_IMPLEMENTED.
 
-Следующий реальный шаг: повторить bounded **Goal033A causal historical Background catch-up prerequisite** на topology corpus Goal033A1. Реализовывать только явно разрешённые новым task planner/initial capture/exactly-once interval cursor/materialization fence; direct XP/free resources/teleport запрещены. После ACCEPT Goal033A повторить Goal033.
+Следующий реальный шаг: **Goal033 — Living population ecology** — повтор Goal033, не Goal034. Goal033A принят; сохраняй запрет direct XP/free resources/teleport и не расширяй scope за Goal033 task.
 
 Authoritative finite tail после Goal033: Goal034 automated black-box Login/Game stack на guarded throwaway DB; Goal035 siege; Goal036 bounded quests/instances; Goal037 final full-vision gate + freeze. После ACCEPT Goal037 не планировать новые goals автоматически.
 
-Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, reports Goal033, Goal033A и Goal033A1, а также новый Goal033A task. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.
+Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, reports Goal033, historical Goal033A, Goal033A1 и Goal033A SUCCESS resume, а также текущий Goal033 task. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.

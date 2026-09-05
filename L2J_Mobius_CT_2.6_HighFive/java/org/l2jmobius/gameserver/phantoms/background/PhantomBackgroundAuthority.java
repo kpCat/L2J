@@ -53,6 +53,11 @@ public interface PhantomBackgroundAuthority
 		throw new UnsupportedOperationException("Acquisition background capture is unavailable.");
 	}
 
+	default PlanningSnapshot planningSnapshot(Player player)
+	{
+		throw new UnsupportedOperationException("Background planning snapshot is unavailable.");
+	}
+
 	boolean matchesRuntime(Player player, PhantomBackgroundState state);
 
 	FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal);
@@ -75,6 +80,17 @@ public interface PhantomBackgroundAuthority
 	}
 
 	List<AutoGetSkill> autoGetSkills(PhantomBackgroundState.Identity identity, int level);
+
+	record PlanningSnapshot(int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter)
+	{
+		public PlanningSnapshot
+		{
+			if ((level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (shotItemId < 0) || (shotsPerEncounter < 0) || (summonNpcId < 0) || (summonResourceItemId < 0) || (summonResourcesPerEncounter < 0) || ((shotItemId == 0) != (shotsPerEncounter == 0)) || ((summonResourceItemId == 0) != (summonResourcesPerEncounter == 0)))
+			{
+				throw new IllegalArgumentException("Invalid Background planning snapshot.");
+			}
+		}
+	}
 
 	record FarmInput(Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, String topologyNodeId, int spawnCapacity)
 	{

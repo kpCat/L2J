@@ -49,6 +49,12 @@ public final class PhantomMaterializationLifecycleBridge implements PhantomMater
 	}
 
 	@Override
+	public void beforeMaterialize(long profileId, int characterObjectId, PhantomMaterializationService.MaterializationPurpose purpose, String ownerClaim)
+	{
+		_delegate.get().beforeMaterialize(profileId, characterObjectId, purpose, ownerClaim);
+	}
+
+	@Override
 	public void afterPlayerLoad(long profileId, Player player)
 	{
 		_delegate.get().afterPlayerLoad(profileId, player);

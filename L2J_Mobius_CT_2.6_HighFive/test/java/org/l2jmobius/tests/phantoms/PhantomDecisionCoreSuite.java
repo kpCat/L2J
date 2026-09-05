@@ -107,6 +107,7 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 		registry.add("33-goal-boundaries-reset-snapshot-evidence", _ -> testGoalReplacementResetsEvidence());
 		registry.add("34-activity-generation-resets-snapshot-evidence", _ -> testActivityGenerationResetsEvidence());
 		registry.add("35-stop-resets-snapshot-evidence", _ -> testStopResetsEvidence());
+		registry.add("36-admission-fence-blocks-work", _ -> testAdmissionFence());
 	}
 
 	private void testDomainRef()
@@ -288,6 +289,24 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals("candidate.a", explanations.get(0).candidateKey(), "Explanation tie order was not ASCII ascending.");
 	}
 
+	private void testAdmissionFence()
+	{
+		final AtomicBoolean permitted = new AtomicBoolean();
+		final AtomicInteger calls = new AtomicInteger();
+		final EngineFixture fixture = fixture(_ ->
+		{
+			calls.incrementAndGet();
+			return PhantomStepResult.of(PhantomStepResult.Type.SUCCESS, "step.success");
+		}, 1, 1000, 1000, _ -> permitted.get());
+		PhantomAssertions.assertEquals(AttachResult.ATTACHED, fixture.engine.attach(1), "Admission fixture profile did not attach.");
+		PhantomAssertions.assertEquals(MutationResult.APPLIED, fixture.engine.insertGoal(1, goal(0)), "Admission fixture goal did not insert.");
+		fixture.engine.accept(work(1, 1, 1, 0));
+		PhantomAssertions.assertEquals(0, calls.get(), "Denied admission executed a Decision handler.");
+		permitted.set(true);
+		fixture.engine.accept(work(1, 1, 2, 1));
+		PhantomAssertions.assertEquals(1, calls.get(), "Reopened admission did not execute normal Decision work.");
+		fixture.stop();
+	}
 	private void testAttachAndRevision()
 	{
 		final EngineFixture fixture = fixture(_ -> PhantomStepResult.of(PhantomStepResult.Type.SUCCESS, "step.success"), 1);
@@ -588,6 +607,11 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 
 	private static EngineFixture fixture(PhantomStepHandler handler, int steps, long planTimeoutMillis, long stepTimeoutMillis)
 	{
+		return fixture(handler, steps, planTimeoutMillis, stepTimeoutMillis, PhantomDecisionEngine.DecisionAdmission.allowAll());
+	}
+
+	private static EngineFixture fixture(PhantomStepHandler handler, int steps, long planTimeoutMillis, long stepTimeoutMillis, PhantomDecisionEngine.DecisionAdmission admission)
+	{
 		final InMemoryGoalStore store = new InMemoryGoalStore();
 		store.profiles.add(1L);
 		final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
@@ -604,7 +628,7 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 		final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
 		handlers.register("action.test", handler);
 		handlers.seal();
-		final PhantomDecisionEngine engine = new PhantomDecisionEngine(store, candidates, handlers, new PhantomMetrics(), 4);
+		final PhantomDecisionEngine engine = new PhantomDecisionEngine(store, candidates, handlers, new PhantomMetrics(), 4, null, admission);
 		engine.start();
 		return new EngineFixture(engine, store);
 	}
