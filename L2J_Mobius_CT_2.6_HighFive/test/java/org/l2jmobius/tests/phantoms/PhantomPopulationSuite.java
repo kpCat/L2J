@@ -708,7 +708,8 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 			}
 		}, "population-publication-barrier-test");
 		reconcile.start();
-		PhantomAssertions.assertTrue(committed.await(10, TimeUnit.SECONDS), "Synthetic DB shell did not reach committed barrier.");
+		final boolean committedReached = committed.await(10, TimeUnit.SECONDS);
+		PhantomAssertions.assertTrue(committedReached, "Synthetic DB shell did not reach committed barrier: reconcileAlive=" + reconcile.isAlive() + ", reconcileFailure=" + backgroundFailure.get() + ", snapshot=" + manager.snapshot() + ".");
 		manager.beginStop();
 		release.countDown();
 		reconcile.join(10_000);

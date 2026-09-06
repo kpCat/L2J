@@ -574,7 +574,9 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		final ManagedSnapshot snapshot;
 		try
 		{
-			snapshot = _store.createShell(_populationGeneration, ordinal, DETERMINISTIC_SEED, ecologyAssignment == null ? null : ecologyAssignment.scheduleTemplate());
+			snapshot = ecologyAssignment == null ?
+				_store.createShell(_populationGeneration, ordinal, DETERMINISTIC_SEED) :
+				_store.createShell(_populationGeneration, ordinal, DETERMINISTIC_SEED, ecologyAssignment.scheduleTemplate());
 			if (_ecology != null)
 			{
 				_ecology.register(snapshot);
