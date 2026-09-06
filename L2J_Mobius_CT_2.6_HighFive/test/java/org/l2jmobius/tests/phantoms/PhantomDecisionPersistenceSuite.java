@@ -174,7 +174,7 @@ public final class PhantomDecisionPersistenceSuite implements PhantomTestSuite
 	private void testUnknownGoalVersion()
 	{
 		final byte[] payload = _codec.encode(goal(0));
-		payload[7] = 2;
+		payload[7] = 3;
 		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> _codec.decode(payload), "Unknown goal schema version was accepted.");
 	}
 

@@ -2,8 +2,8 @@
 
 ## Среда
 
-- Git-репозиторий: `C:\Users\endim\L2J_Mobius\`
-- Рабочий модуль: `C:\Users\endim\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\`
+- Git-репозиторий: `C:\Users\ZBook\L2J_Mobius\`
+- Рабочий модуль: `C:\Users\ZBook\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\`
 - Codex запускается из рабочего модуля.
 - Другие хроники изменять запрещено.
 

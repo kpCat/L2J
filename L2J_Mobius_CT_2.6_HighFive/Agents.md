@@ -24,17 +24,17 @@ GitHub:
 
 Корень Git-репозитория:
 
-`C:\Users\endim\L2J_Mobius\`
+`C:\Users\ZBook\L2J_Mobius\`
 
 Единственный рабочий модуль:
 
-`C:\Users\endim\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\`
+`C:\Users\ZBook\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\`
 
 Codex запускается именно из рабочего модуля.
 
 Рабочие конфиги GameServer:
 
-`C:\Users\endim\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\dist\game\config\`
+`C:\Users\ZBook\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\dist\game\config\`
 
 Основной будущий конфиг:
 

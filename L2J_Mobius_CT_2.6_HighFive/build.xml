@@ -798,6 +798,26 @@
 			<arg value="${phantom.goal033.production.seed}" />
 		</java>
 	</target>
+	<target name="phantom-black-box-local-stack-goal034-contract-test" depends="compile-tests" description="Run Goal034 DB-free guard and sandbox contract tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomBlackBoxLocalStackGoal034" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<arg value="contract" />
+		</java>
+	</target>
+	<target name="phantom-black-box-local-stack-goal034-test" depends="compile-tests" description="Run Goal034 real LoginServer/GameServer black-box acceptance on previously built jars.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; Goal034 does not permit destructive prepare." />
+		<available file="${libs}/LoginServer.jar" type="file" property="goal034.login.jar.present" />
+		<fail unless="goal034.login.jar.present" message="Missing ${libs}/LoginServer.jar; run the required final jar gate first." />
+		<available file="${libs}/GameServer.jar" type="file" property="goal034.game.jar.present" />
+		<fail unless="goal034.game.jar.present" message="Missing ${libs}/GameServer.jar; run the required final jar gate first." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomBlackBoxLocalStackGoal034" classpathref="test.classpath" fork="true" failonerror="true" timeout="1020000">
+			<jvmarg value="-Xmx1024m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="run" />
+		</java>
+	</target>
 	<target name="phantom-topology-performance-smoke" depends="compile-tests" description="Run the bounded 10000-node and 10000-profile topology structural smoke.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Xmx1536m" />

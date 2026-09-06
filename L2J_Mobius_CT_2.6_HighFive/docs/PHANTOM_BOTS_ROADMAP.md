@@ -1046,23 +1046,21 @@ conversation, clans, restart/failure recovery, soak, operator docs and rollback.
 **Gate:** end-to-end alpha scenarios, disabled regression and release decision.  
 **Follow-up risk:** `VERY_HIGH` — cross-system integration/release stabilization.
 
-## Roadmap v3 — конечный post-release path
+## Roadmap v4 — конечный post-release path
 
 Goal031 local-play readiness — `SUCCESS`: versioned preset 10/5, read-only preflight, quick-start и production-composed restart/rollback evidence.
 
-1. **Goal032 — Phantom-only reset/reseed + operator tuning + Roadmap v3 — `SUCCESS`.** Exact ownership preview, one-time 120-second confirmation, drain-before-mutation, transactional private cleanup, shared/human safety blockers, empty no-op и optional reseed через существующий PopulationManager.
-2. **Goal033 — Living population ecology — `SUCCESS`.** Immutable assignment в durable `population.ecology`, FRESH/LIVING/MATURE, low-discrepancy CASUAL/REGULAR/FAST/OUTLIER pace без reward multiplier, schedule-aware causal catch-up через accepted Goal033A, restart-safe newcomer turnover, frozen Social traits и bounded operator status. Human level не используется. Guarded LIVING 10/5 production composition прошла 2/2 на `l2jmobiush5_phantom_test`; Goal032/031/030CP3 cross-goal DB regressions прошли с cleanup, production `l2jmobiush5` не использовалась.
-   - **Goal033A — Causal historical Background catch-up prerequisite — `SUCCESS`.** Planner потребляет canonical Goal033A1 ingress/routes и собственное состояние Phantom; initial baseline проходит через existing lifecycle, cursor/rewards/goal обновляются атомарно и restart-safe, NORMAL materialization закрыта до COMPLETE. Direct XP/free resources/teleport, human-level input, второй Player lifecycle и новый scheduler отсутствуют.
-     - **Goal033A1 — Canonical population topology ingress — `SUCCESS`.** Все 38/38 authoritative creation positions представлены unique exact ingress anchors; семь real-spawn low-level farming destinations связаны 80 factual one-way `BACKGROUND` edges, production Navigation/exact-anchor/travel/negative gates PASS. Topology corpus v3: 110 nodes / 110 anchors / 83 edges. Blocker Goal033A закрыт Goal033A1 и принят Goal033A.
-3. **Goal034 — automated black-box local stack acceptance.** Guarded throwaway DB, реальные LoginServer и GameServer processes, registration/readiness, Phantom lifecycle, restart и graceful shutdown с bounded artifacts; production DB запрещена, ручной запуск пользователем не является gate.
+1. **Goal032 — Phantom-only reset/reseed + operator tuning + Roadmap v3 — `SUCCESS`.** Exact ownership preview, one-time confirmation, drain-before-mutation, transactional private cleanup и shared/human safety blockers.
+2. **Goal033 — Living population ecology — `SUCCESS`.** Immutable durable ecology, pace/personality/schedule assignment, causal Goal033A catch-up, restart-safe turnover и guarded LIVING 10/5 evidence.
+3. **Goal034 — automated black-box local stack acceptance — `BLOCKED`.** Guarded harness и non-process safety checks реализованы; обязательная цепочка green verify → final jar → real processes остановлена после исчерпания единственного разрешённого verify repeat.
 4. **Goal035 — siege gameplay slice.** Registration, schedule awareness, gathering, roles, attack/defense и retreat/recovery через native siege owners.
-5. **Goal036 — bounded whitelist quests + instances slice.** Generic, но ограниченный lifecycle; class-transfer path; Kamaloka/Pailaka только в явно supported scenarios; без universal solver.
-6. **Goal037 — final full-vision release gate + freeze.** Fresh install/upgrade, safe shipped config, presets, reset/reseed, ecology, black-box stack, restart/recovery/rollback, siege, supported quests/instances, scale и documentation consistency.
+5. **Goal036 — bounded whitelist quests + instances slice.** Generic ограниченный lifecycle, class-transfer path и явно supported Kamaloka/Pailaka; без universal solver.
+6. **Goal037 — server rates + quest-rate normalization + Phantom parity.** Полный High Five audit canonical rates; применимые quest scripts; objective/item-drop и completion XP/SP/Adena/items; normal drop/spoil; deterministic 1x/non-1x matrix для real Player и Phantom ACTIVE/BACKGROUND.
+7. **Goal038 — final full-vision release gate + freeze.** Fresh install/upgrade, safe config, presets/reset/ecology, black-box stack, restart/rollback, siege, quests/instances, rates/parity, scale и documentation consistency.
 
-После `ACCEPT` Goal037 статус заявленного scope становится `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`. Новые feature goals автоматически не создаются: только proven bugfix/regression либо новая явная пользовательская feature request.
+После `ACCEPT` Goal038 статус заявленного scope становится `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`. Новые feature goals автоматически не создаются: только proven bugfix/regression либо новая явная пользовательская feature request.
 
 Промежуточный QA не перекладывается на пользователя. Каждый Goal обязан иметь deterministic/guarded/production-composed evidence по своему риску; ручная игра — финальная пользовательская проверка опыта, а не обязательный технический gate.
-
 ---
 
 ## 13. Сводная оценка риска suffix-подзач
@@ -1412,7 +1410,7 @@ Overall:
 11. Добавлены explicit DAG, per-goal boundaries и follow-up risk matrix.
 12. Обновлён фактический статус Task 004/004A.
 
-Исторические Goal001–030 не перенумеровываются и их accepted semantics не переписываются. Roadmap v3 добавляет конечный post-release path Goal031–037.
+Исторические Goal001–030 не перенумеровываются и их accepted semantics не переписываются. Roadmap v4 сохраняет принятый хвост Goal031–036, добавляет явный rates/parity Goal037 и сдвигает final freeze на Goal038.
 
 ---
 

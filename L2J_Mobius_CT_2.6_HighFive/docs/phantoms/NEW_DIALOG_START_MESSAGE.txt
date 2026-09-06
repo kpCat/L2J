@@ -1,8 +1,8 @@
 Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Exact parent, на котором реализован Goal033:
-77d72eaff6858c6bc33741b380005d3e0fda7f81 — SUCCESS Goal033A.
-Goal033 закрывается commit subject `phantom(goal-033): implement living population ecology`; перед Goal034 возьми exact SHA из синхронного HEAD/origin после fetch, не пытайся встраивать self-SHA в этот commit.
+Exact parent Goal034:
+32ecbb5f159b9515c3b33f68788ac47747341d1c — accepted Goal033 repeat baseline.
+Goal034 выполняется только через guarded black-box harness; production DB и destructive prepare запрещены.
 Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
 
 Состояние release:
@@ -44,8 +44,8 @@ Goal033A закрыл causal catch-up prerequisite: production planner потр�
 - Kamaloka — DEFERRED_NOT_IMPLEMENTED;
 - Pailaka — DEFERRED_NOT_IMPLEMENTED.
 
-Следующий реальный шаг: **Goal034 — Automated black-box local stack acceptance**. Используй guarded throwaway `l2jmobiush5_phantom_test`; production `l2jmobiush5` запрещена. Сохраняй запрет direct XP/free resources/teleport и не переоткрывай принятый Goal033 без найденной regression.
+Следующий реальный шаг: возобновить closure **Goal034 — Automated black-box local stack acceptance** с нового exact parent после BLOCKED-коммита. Guarded harness и safety checks уже реализованы; нужен новый разрешённый green `ant verify`, затем строго один final jar и real-process gate. Используй только `l2jmobiush5_phantom_test`; production `l2jmobiush5` и destructive prepare запрещены. Goal035 не начинать до SUCCESS Goal034.
 
-Authoritative finite tail после Goal033: Goal034 automated black-box Login/Game stack на guarded throwaway DB; Goal035 siege; Goal036 bounded quests/instances; Goal037 final full-vision gate + freeze. После ACCEPT Goal037 не планировать новые goals автоматически.
+Authoritative Roadmap v4 после Goal033: Goal034 automated black-box Login/Game stack на guarded test DB; Goal035 siege; Goal036 bounded quests/instances; Goal037 server rates + quest-rate normalization + Phantom parity; Goal038 final full-vision gate + freeze. После ACCEPT Goal038 не планировать новые goals автоматически.
 
-Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, reports Goal033, historical Goal033A, Goal033A1 и Goal033A SUCCESS resume, а также текущий Goal033 task. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.
+Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, reports Goal033, historical Goal033A, Goal033A1 и Goal033A SUCCESS resume, а также текущий Goal034 TASK и BLOCKED report. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.
