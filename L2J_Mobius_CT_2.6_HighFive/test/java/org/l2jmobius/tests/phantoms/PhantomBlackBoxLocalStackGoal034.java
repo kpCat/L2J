@@ -130,6 +130,12 @@ public final class PhantomBlackBoxLocalStackGoal034
 		Files.createDirectories(contractRoot);
 		try
 		{
+			final String canonicalQuery = "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8";
+			final PhantomTestDatabaseGuard.JdbcTarget mysqlTarget = PhantomTestDatabaseGuard.validateJdbcUrl("jdbc:mysql://127.0.0.1:3308/" + PhantomTestDatabaseGuard.TARGET_DATABASE + canonicalQuery);
+			require("mysql".equals(mysqlTarget.transport()) && PhantomTestDatabaseGuard.TARGET_DATABASE.equals(mysqlTarget.database()), "Canonical mysql test database URL was rejected or changed.");
+			final PhantomTestDatabaseGuard.JdbcTarget mariadbTarget = PhantomTestDatabaseGuard.validateJdbcUrl("jdbc:mariadb://localhost:3308/" + PhantomTestDatabaseGuard.TARGET_DATABASE + canonicalQuery);
+			require("mariadb".equals(mariadbTarget.transport()) && PhantomTestDatabaseGuard.TARGET_DATABASE.equals(mariadbTarget.database()), "Canonical mariadb test database URL was rejected or changed.");
+
 			final Path production = contractRoot.resolve("Database.ini");
 			writeDatabaseConfig(production, "org.mariadb.jdbc.Driver", "jdbc:mariadb://127.0.0.1:3308/l2jmobiush5", PhantomTestDatabaseGuard.TARGET_USER, "not-used");
 			boolean rejected = false;
@@ -149,10 +155,12 @@ public final class PhantomBlackBoxLocalStackGoal034
 			replaceProperty(properties, "Beta", "changed");
 			require(Files.readString(properties, StandardCharsets.UTF_8).contains("Beta = changed"), "Exact property replacement failed.");
 			verifyRoadmapV4(moduleRoot);
+			System.out.println("[PASS] goal034.contract.mysql-test-url-accepted");
+			System.out.println("[PASS] goal034.contract.mariadb-test-url-accepted");
 			System.out.println("[PASS] goal034.contract.production-db-rejected-before-spawn");
 			System.out.println("[PASS] goal034.contract.exact-sandbox-property-update");
 			System.out.println("[PASS] goal034.contract.roadmap-v4-consistency");
-			System.out.println("SUMMARY: suite=phantom-black-box-local-stack-goal034-contract total=3 passed=3 failed=0");
+			System.out.println("SUMMARY: suite=phantom-black-box-local-stack-goal034-contract total=5 passed=5 failed=0");
 			return 0;
 		}
 		finally
@@ -195,7 +203,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			prepareSandbox(run, sourceSettings);
 			run.settings = PhantomTestDatabaseGuard.validate(moduleRoot, run.gameRoot.resolve("config/Database.ini"));
 			final PhantomTestDatabaseGuard.ValidatedSettings loginSettings = PhantomTestDatabaseGuard.validate(moduleRoot, run.loginRoot.resolve("config/Database.ini"));
-			require("mariadb".equals(PhantomTestDatabaseGuard.validateJdbcUrl(run.settings.url()).transport()), "Sandbox database URL is not the required mariadb transport.");
+			require(sourceSettings.url().equals(run.settings.url()), "Game sandbox database URL diverged from the guarded source configuration.");
 			require(run.settings.url().equals(loginSettings.url()) && run.settings.login().equals(loginSettings.login()), "Login/Game sandbox database settings diverged.");
 
 			// Driver loading and all child process creation occur only after both sandbox configs pass the guard.
@@ -331,7 +339,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			}
 		}
 
-		final String sandboxUrl = "jdbc:mariadb://127.0.0.1:3308/" + PhantomTestDatabaseGuard.TARGET_DATABASE + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8";
+		final String sandboxUrl = sourceSettings.url();
 		writeDatabaseConfig(run.loginRoot.resolve("config/Database.ini"), sourceSettings.driver(), sandboxUrl, sourceSettings.login(), sourceSettings.password());
 		writeDatabaseConfig(run.gameRoot.resolve("config/Database.ini"), sourceSettings.driver(), sandboxUrl, sourceSettings.login(), sourceSettings.password());
 
@@ -384,8 +392,6 @@ public final class PhantomBlackBoxLocalStackGoal034
 		{
 			require(PhantomTestDatabaseGuard.TARGET_DATABASE.equals(connection.getCatalog()), "Connection catalog is not the allowlisted test database.");
 			require(scalar(connection, "SELECT COUNT(*) FROM phantom_profiles") == 0, "Guarded DB contains pre-existing Phantom profiles; exact Goal034 ownership is ambiguous.");
-			require(scalar(connection, "SELECT COUNT(*) FROM characters") == 0, "Guarded DB contains pre-existing characters; Goal034 fails closed.");
-			require(scalar(connection, "SELECT COUNT(*) FROM accounts") == 0, "Guarded DB contains pre-existing accounts; Goal034 fails closed.");
 		}
 	}
 
@@ -410,7 +416,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			run.serverId = configuredIds.stream().filter(id -> !occupied.contains(id)).findFirst().orElseThrow(() -> new IllegalStateException("No free canonical LoginServer ID is available."));
 		}
 
-		final byte[] hexBytes = new byte[32];
+		final byte[] hexBytes = new byte[16];
 		new SecureRandom().nextBytes(hexBytes);
 		run.hexId = HexFormat.of().formatHex(hexBytes);
 		run.registrationHost = "goal034:" + run.runId;

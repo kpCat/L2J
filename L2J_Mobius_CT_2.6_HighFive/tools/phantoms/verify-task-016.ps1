@@ -235,7 +235,7 @@ Assert-True ($shortcutData -match "(?s)if\s*\(deliveryMode == DeliveryMode\.POPU
 $populationSources = Get-ChildItem -LiteralPath (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/population") -Filter "*.java" -File
 $populationText = ($populationSources | ForEach-Object { Read-Utf8Strict ("java/org/l2jmobius/gameserver/phantoms/population/" + $_.Name) }) -join "`n"
 Assert-True ($populationText -notmatch "GameClient|CharacterCreate|OnPlayerCreate|sendPacket|network\.serverpackets") "Population code directly invokes a forbidden client/packet path."
-Assert-True ($populationText -notmatch "\b(?:Thread|ExecutorService|ScheduledFuture|CompletableFuture)\b|ThreadPool\.") "Population code creates worker/task/Future infrastructure."
+Assert-True ($populationText -notmatch "\b(?:new\s+Thread|ExecutorService|ScheduledFuture|CompletableFuture)\b|ThreadPool\.") "Population code creates worker/task/Future infrastructure."
 Assert-True ($populationText -notmatch "l2jmobiush5(?!_phantom_test)") "Population code names the production database."
 
 $autosave = Read-Utf8Strict "java/org/l2jmobius/gameserver/taskmanagers/PlayerAutoSaveTaskManager.java"

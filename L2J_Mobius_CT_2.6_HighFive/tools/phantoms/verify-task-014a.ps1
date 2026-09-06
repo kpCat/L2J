@@ -121,7 +121,11 @@ Assert-True ($backendText.Contains("_catalog.findBuyOffer(") -and $backendText.C
 Assert-True (-not $backendText.Contains("_catalog.findBuyOffers(") -and -not $backendText.Contains("_catalog.findTeleportRoutes(")) "L2jCommerceBackend still performs page-0 exact lookup."
 
 $systemText = Read-Utf8Strict (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java")
-Assert-True ($systemText.Contains("goalStateStore = new PhantomGoalStateStore(profileRepository)") -and $systemText.Contains("final PhantomGoalStateStore productionGoals = Objects.requireNonNull(goalStateStore)") -and $systemText.Contains("new PhantomCommerceService(commerceCatalog, new PhantomCommerceReceiptStore(productionProfiles), productionGoals") -and $systemText.Contains("new PhantomDecisionEngine(productionGoals") -and [regex]::IsMatch($systemText, "new PhantomBackgroundService\([\s\S]*?productionProfiles,\s*productionGoals,\s*PhantomIdentityLeaseRegistry")) "PhantomSystem does not share one goal-state authority instance."
+$receiptStoreConstruction = "_commerceReceiptStore = new PhantomCommerceReceiptStore(productionProfiles)"
+Assert-True ([regex]::Matches($systemText, [regex]::Escape($receiptStoreConstruction)).Count -eq 1) "PhantomSystem does not construct exactly one shared commerce receipt store."
+Assert-True ($systemText.Contains("new PhantomCommerceService(commerceCatalog, _commerceReceiptStore, productionGoals")) "PhantomSystem does not pass the shared commerce receipt store to PhantomCommerceService."
+Assert-True ($systemText.Contains("new PhantomEconomicAuditView(_economyReservations, _commerceReceiptStore)")) "PhantomSystem does not pass the shared commerce receipt store to PhantomEconomicAuditView."
+Assert-True ($systemText.Contains("goalStateStore = new PhantomGoalStateStore(profileRepository)") -and $systemText.Contains("final PhantomGoalStateStore productionGoals = Objects.requireNonNull(goalStateStore)") -and $systemText.Contains("new PhantomCommerceService(commerceCatalog, _commerceReceiptStore, productionGoals") -and $systemText.Contains("new PhantomDecisionEngine(productionGoals") -and [regex]::IsMatch($systemText, "new PhantomBackgroundService\([\s\S]*?productionProfiles,\s*productionGoals,\s*PhantomIdentityLeaseRegistry")) "PhantomSystem does not share one goal-state authority instance."
 
 $suiteText = Read-Utf8Strict (Join-Path $moduleRoot "test/java/org/l2jmobius/tests/phantoms/PhantomCommerceSuite.java")
 foreach ($fact in @("commerce-hardening", "new L2jCommerceBackend(", "new Merchant(", "new Teleporter(", "materialization.dematerialize(", "materialization.materialize(", "player.storeMe()", "currentPersistenceClaims()", "GOAL_REVISION_CONFLICT", "STALE_GOAL_REVISION", "authorityRaceStore.value == null", "authorityRaceActor.firstCalls.get()", "authorityRaceActor.secondCalls.get()", "TELEPORT_PENDING"))
@@ -142,7 +146,7 @@ $verifier014Text = Read-Utf8Strict (Join-Path $moduleRoot "tools/phantoms/verify
 Assert-True (-not $verifier014Text.Contains('$preExistingUntracked')) "Goal 014 verifier still has the obsolete-root special whitelist."
 
 $roadmapText = Read-Utf8Strict (Join-Path $moduleRoot "docs/PHANTOM_BOTS_ROADMAP.md")
-Assert-True ($roadmapText.Contains("Goal 014: ACCEPT after Goal 014A") -and $roadmapText.Contains("Goal 014A + completion: ACCEPT") -and $roadmapText.Contains("Goal 015: ACCEPT") -and $roadmapText.Contains("Goal 017: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW") -and $roadmapText.Contains("Goal 025: NOT_STARTED")) "Roadmap progress truth is incomplete."
+Assert-True ($roadmapText.Contains("Goal 014: ACCEPT after Goal 014A") -and $roadmapText.Contains("Goal 014A + completion: ACCEPT") -and $roadmapText.Contains("Goal 015: ACCEPT") -and $roadmapText.Contains("Goal 017: IMPLEMENTED_PENDING_INDEPENDENT_REVIEW") -and $roadmapText.Contains("Goal 025 overall: ACCEPT")) "Roadmap progress truth is incomplete."
 $reviewText = Read-Utf8Strict (Join-Path $moduleRoot "docs/phantoms/reviews/014-npc-commerce-supply-travel-loop-review.md")
 Assert-True ($reviewText.Contains("FIX_REQUIRED after first review") -and $reviewText.Contains("Goal 014A")) "Goal 014 first-review findings are missing."
 
