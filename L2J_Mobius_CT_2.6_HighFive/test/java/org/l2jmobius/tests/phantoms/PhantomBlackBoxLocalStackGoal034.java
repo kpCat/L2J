@@ -31,9 +31,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.sql.Connection;
@@ -43,7 +45,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -94,6 +99,8 @@ public final class PhantomBlackBoxLocalStackGoal034
 	private static final int EXPECTED_ACTIVE = 5;
 	private static final int GENERATION_ONE_RESTART_LEAD_MINUTES = 7;
 	private static final int GENERATION_TWO_RESTART_LEAD_MINUTES = 4;
+	private static final LocalTime LIVING_ACCEPTANCE_WINDOW_START = LocalTime.of(20, 0);
+	private static final LocalTime LIVING_ACCEPTANCE_WINDOW_END = LocalTime.of(21, 0);
 	private static final Pattern SERVER_ID_PATTERN = Pattern.compile("\\bid=\"(\\d+)\"");
 	private static final AtomicInteger PROCESS_SPAWNS = new AtomicInteger();
 	private static final DateTimeFormatter RESTART_TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT);
@@ -154,13 +161,37 @@ public final class PhantomBlackBoxLocalStackGoal034
 			Files.writeString(properties, "Alpha = one\r\nBeta = two\r\n", StandardCharsets.UTF_8);
 			replaceProperty(properties, "Beta", "changed");
 			require(Files.readString(properties, StandardCharsets.UTF_8).contains("Beta = changed"), "Exact property replacement failed.");
+
+			final Path contractDatabase = contractRoot.resolve("Database.test.ini");
+			writeDatabaseConfig(contractDatabase, "org.mariadb.jdbc.Driver", "jdbc:mariadb://127.0.0.1:3308/" + PhantomTestDatabaseGuard.TARGET_DATABASE + canonicalQuery, PhantomTestDatabaseGuard.TARGET_USER, "contract-not-used");
+			final PhantomTestDatabaseGuard.ValidatedSettings contractSettings = PhantomTestDatabaseGuard.validate(moduleRoot, contractDatabase);
+			final Path sandboxRoot = contractRoot.resolve("sandbox");
+			final RunState contractRun = new RunState(moduleRoot, sandboxRoot, sandboxRoot.resolve("artifacts"), "contract", System.nanoTime());
+			Files.createDirectories(contractRun.artifacts);
+			prepareSandbox(contractRun, contractSettings);
+			verifyRuntimeLayout(contractRun);
+			require(PROCESS_SPAWNS.get() == 0, "Runtime-layout contract spawned a process.");
+			Files.delete(contractRun.gameRoot.resolve("data/CategoryData.xml"));
+			boolean missingLayoutRejected = false;
+			try
+			{
+				verifyRuntimeLayout(contractRun);
+			}
+			catch (AssertionError expected)
+			{
+				missingLayoutRejected = true;
+			}
+			require(missingLayoutRejected, "Runtime-layout gate accepted a missing canonical sentinel.");
+			require(PROCESS_SPAWNS.get() == 0, "Missing-layout negative control spawned a process.");
 			verifyRoadmapV4(moduleRoot);
 			System.out.println("[PASS] goal034.contract.mysql-test-url-accepted");
 			System.out.println("[PASS] goal034.contract.mariadb-test-url-accepted");
 			System.out.println("[PASS] goal034.contract.production-db-rejected-before-spawn");
 			System.out.println("[PASS] goal034.contract.exact-sandbox-property-update");
+			System.out.println("[PASS] goal034.contract.canonical-runtime-layout files=" + contractRun.dataSnapshot.files() + " bytes=" + contractRun.dataSnapshot.bytes() + " copyMillis=" + contractRun.dataCopyMillis);
+			System.out.println("[PASS] goal034.contract.missing-runtime-tree-rejected-before-spawn");
 			System.out.println("[PASS] goal034.contract.roadmap-v4-consistency");
-			System.out.println("SUMMARY: suite=phantom-black-box-local-stack-goal034-contract total=5 passed=5 failed=0");
+			System.out.println("SUMMARY: suite=phantom-black-box-local-stack-goal034-contract total=7 passed=7 failed=0");
 			return 0;
 		}
 		finally
@@ -201,6 +232,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			final PhantomTestDatabaseGuard.ValidatedSettings sourceSettings = PhantomTestDatabaseGuard.validate(moduleRoot, sourceConfig);
 			run.workingHashesBefore.putAll(workingHashes(moduleRoot));
 			prepareSandbox(run, sourceSettings);
+			verifyRuntimeLayout(run);
 			run.settings = PhantomTestDatabaseGuard.validate(moduleRoot, run.gameRoot.resolve("config/Database.ini"));
 			final PhantomTestDatabaseGuard.ValidatedSettings loginSettings = PhantomTestDatabaseGuard.validate(moduleRoot, run.loginRoot.resolve("config/Database.ini"));
 			require(sourceSettings.url().equals(run.settings.url()), "Game sandbox database URL diverged from the guarded source configuration.");
@@ -214,7 +246,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			run.login = startServer(run, "login", run.loginRoot, run.artifacts.resolve("login.stdout.log"), "LoginServer.jar", 128, 768);
 			waitForLoginReady(run, overallDeadline);
 
-			configureRestart(run.gameRoot.resolve("config/Server.ini"), GENERATION_ONE_RESTART_LEAD_MINUTES);
+			configureRestart(run.gameRoot.resolve("config/Server.ini"), GENERATION_ONE_RESTART_LEAD_MINUTES, run.populationTimeZone);
 			run.gameOne = startServer(run, "game-generation-1", run.gameRoot, run.artifacts.resolve("game-generation-1.stdout.log"), "GameServer.jar", 512, 4096);
 			waitForGameReady(run, run.gameOne, overallDeadline);
 			final PopulationSnapshot generationOne = waitForPopulation(run, run.gameOne, overallDeadline);
@@ -223,7 +255,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			require(run.login.process.isAlive(), "LoginServer died between GameServer generations.");
 			require(canConnect(run.loginClientPort) && canConnect(run.loginGamePort), "LoginServer listeners were not retained across GameServer restart.");
 
-			configureRestart(run.gameRoot.resolve("config/Server.ini"), GENERATION_TWO_RESTART_LEAD_MINUTES);
+			configureRestart(run.gameRoot.resolve("config/Server.ini"), GENERATION_TWO_RESTART_LEAD_MINUTES, run.populationTimeZone);
 			run.gameTwo = startServer(run, "game-generation-2", run.gameRoot, run.artifacts.resolve("game-generation-2.stdout.log"), "GameServer.jar", 512, 4096);
 			waitForGameReady(run, run.gameTwo, overallDeadline);
 			final PopulationSnapshot generationTwo = waitForPopulation(run, run.gameTwo, overallDeadline);
@@ -338,6 +370,14 @@ public final class PhantomBlackBoxLocalStackGoal034
 				Files.copy(source, run.gameRoot.resolve(name), StandardCopyOption.REPLACE_EXISTING);
 			}
 		}
+		final Path canonicalData = workingGame.resolve("data");
+		run.sourceDataSnapshot = snapshotTree(canonicalData);
+		final long dataCopyStartedNanos = System.nanoTime();
+		final CopyStats dataCopy = copyTree(canonicalData, run.gameRoot.resolve("data"), null);
+		run.dataCopyMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - dataCopyStartedNanos);
+		run.dataSnapshot = snapshotTree(run.gameRoot.resolve("data"));
+		require(dataCopy.files() == run.sourceDataSnapshot.files(), "Canonical data copy file count changed during copy.");
+		require(dataCopy.bytes() == run.sourceDataSnapshot.bytes(), "Canonical data copy byte count changed during copy.");
 
 		final String sandboxUrl = sourceSettings.url();
 		writeDatabaseConfig(run.loginRoot.resolve("config/Database.ini"), sourceSettings.driver(), sandboxUrl, sourceSettings.login(), sourceSettings.password());
@@ -358,8 +398,8 @@ public final class PhantomBlackBoxLocalStackGoal034
 		replaceProperty(gameServer, "GameserverHostname", "127.0.0.1");
 		replaceProperty(gameServer, "GameserverPort", Integer.toString(run.gameClientPort));
 		replaceProperty(gameServer, "AcceptAlternateID", "False");
-		replaceProperty(gameServer, "DatapackRoot", slash(workingGame));
-		replaceProperty(gameServer, "ScriptRoot", slash(workingGame.resolve("data/scripts")));
+		replaceProperty(gameServer, "DatapackRoot", ".");
+		replaceProperty(gameServer, "ScriptRoot", "./data/scripts");
 		replaceProperty(gameServer, "DeadlockWatcher", "False");
 		replaceProperty(gameServer, "PrecautionaryRestartEnabled", "False");
 		replaceProperty(gameServer, "ServerRestartScheduleEnabled", "True");
@@ -378,11 +418,65 @@ public final class PhantomBlackBoxLocalStackGoal034
 		replaceProperty(phantom, "EnablePhantomEcology", "True");
 		replaceProperty(phantom, "PhantomEcologyPreset", "LIVING");
 		replaceProperty(phantom, "PhantomEcologyWorldAgeDays", "21");
+		run.populationTimeZone = livingAcceptanceTimeZone();
+		replaceProperty(phantom, "PhantomPopulationTimeZone", run.populationTimeZone);
 	}
 
-	private static void configureRestart(Path serverConfig, int leadMinutes) throws IOException
+	private static void verifyRuntimeLayout(RunState run) throws Exception
 	{
-		final String restartAt = LocalDateTime.now().plusMinutes(leadMinutes).format(RESTART_TIME);
+		final Path canonicalData = run.moduleRoot.resolve("dist/game/data");
+		require(Files.isDirectory(canonicalData), "Canonical dist/game/data source is missing.");
+		for (String relative : List.of("mapregion", "CategoryData.xml", "scripts", "scripts/handlers/MasterHandler.java", "scripts/handlers/EffectMasterHandler.java", "scripts/handlers/skill/effects"))
+		{
+			require(Files.exists(canonicalData.resolve(relative), LinkOption.NOFOLLOW_LINKS), "Canonical data source lacks required runtime path: " + relative);
+			require(Files.exists(run.gameRoot.resolve("data").resolve(relative), LinkOption.NOFOLLOW_LINKS), "Sandbox lacks required runtime path: data/" + relative);
+		}
+		require(hasJavaFile(canonicalData.resolve("scripts/handlers/skill/effects")), "Canonical skill-effect source tree has no Java source.");
+		require(hasJavaFile(run.gameRoot.resolve("data/scripts/handlers/skill/effects")), "Sandbox skill-effect tree has no Java source.");
+		for (String relative : List.of("config/Scripts.xml", "config/ipconfig.xml", "config/hexid.txt", "log.cfg"))
+		{
+			require(Files.isRegularFile(run.gameRoot.resolve(relative), LinkOption.NOFOLLOW_LINKS), "Sandbox lacks cwd-relative startup resource: " + relative);
+		}
+		require(Files.isDirectory(run.gameRoot.resolve("log"), LinkOption.NOFOLLOW_LINKS), "Sandbox lacks isolated log directory.");
+		require(".".equals(readProperty(run.gameRoot.resolve("config/Server.ini"), "DatapackRoot")), "Sandbox DatapackRoot must be exact '.'.");
+		require("./data/scripts".equals(readProperty(run.gameRoot.resolve("config/Server.ini"), "ScriptRoot")), "Sandbox ScriptRoot must be exact './data/scripts'.");
+		require(run.populationTimeZone.equals(readProperty(run.gameRoot.resolve("config/Custom/PhantomPlayers.ini"), "PhantomPopulationTimeZone")), "Sandbox population time zone diverged from the bounded LIVING acceptance window.");
+		final TreeSnapshot currentSource = snapshotTree(canonicalData);
+		final TreeSnapshot currentSandbox = snapshotTree(run.gameRoot.resolve("data"));
+		require(run.sourceDataSnapshot.equals(currentSource), "Canonical data source changed while composing the sandbox.");
+		require(currentSource.equals(currentSandbox), "Sandbox data is not a full canonical snapshot.");
+		run.dataSnapshot = currentSandbox;
+		run.runtimeLayoutVerified = true;
+	}
+
+	private static String livingAcceptanceTimeZone()
+	{
+		final Instant now = Instant.now();
+		return ZoneId.getAvailableZoneIds().stream()
+			.sorted()
+			.map(ZoneId::of)
+			.filter(zone -> zone.getRules().getOffset(now).equals(zone.getRules().getOffset(now.plus(OVERALL_TIMEOUT))))
+			.filter(zone ->
+			{
+				final LocalTime localTime = now.atZone(zone).toLocalTime();
+				return !localTime.isBefore(LIVING_ACCEPTANCE_WINDOW_START) && localTime.isBefore(LIVING_ACCEPTANCE_WINDOW_END);
+			})
+			.map(ZoneId::getId)
+			.findFirst()
+			.orElseThrow(() -> new IllegalStateException("No stable IANA time zone exposes the bounded LIVING evening acceptance window."));
+	}
+
+	private static boolean hasJavaFile(Path directory) throws IOException
+	{
+		try (Stream<Path> stream = Files.list(directory))
+		{
+			return stream.anyMatch(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && path.getFileName().toString().endsWith(".java"));
+		}
+	}
+
+	private static void configureRestart(Path serverConfig, int leadMinutes, String timeZone) throws IOException
+	{
+		final String restartAt = LocalDateTime.now(ZoneId.of(timeZone)).plusMinutes(leadMinutes).format(RESTART_TIME);
 		replaceProperty(serverConfig, "ServerRestartSchedule", restartAt);
 	}
 
@@ -454,7 +548,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 		final Path java = Path.of(System.getProperty("java.home"), "bin", System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java");
 		final Path jar = run.moduleRoot.resolve("dist/libs").resolve(jarName);
 		require(Files.isRegularFile(jar), "Required built jar is missing: " + jarName);
-		final List<String> command = List.of(java.toString(), "-Xms" + minimumMemoryMb + "m", "-Xmx" + maximumMemoryMb + "m", "-Djava.awt.headless=true", "-jar", jar.toString());
+		final List<String> command = List.of(java.toString(), "-Xms" + minimumMemoryMb + "m", "-Xmx" + maximumMemoryMb + "m", "-Djava.awt.headless=true", "-Duser.timezone=" + run.populationTimeZone, "-jar", jar.toString());
 		PROCESS_SPAWNS.incrementAndGet();
 		final Process process = new ProcessBuilder(command).directory(directory.toFile()).redirectErrorStream(true).redirectOutput(output.toFile()).start();
 		final OwnedProcess owned = new OwnedProcess(name, process, output);
@@ -802,6 +896,14 @@ public final class PhantomBlackBoxLocalStackGoal034
 			final Path path = moduleRoot.resolve(relative);
 			hashes.put(relative, Files.isRegularFile(path) ? sha256(Files.readAllBytes(path)) : "MISSING");
 		}
+		final Path dataRoot = moduleRoot.resolve("dist/game/data");
+		final TreeSnapshot dataSnapshot = snapshotTree(dataRoot);
+		hashes.put("dist/game/data#tree", dataSnapshot.files() + ":" + dataSnapshot.directories() + ":" + dataSnapshot.bytes() + ":" + dataSnapshot.fingerprint());
+		for (String relative : List.of("CategoryData.xml", "scripts/handlers/MasterHandler.java", "scripts/handlers/EffectMasterHandler.java"))
+		{
+			final Path path = dataRoot.resolve(relative);
+			hashes.put("dist/game/data/" + relative, Files.isRegularFile(path) ? sha256(Files.readAllBytes(path)) : "MISSING");
+		}
 		return hashes;
 	}
 	private static void writeDatabaseConfig(Path path, String driver, String url, String login, String password) throws IOException
@@ -844,28 +946,112 @@ public final class PhantomBlackBoxLocalStackGoal034
 		}
 	}
 
-	private static void copyTree(Path source, Path target, Path excludedRoot) throws IOException
+	private static String readProperty(Path path, String key) throws IOException
 	{
-		try (Stream<Path> stream = Files.walk(source))
+		final Pattern pattern = Pattern.compile("^\\s*" + Pattern.quote(key) + "\\s*=\\s*(.*?)\\s*$", Pattern.CASE_INSENSITIVE);
+		String value = null;
+		int matches = 0;
+		for (String line : Files.readAllLines(path, StandardCharsets.UTF_8))
+		{
+			final Matcher matcher = pattern.matcher(line);
+			if (matcher.matches())
+			{
+				value = matcher.group(1);
+				matches++;
+			}
+		}
+		require(matches == 1, "Expected one config key " + key + " in " + path + " but found " + matches + ".");
+		return value;
+	}
+
+	private static CopyStats copyTree(Path source, Path target, Path excludedRoot) throws IOException
+	{
+		require(!Files.isSymbolicLink(source), "Refusing to copy a linked source root: " + source);
+		final Path sourceRoot = source.toRealPath();
+		final Path targetRoot = target.toAbsolutePath().normalize();
+		require(Files.isDirectory(sourceRoot, LinkOption.NOFOLLOW_LINKS) && Files.isReadable(sourceRoot), "Copy source is missing or unreadable: " + sourceRoot);
+		require(!targetRoot.startsWith(sourceRoot), "Copy target must not be inside its source: " + targetRoot);
+		final Path excluded = excludedRoot == null ? null : excludedRoot.toAbsolutePath().normalize();
+		long files = 0;
+		long directories = 0;
+		long bytes = 0;
+		try (Stream<Path> stream = Files.walk(sourceRoot))
 		{
 			for (Path entry : stream.sorted().toList())
 			{
-				if ((excludedRoot != null) && entry.toAbsolutePath().normalize().startsWith(excludedRoot.toAbsolutePath().normalize()))
+				final Path normalizedEntry = entry.toAbsolutePath().normalize();
+				if ((excluded != null) && normalizedEntry.startsWith(excluded))
 				{
 					continue;
 				}
-				final Path destination = target.resolve(source.relativize(entry).toString());
-				if (Files.isDirectory(entry))
+				require(normalizedEntry.startsWith(sourceRoot), "Copy entry escaped its source root: " + normalizedEntry);
+				require(!Files.isSymbolicLink(entry), "Refusing to follow a linked copy source: " + normalizedEntry);
+				final BasicFileAttributes attributes = Files.readAttributes(entry, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+				require(Files.isReadable(entry), "Copy source entry is unreadable: " + normalizedEntry);
+				final Path destination = targetRoot.resolve(sourceRoot.relativize(entry).toString()).normalize();
+				require(destination.startsWith(targetRoot), "Copy destination escaped its run root: " + destination);
+				if (attributes.isDirectory())
 				{
 					Files.createDirectories(destination);
+					directories++;
+				}
+				else if (attributes.isRegularFile())
+				{
+					Files.createDirectories(destination.getParent());
+					Files.copy(entry, destination, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+					files++;
+					bytes += attributes.size();
 				}
 				else
 				{
-					Files.createDirectories(destination.getParent());
-					Files.copy(entry, destination, StandardCopyOption.REPLACE_EXISTING);
+					throw new IOException("Unsupported copy source entry: " + normalizedEntry);
 				}
 			}
 		}
+		return new CopyStats(files, directories, bytes);
+	}
+
+	private static TreeSnapshot snapshotTree(Path source) throws Exception
+	{
+		require(!Files.isSymbolicLink(source), "Refusing to fingerprint a linked source root: " + source);
+		final Path sourceRoot = source.toRealPath();
+		require(Files.isDirectory(sourceRoot, LinkOption.NOFOLLOW_LINKS) && Files.isReadable(sourceRoot), "Snapshot source is missing or unreadable: " + sourceRoot);
+		final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+		long files = 0;
+		long directories = 0;
+		long bytes = 0;
+		try (Stream<Path> stream = Files.walk(sourceRoot))
+		{
+			for (Path entry : stream.sorted().toList())
+			{
+				require(!Files.isSymbolicLink(entry), "Refusing to fingerprint a linked tree entry: " + entry);
+				final BasicFileAttributes attributes = Files.readAttributes(entry, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+				require(Files.isReadable(entry), "Snapshot source entry is unreadable: " + entry);
+				final String relative = sourceRoot.relativize(entry).toString().replace('\\', '/');
+				if (attributes.isDirectory())
+				{
+					directories++;
+					updateDigest(digest, "D|" + relative);
+				}
+				else if (attributes.isRegularFile())
+				{
+					files++;
+					bytes += attributes.size();
+					updateDigest(digest, "F|" + relative + "|" + attributes.size());
+				}
+				else
+				{
+					throw new IOException("Unsupported snapshot source entry: " + entry);
+				}
+			}
+		}
+		return new TreeSnapshot(files, directories, bytes, HexFormat.of().formatHex(digest.digest()));
+	}
+
+	private static void updateDigest(MessageDigest digest, String value)
+	{
+		digest.update(value.getBytes(StandardCharsets.UTF_8));
+		digest.update((byte) 0);
 	}
 
 	private static void deleteTree(Path path) throws IOException
@@ -987,6 +1173,14 @@ public final class PhantomBlackBoxLocalStackGoal034
 			manifest.setProperty("server.id", Integer.toString(run.serverId));
 			manifest.setProperty("login.ready", Boolean.toString(run.loginReady));
 			manifest.setProperty("registration.observed", Boolean.toString(run.registrationObserved));
+			manifest.setProperty("runtime.layout.verified", Boolean.toString(run.runtimeLayoutVerified));
+			manifest.setProperty("population.time.zone", Objects.requireNonNullElse(run.populationTimeZone, "absent"));
+			manifest.setProperty("data.snapshot.files", run.dataSnapshot == null ? "0" : Long.toString(run.dataSnapshot.files()));
+			manifest.setProperty("data.snapshot.directories", run.dataSnapshot == null ? "0" : Long.toString(run.dataSnapshot.directories()));
+			manifest.setProperty("data.snapshot.bytes", run.dataSnapshot == null ? "0" : Long.toString(run.dataSnapshot.bytes()));
+			manifest.setProperty("data.snapshot.copy.millis", Long.toString(run.dataCopyMillis));
+			manifest.setProperty("data.source.fingerprint", run.sourceDataSnapshot == null ? "absent" : run.sourceDataSnapshot.fingerprint());
+			manifest.setProperty("data.sandbox.fingerprint", run.dataSnapshot == null ? "absent" : run.dataSnapshot.fingerprint());
 			manifest.setProperty("native.restarts", Integer.toString(run.nativeRestarts));
 			manifest.setProperty("generation.1", run.generationOne == null ? "absent" : run.generationOne.summary());
 			manifest.setProperty("generation.2", run.generationTwo == null ? "absent" : run.generationTwo.summary());
@@ -1077,6 +1271,8 @@ public final class PhantomBlackBoxLocalStackGoal034
 		private final Map<String, String> workingHashesAfter = new LinkedHashMap<>();
 		private Path loginRoot;
 		private Path gameRoot;
+		private TreeSnapshot sourceDataSnapshot;
+		private TreeSnapshot dataSnapshot;
 		private PhantomTestDatabaseGuard.ValidatedSettings settings;
 		private OwnedProcess login;
 		private OwnedProcess gameOne;
@@ -1089,14 +1285,17 @@ public final class PhantomBlackBoxLocalStackGoal034
 		private int serverId;
 		private String hexId;
 		private String registrationHost;
+		private String populationTimeZone;
 		private String failure;
 		private int nativeRestarts;
 		private int populationCleaned;
+		private long dataCopyMillis;
 		private long elapsedMillis;
 		private boolean registrationCreated;
 		private boolean registrationRemoved;
 		private boolean loginReady;
 		private boolean registrationObserved;
+		private boolean runtimeLayoutVerified;
 		private boolean functionalPass;
 		private boolean cleanupPass;
 		private boolean forcedCleanup;
@@ -1111,6 +1310,14 @@ public final class PhantomBlackBoxLocalStackGoal034
 			this.runId = runId;
 			this.startedNanos = startedNanos;
 		}
+	}
+
+	private record CopyStats(long files, long directories, long bytes)
+	{
+	}
+
+	private record TreeSnapshot(long files, long directories, long bytes, String fingerprint)
+	{
 	}
 
 	private record IdentityEvidence(long profileId, int characterObjectId, String accountName, String immutableFingerprint)

@@ -1,7 +1,7 @@
 Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Exact parent Goal034:
-32ecbb5f159b9515c3b33f68788ac47747341d1c — accepted Goal033 repeat baseline.
+Required parent Goal034 closure 3:
+82f6c562bc14bd18eeffead03172d71124fbedee.
 Goal034 выполняется только через guarded black-box harness; production DB и destructive prepare запрещены.
 Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
 
@@ -44,8 +44,8 @@ Goal033A закрыл causal catch-up prerequisite: production planner потр�
 - Kamaloka — DEFERRED_NOT_IMPLEMENTED;
 - Pailaka — DEFERRED_NOT_IMPLEMENTED.
 
-Следующий реальный шаг: возобновить closure **Goal034 — Automated black-box local stack acceptance** с нового exact parent после BLOCKED-коммита. Guarded harness и safety checks уже реализованы; нужен новый разрешённый green `ant verify`, затем строго один final jar и real-process gate. Используй только `l2jmobiush5_phantom_test`; production `l2jmobiush5` и destructive prepare запрещены. Goal035 не начинать до SUCCESS Goal034.
+Следующий реальный шаг: возобновить closure **Goal034 — Automated black-box local stack acceptance** с нового exact parent после текущего BLOCKED-коммита. Runtime-layout blocker закрыт: полный canonical data snapshot, exact roots и pre-spawn gate green. Остался exact LIVING blocker: real stack создаёт 10 terminal/unique identities, но materializes только 2..3 при active cap 5; сначала сохранить schedule/phase/effective-state evidence и исправить bounded harness convergence без изменения production semantics. До native restart также установить sandbox `ServerRestartDays` на текущий день либо all-days, иначе inherited `4` переносит restart на среду. После focused regression нужен новый разрешённый verify/jar/real-stack budget. Используй только `l2jmobiush5_phantom_test`; production `l2jmobiush5` и destructive prepare запрещены. Goal035 не начинать до SUCCESS Goal034.
 
 Authoritative Roadmap v4 после Goal033: Goal034 automated black-box Login/Game stack на guarded test DB; Goal035 siege; Goal036 bounded quests/instances; Goal037 server rates + quest-rate normalization + Phantom parity; Goal038 final full-vision gate + freeze. После ACCEPT Goal038 не планировать новые goals автоматически.
 
-Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, reports Goal033, historical Goal033A, Goal033A1 и Goal033A SUCCESS resume, а также текущий Goal034 TASK и BLOCKED report. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.
+Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, reports Goal033, historical Goal033A, Goal033A1 и Goal033A SUCCESS resume, closure3 TASK и `docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-runtime-layout-closure.md`. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.

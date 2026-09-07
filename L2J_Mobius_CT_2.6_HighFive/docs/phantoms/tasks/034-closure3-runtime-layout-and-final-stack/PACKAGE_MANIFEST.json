@@ -1,0 +1,34 @@
+{
+  "task": "Goal034 closure 3",
+  "required_parent": "82f6c562bc14bd18eeffead03172d71124fbedee",
+  "branch": "feature/phantom-world",
+  "extract_to": "C:\\Users\\ZBook\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\\\",
+  "lines_excluding_manifest": 189,
+  "suffix_limit": 320,
+  "files": [
+    {
+      "path": "docs/phantoms/tasks/034-closure3-runtime-layout-and-final-stack/ACCEPTANCE.md",
+      "sha256": "ac4e7a7faeb17adb4886a9dcb909e767b80a6561808dffc18e790d224a07416b",
+      "bytes": 550,
+      "lines": 3
+    },
+    {
+      "path": "docs/phantoms/tasks/034-closure3-runtime-layout-and-final-stack/CODEX_LAUNCHER.txt",
+      "sha256": "c078d708b2cf126e685d90e9618174a0af2a318ac4e5fc88f3076a07ffd20492",
+      "bytes": 680,
+      "lines": 4
+    },
+    {
+      "path": "docs/phantoms/tasks/034-closure3-runtime-layout-and-final-stack/CONTEXT.md",
+      "sha256": "04149493352077d69d3c8cb64ae6fee884b46f93c8f463b1dc07bc40711573c7",
+      "bytes": 826,
+      "lines": 13
+    },
+    {
+      "path": "docs/phantoms/tasks/034-closure3-runtime-layout-and-final-stack/TASK.md",
+      "sha256": "fc7176f73deb441808a041bce56d85a5e3e9eed96b290e629b4bd028be47c360",
+      "bytes": 8379,
+      "lines": 169
+    }
+  ]
+}

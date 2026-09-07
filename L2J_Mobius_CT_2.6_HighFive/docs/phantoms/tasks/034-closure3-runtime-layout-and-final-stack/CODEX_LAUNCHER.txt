@@ -1,0 +1,4 @@
+/goal Выполни Goal034 closure 3 строго по docs/phantoms/tasks/034-closure3-runtime-layout-and-final-stack/TASK.md.
+Required parent: 82f6c562bc14bd18eeffead03172d71124fbedee
+Branch: feature/phantom-world
+Исправь known sandbox runtime-layout blocker ДО full verify: GameServer sandbox должен иметь полный canonical dist/game/data snapshot, DatapackRoot=., ScriptRoot=./data/scripts и pre-spawn required-tree gate. Затем focused -> verify -> jar -> real LS/GS -> LIVING 10/5 -> native restart -> gen2 -> cleanup. Goal035 не начинать. Production l2jmobiush5 запрещена; prepare-phantom-test-db не выполнять.
