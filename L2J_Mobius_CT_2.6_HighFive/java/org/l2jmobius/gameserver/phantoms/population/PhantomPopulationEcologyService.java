@@ -313,7 +313,12 @@ public final class PhantomPopulationEcologyService
 		final long reconciliationTarget = state.initialCatchupComplete() ? now : Math.min(now, state.initialTargetEpochMinute());
 		if (state.calendarCursorEpochMinute() < reconciliationTarget)
 		{
-			return beginNextWindow(profileId, population, stored, reconciliationTarget);
+			final int advanced = beginNextWindow(profileId, population, stored, reconciliationTarget);
+			if (state.initialCatchupComplete() && permitsScheduling(profileId))
+			{
+				_populationEvents.ecologyFenceChanged(profileId);
+			}
+			return advanced;
 		}
 		if ((now >= state.turnoverEligibleEpochMinute()) && !_materialized.test(profileId))
 		{

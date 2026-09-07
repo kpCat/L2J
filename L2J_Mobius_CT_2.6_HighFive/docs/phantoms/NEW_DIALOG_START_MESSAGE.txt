@@ -1,7 +1,7 @@
 Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Required parent Goal034 closure 3:
-82f6c562bc14bd18eeffead03172d71124fbedee.
+Required parent Goal034 closure 4:
+b43959bcfec2d21840b1abc8f54a7bc6900d849e.
 Goal034 выполняется только через guarded black-box harness; production DB и destructive prepare запрещены.
 Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
 
@@ -13,6 +13,7 @@ Goal034 выполняется только через guarded black-box harness
 - Goal033 living population ecology — SUCCESS: production implementation, production-composed LIVING 10/5/restart и cross-goal DB regressions прошли на `l2jmobiush5_phantom_test` с cleanup;
 - Goal033A causal historical Background catch-up prerequisite — SUCCESS;
 - Goal033A1 canonical population topology ingress — SUCCESS; blocker Goal033A CLOSED BY Goal033A1;
+- Goal034 closure 4 — BLOCKED: schedule-aware cap oracle и native gen1 restart/drain доказаны, но финальная gen2 получила desired ACTIVE=5/actual online=4; третий Phase-C blocker остановил closure;
 - shipped dist/game/config/Custom/PhantomPlayers.ini остаётся safe: EnablePhantomSystem=False, population=0, ACTIVE=0;
 - local-play preset 10/5: docs/phantoms/examples/PhantomPlayers.local-play.ini;
 - read-only operator entrypoint: ant phantom-local-play-preflight;
@@ -25,6 +26,7 @@ Goal034 выполняется только через guarded black-box harness
 - Goal033A historical blocked report: docs/phantoms/reports/033A-causal-background-catchup.md;
 - Goal033A SUCCESS report: docs/phantoms/reports/033A-causal-background-catchup-resume.md;
 - Goal033A1 report: docs/phantoms/reports/033A1-canonical-population-topology-ingress.md;
+- Goal034 current report: docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-schedule-aware-closure.md;
 - operator tuning: docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md.
 
 Goal031 доказал guarded production-composed путь: 10 durable identities, Scheduler/Decision, real headless Player в World, autonomous decision trace, restart без duplicate rows, bounded shutdown retry и drain/disable rollback. GameServer запускает PhantomSystem только после World/data/scripts/managers и восстановления offline owners.
@@ -44,8 +46,8 @@ Goal033A закрыл causal catch-up prerequisite: production planner потр�
 - Kamaloka — DEFERRED_NOT_IMPLEMENTED;
 - Pailaka — DEFERRED_NOT_IMPLEMENTED.
 
-Следующий реальный шаг: возобновить closure **Goal034 — Automated black-box local stack acceptance** с нового exact parent после текущего BLOCKED-коммита. Runtime-layout blocker закрыт: полный canonical data snapshot, exact roots и pre-spawn gate green. Остался exact LIVING blocker: real stack создаёт 10 terminal/unique identities, но materializes только 2..3 при active cap 5; сначала сохранить schedule/phase/effective-state evidence и исправить bounded harness convergence без изменения production semantics. До native restart также установить sandbox `ServerRestartDays` на текущий день либо all-days, иначе inherited `4` переносит restart на среду. После focused regression нужен новый разрешённый verify/jar/real-stack budget. Используй только `l2jmobiush5_phantom_test`; production `l2jmobiush5` и destructive prepare запрещены. Goal035 не начинать до SUCCESS Goal034.
+Следующий реальный шаг: возобновить closure **Goal034 — Automated black-box local stack acceptance** с exact BLOCKED commit, указанного в финальном handoff closure4. Runtime layout и schedule-aware harness закрыты: ACTIVE target 5 — cap, oracle вычисляет durable desired ACTIVE и требует `actualOnline=min(5, desiredActiveCount)`/subset; sandbox использует `ServerRestartDays=1..7` и доказывает restart instant до wait. Gen1 `desired=5/online=5` и native restart/drain прошли, но gen2 после READY/registration завершила 5-minute gate с `desired=5/online=4`. Новый task должен сначала сохранить fail evidence отсутствующего profile/owner state, затем доказать root cause; не угадывать и не менять production semantics ради exact five. Нужен новый explicit validation budget. Используй только `l2jmobiush5_phantom_test`; production `l2jmobiush5` и destructive prepare запрещены. Goal035 не начинать до SUCCESS Goal034.
 
 Authoritative Roadmap v4 после Goal033: Goal034 automated black-box Login/Game stack на guarded test DB; Goal035 siege; Goal036 bounded quests/instances; Goal037 server rates + quest-rate normalization + Phantom parity; Goal038 final full-vision gate + freeze. После ACCEPT Goal038 не планировать новые goals автоматически.
 
-Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, reports Goal033, historical Goal033A, Goal033A1 и Goal033A SUCCESS resume, closure3 TASK и `docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-runtime-layout-closure.md`. Не трогай другие хроники, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.
+Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, reports Goal033, historical Goal033A, Goal033A1 и Goal033A SUCCESS resume, closure4 TASK и `docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-schedule-aware-closure.md`. Не трогай historical reports, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.

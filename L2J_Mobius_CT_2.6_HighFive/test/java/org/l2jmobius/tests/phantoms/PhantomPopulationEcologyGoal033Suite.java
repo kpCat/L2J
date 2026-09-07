@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
@@ -85,6 +86,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("05-safe-turnover-replacement-and-cap", this::testTurnoverAndCap);
 		registry.add("06-personality-new-state-only", this::testPersonality);
 		registry.add("07-production-architecture-static-fences", this::testStaticFences);
+		registry.add("08-idle-calendar-catchup-reopens-schedule-fence", this::testIdleCalendarCatchupFence);
 	}
 
 	private void testCatalogConfigAndCodec(PhantomTestContext context) throws Exception
@@ -338,6 +340,44 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		PhantomAssertions.assertTrue(system.contains("installPersonalityInitializer(_populationEcology::initialPersonalityTraits)"), "Production Social initialization seam is not ecology-aware.");
 		PhantomAssertions.assertTrue(progression.contains("CANONICAL_QUEST_REQUIRED"), "Goal036 profession boundary disappeared.");
 		context.record("goal033.productionComposition", "population pulse + Goal033A + Social initializer");
+	}
+
+	private void testIdleCalendarCatchupFence(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T03:01:00Z");
+		final long previousMinute = minute(now) - 1;
+		final PhantomPopulationTestDoubles.MemoryStore populationStore = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final ManagedSnapshot population = populationStore.seedReady(1, 1);
+		final EcologyMemoryStore store = new EcologyMemoryStore(null);
+		store.insert(1, stateAt(previousMinute, Pace.CASUAL, 1, population.state().scheduleTemplate()));
+		final PhantomPopulationTestDoubles.MutableClock clock = new PhantomPopulationTestDoubles.MutableClock(now);
+		final PhantomPopulationEcologyService service = service(store, new HistoricalMemoryPort(), new AtomicBoolean(), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+		final AtomicInteger fenceChanges = new AtomicInteger();
+		service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), new PhantomPopulationEcologyService.PopulationEvents()
+		{
+			@Override
+			public void requestArchive(long profileId)
+			{
+			}
+
+			@Override
+			public void reconcilePopulation()
+			{
+			}
+
+			@Override
+			public void ecologyFenceChanged(long profileId)
+			{
+				PhantomAssertions.assertEquals(1L, profileId, "Idle calendar catch-up reported the wrong profile.");
+				fenceChanges.incrementAndGet();
+			}
+		});
+		service.register(population);
+		PhantomAssertions.assertFalse(service.permitsScheduling(1), "Stale idle ecology cursor unexpectedly permitted scheduling.");
+		service.onPopulationPulse();
+		PhantomAssertions.assertTrue(service.permitsScheduling(1), "Idle ecology calendar did not catch up to the current minute.");
+		PhantomAssertions.assertEquals(1, fenceChanges.get(), "Idle ecology permit transition did not reopen the population schedule fence exactly once.");
+		context.record("goal034.idleCalendarFenceChanges", fenceChanges.get());
 	}
 
 	private Reconciliation reconcile(boolean restart)

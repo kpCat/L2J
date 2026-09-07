@@ -1,0 +1,5 @@
+/goal Выполни Goal034 closure 4 строго по docs/phantoms/tasks/034-closure4-schedule-aware-acceptance/TASK.md.
+Required parent: b43959bcfec2d21840b1abc8f54a7bc6900d849e
+Branch: feature/phantom-world
+
+Ключевая коррекция: PhantomPopulationActiveTarget=5 — CAP, не обязанность держать ровно 5 online. Production semantics НЕ менять ради exact five. До full verify исправь harness: вычисляй desired ACTIVE для всех 10 по durable scheduleTemplate/phase и canonical catalog, требуй actualOnline == min(5, desiredActiveCount) и actualOnline subset desiredActive. Также sandbox ServerRestartDays=1..7 и prove scheduled instant before wait. Затем focused -> verify -> jar -> real LS/GS -> native restart -> gen2 continuity -> cleanup. Goal035 не начинать. Production l2jmobiush5 запрещена; prepare-phantom-test-db не выполнять.

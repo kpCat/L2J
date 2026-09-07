@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -77,8 +78,10 @@ import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorControlCode;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorControlResult;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorMode;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.State;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStateCodec;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStateCodec;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState;
@@ -96,14 +99,16 @@ public final class PhantomBlackBoxLocalStackGoal034
 	private static final long RETAINED_LOG_LIMIT = 2L * 1024L * 1024L;
 	private static final long POLL_MILLIS = 500L;
 	private static final int EXPECTED_POPULATION = 10;
-	private static final int EXPECTED_ACTIVE = 5;
+	private static final int ACTIVE_CAP = 5;
 	private static final int GENERATION_ONE_RESTART_LEAD_MINUTES = 7;
-	private static final int GENERATION_TWO_RESTART_LEAD_MINUTES = 4;
+	private static final int GENERATION_TWO_RESTART_LEAD_MINUTES = 7;
 	private static final LocalTime LIVING_ACCEPTANCE_WINDOW_START = LocalTime.of(20, 0);
 	private static final LocalTime LIVING_ACCEPTANCE_WINDOW_END = LocalTime.of(21, 0);
 	private static final Pattern SERVER_ID_PATTERN = Pattern.compile("\\bid=\"(\\d+)\"");
+	private static final Pattern SCHEDULED_RESTART_PATTERN = Pattern.compile("Scheduled server restart at ([A-Z][a-z]{2} [A-Z][a-z]{2} \\d{1,2} \\d{2}:\\d{2}:\\d{2}) \\S+ (\\d{4})\\.");
 	private static final AtomicInteger PROCESS_SPAWNS = new AtomicInteger();
 	private static final DateTimeFormatter RESTART_TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT);
+	private static final DateTimeFormatter RESTART_LOG_TIME = DateTimeFormatter.ofPattern("EEE MMM d HH:mm:ss yyyy", Locale.ENGLISH);
 
 	private PhantomBlackBoxLocalStackGoal034()
 	{
@@ -171,6 +176,28 @@ public final class PhantomBlackBoxLocalStackGoal034
 			prepareSandbox(contractRun, contractSettings);
 			verifyRuntimeLayout(contractRun);
 			require(PROCESS_SPAWNS.get() == 0, "Runtime-layout contract spawned a process.");
+			require("1,2,3,4,5,6,7".equals(readProperty(contractRun.gameRoot.resolve("config/Server.ini"), "ServerRestartDays")), "Restart sandbox does not enable every day of the week.");
+
+			final AdmissionEvaluation desiredTwo = evaluateAdmission(contractPopulation(2, Set.of(1L, 2L)), ACTIVE_CAP, ACTIVE_CAP);
+			final AdmissionEvaluation desiredThree = evaluateAdmission(contractPopulation(3, Set.of(1L, 2L, 3L)), ACTIVE_CAP, ACTIVE_CAP);
+			final AdmissionEvaluation desiredFive = evaluateAdmission(contractPopulation(5, Set.of(1L, 2L, 3L, 4L, 5L)), ACTIVE_CAP, ACTIVE_CAP);
+			final AdmissionEvaluation desiredEight = evaluateAdmission(contractPopulation(8, Set.of(1L, 2L, 3L, 4L, 5L)), ACTIVE_CAP, ACTIVE_CAP);
+			final AdmissionEvaluation nonActiveOnline = evaluateAdmission(contractPopulation(2, Set.of(1L, 10L)), ACTIVE_CAP, ACTIVE_CAP);
+			require(desiredTwo.expectedAdmittedCount() == 2 && desiredTwo.parity(), "ACTIVE cap incorrectly required five admissions when only two profiles desired ACTIVE.");
+			require(desiredThree.expectedAdmittedCount() == 3 && desiredThree.parity(), "ACTIVE cap incorrectly required five admissions when only three profiles desired ACTIVE.");
+			require(desiredFive.expectedAdmittedCount() == 5 && desiredFive.parity(), "Five desired ACTIVE profiles did not admit five profiles.");
+			require(desiredEight.expectedAdmittedCount() == 5 && desiredEight.parity(), "Eight desired ACTIVE profiles were not capped at five.");
+			require(!nonActiveOnline.subset() && !nonActiveOnline.parity(), "An online non-ACTIVE profile passed admission validation.");
+			final String harnessSource = Files.readString(moduleRoot.resolve("test/java/org/l2jmobius/tests/phantoms/PhantomBlackBoxLocalStackGoal034.java"), StandardCharsets.UTF_8);
+			final String oldExpectedOracle = "online == EXPECTED_" + "ACTIVE";
+			final String oldCapOracle = "online == ACTIVE_" + "CAP";
+			final String oldExactFiveLabel = "LIVING " + "10/5";
+			require(!harnessSource.contains(oldExpectedOracle) && !harnessSource.contains(oldCapOracle) && !harnessSource.contains(oldExactFiveLabel), "The obsolete exact-five black-box oracle remains in the Goal034 harness.");
+
+			final RestartPlan restartPlan = restartPlan(Instant.parse("2026-09-07T10:00:31Z"), ZoneId.of("UTC"), GENERATION_ONE_RESTART_LEAD_MINUTES);
+			require(scheduledRestartMatches(restartPlan, restartPlan.expectedInstant()), "The exact scheduled restart instant was rejected.");
+			require(!scheduledRestartMatches(restartPlan, restartPlan.expectedInstant().plus(Duration.ofDays(2))), "A wrong-day inherited restart schedule was accepted.");
+			require(restartLeadCoversPopulationWindow(GENERATION_ONE_RESTART_LEAD_MINUTES) && restartLeadCoversPopulationWindow(GENERATION_TWO_RESTART_LEAD_MINUTES), "A generation restart lead cannot cover the bounded population convergence window.");
 			Files.delete(contractRun.gameRoot.resolve("data/CategoryData.xml"));
 			boolean missingLayoutRejected = false;
 			try
@@ -188,10 +215,20 @@ public final class PhantomBlackBoxLocalStackGoal034
 			System.out.println("[PASS] goal034.contract.mariadb-test-url-accepted");
 			System.out.println("[PASS] goal034.contract.production-db-rejected-before-spawn");
 			System.out.println("[PASS] goal034.contract.exact-sandbox-property-update");
+			System.out.println("[PASS] goal034.contract.active-cap-desired-2");
+			System.out.println("[PASS] goal034.contract.active-cap-desired-3");
+			System.out.println("[PASS] goal034.contract.active-cap-desired-5");
+			System.out.println("[PASS] goal034.contract.active-cap-desired-8");
+			System.out.println("[PASS] goal034.contract.non-active-online-rejected");
+			System.out.println("[PASS] goal034.contract.obsolete-exact-five-oracle-absent");
+			System.out.println("[PASS] goal034.contract.restart-sandbox-all-days");
+			System.out.println("[PASS] goal034.contract.scheduled-restart-instant-accepted");
+			System.out.println("[PASS] goal034.contract.scheduled-restart-wrong-day-rejected");
+			System.out.println("[PASS] goal034.contract.restart-leads-cover-population-window");
 			System.out.println("[PASS] goal034.contract.canonical-runtime-layout files=" + contractRun.dataSnapshot.files() + " bytes=" + contractRun.dataSnapshot.bytes() + " copyMillis=" + contractRun.dataCopyMillis);
 			System.out.println("[PASS] goal034.contract.missing-runtime-tree-rejected-before-spawn");
 			System.out.println("[PASS] goal034.contract.roadmap-v4-consistency");
-			System.out.println("SUMMARY: suite=phantom-black-box-local-stack-goal034-contract total=7 passed=7 failed=0");
+			System.out.println("SUMMARY: suite=phantom-black-box-local-stack-goal034-contract total=17 passed=17 failed=0");
 			return 0;
 		}
 		finally
@@ -246,22 +283,25 @@ public final class PhantomBlackBoxLocalStackGoal034
 			run.login = startServer(run, "login", run.loginRoot, run.artifacts.resolve("login.stdout.log"), "LoginServer.jar", 128, 768);
 			waitForLoginReady(run, overallDeadline);
 
-			configureRestart(run.gameRoot.resolve("config/Server.ini"), GENERATION_ONE_RESTART_LEAD_MINUTES, run.populationTimeZone);
+			final RestartPlan generationOneRestart = configureRestart(run.gameRoot.resolve("config/Server.ini"), GENERATION_ONE_RESTART_LEAD_MINUTES, run.populationTimeZone);
 			run.gameOne = startServer(run, "game-generation-1", run.gameRoot, run.artifacts.resolve("game-generation-1.stdout.log"), "GameServer.jar", 512, 4096);
 			waitForGameReady(run, run.gameOne, overallDeadline);
+			run.generationOneRestart = waitForScheduledRestart(run.gameOne, generationOneRestart, overallDeadline);
 			final PopulationSnapshot generationOne = waitForPopulation(run, run.gameOne, overallDeadline);
 			run.generationOne = generationOne;
-			waitForNativeRestart(run, run.gameOne, overallDeadline);
+			run.generationOneRestart = waitForNativeRestart(run, run.gameOne, run.generationOneRestart, overallDeadline);
 			require(run.login.process.isAlive(), "LoginServer died between GameServer generations.");
 			require(canConnect(run.loginClientPort) && canConnect(run.loginGamePort), "LoginServer listeners were not retained across GameServer restart.");
 
-			configureRestart(run.gameRoot.resolve("config/Server.ini"), GENERATION_TWO_RESTART_LEAD_MINUTES, run.populationTimeZone);
+			final RestartPlan generationTwoRestart = configureRestart(run.gameRoot.resolve("config/Server.ini"), GENERATION_TWO_RESTART_LEAD_MINUTES, run.populationTimeZone);
 			run.gameTwo = startServer(run, "game-generation-2", run.gameRoot, run.artifacts.resolve("game-generation-2.stdout.log"), "GameServer.jar", 512, 4096);
 			waitForGameReady(run, run.gameTwo, overallDeadline);
+			run.generationTwoRestart = waitForScheduledRestart(run.gameTwo, generationTwoRestart, overallDeadline);
 			final PopulationSnapshot generationTwo = waitForPopulation(run, run.gameTwo, overallDeadline);
 			require(generationOne.identities().equals(generationTwo.identities()), "Durable identity or immutable ecology assignment changed across restart.");
+			run.identityContinuity = true;
 			run.generationTwo = generationTwo;
-			waitForNativeRestart(run, run.gameTwo, overallDeadline);
+			run.generationTwoRestart = waitForNativeRestart(run, run.gameTwo, run.generationTwoRestart, overallDeadline);
 
 			stopExact(run, run.login, "LoginServer exact-PID cleanup");
 			run.functionalPass = true;
@@ -285,7 +325,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 		final boolean passed = run.functionalPass && run.cleanupPass && !run.forcedCleanup && run.integrityPass && run.orphanFree;
 		if (passed)
 		{
-			System.out.println("Goal034 black-box PASS: real LoginServer/GameServer JVMs, LIVING 10/5, native restart, continuity and exact cleanup.");
+			System.out.println("Goal034 black-box PASS: real LoginServer/GameServer JVMs, schedule-aware ACTIVE cap parity, native restart, continuity and exact cleanup.");
 		}
 		else
 		{
@@ -405,16 +445,17 @@ public final class PhantomBlackBoxLocalStackGoal034
 		replaceProperty(gameServer, "ServerRestartScheduleEnabled", "True");
 		replaceProperty(gameServer, "ServerRestartScheduleMessage", "False");
 		replaceProperty(gameServer, "ServerRestartScheduleCountdown", "5");
+		replaceProperty(gameServer, "ServerRestartDays", "1,2,3,4,5,6,7");
 		replaceProperty(run.gameRoot.resolve("config/Interface.ini"), "EnableGUI", "False");
 		Files.writeString(run.gameRoot.resolve("config/ipconfig.xml"), "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<gameserver address=\"127.0.0.1\">\r\n\t<define subnet=\"127.0.0.0/8\" address=\"127.0.0.1\" />\r\n</gameserver>\r\n", StandardCharsets.UTF_8);
 
 		final Path phantom = run.gameRoot.resolve("config/Custom/PhantomPlayers.ini");
 		replaceProperty(phantom, "EnablePhantomSystem", "True");
 		replaceProperty(phantom, "EnablePhantomDiagnostics", "False");
-		replaceProperty(phantom, "MaxMaterializedPhantoms", Integer.toString(EXPECTED_ACTIVE));
+		replaceProperty(phantom, "MaxMaterializedPhantoms", Integer.toString(ACTIVE_CAP));
 		replaceProperty(phantom, "MaxScheduledPhantomProfiles", Integer.toString(EXPECTED_POPULATION));
 		replaceProperty(phantom, "PhantomPopulationTarget", Integer.toString(EXPECTED_POPULATION));
-		replaceProperty(phantom, "PhantomPopulationActiveTarget", Integer.toString(EXPECTED_ACTIVE));
+		replaceProperty(phantom, "PhantomPopulationActiveTarget", Integer.toString(ACTIVE_CAP));
 		replaceProperty(phantom, "EnablePhantomEcology", "True");
 		replaceProperty(phantom, "PhantomEcologyPreset", "LIVING");
 		replaceProperty(phantom, "PhantomEcologyWorldAgeDays", "21");
@@ -440,6 +481,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 		require(Files.isDirectory(run.gameRoot.resolve("log"), LinkOption.NOFOLLOW_LINKS), "Sandbox lacks isolated log directory.");
 		require(".".equals(readProperty(run.gameRoot.resolve("config/Server.ini"), "DatapackRoot")), "Sandbox DatapackRoot must be exact '.'.");
 		require("./data/scripts".equals(readProperty(run.gameRoot.resolve("config/Server.ini"), "ScriptRoot")), "Sandbox ScriptRoot must be exact './data/scripts'.");
+		require("1,2,3,4,5,6,7".equals(readProperty(run.gameRoot.resolve("config/Server.ini"), "ServerRestartDays")), "Sandbox ServerRestartDays must include all seven days.");
 		require(run.populationTimeZone.equals(readProperty(run.gameRoot.resolve("config/Custom/PhantomPlayers.ini"), "PhantomPopulationTimeZone")), "Sandbox population time zone diverged from the bounded LIVING acceptance window.");
 		final TreeSnapshot currentSource = snapshotTree(canonicalData);
 		final TreeSnapshot currentSandbox = snapshotTree(run.gameRoot.resolve("data"));
@@ -474,10 +516,11 @@ public final class PhantomBlackBoxLocalStackGoal034
 		}
 	}
 
-	private static void configureRestart(Path serverConfig, int leadMinutes, String timeZone) throws IOException
+	private static RestartPlan configureRestart(Path serverConfig, int leadMinutes, String timeZone) throws IOException
 	{
-		final String restartAt = LocalDateTime.now(ZoneId.of(timeZone)).plusMinutes(leadMinutes).format(RESTART_TIME);
-		replaceProperty(serverConfig, "ServerRestartSchedule", restartAt);
+		final RestartPlan plan = restartPlan(Instant.now(), ZoneId.of(timeZone), leadMinutes);
+		replaceProperty(serverConfig, "ServerRestartSchedule", plan.expectedInstant().atZone(plan.zoneId()).format(RESTART_TIME));
+		return plan;
 	}
 
 	private static void assertCleanTestDatabase(RunState run) throws SQLException
@@ -588,11 +631,17 @@ public final class PhantomBlackBoxLocalStackGoal034
 	private static PopulationSnapshot waitForPopulation(RunState run, OwnedProcess game, long overallDeadline) throws Exception
 	{
 		final long deadline = Math.min(overallDeadline, System.nanoTime() + GAME_READY_TIMEOUT.toNanos());
+		final ZoneId zoneId = ZoneId.of(run.populationTimeZone);
+		final PhantomPopulationCatalog catalog = PhantomPopulationCatalog.load(run.gameRoot.resolve("data/phantoms/population/high-five-population-v1.xml"), zoneId);
+		final int activeTarget = Integer.parseInt(readProperty(run.gameRoot.resolve("config/Custom/PhantomPlayers.ini"), "PhantomPopulationActiveTarget"));
+		final int maximumMaterialized = Integer.parseInt(readProperty(run.gameRoot.resolve("config/Custom/PhantomPlayers.ini"), "MaxMaterializedPhantoms"));
+		require(activeTarget == ACTIVE_CAP, "Goal034 sandbox ACTIVE cap changed from five.");
+		require(maximumMaterialized == ACTIVE_CAP, "Goal034 sandbox materialization cap changed from five.");
 		PopulationSnapshot latest = PopulationSnapshot.empty();
 		while (System.nanoTime() < deadline)
 		{
 			checkProcess(game);
-			latest = populationSnapshot(run.settings);
+			latest = populationSnapshot(run.settings, catalog, zoneId, Instant.now(), activeTarget, maximumMaterialized);
 			if (latest.complete())
 			{
 				run.ownerProfiles.clear();
@@ -604,18 +653,26 @@ public final class PhantomBlackBoxLocalStackGoal034
 				}
 				return latest;
 			}
+			if ((latest.identities().size() == EXPECTED_POPULATION) && latest.readyManaged() && latest.catchupTerminal() && latest.unique() && latest.ownership() && (latest.admission().expectedAdmittedCount() == 0))
+			{
+				throw new AssertionError("Selected bounded acceptance timezone produced no desired ACTIVE profiles: " + latest.summary());
+			}
 			Thread.sleep(POLL_MILLIS);
 		}
-		throw new AssertionError("LIVING 10/5 convergence timed out: " + latest.summary());
+		throw new AssertionError("Schedule-aware population convergence timed out: " + latest.summary());
 	}
 
-	private static PopulationSnapshot populationSnapshot(PhantomTestDatabaseGuard.ValidatedSettings settings) throws Exception
+	private static PopulationSnapshot populationSnapshot(PhantomTestDatabaseGuard.ValidatedSettings settings, PhantomPopulationCatalog catalog, ZoneId zoneId, Instant acceptanceInstant, int activeTarget, int maximumMaterialized) throws Exception
 	{
 		final PhantomPopulationStateCodec populationCodec = new PhantomPopulationStateCodec();
 		final PhantomPopulationEcologyStateCodec ecologyCodec = new PhantomPopulationEcologyStateCodec();
 		final List<IdentityEvidence> identities = new ArrayList<>();
-		int online = 0;
-		boolean terminal = true;
+		final List<PopulationProfileEvidence> profiles = new ArrayList<>();
+		boolean readyManaged = true;
+		boolean catchupTerminal = true;
+		boolean ownership = true;
+		boolean catalogParity = true;
+		boolean canonicalOnline = true;
 		try (Connection connection = open(settings); PreparedStatement statement = connection.prepareStatement(
 			"SELECT p.profile_id,p.character_object_id,ps.payload,pe.payload,c.account_name,c.online " +
 				"FROM phantom_profiles p " +
@@ -628,25 +685,79 @@ public final class PhantomBlackBoxLocalStackGoal034
 				final PhantomPopulationState population = populationCodec.decode(result.getBytes(3));
 				final PhantomPopulationEcologyState ecology = ecologyCodec.decode(result.getBytes(4));
 				final boolean managed = (population.state() == PhantomPopulationState.State.READY) && (ecology.disposition() == PhantomPopulationEcologyState.Disposition.MANAGED);
-				terminal &= managed && ecology.initialCatchupComplete() && !ecology.requestPending();
-				online += result.getInt(6) == 0 ? 0 : 1;
-				identities.add(new IdentityEvidence(result.getLong(1), result.getInt(2), result.getString(5), immutableFingerprint(population, ecology)));
+				final long profileId = result.getLong(1);
+				final int characterObjectId = result.getInt(2);
+				final String accountName = result.getString(5);
+				final int onlineValue = result.getInt(6);
+				final boolean online = onlineValue != 0;
+				final PhantomActivityState desiredState = catalog.evaluate(population.scheduleTemplate(), acceptanceInstant, zoneId, population.schedulePhaseMinutes()).state();
+				readyManaged &= managed;
+				catchupTerminal &= ecology.initialCatchupComplete() && !ecology.requestPending();
+				ownership &= (population.actualCharacterObjectId() != null) && (population.actualCharacterObjectId() == characterObjectId) && population.reservedAccount().equals(accountName);
+				catalogParity &= catalog.hash().equals(population.catalogHash());
+				canonicalOnline &= (onlineValue >= 0) && (onlineValue <= 2);
+				identities.add(new IdentityEvidence(profileId, characterObjectId, accountName, immutableFingerprint(population, ecology)));
+				profiles.add(new PopulationProfileEvidence(profileId, population.scheduleTemplate(), population.schedulePhaseMinutes(), population.homeMapRegionId(), desiredState, online));
 			}
-			terminal &= pendingCatchups(connection) == 0;
-		}
+			final int pendingCatchups = pendingCatchups(connection);
+			catchupTerminal &= pendingCatchups == 0;
 
-		final Set<Long> profileIds = new LinkedHashSet<>();
-		final Set<Integer> characterIds = new LinkedHashSet<>();
-		final Set<String> accounts = new LinkedHashSet<>();
-		for (IdentityEvidence identity : identities)
-		{
-			profileIds.add(identity.profileId());
-			characterIds.add(identity.characterObjectId());
-			accounts.add(identity.accountName());
+			final Set<Long> profileIds = new LinkedHashSet<>();
+			final Set<Integer> characterIds = new LinkedHashSet<>();
+			final Set<String> accounts = new LinkedHashSet<>();
+			for (IdentityEvidence identity : identities)
+			{
+				profileIds.add(identity.profileId());
+				characterIds.add(identity.characterObjectId());
+				accounts.add(identity.accountName());
+			}
+			final boolean unique = (profileIds.size() == identities.size()) && (characterIds.size() == identities.size()) && (accounts.size() == identities.size());
+			final AdmissionEvaluation admission = evaluateAdmission(profiles, activeTarget, maximumMaterialized);
+			final boolean complete = (identities.size() == EXPECTED_POPULATION) && unique && ownership && readyManaged && catchupTerminal && catalogParity && canonicalOnline && (admission.expectedAdmittedCount() >= 1) && admission.parity();
+			return new PopulationSnapshot(List.copyOf(identities), List.copyOf(profiles), acceptanceInstant, admission, readyManaged, catchupTerminal, pendingCatchups, unique, ownership, catalogParity, canonicalOnline, complete);
 		}
-		final boolean unique = (profileIds.size() == identities.size()) && (characterIds.size() == identities.size()) && (accounts.size() == identities.size());
-		final boolean complete = (identities.size() == EXPECTED_POPULATION) && unique && terminal && (online == EXPECTED_ACTIVE);
-		return new PopulationSnapshot(List.copyOf(identities), online, terminal, unique, complete);
+	}
+
+	private static AdmissionEvaluation evaluateAdmission(List<PopulationProfileEvidence> profiles, int activeTarget, int maximumMaterialized)
+	{
+		Objects.requireNonNull(profiles, "Population evidence must not be null.");
+		if ((activeTarget < 0) || (maximumMaterialized < 0))
+		{
+			throw new IllegalArgumentException("Population admission caps must not be negative.");
+		}
+		final Set<Long> profileIds = new LinkedHashSet<>();
+		final Set<Long> desiredActiveIds = new LinkedHashSet<>();
+		final Set<Long> actualOnlineIds = new LinkedHashSet<>();
+		for (PopulationProfileEvidence profile : profiles)
+		{
+			if ((profile == null) || (profile.profileId() <= 0) || !profileIds.add(profile.profileId()))
+			{
+				throw new IllegalArgumentException("Population evidence must contain unique positive profile IDs.");
+			}
+			if (profile.desiredState() == PhantomActivityState.ACTIVE)
+			{
+				desiredActiveIds.add(profile.profileId());
+			}
+			if (profile.online())
+			{
+				actualOnlineIds.add(profile.profileId());
+			}
+		}
+		final int expectedAdmittedCount = Math.min(Math.min(activeTarget, maximumMaterialized), desiredActiveIds.size());
+		final boolean subset = desiredActiveIds.containsAll(actualOnlineIds);
+		final boolean countMatches = actualOnlineIds.size() == expectedAdmittedCount;
+		final boolean underCaps = (actualOnlineIds.size() <= activeTarget) && (actualOnlineIds.size() <= maximumMaterialized);
+		return new AdmissionEvaluation(expectedAdmittedCount, Set.copyOf(desiredActiveIds), Set.copyOf(actualOnlineIds), subset, countMatches, underCaps, subset && countMatches && underCaps);
+	}
+
+	private static List<PopulationProfileEvidence> contractPopulation(int desiredActiveCount, Set<Long> onlineIds)
+	{
+		final List<PopulationProfileEvidence> profiles = new ArrayList<>();
+		for (long profileId = 1; profileId <= EXPECTED_POPULATION; profileId++)
+		{
+			profiles.add(new PopulationProfileEvidence(profileId, "evening", 0, 1, profileId <= desiredActiveCount ? PhantomActivityState.ACTIVE : PhantomActivityState.SLEEPING, onlineIds.contains(profileId)));
+		}
+		return List.copyOf(profiles);
 	}
 
 	private static int pendingCatchups(Connection connection) throws Exception
@@ -669,12 +780,64 @@ public final class PhantomBlackBoxLocalStackGoal034
 
 	private static String immutableFingerprint(PhantomPopulationState population, PhantomPopulationEcologyState ecology) throws Exception
 	{
-		final String canonical = population.populationGeneration() + "|" + population.creationOrdinal() + "|" + population.reservedAccount() + "|" + population.ownershipToken() + "|" + population.characterName() + "|" + population.actualCharacterObjectId() + "|" + ecology.catalogHash() + "|" + ecology.preset() + "|" + ecology.ecologyGeneration() + "|" + ecology.assignmentOrdinal() + "|" + ecology.assignedAtEpochMinute() + "|" + ecology.virtualJoinEpochMinute() + "|" + ecology.initialTargetEpochMinute() + "|" + ecology.pace() + "|" + ecology.productiveShareBasisPoints() + "|" + ecology.productiveBlockMinutes() + "|" + ecology.personality() + "|" + new TreeMap<>(ecology.initialSocialTraits()) + "|" + ecology.scheduleTemplate() + "|" + ecology.disposition() + "|" + ecology.turnoverEligibleEpochMinute() + "|" + ecology.replacesProfileId();
+		final String canonical = population.populationGeneration() + "|" + population.creationOrdinal() + "|" + population.reservedAccount() + "|" + population.ownershipToken() + "|" + population.characterName() + "|" + population.actualCharacterObjectId() + "|" + population.scheduleTemplate() + "|" + population.schedulePhaseMinutes() + "|" + population.homeMapRegionId() + "|" + ecology.catalogHash() + "|" + ecology.preset() + "|" + ecology.ecologyGeneration() + "|" + ecology.assignmentOrdinal() + "|" + ecology.assignedAtEpochMinute() + "|" + ecology.virtualJoinEpochMinute() + "|" + ecology.initialTargetEpochMinute() + "|" + ecology.pace() + "|" + ecology.productiveShareBasisPoints() + "|" + ecology.productiveBlockMinutes() + "|" + ecology.personality() + "|" + new TreeMap<>(ecology.initialSocialTraits()) + "|" + ecology.scheduleTemplate() + "|" + ecology.disposition() + "|" + ecology.turnoverEligibleEpochMinute() + "|" + ecology.replacesProfileId();
 		return sha256(canonical.getBytes(StandardCharsets.UTF_8));
 	}
 
-	private static void waitForNativeRestart(RunState run, OwnedProcess game, long overallDeadline) throws Exception
+	private static RestartPlan restartPlan(Instant configuredAt, ZoneId zoneId, int leadMinutes)
 	{
+		Objects.requireNonNull(configuredAt, "Restart configuration instant must not be null.");
+		Objects.requireNonNull(zoneId, "Restart process time zone must not be null.");
+		if ((leadMinutes < 2) || (leadMinutes > 60))
+		{
+			throw new IllegalArgumentException("Restart lead must remain within 2..60 minutes.");
+		}
+		final Instant expectedInstant = configuredAt.atZone(zoneId).plusMinutes(leadMinutes).withSecond(0).withNano(0).toInstant();
+		return new RestartPlan(configuredAt, expectedInstant, zoneId, leadMinutes);
+	}
+
+	private static boolean scheduledRestartMatches(RestartPlan plan, Instant observedInstant)
+	{
+		final Duration observedLead = Duration.between(plan.configuredAt(), observedInstant);
+		return plan.expectedInstant().equals(observedInstant) && !observedLead.isNegative() && (observedLead.compareTo(Duration.ofMinutes(plan.leadMinutes() - 1L)) >= 0) && (observedLead.compareTo(Duration.ofMinutes(plan.leadMinutes())) <= 0);
+	}
+
+	private static boolean restartLeadCoversPopulationWindow(int leadMinutes)
+	{
+		return leadMinutes >= (GAME_READY_TIMEOUT.toMinutes() + 2);
+	}
+
+	private static RestartEvidence waitForScheduledRestart(OwnedProcess game, RestartPlan plan, long overallDeadline) throws Exception
+	{
+		final long deadline = Math.min(overallDeadline, System.nanoTime() + Duration.ofSeconds(15).toNanos());
+		while (System.nanoTime() < deadline)
+		{
+			checkProcess(game);
+			final Optional<Instant> observed = scheduledRestartInstant(game.output, plan.zoneId());
+			if (observed.isPresent())
+			{
+				require(scheduledRestartMatches(plan, observed.get()), game.name + " scheduled restart outside the exact bounded lead: expected=" + plan.expectedInstant() + ", observed=" + observed.get() + ".");
+				return new RestartEvidence(plan, observed.get(), null, false);
+			}
+			Thread.sleep(POLL_MILLIS);
+		}
+		throw new AssertionError(game.name + " did not log its scheduled restart instant before the wait gate.");
+	}
+
+	private static Optional<Instant> scheduledRestartInstant(Path output, ZoneId zoneId) throws IOException
+	{
+		final Matcher matcher = SCHEDULED_RESTART_PATTERN.matcher(tail(output, 1024 * 1024));
+		String localText = null;
+		while (matcher.find())
+		{
+			localText = matcher.group(1) + " " + matcher.group(2);
+		}
+		return localText == null ? Optional.empty() : Optional.of(LocalDateTime.parse(localText, RESTART_LOG_TIME).atZone(zoneId).toInstant());
+	}
+
+	private static RestartEvidence waitForNativeRestart(RunState run, OwnedProcess game, RestartEvidence scheduled, long overallDeadline) throws Exception
+	{
+		require((scheduled != null) && (scheduled.observedInstant() != null) && (scheduled.exitCode() == null), game.name + " lacks pre-wait scheduled restart proof.");
 		while ((System.nanoTime() < overallDeadline) && game.process.isAlive())
 		{
 			checkProcessArtifacts(game);
@@ -683,9 +846,11 @@ public final class PhantomBlackBoxLocalStackGoal034
 		require(!game.process.isAlive(), game.name + " did not reach native scheduled restart before the overall deadline.");
 		require(game.process.exitValue() == 2, game.name + " exit code was not native restart code 2: " + game.process.exitValue());
 		final String output = tail(game.output, (int) RETAINED_LOG_LIMIT);
-		require(output.contains("Phantom World: Initial subsystem drain completed"), game.name + " lacks Phantom drain evidence.");
+		final boolean drainObserved = output.contains("Phantom World: Initial subsystem drain completed");
+		require(drainObserved, game.name + " lacks Phantom drain evidence.");
 		require(!output.contains("drain remains incomplete") && !output.contains("drain is incomplete"), game.name + " reported incomplete Phantom drain.");
 		run.nativeRestarts++;
+		return new RestartEvidence(scheduled.plan(), scheduled.observedInstant(), game.process.exitValue(), drainObserved);
 	}
 
 	private static void checkProcess(OwnedProcess owned) throws Exception
@@ -1184,6 +1349,11 @@ public final class PhantomBlackBoxLocalStackGoal034
 			manifest.setProperty("native.restarts", Integer.toString(run.nativeRestarts));
 			manifest.setProperty("generation.1", run.generationOne == null ? "absent" : run.generationOne.summary());
 			manifest.setProperty("generation.2", run.generationTwo == null ? "absent" : run.generationTwo.summary());
+			manifest.setProperty("identity.ecology.continuity", Boolean.toString(run.identityContinuity));
+			writePopulationManifest(manifest, "generation.1", run.generationOne);
+			writePopulationManifest(manifest, "generation.2", run.generationTwo);
+			writeRestartManifest(manifest, "generation.1.restart", run.generationOneRestart);
+			writeRestartManifest(manifest, "generation.2.restart", run.generationTwoRestart);
 			manifest.setProperty("cleanup.population", Integer.toString(run.populationCleaned));
 			manifest.setProperty("cleanup.registration", Boolean.toString(run.registrationRemoved));
 			manifest.setProperty("cleanup.forced", Boolean.toString(run.forcedCleanup));
@@ -1204,6 +1374,50 @@ public final class PhantomBlackBoxLocalStackGoal034
 		{
 			System.err.println("Could not write Goal034 manifest: " + manifestFailure.getMessage());
 		}
+	}
+
+	private static void writePopulationManifest(Properties manifest, String prefix, PopulationSnapshot snapshot)
+	{
+		if (snapshot == null)
+		{
+			return;
+		}
+		manifest.setProperty(prefix + ".acceptance.instant", snapshot.acceptanceInstant().toString());
+		manifest.setProperty(prefix + ".desired.active.ids", joinIds(snapshot.admission().desiredActiveIds()));
+		manifest.setProperty(prefix + ".actual.online.ids", joinIds(snapshot.admission().actualOnlineIds()));
+		manifest.setProperty(prefix + ".expected.admitted", Integer.toString(snapshot.admission().expectedAdmittedCount()));
+		manifest.setProperty(prefix + ".actual.online", Integer.toString(snapshot.online()));
+		manifest.setProperty(prefix + ".admission.subset", Boolean.toString(snapshot.admission().subset()));
+		manifest.setProperty(prefix + ".admission.parity", Boolean.toString(snapshot.admission().parity()));
+		manifest.setProperty(prefix + ".ready.managed", Boolean.toString(snapshot.readyManaged()));
+		manifest.setProperty(prefix + ".catchup.terminal", Boolean.toString(snapshot.catchupTerminal()));
+		manifest.setProperty(prefix + ".catchup.pending", Integer.toString(snapshot.pendingCatchups()));
+		manifest.setProperty(prefix + ".unique", Boolean.toString(snapshot.unique()));
+		manifest.setProperty(prefix + ".ownership", Boolean.toString(snapshot.ownership()));
+		manifest.setProperty(prefix + ".catalog.parity", Boolean.toString(snapshot.catalogParity()));
+		for (int index = 0; index < snapshot.profiles().size(); index++)
+		{
+			final PopulationProfileEvidence profile = snapshot.profiles().get(index);
+			manifest.setProperty(prefix + ".profile." + (index + 1), "profileId=" + profile.profileId() + ";scheduleTemplate=" + profile.scheduleTemplate() + ";phaseMinutes=" + profile.phaseMinutes() + ";homeRegion=" + profile.homeRegion() + ";desiredState=" + profile.desiredState() + ";online=" + profile.online());
+		}
+	}
+
+	private static void writeRestartManifest(Properties manifest, String prefix, RestartEvidence restart)
+	{
+		if (restart == null)
+		{
+			return;
+		}
+		manifest.setProperty(prefix + ".configured.at", restart.plan().configuredAt().toString());
+		manifest.setProperty(prefix + ".expected.instant", restart.plan().expectedInstant().toString());
+		manifest.setProperty(prefix + ".observed.instant", restart.observedInstant().toString());
+		manifest.setProperty(prefix + ".exit.code", restart.exitCode() == null ? "pending" : Integer.toString(restart.exitCode()));
+		manifest.setProperty(prefix + ".drain.observed", Boolean.toString(restart.drainObserved()));
+	}
+
+	private static String joinIds(Set<Long> ids)
+	{
+		return ids.stream().sorted().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
 	}
 
 	private static String slash(Path path)
@@ -1279,6 +1493,8 @@ public final class PhantomBlackBoxLocalStackGoal034
 		private OwnedProcess gameTwo;
 		private PopulationSnapshot generationOne;
 		private PopulationSnapshot generationTwo;
+		private RestartEvidence generationOneRestart;
+		private RestartEvidence generationTwoRestart;
 		private int loginClientPort;
 		private int loginGamePort;
 		private int gameClientPort;
@@ -1296,6 +1512,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 		private boolean loginReady;
 		private boolean registrationObserved;
 		private boolean runtimeLayoutVerified;
+		private boolean identityContinuity;
 		private boolean functionalPass;
 		private boolean cleanupPass;
 		private boolean forcedCleanup;
@@ -1324,16 +1541,42 @@ public final class PhantomBlackBoxLocalStackGoal034
 	{
 	}
 
-	private record PopulationSnapshot(List<IdentityEvidence> identities, int online, boolean terminal, boolean unique, boolean complete)
+	private record PopulationProfileEvidence(long profileId, String scheduleTemplate, int phaseMinutes, int homeRegion, PhantomActivityState desiredState, boolean online)
+	{
+		private PopulationProfileEvidence
+		{
+			Objects.requireNonNull(scheduleTemplate, "Schedule template must not be null.");
+			Objects.requireNonNull(desiredState, "Desired schedule state must not be null.");
+		}
+	}
+
+	private record AdmissionEvaluation(int expectedAdmittedCount, Set<Long> desiredActiveIds, Set<Long> actualOnlineIds, boolean subset, boolean countMatches, boolean underCaps, boolean parity)
+	{
+	}
+
+	private record PopulationSnapshot(List<IdentityEvidence> identities, List<PopulationProfileEvidence> profiles, Instant acceptanceInstant, AdmissionEvaluation admission, boolean readyManaged, boolean catchupTerminal, int pendingCatchups, boolean unique, boolean ownership, boolean catalogParity, boolean canonicalOnline, boolean complete)
 	{
 		private static PopulationSnapshot empty()
 		{
-			return new PopulationSnapshot(List.of(), 0, false, false, false);
+			return new PopulationSnapshot(List.of(), List.of(), Instant.EPOCH, new AdmissionEvaluation(0, Set.of(), Set.of(), true, true, true, true), false, false, 0, false, false, false, false, false);
+		}
+
+		private int online()
+		{
+			return admission.actualOnlineIds().size();
 		}
 
 		private String summary()
 		{
-			return "profiles=" + identities.size() + ",online=" + online + ",terminal=" + terminal + ",unique=" + unique;
+			return "profiles=" + identities.size() + ",desiredActive=" + admission.desiredActiveIds().size() + ",expectedAdmitted=" + admission.expectedAdmittedCount() + ",online=" + online() + ",subset=" + admission.subset() + ",parity=" + admission.parity() + ",readyManaged=" + readyManaged + ",catchupTerminal=" + catchupTerminal + ",pendingCatchups=" + pendingCatchups + ",unique=" + unique + ",ownership=" + ownership + ",catalogParity=" + catalogParity + ",canonicalOnline=" + canonicalOnline + ",acceptanceInstant=" + acceptanceInstant;
 		}
+	}
+
+	private record RestartPlan(Instant configuredAt, Instant expectedInstant, ZoneId zoneId, int leadMinutes)
+	{
+	}
+
+	private record RestartEvidence(RestartPlan plan, Instant observedInstant, Integer exitCode, boolean drainObserved)
+	{
 	}
 }
