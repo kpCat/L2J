@@ -87,6 +87,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("06-personality-new-state-only", this::testPersonality);
 		registry.add("07-production-architecture-static-fences", this::testStaticFences);
 		registry.add("08-idle-calendar-catchup-reopens-schedule-fence", this::testIdleCalendarCatchupFence);
+		registry.add("09-restart-existing-ecology-reopens-schedule-fences", this::testRestartExistingEcologyFences);
 	}
 
 	private void testCatalogConfigAndCodec(PhantomTestContext context) throws Exception
@@ -378,6 +379,92 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		PhantomAssertions.assertTrue(service.permitsScheduling(1), "Idle ecology calendar did not catch up to the current minute.");
 		PhantomAssertions.assertEquals(1, fenceChanges.get(), "Idle ecology permit transition did not reopen the population schedule fence exactly once.");
 		context.record("goal034.idleCalendarFenceChanges", fenceChanges.get());
+	}
+
+	private void testRestartExistingEcologyFences(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T20:30:00Z");
+		final long nowMinute = minute(now);
+		final PhantomPopulationTestDoubles.MemoryStore populationStore = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final EcologyMemoryStore store = new EcologyMemoryStore(null);
+		final List<ManagedSnapshot> populations = new ArrayList<>();
+		final List<Long> eligible = new ArrayList<>();
+		for (long profileId = 1; profileId <= 10; profileId++)
+		{
+			final ManagedSnapshot population = populationStore.seedReady(profileId, Math.toIntExact(profileId));
+			populations.add(population);
+			store.insert(profileId, stateAt(nowMinute, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()));
+			if (_population.evaluate(population.state().scheduleTemplate(), now, ZoneOffset.UTC, population.state().schedulePhaseMinutes()).state() == PhantomActivityState.ACTIVE)
+			{
+				eligible.add(profileId);
+			}
+		}
+		PhantomAssertions.assertTrue(eligible.size() >= 5, "Restart fixture does not contain at least five ACTIVE durable schedules.");
+
+		final PhantomPopulationTestDoubles.MutableClock clock = new PhantomPopulationTestDoubles.MutableClock(now);
+		final PhantomPopulationEcologyService service = service(store, new HistoricalMemoryPort(), new AtomicBoolean(), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+		final List<Long> fenceChanges = new ArrayList<>();
+		final AtomicInteger reconciliations = new AtomicInteger();
+		service.installRuntime(profileId -> populations.stream().filter(population -> population.profile().profileId() == profileId).findFirst(), new PhantomPopulationEcologyService.PopulationEvents()
+		{
+			@Override
+			public void requestArchive(long profileId)
+			{
+			}
+
+			@Override
+			public void reconcilePopulation()
+			{
+				reconciliations.incrementAndGet();
+			}
+
+			@Override
+			public void ecologyFenceChanged(long profileId)
+			{
+				fenceChanges.add(profileId);
+			}
+		});
+		populations.forEach(service::register);
+		PhantomAssertions.assertFalse(service.inventoryReady(), "Restart ecology inventory was ready before durable rows loaded.");
+		for (int pulse = 0; (pulse < 32) && !service.inventoryReady(); pulse++)
+		{
+			service.onPopulationPulse();
+		}
+		PhantomAssertions.assertTrue(service.inventoryReady(), "Restart ecology inventory did not load through bounded population pulses.");
+		for (long profileId : eligible)
+		{
+			PhantomAssertions.assertTrue(service.permitsScheduling(profileId), "Loaded eligible ecology row did not permit scheduling: " + profileId);
+		}
+		final List<Long> distinctFenceChanges = fenceChanges.stream().distinct().sorted().toList();
+		PhantomAssertions.assertEquals(eligible, distinctFenceChanges, "Restart restore did not reopen every eligible READY schedule fence.");
+		final int changesAfterRestore = fenceChanges.size();
+		service.onPopulationPulse();
+		PhantomAssertions.assertEquals(changesAfterRestore, fenceChanges.size(), "No-op ecology pulse repeated scheduling-permission refreshes.");
+
+		clock.set(now.plusSeconds(60));
+		for (int pulse = 0; (pulse < 32) && eligible.stream().anyMatch(profileId -> fenceChanges.stream().filter(profileId::equals).count() < 2); pulse++)
+		{
+			service.onPopulationPulse();
+		}
+		for (long profileId : eligible)
+		{
+			PhantomAssertions.assertTrue(fenceChanges.stream().filter(profile -> profile == profileId).count() >= 2, "Beginning catch-up did not publish a closing schedule-fence edge: " + profileId);
+		}
+		for (int pulse = 0; (pulse < 32) && eligible.stream().anyMatch(profileId -> fenceChanges.stream().filter(profileId::equals).count() < 3); pulse++)
+		{
+			service.onPopulationPulse();
+		}
+		for (long profileId : eligible)
+		{
+			PhantomAssertions.assertTrue(service.permitsScheduling(profileId), "Completing catch-up did not reopen the schedule fence: " + profileId);
+			PhantomAssertions.assertEquals(3L, fenceChanges.stream().filter(profile -> profile == profileId).count(), "Catch-up did not publish exactly one close/reopen edge pair: " + profileId);
+		}
+		PhantomAssertions.assertEquals(changesAfterRestore * 3, fenceChanges.size(), "Catch-up completion did not publish exactly one reopening permission edge per eligible profile.");
+		final int changesAfterCatchup = fenceChanges.size();
+		service.onPopulationPulse();
+		PhantomAssertions.assertEquals(changesAfterCatchup, fenceChanges.size(), "Post-catch-up no-op pulse repeated scheduling-permission refreshes.");
+		context.record("goal034.restartExistingFenceChanges", fenceChanges);
+		context.record("goal034.restartExistingReconciliations", reconciliations.get());
 	}
 
 	private Reconciliation reconcile(boolean restart)

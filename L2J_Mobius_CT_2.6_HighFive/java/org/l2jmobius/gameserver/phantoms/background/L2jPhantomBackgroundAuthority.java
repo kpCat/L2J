@@ -43,6 +43,7 @@ import org.l2jmobius.gameserver.data.xml.DynamicExpRateData;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
 import org.l2jmobius.gameserver.data.xml.ExperienceLossData;
 import org.l2jmobius.gameserver.data.xml.ItemData;
+import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
@@ -106,6 +107,7 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Cap
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillFact;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SummonActorFact;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdge;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
@@ -120,6 +122,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 {
 	public static final long INITIAL_RNG_SEED = 15001501L;
 	private static final long MAX_TRAVEL_BUDGET_MILLIS = 60_000;
+	private static final int MAX_RECOVERY_ANCHOR_DISTANCE = 100_000;
 	private static final String LOOT_POLICY_VERSION = "LOOT_POLICY_V1";
 
 	private final Supplier<PhantomGameKnowledgeQuery> _knowledge;
@@ -149,7 +152,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	public PhantomBackgroundState capture(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous)
 	{
 		Objects.requireNonNull(player, "player");
-		final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parse(goal);
+		final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parseLifecycle(goal);
 		requireSupportedPlayer(player);
 		final PhantomTopologyAnchor anchor = exactAnchor(player, previous);
 		final Capability capability = capability(player, spec);
@@ -409,6 +412,58 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			return new TravelAdvance(Status.PARTIAL, state.position(), new Clock(state.clock().rngState(), remaining - elapsedBudgetMillis, state.clock().residualEncounterMillis()), edgeId);
 		}
 		return new TravelAdvance(Status.ARRIVED, canonicalArrival.get(), new Clock(state.clock().rngState(), 0, state.clock().residualEncounterMillis()), edgeId);
+	}
+
+	@Override
+	public Optional<Position> canonicalRecoveryPosition(int x, int y, int z, int instanceId, int heading)
+	{
+		if (instanceId != 0)
+		{
+			return Optional.empty();
+		}
+		final MapRegionData mapRegions = MapRegionData.getInstance();
+		final int mapRegionLocId = mapRegions.getMapRegionLocId(x, y);
+		if (mapRegionLocId == 0)
+		{
+			return Optional.empty();
+		}
+		final PhantomTopologyQuery topology = _topology.get();
+		final PhantomTopologyPoint town = new PhantomTopologyPoint(x, y, z, instanceId);
+		for (PhantomTopologyAnchorRole role : List.of(PhantomTopologyAnchorRole.RESPAWN, PhantomTopologyAnchorRole.CITY_CENTER, PhantomTopologyAnchorRole.ROUTE))
+		{
+			for (PhantomTopologyAnchor anchor : topology.nearestAnchors(town, role, 64, MAX_RECOVERY_ANCHOR_DISTANCE))
+			{
+				if (mapRegions.getMapRegionLocId(anchor.point().x(), anchor.point().y()) != mapRegionLocId)
+				{
+					continue;
+				}
+				final Optional<Position> canonical = canonicalCommittedAnchorPosition(anchor, heading);
+				if (canonical.isPresent() && uniquelyIdentifiesAnchor(topology, canonical.get(), anchor.id()))
+				{
+					return canonical;
+				}
+			}
+		}
+		return Optional.empty();
+	}
+
+	private static boolean uniquelyIdentifiesAnchor(PhantomTopologyQuery topology, Position position, String expectedAnchorId)
+	{
+		String matchedAnchorId = null;
+		for (PhantomTopologyAnchor anchor : topology.snapshot().anchors())
+		{
+			final Optional<Position> canonical = canonicalCommittedAnchorPosition(anchor, position.heading());
+			if (canonical.isEmpty() || (position.instanceId() != canonical.get().instanceId()) || !withinAnchorTolerance(position.x(), position.y(), position.z(), canonical.get(), anchor.validationTolerance()))
+			{
+				continue;
+			}
+			if (matchedAnchorId != null)
+			{
+				return false;
+			}
+			matchedAnchorId = anchor.id();
+		}
+		return expectedAnchorId.equals(matchedAnchorId);
 	}
 
 	public static Optional<Position> canonicalCommittedAnchorPosition(PhantomTopologyAnchor anchor, int heading)

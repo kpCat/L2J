@@ -188,6 +188,14 @@ public final class PhantomBlackBoxLocalStackGoal034
 			require(desiredFive.expectedAdmittedCount() == 5 && desiredFive.parity(), "Five desired ACTIVE profiles did not admit five profiles.");
 			require(desiredEight.expectedAdmittedCount() == 5 && desiredEight.parity(), "Eight desired ACTIVE profiles were not capped at five.");
 			require(!nonActiveOnline.subset() && !nonActiveOnline.parity(), "An online non-ACTIVE profile passed admission validation.");
+			final List<PopulationProfileEvidence> failedProfiles = contractPopulation(5, Set.of(1L, 2L, 3L, 4L));
+			final PopulationSnapshot failedSnapshot = new PopulationSnapshot(List.of(), failedProfiles, Instant.parse("2026-09-07T12:58:39Z"), evaluateAdmission(failedProfiles, ACTIVE_CAP, ACTIVE_CAP), true, true, 0, true, true, true, true, false);
+			recordPopulationSnapshot(contractRun, 2, failedSnapshot);
+			final Properties failedManifest = new Properties();
+			writePopulationManifest(failedManifest, "generation.2", contractRun.generationTwo);
+			require("5".equals(failedManifest.getProperty("generation.2.missing.desired.ids")), "Failure manifest did not preserve the missing desired profile ID.");
+			require("".equals(failedManifest.getProperty("generation.2.unexpected.online.ids")), "Failure manifest invented an unexpected online profile ID.");
+			require(failedManifest.getProperty("generation.2.missing.profile.1", "").contains("profileId=5;characterObjectId=1000005"), "Failure manifest did not preserve missing-profile identity evidence.");
 			final String harnessSource = Files.readString(moduleRoot.resolve("test/java/org/l2jmobius/tests/phantoms/PhantomBlackBoxLocalStackGoal034.java"), StandardCharsets.UTF_8);
 			final String oldExpectedOracle = "online == EXPECTED_" + "ACTIVE";
 			final String oldCapOracle = "online == ACTIVE_" + "CAP";
@@ -220,6 +228,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			System.out.println("[PASS] goal034.contract.active-cap-desired-5");
 			System.out.println("[PASS] goal034.contract.active-cap-desired-8");
 			System.out.println("[PASS] goal034.contract.non-active-online-rejected");
+			System.out.println("[PASS] goal034.contract.failure-manifest-missing-profile-evidence");
 			System.out.println("[PASS] goal034.contract.obsolete-exact-five-oracle-absent");
 			System.out.println("[PASS] goal034.contract.restart-sandbox-all-days");
 			System.out.println("[PASS] goal034.contract.scheduled-restart-instant-accepted");
@@ -228,7 +237,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			System.out.println("[PASS] goal034.contract.canonical-runtime-layout files=" + contractRun.dataSnapshot.files() + " bytes=" + contractRun.dataSnapshot.bytes() + " copyMillis=" + contractRun.dataCopyMillis);
 			System.out.println("[PASS] goal034.contract.missing-runtime-tree-rejected-before-spawn");
 			System.out.println("[PASS] goal034.contract.roadmap-v4-consistency");
-			System.out.println("SUMMARY: suite=phantom-black-box-local-stack-goal034-contract total=17 passed=17 failed=0");
+			System.out.println("SUMMARY: suite=phantom-black-box-local-stack-goal034-contract total=18 passed=18 failed=0");
 			return 0;
 		}
 		finally
@@ -287,7 +296,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			run.gameOne = startServer(run, "game-generation-1", run.gameRoot, run.artifacts.resolve("game-generation-1.stdout.log"), "GameServer.jar", 512, 4096);
 			waitForGameReady(run, run.gameOne, overallDeadline);
 			run.generationOneRestart = waitForScheduledRestart(run.gameOne, generationOneRestart, overallDeadline);
-			final PopulationSnapshot generationOne = waitForPopulation(run, run.gameOne, overallDeadline);
+			final PopulationSnapshot generationOne = waitForPopulation(run, run.gameOne, overallDeadline, 1);
 			run.generationOne = generationOne;
 			run.generationOneRestart = waitForNativeRestart(run, run.gameOne, run.generationOneRestart, overallDeadline);
 			require(run.login.process.isAlive(), "LoginServer died between GameServer generations.");
@@ -297,7 +306,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			run.gameTwo = startServer(run, "game-generation-2", run.gameRoot, run.artifacts.resolve("game-generation-2.stdout.log"), "GameServer.jar", 512, 4096);
 			waitForGameReady(run, run.gameTwo, overallDeadline);
 			run.generationTwoRestart = waitForScheduledRestart(run.gameTwo, generationTwoRestart, overallDeadline);
-			final PopulationSnapshot generationTwo = waitForPopulation(run, run.gameTwo, overallDeadline);
+			final PopulationSnapshot generationTwo = waitForPopulation(run, run.gameTwo, overallDeadline, 2);
 			require(generationOne.identities().equals(generationTwo.identities()), "Durable identity or immutable ecology assignment changed across restart.");
 			run.identityContinuity = true;
 			run.generationTwo = generationTwo;
@@ -628,7 +637,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 		throw new AssertionError(label + " timed out.");
 	}
 
-	private static PopulationSnapshot waitForPopulation(RunState run, OwnedProcess game, long overallDeadline) throws Exception
+	private static PopulationSnapshot waitForPopulation(RunState run, OwnedProcess game, long overallDeadline, int generation) throws Exception
 	{
 		final long deadline = Math.min(overallDeadline, System.nanoTime() + GAME_READY_TIMEOUT.toNanos());
 		final ZoneId zoneId = ZoneId.of(run.populationTimeZone);
@@ -642,6 +651,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 		{
 			checkProcess(game);
 			latest = populationSnapshot(run.settings, catalog, zoneId, Instant.now(), activeTarget, maximumMaterialized);
+			recordPopulationSnapshot(run, generation, latest);
 			if (latest.complete())
 			{
 				run.ownerProfiles.clear();
@@ -660,6 +670,22 @@ public final class PhantomBlackBoxLocalStackGoal034
 			Thread.sleep(POLL_MILLIS);
 		}
 		throw new AssertionError("Schedule-aware population convergence timed out: " + latest.summary());
+	}
+
+	private static void recordPopulationSnapshot(RunState run, int generation, PopulationSnapshot snapshot)
+	{
+		if (generation == 1)
+		{
+			run.generationOne = snapshot;
+		}
+		else if (generation == 2)
+		{
+			run.generationTwo = snapshot;
+		}
+		else
+		{
+			throw new IllegalArgumentException("Population generation must be one or two.");
+		}
 	}
 
 	private static PopulationSnapshot populationSnapshot(PhantomTestDatabaseGuard.ValidatedSettings settings, PhantomPopulationCatalog catalog, ZoneId zoneId, Instant acceptanceInstant, int activeTarget, int maximumMaterialized) throws Exception
@@ -697,7 +723,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 				catalogParity &= catalog.hash().equals(population.catalogHash());
 				canonicalOnline &= (onlineValue >= 0) && (onlineValue <= 2);
 				identities.add(new IdentityEvidence(profileId, characterObjectId, accountName, immutableFingerprint(population, ecology)));
-				profiles.add(new PopulationProfileEvidence(profileId, population.scheduleTemplate(), population.schedulePhaseMinutes(), population.homeMapRegionId(), desiredState, online));
+				profiles.add(new PopulationProfileEvidence(profileId, characterObjectId, population.scheduleTemplate(), population.schedulePhaseMinutes(), population.homeMapRegionId(), desiredState, online));
 			}
 			final int pendingCatchups = pendingCatchups(connection);
 			catchupTerminal &= pendingCatchups == 0;
@@ -755,7 +781,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 		final List<PopulationProfileEvidence> profiles = new ArrayList<>();
 		for (long profileId = 1; profileId <= EXPECTED_POPULATION; profileId++)
 		{
-			profiles.add(new PopulationProfileEvidence(profileId, "evening", 0, 1, profileId <= desiredActiveCount ? PhantomActivityState.ACTIVE : PhantomActivityState.SLEEPING, onlineIds.contains(profileId)));
+			profiles.add(new PopulationProfileEvidence(profileId, Math.toIntExact(1_000_000L + profileId), "evening", 0, 1, profileId <= desiredActiveCount ? PhantomActivityState.ACTIVE : PhantomActivityState.SLEEPING, onlineIds.contains(profileId)));
 		}
 		return List.copyOf(profiles);
 	}
@@ -1385,6 +1411,10 @@ public final class PhantomBlackBoxLocalStackGoal034
 		manifest.setProperty(prefix + ".acceptance.instant", snapshot.acceptanceInstant().toString());
 		manifest.setProperty(prefix + ".desired.active.ids", joinIds(snapshot.admission().desiredActiveIds()));
 		manifest.setProperty(prefix + ".actual.online.ids", joinIds(snapshot.admission().actualOnlineIds()));
+		final Set<Long> missingDesiredIds = difference(snapshot.admission().desiredActiveIds(), snapshot.admission().actualOnlineIds());
+		final Set<Long> unexpectedOnlineIds = difference(snapshot.admission().actualOnlineIds(), snapshot.admission().desiredActiveIds());
+		manifest.setProperty(prefix + ".missing.desired.ids", joinIds(missingDesiredIds));
+		manifest.setProperty(prefix + ".unexpected.online.ids", joinIds(unexpectedOnlineIds));
 		manifest.setProperty(prefix + ".expected.admitted", Integer.toString(snapshot.admission().expectedAdmittedCount()));
 		manifest.setProperty(prefix + ".actual.online", Integer.toString(snapshot.online()));
 		manifest.setProperty(prefix + ".admission.subset", Boolean.toString(snapshot.admission().subset()));
@@ -1395,11 +1425,24 @@ public final class PhantomBlackBoxLocalStackGoal034
 		manifest.setProperty(prefix + ".unique", Boolean.toString(snapshot.unique()));
 		manifest.setProperty(prefix + ".ownership", Boolean.toString(snapshot.ownership()));
 		manifest.setProperty(prefix + ".catalog.parity", Boolean.toString(snapshot.catalogParity()));
+		int missingIndex = 0;
 		for (int index = 0; index < snapshot.profiles().size(); index++)
 		{
 			final PopulationProfileEvidence profile = snapshot.profiles().get(index);
-			manifest.setProperty(prefix + ".profile." + (index + 1), "profileId=" + profile.profileId() + ";scheduleTemplate=" + profile.scheduleTemplate() + ";phaseMinutes=" + profile.phaseMinutes() + ";homeRegion=" + profile.homeRegion() + ";desiredState=" + profile.desiredState() + ";online=" + profile.online());
+			final String evidence = "profileId=" + profile.profileId() + ";characterObjectId=" + profile.characterObjectId() + ";scheduleTemplate=" + profile.scheduleTemplate() + ";phaseMinutes=" + profile.phaseMinutes() + ";homeRegion=" + profile.homeRegion() + ";desiredState=" + profile.desiredState() + ";online=" + profile.online();
+			manifest.setProperty(prefix + ".profile." + (index + 1), evidence);
+			if (missingDesiredIds.contains(profile.profileId()))
+			{
+				manifest.setProperty(prefix + ".missing.profile." + (++missingIndex), evidence);
+			}
 		}
+	}
+
+	private static Set<Long> difference(Set<Long> left, Set<Long> right)
+	{
+		final Set<Long> difference = new LinkedHashSet<>(left);
+		difference.removeAll(right);
+		return Set.copyOf(difference);
 	}
 
 	private static void writeRestartManifest(Properties manifest, String prefix, RestartEvidence restart)
@@ -1541,7 +1584,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 	{
 	}
 
-	private record PopulationProfileEvidence(long profileId, String scheduleTemplate, int phaseMinutes, int homeRegion, PhantomActivityState desiredState, boolean online)
+	private record PopulationProfileEvidence(long profileId, int characterObjectId, String scheduleTemplate, int phaseMinutes, int homeRegion, PhantomActivityState desiredState, boolean online)
 	{
 		private PopulationProfileEvidence
 		{

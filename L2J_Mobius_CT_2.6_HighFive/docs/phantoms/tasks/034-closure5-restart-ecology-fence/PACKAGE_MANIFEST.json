@@ -1,0 +1,34 @@
+{
+  "task": "Goal034 closure 5",
+  "required_parent": "79184f2ed8ed4d3d787ac70e9e306b45c6893e7e",
+  "branch": "feature/phantom-world",
+  "extract_to": "C:\\Users\\ZBook\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\\\",
+  "lines_excluding_manifest": 274,
+  "suffix_limit": 320,
+  "files": [
+    {
+      "path": "docs/phantoms/tasks/034-closure5-restart-ecology-fence/ACCEPTANCE.md",
+      "sha256": "fda0d6cedda9350fb5b2c05f9b5b4925a6f5a37320a6d1e4258bbe6b5f1fe5b2",
+      "bytes": 501,
+      "lines": 14
+    },
+    {
+      "path": "docs/phantoms/tasks/034-closure5-restart-ecology-fence/CODEX_LAUNCHER.txt",
+      "sha256": "379ed72599b52d05e7812684d931a717ca46947b41b3111da8b3eaddfbc7353f",
+      "bytes": 884,
+      "lines": 5
+    },
+    {
+      "path": "docs/phantoms/tasks/034-closure5-restart-ecology-fence/CONTEXT.md",
+      "sha256": "01f27c18d8ff3e0c2b9b98ee998840b396353dd22e2ae10252a6ad02c57019f9",
+      "bytes": 787,
+      "lines": 12
+    },
+    {
+      "path": "docs/phantoms/tasks/034-closure5-restart-ecology-fence/TASK.md",
+      "sha256": "d5005a3af56f67c590ef702b74b76dee4b74457860cfc76c3d59f29cea78ff08",
+      "bytes": 8442,
+      "lines": 243
+    }
+  ]
+}

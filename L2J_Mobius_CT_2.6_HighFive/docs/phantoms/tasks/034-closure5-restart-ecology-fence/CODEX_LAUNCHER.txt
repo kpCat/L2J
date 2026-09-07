@@ -1,0 +1,5 @@
+/goal Выполни Goal034 closure 5 строго по docs/phantoms/tasks/034-closure5-restart-ecology-fence/TASK.md.
+Required parent: 79184f2ed8ed4d3d787ac70e9e306b45c6893e7e
+Branch: feature/phantom-world
+
+Сначала focused воспроизведи restart-only ecology scheduling-fence gap на существующих durable rows. Не форсируй online=5 и не меняй admission/schedules. Исправь bounded false↔true scheduling-permission propagation через existing ecology pulse/events, без full scan/new thread. Black-box до cleanup обязан сохранять missing gen2 profile IDs. Затем focused Goal033/034 -> fresh verify -> final jar -> real gen1 -> native restart/drain -> gen2 parity -> cleanup. Goal035 не начинать. Production l2jmobiush5 запрещена; prepare-phantom-test-db не выполнять.

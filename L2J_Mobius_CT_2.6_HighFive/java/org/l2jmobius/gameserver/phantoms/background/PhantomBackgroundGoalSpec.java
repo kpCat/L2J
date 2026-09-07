@@ -69,6 +69,15 @@ public record PhantomBackgroundGoalSpec(int npcId, String anchorId, int shotItem
 		{
 			throw new IllegalArgumentException("Background farming requires an ACTIVE farm.background goal.");
 		}
+		return parseLifecycle(goal);
+	}
+
+	static PhantomBackgroundGoalSpec parseLifecycle(PhantomGoal goal)
+	{
+		if ((goal == null) || !GOAL_TYPE.equals(goal.goalType()))
+		{
+			throw new IllegalArgumentException("Background lifecycle requires a farm.background goal.");
+		}
 		final List<PhantomDomainRef> sources = goal.validSources().stream().filter(source -> SOURCE_NAMESPACE.equals(source.namespace())).toList();
 		if (sources.size() != 1)
 		{

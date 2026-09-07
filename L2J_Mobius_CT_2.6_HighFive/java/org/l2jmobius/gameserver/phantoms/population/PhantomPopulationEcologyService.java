@@ -227,6 +227,7 @@ public final class PhantomPopulationEcologyService
 				final int used = process(profileId, intervalsRemaining);
 				intervals += used;
 				intervalsRemaining -= used;
+				publishSchedulingPermissionEdge(profileId);
 			}
 			catch (RuntimeException exception)
 			{
@@ -313,12 +314,7 @@ public final class PhantomPopulationEcologyService
 		final long reconciliationTarget = state.initialCatchupComplete() ? now : Math.min(now, state.initialTargetEpochMinute());
 		if (state.calendarCursorEpochMinute() < reconciliationTarget)
 		{
-			final int advanced = beginNextWindow(profileId, population, stored, reconciliationTarget);
-			if (state.initialCatchupComplete() && permitsScheduling(profileId))
-			{
-				_populationEvents.ecologyFenceChanged(profileId);
-			}
-			return advanced;
+			return beginNextWindow(profileId, population, stored, reconciliationTarget);
 		}
 		if ((now >= state.turnoverEligibleEpochMinute()) && !_materialized.test(profileId))
 		{
@@ -344,7 +340,6 @@ public final class PhantomPopulationEcologyService
 		if (catchup.state().status() == Status.COMPLETE)
 		{
 			persist(profileId, ecology, state.completeRequest());
-			_populationEvents.ecologyFenceChanged(profileId);
 			return 0;
 		}
 		if ((catchup.state().status() == Status.FAILED_REPLAN_REQUIRED) || (intervalBudget <= 0))
@@ -364,7 +359,6 @@ public final class PhantomPopulationEcologyService
 		if ((advanced.snapshot() != null) && (advanced.snapshot().state().status() == Status.COMPLETE))
 		{
 			persist(profileId, ecology, state.completeRequest());
-			_populationEvents.ecologyFenceChanged(profileId);
 		}
 		if (advanced.advancedIntervals() > 0)
 		{
@@ -405,7 +399,6 @@ public final class PhantomPopulationEcologyService
 			return 0;
 		}
 		persist(profileId, stored, state.beginRequest(begun.snapshot().state().requestId(), window.endEpochMinute()));
-		_populationEvents.ecologyFenceChanged(profileId);
 		return 0;
 	}
 
@@ -508,8 +501,34 @@ public final class PhantomPopulationEcologyService
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
-			return (entry != null) && (entry._stored != null) && (entry._stored.state().disposition() == Disposition.MANAGED) && entry._stored.state().initialCatchupComplete() && !entry._stored.state().requestPending() && (entry._stored.state().calendarCursorEpochMinute() >= now);
+			return (entry != null) && permitsSchedulingLocked(entry, now);
 		}
+	}
+
+	private void publishSchedulingPermissionEdge(long profileId)
+	{
+		final boolean changed;
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(profileId);
+			if (entry == null)
+			{
+				return;
+			}
+			final long now = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
+			final boolean permitted = permitsSchedulingLocked(entry, now);
+			changed = permitted != entry._publishedSchedulingPermission;
+			entry._publishedSchedulingPermission = permitted;
+		}
+		if (changed)
+		{
+			_populationEvents.ecologyFenceChanged(profileId);
+		}
+	}
+
+	private static boolean permitsSchedulingLocked(Entry entry, long now)
+	{
+		return (entry._stored != null) && (entry._stored.state().disposition() == Disposition.MANAGED) && entry._stored.state().initialCatchupComplete() && !entry._stored.state().requestPending() && (entry._stored.state().calendarCursorEpochMinute() >= now);
 	}
 
 	public boolean managed(long profileId)
@@ -757,6 +776,7 @@ public final class PhantomPopulationEcologyService
 		private StoredState _stored;
 		private boolean _claimed;
 		private boolean _archiveRequested;
+		private boolean _publishedSchedulingPermission;
 	}
 
 	@FunctionalInterface

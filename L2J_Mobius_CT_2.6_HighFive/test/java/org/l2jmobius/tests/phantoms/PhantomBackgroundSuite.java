@@ -60,9 +60,11 @@ import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
 import org.l2jmobius.gameserver.managers.IdManager;
+import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.MountType;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
+import org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType;
 import org.l2jmobius.gameserver.model.actor.holders.npc.DropHolder;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
@@ -271,7 +273,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			}
-			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
+			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.RECOVERY_TELEPORT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
 			{
 				_production = ProductionAuthorityFixture.start();
 				context.record("background.productionKnowledgeHash", _production.knowledge().snapshot().combinedHash());
@@ -428,6 +430,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	{
 		registry.add("01-terminal-callback-matrix", _ -> testMaterializationAbortMatrix());
 		registry.add("02-background-claim-abort-retry", _ -> testBackgroundClaimAbortRetry());
+		registry.add("03-background-store-abort-retry", _ -> testBackgroundStoreAbortRetry());
 	}
 
 	private void registerQuiescence(PhantomTestRegistry registry)
@@ -469,6 +472,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	{
 		registry.add("01-bounded-canonical-town-recovery", _ -> testDeathRecovery());
 		registry.add("02-recovery-cancellation", _ -> testRecoveryCancellation());
+		registry.add("03-production-town-recovery-remains-canonical", _ -> testProductionDeathRecovery());
 	}
 
 	private void registerRealLogin(PhantomTestRegistry registry)
@@ -628,7 +632,10 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		finally
 		{
 			service.shutdown();
-			deleteProfile(profile);
+			if (profile != null)
+			{
+				deleteProfile(profile);
+			}
 		}
 	}
 
@@ -652,6 +659,31 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(runtime.profileId()).status(), "Retry cleanup failed.");
 			runtime.background().materializeAborted(runtime.profileId(), runtime.characterObjectId());
 			PhantomAssertions.assertTrue(runtime.background().materializationQuiescence().ready(), "Idempotent abort changed the quiescence state.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testBackgroundStoreAbortRetry() throws Exception
+	{
+		final AtomicBoolean failOnce = new AtomicBoolean(true);
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
+		{
+			if ((point == FailurePoint.BEFORE_STORE_OPERATION) && failOnce.compareAndSet(true, false))
+			{
+				throw new InjectedFailure();
+			}
+		});
+		try
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Store-abort fixture did not materialize.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, runtime.materialization().dematerialize(runtime.profileId()).status(), "Injected store failure did not retain cleanup state.");
+			PhantomAssertions.assertEquals(1, runtime.materialization().snapshot().retainedEntries(), "Injected store failure did not retain exactly one entry.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().retryCleanup(runtime.profileId()).status(), "Retry after store abort did not clean the retained entry.");
+			PhantomAssertions.assertEquals(0, runtime.materialization().snapshot().retainedEntries(), "Retry after store abort retained the materialization entry.");
+			PhantomAssertions.assertTrue(runtime.background().materializationQuiescence().ready(), "Retry after store abort leaked a background transition claim.");
 		}
 		finally
 		{
@@ -2040,6 +2072,106 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(Status.SUCCESS, dead.status(), "Causal DEAD state could not be committed.");
 		PhantomAssertions.assertEquals(State.DEAD, dead.state().state(), "Zero HP did not promote DEAD.");
 		return dead.state();
+	}
+
+	private void testProductionDeathRecovery() throws Exception
+	{
+		final PhantomTopologyAnchor initialAnchor = _production.topology().findAnchor("population.farming.dark-elf.20529").orElseThrow();
+		ProductionPlayerFixture playerFixture = null;
+		PhantomProfile profile = null;
+		PhantomBackgroundService background = null;
+		PhantomMaterializationService materialization = null;
+		try
+		{
+			playerFixture = openProductionPlayerFixture(initialAnchor);
+			final int objectId = playerFixture.player().getObjectId();
+			profile = _repository.create(objectId);
+			final long profileId = profile.profileId();
+			final PhantomGoal goal = playerFixture.goal();
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_repository);
+			goals.insert(profileId, goal);
+			final PhantomBackgroundTransaction transaction = new PhantomBackgroundTransaction();
+			final AtomicReference<PhantomMaterializationService> materializationRef = new AtomicReference<>();
+			background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), materializationRef::get);
+			PhantomAssertions.assertTrue(background.start(), "Production recovery background service did not start.");
+			final PhantomMetrics metrics = new PhantomMetrics();
+			materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, point ->
+			{
+			}, background, 5_000, 10_000);
+			PhantomAssertions.assertTrue(materialization.start(), "Production recovery materialization service did not start.");
+			materializationRef.set(materialization);
+			for (PhantomTopologyAnchor farmAnchor : _production.topology().snapshot().anchors().stream().filter(anchor -> anchor.id().startsWith("population.farming.")).sorted(Comparator.comparing(PhantomTopologyAnchor::id)).toList())
+			{
+				final Position farmPosition = canonicalAnchorPosition(farmAnchor, playerFixture.player().getHeading());
+				playerFixture.player().setXYZInvisible(farmPosition.x(), farmPosition.y(), farmPosition.z());
+				final Location town = MapRegionData.getInstance().getTeleToLocation(playerFixture.player(), TeleportWhereType.TOWN);
+				PhantomAssertions.assertTrue(town != null, "Production recovery corpus lacks a town for " + farmAnchor.id());
+				final Position recoveryPosition = _production.authority().canonicalRecoveryPosition(town.getX(), town.getY(), town.getZ(), town.getInstanceId(), playerFixture.player().getHeading()).orElseThrow(() -> new AssertionError("Production recovery corpus lacks a canonical town anchor for " + farmAnchor.id()));
+				PhantomAssertions.assertEquals(MapRegionData.getInstance().getMapRegionLocId(town.getX(), town.getY()), MapRegionData.getInstance().getMapRegionLocId(recoveryPosition.x(), recoveryPosition.y()), "Canonical recovery anchor crossed the resolved town map region for " + farmAnchor.id());
+				playerFixture.player().setXYZInvisible(recoveryPosition.x(), recoveryPosition.y(), recoveryPosition.z());
+				try
+				{
+					PhantomAssertions.assertEquals(recoveryPosition.committedAnchorId(), _production.authority().capture(profileId, playerFixture.player(), goal, null).position().committedAnchorId(), "Canonical recovery position is not an exact unique topology anchor for " + farmAnchor.id());
+				}
+				catch (IllegalArgumentException exception)
+				{
+					throw new AssertionError("Canonical recovery position is ambiguous for " + farmAnchor.id() + ": " + recoveryPosition, exception);
+				}
+			}
+			final Position initialPosition = canonicalAnchorPosition(initialAnchor, playerFixture.player().getHeading());
+			playerFixture.player().setXYZInvisible(initialPosition.x(), initialPosition.y(), initialPosition.z());
+
+			final PhantomBackgroundState captured = _production.authority().capture(profileId, playerFixture.player(), goal, null);
+			playerFixture.player().storeMe();
+			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, goal).status(), "Production recovery baseline capture failed.");
+			playerFixture.releaseRuntime();
+			final PhantomBackgroundState ready = transaction.load(profileId).state();
+			final Vitals deadVitals = new Vitals(0, ready.vitals().maximumHp(), ready.vitals().currentMp(), ready.vitals().maximumMp(), 0, ready.vitals().maximumCp());
+			final Progress deadProgress = new Progress(ready.progress().level(), ready.progress().experience(), ready.progress().skillPoints(), ready.progress().experience());
+			final PhantomBackgroundOperationKey operationKey = new PhantomBackgroundOperationKey(profileId, objectId, goal.goalId(), goal.revision(), 1, 1, ActionKind.FARM, PRODUCTION_TARGET_NPC_ID, PRODUCTION_FARM_ANCHOR_ID, PhantomBackgroundState.MODEL_VERSION, _production.authority().hashes());
+			final Result dead = transaction.execute(new PhantomBackgroundTransaction.Command(ready, goal, operationKey, deadProgress, deadVitals, ready.position(), new Clock(3, 0, 0), Map.of(), exactAutoGetSkills(ready.identity(), deadProgress.level())));
+			PhantomAssertions.assertEquals(Status.SUCCESS, dead.status(), "Production recovery DEAD state could not be committed.");
+			PhantomAssertions.assertEquals(State.DEAD, dead.state().state(), "Production recovery fixture did not enter DEAD.");
+
+			final PhantomBackgroundService.OperationResult recovered = background.recover(profileId, goal, PhantomActivityState.WARM);
+			PhantomAssertions.assertEquals(OperationStatus.FAIL_GOAL, recovered.status(), "Production town recovery did not complete: " + recovered.reason());
+			final PhantomBackgroundState recoveredState = transaction.load(profileId).state();
+			PhantomAssertions.assertEquals(State.READY, recoveredState.state(), "Production town recovery did not restore READY.");
+			PhantomAssertions.assertTrue(_production.topology().findAnchor(recoveredState.position().committedAnchorId()).isPresent(), "Production town recovery did not retain a corpus topology anchor.");
+			PhantomAssertions.assertEquals(MapRegionData.getInstance().getMapRegionLocId(initialAnchor.point().x(), initialAnchor.point().y()), MapRegionData.getInstance().getMapRegionLocId(recoveredState.position().x(), recoveredState.position().y()), "Production town recovery crossed map-region ownership.");
+			PhantomAssertions.assertTrue(materialization.find(profileId).isEmpty(), "Production town recovery retained a materialized entry.");
+			PhantomAssertions.assertEquals(0, background.snapshot().currentTransitionClaims(), "Production town recovery retained a background transition claim.");
+
+			final PhantomGoalStateStore.StoredGoal storedGoal = goals.load(profileId).orElseThrow();
+			final PhantomGoal failedGoal = goal.withStatus(PhantomGoalStatus.FAILED);
+			goals.replace(profileId, storedGoal.rowVersion(), failedGoal);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(profileId).status(), "Terminal recovery goal could not rematerialize for lifecycle cleanup.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(profileId).status(), "Terminal recovery goal retained lifecycle cleanup ownership.");
+			PhantomAssertions.assertTrue(materialization.find(profileId).isEmpty(), "Terminal recovery goal retained a materialized entry.");
+			PhantomAssertions.assertEquals(State.READY, transaction.load(profileId).state().state(), "Terminal recovery lifecycle capture did not restore READY.");
+			PhantomAssertions.assertEquals(0, background.snapshot().currentTransitionClaims(), "Terminal recovery lifecycle capture retained a background transition claim.");
+		}
+		finally
+		{
+			if ((materialization != null) && (profile != null) && materialization.find(profile.profileId()).isPresent())
+			{
+				materialization.dematerialize(profile.profileId());
+			}
+			if (materialization != null)
+			{
+				materialization.shutdown();
+			}
+			if (background != null)
+			{
+				background.beginStop();
+				background.finishStop();
+			}
+			deleteProfile(profile);
+			if (playerFixture != null)
+			{
+				playerFixture.close();
+			}
+		}
 	}
 
 	private void testStopDrain() throws Exception
@@ -3857,6 +3989,12 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				return new TravelAdvance(TravelAdvance.Status.AT_DESTINATION, state.position(), state.clock(), "");
 			}
 			return new TravelAdvance(TravelAdvance.Status.ARRIVED, new Position(0, state.position().x(), state.position().y(), state.position().z(), state.position().heading(), goal.anchorId()), new Clock(state.clock().rngState(), 0, state.clock().residualEncounterMillis()), "test.edge");
+		}
+
+		@Override
+		public Optional<Position> canonicalRecoveryPosition(int x, int y, int z, int instanceId, int heading)
+		{
+			return Optional.of(new Position(instanceId, x, y, z, heading, ANCHOR_ID));
 		}
 
 		@Override

@@ -23,6 +23,7 @@ package org.l2jmobius.gameserver.phantoms.background;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DeathPolicy;
@@ -73,6 +74,8 @@ public interface PhantomBackgroundAuthority
 	}
 
 	TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis);
+
+	Optional<Position> canonicalRecoveryPosition(int x, int y, int z, int instanceId, int heading);
 
 	default TravelAdvance advanceAcquisitionTravel(PhantomBackgroundState state, Source source, long elapsedBudgetMillis)
 	{

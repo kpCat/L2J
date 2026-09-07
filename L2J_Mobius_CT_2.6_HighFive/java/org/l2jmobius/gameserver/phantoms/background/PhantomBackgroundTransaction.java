@@ -282,6 +282,16 @@ public final class PhantomBackgroundTransaction
 
 	public Result captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal)
 	{
+		return captureBaseline(materializedState, goal, true);
+	}
+
+	public Result captureLifecycleBaseline(PhantomBackgroundState materializedState, PhantomGoal goal)
+	{
+		return captureBaseline(materializedState, goal, false);
+	}
+
+	private Result captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal, boolean requireActiveGoal)
+	{
 		Objects.requireNonNull(materializedState, "materializedState");
 		Objects.requireNonNull(goal, "goal");
 		if (materializedState.state() != State.MATERIALIZED)
@@ -294,7 +304,7 @@ public final class PhantomBackgroundTransaction
 			try
 			{
 				requireProfileLink(lockProfile(connection, materializedState.identity().profileId()), materializedState.identity().characterObjectId());
-				lockAndValidateGoal(connection, materializedState.identity().profileId(), goal);
+				lockAndValidateGoal(connection, materializedState.identity().profileId(), goal, requireActiveGoal);
 				final LockedComponent component = lockComponent(connection, materializedState.identity().profileId(), PhantomBackgroundState.COMPONENT_TYPE);
 				final Canonical canonical = lockCanonical(connection, materializedState.identity());
 				final List<ItemRow> items = lockItems(connection, materializedState.identity().characterObjectId());
@@ -707,6 +717,11 @@ public final class PhantomBackgroundTransaction
 
 	private LockedComponent lockAndValidateGoal(Connection connection, long profileId, PhantomGoal expected) throws SQLException
 	{
+		return lockAndValidateGoal(connection, profileId, expected, true);
+	}
+
+	private LockedComponent lockAndValidateGoal(Connection connection, long profileId, PhantomGoal expected, boolean requireActiveGoal) throws SQLException
+	{
 		final LockedComponent goalComponent = lockComponent(connection, profileId, PhantomGoalStateStore.COMPONENT_TYPE);
 		if ((goalComponent == null) || (goalComponent.schemaVersion() != PhantomGoalStateStore.COMPONENT_SCHEMA_VERSION))
 		{
@@ -721,7 +736,7 @@ public final class PhantomBackgroundTransaction
 		{
 			throw new StateConflict(Status.GOAL_STALE);
 		}
-		if ((actual.status() != PhantomGoalStatus.ACTIVE) || !Arrays.equals(_goalCodec.encode(expected), _goalCodec.encode(actual)))
+		if ((requireActiveGoal && (actual.status() != PhantomGoalStatus.ACTIVE)) || !Arrays.equals(_goalCodec.encode(expected), _goalCodec.encode(actual)))
 		{
 			throw new StateConflict(Status.GOAL_STALE);
 		}

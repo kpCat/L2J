@@ -68,6 +68,7 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Rec
 import org.l2jmobius.gameserver.phantoms.acquisition.manor.PhantomAcquisitionManorAuthority;
 import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
@@ -772,11 +773,17 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return OperationResult.inconsistent("recovery.runtime_not_dead");
 			}
-			final Location destination = MapRegionData.getInstance().getTeleToLocation(player, TeleportWhereType.TOWN);
-			if (destination == null)
+			final Location town = MapRegionData.getInstance().getTeleToLocation(player, TeleportWhereType.TOWN);
+			if (town == null)
 			{
 				return retry("recovery.town_absent");
 			}
+			final var canonicalDestination = _authority.canonicalRecoveryPosition(town.getX(), town.getY(), town.getZ(), town.getInstanceId(), player.getHeading()).orElse(null);
+			if (canonicalDestination == null)
+			{
+				return retry("recovery.canonical_town_absent");
+			}
+			final Location destination = new Location(canonicalDestination.x(), canonicalDestination.y(), canonicalDestination.z(), canonicalDestination.heading(), canonicalDestination.instanceId());
 			if (!resumeBoundary)
 			{
 				player.doRevive();
@@ -984,7 +991,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		try
 		{
-			PhantomBackgroundGoalSpec.parse(goal);
+			PhantomBackgroundGoalSpec.parseLifecycle(goal);
 		}
 		catch (IllegalArgumentException exception)
 		{
@@ -996,7 +1003,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			return;
 		}
 		final PhantomBackgroundState captured = _authority.capture(profileId, player, goal, previous);
-		final PhantomBackgroundTransaction.Result stored = transaction(() -> _transactions.captureBaseline(captured, goal));
+		final PhantomBackgroundTransaction.Result stored = transaction(() -> goal.status() == PhantomGoalStatus.ACTIVE ? _transactions.captureBaseline(captured, goal) : _transactions.captureLifecycleBaseline(captured, goal));
 		if (!stored.successful())
 		{
 			throw new IllegalStateException("Canonical background baseline capture failed.");
@@ -1298,7 +1305,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		synchronized (this)
 		{
 			final TransitionKind existing = _transitions.get(profileId);
-			if (existing == TransitionKind.MATERIALIZING)
+			if ((existing == TransitionKind.MATERIALIZING) || (existing == TransitionKind.DEMATERIALIZING))
 			{
 				return true;
 			}
