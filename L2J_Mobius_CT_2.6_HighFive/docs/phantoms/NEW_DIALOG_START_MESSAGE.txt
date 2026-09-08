@@ -1,9 +1,10 @@
 Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Runtime baseline before Roadmap v5 docs-only sync:
-e148d8e4d76a8b3afda1a200aa44aad9260943fc.
-Это не SHA documentation commit. Actual HEAD и origin обязательны к новой
-проверке по task package.
+Goal034 closure8 required parent:
+2fe9979d5ca9bcb1dd318f58038dad9ab17674ff.
+Exact Goal034 SUCCESS commit SHA и push result указаны в итоговом handoff
+closure8; actual HEAD и origin обязательны к новой проверке по следующему task
+package.
 Goal034 выполняется только через guarded black-box harness; production DB и destructive prepare запрещены.
 Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
 
@@ -15,7 +16,7 @@ Goal034 выполняется только через guarded black-box harness
 - Goal033 living population ecology — SUCCESS: production implementation, production-composed LIVING 10/5/restart и cross-goal DB regressions прошли на `l2jmobiush5_phantom_test` с cleanup;
 - Goal033A causal historical Background catch-up prerequisite — SUCCESS;
 - Goal033A1 canonical population topology ingress — SUCCESS; blocker Goal033A CLOSED BY Goal033A1;
-- Goal034 closure 7 — BLOCKED: preserved closure6 `5/5/1` loss не воспроизведён и классифицирован `F`; faithful cold gen1 drain -> fresh gen2 regression `2/2`, focused total `52/52`, единственный real run `20260908-112158-bfe101b7` дал gen1/gen2 `5/5/5` и два native restart/drain PASS; обязательный verify после разрешённого transient combat confirmation остановился на втором независимом predecessor `[Player._skillListTask]`; standalone final jar не запускался; cleanup PASS, `forced=false`, no orphans; production DB unused;
+- Goal034 closure 8 — SUCCESS: verify-only predecessor `[Player._skillListTask]` не воспроизведён (`NOT_REPRODUCED`); standalone manor `2/2`, acquisition checkpoint2 aggregate `56/56`, fresh full verify и standalone final jar PASS; fresh real run `20260908-135425-0b7d8b31` дал gen1/gen2 `5/5/5` с одинаковыми ID, два native restart/drain PASS, cleanup `population=10`, `registration=true`, `forced=false`, `orphans.none=true`, `working.integrity=true`; production DB unused;
 - shipped dist/game/config/Custom/PhantomPlayers.ini остаётся safe: EnablePhantomSystem=False, population=0, ACTIVE=0;
 - local-play preset 10/5: docs/phantoms/examples/PhantomPlayers.local-play.ini;
 - read-only operator entrypoint: ant phantom-local-play-preflight;
@@ -28,13 +29,13 @@ Goal034 выполняется только через guarded black-box harness
 - Goal033A historical blocked report: docs/phantoms/reports/033A-causal-background-catchup.md;
 - Goal033A SUCCESS report: docs/phantoms/reports/033A-causal-background-catchup-resume.md;
 - Goal033A1 report: docs/phantoms/reports/033A1-canonical-population-topology-ingress.md;
-- Goal034 current report: docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-post-restart-materialization-loss-resume.md;
+- Goal034 SUCCESS report: docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-closure8-final.md;
 - operator tuning: docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md.
 
 Roadmap v5 — finite authoritative forward sequence:
 
-1. Goal034 — automated black-box local-stack acceptance, сейчас BLOCKED.
-2. Goal035 — siege gameplay slice, NOT_STARTED до Goal034 SUCCESS.
+1. Goal034 — automated black-box local-stack acceptance, SUCCESS.
+2. Goal035 — siege gameplay slice, следующий planned Goal; NOT_STARTED до отдельной явной задачи.
 3. Goal036 — bounded whitelist quests/instances/class transfer/Kamaloka/Pailaka.
 4. Goal037 — 100% High Five quest-script inventory + rates normalization/parity.
 5. Goal038 — Humanized Russian Semantic Pack, social/off-topic conversation,
@@ -64,6 +65,17 @@ Closure7 проверила factual resume boundary: faithful cold regression п
 semantic fix не внесён. Closure остановлена вторым независимым predecessor
 full-verify blocker `[Player._skillListTask]`, standalone final jar не запускался.
 
+Closure8 восстановила predecessor baseline в обязательном порядке: standalone
+manor `2/2`, acquisition checkpoint2 aggregate `56/56`, затем один fresh full
+verify PASS. `[Player._skillListTask]` не воспроизведён, поэтому late re-arm,
+`sendSkillList()`/`stopAllTasks()` race и test/DB order effect не объявлены
+доказанными; classification — `NOT_REPRODUCED`, production semantic fix не
+вносился. Standalone final jar PASS. Fresh guarded real run
+`20260908-135425-0b7d8b31` дал gen1/gen2 `5/5/5` с IDs
+`6786,6790,6791,6794,6795`, два native restart/drain и exact cleanup без forced
+kill или orphan JVM. Использовалась только `l2jmobiush5_phantom_test`;
+`prepare-phantom-test-db` не выполнялся.
+
 Не объявляй готовыми исходные gameplay gaps:
 - siege AI — DEFERRED_NOT_IMPLEMENTED;
 - generic whitelist quest adapter — PARTIAL (есть только bounded Q102/Q152 acquisition subset);
@@ -71,18 +83,14 @@ full-verify blocker `[Player._skillListTask]`, standalone final jar не зап�
 - Kamaloka — DEFERRED_NOT_IMPLEMENTED;
 - Pailaka — DEFERRED_NOT_IMPLEMENTED.
 
-Следующий реальный шаг: отдельный explicit resume **Goal034 — Automated
-black-box local stack acceptance** от closure7 `BLOCKED` evidence. Сначала
-нужно восстановить green predecessor/full-verify baseline, не повторяя
-исчерпанные verify/rerun loops этой closure. Preserved real run остаётся
-diagnostic PASS, но не является финальным acceptance без standalone final jar
-и complete validation chain. Используй только allowlisted
-`l2jmobiush5_phantom_test`; production `l2jmobiush5` и destructive prepare
-запрещены. Goal035 не начинать до SUCCESS Goal034.
+Следующий planned feature step: **Goal035 — Siege gameplay slice**, только по
+отдельной явной задаче. Этот handoff не является разрешением начинать Goal035.
+Для любых DB-backed проверок сохраняй allowlisted `l2jmobiush5_phantom_test`;
+production `l2jmobiush5` и destructive prepare запрещены.
 
 Сначала прочитай `Agents.md`, `PHANTOM_DEVELOPMENT_MASTER_PLAN.md`,
 `docs/PHANTOM_BOTS_ROADMAP.md`, `docs/phantoms/PHANTOM_CURRENT_STATUS.md`, этот
-handoff, current closure7 report и новый explicit Goal034 resume task package.
+handoff, Goal034 closure8 SUCCESS report и новый explicit task package.
 Работай по `docs/phantoms/CODEX_WORKFLOW_CONTRACT.md`; исполняемый контракт
 каждой задачи находится в `docs/phantoms/tasks/<task>/TASK.md`. Не трогай
 historical reports, production DB, accepted Goal030 semantics и shipped safe
