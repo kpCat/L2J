@@ -1,7 +1,9 @@
 Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Required parent Goal034 closure 4:
-b43959bcfec2d21840b1abc8f54a7bc6900d849e.
+Runtime baseline before Roadmap v5 docs-only sync:
+e148d8e4d76a8b3afda1a200aa44aad9260943fc.
+Это не SHA documentation commit. Actual HEAD и origin обязательны к новой
+проверке по task package.
 Goal034 выполняется только через guarded black-box harness; production DB и destructive prepare запрещены.
 Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
 
@@ -13,7 +15,7 @@ Goal034 выполняется только через guarded black-box harness
 - Goal033 living population ecology — SUCCESS: production implementation, production-composed LIVING 10/5/restart и cross-goal DB regressions прошли на `l2jmobiush5_phantom_test` с cleanup;
 - Goal033A causal historical Background catch-up prerequisite — SUCCESS;
 - Goal033A1 canonical population topology ingress — SUCCESS; blocker Goal033A CLOSED BY Goal033A1;
-- Goal034 closure 4 — BLOCKED: schedule-aware cap oracle и native gen1 restart/drain доказаны, но финальная gen2 получила desired ACTIVE=5/actual online=4; третий Phase-C blocker остановил closure;
+- Goal034 closure 6 — BLOCKED: `_skillListTask` predecessor issue FIXED/CLOSED, focused suites green, два fresh full verify и final jar PASS, fresh gen1 `5/5/5` и native restart/drain PASS; latest real retry gen2 `desired/expected/online=5/5/1`, missing `6028,6029,6032,6033`; current blocker — post-restart loss scheduler-admitted materializations; cleanup PASS, `forced=false`, no orphans; production DB unused;
 - shipped dist/game/config/Custom/PhantomPlayers.ini остаётся safe: EnablePhantomSystem=False, population=0, ACTIVE=0;
 - local-play preset 10/5: docs/phantoms/examples/PhantomPlayers.local-play.ini;
 - read-only operator entrypoint: ant phantom-local-play-preflight;
@@ -26,8 +28,23 @@ Goal034 выполняется только через guarded black-box harness
 - Goal033A historical blocked report: docs/phantoms/reports/033A-causal-background-catchup.md;
 - Goal033A SUCCESS report: docs/phantoms/reports/033A-causal-background-catchup-resume.md;
 - Goal033A1 report: docs/phantoms/reports/033A1-canonical-population-topology-ingress.md;
-- Goal034 current report: docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-schedule-aware-closure.md;
+- Goal034 current report: docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-player-future-cleanup-resume.md;
 - operator tuning: docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md.
+
+Roadmap v5 — finite authoritative forward sequence:
+
+1. Goal034 — automated black-box local-stack acceptance, сейчас BLOCKED.
+2. Goal035 — siege gameplay slice, NOT_STARTED до Goal034 SUCCESS.
+3. Goal036 — bounded whitelist quests/instances/class transfer/Kamaloka/Pailaka.
+4. Goal037 — 100% High Five quest-script inventory + rates normalization/parity.
+5. Goal038 — Humanized Russian Semantic Pack, social/off-topic conversation,
+   versioned custom overrides, contextual profanity и optional mature opt-in,
+   shipped OFF.
+6. Goal039 — единственный final full-vision release gate + freeze.
+
+После `ACCEPT` Goal039: `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`. Automatic
+Goal040+ запрещены. Следующий runtime step — только новый explicit Goal034
+resume от preserved post-restart gen2 `5/5/1` evidence; Goal035 не начинать.
 
 Goal031 доказал guarded production-composed путь: 10 durable identities, Scheduler/Decision, real headless Player в World, autonomous decision trace, restart без duplicate rows, bounded shutdown retry и drain/disable rollback. GameServer запускает PhantomSystem только после World/data/scripts/managers и восстановления offline owners.
 
@@ -39,6 +56,12 @@ Goal033A закрыл causal catch-up prerequisite: production planner потр�
 
 Повтор Goal033 реализовал durable `population.ecology`, FRESH/LIVING/MATURE, immutable low-discrepancy CASUAL/REGULAR/FAST/OUTLIER pace/personality/schedule assignment, schedule-aware causal windows через accepted Goal033A, restart-safe ongoing reconciliation, safe MANAGED→ARCHIVED turnover/replacement и bounded operator status с live level histogram. Human level не используется; direct XP/free resources/teleport, reward multipliers, второй lifecycle и новый timer/thread отсутствуют. Focused Goal033 7/7, production-composed LIVING 10/5 2/2, Goal033A 4/4 и Goal032/031/030CP3 DB regressions PASS на `l2jmobiush5_phantom_test`; созданные тестовые профили очищены. Production `l2jmobiush5` не использовалась.
 
+Closure6 сохранила factual resume boundary: gen1 `5/5/5`, native
+restart/drain PASS, latest gen2 `5/5/1`. `_skillListTask` больше не является
+current blocker. Новый Goal034 resume должен детерминировать потерю четырёх
+scheduler-admitted materializations после restart, не расширяя scope до
+Goal035.
+
 Не объявляй готовыми исходные gameplay gaps:
 - siege AI — DEFERRED_NOT_IMPLEMENTED;
 - generic whitelist quest adapter — PARTIAL (есть только bounded Q102/Q152 acquisition subset);
@@ -46,8 +69,21 @@ Goal033A закрыл causal catch-up prerequisite: production planner потр�
 - Kamaloka — DEFERRED_NOT_IMPLEMENTED;
 - Pailaka — DEFERRED_NOT_IMPLEMENTED.
 
-Следующий реальный шаг: возобновить closure **Goal034 — Automated black-box local stack acceptance** с exact BLOCKED commit, указанного в финальном handoff closure4. Runtime layout и schedule-aware harness закрыты: ACTIVE target 5 — cap, oracle вычисляет durable desired ACTIVE и требует `actualOnline=min(5, desiredActiveCount)`/subset; sandbox использует `ServerRestartDays=1..7` и доказывает restart instant до wait. Gen1 `desired=5/online=5` и native restart/drain прошли, но gen2 после READY/registration завершила 5-minute gate с `desired=5/online=4`. Новый task должен сначала сохранить fail evidence отсутствующего profile/owner state, затем доказать root cause; не угадывать и не менять production semantics ради exact five. Нужен новый explicit validation budget. Используй только `l2jmobiush5_phantom_test`; production `l2jmobiush5` и destructive prepare запрещены. Goal035 не начинать до SUCCESS Goal034.
+Следующий реальный шаг: отдельный explicit resume **Goal034 — Automated
+black-box local stack acceptance** от closure6 `BLOCKED` evidence. Runtime
+layout и schedule-aware harness закрыты: ACTIVE target 5 — cap, gen1 `5/5/5`
+и native restart/drain прошли, а latest gen2 после READY/registration дала
+`5/5/1`. Новый task должен детерминировать post-restart loss четырёх
+scheduler-admitted materializations; не угадывать и не менять production
+semantics ради exact five. Нужен новый explicit validation budget. Используй
+только allowlisted `l2jmobiush5_phantom_test`; production `l2jmobiush5` и
+destructive prepare запрещены. Goal035 не начинать до SUCCESS Goal034.
 
-Authoritative Roadmap v4 после Goal033: Goal034 automated black-box Login/Game stack на guarded test DB; Goal035 siege; Goal036 bounded quests/instances; Goal037 server rates + quest-rate normalization + Phantom parity; Goal038 final full-vision gate + freeze. После ACCEPT Goal038 не планировать новые goals автоматически.
-
-Сначала прочитай Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, docs/PHANTOM_BOTS_ROADMAP.md, docs/phantoms/PHANTOM_CURRENT_STATUS.md, reports Goal033, historical Goal033A, Goal033A1 и Goal033A SUCCESS resume, closure4 TASK и `docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-schedule-aware-closure.md`. Не трогай historical reports, production DB, accepted Goal030 semantics и shipped safe defaults. Промежуточный QA должен быть автоматизирован; ручная игра пользователя — финальная experience validation.
+Сначала прочитай `Agents.md`, `PHANTOM_DEVELOPMENT_MASTER_PLAN.md`,
+`docs/PHANTOM_BOTS_ROADMAP.md`, `docs/phantoms/PHANTOM_CURRENT_STATUS.md`, этот
+handoff, current closure6 report и новый explicit Goal034 resume task package.
+Работай по `docs/phantoms/CODEX_WORKFLOW_CONTRACT.md`; исполняемый контракт
+каждой задачи находится в `docs/phantoms/tasks/<task>/TASK.md`. Не трогай
+historical reports, production DB, accepted Goal030 semantics и shipped safe
+defaults. Промежуточный QA должен быть автоматизирован; ручная игра
+пользователя — финальная experience validation.

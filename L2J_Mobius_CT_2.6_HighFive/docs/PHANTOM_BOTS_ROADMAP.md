@@ -4,7 +4,7 @@
 **Модуль:** `L2J_Mobius_CT_2.6_HighFive`  
 **Целевая ветка:** `feature/phantom-world`  
 **Путь документа:** `docs/PHANTOM_BOTS_ROADMAP.md`  
-**Версия дорожной карты:** 3
+**Версия дорожной карты:** 5
 **Дата архитектурного аудита:** 2026-09-04
 **Статус:** обязательный ориентир для постановки GOAL, независимого ревью и контроля прогресса
 
@@ -345,8 +345,9 @@ inventory, HP/MP, party, occupied spot и уже наблюдавшиеся со
 
 ## 5. Оптимальное количество задач
 
-Дорожная карта сохраняет **30 основных GOAL**. Это оптимальный рабочий вариант
-для текущего объёма требований:
+Историческая базовая дорожная карта сохраняет **30 основных GOAL** без
+перенумерации. Finite Roadmap v5 evidence-driven расширяет declared scope до
+Goal039 и завершает его единственным final full-vision gate:
 
 - меньшее число заставило бы смешать несовместимые risk boundaries;
 - большее число начало бы дробить законченные вертикальные результаты;
@@ -1046,19 +1047,25 @@ conversation, clans, restart/failure recovery, soak, operator docs and rollback.
 **Gate:** end-to-end alpha scenarios, disabled regression and release decision.  
 **Follow-up risk:** `VERY_HIGH` — cross-system integration/release stabilization.
 
-## Roadmap v4 — конечный post-release path
+## Roadmap v5 — конечный post-release path
 
 Goal031 local-play readiness — `SUCCESS`: versioned preset 10/5, read-only preflight, quick-start и production-composed restart/rollback evidence.
 
-1. **Goal032 — Phantom-only reset/reseed + operator tuning + Roadmap v3 — `SUCCESS`.** Exact ownership preview, one-time confirmation, drain-before-mutation, transactional private cleanup и shared/human safety blockers.
-2. **Goal033 — Living population ecology — `SUCCESS`.** Immutable durable ecology, pace/personality/schedule assignment, causal Goal033A catch-up, restart-safe turnover и guarded LIVING 10/5 evidence.
-3. **Goal034 — automated black-box local stack acceptance — `BLOCKED`.** ACTIVE target 5 подтверждён как cap, а harness требует `actualOnline=min(5, desiredActiveCount)` и subset durable desired ACTIVE. Runtime layout, три full verify/jar, real LS/GS gen1 `desired=5/online=5` и native restart/drain green; финальная gen2 после READY/registration осталась `desired=5/online=4`, поэтому третий Phase-C blocker остановил closure. Goal035 не начат.
-4. **Goal035 — siege gameplay slice.** Registration, schedule awareness, gathering, roles, attack/defense и retreat/recovery через native siege owners.
-5. **Goal036 — bounded whitelist quests + instances slice.** Generic ограниченный lifecycle, class-transfer path и явно supported Kamaloka/Pailaka; без universal solver.
-6. **Goal037 — server rates + quest-rate normalization + Phantom parity.** Полный High Five audit canonical rates; применимые quest scripts; objective/item-drop и completion XP/SP/Adena/items; normal drop/spoil; deterministic 1x/non-1x matrix для real Player и Phantom ACTIVE/BACKGROUND.
-7. **Goal038 — final full-vision release gate + freeze.** Fresh install/upgrade, safe config, presets/reset/ecology, black-box stack, restart/rollback, siege, quests/instances, rates/parity, scale и documentation consistency.
+Завершённые predecessors: Goal032 Phantom-only reset/reseed + operator tuning —
+`SUCCESS`; Goal033 Living population ecology — `SUCCESS`. Они остаются accepted
+history и не входят в authoritative forward sequence ниже.
 
-После `ACCEPT` Goal038 статус заявленного scope становится `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`. Новые feature goals автоматически не создаются: только proven bugfix/regression либо новая явная пользовательская feature request.
+1. **Goal034 — automated black-box local stack acceptance — `BLOCKED`.** Closure6 закрыла predecessor `_skillListTask` bug: regression и focused suites green, два fresh full verify и final jar PASS. Fresh real gen1 дала `managed/desired/expected/online=10/5/5/5`, native restart/drain PASS. Последний real retry gen2 дал `desired/expected/online=5/5/1`: post-restart потеряны четыре scheduler-admitted materializations; cleanup PASS, `forced=false`, no orphans, production DB не использовалась. Следующий runtime шаг — отдельный explicit Goal034 resume; Goal035 — `NOT_STARTED`.
+2. **Goal035 — siege gameplay slice.** Registration, schedule awareness, gathering, roles, attack/defense и retreat/recovery через native siege owners.
+3. **Goal036 — bounded whitelist quests + instances slice.** Generic ограниченный lifecycle, class-transfer path и явно supported Kamaloka/Pailaka; без universal solver.
+4. **Goal037 — full High Five quest-script inventory + rates normalization/parity.** Inventory охватывает 100% `dist/game/data/scripts/quests/**`; unclassified quest — gate failure. Каждый script получает reward/drop/rate-path classification: quest/objective item grants и chance arithmetic, completion XP/SP/Adena/items, normal drop/spoil/manor interactions и canonical helper/rate path; control/key/singleton quest-item exceptions отделяются от multiply-safe rewards. QA: structural/AST-style corpus audit (compiler tree API предпочтительнее grep-only), compile/load всего corpus, deterministic 1x/non-1x matrix и representative real-server mechanics без GameServer-per-quest. Canonical server rate settings остаются authority; Player и Phantom ACTIVE/BACKGROUND имеют parity where applicable; bypass обязан дать diagnostic/gate, а не молча жить.
+5. **Goal038 — Humanized Russian Semantic Pack + social/custom conversation.** Новый Goal поверх accepted bounded foundations Goal019/020: natural conversational Russian, bounded social/off-topic topics, relationship progression, bounded structured personal memory, humor/sarcasm/teasing, questions/follow-ups, emotion-sensitive reactions, personal ↔ game transitions и light flirt. Contextual profanity различает positive/negative/anger/amused/surprise, учитывает personality/relationship/intensity и имеет anti-repeat. Optional mature/18+ register — explicit opt-in only, shipped default `OFF`. Versioned user custom semantic/conversation overrides расширяют vocabulary/patterns/phrases без Java recompilation, строго fail closed валидируются с полезными location/reason и отделены от core. Runtime LLM/internet dependency отсутствует; universal open-domain human conversation не обещается.
+6. **Goal039 — final full-vision release gate + freeze.** Единственный final gate собирает fresh evidence по safe install/config/defaults, Goal034 real-stack acceptance, ecology/restart/recovery, siege, quests/instances, quest/server rates parity, Humanized Semantic Pack/custom pack validation, scale/rollback и documentation consistency.
+
+После `ACCEPT` Goal039 статус заявленного scope становится
+`FEATURE_COMPLETE_FOR_DECLARED_SCOPE`. Automatic Goal040+ запрещены: допустимы
+только proven bugfix/regression либо новая явная пользовательская feature
+request.
 
 Промежуточный QA не перекладывается на пользователя. Каждый Goal обязан иметь deterministic/guarded/production-composed evidence по своему риску; ручная игра — финальная пользовательская проверка опыта, а не обязательный технический gate.
 ---
@@ -1410,7 +1417,10 @@ Overall:
 11. Добавлены explicit DAG, per-goal boundaries и follow-up risk matrix.
 12. Обновлён фактический статус Task 004/004A.
 
-Исторические Goal001–030 не перенумеровываются и их accepted semantics не переписываются. Roadmap v4 сохраняет принятый хвост Goal031–036, добавляет явный rates/parity Goal037 и сдвигает final freeze на Goal038.
+Исторические Goal001–033 не перенумеровываются и их accepted semantics не
+переписываются. Roadmap v5 сохраняет содержание Goal035/036, усиливает Goal037
+до полного quest-script/rates audit, добавляет Humanized Russian Semantic Pack
+в Goal038 и сдвигает единственный final freeze на Goal039.
 
 ---
 

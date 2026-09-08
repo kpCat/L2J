@@ -1,0 +1,33 @@
+{
+  "task": "Roadmap v5 documentation sync after Goal034 closure 6",
+  "required_parent": "e148d8e4d76a8b3afda1a200aa44aad9260943fc",
+  "branch": "feature/phantom-world",
+  "extract_to": "C:\\Users\\ZBook\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\\\",
+  "documentation_only": true,
+  "files": [
+    {
+      "path": "docs/phantoms/tasks/034-roadmap-v5-documentation-sync/ACCEPTANCE.md",
+      "sha256": "d86b183b199c20f9baab5d4bdfe3bfe8b51f183b05dbff7399c250c0ff0f83d3",
+      "bytes": 1990,
+      "lines": 24
+    },
+    {
+      "path": "docs/phantoms/tasks/034-roadmap-v5-documentation-sync/CODEX_LAUNCHER.txt",
+      "sha256": "77799299ea1f5723d608a731451fc36c45e0d48197720b9ac5c54222e68911ed",
+      "bytes": 913,
+      "lines": 5
+    },
+    {
+      "path": "docs/phantoms/tasks/034-roadmap-v5-documentation-sync/CONTEXT.md",
+      "sha256": "b64427c1b5e106665a1dc06d6f0bcad23fd5df9cd0d1f3cfacacfa1786d9283f",
+      "bytes": 7409,
+      "lines": 138
+    },
+    {
+      "path": "docs/phantoms/tasks/034-roadmap-v5-documentation-sync/TASK.md",
+      "sha256": "1dff2b249235b5c3af4f4d984ea94fc3e17d62a0c1deb4ba74654aa3765fdc22",
+      "bytes": 14031,
+      "lines": 392
+    }
+  ]
+}

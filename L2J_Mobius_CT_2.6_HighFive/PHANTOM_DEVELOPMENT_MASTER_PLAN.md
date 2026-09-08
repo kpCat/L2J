@@ -259,6 +259,13 @@
 
 Настройки поведения, лимиты и feature flags выносятся в конфиг.
 
+Forward contract Goal038: обычное расширение пользовательского semantic/
+conversation vocabulary, patterns и phrases выполняется versioned data без
+перекомпиляции Java. Core pack и user custom overrides разделены; custom layer
+проходит строгую fail-closed validation с точным местом и причиной ошибки до
+применения. Конкретные имена config keys и формат layout определяет design task
+Goal038, а не этот план.
+
 ---
 
 ## 10. Semantic Pack
@@ -296,6 +303,24 @@ Runtime не должен обязательно зависеть от LLM ил�
 - unknown.
 
 Результат разбора может запускать действие: party, trade, mail, движение, память, изменение отношения, вызов союзников или атаку.
+
+Goal038 расширяет принятые bounded foundations Goal019/020, не переписывая их:
+
+- естественная русская разговорная речь и bounded social/off-topic темы;
+- progression отношений и bounded structured personal memory вместо
+  бесконечного raw chat log;
+- humor, sarcasm, teasing, вопросы/follow-ups, emotion-sensitive reactions и
+  переходы personal ↔ game topic;
+- light flirt;
+- contextual profanity для positive/negative/anger/amused/surprise с учётом
+  personality, relationship и intensity и обязательным anti-repeat;
+- optional mature/18+ register только по explicit opt-in; shipped default —
+  `OFF`;
+- versioned user custom overrides без runtime LLM/internet dependency.
+
+Честное ограничение раздела 4 сохраняется: deterministic no-LLM runtime даёт
+широкий, но bounded и versioned social conversation scope, а не универсальный
+человеческий разговор на абсолютно любую тему.
 
 ---
 
@@ -846,17 +871,25 @@ Goal030 принят как конкретный 20-domain release slice с 0 pe
 
 Goal 031 local-play readiness — `SUCCESS`: safe preset 10/5, read-only preflight, quick-start, current status и production-composed restart/rollback evidence.
 
-### Roadmap v4: конечный post-release path
+### Roadmap v5: конечный post-release path
 
-1. **Goal032 — Phantom-only reset/reseed + operator tuning contract + Roadmap v3 — `SUCCESS`.** Read-only preview, short-lived one-time confirm, canonical drain, exact ownership transaction, human/shared-state guards, optional reseed и полный current-config guide. Auto-reset при startup отсутствует.
-2. **Goal033 — Living population ecology — `SUCCESS`.** Durable `population.ecology`, FRESH/LIVING/MATURE, virtual age, CASUAL/REGULAR/FAST/OUTLIER pace без reward multiplier, schedule-aware causal windows через Goal033A, newcomer turnover, immutable Social personality assignment и bounded operator status.
-3. **Goal034 — automated black-box local stack acceptance — `BLOCKED`.** Schedule-aware oracle доказал, что ACTIVE target 5 — cap: actual online обязан равняться `min(5, desired ACTIVE count)` и быть subset durable desired ACTIVE. Runtime layout, три full verify/jar, real LS/GS gen1 `desired=5/online=5` и native restart/drain green; финальная gen2 после READY/registration осталась `desired=5/online=4`, поэтому третий Phase-C blocker остановил closure. Goal035 не начат.
-4. **Goal035 — siege gameplay slice.** Native registration/schedule/gathering/roles/attack/defense/retreat owners, bounded data и tests.
-5. **Goal036 — bounded quests/instances slice.** Generic whitelist lifecycle, class-transfer path, Kamaloka/Pailaka только в заявленном supported scope; не universal solver.
-6. **Goal037 — server rates + quest-rate normalization + Phantom parity.** Полный High Five audit canonical rates, применимые quest scripts, objective/item-drop и completion reward XP/SP/Adena/items, normal drop/spoil, а также 1x/non-1x parity real Player и Phantom ACTIVE/BACKGROUND.
-7. **Goal038 — final full-vision release gate + freeze.** Fresh install/upgrade, safe config, local presets, reset/reseed, ecology, black-box stack, accepted gameplay slices, rates/parity, restart/recovery/rollback и documentation consistency.
+Завершённые predecessors: Goal032 Phantom-only reset/reseed + operator tuning —
+`SUCCESS`; Goal033 Living population ecology — `SUCCESS`. Они сохраняются как
+accepted history и не входят в authoritative forward sequence ниже.
 
-После `ACCEPT` Goal038 новые goals автоматически не планируются. Допустимы только proven bugfix/regression или новая явная пользовательская feature request. Automated evidence обязателен для каждого промежуточного Goal; ручная игра пользователя — финальная experience validation и удовольствие, а не основной технический QA.
+1. **Goal034 — automated black-box local stack acceptance — `BLOCKED`.** Closure6 исправила predecessor bug `_skillListTask`; regression и focused suites green, два fresh full verify и final jar PASS. Fresh real gen1 дала `managed/desired/expected/online=10/5/5/5`, native restart/drain PASS. Последний real retry gen2 дал `desired/expected/online=5/5/1`: scheduler-admitted materializations четырёх profiles не восстановились после restart. Cleanup PASS, `forced=false`, orphan processes отсутствуют, production DB не использовалась. Следующий runtime шаг — отдельный explicit Goal034 resume; Goal035 не начат.
+2. **Goal035 — siege gameplay slice.** Native registration/schedule/gathering/roles/attack/defense/retreat owners, bounded data и tests.
+3. **Goal036 — bounded quests/instances slice.** Generic whitelist lifecycle, class-transfer path, Kamaloka/Pailaka только в заявленном supported scope; не universal solver.
+4. **Goal037 — full High Five quest-script inventory + rates normalization/parity.** Inventory охватывает 100% `dist/game/data/scripts/quests/**`; unclassified quest является gate failure. Для каждого script классифицируются reward/drop/rate paths, включая quest/objective item grants и chance arithmetic, completion XP/SP/Adena/items, normal drop/spoil/manor interactions и canonical helper/rate path; control/key/singleton quest-item exceptions отделяются от multiply-safe rewards. QA включает structural/AST-style corpus audit (compiler tree API предпочтительнее grep-only), compile/load всего corpus, deterministic 1x/non-1x matrix и representative real-server mechanics без GameServer-per-quest. Canonical server rate settings остаются authority; Player и Phantom ACTIVE/BACKGROUND обязаны иметь parity там, где механика применима, а bypass даёт diagnostic/gate, а не молча сохраняется.
+5. **Goal038 — Humanized Russian Semantic Pack + social/custom conversation.** Поверх принятых Goal019/020 добавляются natural Russian social/off-topic conversation, relationship progression, bounded personal memory, humor/sarcasm/teasing, questions/follow-ups, emotion-sensitive reactions, personal ↔ game transitions и light flirt. Contextual profanity учитывает positive/negative/anger/amused/surprise, personality, relationship и intensity и имеет anti-repeat. Optional mature/18+ register требует explicit opt-in и поставляется `OFF`. Versioned user custom semantic/conversation overrides расширяют vocabulary/patterns/phrases без Java recompilation, строго fail closed валидируются с location/reason и отделены от core; runtime LLM/internet dependency отсутствует.
+6. **Goal039 — final full-vision release gate + freeze.** Единственный final gate собирает fresh evidence по safe install/config/defaults, Goal034 real-stack acceptance, ecology/restart/recovery, siege, quests/instances, quest/server rates parity, Humanized Semantic Pack/custom pack validation, scale/rollback и documentation consistency.
+
+После `ACCEPT` Goal039 статус фиксируется как
+`FEATURE_COMPLETE_FOR_DECLARED_SCOPE`. Automatic Goal040+ запрещены; допустимы
+только proven bugfix/regression либо новая явная пользовательская feature
+request. Automated evidence обязателен для каждого промежуточного Goal; ручная
+игра пользователя — финальная experience validation и удовольствие, а не
+основной технический QA.
 ---
 
 ## 19. Definition of Done

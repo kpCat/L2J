@@ -1,6 +1,6 @@
 # Phantom World: текущий статус
 
-Дата сверки: 2026-09-07. Source of truth для release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv` и принятый `docs/phantoms/reports/030-checkpoint-3-release-decision.md`; для operator reset/tuning и Roadmap v3 — `docs/phantoms/reports/032-phantom-reset-operator-control.md`; для historical Goal033 blocker — `docs/phantoms/reports/033-living-population-ecology.md`; для текущего повтора Goal033 — `docs/phantoms/reports/033-living-population-ecology-resume.md`; для historical Goal033A blocker — `docs/phantoms/reports/033A-causal-background-catchup.md`; для Goal033A SUCCESS — `docs/phantoms/reports/033A-causal-background-catchup-resume.md`; для закрывшего topology blocker Goal033A1 — `docs/phantoms/reports/033A1-canonical-population-topology-ingress.md`; для текущего Goal034 BLOCKED — `docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-schedule-aware-closure.md`. Статусы полного vision основаны на production code/data/tests, а не на историческом номере Goal.
+Дата сверки: 2026-09-08. Source of truth для release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv` и принятый `docs/phantoms/reports/030-checkpoint-3-release-decision.md`; для operator reset/tuning и Roadmap v3 — `docs/phantoms/reports/032-phantom-reset-operator-control.md`; для historical Goal033 blocker — `docs/phantoms/reports/033-living-population-ecology.md`; для текущего повтора Goal033 — `docs/phantoms/reports/033-living-population-ecology-resume.md`; для historical Goal033A blocker — `docs/phantoms/reports/033A-causal-background-catchup.md`; для Goal033A SUCCESS — `docs/phantoms/reports/033A-causal-background-catchup-resume.md`; для закрывшего topology blocker Goal033A1 — `docs/phantoms/reports/033A1-canonical-population-topology-ingress.md`; для текущего Goal034 closure6 `BLOCKED` — `docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-player-future-cleanup-resume.md`. Статусы полного vision основаны на production code/data/tests, а не на историческом номере Goal.
 
 | Capability/domain | Implementation status | Release evidence | Known limitation | Next action |
 |---|---|---|---|---|
@@ -9,6 +9,7 @@
 | **Goal033 living population ecology** | **SUCCESS** | Focused 7/7; production-composed LIVING 10/5 2/2; Goal033A 4/4; Goal032/031/030CP3 DB regressions PASS на `l2jmobiush5_phantom_test` с cleanup | Full profession/class-transfer realism остаётся Goal036; текущий 10-profile level sample ограничен canonical High Five progression | Следующий Goal034; production `l2jmobiush5` не использовать |
 | **Goal033A causal historical Background catch-up** | **SUCCESS** | Real-data planner, lifecycle baseline, atomic minute cursor, restart/death semantics и fences; focused tests + final jar PASS | Не является отдельным ecology engine | Используется Goal033 |
 | **Goal033A1 canonical population topology ingress** | **SUCCESS; topology blocker CLOSED BY Goal033A1** | 38/38 exact ingress; 7 real farms; 80/80 factual Background edges; Goal033A1 4/4; focused regressions PASS | Historical catch-up закрыт Goal033A | Используется Goal033A и Goal033 |
+| **Goal034 automated black-box local stack acceptance** | **BLOCKED на closure6** | `_skillListTask` issue FIXED/CLOSED; focused suites green; два fresh full verify и final jar PASS; gen1 `5/5/5`; native restart/drain PASS; latest gen2 `5/5/1` | Post-restart потеряны scheduler-admitted materializations `6028,6029,6032,6033`; cleanup PASS, `forced=false`, no orphans; production DB unused | Новый explicit Goal034 runtime resume от preserved gen2 evidence; Goal035 не начинать |
 | Fresh bootstrap | IMPLEMENTED_AND_RELEASE_COVERED | matrix `fresh-bootstrap`; `prepare-phantom-test-db` | Production schema apply только явным installer action | Preflight перед запуском |
 | Population | IMPLEMENTED_AND_RELEASE_COVERED | matrix `population`; `phantom-population-server-integration-test` | Target/caps задаются config | Preset 10/5 для local play |
 | Progression | IMPLEMENTED_AND_RELEASE_COVERED | matrix `progression`; `phantom-progression-production-composition-test` | Использует accepted High Five capability catalog | Поддерживать catalog parity |
@@ -36,21 +37,26 @@
 | Class quest automation | DEFERRED_NOT_IMPLEMENTED | Production owner/data/test не найдены | Нет class-transfer quest execution | Будущий quest slice |
 | Kamaloka | DEFERRED_NOT_IMPLEMENTED | Phantom production owner/data/test не найдены | Instance flow не реализован | Будущий instance/quest slice |
 | Pailaka | DEFERRED_NOT_IMPLEMENTED | Phantom production owner/data/test не найдены | Instance/quest flow не реализован | Будущий instance/quest slice |
-| Full-scope release gate после gameplay gaps | DEFERRED_NOT_IMPLEMENTED | Goal030 gate относится только к 20-domain slice | Нельзя переименовывать Goal030 в full vision | Gate после siege и quest/instance slices |
+| Full-scope release gate после gameplay gaps | DEFERRED_NOT_IMPLEMENTED | Goal030 gate относится только к 20-domain slice | Нельзя переименовывать Goal030 в full vision | Goal039 после Goal034–038 |
 
-## Roadmap v4
+## Roadmap v5
 
 | Goal | Статус | Bounded outcome |
 |---|---|---|
-| Goal032 — Phantom-only reset/reseed + operator tuning | SUCCESS | Preview/confirm/cancel, exact private cleanup, optional reseed, tuning guide |
-| Goal033 — Living population ecology | SUCCESS | Durable presets/age/pace/personality, causal Goal033A windows, turnover и restart; guarded LIVING 10/5 + reset/reseed regressions PASS на `l2jmobiush5_phantom_test`; без direct XP |
-| Goal033A — Causal historical Background catch-up prerequisite | SUCCESS | Real-data planner, canonical baseline, atomic cursor, restart/death equivalence и normal fences; final jar PASS |
-| Goal033A1 — Canonical population topology ingress | SUCCESS | 38/38 exact ingress, 7 real farming destinations, 80 factual Background edges; consumed by Goal033A |
-| Goal034 — Automated black-box local stack acceptance | BLOCKED | Schedule-aware contract 17/17; ACTIVE target 5 — cap; три full verify/jar PASS; real gen1 `desired=5/online=5` + native restart/drain PASS; gen2 READY/registered, но bounded gate завершился `desired=5/online=4`, subset=true/parity=false; третий Phase-C blocker, cleanup/integrity/no-orphans PASS |
-| Goal035 — Siege gameplay slice | PLANNED | Native siege registration/schedule/gathering/roles/attack/defense/retreat |
-| Goal036 — Bounded quests/instances slice | PLANNED | Whitelist lifecycle, class transfer, supported Kamaloka/Pailaka |
-| Goal037 — Server rates + quest-rate normalization + Phantom parity | PLANNED | 1x/non-1x rates для real Player и Phantom ACTIVE/BACKGROUND, включая применимые quest scripts |
-| Goal038 — Final full-vision release gate + freeze | PLANNED | Finite final acceptance; после ACCEPT нет automatic new goals |
+| Goal034 — Automated black-box local stack acceptance | BLOCKED | Closure6: predecessor `_skillListTask` bug FIXED/CLOSED; regression и focused suites green; два fresh full verify и final jar PASS; fresh gen1 `managed/desired/expected/online=10/5/5/5`; native restart/drain PASS; latest gen2 `desired/expected/online=5/5/1`, missing `6028,6029,6032,6033`; current blocker — post-restart loss scheduler-admitted materializations; cleanup PASS / `forced=false` / no orphans; production DB unused |
+| Goal035 — Siege gameplay slice | NOT_STARTED | Native siege registration/schedule/gathering/roles/attack/defense/retreat |
+| Goal036 — Bounded quests/instances slice | PLANNED | Whitelist lifecycle, class transfer, supported Kamaloka/Pailaka; без universal solver |
+| Goal037 — Full High Five quest-script inventory + rates normalization/parity | PLANNED | 100% `dist/game/data/scripts/quests/**`, no unclassified quest; reward/drop/rate-path и control/key/singleton exception classification; structural/AST-style corpus audit, compile/load corpus, deterministic 1x/non-1x matrix и representative real-server mechanics; Player/Phantom ACTIVE/BACKGROUND parity where applicable; canonical rates authoritative, bypass = diagnostic/gate |
+| Goal038 — Humanized Russian Semantic Pack + social/custom conversation | PLANNED | Natural RU social/off-topic conversation, relationship progression, bounded personal memory, humor/sarcasm/teasing, follow-ups, emotion-sensitive reactions, personal ↔ game transitions, light flirt, contextual profanity с personality/relationship/intensity и anti-repeat; versioned custom overrides без Java recompilation, strict fail-closed core/custom validation; optional mature opt-in, shipped `OFF`; no runtime LLM/internet |
+| Goal039 — Final full-vision release gate + freeze | PLANNED | Единственный final exam: safe install/config/defaults, Goal034 real stack, ecology/restart/recovery, siege, quests/instances, rates parity, Humanized/custom packs, scale/rollback и documentation consistency |
+
+После успешного Goal034 остаются четыре content/feature stage — Goal035–Goal038
+— и единственный final exam Goal039. После `ACCEPT` Goal039 статус становится
+`FEATURE_COMPLETE_FOR_DECLARED_SCOPE`; automatic Goal040+ запрещены.
+
+Текущее следующее действие: отдельный explicit Goal034 runtime resume от
+preserved post-restart gen2 `5/5/1` evidence. Goal035 остаётся `NOT_STARTED` до
+Goal034 `SUCCESS`.
 
 Shipped config по-прежнему `EnablePhantomSystem=False`, population/ACTIVE `0/0`; destructive auto-reset flag отсутствует. Reset вызывается только GM-командой после read-only preview и одноразового confirm. Automated tests работают только с allowlisted test DB; ручная игра пользователя остаётся финальной experience validation, а не промежуточным техническим gate.
 

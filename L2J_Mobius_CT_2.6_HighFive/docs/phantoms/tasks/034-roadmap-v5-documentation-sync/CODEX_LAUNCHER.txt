@@ -1,0 +1,5 @@
+/goal Выполни documentation-only Roadmap v5 sync строго по docs/phantoms/tasks/034-roadmap-v5-documentation-sync/TASK.md.
+Required parent: e148d8e4d76a8b3afda1a200aa44aad9260943fc
+Branch: feature/phantom-world
+
+Никакого runtime-кода, Ant, DB или server run. Синхронизируй canonical master plan, roadmap, current status и new-dialog handoff: Goal034 остаётся BLOCKED на closure6 gen2 `5/5/1`; Roadmap v5 = 034 -> 035 siege -> 036 quests/instances -> 037 полный 100% quest-script/rates audit -> 038 humanized RU Semantic Pack/social/custom overrides/contextual profanity/optional mature opt-in -> 039 final full-vision gate/freeze. После Goal039 ACCEPT: FEATURE_COMPLETE_FOR_DECLARED_SCOPE, без automatic Goal040+. После commit/push Goal035 не начинать; следующий runtime task будет отдельным Goal034 resume.
