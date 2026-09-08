@@ -8,6 +8,8 @@ import java.util.List;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
+import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.NativeSide;
+import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.TargetKind;
 
 public interface PhantomCombatBackend
 {
@@ -121,6 +123,31 @@ public interface PhantomCombatBackend
 		public boolean validFor(ActorSnapshot actor, int maximumDistance)
 		{
 			return player && exactKnowledge && targetable && !invisible && !dead && !alikeDead && surroundingRegion && !peaceRestricted && !sameParty && !self && !unmanagedEvent && !olympiad && !duel && !siege && !jailed && !festival && !boatOrAirship && (instanceId == actor.instanceId()) && (distance <= maximumDistance);
+		}
+	}
+
+	record SiegeTargetSnapshot(int objectId, int nativeId, int castleId, int instanceId, TargetKind kind, NativeSide actorSide, NativeSide targetSide, double currentHp, double maximumHp, double distance, boolean targetable, boolean invisible, boolean dead, boolean alikeDead, boolean invulnerable, boolean surroundingRegion, boolean peaceRestricted, boolean incompatibleContext, boolean siegeInProgress, boolean zoneActive, boolean autoAttackable)
+	{
+		public SiegeTargetSnapshot
+		{
+			if ((objectId <= 0) || (nativeId <= 0) || (castleId != 3) || (instanceId < 0) || (kind == null) || (actorSide == null) || (targetSide == null) || !finite(currentHp, maximumHp, distance) || (maximumHp <= 0) || (distance < 0))
+			{
+				throw new IllegalArgumentException("Invalid native siege target snapshot.");
+			}
+		}
+
+		public boolean validFor(ActorSnapshot actor, PhantomSiegeCombatRequest request, int maximumDistance)
+		{
+			if (!matchesIdentity(request) || (instanceId != actor.instanceId()) || !siegeInProgress || !zoneActive || !targetable || invisible || dead || alikeDead || invulnerable || !surroundingRegion || peaceRestricted || incompatibleContext || !autoAttackable || (distance > maximumDistance))
+			{
+				return false;
+			}
+			return kind == TargetKind.PLAYER ? (actorSide != NativeSide.NONE) && (targetSide != NativeSide.NONE) && (actorSide != targetSide) : (actorSide == NativeSide.ATTACKER) && (targetSide == NativeSide.NONE);
+		}
+
+		public boolean matchesIdentity(PhantomSiegeCombatRequest request)
+		{
+			return (objectId == request.targetObjectId()) && (nativeId == request.targetNativeId()) && (castleId == request.castleId()) && (kind == request.targetKind());
 		}
 	}
 

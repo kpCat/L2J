@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="3">
+	<node id="giran.castle.siege.outer" kind="OUTDOOR_AREA" instanceId="0" form="POLYGON" minZ="-14515" maxZ="16000" tags="castle-siege">
+		<vertex x="121412" y="140594" />
+		<vertex x="121358" y="149919" />
+		<vertex x="108972" y="149896" />
+		<vertex x="109026" y="140571" />
+		<source path="data/zones/castle_siege.xml" />
+	</node>
+	<node id="giran.castle.siege.inner" kind="OUTDOOR_AREA" instanceId="0" form="POLYGON" minZ="-4519" maxZ="16000" tags="castle-siege-inner">
+		<vertex x="119200" y="142800" />
+		<vertex x="119200" y="147500" />
+		<vertex x="112300" y="147500" />
+		<vertex x="112300" y="142800" />
+		<source path="data/zones/castle_hall.xml" />
+	</node>
+	<anchor id="giran.castle.attacker.staging" role="ROUTE" nodeId="giran.castle.siege.outer" x="112122" y="144855" z="-2751" instanceId="0" tolerance="0" tags="castle-siege-attacker">
+		<source path="data/html/admin/teleports/CastleAreas/giran.htm" />
+		<source path="data/zones/castle_siege.xml" />
+		<source path="data/zones/castle_hall.xml" />
+	</anchor>
+	<anchor id="giran.castle.defender.staging" role="ROUTE" nodeId="giran.castle.siege.inner" x="116540" y="146655" z="-1866" instanceId="0" tolerance="0" tags="castle-siege-defender">
+		<source path="data/zones/castle_hall.xml" />
+		<source path="data/zones/castle_siege.xml" />
+	</anchor>
+	<anchor id="giran.castle.door.23220001.approach" role="DOOR_SIDE" nodeId="giran.castle.siege.outer" x="112857" y="144729" z="-2540" instanceId="0" tolerance="0" tags="castle-siege-door">
+		<source path="data/Doors.xml" />
+		<source path="data/zones/castle_siege.xml" />
+	</anchor>
+</topology>

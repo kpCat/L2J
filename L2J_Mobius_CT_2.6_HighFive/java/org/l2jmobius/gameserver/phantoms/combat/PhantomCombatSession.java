@@ -14,6 +14,7 @@ public final class PhantomCombatSession
 	final PhantomCombatRequest _request;
 	final PhantomPvpCombatRequest _pvpRequest;
 	final PhantomRaidCombatRequest _raidRequest;
+	final PhantomSiegeCombatRequest _siegeRequest;
 	final long _generation;
 	final long _startedLogicalNanos;
 	final PhantomCombatThreatTable _threatTable;
@@ -42,6 +43,7 @@ public final class PhantomCombatSession
 		_request = request;
 		_pvpRequest = null;
 		_raidRequest = null;
+		_siegeRequest = null;
 		_generation = generation;
 		_startedLogicalNanos = startedLogicalNanos;
 		_lastPulseLogicalNanos = startedLogicalNanos;
@@ -53,6 +55,7 @@ public final class PhantomCombatSession
 	{
 		_pvpRequest = request;
 		_raidRequest = null;
+		_siegeRequest = null;
 		_request = request.leaseRequest();
 		_generation = generation;
 		_startedLogicalNanos = startedLogicalNanos;
@@ -66,6 +69,7 @@ public final class PhantomCombatSession
 	{
 		_raidRequest = request;
 		_pvpRequest = null;
+		_siegeRequest = null;
 		_request = request.leaseRequest();
 		_generation = generation;
 		_startedLogicalNanos = startedLogicalNanos;
@@ -73,6 +77,19 @@ public final class PhantomCombatSession
 		_threatTable = new PhantomCombatThreatTable(maximumThreatEntries);
 		_ownedAction = new PhantomOwnedAction(generation, request.targetObjectId(), null, 0);
 	}
+	PhantomCombatSession(PhantomSiegeCombatRequest request, long generation, long startedLogicalNanos, int maximumThreatEntries)
+	{
+		_siegeRequest = request;
+		_pvpRequest = null;
+		_raidRequest = null;
+		_request = request.leaseRequest();
+		_generation = generation;
+		_startedLogicalNanos = startedLogicalNanos;
+		_lastPulseLogicalNanos = startedLogicalNanos;
+		_threatTable = new PhantomCombatThreatTable(maximumThreatEntries);
+		_ownedAction = new PhantomOwnedAction(generation, request.targetObjectId(), null, 0);
+	}
+
 	PhantomCombatSessionSnapshot snapshot()
 	{
 		return new PhantomCombatSessionSnapshot(_request.profileId(), _generation, _request.targetObjectId(), _request.mode(), _phase, _result, _startedLogicalNanos, _lastPulseLogicalNanos, _loadout == null ? 0 : _loadout.selectedSkills().size(), _threatTable.size(), _rememberedLootIds.size(), _lootPickupsIssued);

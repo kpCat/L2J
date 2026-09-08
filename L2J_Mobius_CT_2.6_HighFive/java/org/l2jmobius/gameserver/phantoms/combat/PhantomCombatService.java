@@ -37,6 +37,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConseque
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLocalSupportSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.SiegeTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
@@ -99,7 +100,8 @@ public final class PhantomCombatService
 		PARTY_TACTIC,
 		PARTY_SUPPORT,
 		PARTY_ROUTE,
-		PVP_RETREAT
+		PVP_RETREAT,
+		SIEGE_ROUTE
 	}
 
 	public enum ExternalActionStatus
@@ -309,21 +311,27 @@ public final class PhantomCombatService
 	public StartResult startPvpSession(PhantomPvpCombatRequest request)
 	{
 		Objects.requireNonNull(request, "request");
-		return startSession(request.leaseRequest(), "", request, null);
+		return startSession(request.leaseRequest(), "", request, null, null);
 	}
 
 	public StartResult startRaidSession(PhantomRaidCombatRequest request)
 	{
 		Objects.requireNonNull(request, "request");
-		return startSession(request.leaseRequest(), "", null, request);
+		return startSession(request.leaseRequest(), "", null, request, null);
+	}
+
+	public StartResult startSiegeSession(PhantomSiegeCombatRequest request)
+	{
+		Objects.requireNonNull(request, "request");
+		return startSession(request.leaseRequest(), "", null, null, request);
 	}
 
 	private StartResult startSession(PhantomCombatRequest request, String operationOwner)
 	{
-		return startSession(request, operationOwner, null, null);
+		return startSession(request, operationOwner, null, null, null);
 	}
 
-	private StartResult startSession(PhantomCombatRequest request, String operationOwner, PhantomPvpCombatRequest pvpRequest, PhantomRaidCombatRequest raidRequest)
+	private StartResult startSession(PhantomCombatRequest request, String operationOwner, PhantomPvpCombatRequest pvpRequest, PhantomRaidCombatRequest raidRequest, PhantomSiegeCombatRequest siegeRequest)
 	{
 		Objects.requireNonNull(request, "request");
 		_metrics.sessionRequested();
@@ -344,7 +352,7 @@ public final class PhantomCombatService
 			final PhantomCombatSession existing = _sessions.get(request.profileId());
 			if (existing != null)
 			{
-				final boolean sameOperation = raidRequest != null ? (existing._raidRequest != null) && existing._raidRequest.sameOperation(raidRequest) : pvpRequest != null ? (existing._pvpRequest != null) && existing._pvpRequest.sameOperation(pvpRequest) : (existing._pvpRequest == null) && (existing._raidRequest == null) && existing._request.sameOperation(request);
+				final boolean sameOperation = siegeRequest != null ? (existing._siegeRequest != null) && existing._siegeRequest.sameOperation(siegeRequest) : raidRequest != null ? (existing._raidRequest != null) && existing._raidRequest.sameOperation(raidRequest) : pvpRequest != null ? (existing._pvpRequest != null) && existing._pvpRequest.sameOperation(pvpRequest) : (existing._pvpRequest == null) && (existing._raidRequest == null) && (existing._siegeRequest == null) && existing._request.sameOperation(request);
 				if (!existing._result.terminal() && sameOperation && operationOwner.equals(_sessionOperationOwners.getOrDefault(request.profileId(), "")))
 				{
 					return new StartResult(StartStatus.IDEMPOTENT, existing.snapshot());
@@ -357,7 +365,7 @@ public final class PhantomCombatService
 				_metrics.sessionRejected();
 				return new StartResult(StartStatus.REJECTED_CAPACITY, null);
 			}
-			reserved = raidRequest != null ? new PhantomCombatSession(raidRequest, ++_nextGeneration, now, _policy.maximumThreatEntries()) : pvpRequest != null ? new PhantomCombatSession(pvpRequest, ++_nextGeneration, now, _policy.maximumThreatEntries()) : new PhantomCombatSession(request, ++_nextGeneration, now, _policy.maximumThreatEntries());
+			reserved = siegeRequest != null ? new PhantomCombatSession(siegeRequest, ++_nextGeneration, now, _policy.maximumThreatEntries()) : raidRequest != null ? new PhantomCombatSession(raidRequest, ++_nextGeneration, now, _policy.maximumThreatEntries()) : pvpRequest != null ? new PhantomCombatSession(pvpRequest, ++_nextGeneration, now, _policy.maximumThreatEntries()) : new PhantomCombatSession(request, ++_nextGeneration, now, _policy.maximumThreatEntries());
 			_sessions.put(request.profileId(), reserved);
 			if (operationOwner.isEmpty())
 			{
@@ -391,7 +399,8 @@ public final class PhantomCombatService
 				{
 					_metrics.leaseAcquired();
 					final ActorSnapshot actor = lease.actorSnapshot();
-					final Optional<PhantomCombatLoadout> loadout = pvpRequest == null ? _capabilityResolver.resolve(actor, request.mode(), lease, _policy.maximumSelectedSkills()) : _capabilityResolver.resolvePvp(actor, request.mode(), lease, _policy.maximumSelectedSkills());
+					final boolean playerCombat = (pvpRequest != null) || ((siegeRequest != null) && (siegeRequest.targetKind() == org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.TargetKind.PLAYER));
+					final Optional<PhantomCombatLoadout> loadout = playerCombat ? _capabilityResolver.resolvePvp(actor, request.mode(), lease, _policy.maximumSelectedSkills()) : _capabilityResolver.resolve(actor, request.mode(), lease, _policy.maximumSelectedSkills());
 					if (loadout.isEmpty())
 					{
 						failure = StartStatus.UNSUPPORTED_LOADOUT;
@@ -399,7 +408,12 @@ public final class PhantomCombatService
 					else
 					{
 						final boolean validTarget;
-						if (raidRequest != null)
+						if (siegeRequest != null)
+						{
+							final SiegeTargetSnapshot target = lease.siegeTargetSnapshot(request.targetObjectId(), siegeRequest);
+							validTarget = (target != null) && target.validFor(actor, siegeRequest, _policy.maximumAcquisitionDistance());
+						}
+						else if (raidRequest != null)
 						{
 							final RaidTargetSnapshot target = lease.raidTargetSnapshot(request.targetObjectId());
 							final int actorLevel = lease.raidActorLevel();
@@ -515,6 +529,15 @@ public final class PhantomCombatService
 		}
 	}
 
+	public boolean matchesSiegeSession(long profileId, int targetObjectId, int castleId, String authorityHash)
+	{
+		synchronized (_monitor)
+		{
+			final PhantomCombatSession session = _sessions.get(profileId);
+			return (session != null) && (session._siegeRequest != null) && (session._siegeRequest.targetObjectId() == targetObjectId) && (session._siegeRequest.castleId() == castleId) && session._siegeRequest.authorityHash().equals(authorityHash);
+		}
+	}
+
 	/**
 	 * Bounded Player observation through the same actor lease owner. Exact targets
 	 * come only from an upstream causal owner; the selected target is context, not
@@ -535,7 +558,7 @@ public final class PhantomCombatService
 		synchronized (_monitor)
 		{
 			final PhantomCombatSession session = _sessions.get(profileId);
-			return (session != null) && (session._pvpRequest == null) && (session._raidRequest == null) && (session._generation == generation) && (session._request.targetObjectId() == targetObjectId) && (session._request.planOwnershipToken() == ownershipToken);
+			return (session != null) && (session._pvpRequest == null) && (session._raidRequest == null) && (session._siegeRequest == null) && (session._generation == generation) && (session._request.targetObjectId() == targetObjectId) && (session._request.planOwnershipToken() == ownershipToken);
 		}
 	}
 
@@ -1184,6 +1207,11 @@ public final class PhantomCombatService
 				return;
 			}
 
+			if (session._siegeRequest != null)
+			{
+				processSiege(session, actor);
+				return;
+			}
 			if (session._raidRequest != null)
 			{
 				processRaid(session, actor, now);
@@ -1232,6 +1260,65 @@ public final class PhantomCombatService
 		finally
 		{
 			finishProcessing(session);
+		}
+	}
+
+	private void processSiege(PhantomCombatSession session, ActorSnapshot actor)
+	{
+		final SiegeTargetSnapshot target = session._actorLease.siegeTargetSnapshot(session._request.targetObjectId(), session._siegeRequest);
+		if ((target != null) && target.matchesIdentity(session._siegeRequest) && (target.dead() || target.alikeDead()))
+		{
+			finish(session, PhantomCombatResult.VICTORY);
+			return;
+		}
+		if ((target == null) || !target.validFor(actor, session._siegeRequest, _policy.maximumAcquisitionDistance()))
+		{
+			finish(session, PhantomCombatResult.TARGET_LOST);
+			return;
+		}
+		session._phase = PhantomCombatPhase.FIGHTING;
+		issueSiegeAction(session, actor);
+		requeue(session);
+	}
+
+	private void issueSiegeAction(PhantomCombatSession session, ActorSnapshot actor)
+	{
+		SelectedSkill selected = null;
+		if (!session._loadout.selectedSkills().isEmpty() && (percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()))
+		{
+			selected = session._loadout.selectedSkills().get(session._nextSkill++ % session._loadout.selectedSkills().size());
+		}
+		if ((selected == null) && !session._loadout.normalAttackFallback())
+		{
+			return;
+		}
+		if (session._request.useShotsIfAvailable())
+		{
+			_metrics.shot(session._actorLease.activateShot(session._request.mode()));
+		}
+		if (selected != null)
+		{
+			final ActionOutcome outcome = session._actorLease.castSiege(session._request.targetObjectId(), selected, session._siegeRequest);
+			if (outcome == ActionOutcome.ISSUED)
+			{
+				session._ownedAction = session._ownedAction.withSelectedSkill(selected);
+				_metrics.castIssued();
+				return;
+			}
+			if (outcome != ActionOutcome.ALREADY_OWNED)
+			{
+				_metrics.castRejected();
+			}
+			if ((outcome != ActionOutcome.UNAVAILABLE) || !session._loadout.normalAttackFallback())
+			{
+				return;
+			}
+		}
+		final ActionOutcome outcome = session._actorLease.attackSiege(session._request.targetObjectId(), session._siegeRequest);
+		if (outcome == ActionOutcome.ISSUED)
+		{
+			session._ownedAction = session._ownedAction.withSelectedSkill(null);
+			_metrics.attackIssued();
 		}
 	}
 
@@ -2182,7 +2269,7 @@ public final class PhantomCombatService
 
 		public ActionOutcome moveTo(int x, int y, int z, int instanceId)
 		{
-			if (!active() || ((kind() != ExternalActionKind.PARTY_ROUTE) && (kind() != ExternalActionKind.ACQUISITION) && (kind() != ExternalActionKind.PVP_RETREAT)))
+			if (!active() || ((kind() != ExternalActionKind.PARTY_ROUTE) && (kind() != ExternalActionKind.ACQUISITION) && (kind() != ExternalActionKind.PVP_RETREAT) && (kind() != ExternalActionKind.SIEGE_ROUTE)))
 			{
 				return ActionOutcome.REJECTED;
 			}

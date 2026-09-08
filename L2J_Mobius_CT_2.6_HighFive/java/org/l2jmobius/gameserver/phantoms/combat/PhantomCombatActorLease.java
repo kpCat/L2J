@@ -25,6 +25,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PlayableSna
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.QuestStateSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.SiegeTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
@@ -48,6 +49,11 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	}
 
 	default PvpTargetSnapshot pvpTargetSnapshot(int targetObjectId)
+	{
+		return null;
+	}
+
+	default SiegeTargetSnapshot siegeTargetSnapshot(int targetObjectId, PhantomSiegeCombatRequest request)
 	{
 		return null;
 	}
@@ -196,6 +202,16 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	}
 
 	default ActionOutcome castPvp(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode, boolean forceUse, String authorityHash)
+	{
+		return ActionOutcome.REJECTED;
+	}
+
+	default ActionOutcome attackSiege(int targetObjectId, PhantomSiegeCombatRequest request)
+	{
+		return ActionOutcome.REJECTED;
+	}
+
+	default ActionOutcome castSiege(int targetObjectId, SelectedSkill skill, PhantomSiegeCombatRequest request)
 	{
 		return ActionOutcome.REJECTED;
 	}

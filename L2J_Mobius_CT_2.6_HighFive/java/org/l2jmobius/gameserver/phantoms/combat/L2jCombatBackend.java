@@ -20,6 +20,7 @@ import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.handler.IItemHandler;
 import org.l2jmobius.gameserver.handler.ItemHandler;
+import org.l2jmobius.gameserver.managers.CastleManager;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
@@ -27,6 +28,7 @@ import org.l2jmobius.gameserver.model.WorldRegion;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.Chest;
+import org.l2jmobius.gameserver.model.actor.instance.Door;
 import org.l2jmobius.gameserver.model.actor.instance.EventMonster;
 import org.l2jmobius.gameserver.model.actor.instance.GrandBoss;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
@@ -44,6 +46,8 @@ import org.l2jmobius.gameserver.model.skill.holders.SkillUseHolder;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.model.script.QuestState;
+import org.l2jmobius.gameserver.model.siege.Castle;
+import org.l2jmobius.gameserver.model.siege.Siege;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
@@ -66,6 +70,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PlayableSna
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.QuestStateSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.SiegeTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
@@ -75,6 +80,8 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CapabilityRule;
+import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.NativeSide;
+import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.TargetKind;
 
 public final class L2jCombatBackend implements PhantomCombatBackend
 {
@@ -181,6 +188,39 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final boolean peace = _player.isInsideZone(ZoneId.PEACE) || target.isInsideZone(ZoneId.PEACE);
 			final boolean boatOrAirship = _player.isInBoat() || _player.isInAirShip() || target.isInBoat() || target.isInAirShip();
 			return new PvpTargetSnapshot(target.getObjectId(), target.getActiveClass(), target.getInstanceId(), target.getLevel(), band(target.getCurrentHp(), target.getMaxHp()), band(target.getCurrentHp() + target.getCurrentCp(), target.getMaxHp() + target.getMaxCp()), distance(_player, target), true, true, target.isTargetable(), target.isInvisible(), target.isDead(), target.isAlikeDead(), surrounding, peace, sameParty, target == _player, unmanagedEvent, olympiad, duel, siege, _player.isJailed() || target.isJailed(), _player.isFestivalParticipant() || target.isFestivalParticipant(), boatOrAirship, target.isAutoAttackable(_player));
+		}
+
+		@Override
+		public SiegeTargetSnapshot siegeTargetSnapshot(int targetObjectId, PhantomSiegeCombatRequest request)
+		{
+			if ((request == null) || (request.targetObjectId() != targetObjectId) || (request.castleId() != 3))
+			{
+				return null;
+			}
+			final Castle castle = CastleManager.getInstance().getCastleById(request.castleId());
+			final Siege siege = castle == null ? null : castle.getSiege();
+			if ((castle == null) || (siege == null))
+			{
+				return null;
+			}
+			final NativeSide actorSide = side(siege, _player);
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			final WorldRegion actorRegion = _player.getWorldRegion();
+			final boolean actorRestricted = _player.isOnEvent() || _player.isInOlympiadMode() || _player.isInDuel() || _player.isJailed() || _player.isFestivalParticipant() || _player.isInBoat() || _player.isInAirShip() || !_player.isInsideZone(ZoneId.SIEGE) || !castle.checkIfInZone(_player.getX(), _player.getY(), _player.getZ());
+			if ((request.targetKind() == TargetKind.PLAYER) && (object instanceof Player target))
+			{
+				final NativeSide targetSide = side(siege, target);
+				final boolean surrounding = (actorRegion != null) && actorRegion.isSurroundingRegion(target.getWorldRegion());
+				final boolean incompatible = actorRestricted || target.isOnEvent() || target.isInOlympiadMode() || target.isInDuel() || target.isJailed() || target.isFestivalParticipant() || target.isInBoat() || target.isInAirShip() || !target.isInsideZone(ZoneId.SIEGE) || !castle.checkIfInZone(target.getX(), target.getY(), target.getZ()) || (target == _player) || ((_player.getParty() != null) && (_player.getParty() == target.getParty()));
+				return new SiegeTargetSnapshot(target.getObjectId(), target.getObjectId(), castle.getResidenceId(), target.getInstanceId(), TargetKind.PLAYER, actorSide, targetSide, target.getCurrentHp(), target.getMaxHp(), distance(_player, target), target.isTargetable(), target.isInvisible(), target.isDead(), target.isAlikeDead(), target.isInvul(), surrounding, _player.isInsideZone(ZoneId.PEACE) || target.isInsideZone(ZoneId.PEACE), incompatible, siege.isInProgress(), castle.getZone().isActive(), target.isAutoAttackable(_player));
+			}
+			if ((request.targetKind() == TargetKind.DOOR) && (object instanceof Door door) && (door.getCastle() == castle))
+			{
+				final boolean surrounding = (actorRegion != null) && actorRegion.isSurroundingRegion(door.getWorldRegion());
+				final boolean incompatible = actorRestricted || !castle.checkIfInZone(door.getX(), door.getY(), door.getZ());
+				return new SiegeTargetSnapshot(door.getObjectId(), door.getId(), castle.getResidenceId(), door.getInstanceId(), TargetKind.DOOR, actorSide, NativeSide.NONE, door.getCurrentHp(), door.getMaxHp(), distance(_player, door), door.isTargetable() && door.isShowHp(), door.isInvisible(), door.isDead(), door.isAlikeDead(), door.isInvul(), surrounding, _player.isInsideZone(ZoneId.PEACE) || door.isInsideZone(ZoneId.PEACE), incompatible, siege.isInProgress(), castle.getZone().isActive(), (actorSide == NativeSide.ATTACKER) && door.isAutoAttackable(_player));
+			}
+			return null;
 		}
 
 		@Override
@@ -914,6 +954,63 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public ActionOutcome attackSiege(int targetObjectId, PhantomSiegeCombatRequest request)
+		{
+			final SiegeTargetSnapshot snapshot = siegeTargetSnapshot(targetObjectId, request);
+			final WorldObject target = World.getInstance().findObject(targetObjectId);
+			if ((snapshot == null) || (target == null) || !snapshot.validFor(actorSnapshot(), request, MAXIMUM_ACQUISITION_DISTANCE))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == target))
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			_player.setTarget(target);
+			if (target instanceof Player playerTarget)
+			{
+				playerTarget.onForcedAttack(_player);
+			}
+			else
+			{
+				_player.getAI().setIntention(Intention.ATTACK, target);
+			}
+			return _player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == target) ? ActionOutcome.ISSUED : ActionOutcome.REJECTED;
+		}
+
+		@Override
+		public ActionOutcome castSiege(int targetObjectId, SelectedSkill selected, PhantomSiegeCombatRequest request)
+		{
+			if ((selected == null) || (request == null) || (request.targetKind() != TargetKind.PLAYER))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			final SiegeTargetSnapshot snapshot = siegeTargetSnapshot(targetObjectId, request);
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if (!(object instanceof Player target) || (snapshot == null) || !snapshot.validFor(actorSnapshot(), request, MAXIMUM_ACQUISITION_DISTANCE) || !supportsPvpSkill(selected, request.mode()))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final Skill skill = _player.getKnownSkill(selected.skillId());
+			final SkillUseHolder current = _player.getCurrentSkill();
+			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (current != null) && (current.getSkillId() == selected.skillId()) && (current.getSkillLevel() == selected.skillLevel()))
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			if (_player.isSkillDisabled(skill) || !_player.checkDoCastConditions(skill))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			_player.setTarget(target);
+			if (!_player.useMagic(skill, true, false))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			final SkillUseHolder observed = _player.getCurrentSkill();
+			return _player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (observed != null) && (observed.getSkillId() == selected.skillId()) && (observed.getSkillLevel() == selected.skillLevel()) ? ActionOutcome.ISSUED : ActionOutcome.REJECTED;
+		}
+
+		@Override
 		public ActionOutcome castAcquisition(int targetObjectId, SelectedSkill selected, AcquisitionSkillKind kind)
 		{
 			final WorldObject object = World.getInstance().findObject(targetObjectId);
@@ -1093,7 +1190,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return;
 			}
-			if ((action.kind() == PhantomCombatService.ExternalActionKind.PARTY_ROUTE) || ((action.kind() == PhantomCombatService.ExternalActionKind.ACQUISITION) && (action.targetObjectId() == 0)))
+			if ((action.kind() == PhantomCombatService.ExternalActionKind.PARTY_ROUTE) || (action.kind() == PhantomCombatService.ExternalActionKind.PVP_RETREAT) || (action.kind() == PhantomCombatService.ExternalActionKind.SIEGE_ROUTE) || ((action.kind() == PhantomCombatService.ExternalActionKind.ACQUISITION) && (action.targetObjectId() == 0)))
 			{
 				if (_player.getAI().getIntention() == Intention.MOVE_TO)
 				{
@@ -1194,6 +1291,19 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	private static boolean isNormalMonster(Monster monster)
 	{
 		return !(monster instanceof RaidBoss) && !(monster instanceof GrandBoss) && !(monster instanceof EventMonster) && !monster.isRaid() && !monster.isRaidMinion() && !monster.isFakePlayer();
+	}
+
+	private static NativeSide side(Siege siege, Player player)
+	{
+		if ((player.getClan() != null) && siege.checkIsAttacker(player.getClan()))
+		{
+			return NativeSide.ATTACKER;
+		}
+		if ((player.getClan() != null) && siege.checkIsDefender(player.getClan()))
+		{
+			return NativeSide.DEFENDER;
+		}
+		return NativeSide.NONE;
 	}
 
 	private static double distance(WorldObject left, WorldObject right)

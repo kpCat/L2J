@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<siegePolicy id="high-five-siege" version="1">
+	<castle id="3" attackerStagingAnchor="giran.castle.attacker.staging" defenderStagingAnchor="giran.castle.defender.staging" approachAnchor="giran.castle.door.23220001.approach" retreatAnchor="giran.city.center" maximumActiveParticipants="8" maximumTargets="8" combatDistance="2000" retreatHpPercent="25" relevanceTtlSeconds="900" combatTimeoutSeconds="90" routeTimeoutSeconds="120" />
+</siegePolicy>

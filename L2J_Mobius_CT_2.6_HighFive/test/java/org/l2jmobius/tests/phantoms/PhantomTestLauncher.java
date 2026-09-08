@@ -260,6 +260,7 @@ public final class PhantomTestLauncher
 			case "historical-background-goal033a" -> new PhantomHistoricalBackgroundGoal033ASuite();
 			case "population-ecology-goal033" -> new PhantomPopulationEcologyGoal033Suite();
 			case "population-ecology-production-goal033" -> new PhantomPopulationEcologyProductionGoal033Suite();
+			case "siege-goal035" -> new PhantomSiegeGoal035Suite();
 			case "topology-performance" -> new PhantomTopologyPerformanceSuite();
 			case "knowledge-core" -> new PhantomGameKnowledgeCoreSuite();
 			case "knowledge-query-truth" -> new PhantomGameKnowledgeQueryTruthSuite();

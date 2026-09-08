@@ -1,11 +1,11 @@
 Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Goal034 closure8 required parent:
-2fe9979d5ca9bcb1dd318f58038dad9ab17674ff.
-Exact Goal034 SUCCESS commit SHA и push result указаны в итоговом handoff
-closure8; actual HEAD и origin обязательны к новой проверке по следующему task
-package.
-Goal034 выполняется только через guarded black-box harness; production DB и destructive prepare запрещены.
+Goal035 выполнен от required parent:
+117046541aa79c143dcd01336883ac667b5fe5c6.
+Exact Goal035 SUCCESS commit SHA и push result указаны в итоговом handoff;
+actual HEAD и origin обязательны к новой проверке по следующему task package.
+Goal035 DB-backed evidence выполнялось только через guarded test harness;
+production DB и destructive prepare запрещены.
 Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
 
 Состояние release:
@@ -17,6 +17,7 @@ Goal034 выполняется только через guarded black-box harness
 - Goal033A causal historical Background catch-up prerequisite — SUCCESS;
 - Goal033A1 canonical population topology ingress — SUCCESS; blocker Goal033A CLOSED BY Goal033A1;
 - Goal034 closure 8 — SUCCESS: verify-only predecessor `[Player._skillListTask]` не воспроизведён (`NOT_REPRODUCED`); standalone manor `2/2`, acquisition checkpoint2 aggregate `56/56`, fresh full verify и standalone final jar PASS; fresh real run `20260908-135425-0b7d8b31` дал gen1/gen2 `5/5/5` с одинаковыми ID, два native restart/drain PASS, cleanup `population=10`, `registration=true`, `forced=false`, `orphans.none=true`, `working.integrity=true`; production DB unused;
+- Goal035 siege gameplay — SUCCESS: bounded Giran castleId=3 vertical использует native schedule/registration/sides/zones/doors, factual topology, capped roles, shared Navigation/Combat/Party support, retreat/recovery/restart cleanup; focused `8/8`, affected routes `6/6`, fresh full verify and standalone jar PASS; test fixture restored with zero residue; production DB unused;
 - shipped dist/game/config/Custom/PhantomPlayers.ini остаётся safe: EnablePhantomSystem=False, population=0, ACTIVE=0;
 - local-play preset 10/5: docs/phantoms/examples/PhantomPlayers.local-play.ini;
 - read-only operator entrypoint: ant phantom-local-play-preflight;
@@ -30,13 +31,14 @@ Goal034 выполняется только через guarded black-box harness
 - Goal033A SUCCESS report: docs/phantoms/reports/033A-causal-background-catchup-resume.md;
 - Goal033A1 report: docs/phantoms/reports/033A1-canonical-population-topology-ingress.md;
 - Goal034 SUCCESS report: docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-closure8-final.md;
+- Goal035 SUCCESS report: docs/phantoms/reports/035-siege-gameplay.md;
 - operator tuning: docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md.
 
 Roadmap v5 — finite authoritative forward sequence:
 
 1. Goal034 — automated black-box local-stack acceptance, SUCCESS.
-2. Goal035 — siege gameplay slice, следующий planned Goal; NOT_STARTED до отдельной явной задачи.
-3. Goal036 — bounded whitelist quests/instances/class transfer/Kamaloka/Pailaka.
+2. Goal035 — siege gameplay slice, SUCCESS для bounded Giran castleId=3 vertical.
+3. Goal036 — bounded whitelist quests/instances/class transfer/Kamaloka/Pailaka, следующий planned Goal; NOT_STARTED до отдельной явной задачи.
 4. Goal037 — 100% High Five quest-script inventory + rates normalization/parity.
 5. Goal038 — Humanized Russian Semantic Pack, social/off-topic conversation,
    versioned custom overrides, contextual profanity и optional mature opt-in,
@@ -44,9 +46,8 @@ Roadmap v5 — finite authoritative forward sequence:
 6. Goal039 — единственный final full-vision release gate + freeze.
 
 После `ACCEPT` Goal039: `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`. Automatic
-Goal040+ запрещены. Следующий runtime step — только новый explicit Goal034
-resume от closure7 evidence для восстановления green predecessor/full-verify
-baseline и завершения mandatory final chain; Goal035 не начинать.
+Goal040+ запрещены. Следующий runtime step — только новый explicit Goal036;
+этот handoff не является разрешением начинать Goal036.
 
 Goal031 доказал guarded production-composed путь: 10 durable identities, Scheduler/Decision, real headless Player в World, autonomous decision trace, restart без duplicate rows, bounded shutdown retry и drain/disable rollback. GameServer запускает PhantomSystem только после World/data/scripts/managers и восстановления offline owners.
 
@@ -76,21 +77,22 @@ verify PASS. `[Player._skillListTask]` не воспроизведён, поэт
 kill или orphan JVM. Использовалась только `l2jmobiush5_phantom_test`;
 `prepare-phantom-test-db` не выполнялся.
 
-Не объявляй готовыми исходные gameplay gaps:
-- siege AI — DEFERRED_NOT_IMPLEMENTED;
+Не объявляй готовыми оставшиеся gameplay gaps и не расширяй Goal035:
+- siege AI beyond bounded Giran castleId=3 — DEFERRED_NOT_IMPLEMENTED;
 - generic whitelist quest adapter — PARTIAL (есть только bounded Q102/Q152 acquisition subset);
 - class quest automation — DEFERRED_NOT_IMPLEMENTED;
 - Kamaloka — DEFERRED_NOT_IMPLEMENTED;
 - Pailaka — DEFERRED_NOT_IMPLEMENTED.
 
-Следующий planned feature step: **Goal035 — Siege gameplay slice**, только по
-отдельной явной задаче. Этот handoff не является разрешением начинать Goal035.
+Следующий planned feature step: **Goal036 — bounded quests/instances slice**,
+только по отдельной явной задаче. Goal036 остаётся `NOT_STARTED`.
 Для любых DB-backed проверок сохраняй allowlisted `l2jmobiush5_phantom_test`;
 production `l2jmobiush5` и destructive prepare запрещены.
 
 Сначала прочитай `Agents.md`, `PHANTOM_DEVELOPMENT_MASTER_PLAN.md`,
 `docs/PHANTOM_BOTS_ROADMAP.md`, `docs/phantoms/PHANTOM_CURRENT_STATUS.md`, этот
-handoff, Goal034 closure8 SUCCESS report и новый explicit task package.
+handoff, Goal034 closure8 SUCCESS report, Goal035 SUCCESS report и новый
+explicit task package.
 Работай по `docs/phantoms/CODEX_WORKFLOW_CONTRACT.md`; исполняемый контракт
 каждой задачи находится в `docs/phantoms/tasks/<task>/TASK.md`. Не трогай
 historical reports, production DB, accepted Goal030 semantics и shipped safe

@@ -71,9 +71,9 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 		context.record("topology.corpus.anchors", _snapshot.anchors().size());
 		context.record("topology.corpus.edges", _snapshot.edges().size());
 		context.record("topology.corpus.npcIds", "22859,30080,30081");
-		context.record("topology.corpus.doorIds", "17240102");
+		context.record("topology.corpus.doorIds", "17240102,23220001");
 		context.record("topology.corpus.mapRegionLocIds", "918");
-		context.record("topology.corpus.coverage", "Giran city cluster, one outdoor Monster spawn, SSQ Disciples Necropolis Past first room/corridor");
+		context.record("topology.corpus.coverage", "Giran city/castle siege, one outdoor Monster spawn, SSQ Disciples Necropolis Past first room/corridor");
 	}
 
 	@Override
@@ -102,10 +102,18 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 		PhantomAssertions.assertEquals("high-five-core", _snapshot.datasetId(), "Production topology dataset ID changed.");
 		PhantomAssertions.assertEquals(1, _snapshot.schemaVersion(), "Production topology schema version changed.");
 		PhantomAssertions.assertEquals(3, _snapshot.datasetVersion(), "Production topology dataset version changed.");
-		PhantomAssertions.assertEquals(110, _snapshot.nodes().size(), "Production topology node count changed.");
-		PhantomAssertions.assertEquals(110, _snapshot.anchors().size(), "Production topology anchor count changed.");
+		PhantomAssertions.assertEquals(112, _snapshot.nodes().size(), "Production topology node count changed.");
+		PhantomAssertions.assertEquals(113, _snapshot.anchors().size(), "Production topology anchor count changed.");
 		PhantomAssertions.assertEquals(83, _snapshot.edges().size(), "Production topology edge count changed.");
 		PhantomAssertions.assertEquals(64, _snapshot.canonicalHash().length(), "Production topology canonical SHA-256 length changed.");
+		for (String id : List.of("giran.castle.siege.outer", "giran.castle.siege.inner"))
+		{
+			PhantomAssertions.assertTrue(_snapshot.nodeById().containsKey(id), "Production Giran siege node is missing: " + id + ".");
+		}
+		for (String id : List.of("giran.castle.attacker.staging", "giran.castle.defender.staging", "giran.castle.door.23220001.approach"))
+		{
+			PhantomAssertions.assertTrue(_snapshot.anchorById().containsKey(id), "Production Giran siege anchor is missing: " + id + ".");
+		}
 	}
 
 	private void testMapRegion()
@@ -133,6 +141,7 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 		final var edge = _snapshot.edgeById().get("ssq.necropolis.past.door.17240102");
 		PhantomAssertions.assertEquals(PhantomTopologyEdgeMode.DOOR, edge.mode(), "Production room passage is no longer a DOOR edge.");
 		PhantomAssertions.assertTrue(_backend.door(17240102).isPresent(), "Production factual door 17240102 is missing.");
+		PhantomAssertions.assertTrue(_backend.door(23220001).isPresent(), "Production factual Giran castle door 23220001 is missing.");
 		PhantomAssertions.assertEquals(DoorState.CLOSED, _backend.doorState(17240102), "Production factual door default live state changed.");
 		PhantomAssertions.assertFalse(_query.isTraversable(edge.id()), "Closed production room door was traversable.");
 		PhantomAssertions.assertEquals(PhantomTopologyNodeKind.ROOM, _snapshot.nodeById().get(edge.fromNodeId()).kind(), "Production factual first-room node changed.");

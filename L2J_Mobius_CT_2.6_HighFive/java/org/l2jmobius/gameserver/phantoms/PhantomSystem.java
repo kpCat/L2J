@@ -165,6 +165,11 @@ import org.l2jmobius.gameserver.phantoms.social.PhantomSocialAffiliationContextP
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialStore;
+import org.l2jmobius.gameserver.phantoms.siege.L2jPhantomSiegeAuthority;
+import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeCatalog;
+import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeDecision;
+import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeMovementCoordinator;
+import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeService;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomSchedulerRelevanceSignalPort;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
@@ -222,6 +227,7 @@ public final class PhantomSystem
 	private PhantomRaidRecruitmentService _raidRecruitmentService;
 	private PhantomRaidAssemblyService _raidAssemblyService;
 	private PhantomRaidAttemptService _raidAttemptService;
+	private PhantomSiegeService _siegeService;
 	private PhantomSocialService _socialService;
 	private PhantomConversationService _conversationService;
 	private PhantomConversationExecutionService _conversationExecutionService;
@@ -494,6 +500,10 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom clan social lifecycle observer could not be installed.");
 				}
 				final PhantomClanDecision clanDecision = new PhantomClanDecision(_clanService);
+				final PhantomSiegeCatalog siegeCatalog = PhantomSiegeCatalog.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/siege/high-five-siege-v1.xml").toPath());
+				siegeCatalog.validateTopologyAnchors(anchorId -> _topologyService.query().findAnchor(anchorId).isPresent());
+				_siegeService = new PhantomSiegeService(productionGoals, new L2jPhantomSiegeAuthority(productionProfiles, _materializationService, () -> _progressionService.findCatalog().orElse(null)), siegeCatalog, new PhantomSiegeMovementCoordinator(_navigationService, _topologyService, _combatService), _combatService, new PhantomSchedulerRelevanceSignalPort(_scheduler));
+				final PhantomSiegeDecision siegeDecision = new PhantomSiegeDecision(_siegeService);
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
 				_farmingService = new PhantomFarmingService(farmingPolicy, new PhantomFarmingStore(productionProfiles), _acquisitionService, _topologyService, _partyCoordinator, _socialService, _settings.maxScheduledPhantomProfiles());
 				if (!_farmingService.start())
@@ -567,6 +577,7 @@ public final class PhantomSystem
 				clanDecision.registerCandidates(candidateRegistry);
 				riftDecision.registerCandidates(candidateRegistry);
 				raidDecision.registerCandidates(candidateRegistry);
+				siegeDecision.registerCandidates(candidateRegistry);
 				candidateRegistry.seal();
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
@@ -582,6 +593,7 @@ public final class PhantomSystem
 				clanDecision.registerHandlers(handlerRegistry);
 				riftDecision.registerHandlers(handlerRegistry);
 				raidDecision.registerHandlers(handlerRegistry);
+				siegeDecision.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
 				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null, _historicalBackgroundService::permitsNormalOperation);
 				_decisionEngine.start();
@@ -604,6 +616,10 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException e)
 		{
+			if (_siegeService != null)
+			{
+				_siegeService.beginStop();
+			}
 			if (_raidAttemptService != null)
 			{
 				_raidAttemptService.beginStop();
@@ -712,7 +728,8 @@ public final class PhantomSystem
 				socialStopped = _socialService.finishStop();
 			}
 			final boolean acquisitionStopped = partyStopped && socialStopped && ((_acquisitionService == null) || _acquisitionService.finishStop());
-			final boolean combatStopped = acquisitionStopped && ((_combatService == null) || _combatService.finishStop());
+			final boolean siegeStopped = acquisitionStopped && ((_siegeService == null) || _siegeService.finishStop());
+			final boolean combatStopped = siegeStopped && ((_combatService == null) || _combatService.finishStop());
 			final boolean commerceStopped = (_commerceService == null) || _commerceService.finishStop();
 			final boolean populationStopped = (_populationManager == null) || _populationManager.finishStop();
 			boolean materializationStopped = _materializationService == null;
@@ -876,6 +893,10 @@ public final class PhantomSystem
 			{
 				_acquisitionService.beginStop();
 			}
+			if (_siegeService != null)
+			{
+				_siegeService.beginStop();
+			}
 			if (_combatService != null)
 			{
 				_combatService.beginStop();
@@ -921,6 +942,12 @@ public final class PhantomSystem
 				}
 			}
 			if ((_acquisitionService != null) && !_acquisitionService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				_state = State.FAILED;
+				return false;
+			}
+			if ((_siegeService != null) && !_siegeService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
@@ -1016,6 +1043,10 @@ public final class PhantomSystem
 		}
 		if (_state == State.FAILED)
 		{
+			if (_siegeService != null)
+			{
+				_siegeService.beginStop();
+			}
 			if (_raidAttemptService != null)
 			{
 				_raidAttemptService.beginStop();
@@ -1134,6 +1165,11 @@ public final class PhantomSystem
 				_acquisitionService.beginStop();
 			}
 			if ((_acquisitionService != null) && (_acquisitionService.snapshot().state() != PhantomAcquisitionService.ServiceState.STOPPED) && !_acquisitionService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				return false;
+			}
+			if ((_siegeService != null) && !_siegeService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
 				return false;
@@ -1272,6 +1308,11 @@ public final class PhantomSystem
 	public synchronized PhantomRaidRecruitmentService raidRecruitment()
 	{
 		return _raidRecruitmentService;
+	}
+
+	public synchronized PhantomSiegeService siegeService()
+	{
+		return _siegeService;
 	}
 
 	public synchronized PhantomRaidAssemblyService raidAssembly()
