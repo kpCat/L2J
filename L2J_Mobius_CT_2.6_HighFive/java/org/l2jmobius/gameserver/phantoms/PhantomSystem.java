@@ -290,7 +290,7 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom materialization service could not enter the running state.");
 				}
 				workSinkBridge = new PhantomActivityWorkSinkBridge();
-				_scheduler = createScheduler(new PhantomMaterializationServiceActivityPort(_materializationService), workSinkBridge);
+				_scheduler = createScheduler(new PhantomMaterializationServiceActivityPort(_materializationService, _settings.diagnosticsEnabled()), workSinkBridge);
 				combatPolicy = PhantomCombatPolicy.productionDefaults(_settings.maxScheduledPhantomProfiles());
 			}
 			else

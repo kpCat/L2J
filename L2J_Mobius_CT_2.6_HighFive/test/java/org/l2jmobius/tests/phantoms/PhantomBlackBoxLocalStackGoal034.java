@@ -218,7 +218,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			}
 			require(missingLayoutRejected, "Runtime-layout gate accepted a missing canonical sentinel.");
 			require(PROCESS_SPAWNS.get() == 0, "Missing-layout negative control spawned a process.");
-			verifyRoadmapV4(moduleRoot);
+			verifyRoadmapV5(moduleRoot);
 			System.out.println("[PASS] goal034.contract.mysql-test-url-accepted");
 			System.out.println("[PASS] goal034.contract.mariadb-test-url-accepted");
 			System.out.println("[PASS] goal034.contract.production-db-rejected-before-spawn");
@@ -236,7 +236,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 			System.out.println("[PASS] goal034.contract.restart-leads-cover-population-window");
 			System.out.println("[PASS] goal034.contract.canonical-runtime-layout files=" + contractRun.dataSnapshot.files() + " bytes=" + contractRun.dataSnapshot.bytes() + " copyMillis=" + contractRun.dataCopyMillis);
 			System.out.println("[PASS] goal034.contract.missing-runtime-tree-rejected-before-spawn");
-			System.out.println("[PASS] goal034.contract.roadmap-v4-consistency");
+			System.out.println("[PASS] goal034.contract.roadmap-v5-consistency");
 			System.out.println("SUMMARY: suite=phantom-black-box-local-stack-goal034-contract total=18 passed=18 failed=0");
 			return 0;
 		}
@@ -245,19 +245,19 @@ public final class PhantomBlackBoxLocalStackGoal034
 			deleteTree(contractRoot);
 		}
 	}
-	private static void verifyRoadmapV4(Path moduleRoot) throws IOException
+	private static void verifyRoadmapV5(Path moduleRoot) throws IOException
 	{
 		final Map<String, List<String>> expectations = Map.of(
-			"PHANTOM_DEVELOPMENT_MASTER_PLAN.md", List.of("Roadmap v4", "Goal037", "rates", "Goal038"),
-			"docs/PHANTOM_BOTS_ROADMAP.md", List.of("Roadmap v4", "Goal037", "rates", "Goal038"),
-			"docs/phantoms/PHANTOM_CURRENT_STATUS.md", List.of("Roadmap v4", "Goal037", "rates", "Goal038"),
-			"docs/phantoms/NEW_DIALOG_START_MESSAGE.txt", List.of("Roadmap v4", "Goal037", "rates", "Goal038"));
+			"PHANTOM_DEVELOPMENT_MASTER_PLAN.md", List.of("Roadmap v5", "Goal037", "rates", "Goal038", "Goal039"),
+			"docs/PHANTOM_BOTS_ROADMAP.md", List.of("Roadmap v5", "Goal037", "rates", "Goal038", "Goal039"),
+			"docs/phantoms/PHANTOM_CURRENT_STATUS.md", List.of("Roadmap v5", "Goal037", "rates", "Goal038", "Goal039"),
+			"docs/phantoms/NEW_DIALOG_START_MESSAGE.txt", List.of("Roadmap v5", "Goal037", "rates", "Goal038", "Goal039"));
 		for (Map.Entry<String, List<String>> entry : expectations.entrySet())
 		{
 			final String text = Files.readString(moduleRoot.resolve(entry.getKey()), StandardCharsets.UTF_8);
 			for (String token : entry.getValue())
 			{
-				require(text.contains(token), entry.getKey() + " lacks Roadmap v4 token: " + token);
+				require(text.contains(token), entry.getKey() + " lacks Roadmap v5 token: " + token);
 			}
 		}
 	}
@@ -460,7 +460,7 @@ public final class PhantomBlackBoxLocalStackGoal034
 
 		final Path phantom = run.gameRoot.resolve("config/Custom/PhantomPlayers.ini");
 		replaceProperty(phantom, "EnablePhantomSystem", "True");
-		replaceProperty(phantom, "EnablePhantomDiagnostics", "False");
+		replaceProperty(phantom, "EnablePhantomDiagnostics", "True");
 		replaceProperty(phantom, "MaxMaterializedPhantoms", Integer.toString(ACTIVE_CAP));
 		replaceProperty(phantom, "MaxScheduledPhantomProfiles", Integer.toString(EXPECTED_POPULATION));
 		replaceProperty(phantom, "PhantomPopulationTarget", Integer.toString(EXPECTED_POPULATION));

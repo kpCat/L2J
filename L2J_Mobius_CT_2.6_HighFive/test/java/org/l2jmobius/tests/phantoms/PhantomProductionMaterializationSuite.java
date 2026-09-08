@@ -186,6 +186,9 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		final ServiceFixture fixture = service(2);
 		PhantomAssertions.assertEquals(0, fixture.service().snapshot().retainedEntries(), "Service start materialized an actor.");
 		PhantomAssertions.assertEquals(ResultStatus.PROFILE_NOT_FOUND, fixture.service().materialize(Long.MAX_VALUE).status(), "Missing profile result is wrong.");
+		final PhantomMaterializationServiceActivityPort diagnosticPort = new PhantomMaterializationServiceActivityPort(fixture.service(), true);
+		PhantomAssertions.assertEquals(Outcome.TRANSIENT_BLOCK, diagnosticPort.materialize(Long.MAX_VALUE).outcome(), "Missing profile adapter outcome is wrong.");
+		PhantomAssertions.assertEquals(ResultStatus.PROFILE_NOT_FOUND, diagnosticPort.diagnosticFailures().get(Long.MAX_VALUE), "Diagnostics did not preserve the first exact materialization status.");
 		final PhantomProfile unlinked = createProfile(null);
 		PhantomAssertions.assertEquals(ResultStatus.PROFILE_UNLINKED, fixture.service().materialize(unlinked.profileId()).status(), "Unlinked profile result is wrong.");
 		PhantomAssertions.assertEquals(0, fixture.service().snapshot().retainedEntries(), "Rejected requests retained service entries.");

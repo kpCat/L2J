@@ -7,6 +7,8 @@ import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,12 +19,17 @@ import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
+import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.PhantomPopulationResetService.Lifecycle;
 import org.l2jmobius.gameserver.phantoms.PhantomPopulationResetService.ResetCode;
 import org.l2jmobius.gameserver.phantoms.PhantomPopulationResetService.ResetPreview;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorControlCode;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorControlResult;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorMode;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivitySnapshot;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityTransitionStatus;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStateCodec;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService;
@@ -81,7 +88,8 @@ public final class PhantomPopulationEcologyProductionGoal033Suite implements Pha
 		PhantomAssertions.assertEquals("LIVING", local.ecologyPreset(), "Local-play production preset is not LIVING.");
 		PhantomAssertions.assertEquals(10, local.populationTarget(), "Local-play population target changed.");
 		PhantomAssertions.assertEquals(5, local.populationActiveTarget(), "Local-play ACTIVE target changed.");
-		_settings = new PhantomPlayersConfig.Settings(true, true, local.maxMaterializedPhantoms(), local.maxScheduledPhantomProfiles(), local.schedulerPulseMillis(), local.schedulerProfilesPerPulse(), local.populationTarget(), local.populationActiveTarget(), local.populationCreationInFlight(), local.populationBoundariesPerPulse(), local.partyOperationsPerPulse(), local.socialCacheProfiles(), local.populationTimeZone(), true, local.ecologyPreset(), local.ecologyWorldAgeDays(), local.ecologyArchiveLimit());
+		final ZoneOffset eveningZone = currentEveningZone();
+		_settings = new PhantomPlayersConfig.Settings(true, true, local.maxMaterializedPhantoms(), local.maxScheduledPhantomProfiles(), local.schedulerPulseMillis(), local.schedulerProfilesPerPulse(), local.populationTarget(), local.populationActiveTarget(), local.populationCreationInFlight(), local.populationBoundariesPerPulse(), local.partyOperationsPerPulse(), local.socialCacheProfiles(), eveningZone, true, local.ecologyPreset(), local.ecologyWorldAgeDays(), local.ecologyArchiveLimit());
 		resetOperatorState();
 		_environment.initialize(context, IRRELEVANT_WORLD_TIMER_START_MILLIS);
 		_environmentInitialized = true;
@@ -95,7 +103,7 @@ public final class PhantomPopulationEcologyProductionGoal033Suite implements Pha
 		PhantomAssertions.assertEquals(0L, scalar("SELECT COUNT(*) FROM phantom_profiles"), "Goal033 production suite requires a clean guarded Phantom profile table.");
 		context.record("goal033.production.recoveredProfiles", recoveredProfiles);
 		context.record("goal033.production.database", "127.0.0.1:3308/l2jmobiush5_phantom_test");
-		context.record("goal033.production.settings", "population=10,active=5,preset=LIVING,worldAgeDays=" + _settings.ecologyWorldAgeDays());
+		context.record("goal033.production.settings", "population=10,active=5,preset=LIVING,worldAgeDays=" + _settings.ecologyWorldAgeDays() + ",zone=" + eveningZone);
 	}
 
 	@Override
@@ -161,6 +169,8 @@ public final class PhantomPopulationEcologyProductionGoal033Suite implements Pha
 	private void testProductionRestart(PhantomTestContext context) throws Exception
 	{
 		PhantomAssertions.assertEquals(10, _reseeded.size(), "Cold LIVING case did not preserve ten reseeded identities.");
+		final PhantomScheduler generationOneOwner = Objects.requireNonNull(PhantomSystem.configuredScheduler());
+		final Set<Long> generationOneActive = awaitCanonicalActivePopulation("generation one");
 		final PhantomSystem.OperatorStatus beforeRestart = PhantomSystem.operatorStatus();
 		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.RUNNING, beforeRestart.schedulerState(), "Production Scheduler is not RUNNING before restart.");
 		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.State.RUNNING, beforeRestart.decisionState(), "Production Decision Engine is not RUNNING before restart.");
@@ -169,8 +179,10 @@ public final class PhantomPopulationEcologyProductionGoal033Suite implements Pha
 		PhantomAssertions.assertEquals(PhantomSocialService.ServiceState.RUNNING, live.socialState(), "Production Social service is not RUNNING.");
 		PhantomAssertions.assertFalse("none".equals(live.socialCatalogHash()), "Production Social service has no loaded catalog.");
 		shutdownRuntime();
+		assertCanonicalPopulationDrained(generationOneActive);
 
 		startRuntime();
+		PhantomAssertions.assertFalse(generationOneOwner == PhantomSystem.configuredScheduler(), "Cold restart reused the generation-one Scheduler owner.");
 		awaitReadyPopulation(60_000L);
 		awaitEcologyInventory();
 		await(60_000L, () -> PhantomSystem.operatorStatus().ecology().pulses() >= 2, "Restarted ecology did not execute two production pulses.");
@@ -188,9 +200,72 @@ public final class PhantomPopulationEcologyProductionGoal033Suite implements Pha
 		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.State.RUNNING, status.decisionState(), "Restarted Decision Engine is not RUNNING.");
 		PhantomAssertions.assertEquals(Preset.LIVING, status.ecology().preset(), "Restarted production ecology is not LIVING.");
 		PhantomAssertions.assertEquals(0, status.ecology().pendingCatchup(), "Restart did not return LIVING population to steady state.");
+		final Set<Long> generationTwoActive = awaitCanonicalActivePopulation("generation two");
+		PhantomAssertions.assertEquals(generationOneActive, generationTwoActive, "Cold restart changed the schedule-aware ACTIVE population.");
 		context.record("goal033.production.domains", "scheduler=RUNNING/registered10,decision=RUNNING,backgroundIntervals=" + _steady.historicalIntervals() + ",social=RUNNING");
-		context.record("goal033.production.restart", "profiles=10,ecology=10,assignmentsStable=true,pending=0,levels=" + status.levelHistogram());
+		context.record("goal033.production.restart", "profiles=10,ecology=10,assignmentsStable=true,pending=0,active=" + generationTwoActive + ",levels=" + status.levelHistogram());
 		shutdownRuntime();
+	}
+
+	private Set<Long> awaitCanonicalActivePopulation(String generation) throws Exception
+	{
+		final long deadline = System.nanoTime() + 60_000_000_000L;
+		MaterializationObservation latest = observeMaterialization();
+		while (System.nanoTime() < deadline)
+		{
+			latest = observeMaterialization();
+			if (latest.converged())
+			{
+				return latest.requestedActive();
+			}
+			Thread.sleep(20L);
+		}
+		throw new AssertionError("Production 10/5 " + generation + " did not materialize its schedule-aware ACTIVE population: " + latest);
+	}
+
+	private MaterializationObservation observeMaterialization()
+	{
+		final Set<Long> requestedActive = new HashSet<>();
+		final Set<Long> effectiveActive = new HashSet<>();
+		final Set<Long> canonicalOnline = new HashSet<>();
+		final Set<Long> stableActive = new HashSet<>();
+		final List<PhantomActivitySnapshot> scheduler = Objects.requireNonNull(PhantomSystem.configuredScheduler()).list();
+		for (PhantomActivitySnapshot snapshot : scheduler)
+		{
+			if (snapshot.requestedState() == PhantomActivityState.ACTIVE)
+			{
+				requestedActive.add(snapshot.profileId());
+			}
+			if (snapshot.effectiveState() == PhantomActivityState.ACTIVE)
+			{
+				effectiveActive.add(snapshot.profileId());
+				if (snapshot.transitionStatus() == PhantomActivityTransitionStatus.STABLE)
+				{
+					stableActive.add(snapshot.profileId());
+				}
+			}
+		}
+		for (ManagedProfile row : _population)
+		{
+			final Integer characterObjectId = row.profile().characterObjectId();
+			final Player player = characterObjectId == null ? null : World.getInstance().getPlayer(characterObjectId);
+			if ((player != null) && player.isOnline())
+			{
+				canonicalOnline.add(row.profile().profileId());
+			}
+		}
+		return new MaterializationObservation(Set.copyOf(requestedActive), Set.copyOf(effectiveActive), Set.copyOf(canonicalOnline), Set.copyOf(stableActive), List.copyOf(scheduler));
+	}
+
+	private void assertCanonicalPopulationDrained(Set<Long> generationOneActive) throws Exception
+	{
+		for (ManagedProfile row : _population)
+		{
+			if (generationOneActive.contains(row.profile().profileId()))
+			{
+				PhantomAssertions.assertTrue(World.getInstance().getPlayer(Objects.requireNonNull(row.profile().characterObjectId())) == null, "Generation-one drain retained a canonical Player for profile " + row.profile().profileId() + ".");
+			}
+		}
 	}
 
 	private void awaitEcologyInventory() throws Exception
@@ -510,8 +585,31 @@ public final class PhantomPopulationEcologyProductionGoal033Suite implements Pha
 		return (System.nanoTime() - startedNanos) / 1_000_000L;
 	}
 
+	private static ZoneOffset currentEveningZone()
+	{
+		final var utc = Instant.now().atOffset(ZoneOffset.UTC);
+		int offsetMinutes = ((20 * 60) + 30) - ((utc.getHour() * 60) + utc.getMinute());
+		if (offsetMinutes > (12 * 60))
+		{
+			offsetMinutes -= 24 * 60;
+		}
+		else if (offsetMinutes < (-12 * 60))
+		{
+			offsetMinutes += 24 * 60;
+		}
+		return ZoneOffset.ofTotalSeconds(offsetMinutes * 60);
+	}
+
 	private record Identity(long profileId, int characterObjectId, String accountName)
 	{
+	}
+
+	private record MaterializationObservation(Set<Long> requestedActive, Set<Long> effectiveActive, Set<Long> canonicalOnline, Set<Long> stableActive, List<PhantomActivitySnapshot> scheduler)
+	{
+		private boolean converged()
+		{
+			return (requestedActive.size() == 5) && requestedActive.equals(effectiveActive) && requestedActive.equals(canonicalOnline) && requestedActive.equals(stableActive);
+		}
 	}
 
 	private record Assignment(String catalogHash, Preset preset, long generation, long ordinal, long assignedAt, long virtualJoin, Pace pace, int productiveShare, Personality personality, Map<Integer, Integer> socialTraits, String schedule, long turnoverEligible, long replacesProfileId, Disposition disposition)

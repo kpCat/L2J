@@ -20,7 +20,10 @@
  */
 package org.l2jmobius.gameserver.phantoms.activity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
@@ -31,11 +34,22 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State;
  */
 public final class PhantomMaterializationServiceActivityPort implements PhantomActivityMaterializationPort
 {
+	private static final Logger LOGGER = Logger.getLogger(PhantomMaterializationServiceActivityPort.class.getName());
+	private static final int MAX_DIAGNOSTIC_PROFILES = 1024;
+
 	private final PhantomMaterializationService _service;
+	private final boolean _diagnosticsEnabled;
+	private final LinkedHashMap<Long, ResultStatus> _diagnosticFailures = new LinkedHashMap<>();
 
 	public PhantomMaterializationServiceActivityPort(PhantomMaterializationService service)
 	{
+		this(service, false);
+	}
+
+	public PhantomMaterializationServiceActivityPort(PhantomMaterializationService service, boolean diagnosticsEnabled)
+	{
 		_service = Objects.requireNonNull(service, "service");
+		_diagnosticsEnabled = diagnosticsEnabled;
 	}
 
 	@Override
@@ -50,7 +64,27 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 		{
 			return TransitionOutcome.success();
 		}
+		recordDiagnosticFailure(profileId, result);
 		return hasLifecycleOwnership(profileId) ? TransitionOutcome.retainedFailure() : TransitionOutcome.transientBlock();
+	}
+
+	public synchronized Map<Long, ResultStatus> diagnosticFailures()
+	{
+		return Map.copyOf(_diagnosticFailures);
+	}
+
+	private synchronized void recordDiagnosticFailure(long profileId, PhantomMaterializationService.MaterializeResult result)
+	{
+		if (!_diagnosticsEnabled || _diagnosticFailures.containsKey(profileId))
+		{
+			return;
+		}
+		if (_diagnosticFailures.size() == MAX_DIAGNOSTIC_PROFILES)
+		{
+			_diagnosticFailures.remove(_diagnosticFailures.keySet().iterator().next());
+		}
+		_diagnosticFailures.put(profileId, result.status());
+		LOGGER.warning("Phantom materialization boundary diagnostic: profileId=" + profileId + ", status=" + result.status() + ", snapshot=" + result.snapshot());
 	}
 
 	@Override
