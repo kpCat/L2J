@@ -1,0 +1,34 @@
+{
+  "task": "Goal034 closure 6",
+  "required_parent": "d2096a37d1458977c2dd5e81e329c6732e11aa59",
+  "branch": "feature/phantom-world",
+  "extract_to": "C:\\Users\\ZBook\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\",
+  "lines_excluding_manifest": 510,
+  "suffix_limit": 360,
+  "files": [
+    {
+      "path": "docs/phantoms/tasks/034-closure6-acquisition-manor-player-future/ACCEPTANCE.md",
+      "sha256": "bb7ca35b90c641196838ca4747ed80972e2b1f92972600bbb46646a78988916c",
+      "bytes": 1011,
+      "lines": 15
+    },
+    {
+      "path": "docs/phantoms/tasks/034-closure6-acquisition-manor-player-future/CODEX_LAUNCHER.txt",
+      "sha256": "db18ee30a8baec99daf4ee1af1571d611ce1904d575a185049e028494373e192",
+      "bytes": 1053,
+      "lines": 5
+    },
+    {
+      "path": "docs/phantoms/tasks/034-closure6-acquisition-manor-player-future/CONTEXT.md",
+      "sha256": "1584756585e0285acad505986e897ea38a25f4724643f9e9d84e200c7c2d4291",
+      "bytes": 2124,
+      "lines": 24
+    },
+    {
+      "path": "docs/phantoms/tasks/034-closure6-acquisition-manor-player-future/TASK.md",
+      "sha256": "5fec5e6171ab382e050ffcfd2e9f3cd6c68f50a4c25372e17e5f7f599a3c9ac1",
+      "bytes": 20844,
+      "lines": 466
+    }
+  ]
+}

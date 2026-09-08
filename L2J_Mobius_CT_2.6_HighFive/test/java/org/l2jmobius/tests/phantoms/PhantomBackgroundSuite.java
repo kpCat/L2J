@@ -473,6 +473,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("01-bounded-canonical-town-recovery", _ -> testDeathRecovery());
 		registry.add("02-recovery-cancellation", _ -> testRecoveryCancellation());
 		registry.add("03-production-town-recovery-remains-canonical", _ -> testProductionDeathRecovery());
+		registry.add("04-recovery-preserves-preexisting-materialization", _ -> testPreexistingMaterializationRecovery());
 	}
 
 	private void registerRealLogin(PhantomTestRegistry registry)
@@ -2054,6 +2055,24 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				PhantomAssertions.assertTrue(action.player().getCurrentHp() > 0, "Rematerialized recovery retained zero HP.");
 			}
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(runtime.profileId()).status(), "Recovered rematerialization cleanup failed.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testPreexistingMaterializationRecovery() throws Exception
+	{
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
+		try
+		{
+			makeDead(runtime);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Preexisting recovery materialization did not become ACTIVE.");
+			final PhantomBackgroundService.OperationResult recovered = runtime.background().recover(runtime.profileId(), runtime.goal(), PhantomActivityState.ACTIVE);
+			PhantomAssertions.assertEquals(OperationStatus.FAIL_GOAL, recovered.status(), "Preexisting materialization recovery did not complete: " + recovered.reason());
+			PhantomAssertions.assertTrue(runtime.materialization().find(runtime.profileId()).filter(snapshot -> snapshot.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE).isPresent(), "Recovery dematerialized a Player owned by the existing ACTIVE lifecycle.");
+			PhantomAssertions.assertEquals(State.MATERIALIZED, runtime.transaction().load(runtime.profileId()).state().state(), "Restored ACTIVE recovery did not retain matching MATERIALIZED background state.");
 		}
 		finally
 		{

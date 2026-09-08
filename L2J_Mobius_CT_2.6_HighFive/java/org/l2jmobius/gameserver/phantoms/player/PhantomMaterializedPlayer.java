@@ -308,10 +308,17 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			{
 				requireNoForeignWorldIdentity(cleanupPlayer);
 				cleanupPlayer.stopAllTasks();
-				_lifecycleSupport.beforeStore(cleanupPlayer);
-				failAfter(FailurePoint.BEFORE_STORE_OPERATION);
-				cleanupPlayer.storeMe();
-				_lifecycleSupport.afterStore(cleanupPlayer);
+				try
+				{
+					_lifecycleSupport.beforeStore(cleanupPlayer);
+					failAfter(FailurePoint.BEFORE_STORE_OPERATION);
+					cleanupPlayer.storeMe();
+					_lifecycleSupport.afterStore(cleanupPlayer);
+				}
+				finally
+				{
+					cleanupPlayer.stopAllTasks();
+				}
 
 				try
 				{

@@ -396,24 +396,36 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	private static void assertFutureResidueTerminal(Player player) throws Exception
 	{
+		PhantomAssertions.assertEquals(List.of(), liveFutureFields(player), "Cleanup retained live Player futures.");
+	}
+
+	static List<String> liveFutureFields(Player player)
+	{
 		final List<String> liveFields = new ArrayList<>();
-		for (Class<?> type = player.getClass(); type != null; type = type.getSuperclass())
+		try
 		{
-			for (Field field : type.getDeclaredFields())
+			for (Class<?> type = player.getClass(); type != null; type = type.getSuperclass())
 			{
-				if (!Future.class.isAssignableFrom(field.getType()))
+				for (Field field : type.getDeclaredFields())
 				{
-					continue;
-				}
-				field.setAccessible(true);
-				final Future<?> future = (Future<?>) field.get(player);
-				if ((future != null) && !future.isDone() && !future.isCancelled())
-				{
-					liveFields.add(type.getSimpleName() + "." + field.getName());
+					if (!Future.class.isAssignableFrom(field.getType()))
+					{
+						continue;
+					}
+					field.setAccessible(true);
+					final Future<?> future = (Future<?>) field.get(player);
+					if ((future != null) && !future.isDone() && !future.isCancelled())
+					{
+						liveFields.add(type.getSimpleName() + "." + field.getName());
+					}
 				}
 			}
 		}
-		PhantomAssertions.assertEquals(List.of(), liveFields, "Cleanup retained live Player futures.");
+		catch (IllegalAccessException e)
+		{
+			throw new AssertionError("Could not inspect Player future ownership.", e);
+		}
+		return List.copyOf(liveFields);
 	}
 
 	private void assertNoNewNonDaemonThreads() throws Exception

@@ -755,10 +755,16 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			return retry("recovery.materialization_absent");
 		}
-		final PhantomMaterializationService.MaterializeResult materialized = materialization.materialize(profileId);
-		if ((materialized.status() != ResultStatus.SUCCESS) && (materialized.status() != ResultStatus.ALREADY_ACTIVE))
+		final Optional<PhantomMaterializationService.MaterializationSnapshot> existingMaterialization = materialization.find(profileId);
+		boolean restoreExistingMaterialization = existingMaterialization.isPresent() && (existingMaterialization.get().state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE);
+		if (!restoreExistingMaterialization)
 		{
-			return retry("recovery.materialization_" + materialized.status().name().toLowerCase());
+			final PhantomMaterializationService.MaterializeResult materialized = materialization.materialize(profileId);
+			if ((materialized.status() != ResultStatus.SUCCESS) && (materialized.status() != ResultStatus.ALREADY_ACTIVE))
+			{
+				return retry("recovery.materialization_" + materialized.status().name().toLowerCase());
+			}
+			restoreExistingMaterialization = materialized.status() == ResultStatus.ALREADY_ACTIVE;
 		}
 		final Optional<ActionLease> action = materialization.tryAcquireAction(profileId);
 		if (action.isEmpty())
@@ -829,6 +835,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (!verified.successful() || (verified.state() == null) || (verified.state().state() != State.READY))
 		{
 			return OperationResult.inconsistent("recovery.verification_failed");
+		}
+		if (restoreExistingMaterialization)
+		{
+			final PhantomMaterializationService.MaterializeResult restored = materialization.materialize(profileId);
+			if ((restored.status() != ResultStatus.SUCCESS) && (restored.status() != ResultStatus.ALREADY_ACTIVE))
+			{
+				return OperationResult.inconsistent("recovery.rematerialization_" + restored.status().name().toLowerCase());
+			}
 		}
 		return OperationResult.failGoal("death.recovered_at_town");
 	}

@@ -1,0 +1,5 @@
+/goal Выполни Goal034 closure 6 строго по docs/phantoms/tasks/034-closure6-acquisition-manor-player-future/TASK.md.
+Required parent: d2096a37d1458977c2dd5e81e329c6732e11aa59
+Branch: feature/phantom-world
+
+Сначала focused воспроизведи/детерминируй `acquisition-manor-active.after-all` с retained `[Player._skillListTask]` и докажи точный момент повторного arm относительно canonical `Player.stopAllTasks()` и materialization lifecycle hooks. Не лечи sleep/wait/filter/reflection-cancel. Исправь минимальный lifecycle ownership/order edge, затем focused manor/materialization -> fresh full verify -> final jar -> один fresh real Goal034 gen1 -> native restart/drain -> gen2 parity/drain -> cleanup. Goal035 не начинать даже после SUCCESS: следующая задача будет documentation-only Roadmap v5 sync. Production `l2jmobiush5` запрещена; `prepare-phantom-test-db` не выполнять.

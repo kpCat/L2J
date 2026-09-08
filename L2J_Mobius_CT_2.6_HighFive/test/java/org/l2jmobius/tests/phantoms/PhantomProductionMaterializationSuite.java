@@ -62,6 +62,7 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.De
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializeResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailurePoint;
@@ -154,6 +155,7 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		registry.add("18-action-admission-atomic-with-stopping", _ -> testActionAdmissionAtomicWithStopping());
 		registry.add("19-shutdown-caller-wall-clock-bound", this::testShutdownCallerWallClock);
 		registry.add("20-real-retained-collision-scheduler-ownership", _ -> testSchedulerRetainedCollisionOwnership());
+		registry.add("21-final-player-task-stop-after-lifecycle-rearm", _ -> testFinalPlayerTaskStopAfterLifecycleRearm());
 	}
 
 	private void testConfig() throws Exception
@@ -206,6 +208,91 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		PhantomAssertions.assertEquals(_environment.primary().objectId(), fixture.service().find(profile.profileId()).orElseThrow().characterObjectId(), "Materialization captured the wrong character.");
 		PhantomAssertions.assertEquals(Outcome.SUCCESS, activityPort.dematerialize(profile.profileId()).outcome(), "Activity scheduler bridge did not dematerialize the canonical Player.");
 		PhantomAssertions.assertFalse(activityPort.isMaterialized(profile.profileId()), "Activity scheduler bridge retained canonical materialization after cleanup.");
+		_environment.assertClean(_environment.primary(), player);
+	}
+
+	private void testFinalPlayerTaskStopAfterLifecycleRearm() throws Exception
+	{
+		reset();
+		final AtomicReference<Player> lifecyclePlayer = new AtomicReference<>();
+		final AtomicReference<List<String>> afterInitialStop = new AtomicReference<>(List.of("not-observed"));
+		final AtomicReference<List<String>> afterStoreEntry = new AtomicReference<>(List.of("not-observed"));
+		final AtomicReference<List<String>> afterStoreArm = new AtomicReference<>(List.of("not-observed"));
+		final AtomicReference<List<String>> afterStoreBoundary = new AtomicReference<>(List.of("not-observed"));
+		final AtomicReference<List<String>> beforeDelete = new AtomicReference<>(List.of("not-observed"));
+		final AtomicReference<List<String>> afterDelete = new AtomicReference<>(List.of("not-observed"));
+		final PhantomMaterializationLifecyclePort lifecycle = new PhantomMaterializationLifecyclePort()
+		{
+			@Override
+			public void beforeMaterialize(long profileId, int characterObjectId)
+			{
+			}
+
+			@Override
+			public void afterPlayerLoad(long profileId, Player player)
+			{
+			}
+
+			@Override
+			public void materializeSucceeded(long profileId, int characterObjectId)
+			{
+			}
+
+			@Override
+			public void materializeAborted(long profileId, int characterObjectId)
+			{
+			}
+
+			@Override
+			public void beforeStore(long profileId, Player player)
+			{
+				lifecyclePlayer.set(player);
+				afterInitialStop.set(PhantomHeadlessPlayerTestEnvironment.liveFutureFields(player));
+			}
+
+			@Override
+			public void afterStore(long profileId, Player player)
+			{
+				afterStoreEntry.set(PhantomHeadlessPlayerTestEnvironment.liveFutureFields(player));
+				player.sendSkillList();
+				afterStoreArm.set(PhantomHeadlessPlayerTestEnvironment.liveFutureFields(player));
+			}
+		};
+		final PhantomMaterializedPlayer.FailureInjector boundaryProbe = point ->
+		{
+			final Player player = lifecyclePlayer.get();
+			if (player == null)
+			{
+				return;
+			}
+			if (point == FailurePoint.AFTER_STORE_BEFORE_DELETE)
+			{
+				afterStoreBoundary.set(PhantomHeadlessPlayerTestEnvironment.liveFutureFields(player));
+			}
+			else if (point == FailurePoint.BEFORE_DELETE_OPERATION)
+			{
+				beforeDelete.set(PhantomHeadlessPlayerTestEnvironment.liveFutureFields(player));
+			}
+			else if (point == FailurePoint.AFTER_DELETE_BEFORE_IDENTITY_RELEASE)
+			{
+				afterDelete.set(PhantomHeadlessPlayerTestEnvironment.liveFutureFields(player));
+			}
+		};
+
+		final PhantomProfile profile = createProfile(_environment.primary().objectId());
+		final ServiceFixture fixture = service(1, boundaryProbe, lifecycle, 5000, 10000);
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().materialize(profile.profileId()).status(), "Lifecycle future fixture did not materialize.");
+		final Player player = World.getInstance().getPlayer(_environment.primary().objectId());
+		PhantomAssertions.assertTrue(player != null, "Lifecycle future fixture Player is absent.");
+		player.sendSkillList();
+		PhantomAssertions.assertTrue(PhantomHeadlessPlayerTestEnvironment.liveFutureFields(player).contains("Player._skillListTask"), "Pre-cleanup Player skill-list future was not armed.");
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().dematerialize(profile.profileId()).status(), "Lifecycle future fixture cleanup failed.");
+		PhantomAssertions.assertEquals(List.of(), afterInitialStop.get(), "Initial canonical Player.stopAllTasks() did not quiesce Player futures before beforeStore.");
+		PhantomAssertions.assertEquals(List.of(), afterStoreEntry.get(), "Player.storeMe() unexpectedly re-armed a Player future before afterStore.");
+		PhantomAssertions.assertTrue(afterStoreArm.get().contains("Player._skillListTask"), "Lifecycle afterStore did not exercise the real Player.sendSkillList() arm path.");
+		PhantomAssertions.assertEquals(List.of(), afterStoreBoundary.get(), "Final canonical Player task stop did not close futures re-armed by afterStore.");
+		PhantomAssertions.assertEquals(List.of(), beforeDelete.get(), "Player retained a live future immediately before deleteMe().");
+		PhantomAssertions.assertEquals(List.of(), afterDelete.get(), "Player retained a live future after deleteMe().");
 		_environment.assertClean(_environment.primary(), player);
 	}
 
@@ -848,9 +935,14 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 
 	private ServiceFixture service(int capacity, PhantomMaterializedPlayer.FailureInjector failureInjector, long actionDrainTimeoutMillis, long shutdownTimeoutMillis)
 	{
+		return service(capacity, failureInjector, PhantomMaterializationLifecyclePort.none(), actionDrainTimeoutMillis, shutdownTimeoutMillis);
+	}
+
+	private ServiceFixture service(int capacity, PhantomMaterializedPlayer.FailureInjector failureInjector, PhantomMaterializationLifecyclePort lifecyclePort, long actionDrainTimeoutMillis, long shutdownTimeoutMillis)
+	{
 		final PhantomMetrics metrics = new PhantomMetrics();
 		final PhantomDiagnosticTrace trace = new PhantomDiagnosticTrace(true, 32, 1, metrics);
-		final PhantomMaterializationService service = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, trace, capacity, failureInjector, actionDrainTimeoutMillis, shutdownTimeoutMillis);
+		final PhantomMaterializationService service = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, trace, capacity, failureInjector, lifecyclePort, actionDrainTimeoutMillis, shutdownTimeoutMillis);
 		PhantomAssertions.assertTrue(service.start(), "Materialization service did not start.");
 		_services.add(service);
 		return new ServiceFixture(service, metrics, trace);
