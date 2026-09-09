@@ -59,6 +59,7 @@ import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.managers.IdManager;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -458,7 +459,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private void registerPositionCanonicalization(PhantomTestRegistry registry)
 	{
-		registry.add("01-canonical-anchor-policy-and-negative-controls", _ -> testCanonicalAnchorPolicy());
+		registry.add("01-canonical-anchor-policy-and-negative-controls", this::testCanonicalAnchorPolicy);
 		registry.add("02-real-player-travel-materialization-restart", this::testProductionPositionTransition);
 	}
 
@@ -934,13 +935,16 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		context.record("background.productionLootAudit", String.join("|", audited));
 	}
 
-	private void testCanonicalAnchorPolicy() throws Exception
+	private void testCanonicalAnchorPolicy(PhantomTestContext context) throws Exception
 	{
 		final ProductionTravelSelection travel = productionTravelSelection();
 		final L2jPhantomBackgroundAuthority authority = _production.authority();
 		final Hashes hashes = authority.hashes();
 		final Position departure = canonicalAnchorPosition(travel.departure(), 0);
 		final Position arrival = canonicalAnchorPosition(travel.arrival(), 0);
+		final int liveGeoZ = GeoEngine.getInstance().getHeight(travel.arrival().point().x(), travel.arrival().point().y(), travel.arrival().point().z());
+		final long liveDelta = Math.abs((long) liveGeoZ - travel.arrival().point().z());
+		final String positionMode = liveDelta == 0 ? "IDENTITY_DEGRADED" : "GEODATA_NORMALIZED";
 		final PhantomTopologySnapshot topology = _production.topology().snapshot();
 		final PhantomTopologySnapshot reloadedTopology = new PhantomTopologyLoader(Path.of("data/phantoms/topology"), _production.topologyBackend(), PhantomTopologyPolicy.productionDefaults()).load(topology.generation());
 		PhantomAssertions.assertEquals(topology.canonicalHash(), reloadedTopology.canonicalHash(), "Corrected production topology hash is not deterministic across loader runs.");
@@ -950,15 +954,19 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(-4072, departure.z(), "Production route anchor did not remain fixed at canonical Z.");
 		PhantomAssertions.assertEquals(-3061, travel.arrival().point().z(), "Production farming anchor lost its factual spawn Z.");
 		PhantomAssertions.assertEquals(5, travel.arrival().validationTolerance(), "Production farming anchor tolerance is not the exact normalization delta.");
-		PhantomAssertions.assertEquals(-3056, arrival.z(), "Production farming anchor canonical Z changed.");
-		PhantomAssertions.assertEquals(5L, Math.abs((long) arrival.z() - travel.arrival().point().z()), "Production farming normalization delta changed.");
+		PhantomAssertions.assertEquals(liveGeoZ, arrival.z(), "Production farming anchor canonical Z differs from the current GeoEngine result.");
+		PhantomAssertions.assertTrue(liveDelta <= travel.arrival().validationTolerance(), "Current GeoEngine normalization exceeds the factual farming anchor tolerance.");
 		PhantomAssertions.assertTrue(_production.topologyBackend().spawns(PRODUCTION_TARGET_NPC_ID, 4096).stream().anyMatch(spawn -> spawn.point().equals(travel.arrival().point())), "Production farming anchor no longer matches the factual NPC 22859 spawn.");
 		PhantomAssertions.assertEquals("giran.route.north", travel.edge().fromAnchorId(), "Production background edge departure endpoint changed.");
 		PhantomAssertions.assertEquals(PRODUCTION_FARM_ANCHOR_ID, travel.edge().toAnchorId(), "Production background edge arrival endpoint changed.");
 		PhantomAssertions.assertEquals(900_000L, travel.edge().baseTravelMillis(), "Production background edge travel time changed.");
 		PhantomAssertions.assertEquals(departure, canonicalAnchorPosition(travel.departure(), 0), "Canonical departure position must be deterministic.");
 		PhantomAssertions.assertEquals(arrival, canonicalAnchorPosition(travel.arrival(), 0), "Canonical arrival position must be deterministic.");
-		PhantomAssertions.assertTrue(arrival.z() != travel.arrival().point().z(), "The production farm fixture must exercise GeoEngine Z canonicalization.");
+		context.record("background.positionRawZ", travel.arrival().point().z());
+		context.record("background.positionCanonicalZ", arrival.z());
+		context.record("background.positionLiveDelta", liveDelta);
+		context.record("background.positionTolerance", travel.arrival().validationTolerance());
+		context.record("background.positionMode", positionMode);
 
 		final PhantomTopologyAnchor exactToleranceAnchor = syntheticAnchor("test.anchor.tolerance", 100, 0, 5);
 		final Optional<Position> exactTolerance = canonicalAnchorPosition(exactToleranceAnchor, 12345, _ -> 105);
@@ -1010,7 +1018,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		final PhantomBackgroundAuthority.TravelAdvance arrived = authority.advanceTravel(finishing, spec, 1);
 		PhantomAssertions.assertEquals(PhantomBackgroundAuthority.TravelAdvance.Status.ARRIVED, arrived.status(), "Canonical travel completion must arrive.");
 		PhantomAssertions.assertEquals(arrival, arrived.position(), "Canonical travel completion must commit the canonical position.");
-		PhantomAssertions.assertTrue(arrived.position().z() != travel.arrival().point().z(), "Raw topology Z must not be durable after ARRIVED.");
+		PhantomAssertions.assertEquals(liveGeoZ, arrived.position().z(), "ARRIVED did not persist the current GeoEngine canonical Z.");
 
 		final Position outsideFarmPosition = new Position(0, arrival.x(), arrival.y(), arrival.z() + travel.arrival().validationTolerance() + 1, 0, travel.arrival().id());
 		final PhantomBackgroundState outsideFarmState = productionState(travel.arrival(), hashes).after(initial.progress(), initial.vitals(), outsideFarmPosition, initial.inventory(), initial.autoGetSkills(), initial.clock(), initial.receipt());
@@ -1021,9 +1029,21 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private void testProductionPositionTransition(PhantomTestContext context) throws Exception
 	{
 		final ProductionTravelSelection travel = productionTravelSelection();
-		testMalformedArrivalTransition(context, travel);
 		final Position expectedDeparture = canonicalAnchorPosition(travel.departure(), 0);
 		final Position expectedArrival = canonicalAnchorPosition(travel.arrival(), 0);
+		final long liveDelta = Math.abs((long) expectedArrival.z() - travel.arrival().point().z());
+		if (liveDelta > 0)
+		{
+			testMalformedArrivalTransition(context, travel);
+			context.record("background.positionMalformedTransition", "ANCHOR_MISMATCH");
+		}
+		else
+		{
+			final PhantomTopologyAnchor identityArrival = malformedArrivalTopology(travel).findAnchor(travel.arrival().id()).orElseThrow();
+			PhantomAssertions.assertEquals(0, identityArrival.validationTolerance(), "Identity fallback fixture did not narrow the normalization tolerance.");
+			PhantomAssertions.assertEquals(Optional.of(expectedArrival), L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(identityArrival, 0), "Zero-tolerance identity fallback did not remain a valid stable canonicalization.");
+			context.record("background.positionMalformedTransition", "NOT_APPLICABLE_IDENTITY_FALLBACK");
+		}
 		ProductionPlayerFixture playerFixture = null;
 		PhantomProfile profile = null;
 		PhantomBackgroundService background = null;
@@ -1083,7 +1103,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			}
 			PhantomAssertions.assertEquals(travel.arrival().id(), arrived.position().committedAnchorId(), "Real production travel did not arrive at the farm anchor.");
 			PhantomAssertions.assertEquals(expectedArrival, arrived.position(), "ARRIVED transaction did not persist the canonical geodata position.");
-			PhantomAssertions.assertTrue(arrived.position().z() != travel.arrival().point().z(), "ARRIVED transaction persisted raw topology Z.");
+			PhantomAssertions.assertEquals(expectedArrival.z(), arrived.position().z(), "ARRIVED transaction did not persist the current GeoEngine canonical Z.");
 			assertCharacterPosition(objectId, expectedArrival);
 
 			final PhantomBackgroundStateCodec codec = new PhantomBackgroundStateCodec();

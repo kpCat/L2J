@@ -10,7 +10,7 @@ Status: **BLOCKED**
 
 Опубликованный blocker baseline: `1ceb045c663a4d6877d2fc8de06822bd78b4769e`
 
-Blocker: `BLOCKED_GOAL039_RESUME1_BACKGROUND_POSITION_NO_GEODATA`
+Blocker: `BLOCKED_GOAL039_RESUME2_GOAL036_SOURCE_HASH_ARCHIVE_NORMALIZATION`
 
 ## Решение
 
@@ -212,3 +212,136 @@ Declared limitations Goal035–038 остаются прежними: bounded Gi
 Q102/Q152 + Q401 Fighter→Warrior, Kamaloka 57, Pailaka Q128/template 43,
 отсутствие universal quest solver/open-domain LLM и возможный `DEGRADED` без
 geodata. Goal039 не расширяет эти claims.
+
+## Goal039 Resume 2 — dual-mode Background correction
+
+Дата: 2026-09-10
+
+Required parent и origin: `eefa4749f804f4b04dac079356a18462b16fdf58`.
+Ветка: `feature/phantom-world`.
+
+Исходный clean no-geodata candidate воспроизвёл обе известные
+Goal015 failures: production anchor получил `-3061` вместо жёстко
+ожидаемого `-3056`, а zero-tolerance fixture законно canonicalized при
+identity fallback. Исходный geodata-present candidate прошёл ту же suite
+`2/2`. Это подтвердило классификацию
+`GOAL015_POSITION_TEST_GEODATA_PRESENT_ASSUMPTION`, а не production defect.
+
+Изменён только
+`test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java`:
+
+- production positive получает canonical Z из текущего `GeoEngine` и
+  требует `liveDelta <= tolerance`;
+- identity fallback записывается как `IDENTITY_DEGRADED`, а
+  zero-tolerance production negative — как
+  `NOT_APPLICABLE_IDENTITY_FALLBACK`;
+- при реальном `liveDelta > 0` zero-tolerance production transition
+  по-прежнему обязан завершиться `ANCHOR_MISMATCH`;
+- deterministic private `IntUnaryOperator` seam по-прежнему доказывает
+  exact tolerance PASS, tolerance+1 reject, unstable/non-fixed/instance reject;
+- normal full production transition обязателен в обоих режимах.
+
+Production Java/data/config/build changes: **0**. Generic Background helper,
+GeoEngine, raw farm Z `-3061`, tolerance `5`, Resume-1 ingress tolerances и
+topology data не менялись.
+
+## Resume 2 clean candidates
+
+Оба candidate созданы read-only `git archive` из exact parent
+`eefa4749...`; в них перенесены только changed test overlay,
+guarded `Database.test.ini`, schema manifest и 121 checkout-normalized clean
+SQL input. No-geodata candidate не содержал внешних `.l2j`.
+Geodata-present candidate дополнительно содержал только 203 `.l2j`
+общим размером `1063452308` bytes. Geodata в commit не входит.
+
+Pre-existing user-owned tracked/untracked paths в candidate и task-owned
+commit не включались. Baseline содержал три tracked user
+modifications и 393 untracked paths; sorted porcelain fingerprint:
+`87ccaed666dadeb322a58f3f433175dbef4cce9ef1f80f1937f2bc73db7232c5`.
+
+## Resume 2 dual-mode evidence
+
+No-geodata candidate:
+
+- Background position canonicalization: **2/2 PASS**, raw/canonical Z
+  `-3061/-3061`, `liveDelta=0`, `IDENTITY_DEGRADED`,
+  `NOT_APPLICABLE_IDENTITY_FALLBACK`;
+- Goal033A1 topology ingress: **4/4 PASS**, 38 ingress rows, семь saga
+  groups, topology `112/113/83`, 80/80 route segments в documented degraded
+  no-geodata mode;
+- Background production audit: **1/1 PASS**;
+- Background model/lifecycle/server integration: **7/7**, **4/4**, **5/5 PASS**;
+- topology production corpus/core: **7/7**, **38/38 PASS**;
+- navigation core: **50/50 PASS**;
+- Goal033A historical Background: **4/4 PASS**;
+- Goal033 ecology focused: **9/9 PASS**.
+
+Geodata-present candidate:
+
+- Background position canonicalization: **2/2 PASS**, raw/canonical Z
+  `-3061/-3056`, `liveDelta=5`, `GEODATA_NORMALIZED`, malformed
+  zero-tolerance transition `ANCHOR_MISMATCH`;
+- Goal033A1 topology ingress: **4/4 PASS**, topology `112/113/83`, 80/80
+  route segments `DIRECT_VALIDATED`, degraded segments `0`;
+- topology production corpus, Background production audit и navigation core:
+  **7/7**, **1/1**, **50/50 PASS**.
+
+## Resume 2 new independent blocker
+
+Следующий affected route,
+`phantom-population-ecology-production-goal033-test`, завершился
+**0/2 FAIL**. Primary failure:
+
+`Supported content source hash is stale: data/phantoms/acquisition/high-five-quest-collection-v1.xml`
+
+Второй failure (`Expected <10> but was <0>`) каскадно следует из
+failed cold reseed before setup. Ровно один разрешённый focused confirmation,
+`phantom-quest-instance-goal036-test`, воспроизвёл primary failure
+в Goal036 `before-all`: **0/2 FAIL**; cleanup failure — каскадный.
+
+Static byte evidence локализует причину:
+
+- catalog SHA-256: `e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b`;
+- checkout source: тот же SHA-256, 1731 bytes, LF;
+- exact-parent `git archive` source:
+  `b4d83f03e7dd5020b87058d7e23cb210b375a4b08c320719cb66595a752bf2e9`,
+  1755 bytes, 24 CRLF.
+
+Классификация:
+`GOAL036_SUPPORTED_CONTENT_SOURCE_HASH_ARCHIVE_NORMALIZATION_MISMATCH`.
+Эта family не зависит от Background position correction. По Resume-2
+stop-budget она не исправлялась; Goal039 остаётся **BLOCKED**.
+
+После confirmation не запускались Goal032/031/030 affected
+continuation, DB negative guard, Goal039 safe/static repeat, Goal035–038 aggregate,
+Goal029 scale/endurance, rollback, fresh full `verify`, standalone final JAR,
+fresh Goal034 real stack и freeze/docs verifier. Final JAR SHA-256/bytes и
+Goal034 run ID отсутствуют как `NOT_RUN_BLOCKED`.
+
+Все DB-backed запуски использовали только
+`127.0.0.1:3308/l2jmobiush5_phantom_test`, user `l2j_phantom_test`.
+Production DB used: **NO**. `prepare-phantom-test-db`: **NOT RUN**.
+
+Resume-2 evidence сохранён под
+`.phantom-local/goal039-resume2/evidence` до публикации отчёта.
+Goal039 matrix сохраняет 28 rows: 20 historical `PASS`, safe defaults
+`PASS`, living domain `BLOCKED`, остальные шесть
+`NOT_RUN_BLOCKED`. Completion/freeze marker не выставлен;
+`FEATURE_COMPLETE_FOR_DECLARED_SCOPE` не заявляется. Goal040 не создан.
+
+Lightweight blocked-overlay Goal039 structure validator: **3/3 PASS**,
+`BUILD SUCCESSFUL`, 18 seconds. Historical Goal030 matrix осталась
+20/20 `PASS`, SHA-256
+`fd891490e7bed44dba7d33f1b72d5c1de46ff67003190b31d22b7dd96206e64e`.
+
+Resume-2 task-owned changed files:
+
+- `test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java`;
+- `test/resources/phantoms/release/goal039-full-vision-coverage.tsv`;
+- `docs/phantoms/reports/039-final-full-vision-release-gate.md`.
+
+Mojibake-маркеры в изменённых файлах проверены: совпадений нет.
+Escaped Cyrillic в изменённых файлах проверена: совпадений нет.
+Strict UTF-8/control-character checks прошли. `git diff --check`
+прошёл. Exact source↔clean-candidate SHA-256 fingerprints совпали
+для всех трёх task-owned paths.
