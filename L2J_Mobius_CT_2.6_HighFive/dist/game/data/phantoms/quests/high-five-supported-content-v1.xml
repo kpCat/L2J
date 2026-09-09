@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<supportedContentCatalog id="high-five-supported-content-v1" version="1">
+	<content id="class.warrior-q401" kind="CLASS_PATH" minLevel="18" maxLevel="99" races="HUMAN" classes="0" questId="401" instanceTemplateId="0" acquisitionRuleId="-">
+		<owners>
+			<owner role="profession" questId="-1" scriptName="ElfHumanFighterChange1" className="village_master.ElfHumanFighterChange1.ElfHumanFighterChange1" source="data/scripts/village_master/ElfHumanFighterChange1/ElfHumanFighterChange1.java" sourceSha256="54c8a746401e022d6ae85f2231236dc01e17c4718f9a52dcb3d189c4a4688556" />
+			<owner role="quest" questId="401" scriptName="Q00401_PathOfTheWarrior" className="quests.Q00401_PathOfTheWarrior.Q00401_PathOfTheWarrior" source="data/scripts/quests/Q00401_PathOfTheWarrior/Q00401_PathOfTheWarrior.java" sourceSha256="dccc6f053a6a45e577c41daecdc32015b8aad2fd6ae0f0b81fd21e0b7f998a7e" />
+		</owners>
+		<steps>
+			<step id="auron.complete" operation="TALK" ownerRole="quest" npcIds="30010" event="-" itemId="0" />
+			<step id="auron.sword" operation="EVENT" ownerRole="quest" npcIds="30010" event="30010-11.html" itemId="0" />
+			<step id="collect.skeleton" operation="COMBAT" ownerRole="quest" npcIds="20035,20042" event="-" itemId="0" />
+			<step id="collect.spider" operation="COMBAT" ownerRole="quest" npcIds="20038,20043" event="-" itemId="0" />
+			<step id="equip.sword" operation="EQUIP" ownerRole="-" npcIds="-" event="-" itemId="1142" />
+			<step id="prepare.auron" operation="TALK" ownerRole="quest" npcIds="30010" event="-" itemId="0" />
+			<step id="profession.warrior" operation="EVENT" ownerRole="profession" npcIds="30373" event="1" itemId="0" />
+			<step id="simplon.begin" operation="EVENT" ownerRole="quest" npcIds="30253" event="30253-02.html" itemId="0" />
+			<step id="simplon.handin" operation="TALK" ownerRole="quest" npcIds="30253" event="-" itemId="0" />
+			<step id="start.auron" operation="EVENT" ownerRole="quest" npcIds="30010" event="30010-06.htm" itemId="0" />
+		</steps>
+		<items>
+			<item id="1138" /><item id="1139" /><item id="1140" /><item id="1141" /><item id="1142" /><item id="1143" /><item id="1144" /><item id="1145" /><item id="8869" />
+		</items>
+		<sources />
+	</content>
+	<content id="instance.kamaloka-57" kind="KAMALOKA" minLevel="18" maxLevel="28" races="*" classes="*" questId="0" instanceTemplateId="57" acquisitionRuleId="-">
+		<owners>
+			<owner role="instance" questId="-1" scriptName="Kamaloka" className="instances.Kamaloka.Kamaloka" source="data/scripts/instances/Kamaloka/Kamaloka.java" sourceSha256="25deb19fae2841c80c9b5f227954d5011e7c2841e5f475c651faee50a74133a5" />
+		</owners>
+		<steps>
+			<step id="combat.boss" operation="COMBAT" ownerRole="instance" npcIds="18554" event="-" itemId="0" />
+			<step id="enter" operation="EVENT" ownerRole="instance" npcIds="30332" event="0" itemId="0" />
+		</steps>
+		<items />
+		<sources>
+			<source path="data/instances/Kamaloka/Kamaloka57.xml" sha256="7519d2f2259c891b9435bfa63dd28581f90abe4e6d0591d39103bed19980e466" />
+		</sources>
+	</content>
+	<content id="instance.pailaka-128" kind="PAILAKA" minLevel="36" maxLevel="42" races="*" classes="*" questId="128" instanceTemplateId="43" acquisitionRuleId="-">
+		<owners>
+			<owner role="instance" questId="-1" scriptName="PailakaSongOfIceAndFire" className="instances.PailakaSongOfIceAndFire.PailakaSongOfIceAndFire" source="data/scripts/instances/PailakaSongOfIceAndFire/PailakaSongOfIceAndFire.java" sourceSha256="90ea1a83e0ccd6d5321538de4ace8573784a4d009993c32dda38861061b681e0" />
+			<owner role="quest" questId="128" scriptName="Q00128_PailakaSongOfIceAndFire" className="quests.Q00128_PailakaSongOfIceAndFire.Q00128_PailakaSongOfIceAndFire" source="data/scripts/quests/Q00128_PailakaSongOfIceAndFire/Q00128_PailakaSongOfIceAndFire.java" sourceSha256="b6328baa4e76ecf62e840125d17d4b8909484d29ddfa65b0a4fc211e4a58687d" />
+		</owners>
+		<steps>
+			<step id="combat.adiantum" operation="COMBAT" ownerRole="quest" npcIds="18620" event="-" itemId="0" />
+			<step id="combat.gargos" operation="COMBAT" ownerRole="quest" npcIds="18607" event="-" itemId="0" />
+			<step id="combat.hillas" operation="COMBAT" ownerRole="quest" npcIds="18610" event="-" itemId="0" />
+			<step id="combat.kinsus" operation="COMBAT" ownerRole="quest" npcIds="18608" event="-" itemId="0" />
+			<step id="combat.papion" operation="COMBAT" ownerRole="quest" npcIds="18609" event="-" itemId="0" />
+			<step id="enter" operation="EVENT" ownerRole="instance" npcIds="32497" event="enter" itemId="0" />
+			<step id="equip.enhanced" operation="EQUIP" ownerRole="-" npcIds="-" event="-" itemId="13035" />
+			<step id="equip.icefire" operation="EQUIP" ownerRole="-" npcIds="-" event="-" itemId="13036" />
+			<step id="equip.sprite" operation="EQUIP" ownerRole="-" npcIds="-" event="-" itemId="13034" />
+			<step id="inspector.fire" operation="EVENT" ownerRole="quest" npcIds="32507" event="32507-08.htm" itemId="0" />
+			<step id="inspector.water" operation="EVENT" ownerRole="quest" npcIds="32507" event="32507-04.htm" itemId="0" />
+			<step id="prepare.adler" operation="TALK" ownerRole="quest" npcIds="32497" event="-" itemId="0" />
+			<step id="sinai.arm" operation="EVENT" ownerRole="quest" npcIds="32500" event="32500-06.htm" itemId="0" />
+			<step id="start.adler" operation="EVENT" ownerRole="quest" npcIds="32497" event="32497-03.htm" itemId="0" />
+			<step id="terminal.adler" operation="EVENT" ownerRole="quest" npcIds="32510" event="32510-02.htm" itemId="0" />
+		</steps>
+		<items>
+			<item id="736" /><item id="13032" /><item id="13033" /><item id="13034" /><item id="13035" /><item id="13036" /><item id="13038" /><item id="13039" /><item id="13040" /><item id="13041" /><item id="13130" /><item id="13131" /><item id="13132" /><item id="13133" /><item id="13134" /><item id="13135" /><item id="13136" /><item id="13293" /><item id="13294" />
+		</items>
+		<sources>
+			<source path="data/instances/Pailaka/PailakaSongOfIceAndFire.xml" sha256="e9f2d0ce300fa0cd676ac294457e68ea987d5087d23fad2b03202ddeaad13f16" />
+		</sources>
+	</content>
+	<content id="quest.102" kind="QUEST" minLevel="12" maxLevel="99" races="ELF" classes="*" questId="102" instanceTemplateId="0" acquisitionRuleId="q00102-dryads-tear">
+		<owners>
+			<owner role="quest" questId="102" scriptName="Q00102_SeaOfSporesFever" className="quests.Q00102_SeaOfSporesFever.Q00102_SeaOfSporesFever" source="data/scripts/quests/Q00102_SeaOfSporesFever/Q00102_SeaOfSporesFever.java" sourceSha256="cc3c1a893e6fe0763b806a17aa01e1d59a4c3f4743c3a577b2597bec07978d1f" />
+		</owners>
+		<steps>
+			<step id="collect" operation="COMBAT" ownerRole="quest" npcIds="20013,20019" event="-" itemId="0" />
+			<step id="complete.alberius" operation="TALK" ownerRole="quest" npcIds="30284" event="-" itemId="0" />
+			<step id="prepare.alberius" operation="TALK" ownerRole="quest" npcIds="30284" event="-" itemId="0" />
+			<step id="report.alberius" operation="TALK" ownerRole="quest" npcIds="30284" event="-" itemId="0" />
+			<step id="sentinel.berros" operation="TALK" ownerRole="quest" npcIds="30217" event="-" itemId="0" />
+			<step id="sentinel.gartrandell" operation="TALK" ownerRole="quest" npcIds="30285" event="-" itemId="0" />
+			<step id="sentinel.rayen" operation="TALK" ownerRole="quest" npcIds="30221" event="-" itemId="0" />
+			<step id="sentinel.veltress" operation="TALK" ownerRole="quest" npcIds="30219" event="-" itemId="0" />
+			<step id="start.alberius" operation="EVENT" ownerRole="quest" npcIds="30284" event="30284-02.htm" itemId="0" />
+			<step id="talk.cobendell" operation="TALK" ownerRole="quest" npcIds="30156" event="-" itemId="0" />
+		</steps>
+		<items>
+			<item id="743" /><item id="744" /><item id="746" /><item id="964" /><item id="965" /><item id="966" /><item id="1060" /><item id="1130" /><item id="1131" /><item id="1132" /><item id="1133" /><item id="1134" /><item id="1835" /><item id="2509" /><item id="4412" /><item id="4413" /><item id="4414" /><item id="4415" /><item id="4416" />
+		</items>
+		<sources>
+			<source path="data/phantoms/acquisition/high-five-quest-collection-v1.xml" sha256="d44a9096b08447050b4a31c703a26720a5cd12dc5117b768740aac9a5038d323" />
+		</sources>
+	</content>
+	<content id="quest.152" kind="QUEST" minLevel="10" maxLevel="99" races="*" classes="*" questId="152" instanceTemplateId="0" acquisitionRuleId="q00152-golem-shard">
+		<owners>
+			<owner role="quest" questId="152" scriptName="Q00152_ShardsOfGolem" className="quests.Q00152_ShardsOfGolem.Q00152_ShardsOfGolem" source="data/scripts/quests/Q00152_ShardsOfGolem/Q00152_ShardsOfGolem.java" sourceSha256="e086d06935b0515142f431486ded1f71b8caa4843f69605296e64a4e8ffdf378" />
+		</owners>
+		<steps>
+			<step id="collect" operation="COMBAT" ownerRole="quest" npcIds="20016" event="-" itemId="0" />
+			<step id="complete.harris" operation="TALK" ownerRole="quest" npcIds="30035" event="-" itemId="0" />
+			<step id="prepare.harris" operation="TALK" ownerRole="quest" npcIds="30035" event="-" itemId="0" />
+			<step id="start.harris" operation="EVENT" ownerRole="quest" npcIds="30035" event="30035-03.htm" itemId="0" />
+			<step id="talk.altran" operation="TALK" ownerRole="quest" npcIds="30283" event="-" itemId="0" />
+			<step id="talk.altran.begin" operation="EVENT" ownerRole="quest" npcIds="30283" event="30283-02.html" itemId="0" />
+		</steps>
+		<items>
+			<item id="23" /><item id="1008" /><item id="1009" /><item id="1010" /><item id="1011" />
+		</items>
+		<sources>
+			<source path="data/phantoms/acquisition/high-five-quest-collection-v1.xml" sha256="d44a9096b08447050b4a31c703a26720a5cd12dc5117b768740aac9a5038d323" />
+		</sources>
+	</content>
+</supportedContentCatalog>

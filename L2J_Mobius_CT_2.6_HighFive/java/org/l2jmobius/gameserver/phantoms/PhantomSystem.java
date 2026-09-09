@@ -157,6 +157,10 @@ import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionStepHandlers;
+import org.l2jmobius.gameserver.phantoms.questinstance.L2jPhantomQuestInstanceBackend;
+import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog;
+import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceDecision;
+import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceService;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticGrounding;
 import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticUnderstandingService;
 import org.l2jmobius.gameserver.phantoms.social.L2jPhantomSocialAffiliationContextResolver;
@@ -228,6 +232,7 @@ public final class PhantomSystem
 	private PhantomRaidAssemblyService _raidAssemblyService;
 	private PhantomRaidAttemptService _raidAttemptService;
 	private PhantomSiegeService _siegeService;
+	private PhantomQuestInstanceService _questInstanceService;
 	private PhantomSocialService _socialService;
 	private PhantomConversationService _conversationService;
 	private PhantomConversationExecutionService _conversationExecutionService;
@@ -504,6 +509,13 @@ public final class PhantomSystem
 				siegeCatalog.validateTopologyAnchors(anchorId -> _topologyService.query().findAnchor(anchorId).isPresent());
 				_siegeService = new PhantomSiegeService(productionGoals, new L2jPhantomSiegeAuthority(productionProfiles, _materializationService, () -> _progressionService.findCatalog().orElse(null)), siegeCatalog, new PhantomSiegeMovementCoordinator(_navigationService, _topologyService, _combatService), _combatService, new PhantomSchedulerRelevanceSignalPort(_scheduler));
 				final PhantomSiegeDecision siegeDecision = new PhantomSiegeDecision(_siegeService);
+				final PhantomQuestInstanceCatalog questInstanceCatalog = PhantomQuestInstanceCatalog.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/quests/high-five-supported-content-v1.xml").toPath(), ServerConfig.DATAPACK_ROOT.toPath());
+				_questInstanceService = new PhantomQuestInstanceService(productionGoals, questInstanceCatalog, questCollectionCatalog, new L2jPhantomQuestInstanceBackend(_materializationService, questInstanceCatalog, _gameKnowledgeService::query), _combatService, _navigationService, _progressionService, new PhantomSchedulerRelevanceSignalPort(_scheduler));
+				if (!_questInstanceService.start())
+				{
+					throw new IllegalStateException("Phantom quest and instance service could not enter the running state.");
+				}
+				final PhantomQuestInstanceDecision questInstanceDecision = new PhantomQuestInstanceDecision(_questInstanceService);
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
 				_farmingService = new PhantomFarmingService(farmingPolicy, new PhantomFarmingStore(productionProfiles), _acquisitionService, _topologyService, _partyCoordinator, _socialService, _settings.maxScheduledPhantomProfiles());
 				if (!_farmingService.start())
@@ -578,6 +590,7 @@ public final class PhantomSystem
 				riftDecision.registerCandidates(candidateRegistry);
 				raidDecision.registerCandidates(candidateRegistry);
 				siegeDecision.registerCandidates(candidateRegistry);
+				questInstanceDecision.registerCandidates(candidateRegistry);
 				candidateRegistry.seal();
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
@@ -594,6 +607,7 @@ public final class PhantomSystem
 				riftDecision.registerHandlers(handlerRegistry);
 				raidDecision.registerHandlers(handlerRegistry);
 				siegeDecision.registerHandlers(handlerRegistry);
+				questInstanceDecision.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
 				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null, _historicalBackgroundService::permitsNormalOperation);
 				_decisionEngine.start();
@@ -616,6 +630,10 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException e)
 		{
+			if (_questInstanceService != null)
+			{
+				_questInstanceService.beginStop();
+			}
 			if (_siegeService != null)
 			{
 				_siegeService.beginStop();
@@ -728,7 +746,8 @@ public final class PhantomSystem
 				socialStopped = _socialService.finishStop();
 			}
 			final boolean acquisitionStopped = partyStopped && socialStopped && ((_acquisitionService == null) || _acquisitionService.finishStop());
-			final boolean siegeStopped = acquisitionStopped && ((_siegeService == null) || _siegeService.finishStop());
+			final boolean questInstanceStopped = acquisitionStopped && ((_questInstanceService == null) || _questInstanceService.finishStop());
+			final boolean siegeStopped = questInstanceStopped && ((_siegeService == null) || _siegeService.finishStop());
 			final boolean combatStopped = siegeStopped && ((_combatService == null) || _combatService.finishStop());
 			final boolean commerceStopped = (_commerceService == null) || _commerceService.finishStop();
 			final boolean populationStopped = (_populationManager == null) || _populationManager.finishStop();
@@ -893,6 +912,10 @@ public final class PhantomSystem
 			{
 				_acquisitionService.beginStop();
 			}
+			if (_questInstanceService != null)
+			{
+				_questInstanceService.beginStop();
+			}
 			if (_siegeService != null)
 			{
 				_siegeService.beginStop();
@@ -942,6 +965,12 @@ public final class PhantomSystem
 				}
 			}
 			if ((_acquisitionService != null) && !_acquisitionService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				_state = State.FAILED;
+				return false;
+			}
+			if ((_questInstanceService != null) && !_questInstanceService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
@@ -1043,6 +1072,10 @@ public final class PhantomSystem
 		}
 		if (_state == State.FAILED)
 		{
+			if (_questInstanceService != null)
+			{
+				_questInstanceService.beginStop();
+			}
 			if (_siegeService != null)
 			{
 				_siegeService.beginStop();
@@ -1165,6 +1198,11 @@ public final class PhantomSystem
 				_acquisitionService.beginStop();
 			}
 			if ((_acquisitionService != null) && (_acquisitionService.snapshot().state() != PhantomAcquisitionService.ServiceState.STOPPED) && !_acquisitionService.finishStop())
+			{
+				_metrics.recordShutdownFailure();
+				return false;
+			}
+			if ((_questInstanceService != null) && (_questInstanceService.snapshot().state() != PhantomQuestInstanceService.State.STOPPED) && !_questInstanceService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
 				return false;
@@ -1313,6 +1351,11 @@ public final class PhantomSystem
 	public synchronized PhantomSiegeService siegeService()
 	{
 		return _siegeService;
+	}
+
+	public synchronized PhantomQuestInstanceService questInstanceService()
+	{
+		return _questInstanceService;
 	}
 
 	public synchronized PhantomRaidAssemblyService raidAssembly()

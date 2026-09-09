@@ -301,37 +301,48 @@ public final class PhantomCombatService
 
 	public StartResult startAcquisitionSession(PhantomCombatRequest request, String operationOwner)
 	{
-		if ((operationOwner == null) || operationOwner.isBlank() || (operationOwner.length() > 128))
-		{
-			throw new IllegalArgumentException("Invalid acquisition combat operation owner.");
-		}
-		return startSession(request, operationOwner);
+		return startOwnedSession(request, operationOwner, "acquisition");
+	}
+
+	/** Shared bounded combat ownership seam for native content coordinators. */
+	public StartResult startContentSession(PhantomCombatRequest request, String operationOwner)
+	{
+		return startOwnedSession(request, operationOwner, "content");
 	}
 
 	public StartResult startPvpSession(PhantomPvpCombatRequest request)
 	{
 		Objects.requireNonNull(request, "request");
-		return startSession(request.leaseRequest(), "", request, null, null);
+		return startSession(request.leaseRequest(), "", request, null, null, false);
 	}
 
 	public StartResult startRaidSession(PhantomRaidCombatRequest request)
 	{
 		Objects.requireNonNull(request, "request");
-		return startSession(request.leaseRequest(), "", null, request, null);
+		return startSession(request.leaseRequest(), "", null, request, null, false);
 	}
 
 	public StartResult startSiegeSession(PhantomSiegeCombatRequest request)
 	{
 		Objects.requireNonNull(request, "request");
-		return startSession(request.leaseRequest(), "", null, null, request);
+		return startSession(request.leaseRequest(), "", null, null, request, false);
 	}
 
 	private StartResult startSession(PhantomCombatRequest request, String operationOwner)
 	{
-		return startSession(request, operationOwner, null, null, null);
+		return startSession(request, operationOwner, null, null, null, false);
 	}
 
-	private StartResult startSession(PhantomCombatRequest request, String operationOwner, PhantomPvpCombatRequest pvpRequest, PhantomRaidCombatRequest raidRequest, PhantomSiegeCombatRequest siegeRequest)
+	private StartResult startOwnedSession(PhantomCombatRequest request, String operationOwner, String kind)
+	{
+		if ((operationOwner == null) || operationOwner.isBlank() || (operationOwner.length() > 128))
+		{
+			throw new IllegalArgumentException("Invalid " + kind + " combat operation owner.");
+		}
+		return startSession(request, operationOwner, null, null, null, "content".equals(kind));
+	}
+
+	private StartResult startSession(PhantomCombatRequest request, String operationOwner, PhantomPvpCombatRequest pvpRequest, PhantomRaidCombatRequest raidRequest, PhantomSiegeCombatRequest siegeRequest, boolean contentBasicMelee)
 	{
 		Objects.requireNonNull(request, "request");
 		_metrics.sessionRequested();
@@ -400,7 +411,11 @@ public final class PhantomCombatService
 					_metrics.leaseAcquired();
 					final ActorSnapshot actor = lease.actorSnapshot();
 					final boolean playerCombat = (pvpRequest != null) || ((siegeRequest != null) && (siegeRequest.targetKind() == org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.TargetKind.PLAYER));
-					final Optional<PhantomCombatLoadout> loadout = playerCombat ? _capabilityResolver.resolvePvp(actor, request.mode(), lease, _policy.maximumSelectedSkills()) : _capabilityResolver.resolve(actor, request.mode(), lease, _policy.maximumSelectedSkills());
+					Optional<PhantomCombatLoadout> loadout = playerCombat ? _capabilityResolver.resolvePvp(actor, request.mode(), lease, _policy.maximumSelectedSkills()) : _capabilityResolver.resolve(actor, request.mode(), lease, _policy.maximumSelectedSkills());
+					if (loadout.isEmpty() && contentBasicMelee && (request.mode() == PhantomCombatMode.MELEE_PHYSICAL))
+					{
+						loadout = Optional.of(new PhantomCombatLoadout(request.mode(), request.mode().capabilityKey(), 1, List.of(), true));
+					}
 					if (loadout.isEmpty())
 					{
 						failure = StartStatus.UNSUPPORTED_LOADOUT;
@@ -518,6 +533,11 @@ public final class PhantomCombatService
 			final PhantomCombatSession session = _sessions.get(profileId);
 			return (session != null) && (session._request.targetObjectId() == targetObjectId) && Objects.equals(_sessionOperationOwners.get(profileId), operationOwner);
 		}
+	}
+
+	public boolean matchesContentSession(long profileId, int targetObjectId, String operationOwner)
+	{
+		return matchesAcquisitionSession(profileId, targetObjectId, operationOwner);
 	}
 
 	public boolean matchesPvpSession(long profileId, int targetObjectId, String authorityHash)
