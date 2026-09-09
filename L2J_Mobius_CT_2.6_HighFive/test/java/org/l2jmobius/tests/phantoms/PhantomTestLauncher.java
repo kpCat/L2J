@@ -270,6 +270,8 @@ public final class PhantomTestLauncher
 			case "humanized-conversation-goal038-behavior" -> new PhantomHumanizedConversationGoal038Suite(PhantomHumanizedConversationGoal038Suite.Mode.BEHAVIOR);
 			case "humanized-conversation-goal038-persistence" -> new PhantomHumanizedConversationGoal038Suite(PhantomHumanizedConversationGoal038Suite.Mode.PERSISTENCE);
 			case "humanized-conversation-goal038-composition" -> new PhantomHumanizedConversationGoal038Suite(PhantomHumanizedConversationGoal038Suite.Mode.COMPOSITION);
+			case "full-vision-goal039-static" -> new PhantomFullVisionGoal039Suite(PhantomFullVisionGoal039Suite.Mode.STATIC);
+			case "full-vision-goal039-documentation" -> new PhantomFullVisionGoal039Suite(PhantomFullVisionGoal039Suite.Mode.DOCUMENTATION);
 			case "topology-performance" -> new PhantomTopologyPerformanceSuite();
 			case "knowledge-core" -> new PhantomGameKnowledgeCoreSuite();
 			case "knowledge-query-truth" -> new PhantomGameKnowledgeQueryTruthSuite();

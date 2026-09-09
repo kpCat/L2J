@@ -1,6 +1,6 @@
 # Phantom World: текущий статус
 
-Дата сверки: 2026-09-09. Source of truth для release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv` и принятый `docs/phantoms/reports/030-checkpoint-3-release-decision.md`; для operator reset/tuning и Roadmap v3 — `docs/phantoms/reports/032-phantom-reset-operator-control.md`; для historical Goal033 blocker — `docs/phantoms/reports/033-living-population-ecology.md`; для текущего повтора Goal033 — `docs/phantoms/reports/033-living-population-ecology-resume.md`; для historical Goal033A blocker — `docs/phantoms/reports/033A-causal-background-catchup.md`; для Goal033A SUCCESS — `docs/phantoms/reports/033A-causal-background-catchup-resume.md`; для закрывшего topology blocker Goal033A1 — `docs/phantoms/reports/033A1-canonical-population-topology-ingress.md`; для Goal034 closure8 `SUCCESS` — `docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-closure8-final.md`; для Goal035 `SUCCESS` — `docs/phantoms/reports/035-siege-gameplay.md`; для Goal036 `SUCCESS` — `docs/phantoms/reports/036-bounded-quests-instances.md`; для Goal037 `SUCCESS` — `docs/phantoms/reports/037-full-quest-rates-audit.md`; для Goal038 `SUCCESS` — `docs/phantoms/reports/038-humanized-russian-semantic-pack.md`. Статусы полного vision основаны на production code/data/tests, а не на историческом номере Goal.
+Дата сверки: 2026-09-09. Source of truth для release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv` и принятый `docs/phantoms/reports/030-checkpoint-3-release-decision.md`; для operator reset/tuning и Roadmap v3 — `docs/phantoms/reports/032-phantom-reset-operator-control.md`; для historical Goal033 blocker — `docs/phantoms/reports/033-living-population-ecology.md`; для текущего повтора Goal033 — `docs/phantoms/reports/033-living-population-ecology-resume.md`; для historical Goal033A blocker — `docs/phantoms/reports/033A-causal-background-catchup.md`; для Goal033A SUCCESS — `docs/phantoms/reports/033A-causal-background-catchup-resume.md`; для закрывшего topology blocker Goal033A1 — `docs/phantoms/reports/033A1-canonical-population-topology-ingress.md`; для Goal034 closure8 `SUCCESS` — `docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-closure8-final.md`; для Goal035 `SUCCESS` — `docs/phantoms/reports/035-siege-gameplay.md`; для Goal036 `SUCCESS` — `docs/phantoms/reports/036-bounded-quests-instances.md`; для Goal037 `SUCCESS` — `docs/phantoms/reports/037-full-quest-rates-audit.md`; для Goal038 `SUCCESS` — `docs/phantoms/reports/038-humanized-russian-semantic-pack.md`; для текущего Goal039 `BLOCKED` — `docs/phantoms/reports/039-final-full-vision-release-gate.md`. Статусы полного vision основаны на production code/data/tests, а не на историческом номере Goal.
 
 | Capability/domain | Implementation status | Release evidence | Known limitation | Next action |
 |---|---|---|---|---|
@@ -37,7 +37,7 @@
 | Class quest automation | IMPLEMENTED_BOUNDED_GOAL036; SUCCESS | Q401 + Fighter→Warrior only through `village_master.ElfHumanFighterChange1` | Иные class quests/transfers unsupported | Расширять только через audited normal-player owner |
 | Kamaloka | IMPLEMENTED_BOUNDED_GOAL036; SUCCESS | Native template 57 lifecycle, boss callback, reuse/exit and cleanup | Только audited template 57 | Расширять отдельным audited template slice |
 | Pailaka | IMPLEMENTED_BOUNDED_GOAL036; SUCCESS | Native Q128 / template 43 lifecycle, weapon handoffs, bosses, rewards/exit | Только Song of Ice and Fire | Расширять отдельным audited content slice |
-| Full-scope release gate после gameplay gaps | DEFERRED_NOT_IMPLEMENTED | Goal030 gate относится только к 20-domain slice | Нельзя переименовывать Goal030 в full vision | Goal039 после Goal034–038 |
+| Full-scope release gate после gameplay gaps | BLOCKED_GOAL039 | Goal039 static `22/22`; Goal033A1 дважды `1/4` | Current HEAD не удовлетворяет принятому topology-ingress контракту | Только bounded Goal039 resume для exact blocker |
 
 ## Roadmap v5
 
@@ -48,14 +48,14 @@
 | Goal036 — Bounded quests/instances slice | SUCCESS | Exact whitelist: native Q102/Q152 completion, Q401 + canonical Fighter→Warrior, Kamaloka 57, Pailaka Q128/template 43; focused `8/8`, affected gates, fresh verify and standalone jar PASS; без universal solver |
 | Goal037 — Full High Five quest-script inventory + rates normalization/parity | SUCCESS | JDK AST inventory 543/543 source и 7,066/7,066 sites; 1,876 proven corrections в 331 quest source, 1,538 explicit fixed exceptions, zero unclassified/stale; full corpus compile/load, distinct 1x/non-1x Player/Phantom ACTIVE/BACKGROUND, Q401/Pailaka controls, ordinary XP/SP/drop/spoil/manor, affected gates, fresh verify and standalone jar PASS; production DB unused |
 | Goal038 — Humanized Russian Semantic Pack + social/custom conversation | SUCCESS | Functional-first Humanized RU layer: 25 topics, 22 acts, 60 patterns, 67 templates, 109/109 corpus; Social authority, bounded `conversation.personal` schema v1, strict six-file custom layer, mature `OFF`; Phantom↔Phantom budget/cooldown proof; focused `12/12`, affected `133/133`, restart `1/1`, fresh verify/jar PASS; production DB unused |
-| Goal039 — Final full-vision release gate + freeze | NOT_STARTED | Следующий и единственный final exam: safe install/config/defaults, Goal034 real stack, ecology/restart/recovery, siege, quests/instances, rates parity, Humanized/custom packs, scale/rollback и documentation consistency |
+| Goal039 — Final full-vision release gate + freeze | BLOCKED | Static `22/22`; первый domain gate Goal033A1 дважды `1/4`: class 10 canonical Z `-3568/-3570`, topology `110/112`, dwarf exact manifest match `1/0`; поздние gates не запускались |
 
-После успешного Goal038 content/feature stages завершены; остаётся единственный
-final exam Goal039. После `ACCEPT` Goal039 статус становится
-`FEATURE_COMPLETE_FOR_DECLARED_SCOPE`; automatic Goal040+ запрещены.
+Goal039 выполнен до первого обязательного domain blocker и остановлен по
+stop-budget. Final completion/freeze status не выставлен; новый Goal не создан.
 
-Текущее следующее действие: Goal039 — следующий planned final gate, но он
-остаётся `NOT_STARTED` и требует отдельной явной задачи. Goal038 его не начинал.
+Текущее следующее действие: только bounded Goal039 resume для отдельно
+исправленного или согласованного Goal033A1 topology-ingress blocker. Остальные
+этапы Goal039 нельзя продолжать до восстановления этого gate.
 
 Shipped config по-прежнему `EnablePhantomSystem=False`, population/ACTIVE `0/0`; destructive auto-reset flag отсутствует. Reset вызывается только GM-командой после read-only preview и одноразового confirm. Automated tests работают только с allowlisted test DB; ручная игра пользователя остаётся финальной experience validation, а не промежуточным техническим gate.
 

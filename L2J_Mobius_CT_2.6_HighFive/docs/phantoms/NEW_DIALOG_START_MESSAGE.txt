@@ -1,8 +1,9 @@
 Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Goal038 выполнен от required parent:
-b7420deb245c87de4ba71631782caea0c0d5e997.
-Exact Goal038 SUCCESS commit SHA и push result указаны в итоговом handoff;
+Goal039 запущен от required parent:
+ba692bd0a5e86fbbfe5f87c9c851f3a629e4d5a1.
+Goal039 остановлен как BLOCKED на воспроизводимом Goal033A1 domain gate;
+exact blocker-report commit SHA и push result указаны в итоговом handoff;
 actual HEAD и origin обязательны к новой проверке по следующему task package.
 Goal038 DB-backed evidence выполнялось только через guarded test harness;
 production DB и destructive prepare запрещены.
@@ -21,6 +22,7 @@ production DB и destructive prepare запрещены.
 - Goal036 bounded quests/instances — SUCCESS: exact whitelist Q102/Q152 native start→completion, Q401 + Fighter→Warrior только через canonical normal-player profession owner, Kamaloka 57 и Pailaka Q128/template 43 через native lifecycle; focused `8/8`, affected gates, fresh full verify and standalone jar PASS; exact cleanup без residue; production DB unused;
 - Goal037 full quest rates audit — SUCCESS: deterministic JDK AST inventory охватывает 543/543 quest Java source и 7,066/7,066 rate sites; 1,876 proven corrections в 331 source, 1,538 explicit fixed exceptions и zero unclassified/stale; production corpus compile/load, distinct 1x/non-1x Player/Phantom ACTIVE/BACKGROUND, Q401/Pailaka controls, ordinary XP/SP/drop/spoil/manor, affected gates, fresh verify и standalone jar PASS; production DB unused;
 - Goal038 Humanized RU conversation — SUCCESS: separate versioned functional-first layer над Goal018–020, existing Social authority, 25 topics/22 acts/60 patterns/67 templates и 109/109 corpus; bounded structured `conversation.personal` schema v1, six strict editable `my-*.xml`, persona/relationship/emotion/humor/light-flirt/contextual-profanity behavior, mature opt-in shipped OFF; distinct bounded Phantom↔Phantom origin/budget/cooldown proof; focused `12/12`, affected `133/133`, restart composition `1/1`, fresh verify и standalone jar PASS; cleanup zero, production DB unused;
+- Goal039 final full-vision gate — BLOCKED: static phase `22/22`; первый обязательный Goal033A1 domain gate и единственный разрешённый focused confirmation оба дали `1/4` с теми же тремя failures (class 10 canonical Z `-3568/-3570`, topology nodes `110/112`, dwarf exact manifest match `1/0`); поздние domain gates, verify, JAR, real stack и freeze не запускались;
 - shipped dist/game/config/Custom/PhantomPlayers.ini остаётся safe: EnablePhantomSystem=False, population=0, ACTIVE=0;
 - local-play preset 10/5: docs/phantoms/examples/PhantomPlayers.local-play.ini;
 - read-only operator entrypoint: ant phantom-local-play-preflight;
@@ -38,6 +40,7 @@ production DB и destructive prepare запрещены.
 - Goal036 SUCCESS report: docs/phantoms/reports/036-bounded-quests-instances.md;
 - Goal037 SUCCESS report: docs/phantoms/reports/037-full-quest-rates-audit.md;
 - Goal038 SUCCESS report: docs/phantoms/reports/038-humanized-russian-semantic-pack.md;
+- Goal039 BLOCKED report: docs/phantoms/reports/039-final-full-vision-release-gate.md;
 - Humanized RU customization guide: docs/phantoms/PHANTOM_HUMANIZED_CONVERSATION_RU.md;
 - operator tuning: docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md.
 
@@ -48,12 +51,12 @@ Roadmap v5 — finite authoritative forward sequence:
 3. Goal036 — bounded whitelist quests/instances/class transfer/Kamaloka/Pailaka, SUCCESS.
 4. Goal037 — 100% High Five quest-script inventory + rates normalization/parity, SUCCESS.
 5. Goal038 — Humanized Russian Semantic Pack + social/custom conversation, SUCCESS.
-6. Goal039 — следующий и единственный final full-vision release gate + freeze;
-   `NOT_STARTED` до отдельной явной задачи.
+6. Goal039 — final full-vision release gate + freeze, `BLOCKED` на
+   воспроизводимом Goal033A1 topology-ingress gate.
 
-После `ACCEPT` Goal039: `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`. Automatic
-Goal040+ запрещены. Следующий runtime step — только новый explicit Goal039;
-этот handoff не является разрешением начинать Goal039.
+Final completion/freeze status не выставлен. Automatic Goal040+ запрещены.
+Следующий runtime step — только bounded Goal039 resume для exact blocker;
+этот handoff не разрешает продолжать поздние Goal039 gate-этапы.
 
 Goal031 доказал guarded production-composed путь: 10 durable identities, Scheduler/Decision, real headless Player в World, autonomous decision trace, restart без duplicate rows, bounded shutdown retry и drain/disable rollback. GameServer запускает PhantomSystem только после World/data/scripts/managers и восстановления offline owners.
 
@@ -101,9 +104,9 @@ strict fail-closed validation. Generated social egress имеет отдельн
 minutes, self/generic-generated rejection и anti-repeat; A→B→A остановлен после
 двух replies. Mature register — explicit opt-in only, shipped OFF.
 
-Следующий planned step: **Goal039 — final full-vision release gate + freeze**,
-только по отдельной явной задаче. Goal039 остаётся `NOT_STARTED`; Goal038 не
-начинал его discovery или реализацию.
+Следующий planned step: только **bounded Goal039 resume** для доказанного
+Goal033A1 topology-ingress blocker. Goal039 остаётся `BLOCKED`; late domain,
+verify, JAR, real-stack и freeze этапы не начинать до восстановления gate.
 Для любых DB-backed проверок сохраняй allowlisted `l2jmobiush5_phantom_test`;
 production `l2jmobiush5` и destructive prepare запрещены.
 
