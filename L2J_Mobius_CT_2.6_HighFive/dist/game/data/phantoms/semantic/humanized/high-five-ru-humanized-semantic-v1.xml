@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedSemanticPack id="high-five-ru-humanized-semantic-v1" version="1">
+	<limits subjects="16" facts="48" factsPerSubject="12" recentResponses="8" valueCodePoints="64" valueUtf8Bytes="192" generatedTurnBudget="1" generatedCooldownMinutes="5" templatesPerAct="3"/>
+	<blocked>
+		<phrase text="пригласи"/>
+		<phrase text="возьми в пати"/>
+		<phrase text="прими пати"/>
+		<phrase text="выйди из пати"/>
+		<phrase text="иди"/>
+		<phrase text="лети"/>
+		<phrase text="телепортируйся"/>
+		<phrase text="купи"/>
+		<phrase text="продай"/>
+		<phrase text="найди"/>
+		<phrase text="атакуй"/>
+		<phrase text="бей"/>
+		<phrase text="фарми"/>
+		<phrase text="бафни"/>
+		<phrase text="воскреси"/>
+		<phrase text="где взять"/>
+		<phrase text="где найти"/>
+		<phrase text="как попасть"/>
+		<phrase text="кто продает"/>
+	</blocked>
+	<aliases>
+		<alias from="прив" to="привет"/>
+		<alias from="здарова" to="привет"/>
+		<alias from="даров" to="привет"/>
+		<alias from="спс" to="спасибо"/>
+		<alias from="сорян" to="извини"/>
+		<alias from="кинцо" to="кино"/>
+		<alias from="музло" to="музыку"/>
+		<alias from="норм" to="нормально"/>
+	</aliases>
+	<patterns>
+		<pattern id="greeting.hello" topic="greeting" act="greet.reply" phrase="привет" salience="100" ttlMinutes="0" priority="900"/>
+		<pattern id="greeting.hello.how" topic="greeting" act="greet.reply" phrase="привет как дела" salience="120" ttlMinutes="0" priority="910"/>
+		<pattern id="greeting.good.morning" topic="greeting" act="greet.reply" phrase="доброе утро" salience="100" ttlMinutes="0" priority="900"/>
+		<pattern id="greeting.good.evening" topic="greeting" act="greet.reply" phrase="добрый вечер" salience="100" ttlMinutes="0" priority="900"/>
+		<pattern id="farewell.bye" topic="farewell" act="farewell.reply" phrase="пока" salience="80" ttlMinutes="0" priority="900"/>
+		<pattern id="farewell.see.you" topic="farewell" act="farewell.reply" phrase="до встречи" salience="80" ttlMinutes="0" priority="900"/>
+		<pattern id="farewell.good.night" topic="farewell" act="farewell.reply" phrase="спокойной ночи" salience="80" ttlMinutes="0" priority="900"/>
+		<pattern id="acquaintance.ask.name" topic="acquaintance" act="acquaintance.reply" phrase="как тебя зовут" salience="300" ttlMinutes="0" priority="900"/>
+		<pattern id="acquaintance.tell.name" topic="acquaintance" act="acquaintance.reply" phrase="меня зовут {value}" fact="NAME" salience="900" ttlMinutes="0" priority="950"/>
+		<pattern id="acquaintance.recall.name" topic="acquaintance" act="memory.recall" phrase="как меня зовут" recall="NAME" salience="400" ttlMinutes="0" priority="950"/>
+		<pattern id="mood.ask" topic="mood" act="mood.share" phrase="как дела" salience="150" ttlMinutes="0" priority="850"/>
+		<pattern id="mood.sad" topic="mood" act="mood.empathy" phrase="мне грустно" fact="MOOD" salience="800" ttlMinutes="1440" priority="940"/>
+		<pattern id="mood.tired" topic="mood" act="mood.empathy" phrase="я устал" fact="MOOD" salience="700" ttlMinutes="1440" priority="940"/>
+		<pattern id="mood.good" topic="mood" act="mood.share" phrase="у меня все хорошо" fact="MOOD" salience="500" ttlMinutes="1440" priority="940"/>
+		<pattern id="smalltalk.news" topic="smalltalk" act="smalltalk.reply" phrase="что нового" salience="100" ttlMinutes="0" priority="800"/>
+		<pattern id="smalltalk.life" topic="smalltalk" act="smalltalk.reply" phrase="как жизнь" salience="100" ttlMinutes="0" priority="800"/>
+		<pattern id="smalltalk.weather" topic="smalltalk" act="smalltalk.reply" phrase="хорошая погода" salience="80" ttlMinutes="0" priority="800"/>
+		<pattern id="rest.ask" topic="rest" act="rest.reply" phrase="как отдыхаешь" salience="120" ttlMinutes="0" priority="800"/>
+		<pattern id="rest.weekend" topic="rest" act="rest.reply" phrase="что делаешь на выходных" salience="120" ttlMinutes="0" priority="800"/>
+		<pattern id="food.ask" topic="food" act="preference.ack" phrase="что любишь есть" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="food.tell" topic="food" act="preference.ack" phrase="я люблю есть {value}" fact="FOOD" salience="650" ttlMinutes="0" priority="930"/>
+		<pattern id="music.ask" topic="music" act="preference.ack" phrase="какую музыку любишь" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="music.tell" topic="music" act="preference.ack" phrase="я слушаю {value}" fact="MUSIC" salience="650" ttlMinutes="0" priority="930"/>
+		<pattern id="movies.ask" topic="movies" act="preference.ack" phrase="какое кино любишь" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="movies.tell" topic="movies" act="preference.ack" phrase="мне нравится фильм {value}" fact="MOVIE" salience="650" ttlMinutes="0" priority="930"/>
+		<pattern id="games.ask" topic="games" act="preference.ack" phrase="во что еще играешь" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="games.tell" topic="games" act="preference.ack" phrase="я играю в {value}" fact="GAME" salience="650" ttlMinutes="0" priority="930"/>
+		<pattern id="hobbies.ask" topic="hobbies" act="preference.ack" phrase="чем увлекаешься" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="hobbies.tell" topic="hobbies" act="preference.ack" phrase="мое хобби {value}" fact="HOBBY" salience="650" ttlMinutes="0" priority="930"/>
+		<pattern id="plans.ask" topic="plans" act="smalltalk.reply" phrase="какие планы" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="plans.tell" topic="plans" act="smalltalk.reply" phrase="я планирую {value}" fact="PLAN" salience="550" ttlMinutes="10080" priority="930"/>
+		<pattern id="likes.tell" topic="likes" act="preference.ack" phrase="я люблю {value}" fact="LIKE" salience="700" ttlMinutes="0" priority="920"/>
+		<pattern id="likes.dislike" topic="likes" act="preference.ack" phrase="я не люблю {value}" fact="DISLIKE" salience="700" ttlMinutes="0" priority="940"/>
+		<pattern id="likes.recall" topic="likes" act="memory.recall" phrase="что я люблю" recall="LIKE" salience="350" ttlMinutes="0" priority="940"/>
+		<pattern id="likes.recall.dislike" topic="likes" act="memory.recall" phrase="что я не люблю" recall="DISLIKE" salience="350" ttlMinutes="0" priority="950"/>
+		<pattern id="achievement.tell" topic="achievement" act="achievement.congratulate" phrase="я наконец {value}" fact="ACHIEVEMENT" salience="900" ttlMinutes="43200" priority="920"/>
+		<pattern id="achievement.win" topic="achievement" act="achievement.congratulate" phrase="у меня получилось {value}" fact="ACHIEVEMENT" salience="900" ttlMinutes="43200" priority="920"/>
+		<pattern id="failure.tell" topic="failure" act="failure.empathy" phrase="у меня не получилось {value}" fact="FAILURE" salience="850" ttlMinutes="10080" priority="930"/>
+		<pattern id="failure.bad.day" topic="failure" act="failure.empathy" phrase="сегодня плохой день" fact="FAILURE" salience="700" ttlMinutes="1440" priority="900"/>
+		<pattern id="humor.joke" topic="humor" act="humor.reply" phrase="расскажи шутку" salience="100" ttlMinutes="0" priority="850"/>
+		<pattern id="humor.funny" topic="humor" act="humor.reply" phrase="это было смешно" salience="100" ttlMinutes="0" priority="850"/>
+		<pattern id="teasing.slow" topic="teasing" act="teasing.reply" phrase="ну ты и тормоз" salience="250" ttlMinutes="0" priority="900"/>
+		<pattern id="teasing.sleep" topic="teasing" act="teasing.reply" phrase="ты там уснул" salience="250" ttlMinutes="0" priority="900"/>
+		<pattern id="sarcasm.best" topic="sarcasm" act="sarcasm.reply" phrase="ну конечно ты лучший" salience="300" ttlMinutes="0" priority="900"/>
+		<pattern id="sarcasm.champion" topic="sarcasm" act="sarcasm.reply" phrase="нашелся чемпион" salience="300" ttlMinutes="0" priority="900"/>
+		<pattern id="surprise.wow" topic="surprise" act="surprise.reply" phrase="вот это да" salience="200" ttlMinutes="0" priority="880"/>
+		<pattern id="surprise.unexpected" topic="surprise" act="surprise.reply" phrase="ничего себе" salience="200" ttlMinutes="0" priority="880"/>
+		<pattern id="disagreement.no" topic="disagreement" act="disagreement.reply" phrase="я с тобой не согласен" salience="300" ttlMinutes="0" priority="900"/>
+		<pattern id="disagreement.wrong" topic="disagreement" act="disagreement.reply" phrase="по моему ты ошибаешься" salience="300" ttlMinutes="0" priority="900"/>
+		<pattern id="irritation.annoyed" topic="irritation" act="irritation.reply" phrase="ты меня раздражаешь" salience="700" ttlMinutes="1440" priority="930"/>
+		<pattern id="irritation.stop" topic="irritation" act="irritation.reply" phrase="хватит меня доставать" salience="700" ttlMinutes="1440" priority="930"/>
+		<pattern id="apology.sorry" topic="apology" act="apology.accept" phrase="извини" salience="600" ttlMinutes="10080" priority="930"/>
+		<pattern id="apology.forgive" topic="apology" act="apology.accept" phrase="прости меня" salience="650" ttlMinutes="10080" priority="930"/>
+		<pattern id="reconcile.peace" topic="reconcile" act="reconcile.reply" phrase="давай мириться" salience="700" ttlMinutes="10080" priority="930"/>
+		<pattern id="reconcile.forget" topic="reconcile" act="reconcile.reply" phrase="давай забудем ссору" salience="700" ttlMinutes="10080" priority="930"/>
+		<pattern id="relationship.friends" topic="relationship" act="relationship.reply" phrase="мы друзья" salience="500" ttlMinutes="0" priority="880"/>
+		<pattern id="relationship.trust" topic="relationship" act="relationship.reply" phrase="ты мне доверяешь" salience="500" ttlMinutes="0" priority="880"/>
+		<pattern id="relationship.flirt" topic="relationship" act="flirt.light" phrase="ты мне нравишься" salience="550" ttlMinutes="0" priority="900"/>
+		<pattern id="pivot.game" topic="pivot" act="pivot.reply" phrase="ладно вернемся к игре" salience="100" ttlMinutes="0" priority="880"/>
+		<pattern id="pivot.personal" topic="pivot" act="pivot.reply" phrase="вернемся к нашему разговору" salience="100" ttlMinutes="0" priority="880"/>
+	</patterns>
+</humanizedSemanticPack>

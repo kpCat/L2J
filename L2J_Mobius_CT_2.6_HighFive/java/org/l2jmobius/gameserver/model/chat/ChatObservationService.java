@@ -22,7 +22,8 @@ public final class ChatObservationService
 	public enum Origin
 	{
 		CLIENT_CHAT,
-		PHANTOM_GENERATED
+		PHANTOM_GENERATED,
+		PHANTOM_SOCIAL
 	}
 
 	public record DispatchDescriptor(long dispatchId, Origin origin, int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
@@ -132,6 +133,16 @@ public final class ChatObservationService
 			return InertScope.INSTANCE;
 		}
 		return openDispatch(Origin.PHANTOM_GENERATED, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis, expectedCounterpartObjectId);
+	}
+
+	public DispatchHandle openGeneratedSocialDispatch(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis, int expectedCounterpartObjectId)
+	{
+		if (expectedCounterpartObjectId <= 0)
+		{
+			_rejections.increment();
+			return InertScope.INSTANCE;
+		}
+		return openDispatch(Origin.PHANTOM_SOCIAL, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis, expectedCounterpartObjectId);
 	}
 
 	private DispatchHandle openDispatch(Origin origin, int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis, int expectedCounterpartObjectId)

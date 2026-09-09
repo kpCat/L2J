@@ -1,6 +1,6 @@
 # Phantom World: текущий статус
 
-Дата сверки: 2026-09-09. Source of truth для release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv` и принятый `docs/phantoms/reports/030-checkpoint-3-release-decision.md`; для operator reset/tuning и Roadmap v3 — `docs/phantoms/reports/032-phantom-reset-operator-control.md`; для historical Goal033 blocker — `docs/phantoms/reports/033-living-population-ecology.md`; для текущего повтора Goal033 — `docs/phantoms/reports/033-living-population-ecology-resume.md`; для historical Goal033A blocker — `docs/phantoms/reports/033A-causal-background-catchup.md`; для Goal033A SUCCESS — `docs/phantoms/reports/033A-causal-background-catchup-resume.md`; для закрывшего topology blocker Goal033A1 — `docs/phantoms/reports/033A1-canonical-population-topology-ingress.md`; для Goal034 closure8 `SUCCESS` — `docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-closure8-final.md`; для Goal035 `SUCCESS` — `docs/phantoms/reports/035-siege-gameplay.md`; для Goal036 `SUCCESS` — `docs/phantoms/reports/036-bounded-quests-instances.md`. Статусы полного vision основаны на production code/data/tests, а не на историческом номере Goal.
+Дата сверки: 2026-09-09. Source of truth для release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv` и принятый `docs/phantoms/reports/030-checkpoint-3-release-decision.md`; для operator reset/tuning и Roadmap v3 — `docs/phantoms/reports/032-phantom-reset-operator-control.md`; для historical Goal033 blocker — `docs/phantoms/reports/033-living-population-ecology.md`; для текущего повтора Goal033 — `docs/phantoms/reports/033-living-population-ecology-resume.md`; для historical Goal033A blocker — `docs/phantoms/reports/033A-causal-background-catchup.md`; для Goal033A SUCCESS — `docs/phantoms/reports/033A-causal-background-catchup-resume.md`; для закрывшего topology blocker Goal033A1 — `docs/phantoms/reports/033A1-canonical-population-topology-ingress.md`; для Goal034 closure8 `SUCCESS` — `docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-closure8-final.md`; для Goal035 `SUCCESS` — `docs/phantoms/reports/035-siege-gameplay.md`; для Goal036 `SUCCESS` — `docs/phantoms/reports/036-bounded-quests-instances.md`; для Goal037 `SUCCESS` — `docs/phantoms/reports/037-full-quest-rates-audit.md`; для Goal038 `SUCCESS` — `docs/phantoms/reports/038-humanized-russian-semantic-pack.md`. Статусы полного vision основаны на production code/data/tests, а не на историческом номере Goal.
 
 | Capability/domain | Implementation status | Release evidence | Known limitation | Next action |
 |---|---|---|---|---|
@@ -23,7 +23,7 @@
 | Rift | IMPLEMENTED_AND_RELEASE_COVERED | matrix `rift`; `phantom-rift-goal023c-test` | Только accepted Dimensional Rift route | Separate slice для иных instances |
 | PvP/PK/karma | IMPLEMENTED_AND_RELEASE_COVERED | matrix `pvp`; `phantom-pvp-goal025a-test` | Policy ограничивает escalation | Сохранять safety gates |
 | Raid | IMPLEMENTED_AND_RELEASE_COVERED | matrix `raid`; Goal026 encounter tests | Accepted encounter profiles, не sieges | Не смешивать с bounded Goal035 siege owner |
-| Conversation/semantic/social | IMPLEMENTED_AND_RELEASE_COVERED | matrix `conversation-semantic-social`; Goal018–020 tests | RU corpus bounded/versioned | Расширять только с corpus evidence |
+| Conversation/semantic/social | IMPLEMENTED_AND_RELEASE_COVERED; GOAL038 SUCCESS | Goal018–020 authority/regressions; Humanized focused `12/12`, affected `133/133`, restart composition `1/1`; 109/109 RU corpus | Humanized open-domain facts не выдумывает; memory только bounded structured facts | Редактировать exact `my-*.xml`; сохранять functional-first и Social authority |
 | Clans/alliances/reputation/wars | IMPLEMENTED_AND_RELEASE_COVERED | matrix `clans-alliances-reputation-wars`; Goal027 CP1/CP2; Goal035 native attacker registration | Siege extension ограничен Giran Goal035 | Goal027 считается ACCEPT через Goal030 gate |
 | Restart/failure recovery | IMPLEMENTED_AND_RELEASE_COVERED | matrix `restart-failure-recovery`; Goal030 CP3 | Shutdown может требовать bounded retry | Drain до STOPPED перед restart |
 | Operator observability/replay | IMPLEMENTED_AND_RELEASE_COVERED | matrix `operator-observability-replay`; Goal028 targets | Trace disabled by default | Включать diagnostics точечно |
@@ -47,16 +47,15 @@
 | Goal035 — Siege gameplay slice | SUCCESS | Bounded Giran castleId=3: native registration/schedule/sides/zones/doors, factual gathering, capped roles, shared Combat/Navigation/Party support, retreat/recovery/restart cleanup; focused `8/8` |
 | Goal036 — Bounded quests/instances slice | SUCCESS | Exact whitelist: native Q102/Q152 completion, Q401 + canonical Fighter→Warrior, Kamaloka 57, Pailaka Q128/template 43; focused `8/8`, affected gates, fresh verify and standalone jar PASS; без universal solver |
 | Goal037 — Full High Five quest-script inventory + rates normalization/parity | SUCCESS | JDK AST inventory 543/543 source и 7,066/7,066 sites; 1,876 proven corrections в 331 quest source, 1,538 explicit fixed exceptions, zero unclassified/stale; full corpus compile/load, distinct 1x/non-1x Player/Phantom ACTIVE/BACKGROUND, Q401/Pailaka controls, ordinary XP/SP/drop/spoil/manor, affected gates, fresh verify and standalone jar PASS; production DB unused |
-| Goal038 — Humanized Russian Semantic Pack + social/custom conversation | PLANNED | Natural RU social/off-topic conversation, relationship progression, bounded personal memory, humor/sarcasm/teasing, follow-ups, emotion-sensitive reactions, personal ↔ game transitions, light flirt, contextual profanity с personality/relationship/intensity и anti-repeat; versioned custom overrides без Java recompilation, strict fail-closed core/custom validation; optional mature opt-in, shipped `OFF`; no runtime LLM/internet |
-| Goal039 — Final full-vision release gate + freeze | PLANNED | Единственный final exam: safe install/config/defaults, Goal034 real stack, ecology/restart/recovery, siege, quests/instances, rates parity, Humanized/custom packs, scale/rollback и documentation consistency |
+| Goal038 — Humanized Russian Semantic Pack + social/custom conversation | SUCCESS | Functional-first Humanized RU layer: 25 topics, 22 acts, 60 patterns, 67 templates, 109/109 corpus; Social authority, bounded `conversation.personal` schema v1, strict six-file custom layer, mature `OFF`; Phantom↔Phantom budget/cooldown proof; focused `12/12`, affected `133/133`, restart `1/1`, fresh verify/jar PASS; production DB unused |
+| Goal039 — Final full-vision release gate + freeze | NOT_STARTED | Следующий и единственный final exam: safe install/config/defaults, Goal034 real stack, ecology/restart/recovery, siege, quests/instances, rates parity, Humanized/custom packs, scale/rollback и documentation consistency |
 
-После успешного Goal037 остаётся один content/feature stage — Goal038 — и
-единственный final exam Goal039. После `ACCEPT` Goal039 статус становится
+После успешного Goal038 content/feature stages завершены; остаётся единственный
+final exam Goal039. После `ACCEPT` Goal039 статус становится
 `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`; automatic Goal040+ запрещены.
 
-Текущее следующее действие: Goal038 — следующий planned feature Goal, но он
-остаётся `NOT_STARTED` и требует отдельной явной задачи. Goal037 не начинал
-Goal038 и не менял Roadmap v5 scope Goal038–039.
+Текущее следующее действие: Goal039 — следующий planned final gate, но он
+остаётся `NOT_STARTED` и требует отдельной явной задачи. Goal038 его не начинал.
 
 Shipped config по-прежнему `EnablePhantomSystem=False`, population/ACTIVE `0/0`; destructive auto-reset flag отсутствует. Reset вызывается только GM-командой после read-only preview и одноразового confirm. Automated tests работают только с allowlisted test DB; ручная игра пользователя остаётся финальной experience validation, а не промежуточным техническим gate.
 

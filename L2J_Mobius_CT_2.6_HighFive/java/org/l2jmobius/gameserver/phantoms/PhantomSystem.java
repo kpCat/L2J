@@ -78,6 +78,9 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBrid
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationPlanSink;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomPersonalConversationStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
@@ -541,6 +544,22 @@ public final class PhantomSystem
 				final PhantomConversationExecutionStore conversationExecutionStore = new PhantomConversationExecutionStore(productionProfiles, conversationExecutionCatalog);
 				final PhantomConversationPlanSink.Bridge conversationExecutionSignal = PhantomConversationPlanSink.bridge();
 				final PhantomConversationGoalRuntimePort.Bridge conversationGoalRuntime = PhantomConversationGoalRuntimePort.bridge();
+				final PhantomHumanizedConversationService humanizedConversation;
+				if (_settings.conversation().humanizedEnabled())
+				{
+					final PhantomHumanizedCatalog humanizedCatalog = PhantomHumanizedCatalog.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms").toPath(), _settings.conversation().customPackEnabled());
+					final PhantomHumanizedConversationService.Settings humanizedSettings = new PhantomHumanizedConversationService.Settings(
+						true,
+						PhantomHumanizedCatalog.Register.valueOf(_settings.conversation().register().name()),
+						PhantomHumanizedCatalog.ProfanityMode.valueOf(_settings.conversation().profanity().name()),
+						PhantomHumanizedCatalog.Variation.valueOf(_settings.conversation().variation().name()),
+						_settings.conversation().matureEnabled());
+					humanizedConversation = new PhantomHumanizedConversationService(humanizedCatalog, PhantomPersonalConversationStore.production(productionProfiles), _socialService, humanizedSettings);
+				}
+				else
+				{
+					humanizedConversation = null;
+				}
 				final File clanDirectiveCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/clan/high-five-clan-directives-v1.xml");
 				final PhantomClanDirectiveCatalog clanDirectiveCatalog = PhantomClanDirectiveCatalog.load(clanDirectiveCatalogFile.toPath());
 				_clanDirectiveService = new PhantomClanDirectiveService(clanDirectiveCatalog, _materializationService, _socialService, new PhantomSchedulerRelevanceSignalPort(_scheduler));
@@ -548,7 +567,7 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom clan directive service could not enter the running state.");
 				}
-				_conversationService = new PhantomConversationService(conversationCatalog, new PhantomConversationStore(productionProfiles, conversationExecutionStore), new L2jPhantomConversationContextPort(_materializationService, _topologyService.query()), _semanticUnderstandingService, _socialService, conversationExecutionSignal, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance(), _clanDirectiveService);
+				_conversationService = new PhantomConversationService(conversationCatalog, new PhantomConversationStore(productionProfiles, conversationExecutionStore), new L2jPhantomConversationContextPort(_materializationService, _topologyService.query()), _semanticUnderstandingService, _socialService, conversationExecutionSignal, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance(), _clanDirectiveService, humanizedConversation);
 				_conversationExecutionService = new PhantomConversationExecutionService(conversationExecutionCatalog, conversationExecutionStore, productionGoals, new L2jPhantomConversationExecutionPort(conversationExecutionCatalog, _gameKnowledgeService, _topologyService.query(), _partyCoordinator, _materializationService, ChatObservationService.getInstance(), riftService, _farmingService), conversationGoalRuntime);
 				conversationExecutionSignal.install(_conversationExecutionService);
 				if (!_conversationExecutionService.start())

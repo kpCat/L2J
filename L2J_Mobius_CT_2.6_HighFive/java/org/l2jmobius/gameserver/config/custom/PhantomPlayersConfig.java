@@ -44,6 +44,9 @@ public final class PhantomPlayersConfig
 	public static final int DEFAULT_POPULATION_BOUNDARIES_PER_PULSE = 64;
 	public static final int DEFAULT_PARTY_OPERATIONS_PER_PULSE = 64;
 	public static final int DEFAULT_SOCIAL_CACHE_PROFILES = 1024;
+	public static final boolean DEFAULT_HUMANIZED_CONVERSATION = true;
+	public static final boolean DEFAULT_CUSTOM_CONVERSATION_PACK = true;
+	public static final boolean DEFAULT_MATURE_CONVERSATION = false;
 	public static final String DEFAULT_ECOLOGY_PRESET = "LIVING";
 	public static final int DEFAULT_ECOLOGY_WORLD_AGE_DAYS = -1;
 	public static final int DEFAULT_ECOLOGY_ARCHIVE_LIMIT = 1000;
@@ -94,12 +97,19 @@ public final class PhantomPlayersConfig
 			final String ecologyPreset = strictEcologyPreset(config.getValue("PhantomEcologyPreset"));
 			final Integer ecologyWorldAgeDays = strictWorldAgeDays(config.getValue("PhantomEcologyWorldAgeDays"));
 			final Integer ecologyArchiveLimit = strictInteger(config.getValue("PhantomEcologyArchiveLimit"), 1, 1_000_000, DEFAULT_ECOLOGY_ARCHIVE_LIMIT);
-			if ((populationTarget == null) || (populationActiveTarget == null) || (populationCreationInFlight == null) || (populationBoundariesPerPulse == null) || (partyOperationsPerPulse == null) || (socialCacheProfiles == null) || (populationTimeZone == null) || (ecologyEnabled == null) || (ecologyPreset == null) || (ecologyWorldAgeDays == null) || (ecologyArchiveLimit == null))
+			final Boolean humanizedConversation = strictOptionalBoolean(config.getValue("EnablePhantomHumanizedConversation"), DEFAULT_HUMANIZED_CONVERSATION);
+			final Boolean customConversationPack = strictOptionalBoolean(config.getValue("EnablePhantomCustomConversationPack"), DEFAULT_CUSTOM_CONVERSATION_PACK);
+			final ConversationRegister conversationRegister = strictOptionalEnum(config.getValue("PhantomConversationRegister"), ConversationRegister.CASUAL, ConversationRegister.class);
+			final ConversationProfanity conversationProfanity = strictOptionalEnum(config.getValue("PhantomConversationProfanity"), ConversationProfanity.CONTEXTUAL, ConversationProfanity.class);
+			final ConversationVariation conversationVariation = strictOptionalEnum(config.getValue("PhantomConversationVariation"), ConversationVariation.HIGH, ConversationVariation.class);
+			final Boolean matureConversation = strictOptionalBoolean(config.getValue("EnablePhantomMatureConversation"), DEFAULT_MATURE_CONVERSATION);
+			if ((populationTarget == null) || (populationActiveTarget == null) || (populationCreationInFlight == null) || (populationBoundariesPerPulse == null) || (partyOperationsPerPulse == null) || (socialCacheProfiles == null) || (populationTimeZone == null) || (ecologyEnabled == null) || (ecologyPreset == null) || (ecologyWorldAgeDays == null) || (ecologyArchiveLimit == null) || (humanizedConversation == null) || (customConversationPack == null) || (conversationRegister == null) || (conversationProfanity == null) || (conversationVariation == null) || (matureConversation == null))
 			{
 				return Settings.disabled();
 			}
 			final boolean diagnosticsEnabled = enabled && strictBoolean(config.getValue("EnablePhantomDiagnostics"));
-			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit);
+			final ConversationSettings conversation = new ConversationSettings(humanizedConversation, customConversationPack, conversationRegister, conversationProfanity, conversationVariation, matureConversation);
+			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit, conversation);
 		}
 		catch (RuntimeException e)
 		{
@@ -115,6 +125,42 @@ public final class PhantomPlayersConfig
 	public static boolean isEnabled()
 	{
 		return _settings.enabled();
+	}
+
+	public enum ConversationRegister
+	{
+		NEUTRAL,
+		CASUAL
+	}
+
+	public enum ConversationProfanity
+	{
+		NONE,
+		MILD,
+		CONTEXTUAL
+	}
+
+	public enum ConversationVariation
+	{
+		LOW,
+		MEDIUM,
+		HIGH
+	}
+
+	public record ConversationSettings(boolean humanizedEnabled, boolean customPackEnabled, ConversationRegister register, ConversationProfanity profanity, ConversationVariation variation, boolean matureEnabled)
+	{
+		public ConversationSettings
+		{
+			Objects.requireNonNull(register);
+			Objects.requireNonNull(profanity);
+			Objects.requireNonNull(variation);
+			matureEnabled = humanizedEnabled && matureEnabled;
+		}
+
+		public static ConversationSettings disabled()
+		{
+			return new ConversationSettings(false, false, ConversationRegister.CASUAL, ConversationProfanity.CONTEXTUAL, ConversationVariation.HIGH, false);
+		}
 	}
 
 	private static boolean strictBoolean(String value)
@@ -152,6 +198,22 @@ public final class PhantomPlayersConfig
 			return false;
 		}
 		return null;
+	}
+
+	private static <E extends Enum<E>> E strictOptionalEnum(String value, E defaultValue, Class<E> type)
+	{
+		if (value == null)
+		{
+			return defaultValue;
+		}
+		try
+		{
+			return Enum.valueOf(type, value.trim());
+		}
+		catch (IllegalArgumentException exception)
+		{
+			return null;
+		}
 	}
 
 	private static String strictEcologyPreset(String value)
@@ -223,7 +285,7 @@ public final class PhantomPlayersConfig
 		}
 	}
 
-	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone, boolean ecologyEnabled, String ecologyPreset, int ecologyWorldAgeDays, int ecologyArchiveLimit)
+	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone, boolean ecologyEnabled, String ecologyPreset, int ecologyWorldAgeDays, int ecologyArchiveLimit, ConversationSettings conversation)
 	{
 		public Settings
 		{
@@ -243,6 +305,7 @@ public final class PhantomPlayersConfig
 			ecologyPreset = enabled ? ecologyPreset : DEFAULT_ECOLOGY_PRESET;
 			ecologyWorldAgeDays = enabled ? ecologyWorldAgeDays : DEFAULT_ECOLOGY_WORLD_AGE_DAYS;
 			ecologyArchiveLimit = enabled ? ecologyArchiveLimit : 0;
+			conversation = enabled ? Objects.requireNonNull(conversation) : ConversationSettings.disabled();
 			if (enabled && ((maxMaterializedPhantoms < 1) || (maxMaterializedPhantoms > 10000)))
 			{
 				throw new IllegalArgumentException("Enabled Phantom settings require a materialization cap between 1 and 10000.");
@@ -302,6 +365,11 @@ public final class PhantomPlayersConfig
 			}
 		}
 
+		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone, boolean ecologyEnabled, String ecologyPreset, int ecologyWorldAgeDays, int ecologyArchiveLimit)
+		{
+			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, maxScheduledPhantomProfiles, schedulerPulseMillis, schedulerProfilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit, enabled ? new ConversationSettings(DEFAULT_HUMANIZED_CONVERSATION, DEFAULT_CUSTOM_CONVERSATION_PACK, ConversationRegister.CASUAL, ConversationProfanity.CONTEXTUAL, ConversationVariation.HIGH, DEFAULT_MATURE_CONVERSATION) : ConversationSettings.disabled());
+		}
+
 		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone)
 		{
 			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, maxScheduledPhantomProfiles, schedulerPulseMillis, schedulerProfilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, false, DEFAULT_ECOLOGY_PRESET, DEFAULT_ECOLOGY_WORLD_AGE_DAYS, enabled ? DEFAULT_ECOLOGY_ARCHIVE_LIMIT : 0);
@@ -329,7 +397,7 @@ public final class PhantomPlayersConfig
 
 		public static Settings disabled()
 		{
-			return new Settings(false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, DEFAULT_POPULATION_TIME_ZONE, false, DEFAULT_ECOLOGY_PRESET, DEFAULT_ECOLOGY_WORLD_AGE_DAYS, 0);
+			return new Settings(false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, DEFAULT_POPULATION_TIME_ZONE, false, DEFAULT_ECOLOGY_PRESET, DEFAULT_ECOLOGY_WORLD_AGE_DAYS, 0, ConversationSettings.disabled());
 		}
 	}
 }

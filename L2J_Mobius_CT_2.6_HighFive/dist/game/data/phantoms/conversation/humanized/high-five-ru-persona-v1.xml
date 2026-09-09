@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedPersonaPack id="high-five-ru-persona-v1" version="1">
+	<interests>
+		<interest id="interest.ambient" label="спокойную музыку"/>
+		<interest id="interest.rock" label="старый рок"/>
+		<interest id="interest.cinema" label="фантастическое кино"/>
+		<interest id="interest.detectives" label="детективные истории"/>
+		<interest id="interest.cooking" label="домашнюю кухню"/>
+		<interest id="interest.walks" label="долгие прогулки"/>
+		<interest id="interest.books" label="приключенческие книги"/>
+		<interest id="interest.boardgames" label="настольные игры"/>
+		<interest id="interest.photography" label="фотографию"/>
+		<interest id="interest.travel" label="небольшие путешествия"/>
+		<interest id="interest.history" label="историю старых городов"/>
+		<interest id="interest.coffee" label="хороший кофе"/>
+	</interests>
+</humanizedPersonaPack>

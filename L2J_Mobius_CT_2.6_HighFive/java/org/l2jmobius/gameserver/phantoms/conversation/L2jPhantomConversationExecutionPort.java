@@ -276,7 +276,7 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 				return new OutboundResult(ResultStatus.REJECTED, 0);
 			}
 			final String target = entry.channel() == ChatType.WHISPER ? counterpart.getName() : "";
-			try (DispatchHandle dispatch = _observation.openGeneratedDispatch(sender.getObjectId(), sender.getName(), entry.channel(), target, entry.text(), System.currentTimeMillis(), counterpart.getObjectId()))
+			try (DispatchHandle dispatch = entry.responseAct().startsWith("social.") ? _observation.openGeneratedSocialDispatch(sender.getObjectId(), sender.getName(), entry.channel(), target, entry.text(), System.currentTimeMillis(), counterpart.getObjectId()) : _observation.openGeneratedDispatch(sender.getObjectId(), sender.getName(), entry.channel(), target, entry.text(), System.currentTimeMillis(), counterpart.getObjectId()))
 			{
 				if (dispatch.descriptor() == null)
 				{

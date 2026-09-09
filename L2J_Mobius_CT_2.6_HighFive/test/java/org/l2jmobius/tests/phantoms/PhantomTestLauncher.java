@@ -266,6 +266,10 @@ public final class PhantomTestLauncher
 			case "quest-rates-goal037-corpus" -> new PhantomQuestRatesGoal037Suite(PhantomQuestRatesGoal037Suite.Mode.CORPUS);
 			case "quest-rates-goal037-helpers" -> new PhantomQuestRatesGoal037Suite(PhantomQuestRatesGoal037Suite.Mode.HELPERS);
 			case "quest-rates-native-goal037" -> new PhantomQuestInstanceGoal036Suite(PhantomQuestInstanceGoal036Suite.Mode.GOAL037_NON_ONE_X);
+			case "humanized-conversation-goal038-catalog" -> new PhantomHumanizedConversationGoal038Suite(PhantomHumanizedConversationGoal038Suite.Mode.CATALOG);
+			case "humanized-conversation-goal038-behavior" -> new PhantomHumanizedConversationGoal038Suite(PhantomHumanizedConversationGoal038Suite.Mode.BEHAVIOR);
+			case "humanized-conversation-goal038-persistence" -> new PhantomHumanizedConversationGoal038Suite(PhantomHumanizedConversationGoal038Suite.Mode.PERSISTENCE);
+			case "humanized-conversation-goal038-composition" -> new PhantomHumanizedConversationGoal038Suite(PhantomHumanizedConversationGoal038Suite.Mode.COMPOSITION);
 			case "topology-performance" -> new PhantomTopologyPerformanceSuite();
 			case "knowledge-core" -> new PhantomGameKnowledgeCoreSuite();
 			case "knowledge-query-truth" -> new PhantomGameKnowledgeQueryTruthSuite();

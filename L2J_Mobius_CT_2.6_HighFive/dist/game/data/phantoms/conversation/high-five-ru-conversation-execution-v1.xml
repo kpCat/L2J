@@ -32,6 +32,7 @@
 		<act key="no_response.cooldown" />
 		<act key="no_response.not_addressed" />
 		<act key="no_response.unsupported" />
+		<act key="social.reply" />
 	</responseActs>
 	<styles>
 		<style key="cautious" />

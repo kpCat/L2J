@@ -1,0 +1,110 @@
+# id	expected-topic-or-REJECTED	text
+greeting.001	greeting	привет
+greeting.002	greeting	Привет!
+greeting.003	greeting	прив
+greeting.004	greeting	здарова
+greeting.005	greeting	даров
+greeting.006	greeting	привет, как дела?
+greeting.007	greeting	доброе утро
+greeting.008	greeting	Добрый вечер!
+farewell.001	farewell	пока
+farewell.002	farewell	Пока!
+farewell.003	farewell	до встречи
+farewell.004	farewell	спокойной ночи
+acquaintance.001	acquaintance	как тебя зовут
+acquaintance.002	acquaintance	Меня зовут Анна
+acquaintance.003	acquaintance	меня зовут Миша
+acquaintance.004	acquaintance	как меня зовут
+mood.001	mood	как дела
+mood.002	mood	мне грустно
+mood.003	mood	я устал
+mood.004	mood	у меня всё хорошо
+mood.005	mood	у меня все хорошо
+smalltalk.001	smalltalk	что нового
+smalltalk.002	smalltalk	как жизнь
+smalltalk.003	smalltalk	хорошая погода
+rest.001	rest	как отдыхаешь
+rest.002	rest	что делаешь на выходных
+food.001	food	что любишь есть
+food.002	food	я люблю есть пиццу
+food.003	food	я люблю есть борщ
+music.001	music	какую музыку любишь
+music.002	music	я слушаю рок
+music.003	music	я слушаю джаз
+music.004	music	какую музло любишь
+movies.001	movies	какое кино любишь
+movies.002	movies	какое кинцо любишь
+movies.003	movies	мне нравится фильм Матрица
+movies.004	movies	мне нравится фильм Интерстеллар
+games.001	games	во что еще играешь
+games.002	games	я играю в шахматы
+games.003	games	я играю в футбол
+hobbies.001	hobbies	чем увлекаешься
+hobbies.002	hobbies	мое хобби фотография
+hobbies.003	hobbies	моё хобби рыбалка
+plans.001	plans	какие планы
+plans.002	plans	я планирую отдохнуть
+plans.003	plans	я планирую закончить книгу
+likes.001	likes	я люблю дождь
+likes.002	likes	я люблю старый рок
+likes.003	likes	я не люблю спешку
+likes.004	likes	я не люблю шум
+likes.005	likes	что я люблю
+likes.006	likes	что я не люблю
+achievement.001	achievement	я наконец закончил проект
+achievement.002	achievement	я наконец выспался
+achievement.003	achievement	у меня получилось сдать экзамен
+achievement.004	achievement	у меня получилось приготовить ужин
+failure.001	failure	у меня не получилось сдать экзамен
+failure.002	failure	у меня не получилось закончить работу
+failure.003	failure	сегодня плохой день
+humor.001	humor	расскажи шутку
+humor.002	humor	это было смешно
+humor.003	humor	Расскажи шутку!
+teasing.001	teasing	ну ты и тормоз
+teasing.002	teasing	ты там уснул
+teasing.003	teasing	Ну ты и тормоз!
+disagreement.001	disagreement	я с тобой не согласен
+disagreement.002	disagreement	по моему ты ошибаешься
+disagreement.003	disagreement	по-моему, ты ошибаешься
+irritation.001	irritation	ты меня раздражаешь
+irritation.002	irritation	хватит меня доставать
+irritation.003	irritation	Ты меня раздражаешь!
+apology.001	apology	извини
+apology.002	apology	сорян
+apology.003	apology	прости меня
+reconcile.001	reconcile	давай мириться
+reconcile.002	reconcile	давай забудем ссору
+relationship.001	relationship	мы друзья
+relationship.002	relationship	ты мне доверяешь
+relationship.003	relationship	ты мне нравишься
+pivot.001	pivot	ладно вернемся к игре
+pivot.002	pivot	вернемся к нашему разговору
+negative.001	REJECTED	пригласи меня в группу
+negative.002	REJECTED	возьми меня в пати
+negative.003	REJECTED	прими пати
+negative.004	REJECTED	выйди из пати
+negative.005	REJECTED	иди в гиран
+negative.006	REJECTED	лети в аден
+negative.007	REJECTED	телепортируйся в город
+negative.008	REJECTED	купи соски
+negative.009	REJECTED	продай оружие
+negative.010	REJECTED	найди кузнеца
+negative.011	REJECTED	атакуй орка
+negative.012	REJECTED	бей босса
+negative.013	REJECTED	фарми адену
+negative.014	REJECTED	бафни меня
+negative.015	REJECTED	воскреси друга
+negative.016	REJECTED	где взять адену
+negative.017	REJECTED	где найти кузнеца
+negative.018	REJECTED	как попасть в рифт
+negative.019	REJECTED	кто продает свитки
+negative.020	REJECTED	привет, где взять адену
+negative.021	REJECTED	ты мне нравишься, пригласи меня
+negative.022	REJECTED	как дела, купи мне оружие
+negative.023	REJECTED	случайная непонятная строка
+negative.024	REJECTED	123456
+sarcasm.001	sarcasm	ну конечно ты лучший
+sarcasm.002	sarcasm	Нашелся чемпион!
+surprise.001	surprise	вот это да
+surprise.002	surprise	Ничего себе!

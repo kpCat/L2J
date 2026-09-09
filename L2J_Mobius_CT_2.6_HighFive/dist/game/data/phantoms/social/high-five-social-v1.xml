@@ -189,6 +189,25 @@
 			<delta source="relationship.respect" value="-20"/>
 			<delta source="relationship.anger" value="20"/>
 		</event>
+		<event code="1027" key="conversation.supportive" ttlMinutes="43200" salience="450" socialClass="SUPPORTIVE" reputationShockBp="500">
+			<delta source="relationship.trust" value="30"/>
+			<delta source="relationship.friendship" value="45"/>
+			<delta source="reputation.helpfulness" value="25"/>
+		</event>
+		<event code="1028" key="conversation.conflict" ttlMinutes="10080" salience="400" socialClass="ROUTINE_NEGATIVE" reputationShockBp="500">
+			<delta source="relationship.anger" value="40"/>
+			<delta source="relationship.rivalry" value="20"/>
+		</event>
+		<event code="1029" key="conversation.apology" ttlMinutes="43200" salience="550" socialClass="SUPPORTIVE" reputationShockBp="500">
+			<delta source="relationship.trust" value="35"/>
+			<delta source="relationship.anger" value="-55"/>
+		</event>
+		<event code="1030" key="conversation.reconciled" ttlMinutes="129600" salience="700" socialClass="SUPPORTIVE" reputationShockBp="750">
+			<delta source="relationship.trust" value="55"/>
+			<delta source="relationship.friendship" value="70"/>
+			<delta source="relationship.anger" value="-80"/>
+			<delta source="relationship.rivalry" value="-25"/>
+		</event>
 	</events>
 	<modifiers>
 		<modifier key="goal.persistence" minimum="-3000" maximum="3000">

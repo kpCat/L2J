@@ -46,6 +46,9 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.D
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.DeliveryPolicy;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.PendingClarification;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore.StoredState;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService.Decision;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService.Request;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -103,6 +106,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		BUILDING_CONTEXT,
 		UNDERSTANDING,
 		READING_SOCIAL,
+		HUMANIZING,
 		PERSISTING,
 		PUBLISHING,
 		DONE,
@@ -163,6 +167,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	private final PhantomIdentityLeaseRegistry _identities;
 	private final ChatObservationService _observation;
 	private final PhantomClanDirectiveIngressPort _directiveIngress;
+	private final PhantomHumanizedConversationService _humanized;
 	private final PhaseObserver _phaseObserver;
 	private final ArrayBlockingQueue<IngressEvent> _ingress;
 	private final Object _lifecycle = new Object();
@@ -216,6 +221,16 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 
 	public PhantomConversationService(PhantomConversationCatalog catalog, PhantomConversationStore store, ContextPort context, PhantomSemanticUnderstandingService semantic, PhantomSocialService social, PhantomConversationPlanSink plans, PhantomIdentityLeaseRegistry identities, ChatObservationService observation, PhaseObserver phaseObserver, PhantomClanDirectiveIngressPort directiveIngress)
 	{
+		this(catalog, store, context, semantic, social, plans, identities, observation, phaseObserver, directiveIngress, null);
+	}
+
+	public PhantomConversationService(PhantomConversationCatalog catalog, PhantomConversationStore store, ContextPort context, PhantomSemanticUnderstandingService semantic, PhantomSocialService social, PhantomConversationPlanSink plans, PhantomIdentityLeaseRegistry identities, ChatObservationService observation, PhantomClanDirectiveIngressPort directiveIngress, PhantomHumanizedConversationService humanized)
+	{
+		this(catalog, store, context, semantic, social, plans, identities, observation, PhaseObserver.NONE, directiveIngress, humanized);
+	}
+
+	private PhantomConversationService(PhantomConversationCatalog catalog, PhantomConversationStore store, ContextPort context, PhantomSemanticUnderstandingService semantic, PhantomSocialService social, PhantomConversationPlanSink plans, PhantomIdentityLeaseRegistry identities, ChatObservationService observation, PhaseObserver phaseObserver, PhantomClanDirectiveIngressPort directiveIngress, PhantomHumanizedConversationService humanized)
+	{
 		_catalog = Objects.requireNonNull(catalog);
 		_store = Objects.requireNonNull(store);
 		_context = Objects.requireNonNull(context);
@@ -225,6 +240,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		_identities = Objects.requireNonNull(identities);
 		_observation = Objects.requireNonNull(observation);
 		_directiveIngress = Objects.requireNonNull(directiveIngress);
+		_humanized = humanized;
 		_phaseObserver = Objects.requireNonNull(phaseObserver);
 		_ingress = new ArrayBlockingQueue<>(catalog.limits().ingressQueue());
 		_cache = new LinkedHashMap<>(Math.min(256, catalog.limits().cacheEntries()), 0.75f, true)
@@ -284,7 +300,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 				_failures.increment();
 			}
 		}
-		if ((dispatch.origin() != Origin.CLIENT_CHAT) || !_catalog.supports(dispatch.chatType()) || (_identities.getOwnerKind(delivered.recipientObjectId()) != OwnerKind.PHANTOM))
+		if (!eligibleOrigin(dispatch.origin()) || !_catalog.supports(dispatch.chatType()) || (_identities.getOwnerKind(delivered.recipientObjectId()) != OwnerKind.PHANTOM))
 		{
 			_ingressIgnored.increment();
 			return true;
@@ -335,7 +351,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	@Override
 	public boolean onDispatchClosed(DispatchDescriptor dispatch)
 	{
-		if ((dispatch.origin() != Origin.CLIENT_CHAT) || !_catalog.supports(dispatch.chatType()))
+		if (!eligibleOrigin(dispatch.origin()) || !_catalog.supports(dispatch.chatType()))
 		{
 			_unsupported.increment();
 			_ingressIgnored.increment();
@@ -638,6 +654,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 				case BUILDING_CONTEXT -> StepResult.value((_identities.getOwnerKind(work._electedObservation.recipientObjectId()) == OwnerKind.PHANTOM) ? _context.snapshot(work._electedProfile, work._electedObservation, null, List.of()) : Optional.empty());
 				case UNDERSTANDING -> semanticStep(work, token.semanticStep());
 				case READING_SOCIAL -> socialStep(work, token.socialCursor());
+				case HUMANIZING -> humanizedStep(work);
 				case PERSISTING -> persistStep(work);
 				case PUBLISHING -> publishStep(work);
 				default -> StepResult.failure();
@@ -693,17 +710,44 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		final Integer[] values = work._socialValues.clone();
 		values[socialCursor] = value;
 		final Planned planned;
+		final SocialStyle socialStyle;
+		final boolean humanize;
 		if (socialCursor == 2)
 		{
 			final boolean neutral = failed || (values[0] == null) || (values[1] == null) || (values[2] == null);
 			final String style = neutral ? "neutral" : _catalog.style(values[0], values[1], values[2]);
-			planned = plan(work._electedProfile, work, work._snapshot, work._previousSession, work._understanding, new SocialStyle(style, !neutral && _catalog.suppresses(style)), work._nowMinute);
+			socialStyle = new SocialStyle(style, !neutral && _catalog.suppresses(style));
+			final boolean rejected = work._understanding.status() == UnderstandingStatus.REJECTED;
+			humanize = rejected && (_humanized != null) && _humanized.enabled();
+			planned = humanize ? null : work._descriptor.origin() == Origin.PHANTOM_SOCIAL ? silent(work._electedProfile, work, work._snapshot, work._previousSession, work._nowMinute, "no_response.generated_functional") : plan(work._electedProfile, work, work._snapshot, work._previousSession, work._understanding, socialStyle, work._nowMinute);
 		}
 		else
 		{
 			planned = null;
+			socialStyle = null;
+			humanize = false;
 		}
-		return StepResult.value(new SocialRead(value, failed, planned));
+		return StepResult.value(new SocialRead(value, failed, planned, socialStyle, humanize));
+	}
+
+	private StepResult humanizedStep(BatchWork work)
+	{
+		final SubjectRef subject = work._snapshot.speaker().namespace().equals("profile") ? SubjectRef.phantom(Long.parseLong(work._snapshot.speaker().key())) : SubjectRef.character(Integer.parseInt(work._snapshot.speaker().key()));
+		final Decision decision = _humanized.plan(new Request(work._electedProfile, work._snapshot.observerName(), subject, work._descriptor.origin(), work._descriptor.channel(), work._election.text(), work._observationHash, work._nowMinute));
+		final Planned planned;
+		if (!decision.eligible())
+		{
+			planned = work._descriptor.origin() == Origin.PHANTOM_SOCIAL ? silent(work._electedProfile, work, work._snapshot, work._previousSession, work._nowMinute, "no_response.generated_ineligible") : plan(work._electedProfile, work, work._snapshot, work._previousSession, work._understanding, work._socialStyle, work._nowMinute);
+		}
+		else if (decision.suppressed())
+		{
+			planned = silent(work._electedProfile, work, work._snapshot, work._previousSession, work._nowMinute, "no_response.generated_turn_budget");
+		}
+		else
+		{
+			planned = humanizedPlan(work._electedProfile, work, work._snapshot, work._previousSession, decision, work._nowMinute);
+		}
+		return StepResult.value(planned);
 	}
 
 	private StepResult persistStep(BatchWork work)
@@ -900,11 +944,24 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 					_socialFailures.increment();
 				}
 				work._socialCursor++;
+				if (read.socialStyle() != null)
+				{
+					work._socialStyle = read.socialStyle();
+				}
 				if (read.planned() != null)
 				{
 					work._planned = read.planned();
 					work._phase = BatchPhase.PERSISTING;
 				}
+				else if (read.humanize())
+				{
+					work._phase = BatchPhase.HUMANIZING;
+				}
+			}
+			case HUMANIZING ->
+			{
+				work._planned = (Planned) result.value();
+				work._phase = BatchPhase.PERSISTING;
 			}
 			case PERSISTING ->
 			{
@@ -1205,6 +1262,23 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		return new Planned(profileId, session, response, batch._observationHash, nowMinute);
 	}
 
+	private Planned humanizedPlan(long profileId, BatchWork batch, ContextSnapshot context, ConversationSession previous, Decision decision, long nowMinute)
+	{
+		final String semanticHash = PhantomConversationModel.sha256("humanized|" + _humanized.authorityHash() + '|' + decision.semanticHash() + '|' + decision.topic() + '|' + decision.act());
+		final String style = PhantomHumanizedConversationService.executionStyle(decision.relationshipBand());
+		final long cooldown = nowMinute + _catalog.channel(batch._descriptor.channel()).cooldownMinutes();
+		final List<ConversationEvidence> evidence = decision.evidence().stream().limit(_catalog.limits().evidence()).map(item -> new ConversationEvidence(item.key(), item.value())).toList();
+		final ConversationResponsePlan response = new ConversationResponsePlan(profileId, batch._dispatchId, batch._observationHash, batch._descriptor.channel(), new ConversationSubject(context.speaker()), semanticHash, "social.reply", style, decision.text(), null, DeliveryPolicy.SEND, cooldown, evidence);
+		final ConversationSession session = new ConversationSession(batch._descriptor.channel(), context.counterpart(), nowMinute, cooldown, previous == null ? null : previous.previousIntent(), previous == null ? List.of() : previous.previousSlots(), null, PhantomConversationModel.sha256(decision.act()), PhantomConversationModel.sha256(style), "");
+		return new Planned(profileId, session, response, batch._observationHash, nowMinute);
+	}
+
+	private Planned silent(long profileId, BatchWork batch, ContextSnapshot context, ConversationSession previous, long nowMinute, String act)
+	{
+		final ConversationSession session = new ConversationSession(batch._descriptor.channel(), context.counterpart(), nowMinute, nowMinute, previous == null ? null : previous.previousIntent(), previous == null ? List.of() : previous.previousSlots(), null, PhantomConversationModel.sha256(act), PhantomConversationModel.sha256("neutral"), "");
+		return new Planned(profileId, session, null, batch._observationHash, nowMinute);
+	}
+
 	private Planned noResponse(long profileId, BatchWork batch, ContextSnapshot context, ConversationSession previous, long nowMinute, String act)
 	{
 		final String semanticHash = PhantomConversationModel.sha256("no-semantic|" + batch._observationHash + '|' + act);
@@ -1364,6 +1438,11 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		return Long.parseUnsignedLong(PhantomConversationModel.sha256(profileId + "|" + observationHash + '|' + act + '|' + style + '|' + _catalog.hash()).substring(0, 16), 16);
 	}
 
+	private static boolean eligibleOrigin(Origin origin)
+	{
+		return (origin == Origin.CLIENT_CHAT) || (origin == Origin.PHANTOM_SOCIAL);
+	}
+
 	private record IngressEvent(IngressKind kind, DeliveredObservation observation, DispatchDescriptor dispatch)
 	{
 		private static IngressEvent delivered(DeliveredObservation observation)
@@ -1425,7 +1504,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	{
 	}
 
-	private record SocialRead(Integer value, boolean failed, Planned planned)
+	private record SocialRead(Integer value, boolean failed, Planned planned, SocialStyle socialStyle, boolean humanize)
 	{
 	}
 
@@ -1473,6 +1552,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		private InputContext _semanticContext;
 		private UnderstandingResult _understanding;
 		private PendingClarification _pending;
+		private SocialStyle _socialStyle;
 		private Planned _planned;
 		private PersistenceStatus _persistenceStatus;
 
