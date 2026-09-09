@@ -75,7 +75,7 @@ public class Q00432_BirthdayPartySong extends Quest
 					return "31043-06.html";
 				}
 				
-				giveItems(player, ECHO_CRYSTAL, 25);
+				rewardItems(player, ECHO_CRYSTAL, 25);
 				qs.exitQuest(true, true);
 				break;
 			}

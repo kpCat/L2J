@@ -107,7 +107,7 @@ public class Q00296_TarantulasSpiderSilk extends Quest
 				{
 					if (hasQuestItems(player, TARANTULA_SPINNERETTE))
 					{
-						giveItems(player, TARANTULA_SPIDER_SILK, (15 + getRandom(9)) * getQuestItemsCount(player, TARANTULA_SPINNERETTE));
+						giveItemsWithoutQuestRate(player, TARANTULA_SPIDER_SILK, (15 + getRandom(9)) * getQuestItemsCount(player, TARANTULA_SPINNERETTE));
 						takeItems(player, TARANTULA_SPINNERETTE, -1);
 						html = event;
 					}

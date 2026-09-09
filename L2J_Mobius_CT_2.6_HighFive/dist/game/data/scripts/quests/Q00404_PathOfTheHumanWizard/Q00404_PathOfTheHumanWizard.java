@@ -126,7 +126,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 			}
 			case "30410-03.html":
 			{
-				giveItems(player, WIND_FEATHER, 1);
+				giveItemsWithoutQuestRate(player, WIND_FEATHER, 1);
 				qs.setCond(6, true);
 				htmltext = event;
 				break;
@@ -148,7 +148,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 				{
 					if (hasQuestItems(killer, RUSTY_COIN) && !hasQuestItems(killer, RED_SOIL) && (getRandom(100) < 20))
 					{
-						giveItems(killer, RED_SOIL, 1);
+						giveItemsWithoutQuestRate(killer, RED_SOIL, 1);
 						qs.setCond(12, true);
 					}
 					break;
@@ -157,7 +157,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 				{
 					if (hasQuestItems(killer, MAP_OF_LUSTER) && !hasQuestItems(killer, KEY_OF_FLAME) && (getRandom(100) < 80))
 					{
-						giveItems(killer, KEY_OF_FLAME, 1);
+						giveItemsWithoutQuestRate(killer, KEY_OF_FLAME, 1);
 						qs.setCond(3, true);
 					}
 					break;
@@ -213,7 +213,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 						takeItems(player, EARTH_RING, 1);
 						if (!hasQuestItems(player, BEAD_OF_SEASON))
 						{
-							giveItems(player, BEAD_OF_SEASON, 1);
+							giveItemsWithoutQuestRate(player, BEAD_OF_SEASON, 1);
 						}
 						
 						final int level = player.getLevel();
@@ -242,7 +242,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 					{
 						if (!hasQuestItems(player, RUSTY_COIN))
 						{
-							giveItems(player, RUSTY_COIN, 1);
+							giveItemsWithoutQuestRate(player, RUSTY_COIN, 1);
 						}
 						
 						qs.setCond(11, true);
@@ -260,7 +260,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 							takeItems(player, RED_SOIL, 1);
 							if (!hasQuestItems(player, EARTH_RING))
 							{
-								giveItems(player, EARTH_RING, 1);
+								giveItemsWithoutQuestRate(player, EARTH_RING, 1);
 							}
 							
 							qs.setCond(13, true);
@@ -294,7 +294,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 					{
 						if (!hasQuestItems(player, MAP_OF_LUSTER))
 						{
-							giveItems(player, MAP_OF_LUSTER, 1);
+							giveItemsWithoutQuestRate(player, MAP_OF_LUSTER, 1);
 						}
 						
 						qs.setCond(2, true);
@@ -312,7 +312,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 							takeItems(player, KEY_OF_FLAME, 1);
 							if (!hasQuestItems(player, FLAME_EARING))
 							{
-								giveItems(player, FLAME_EARING, 1);
+								giveItemsWithoutQuestRate(player, FLAME_EARING, 1);
 							}
 							
 							qs.setCond(4, true);
@@ -331,7 +331,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 					{
 						if (!hasQuestItems(player, BROKEN_BRONZE_MIRROR))
 						{
-							giveItems(player, BROKEN_BRONZE_MIRROR, 1);
+							giveItemsWithoutQuestRate(player, BROKEN_BRONZE_MIRROR, 1);
 						}
 						
 						qs.setCond(5, true);
@@ -349,7 +349,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 							takeItems(player, WIND_FEATHER, 1);
 							if (!hasQuestItems(player, WIND_BANGLE))
 							{
-								giveItems(player, WIND_BANGLE, 1);
+								giveItemsWithoutQuestRate(player, WIND_BANGLE, 1);
 							}
 							
 							qs.setCond(7, true);
@@ -368,7 +368,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 					{
 						if (!hasQuestItems(player, RAMAS_DIARY))
 						{
-							giveItems(player, RAMAS_DIARY, 1);
+							giveItemsWithoutQuestRate(player, RAMAS_DIARY, 1);
 						}
 						
 						qs.setCond(8, true);
@@ -386,7 +386,7 @@ public class Q00404_PathOfTheHumanWizard extends Quest
 							takeItems(player, SPARKLE_PEBBLE, -1);
 							if (!hasQuestItems(player, WATER_NECKLACE))
 							{
-								giveItems(player, WATER_NECKLACE, 1);
+								giveItemsWithoutQuestRate(player, WATER_NECKLACE, 1);
 							}
 							
 							qs.setCond(10, true);

@@ -60,7 +60,7 @@ public class Q10268_ToTheSeedOfInfinity extends Quest
 		if (event.equals("32548-05.html"))
 		{
 			qs.startQuest();
-			giveItems(player, INTRODUCTION, 1);
+			giveItemsWithoutQuestRate(player, INTRODUCTION, 1);
 		}
 		
 		return event;

@@ -66,8 +66,8 @@ public class Q00172_NewHorizons extends Quest
 			}
 			case "32163-02.html":
 			{
-				giveItems(player, SCROLL_OF_ESCAPE_GIRAN, 1);
-				giveItems(player, MARK_OF_TRAVELER, 1);
+				rewardItems(player, SCROLL_OF_ESCAPE_GIRAN, 1);
+				giveItemsWithoutQuestRate(player, MARK_OF_TRAVELER, 1);
 				qs.exitQuest(false, true);
 				break;
 			}

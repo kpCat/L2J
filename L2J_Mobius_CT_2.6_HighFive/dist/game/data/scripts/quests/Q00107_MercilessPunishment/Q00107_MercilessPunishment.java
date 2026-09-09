@@ -100,7 +100,7 @@ public class Q00107_MercilessPunishment extends Quest
 				if (qs.isCreated())
 				{
 					qs.startQuest();
-					giveItems(player, HATOSS_ORDER_1, 1);
+					giveItemsWithoutQuestRate(player, HATOSS_ORDER_1, 1);
 					htmltext = event;
 				}
 				break;
@@ -119,7 +119,7 @@ public class Q00107_MercilessPunishment extends Quest
 				{
 					qs.setCond(4);
 					takeItems(player, HATOSS_ORDER_1, -1);
-					giveItems(player, HATOSS_ORDER_2, 1);
+					giveItemsWithoutQuestRate(player, HATOSS_ORDER_2, 1);
 					htmltext = event;
 				}
 				break;
@@ -130,7 +130,7 @@ public class Q00107_MercilessPunishment extends Quest
 				{
 					qs.setCond(6);
 					takeItems(player, HATOSS_ORDER_2, -1);
-					giveItems(player, HATOSS_ORDER_3, 1);
+					giveItemsWithoutQuestRate(player, HATOSS_ORDER_3, 1);
 					htmltext = event;
 				}
 				break;
@@ -218,7 +218,7 @@ public class Q00107_MercilessPunishment extends Quest
 								{
 									if (talker.getLevel() < 25)
 									{
-										giveItems(talker, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
+										rewardItems(talker, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
 										playSound(talker, "tutorial_voice_026");
 									}
 									
@@ -246,10 +246,10 @@ public class Q00107_MercilessPunishment extends Quest
 									giveAdena(talker, 14666, true);
 									for (ItemHolder reward : REWARDS)
 									{
-										giveItems(talker, reward);
+										rewardItems(talker, reward);
 									}
 									
-									giveItems(talker, BUTCHER, 1);
+									rewardItems(talker, BUTCHER, 1);
 									qs.exitQuest(false, true);
 									talker.sendPacket(new SocialAction(talker.getObjectId(), 3));
 									htmltext = "30568-11.html";
@@ -293,7 +293,7 @@ public class Q00107_MercilessPunishment extends Quest
 				{
 					if (hasQuestItems(killer, HATOSS_ORDER_1))
 					{
-						giveItems(killer, LETTER_TO_HUMAN, 1);
+						giveItemsWithoutQuestRate(killer, LETTER_TO_HUMAN, 1);
 						qs.setCond(3, true);
 					}
 					break;
@@ -302,7 +302,7 @@ public class Q00107_MercilessPunishment extends Quest
 				{
 					if (hasQuestItems(killer, HATOSS_ORDER_2))
 					{
-						giveItems(killer, LETTER_TO_DARK_ELF, 1);
+						giveItemsWithoutQuestRate(killer, LETTER_TO_DARK_ELF, 1);
 						qs.setCond(5, true);
 					}
 					break;
@@ -311,7 +311,7 @@ public class Q00107_MercilessPunishment extends Quest
 				{
 					if (hasQuestItems(killer, HATOSS_ORDER_3))
 					{
-						giveItems(killer, LETTER_TO_ELF, 1);
+						giveItemsWithoutQuestRate(killer, LETTER_TO_ELF, 1);
 						qs.setCond(7, true);
 					}
 					break;

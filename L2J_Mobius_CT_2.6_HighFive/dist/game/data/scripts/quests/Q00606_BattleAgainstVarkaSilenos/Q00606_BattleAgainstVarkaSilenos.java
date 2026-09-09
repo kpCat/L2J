@@ -102,7 +102,7 @@ public class Q00606_BattleAgainstVarkaSilenos extends Quest
 				}
 				
 				takeItems(player, MANE, MANE_COUNT);
-				giveItems(player, HORN, 20);
+				giveItemsWithoutQuestRate(player, HORN, 20);
 				break;
 			}
 			case "31370-09.html":

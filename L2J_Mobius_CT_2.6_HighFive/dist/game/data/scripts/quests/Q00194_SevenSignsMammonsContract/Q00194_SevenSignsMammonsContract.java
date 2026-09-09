@@ -112,7 +112,7 @@ public class Q00194_SevenSignsMammonsContract extends Quest
 			{
 				if (qs.isCond(2))
 				{
-					giveItems(player, ATHEBALDTS_INTRODUCTION, 1);
+					giveItemsWithoutQuestRate(player, ATHEBALDTS_INTRODUCTION, 1);
 					qs.setCond(3, true);
 					htmltext = event;
 				}
@@ -273,7 +273,7 @@ public class Q00194_SevenSignsMammonsContract extends Quest
 			{
 				if (qs.isCond(4))
 				{
-					giveItems(player, FROG_KINGS_BEAD, 1);
+					giveItemsWithoutQuestRate(player, FROG_KINGS_BEAD, 1);
 					qs.setCond(5, true);
 					htmltext = event;
 				}
@@ -291,7 +291,7 @@ public class Q00194_SevenSignsMammonsContract extends Quest
 			{
 				if (qs.isCond(7))
 				{
-					giveItems(player, GRANDA_TESS_CANDY_POUCH, 1);
+					giveItemsWithoutQuestRate(player, GRANDA_TESS_CANDY_POUCH, 1);
 					qs.setCond(8, true);
 					htmltext = event;
 				}
@@ -310,7 +310,7 @@ public class Q00194_SevenSignsMammonsContract extends Quest
 			{
 				if (qs.isCond(10))
 				{
-					giveItems(player, NATIVES_GLOVE, 1);
+					giveItemsWithoutQuestRate(player, NATIVES_GLOVE, 1);
 					qs.setCond(11, true);
 					htmltext = event;
 				}

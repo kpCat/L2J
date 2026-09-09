@@ -82,7 +82,7 @@ public class Q00655_AGrandPlanForTamingWildBeasts extends Quest
 				else
 				{
 					takeItems(player, STONE, 10);
-					giveItems(player, TRAINER_LICENSE, 1);
+					giveItemsWithoutQuestRate(player, TRAINER_LICENSE, 1);
 					st.exitQuest(true, true);
 					htmltext = "35627-03.htm";
 				}
@@ -98,7 +98,7 @@ public class Q00655_AGrandPlanForTamingWildBeasts extends Quest
 		final QuestState st = player.getQuestState(Q00655_AGrandPlanForTamingWildBeasts.class.getSimpleName());
 		if ((st != null) && st.isCond(1) && (getQuestItemsCount(player, STONE) < 10))
 		{
-			giveItems(player, STONE, 1);
+			giveItemsWithoutQuestRate(player, STONE, 1);
 		}
 	}
 }

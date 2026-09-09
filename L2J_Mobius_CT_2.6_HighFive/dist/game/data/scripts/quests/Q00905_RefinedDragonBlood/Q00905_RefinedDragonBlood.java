@@ -134,7 +134,7 @@ public class Q00905_RefinedDragonBlood extends Quest
 				}
 				case "32864-11.html":
 				{
-					giveItems(player, REFINED_RED_DRAGON_BLOOD, 1);
+					rewardItems(player, REFINED_RED_DRAGON_BLOOD, 1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					qs.exitQuest(QuestType.DAILY, true);
 					htmltext = event;
@@ -142,7 +142,7 @@ public class Q00905_RefinedDragonBlood extends Quest
 				}
 				case "32864-12.html":
 				{
-					giveItems(player, REFINED_BLUE_DRAGON_BLOOD, 1);
+					rewardItems(player, REFINED_BLUE_DRAGON_BLOOD, 1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					qs.exitQuest(QuestType.DAILY, true);
 					htmltext = event;

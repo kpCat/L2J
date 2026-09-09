@@ -88,7 +88,7 @@ public class Q00610_MagicalPowerOfWaterPart2 extends Quest
 					{
 						if (!hasQuestItems(player, ASHUTAR_HEART))
 						{
-							giveItems(player, ASHUTAR_HEART, 1);
+							giveItemsWithoutQuestRate(player, ASHUTAR_HEART, 1);
 						}
 						
 						qs.setCond(3, true);

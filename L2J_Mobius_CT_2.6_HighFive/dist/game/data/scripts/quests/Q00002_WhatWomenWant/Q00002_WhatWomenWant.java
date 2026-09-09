@@ -74,13 +74,13 @@ public class Q00002_WhatWomenWant extends Quest
 			case "30223-04.htm":
 			{
 				qs.startQuest();
-				giveItems(player, ARUJIENS_LETTER1, 1);
+				giveItemsWithoutQuestRate(player, ARUJIENS_LETTER1, 1);
 				break;
 			}
 			case "30223-08.html":
 			{
 				takeItems(player, ARUJIENS_LETTER3, -1);
-				giveItems(player, POETRY_BOOK, 1);
+				giveItemsWithoutQuestRate(player, POETRY_BOOK, 1);
 				qs.setCond(4, true);
 				break;
 			}
@@ -167,7 +167,7 @@ public class Q00002_WhatWomenWant extends Quest
 									}
 								}
 								
-								giveItems(player, EARRING, 1);
+								rewardItems(player, EARRING, 1);
 								addExpAndSp(player, 4254, 335);
 								giveAdena(player, 1850, true);
 								qs.exitQuest(false, true);
@@ -193,7 +193,7 @@ public class Q00002_WhatWomenWant extends Quest
 					{
 						qs.setCond(2, true);
 						takeItems(player, ARUJIENS_LETTER1, -1);
-						giveItems(player, ARUJIENS_LETTER2, 1);
+						giveItemsWithoutQuestRate(player, ARUJIENS_LETTER2, 1);
 						htmltext = "30146-01.html";
 					}
 					else
@@ -211,7 +211,7 @@ public class Q00002_WhatWomenWant extends Quest
 					{
 						qs.setCond(3, true);
 						takeItems(player, ARUJIENS_LETTER2, -1);
-						giveItems(player, ARUJIENS_LETTER3, 1);
+						giveItemsWithoutQuestRate(player, ARUJIENS_LETTER3, 1);
 						htmltext = "30150-01.html";
 					}
 					else
@@ -229,7 +229,7 @@ public class Q00002_WhatWomenWant extends Quest
 					{
 						qs.setCond(5, true);
 						takeItems(player, POETRY_BOOK, -1);
-						giveItems(player, GREENIS_LETTER, 1);
+						giveItemsWithoutQuestRate(player, GREENIS_LETTER, 1);
 						htmltext = "30157-02.html";
 					}
 					else if (qs.isCond(5))

@@ -10,6 +10,7 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
 
+import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.managers.ScriptManager;
 import org.l2jmobius.gameserver.model.events.ListenerRegisterType;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
@@ -120,6 +121,7 @@ public final class PhantomAcquisitionQuestSuite implements PhantomTestSuite
 			registry.add("01-deterministic-grant-no-grant-and-ordinary-drop", this::testBackgroundFormula);
 			registry.add("02-schema3-quest-restart-transitions", this::testRestartTransitions);
 			registry.add("03-exact-row-lock-and-single-transaction-ownership", this::testAtomicSourceContract);
+			registry.add("04-non-one-x-amount-chance-and-cap-parity", this::testNonOneXBackgroundFormula);
 		}
 	}
 
@@ -216,6 +218,44 @@ public final class PhantomAcquisitionQuestSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(payload.length <= 4096, "Schema-3 quest state exceeded 4096 bytes.");
 		}
 		context.record("quest.persistedTransitions", 5);
+	}
+
+	private void testNonOneXBackgroundFormula(PhantomTestContext context) throws Exception
+	{
+		final float original = RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER;
+		try
+		{
+			RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER = 3;
+			final PhantomBackgroundModel model = new PhantomBackgroundModel();
+			for (Rule rule : _catalog.rules())
+			{
+				long grantingSeed = 0;
+				for (long rng = 1; rng < 10000; rng++)
+				{
+					final BatchResult oneX = model.evaluate(request(state(rng, rule.questItemId()), rule, new QuestFormula(rule.rollBound(), rule.rollThreshold(), rule.maximumCount(), 0, rule.itemCap())));
+					if (oneX.acquisitionTargetDelta() > 0)
+					{
+						grantingSeed = rng;
+						break;
+					}
+				}
+				PhantomAssertions.assertTrue(grantingSeed > 0, "No deterministic granting seed for " + rule.id());
+				final BatchResult oneX = model.evaluate(request(state(grantingSeed, rule.questItemId()), rule, new QuestFormula(rule.rollBound(), rule.rollThreshold(), rule.maximumCount(), 0, rule.itemCap())));
+				final long scaledMaximum = (long) (rule.maximumCount() * RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER);
+				final BatchResult nonOneX = model.evaluate(request(state(grantingSeed, rule.questItemId()), rule, new QuestFormula(rule.rollBound(), rule.rollThreshold(), scaledMaximum, 0, rule.itemCap())));
+				PhantomAssertions.assertEquals(oneX.nextRngState(), nonOneX.nextRngState(), "Quest-item amount rate changed script-native RNG consumption for " + rule.id());
+				PhantomAssertions.assertEquals(3L, nonOneX.acquisitionTargetDelta(), "Background quest amount did not follow the 3x native objective rate for " + rule.id());
+				final BatchResult capped = model.evaluate(request(state(grantingSeed, rule.questItemId()), rule, new QuestFormula(rule.rollBound(), rule.rollThreshold(), scaledMaximum, rule.itemCap() - 1, rule.itemCap())));
+				PhantomAssertions.assertEquals(1L, capped.acquisitionTargetDelta(), "Background quest amount crossed the native cap for " + rule.id());
+			}
+			final String service = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java"), StandardCharsets.UTF_8);
+			PhantomAssertions.assertTrue(service.contains("rule.maximumCount() * RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER"), "Production Background quest formula does not read the current quest-item amount rate.");
+			context.record("quest.backgroundNonOneX", "rules=2,amount=3,chance=unchanged,cap=clamped");
+		}
+		finally
+		{
+			RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER = original;
+		}
 	}
 
 	private void testAtomicSourceContract(PhantomTestContext context) throws Exception

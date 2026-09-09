@@ -83,7 +83,7 @@ public class Q00363_SorrowfulSoundOfFlute extends Quest
 			}
 			case "30956-05.html":
 			{
-				giveItems(player, EVENT_CLOTHES, 1);
+				giveItemsWithoutQuestRate(player, EVENT_CLOTHES, 1);
 				qs.setMemoState(4);
 				qs.setCond(3, true);
 				htmltext = event;
@@ -91,7 +91,7 @@ public class Q00363_SorrowfulSoundOfFlute extends Quest
 			}
 			case "30956-06.html":
 			{
-				giveItems(player, NANARINS_FLUTE, 1);
+				giveItemsWithoutQuestRate(player, NANARINS_FLUTE, 1);
 				qs.setMemoState(4);
 				qs.setCond(3, true);
 				htmltext = event;
@@ -99,7 +99,7 @@ public class Q00363_SorrowfulSoundOfFlute extends Quest
 			}
 			case "30956-07.html":
 			{
-				giveItems(player, SABRINS_BLACK_BEER, 1);
+				giveItemsWithoutQuestRate(player, SABRINS_BLACK_BEER, 1);
 				qs.setMemoState(4);
 				qs.setCond(3, true);
 				htmltext = event;

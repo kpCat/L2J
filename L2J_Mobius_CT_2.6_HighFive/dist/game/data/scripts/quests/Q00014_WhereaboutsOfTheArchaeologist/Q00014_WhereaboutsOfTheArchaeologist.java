@@ -63,7 +63,7 @@ public class Q00014_WhereaboutsOfTheArchaeologist extends Quest
 			case "31263-02.html":
 			{
 				qs.startQuest();
-				giveItems(player, LETTER, 1);
+				giveItemsWithoutQuestRate(player, LETTER, 1);
 				break;
 			}
 			case "31538-01.html":

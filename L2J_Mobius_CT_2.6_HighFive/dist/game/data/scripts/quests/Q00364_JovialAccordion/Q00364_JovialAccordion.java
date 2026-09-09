@@ -87,7 +87,7 @@ public class Q00364_JovialAccordion extends Quest
 				{
 					if (getRandomBoolean())
 					{
-						giveItems(player, STOLEN_BLACK_BEER, 1);
+						giveItemsWithoutQuestRate(player, STOLEN_BLACK_BEER, 1);
 						htmltext = "30960-02.html";
 					}
 					else
@@ -109,7 +109,7 @@ public class Q00364_JovialAccordion extends Quest
 				{
 					if (getRandomBoolean())
 					{
-						giveItems(player, STOLEN_EVENT_CLOTHES, 1);
+						giveItemsWithoutQuestRate(player, STOLEN_EVENT_CLOTHES, 1);
 						htmltext = "30961-02.html";
 					}
 					else
@@ -127,8 +127,8 @@ public class Q00364_JovialAccordion extends Quest
 			}
 			case "30957-02.html":
 			{
-				giveItems(player, CLOTHES_CHEST_KEY, 1);
-				giveItems(player, BEER_CHEST_KEY, 1);
+				giveItemsWithoutQuestRate(player, CLOTHES_CHEST_KEY, 1);
+				giveItemsWithoutQuestRate(player, BEER_CHEST_KEY, 1);
 				qs.setMemoState(2);
 				qs.setCond(2, true);
 				htmltext = event;

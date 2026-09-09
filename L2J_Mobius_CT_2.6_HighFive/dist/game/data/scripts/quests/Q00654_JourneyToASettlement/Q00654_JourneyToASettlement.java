@@ -91,7 +91,7 @@ public class Q00654_JourneyToASettlement extends Quest
 			{
 				if (qs.isMemoState(2) && hasQuestItems(player, ANTELOPE_SKIN))
 				{
-					giveItems(player, FRINTEZZAS_SCROLL, 1);
+					giveItemsWithoutQuestRate(player, FRINTEZZAS_SCROLL, 1);
 					qs.exitQuest(true, true);
 					htmltext = event;
 				}

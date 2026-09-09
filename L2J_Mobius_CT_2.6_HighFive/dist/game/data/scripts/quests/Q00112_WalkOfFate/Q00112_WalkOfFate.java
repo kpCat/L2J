@@ -67,7 +67,7 @@ public class Q00112_WalkOfFate extends Quest
 			{
 				giveAdena(player, 22308, true);
 				addExpAndSp(player, 112876, 5774);
-				giveItems(player, SCROLL_ENCHANT_ARMOR_D_GRADE, 1);
+				rewardItems(player, SCROLL_ENCHANT_ARMOR_D_GRADE, 1);
 				qs.exitQuest(false, true);
 				htmltext = event;
 			}

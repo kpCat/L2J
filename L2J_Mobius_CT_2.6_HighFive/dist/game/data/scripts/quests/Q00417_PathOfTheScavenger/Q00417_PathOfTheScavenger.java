@@ -116,7 +116,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 						{
 							qs.startQuest();
 							qs.setMemoStateEx(1, 0);
-							giveItems(player, PIPPIS_LETTER_OF_RECOMMENDATION, 1);
+							giveItemsWithoutQuestRate(player, PIPPIS_LETTER_OF_RECOMMENDATION, 1);
 							htmltext = "30524-05.htm";
 						}
 					}
@@ -151,19 +151,19 @@ public class Q00417_PathOfTheScavenger extends Quest
 					{
 						case 0:
 						{
-							giveItems(player, ZIMENFS_POTION, 1);
+							giveItemsWithoutQuestRate(player, ZIMENFS_POTION, 1);
 							htmltext = "30519-02.html";
 							break;
 						}
 						case 1:
 						{
-							giveItems(player, SHARIS_AXE, 1);
+							giveItemsWithoutQuestRate(player, SHARIS_AXE, 1);
 							htmltext = "30519-03.html";
 							break;
 						}
 						case 2:
 						{
-							giveItems(player, BRONKS_INGOT, 1);
+							giveItemsWithoutQuestRate(player, BRONKS_INGOT, 1);
 							htmltext = "30519-04.html";
 							break;
 						}
@@ -212,7 +212,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 				}
 				else if (((qs.getMemoStateEx(1) % 10) >= 3) && qs.isMemoState(1))
 				{
-					giveItems(player, MIONS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, MIONS_LETTER, 1);
 					takeItems(player, SHARIS_AXE, 1);
 					takeItems(player, ZIMENFS_POTION, 1);
 					takeItems(player, BRONKS_INGOT, 1);
@@ -230,19 +230,19 @@ public class Q00417_PathOfTheScavenger extends Quest
 				{
 					case 0:
 					{
-						giveItems(player, ZIMENFS_POTION, 1);
+						giveItemsWithoutQuestRate(player, ZIMENFS_POTION, 1);
 						htmltext = "30519-02.html";
 						break;
 					}
 					case 1:
 					{
-						giveItems(player, SHARIS_AXE, 1);
+						giveItemsWithoutQuestRate(player, SHARIS_AXE, 1);
 						htmltext = "30519-03.html";
 						break;
 					}
 					case 2:
 					{
-						giveItems(player, BRONKS_INGOT, 1);
+						giveItemsWithoutQuestRate(player, BRONKS_INGOT, 1);
 						htmltext = "30519-04.html";
 						break;
 					}
@@ -255,7 +255,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 				{
 					takeItems(player, TARANTULA_PICTURE, 1);
 					takeItems(player, BEAD, -1);
-					giveItems(player, BEAD_PARCEL, 1);
+					giveItemsWithoutQuestRate(player, BEAD_PARCEL, 1);
 					qs.setCond(9, true);
 					htmltext = event;
 				}
@@ -267,7 +267,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 				{
 					takeItems(player, TARANTULA_PICTURE, 1);
 					takeItems(player, BEAD, -1);
-					giveItems(player, BEAD_PARCEL2, 1);
+					giveItemsWithoutQuestRate(player, BEAD_PARCEL2, 1);
 					qs.setMemoState(2);
 					qs.setCond(12, true);
 					htmltext = event;
@@ -279,7 +279,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 				if (hasQuestItems(player, BEAD_PARCEL))
 				{
 					takeItems(player, BEAD_PARCEL, 1);
-					giveItems(player, ROUTS_TELEPORT_SCROLL, 1);
+					giveItemsWithoutQuestRate(player, ROUTS_TELEPORT_SCROLL, 1);
 					qs.setCond(10, true);
 					htmltext = event;
 				}
@@ -289,7 +289,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 			{
 				if (hasQuestItems(player, BEAD_PARCEL))
 				{
-					giveItems(player, ROUTS_TELEPORT_SCROLL, 1);
+					giveItemsWithoutQuestRate(player, ROUTS_TELEPORT_SCROLL, 1);
 					takeItems(player, BEAD_PARCEL, 1);
 					qs.setCond(10, true);
 					htmltext = event;
@@ -301,7 +301,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 				if (hasQuestItems(player, ROUTS_TELEPORT_SCROLL))
 				{
 					takeItems(player, ROUTS_TELEPORT_SCROLL, 1);
-					giveItems(player, SUCCUBUS_UNDIES, 1);
+					giveItemsWithoutQuestRate(player, SUCCUBUS_UNDIES, 1);
 					qs.setCond(11, true);
 					npc.deleteMe();
 					htmltext = event;
@@ -313,7 +313,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 				if (qs.isMemoState(2) && hasQuestItems(player, BEAD_PARCEL2))
 				{
 					giveAdena(player, 163800, true);
-					giveItems(player, RING_OF_RAVEN, 1);
+					giveItemsWithoutQuestRate(player, RING_OF_RAVEN, 1);
 					final int level = player.getLevel();
 					if (level >= 20)
 					{
@@ -491,7 +491,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 						}
 						else
 						{
-							giveItems(player, MIONS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, MIONS_LETTER, 1);
 							takeItems(player, SHARIS_PAY, 1);
 							takeItems(player, ZIMENFS_PAY, 1);
 							takeItems(player, BRONKS_PAY, 1);
@@ -516,14 +516,14 @@ public class Q00417_PathOfTheScavenger extends Quest
 						if (qs.getMemoStateEx(1) < 20)
 						{
 							takeItems(player, SHARIS_AXE, 1);
-							giveItems(player, SHARIS_PAY, 1);
+							giveItemsWithoutQuestRate(player, SHARIS_PAY, 1);
 							qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 10);
 							htmltext = "30517-01.html";
 						}
 						else
 						{
 							takeItems(player, SHARIS_AXE, 1);
-							giveItems(player, SHARIS_PAY, 1);
+							giveItemsWithoutQuestRate(player, SHARIS_PAY, 1);
 							qs.setMemoState(1);
 							qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 10);
 							qs.setCond(3, true);
@@ -543,14 +543,14 @@ public class Q00417_PathOfTheScavenger extends Quest
 						if (qs.getMemoStateEx(1) < 20)
 						{
 							takeItems(player, BRONKS_INGOT, 1);
-							giveItems(player, BRONKS_PAY, 1);
+							giveItemsWithoutQuestRate(player, BRONKS_PAY, 1);
 							qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 10);
 							htmltext = "30525-01.html";
 						}
 						else
 						{
 							takeItems(player, BRONKS_INGOT, 1);
-							giveItems(player, BRONKS_PAY, 1);
+							giveItemsWithoutQuestRate(player, BRONKS_PAY, 1);
 							qs.setMemoState(1);
 							qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 10);
 							qs.setCond(3, true);
@@ -570,14 +570,14 @@ public class Q00417_PathOfTheScavenger extends Quest
 						if (qs.getMemoStateEx(1) < 20)
 						{
 							takeItems(player, ZIMENFS_POTION, 1);
-							giveItems(player, ZIMENFS_PAY, 1);
+							giveItemsWithoutQuestRate(player, ZIMENFS_PAY, 1);
 							qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 10);
 							htmltext = "30538-01.html";
 						}
 						else
 						{
 							takeItems(player, ZIMENFS_POTION, 1);
-							giveItems(player, ZIMENFS_PAY, 1);
+							giveItemsWithoutQuestRate(player, ZIMENFS_PAY, 1);
 							qs.setMemoState(1);
 							qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 10);
 							qs.setCond(3, true);
@@ -595,7 +595,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 					if (hasQuestItems(player, MIONS_LETTER))
 					{
 						takeItems(player, MIONS_LETTER, 1);
-						giveItems(player, BEAR_PICTURE, 1);
+						giveItemsWithoutQuestRate(player, BEAR_PICTURE, 1);
 						qs.setCond(5, true);
 						qs.set(FLAG, 0);
 						htmltext = "30556-01.html";
@@ -609,7 +609,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 						else
 						{
 							takeItems(player, BEAR_PICTURE, 1);
-							giveItems(player, TARANTULA_PICTURE, 1);
+							giveItemsWithoutQuestRate(player, TARANTULA_PICTURE, 1);
 							takeItems(player, HONEY_JAR, -1);
 							qs.setCond(7, true);
 							htmltext = "30556-03.html";
@@ -653,7 +653,7 @@ public class Q00417_PathOfTheScavenger extends Quest
 					else if (hasQuestItems(player, SUCCUBUS_UNDIES))
 					{
 						giveAdena(player, 81900, true);
-						giveItems(player, RING_OF_RAVEN, 1);
+						giveItemsWithoutQuestRate(player, RING_OF_RAVEN, 1);
 						final int level = player.getLevel();
 						if (level >= 20)
 						{

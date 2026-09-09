@@ -4787,6 +4787,40 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 	{
 		giveItems(player, itemId, count, 0);
 	}
+
+	/**
+	 * Give an exact scripted amount without applying the quest-item amount multiplier.
+	 * @param player
+	 * @param itemId
+	 * @param count
+	 */
+	public static void giveItemsWithoutQuestRate(Player player, int itemId, long count)
+	{
+		giveItems(player, itemId, count, 0, false);
+	}
+
+	/**
+	 * Give a rate-scaled quest-objective amount without crossing its scripted cap.
+	 * The caller remains responsible for the script-native chance and condition transition.
+	 * @param player
+	 * @param itemId
+	 * @param count
+	 * @param itemCap
+	 */
+	public static void giveQuestItemsUpTo(Player player, int itemId, long count, long itemCap)
+	{
+		if ((count <= 0) || (itemCap <= 0))
+		{
+			return;
+		}
+		final long currentCount = player.getInventory().getInventoryItemCount(itemId, -1);
+		final long remaining = itemCap - currentCount;
+		if (remaining <= 0)
+		{
+			return;
+		}
+		giveItems(player, itemId, Math.min((long) (count * RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER), remaining), 0, false);
+	}
 	
 	/**
 	 * Give item/reward to the player
@@ -4797,6 +4831,16 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 	{
 		giveItems(player, holder.getId(), holder.getCount());
 	}
+
+	/**
+	 * Give an exact scripted ItemHolder amount without applying the quest-item amount multiplier.
+	 * @param player
+	 * @param holder
+	 */
+	protected static void giveItemsWithoutQuestRate(Player player, ItemHolder holder)
+	{
+		giveItemsWithoutQuestRate(player, holder.getId(), holder.getCount());
+	}
 	
 	/**
 	 * @param player
@@ -4805,6 +4849,23 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 	 * @param enchantlevel
 	 */
 	public static void giveItems(Player player, int itemId, long count, int enchantlevel)
+	{
+		giveItems(player, itemId, count, enchantlevel, true);
+	}
+
+	/**
+	 * Give an exact scripted enchanted amount without applying the quest-item amount multiplier.
+	 * @param player
+	 * @param itemId
+	 * @param count
+	 * @param enchantlevel
+	 */
+	public static void giveItemsWithoutQuestRate(Player player, int itemId, long count, int enchantlevel)
+	{
+		giveItems(player, itemId, count, enchantlevel, false);
+	}
+
+	private static void giveItems(Player player, int itemId, long count, int enchantlevel, boolean applyQuestItemRate)
 	{
 		if (count <= 0)
 		{
@@ -4819,7 +4880,7 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 		
 		// Apply quest item drop amount multiplier configuration.
 		long finalCount = count;
-		if (template.isQuestItem())
+		if (applyQuestItemRate && template.isQuestItem())
 		{
 			finalCount = (long) (count * RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER);
 		}
@@ -4849,6 +4910,24 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 	 */
 	public static void giveItems(Player player, int itemId, long count, byte attributeId, int attributeLevel)
 	{
+		giveItems(player, itemId, count, attributeId, attributeLevel, true);
+	}
+
+	/**
+	 * Give an exact scripted attributed amount without applying the quest-item amount multiplier.
+	 * @param player
+	 * @param itemId
+	 * @param count
+	 * @param attributeId
+	 * @param attributeLevel
+	 */
+	public static void giveItemsWithoutQuestRate(Player player, int itemId, long count, byte attributeId, int attributeLevel)
+	{
+		giveItems(player, itemId, count, attributeId, attributeLevel, false);
+	}
+
+	private static void giveItems(Player player, int itemId, long count, byte attributeId, int attributeLevel, boolean applyQuestItemRate)
+	{
 		if (count <= 0)
 		{
 			return;
@@ -4862,7 +4941,7 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 		
 		// Apply quest item drop amount multiplier configuration.
 		long finalCount = count;
-		if (template.isQuestItem())
+		if (applyQuestItemRate && template.isQuestItem())
 		{
 			finalCount = (long) (count * RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER);
 		}

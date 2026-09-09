@@ -139,7 +139,7 @@ public class Q10286_ReunionWithSirra extends Quest
 				{
 					if (!hasQuestItems(player, BLACK_FROZEN_CORE))
 					{
-						giveItems(player, BLACK_FROZEN_CORE, 5);
+						giveItemsWithoutQuestRate(player, BLACK_FROZEN_CORE, 5);
 					}
 					
 					qs.set("ex", 2);

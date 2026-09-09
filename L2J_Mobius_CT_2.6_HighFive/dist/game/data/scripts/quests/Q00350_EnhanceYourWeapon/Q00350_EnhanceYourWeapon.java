@@ -93,17 +93,17 @@ public class Q00350_EnhanceYourWeapon extends Quest
 		}
 		else if (event.endsWith("-09.htm"))
 		{
-			giveItems(player, RED_SOUL_CRYSTAL0_ID, 1);
+			rewardItems(player, RED_SOUL_CRYSTAL0_ID, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 		}
 		else if (event.endsWith("-10.htm"))
 		{
-			giveItems(player, GREEN_SOUL_CRYSTAL0_ID, 1);
+			rewardItems(player, GREEN_SOUL_CRYSTAL0_ID, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 		}
 		else if (event.endsWith("-11.htm"))
 		{
-			giveItems(player, BLUE_SOUL_CRYSTAL0_ID, 1);
+			rewardItems(player, BLUE_SOUL_CRYSTAL0_ID, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 		}
 		else if (event.equalsIgnoreCase("exit.htm"))

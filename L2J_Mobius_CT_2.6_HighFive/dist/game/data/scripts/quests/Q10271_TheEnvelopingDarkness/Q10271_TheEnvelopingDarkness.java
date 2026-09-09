@@ -186,7 +186,7 @@ public class Q10271_TheEnvelopingDarkness extends Quest
 						{
 							htmltext = "32528-01.html";
 							qs.setCond(3, true);
-							giveItems(player, MEDIBAL_DOCUMENT, 1);
+							giveItemsWithoutQuestRate(player, MEDIBAL_DOCUMENT, 1);
 							break;
 						}
 						case 3:

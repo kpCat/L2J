@@ -76,14 +76,14 @@ public class Q00551_OlympiadStarter extends Quest
 				{
 					if (hasQuestItems(player, CERT_3))
 					{
-						giveItems(player, OLY_CHEST, 1);
+						rewardItems(player, OLY_CHEST, 1);
 						takeItems(player, CERT_3, -1);
 					}
 					
 					if (hasQuestItems(player, CERT_5))
 					{
-						giveItems(player, OLY_CHEST, 1);
-						giveItems(player, MEDAL_OF_GLORY, 3);
+						rewardItems(player, OLY_CHEST, 1);
+						giveItemsWithoutQuestRate(player, MEDAL_OF_GLORY, 3);
 						takeItems(player, CERT_5, -1);
 					}
 					
@@ -110,17 +110,17 @@ public class Q00551_OlympiadStarter extends Quest
 					qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 1);
 					qs.setMemoState(2);
 					qs.setCond(2, true);
-					giveItems(loser, CERT_10, 1);
+					giveItemsWithoutQuestRate(loser, CERT_10, 1);
 				}
 				else if (memoStateEx < 9)
 				{
 					if (qs.isMemoStateEx(1, 2))
 					{
-						giveItems(loser, CERT_3, 1);
+						giveItemsWithoutQuestRate(loser, CERT_3, 1);
 					}
 					else if (qs.isMemoStateEx(1, 4))
 					{
-						giveItems(loser, CERT_5, 1);
+						giveItemsWithoutQuestRate(loser, CERT_5, 1);
 					}
 					
 					qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 1);
@@ -150,17 +150,17 @@ public class Q00551_OlympiadStarter extends Quest
 					qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 1);
 					qs.setMemoState(2);
 					qs.setCond(2, true);
-					giveItems(player, CERT_10, 1);
+					giveItemsWithoutQuestRate(player, CERT_10, 1);
 				}
 				else if (memoStateEx < 9)
 				{
 					if (qs.isMemoStateEx(1, 2))
 					{
-						giveItems(player, CERT_3, 1);
+						giveItemsWithoutQuestRate(player, CERT_3, 1);
 					}
 					else if (qs.isMemoStateEx(1, 4))
 					{
-						giveItems(player, CERT_5, 1);
+						giveItemsWithoutQuestRate(player, CERT_5, 1);
 					}
 					
 					qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 1);
@@ -186,17 +186,17 @@ public class Q00551_OlympiadStarter extends Quest
 					qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 1);
 					qs.setMemoState(2);
 					qs.setCond(2, true);
-					giveItems(player, CERT_10, 1);
+					giveItemsWithoutQuestRate(player, CERT_10, 1);
 				}
 				else if (memoStateEx < 9)
 				{
 					if (qs.isMemoStateEx(1, 2))
 					{
-						giveItems(player, CERT_3, 1);
+						giveItemsWithoutQuestRate(player, CERT_3, 1);
 					}
 					else if (qs.isMemoStateEx(1, 4))
 					{
-						giveItems(player, CERT_5, 1);
+						giveItemsWithoutQuestRate(player, CERT_5, 1);
 					}
 					
 					qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 1);
@@ -239,8 +239,8 @@ public class Q00551_OlympiadStarter extends Quest
 			}
 			else if (qs.isMemoState(2))
 			{
-				giveItems(player, OLY_CHEST, 4);
-				giveItems(player, MEDAL_OF_GLORY, 5);
+				rewardItems(player, OLY_CHEST, 4);
+				giveItemsWithoutQuestRate(player, MEDAL_OF_GLORY, 5);
 				qs.exitQuest(QuestType.DAILY, true);
 				htmltext = "31688-04.html";
 			}

@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.data.xml.DoorData;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
@@ -91,10 +92,18 @@ import org.l2jmobius.gameserver.scripting.ScriptEngine;
 /** Focused Goal036 catalog and guarded native quest/instance acceptance. */
 public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 {
+	public enum Mode
+	{
+		GOAL036,
+		GOAL037_NON_ONE_X
+	}
+
 	private static final long SEED = 36003601L;
+	private static final long GOAL037_SEED = 37003702L;
 	private static final long WAIT_MILLIS = 20_000;
 	private static final PhantomCancellationToken NOT_CANCELLED = () -> false;
 	private final PhantomHeadlessPlayerTestEnvironment _environment = new PhantomHeadlessPlayerTestEnvironment();
+	private final Mode _mode;
 	private final List<Npc> _fixtures = new ArrayList<>();
 	private final List<Integer> _instanceIds = new ArrayList<>();
 	private final MemoryGoalStore _goals = new MemoryGoalStore();
@@ -114,21 +123,42 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	private SpawnFact _normalWorldCombatPoint;
 	private long _goalId = 3600;
 	private boolean _environmentInitialized;
+	private RateSnapshot _rateSnapshot;
+
+	public PhantomQuestInstanceGoal036Suite()
+	{
+		this(Mode.GOAL036);
+	}
+
+	public PhantomQuestInstanceGoal036Suite(Mode mode)
+	{
+		_mode = mode;
+	}
 
 	@Override
 	public String id()
 	{
-		return "quest-instance-goal036";
+		return _mode == Mode.GOAL036 ? "quest-instance-goal036" : "quest-rates-native-goal037";
 	}
 
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(SEED, context.seed(), "Goal036 used the wrong deterministic seed.");
+		PhantomAssertions.assertEquals(_mode == Mode.GOAL036 ? SEED : GOAL037_SEED, context.seed(), "Quest/instance suite used the wrong deterministic seed.");
 		_environment.initialize(context);
 		_environmentInitialized = true;
 		try
 		{
+			if (_mode == Mode.GOAL037_NON_ONE_X)
+			{
+				_rateSnapshot = RateSnapshot.capture();
+				RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER = 3;
+				RatesConfig.RATE_QUEST_REWARD = 5;
+				RatesConfig.RATE_QUEST_REWARD_XP = 2;
+				RatesConfig.RATE_QUEST_REWARD_SP = 3;
+				RatesConfig.RATE_QUEST_REWARD_ADENA = 4;
+				RatesConfig.RATE_QUEST_REWARD_USE_MULTIPLIERS = false;
+			}
 			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			ScriptEngine.getInstance().executeScript(Path.of("quests/QuestMasterHandler.java"));
 			ScriptEngine.getInstance().executeScript(Path.of("village_master/ElfHumanFighterChange1/ElfHumanFighterChange1.java"));
@@ -170,6 +200,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			ensureWeapon();
 			context.record("goal036.database", "127.0.0.1:3308/l2jmobiush5_phantom_test");
 			context.record("goal036.catalogHash", _catalog.catalogHash());
+			context.record("goal037.rateProfile", _mode == Mode.GOAL036 ? "1x/default" : "questItem=3,reward=5,xp=2,sp=3,adena=4");
 		}
 		catch (Throwable throwable)
 		{
@@ -264,10 +295,12 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		final long rewardBefore = itemCount(1060);
 		PhantomAssertions.assertEquals(Status.PROGRESS, advance(PhantomActivityState.ACTIVE).status(), "Q102 native start event failed.");
 		assertCond(102, 1, "Q102 did not enter cond 1.");
+		PhantomAssertions.assertEquals(1L, itemCount(964), "Q102 Alberius letter control token multiplied.");
 		restartService();
 		spawnNpc(30156);
 		advanceUntil(() -> cond(102) == 2, 8, "Q102 Cobendell transition did not reach cond 2.");
 		killUntil(102, 3, 20013, 80, "Q102 Dryad collection");
+		PhantomAssertions.assertEquals(10L, itemCount(966), "Q102 objective amount did not clamp to its native cap.");
 		restartService();
 		advanceUntil(() -> cond(102) == 4, 8, "Q102 collection hand-in did not reach cond 4.");
 		advanceUntil(() -> cond(102) == 5, 8, "Q102 Alberius report did not reach cond 5.");
@@ -276,9 +309,16 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		spawnNpc(30221);
 		spawnNpc(30285);
 		advanceUntil(() -> cond(102) == 6, 16, "Q102 sentinel deliveries did not reach cond 6.");
+		final long expBefore = _player.getExp();
+		final long spBefore = _player.getSp();
+		final long adenaBefore = itemCount(57);
 		advanceUntil(() -> questState(102).isCompleted(), 8, "Q102 native terminal hand-in did not complete.");
 		final long rewardAfter = itemCount(1060);
-		PhantomAssertions.assertEquals(100L, rewardAfter - rewardBefore, "Q102 native Lesser Healing Potion reward drifted.");
+		final long itemRate = _mode == Mode.GOAL036 ? 1 : 5;
+		PhantomAssertions.assertEquals(100L * itemRate, rewardAfter - rewardBefore, "Q102 native Lesser Healing Potion reward drifted.");
+		PhantomAssertions.assertEquals(30202L * (_mode == Mode.GOAL036 ? 1 : 2), _player.getExp() - expBefore, "Q102 quest XP rate drifted.");
+		PhantomAssertions.assertEquals(1339L * (_mode == Mode.GOAL036 ? 1 : 3), _player.getSp() - spBefore, "Q102 quest SP rate drifted.");
+		PhantomAssertions.assertEquals(6331L * (_mode == Mode.GOAL036 ? 1 : 4), itemCount(57) - adenaBefore, "Q102 quest Adena rate drifted.");
 		restartService();
 		PhantomAssertions.assertEquals(Status.COMPLETE, advance(PhantomActivityState.ACTIVE).status(), "Completed Q102 was not idempotent after restart.");
 		PhantomAssertions.assertEquals(rewardAfter, itemCount(1060), "Q102 retry duplicated native rewards.");
@@ -294,13 +334,15 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		spawnNpc(30283);
 		final long rewardBefore = itemCount(23);
 		advanceUntil(() -> questStarted(152), 8, "Q152 did not start through Harris.");
+		PhantomAssertions.assertEquals(1L, itemCount(1008), "Q152 receipt control token multiplied.");
 		advanceUntil(() -> cond(152) == 2, 8, "Q152 Altran transition did not reach cond 2.");
 		killUntil(152, 3, 20016, 60, "Q152 Stone Golem collection");
+		PhantomAssertions.assertEquals(5L, itemCount(1010), "Q152 objective amount did not clamp to its native cap.");
 		restartService();
 		advanceUntil(() -> cond(152) == 4, 8, "Q152 Altran hand-in did not reach cond 4.");
 		advanceUntil(() -> questState(152).isCompleted(), 8, "Q152 native Harris terminal did not complete.");
 		final long rewardAfter = itemCount(23);
-		PhantomAssertions.assertEquals(1L, rewardAfter - rewardBefore, "Q152 native Wooden Breastplate reward drifted.");
+		PhantomAssertions.assertEquals(_mode == Mode.GOAL036 ? 1L : 5L, rewardAfter - rewardBefore, "Q152 native Wooden Breastplate reward drifted.");
 		PhantomAssertions.assertEquals(Status.COMPLETE, advance(PhantomActivityState.ACTIVE).status(), "Completed Q152 was not idempotent.");
 		PhantomAssertions.assertEquals(rewardAfter, itemCount(23), "Q152 retry duplicated native rewards.");
 		context.record("goal036.q152", "COMPLETED,reward23=1");
@@ -402,22 +444,34 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(instanceId, _player.getInstanceId(), "Pailaka restart created a duplicate instance.");
 		relocate(instanceNpc(32500));
 		advanceUntil(() -> cond(128) == 2, 8, "Pailaka Sinai transition did not reach cond 2.");
+		PhantomAssertions.assertEquals(1L, itemCount(13034), "Pailaka sword control token multiplied.");
+		PhantomAssertions.assertEquals(1L, itemCount(13130), "Pailaka book control token multiplied.");
 
 		pailakaCombat(18610, 3, "Hillas");
+		PhantomAssertions.assertEquals(1L, itemCount(13131), "Pailaka Hillas book control token multiplied.");
+		PhantomAssertions.assertEquals(1L, itemCount(13038), "Pailaka water essence control token multiplied.");
 		relocate(instanceNpc(32507));
 		advanceUntil(() -> cond(128) == 4, 8, "Pailaka water inspector transition did not reach cond 4.");
+		PhantomAssertions.assertEquals(1L, itemCount(13132), "Pailaka water inspector book control token multiplied.");
+		PhantomAssertions.assertEquals(1L, itemCount(13035), "Pailaka first enhanced sword control token multiplied.");
 		pailakaCombat(18609, 5, "Papion");
+		PhantomAssertions.assertEquals(1L, itemCount(13133), "Pailaka Papion book control token multiplied.");
 		pailakaCombat(18608, 6, "Kinsus");
+		PhantomAssertions.assertEquals(1L, itemCount(13134), "Pailaka Kinsus book control token multiplied.");
+		PhantomAssertions.assertEquals(1L, itemCount(13039), "Pailaka fire essence control token multiplied.");
 		relocate(instanceNpc(32507));
 		advanceUntil(() -> cond(128) == 7, 8, "Pailaka fire inspector transition did not reach cond 7.");
+		PhantomAssertions.assertEquals(1L, itemCount(13135), "Pailaka fire inspector book control token multiplied.");
+		PhantomAssertions.assertEquals(1L, itemCount(13036), "Pailaka second enhanced sword control token multiplied.");
 		pailakaCombat(18607, 8, "Gargos");
+		PhantomAssertions.assertEquals(1L, itemCount(13136), "Pailaka Gargos book control token multiplied.");
 		pailakaCombat(18620, 9, "Adiantum");
 		relocate(instanceNpc(32510));
 		final Map<Integer, Long> rewardsBefore = Map.of(13294, itemCount(13294), 13293, itemCount(13293), 736, itemCount(736));
 		advanceUntil(() -> questState(128).isCompleted(), 8, "Pailaka Adler terminal did not complete Q128.");
 		for (int itemId : rewardsBefore.keySet())
 		{
-			PhantomAssertions.assertEquals(1L, itemCount(itemId) - rewardsBefore.get(itemId), "Pailaka native reward drifted: " + itemId);
+			PhantomAssertions.assertEquals(_mode == Mode.GOAL036 ? 1L : 5L, itemCount(itemId) - rewardsBefore.get(itemId), "Pailaka native reward drifted: " + itemId);
 		}
 		final long remaining = instance.getInstanceEndTime() - System.currentTimeMillis();
 		PhantomAssertions.assertTrue((remaining > TimeUnit.MINUTES.toMillis(4)) && (remaining <= TimeUnit.MINUTES.toMillis(5) + 5000), "Pailaka native EXIT_TIME was not observed.");
@@ -425,7 +479,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(Status.COMPLETE, advance(PhantomActivityState.ACTIVE).status(), "Completed Pailaka was not idempotent after restart.");
 		for (int itemId : rewardsBefore.keySet())
 		{
-			PhantomAssertions.assertEquals(rewardsBefore.get(itemId) + 1, itemCount(itemId), "Pailaka retry duplicated reward: " + itemId);
+			PhantomAssertions.assertEquals(rewardsBefore.get(itemId) + (_mode == Mode.GOAL036 ? 1 : 5), itemCount(itemId), "Pailaka retry duplicated reward: " + itemId);
 		}
 		PhantomAssertions.assertEquals(instanceId, _player.getInstanceId(), "Pailaka terminal retry entered another instance.");
 		context.record("goal036.pailaka", "quest=128,template=43,conds=1-9,rewards=13294/13293/736");
@@ -839,6 +893,14 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		});
 		attempt(failures, () ->
 		{
+			if (_rateSnapshot != null)
+			{
+				_rateSnapshot.restore();
+				_rateSnapshot = null;
+			}
+		});
+		attempt(failures, () ->
+		{
 			if (_environmentInitialized)
 			{
 				_environment.shutdown();
@@ -850,6 +912,24 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			final RuntimeException failure = new RuntimeException("Goal036 cleanup failed.");
 			failures.forEach(failure::addSuppressed);
 			throw failure;
+		}
+	}
+
+	private record RateSnapshot(float questItem, float reward, float xp, float sp, float adena, boolean useMultipliers)
+	{
+		static RateSnapshot capture()
+		{
+			return new RateSnapshot(RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER, RatesConfig.RATE_QUEST_REWARD, RatesConfig.RATE_QUEST_REWARD_XP, RatesConfig.RATE_QUEST_REWARD_SP, RatesConfig.RATE_QUEST_REWARD_ADENA, RatesConfig.RATE_QUEST_REWARD_USE_MULTIPLIERS);
+		}
+
+		void restore()
+		{
+			RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER = questItem;
+			RatesConfig.RATE_QUEST_REWARD = reward;
+			RatesConfig.RATE_QUEST_REWARD_XP = xp;
+			RatesConfig.RATE_QUEST_REWARD_SP = sp;
+			RatesConfig.RATE_QUEST_REWARD_ADENA = adena;
+			RatesConfig.RATE_QUEST_REWARD_USE_MULTIPLIERS = useMultipliers;
 		}
 	}
 

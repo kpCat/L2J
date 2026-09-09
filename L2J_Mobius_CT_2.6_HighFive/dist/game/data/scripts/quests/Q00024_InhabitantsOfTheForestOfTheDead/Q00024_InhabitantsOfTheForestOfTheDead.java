@@ -80,7 +80,7 @@ public class Q00024_InhabitantsOfTheForestOfTheDead extends Quest
 				if ((player.getLevel() >= 65) && (qs != null) && qs.isCompleted())
 				{
 					st.startQuest();
-					giveItems(player, FLOWER_BOUQUET, 1);
+					giveItemsWithoutQuestRate(player, FLOWER_BOUQUET, 1);
 					return "31389-03.htm";
 				}
 				break;
@@ -92,7 +92,7 @@ public class Q00024_InhabitantsOfTheForestOfTheDead extends Quest
 			}
 			case "31389-13.html":
 			{
-				giveItems(player, SILVER_CROSS_OF_EINHASAD, 1);
+				giveItemsWithoutQuestRate(player, SILVER_CROSS_OF_EINHASAD, 1);
 				st.setCond(3, true);
 				st.unset("var");
 				break;
@@ -126,7 +126,7 @@ public class Q00024_InhabitantsOfTheForestOfTheDead extends Quest
 			// Lidia Maid
 			case "31532-04.html":
 			{
-				giveItems(player, LIDIA_LETTER, 1);
+				giveItemsWithoutQuestRate(player, LIDIA_LETTER, 1);
 				st.setCond(6, true);
 				break;
 			}
@@ -206,7 +206,7 @@ public class Q00024_InhabitantsOfTheForestOfTheDead extends Quest
 			}
 			case "31522-21.html":
 			{
-				giveItems(player, TOTEM, 1);
+				giveItemsWithoutQuestRate(player, TOTEM, 1);
 				addExpAndSp(player, 242105, 22529); // GoD: Harmony: 6191140 exp and 6118650 sp
 				st.exitQuest(false, true);
 				break;
@@ -255,7 +255,7 @@ public class Q00024_InhabitantsOfTheForestOfTheDead extends Quest
 		final QuestState st = getQuestState(player, false);
 		if ((st != null) && st.isCond(9) && (getRandom(100) < 10))
 		{
-			giveItems(player, SUSPICIOUS_TOTEM_DOLL, 1);
+			giveItemsWithoutQuestRate(player, SUSPICIOUS_TOTEM_DOLL, 1);
 			st.setCond(10, true);
 		}
 	}
@@ -313,7 +313,7 @@ public class Q00024_InhabitantsOfTheForestOfTheDead extends Quest
 							}
 							case 7:
 							{
-								giveItems(player, LIDIA_HAIRPIN, 1);
+								giveItemsWithoutQuestRate(player, LIDIA_HAIRPIN, 1);
 								st.setCond(8, true);
 								htmltext = "31389-21.html";
 								break;

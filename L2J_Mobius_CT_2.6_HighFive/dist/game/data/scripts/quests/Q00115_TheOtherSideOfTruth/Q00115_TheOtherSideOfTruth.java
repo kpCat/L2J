@@ -201,7 +201,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 			{
 				if (qs.isCond(8))
 				{
-					giveItems(player, REPORT_PIECE, 1);
+					giveItemsWithoutQuestRate(player, REPORT_PIECE, 1);
 					qs.setCond(9, true);
 					htmltext = event;
 				}
@@ -220,7 +220,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 							{
 								ex++;
 								qs.set("ex", ex);
-								giveItems(player, PIECE_OF_TABLET, 1);
+								giveItemsWithoutQuestRate(player, PIECE_OF_TABLET, 1);
 								htmltext = event;
 							}
 						}
@@ -235,7 +235,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 							{
 								ex += 2;
 								qs.set("ex", ex);
-								giveItems(player, PIECE_OF_TABLET, 1);
+								giveItemsWithoutQuestRate(player, PIECE_OF_TABLET, 1);
 								htmltext = event;
 							}
 						}
@@ -250,7 +250,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 							{
 								ex += 4;
 								qs.set("ex", ex);
-								giveItems(player, PIECE_OF_TABLET, 1);
+								giveItemsWithoutQuestRate(player, PIECE_OF_TABLET, 1);
 								htmltext = event;
 							}
 						}
@@ -265,7 +265,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 							{
 								ex += 8;
 								qs.set("ex", ex);
-								giveItems(player, PIECE_OF_TABLET, 1);
+								giveItemsWithoutQuestRate(player, PIECE_OF_TABLET, 1);
 								htmltext = event;
 							}
 						}
@@ -435,7 +435,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 							}
 							case 5:
 							{
-								giveItems(player, RAFFORTYS_LETTER, 1);
+								giveItemsWithoutQuestRate(player, RAFFORTYS_LETTER, 1);
 								qs.setCond(6, true);
 								htmltext = "32020-18.html";
 								break;
@@ -448,7 +448,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 								}
 								else
 								{
-									giveItems(player, RAFFORTYS_LETTER, 1);
+									giveItemsWithoutQuestRate(player, RAFFORTYS_LETTER, 1);
 									htmltext = "32020-20.html";
 								}
 								break;
@@ -496,7 +496,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 						{
 							case 1:
 							{
-								giveItems(player, MISAS_LETTER, 1);
+								giveItemsWithoutQuestRate(player, MISAS_LETTER, 1);
 								qs.setCond(2, true);
 								htmltext = "32018-01.html";
 								break;
@@ -549,7 +549,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 								}
 								else
 								{
-									giveItems(player, REPORT_PIECE, 1);
+									giveItemsWithoutQuestRate(player, REPORT_PIECE, 1);
 									htmltext = "32022-04.html";
 								}
 								break;
@@ -604,7 +604,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 							{
 								if (!hasQuestItems(player, PIECE_OF_TABLET))
 								{
-									giveItems(player, PIECE_OF_TABLET, 1);
+									giveItemsWithoutQuestRate(player, PIECE_OF_TABLET, 1);
 									htmltext = "32021-09.html";
 								}
 								else
@@ -655,7 +655,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 							{
 								if (!hasQuestItems(player, PIECE_OF_TABLET))
 								{
-									giveItems(player, PIECE_OF_TABLET, 1);
+									giveItemsWithoutQuestRate(player, PIECE_OF_TABLET, 1);
 									htmltext = "32021-09.html";
 								}
 								else
@@ -706,7 +706,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 							{
 								if (!hasQuestItems(player, PIECE_OF_TABLET))
 								{
-									giveItems(player, PIECE_OF_TABLET, 1);
+									giveItemsWithoutQuestRate(player, PIECE_OF_TABLET, 1);
 									htmltext = "32021-09.html";
 								}
 								else
@@ -757,7 +757,7 @@ public class Q00115_TheOtherSideOfTruth extends Quest
 							{
 								if (!hasQuestItems(player, PIECE_OF_TABLET))
 								{
-									giveItems(player, PIECE_OF_TABLET, 1);
+									giveItemsWithoutQuestRate(player, PIECE_OF_TABLET, 1);
 									htmltext = "32021-09.html";
 								}
 								else

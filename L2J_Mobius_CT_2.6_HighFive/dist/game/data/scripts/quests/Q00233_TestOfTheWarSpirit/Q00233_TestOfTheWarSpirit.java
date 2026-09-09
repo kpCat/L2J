@@ -157,25 +157,25 @@ public class Q00233_TestOfTheWarSpirit extends Quest
 			}
 			case "30030-04.html":
 			{
-				giveItems(player, VIVIANTES_LETTER, 1);
+				giveItemsWithoutQuestRate(player, VIVIANTES_LETTER, 1);
 				htmltext = event;
 				break;
 			}
 			case "30507-02.html":
 			{
-				giveItems(player, RACOYS_TOTEM, 1);
+				giveItemsWithoutQuestRate(player, RACOYS_TOTEM, 1);
 				htmltext = event;
 				break;
 			}
 			case "30515-02.html":
 			{
-				giveItems(player, MANAKIAS_TOTEM, 1);
+				giveItemsWithoutQuestRate(player, MANAKIAS_TOTEM, 1);
 				htmltext = event;
 				break;
 			}
 			case "30630-04.html":
 			{
-				giveItems(player, ORIMS_CONTRACT, 1);
+				giveItemsWithoutQuestRate(player, ORIMS_CONTRACT, 1);
 				htmltext = event;
 				break;
 			}
@@ -184,7 +184,7 @@ public class Q00233_TestOfTheWarSpirit extends Quest
 				if (hasQuestItems(player, TONARS_REMAINS2))
 				{
 					giveAdena(player, 161806, true);
-					giveItems(player, MARK_OF_WARSPIRIT, 1);
+					giveItemsWithoutQuestRate(player, MARK_OF_WARSPIRIT, 1);
 					addExpAndSp(player, 894888, 61408);
 					qs.exitQuest(false, true);
 					player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -194,7 +194,7 @@ public class Q00233_TestOfTheWarSpirit extends Quest
 			}
 			case "30682-02.html":
 			{
-				giveItems(player, PEKIRONS_TOTEM, 1);
+				giveItemsWithoutQuestRate(player, PEKIRONS_TOTEM, 1);
 				htmltext = event;
 				break;
 			}
@@ -403,7 +403,7 @@ public class Q00233_TestOfTheWarSpirit extends Quest
 					{
 						if (hasQuestItems(player, BRAKIS_REMAINS1, HERMODTS_REMAINS1, KIRUNAS_REMAINS1, TONARS_REMAINS1))
 						{
-							giveItems(player, VENDETTA_TOTEM, 1);
+							giveItemsWithoutQuestRate(player, VENDETTA_TOTEM, 1);
 							takeItems(player, BRAKIS_REMAINS1, 1);
 							takeItems(player, TONARS_REMAINS1, 1);
 							takeItems(player, HERMODTS_REMAINS1, 1);
@@ -425,11 +425,11 @@ public class Q00233_TestOfTheWarSpirit extends Quest
 						else
 						{
 							takeItems(player, VENDETTA_TOTEM, 1);
-							giveItems(player, WARSPIRIT_TOTEM, 1);
-							giveItems(player, BRAKIS_REMAINS2, 1);
-							giveItems(player, TONARS_REMAINS2, 1);
-							giveItems(player, HERMODTS_REMAINS2, 1);
-							giveItems(player, KIRUNAS_REMAINS2, 1);
+							giveItemsWithoutQuestRate(player, WARSPIRIT_TOTEM, 1);
+							giveItemsWithoutQuestRate(player, BRAKIS_REMAINS2, 1);
+							giveItemsWithoutQuestRate(player, TONARS_REMAINS2, 1);
+							giveItemsWithoutQuestRate(player, HERMODTS_REMAINS2, 1);
+							giveItemsWithoutQuestRate(player, KIRUNAS_REMAINS2, 1);
 							qs.setCond(5);
 							htmltext = "30510-09.html";
 						}
@@ -465,7 +465,7 @@ public class Q00233_TestOfTheWarSpirit extends Quest
 					if (hasQuestItems(player, RACOYS_TOTEM, VIVIANTES_LETTER) && !hasQuestItems(player, INSECT_DIAGRAM_BOOK))
 					{
 						takeItems(player, VIVIANTES_LETTER, 1);
-						giveItems(player, INSECT_DIAGRAM_BOOK, 1);
+						giveItemsWithoutQuestRate(player, INSECT_DIAGRAM_BOOK, 1);
 						htmltext = "30436-01.html";
 					}
 					else if (hasQuestItems(player, RACOYS_TOTEM, INSECT_DIAGRAM_BOOK) && !hasQuestItems(player, VIVIANTES_LETTER))
@@ -503,7 +503,7 @@ public class Q00233_TestOfTheWarSpirit extends Quest
 							takeItems(player, KIRUNAS_SPINE, 1);
 							takeItems(player, KIRUNAS_ARM_BONE, 1);
 							takeItems(player, KIRUNAS_THIGH_BONE, 1);
-							giveItems(player, KIRUNAS_REMAINS1, 1);
+							giveItemsWithoutQuestRate(player, KIRUNAS_REMAINS1, 1);
 							if (hasQuestItems(player, BRAKIS_REMAINS1, HERMODTS_REMAINS1, TONARS_REMAINS1))
 							{
 								qs.setCond(2);
@@ -538,7 +538,7 @@ public class Q00233_TestOfTheWarSpirit extends Quest
 							takeItems(player, HERMODTS_SPINE, 1);
 							takeItems(player, HERMODTS_ARM_BONE, 1);
 							takeItems(player, HERMODTS_THIGH_BONE, 1);
-							giveItems(player, HERMODTS_REMAINS1, 1);
+							giveItemsWithoutQuestRate(player, HERMODTS_REMAINS1, 1);
 							if (hasQuestItems(player, BRAKIS_REMAINS1, KIRUNAS_REMAINS1, TONARS_REMAINS1))
 							{
 								qs.setCond(2);
@@ -575,7 +575,7 @@ public class Q00233_TestOfTheWarSpirit extends Quest
 							takeItems(player, PORTAS_EYE, -1);
 							takeItems(player, EXCUROS_SCALE, -1);
 							takeItems(player, MORDEOS_TALON, -1);
-							giveItems(player, BRAKIS_REMAINS1, 1);
+							giveItemsWithoutQuestRate(player, BRAKIS_REMAINS1, 1);
 							if (hasQuestItems(player, HERMODTS_REMAINS1, KIRUNAS_REMAINS1, TONARS_REMAINS1))
 							{
 								qs.setCond(2);
@@ -614,7 +614,7 @@ public class Q00233_TestOfTheWarSpirit extends Quest
 							takeItems(player, TONARS_SPINE, 1);
 							takeItems(player, TONARS_ARM_BONE, 1);
 							takeItems(player, TONARS_THIGH_BONE, 1);
-							giveItems(player, TONARS_REMAINS1, 1);
+							giveItemsWithoutQuestRate(player, TONARS_REMAINS1, 1);
 							if (hasQuestItems(player, BRAKIS_REMAINS1, HERMODTS_REMAINS1, KIRUNAS_REMAINS1))
 							{
 								qs.setCond(2);

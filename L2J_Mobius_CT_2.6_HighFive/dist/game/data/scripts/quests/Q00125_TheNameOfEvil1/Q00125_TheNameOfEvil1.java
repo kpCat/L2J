@@ -98,7 +98,7 @@ public class Q00125_TheNameOfEvil1 extends Quest
 			{
 				if (qs.isCond(1))
 				{
-					giveItems(player, GAZKH_FRAGMENT, 1);
+					giveItemsWithoutQuestRate(player, GAZKH_FRAGMENT, 1);
 					qs.setCond(2, true);
 				}
 				break;
@@ -286,7 +286,7 @@ public class Q00125_TheNameOfEvil1 extends Quest
 			{
 				if (qs.isCond(7) && hasQuestItems(player, GAZKH_FRAGMENT))
 				{
-					giveItems(player, EPITAPH_OF_WISDOM, 1);
+					giveItemsWithoutQuestRate(player, EPITAPH_OF_WISDOM, 1);
 					takeItems(player, GAZKH_FRAGMENT, -1);
 					qs.setCond(8, true);
 					qs.unset("Memo");

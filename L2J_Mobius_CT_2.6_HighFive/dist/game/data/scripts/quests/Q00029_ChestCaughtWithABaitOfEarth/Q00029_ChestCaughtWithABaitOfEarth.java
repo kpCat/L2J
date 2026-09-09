@@ -73,7 +73,7 @@ public class Q00029_ChestCaughtWithABaitOfEarth extends Quest
 			{
 				if (st.isCond(1) && hasQuestItems(player, PURPLE_TREASURE_BOX))
 				{
-					giveItems(player, SMALL_GLASS_BOX, 1);
+					giveItemsWithoutQuestRate(player, SMALL_GLASS_BOX, 1);
 					takeItems(player, PURPLE_TREASURE_BOX, -1);
 					st.setCond(2, true);
 					htmltext = "31574-07.htm";
@@ -84,7 +84,7 @@ public class Q00029_ChestCaughtWithABaitOfEarth extends Quest
 			{
 				if (st.isCond(2) && hasQuestItems(player, SMALL_GLASS_BOX))
 				{
-					giveItems(player, PLATED_LEATHER_GLOVES, 1);
+					rewardItems(player, PLATED_LEATHER_GLOVES, 1);
 					st.exitQuest(false, true);
 					htmltext = "30909-02.htm";
 				}

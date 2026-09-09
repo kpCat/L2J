@@ -73,7 +73,7 @@ public class Q00191_VainConclusion extends Quest
 				{
 					qs.startQuest();
 					qs.setMemoState(1);
-					giveItems(player, REPAIRED_METALLOGRAPH, 1);
+					giveItemsWithoutQuestRate(player, REPAIRED_METALLOGRAPH, 1);
 					htmltext = event;
 				}
 				break;

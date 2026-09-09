@@ -76,8 +76,8 @@ public class Q00005_MinersFavor extends Quest
 			case "30554-03.htm":
 			{
 				qs.startQuest();
-				giveItems(player, BOLTERS_LIST, 1);
-				giveItems(player, BOLTERS_SMELLY_SOCKS, 1);
+				giveItemsWithoutQuestRate(player, BOLTERS_LIST, 1);
+				giveItemsWithoutQuestRate(player, BOLTERS_SMELLY_SOCKS, 1);
 				break;
 			}
 			case "30526-02.html":
@@ -88,7 +88,7 @@ public class Q00005_MinersFavor extends Quest
 				}
 				
 				takeItems(player, BOLTERS_SMELLY_SOCKS, -1);
-				giveItems(player, MINERS_PICK, 1);
+				giveItemsWithoutQuestRate(player, MINERS_PICK, 1);
 				checkProgress(player, qs);
 				break;
 			}
@@ -130,7 +130,7 @@ public class Q00005_MinersFavor extends Quest
 						}
 						else
 						{
-							giveItems(player, NECKLACE, 1);
+							rewardItems(player, NECKLACE, 1);
 							addExpAndSp(player, 5672, 446);
 							giveAdena(player, 2466, true);
 							qs.exitQuest(false, true);

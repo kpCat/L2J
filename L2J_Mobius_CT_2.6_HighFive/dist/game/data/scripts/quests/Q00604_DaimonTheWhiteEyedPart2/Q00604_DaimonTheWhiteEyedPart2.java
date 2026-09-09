@@ -102,7 +102,7 @@ public class Q00604_DaimonTheWhiteEyedPart2 extends Quest
 				takeItems(player, UNFINISHED_SUMMON_CRYSTAL, 1);
 				qs.startQuest();
 				qs.setMemoState(11);
-				giveItems(player, SUMMON_CRYSTAL, 1);
+				giveItemsWithoutQuestRate(player, SUMMON_CRYSTAL, 1);
 				htmltext = event;
 				break;
 			}
@@ -290,7 +290,7 @@ public class Q00604_DaimonTheWhiteEyedPart2 extends Quest
 			qs.setMemoState(22);
 			// }
 			
-			giveItems(player, ESSENCE_OF_DAIMON, 1);
+			giveItemsWithoutQuestRate(player, ESSENCE_OF_DAIMON, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 		}
 	}

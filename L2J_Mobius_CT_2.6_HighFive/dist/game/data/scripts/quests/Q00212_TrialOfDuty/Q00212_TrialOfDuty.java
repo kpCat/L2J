@@ -184,7 +184,7 @@ public class Q00212_TrialOfDuty extends Quest
 					final Weapon weapon = killer.getActiveWeaponItem();
 					if ((weapon != null) && (weapon.getId() == OLD_KNIGHTS_SWORD))
 					{
-						giveItems(killer, KNIGHTS_TEAR, 1);
+						giveItemsWithoutQuestRate(killer, KNIGHTS_TEAR, 1);
 						qs.setMemoState(3);
 						qs.setCond(3, true);
 					}
@@ -197,7 +197,7 @@ public class Q00212_TrialOfDuty extends Quest
 				if (qs.isMemoState(5) && !hasQuestItems(killer, TALIANUSS_REPORT) && giveItemRandomly(killer, npc, REPORT_PIECE.getId(), 1, REPORT_PIECE.getCount(), 1, true))
 				{
 					takeItem(killer, REPORT_PIECE);
-					giveItems(killer, TALIANUSS_REPORT, 1);
+					giveItemsWithoutQuestRate(killer, TALIANUSS_REPORT, 1);
 					qs.setCond(6);
 				}
 				break;
@@ -249,7 +249,7 @@ public class Q00212_TrialOfDuty extends Quest
 					}
 					else if (!hasQuestItems(killer, ATHEBALDTS_SHIN))
 					{
-						giveItems(killer, ATHEBALDTS_SHIN, 1);
+						giveItemsWithoutQuestRate(killer, ATHEBALDTS_SHIN, 1);
 						qs.setCond(15, true);
 					}
 				}
@@ -300,7 +300,7 @@ public class Q00212_TrialOfDuty extends Quest
 								takeItems(talker, LETTER_OF_DUSTIN, -1);
 								addExpAndSp(talker, 762576, 49458);
 								giveAdena(talker, 138968, true);
-								giveItems(talker, MARK_OF_DUTY, 1);
+								giveItemsWithoutQuestRate(talker, MARK_OF_DUTY, 1);
 								qs.exitQuest(false, true);
 								talker.sendPacket(new SocialAction(talker.getObjectId(), 3));
 								rewardDimensionalDiamonds(talker);
@@ -324,7 +324,7 @@ public class Q00212_TrialOfDuty extends Quest
 						html = "30653-01.html";
 						if (!hasQuestItems(talker, OLD_KNIGHTS_SWORD))
 						{
-							giveItems(talker, OLD_KNIGHTS_SWORD, 1);
+							giveItemsWithoutQuestRate(talker, OLD_KNIGHTS_SWORD, 1);
 						}
 						
 						qs.setMemoState(2);
@@ -380,7 +380,7 @@ public class Q00212_TrialOfDuty extends Quest
 							html = "30654-03.html";
 							qs.setMemoState(6);
 							qs.setCond(7, true);
-							giveItems(talker, MIRROR_OF_ORPIC, 1);
+							giveItemsWithoutQuestRate(talker, MIRROR_OF_ORPIC, 1);
 						}
 						break;
 					}
@@ -417,7 +417,7 @@ public class Q00212_TrialOfDuty extends Quest
 				{
 					html = "30656-01.html";
 					takeItems(talker, -1, MIRROR_OF_ORPIC, TALIANUSS_REPORT);
-					giveItems(talker, TEAR_OF_CONFESSION, 1);
+					giveItemsWithoutQuestRate(talker, TEAR_OF_CONFESSION, 1);
 					qs.setMemoState(7);
 					qs.setCond(9, true);
 					npc.deleteMe();
@@ -451,7 +451,7 @@ public class Q00212_TrialOfDuty extends Quest
 						else
 						{
 							html = "30655-04.html";
-							giveItems(talker, TEAR_OF_LOYALTY, 1);
+							giveItemsWithoutQuestRate(talker, TEAR_OF_LOYALTY, 1);
 							takeItem(talker, MILITAS_ARTICLE);
 							qs.setMemoState(10);
 							qs.setCond(13, true);
@@ -491,7 +491,7 @@ public class Q00212_TrialOfDuty extends Quest
 						{
 							html = "30116-07.html";
 							takeItems(talker, -1, ATHEBALDTS_SKULL, ATHEBALDTS_RIBS, ATHEBALDTS_SHIN);
-							giveItems(talker, SAINTS_ASHES_URN, 1);
+							giveItemsWithoutQuestRate(talker, SAINTS_ASHES_URN, 1);
 							qs.setMemoState(12);
 							qs.setCond(16, true);
 						}
@@ -511,7 +511,7 @@ public class Q00212_TrialOfDuty extends Quest
 						{
 							html = "30116-08.html";
 							takeItems(talker, LETTER_OF_WINDAWOOD, -1);
-							giveItems(talker, LETTER_OF_DUSTIN, 1);
+							giveItemsWithoutQuestRate(talker, LETTER_OF_DUSTIN, 1);
 							qs.setMemoState(14);
 							qs.setCond(18, true);
 						}
@@ -538,7 +538,7 @@ public class Q00212_TrialOfDuty extends Quest
 						{
 							html = "30311-01.html";
 							takeItems(talker, SAINTS_ASHES_URN, -1);
-							giveItems(talker, LETTER_OF_WINDAWOOD, 1);
+							giveItemsWithoutQuestRate(talker, LETTER_OF_WINDAWOOD, 1);
 							qs.setMemoState(13);
 							qs.setCond(17, true);
 						}

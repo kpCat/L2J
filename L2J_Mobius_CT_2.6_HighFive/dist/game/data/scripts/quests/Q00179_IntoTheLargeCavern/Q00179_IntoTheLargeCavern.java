@@ -68,15 +68,15 @@ public class Q00179_IntoTheLargeCavern extends Quest
 		{
 			if (event.equalsIgnoreCase("32258-08.html"))
 			{
-				giveItems(player, 391, 1);
-				giveItems(player, 413, 1);
+				rewardItems(player, 391, 1);
+				rewardItems(player, 413, 1);
 				qs.exitQuest(false, true);
 			}
 			else if (event.equalsIgnoreCase("32258-09.html"))
 			{
-				giveItems(player, 847, 2);
-				giveItems(player, 890, 2);
-				giveItems(player, 910, 1);
+				rewardItems(player, 847, 2);
+				rewardItems(player, 890, 2);
+				rewardItems(player, 910, 1);
 				qs.exitQuest(false, true);
 			}
 		}

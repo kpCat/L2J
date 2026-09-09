@@ -68,7 +68,7 @@ public class Q00156_MillenniumLove extends Quest
 					if (player.getLevel() >= MIN_LEVEL)
 					{
 						qs.startQuest();
-						giveItems(player, LILITHS_LETTER, 1);
+						giveItemsWithoutQuestRate(player, LILITHS_LETTER, 1);
 						htmltext = event;
 					}
 					else
@@ -82,7 +82,7 @@ public class Q00156_MillenniumLove extends Quest
 					if (qs.isCond(1) && hasQuestItems(player, LILITHS_LETTER))
 					{
 						takeItems(player, LILITHS_LETTER, 1);
-						giveItems(player, THEONS_DIARY, 1);
+						giveItemsWithoutQuestRate(player, THEONS_DIARY, 1);
 						qs.setCond(2, true);
 						htmltext = event;
 					}
@@ -128,7 +128,7 @@ public class Q00156_MillenniumLove extends Quest
 						}
 						else if (qs.isCond(2) && hasQuestItems(player, THEONS_DIARY))
 						{
-							giveItems(player, GREATER_COMP_SOULSHOUT_PACKAGE_NO_GRADE, 1);
+							rewardItems(player, GREATER_COMP_SOULSHOUT_PACKAGE_NO_GRADE, 1);
 							addExpAndSp(player, 3000, 0);
 							qs.exitQuest(false, true);
 							htmltext = "30368-07.html";

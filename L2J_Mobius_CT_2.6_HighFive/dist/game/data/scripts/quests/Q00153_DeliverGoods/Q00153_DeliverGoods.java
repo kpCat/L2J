@@ -64,10 +64,10 @@ public class Q00153_DeliverGoods extends Quest
 		if ((qs != null) && (npc.getId() == ARNOLD_ID) && event.equalsIgnoreCase("30041-02.html"))
 		{
 			qs.startQuest();
-			giveItems(player, DELIVERY_LIST_ID, 1);
-			giveItems(player, HEAVY_WOOD_BOX_ID, 1);
-			giveItems(player, CLOTH_BUNDLE_ID, 1);
-			giveItems(player, CLAY_POT_ID, 1);
+			giveItemsWithoutQuestRate(player, DELIVERY_LIST_ID, 1);
+			giveItemsWithoutQuestRate(player, HEAVY_WOOD_BOX_ID, 1);
+			giveItemsWithoutQuestRate(player, CLOTH_BUNDLE_ID, 1);
+			giveItemsWithoutQuestRate(player, CLAY_POT_ID, 1);
 		}
 		
 		return event;
@@ -101,8 +101,8 @@ public class Q00153_DeliverGoods extends Quest
 						takeItems(player, RANTS_RECEIPT_ID, -1);
 						
 						// On retail it gives 2 rings but one at the time.
-						giveItems(player, RING_OF_KNOWLEDGE_ID, 1);
-						giveItems(player, RING_OF_KNOWLEDGE_ID, 1);
+						rewardItems(player, RING_OF_KNOWLEDGE_ID, 1);
+						rewardItems(player, RING_OF_KNOWLEDGE_ID, 1);
 						addExpAndSp(player, XP_REWARD_AMOUNT, 0);
 						qs.exitQuest(false);
 						htmltext = "30041-04.html";
@@ -123,7 +123,7 @@ public class Q00153_DeliverGoods extends Quest
 				if (hasQuestItems(player, HEAVY_WOOD_BOX_ID))
 				{
 					takeItems(player, HEAVY_WOOD_BOX_ID, -1);
-					giveItems(player, JACKSONS_RECEIPT_ID, 1);
+					giveItemsWithoutQuestRate(player, JACKSONS_RECEIPT_ID, 1);
 					htmltext = "30002-01.html";
 				}
 				else
@@ -136,8 +136,8 @@ public class Q00153_DeliverGoods extends Quest
 				if (hasQuestItems(player, CLOTH_BUNDLE_ID))
 				{
 					takeItems(player, CLOTH_BUNDLE_ID, -1);
-					giveItems(player, SILVIAS_RECEIPT_ID, 1);
-					giveItems(player, SOULSHOT_NO_GRADE_ID, 3);
+					giveItemsWithoutQuestRate(player, SILVIAS_RECEIPT_ID, 1);
+					rewardItems(player, SOULSHOT_NO_GRADE_ID, 3);
 					htmltext = "30003-01.html";
 				}
 				else
@@ -150,7 +150,7 @@ public class Q00153_DeliverGoods extends Quest
 				if (hasQuestItems(player, CLAY_POT_ID))
 				{
 					takeItems(player, CLAY_POT_ID, -1);
-					giveItems(player, RANTS_RECEIPT_ID, 1);
+					giveItemsWithoutQuestRate(player, RANTS_RECEIPT_ID, 1);
 					htmltext = "30054-01.html";
 				}
 				else

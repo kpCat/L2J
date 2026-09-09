@@ -67,7 +67,7 @@ public class Q00152_ShardsOfGolem extends Quest
 				case "30035-03.htm":
 				{
 					qs.startQuest();
-					giveItems(player, HARRYS_1ST_RECIEPT, 1);
+					giveItemsWithoutQuestRate(player, HARRYS_1ST_RECIEPT, 1);
 					htmltext = event;
 					break;
 				}
@@ -76,7 +76,7 @@ public class Q00152_ShardsOfGolem extends Quest
 					if (qs.isCond(1) && hasQuestItems(player, HARRYS_1ST_RECIEPT))
 					{
 						takeItems(player, HARRYS_1ST_RECIEPT, -1);
-						giveItems(player, HARRYS_2ND_RECIEPT, 1);
+						giveItemsWithoutQuestRate(player, HARRYS_2ND_RECIEPT, 1);
 						qs.setCond(2, true);
 						htmltext = event;
 					}
@@ -94,7 +94,7 @@ public class Q00152_ShardsOfGolem extends Quest
 		final QuestState qs = getQuestState(killer, false);
 		if ((qs != null) && qs.isCond(2) && (getRandom(100) < 30) && (getQuestItemsCount(killer, GOLEM_SHARD) < 5))
 		{
-			giveItems(killer, GOLEM_SHARD, 1);
+			giveQuestItemsUpTo(killer, GOLEM_SHARD, 1, 5);
 			if (getQuestItemsCount(killer, GOLEM_SHARD) >= 5)
 			{
 				qs.setCond(3, true);
@@ -147,7 +147,7 @@ public class Q00152_ShardsOfGolem extends Quest
 							{
 								if (hasQuestItems(player, HARRYS_2ND_RECIEPT, TOOL_BOX))
 								{
-									giveItems(player, WOODEN_BREASTPLATE, 1);
+									rewardItems(player, WOODEN_BREASTPLATE, 1);
 									addExpAndSp(player, 5000, 0);
 									qs.exitQuest(false, true);
 									htmltext = "30035-05.html";
@@ -190,7 +190,7 @@ public class Q00152_ShardsOfGolem extends Quest
 						if (hasQuestItems(player, HARRYS_2ND_RECIEPT) && (getQuestItemsCount(player, GOLEM_SHARD) >= 5))
 						{
 							takeItems(player, GOLEM_SHARD, -1);
-							giveItems(player, TOOL_BOX, 1);
+							giveItemsWithoutQuestRate(player, TOOL_BOX, 1);
 							qs.setCond(4, true);
 							htmltext = "30283-04.html";
 						}

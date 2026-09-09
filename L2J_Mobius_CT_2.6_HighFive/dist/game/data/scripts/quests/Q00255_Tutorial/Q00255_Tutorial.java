@@ -3015,7 +3015,7 @@ public class Q00255_Tutorial extends Quest
 		{
 			takeItems(talker, BLUE_GEMSTONE, -1);
 			qs.setMemoStateEx(1, 3);
-			giveItems(talker, RECOMMENDATION_1, 1);
+			giveItemsWithoutQuestRate(talker, RECOMMENDATION_1, 1);
 			
 			startQuestTimer(npc.getId() + "", 30000, npc, talker);
 			qs.setMemoState((qs.getMemoState() & 2147483392) | 4);
@@ -3094,7 +3094,7 @@ public class Q00255_Tutorial extends Quest
 		{
 			takeItems(talker, BLUE_GEMSTONE, -1);
 			qs.setMemoStateEx(1, 3);
-			giveItems(talker, RECOMMENDATION_2, 1);
+			giveItemsWithoutQuestRate(talker, RECOMMENDATION_2, 1);
 			
 			startQuestTimer(npc.getId() + "", 30000, npc, talker);
 			qs.setMemoState((qs.getMemoState() & 2147483392) | 4);
@@ -3197,7 +3197,7 @@ public class Q00255_Tutorial extends Quest
 			
 			takeItems(talker, BLUE_GEMSTONE, -1);
 			qs.setMemoStateEx(1, 3);
-			giveItems(talker, BLOOD_OF_MITRAELL, 1);
+			giveItemsWithoutQuestRate(talker, BLOOD_OF_MITRAELL, 1);
 			startQuestTimer(npc.getId() + "", 30000, npc, talker);
 			
 			qs.setMemoState((qs.getMemoState() & 2147483392) | 4);
@@ -3287,7 +3287,7 @@ public class Q00255_Tutorial extends Quest
 		{
 			takeItems(talker, BLUE_GEMSTONE, -1);
 			qs.setMemoStateEx(1, 3);
-			giveItems(talker, LEAF_OF_THE_MOTHER_TREE, 1);
+			giveItemsWithoutQuestRate(talker, LEAF_OF_THE_MOTHER_TREE, 1);
 			startQuestTimer(npc.getId() + "", 30000, npc, talker);
 			qs.setMemoState((qs.getMemoState() & 2147483392) | 4);
 			if (!talker.isMageClass() && !hasQuestItems(talker, SOULSHOT_NO_GRADE_FOR_BEGINNERS))
@@ -3378,7 +3378,7 @@ public class Q00255_Tutorial extends Quest
 		{
 			takeItems(talker, BLUE_GEMSTONE, -1);
 			qs.setMemoStateEx(1, 3);
-			giveItems(talker, LICENSE_OF_MINER, 1);
+			giveItemsWithoutQuestRate(talker, LICENSE_OF_MINER, 1);
 			startQuestTimer(npc.getId() + "", 30000, npc, talker);
 			qs.setMemoState((qs.getMemoState() & 2147483392) | 4);
 			if (!talker.isMageClass() && !hasQuestItems(talker, SOULSHOT_NO_GRADE_FOR_BEGINNERS))
@@ -3479,7 +3479,7 @@ public class Q00255_Tutorial extends Quest
 			
 			takeItems(talker, BLUE_GEMSTONE, -1);
 			qs.setMemoStateEx(1, 3);
-			giveItems(talker, VOUCHER_OF_FLAME, 1);
+			giveItemsWithoutQuestRate(talker, VOUCHER_OF_FLAME, 1);
 			startQuestTimer(npc.getId() + "", 30000, npc, talker);
 			qs.setMemoState((qs.getMemoState() & 2147483392) | 4);
 			if (!hasQuestItems(talker, SOULSHOT_NO_GRADE_FOR_BEGINNERS))
@@ -3541,7 +3541,7 @@ public class Q00255_Tutorial extends Quest
 			showHtmlFile(talker, "32134-003.html");
 			takeItems(talker, BLUE_GEMSTONE, -1);
 			qs.setMemoStateEx(1, 3);
-			giveItems(talker, DIPLOMA, 1);
+			giveItemsWithoutQuestRate(talker, DIPLOMA, 1);
 			startQuestTimer(npc.getId() + "", 30000, npc, talker);
 			qs.setMemoState((qs.getMemoState() & 2147483392) | 4);
 			if ((talker.getRace() == Race.KAMAEL) && (talker.getPlayerClass().level() == 0) && !hasQuestItems(talker, SOULSHOT_NO_GRADE_FOR_BEGINNERS))

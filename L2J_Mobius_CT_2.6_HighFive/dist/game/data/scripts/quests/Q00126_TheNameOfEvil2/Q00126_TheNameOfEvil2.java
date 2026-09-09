@@ -166,7 +166,7 @@ public class Q00126_TheNameOfEvil2 extends Quest
 			{
 				if (qs.isCond(10))
 				{
-					giveItems(player, GAZKH_FRAGMENT, 1);
+					giveItemsWithoutQuestRate(player, GAZKH_FRAGMENT, 1);
 					qs.setCond(11, true);
 				}
 				break;
@@ -349,7 +349,7 @@ public class Q00126_TheNameOfEvil2 extends Quest
 			}
 			case "32122-7.html":
 			{
-				giveItems(player, BONE_POWDER, 1);
+				giveItemsWithoutQuestRate(player, BONE_POWDER, 1);
 				playSound(player, QuestSound.ETCSOUND_ELROKI_SONG_FULL);
 				npc.broadcastPacket(new MagicSkillUse(npc, player, 5089, 1, 1000, 0));
 				break;
@@ -405,7 +405,7 @@ public class Q00126_TheNameOfEvil2 extends Quest
 			}
 			case "32114-3.html":
 			{
-				giveItems(player, ENCHANT_WEAPON_A, 1);
+				rewardItems(player, ENCHANT_WEAPON_A, 1);
 				giveAdena(player, 460483, true);
 				addExpAndSp(player, 1015973, 102802);
 				qs.exitQuest(false, true);

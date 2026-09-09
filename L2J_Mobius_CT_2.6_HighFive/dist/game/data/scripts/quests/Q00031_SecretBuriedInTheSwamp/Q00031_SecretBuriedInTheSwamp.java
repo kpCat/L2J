@@ -87,7 +87,7 @@ public class Q00031_SecretBuriedInTheSwamp extends Quest
 				if (qs.isCond(1))
 				{
 					qs.setCond(2, true);
-					giveItems(player, KRORINS_JOURNAL, 1);
+					giveItemsWithoutQuestRate(player, KRORINS_JOURNAL, 1);
 					htmltext = event;
 				}
 				break;

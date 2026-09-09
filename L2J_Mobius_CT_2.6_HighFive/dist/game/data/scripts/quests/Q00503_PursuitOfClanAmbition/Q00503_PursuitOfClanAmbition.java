@@ -104,7 +104,7 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 			{
 				if (qs.isCreated())
 				{
-					giveItems(player, GUSTAVS_1ST_LETTER, 1);
+					giveItemsWithoutQuestRate(player, GUSTAVS_1ST_LETTER, 1);
 					qs.startQuest();
 					qs.setMemoState(1000);
 					htmltext = event;
@@ -113,7 +113,7 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 			}
 			case "30760-12.html":
 			{
-				giveItems(player, GUSTAVS_2ND_LETTER, 1);
+				giveItemsWithoutQuestRate(player, GUSTAVS_2ND_LETTER, 1);
 				qs.setMemoState(4000);
 				qs.setCond(4);
 				htmltext = event;
@@ -121,7 +121,7 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 			}
 			case "30760-16.html":
 			{
-				giveItems(player, GUSTAVS_3RD_LETTER, 1);
+				giveItemsWithoutQuestRate(player, GUSTAVS_3RD_LETTER, 1);
 				qs.setMemoState(7000);
 				qs.setCond(7);
 				htmltext = event;
@@ -131,7 +131,7 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 			{
 				if (hasQuestItems(player, SCEPTER_OF_JUDGMENT))
 				{
-					giveItems(player, SEAL_OF_ASPIRATION, 1);
+					giveItemsWithoutQuestRate(player, SEAL_OF_ASPIRATION, 1);
 					addExpAndSp(player, 0, 250000);
 					qs.exitQuest(false, true);
 					htmltext = event;
@@ -149,7 +149,7 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 			{
 				if (hasQuestItems(player, SCEPTER_OF_JUDGMENT))
 				{
-					giveItems(player, SEAL_OF_ASPIRATION, 1);
+					giveItemsWithoutQuestRate(player, SEAL_OF_ASPIRATION, 1);
 					addExpAndSp(player, 0, 250000);
 					qs.exitQuest(false, true);
 					htmltext = event;
@@ -161,7 +161,7 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 				if (hasQuestItems(player, BROOCH_OF_THE_MAGPIE))
 				{
 					takeItems(player, BROOCH_OF_THE_MAGPIE, -1);
-					giveItems(player, BLACK_ANVIL_COIN, 1);
+					giveItemsWithoutQuestRate(player, BLACK_ANVIL_COIN, 1);
 				}
 				
 				htmltext = event;
@@ -179,7 +179,7 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 			{
 				if (qs.isMemoState(2000) || qs.isMemoState(2011) || qs.isMemoState(2010) || qs.isMemoState(2001))
 				{
-					giveItems(player, BLITZ_WYRM_EGG, 3);
+					giveItemsWithoutQuestRate(player, BLITZ_WYRM_EGG, 3);
 					qs.setMemoState(qs.getMemoState() + 100);
 					final Npc wyrm1 = addSpawn(BLITZ_WYRM, npc.getX(), npc.getY(), npc.getZ(), 0, true, 180000);
 					addAttackDesire(wyrm1, player);
@@ -203,8 +203,8 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 			{
 				if (qs.isMemoState(2000) || qs.isMemoState(2101) || qs.isMemoState(2001) || qs.isMemoState(2100))
 				{
-					giveItems(player, BLITZ_WYRM_EGG, 3);
-					giveItems(player, MIST_DRAKES_EGG, 4);
+					giveItemsWithoutQuestRate(player, BLITZ_WYRM_EGG, 3);
+					giveItemsWithoutQuestRate(player, MIST_DRAKES_EGG, 4);
 					qs.setMemoState(qs.getMemoState() + 10);
 					final Npc wyrm1 = addSpawn(BLITZ_WYRM, npc.getX(), npc.getY(), npc.getZ(), 0, true, 180000);
 					addAttackDesire(wyrm1, player);
@@ -228,8 +228,8 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 			{
 				if (qs.isMemoState(2000) || qs.isMemoState(2110) || qs.isMemoState(2010) || qs.isMemoState(2100))
 				{
-					giveItems(player, BROOCH_OF_THE_MAGPIE, 1);
-					giveItems(player, MIST_DRAKES_EGG, 6);
+					giveItemsWithoutQuestRate(player, BROOCH_OF_THE_MAGPIE, 1);
+					giveItemsWithoutQuestRate(player, MIST_DRAKES_EGG, 6);
 					qs.setMemoState(qs.getMemoState() + 1);
 					npc.deleteMe();
 					htmltext = event;
@@ -248,7 +248,7 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 			{
 				takeItems(player, GUSTAVS_2ND_LETTER, -1);
 				takeItems(player, BLACK_ANVIL_COIN, -1);
-				giveItems(player, RECIPE_SPITEFUL_SOUL_ENERGY, 1);
+				giveItemsWithoutQuestRate(player, RECIPE_SPITEFUL_SOUL_ENERGY, 1);
 				qs.setMemoState(5000);
 				qs.setCond(5, true);
 				htmltext = event;
@@ -257,7 +257,7 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 			case "30765-04.html":
 			{
 				takeItems(player, IMPERIAL_KEY, -1);
-				giveItems(player, SCEPTER_OF_JUDGMENT, 1);
+				giveItemsWithoutQuestRate(player, SCEPTER_OF_JUDGMENT, 1);
 				qs.setMemoState(8700);
 				htmltext = event;
 				break;
@@ -275,7 +275,7 @@ public class Q00503_PursuitOfClanAmbition extends Quest
 			{
 				if (hasQuestItems(player, SCEPTER_OF_JUDGMENT))
 				{
-					giveItems(player, SEAL_OF_ASPIRATION, 1);
+					giveItemsWithoutQuestRate(player, SEAL_OF_ASPIRATION, 1);
 					addExpAndSp(player, 0, 250000);
 					qs.exitQuest(false, true);
 					htmltext = event;

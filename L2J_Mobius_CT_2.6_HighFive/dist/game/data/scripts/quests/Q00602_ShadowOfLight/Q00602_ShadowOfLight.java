@@ -108,7 +108,7 @@ public class Q00602_ShadowOfLight extends Quest
 				final int i = getRandom(4);
 				if (i < 3)
 				{
-					giveItems(player, REWARD[i][0], 3);
+					rewardItems(player, REWARD[i][0], 3);
 				}
 				
 				giveAdena(player, REWARD[i][1], true);

@@ -120,7 +120,7 @@ public class Q00330_AdeptOfTaste extends Quest
 				if (qs.isCreated())
 				{
 					qs.startQuest();
-					giveItems(player, INGREDIENT_LIST, 1);
+					giveItemsWithoutQuestRate(player, INGREDIENT_LIST, 1);
 					htmltext = event;
 				}
 				break;
@@ -132,7 +132,7 @@ public class Q00330_AdeptOfTaste extends Quest
 					takeItems(player, SONIAS_BOTANY_BOOK, 1);
 					takeItems(player, RED_MANDRAGORA_ROOT, -1);
 					takeItems(player, WHITE_MANDRAGORA_ROOT, -1);
-					giveItems(player, RED_MANDRAGORA_SAP, 1);
+					giveItemsWithoutQuestRate(player, RED_MANDRAGORA_SAP, 1);
 					htmltext = event;
 				}
 				break;
@@ -144,7 +144,7 @@ public class Q00330_AdeptOfTaste extends Quest
 					takeItems(player, GLYVKAS_BOTANY_BOOK, 1);
 					takeItems(player, GREEN_MARSH_MOSS, -1);
 					takeItems(player, BROWN_MARSH_MOSS, -1);
-					giveItems(player, GREEN_MOSS_BUNDLE, 1);
+					giveItemsWithoutQuestRate(player, GREEN_MOSS_BUNDLE, 1);
 					htmltext = event;
 				}
 				break;
@@ -156,7 +156,7 @@ public class Q00330_AdeptOfTaste extends Quest
 					takeItems(player, JACOBS_INSECT_BOOK, 1);
 					takeItems(player, NECTAR, -1);
 					takeItems(player, ROYAL_JELLY, -1);
-					giveItems(player, HONEY, 1);
+					giveItemsWithoutQuestRate(player, HONEY, 1);
 					htmltext = event;
 				}
 				break;
@@ -592,7 +592,7 @@ public class Q00330_AdeptOfTaste extends Quest
 									takeItems(player, GREEN_MOSS_BUNDLE, -1);
 									takeItems(player, BROWN_MOSS_BUNDLE, -1);
 									takeItems(player, MONSTER_EYE_MEAT, -1);
-									giveItems(player, JONASS_2ND_STEAK_DISH, 1);
+									giveItemsWithoutQuestRate(player, JONASS_2ND_STEAK_DISH, 1);
 									htmltext = "30469-05t2.html";
 								}
 								else
@@ -606,7 +606,7 @@ public class Q00330_AdeptOfTaste extends Quest
 									takeItems(player, GREEN_MOSS_BUNDLE, -1);
 									takeItems(player, BROWN_MOSS_BUNDLE, -1);
 									takeItems(player, MONSTER_EYE_MEAT, -1);
-									giveItems(player, JONASS_1ST_STEAK_DISH, 1);
+									giveItemsWithoutQuestRate(player, JONASS_1ST_STEAK_DISH, 1);
 									htmltext = "30469-05t1.html";
 								}
 							}
@@ -624,7 +624,7 @@ public class Q00330_AdeptOfTaste extends Quest
 									takeItems(player, GREEN_MOSS_BUNDLE, -1);
 									takeItems(player, BROWN_MOSS_BUNDLE, -1);
 									takeItems(player, MONSTER_EYE_MEAT, -1);
-									giveItems(player, JONASS_3RD_STEAK_DISH, 1);
+									giveItemsWithoutQuestRate(player, JONASS_3RD_STEAK_DISH, 1);
 									htmltext = "30469-05t3.html";
 								}
 								else
@@ -638,7 +638,7 @@ public class Q00330_AdeptOfTaste extends Quest
 									takeItems(player, GREEN_MOSS_BUNDLE, -1);
 									takeItems(player, BROWN_MOSS_BUNDLE, -1);
 									takeItems(player, MONSTER_EYE_MEAT, -1);
-									giveItems(player, JONASS_2ND_STEAK_DISH, 1);
+									giveItemsWithoutQuestRate(player, JONASS_2ND_STEAK_DISH, 1);
 									htmltext = "30469-05t2.html";
 								}
 							}
@@ -656,7 +656,7 @@ public class Q00330_AdeptOfTaste extends Quest
 									takeItems(player, GREEN_MOSS_BUNDLE, -1);
 									takeItems(player, BROWN_MOSS_BUNDLE, -1);
 									takeItems(player, MONSTER_EYE_MEAT, -1);
-									giveItems(player, JONASS_4TH_STEAK_DISH, 1);
+									giveItemsWithoutQuestRate(player, JONASS_4TH_STEAK_DISH, 1);
 									htmltext = "30469-05t4.html";
 								}
 								else
@@ -670,7 +670,7 @@ public class Q00330_AdeptOfTaste extends Quest
 									takeItems(player, GREEN_MOSS_BUNDLE, -1);
 									takeItems(player, BROWN_MOSS_BUNDLE, -1);
 									takeItems(player, MONSTER_EYE_MEAT, -1);
-									giveItems(player, JONASS_3RD_STEAK_DISH, 1);
+									giveItemsWithoutQuestRate(player, JONASS_3RD_STEAK_DISH, 1);
 									htmltext = "30469-05t3.html";
 								}
 							}
@@ -688,7 +688,7 @@ public class Q00330_AdeptOfTaste extends Quest
 									takeItems(player, GREEN_MOSS_BUNDLE, -1);
 									takeItems(player, BROWN_MOSS_BUNDLE, -1);
 									takeItems(player, MONSTER_EYE_MEAT, -1);
-									giveItems(player, JONASS_5TH_STEAK_DISH, 1);
+									giveItemsWithoutQuestRate(player, JONASS_5TH_STEAK_DISH, 1);
 									playSound(player, QuestSound.ITEMSOUND_QUEST_JACKPOT);
 									htmltext = "30469-05t5.html";
 								}
@@ -703,7 +703,7 @@ public class Q00330_AdeptOfTaste extends Quest
 									takeItems(player, GREEN_MOSS_BUNDLE, -1);
 									takeItems(player, BROWN_MOSS_BUNDLE, -1);
 									takeItems(player, MONSTER_EYE_MEAT, -1);
-									giveItems(player, JONASS_4TH_STEAK_DISH, 1);
+									giveItemsWithoutQuestRate(player, JONASS_4TH_STEAK_DISH, 1);
 									htmltext = "30469-05t4.html";
 								}
 							}
@@ -742,7 +742,7 @@ public class Q00330_AdeptOfTaste extends Quest
 									{
 										takeItems(player, MIRIENS_REVIEW_3, 1);
 										giveAdena(player, 6490, true);
-										giveItems(player, JONASS_SALAD_RECIPE, 1);
+										giveItemsWithoutQuestRate(player, JONASS_SALAD_RECIPE, 1);
 										htmltext = "30469-06t3.html";
 									}
 									
@@ -750,7 +750,7 @@ public class Q00330_AdeptOfTaste extends Quest
 									{
 										takeItems(player, MIRIENS_REVIEW_4, 1);
 										giveAdena(player, 12220, true);
-										giveItems(player, JONASS_SAUCE_RECIPE, 1);
+										giveItemsWithoutQuestRate(player, JONASS_SAUCE_RECIPE, 1);
 										htmltext = "30469-06t4.html";
 									}
 									
@@ -758,7 +758,7 @@ public class Q00330_AdeptOfTaste extends Quest
 									{
 										takeItems(player, MIRIENS_REVIEW_5, 1);
 										giveAdena(player, 16540, true);
-										giveItems(player, JONASS_STEAK_RECIPE, 1);
+										giveItemsWithoutQuestRate(player, JONASS_STEAK_RECIPE, 1);
 										htmltext = "30469-06t5.html";
 									}
 									
@@ -773,7 +773,7 @@ public class Q00330_AdeptOfTaste extends Quest
 				{
 					if (hasQuestItems(player, INGREDIENT_LIST) && ((getQuestItemsCount(player, RED_MANDRAGORA_SAP) + getQuestItemsCount(player, WHITE_MANDRAGORA_SAP) + getQuestItemsCount(player, HONEY) + getQuestItemsCount(player, GOLDEN_HONEY) + getQuestItemsCount(player, DIONIAN_POTATO) + getQuestItemsCount(player, GREEN_MOSS_BUNDLE) + getQuestItemsCount(player, BROWN_MOSS_BUNDLE) + getQuestItemsCount(player, MONSTER_EYE_MEAT)) < 5) && !hasAtLeastOneQuestItem(player, SONIAS_BOTANY_BOOK, RED_MANDRAGORA_SAP, WHITE_MANDRAGORA_SAP))
 					{
-						giveItems(player, SONIAS_BOTANY_BOOK, 1);
+						giveItemsWithoutQuestRate(player, SONIAS_BOTANY_BOOK, 1);
 						htmltext = "30062-01.html";
 					}
 					else if (hasQuestItems(player, INGREDIENT_LIST, SONIAS_BOTANY_BOOK) && ((getQuestItemsCount(player, RED_MANDRAGORA_SAP) + getQuestItemsCount(player, WHITE_MANDRAGORA_SAP) + getQuestItemsCount(player, HONEY) + getQuestItemsCount(player, GOLDEN_HONEY) + getQuestItemsCount(player, DIONIAN_POTATO) + getQuestItemsCount(player, GREEN_MOSS_BUNDLE) + getQuestItemsCount(player, BROWN_MOSS_BUNDLE) + getQuestItemsCount(player, MONSTER_EYE_MEAT)) < 5) && !hasAtLeastOneQuestItem(player, RED_MANDRAGORA_SAP, WHITE_MANDRAGORA_SAP))
@@ -793,7 +793,7 @@ public class Q00330_AdeptOfTaste extends Quest
 								takeItems(player, SONIAS_BOTANY_BOOK, 1);
 								takeItems(player, RED_MANDRAGORA_ROOT, -1);
 								takeItems(player, WHITE_MANDRAGORA_ROOT, -1);
-								giveItems(player, WHITE_MANDRAGORA_SAP, 1);
+								giveItemsWithoutQuestRate(player, WHITE_MANDRAGORA_SAP, 1);
 								htmltext = "30062-06.html";
 							}
 						}
@@ -808,7 +808,7 @@ public class Q00330_AdeptOfTaste extends Quest
 				{
 					if (hasQuestItems(player, INGREDIENT_LIST) && ((getQuestItemsCount(player, RED_MANDRAGORA_SAP) + getQuestItemsCount(player, WHITE_MANDRAGORA_SAP) + getQuestItemsCount(player, HONEY) + getQuestItemsCount(player, GOLDEN_HONEY) + getQuestItemsCount(player, DIONIAN_POTATO) + getQuestItemsCount(player, GREEN_MOSS_BUNDLE) + getQuestItemsCount(player, BROWN_MOSS_BUNDLE) + getQuestItemsCount(player, MONSTER_EYE_MEAT)) < 5) && !hasAtLeastOneQuestItem(player, GLYVKAS_BOTANY_BOOK, GREEN_MOSS_BUNDLE, BROWN_MOSS_BUNDLE))
 					{
-						giveItems(player, GLYVKAS_BOTANY_BOOK, 1);
+						giveItemsWithoutQuestRate(player, GLYVKAS_BOTANY_BOOK, 1);
 						htmltext = "30067-01.html";
 					}
 					else if (hasQuestItems(player, INGREDIENT_LIST, GLYVKAS_BOTANY_BOOK) && ((getQuestItemsCount(player, RED_MANDRAGORA_SAP) + getQuestItemsCount(player, WHITE_MANDRAGORA_SAP) + getQuestItemsCount(player, HONEY) + getQuestItemsCount(player, GOLDEN_HONEY) + getQuestItemsCount(player, DIONIAN_POTATO) + getQuestItemsCount(player, GREEN_MOSS_BUNDLE) + getQuestItemsCount(player, BROWN_MOSS_BUNDLE) + getQuestItemsCount(player, MONSTER_EYE_MEAT)) < 5))
@@ -828,7 +828,7 @@ public class Q00330_AdeptOfTaste extends Quest
 								takeItems(player, GLYVKAS_BOTANY_BOOK, 1);
 								takeItems(player, GREEN_MARSH_MOSS, -1);
 								takeItems(player, BROWN_MARSH_MOSS, -1);
-								giveItems(player, BROWN_MOSS_BUNDLE, 1);
+								giveItemsWithoutQuestRate(player, BROWN_MOSS_BUNDLE, 1);
 								htmltext = "30067-06.html";
 							}
 						}
@@ -843,7 +843,7 @@ public class Q00330_AdeptOfTaste extends Quest
 				{
 					if (hasQuestItems(player, INGREDIENT_LIST) && ((getQuestItemsCount(player, RED_MANDRAGORA_SAP) + getQuestItemsCount(player, WHITE_MANDRAGORA_SAP) + getQuestItemsCount(player, HONEY) + getQuestItemsCount(player, GOLDEN_HONEY) + getQuestItemsCount(player, DIONIAN_POTATO) + getQuestItemsCount(player, GREEN_MOSS_BUNDLE) + getQuestItemsCount(player, BROWN_MOSS_BUNDLE) + getQuestItemsCount(player, MONSTER_EYE_MEAT)) < 5) && !hasAtLeastOneQuestItem(player, ROLLANTS_CREATURE_BOOK, MONSTER_EYE_MEAT))
 					{
-						giveItems(player, ROLLANTS_CREATURE_BOOK, 1);
+						giveItemsWithoutQuestRate(player, ROLLANTS_CREATURE_BOOK, 1);
 						htmltext = "30069-01.html";
 					}
 					else if (hasQuestItems(player, INGREDIENT_LIST, ROLLANTS_CREATURE_BOOK) && ((getQuestItemsCount(player, RED_MANDRAGORA_SAP) + getQuestItemsCount(player, WHITE_MANDRAGORA_SAP) + getQuestItemsCount(player, HONEY) + getQuestItemsCount(player, GOLDEN_HONEY) + getQuestItemsCount(player, DIONIAN_POTATO) + getQuestItemsCount(player, GREEN_MOSS_BUNDLE) + getQuestItemsCount(player, BROWN_MOSS_BUNDLE) + getQuestItemsCount(player, MONSTER_EYE_MEAT)) < 5))
@@ -856,7 +856,7 @@ public class Q00330_AdeptOfTaste extends Quest
 						{
 							takeItems(player, ROLLANTS_CREATURE_BOOK, 1);
 							takeItems(player, BODY_OF_MONSTER_EYE, -1);
-							giveItems(player, MONSTER_EYE_MEAT, 1);
+							giveItemsWithoutQuestRate(player, MONSTER_EYE_MEAT, 1);
 							htmltext = "30069-03.html";
 						}
 					}
@@ -870,7 +870,7 @@ public class Q00330_AdeptOfTaste extends Quest
 				{
 					if (hasQuestItems(player, INGREDIENT_LIST) && ((getQuestItemsCount(player, RED_MANDRAGORA_SAP) + getQuestItemsCount(player, WHITE_MANDRAGORA_SAP) + getQuestItemsCount(player, HONEY) + getQuestItemsCount(player, GOLDEN_HONEY) + getQuestItemsCount(player, DIONIAN_POTATO) + getQuestItemsCount(player, GREEN_MOSS_BUNDLE) + getQuestItemsCount(player, BROWN_MOSS_BUNDLE) + getQuestItemsCount(player, MONSTER_EYE_MEAT)) < 5) && !hasAtLeastOneQuestItem(player, JACOBS_INSECT_BOOK, HONEY, GOLDEN_HONEY))
 					{
-						giveItems(player, JACOBS_INSECT_BOOK, 1);
+						giveItemsWithoutQuestRate(player, JACOBS_INSECT_BOOK, 1);
 						htmltext = "30073-01.html";
 					}
 					else if (hasQuestItems(player, INGREDIENT_LIST, JACOBS_INSECT_BOOK) && ((getQuestItemsCount(player, RED_MANDRAGORA_SAP) + getQuestItemsCount(player, WHITE_MANDRAGORA_SAP) + getQuestItemsCount(player, HONEY) + getQuestItemsCount(player, GOLDEN_HONEY) + getQuestItemsCount(player, DIONIAN_POTATO) + getQuestItemsCount(player, GREEN_MOSS_BUNDLE) + getQuestItemsCount(player, BROWN_MOSS_BUNDLE) + getQuestItemsCount(player, MONSTER_EYE_MEAT)) < 5))
@@ -890,7 +890,7 @@ public class Q00330_AdeptOfTaste extends Quest
 								takeItems(player, JACOBS_INSECT_BOOK, 1);
 								takeItems(player, NECTAR, -1);
 								takeItems(player, ROYAL_JELLY, -1);
-								giveItems(player, GOLDEN_HONEY, 1);
+								giveItemsWithoutQuestRate(player, GOLDEN_HONEY, 1);
 								htmltext = "30073-06.html";
 							}
 						}
@@ -905,7 +905,7 @@ public class Q00330_AdeptOfTaste extends Quest
 				{
 					if (hasQuestItems(player, INGREDIENT_LIST) && ((getQuestItemsCount(player, RED_MANDRAGORA_SAP) + getQuestItemsCount(player, WHITE_MANDRAGORA_SAP) + getQuestItemsCount(player, HONEY) + getQuestItemsCount(player, GOLDEN_HONEY) + getQuestItemsCount(player, DIONIAN_POTATO) + getQuestItemsCount(player, GREEN_MOSS_BUNDLE) + getQuestItemsCount(player, BROWN_MOSS_BUNDLE) + getQuestItemsCount(player, MONSTER_EYE_MEAT)) < 5) && !hasAtLeastOneQuestItem(player, PANOS_CONTRACT, DIONIAN_POTATO))
 					{
-						giveItems(player, PANOS_CONTRACT, 1);
+						giveItemsWithoutQuestRate(player, PANOS_CONTRACT, 1);
 						htmltext = "30078-01.html";
 					}
 					else if (hasQuestItems(player, INGREDIENT_LIST, PANOS_CONTRACT) && ((getQuestItemsCount(player, RED_MANDRAGORA_SAP) + getQuestItemsCount(player, WHITE_MANDRAGORA_SAP) + getQuestItemsCount(player, HONEY) + getQuestItemsCount(player, GOLDEN_HONEY) + getQuestItemsCount(player, DIONIAN_POTATO) + getQuestItemsCount(player, GREEN_MOSS_BUNDLE) + getQuestItemsCount(player, BROWN_MOSS_BUNDLE) + getQuestItemsCount(player, MONSTER_EYE_MEAT)) < 5))
@@ -918,7 +918,7 @@ public class Q00330_AdeptOfTaste extends Quest
 						{
 							takeItems(player, PANOS_CONTRACT, 1);
 							takeItems(player, HOBGOBLIN_AMULET, -1);
-							giveItems(player, DIONIAN_POTATO, 1);
+							giveItemsWithoutQuestRate(player, DIONIAN_POTATO, 1);
 							htmltext = "30078-03.html";
 						}
 					}
@@ -945,35 +945,35 @@ public class Q00330_AdeptOfTaste extends Quest
 									if (hasQuestItems(player, JONASS_1ST_STEAK_DISH))
 									{
 										takeItems(player, JONASS_1ST_STEAK_DISH, 1);
-										giveItems(player, MIRIENS_REVIEW_1, 1);
+										giveItemsWithoutQuestRate(player, MIRIENS_REVIEW_1, 1);
 										htmltext = "30461-02t1.html";
 									}
 									
 									if (hasQuestItems(player, JONASS_2ND_STEAK_DISH))
 									{
 										takeItems(player, JONASS_2ND_STEAK_DISH, 1);
-										giveItems(player, MIRIENS_REVIEW_2, 1);
+										giveItemsWithoutQuestRate(player, MIRIENS_REVIEW_2, 1);
 										htmltext = "30461-02t2.html";
 									}
 									
 									if (hasQuestItems(player, JONASS_3RD_STEAK_DISH))
 									{
 										takeItems(player, JONASS_3RD_STEAK_DISH, 1);
-										giveItems(player, MIRIENS_REVIEW_3, 1);
+										giveItemsWithoutQuestRate(player, MIRIENS_REVIEW_3, 1);
 										htmltext = "30461-02t3.html";
 									}
 									
 									if (hasQuestItems(player, JONASS_4TH_STEAK_DISH))
 									{
 										takeItems(player, JONASS_4TH_STEAK_DISH, 1);
-										giveItems(player, MIRIENS_REVIEW_4, 1);
+										giveItemsWithoutQuestRate(player, MIRIENS_REVIEW_4, 1);
 										htmltext = "30461-02t4.html";
 									}
 									
 									if (hasQuestItems(player, JONASS_5TH_STEAK_DISH))
 									{
 										takeItems(player, JONASS_5TH_STEAK_DISH, 1);
-										giveItems(player, MIRIENS_REVIEW_5, 1);
+										giveItemsWithoutQuestRate(player, MIRIENS_REVIEW_5, 1);
 										htmltext = "30461-02t5.html";
 									}
 								}

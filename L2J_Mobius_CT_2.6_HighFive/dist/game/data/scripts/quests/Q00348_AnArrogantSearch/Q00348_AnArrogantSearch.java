@@ -187,9 +187,9 @@ public class Q00348_AnArrogantSearch extends Quest
 			{
 				if (qs.isMemoState(4) && (qs.getMemoStateEx(1) == 0))
 				{
-					giveItems(player, HANELLINS_1ST_LETTER, 1);
-					giveItems(player, HANELLINS_2ND_LETTER, 1);
-					giveItems(player, HANELLINS_3RD_LETTER, 1);
+					giveItemsWithoutQuestRate(player, HANELLINS_1ST_LETTER, 1);
+					giveItemsWithoutQuestRate(player, HANELLINS_2ND_LETTER, 1);
+					giveItemsWithoutQuestRate(player, HANELLINS_3RD_LETTER, 1);
 					qs.setMemoState(5);
 					qs.setCond(5);
 					htmltext = event;
@@ -279,11 +279,11 @@ public class Q00348_AnArrogantSearch extends Quest
 				{
 					if (hasQuestItems(player, BLOODED_FABRIC))
 					{
-						giveItems(player, WHITE_FABRIC_1, 9);
+						giveItemsWithoutQuestRate(player, WHITE_FABRIC_1, 9);
 					}
 					else
 					{
-						giveItems(player, WHITE_FABRIC_1, 10);
+						giveItemsWithoutQuestRate(player, WHITE_FABRIC_1, 10);
 					}
 				}
 				
@@ -310,7 +310,7 @@ public class Q00348_AnArrogantSearch extends Quest
 			{
 				if (qs.isMemoState(19))
 				{
-					giveItems(player, WHITE_FABRIC_1, 10);
+					giveItemsWithoutQuestRate(player, WHITE_FABRIC_1, 10);
 					qs.setMemoState(17); // Custom line
 					qs.setMemoStateEx(0, 17);
 					qs.setMemoStateEx(1, 0);
@@ -400,7 +400,7 @@ public class Q00348_AnArrogantSearch extends Quest
 						qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 60);
 						if ((qs.getMemoStateEx(1) + 60) > 80000)
 						{
-							giveItems(qs.getPlayer(), BLOODED_FABRIC, 1);
+							giveItemsWithoutQuestRate(qs.getPlayer(), BLOODED_FABRIC, 1);
 							takeItems(qs.getPlayer(), WHITE_FABRIC_1, 1);
 							qs.exitQuest(true, true);
 						}
@@ -411,7 +411,7 @@ public class Q00348_AnArrogantSearch extends Quest
 						qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 60);
 						if ((qs.getMemoStateEx(1) + 60) > 100000)
 						{
-							giveItems(qs.getPlayer(), BLOODED_FABRIC, 1);
+							giveItemsWithoutQuestRate(qs.getPlayer(), BLOODED_FABRIC, 1);
 							takeItems(qs.getPlayer(), WHITE_FABRIC_1, 1);
 							qs.setMemoState(14); // Custom line
 							qs.setMemoStateEx(0, 14);
@@ -431,7 +431,7 @@ public class Q00348_AnArrogantSearch extends Quest
 						qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 70);
 						if ((qs.getMemoStateEx(1) + 70) > 80000)
 						{
-							giveItems(qs.getPlayer(), BLOODED_FABRIC, 1);
+							giveItemsWithoutQuestRate(qs.getPlayer(), BLOODED_FABRIC, 1);
 							takeItems(qs.getPlayer(), WHITE_FABRIC_1, 1);
 							qs.exitQuest(true, true);
 						}
@@ -442,7 +442,7 @@ public class Q00348_AnArrogantSearch extends Quest
 						qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 70);
 						if ((qs.getMemoStateEx(1) + 70) > 100000)
 						{
-							giveItems(qs.getPlayer(), BLOODED_FABRIC, 1);
+							giveItemsWithoutQuestRate(qs.getPlayer(), BLOODED_FABRIC, 1);
 							takeItems(qs.getPlayer(), WHITE_FABRIC_1, 1);
 							qs.setMemoState(14); // Custom line
 							qs.setMemoStateEx(0, 14);
@@ -473,7 +473,7 @@ public class Q00348_AnArrogantSearch extends Quest
 							qs.setCond(11);
 						}
 						
-						giveItems(qs.getPlayer(), SECOND_KEY_OF_ARK, 1);
+						giveItemsWithoutQuestRate(qs.getPlayer(), SECOND_KEY_OF_ARK, 1);
 						playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						npc.broadcastPacket(new NpcSay(npc.getObjectId(), ChatType.NPC_GENERAL, npc.getId(), NpcStringId.YOU_FOOLS_WILL_GET_WHAT_S_COMING_TO_YOU));
 					}
@@ -489,7 +489,7 @@ public class Q00348_AnArrogantSearch extends Quest
 							qs.setCond(15);
 						}
 						
-						giveItems(qs.getPlayer(), THIRD_KEY_OF_ARK, 1);
+						giveItemsWithoutQuestRate(qs.getPlayer(), THIRD_KEY_OF_ARK, 1);
 						playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						npc.broadcastPacket(new NpcSay(npc.getObjectId(), ChatType.NPC_GENERAL, npc.getId(), NpcStringId.YOU_GUYS_WOULDN_T_KNOW_THE_SEVEN_SEALS_ARE_ARRRGH));
 					}
@@ -514,7 +514,7 @@ public class Q00348_AnArrogantSearch extends Quest
 							qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 600);
 							if ((qs.getMemoStateEx(1) + 600) > 80000)
 							{
-								giveItems(qs.getPlayer(), BLOODED_FABRIC, 1);
+								giveItemsWithoutQuestRate(qs.getPlayer(), BLOODED_FABRIC, 1);
 								takeItems(qs.getPlayer(), WHITE_FABRIC_1, 1);
 								qs.exitQuest(true, true);
 							}
@@ -525,7 +525,7 @@ public class Q00348_AnArrogantSearch extends Quest
 							qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 600);
 							if ((qs.getMemoStateEx(1) + 600) > 100000)
 							{
-								giveItems(qs.getPlayer(), BLOODED_FABRIC, 1);
+								giveItemsWithoutQuestRate(qs.getPlayer(), BLOODED_FABRIC, 1);
 								takeItems(qs.getPlayer(), WHITE_FABRIC_1, 1);
 								qs.setMemoState(14); // Custom line
 								qs.setMemoStateEx(0, 14);
@@ -544,7 +544,7 @@ public class Q00348_AnArrogantSearch extends Quest
 							qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 700);
 							if ((qs.getMemoStateEx(1) + 700) > 80000)
 							{
-								giveItems(qs.getPlayer(), BLOODED_FABRIC, 1);
+								giveItemsWithoutQuestRate(qs.getPlayer(), BLOODED_FABRIC, 1);
 								takeItems(qs.getPlayer(), WHITE_FABRIC_1, 1);
 								qs.exitQuest(true, true);
 							}
@@ -555,7 +555,7 @@ public class Q00348_AnArrogantSearch extends Quest
 							qs.setMemoStateEx(1, qs.getMemoStateEx(1) + 700);
 							if ((qs.getMemoStateEx(1) + 700) > 100000)
 							{
-								giveItems(qs.getPlayer(), BLOODED_FABRIC, 1);
+								giveItemsWithoutQuestRate(qs.getPlayer(), BLOODED_FABRIC, 1);
 								takeItems(qs.getPlayer(), WHITE_FABRIC_1, 1);
 								qs.setMemoState(14); // Custom line
 								qs.setMemoStateEx(0, 14);
@@ -664,9 +664,9 @@ public class Q00348_AnArrogantSearch extends Quest
 								{
 									qs.setMemoState(5);
 									htmltext = "30864-09.html";
-									giveItems(player, HANELLINS_1ST_LETTER, 1);
-									giveItems(player, HANELLINS_2ND_LETTER, 1);
-									giveItems(player, HANELLINS_3RD_LETTER, 1);
+									giveItemsWithoutQuestRate(player, HANELLINS_1ST_LETTER, 1);
+									giveItemsWithoutQuestRate(player, HANELLINS_2ND_LETTER, 1);
+									giveItemsWithoutQuestRate(player, HANELLINS_3RD_LETTER, 1);
 									qs.setCond(5, true);
 									break;
 								}
@@ -674,7 +674,7 @@ public class Q00348_AnArrogantSearch extends Quest
 								{
 									qs.setMemoState(5);
 									htmltext = "30864-13.html";
-									giveItems(player, HANELLINS_1ST_LETTER, 1);
+									giveItemsWithoutQuestRate(player, HANELLINS_1ST_LETTER, 1);
 									qs.setCond(6, true);
 									break;
 								}
@@ -682,7 +682,7 @@ public class Q00348_AnArrogantSearch extends Quest
 								{
 									qs.setMemoState(5);
 									htmltext = "30864-14.html";
-									giveItems(player, HANELLINS_2ND_LETTER, 1);
+									giveItemsWithoutQuestRate(player, HANELLINS_2ND_LETTER, 1);
 									qs.setCond(7, true);
 									break;
 								}
@@ -690,7 +690,7 @@ public class Q00348_AnArrogantSearch extends Quest
 								{
 									qs.setMemoState(5);
 									htmltext = "30864-15.html";
-									giveItems(player, HANELLINS_3RD_LETTER, 1);
+									giveItemsWithoutQuestRate(player, HANELLINS_3RD_LETTER, 1);
 									qs.setCond(8, true);
 									break;
 								}
@@ -805,7 +805,7 @@ public class Q00348_AnArrogantSearch extends Quest
 							
 							if ((getQuestItemsCount(player, WHITE_FABRIC_2) == 1) && (qs.getMemoStateEx(1) > 0) && !hasQuestItems(player, BOOK_OF_SAINT, BLOOD_OF_SAINT, BOUGH_OF_SAINT))
 							{
-								giveItems(player, WHITE_FABRIC_1, 1);
+								giveItemsWithoutQuestRate(player, WHITE_FABRIC_1, 1);
 								takeItems(player, WHITE_FABRIC_2, 1);
 								qs.setMemoState(10);
 								htmltext = "30864-41.html";
@@ -824,14 +824,14 @@ public class Q00348_AnArrogantSearch extends Quest
 								if (qs.getMemoStateEx(1) == 0)
 								{
 									htmltext = "30864-24.html";
-									giveItems(player, WHITE_FABRIC_1, 1);
+									giveItemsWithoutQuestRate(player, WHITE_FABRIC_1, 1);
 									qs.setMemoState(10);
 									takeItems(player, ANTIDOTE, 5);
 									takeItems(player, GREATER_HEALING_POTION, 1);
 								}
 								else
 								{
-									giveItems(player, WHITE_FABRIC_2, 3);
+									giveItemsWithoutQuestRate(player, WHITE_FABRIC_2, 3);
 									takeItems(player, ANTIDOTE, 5);
 									takeItems(player, GREATER_HEALING_POTION, 1);
 									qs.setMemoState(10);
@@ -855,7 +855,7 @@ public class Q00348_AnArrogantSearch extends Quest
 							
 							if ((getQuestItemsCount(player, WHITE_FABRIC_2) == 1) && (qs.getMemoStateEx(1) > 0) && !hasQuestItems(player, BOOK_OF_SAINT, BLOOD_OF_SAINT, BOUGH_OF_SAINT))
 							{
-								giveItems(player, WHITE_FABRIC_1, 1);
+								giveItemsWithoutQuestRate(player, WHITE_FABRIC_1, 1);
 								takeItems(player, WHITE_FABRIC_2, 1);
 								qs.setMemoState(10);
 								htmltext = "30864-41.html";
@@ -931,11 +931,11 @@ public class Q00348_AnArrogantSearch extends Quest
 						{
 							if (hasQuestItems(player, BLOODED_FABRIC))
 							{
-								giveItems(player, WHITE_FABRIC_1, 9);
+								giveItemsWithoutQuestRate(player, WHITE_FABRIC_1, 9);
 							}
 							else
 							{
-								giveItems(player, WHITE_FABRIC_1, 10);
+								giveItemsWithoutQuestRate(player, WHITE_FABRIC_1, 10);
 							}
 							
 							qs.setMemoState(17); // Custom line
@@ -1065,7 +1065,7 @@ public class Q00348_AnArrogantSearch extends Quest
 				{
 					if (hasQuestItems(player, FIRST_KEY_OF_ARK))
 					{
-						giveItems(player, BLOOD_OF_SAINT, 1);
+						giveItemsWithoutQuestRate(player, BLOOD_OF_SAINT, 1);
 						clearRadar(player);
 						if ((qs.getMemoStateEx(1) % 10) == 0)
 						{
@@ -1110,7 +1110,7 @@ public class Q00348_AnArrogantSearch extends Quest
 				{
 					if (hasQuestItems(player, SECOND_KEY_OF_ARK))
 					{
-						giveItems(player, BOOK_OF_SAINT, 1);
+						giveItemsWithoutQuestRate(player, BOOK_OF_SAINT, 1);
 						takeItems(player, SECOND_KEY_OF_ARK, 1);
 						clearRadar(player);
 						if ((qs.getMemoStateEx(1) % 10) == 0)
@@ -1163,7 +1163,7 @@ public class Q00348_AnArrogantSearch extends Quest
 				{
 					if (hasQuestItems(player, THIRD_KEY_OF_ARK))
 					{
-						giveItems(player, BOUGH_OF_SAINT, 1);
+						giveItemsWithoutQuestRate(player, BOUGH_OF_SAINT, 1);
 						takeItems(player, THIRD_KEY_OF_ARK, 1);
 						clearRadar(player);
 						if ((qs.getMemoStateEx(1) % 10) == 0)
@@ -1229,7 +1229,7 @@ public class Q00348_AnArrogantSearch extends Quest
 					}
 					else if ((qs.getMemoState() < 8) && (((qs.getMemoStateEx(1) % 100) / 10) == 2) && !hasQuestItems(player, FIRST_KEY_OF_ARK) && !hasQuestItems(player, BLOOD_OF_SAINT))
 					{
-						giveItems(player, FIRST_KEY_OF_ARK, 1);
+						giveItemsWithoutQuestRate(player, FIRST_KEY_OF_ARK, 1);
 						addRadar(player, -418, 44174, -3568);
 						htmltext = "30980-03.html";
 					}

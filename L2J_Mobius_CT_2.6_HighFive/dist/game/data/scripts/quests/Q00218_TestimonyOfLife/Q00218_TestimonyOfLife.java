@@ -128,7 +128,7 @@ public class Q00218_TestimonyOfLife extends Quest
 					qs.startQuest();
 					if (!hasQuestItems(player, CARDIENS_LETTER))
 					{
-						giveItems(player, CARDIENS_LETTER, 1);
+						giveItemsWithoutQuestRate(player, CARDIENS_LETTER, 1);
 					}
 					
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
@@ -169,8 +169,8 @@ public class Q00218_TestimonyOfLife extends Quest
 				if (hasQuestItems(player, CARDIENS_LETTER))
 				{
 					takeItems(player, CARDIENS_LETTER, 1);
-					giveItems(player, HIERARCHS_LETTER, 1);
-					giveItems(player, MOONFLOWER_CHARM, 1);
+					giveItemsWithoutQuestRate(player, HIERARCHS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, MOONFLOWER_CHARM, 1);
 					qs.setCond(2, true);
 					htmltext = event;
 				}
@@ -181,7 +181,7 @@ public class Q00218_TestimonyOfLife extends Quest
 				if (hasQuestItems(player, GRAIL_DIAGRAM))
 				{
 					takeItems(player, GRAIL_DIAGRAM, 1);
-					giveItems(player, PUSHKINS_LIST, 1);
+					giveItemsWithoutQuestRate(player, PUSHKINS_LIST, 1);
 					qs.setCond(4, true);
 					htmltext = event;
 				}
@@ -192,7 +192,7 @@ public class Q00218_TestimonyOfLife extends Quest
 				if (hasQuestItems(player, PUSHKINS_LIST))
 				{
 					takeItems(player, PUSHKINS_LIST, 1);
-					giveItems(player, PURE_MITHRIL_CUP, 1);
+					giveItemsWithoutQuestRate(player, PURE_MITHRIL_CUP, 1);
 					takeItems(player, PURE_MITHRIL_ORE, -1);
 					takeItems(player, ANT_SOLDIER_ACID, -1);
 					takeItems(player, WYRMS_TALON, -1);
@@ -206,7 +206,7 @@ public class Q00218_TestimonyOfLife extends Quest
 				if (hasQuestItems(player, HIERARCHS_LETTER))
 				{
 					takeItems(player, HIERARCHS_LETTER, 1);
-					giveItems(player, GRAIL_DIAGRAM, 1);
+					giveItemsWithoutQuestRate(player, GRAIL_DIAGRAM, 1);
 					qs.setCond(3, true);
 					htmltext = event;
 				}
@@ -216,7 +216,7 @@ public class Q00218_TestimonyOfLife extends Quest
 			{
 				if (hasQuestItems(player, STARDUST))
 				{
-					giveItems(player, THALIAS_2ND_LETTER, 1);
+					giveItemsWithoutQuestRate(player, THALIAS_2ND_LETTER, 1);
 					takeItems(player, STARDUST, 1);
 					qs.setCond(14, true);
 					htmltext = event;
@@ -228,8 +228,8 @@ public class Q00218_TestimonyOfLife extends Quest
 				if (hasQuestItems(player, THALIAS_1ST_LETTER))
 				{
 					takeItems(player, THALIAS_1ST_LETTER, 1);
-					giveItems(player, ARKENIAS_CONTRACT, 1);
-					giveItems(player, ARKENIAS_INSTRUCTIONS, 1);
+					giveItemsWithoutQuestRate(player, ARKENIAS_CONTRACT, 1);
+					giveItemsWithoutQuestRate(player, ARKENIAS_INSTRUCTIONS, 1);
 					qs.setCond(8, true);
 					htmltext = event;
 				}
@@ -240,7 +240,7 @@ public class Q00218_TestimonyOfLife extends Quest
 				if (hasQuestItems(player, ARKENIAS_INSTRUCTIONS))
 				{
 					takeItems(player, ARKENIAS_INSTRUCTIONS, 1);
-					giveItems(player, ADONIUS_LIST, 1);
+					giveItemsWithoutQuestRate(player, ADONIUS_LIST, 1);
 					qs.setCond(9, true);
 					htmltext = event;
 				}
@@ -251,7 +251,7 @@ public class Q00218_TestimonyOfLife extends Quest
 				if (hasQuestItems(player, THALIAS_2ND_LETTER))
 				{
 					takeItems(player, THALIAS_2ND_LETTER, 1);
-					giveItems(player, ISAELS_INSTRUCTIONS, 1);
+					giveItemsWithoutQuestRate(player, ISAELS_INSTRUCTIONS, 1);
 					qs.setCond(15, true);
 					htmltext = event;
 				}
@@ -418,7 +418,7 @@ public class Q00218_TestimonyOfLife extends Quest
 					{
 						takeItems(killer, TALINS_SPEAR, 1);
 						takeItems(killer, GRAIL_OF_PURITY, 1);
-						giveItems(killer, TEARS_OF_UNICORN, 1);
+						giveItemsWithoutQuestRate(killer, TEARS_OF_UNICORN, 1);
 						qs.setCond(19, true);
 					}
 					break;
@@ -474,7 +474,7 @@ public class Q00218_TestimonyOfLife extends Quest
 					else if (hasQuestItems(player, CAMOMILE_CHARM))
 					{
 						giveAdena(player, 342288, true);
-						giveItems(player, MARK_OF_LIFE, 1);
+						giveItemsWithoutQuestRate(player, MARK_OF_LIFE, 1);
 						addExpAndSp(player, 1886832, 125918);
 						qs.exitQuest(false, true);
 						player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -496,7 +496,7 @@ public class Q00218_TestimonyOfLife extends Quest
 						}
 						else
 						{
-							giveItems(player, CAMOMILE_CHARM, 1);
+							giveItemsWithoutQuestRate(player, CAMOMILE_CHARM, 1);
 							takeItems(player, MOONFLOWER_CHARM, 1);
 							takeItems(player, WATER_OF_LIFE, 1);
 							qs.setCond(21, true);
@@ -557,7 +557,7 @@ public class Q00218_TestimonyOfLife extends Quest
 						}
 						else if (hasQuestItems(player, PURE_MITHRIL_CUP))
 						{
-							giveItems(player, THALIAS_1ST_LETTER, 1);
+							giveItemsWithoutQuestRate(player, THALIAS_1ST_LETTER, 1);
 							takeItems(player, PURE_MITHRIL_CUP, 1);
 							qs.setCond(7, true);
 							htmltext = "30371-06.html";
@@ -579,7 +579,7 @@ public class Q00218_TestimonyOfLife extends Quest
 							if (player.getLevel() >= LEVEL)
 							{
 								takeItems(player, THALIAS_INSTRUCTIONS, 1);
-								giveItems(player, THALIAS_2ND_LETTER, 1);
+								giveItemsWithoutQuestRate(player, THALIAS_2ND_LETTER, 1);
 								qs.setCond(14, true);
 								htmltext = "30371-13.html";
 							}
@@ -599,7 +599,7 @@ public class Q00218_TestimonyOfLife extends Quest
 						else if (hasQuestItems(player, TALINS_SPEAR, ISAELS_LETTER))
 						{
 							takeItems(player, ISAELS_LETTER, 1);
-							giveItems(player, GRAIL_OF_PURITY, 1);
+							giveItemsWithoutQuestRate(player, GRAIL_OF_PURITY, 1);
 							qs.setCond(18, true);
 							htmltext = "30371-16.html";
 						}
@@ -610,7 +610,7 @@ public class Q00218_TestimonyOfLife extends Quest
 						else if (hasQuestItems(player, TEARS_OF_UNICORN))
 						{
 							takeItems(player, TEARS_OF_UNICORN, 1);
-							giveItems(player, WATER_OF_LIFE, 1);
+							giveItemsWithoutQuestRate(player, WATER_OF_LIFE, 1);
 							qs.setCond(20, true);
 							htmltext = "30371-18.html";
 						}
@@ -637,7 +637,7 @@ public class Q00218_TestimonyOfLife extends Quest
 						{
 							takeItems(player, ARKENIAS_CONTRACT, 1);
 							takeItems(player, ANDARIEL_SCRIPTURE_COPY, 1);
-							giveItems(player, STARDUST, 1);
+							giveItemsWithoutQuestRate(player, STARDUST, 1);
 							qs.setCond(12, true);
 							htmltext = "30419-06.html";
 						}
@@ -665,7 +665,7 @@ public class Q00218_TestimonyOfLife extends Quest
 							if ((getQuestItemsCount(player, SPIDER_ICHOR) >= 20) && (getQuestItemsCount(player, HARPYS_DOWN) >= 20))
 							{
 								takeItems(player, ADONIUS_LIST, 1);
-								giveItems(player, ANDARIEL_SCRIPTURE_COPY, 1);
+								giveItemsWithoutQuestRate(player, ANDARIEL_SCRIPTURE_COPY, 1);
 								takeItems(player, SPIDER_ICHOR, -1);
 								takeItems(player, HARPYS_DOWN, -1);
 								qs.setCond(11, true);
@@ -699,9 +699,9 @@ public class Q00218_TestimonyOfLife extends Quest
 						{
 							if (hasQuestItems(player, TALINS_SPEAR_BLADE, TALINS_SPEAR_SHAFT, TALINS_RUBY, TALINS_AQUAMARINE, TALINS_AMETHYST, TALINS_PERIDOT))
 							{
-								giveItems(player, TALINS_SPEAR, 1);
+								giveItemsWithoutQuestRate(player, TALINS_SPEAR, 1);
 								takeItems(player, ISAELS_INSTRUCTIONS, 1);
-								giveItems(player, ISAELS_LETTER, 1);
+								giveItemsWithoutQuestRate(player, ISAELS_LETTER, 1);
 								takeItems(player, TALINS_SPEAR_BLADE, 1);
 								takeItems(player, TALINS_SPEAR_SHAFT, 1);
 								takeItems(player, TALINS_RUBY, 1);

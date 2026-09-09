@@ -123,7 +123,7 @@ public class Q00337_AudienceWithTheLandDragon extends Quest
 			{
 				if (qs.isCreated())
 				{
-					giveItems(player, FEATHER_OF_GABRIELLE, 1);
+					giveItemsWithoutQuestRate(player, FEATHER_OF_GABRIELLE, 1);
 					qs.startQuest();
 					qs.setMemoState(20000);
 					htmltext = event;
@@ -149,7 +149,7 @@ public class Q00337_AudienceWithTheLandDragon extends Quest
 			{
 				if (qs.isMemoState(70000) && hasQuestItems(player, FRAGMENT_OF_ABYSS_JEWEL_3RD))
 				{
-					giveItems(player, PORTAL_STONE, 1);
+					giveItemsWithoutQuestRate(player, PORTAL_STONE, 1);
 					qs.exitQuest(true, true);
 					htmltext = event;
 				}
@@ -560,7 +560,7 @@ public class Q00337_AudienceWithTheLandDragon extends Quest
 					{
 						takeItems(player, FEATHER_OF_GABRIELLE, -1);
 						takeItems(player, MARK_OF_WATCHMAN, -1);
-						giveItems(player, HERALD_OF_SLAYER, 1);
+						giveItemsWithoutQuestRate(player, HERALD_OF_SLAYER, 1);
 						qs.setMemoState(60000);
 						qs.setCond(3, true);
 						htmltext = "30753-11.html";
@@ -583,7 +583,7 @@ public class Q00337_AudienceWithTheLandDragon extends Quest
 						{
 							takeItems(player, FRAGMENT_OF_ABYSS_JEWEL_1ST, -1);
 							takeItems(player, MARA_FANG, -1);
-							giveItems(player, MARK_OF_WATCHMAN, 1);
+							giveItemsWithoutQuestRate(player, MARK_OF_WATCHMAN, 1);
 							if (qs.getMemoState() == 40001)
 							{
 								qs.setMemoState(50000);
@@ -618,7 +618,7 @@ public class Q00337_AudienceWithTheLandDragon extends Quest
 						{
 							takeItems(player, FRAGMENT_OF_ABYSS_JEWEL_2ND, -1);
 							takeItems(player, MUSFEL_FANG, -1);
-							giveItems(player, MARK_OF_WATCHMAN, 1);
+							giveItemsWithoutQuestRate(player, MARK_OF_WATCHMAN, 1);
 							if (qs.getMemoState() == 40010)
 							{
 								qs.setMemoState(50000);
@@ -662,7 +662,7 @@ public class Q00337_AudienceWithTheLandDragon extends Quest
 							{
 								takeItems(player, KRANROT_SKIN, -1);
 								takeItems(player, HAMRUT_LEG, -1);
-								giveItems(player, MARK_OF_WATCHMAN, 1);
+								giveItemsWithoutQuestRate(player, MARK_OF_WATCHMAN, 1);
 								if ((qs.getMemoState() + 10) == 21111)
 								{
 									qs.setMemoState(30000);
@@ -716,7 +716,7 @@ public class Q00337_AudienceWithTheLandDragon extends Quest
 							{
 								takeItems(player, MARSH_STALKER_HORN, -1);
 								takeItems(player, MARSH_DRAKE_TALONS, -1);
-								giveItems(player, MARK_OF_WATCHMAN, 1);
+								giveItemsWithoutQuestRate(player, MARK_OF_WATCHMAN, 1);
 								if ((qs.getMemoState() + 1000) == 21111)
 								{
 									qs.setMemoState(30000);
@@ -819,7 +819,7 @@ public class Q00337_AudienceWithTheLandDragon extends Quest
 							else
 							{
 								takeItems(player, TOTEM_OF_LAND_DRAGON, -1);
-								giveItems(player, MARK_OF_WATCHMAN, 1);
+								giveItemsWithoutQuestRate(player, MARK_OF_WATCHMAN, 1);
 								if ((qs.getMemoState() + 1) == 21111)
 								{
 									qs.setMemoState(30000);
@@ -872,7 +872,7 @@ public class Q00337_AudienceWithTheLandDragon extends Quest
 							else
 							{
 								takeItems(player, REMAINS_OF_SACRAFICE, -1);
-								giveItems(player, MARK_OF_WATCHMAN, 1);
+								giveItemsWithoutQuestRate(player, MARK_OF_WATCHMAN, 1);
 								if ((qs.getMemoState() + 100) == 21111)
 								{
 									qs.setMemoState(30000);

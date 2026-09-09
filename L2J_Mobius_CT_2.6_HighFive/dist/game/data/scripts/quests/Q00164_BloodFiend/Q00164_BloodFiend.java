@@ -73,7 +73,7 @@ public class Q00164_BloodFiend extends Quest
 		if ((qs != null) && qs.isCond(1))
 		{
 			npc.broadcastPacket(new NpcSay(npc, ChatType.GENERAL, NpcStringId.I_HAVE_FULFILLED_MY_CONTRACT_WITH_TRADER_CREAMEES));
-			giveItems(killer, KIRUNAK_SKULL, 1);
+			giveItemsWithoutQuestRate(killer, KIRUNAK_SKULL, 1);
 			qs.setCond(2, true);
 		}
 	}

@@ -130,7 +130,7 @@ public class Q00219_TestimonyOfFate extends Quest
 				{
 					qs.startQuest();
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
-					giveItems(player, KAIRAS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, KAIRAS_LETTER, 1);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
 						giveItems(player, DIMENSIONAL_DIAMOND, 98);
@@ -159,7 +159,7 @@ public class Q00219_TestimonyOfFate extends Quest
 				if (hasQuestItems(player, REVELATIONS_MANUSCRIPT))
 				{
 					takeItems(player, REVELATIONS_MANUSCRIPT, 1);
-					giveItems(player, KAIRAS_RECOMMENDATION, 1);
+					giveItemsWithoutQuestRate(player, KAIRAS_RECOMMENDATION, 1);
 					qs.setCond(15, true);
 					htmltext = event;
 				}
@@ -170,7 +170,7 @@ public class Q00219_TestimonyOfFate extends Quest
 				if (hasQuestItems(player, ALDERS_SKULL2))
 				{
 					takeItems(player, ALDERS_SKULL2, 1);
-					giveItems(player, ALDERS_RECEIPT, 1);
+					giveItemsWithoutQuestRate(player, ALDERS_RECEIPT, 1);
 					qs.setCond(12, true);
 					htmltext = event;
 				}
@@ -181,7 +181,7 @@ public class Q00219_TestimonyOfFate extends Quest
 				if (hasQuestItems(player, THIFIELLS_LETTER))
 				{
 					takeItems(player, THIFIELLS_LETTER, 1);
-					giveItems(player, ARKENIAS_NOTE, 1);
+					giveItemsWithoutQuestRate(player, ARKENIAS_NOTE, 1);
 					qs.setCond(17, true);
 					htmltext = event;
 				}
@@ -194,7 +194,7 @@ public class Q00219_TestimonyOfFate extends Quest
 					takeItems(player, ARKENIAS_NOTE, 1);
 					takeItems(player, RED_FAIRY_DUST, 1);
 					takeItems(player, BLIGHT_TREANT_SAP, 1);
-					giveItems(player, ARKENIAS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, ARKENIAS_LETTER, 1);
 					qs.setCond(18, true);
 					htmltext = event;
 				}
@@ -202,13 +202,13 @@ public class Q00219_TestimonyOfFate extends Quest
 			}
 			case "31845-02.html":
 			{
-				giveItems(player, PIXY_GARNET, 1);
+				giveItemsWithoutQuestRate(player, PIXY_GARNET, 1);
 				htmltext = event;
 				break;
 			}
 			case "31850-02.html":
 			{
-				giveItems(player, TIMIRIRAN_SEED, 1);
+				giveItemsWithoutQuestRate(player, TIMIRIRAN_SEED, 1);
 				htmltext = event;
 				break;
 			}
@@ -230,7 +230,7 @@ public class Q00219_TestimonyOfFate extends Quest
 					if (hasQuestItems(killer, METHEUSS_FUNERAL_JAR) && !hasQuestItems(killer, KASANDRAS_REMAINS))
 					{
 						takeItems(killer, METHEUSS_FUNERAL_JAR, 1);
-						giveItems(killer, KASANDRAS_REMAINS, 1);
+						giveItemsWithoutQuestRate(killer, KASANDRAS_REMAINS, 1);
 						qs.setCond(3, true);
 					}
 					break;
@@ -445,7 +445,7 @@ public class Q00219_TestimonyOfFate extends Quest
 					else if (hasQuestItems(player, ALDERS_SKULL1))
 					{
 						takeItems(player, ALDERS_SKULL1, 1);
-						giveItems(player, ALDERS_SKULL2, 1);
+						giveItemsWithoutQuestRate(player, ALDERS_SKULL2, 1);
 						addSpawn(ALDERS_SPIRIT, 78977, 149036, -3597, 0, false, 200000, false);
 						qs.setCond(10, true);
 						htmltext = "30476-09.html";
@@ -461,7 +461,7 @@ public class Q00219_TestimonyOfFate extends Quest
 					}
 					else if (hasQuestItems(player, KAIRAS_INSTRUCTIONS))
 					{
-						giveItems(player, KAIRAS_RECOMMENDATION, 1);
+						giveItemsWithoutQuestRate(player, KAIRAS_RECOMMENDATION, 1);
 						takeItems(player, KAIRAS_INSTRUCTIONS, 1);
 						qs.setCond(15, true);
 						htmltext = "30476-15.html";
@@ -481,7 +481,7 @@ public class Q00219_TestimonyOfFate extends Quest
 					if (hasQuestItems(player, KAIRAS_LETTER))
 					{
 						takeItems(player, KAIRAS_LETTER, 1);
-						giveItems(player, METHEUSS_FUNERAL_JAR, 1);
+						giveItemsWithoutQuestRate(player, METHEUSS_FUNERAL_JAR, 1);
 						qs.setCond(2, true);
 						htmltext = "30614-01.html";
 					}
@@ -492,7 +492,7 @@ public class Q00219_TestimonyOfFate extends Quest
 					else if (hasQuestItems(player, KASANDRAS_REMAINS) && !hasQuestItems(player, METHEUSS_FUNERAL_JAR))
 					{
 						takeItems(player, KASANDRAS_REMAINS, 1);
-						giveItems(player, HERBALISM_TEXTBOOK, 1);
+						giveItemsWithoutQuestRate(player, HERBALISM_TEXTBOOK, 1);
 						qs.setCond(4, true);
 						htmltext = "30614-03.html";
 					}
@@ -504,7 +504,7 @@ public class Q00219_TestimonyOfFate extends Quest
 					else if (hasQuestItems(player, BELLADONNA))
 					{
 						takeItems(player, BELLADONNA, 1);
-						giveItems(player, ALDERS_SKULL1, 1);
+						giveItemsWithoutQuestRate(player, ALDERS_SKULL1, 1);
 						qs.setCond(9, true);
 						htmltext = "30614-05.html";
 					}
@@ -519,7 +519,7 @@ public class Q00219_TestimonyOfFate extends Quest
 					if (hasQuestItems(player, HERBALISM_TEXTBOOK))
 					{
 						takeItems(player, HERBALISM_TEXTBOOK, 1);
-						giveItems(player, IXIAS_LIST, 1);
+						giveItemsWithoutQuestRate(player, IXIAS_LIST, 1);
 						qs.setCond(6, true);
 						htmltext = "30463-01.html";
 					}
@@ -533,7 +533,7 @@ public class Q00219_TestimonyOfFate extends Quest
 							takeItems(player, DEAD_SEEKER_DUNG, -1);
 							takeItems(player, TYRANTS_BLOOD, -1);
 							takeItems(player, NIGHTSHADE_ROOT, -1);
-							giveItems(player, BELLADONNA, 1);
+							giveItemsWithoutQuestRate(player, BELLADONNA, 1);
 							qs.setCond(8, true);
 							htmltext = "30463-03.html";
 						}
@@ -573,7 +573,7 @@ public class Q00219_TestimonyOfFate extends Quest
 					if (hasQuestItems(player, ALDERS_RECEIPT))
 					{
 						takeItems(player, ALDERS_RECEIPT, 1);
-						giveItems(player, REVELATIONS_MANUSCRIPT, 1);
+						giveItemsWithoutQuestRate(player, REVELATIONS_MANUSCRIPT, 1);
 						qs.setCond(13, true);
 						htmltext = "30210-01.html";
 					}
@@ -588,8 +588,8 @@ public class Q00219_TestimonyOfFate extends Quest
 					if (hasQuestItems(player, KAIRAS_RECOMMENDATION))
 					{
 						takeItems(player, KAIRAS_RECOMMENDATION, 1);
-						giveItems(player, PALUS_CHARM, 1);
-						giveItems(player, THIFIELLS_LETTER, 1);
+						giveItemsWithoutQuestRate(player, PALUS_CHARM, 1);
+						giveItemsWithoutQuestRate(player, THIFIELLS_LETTER, 1);
 						qs.setCond(16, true);
 						htmltext = "30358-01.html";
 					}
@@ -606,7 +606,7 @@ public class Q00219_TestimonyOfFate extends Quest
 						else if (hasQuestItems(player, ARKENIAS_LETTER))
 						{
 							giveAdena(player, 247708, true);
-							giveItems(player, MARK_OF_FATE, 1);
+							giveItemsWithoutQuestRate(player, MARK_OF_FATE, 1);
 							addExpAndSp(player, 1365470, 91124);
 							qs.exitQuest(false, true);
 							player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -665,7 +665,7 @@ public class Q00219_TestimonyOfFate extends Quest
 							takeItems(player, KARUL_BUGBEAR_SKULL, 1);
 							takeItems(player, BREKA_OVERLORD_SKULL, 1);
 							takeItems(player, LETO_OVERLORD_SKULL, 1);
-							giveItems(player, RED_FAIRY_DUST, 1);
+							giveItemsWithoutQuestRate(player, RED_FAIRY_DUST, 1);
 							htmltext = "31845-04.html";
 						}
 						else if (!hasQuestItems(player, PIXY_GARNET) && hasQuestItems(player, PALUS_CHARM, ARKENIAS_NOTE, RED_FAIRY_DUST))
@@ -691,7 +691,7 @@ public class Q00219_TestimonyOfFate extends Quest
 						{
 							takeItems(player, TIMIRIRAN_SEED, 1);
 							takeItems(player, BLACK_WILLOW_LEAF, 1);
-							giveItems(player, BLIGHT_TREANT_SAP, 1);
+							giveItemsWithoutQuestRate(player, BLIGHT_TREANT_SAP, 1);
 							htmltext = "31850-04.html";
 						}
 						else if (hasQuestItems(player, BLIGHT_TREANT_SAP) && !hasQuestItems(player, TIMIRIRAN_SEED))

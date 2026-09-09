@@ -181,7 +181,7 @@ public class Q00198_SevenSignsEmbryo extends Quest
 		final QuestState qs = getQuestState(partyMember, false);
 		if (npc.isInsideRadius3D(partyMember, PlayerConfig.ALT_PARTY_RANGE))
 		{
-			giveItems(partyMember, SCULPTURE_OF_DOUBT, 1);
+			giveItemsWithoutQuestRate(partyMember, SCULPTURE_OF_DOUBT, 1);
 			qs.setCond(2, true);
 		}
 		
@@ -227,8 +227,8 @@ public class Q00198_SevenSignsEmbryo extends Quest
 						if (player.getLevel() >= MIN_LEVEL)
 						{
 							addExpAndSp(player, 315108090, 34906059);
-							giveItems(player, DAWNS_BRACELET, 1);
-							giveItems(player, Inventory.ANCIENT_ADENA_ID, 1500000);
+							rewardItems(player, DAWNS_BRACELET, 1);
+							rewardItems(player, Inventory.ANCIENT_ADENA_ID, 1500000);
 							qs.exitQuest(false, true);
 							htmltext = "32593-05.html";
 						}

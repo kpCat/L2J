@@ -81,8 +81,8 @@ public class Q00279_TargetOfOpportunity extends Quest
 		}
 		else if (event.equalsIgnoreCase("32302-08.html") && (qs.getInt("progress") == 1) && hasQuestItems(player, SEAL_COMPONENTS[0]) && hasQuestItems(player, SEAL_COMPONENTS[1]) && hasQuestItems(player, SEAL_COMPONENTS[2]) && hasQuestItems(player, SEAL_COMPONENTS[3]))
 		{
-			giveItems(player, SEAL_BREAKERS[0], 1);
-			giveItems(player, SEAL_BREAKERS[1], 1);
+			rewardItems(player, SEAL_BREAKERS[0], 1);
+			rewardItems(player, SEAL_BREAKERS[1], 1);
 			qs.exitQuest(true, true);
 		}
 		

@@ -115,7 +115,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 					qs.startQuest();
 					if (!hasQuestItems(player, DUFNERS_LETTER))
 					{
-						giveItems(player, DUFNERS_LETTER, 1);
+						giveItemsWithoutQuestRate(player, DUFNERS_LETTER, 1);
 					}
 					
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
@@ -155,7 +155,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 				if (hasQuestItems(player, DUFNERS_LETTER))
 				{
 					takeItems(player, DUFNERS_LETTER, 1);
-					giveItems(player, TERRYS_1ST_ORDER, 1);
+					giveItemsWithoutQuestRate(player, TERRYS_1ST_ORDER, 1);
 					qs.setCond(2, true);
 					htmltext = event;
 				}
@@ -166,7 +166,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 				if (hasQuestItems(player, TERRYS_1ST_ORDER))
 				{
 					takeItems(player, TERRYS_1ST_ORDER, 1);
-					giveItems(player, TERRYS_2ND_ORDER, 1);
+					giveItemsWithoutQuestRate(player, TERRYS_2ND_ORDER, 1);
 					takeItems(player, MYSTERIOUS_SPIRIT_ORE, 1);
 					qs.setCond(4, true);
 					htmltext = event;
@@ -175,13 +175,13 @@ public class Q00213_TrialOfTheSeeker extends Quest
 			}
 			case "30064-10.html":
 			{
-				giveItems(player, TERRYS_LETTER, 1);
+				giveItemsWithoutQuestRate(player, TERRYS_LETTER, 1);
 				takeItems(player, OL_MAHUM_SPIRIT_ORE, 1);
 				takeItems(player, TUREK_SPIRIT_ORE, 1);
 				takeItems(player, ANT_SPIRIT_ORE, 1);
 				takeItems(player, TURAK_BUGBEAR_SPIRIT_ORE, 1);
 				takeItems(player, TERRYS_2ND_ORDER, 1);
-				giveItems(player, TERRY_BOX, 1);
+				giveItemsWithoutQuestRate(player, TERRY_BOX, 1);
 				qs.setCond(6, true);
 				htmltext = event;
 				break;
@@ -191,7 +191,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 				if (hasQuestItems(player, ANALYSIS_RESULT))
 				{
 					takeItems(player, ANALYSIS_RESULT, 1);
-					giveItems(player, LIST_OF_HOST, 1);
+					giveItemsWithoutQuestRate(player, LIST_OF_HOST, 1);
 					qs.setCond(15, true);
 					htmltext = event;
 				}
@@ -202,7 +202,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 				if (hasQuestItems(player, TERRYS_LETTER))
 				{
 					takeItems(player, TERRYS_LETTER, 1);
-					giveItems(player, VIKTORS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, VIKTORS_LETTER, 1);
 					qs.setCond(7, true);
 					htmltext = event;
 				}
@@ -214,7 +214,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 				takeItems(player, TERRY_BOX, 1);
 				takeItems(player, HAWKEYES_LETTER, 1);
 				takeItems(player, VIKTORS_LETTER, 1);
-				giveItems(player, VIKTORS_REQUEST, 1);
+				giveItemsWithoutQuestRate(player, VIKTORS_REQUEST, 1);
 				qs.setCond(9, true);
 				htmltext = event;
 				break;
@@ -223,8 +223,8 @@ public class Q00213_TrialOfTheSeeker extends Quest
 			{
 				takeItems(player, VIKTORS_REQUEST, 1);
 				takeItems(player, MEDUSA_SCALES, -1);
-				giveItems(player, SHILENS_SPIRIT_ORE, 1);
-				giveItems(player, ANALYSIS_REQUEST, 1);
+				giveItemsWithoutQuestRate(player, SHILENS_SPIRIT_ORE, 1);
+				giveItemsWithoutQuestRate(player, ANALYSIS_REQUEST, 1);
 				qs.setCond(11, true);
 				htmltext = event;
 				break;
@@ -233,7 +233,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 			{
 				takeItems(player, SHILENS_SPIRIT_ORE, 1);
 				takeItems(player, ANALYSIS_REQUEST, 1);
-				giveItems(player, MARINAS_LETTER, 1);
+				giveItemsWithoutQuestRate(player, MARINAS_LETTER, 1);
 				qs.setCond(12, true);
 				htmltext = event;
 				break;
@@ -241,7 +241,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 			case "30715-05.html":
 			{
 				takeItems(player, EXPERIMENT_TOOLS, 1);
-				giveItems(player, ANALYSIS_RESULT, 1);
+				giveItemsWithoutQuestRate(player, ANALYSIS_RESULT, 1);
 				qs.setCond(14, true);
 				htmltext = event;
 				break;
@@ -305,7 +305,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 				{
 					if (hasQuestItems(killer, TERRYS_1ST_ORDER) && !hasQuestItems(killer, MYSTERIOUS_SPIRIT_ORE) && getRandomBoolean())
 					{
-						giveItems(killer, MYSTERIOUS_SPIRIT_ORE, 1);
+						giveItemsWithoutQuestRate(killer, MYSTERIOUS_SPIRIT_ORE, 1);
 						qs.setCond(3, true);
 					}
 					break;
@@ -435,7 +435,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 					else if (hasQuestItems(player, TERRYS_REPORT) && !hasQuestItems(player, DUFNERS_LETTER))
 					{
 						giveAdena(player, 187606, true);
-						giveItems(player, MARK_OF_SEEKER, 1);
+						giveItemsWithoutQuestRate(player, MARK_OF_SEEKER, 1);
 						addExpAndSp(player, 1029478, 66768);
 						qs.exitQuest(false, true);
 						player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -478,7 +478,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 					else if (hasQuestItems(player, VIKTORS_LETTER))
 					{
 						takeItems(player, VIKTORS_LETTER, 1);
-						giveItems(player, HAWKEYES_LETTER, 1);
+						giveItemsWithoutQuestRate(player, HAWKEYES_LETTER, 1);
 						qs.setCond(8, true);
 						htmltext = "30064-12.html";
 					}
@@ -503,7 +503,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 						else
 						{
 							takeItems(player, TERRYS_3RD_ORDER, 1);
-							giveItems(player, LIST_OF_HOST, 1);
+							giveItemsWithoutQuestRate(player, LIST_OF_HOST, 1);
 							qs.setCond(15, true);
 							htmltext = "30064-21.html";
 						}
@@ -521,7 +521,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 							takeItems(player, ABYSS_SPIRIT_ORE2, 1);
 							takeItems(player, ABYSS_SPIRIT_ORE3, 1);
 							takeItems(player, ABYSS_SPIRIT_ORE4, 1);
-							giveItems(player, TERRYS_REPORT, 1);
+							giveItemsWithoutQuestRate(player, TERRYS_REPORT, 1);
 							qs.setCond(17, true);
 							htmltext = "30064-23.html";
 						}
@@ -537,7 +537,7 @@ public class Q00213_TrialOfTheSeeker extends Quest
 					if (hasQuestItems(player, MARINAS_LETTER))
 					{
 						takeItems(player, MARINAS_LETTER, 1);
-						giveItems(player, EXPERIMENT_TOOLS, 1);
+						giveItemsWithoutQuestRate(player, EXPERIMENT_TOOLS, 1);
 						qs.setCond(13, true);
 						htmltext = "30526-01.html";
 					}

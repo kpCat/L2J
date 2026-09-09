@@ -124,7 +124,7 @@ public class Q00064_CertifiedBerserker extends Quest
 				if (qs.isMemoState(11))
 				{
 					giveAdena(player, 63104, true);
-					giveItems(player, ORKURUS_RECOMMENDATION, 1);
+					giveItemsWithoutQuestRate(player, ORKURUS_RECOMMENDATION, 1);
 					addExpAndSp(player, 349006, 23948);
 					qs.exitQuest(false, true);
 					player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -168,7 +168,7 @@ public class Q00064_CertifiedBerserker extends Quest
 				if (qs.isMemoState(10))
 				{
 					takeItems(player, HARKILGAMEDS_LETTER, 1);
-					giveItems(player, TENAINS_RECOMMENDATION, 1);
+					giveItemsWithoutQuestRate(player, TENAINS_RECOMMENDATION, 1);
 					qs.setMemoState(11);
 					qs.setCond(14, true);
 					htmltext = event;
@@ -189,7 +189,7 @@ public class Q00064_CertifiedBerserker extends Quest
 			{
 				if (qs.isMemoState(9))
 				{
-					giveItems(player, HARKILGAMEDS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, HARKILGAMEDS_LETTER, 1);
 					qs.setMemoState(10);
 					qs.setCond(13, true);
 					htmltext = event;
@@ -213,7 +213,7 @@ public class Q00064_CertifiedBerserker extends Quest
 				{
 					if (qs.isMemoState(7) && !hasQuestItems(killer, REPORT_EAST) && (getRandom(100) < 20))
 					{
-						giveItems(killer, REPORT_EAST, 1);
+						giveItemsWithoutQuestRate(killer, REPORT_EAST, 1);
 						if (hasQuestItems(killer, REPORT_NORTH))
 						{
 							qs.setCond(10, true);
@@ -229,7 +229,7 @@ public class Q00064_CertifiedBerserker extends Quest
 				{
 					if (qs.isMemoState(7) && !hasQuestItems(killer, REPORT_NORTH) && (getRandom(100) < 20))
 					{
-						giveItems(killer, REPORT_NORTH, 1);
+						giveItemsWithoutQuestRate(killer, REPORT_NORTH, 1);
 						if (hasQuestItems(killer, REPORT_EAST))
 						{
 							qs.setCond(10, true);
@@ -266,7 +266,7 @@ public class Q00064_CertifiedBerserker extends Quest
 				{
 					if (qs.isMemoState(4) && !hasQuestItems(killer, MESSAGE_PLATE) && (getRandom(100) < 20))
 					{
-						giveItems(killer, MESSAGE_PLATE, 1);
+						giveItemsWithoutQuestRate(killer, MESSAGE_PLATE, 1);
 						qs.setCond(6, true);
 					}
 					break;

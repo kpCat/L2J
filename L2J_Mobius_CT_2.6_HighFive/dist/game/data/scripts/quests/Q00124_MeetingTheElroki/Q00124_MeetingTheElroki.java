@@ -98,7 +98,7 @@ public class Q00124_MeetingTheElroki extends Quest
 			{
 				if (qs.isCond(5))
 				{
-					giveItems(player, MANTARASA_EGG, 1);
+					giveItemsWithoutQuestRate(player, MANTARASA_EGG, 1);
 					qs.setCond(6, true);
 				}
 				break;

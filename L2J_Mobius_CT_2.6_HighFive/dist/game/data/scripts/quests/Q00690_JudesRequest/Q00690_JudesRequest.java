@@ -88,7 +88,7 @@ public class Q00690_JudesRequest extends Quest
 		{
 			if (getQuestItemsCount(player, EVIL_WEAPON) >= 200)
 			{
-				giveItems(player, REWARDS[0][getRandom(REWARDS[0].length)], 1);
+				rewardItems(player, REWARDS[0][getRandom(REWARDS[0].length)], 1);
 				takeItems(player, EVIL_WEAPON, 200);
 				playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 				htmltext = "32356-07.htm";
@@ -107,7 +107,7 @@ public class Q00690_JudesRequest extends Quest
 		{
 			if (getQuestItemsCount(player, EVIL_WEAPON) >= 5)
 			{
-				giveItems(player, REWARDS[1][getRandom(REWARDS[1].length)], 1);
+				rewardItems(player, REWARDS[1][getRandom(REWARDS[1].length)], 1);
 				takeItems(player, EVIL_WEAPON, 5);
 				playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 				htmltext = "32356-09.htm";

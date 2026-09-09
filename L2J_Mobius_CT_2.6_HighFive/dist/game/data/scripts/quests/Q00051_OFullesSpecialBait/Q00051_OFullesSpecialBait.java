@@ -73,7 +73,7 @@ public class Q00051_OFullesSpecialBait extends Quest
 				if ((qs.isCond(2)) && (getQuestItemsCount(player, LOST_BAIT) >= 100))
 				{
 					htmltext = "31572-06.htm";
-					giveItems(player, ICY_AIR_LURE, 4);
+					rewardItems(player, ICY_AIR_LURE, 4);
 					qs.exitQuest(false, true);
 				}
 				break;

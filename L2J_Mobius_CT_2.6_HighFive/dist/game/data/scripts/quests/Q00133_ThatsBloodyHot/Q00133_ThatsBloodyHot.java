@@ -98,7 +98,7 @@ public class Q00133_ThatsBloodyHot extends Quest
 			{
 				if (st.isCond(2))
 				{
-					giveItems(player, REFINED_CRYSTAL_SAMPLE, 1);
+					giveItemsWithoutQuestRate(player, REFINED_CRYSTAL_SAMPLE, 1);
 					st.setCond(3);
 					htmltext = event;
 				}

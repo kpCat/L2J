@@ -98,13 +98,13 @@ public class Q00903_TheCallOfAntharas extends Quest
 			{
 				case BEHEMOTH_DRAGON:
 				{
-					giveItems(player, BEHEMOTH_DRAGON_LEATHER, 1);
+					giveItemsWithoutQuestRate(player, BEHEMOTH_DRAGON_LEATHER, 1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					break;
 				}
 				case TARASK_DRAGON:
 				{
-					giveItems(player, TARASK_DRAGONS_LEATHER_FRAGMENT, 1);
+					giveItemsWithoutQuestRate(player, TARASK_DRAGONS_LEATHER_FRAGMENT, 1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					break;
 				}
@@ -157,7 +157,7 @@ public class Q00903_TheCallOfAntharas extends Quest
 					}
 					case 2:
 					{
-						giveItems(player, SCROLL_ANTHARAS_CALL, 1);
+						rewardItems(player, SCROLL_ANTHARAS_CALL, 1);
 						playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						qs.exitQuest(QuestType.DAILY, true);
 						htmltext = "30755-08.html";

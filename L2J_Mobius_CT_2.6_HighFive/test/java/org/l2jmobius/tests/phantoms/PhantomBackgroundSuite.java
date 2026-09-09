@@ -340,6 +340,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("02-authoritative-spoil-sweep-parity", _ -> testAcquisitionBackgroundParity(PhantomAcquisitionCatalog.Method.SPOIL_SWEEP));
 		registry.add("03-capacity-capability-and-death-controls", _ -> testAcquisitionBackgroundControls());
 		registry.add("04-ordinary-goal-015-regression", _ -> testAcquisitionOrdinaryRegression());
+		registry.add("05-configured-drop-rate-retains-player-multipliers", _ -> testConfiguredDropRateRetainsPlayerMultipliers());
 	}
 
 	private void registerAcquisitionAtomicRestart(PhantomTestRegistry registry)
@@ -2744,6 +2745,45 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		final BatchRequest ordinary = new BatchRequest(fixture.state(), fixture.input().target(), fixture.input().rewardPolicy(), fixture.input().deathPolicy(), fixture.input().experienceTable(), fixture.input().levelForExperience(), false);
 		final BatchRequest explicit = new BatchRequest(fixture.state(), fixture.input().target(), fixture.input().rewardPolicy(), fixture.input().deathPolicy(), fixture.input().experienceTable(), fixture.input().levelForExperience(), false, BatchMode.ORDINARY_DEATH_DROP, 0, 0, true);
 		PhantomAssertions.assertEquals(new PhantomBackgroundModel().evaluate(ordinary), new PhantomBackgroundModel().evaluate(explicit), "Goal 015 ordinary death-drop behavior changed.");
+	}
+
+	private void testConfiguredDropRateRetainsPlayerMultipliers()
+	{
+		final AcquisitionParityFixture fixture = acquisitionParityFixture(PhantomAcquisitionCatalog.Method.DEATH_DROP);
+		final int itemId = fixture.source().itemId();
+		final Float priorAmount = RatesConfig.RATE_DROP_AMOUNT_BY_ID.put(itemId, 7f);
+		final Float priorChance = RatesConfig.RATE_DROP_CHANCE_BY_ID.put(itemId, 11f);
+		try
+		{
+			final CombatFacts baseline = fixture.state().combat();
+			final CombatFacts rated = new CombatFacts(baseline.modelKind(), baseline.physicalOffense(), baseline.magicOffense(), baseline.physicalDefense(), baseline.magicDefense(), baseline.attackSpeed(), baseline.castSpeed(), baseline.hpRegenPerSecond(), baseline.mpRegenPerSecond(), 2, 3, baseline.servitorExperienceMultiplier(), 3, 5, 1, baseline.normalMonsterExperienceLossMultiplier());
+			final PhantomBackgroundState state = acquisitionParityState(fixture.source(), fixture.state().autoGetSkills(), fixture.state().inventory(), rated, fixture.state().vitals());
+			final PhantomBackgroundAuthority.FarmInput input = _production.authority().acquisitionInput(state, fixture.source(), Map.of());
+			final Drop drop = input.target().drops().stream().filter(candidate -> (candidate.itemId() == itemId) && (candidate.origin() == DropOrigin.ACQUISITION_TARGET)).findFirst().orElseThrow();
+			final Drop baselineDrop = fixture.input().target().drops().stream().filter(candidate -> (candidate.itemId() == itemId) && (candidate.origin() == DropOrigin.ACQUISITION_TARGET)).findFirst().orElseThrow();
+			PhantomAssertions.assertEquals(baselineDrop.rawGroupChance(), drop.rawGroupChance(), "Configured amount rate changed raw group chance.");
+			PhantomAssertions.assertEquals(baselineDrop.rawItemChance(), drop.rawItemChance(), "Configured amount rate changed raw item chance.");
+			PhantomAssertions.assertEquals(11d, drop.configuredChanceMultiplier(), "Configured item chance override was not preserved as evidence.");
+			PhantomAssertions.assertEquals(33d, drop.chanceMultiplier(), "Configured item chance override lost the Player drop-chance multiplier.");
+			PhantomAssertions.assertEquals(35d, drop.amountMultiplier(), "Configured item amount override lost the Player drop-amount multiplier.");
+		}
+		finally
+		{
+			restoreRate(RatesConfig.RATE_DROP_AMOUNT_BY_ID, itemId, priorAmount);
+			restoreRate(RatesConfig.RATE_DROP_CHANCE_BY_ID, itemId, priorChance);
+		}
+	}
+
+	private static void restoreRate(Map<Integer, Float> rates, int itemId, Float prior)
+	{
+		if (prior == null)
+		{
+			rates.remove(itemId);
+		}
+		else
+		{
+			rates.put(itemId, prior);
+		}
 	}
 
 	private AcquisitionParityFixture acquisitionParityFixture(PhantomAcquisitionCatalog.Method method)

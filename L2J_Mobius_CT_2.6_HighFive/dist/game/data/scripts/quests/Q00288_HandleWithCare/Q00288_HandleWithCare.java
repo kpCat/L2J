@@ -150,12 +150,12 @@ public class Q00288_HandleWithCare extends Quest
 							reward = REWARDS[3];
 						}
 						
-						giveItems(player, REWARDS[4]);
+						rewardItems(player, REWARDS[4]);
 					}
 					
 					if (reward != null)
 					{
-						giveItems(player, reward);
+						rewardItems(player, reward);
 					}
 					
 					qs.exitQuest(true, true);
@@ -176,13 +176,13 @@ public class Q00288_HandleWithCare extends Quest
 		{
 			if (!hasQuestItems(killer, MIDDLE_GRADE_LIZARD_SCALE))
 			{
-				giveItems(killer, MIDDLE_GRADE_LIZARD_SCALE, 1);
+				giveItemsWithoutQuestRate(killer, MIDDLE_GRADE_LIZARD_SCALE, 1);
 				playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 				qs.setCond(2, true);
 			}
 			else if (!hasQuestItems(killer, HIGH_GRADE_LIZARD_SCALE))
 			{
-				giveItems(killer, HIGH_GRADE_LIZARD_SCALE, 1);
+				giveItemsWithoutQuestRate(killer, HIGH_GRADE_LIZARD_SCALE, 1);
 				playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 				qs.setCond(3, true);
 			}

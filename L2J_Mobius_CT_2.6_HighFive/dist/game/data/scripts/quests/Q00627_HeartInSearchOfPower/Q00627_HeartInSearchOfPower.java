@@ -104,7 +104,7 @@ public class Q00627_HeartInSearchOfPower extends Quest
 					return "31518-05.html";
 				}
 				
-				giveItems(player, SEAL_OF_LIGHT, 1);
+				giveItemsWithoutQuestRate(player, SEAL_OF_LIGHT, 1);
 				takeItems(player, BEAD_OF_OBEDIENCE, -1);
 				qs.setCond(3);
 				break;
@@ -161,7 +161,7 @@ public class Q00627_HeartInSearchOfPower extends Quest
 			{
 				if (hasQuestItems(player, SEAL_OF_LIGHT) && qs.isCond(3))
 				{
-					giveItems(player, GEM_OF_SAINTS, 1);
+					giveItemsWithoutQuestRate(player, GEM_OF_SAINTS, 1);
 					takeItems(player, SEAL_OF_LIGHT, -1);
 					qs.setCond(4);
 				}

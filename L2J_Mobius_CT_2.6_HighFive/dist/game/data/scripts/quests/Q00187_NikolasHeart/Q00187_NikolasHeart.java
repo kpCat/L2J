@@ -68,7 +68,7 @@ public class Q00187_NikolasHeart extends Quest
 				{
 					qs.startQuest();
 					qs.setMemoState(1);
-					giveItems(player, METALLOGRAPH, 1);
+					giveItemsWithoutQuestRate(player, METALLOGRAPH, 1);
 					takeItems(player, LORAINES_CERTIFICATE, -1);
 					htmltext = event;
 				}

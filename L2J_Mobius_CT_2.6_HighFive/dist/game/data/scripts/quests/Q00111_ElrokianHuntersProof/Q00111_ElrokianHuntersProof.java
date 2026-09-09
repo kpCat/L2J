@@ -143,7 +143,7 @@ public class Q00111_ElrokianHuntersProof extends Quest
 				{
 					qs.setMemoState(6);
 					qs.setCond(6, true);
-					giveItems(player, EXPEDITION_MEMBERS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, EXPEDITION_MEMBERS_LETTER, 1);
 					htmltext = event;
 				}
 				break;
@@ -204,8 +204,8 @@ public class Q00111_ElrokianHuntersProof extends Quest
 				if (qs.isMemoState(12) && hasQuestItems(player, PRACTICE_ELROKIAN_TRAP))
 				{
 					takeItems(player, PRACTICE_ELROKIAN_TRAP, -1);
-					giveItems(player, ELROKIAN_TRAP, 1);
-					giveItems(player, TRAP_STONE, 100);
+					rewardItems(player, ELROKIAN_TRAP, 1);
+					rewardItems(player, TRAP_STONE, 100);
 					giveAdena(player, 1071691, true);
 					addExpAndSp(player, 553524, 55538);
 					qs.exitQuest(false, true);
@@ -392,7 +392,7 @@ public class Q00111_ElrokianHuntersProof extends Quest
 								{
 									qs.setMemoState(12);
 									qs.setCond(12, true);
-									giveItems(player, PRACTICE_ELROKIAN_TRAP, 1);
+									giveItemsWithoutQuestRate(player, PRACTICE_ELROKIAN_TRAP, 1);
 									takeItems(player, ORNITHOMINUS_CLAW, -1);
 									takeItems(player, DEINONYCHUS_BONE, -1);
 									takeItems(player, PACHYCEPHALOSAURUS_SKIN, -1);

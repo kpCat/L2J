@@ -120,7 +120,7 @@ public class Q00063_PathOfTheWarder extends Quest
 				if (qs.isMemoState(3))
 				{
 					takeItems(player, GOBIES_ORDERS, 1);
-					giveItems(player, LETTER_TO_HUMANS, 1);
+					giveItemsWithoutQuestRate(player, LETTER_TO_HUMANS, 1);
 					qs.setMemoState(4);
 					qs.setCond(5, true);
 					htmltext = event;
@@ -139,7 +139,7 @@ public class Q00063_PathOfTheWarder extends Quest
 			{
 				if (qs.isMemoState(7))
 				{
-					giveItems(player, LETTER_TO_THE_DARKELVES, 1);
+					giveItemsWithoutQuestRate(player, LETTER_TO_THE_DARKELVES, 1);
 					qs.setMemoState(8);
 					qs.setCond(7, true);
 					htmltext = event;
@@ -150,7 +150,7 @@ public class Q00063_PathOfTheWarder extends Quest
 			{
 				if (qs.isMemoState(12))
 				{
-					giveItems(player, REPORT_TO_SIONE, 1);
+					giveItemsWithoutQuestRate(player, REPORT_TO_SIONE, 1);
 					qs.setMemoState(13);
 					qs.setCond(9, true);
 					htmltext = event;
@@ -170,7 +170,7 @@ public class Q00063_PathOfTheWarder extends Quest
 			{
 				if (qs.isMemoState(15))
 				{
-					giveItems(player, EMPTY_SOUL_CRYSTAL, 1);
+					giveItemsWithoutQuestRate(player, EMPTY_SOUL_CRYSTAL, 1);
 					qs.setMemoState(16);
 					qs.set("ex", 0);
 					qs.setCond(11, true);
@@ -183,7 +183,7 @@ public class Q00063_PathOfTheWarder extends Quest
 				if (qs.isMemoState(4))
 				{
 					takeItems(player, LETTER_TO_HUMANS, 1);
-					giveItems(player, HUMANS_REOLY, 1);
+					giveItemsWithoutQuestRate(player, HUMANS_REOLY, 1);
 					qs.setMemoState(5);
 					htmltext = event;
 				}
@@ -228,7 +228,7 @@ public class Q00063_PathOfTheWarder extends Quest
 			{
 				if (qs.isMemoState(10))
 				{
-					giveItems(player, DARK_ELVES_REPLY, 1);
+					giveItemsWithoutQuestRate(player, DARK_ELVES_REPLY, 1);
 					qs.setMemoState(11);
 					qs.setCond(8, true);
 					htmltext = event;
@@ -307,7 +307,7 @@ public class Q00063_PathOfTheWarder extends Quest
 					if (qs.isMemoState(16) && !hasQuestItems(killer, TAKS_CAPTURED_SOUL))
 					{
 						takeItems(killer, EMPTY_SOUL_CRYSTAL, 1);
-						giveItems(killer, TAKS_CAPTURED_SOUL, 1);
+						giveItemsWithoutQuestRate(killer, TAKS_CAPTURED_SOUL, 1);
 						qs.setCond(12, true);
 					}
 					break;
@@ -367,7 +367,7 @@ public class Q00063_PathOfTheWarder extends Quest
 						{
 							takeItems(player, ORDERS, -1);
 							takeItems(player, ORGANIZATION_CHART, -1);
-							giveItems(player, GOBIES_ORDERS, 1);
+							giveItemsWithoutQuestRate(player, GOBIES_ORDERS, 1);
 							qs.setMemoState(3);
 							qs.setCond(4, true);
 							htmltext = "32195-10.html";
@@ -426,7 +426,7 @@ public class Q00063_PathOfTheWarder extends Quest
 					}
 					else if (memoState == 12)
 					{
-						giveItems(player, REPORT_TO_SIONE, 1);
+						giveItemsWithoutQuestRate(player, REPORT_TO_SIONE, 1);
 						qs.setMemoState(13);
 						htmltext = "32198-11.html";
 					}
@@ -440,7 +440,7 @@ public class Q00063_PathOfTheWarder extends Quest
 					}
 					else if (memoState == 15)
 					{
-						giveItems(player, EMPTY_SOUL_CRYSTAL, 1);
+						giveItemsWithoutQuestRate(player, EMPTY_SOUL_CRYSTAL, 1);
 						qs.setMemoState(16);
 						qs.set("ex", 0);
 						qs.setCond(11, true);
@@ -457,7 +457,7 @@ public class Q00063_PathOfTheWarder extends Quest
 						{
 							giveAdena(player, 163800, true);
 							takeItems(player, TAKS_CAPTURED_SOUL, 1);
-							giveItems(player, STEELRAZOR_EVALUTION, 1);
+							giveItemsWithoutQuestRate(player, STEELRAZOR_EVALUTION, 1);
 							final int level = player.getLevel();
 							if (level >= 20)
 							{
@@ -517,7 +517,7 @@ public class Q00063_PathOfTheWarder extends Quest
 					}
 					else if (memoState == 10)
 					{
-						giveItems(player, DARK_ELVES_REPLY, 1);
+						giveItemsWithoutQuestRate(player, DARK_ELVES_REPLY, 1);
 						qs.setMemoState(11);
 						qs.setCond(8, true);
 						htmltext = "30297-05.html";

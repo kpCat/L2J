@@ -71,7 +71,7 @@ public class Q00188_SealRemoval extends Quest
 				{
 					qs.startQuest();
 					qs.setMemoState(1);
-					giveItems(player, BROKEN_METAL_PIECES, 1);
+					giveItemsWithoutQuestRate(player, BROKEN_METAL_PIECES, 1);
 					htmltext = event;
 				}
 				break;

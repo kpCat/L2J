@@ -411,7 +411,7 @@ public class Q00236_SeedsOfChaos extends Quest
 			{
 				if (qs.isMemoState(45))
 				{
-					giveItems(player, SCROLL_ENCHANT_WEAPON_A_GRADE, 1);
+					rewardItems(player, SCROLL_ENCHANT_WEAPON_A_GRADE, 1);
 					takeItems(player, STAR_OF_DESTINY, 1);
 					qs.exitQuest(false, true);
 					htmltext = event;
@@ -678,7 +678,7 @@ public class Q00236_SeedsOfChaos extends Quest
 				{
 					if (qs.isMemoState(2) && !hasQuestItems(killer, BLACK_ECHO_CRYSTAL) && (getRandom(100) < 20))
 					{
-						giveItems(killer, BLACK_ECHO_CRYSTAL, 1);
+						giveItemsWithoutQuestRate(killer, BLACK_ECHO_CRYSTAL, 1);
 						qs.setCond(3, true);
 					}
 					break;
@@ -713,7 +713,7 @@ public class Q00236_SeedsOfChaos extends Quest
 				{
 					if (qs.isMemoState(7) && !hasQuestItems(killer, BLOOD_JEWEL) && (getRandom(100) < 8))
 					{
-						giveItems(killer, BLOOD_JEWEL, 1);
+						giveItemsWithoutQuestRate(killer, BLOOD_JEWEL, 1);
 						qs.setCond(9, true);
 					}
 					break;

@@ -245,7 +245,7 @@ public class Q00022_TragedyInVonHellmannForest extends Quest
 			{
 				if (qs.isCond(8))
 				{
-					giveItems(player, LETTER_OF_INNOCENTIN, 1);
+					giveItemsWithoutQuestRate(player, LETTER_OF_INNOCENTIN, 1);
 					qs.setCond(9, true);
 					htmltext = event;
 				}
@@ -326,7 +326,7 @@ public class Q00022_TragedyInVonHellmannForest extends Quest
 			{
 				if (qs.isMemoState(9))
 				{
-					giveItems(player, JEWEL_OF_ADVENTURER_1, 1);
+					giveItemsWithoutQuestRate(player, JEWEL_OF_ADVENTURER_1, 1);
 					qs.setCond(10, true);
 					qs.setMemoState(10);
 					htmltext = event;
@@ -351,7 +351,7 @@ public class Q00022_TragedyInVonHellmannForest extends Quest
 			else if (npc.isScriptValue(1))
 			{
 				takeItems(attacker, JEWEL_OF_ADVENTURER_1, -1);
-				giveItems(attacker, JEWEL_OF_ADVENTURER_2, 1);
+				giveItemsWithoutQuestRate(attacker, JEWEL_OF_ADVENTURER_2, 1);
 				qs.setCond(11, true);
 			}
 		}
@@ -371,7 +371,7 @@ public class Q00022_TragedyInVonHellmannForest extends Quest
 				final QuestState qs = getQuestState(killer, false);
 				if ((qs != null) && qs.isCond(4) && hasQuestItems(killer, CROSS_OF_EINHASAD) && !hasQuestItems(killer, LOST_SKULL_OF_ELF) && (getRandom(100) < 10))
 				{
-					giveItems(killer, LOST_SKULL_OF_ELF, 1);
+					giveItemsWithoutQuestRate(killer, LOST_SKULL_OF_ELF, 1);
 					qs.setCond(5, true);
 				}
 			}
@@ -480,7 +480,7 @@ public class Q00022_TragedyInVonHellmannForest extends Quest
 					{
 						if (!hasQuestItems(talker, CROSS_OF_EINHASAD))
 						{
-							giveItems(talker, CROSS_OF_EINHASAD, 1);
+							giveItemsWithoutQuestRate(talker, CROSS_OF_EINHASAD, 1);
 							qs.setCond(3, true);
 							htmltext = "31328-01.html";
 						}
@@ -558,7 +558,7 @@ public class Q00022_TragedyInVonHellmannForest extends Quest
 					{
 						if (hasQuestItems(talker, JEWEL_OF_ADVENTURER_2) && !hasQuestItems(talker, SEALED_REPORT_BOX))
 						{
-							giveItems(talker, SEALED_REPORT_BOX, 1);
+							giveItemsWithoutQuestRate(talker, SEALED_REPORT_BOX, 1);
 							qs.setCond(13, true);
 							htmltext = "31527-04.html";
 						}
@@ -637,7 +637,7 @@ public class Q00022_TragedyInVonHellmannForest extends Quest
 					{
 						if (hasQuestItems(talker, JEWEL_OF_ADVENTURER_2) && hasQuestItems(talker, SEALED_REPORT_BOX))
 						{
-							giveItems(talker, REPORT_BOX, 1);
+							giveItemsWithoutQuestRate(talker, REPORT_BOX, 1);
 							takeItems(talker, SEALED_REPORT_BOX, -1);
 							takeItems(talker, JEWEL_OF_ADVENTURER_2, -1);
 							qs.setCond(14, true);

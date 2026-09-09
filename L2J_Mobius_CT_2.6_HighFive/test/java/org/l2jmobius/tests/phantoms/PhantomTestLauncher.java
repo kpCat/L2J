@@ -262,6 +262,10 @@ public final class PhantomTestLauncher
 			case "population-ecology-production-goal033" -> new PhantomPopulationEcologyProductionGoal033Suite();
 			case "siege-goal035" -> new PhantomSiegeGoal035Suite();
 			case "quest-instance-goal036" -> new PhantomQuestInstanceGoal036Suite();
+			case "quest-rates-goal037-static" -> new PhantomQuestRatesGoal037Suite(PhantomQuestRatesGoal037Suite.Mode.STATIC);
+			case "quest-rates-goal037-corpus" -> new PhantomQuestRatesGoal037Suite(PhantomQuestRatesGoal037Suite.Mode.CORPUS);
+			case "quest-rates-goal037-helpers" -> new PhantomQuestRatesGoal037Suite(PhantomQuestRatesGoal037Suite.Mode.HELPERS);
+			case "quest-rates-native-goal037" -> new PhantomQuestInstanceGoal036Suite(PhantomQuestInstanceGoal036Suite.Mode.GOAL037_NON_ONE_X);
 			case "topology-performance" -> new PhantomTopologyPerformanceSuite();
 			case "knowledge-core" -> new PhantomGameKnowledgeCoreSuite();
 			case "knowledge-query-truth" -> new PhantomGameKnowledgeQueryTruthSuite();

@@ -126,7 +126,7 @@ public class Q00609_MagicalPowerOfWaterPart1 extends Quest
 					}
 					else
 					{
-						giveItems(player, STOLEN_GREEN_TOTEM, 1);
+						giveItemsWithoutQuestRate(player, STOLEN_GREEN_TOTEM, 1);
 						takeItems(player, KEY, 1);
 						qs.setCond(3, true);
 						htmltext = "31561-03.html";
@@ -216,8 +216,8 @@ public class Q00609_MagicalPowerOfWaterPart1 extends Quest
 						}
 						case 3:
 						{
-							giveItems(player, GREEN_TOTEM, 1);
-							giveItems(player, WISDOM_STONE, 1);
+							giveItemsWithoutQuestRate(player, GREEN_TOTEM, 1);
+							rewardItems(player, WISDOM_STONE, 1);
 							qs.exitQuest(true, true);
 							htmltext = "31372-04.html";
 							break;

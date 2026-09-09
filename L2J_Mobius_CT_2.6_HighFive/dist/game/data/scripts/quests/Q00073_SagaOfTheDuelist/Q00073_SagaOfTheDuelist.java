@@ -125,7 +125,7 @@ public class Q00073_SagaOfTheDuelist extends AbstractSagaQuest
 			{
 				if (!hasQuestItems(player, TOPQUALITYMEAT))
 				{
-					giveItems(player, TOPQUALITYMEAT, 1);
+					giveItemsWithoutQuestRate(player, TOPQUALITYMEAT, 1);
 					return "tunatun_01.htm";
 				}
 				

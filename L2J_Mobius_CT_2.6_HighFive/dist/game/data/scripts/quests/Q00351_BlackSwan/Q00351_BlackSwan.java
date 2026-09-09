@@ -91,7 +91,7 @@ public class Q00351_BlackSwan extends Quest
 			}
 			case "30916-03.htm":
 			{
-				giveItems(player, ORDER_OF_GOSTA, 1);
+				giveItemsWithoutQuestRate(player, ORDER_OF_GOSTA, 1);
 				qs.startQuest();
 				htmltext = event;
 				break;

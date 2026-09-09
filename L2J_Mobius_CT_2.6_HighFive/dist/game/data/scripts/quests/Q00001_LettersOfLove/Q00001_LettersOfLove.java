@@ -80,7 +80,7 @@ public class Q00001_LettersOfLove extends Quest
 				if (player.getLevel() >= MIN_LEVEL)
 				{
 					qs.startQuest();
-					giveItems(player, DARINS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, DARINS_LETTER, 1);
 					htmltext = event;
 				}
 				break;
@@ -120,7 +120,7 @@ public class Q00001_LettersOfLove extends Quest
 								if (hasQuestItems(player, DARINS_LETTER) && !hasQuestItems(player, ROXXYS_KERCHIEF))
 								{
 									takeItems(player, DARINS_LETTER, -1);
-									giveItems(player, ROXXYS_KERCHIEF, 1);
+									giveItemsWithoutQuestRate(player, ROXXYS_KERCHIEF, 1);
 									qs.setCond(2, true);
 									htmltext = "30006-01.html";
 								}
@@ -138,7 +138,7 @@ public class Q00001_LettersOfLove extends Quest
 								if (hasQuestItems(player, ROXXYS_KERCHIEF))
 								{
 									takeItems(player, ROXXYS_KERCHIEF, -1);
-									giveItems(player, DARINS_RECEIPT, 1);
+									giveItemsWithoutQuestRate(player, DARINS_RECEIPT, 1);
 									qs.setCond(3, true);
 									htmltext = "30048-08.html";
 								}
@@ -180,7 +180,7 @@ public class Q00001_LettersOfLove extends Quest
 								if (hasQuestItems(player, DARINS_RECEIPT))
 								{
 									takeItems(player, DARINS_RECEIPT, -1);
-									giveItems(player, BAULROS_POTION, 1);
+									giveItemsWithoutQuestRate(player, BAULROS_POTION, 1);
 									qs.setCond(4, true);
 									htmltext = "30033-01.html";
 								}
@@ -218,7 +218,7 @@ public class Q00001_LettersOfLove extends Quest
 									}
 								}
 								
-								giveItems(player, NECKLACE_OF_KNOWLEDGE, 1);
+								rewardItems(player, NECKLACE_OF_KNOWLEDGE, 1);
 								addExpAndSp(player, 5672, 446);
 								giveAdena(player, 2466, false);
 								qs.exitQuest(false, true);

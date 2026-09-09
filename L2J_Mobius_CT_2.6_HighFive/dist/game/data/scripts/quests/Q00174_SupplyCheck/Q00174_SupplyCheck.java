@@ -120,7 +120,7 @@ public class Q00174_SupplyCheck extends Quest
 							{
 								for (int itemId : REWARD)
 								{
-									giveItems(player, itemId, 1);
+									rewardItems(player, itemId, 1);
 								}
 								
 								// Newbie Guide.
@@ -168,7 +168,7 @@ public class Q00174_SupplyCheck extends Quest
 						case 1:
 						{
 							qs.setCond(2, true);
-							giveItems(player, WAREHOUSE_MANIFEST, 1);
+							giveItemsWithoutQuestRate(player, WAREHOUSE_MANIFEST, 1);
 							htmltext = "32170-01.html";
 							break;
 						}
@@ -201,7 +201,7 @@ public class Q00174_SupplyCheck extends Quest
 						case 3:
 						{
 							qs.setCond(4, true);
-							giveItems(player, GROCERY_STORE_MANIFEST, 1);
+							giveItemsWithoutQuestRate(player, GROCERY_STORE_MANIFEST, 1);
 							htmltext = "32167-02.html";
 							break;
 						}

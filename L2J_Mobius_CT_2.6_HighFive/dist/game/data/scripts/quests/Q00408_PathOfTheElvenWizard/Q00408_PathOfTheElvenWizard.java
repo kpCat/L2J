@@ -110,7 +110,7 @@ public class Q00408_PathOfTheElvenWizard extends Quest
 				{
 					if (!hasQuestItems(player, FERTILITY_PERIDOT))
 					{
-						giveItems(player, FERTILITY_PERIDOT, 1);
+						giveItemsWithoutQuestRate(player, FERTILITY_PERIDOT, 1);
 					}
 					
 					qs.startQuest();
@@ -133,7 +133,7 @@ public class Q00408_PathOfTheElvenWizard extends Quest
 				{
 					if (!hasQuestItems(player, ROSELLAS_LETTER))
 					{
-						giveItems(player, ROSELLAS_LETTER, 1);
+						giveItemsWithoutQuestRate(player, ROSELLAS_LETTER, 1);
 					}
 					
 					htmltext = "30414-07.html";
@@ -150,7 +150,7 @@ public class Q00408_PathOfTheElvenWizard extends Quest
 				{
 					if (!hasQuestItems(player, APPETIZING_APPLE))
 					{
-						giveItems(player, APPETIZING_APPLE, 1);
+						giveItemsWithoutQuestRate(player, APPETIZING_APPLE, 1);
 					}
 					
 					htmltext = "30414-13.html";
@@ -167,7 +167,7 @@ public class Q00408_PathOfTheElvenWizard extends Quest
 				{
 					if (!hasQuestItems(player, IMMORTAL_LOVE))
 					{
-						giveItems(player, IMMORTAL_LOVE, 1);
+						giveItemsWithoutQuestRate(player, IMMORTAL_LOVE, 1);
 					}
 					
 					htmltext = "30414-17.html";
@@ -181,7 +181,7 @@ public class Q00408_PathOfTheElvenWizard extends Quest
 					takeItems(player, ROSELLAS_LETTER, 1);
 					if (!hasQuestItems(player, GREENISS_CHARM))
 					{
-						giveItems(player, GREENISS_CHARM, 1);
+						giveItemsWithoutQuestRate(player, GREENISS_CHARM, 1);
 					}
 				}
 				
@@ -195,7 +195,7 @@ public class Q00408_PathOfTheElvenWizard extends Quest
 					takeItems(player, APPETIZING_APPLE, 1);
 					if (!hasQuestItems(player, SAP_OF_THE_MOTHER_TREE))
 					{
-						giveItems(player, SAP_OF_THE_MOTHER_TREE, 1);
+						giveItemsWithoutQuestRate(player, SAP_OF_THE_MOTHER_TREE, 1);
 					}
 				}
 				
@@ -341,7 +341,7 @@ public class Q00408_PathOfTheElvenWizard extends Quest
 							giveAdena(player, 163800, true);
 							if (!hasQuestItems(player, ETERNITY_DIAMOND))
 							{
-								giveItems(player, ETERNITY_DIAMOND, 1);
+								giveItemsWithoutQuestRate(player, ETERNITY_DIAMOND, 1);
 							}
 							
 							final int level = player.getLevel();
@@ -382,7 +382,7 @@ public class Q00408_PathOfTheElvenWizard extends Quest
 							takeItems(player, RED_DOWN, -1);
 							if (!hasQuestItems(player, MAGICAL_POWERS_RUBY))
 							{
-								giveItems(player, MAGICAL_POWERS_RUBY, 1);
+								giveItemsWithoutQuestRate(player, MAGICAL_POWERS_RUBY, 1);
 							}
 							
 							takeItems(player, GREENISS_CHARM, 1);
@@ -407,7 +407,7 @@ public class Q00408_PathOfTheElvenWizard extends Quest
 						{
 							if (!hasQuestItems(player, PURE_AQUAMARINE))
 							{
-								giveItems(player, PURE_AQUAMARINE, 1);
+								giveItemsWithoutQuestRate(player, PURE_AQUAMARINE, 1);
 							}
 							
 							takeItems(player, GOLD_LEAVES, -1);
@@ -424,7 +424,7 @@ public class Q00408_PathOfTheElvenWizard extends Quest
 						takeItems(player, IMMORTAL_LOVE, 1);
 						if (!hasQuestItems(player, LUCKY_POTPOURRI))
 						{
-							giveItems(player, LUCKY_POTPOURRI, 1);
+							giveItemsWithoutQuestRate(player, LUCKY_POTPOURRI, 1);
 						}
 						
 						htmltext = "30423-01.html";
@@ -440,7 +440,7 @@ public class Q00408_PathOfTheElvenWizard extends Quest
 							takeItems(player, AMETHYST, -1);
 							if (!hasQuestItems(player, NOBILITY_AMETHYST))
 							{
-								giveItems(player, NOBILITY_AMETHYST, 1);
+								giveItemsWithoutQuestRate(player, NOBILITY_AMETHYST, 1);
 							}
 							
 							takeItems(player, LUCKY_POTPOURRI, 1);

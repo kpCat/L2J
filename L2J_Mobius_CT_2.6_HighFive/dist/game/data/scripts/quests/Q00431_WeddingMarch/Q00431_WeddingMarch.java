@@ -79,7 +79,7 @@ public class Q00431_WeddingMarch extends Quest
 				return "31042-05.html";
 			}
 			
-			giveItems(player, WEDDING_ECHO_CRYSTAL, 25);
+			rewardItems(player, WEDDING_ECHO_CRYSTAL, 25);
 			qs.exitQuest(true, true);
 			htmltext = event;
 		}

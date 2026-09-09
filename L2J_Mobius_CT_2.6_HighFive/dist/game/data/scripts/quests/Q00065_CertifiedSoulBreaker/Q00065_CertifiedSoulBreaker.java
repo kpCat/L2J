@@ -228,7 +228,7 @@ public class Q00065_CertifiedSoulBreaker extends Quest
 				if (qs.isMemoState(23))
 				{
 					takeItems(player, WYRM_HEART, -1);
-					giveItems(player, KEKROPUS_RECOMMENDATION, 1);
+					giveItemsWithoutQuestRate(player, KEKROPUS_RECOMMENDATION, 1);
 					qs.setMemoState(24);
 					qs.setCond(17, true);
 					htmltext = event;
@@ -390,7 +390,7 @@ public class Q00065_CertifiedSoulBreaker extends Quest
 					else if (memoState == 24)
 					{
 						giveAdena(player, 71194, true);
-						giveItems(player, SOUL_BREAKER_CERTIFICATE, 1);
+						giveItemsWithoutQuestRate(player, SOUL_BREAKER_CERTIFICATE, 1);
 						addExpAndSp(player, 393750, 27020);
 						qs.exitQuest(false, true);
 						player.sendPacket(new SocialAction(player.getObjectId(), 3));

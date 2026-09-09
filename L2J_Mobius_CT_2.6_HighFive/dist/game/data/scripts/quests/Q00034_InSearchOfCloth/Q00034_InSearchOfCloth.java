@@ -103,7 +103,7 @@ public class Q00034_InSearchOfCloth extends Quest
 				}
 				
 				takeItems(player, SPINNERET, SPINNERET_COUNT);
-				giveItems(player, SKEIN_OF_YARN, 1);
+				giveItemsWithoutQuestRate(player, SKEIN_OF_YARN, 1);
 				qs.setCond(6, true);
 				break;
 			}
@@ -114,7 +114,7 @@ public class Q00034_InSearchOfCloth extends Quest
 					takeItems(player, SKEIN_OF_YARN, 1);
 					takeItems(player, SUEDE, SUEDE_COUNT);
 					takeItems(player, THREAD, THREAD_COUNT);
-					giveItems(player, MYSTERIOUS_CLOTH, 1);
+					rewardItems(player, MYSTERIOUS_CLOTH, 1);
 					qs.exitQuest(false, true);
 				}
 				else

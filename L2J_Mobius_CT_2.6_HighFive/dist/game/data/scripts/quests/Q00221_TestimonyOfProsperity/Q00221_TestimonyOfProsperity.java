@@ -147,7 +147,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 					qs.startQuest();
 					if (!hasQuestItems(player, RING_OF_TESTIMONY_1ST))
 					{
-						giveItems(player, RING_OF_TESTIMONY_1ST, 1);
+						giveItemsWithoutQuestRate(player, RING_OF_TESTIMONY_1ST, 1);
 					}
 					
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
@@ -167,12 +167,12 @@ public class Q00221_TestimonyOfProsperity extends Quest
 			case "30104-08.html":
 			{
 				takeItems(player, RING_OF_TESTIMONY_1ST, 1);
-				giveItems(player, RING_OF_TESTIMONY_2ND, 1);
+				giveItemsWithoutQuestRate(player, RING_OF_TESTIMONY_2ND, 1);
 				takeItems(player, OLD_ACCOUNT_BOOK, 1);
 				takeItems(player, BLESSED_SEED, 1);
 				takeItems(player, EMILYS_RECIPE, 1);
 				takeItems(player, LILITHS_ELVEN_WAFER, 1);
-				giveItems(player, PARMANS_LETTER, 1);
+				giveItemsWithoutQuestRate(player, PARMANS_LETTER, 1);
 				qs.setCond(4, true);
 				htmltext = event;
 				break;
@@ -199,7 +199,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 			}
 			case "30005-04.html":
 			{
-				giveItems(player, CRYSTAL_BROOCH, 1);
+				giveItemsWithoutQuestRate(player, CRYSTAL_BROOCH, 1);
 				htmltext = event;
 				break;
 			}
@@ -207,7 +207,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 			{
 				if (hasQuestItems(player, CRYSTAL_BROOCH))
 				{
-					giveItems(player, LILITHS_ELVEN_WAFER, 1);
+					giveItemsWithoutQuestRate(player, LILITHS_ELVEN_WAFER, 1);
 					takeItems(player, CRYSTAL_BROOCH, 1);
 					if (hasQuestItems(player, OLD_ACCOUNT_BOOK, BLESSED_SEED, EMILYS_RECIPE))
 					{
@@ -220,18 +220,18 @@ public class Q00221_TestimonyOfProsperity extends Quest
 			}
 			case "30466-03.html":
 			{
-				giveItems(player, BRIGHTS_LIST, 1);
+				giveItemsWithoutQuestRate(player, BRIGHTS_LIST, 1);
 				htmltext = event;
 				break;
 			}
 			case "30531-03.html":
 			{
-				giveItems(player, COLLECTION_LICENSE, 1);
-				giveItems(player, LOCKIRINS_1ST_NOTICE, 1);
-				giveItems(player, LOCKIRINS_2ND_NOTICE, 1);
-				giveItems(player, LOCKIRINS_3RD_NOTICE, 1);
-				giveItems(player, LOCKIRINS_4TH_NOTICE, 1);
-				giveItems(player, LOCKIRINS_5TH_NOTICE, 1);
+				giveItemsWithoutQuestRate(player, COLLECTION_LICENSE, 1);
+				giveItemsWithoutQuestRate(player, LOCKIRINS_1ST_NOTICE, 1);
+				giveItemsWithoutQuestRate(player, LOCKIRINS_2ND_NOTICE, 1);
+				giveItemsWithoutQuestRate(player, LOCKIRINS_3RD_NOTICE, 1);
+				giveItemsWithoutQuestRate(player, LOCKIRINS_4TH_NOTICE, 1);
+				giveItemsWithoutQuestRate(player, LOCKIRINS_5TH_NOTICE, 1);
 				htmltext = event;
 				break;
 			}
@@ -244,7 +244,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 				else if (hasQuestItems(player, PROCURATION_OF_TOROCCO))
 				{
 					takeItems(player, ADENA, 5000);
-					giveItems(player, RECEIPT_OF_CONTRIBUTION_3RD, 1);
+					giveItemsWithoutQuestRate(player, RECEIPT_OF_CONTRIBUTION_3RD, 1);
 					takeItems(player, PROCURATION_OF_TOROCCO, 1);
 					htmltext = "30534-03b.html";
 				}
@@ -252,13 +252,13 @@ public class Q00221_TestimonyOfProsperity extends Quest
 			}
 			case "30555-02.html":
 			{
-				giveItems(player, PROCURATION_OF_TOROCCO, 1);
+				giveItemsWithoutQuestRate(player, PROCURATION_OF_TOROCCO, 1);
 				htmltext = event;
 				break;
 			}
 			case "30597-02.html":
 			{
-				giveItems(player, BLESSED_SEED, 1);
+				giveItemsWithoutQuestRate(player, BLESSED_SEED, 1);
 				if (hasQuestItems(player, OLD_ACCOUNT_BOOK, EMILYS_RECIPE, LILITHS_ELVEN_WAFER))
 				{
 					qs.setCond(2, true);
@@ -271,7 +271,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 			{
 				if (hasQuestItems(player, MANDRAGORA_BOUGUET))
 				{
-					giveItems(player, EMILYS_RECIPE, 1);
+					giveItemsWithoutQuestRate(player, EMILYS_RECIPE, 1);
 					takeItems(player, MANDRAGORA_BOUGUET, 1);
 					if (hasQuestItems(player, OLD_ACCOUNT_BOOK, BLESSED_SEED, LILITHS_ELVEN_WAFER))
 					{
@@ -284,7 +284,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 			}
 			case "30621-04.html":
 			{
-				giveItems(player, CLAY_DOUGH, 1);
+				giveItemsWithoutQuestRate(player, CLAY_DOUGH, 1);
 				qs.setCond(5, true);
 				htmltext = event;
 				break;
@@ -294,7 +294,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 				if (hasQuestItems(player, CLAY_DOUGH))
 				{
 					takeItems(player, CLAY_DOUGH, 1);
-					giveItems(player, PATTERN_OF_KEYHOLE, 1);
+					giveItemsWithoutQuestRate(player, PATTERN_OF_KEYHOLE, 1);
 					qs.setCond(6, true);
 					htmltext = event;
 				}
@@ -305,7 +305,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 				if (hasQuestItems(player, KEY_OF_TITAN))
 				{
 					takeItems(player, KEY_OF_TITAN, 1);
-					giveItems(player, MAPHR_TABLET_FRAGMENT, 1);
+					giveItemsWithoutQuestRate(player, MAPHR_TABLET_FRAGMENT, 1);
 					takeItems(player, NIKOLAS_LIST, 1);
 					takeItems(player, RECIPE_TITAN_KEY, 1);
 					takeItems(player, STAKATO_SHELL, -1);
@@ -478,8 +478,8 @@ public class Q00221_TestimonyOfProsperity extends Quest
 					else if (hasQuestItems(player, PARMANS_INSTRUCTIONS))
 					{
 						takeItems(player, PARMANS_INSTRUCTIONS, 1);
-						giveItems(player, RING_OF_TESTIMONY_2ND, 1);
-						giveItems(player, PARMANS_LETTER, 1);
+						giveItemsWithoutQuestRate(player, RING_OF_TESTIMONY_2ND, 1);
+						giveItemsWithoutQuestRate(player, PARMANS_LETTER, 1);
 						qs.setCond(4, true);
 						htmltext = "30104-10.html";
 					}
@@ -496,7 +496,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 						else if (hasQuestItems(player, MAPHR_TABLET_FRAGMENT))
 						{
 							giveAdena(player, 217682, true);
-							giveItems(player, MARK_OF_PROSPERITY, 1);
+							giveItemsWithoutQuestRate(player, MARK_OF_PROSPERITY, 1);
 							addExpAndSp(player, 1199958, 80080);
 							qs.exitQuest(false, true);
 							player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -566,7 +566,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 								takeItems(player, BRIGHTS_LIST, 1);
 								takeItems(player, MANDRAGORA_PETAL, -1);
 								takeItems(player, CRIMSON_MOSS, -1);
-								giveItems(player, MANDRAGORA_BOUGUET, 1);
+								giveItemsWithoutQuestRate(player, MANDRAGORA_BOUGUET, 1);
 								htmltext = "30466-05.html";
 							}
 						}
@@ -591,7 +591,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 					{
 						if (!hasAtLeastOneQuestItem(player, RECEIPT_OF_CONTRIBUTION_1ST, CONTRIBUTION_OF_SHARI, LOCKIRINS_1ST_NOTICE))
 						{
-							giveItems(player, CONTRIBUTION_OF_SHARI, 1);
+							giveItemsWithoutQuestRate(player, CONTRIBUTION_OF_SHARI, 1);
 							htmltext = "30517-01.html";
 						}
 						else if (hasQuestItems(player, CONTRIBUTION_OF_SHARI) && !hasAtLeastOneQuestItem(player, LOCKIRINS_1ST_NOTICE, RECEIPT_OF_CONTRIBUTION_1ST))
@@ -607,7 +607,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 					{
 						if (!hasAtLeastOneQuestItem(player, RECEIPT_OF_CONTRIBUTION_2ND, CONTRIBUTION_OF_MION, LOCKIRINS_2ND_NOTICE))
 						{
-							giveItems(player, CONTRIBUTION_OF_MION, 1);
+							giveItemsWithoutQuestRate(player, CONTRIBUTION_OF_MION, 1);
 							htmltext = "30519-01.html";
 						}
 						else if (hasQuestItems(player, CONTRIBUTION_OF_MION) && !hasAtLeastOneQuestItem(player, LOCKIRINS_2ND_NOTICE, RECEIPT_OF_CONTRIBUTION_2ND))
@@ -629,7 +629,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 						{
 							if (hasQuestItems(player, RECEIPT_OF_CONTRIBUTION_1ST, RECEIPT_OF_CONTRIBUTION_2ND, RECEIPT_OF_CONTRIBUTION_3RD, RECEIPT_OF_CONTRIBUTION_4TH, RECEIPT_OF_CONTRIBUTION_5TH))
 							{
-								giveItems(player, OLD_ACCOUNT_BOOK, 1);
+								giveItemsWithoutQuestRate(player, OLD_ACCOUNT_BOOK, 1);
 								takeItems(player, COLLECTION_LICENSE, 1);
 								takeItems(player, RECEIPT_OF_CONTRIBUTION_1ST, 1);
 								takeItems(player, RECEIPT_OF_CONTRIBUTION_2ND, 1);
@@ -676,7 +676,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 						else if (hasQuestItems(player, CONTRIBUTION_OF_SHARI) && !hasAtLeastOneQuestItem(player, RECEIPT_OF_CONTRIBUTION_1ST, LOCKIRINS_1ST_NOTICE))
 						{
 							takeItems(player, CONTRIBUTION_OF_SHARI, 1);
-							giveItems(player, RECEIPT_OF_CONTRIBUTION_1ST, 1);
+							giveItemsWithoutQuestRate(player, RECEIPT_OF_CONTRIBUTION_1ST, 1);
 							htmltext = "30532-03.html";
 						}
 						else if (hasQuestItems(player, RECEIPT_OF_CONTRIBUTION_1ST) && !hasAtLeastOneQuestItem(player, CONTRIBUTION_OF_SHARI, LOCKIRINS_1ST_NOTICE))
@@ -703,7 +703,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 						{
 							takeItems(player, CONTRIBUTION_OF_MION, 1);
 							takeItems(player, CONTRIBUTION_OF_MARYSE, 1);
-							giveItems(player, RECEIPT_OF_CONTRIBUTION_2ND, 1);
+							giveItemsWithoutQuestRate(player, RECEIPT_OF_CONTRIBUTION_2ND, 1);
 							htmltext = "30533-03.html";
 						}
 						else if (!hasQuestItems(player, LOCKIRINS_2ND_NOTICE) && hasQuestItems(player, RECEIPT_OF_CONTRIBUTION_2ND) && !hasQuestItems(player, CONTRIBUTION_OF_MION, CONTRIBUTION_OF_MARYSE))
@@ -753,7 +753,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 						else if (hasQuestItems(player, RECEIPT_OF_BOLTER) && !hasAtLeastOneQuestItem(player, RECEIPT_OF_CONTRIBUTION_4TH, LOCKIRINS_4TH_NOTICE))
 						{
 							takeItems(player, RECEIPT_OF_BOLTER, 1);
-							giveItems(player, RECEIPT_OF_CONTRIBUTION_4TH, 1);
+							giveItemsWithoutQuestRate(player, RECEIPT_OF_CONTRIBUTION_4TH, 1);
 							htmltext = "30535-03.html";
 						}
 						else if (hasQuestItems(player, RECEIPT_OF_CONTRIBUTION_4TH) && !hasAtLeastOneQuestItem(player, RECEIPT_OF_BOLTER, LOCKIRINS_4TH_NOTICE))
@@ -779,7 +779,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 						else if (hasQuestItems(player, CONTRIBUTION_OF_TOMA) && !hasAtLeastOneQuestItem(player, RECEIPT_OF_CONTRIBUTION_5TH, LOCKIRINS_5TH_NOTICE))
 						{
 							takeItems(player, CONTRIBUTION_OF_TOMA, 1);
-							giveItems(player, RECEIPT_OF_CONTRIBUTION_5TH, 1);
+							giveItemsWithoutQuestRate(player, RECEIPT_OF_CONTRIBUTION_5TH, 1);
 							htmltext = "30536-03.html";
 						}
 						else if (hasQuestItems(player, RECEIPT_OF_CONTRIBUTION_5TH) && !hasAtLeastOneQuestItem(player, CONTRIBUTION_OF_TOMA, LOCKIRINS_5TH_NOTICE))
@@ -795,7 +795,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 					{
 						if (!hasAtLeastOneQuestItem(player, RECEIPT_OF_CONTRIBUTION_2ND, CONTRIBUTION_OF_MARYSE, LOCKIRINS_2ND_NOTICE, MARYSES_REQUEST))
 						{
-							giveItems(player, MARYSES_REQUEST, 1);
+							giveItemsWithoutQuestRate(player, MARYSES_REQUEST, 1);
 							htmltext = "30553-01.html";
 						}
 						else if (hasQuestItems(player, MARYSES_REQUEST) && !hasAtLeastOneQuestItem(player, RECEIPT_OF_CONTRIBUTION_2ND, CONTRIBUTION_OF_MARYSE, LOCKIRINS_2ND_NOTICE))
@@ -807,7 +807,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 							else
 							{
 								takeItems(player, ANIMAL_SKIN, 10);
-								giveItems(player, CONTRIBUTION_OF_MARYSE, 1);
+								giveItemsWithoutQuestRate(player, CONTRIBUTION_OF_MARYSE, 1);
 								takeItems(player, MARYSES_REQUEST, 1);
 								htmltext = "30553-03.html";
 							}
@@ -825,7 +825,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 					{
 						if (!hasAtLeastOneQuestItem(player, RECEIPT_OF_CONTRIBUTION_4TH, RECEIPT_OF_BOLTER, LOCKIRINS_4TH_NOTICE))
 						{
-							giveItems(player, RECEIPT_OF_BOLTER, 1);
+							giveItemsWithoutQuestRate(player, RECEIPT_OF_BOLTER, 1);
 							htmltext = "30554-01.html";
 						}
 						else if (hasQuestItems(player, RECEIPT_OF_BOLTER) && !hasAtLeastOneQuestItem(player, RECEIPT_OF_CONTRIBUTION_4TH, LOCKIRINS_4TH_NOTICE))
@@ -856,7 +856,7 @@ public class Q00221_TestimonyOfProsperity extends Quest
 					{
 						if (!hasAtLeastOneQuestItem(player, RECEIPT_OF_CONTRIBUTION_5TH, CONTRIBUTION_OF_TOMA, LOCKIRINS_5TH_NOTICE))
 						{
-							giveItems(player, CONTRIBUTION_OF_TOMA, 1);
+							giveItemsWithoutQuestRate(player, CONTRIBUTION_OF_TOMA, 1);
 							htmltext = "30556-01.html";
 						}
 						else if (hasQuestItems(player, CONTRIBUTION_OF_TOMA) && !hasAtLeastOneQuestItem(player, RECEIPT_OF_CONTRIBUTION_5TH, LOCKIRINS_5TH_NOTICE))
@@ -919,9 +919,9 @@ public class Q00221_TestimonyOfProsperity extends Quest
 						}
 						else if (hasQuestItems(player, PATTERN_OF_KEYHOLE) && !hasAtLeastOneQuestItem(player, CLAY_DOUGH, NIKOLAS_LIST, MAPHR_TABLET_FRAGMENT))
 						{
-							giveItems(player, RECIPE_TITAN_KEY, 1);
+							giveItemsWithoutQuestRate(player, RECIPE_TITAN_KEY, 1);
 							takeItems(player, PATTERN_OF_KEYHOLE, 1);
-							giveItems(player, NIKOLAS_LIST, 1);
+							giveItemsWithoutQuestRate(player, NIKOLAS_LIST, 1);
 							qs.setCond(7, true);
 							htmltext = "30621-06.html";
 						}

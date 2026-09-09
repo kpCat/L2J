@@ -179,12 +179,12 @@ public class Q10280_MutatedKaneusSchuttgart extends Quest
 	{
 		if ((npcId == VENOMOUS_STORACE) && !hasQuestItems(player, TISSUE_VS))
 		{
-			giveItems(player, TISSUE_VS, 1);
+			giveItemsWithoutQuestRate(player, TISSUE_VS, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 		}
 		else if ((npcId == KEL_BILETTE) && !hasQuestItems(player, TISSUE_KB))
 		{
-			giveItems(player, TISSUE_KB, 1);
+			giveItemsWithoutQuestRate(player, TISSUE_KB, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 		}
 	}

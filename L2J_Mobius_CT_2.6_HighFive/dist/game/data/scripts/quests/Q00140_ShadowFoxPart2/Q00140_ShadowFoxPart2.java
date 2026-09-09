@@ -118,12 +118,12 @@ public class Q00140_ShadowFoxPart2 extends Quest
 				{
 					if (getQuestItemsCount(player, DARK_OXYDE) < OXYDE_COUNT)
 					{
-						giveItems(player, DARK_OXYDE, 1);
+						giveItemsWithoutQuestRate(player, DARK_OXYDE, 1);
 						takeItems(player, DARK_CRYSTAL, 5);
 						return "30912-12.html";
 					}
 					
-					giveItems(player, CRYPTOGRAM_OF_THE_GODDESS_SWORD, 1);
+					giveItemsWithoutQuestRate(player, CRYPTOGRAM_OF_THE_GODDESS_SWORD, 1);
 					takeItems(player, DARK_CRYSTAL, -1);
 					takeItems(player, DARK_OXYDE, -1);
 					qs.setCond(4, true);

@@ -56,7 +56,7 @@ public class Q00110_ToThePrimevalIsle extends Quest
 		{
 			case "31338-1.html":
 			{
-				giveItems(player, ANCIENT_BOOK, 1);
+				giveItemsWithoutQuestRate(player, ANCIENT_BOOK, 1);
 				qs.startQuest();
 				break;
 			}

@@ -157,7 +157,7 @@ public class Q00117_TheOceanOfDistantStars extends Quest
 				{
 					qs.setMemoState(5);
 					qs.setCond(5, true);
-					giveItems(player, ENGRAVED_HAMMER, 1);
+					giveItemsWithoutQuestRate(player, ENGRAVED_HAMMER, 1);
 					htmltext = event;
 				}
 				break;

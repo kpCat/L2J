@@ -68,7 +68,7 @@ public class Q00552_OlympiadVeteran extends Quest
 			final long count = getQuestItemsCount(player, TEAM_EVENT_CERTIFICATE) + getQuestItemsCount(player, CLASS_FREE_BATTLE_CERTIFICATE) + getQuestItemsCount(player, CLASS_BATTLE_CERTIFICATE);
 			if (count > 0)
 			{
-				giveItems(player, OLY_CHEST, count);
+				rewardItems(player, OLY_CHEST, count);
 				qs.exitQuest(QuestType.DAILY, true);
 			}
 			else
@@ -103,7 +103,7 @@ public class Q00552_OlympiadVeteran extends Quest
 						qs.set("classed", String.valueOf(matches));
 						if ((matches == 5) && !hasQuestItems(player, CLASS_BATTLE_CERTIFICATE))
 						{
-							giveItems(player, CLASS_BATTLE_CERTIFICATE, 1);
+							giveItemsWithoutQuestRate(player, CLASS_BATTLE_CERTIFICATE, 1);
 						}
 						break;
 					}
@@ -113,7 +113,7 @@ public class Q00552_OlympiadVeteran extends Quest
 						qs.set("nonclassed", String.valueOf(matches));
 						if ((matches == 5) && !hasQuestItems(player, CLASS_FREE_BATTLE_CERTIFICATE))
 						{
-							giveItems(player, CLASS_FREE_BATTLE_CERTIFICATE, 1);
+							giveItemsWithoutQuestRate(player, CLASS_FREE_BATTLE_CERTIFICATE, 1);
 						}
 						break;
 					}
@@ -123,7 +123,7 @@ public class Q00552_OlympiadVeteran extends Quest
 						qs.set("teams", String.valueOf(matches));
 						if ((matches == 5) && !hasQuestItems(player, TEAM_EVENT_CERTIFICATE))
 						{
-							giveItems(player, TEAM_EVENT_CERTIFICATE, 1);
+							giveItemsWithoutQuestRate(player, TEAM_EVENT_CERTIFICATE, 1);
 						}
 						break;
 					}
@@ -151,7 +151,7 @@ public class Q00552_OlympiadVeteran extends Quest
 						qs.set("classed", String.valueOf(matches));
 						if (matches == 5)
 						{
-							giveItems(player, CLASS_BATTLE_CERTIFICATE, 1);
+							giveItemsWithoutQuestRate(player, CLASS_BATTLE_CERTIFICATE, 1);
 						}
 						break;
 					}
@@ -161,7 +161,7 @@ public class Q00552_OlympiadVeteran extends Quest
 						qs.set("nonclassed", String.valueOf(matches));
 						if (matches == 5)
 						{
-							giveItems(player, CLASS_FREE_BATTLE_CERTIFICATE, 1);
+							giveItemsWithoutQuestRate(player, CLASS_FREE_BATTLE_CERTIFICATE, 1);
 						}
 						break;
 					}
@@ -171,7 +171,7 @@ public class Q00552_OlympiadVeteran extends Quest
 						qs.set("teams", String.valueOf(matches));
 						if (matches == 5)
 						{
-							giveItems(player, TEAM_EVENT_CERTIFICATE, 1);
+							giveItemsWithoutQuestRate(player, TEAM_EVENT_CERTIFICATE, 1);
 						}
 						break;
 					}
@@ -211,7 +211,7 @@ public class Q00552_OlympiadVeteran extends Quest
 			if (count == 3)
 			{
 				htmltext = "31688-04.html";
-				giveItems(player, OLY_CHEST, 4);
+				rewardItems(player, OLY_CHEST, 4);
 				qs.exitQuest(QuestType.DAILY, true);
 			}
 			else

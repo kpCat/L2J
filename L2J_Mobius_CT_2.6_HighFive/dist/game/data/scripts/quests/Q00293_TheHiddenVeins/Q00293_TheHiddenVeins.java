@@ -100,7 +100,7 @@ public class Q00293_TheHiddenVeins extends Quest
 			{
 				if (getQuestItemsCount(player, TORN_MAP_FRAGMENT) >= REQUIRED_TORN_MAP_FRAGMENT)
 				{
-					giveItems(player, HIDDEN_ORE_MAP, 1);
+					giveItemsWithoutQuestRate(player, HIDDEN_ORE_MAP, 1);
 					takeItems(player, TORN_MAP_FRAGMENT, REQUIRED_TORN_MAP_FRAGMENT);
 					htmltext = event;
 				}

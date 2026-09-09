@@ -179,12 +179,12 @@ public class Q10278_MutatedKaneusHeine extends Quest
 	{
 		if ((npcId == BLADE_OTIS) && !hasQuestItems(player, TISSUE_BO))
 		{
-			giveItems(player, TISSUE_BO, 1);
+			giveItemsWithoutQuestRate(player, TISSUE_BO, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 		}
 		else if ((npcId == WEIRD_BUNEI) && !hasQuestItems(player, TISSUE_WB))
 		{
-			giveItems(player, TISSUE_WB, 1);
+			giveItemsWithoutQuestRate(player, TISSUE_WB, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 		}
 	}

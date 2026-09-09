@@ -154,7 +154,7 @@ public class Q00162_CurseOfTheUndergroundFortress extends Quest
 			{
 				if ((getQuestItemsCount(player, BONE_FRAGMENT) + getQuestItemsCount(player, ELF_SKULL)) >= REQUIRED_COUNT)
 				{
-					giveItems(player, BONE_SHIELD, 1);
+					rewardItems(player, BONE_SHIELD, 1);
 					addExpAndSp(player, 22652, 1004);
 					giveAdena(player, 24000, true);
 					qs.exitQuest(false, true);

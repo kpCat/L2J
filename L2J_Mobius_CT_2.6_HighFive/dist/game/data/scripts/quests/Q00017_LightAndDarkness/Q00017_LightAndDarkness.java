@@ -70,7 +70,7 @@ public class Q00017_LightAndDarkness extends Quest
 				if (player.getLevel() >= 61)
 				{
 					qs.startQuest();
-					giveItems(player, BLOOD_OF_SAINT, 4);
+					giveItemsWithoutQuestRate(player, BLOOD_OF_SAINT, 4);
 				}
 				else
 				{

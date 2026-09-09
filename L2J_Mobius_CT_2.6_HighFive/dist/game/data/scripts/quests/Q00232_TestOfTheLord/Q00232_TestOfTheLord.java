@@ -128,7 +128,7 @@ public class Q00232_TestOfTheLord extends Quest
 				if (qs.isCreated())
 				{
 					qs.startQuest();
-					giveItems(player, ORDEAL_NECKLACE, 1);
+					giveItemsWithoutQuestRate(player, ORDEAL_NECKLACE, 1);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
 						giveItems(player, DIMENSIONAL_DIAMOND, 92);
@@ -162,7 +162,7 @@ public class Q00232_TestOfTheLord extends Quest
 					takeItems(player, AXE_OF_CEREMONY, 1);
 					takeItems(player, HANDIWORK_SPIDER_BROOCH, 1);
 					takeItems(player, MONSTER_EYE_WOODCARVING, 1);
-					giveItems(player, BEAR_FANG_NECKLACE, 1);
+					giveItemsWithoutQuestRate(player, BEAR_FANG_NECKLACE, 1);
 					qs.setCond(3, true);
 					htmltext = event;
 				}
@@ -173,38 +173,38 @@ public class Q00232_TestOfTheLord extends Quest
 				if (getQuestItemsCount(player, ADENA) >= 1000)
 				{
 					takeItems(player, ADENA, 1000);
-					giveItems(player, NERUGA_AXE_BLADE, 1);
+					giveItemsWithoutQuestRate(player, NERUGA_AXE_BLADE, 1);
 					htmltext = event;
 				}
 				break;
 			}
 			case "30566-02.html":
 			{
-				giveItems(player, VARKEES_CHARM, 1);
+				giveItemsWithoutQuestRate(player, VARKEES_CHARM, 1);
 				htmltext = event;
 				break;
 			}
 			case "30567-02.html":
 			{
-				giveItems(player, TANTUS_CHARM, 1);
+				giveItemsWithoutQuestRate(player, TANTUS_CHARM, 1);
 				htmltext = event;
 				break;
 			}
 			case "30568-02.html":
 			{
-				giveItems(player, HATOS_CHARM, 1);
+				giveItemsWithoutQuestRate(player, HATOS_CHARM, 1);
 				htmltext = event;
 				break;
 			}
 			case "30641-02.html":
 			{
-				giveItems(player, TAKUNA_CHARM, 1);
+				giveItemsWithoutQuestRate(player, TAKUNA_CHARM, 1);
 				htmltext = event;
 				break;
 			}
 			case "30642-02.html":
 			{
-				giveItems(player, CHIANTA_CHARM, 1);
+				giveItemsWithoutQuestRate(player, CHIANTA_CHARM, 1);
 				htmltext = event;
 				break;
 			}
@@ -213,7 +213,7 @@ public class Q00232_TestOfTheLord extends Quest
 				if (hasQuestItems(player, BEAR_FANG_NECKLACE))
 				{
 					takeItems(player, BEAR_FANG_NECKLACE, 1);
-					giveItems(player, MARTANKUS_CHARM, 1);
+					giveItemsWithoutQuestRate(player, MARTANKUS_CHARM, 1);
 					qs.setCond(4, true);
 					htmltext = event;
 				}
@@ -339,7 +339,7 @@ public class Q00232_TestOfTheLord extends Quest
 						}
 						else if (!hasQuestItems(killer, RAGNA_ORC_HEAD))
 						{
-							giveItems(killer, RAGNA_ORC_HEAD, 1);
+							giveItemsWithoutQuestRate(killer, RAGNA_ORC_HEAD, 1);
 							qs.setCond(5, true);
 						}
 					}
@@ -404,7 +404,7 @@ public class Q00232_TestOfTheLord extends Quest
 					else if (hasQuestItems(player, IMMORTAL_FLAME))
 					{
 						giveAdena(player, 161806, true);
-						giveItems(player, MARK_OF_LORD, 1);
+						giveItemsWithoutQuestRate(player, MARK_OF_LORD, 1);
 						addExpAndSp(player, 894888, 61408);
 						qs.exitQuest(false, true);
 						player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -417,7 +417,7 @@ public class Q00232_TestOfTheLord extends Quest
 					if (hasQuestItems(player, ORDEAL_NECKLACE, HATOS_CHARM, SUMARIS_LETTER) && !hasAtLeastOneQuestItem(player, SWORD_INTO_SKULL, URUTU_BLADE))
 					{
 						takeItems(player, SUMARIS_LETTER, 1);
-						giveItems(player, URUTU_BLADE, 1);
+						giveItemsWithoutQuestRate(player, URUTU_BLADE, 1);
 						htmltext = "30510-01.html";
 					}
 					else if (hasQuestItems(player, ORDEAL_NECKLACE, HATOS_CHARM, URUTU_BLADE) && !hasAtLeastOneQuestItem(player, SWORD_INTO_SKULL, SUMARIS_LETTER))
@@ -434,7 +434,7 @@ public class Q00232_TestOfTheLord extends Quest
 				{
 					if (hasQuestItems(player, ORDEAL_NECKLACE, VARKEES_CHARM) && !hasAtLeastOneQuestItem(player, HUGE_ORC_FANG, MANAKIAS_AMULET, MANAKIAS_ORDERS))
 					{
-						giveItems(player, MANAKIAS_ORDERS, 1);
+						giveItemsWithoutQuestRate(player, MANAKIAS_ORDERS, 1);
 						htmltext = "30515-01.html";
 					}
 					else if (hasQuestItems(player, VARKEES_CHARM, ORDEAL_NECKLACE, MANAKIAS_ORDERS) && !hasAtLeastOneQuestItem(player, HUGE_ORC_FANG, MANAKIAS_AMULET))
@@ -447,7 +447,7 @@ public class Q00232_TestOfTheLord extends Quest
 						{
 							takeItems(player, MANAKIAS_ORDERS, 1);
 							takeItems(player, BREKA_ORC_FANG, -1);
-							giveItems(player, MANAKIAS_AMULET, 1);
+							giveItemsWithoutQuestRate(player, MANAKIAS_AMULET, 1);
 							htmltext = "30515-03.html";
 						}
 					}
@@ -488,7 +488,7 @@ public class Q00232_TestOfTheLord extends Quest
 				{
 					if (hasQuestItems(player, HATOS_CHARM, ORDEAL_NECKLACE) && !hasAtLeastOneQuestItem(player, SWORD_INTO_SKULL, URUTU_BLADE, SUMARIS_LETTER))
 					{
-						giveItems(player, SUMARIS_LETTER, 1);
+						giveItemsWithoutQuestRate(player, SUMARIS_LETTER, 1);
 						htmltext = "30564-01.html";
 					}
 					else if (hasQuestItems(player, ORDEAL_NECKLACE, HATOS_CHARM, SUMARIS_LETTER) && !hasAtLeastOneQuestItem(player, SWORD_INTO_SKULL, URUTU_BLADE))
@@ -519,7 +519,7 @@ public class Q00232_TestOfTheLord extends Quest
 					{
 						takeItems(player, VARKEES_CHARM, 1);
 						takeItems(player, MANAKIAS_AMULET, 1);
-						giveItems(player, HUGE_ORC_FANG, 1);
+						giveItemsWithoutQuestRate(player, HUGE_ORC_FANG, 1);
 						if (hasQuestItems(player, AXE_OF_CEREMONY, SWORD_INTO_SKULL, HANDIWORK_SPIDER_BROOCH, MONSTER_EYE_WOODCARVING))
 						{
 							qs.setCond(2, true);
@@ -550,7 +550,7 @@ public class Q00232_TestOfTheLord extends Quest
 							takeItems(player, BONE_ARROW, 1000);
 							takeItems(player, TANTUS_CHARM, 1);
 							takeItems(player, NERUGA_AXE_BLADE, 1);
-							giveItems(player, AXE_OF_CEREMONY, 1);
+							giveItemsWithoutQuestRate(player, AXE_OF_CEREMONY, 1);
 							if (hasQuestItems(player, HUGE_ORC_FANG, SWORD_INTO_SKULL, HANDIWORK_SPIDER_BROOCH, MONSTER_EYE_WOODCARVING))
 							{
 								qs.setCond(2, true);
@@ -578,7 +578,7 @@ public class Q00232_TestOfTheLord extends Quest
 							takeItems(player, HATOS_CHARM, 1);
 							takeItems(player, URUTU_BLADE, 1);
 							takeItems(player, TIMAK_ORC_SKULL, -1);
-							giveItems(player, SWORD_INTO_SKULL, 1);
+							giveItemsWithoutQuestRate(player, SWORD_INTO_SKULL, 1);
 							if (hasQuestItems(player, HUGE_ORC_FANG, AXE_OF_CEREMONY, HANDIWORK_SPIDER_BROOCH, MONSTER_EYE_WOODCARVING))
 							{
 								qs.setCond(2, true);
@@ -610,7 +610,7 @@ public class Q00232_TestOfTheLord extends Quest
 							takeItems(player, TAKUNA_CHARM, 1);
 							takeItems(player, MARSH_SPIDER_FEELER, -1);
 							takeItems(player, MARSH_SPIDER_FEET, -1);
-							giveItems(player, HANDIWORK_SPIDER_BROOCH, 1);
+							giveItemsWithoutQuestRate(player, HANDIWORK_SPIDER_BROOCH, 1);
 							if (hasQuestItems(player, HUGE_ORC_FANG, AXE_OF_CEREMONY, SWORD_INTO_SKULL, MONSTER_EYE_WOODCARVING))
 							{
 								qs.setCond(2, true);
@@ -645,7 +645,7 @@ public class Q00232_TestOfTheLord extends Quest
 						{
 							takeItems(player, CHIANTA_CHARM, 1);
 							takeItems(player, ENCHANTED_MONSTER_CORNEA, -1);
-							giveItems(player, MONSTER_EYE_WOODCARVING, 1);
+							giveItemsWithoutQuestRate(player, MONSTER_EYE_WOODCARVING, 1);
 							if (hasQuestItems(player, HUGE_ORC_FANG, AXE_OF_CEREMONY, SWORD_INTO_SKULL, HANDIWORK_SPIDER_BROOCH))
 							{
 								qs.setCond(2, true);
@@ -684,7 +684,7 @@ public class Q00232_TestOfTheLord extends Quest
 						takeItems(player, MARTANKUS_CHARM, 1);
 						takeItems(player, RAGNA_ORC_HEAD, 1);
 						takeItems(player, RAGNA_CHIEF_NOTICE, 1);
-						giveItems(player, IMMORTAL_FLAME, 1);
+						giveItemsWithoutQuestRate(player, IMMORTAL_FLAME, 1);
 						qs.setCond(6, true);
 						htmltext = "30649-06.html";
 					}

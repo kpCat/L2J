@@ -103,7 +103,7 @@ public class Q00379_FantasyWine extends Quest
 						htmltext = "30074-13.html";
 					}
 					
-					giveItems(player, item, 1);
+					rewardItems(player, item, 1);
 					takeAllItems(player, LEAF_OF_EUCALYPTUS, STONE_OF_CHILL);
 					qs.exitQuest(true, true);
 				}

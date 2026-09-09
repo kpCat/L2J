@@ -86,7 +86,7 @@ public class Q00622_SpecialtyLiquorDelivery extends Quest
 				if (qs.isCreated())
 				{
 					qs.startQuest();
-					giveItems(player, SPECIAL_DRINK, 5);
+					giveItemsWithoutQuestRate(player, SPECIAL_DRINK, 5);
 					htmltext = event;
 				}
 				break;
@@ -116,7 +116,7 @@ public class Q00622_SpecialtyLiquorDelivery extends Quest
 					{
 						qs.setCond(2, true);
 						takeItems(player, SPECIAL_DRINK, 1);
-						giveItems(player, SPECIAL_DRINK_PRICE, 1);
+						giveItemsWithoutQuestRate(player, SPECIAL_DRINK_PRICE, 1);
 						htmltext = event;
 					}
 					else
@@ -137,7 +137,7 @@ public class Q00622_SpecialtyLiquorDelivery extends Quest
 					{
 						qs.setCond(qs.getCond() + 1, true);
 						takeItems(player, SPECIAL_DRINK, 1);
-						giveItems(player, SPECIAL_DRINK_PRICE, 1);
+						giveItemsWithoutQuestRate(player, SPECIAL_DRINK_PRICE, 1);
 						htmltext = event;
 					}
 					else

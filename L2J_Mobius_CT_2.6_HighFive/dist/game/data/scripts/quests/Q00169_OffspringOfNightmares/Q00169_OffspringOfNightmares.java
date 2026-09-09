@@ -100,7 +100,7 @@ public class Q00169_OffspringOfNightmares extends Quest
 						}
 					}
 					
-					giveItems(player, BONE_GAITERS, 1);
+					rewardItems(player, BONE_GAITERS, 1);
 					addExpAndSp(player, 17475, 818);
 					giveAdena(player, 17030 + (10 * getQuestItemsCount(player, CRACKED_SKULL)), true);
 					qs.exitQuest(false, true);
@@ -121,7 +121,7 @@ public class Q00169_OffspringOfNightmares extends Quest
 		{
 			if ((getRandom(10) > 7) && !hasQuestItems(killer, PERFECT_SKULL))
 			{
-				giveItems(killer, PERFECT_SKULL, 1);
+				giveItemsWithoutQuestRate(killer, PERFECT_SKULL, 1);
 				qs.setCond(2, true);
 			}
 			else if (getRandom(10) > 4)

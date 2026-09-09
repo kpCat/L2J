@@ -69,7 +69,7 @@ public class Q00168_DeliverSupplies extends Quest
 		if ((qs != null) && event.equals("30349-03.htm"))
 		{
 			qs.startQuest();
-			giveItems(player, JENNAS_LETTER, 1);
+			giveItemsWithoutQuestRate(player, JENNAS_LETTER, 1);
 			return event;
 		}
 		
@@ -148,9 +148,9 @@ public class Q00168_DeliverSupplies extends Quest
 				if (qs.isCond(1) && hasQuestItems(player, JENNAS_LETTER))
 				{
 					takeItems(player, JENNAS_LETTER, -1);
-					giveItems(player, SENTRY_BLADE1, 1);
-					giveItems(player, SENTRY_BLADE2, 1);
-					giveItems(player, SENTRY_BLADE3, 1);
+					giveItemsWithoutQuestRate(player, SENTRY_BLADE1, 1);
+					giveItemsWithoutQuestRate(player, SENTRY_BLADE2, 1);
+					giveItemsWithoutQuestRate(player, SENTRY_BLADE3, 1);
 					qs.setCond(2, true);
 					htmltext = "30360-01.html";
 				}
@@ -166,7 +166,7 @@ public class Q00168_DeliverSupplies extends Quest
 				if (qs.isCond(3) && hasQuestItems(player, SENTRIES.get(npc.getId())))
 				{
 					takeItems(player, SENTRIES.get(npc.getId()), -1);
-					giveItems(player, OLD_BRONZE_SWORD, 1);
+					giveItemsWithoutQuestRate(player, OLD_BRONZE_SWORD, 1);
 					if (getQuestItemsCount(player, OLD_BRONZE_SWORD) >= 2)
 					{
 						qs.setCond(4, true);

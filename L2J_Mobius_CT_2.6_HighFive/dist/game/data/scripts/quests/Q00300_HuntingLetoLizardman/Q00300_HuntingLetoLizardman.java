@@ -96,15 +96,15 @@ public class Q00300_HuntingLetoLizardman extends Quest
 					final int rand = getRandom(1000);
 					if (rand < 500)
 					{
-						giveItems(player, REWARD_ADENA);
+						rewardItems(player, REWARD_ADENA);
 					}
 					else if (rand < 750)
 					{
-						giveItems(player, REWARD_ANIMAL_SKIN);
+						rewardItems(player, REWARD_ANIMAL_SKIN);
 					}
 					else if (rand < 1000)
 					{
-						giveItems(player, REWARD_ANIMAL_BONE);
+						rewardItems(player, REWARD_ANIMAL_BONE);
 					}
 					
 					qs.exitQuest(true, true);

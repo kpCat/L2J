@@ -80,7 +80,7 @@ public class Q00298_LizardmensConspiracy extends Quest
 				if (qs.isCreated())
 				{
 					qs.startQuest();
-					giveItems(player, PATROLS_REPORT, 1);
+					giveItemsWithoutQuestRate(player, PATROLS_REPORT, 1);
 					htmltext = event;
 				}
 				break;

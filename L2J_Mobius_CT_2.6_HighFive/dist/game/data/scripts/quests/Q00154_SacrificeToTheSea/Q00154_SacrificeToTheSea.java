@@ -136,7 +136,7 @@ public class Q00154_SacrificeToTheSea extends Quest
 					case 2:
 					{
 						takeItems(talker, FOX_FUR, -1);
-						giveItems(talker, FOX_FUR_YAM, 1);
+						giveItemsWithoutQuestRate(talker, FOX_FUR_YAM, 1);
 						qs.setCond(3, true);
 						htmltext = "30051-01.html";
 						break;
@@ -167,7 +167,7 @@ public class Q00154_SacrificeToTheSea extends Quest
 					case 3:
 					{
 						takeItems(talker, FOX_FUR_YAM, -1);
-						giveItems(talker, MAIDEN_DOLL, 1);
+						giveItemsWithoutQuestRate(talker, MAIDEN_DOLL, 1);
 						qs.setCond(4, true);
 						htmltext = "30055-01.html";
 						break;

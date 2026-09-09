@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
+import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
@@ -526,7 +527,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					{
 						return OperationResult.replan("quest.cond_ineligible");
 					}
-					questFormula = new QuestFormula(rule.chanceKind() == PhantomAcquisitionQuestCatalog.ChanceKind.NONE ? 0 : rule.rollBound(), rule.chanceKind() == PhantomAcquisitionQuestCatalog.ChanceKind.NONE ? 0 : rule.rollThreshold(), rule.maximumCount(), quest.itemCountBeforeKill(), quest.itemCap());
+					questFormula = new QuestFormula(rule.chanceKind() == PhantomAcquisitionQuestCatalog.ChanceKind.NONE ? 0 : rule.rollBound(), rule.chanceKind() == PhantomAcquisitionQuestCatalog.ChanceKind.NONE ? 0 : rule.rollThreshold(), (long) (rule.maximumCount() * RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER), quest.itemCountBeforeKill(), quest.itemCap());
 				}
 			}
 			catch (RuntimeException exception)

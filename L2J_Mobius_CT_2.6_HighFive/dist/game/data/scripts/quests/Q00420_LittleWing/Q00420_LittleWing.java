@@ -176,7 +176,7 @@ public class Q00420_LittleWing extends Quest
 					qs.setCond(2, true);
 					qs.set("old_stone", 0);
 					qs.set("fairy_stone", 1);
-					giveItems(player, FAIRY_STONE_LIST, 1);
+					giveItemsWithoutQuestRate(player, FAIRY_STONE_LIST, 1);
 					htmltext = event;
 				}
 				break;
@@ -188,7 +188,7 @@ public class Q00420_LittleWing extends Quest
 					qs.setCond(2, true);
 					qs.set("old_stone", 0);
 					qs.set("fairy_stone", 2);
-					giveItems(player, DELUXE_STONE_LIST, 1);
+					giveItemsWithoutQuestRate(player, DELUXE_STONE_LIST, 1);
 					htmltext = event;
 				}
 				break;
@@ -200,7 +200,7 @@ public class Q00420_LittleWing extends Quest
 					qs.setCond(2, true);
 					qs.set("old_stone", qs.getInt("fairy_stone"));
 					qs.set("fairy_stone", 1);
-					giveItems(player, FAIRY_STONE_LIST, 1);
+					giveItemsWithoutQuestRate(player, FAIRY_STONE_LIST, 1);
 					htmltext = event;
 				}
 				break;
@@ -212,7 +212,7 @@ public class Q00420_LittleWing extends Quest
 					qs.setCond(2, true);
 					qs.set("old_stone", qs.getInt("fairy_stone"));
 					qs.set("fairy_stone", 2);
-					giveItems(player, DELUXE_STONE_LIST, 1);
+					giveItemsWithoutQuestRate(player, DELUXE_STONE_LIST, 1);
 					htmltext = event;
 				}
 				break;
@@ -229,7 +229,7 @@ public class Q00420_LittleWing extends Quest
 						takeItems(player, GEMSTONE_D, 1);
 						takeItems(player, SILVER_NUGGET, 3);
 						takeItems(player, TOAD_SKIN, -1);
-						giveItems(player, FAIRY_STONE, 1);
+						giveItemsWithoutQuestRate(player, FAIRY_STONE, 1);
 					}
 					
 					qs.setCond(3, true);
@@ -250,7 +250,7 @@ public class Q00420_LittleWing extends Quest
 						takeItems(player, STONE_OF_PURITY, 1);
 						takeItems(player, SILVER_NUGGET, 5);
 						takeItems(player, TOAD_SKIN, -1);
-						giveItems(player, DELUXE_FAIRY_STONE, 1);
+						giveItemsWithoutQuestRate(player, DELUXE_FAIRY_STONE, 1);
 					}
 					
 					qs.setCond(3, true);
@@ -282,7 +282,7 @@ public class Q00420_LittleWing extends Quest
 					takeItems(player, -1, FAIRY_STONE, DELUXE_FAIRY_STONE);
 					if (qs.getInt("fairy_stone") == 2)
 					{
-						giveItems(player, FAIRY_DUST, 1);
+						giveItemsWithoutQuestRate(player, FAIRY_DUST, 1);
 					}
 					
 					qs.setCond(5, true);
@@ -295,7 +295,7 @@ public class Q00420_LittleWing extends Quest
 			{
 				if (qs.isCond(5) && (getQuestItemsCount(player, MONKSHOOD_JUICE) == 0))
 				{
-					giveItems(player, MONKSHOOD_JUICE, 1);
+					giveItemsWithoutQuestRate(player, MONKSHOOD_JUICE, 1);
 					htmltext = event;
 				}
 				break;
@@ -338,12 +338,12 @@ public class Q00420_LittleWing extends Quest
 				{
 					if (getRandom(100) < 5)
 					{
-						giveItems(player, HATCHLING_ARMOR, 1);
+						rewardItems(player, HATCHLING_ARMOR, 1);
 						htmltext = "30747-14.html";
 					}
 					else
 					{
-						giveItems(player, HATCHLING_FOOD, 20);
+						rewardItems(player, HATCHLING_FOOD, 20);
 						htmltext = event;
 					}
 					
@@ -358,7 +358,7 @@ public class Q00420_LittleWing extends Quest
 				if (qs.isCond(5))
 				{
 					takeItems(player, MONKSHOOD_JUICE, -1);
-					giveItems(player, EXARION_SCALE, 1);
+					giveItemsWithoutQuestRate(player, EXARION_SCALE, 1);
 					qs.setCond(6, true);
 					qs.set("drake_hunt", LETO_WARRIOR);
 					htmltext = event;
@@ -370,7 +370,7 @@ public class Q00420_LittleWing extends Quest
 				if (qs.isCond(5))
 				{
 					takeItems(player, MONKSHOOD_JUICE, -1);
-					giveItems(player, ZWOV_SCALE, 1);
+					giveItemsWithoutQuestRate(player, ZWOV_SCALE, 1);
 					qs.setCond(6, true);
 					qs.set("drake_hunt", MARSH_SPIDER);
 					htmltext = event;
@@ -382,7 +382,7 @@ public class Q00420_LittleWing extends Quest
 				if (qs.isCond(5))
 				{
 					takeItems(player, MONKSHOOD_JUICE, -1);
-					giveItems(player, KALIBRAN_SCALE, 1);
+					giveItemsWithoutQuestRate(player, KALIBRAN_SCALE, 1);
 					qs.setCond(6, true);
 					qs.set("drake_hunt", ROAD_SCAVENGER);
 					htmltext = event;
@@ -394,7 +394,7 @@ public class Q00420_LittleWing extends Quest
 				if (qs.isCond(6) && (getQuestItemsCount(player, KALIBRAN_EGG) >= 20))
 				{
 					takeItems(player, -1, KALIBRAN_SCALE, KALIBRAN_EGG);
-					giveItems(player, KALIBRAN_EGG, 1);
+					giveItemsWithoutQuestRate(player, KALIBRAN_EGG, 1);
 					qs.setCond(7, true);
 					htmltext = event;
 				}
@@ -405,7 +405,7 @@ public class Q00420_LittleWing extends Quest
 				if (qs.isCond(5))
 				{
 					takeItems(player, MONKSHOOD_JUICE, -1);
-					giveItems(player, SUZET_SCALE, 1);
+					giveItemsWithoutQuestRate(player, SUZET_SCALE, 1);
 					qs.setCond(6, true);
 					qs.set("drake_hunt", BREKA_OVERLORD);
 					htmltext = event;
@@ -417,7 +417,7 @@ public class Q00420_LittleWing extends Quest
 				if (qs.isCond(5))
 				{
 					takeItems(player, MONKSHOOD_JUICE, -1);
-					giveItems(player, SHAMHAI_SCALE, 1);
+					giveItemsWithoutQuestRate(player, SHAMHAI_SCALE, 1);
 					qs.setCond(6, true);
 					qs.set("drake_hunt", DEAD_SEEKER);
 					htmltext = event;
@@ -659,7 +659,7 @@ public class Q00420_LittleWing extends Quest
 								if (getQuestItemsCount(talker, EXARION_EGG) >= 20)
 								{
 									takeItems(talker, -1, EXARION_SCALE, EXARION_EGG);
-									giveItems(talker, EXARION_EGG, 1);
+									giveItemsWithoutQuestRate(talker, EXARION_EGG, 1);
 									qs.setCond(7, true);
 									htmltext = "30748-04.html";
 								}
@@ -694,7 +694,7 @@ public class Q00420_LittleWing extends Quest
 								if (getQuestItemsCount(talker, ZWOV_EGG) >= 20)
 								{
 									takeItems(talker, -1, ZWOV_SCALE, ZWOV_EGG);
-									giveItems(talker, ZWOV_EGG, 1);
+									giveItemsWithoutQuestRate(talker, ZWOV_EGG, 1);
 									qs.setCond(7, true);
 									htmltext = "30749-04.html";
 								}
@@ -761,7 +761,7 @@ public class Q00420_LittleWing extends Quest
 								if (getQuestItemsCount(talker, SUZET_EGG) >= 20)
 								{
 									takeItems(talker, -1, SUZET_SCALE, SUZET_EGG);
-									giveItems(talker, SUZET_EGG, 1);
+									giveItemsWithoutQuestRate(talker, SUZET_EGG, 1);
 									qs.setCond(7, true);
 									htmltext = "30751-05.html";
 								}
@@ -796,7 +796,7 @@ public class Q00420_LittleWing extends Quest
 								if (getQuestItemsCount(talker, SHAMHAI_EGG) >= 20)
 								{
 									takeItems(talker, -1, SHAMHAI_SCALE, SHAMHAI_EGG);
-									giveItems(talker, SHAMHAI_EGG, 1);
+									giveItemsWithoutQuestRate(talker, SHAMHAI_EGG, 1);
 									qs.setCond(7, true);
 									htmltext = "30752-04.html";
 								}

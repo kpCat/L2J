@@ -110,7 +110,7 @@ public class Q00410_PathOfThePalusKnight extends Quest
 			case "30329-06.htm":
 			{
 				qs.startQuest();
-				giveItems(player, PALLUS_TALISMAN, 1);
+				giveItemsWithoutQuestRate(player, PALLUS_TALISMAN, 1);
 				htmltext = event;
 				break;
 			}
@@ -120,7 +120,7 @@ public class Q00410_PathOfThePalusKnight extends Quest
 				{
 					takeItems(player, PALLUS_TALISMAN, 1);
 					takeItems(player, LYCANTHROPE_SKULL, -1);
-					giveItems(player, VIRGILS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, VIRGILS_LETTER, 1);
 					qs.setCond(3, true);
 					htmltext = event;
 				}
@@ -131,7 +131,7 @@ public class Q00410_PathOfThePalusKnight extends Quest
 				if (hasQuestItems(player, VIRGILS_LETTER))
 				{
 					takeItems(player, VIRGILS_LETTER, 1);
-					giveItems(player, MORTE_TALISMAN, 1);
+					giveItemsWithoutQuestRate(player, MORTE_TALISMAN, 1);
 					qs.setCond(4, true);
 					htmltext = event;
 				}
@@ -144,7 +144,7 @@ public class Q00410_PathOfThePalusKnight extends Quest
 					takeItems(player, MORTE_TALISMAN, 1);
 					takeItems(player, VENOMOUS_SPIDERS_CARAPACE, 1);
 					takeItems(player, ARACHNID_TRACKER_SILK, -1);
-					giveItems(player, COFFIN_OF_ETERNAL_REST, 1);
+					giveItemsWithoutQuestRate(player, COFFIN_OF_ETERNAL_REST, 1);
 					qs.setCond(6, true);
 					htmltext = event;
 				}
@@ -250,7 +250,7 @@ public class Q00410_PathOfThePalusKnight extends Quest
 					else if (hasQuestItems(player, COFFIN_OF_ETERNAL_REST))
 					{
 						giveAdena(player, 163800, true);
-						giveItems(player, GAZE_OF_ABYSS, 1);
+						giveItemsWithoutQuestRate(player, GAZE_OF_ABYSS, 1);
 						final int level = player.getLevel();
 						if (level >= 20)
 						{

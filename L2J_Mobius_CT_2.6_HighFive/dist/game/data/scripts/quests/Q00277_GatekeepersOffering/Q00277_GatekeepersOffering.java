@@ -108,7 +108,7 @@ public class Q00277_GatekeepersOffering extends Quest
 				}
 				else if (qs.isCond(2) && (getQuestItemsCount(player, STARSTONE) >= STARSTONE_COUT))
 				{
-					giveItems(player, GATEKEEPER_CHARM, 2);
+					rewardItems(player, GATEKEEPER_CHARM, 2);
 					qs.exitQuest(true, true);
 					htmltext = "30576-05.html";
 				}

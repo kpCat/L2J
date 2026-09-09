@@ -145,8 +145,8 @@ public class Q00637_ThroughOnceMore extends Quest
 			{
 				takeItems(player, NECRO_HEART, 10);
 				takeItems(player, FADED_MARK, 1);
-				giveItems(player, MARK, 1);
-				giveItems(player, 8273, 10);
+				giveItemsWithoutQuestRate(player, MARK, 1);
+				rewardItems(player, 8273, 10);
 				qs.exitQuest(true, true);
 				return "32010-05.htm";
 			}

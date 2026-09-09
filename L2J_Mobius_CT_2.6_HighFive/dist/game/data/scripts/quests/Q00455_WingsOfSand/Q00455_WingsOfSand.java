@@ -80,7 +80,7 @@ public class Q00455_WingsOfSand extends Quest
 		final QuestState qs = getQuestState(player, false);
 		if ((qs != null) && LocationUtil.checkIfInRange(PlayerConfig.ALT_PARTY_RANGE, npc, player, false) && (getRandom(1000) < CHANCE))
 		{
-			giveItems(player, LARGE_BABY_DRAGON, 1);
+			giveItemsWithoutQuestRate(player, LARGE_BABY_DRAGON, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 			if (getQuestItemsCount(player, LARGE_BABY_DRAGON) == 1)
 			{

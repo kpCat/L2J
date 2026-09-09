@@ -452,7 +452,7 @@ public class Q00270_TheOneWhoEndsSilence extends Quest
 			final int count = ((getRandom(1000) < chance) ? 1 : 0) + (atLeastOne ? 1 : 0);
 			if (count > 0)
 			{
-				giveItems(player, TATTERED_MONK_CLOTHES, count);
+				giveItemsWithoutQuestRate(player, TATTERED_MONK_CLOTHES, count);
 				playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 			}
 		}

@@ -156,7 +156,7 @@ public class Q00066_CertifiedArbalester extends Quest
 			{
 				if (qs.isMemoState(9))
 				{
-					giveItems(player, ENCODED_PAGE_ON_THE_ANCIENT_RACE, 1);
+					giveItemsWithoutQuestRate(player, ENCODED_PAGE_ON_THE_ANCIENT_RACE, 1);
 					qs.setMemoState(10);
 					qs.setCond(9, true);
 					htmltext = event;
@@ -256,7 +256,7 @@ public class Q00066_CertifiedArbalester extends Quest
 			{
 				if (qs.isMemoState(4))
 				{
-					giveItems(player, ENMITY_CRYSTAL_CORE, 1);
+					giveItemsWithoutQuestRate(player, ENMITY_CRYSTAL_CORE, 1);
 					qs.setMemoState(5);
 					qs.setCond(5, true);
 					htmltext = event;
@@ -321,7 +321,7 @@ public class Q00066_CertifiedArbalester extends Quest
 				if (qs.isMemoState(10))
 				{
 					takeItems(player, ENCODED_PAGE_ON_THE_ANCIENT_RACE, 1);
-					giveItems(player, KAMAEL_INQUISITOR_TRAINEE_MARK, 1);
+					giveItemsWithoutQuestRate(player, KAMAEL_INQUISITOR_TRAINEE_MARK, 1);
 					qs.setMemoState(11);
 					qs.setCond(10, true);
 					htmltext = event;
@@ -527,7 +527,7 @@ public class Q00066_CertifiedArbalester extends Quest
 							qs.setMemoState(23);
 							qs.setCond(13, true);
 							takeItems(killer, FRAGMENT_OF_ATTACK_ORDERS, -1);
-							giveItems(killer, GRANDIS_ATTACK_ORDERS, 1);
+							giveItemsWithoutQuestRate(killer, GRANDIS_ATTACK_ORDERS, 1);
 						}
 						else
 						{
@@ -712,7 +712,7 @@ public class Q00066_CertifiedArbalester extends Quest
 				{
 					if (qs.isMemoState(32))
 					{
-						giveItems(killer, RESEARCH_ON_THE_GIANTS_AND_THE_ANCIENT_RACE, 1);
+						giveItemsWithoutQuestRate(killer, RESEARCH_ON_THE_GIANTS_AND_THE_ANCIENT_RACE, 1);
 						qs.setMemoState(32);
 						qs.setCond(20, true);
 					}
@@ -800,7 +800,7 @@ public class Q00066_CertifiedArbalester extends Quest
 					}
 					else if (memoState == 9)
 					{
-						giveItems(player, ENCODED_PAGE_ON_THE_ANCIENT_RACE, 1);
+						giveItemsWithoutQuestRate(player, ENCODED_PAGE_ON_THE_ANCIENT_RACE, 1);
 						qs.setMemoState(10);
 						qs.setCond(9, true);
 						htmltext = "30058-09.html";
@@ -893,7 +893,7 @@ public class Q00066_CertifiedArbalester extends Quest
 					}
 					else if (memoState == 4)
 					{
-						giveItems(player, ENMITY_CRYSTAL_CORE, 1);
+						giveItemsWithoutQuestRate(player, ENMITY_CRYSTAL_CORE, 1);
 						qs.setMemoState(5);
 						qs.setCond(5, true);
 						htmltext = "30464-10.html";
@@ -1032,7 +1032,7 @@ public class Q00066_CertifiedArbalester extends Quest
 						else
 						{
 							giveAdena(player, 77666, true);
-							giveItems(player, KAMAEL_INQUISITOR_MARK, 1);
+							giveItemsWithoutQuestRate(player, KAMAEL_INQUISITOR_MARK, 1);
 							addExpAndSp(player, 429546, 29476);
 							qs.exitQuest(false, true);
 							player.sendPacket(new SocialAction(player.getObjectId(), 3));

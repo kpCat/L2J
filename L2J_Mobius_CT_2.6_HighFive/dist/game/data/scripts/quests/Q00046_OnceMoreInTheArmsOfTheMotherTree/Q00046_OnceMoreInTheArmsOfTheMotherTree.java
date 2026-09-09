@@ -94,7 +94,7 @@ public class Q00046_OnceMoreInTheArmsOfTheMotherTree extends Quest
 				if (qs.isCreated())
 				{
 					qs.startQuest();
-					giveItems(player, GALLADUCCIS_ORDER_1, 1);
+					giveItemsWithoutQuestRate(player, GALLADUCCIS_ORDER_1, 1);
 					htmltext = event;
 				}
 				break;
@@ -104,7 +104,7 @@ public class Q00046_OnceMoreInTheArmsOfTheMotherTree extends Quest
 				if (qs.isCond(1) && hasQuestItems(player, GALLADUCCIS_ORDER_1))
 				{
 					takeItems(player, GALLADUCCIS_ORDER_1, 1);
-					giveItems(player, MAGIC_SWORD_HILT, 1);
+					giveItemsWithoutQuestRate(player, MAGIC_SWORD_HILT, 1);
 					qs.setCond(2, true);
 					htmltext = event;
 				}
@@ -119,7 +119,7 @@ public class Q00046_OnceMoreInTheArmsOfTheMotherTree extends Quest
 				if (qs.isCond(2) && hasQuestItems(player, MAGIC_SWORD_HILT))
 				{
 					takeItems(player, MAGIC_SWORD_HILT, 1);
-					giveItems(player, GALLADUCCIS_ORDER_2, 1);
+					giveItemsWithoutQuestRate(player, GALLADUCCIS_ORDER_2, 1);
 					qs.setCond(3, true);
 					htmltext = event;
 				}
@@ -134,7 +134,7 @@ public class Q00046_OnceMoreInTheArmsOfTheMotherTree extends Quest
 				if (qs.isCond(3) && hasQuestItems(player, GALLADUCCIS_ORDER_2))
 				{
 					takeItems(player, GALLADUCCIS_ORDER_2, 1);
-					giveItems(player, GEMSTONE_POWDER, 1);
+					giveItemsWithoutQuestRate(player, GEMSTONE_POWDER, 1);
 					qs.setCond(4, true);
 					htmltext = event;
 				}
@@ -149,7 +149,7 @@ public class Q00046_OnceMoreInTheArmsOfTheMotherTree extends Quest
 				if (qs.isCond(4) && hasQuestItems(player, GEMSTONE_POWDER))
 				{
 					takeItems(player, GEMSTONE_POWDER, 1);
-					giveItems(player, GALLADUCCIS_ORDER_3, 1);
+					giveItemsWithoutQuestRate(player, GALLADUCCIS_ORDER_3, 1);
 					qs.setCond(5, true);
 					htmltext = event;
 				}
@@ -164,7 +164,7 @@ public class Q00046_OnceMoreInTheArmsOfTheMotherTree extends Quest
 				if (qs.isCond(5) && hasQuestItems(player, GALLADUCCIS_ORDER_3))
 				{
 					takeItems(player, GALLADUCCIS_ORDER_3, 1);
-					giveItems(player, PURIFIED_MAGIC_NECKLACE, 1);
+					giveItemsWithoutQuestRate(player, PURIFIED_MAGIC_NECKLACE, 1);
 					qs.setCond(6, true);
 					htmltext = event;
 				}
@@ -178,7 +178,7 @@ public class Q00046_OnceMoreInTheArmsOfTheMotherTree extends Quest
 			{
 				if (qs.isCond(6) && hasQuestItems(player, PURIFIED_MAGIC_NECKLACE))
 				{
-					giveItems(player, SCROLL_OF_ESCAPE_ELVEN_VILLAGE, 1);
+					rewardItems(player, SCROLL_OF_ESCAPE_ELVEN_VILLAGE, 1);
 					qs.exitQuest(false, true);
 					htmltext = event;
 				}

@@ -64,12 +64,12 @@ public class Q00173_ToTheIsleOfSouls extends Quest
 			case "30097-03.htm":
 			{
 				st.startQuest();
-				giveItems(player, GALLADUCCIS_ORDER, 1);
+				giveItemsWithoutQuestRate(player, GALLADUCCIS_ORDER, 1);
 				break;
 			}
 			case "30097-06.html":
 			{
-				giveItems(player, SCROLL_OF_ESCAPE_KAMAEL_VILLAGE, 1);
+				rewardItems(player, SCROLL_OF_ESCAPE_KAMAEL_VILLAGE, 1);
 				takeItems(player, MARK_OF_TRAVELER, 1);
 				st.exitQuest(false, true);
 				break;
@@ -78,7 +78,7 @@ public class Q00173_ToTheIsleOfSouls extends Quest
 			{
 				st.setCond(2, true);
 				takeItems(player, GALLADUCCIS_ORDER, -1);
-				giveItems(player, MAGIC_SWORD_HILT, 1);
+				giveItemsWithoutQuestRate(player, MAGIC_SWORD_HILT, 1);
 				break;
 			}
 			default:

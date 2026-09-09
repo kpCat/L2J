@@ -69,12 +69,12 @@ public class Q10502_FreyaEmbroideredSoulCloak extends Quest
 			final long count = getRandom(1, 3);
 			if (count >= (FRAGMENT_COUNT - currentCount))
 			{
-				giveItems(player, FREYAS_SOUL_FRAGMENT, FRAGMENT_COUNT - currentCount);
+				giveItemsWithoutQuestRate(player, FREYAS_SOUL_FRAGMENT, FRAGMENT_COUNT - currentCount);
 				qs.setCond(2, true);
 			}
 			else
 			{
-				giveItems(player, FREYAS_SOUL_FRAGMENT, count);
+				giveItemsWithoutQuestRate(player, FREYAS_SOUL_FRAGMENT, count);
 				playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 			}
 		}
@@ -124,7 +124,7 @@ public class Q10502_FreyaEmbroideredSoulCloak extends Quest
 					{
 						if (getQuestItemsCount(player, FREYAS_SOUL_FRAGMENT) >= FRAGMENT_COUNT)
 						{
-							giveItems(player, SOUL_CLOAK_OF_FREYA, 1);
+							rewardItems(player, SOUL_CLOAK_OF_FREYA, 1);
 							playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 							qs.exitQuest(false, true);
 							htmltext = "32612-06.html";

@@ -219,7 +219,7 @@ public class Q00062_PathOfTheTrooper extends Quest
 							{
 								giveAdena(player, 163800, true);
 								takeItems(player, TUMRAN_BUGBEAR_HEART, 1);
-								giveItems(player, GWAINS_RECOMMENDATION, 1);
+								giveItemsWithoutQuestRate(player, GWAINS_RECOMMENDATION, 1);
 								final int level = player.getLevel();
 								if (level >= 20)
 								{
@@ -276,7 +276,7 @@ public class Q00062_PathOfTheTrooper extends Quest
 							else
 							{
 								takeItems(player, VENOMOUS_SPIDERS_LEG, -1);
-								giveItems(player, SHUBAINS_RECOMMENDATION, 1);
+								giveItemsWithoutQuestRate(player, SHUBAINS_RECOMMENDATION, 1);
 								qs.setMemoState(4);
 								qs.setCond(4, true);
 								htmltext = "32194-06.html";

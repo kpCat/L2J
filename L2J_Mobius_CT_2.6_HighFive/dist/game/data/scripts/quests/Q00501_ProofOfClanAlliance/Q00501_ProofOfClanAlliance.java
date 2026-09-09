@@ -149,7 +149,7 @@ public class Q00501_ProofOfClanAlliance extends Quest
 				{
 					if (qs.getInt("flag") != 2501)
 					{
-						giveItems(player, SYMBOL_OF_LOYALTY, 1);
+						giveItemsWithoutQuestRate(player, SYMBOL_OF_LOYALTY, 1);
 						qs.set("flag", 2501);
 					}
 					
@@ -222,7 +222,7 @@ public class Q00501_ProofOfClanAlliance extends Quest
 				if (qs.isMemoState(2) && (getQuestItemsCount(player, SYMBOL_OF_LOYALTY) >= 3))
 				{
 					takeItems(player, SYMBOL_OF_LOYALTY, -1);
-					giveItems(player, ANTIDOTE_RECIPE_LIST, 1);
+					giveItemsWithoutQuestRate(player, ANTIDOTE_RECIPE_LIST, 1);
 					npc.setTarget(player);
 					npc.doCast(POISON_OF_DEATH.getSkill());
 					qs.setCond(3, true);
@@ -235,7 +235,7 @@ public class Q00501_ProofOfClanAlliance extends Quest
 			{
 				if (player.isDead() && (qs.getInt("flag") != 2501))
 				{
-					giveItems(player, SYMBOL_OF_LOYALTY, 1);
+					giveItemsWithoutQuestRate(player, SYMBOL_OF_LOYALTY, 1);
 					qs.set("flag", 2501);
 				}
 				break;
@@ -376,7 +376,7 @@ public class Q00501_ProofOfClanAlliance extends Quest
 						if (qs.isMemoState(6) && hasQuestItems(player, VOUCHER_OF_FAITH))
 						{
 							takeItems(player, VOUCHER_OF_FAITH, -1);
-							giveItems(player, ALLIANCE_MANIFESTO, 1);
+							giveItemsWithoutQuestRate(player, ALLIANCE_MANIFESTO, 1);
 							addExpAndSp(player, 0, 120000);
 							qs.exitQuest(false);
 							htmltext = "30756-09.html";
@@ -439,7 +439,7 @@ public class Q00501_ProofOfClanAlliance extends Quest
 							}
 							else
 							{
-								giveItems(player, BLOOD_OF_EVA, 1);
+								giveItemsWithoutQuestRate(player, BLOOD_OF_EVA, 1);
 								lqs.setMemoState(5);
 								htmltext = "30758-08.html";
 							}
@@ -470,7 +470,7 @@ public class Q00501_ProofOfClanAlliance extends Quest
 				}
 				else if (qs.isMemoState(5) && hasQuestItems(player, BLOOD_OF_EVA) && hasQuestItems(player, HERB_OF_VANOR) && hasQuestItems(player, HERB_OF_HARIT) && hasQuestItems(player, HERB_OF_OEL_MAHUM) && hasAbnormal(player))
 				{
-					giveItems(player, VOUCHER_OF_FAITH, 1);
+					giveItemsWithoutQuestRate(player, VOUCHER_OF_FAITH, 1);
 					giveItems(player, POTION_OF_RECOVERY, 1);
 					takeItems(player, BLOOD_OF_EVA, -1);
 					takeItems(player, ANTIDOTE_RECIPE_LIST, -1);

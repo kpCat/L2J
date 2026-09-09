@@ -135,7 +135,7 @@ public class Q00114_ResurrectionOfAnOldManager extends Quest
 			}
 			case "32041-31.html":
 			{
-				giveItems(player, DETCTOR, 1);
+				giveItemsWithoutQuestRate(player, DETCTOR, 1);
 				qs.setCond(17, true);
 				break;
 			}
@@ -163,7 +163,7 @@ public class Q00114_ResurrectionOfAnOldManager extends Quest
 			{
 				qs.setCond(21, true);
 				qs.unset("talk");
-				giveItems(player, LETTER, 1);
+				giveItemsWithoutQuestRate(player, LETTER, 1);
 				break;
 			}
 			case "32046-03.html":
@@ -293,7 +293,7 @@ public class Q00114_ResurrectionOfAnOldManager extends Quest
 			{
 				if (player.getAdena() >= 3000)
 				{
-					giveItems(player, STARSTONE2, 1);
+					giveItemsWithoutQuestRate(player, STARSTONE2, 1);
 					takeItems(player, Inventory.ADENA_ID, 3000);
 					qs.unset("talk");
 					qs.setCond(26, true);
@@ -316,7 +316,7 @@ public class Q00114_ResurrectionOfAnOldManager extends Quest
 			}
 			case "32050-03.html":
 			{
-				giveItems(player, STARSTONE, 1);
+				giveItemsWithoutQuestRate(player, STARSTONE, 1);
 				qs.setCond(14, true);
 				qs.unset("talk");
 				break;
@@ -324,13 +324,13 @@ public class Q00114_ResurrectionOfAnOldManager extends Quest
 			case "32050-05.html":
 			{
 				qs.setCond(24, true);
-				giveItems(player, STARSTONE2, 1);
+				giveItemsWithoutQuestRate(player, STARSTONE2, 1);
 				break;
 			}
 			case "31961-02.html":
 			{
 				takeItems(player, LETTER, 1);
-				giveItems(player, STARSTONE2, 1);
+				giveItemsWithoutQuestRate(player, STARSTONE2, 1);
 				qs.setCond(22, true);
 				break;
 			}
@@ -420,7 +420,7 @@ public class Q00114_ResurrectionOfAnOldManager extends Quest
 			if ((qs != null) && qs.isCond(17))
 			{
 				takeItems(creature.asPlayer(), DETCTOR, 1);
-				giveItems(creature.asPlayer(), DETCTOR2, 1);
+				giveItemsWithoutQuestRate(creature.asPlayer(), DETCTOR2, 1);
 				qs.setCond(18, true);
 				showOnScreenMsg(player, NpcStringId.THE_RADIO_SIGNAL_DETECTOR_IS_RESPONDING_A_SUSPICIOUS_PILE_OF_STONES_CATCHES_YOUR_EYE, 2, 4500);
 			}

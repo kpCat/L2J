@@ -122,7 +122,7 @@ public class Q00235_MimirsElixir extends Quest
 			{
 				if (qs.isMemoState(5))
 				{
-					giveItems(player, MAGISTERS_MIXING_STONE, 1);
+					giveItemsWithoutQuestRate(player, MAGISTERS_MIXING_STONE, 1);
 					qs.setMemoState(6);
 					qs.setCond(6);
 					htmltext = event;
@@ -144,7 +144,7 @@ public class Q00235_MimirsElixir extends Quest
 					npc.setTarget(player);
 					npc.doCast(QUEST_MIMIRS_ELIXIR.getSkill());
 					takeItems(player, STAR_OF_DESTINY, -1);
-					giveItems(player, ENCHANT_WEAPON_A, 1);
+					rewardItems(player, ENCHANT_WEAPON_A, 1);
 					qs.exitQuest(false, true);
 					player.sendPacket(new SocialAction(player.getObjectId(), 3));
 					htmltext = event;
@@ -173,7 +173,7 @@ public class Q00235_MimirsElixir extends Quest
 			{
 				if (qs.isMemoState(4) && hasQuestItems(player, SAGES_STONE))
 				{
-					giveItems(player, TRUE_GOLD, 1);
+					giveItemsWithoutQuestRate(player, TRUE_GOLD, 1);
 					takeItems(player, SAGES_STONE, -1);
 					qs.setMemoState(5);
 					qs.setCond(5, true);
@@ -221,7 +221,7 @@ public class Q00235_MimirsElixir extends Quest
 			{
 				if (qs.isMemoState(7) && hasQuestItems(player, BLOOD_FIRE, PURE_SILVER, TRUE_GOLD))
 				{
-					giveItems(player, MIMIRS_ELIXIR, 1);
+					giveItemsWithoutQuestRate(player, MIMIRS_ELIXIR, 1);
 					takeItems(player, -1, BLOOD_FIRE, PURE_SILVER, TRUE_GOLD);
 					qs.setMemoState(8);
 					qs.setCond(8, true);

@@ -122,8 +122,8 @@ public class Q00695_DefendTheHallOfSuffering extends Quest
 									{
 										if (tag == 13777)
 										{
-											giveItems(member, 13777, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13777, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -132,8 +132,8 @@ public class Q00695_DefendTheHallOfSuffering extends Quest
 										}
 										else if (tag == 13778)
 										{
-											giveItems(member, 13778, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13778, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -142,8 +142,8 @@ public class Q00695_DefendTheHallOfSuffering extends Quest
 										}
 										else if (tag == 13779)
 										{
-											giveItems(member, 13779, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13779, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -152,8 +152,8 @@ public class Q00695_DefendTheHallOfSuffering extends Quest
 										}
 										else if (tag == 13780)
 										{
-											giveItems(member, 13780, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13780, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -162,8 +162,8 @@ public class Q00695_DefendTheHallOfSuffering extends Quest
 										}
 										else if (tag == 13781)
 										{
-											giveItems(member, 13781, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13781, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -172,8 +172,8 @@ public class Q00695_DefendTheHallOfSuffering extends Quest
 										}
 										else if (tag == 13782)
 										{
-											giveItems(member, 13782, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13782, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -182,8 +182,8 @@ public class Q00695_DefendTheHallOfSuffering extends Quest
 										}
 										else if (tag == 13783)
 										{
-											giveItems(member, 13783, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13783, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -192,8 +192,8 @@ public class Q00695_DefendTheHallOfSuffering extends Quest
 										}
 										else if (tag == 13784)
 										{
-											giveItems(member, 13784, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13784, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -202,8 +202,8 @@ public class Q00695_DefendTheHallOfSuffering extends Quest
 										}
 										else if (tag == 13785)
 										{
-											giveItems(member, 13785, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13785, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -212,8 +212,8 @@ public class Q00695_DefendTheHallOfSuffering extends Quest
 										}
 										else if (tag == 13786)
 										{
-											giveItems(member, 13786, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13786, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");

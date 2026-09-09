@@ -96,7 +96,7 @@ public class Q00407_PathOfTheElvenScout extends Quest
 						{
 							qs.startQuest();
 							qs.unset("variable");
-							giveItems(player, REISAS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, REISAS_LETTER, 1);
 							htmltext = "30328-05.htm";
 						}
 					}
@@ -161,7 +161,7 @@ public class Q00407_PathOfTheElvenScout extends Quest
 			{
 				if (qs.isCond(5) && (getRandom(10) < 6) && hasQuestItems(qs.getPlayer(), MORETTIES_HERB, MORETTIS_LETTER) && !hasQuestItems(qs.getPlayer(), RUSTED_KEY))
 				{
-					giveItems(qs.getPlayer(), RUSTED_KEY, 1);
+					giveItemsWithoutQuestRate(qs.getPlayer(), RUSTED_KEY, 1);
 					qs.setCond(6, true);
 				}
 			}
@@ -236,7 +236,7 @@ public class Q00407_PathOfTheElvenScout extends Quest
 					else if (hasQuestItems(player, HONORARY_GUARD))
 					{
 						takeItems(player, HONORARY_GUARD, -1);
-						giveItems(player, REISAS_RECOMMENDATION, 1);
+						giveItemsWithoutQuestRate(player, REISAS_RECOMMENDATION, 1);
 						final int level = player.getLevel();
 						if (level >= 20)
 						{
@@ -286,8 +286,8 @@ public class Q00407_PathOfTheElvenScout extends Quest
 						else
 						{
 							takeItems(player, -1, PRIASS_1ND_TORN_LETTER, PRIASS_2ND_TORN_LETTER, PRIASS_3ND_TORN_LETTER, PRIASS_4ND_TORN_LETTER);
-							giveItems(player, MORETTIES_HERB, 1);
-							giveItems(player, MORETTIS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, MORETTIES_HERB, 1);
+							giveItemsWithoutQuestRate(player, MORETTIS_LETTER, 1);
 							qs.setCond(4, true);
 							htmltext = "30337-06.html";
 						}
@@ -295,7 +295,7 @@ public class Q00407_PathOfTheElvenScout extends Quest
 					else if (hasQuestItems(player, PRIASS_LETTER))
 					{
 						takeItems(player, PRIASS_LETTER, -1);
-						giveItems(player, HONORARY_GUARD, 1);
+						giveItemsWithoutQuestRate(player, HONORARY_GUARD, 1);
 						qs.setCond(8, true);
 						htmltext = "30337-07.html";
 					}
@@ -321,7 +321,7 @@ public class Q00407_PathOfTheElvenScout extends Quest
 						else
 						{
 							takeItems(player, -1, RUSTED_KEY, MORETTIES_HERB, MORETTIS_LETTER);
-							giveItems(player, PRIASS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, PRIASS_LETTER, 1);
 							qs.setCond(7, true);
 							htmltext = "30426-02.html";
 						}

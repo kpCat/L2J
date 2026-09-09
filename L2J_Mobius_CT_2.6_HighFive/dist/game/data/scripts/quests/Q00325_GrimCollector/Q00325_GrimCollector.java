@@ -113,7 +113,7 @@ public class Q00325_GrimCollector extends Quest
 					takeItems(player, 1, SPINE, ARM_BONE, SKULL, RIB_BONE, THIGH_BONE);
 					if (getRandom(5) < 4)
 					{
-						giveItems(player, COMPLETE_SKELETON, 1);
+						giveItemsWithoutQuestRate(player, COMPLETE_SKELETON, 1);
 						htmltext = "30342-03.html";
 					}
 					else
@@ -130,7 +130,7 @@ public class Q00325_GrimCollector extends Quest
 			}
 			case "30434-03.html":
 			{
-				giveItems(player, ANATOMY_DIAGRAM, 1);
+				giveItemsWithoutQuestRate(player, ANATOMY_DIAGRAM, 1);
 				htmltext = event;
 				break;
 			}

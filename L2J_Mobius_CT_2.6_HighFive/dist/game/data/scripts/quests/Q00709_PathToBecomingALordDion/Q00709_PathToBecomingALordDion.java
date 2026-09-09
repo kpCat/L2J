@@ -170,7 +170,7 @@ public class Q00709_PathToBecomingALordDion extends Quest
 			}
 			else if (npc.getId() == BLOODY_AXE_AIDE)
 			{
-				giveItems(killer, BLOODY_AXE_BLACK_EPAULETTE, 1);
+				giveItemsWithoutQuestRate(killer, BLOODY_AXE_BLACK_EPAULETTE, 1);
 				qs.setCond(7);
 			}
 		}

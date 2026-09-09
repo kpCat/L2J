@@ -110,7 +110,7 @@ public class Q00512_BladeUnderFoot extends Quest
 				itemCount /= playerCount;
 			}
 			
-			giveItems(player, FRAGMENT_OF_THE_DUNGEON_LEADER_MARK, itemCount);
+			giveItemsWithoutQuestRate(player, FRAGMENT_OF_THE_DUNGEON_LEADER_MARK, itemCount);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 		}
 	}

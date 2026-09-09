@@ -69,15 +69,15 @@ public class Q00006_StepIntoTheFuture extends Quest
 			}
 			case "30006-06.html":
 			{
-				giveItems(player, SCROLL_OF_ESCAPE_GIRAN, 1);
-				giveItems(player, MARK_OF_TRAVELER, 1);
+				rewardItems(player, SCROLL_OF_ESCAPE_GIRAN, 1);
+				giveItemsWithoutQuestRate(player, MARK_OF_TRAVELER, 1);
 				qs.exitQuest(false, true);
 				break;
 			}
 			case "30033-02.html":
 			{
 				qs.setCond(2, true);
-				giveItems(player, BAULRO_LETTER, 1);
+				giveItemsWithoutQuestRate(player, BAULRO_LETTER, 1);
 				break;
 			}
 			case "30311-02.html":

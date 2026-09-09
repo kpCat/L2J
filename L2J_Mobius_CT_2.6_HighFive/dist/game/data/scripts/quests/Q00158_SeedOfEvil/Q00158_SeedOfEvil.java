@@ -83,7 +83,7 @@ public class Q00158_SeedOfEvil extends Quest
 		final QuestState qs = getQuestState(killer, false);
 		if ((qs != null) && !hasQuestItems(killer, CLAY_TABLET))
 		{
-			giveItems(killer, CLAY_TABLET, 1);
+			giveItemsWithoutQuestRate(killer, CLAY_TABLET, 1);
 			qs.setCond(2, true);
 		}
 		
@@ -110,7 +110,7 @@ public class Q00158_SeedOfEvil extends Quest
 				}
 				else if (qs.isCond(2) && hasQuestItems(player, CLAY_TABLET))
 				{
-					giveItems(player, ENCHANT_ARMOR_D, 1);
+					rewardItems(player, ENCHANT_ARMOR_D, 1);
 					addExpAndSp(player, 17818, 927);
 					giveAdena(player, 1495, true);
 					qs.exitQuest(false, true);

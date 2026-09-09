@@ -131,7 +131,7 @@ public class Q00241_PossessorOfAPreciousSoul1 extends Quest
 				if (qs.isCond(7) && (getQuestItemsCount(player, MALRUK_SUCCUBUS_CLAW) >= 10))
 				{
 					takeItems(player, MALRUK_SUCCUBUS_CLAW, -1);
-					giveItems(player, ECHO_CRYSTAL, 1);
+					giveItemsWithoutQuestRate(player, ECHO_CRYSTAL, 1);
 					qs.setCond(8, true);
 				}
 				break;
@@ -149,7 +149,7 @@ public class Q00241_PossessorOfAPreciousSoul1 extends Quest
 			{
 				if (qs.isCond(9) && !hasQuestItems(player, POETRY_BOOK))
 				{
-					giveItems(player, POETRY_BOOK, 1);
+					giveItemsWithoutQuestRate(player, POETRY_BOOK, 1);
 					qs.setCond(10, true);
 				}
 				break;
@@ -192,7 +192,7 @@ public class Q00241_PossessorOfAPreciousSoul1 extends Quest
 				if (qs.isCond(15) && (getQuestItemsCount(player, CRIMSON_MOSS) >= 5))
 				{
 					takeItems(player, CRIMSON_MOSS, -1);
-					giveItems(player, RAHORAKTIS_MEDICINE, 1);
+					giveItemsWithoutQuestRate(player, RAHORAKTIS_MEDICINE, 1);
 					qs.setCond(16, true);
 				}
 				break;
@@ -218,7 +218,7 @@ public class Q00241_PossessorOfAPreciousSoul1 extends Quest
 			{
 				if (qs.getCond() >= 18)
 				{
-					giveItems(player, VIRGILS_LETTER, 1);
+					rewardItems(player, VIRGILS_LETTER, 1);
 					addExpAndSp(player, 263043, 0);
 					qs.exitQuest(false, true);
 				}
@@ -245,7 +245,7 @@ public class Q00241_PossessorOfAPreciousSoul1 extends Quest
 				}
 				
 				qs = getQuestState(partyMember, false);
-				giveItems(player, LEGEND_OF_SEVENTEEN, 1);
+				giveItemsWithoutQuestRate(player, LEGEND_OF_SEVENTEEN, 1);
 				qs.setCond(4, true);
 				break;
 			}

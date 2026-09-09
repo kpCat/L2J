@@ -91,7 +91,7 @@ public class Q00237_WindsOfChange extends Quest
 			case "30899-06.html":
 			{
 				qs.startQuest();
-				giveItems(player, FLAUENS_LETTER, 1);
+				giveItemsWithoutQuestRate(player, FLAUENS_LETTER, 1);
 				htmltext = event;
 				break;
 			}
@@ -132,7 +132,7 @@ public class Q00237_WindsOfChange extends Quest
 			{
 				if (qs.isCond(4))
 				{
-					giveItems(player, DOSKOZER_LETTER, 1);
+					giveItemsWithoutQuestRate(player, DOSKOZER_LETTER, 1);
 					qs.setCond(5, true);
 					htmltext = event;
 				}
@@ -142,7 +142,7 @@ public class Q00237_WindsOfChange extends Quest
 			{
 				if (qs.isCond(4))
 				{
-					giveItems(player, ATHENIA_LETTER, 1);
+					giveItemsWithoutQuestRate(player, ATHENIA_LETTER, 1);
 					qs.setCond(6, true);
 					htmltext = event;
 				}
@@ -151,7 +151,7 @@ public class Q00237_WindsOfChange extends Quest
 			case "32641-02.html":
 			{
 				giveAdena(player, 213876, true);
-				giveItems(player, VICINITY_OF_FOS, 1);
+				giveItemsWithoutQuestRate(player, VICINITY_OF_FOS, 1);
 				addExpAndSp(player, 892773, 60012);
 				qs.exitQuest(false, true);
 				htmltext = event;
@@ -160,7 +160,7 @@ public class Q00237_WindsOfChange extends Quest
 			case "32643-02.html":
 			{
 				giveAdena(player, 213876, true);
-				giveItems(player, SUPPORT_CERTIFICATE, 1);
+				giveItemsWithoutQuestRate(player, SUPPORT_CERTIFICATE, 1);
 				addExpAndSp(player, 892773, 60012);
 				qs.exitQuest(false, true);
 				htmltext = event;

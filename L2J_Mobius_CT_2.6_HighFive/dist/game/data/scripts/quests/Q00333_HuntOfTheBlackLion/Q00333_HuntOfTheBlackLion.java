@@ -168,7 +168,7 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 			{
 				if (!hasQuestItems(player, SOPHYAS_1ST_ORDER))
 				{
-					giveItems(player, SOPHYAS_1ST_ORDER, 1);
+					giveItemsWithoutQuestRate(player, SOPHYAS_1ST_ORDER, 1);
 					htmltext = event;
 				}
 				break;
@@ -177,7 +177,7 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 			{
 				if (!hasQuestItems(player, SOPHYAS_2ND_ORDER))
 				{
-					giveItems(player, SOPHYAS_2ND_ORDER, 1);
+					giveItemsWithoutQuestRate(player, SOPHYAS_2ND_ORDER, 1);
 					htmltext = event;
 				}
 				break;
@@ -186,7 +186,7 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 			{
 				if (!hasQuestItems(player, SOPHYAS_3RD_ORDER))
 				{
-					giveItems(player, SOPHYAS_3RD_ORDER, 1);
+					giveItemsWithoutQuestRate(player, SOPHYAS_3RD_ORDER, 1);
 					htmltext = event;
 				}
 				break;
@@ -195,7 +195,7 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 			{
 				if (!hasQuestItems(player, SOPHYAS_4TH_ORDER))
 				{
-					giveItems(player, SOPHYAS_4TH_ORDER, 1);
+					giveItemsWithoutQuestRate(player, SOPHYAS_4TH_ORDER, 1);
 					htmltext = event;
 				}
 				break;
@@ -208,7 +208,7 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 				}
 				else if ((getQuestItemsCount(player, LIONS_CLAW) >= 10) && (getQuestItemsCount(player, LIONS_EYE) < 4))
 				{
-					giveItems(player, LIONS_EYE, 1);
+					giveItemsWithoutQuestRate(player, LIONS_EYE, 1);
 					if (chance < 25)
 					{
 						giveItems(player, HELING_POTION, 20);
@@ -238,7 +238,7 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 				}
 				else if ((getQuestItemsCount(player, LIONS_CLAW) >= 10) && (getQuestItemsCount(player, LIONS_EYE) >= 4) && (getQuestItemsCount(player, LIONS_EYE) <= 7))
 				{
-					giveItems(player, LIONS_EYE, 1);
+					giveItemsWithoutQuestRate(player, LIONS_EYE, 1);
 					if (chance < 25)
 					{
 						giveItems(player, HELING_POTION, 25);
@@ -337,7 +337,7 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 				{
 					if (getRandom(100) < 50)
 					{
-						giveItems(player, COMPLETE_STATUE_OF_SHILEN, 1);
+						giveItemsWithoutQuestRate(player, COMPLETE_STATUE_OF_SHILEN, 1);
 						takeItems(player, STATUE_OF_SHILEN_HEAD, 1);
 						takeItems(player, STATUE_OF_SHILEN_TORSO, 1);
 						takeItems(player, STATUE_OF_SHILEN_ARM, 1);
@@ -365,7 +365,7 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 				{
 					if (getRandom(100) < 50)
 					{
-						giveItems(player, COMPLETE_ANCIENT_TABLET, 1);
+						giveItemsWithoutQuestRate(player, COMPLETE_ANCIENT_TABLET, 1);
 						takeItems(player, FRAGMENT_OF_ANCIENT_TABLET_1ST_PIECE, 1);
 						takeItems(player, FRAGMENT_OF_ANCIENT_TABLET_2ND_PIECE, 1);
 						takeItems(player, FRAGMENT_OF_ANCIENT_TABLET_3RD_PIECE, 1);
@@ -500,19 +500,19 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 					{
 						if (chance1 < 25)
 						{
-							giveItems(player, STATUE_OF_SHILEN_HEAD, 1);
+							giveItemsWithoutQuestRate(player, STATUE_OF_SHILEN_HEAD, 1);
 						}
 						else if (chance1 < 50)
 						{
-							giveItems(player, STATUE_OF_SHILEN_TORSO, 1);
+							giveItemsWithoutQuestRate(player, STATUE_OF_SHILEN_TORSO, 1);
 						}
 						else if (chance1 < 75)
 						{
-							giveItems(player, STATUE_OF_SHILEN_ARM, 1);
+							giveItemsWithoutQuestRate(player, STATUE_OF_SHILEN_ARM, 1);
 						}
 						else
 						{
-							giveItems(player, STATUE_OF_SHILEN_LEG, 1);
+							giveItemsWithoutQuestRate(player, STATUE_OF_SHILEN_LEG, 1);
 						}
 						
 						htmltext = "30736-04n.html";
@@ -521,19 +521,19 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 					{
 						if (chance1 < 25)
 						{
-							giveItems(player, FRAGMENT_OF_ANCIENT_TABLET_1ST_PIECE, 1);
+							giveItemsWithoutQuestRate(player, FRAGMENT_OF_ANCIENT_TABLET_1ST_PIECE, 1);
 						}
 						else if (chance1 < 50)
 						{
-							giveItems(player, FRAGMENT_OF_ANCIENT_TABLET_2ND_PIECE, 1);
+							giveItemsWithoutQuestRate(player, FRAGMENT_OF_ANCIENT_TABLET_2ND_PIECE, 1);
 						}
 						else if (chance1 < 75)
 						{
-							giveItems(player, FRAGMENT_OF_ANCIENT_TABLET_3RD_PIECE, 1);
+							giveItemsWithoutQuestRate(player, FRAGMENT_OF_ANCIENT_TABLET_3RD_PIECE, 1);
 						}
 						else
 						{
-							giveItems(player, FRAGMENT_OF_ANCIENT_TABLET_4TH_PIECE, 1);
+							giveItemsWithoutQuestRate(player, FRAGMENT_OF_ANCIENT_TABLET_4TH_PIECE, 1);
 						}
 						
 						htmltext = "30736-04o.html";
@@ -670,7 +670,7 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 					
 					if (getQuestItemsCount(player, GUILD_COIN) < 80)
 					{
-						giveItems(player, GUILD_COIN, 1);
+						giveItemsWithoutQuestRate(player, GUILD_COIN, 1);
 					}
 					else
 					{
@@ -1088,15 +1088,15 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 						}
 						else if (itemcount < 50)
 						{
-							giveItems(player, LIONS_CLAW, 1);
+							giveItemsWithoutQuestRate(player, LIONS_CLAW, 1);
 						}
 						else if (itemcount < 100)
 						{
-							giveItems(player, LIONS_CLAW, 2);
+							giveItemsWithoutQuestRate(player, LIONS_CLAW, 2);
 						}
 						else
 						{
-							giveItems(player, LIONS_CLAW, 3);
+							giveItemsWithoutQuestRate(player, LIONS_CLAW, 3);
 						}
 						
 						final long ash = getQuestItemsCount(player, UNDEAD_ASH);
@@ -1120,15 +1120,15 @@ public class Q00333_HuntOfTheBlackLion extends Quest
 						}
 						else if (itemcount < 50)
 						{
-							giveItems(player, LIONS_CLAW, 1);
+							giveItemsWithoutQuestRate(player, LIONS_CLAW, 1);
 						}
 						else if (itemcount < 100)
 						{
-							giveItems(player, LIONS_CLAW, 2);
+							giveItemsWithoutQuestRate(player, LIONS_CLAW, 2);
 						}
 						else
 						{
-							giveItems(player, LIONS_CLAW, 3);
+							giveItemsWithoutQuestRate(player, LIONS_CLAW, 3);
 						}
 						
 						giveAdena(player, (getQuestItemsCount(player, UNDEAD_ASH) * 35), true);

@@ -74,7 +74,7 @@ public class Q00367_ElectrifyingRecharge extends Quest
 			case "30673-02.htm":
 			{
 				qs.startQuest();
-				giveItems(player, TITAN_LAMP1, 1);
+				giveItemsWithoutQuestRate(player, TITAN_LAMP1, 1);
 				htmltext = event;
 				break;
 			}
@@ -150,7 +150,7 @@ public class Q00367_ElectrifyingRecharge extends Quest
 				}
 				else if (hasQuestItems(luckyPlayer, TITAN_LAMP4))
 				{
-					giveItems(luckyPlayer, TITAN_LAMP5, 1);
+					giveItemsWithoutQuestRate(luckyPlayer, TITAN_LAMP5, 1);
 					takeItems(luckyPlayer, TITAN_LAMP4, -1);
 					luckyPlayer.getQuestState(getName()).setCond(2, true);
 				}
@@ -181,7 +181,7 @@ public class Q00367_ElectrifyingRecharge extends Quest
 			}
 			else if (hasQuestItems(player, BROKEN_TITAN_LAMP))
 			{
-				giveItems(player, TITAN_LAMP1, 1);
+				giveItemsWithoutQuestRate(player, TITAN_LAMP1, 1);
 				takeItems(player, BROKEN_TITAN_LAMP, -1);
 				htmltext = "30673-07.html";
 			}
@@ -259,7 +259,7 @@ public class Q00367_ElectrifyingRecharge extends Quest
 				
 				rewardItems(player, itemId, 1);
 				takeItems(player, TITAN_LAMP5, -1);
-				giveItems(player, TITAN_LAMP1, 1);
+				giveItemsWithoutQuestRate(player, TITAN_LAMP1, 1);
 				htmltext = "30673-08.html";
 			}
 		}

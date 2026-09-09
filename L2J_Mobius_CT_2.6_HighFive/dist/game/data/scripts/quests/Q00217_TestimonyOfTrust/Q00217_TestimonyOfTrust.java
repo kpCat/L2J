@@ -130,8 +130,8 @@ public class Q00217_TestimonyOfTrust extends Quest
 				{
 					qs.startQuest();
 					qs.setMemoState(1);
-					giveItems(player, LETTER_TO_ELF, 1);
-					giveItems(player, LETTER_TO_DARKELF, 1);
+					giveItemsWithoutQuestRate(player, LETTER_TO_ELF, 1);
+					giveItemsWithoutQuestRate(player, LETTER_TO_DARKELF, 1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
@@ -157,7 +157,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 				if (hasQuestItems(player, LETTER_TO_ELF))
 				{
 					takeItems(player, LETTER_TO_ELF, 1);
-					giveItems(player, ORDER_OF_ASTERIOS, 1);
+					giveItemsWithoutQuestRate(player, ORDER_OF_ASTERIOS, 1);
 					qs.setMemoState(2);
 					qs.setCond(2, true);
 					htmltext = event;
@@ -169,7 +169,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 				if (hasQuestItems(player, LETTER_TO_DARKELF))
 				{
 					takeItems(player, LETTER_TO_DARKELF, 1);
-					giveItems(player, LETTER_OF_THIFIELL, 1);
+					giveItemsWithoutQuestRate(player, LETTER_OF_THIFIELL, 1);
 					qs.setMemoState(5);
 					qs.setCond(5, true);
 					htmltext = event;
@@ -192,7 +192,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 				if (hasQuestItems(player, LETTER_TO_DWARF))
 				{
 					takeItems(player, LETTER_TO_DWARF, 1);
-					giveItems(player, LETTER_TO_NICHOLA, 1);
+					giveItemsWithoutQuestRate(player, LETTER_TO_NICHOLA, 1);
 					qs.setMemoState(15);
 					qs.setCond(18, true);
 					htmltext = event;
@@ -204,7 +204,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 				if (hasQuestItems(player, LETTER_TO_ORC))
 				{
 					takeItems(player, LETTER_TO_ORC, 1);
-					giveItems(player, LETTER_TO_MANAKIA, 1);
+					giveItemsWithoutQuestRate(player, LETTER_TO_MANAKIA, 1);
 					qs.setMemoState(10);
 					qs.setCond(13, true);
 					htmltext = event;
@@ -216,7 +216,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 				if (hasQuestItems(player, LETTER_TO_NICHOLA))
 				{
 					takeItems(player, LETTER_TO_NICHOLA, 1);
-					giveItems(player, ORDER_OF_NICHOLA, 1);
+					giveItemsWithoutQuestRate(player, ORDER_OF_NICHOLA, 1);
 					qs.setMemoState(16);
 					qs.setCond(19, true);
 					htmltext = event;
@@ -227,8 +227,8 @@ public class Q00217_TestimonyOfTrust extends Quest
 			{
 				if (qs.isMemoState(8) && hasQuestItems(player, LETTER_TO_SERESIN))
 				{
-					giveItems(player, LETTER_TO_DWARF, 1);
-					giveItems(player, LETTER_TO_ORC, 1);
+					giveItemsWithoutQuestRate(player, LETTER_TO_DWARF, 1);
+					giveItemsWithoutQuestRate(player, LETTER_TO_ORC, 1);
 					takeItems(player, LETTER_TO_SERESIN, 1);
 					qs.setMemoState(9);
 					qs.setCond(12, true);
@@ -374,7 +374,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 				{
 					if (qs.isMemoState(16) && !hasQuestItems(killer, HEART_OF_PORTA))
 					{
-						giveItems(killer, HEART_OF_PORTA, 1);
+						giveItemsWithoutQuestRate(killer, HEART_OF_PORTA, 1);
 						if (hasQuestItems(killer, HEART_OF_PORTA))
 						{
 							qs.setCond(20, true);
@@ -427,7 +427,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 					{
 						if (hasQuestItems(killer, SEED_OF_VERDURE))
 						{
-							giveItems(killer, BREATH_OF_WINDS, 1);
+							giveItemsWithoutQuestRate(killer, BREATH_OF_WINDS, 1);
 							qs.setMemoState(3);
 							qs.setCond(3, true);
 						}
@@ -503,7 +503,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 					{
 						if (hasQuestItems(player, SCROLL_OF_ELF_TRUST, SCROLL_OF_DARKELF_TRUST))
 						{
-							giveItems(player, LETTER_TO_SERESIN, 1);
+							giveItemsWithoutQuestRate(player, LETTER_TO_SERESIN, 1);
 							takeItems(player, SCROLL_OF_DARKELF_TRUST, 1);
 							takeItems(player, SCROLL_OF_ELF_TRUST, 1);
 							qs.setMemoState(8);
@@ -517,7 +517,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 						{
 							takeItems(player, SCROLL_OF_DWARF_TRUST, 1);
 							takeItems(player, SCROLL_OF_ORC_TRUST, 1);
-							giveItems(player, RECOMMENDATION_OF_HOLLIN, 1);
+							giveItemsWithoutQuestRate(player, RECOMMENDATION_OF_HOLLIN, 1);
 							qs.setMemoState(19);
 							qs.setCond(23, true);
 							htmltext = "30191-06.html";
@@ -542,7 +542,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 					if ((memoState == 19) && hasQuestItems(player, RECOMMENDATION_OF_HOLLIN))
 					{
 						giveAdena(player, 252212, true);
-						giveItems(player, MARK_OF_TRUST, 1);
+						giveItemsWithoutQuestRate(player, MARK_OF_TRUST, 1);
 						addExpAndSp(player, 1390298, 92782);
 						qs.exitQuest(false, true);
 						player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -570,7 +570,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 					{
 						if (hasQuestItems(player, BREATH_OF_WINDS, SEED_OF_VERDURE))
 						{
-							giveItems(player, SCROLL_OF_ELF_TRUST, 1);
+							giveItemsWithoutQuestRate(player, SCROLL_OF_ELF_TRUST, 1);
 							takeItems(player, ORDER_OF_ASTERIOS, 1);
 							takeItems(player, BREATH_OF_WINDS, 1);
 							takeItems(player, SEED_OF_VERDURE, 1);
@@ -598,7 +598,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 					{
 						if (hasQuestItems(player, ORDER_OF_CLAYTON) && ((getQuestItemsCount(player, STAKATO_ICHOR) + getQuestItemsCount(player, HONEY_DEW) + getQuestItemsCount(player, BASILISK_PLASMA)) == 3))
 						{
-							giveItems(player, SCROLL_OF_DARKELF_TRUST, 1);
+							giveItemsWithoutQuestRate(player, SCROLL_OF_DARKELF_TRUST, 1);
 							takeItems(player, BASILISK_PLASMA, -1);
 							takeItems(player, HONEY_DEW, -1);
 							takeItems(player, STAKATO_ICHOR, -1);
@@ -625,7 +625,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 						if (hasQuestItems(player, LETTER_OF_THIFIELL))
 						{
 							takeItems(player, LETTER_OF_THIFIELL, 1);
-							giveItems(player, ORDER_OF_CLAYTON, 1);
+							giveItemsWithoutQuestRate(player, ORDER_OF_CLAYTON, 1);
 							qs.setMemoState(6);
 							qs.setCond(6, true);
 							htmltext = "30464-01.html";
@@ -660,7 +660,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 						if (getQuestItemsCount(player, PARASITE_OF_LOTA) == 10)
 						{
 							takeItems(player, PARASITE_OF_LOTA, -1);
-							giveItems(player, LETTER_OF_MANAKIA, 1);
+							giveItemsWithoutQuestRate(player, LETTER_OF_MANAKIA, 1);
 							qs.setMemoState(13);
 							qs.setCond(16, true);
 							htmltext = "30515-04.html";
@@ -687,7 +687,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 					}
 					else if (memoState == 17)
 					{
-						giveItems(player, SCROLL_OF_DWARF_TRUST, 1);
+						giveItemsWithoutQuestRate(player, SCROLL_OF_DWARF_TRUST, 1);
 						qs.setMemoState(18);
 						qs.setCond(22, true);
 						htmltext = "30531-04.html";
@@ -713,7 +713,7 @@ public class Q00217_TestimonyOfTrust extends Quest
 					}
 					else if (memoState == 13)
 					{
-						giveItems(player, SCROLL_OF_ORC_TRUST, 1);
+						giveItemsWithoutQuestRate(player, SCROLL_OF_ORC_TRUST, 1);
 						takeItems(player, LETTER_OF_MANAKIA, 1);
 						qs.setMemoState(14);
 						qs.setCond(17, true);

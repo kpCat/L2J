@@ -222,7 +222,7 @@ public class Q10295_SevenSignsSolinasTomb extends Quest
 					}
 					else
 					{
-						giveItems(player, STAFF_OF_BLESSING, 1);
+						giveItemsWithoutQuestRate(player, STAFF_OF_BLESSING, 1);
 						htmltext = "32857-03.html";
 					}
 				}
@@ -238,7 +238,7 @@ public class Q10295_SevenSignsSolinasTomb extends Quest
 					}
 					else
 					{
-						giveItems(player, SWORD_OF_HOLY_SPIRIT, 1);
+						giveItemsWithoutQuestRate(player, SWORD_OF_HOLY_SPIRIT, 1);
 						htmltext = "32858-03.html";
 					}
 				}
@@ -254,7 +254,7 @@ public class Q10295_SevenSignsSolinasTomb extends Quest
 					}
 					else
 					{
-						giveItems(player, SCROLL_OF_ABSTINENCE, 1);
+						giveItemsWithoutQuestRate(player, SCROLL_OF_ABSTINENCE, 1);
 						htmltext = "32859-03.html";
 					}
 				}
@@ -270,7 +270,7 @@ public class Q10295_SevenSignsSolinasTomb extends Quest
 					}
 					else
 					{
-						giveItems(player, SHIELD_OF_SACRIFICE, 1);
+						giveItemsWithoutQuestRate(player, SHIELD_OF_SACRIFICE, 1);
 						htmltext = "32860-03.html";
 					}
 				}

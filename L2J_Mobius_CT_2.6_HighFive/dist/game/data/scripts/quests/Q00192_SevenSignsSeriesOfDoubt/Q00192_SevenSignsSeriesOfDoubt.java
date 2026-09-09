@@ -106,7 +106,7 @@ public class Q00192_SevenSignsSeriesOfDoubt extends Quest
 			{
 				if (qs.isCond(6) && hasQuestItems(player, JACOBS_NECKLACE))
 				{
-					giveItems(player, CROOPS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, CROOPS_LETTER, 1);
 					takeItems(player, JACOBS_NECKLACE, -1);
 					qs.setCond(7, true);
 					htmltext = event;
@@ -135,7 +135,7 @@ public class Q00192_SevenSignsSeriesOfDoubt extends Quest
 			{
 				if (qs.isCond(5))
 				{
-					giveItems(player, JACOBS_NECKLACE, 1);
+					giveItemsWithoutQuestRate(player, JACOBS_NECKLACE, 1);
 					qs.setCond(6, true);
 					htmltext = event;
 				}
@@ -235,7 +235,7 @@ public class Q00192_SevenSignsSeriesOfDoubt extends Quest
 							}
 							case 2:
 							{
-								giveItems(player, CROOPS_INTRODUCTION, 1);
+								giveItemsWithoutQuestRate(player, CROOPS_INTRODUCTION, 1);
 								qs.setCond(3, true);
 								htmltext = "30676-07.html";
 								break;

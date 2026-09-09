@@ -247,7 +247,7 @@ public class Q00336_CoinsOfMagic extends Quest
 					
 					if (hasQuestItems(player, Q_KALDIS_GOLD_DRAGON) && ((qs.getMemoState() == 1) || (qs.getMemoState() == 2)))
 					{
-						giveItems(player, Q_CC_MEMBERSHIP_3, 1);
+						giveItemsWithoutQuestRate(player, Q_CC_MEMBERSHIP_3, 1);
 						takeItems(player, Q_COIN_DIAGRAM, -1);
 						takeItems(player, Q_KALDIS_GOLD_DRAGON, 1);
 						qs.setMemoState(3);
@@ -293,7 +293,7 @@ public class Q00336_CoinsOfMagic extends Quest
 			playSound(player, QuestSound.ITEMSOUND_QUEST_ACCEPT);
 			if (!hasQuestItems(player, Q_COIN_DIAGRAM))
 			{
-				giveItems(player, Q_COIN_DIAGRAM, 1);
+				giveItemsWithoutQuestRate(player, Q_COIN_DIAGRAM, 1);
 			}
 			
 			qs.setMemoState(1);
@@ -862,7 +862,7 @@ public class Q00336_CoinsOfMagic extends Quest
 								takeItems(player, Q_GOLD_DRAKE, 1);
 								takeItems(player, Q_SILVER_FAIRY, 1);
 								takeItems(player, Q_SILVER_GOLEM, 1);
-								giveItems(player, Q_CC_MEMBERSHIP_2, 1);
+								giveItemsWithoutQuestRate(player, Q_CC_MEMBERSHIP_2, 1);
 								return "30232-16.html";
 							}
 							
@@ -886,7 +886,7 @@ public class Q00336_CoinsOfMagic extends Quest
 								takeItems(player, Q_GOLD_WYRM, 1);
 								takeItems(player, Q_SILVER_UNDINE, 1);
 								takeItems(player, Q_SILVER_DRYAD, 1);
-								giveItems(player, Q_CC_MEMBERSHIP_1, 1);
+								giveItemsWithoutQuestRate(player, Q_CC_MEMBERSHIP_1, 1);
 								return "30232-17.html";
 							}
 							

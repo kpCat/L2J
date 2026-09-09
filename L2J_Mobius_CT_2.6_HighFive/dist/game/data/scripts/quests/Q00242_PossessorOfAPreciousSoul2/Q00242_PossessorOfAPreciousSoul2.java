@@ -128,7 +128,7 @@ public class Q00242_PossessorOfAPreciousSoul2 extends Quest
 				if (st.isCond(7))
 				{
 					st.setCond(8, true);
-					giveItems(player, SORCERY_INGREDIENT, 1);
+					giveItemsWithoutQuestRate(player, SORCERY_INGREDIENT, 1);
 				}
 				break;
 			}
@@ -222,7 +222,7 @@ public class Q00242_PossessorOfAPreciousSoul2 extends Quest
 							case 11:
 							{
 								htmltext = "31742-04.html";
-								giveItems(player, CARADINE_LETTER, 1);
+								rewardItems(player, CARADINE_LETTER, 1);
 								addExpAndSp(player, 455764, 0);
 								st.exitQuest(false, true);
 								break;
@@ -317,7 +317,7 @@ public class Q00242_PossessorOfAPreciousSoul2 extends Quest
 						npc.doDie(npc);
 						if (CHANCE_FOR_HAIR >= getRandom(100))
 						{
-							giveItems(player, GOLDEN_HAIR, 1);
+							giveItemsWithoutQuestRate(player, GOLDEN_HAIR, 1);
 							st.setCond(5, true);
 							htmltext = "31752-01.html";
 						}

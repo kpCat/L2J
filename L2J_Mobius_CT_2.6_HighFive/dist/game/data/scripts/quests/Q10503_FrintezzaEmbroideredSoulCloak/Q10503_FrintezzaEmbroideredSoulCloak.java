@@ -65,12 +65,12 @@ public class Q10503_FrintezzaEmbroideredSoulCloak extends Quest
 			final long count = getRandom(1, 3);
 			if (count >= (FRAGMENT_COUNT - currentCount))
 			{
-				giveItems(player, FRINTEZZAS_SOUL_FRAGMENT, FRAGMENT_COUNT - currentCount);
+				giveItemsWithoutQuestRate(player, FRINTEZZAS_SOUL_FRAGMENT, FRAGMENT_COUNT - currentCount);
 				qs.setCond(2, true);
 			}
 			else
 			{
-				giveItems(player, FRINTEZZAS_SOUL_FRAGMENT, count);
+				giveItemsWithoutQuestRate(player, FRINTEZZAS_SOUL_FRAGMENT, count);
 				playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 			}
 		}
@@ -120,7 +120,7 @@ public class Q10503_FrintezzaEmbroideredSoulCloak extends Quest
 					{
 						if (getQuestItemsCount(player, FRINTEZZAS_SOUL_FRAGMENT) >= FRAGMENT_COUNT)
 						{
-							giveItems(player, SOUL_CLOAK_OF_FRINTEZZA, 1);
+							rewardItems(player, SOUL_CLOAK_OF_FRINTEZZA, 1);
 							playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 							qs.exitQuest(false, true);
 							htmltext = "32612-06.html";

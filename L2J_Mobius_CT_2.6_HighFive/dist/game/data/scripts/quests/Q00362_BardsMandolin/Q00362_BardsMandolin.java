@@ -119,7 +119,7 @@ public class Q00362_BardsMandolin extends Quest
 							{
 								qs.setCond(4, true);
 								qs.setMemoState(4);
-								giveItems(player, SWANS_LETTER, 1);
+								giveItemsWithoutQuestRate(player, SWANS_LETTER, 1);
 								htmltext = "30957-05.html";
 								break;
 							}
@@ -142,7 +142,7 @@ public class Q00362_BardsMandolin extends Quest
 						{
 							qs.setMemoState(3);
 							qs.setCond(3, true);
-							giveItems(player, SWANS_FLUTE, 1);
+							giveItemsWithoutQuestRate(player, SWANS_FLUTE, 1);
 							htmltext = "30958-01.html";
 						}
 						else if (qs.getMemoState() >= 3)

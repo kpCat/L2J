@@ -117,7 +117,7 @@ public class Q00271_ProofOfValor extends Quest
 							if (getRandom(100) <= 13)
 							{
 								rewardItems(player, NECKLACE_OF_VALOR, 1);
-								giveItems(player, HEALING_POTION, 10);
+								rewardItems(player, HEALING_POTION, 10);
 							}
 							else
 							{

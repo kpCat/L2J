@@ -184,8 +184,8 @@ public class Q00373_SupplierOfReagents extends Quest
 			{
 				if ((player.getLevel() >= MIN_LEVEL) && qs.isCreated())
 				{
-					giveItems(player, WESLEYS_MIXING_STONE, 1);
-					giveItems(player, MIXING_MANUAL, 1);
+					giveItemsWithoutQuestRate(player, WESLEYS_MIXING_STONE, 1);
+					giveItemsWithoutQuestRate(player, MIXING_MANUAL, 1);
 					qs.startQuest();
 					htmltext = event;
 				}

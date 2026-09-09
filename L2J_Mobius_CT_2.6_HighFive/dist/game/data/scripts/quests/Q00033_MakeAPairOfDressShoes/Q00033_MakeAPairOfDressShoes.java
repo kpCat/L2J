@@ -93,7 +93,7 @@ public class Q00033_MakeAPairOfDressShoes extends Quest
 			}
 			case "30838-13.html":
 			{
-				giveItems(player, DRESS_SHOES_BOX, 1);
+				rewardItems(player, DRESS_SHOES_BOX, 1);
 				qs.exitQuest(false, true);
 				break;
 			}

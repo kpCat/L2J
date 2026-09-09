@@ -96,7 +96,7 @@ public class Q00295_DreamingOfTheSkies extends Quest
 				}
 				else
 				{
-					giveItems(talker, RING_OF_FIREFLY, 1);
+					rewardItems(talker, RING_OF_FIREFLY, 1);
 					html = "30536-05.html";
 				}
 				

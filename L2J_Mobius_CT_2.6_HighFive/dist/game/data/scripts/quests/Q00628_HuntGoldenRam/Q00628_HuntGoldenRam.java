@@ -108,7 +108,7 @@ public class Q00628_HuntGoldenRam extends Quest
 			{
 				if (getQuestItemsCount(player, SPLINTER_STAKATO_CHITIN) >= REQUIRED_ITEM_COUNT)
 				{
-					giveItems(player, GOLDEN_RAM_BADGE_RECRUIT, 1);
+					giveItemsWithoutQuestRate(player, GOLDEN_RAM_BADGE_RECRUIT, 1);
 					takeItems(player, SPLINTER_STAKATO_CHITIN, -1);
 					qs.setCond(2, true);
 					htmltext = event;
@@ -184,7 +184,7 @@ public class Q00628_HuntGoldenRam extends Quest
 								takeItems(player, GOLDEN_RAM_BADGE_RECRUIT, -1);
 								takeItems(player, SPLINTER_STAKATO_CHITIN, -1);
 								takeItems(player, NEEDLE_STAKATO_CHITIN, -1);
-								giveItems(player, GOLDEN_RAM_BADGE_SOLDIER, 1);
+								giveItemsWithoutQuestRate(player, GOLDEN_RAM_BADGE_SOLDIER, 1);
 								qs.setCond(3, true);
 								htmltext = "31554-10.html";
 							}

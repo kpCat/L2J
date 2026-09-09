@@ -99,7 +99,7 @@ public class Q00035_FindGlitteringJewelry extends Quest
 					takeItems(player, ORIHARUKON, ORIHARUKON_COUNT);
 					takeItems(player, SILVER_NUGGET, NUGGET_COUNT);
 					takeItems(player, THONS, THONS_COUNT);
-					giveItems(player, JEWEL_BOX, 1);
+					rewardItems(player, JEWEL_BOX, 1);
 					qs.exitQuest(false, true);
 				}
 				else

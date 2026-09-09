@@ -111,7 +111,7 @@ public class Q00103_SpiritOfCraftsman extends Quest
 				if (qs.isCreated())
 				{
 					qs.startQuest();
-					giveItems(player, KAROYDS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, KAROYDS_LETTER, 1);
 					htmltext = event;
 				}
 				break;
@@ -155,22 +155,22 @@ public class Q00103_SpiritOfCraftsman extends Quest
 					{
 						if ((talker.getLevel() < 25) && !talker.isMageClass())
 						{
-							giveItems(talker, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
+							rewardItems(talker, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
 							playSound(talker, "tutorial_voice_026");
 						}
 						
 						if (!talker.isMageClass())
 						{
-							giveItems(talker, SOULSHOTS_NO_GRADE);
+							rewardItems(talker, SOULSHOTS_NO_GRADE);
 						}
 						else
 						{
-							giveItems(talker, SPIRITSHOTS_NO_GRADE);
+							rewardItems(talker, SPIRITSHOTS_NO_GRADE);
 						}
 						
 						for (ItemHolder reward : REWARDS)
 						{
-							giveItems(talker, reward);
+							rewardItems(talker, reward);
 						}
 						
 						// Newbie Guide.
@@ -214,7 +214,7 @@ public class Q00103_SpiritOfCraftsman extends Quest
 					{
 						qs.setCond(2, true);
 						takeItems(talker, KAROYDS_LETTER, 1);
-						giveItems(talker, CECKTINONS_VOUCHER1, 1);
+						giveItemsWithoutQuestRate(talker, CECKTINONS_VOUCHER1, 1);
 						htmltext = "30132-01.html";
 					}
 					else if (hasAtLeastOneQuestItem(talker, CECKTINONS_VOUCHER1, CECKTINONS_VOUCHER2))
@@ -225,7 +225,7 @@ public class Q00103_SpiritOfCraftsman extends Quest
 					{
 						qs.setCond(6, true);
 						takeItems(talker, SOUL_CATCHER, 1);
-						giveItems(talker, PRESERVE_OIL, 1);
+						giveItemsWithoutQuestRate(talker, PRESERVE_OIL, 1);
 						htmltext = "30132-03.html";
 					}
 					else if (hasQuestItems(talker, PRESERVE_OIL) && !hasQuestItems(talker, ZOMBIE_HEAD, STEELBENDERS_HEAD))
@@ -236,7 +236,7 @@ public class Q00103_SpiritOfCraftsman extends Quest
 					{
 						qs.setCond(8, true);
 						takeItems(talker, ZOMBIE_HEAD, 1);
-						giveItems(talker, STEELBENDERS_HEAD, 1);
+						giveItemsWithoutQuestRate(talker, STEELBENDERS_HEAD, 1);
 						htmltext = "30132-05.html";
 					}
 					else if (hasQuestItems(talker, STEELBENDERS_HEAD))
@@ -254,7 +254,7 @@ public class Q00103_SpiritOfCraftsman extends Quest
 					{
 						qs.setCond(3, true);
 						takeItems(talker, CECKTINONS_VOUCHER1, 1);
-						giveItems(talker, CECKTINONS_VOUCHER2, 1);
+						giveItemsWithoutQuestRate(talker, CECKTINONS_VOUCHER2, 1);
 						htmltext = "30144-01.html";
 					}
 					else if (hasQuestItems(talker, CECKTINONS_VOUCHER2))
@@ -264,7 +264,7 @@ public class Q00103_SpiritOfCraftsman extends Quest
 							qs.setCond(5, true);
 							takeItems(talker, CECKTINONS_VOUCHER2, 1);
 							takeItems(talker, BONE_FRAGMENT, 10);
-							giveItems(talker, SOUL_CATCHER, 1);
+							giveItemsWithoutQuestRate(talker, SOUL_CATCHER, 1);
 							htmltext = "30144-03.html";
 						}
 						else
@@ -299,7 +299,7 @@ public class Q00103_SpiritOfCraftsman extends Quest
 			{
 				if (hasQuestItems(killer, PRESERVE_OIL) && (getRandom(10) < 5) && LocationUtil.checkIfInRange(PlayerConfig.ALT_PARTY_RANGE, npc, killer, true))
 				{
-					giveItems(killer, ZOMBIE_HEAD, 1);
+					giveItemsWithoutQuestRate(killer, ZOMBIE_HEAD, 1);
 					takeItems(killer, PRESERVE_OIL, -1);
 					qs.setCond(7, true);
 				}

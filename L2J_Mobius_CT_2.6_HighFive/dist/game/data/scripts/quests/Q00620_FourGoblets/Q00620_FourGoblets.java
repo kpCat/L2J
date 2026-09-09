@@ -246,7 +246,7 @@ public class Q00620_FourGoblets extends Quest
 				{
 					if (!hasQuestItems(player, GOBLET_OF_ALECTIA) && !hasQuestItems(player, ANTIQUE_BROOCH))
 					{
-						giveItems(player, GOBLET_OF_ALECTIA, 1);
+						giveItemsWithoutQuestRate(player, GOBLET_OF_ALECTIA, 1);
 					}
 					
 					qs.setMemoStateEx(1, 2);
@@ -256,7 +256,7 @@ public class Q00620_FourGoblets extends Quest
 				{
 					if (!hasQuestItems(player, GOBLET_OF_TISHAS) && !hasQuestItems(player, ANTIQUE_BROOCH))
 					{
-						giveItems(player, GOBLET_OF_TISHAS, 1);
+						giveItemsWithoutQuestRate(player, GOBLET_OF_TISHAS, 1);
 					}
 					
 					qs.setMemoStateEx(1, 2);
@@ -266,7 +266,7 @@ public class Q00620_FourGoblets extends Quest
 				{
 					if (!hasQuestItems(player, GOBLET_OF_MEKARA) && !hasQuestItems(player, ANTIQUE_BROOCH))
 					{
-						giveItems(player, GOBLET_OF_MEKARA, 1);
+						giveItemsWithoutQuestRate(player, GOBLET_OF_MEKARA, 1);
 					}
 					
 					qs.setMemoStateEx(1, 2);
@@ -276,7 +276,7 @@ public class Q00620_FourGoblets extends Quest
 				{
 					if (!hasQuestItems(player, GOBLET_OF_MORIGUL) && !hasQuestItems(player, ANTIQUE_BROOCH))
 					{
-						giveItems(player, GOBLET_OF_MORIGUL, 1);
+						giveItemsWithoutQuestRate(player, GOBLET_OF_MORIGUL, 1);
 					}
 					
 					qs.setMemoStateEx(1, 2);
@@ -347,7 +347,7 @@ public class Q00620_FourGoblets extends Quest
 			{
 				if (hasQuestItems(player, GOBLET_OF_ALECTIA, GOBLET_OF_TISHAS, GOBLET_OF_MEKARA, GOBLET_OF_MORIGUL))
 				{
-					giveItems(player, ANTIQUE_BROOCH, 1);
+					giveItemsWithoutQuestRate(player, ANTIQUE_BROOCH, 1);
 					qs.setCond(2, true);
 					takeItems(player, 1, GOBLET_OF_ALECTIA, GOBLET_OF_TISHAS, GOBLET_OF_MEKARA, GOBLET_OF_MORIGUL);
 					htmltext = event;

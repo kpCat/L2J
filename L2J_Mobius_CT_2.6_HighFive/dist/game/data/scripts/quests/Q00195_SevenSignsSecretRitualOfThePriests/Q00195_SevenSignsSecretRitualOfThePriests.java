@@ -92,7 +92,7 @@ public class Q00195_SevenSignsSecretRitualOfThePriests extends Quest
 			{
 				if (qs.isCond(1))
 				{
-					giveItems(player, IDENTITY_CARD, 1);
+					giveItemsWithoutQuestRate(player, IDENTITY_CARD, 1);
 					qs.setCond(2, true);
 					htmltext = event;
 				}
@@ -322,7 +322,7 @@ public class Q00195_SevenSignsSecretRitualOfThePriests extends Quest
 					{
 						if (qs.isCond(3) && !hasQuestItems(player, SHUNAIMANS_CONTRACT))
 						{
-							giveItems(player, SHUNAIMANS_CONTRACT, 1);
+							giveItemsWithoutQuestRate(player, SHUNAIMANS_CONTRACT, 1);
 							htmltext = "32580-02.html";
 						}
 						break;

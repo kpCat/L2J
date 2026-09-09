@@ -131,7 +131,7 @@ public class Q00258_BringWolfPelts extends Quest
 							{
 								if (chance < reward.getValue())
 								{
-									giveItems(player, reward.getKey(), 1);
+									rewardItems(player, reward.getKey(), 1);
 									break;
 								}
 							}

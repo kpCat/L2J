@@ -67,8 +67,8 @@ public class Q00009_IntoTheCityOfHumans extends Quest
 			}
 			case "30576-02.html":
 			{
-				giveItems(player, MARK_OF_TRAVELER, 1);
-				giveItems(player, SCROLL_OF_ESCAPE_GIRAN, 1);
+				giveItemsWithoutQuestRate(player, MARK_OF_TRAVELER, 1);
+				rewardItems(player, SCROLL_OF_ESCAPE_GIRAN, 1);
 				qs.exitQuest(false, true);
 				break;
 			}

@@ -122,7 +122,7 @@ public class Q00228_TestOfMagus extends Quest
 				{
 					qs.startQuest();
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
-					giveItems(player, RUKALS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, RUKALS_LETTER, 1);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
 						giveItems(player, DIMENSIONAL_DIAMOND, 122);
@@ -150,7 +150,7 @@ public class Q00228_TestOfMagus extends Quest
 					takeItems(player, GOLDEN_SEED_1ST, 1);
 					takeItems(player, GOLDEN_SEED_2ND, 1);
 					takeItems(player, GOLDEN_SEED_3RD, 1);
-					giveItems(player, SCORE_OF_ELEMENTS, 1);
+					giveItemsWithoutQuestRate(player, SCORE_OF_ELEMENTS, 1);
 					qs.setCond(5, true);
 					htmltext = event;
 				}
@@ -161,7 +161,7 @@ public class Q00228_TestOfMagus extends Quest
 				if (hasQuestItems(player, RUKALS_LETTER))
 				{
 					takeItems(player, RUKALS_LETTER, 1);
-					giveItems(player, PARINAS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, PARINAS_LETTER, 1);
 					qs.setCond(2, true);
 					htmltext = event;
 				}
@@ -169,20 +169,20 @@ public class Q00228_TestOfMagus extends Quest
 			}
 			case "30409-03.html":
 			{
-				giveItems(player, SERPENT_CHARM, 1);
+				giveItemsWithoutQuestRate(player, SERPENT_CHARM, 1);
 				htmltext = event;
 				break;
 			}
 			case "30412-02.html":
 			{
-				giveItems(player, SYLPH_CHARM, 1);
+				giveItemsWithoutQuestRate(player, SYLPH_CHARM, 1);
 				htmltext = event;
 				break;
 			}
 			case "30612-02.html":
 			{
 				takeItems(player, PARINAS_LETTER, 1);
-				giveItems(player, LILAC_CHARM, 1);
+				giveItemsWithoutQuestRate(player, LILAC_CHARM, 1);
 				qs.setCond(3, true);
 				htmltext = event;
 				break;
@@ -320,7 +320,7 @@ public class Q00228_TestOfMagus extends Quest
 				{
 					if (hasQuestItems(killer, LILAC_CHARM) && !hasQuestItems(killer, GOLDEN_SEED_1ST))
 					{
-						giveItems(killer, GOLDEN_SEED_1ST, 1);
+						giveItemsWithoutQuestRate(killer, GOLDEN_SEED_1ST, 1);
 						npc.broadcastPacket(new NpcSay(npc, ChatType.NPC_GENERAL, NpcStringId.I_AM_A_TREE_OF_NOTHING_A_TREE_THAT_KNOWS_WHERE_TO_RETURN));
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 						if (hasQuestItems(killer, GOLDEN_SEED_2ND, GOLDEN_SEED_3RD))
@@ -334,7 +334,7 @@ public class Q00228_TestOfMagus extends Quest
 				{
 					if (hasQuestItems(killer, LILAC_CHARM) && !hasQuestItems(killer, GOLDEN_SEED_2ND))
 					{
-						giveItems(killer, GOLDEN_SEED_2ND, 1);
+						giveItemsWithoutQuestRate(killer, GOLDEN_SEED_2ND, 1);
 						npc.broadcastPacket(new NpcSay(npc, ChatType.NPC_GENERAL, NpcStringId.I_AM_A_CREATURE_THAT_SHOWS_THE_TRUTH_OF_THE_PLACE_DEEP_IN_MY_HEART));
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 						if (hasQuestItems(killer, GOLDEN_SEED_1ST, GOLDEN_SEED_3RD))
@@ -348,7 +348,7 @@ public class Q00228_TestOfMagus extends Quest
 				{
 					if (hasQuestItems(killer, LILAC_CHARM) && !hasQuestItems(killer, GOLDEN_SEED_3RD))
 					{
-						giveItems(killer, GOLDEN_SEED_3RD, 1);
+						giveItemsWithoutQuestRate(killer, GOLDEN_SEED_3RD, 1);
 						npc.broadcastPacket(new NpcSay(npc, ChatType.NPC_GENERAL, NpcStringId.I_AM_A_MIRROR_OF_DARKNESS_A_VIRTUAL_IMAGE_OF_DARKNESS));
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 						if (hasQuestItems(killer, GOLDEN_SEED_1ST, GOLDEN_SEED_2ND))
@@ -434,7 +434,7 @@ public class Q00228_TestOfMagus extends Quest
 						if (hasQuestItems(player, TONE_OF_WATER, TONE_OF_FIRE, TONE_OF_WIND, TONE_OF_EARTH))
 						{
 							giveAdena(player, 372154, true);
-							giveItems(player, MARK_OF_MAGUS, 1);
+							giveItemsWithoutQuestRate(player, MARK_OF_MAGUS, 1);
 							addExpAndSp(player, 2058244, 141240);
 							qs.exitQuest(false, true);
 							player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -482,7 +482,7 @@ public class Q00228_TestOfMagus extends Quest
 								takeItems(player, ENCHANTED_MONSTER_EYE_SHELL, -1);
 								takeItems(player, ENCHANTED_GOLEM_POWDER, -1);
 								takeItems(player, ENCHANTED_IRON_GOLEM_SCRAP, -1);
-								giveItems(player, TONE_OF_EARTH, 1);
+								giveItemsWithoutQuestRate(player, TONE_OF_EARTH, 1);
 								takeItems(player, SERPENT_CHARM, 1);
 								if (hasQuestItems(player, TONE_OF_FIRE, TONE_OF_WATER, TONE_OF_WIND))
 								{
@@ -510,7 +510,7 @@ public class Q00228_TestOfMagus extends Quest
 						if (!hasAtLeastOneQuestItem(player, TONE_OF_FIRE, SALAMANDER_CHARM))
 						{
 							htmltext = "30411-01.html";
-							giveItems(player, SALAMANDER_CHARM, 1);
+							giveItemsWithoutQuestRate(player, SALAMANDER_CHARM, 1);
 						}
 						else if (hasQuestItems(player, SALAMANDER_CHARM))
 						{
@@ -521,7 +521,7 @@ public class Q00228_TestOfMagus extends Quest
 							else
 							{
 								takeItems(player, FLAME_CRYSTAL, -1);
-								giveItems(player, TONE_OF_FIRE, 1);
+								giveItemsWithoutQuestRate(player, TONE_OF_FIRE, 1);
 								takeItems(player, SALAMANDER_CHARM, 1);
 								if (hasQuestItems(player, TONE_OF_WATER, TONE_OF_WIND, TONE_OF_EARTH))
 								{
@@ -553,7 +553,7 @@ public class Q00228_TestOfMagus extends Quest
 								takeItems(player, HARPYS_FEATHER, -1);
 								takeItems(player, WYRMS_WINGBONE, -1);
 								takeItems(player, WINDSUS_MANE, -1);
-								giveItems(player, TONE_OF_WIND, 1);
+								giveItemsWithoutQuestRate(player, TONE_OF_WIND, 1);
 								takeItems(player, SYLPH_CHARM, 1);
 								if (hasQuestItems(player, TONE_OF_WATER, TONE_OF_FIRE, TONE_OF_EARTH))
 								{
@@ -581,7 +581,7 @@ public class Q00228_TestOfMagus extends Quest
 						if (!hasAtLeastOneQuestItem(player, TONE_OF_WATER, UNDINE_CHARM))
 						{
 							htmltext = "30413-01.html";
-							giveItems(player, UNDINE_CHARM, 1);
+							giveItemsWithoutQuestRate(player, UNDINE_CHARM, 1);
 						}
 						else if (hasQuestItems(player, UNDINE_CHARM))
 						{
@@ -592,7 +592,7 @@ public class Q00228_TestOfMagus extends Quest
 							else
 							{
 								takeItems(player, DAZZLING_DROP, -1);
-								giveItems(player, TONE_OF_WATER, 1);
+								giveItemsWithoutQuestRate(player, TONE_OF_WATER, 1);
 								takeItems(player, UNDINE_CHARM, 1);
 								if (hasQuestItems(player, TONE_OF_FIRE, TONE_OF_WIND, TONE_OF_EARTH))
 								{

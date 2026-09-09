@@ -79,12 +79,12 @@ public class Q00132_MatrasCuriosity extends Quest
 		{
 			giveAdena(player, 65884, true);
 			addExpAndSp(player, 50541, 5094);
-			giveItems(player, FIRE, 1);
-			giveItems(player, WATER, 1);
-			giveItems(player, EARTH, 1);
-			giveItems(player, WIND, 1);
-			giveItems(player, DARKNESS, 1);
-			giveItems(player, DIVINITY, 1);
+			rewardItems(player, FIRE, 1);
+			rewardItems(player, WATER, 1);
+			rewardItems(player, EARTH, 1);
+			rewardItems(player, WIND, 1);
+			rewardItems(player, DARKNESS, 1);
+			rewardItems(player, DIVINITY, 1);
 			qs.exitQuest(false, true);
 		}
 		
@@ -103,7 +103,7 @@ public class Q00132_MatrasCuriosity extends Quest
 				if (pl != null)
 				{
 					final QuestState qs = getQuestState(pl, false);
-					giveItems(player, BLUEPRINT_PRINCE, 1);
+					giveItemsWithoutQuestRate(player, BLUEPRINT_PRINCE, 1);
 					qs.set("rewarded_prince", "2");
 					if (hasQuestItems(player, BLUEPRINT_RANKU))
 					{
@@ -122,7 +122,7 @@ public class Q00132_MatrasCuriosity extends Quest
 				if (pl != null)
 				{
 					final QuestState qs = getQuestState(pl, false);
-					giveItems(player, BLUEPRINT_RANKU, 1);
+					giveItemsWithoutQuestRate(player, BLUEPRINT_RANKU, 1);
 					qs.set("rewarded_ranku", "2");
 					if (hasQuestItems(player, BLUEPRINT_PRINCE))
 					{

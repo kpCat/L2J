@@ -126,7 +126,7 @@ public class Q00406_PathOfTheElvenKnight extends Quest
 				takeItems(player, SORIUS_LETTER, 1);
 				if (!hasQuestItems(player, KLUTO_MEMO))
 				{
-					giveItems(player, KLUTO_MEMO, 1);
+					giveItemsWithoutQuestRate(player, KLUTO_MEMO, 1);
 				}
 				
 				qs.setCond(4, true);
@@ -199,7 +199,7 @@ public class Q00406_PathOfTheElvenKnight extends Quest
 						{
 							if (!hasQuestItems(player, SORIUS_LETTER))
 							{
-								giveItems(player, SORIUS_LETTER, 1);
+								giveItemsWithoutQuestRate(player, SORIUS_LETTER, 1);
 							}
 							
 							qs.setCond(3, true);
@@ -215,7 +215,7 @@ public class Q00406_PathOfTheElvenKnight extends Quest
 						giveAdena(player, 163800, true);
 						if (!hasQuestItems(player, ELVEN_KNIGHT_BROOCH))
 						{
-							giveItems(player, ELVEN_KNIGHT_BROOCH, 1);
+							giveItemsWithoutQuestRate(player, ELVEN_KNIGHT_BROOCH, 1);
 						}
 						
 						final int level = player.getLevel();
@@ -258,7 +258,7 @@ public class Q00406_PathOfTheElvenKnight extends Quest
 						{
 							if (!hasQuestItems(player, KLUTO_BOX))
 							{
-								giveItems(player, KLUTO_BOX, 1);
+								giveItemsWithoutQuestRate(player, KLUTO_BOX, 1);
 							}
 							
 							takeItems(player, TOPAZ_PIECE, -1);

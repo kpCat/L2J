@@ -91,7 +91,7 @@ public class Q00411_PathOfTheAssassin extends Quest
 						else
 						{
 							qs.startQuest();
-							giveItems(player, SHILENS_CALL, 1);
+							giveItemsWithoutQuestRate(player, SHILENS_CALL, 1);
 							htmltext = "30416-05.htm";
 						}
 					}
@@ -121,7 +121,7 @@ public class Q00411_PathOfTheAssassin extends Quest
 				if (hasQuestItems(player, ARKENIAS_LETTER))
 				{
 					takeItems(player, ARKENIAS_LETTER, 1);
-					giveItems(player, LEIKANS_NOTE, 1);
+					giveItemsWithoutQuestRate(player, LEIKANS_NOTE, 1);
 					qs.setCond(3, true);
 					htmltext = event;
 				}
@@ -140,7 +140,7 @@ public class Q00411_PathOfTheAssassin extends Quest
 				if (hasQuestItems(player, SHILENS_CALL))
 				{
 					takeItems(player, SHILENS_CALL, 1);
-					giveItems(player, ARKENIAS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, ARKENIAS_LETTER, 1);
 					qs.setCond(2, true);
 					htmltext = event;
 				}
@@ -179,7 +179,7 @@ public class Q00411_PathOfTheAssassin extends Quest
 				{
 					if (!hasQuestItems(killer, SHILENS_TEARS))
 					{
-						giveItems(killer, SHILENS_TEARS, 1);
+						giveItemsWithoutQuestRate(killer, SHILENS_TEARS, 1);
 						qs.setCond(6, true);
 					}
 					break;
@@ -216,7 +216,7 @@ public class Q00411_PathOfTheAssassin extends Quest
 					if (!hasAtLeastOneQuestItem(player, ARKENIAS_LETTER, LEIKANS_NOTE, SHILENS_TEARS, IRON_HEART) && hasQuestItems(player, ARKENIAS_RECOMMENDATION))
 					{
 						giveAdena(player, 163800, true);
-						giveItems(player, IRON_HEART, 1);
+						giveItemsWithoutQuestRate(player, IRON_HEART, 1);
 						final int level = player.getLevel();
 						if (level >= 20)
 						{
@@ -304,7 +304,7 @@ public class Q00411_PathOfTheAssassin extends Quest
 					else if (!hasAtLeastOneQuestItem(player, ARKENIAS_LETTER, LEIKANS_NOTE, ARKENIAS_RECOMMENDATION, IRON_HEART, SHILENS_CALL) && hasQuestItems(player, SHILENS_TEARS))
 					{
 						takeItems(player, SHILENS_TEARS, 1);
-						giveItems(player, ARKENIAS_RECOMMENDATION, 1);
+						giveItemsWithoutQuestRate(player, ARKENIAS_RECOMMENDATION, 1);
 						qs.setCond(7, true);
 						htmltext = "30419-08.html";
 					}

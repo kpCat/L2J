@@ -105,7 +105,7 @@ public class Q00226_TestOfTheHealer extends Quest
 					qs.startQuest();
 					qs.setMemoState(1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
-					giveItems(player, REPORT_OF_PERRIN, 1);
+					giveItemsWithoutQuestRate(player, REPORT_OF_PERRIN, 1);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
 						if (player.getPlayerClass() == PlayerClass.CLERIC)
@@ -148,7 +148,7 @@ public class Q00226_TestOfTheHealer extends Quest
 				if (qs.isMemoState(10) && hasQuestItems(player, GOLDEN_STATUE))
 				{
 					giveAdena(player, 233490, true);
-					giveItems(player, MARK_OF_HEALER, 1);
+					giveItemsWithoutQuestRate(player, MARK_OF_HEALER, 1);
 					addExpAndSp(player, 738283, 50662);
 					qs.exitQuest(false, true);
 					player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -177,7 +177,7 @@ public class Q00226_TestOfTheHealer extends Quest
 					if (getQuestItemsCount(player, ADENA) >= 100000)
 					{
 						takeItems(player, ADENA, 100000);
-						giveItems(player, PICTURE_OF_WINDY, 1);
+						giveItemsWithoutQuestRate(player, PICTURE_OF_WINDY, 1);
 						qs.setCond(7, true);
 						htmltext = event;
 					}
@@ -215,7 +215,7 @@ public class Q00226_TestOfTheHealer extends Quest
 				if (hasQuestItems(player, PICTURE_OF_WINDY))
 				{
 					takeItems(player, PICTURE_OF_WINDY, 1);
-					giveItems(player, WINDYS_PEBBLES, 1);
+					giveItemsWithoutQuestRate(player, WINDYS_PEBBLES, 1);
 					qs.setCond(8, true);
 					npc.deleteMe();
 					htmltext = event;
@@ -226,7 +226,7 @@ public class Q00226_TestOfTheHealer extends Quest
 			{
 				if ((getQuestItemsCount(player, SECRET_LETTER1) + getQuestItemsCount(player, SECRET_LETTER2) + getQuestItemsCount(player, SECRET_LETTER3) + getQuestItemsCount(player, SECRET_LETTER4)) == 4)
 				{
-					giveItems(player, CRISTINAS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, CRISTINAS_LETTER, 1);
 					takeItems(player, SECRET_LETTER1, 1);
 					takeItems(player, SECRET_LETTER2, 1);
 					takeItems(player, SECRET_LETTER3, 1);
@@ -360,7 +360,7 @@ public class Q00226_TestOfTheHealer extends Quest
 						else
 						{
 							giveAdena(player, 266980, true);
-							giveItems(player, MARK_OF_HEALER, 1);
+							giveItemsWithoutQuestRate(player, MARK_OF_HEALER, 1);
 							addExpAndSp(player, 1476566, 101324);
 							qs.exitQuest(false, true);
 							player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -373,7 +373,7 @@ public class Q00226_TestOfTheHealer extends Quest
 				{
 					if (memoState == 5)
 					{
-						giveItems(player, ORDER_OF_SORIUS, 1);
+						giveItemsWithoutQuestRate(player, ORDER_OF_SORIUS, 1);
 						qs.setMemoState(6);
 						qs.setCond(10, true);
 						htmltext = "30327-01.html";
@@ -450,7 +450,7 @@ public class Q00226_TestOfTheHealer extends Quest
 						}
 						else if (hasQuestItems(player, WINDYS_PEBBLES))
 						{
-							giveItems(player, GOLDEN_STATUE, 1);
+							giveItemsWithoutQuestRate(player, GOLDEN_STATUE, 1);
 							takeItems(player, WINDYS_PEBBLES, 1);
 							qs.setMemoState(5);
 							htmltext = "30658-06.html";

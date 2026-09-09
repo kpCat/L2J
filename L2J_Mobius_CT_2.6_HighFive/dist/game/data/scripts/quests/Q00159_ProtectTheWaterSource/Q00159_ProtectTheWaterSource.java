@@ -60,7 +60,7 @@ public class Q00159_ProtectTheWaterSource extends Quest
 		if ((qs != null) && event.equals("30154-04.htm"))
 		{
 			qs.startQuest();
-			giveItems(player, HYACINTH_CHARM, 1);
+			giveItemsWithoutQuestRate(player, HYACINTH_CHARM, 1);
 			return event;
 		}
 		
@@ -135,7 +135,7 @@ public class Q00159_ProtectTheWaterSource extends Quest
 						{
 							takeItems(player, HYACINTH_CHARM, -1);
 							takeItems(player, PLAGUE_DUST, -1);
-							giveItems(player, HYACINTH_CHARM2, 1);
+							giveItemsWithoutQuestRate(player, HYACINTH_CHARM2, 1);
 							qs.setCond(3, true);
 							htmltext = "30154-06.html";
 						}

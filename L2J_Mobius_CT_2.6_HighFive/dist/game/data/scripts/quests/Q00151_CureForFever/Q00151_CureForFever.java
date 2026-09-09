@@ -82,7 +82,7 @@ public class Q00151_CureForFever extends Quest
 		final QuestState qs = getQuestState(killer, false);
 		if ((qs != null) && qs.isCond(1) && (getRandom(5) == CHANCE))
 		{
-			giveItems(killer, POISON_SAC, 1);
+			giveItemsWithoutQuestRate(killer, POISON_SAC, 1);
 			qs.setCond(2, true);
 		}
 	}
@@ -128,7 +128,7 @@ public class Q00151_CureForFever extends Quest
 								newbieGuideQs.setState(State.COMPLETED);
 							}
 							
-							giveItems(player, ROUND_SHIELD, 1);
+							rewardItems(player, ROUND_SHIELD, 1);
 							addExpAndSp(player, 13106, 613);
 							qs.exitQuest(false, true);
 							htmltext = "30050-06.html";
@@ -159,7 +159,7 @@ public class Q00151_CureForFever extends Quest
 					{
 						qs.setCond(3, true);
 						takeItems(player, POISON_SAC, -1);
-						giveItems(player, FEVER_MEDICINE, 1);
+						giveItemsWithoutQuestRate(player, FEVER_MEDICINE, 1);
 						htmltext = "30032-01.html";
 					}
 					else if (qs.isCond(3) && hasQuestItems(player, FEVER_MEDICINE))

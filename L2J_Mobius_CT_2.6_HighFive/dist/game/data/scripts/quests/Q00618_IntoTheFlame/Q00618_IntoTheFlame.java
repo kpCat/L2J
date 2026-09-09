@@ -93,7 +93,7 @@ public class Q00618_IntoTheFlame extends Quest
 				}
 				else
 				{
-					giveItems(player, VACUALITE_FLOATING_STONE, 1);
+					giveItemsWithoutQuestRate(player, VACUALITE_FLOATING_STONE, 1);
 					qs.exitQuest(true, true);
 					htmltext = event;
 				}
@@ -113,7 +113,7 @@ public class Q00618_IntoTheFlame extends Quest
 				if ((getQuestItemsCount(player, VACUALITE_ORE) == REQUIRED_COUNT) && qs.isCond(3))
 				{
 					takeItems(player, VACUALITE_ORE, -1);
-					giveItems(player, VACUALITE, 1);
+					giveItemsWithoutQuestRate(player, VACUALITE, 1);
 					qs.setCond(4, true);
 					htmltext = event;
 				}

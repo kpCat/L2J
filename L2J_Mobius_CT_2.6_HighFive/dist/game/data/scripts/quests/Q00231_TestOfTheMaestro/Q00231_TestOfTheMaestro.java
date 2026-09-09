@@ -135,7 +135,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 			{
 				if (hasQuestItems(player, PAINT_OF_TELEPORT_DEVICE))
 				{
-					giveItems(player, BROKEN_TELEPORT_DEVICE, 1);
+					giveItemsWithoutQuestRate(player, BROKEN_TELEPORT_DEVICE, 1);
 					takeItems(player, PAINT_OF_TELEPORT_DEVICE, 1);
 					player.teleToLocation(140352, -194133, -3146);
 					startQuestTimer("SPAWN_KING_BUGBEAR", 5000, npc, player);
@@ -145,7 +145,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 			}
 			case "30671-02.html":
 			{
-				giveItems(player, PAINT_OF_KAMURU, 1);
+				giveItemsWithoutQuestRate(player, PAINT_OF_KAMURU, 1);
 				htmltext = event;
 				break;
 			}
@@ -153,7 +153,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 			{
 				if (hasQuestItems(player, INGREDIENTS_OF_ANTIDOTE) && (getQuestItemsCount(player, STINGER_WASP_NEEDLE) >= 10) && (getQuestItemsCount(player, MARSH_SPIDERS_WEB) >= 10) && (getQuestItemsCount(player, BLOOD_OF_LEECH) >= 10))
 				{
-					giveItems(player, REPORT_OF_CRUMA, 1);
+					giveItemsWithoutQuestRate(player, REPORT_OF_CRUMA, 1);
 					takeItems(player, STINGER_WASP_NEEDLE, -1);
 					takeItems(player, MARSH_SPIDERS_WEB, -1);
 					takeItems(player, BLOOD_OF_LEECH, -1);
@@ -283,7 +283,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 					else if (hasQuestItems(player, RECOMMENDATION_OF_BALANKI, RECOMMENDATION_OF_FILAUR, RECOMMENDATION_OF_ARIN))
 					{
 						giveAdena(player, 372154, true);
-						giveItems(player, MARK_OF_MAESTRO, 1);
+						giveItemsWithoutQuestRate(player, MARK_OF_MAESTRO, 1);
 						addExpAndSp(player, 2085244, 141240);
 						qs.exitQuest(false, true);
 						player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -310,7 +310,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 						}
 						else
 						{
-							giveItems(player, RECOMMENDATION_OF_BALANKI, 1);
+							giveItemsWithoutQuestRate(player, RECOMMENDATION_OF_BALANKI, 1);
 							takeItems(player, LETTER_OF_SOLDER_DERACHMENT, 1);
 							qs.setMemoState(1);
 							if (hasQuestItems(player, RECOMMENDATION_OF_ARIN, RECOMMENDATION_OF_FILAUR))
@@ -336,7 +336,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 				{
 					if ((memoState == 1) && !hasQuestItems(player, RECOMMENDATION_OF_FILAUR))
 					{
-						giveItems(player, ARCHITECTURE_OF_CRUMA, 1);
+						giveItemsWithoutQuestRate(player, ARCHITECTURE_OF_CRUMA, 1);
 						qs.setMemoState(4);
 						htmltext = "30535-01.html";
 					}
@@ -348,7 +348,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 						}
 						else if (hasQuestItems(player, REPORT_OF_CRUMA) && !hasQuestItems(player, ARCHITECTURE_OF_CRUMA))
 						{
-							giveItems(player, RECOMMENDATION_OF_FILAUR, 1);
+							giveItemsWithoutQuestRate(player, RECOMMENDATION_OF_FILAUR, 1);
 							takeItems(player, REPORT_OF_CRUMA, 1);
 							qs.setMemoState(1);
 							if (hasQuestItems(player, RECOMMENDATION_OF_BALANKI, RECOMMENDATION_OF_ARIN))
@@ -369,7 +369,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 				{
 					if ((memoState == 1) && !hasQuestItems(player, RECOMMENDATION_OF_ARIN))
 					{
-						giveItems(player, PAINT_OF_TELEPORT_DEVICE, 1);
+						giveItemsWithoutQuestRate(player, PAINT_OF_TELEPORT_DEVICE, 1);
 						qs.setMemoState(3);
 						htmltext = "30536-01.html";
 					}
@@ -381,7 +381,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 						}
 						else if (getQuestItemsCount(player, TELEPORT_DEVICE) >= 5)
 						{
-							giveItems(player, RECOMMENDATION_OF_ARIN, 1);
+							giveItemsWithoutQuestRate(player, RECOMMENDATION_OF_ARIN, 1);
 							takeItems(player, TELEPORT_DEVICE, -1);
 							qs.setMemoState(1);
 							if (hasQuestItems(player, RECOMMENDATION_OF_BALANKI, RECOMMENDATION_OF_FILAUR))
@@ -408,7 +408,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 						}
 						else if (hasQuestItems(player, BROKEN_TELEPORT_DEVICE))
 						{
-							giveItems(player, TELEPORT_DEVICE, 5);
+							giveItemsWithoutQuestRate(player, TELEPORT_DEVICE, 5);
 							takeItems(player, BROKEN_TELEPORT_DEVICE, 1);
 							htmltext = "30556-06.html";
 						}
@@ -431,7 +431,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 					}
 					else if (hasQuestItems(player, NECKLACE_OF_KAMUTU))
 					{
-						giveItems(player, LETTER_OF_SOLDER_DERACHMENT, 1);
+						giveItemsWithoutQuestRate(player, LETTER_OF_SOLDER_DERACHMENT, 1);
 						takeItems(player, NECKLACE_OF_KAMUTU, 1);
 						takeItems(player, PAINT_OF_KAMURU, 1);
 						htmltext = "30671-04.html";
@@ -456,7 +456,7 @@ public class Q00231_TestOfTheMaestro extends Quest
 					{
 						if (hasQuestItems(player, ARCHITECTURE_OF_CRUMA) && !hasAtLeastOneQuestItem(player, INGREDIENTS_OF_ANTIDOTE, REPORT_OF_CRUMA))
 						{
-							giveItems(player, INGREDIENTS_OF_ANTIDOTE, 1);
+							giveItemsWithoutQuestRate(player, INGREDIENTS_OF_ANTIDOTE, 1);
 							takeItems(player, ARCHITECTURE_OF_CRUMA, 1);
 							htmltext = "30673-01.html";
 						}

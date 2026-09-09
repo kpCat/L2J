@@ -74,7 +74,7 @@ public class Q00166_MassOfDarkness extends Quest
 		if ((qs != null) && event.equals("30130-03.htm"))
 		{
 			qs.startQuest();
-			giveItems(player, UNDRIAS_LETTER, 1);
+			giveItemsWithoutQuestRate(player, UNDRIAS_LETTER, 1);
 			return event;
 		}
 		

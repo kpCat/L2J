@@ -109,7 +109,7 @@ public class Q00021_HiddenTruth extends Quest
 				{
 					if (qs.isCond(7))
 					{
-						giveItems(player, CROSS_OF_EINHASAD2, 1);
+						giveItemsWithoutQuestRate(player, CROSS_OF_EINHASAD2, 1);
 						addExpAndSp(player, 131228, 11978);
 						qs.exitQuest(false, true);
 						htmltext = event;
@@ -194,7 +194,7 @@ public class Q00021_HiddenTruth extends Quest
 				}
 				case "31526-14.html":
 				{
-					giveItems(player, CROSS_OF_EINHASAD, 1);
+					giveItemsWithoutQuestRate(player, CROSS_OF_EINHASAD, 1);
 					qs.setCond(6);
 					htmltext = event;
 					break;

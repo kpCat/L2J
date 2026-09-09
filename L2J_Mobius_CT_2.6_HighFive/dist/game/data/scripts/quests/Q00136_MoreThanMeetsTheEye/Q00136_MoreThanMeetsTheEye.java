@@ -122,7 +122,7 @@ public class Q00136_MoreThanMeetsTheEye extends Quest
 			case "30832-14.html":
 			{
 				qs.unset("talked");
-				giveItems(player, ORDER, 1);
+				giveItemsWithoutQuestRate(player, ORDER, 1);
 				qs.setCond(6, true);
 				break;
 			}
@@ -133,7 +133,7 @@ public class Q00136_MoreThanMeetsTheEye extends Quest
 			}
 			case "30832-19.html":
 			{
-				giveItems(player, TRANSFORM_BOOK, 1);
+				rewardItems(player, TRANSFORM_BOOK, 1);
 				giveAdena(player, 67550, true);
 				qs.exitQuest(false, true);
 				break;
@@ -302,7 +302,7 @@ public class Q00136_MoreThanMeetsTheEye extends Quest
 						{
 							if (getQuestItemsCount(player, ECTOPLASM) < ECTOPLASM_COUNT)
 							{
-								giveItems(player, STABILIZED_ECTOPLASM, 1);
+								giveItemsWithoutQuestRate(player, STABILIZED_ECTOPLASM, 1);
 								qs.setCond(5, true);
 								htmltext = "30701-06.html";
 							}
@@ -349,7 +349,7 @@ public class Q00136_MoreThanMeetsTheEye extends Quest
 						}
 						case 8:
 						{
-							giveItems(player, BOOK_OF_SEAL, 1);
+							giveItemsWithoutQuestRate(player, BOOK_OF_SEAL, 1);
 							takeItems(player, GLASS_JAGUAR_CRYSTAL, -1);
 							qs.setCond(9, true);
 							htmltext = "30464-05.html";

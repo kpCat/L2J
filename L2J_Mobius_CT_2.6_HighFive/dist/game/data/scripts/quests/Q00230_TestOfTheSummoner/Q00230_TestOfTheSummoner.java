@@ -215,7 +215,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 				{
 					qs.startQuest();
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
-					giveItems(player, GALATEAS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, GALATEAS_LETTER, 1);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
 						giveItems(player, DIMENSIONAL_DIAMOND, 122);
@@ -248,27 +248,27 @@ public class Q00230_TestOfTheSummoner extends Quest
 				{
 					case 0:
 					{
-						giveItems(player, LARAS_1ST_LIST, 1);
+						giveItemsWithoutQuestRate(player, LARAS_1ST_LIST, 1);
 						break;
 					}
 					case 1:
 					{
-						giveItems(player, LARAS_2ND_LIST, 1);
+						giveItemsWithoutQuestRate(player, LARAS_2ND_LIST, 1);
 						break;
 					}
 					case 2:
 					{
-						giveItems(player, LARAS_3RD_LIST, 1);
+						giveItemsWithoutQuestRate(player, LARAS_3RD_LIST, 1);
 						break;
 					}
 					case 3:
 					{
-						giveItems(player, LARAS_4TH_LIST, 1);
+						giveItemsWithoutQuestRate(player, LARAS_4TH_LIST, 1);
 						break;
 					}
 					case 4:
 					{
-						giveItems(player, LARAS_5TH_LIST, 1);
+						giveItemsWithoutQuestRate(player, LARAS_5TH_LIST, 1);
 						break;
 					}
 				}
@@ -284,27 +284,27 @@ public class Q00230_TestOfTheSummoner extends Quest
 				{
 					case 0:
 					{
-						giveItems(player, LARAS_1ST_LIST, 1);
+						giveItemsWithoutQuestRate(player, LARAS_1ST_LIST, 1);
 						break;
 					}
 					case 1:
 					{
-						giveItems(player, LARAS_2ND_LIST, 1);
+						giveItemsWithoutQuestRate(player, LARAS_2ND_LIST, 1);
 						break;
 					}
 					case 2:
 					{
-						giveItems(player, LARAS_3RD_LIST, 1);
+						giveItemsWithoutQuestRate(player, LARAS_3RD_LIST, 1);
 						break;
 					}
 					case 3:
 					{
-						giveItems(player, LARAS_4TH_LIST, 1);
+						giveItemsWithoutQuestRate(player, LARAS_4TH_LIST, 1);
 						break;
 					}
 					case 4:
 					{
-						giveItems(player, LARAS_5TH_LIST, 1);
+						giveItemsWithoutQuestRate(player, LARAS_5TH_LIST, 1);
 						break;
 					}
 				}
@@ -328,7 +328,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 			{
 				addSkillCastDesire(npc, player, REDUCTION_IN_RECOVERY_TIME, 1000000);
 				takeItems(player, BEGINNERS_ARCANA, 1);
-				giveItems(player, CRYSTAL_OF_STARTING_1ST, 1);
+				giveItemsWithoutQuestRate(player, CRYSTAL_OF_STARTING_1ST, 1);
 				takeItems(player, CRYSTAL_OF_FOUL_1ST, 1);
 				takeItems(player, CRYSTAL_OF_DEFEAT_1ST, 1);
 				htmltext = event;
@@ -350,7 +350,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 			{
 				addSkillCastDesire(npc, player, REDUCTION_IN_RECOVERY_TIME, 1000000);
 				takeItems(player, BEGINNERS_ARCANA, 1);
-				giveItems(player, CRYSTAL_OF_STARTING_3RD, 1);
+				giveItemsWithoutQuestRate(player, CRYSTAL_OF_STARTING_3RD, 1);
 				takeItems(player, CRYSTAL_OF_FOUL_3RD, 1);
 				takeItems(player, CRYSTAL_OF_DEFEAT_3RD, 1);
 				htmltext = event;
@@ -372,7 +372,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 			{
 				addSkillCastDesire(npc, player, REDUCTION_IN_RECOVERY_TIME, 1000000);
 				takeItems(player, BEGINNERS_ARCANA, 1);
-				giveItems(player, CRYSTAL_OF_STARTING_5TH, 1);
+				giveItemsWithoutQuestRate(player, CRYSTAL_OF_STARTING_5TH, 1);
 				takeItems(player, CRYSTAL_OF_FOUL_5TH, 1);
 				takeItems(player, CRYSTAL_OF_DEFEAT_5TH, 1);
 				htmltext = event;
@@ -394,7 +394,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 			{
 				addSkillCastDesire(npc, player, REDUCTION_IN_RECOVERY_TIME, 1000000);
 				takeItems(player, BEGINNERS_ARCANA, 1);
-				giveItems(player, CRYSTAL_OF_STARTING_2ND, 1);
+				giveItemsWithoutQuestRate(player, CRYSTAL_OF_STARTING_2ND, 1);
 				takeItems(player, CRYSTAL_OF_FOUL_2ND, 1);
 				takeItems(player, CRYSTAL_OF_DEFEAT_2ND, 1);
 				htmltext = event;
@@ -416,7 +416,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 			{
 				addSkillCastDesire(npc, player, REDUCTION_IN_RECOVERY_TIME, 1000000);
 				takeItems(player, BEGINNERS_ARCANA, 1);
-				giveItems(player, CRYSTAL_OF_STARTING_4TH, 1);
+				giveItemsWithoutQuestRate(player, CRYSTAL_OF_STARTING_4TH, 1);
 				takeItems(player, CRYSTAL_OF_FOUL_4TH, 1);
 				takeItems(player, CRYSTAL_OF_DEFEAT_4TH, 1);
 				htmltext = event;
@@ -438,7 +438,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 			{
 				addSkillCastDesire(npc, player, REDUCTION_IN_RECOVERY_TIME, 1000000);
 				takeItems(player, BEGINNERS_ARCANA, 1);
-				giveItems(player, CRYSTAL_OF_STARTING_6TH, 1);
+				giveItemsWithoutQuestRate(player, CRYSTAL_OF_STARTING_6TH, 1);
 				takeItems(player, CRYSTAL_OF_FOUL_6TH, 1);
 				takeItems(player, CRYSTAL_OF_DEFEAT_6TH, 1);
 				htmltext = event;
@@ -910,7 +910,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 						else if (hasQuestItems(player, ALMORS_ARCANA, BASILLIA_ARCANA, CAMONIELL_ARCANA, CELESTIEL_ARCANA, BELTHUS_ARCANA, BRYNTHEA_ARCANA))
 						{
 							giveAdena(player, 300960, true);
-							giveItems(player, MARK_OF_SUMMONER, 1);
+							giveItemsWithoutQuestRate(player, MARK_OF_SUMMONER, 1);
 							addExpAndSp(player, 1664494, 114220);
 							qs.exitQuest(false, true);
 							player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -938,7 +938,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 								takeItems(player, LETOLIZARDMAN_AMULET, -1);
 								takeItems(player, SAC_OF_REDSPORES, -1);
 								takeItems(player, LARAS_1ST_LIST, 1);
-								giveItems(player, BEGINNERS_ARCANA, 2);
+								giveItemsWithoutQuestRate(player, BEGINNERS_ARCANA, 2);
 								qs.setCond(3, true);
 								htmltext = "30063-06.html";
 							}
@@ -954,7 +954,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 								takeItems(player, KARULBUGBEAR_TOTEM, -1);
 								takeItems(player, SHARDS_OF_MANASHEN, -1);
 								takeItems(player, LARAS_2ND_LIST, 1);
-								giveItems(player, BEGINNERS_ARCANA, 2);
+								giveItemsWithoutQuestRate(player, BEGINNERS_ARCANA, 2);
 								qs.setCond(3, true);
 								htmltext = "30063-08.html";
 							}
@@ -970,7 +970,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 								takeItems(player, BREKAORC_TOTEM, -1);
 								takeItems(player, CRIMSON_BLOODSTONE, -1);
 								takeItems(player, LARAS_3RD_LIST, 1);
-								giveItems(player, BEGINNERS_ARCANA, 2);
+								giveItemsWithoutQuestRate(player, BEGINNERS_ARCANA, 2);
 								qs.setCond(3, true);
 								htmltext = "30063-10.html";
 							}
@@ -986,7 +986,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 								takeItems(player, TALONS_OF_TYRANT, -1);
 								takeItems(player, TUSK_OF_WINDSUS, -1);
 								takeItems(player, LARAS_4TH_LIST, 1);
-								giveItems(player, BEGINNERS_ARCANA, 2);
+								giveItemsWithoutQuestRate(player, BEGINNERS_ARCANA, 2);
 								qs.setCond(3, true);
 								htmltext = "30063-12.html";
 							}
@@ -1002,7 +1002,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 								takeItems(player, WINGS_OF_DRONEANT, -1);
 								takeItems(player, FANGS_OF_WYRM, -1);
 								takeItems(player, LARAS_5TH_LIST, 1);
-								giveItems(player, BEGINNERS_ARCANA, 2);
+								giveItemsWithoutQuestRate(player, BEGINNERS_ARCANA, 2);
 								qs.setCond(3, true);
 								htmltext = "30063-14.html";
 							}
@@ -1032,7 +1032,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 						}
 						else if (!hasAtLeastOneQuestItem(player, CRYSTAL_OF_STARTING_1ST, CRYSTAL_OF_INPROGRESS_1ST, CRYSTAL_OF_FOUL_1ST, CRYSTAL_OF_DEFEAT_1ST) && hasQuestItems(player, CRYSTAL_OF_VICTORY_1ST))
 						{
-							giveItems(player, ALMORS_ARCANA, 1);
+							giveItemsWithoutQuestRate(player, ALMORS_ARCANA, 1);
 							takeItems(player, CRYSTAL_OF_VICTORY_1ST, 1);
 							if (hasQuestItems(player, BASILLIA_ARCANA, CAMONIELL_ARCANA, CELESTIEL_ARCANA, BELTHUS_ARCANA, BRYNTHEA_ARCANA))
 							{
@@ -1074,7 +1074,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 						}
 						else if (!hasAtLeastOneQuestItem(player, CRYSTAL_OF_STARTING_3RD, CRYSTAL_OF_INPROGRESS_3RD, CRYSTAL_OF_FOUL_3RD, CRYSTAL_OF_DEFEAT_3RD) && hasQuestItems(player, CRYSTAL_OF_VICTORY_3RD))
 						{
-							giveItems(player, CAMONIELL_ARCANA, 1);
+							giveItemsWithoutQuestRate(player, CAMONIELL_ARCANA, 1);
 							takeItems(player, CRYSTAL_OF_VICTORY_3RD, 1);
 							if (hasQuestItems(player, ALMORS_ARCANA, BASILLIA_ARCANA, CELESTIEL_ARCANA, BELTHUS_ARCANA, BRYNTHEA_ARCANA))
 							{
@@ -1116,7 +1116,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 						}
 						else if (!hasAtLeastOneQuestItem(player, CRYSTAL_OF_STARTING_5TH, CRYSTAL_OF_INPROGRESS_5TH, CRYSTAL_OF_FOUL_5TH, CRYSTAL_OF_DEFEAT_5TH) && hasQuestItems(player, CRYSTAL_OF_VICTORY_5TH))
 						{
-							giveItems(player, BELTHUS_ARCANA, 1);
+							giveItemsWithoutQuestRate(player, BELTHUS_ARCANA, 1);
 							takeItems(player, CRYSTAL_OF_VICTORY_5TH, 1);
 							if (hasQuestItems(player, ALMORS_ARCANA, BASILLIA_ARCANA, CAMONIELL_ARCANA, CELESTIEL_ARCANA, BRYNTHEA_ARCANA))
 							{
@@ -1158,7 +1158,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 						}
 						else if (!hasAtLeastOneQuestItem(player, CRYSTAL_OF_STARTING_2ND, CRYSTAL_OF_INPROGRESS_2ND, CRYSTAL_OF_FOUL_2ND, CRYSTAL_OF_DEFEAT_2ND) && hasQuestItems(player, CRYSTAL_OF_VICTORY_2ND))
 						{
-							giveItems(player, BASILLIA_ARCANA, 1);
+							giveItemsWithoutQuestRate(player, BASILLIA_ARCANA, 1);
 							takeItems(player, CRYSTAL_OF_VICTORY_2ND, 1);
 							if (hasQuestItems(player, ALMORS_ARCANA, CAMONIELL_ARCANA, CELESTIEL_ARCANA, BELTHUS_ARCANA, BRYNTHEA_ARCANA))
 							{
@@ -1200,7 +1200,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 						}
 						else if (!hasAtLeastOneQuestItem(player, CRYSTAL_OF_STARTING_4TH, CRYSTAL_OF_INPROGRESS_4TH, CRYSTAL_OF_FOUL_4TH, CRYSTAL_OF_DEFEAT_4TH) && hasQuestItems(player, CRYSTAL_OF_VICTORY_4TH))
 						{
-							giveItems(player, CELESTIEL_ARCANA, 1);
+							giveItemsWithoutQuestRate(player, CELESTIEL_ARCANA, 1);
 							takeItems(player, CRYSTAL_OF_VICTORY_4TH, 1);
 							if (hasQuestItems(player, ALMORS_ARCANA, BASILLIA_ARCANA, CAMONIELL_ARCANA, BELTHUS_ARCANA, BRYNTHEA_ARCANA))
 							{
@@ -1242,7 +1242,7 @@ public class Q00230_TestOfTheSummoner extends Quest
 						}
 						else if (!hasAtLeastOneQuestItem(player, CRYSTAL_OF_STARTING_6TH, CRYSTAL_OF_INPROGRESS_6TH, CRYSTAL_OF_FOUL_6TH, CRYSTAL_OF_DEFEAT_6TH) && hasQuestItems(player, CRYSTAL_OF_VICTORY_6TH))
 						{
-							giveItems(player, BRYNTHEA_ARCANA, 1);
+							giveItemsWithoutQuestRate(player, BRYNTHEA_ARCANA, 1);
 							takeItems(player, CRYSTAL_OF_VICTORY_6TH, 1);
 							if (hasQuestItems(player, ALMORS_ARCANA, BASILLIA_ARCANA, CAMONIELL_ARCANA, CELESTIEL_ARCANA, BELTHUS_ARCANA))
 							{

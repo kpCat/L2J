@@ -119,7 +119,7 @@ public class Q00004_LongLiveThePaagrioLord extends Quest
 						}
 						else
 						{
-							giveItems(player, CLUB, 1);
+							rewardItems(player, CLUB, 1);
 							addExpAndSp(player, 4254, 335);
 							giveAdena(player, 1850, true);
 							qs.exitQuest(false, true);

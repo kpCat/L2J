@@ -71,7 +71,7 @@ public class Q00012_SecretMeetingWithVarkaSilenos extends Quest
 				if (qs.isCond(1))
 				{
 					qs.setCond(2, true);
-					giveItems(player, BOX, 1);
+					giveItemsWithoutQuestRate(player, BOX, 1);
 				}
 				break;
 			}

@@ -74,7 +74,7 @@ public class Q00050_LanoscosSpecialBait extends Quest
 				if ((qs.isCond(2)) && (getQuestItemsCount(player, ESSENCE_OF_WIND) >= 100))
 				{
 					htmltext = "31570-06.htm";
-					giveItems(player, WIND_FISHING_LURE, 4);
+					rewardItems(player, WIND_FISHING_LURE, 4);
 					qs.exitQuest(false, true);
 				}
 				break;

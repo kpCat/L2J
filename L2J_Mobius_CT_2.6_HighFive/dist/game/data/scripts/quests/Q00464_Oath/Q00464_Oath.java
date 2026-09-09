@@ -111,7 +111,7 @@ public class Q00464_Oath extends Quest
 				qs.set("npc", String.valueOf(NPC[cond - 1][0]));
 				qs.setCond(cond, true);
 				takeItems(player, BOOK, 1);
-				giveItems(player, BOOK2, 1);
+				giveItemsWithoutQuestRate(player, BOOK2, 1);
 				switch (cond)
 				{
 					case 2:
@@ -225,7 +225,7 @@ public class Q00464_Oath extends Quest
 			{
 				qs.startQuest();
 				takeItems(player, STRONGBOX, 1);
-				giveItems(player, BOOK, 1);
+				giveItemsWithoutQuestRate(player, BOOK, 1);
 				htmltext = "strongbox-01.htm";
 			}
 			else

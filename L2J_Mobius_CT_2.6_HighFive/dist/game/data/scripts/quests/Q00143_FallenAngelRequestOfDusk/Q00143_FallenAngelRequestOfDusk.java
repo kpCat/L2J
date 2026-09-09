@@ -88,7 +88,7 @@ public class Q00143_FallenAngelRequestOfDusk extends Quest
 			case "30894-03.html":
 			{
 				qs.setCond(2, true);
-				giveItems(player, SEALED_PROPHECY_PATH_OF_THE_GOD, 1);
+				giveItemsWithoutQuestRate(player, SEALED_PROPHECY_PATH_OF_THE_GOD, 1);
 				break;
 			}
 			case "30297-03.html":
@@ -101,8 +101,8 @@ public class Q00143_FallenAngelRequestOfDusk extends Quest
 			{
 				qs.unset("talk");
 				qs.setCond(3, true);
-				giveItems(player, PROPHECY_PATH_OF_THE_GOD, 1);
-				giveItems(player, EMPTY_SOUND_CRYSTAL, 1);
+				giveItemsWithoutQuestRate(player, PROPHECY_PATH_OF_THE_GOD, 1);
+				giveItemsWithoutQuestRate(player, EMPTY_SOUND_CRYSTAL, 1);
 				break;
 			}
 			case "30612-03.html":
@@ -115,7 +115,7 @@ public class Q00143_FallenAngelRequestOfDusk extends Quest
 			{
 				qs.unset("talk");
 				qs.setCond(4, true);
-				giveItems(player, ANGEL_MEDICINE, 1);
+				giveItemsWithoutQuestRate(player, ANGEL_MEDICINE, 1);
 				break;
 			}
 			case "32368-04.html":
@@ -145,7 +145,7 @@ public class Q00143_FallenAngelRequestOfDusk extends Quest
 			{
 				qs.unset("talk");
 				takeItems(player, EMPTY_SOUND_CRYSTAL, -1);
-				giveItems(player, ANGELS_MESSAGE, 1);
+				giveItemsWithoutQuestRate(player, ANGELS_MESSAGE, 1);
 				qs.setCond(5, true);
 				npc.deleteMe();
 				isAngelSpawned = false;

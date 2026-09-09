@@ -88,7 +88,7 @@ public class Q00043_HelpTheSister extends Quest
 				if (getQuestItemsCount(player, MAP_PIECE) == 30)
 				{
 					takeItems(player, MAP_PIECE, -1);
-					giveItems(player, MAP, 1);
+					giveItemsWithoutQuestRate(player, MAP, 1);
 					qs.setCond(4, true);
 				}
 				else
@@ -112,7 +112,7 @@ public class Q00043_HelpTheSister extends Quest
 			}
 			case "30829-09.html":
 			{
-				giveItems(player, PET_TICKET, 1);
+				rewardItems(player, PET_TICKET, 1);
 				qs.exitQuest(false, true);
 				break;
 			}

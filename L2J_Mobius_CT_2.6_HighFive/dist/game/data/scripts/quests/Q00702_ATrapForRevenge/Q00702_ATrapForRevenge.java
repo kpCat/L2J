@@ -118,7 +118,7 @@ public class Q00702_ATrapForRevenge extends Quest
 			}
 			else if (hasQuestItems(player, ROTTEN_BLOOD) && (getQuestItemsCount(player, EXTRACTED_RED_STAR_STONE) >= 100))
 			{
-				giveItems(player, BAIT_FOR_DRAKES, 1);
+				giveItemsWithoutQuestRate(player, BAIT_FOR_DRAKES, 1);
 				takeItems(player, ROTTEN_BLOOD, 1);
 				takeItems(player, EXTRACTED_RED_STAR_STONE, 100);
 				htmltext = "32557-06.html";
@@ -145,7 +145,7 @@ public class Q00702_ATrapForRevenge extends Quest
 		}
 		else if (event.equalsIgnoreCase("32555-08.html"))
 		{
-			giveItems(player, ROTTEN_BLOOD, 1);
+			giveItemsWithoutQuestRate(player, ROTTEN_BLOOD, 1);
 			takeItems(player, DRAKES_FLESH, 100);
 		}
 		else if (event.equalsIgnoreCase("32555-10.html"))
@@ -168,24 +168,24 @@ public class Q00702_ATrapForRevenge extends Quest
 				giveAdena(player, getRandom(49917) + 125000, false);
 				if (i1 < 720)
 				{
-					giveItems(player, 9628, getRandom(3) + 1);
-					giveItems(player, 9629, getRandom(3) + 1);
+					rewardItems(player, 9628, getRandom(3) + 1);
+					rewardItems(player, 9629, getRandom(3) + 1);
 				}
 				else if (i1 < 840)
 				{
-					giveItems(player, 9629, getRandom(3) + 1);
-					giveItems(player, 9630, getRandom(3) + 1);
+					rewardItems(player, 9629, getRandom(3) + 1);
+					rewardItems(player, 9630, getRandom(3) + 1);
 				}
 				else if (i1 < 960)
 				{
-					giveItems(player, 9628, getRandom(3) + 1);
-					giveItems(player, 9630, getRandom(3) + 1);
+					rewardItems(player, 9628, getRandom(3) + 1);
+					rewardItems(player, 9630, getRandom(3) + 1);
 				}
 				else if (i1 < 1000)
 				{
-					giveItems(player, 9628, getRandom(3) + 1);
-					giveItems(player, 9629, getRandom(3) + 1);
-					giveItems(player, 9630, getRandom(3) + 1);
+					rewardItems(player, 9628, getRandom(3) + 1);
+					rewardItems(player, 9629, getRandom(3) + 1);
+					rewardItems(player, 9630, getRandom(3) + 1);
 				}
 				
 				htmltext = "32555-15.html";
@@ -199,15 +199,15 @@ public class Q00702_ATrapForRevenge extends Quest
 				}
 				else if (i1 < 340)
 				{
-					giveItems(player, 9628, getRandom(3) + 1);
+					rewardItems(player, 9628, getRandom(3) + 1);
 				}
 				else if (i1 < 470)
 				{
-					giveItems(player, 9629, getRandom(3) + 1);
+					rewardItems(player, 9629, getRandom(3) + 1);
 				}
 				else if (i1 < 600)
 				{
-					giveItems(player, 9630, getRandom(3) + 1);
+					rewardItems(player, 9630, getRandom(3) + 1);
 				}
 				
 				htmltext = "32555-16.html";
@@ -217,24 +217,24 @@ public class Q00702_ATrapForRevenge extends Quest
 				giveAdena(player, getRandom(49917) + 25000, false);
 				if (i1 < 720)
 				{
-					giveItems(player, 9628, getRandom(3) + 1);
-					giveItems(player, 9629, getRandom(3) + 1);
+					rewardItems(player, 9628, getRandom(3) + 1);
+					rewardItems(player, 9629, getRandom(3) + 1);
 				}
 				else if (i1 < 840)
 				{
-					giveItems(player, 9629, getRandom(3) + 1);
-					giveItems(player, 9630, getRandom(3) + 1);
+					rewardItems(player, 9629, getRandom(3) + 1);
+					rewardItems(player, 9630, getRandom(3) + 1);
 				}
 				else if (i1 < 960)
 				{
-					giveItems(player, 9628, getRandom(3) + 1);
-					giveItems(player, 9630, getRandom(3) + 1);
+					rewardItems(player, 9628, getRandom(3) + 1);
+					rewardItems(player, 9630, getRandom(3) + 1);
 				}
 				else if (i1 < 1000)
 				{
-					giveItems(player, 9628, getRandom(3) + 1);
-					giveItems(player, 9629, getRandom(3) + 1);
-					giveItems(player, 9630, getRandom(3) + 1);
+					rewardItems(player, 9628, getRandom(3) + 1);
+					rewardItems(player, 9629, getRandom(3) + 1);
+					rewardItems(player, 9630, getRandom(3) + 1);
 				}
 				
 				htmltext = "32555-17.html";
@@ -248,15 +248,15 @@ public class Q00702_ATrapForRevenge extends Quest
 				}
 				else if (i1 < 340)
 				{
-					giveItems(player, 9628, getRandom(3) + 1);
+					rewardItems(player, 9628, getRandom(3) + 1);
 				}
 				else if (i1 < 470)
 				{
-					giveItems(player, 9629, getRandom(3) + 1);
+					rewardItems(player, 9629, getRandom(3) + 1);
 				}
 				else if (i1 < 600)
 				{
-					giveItems(player, 9630, getRandom(3) + 1);
+					rewardItems(player, 9630, getRandom(3) + 1);
 				}
 				
 				htmltext = "32555-18.html";

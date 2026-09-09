@@ -96,7 +96,7 @@ public class Q00032_AnObviousLie extends Quest
 			{
 				if (qs.isCond(1))
 				{
-					giveItems(player, MAP_OF_GENTLER, 1);
+					giveItemsWithoutQuestRate(player, MAP_OF_GENTLER, 1);
 					qs.setCond(2, true);
 					htmltext = event;
 				}
@@ -161,7 +161,7 @@ public class Q00032_AnObviousLie extends Quest
 			{
 				if (qs.isCond(8) && takeAllItems(player, THREAD, SUEDE))
 				{
-					giveItems(player, EARS.get(event), 1);
+					rewardItems(player, EARS.get(event), 1);
 					qs.exitQuest(false, true);
 					htmltext = "30094-16.html";
 				}

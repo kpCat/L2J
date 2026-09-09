@@ -118,7 +118,7 @@ public class Q00224_TestOfSagittarius extends Quest
 					qs.startQuest();
 					qs.setMemoState(1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
-					giveItems(player, BERNARDS_INTRODUCTION, 1);
+					giveItemsWithoutQuestRate(player, BERNARDS_INTRODUCTION, 1);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
 						giveItems(player, DIMENSIONAL_DIAMOND, 96);
@@ -154,7 +154,7 @@ public class Q00224_TestOfSagittarius extends Quest
 				if (hasQuestItems(player, BERNARDS_INTRODUCTION))
 				{
 					takeItems(player, BERNARDS_INTRODUCTION, 1);
-					giveItems(player, HAMILS_1ST_LETTER, 1);
+					giveItemsWithoutQuestRate(player, HAMILS_1ST_LETTER, 1);
 					qs.setMemoState(2);
 					qs.setCond(2, true);
 					htmltext = event;
@@ -165,7 +165,7 @@ public class Q00224_TestOfSagittarius extends Quest
 			{
 				if (getQuestItemsCount(player, HUNTERS_1ST_RUNE) >= 10)
 				{
-					giveItems(player, HAMILS_2ND_LETTER, 1);
+					giveItemsWithoutQuestRate(player, HAMILS_2ND_LETTER, 1);
 					takeItems(player, HUNTERS_1ST_RUNE, -1);
 					qs.setMemoState(5);
 					qs.setCond(5, true);
@@ -230,7 +230,7 @@ public class Q00224_TestOfSagittarius extends Quest
 					{
 						if (hasQuestItems(killer, MITHRIL_CLIP, REINFORCED_BOWSTRING, MANASHENS_HORN))
 						{
-							giveItems(killer, STAKATO_CHITIN, 1);
+							giveItemsWithoutQuestRate(killer, STAKATO_CHITIN, 1);
 							qs.setMemoState(11);
 							qs.setCond(11, true);
 						}
@@ -248,7 +248,7 @@ public class Q00224_TestOfSagittarius extends Quest
 					{
 						if (hasQuestItems(killer, MITHRIL_CLIP, MANASHENS_HORN, STAKATO_CHITIN))
 						{
-							giveItems(killer, REINFORCED_BOWSTRING, 1);
+							giveItemsWithoutQuestRate(killer, REINFORCED_BOWSTRING, 1);
 							qs.setMemoState(11);
 							qs.setCond(11, true);
 						}
@@ -268,7 +268,7 @@ public class Q00224_TestOfSagittarius extends Quest
 						if (getQuestItemsCount(killer, HUNTERS_2ND_RUNE) == 9)
 						{
 							giveItems(killer, HUNTERS_2ND_RUNE, 1);
-							giveItems(killer, TALISMAN_OF_SNAKE, 1);
+							giveItemsWithoutQuestRate(killer, TALISMAN_OF_SNAKE, 1);
 							qs.setMemoState(7);
 							qs.setCond(7, true);
 						}
@@ -286,7 +286,7 @@ public class Q00224_TestOfSagittarius extends Quest
 					{
 						if (hasQuestItems(killer, REINFORCED_BOWSTRING, MANASHENS_HORN, STAKATO_CHITIN))
 						{
-							giveItems(killer, MITHRIL_CLIP, 1);
+							giveItemsWithoutQuestRate(killer, MITHRIL_CLIP, 1);
 							qs.setMemoState(11);
 							qs.setCond(11, true);
 						}
@@ -304,7 +304,7 @@ public class Q00224_TestOfSagittarius extends Quest
 					{
 						if (hasQuestItems(killer, MITHRIL_CLIP, REINFORCED_BOWSTRING, STAKATO_CHITIN))
 						{
-							giveItems(killer, MANASHENS_HORN, 1);
+							giveItemsWithoutQuestRate(killer, MANASHENS_HORN, 1);
 							qs.setMemoState(11);
 							qs.setCond(11, true);
 						}
@@ -345,7 +345,7 @@ public class Q00224_TestOfSagittarius extends Quest
 					{
 						if (npc.getKillingBlowWeapon() == CRESCENT_MOON_BOW)
 						{
-							giveItems(killer, TALISMAN_OF_KADESH, 1);
+							giveItemsWithoutQuestRate(killer, TALISMAN_OF_KADESH, 1);
 							qs.setMemoState(14);
 							qs.setCond(14, true);
 						}
@@ -473,7 +473,7 @@ public class Q00224_TestOfSagittarius extends Quest
 						}
 						case 8:
 						{
-							giveItems(player, HAMILS_3RD_LETTER, 1);
+							giveItemsWithoutQuestRate(player, HAMILS_3RD_LETTER, 1);
 							takeItems(player, HUNTERS_2ND_RUNE, -1);
 							qs.setMemoState(9);
 							qs.setCond(9, true);
@@ -508,7 +508,7 @@ public class Q00224_TestOfSagittarius extends Quest
 							if (hasQuestItems(player, TALISMAN_OF_KADESH))
 							{
 								giveAdena(player, 161806, true);
-								giveItems(player, MARK_OF_SAGITTARIUS, 1);
+								giveItemsWithoutQuestRate(player, MARK_OF_SAGITTARIUS, 1);
 								addExpAndSp(player, 894888, 61408);
 								qs.exitQuest(false, true);
 								player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -564,7 +564,7 @@ public class Q00224_TestOfSagittarius extends Quest
 							if (hasQuestItems(player, STAKATO_CHITIN, MITHRIL_CLIP, REINFORCED_BOWSTRING, MANASHENS_HORN))
 							{
 								giveItems(player, WOODEN_ARROW, 10);
-								giveItems(player, CRESCENT_MOON_BOW, 1);
+								giveItemsWithoutQuestRate(player, CRESCENT_MOON_BOW, 1);
 								takeItems(player, MITHRIL_CLIP, 1);
 								takeItems(player, STAKATO_CHITIN, 1);
 								takeItems(player, REINFORCED_BOWSTRING, 1);

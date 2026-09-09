@@ -182,32 +182,32 @@ public class Q00419_GetAPet extends Quest
 					qs.startQuest();
 					if (player.getRace() == Race.HUMAN)
 					{
-						giveItems(player, ANIMAL_SLAYERS_1ST_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_SLAYERS_1ST_LIST, 1);
 						htmltext = "30731-04.htm";
 					}
 					else if (player.getRace() == Race.ELF)
 					{
-						giveItems(player, ANIMAL_SLAYERS_2ND_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_SLAYERS_2ND_LIST, 1);
 						htmltext = "30731-05.htm";
 					}
 					else if (player.getRace() == Race.DARK_ELF)
 					{
-						giveItems(player, ANIMAL_SLAYERS_3RD_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_SLAYERS_3RD_LIST, 1);
 						htmltext = "30731-06.htm";
 					}
 					else if (player.getRace() == Race.ORC)
 					{
-						giveItems(player, ANIMAL_SLAYERS_4TH_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_SLAYERS_4TH_LIST, 1);
 						htmltext = "30731-07.htm";
 					}
 					else if (player.getRace() == Race.DWARF)
 					{
-						giveItems(player, ANIMAL_SLAYERS_5TH_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_SLAYERS_5TH_LIST, 1);
 						htmltext = "30731-08.htm";
 					}
 					else if (player.getRace() == Race.KAMAEL)
 					{
-						giveItems(player, ANIMAL_SLAYERS_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_SLAYERS_LIST, 1);
 						htmltext = "30731-08a.htm";
 					}
 				}
@@ -230,7 +230,7 @@ public class Q00419_GetAPet extends Quest
 					{
 						takeItems(player, ANIMAL_SLAYERS_1ST_LIST, -1);
 						takeItems(player, BLOODY_FANG, -1);
-						giveItems(player, ANIMAL_LOVERS_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_LOVERS_LIST, 1);
 					}
 				}
 				else if (player.getRace() == Race.ELF)
@@ -239,7 +239,7 @@ public class Q00419_GetAPet extends Quest
 					{
 						takeItems(player, ANIMAL_SLAYERS_2ND_LIST, -1);
 						takeItems(player, BLOODY_CLAW, -1);
-						giveItems(player, ANIMAL_LOVERS_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_LOVERS_LIST, 1);
 					}
 				}
 				else if (player.getRace() == Race.DARK_ELF)
@@ -248,7 +248,7 @@ public class Q00419_GetAPet extends Quest
 					{
 						takeItems(player, ANIMAL_SLAYERS_3RD_LIST, -1);
 						takeItems(player, BLOODY_NAIL, -1);
-						giveItems(player, ANIMAL_LOVERS_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_LOVERS_LIST, 1);
 					}
 				}
 				else if (player.getRace() == Race.ORC)
@@ -257,7 +257,7 @@ public class Q00419_GetAPet extends Quest
 					{
 						takeItems(player, ANIMAL_SLAYERS_4TH_LIST, -1);
 						takeItems(player, BLOODY_KASHA_FANG, -1);
-						giveItems(player, ANIMAL_LOVERS_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_LOVERS_LIST, 1);
 					}
 				}
 				else if (player.getRace() == Race.DWARF)
@@ -266,7 +266,7 @@ public class Q00419_GetAPet extends Quest
 					{
 						takeItems(player, ANIMAL_SLAYERS_5TH_LIST, -1);
 						takeItems(player, BLOODY_TARANTULA_NAIL, -1);
-						giveItems(player, ANIMAL_LOVERS_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_LOVERS_LIST, 1);
 					}
 				}
 				else if (player.getRace() == Race.KAMAEL)
@@ -275,7 +275,7 @@ public class Q00419_GetAPet extends Quest
 					{
 						takeItems(player, ANIMAL_SLAYERS_LIST, -1);
 						takeItems(player, BLOODY_RED_CLAW, -1);
-						giveItems(player, ANIMAL_LOVERS_LIST, 1);
+						giveItemsWithoutQuestRate(player, ANIMAL_LOVERS_LIST, 1);
 					}
 				}
 				
@@ -289,7 +289,7 @@ public class Q00419_GetAPet extends Quest
 				if (((qs.getMemoState() & 15) == 10) && hasQuestItems(player, ANIMAL_LOVERS_LIST))
 				{
 					takeItems(player, ANIMAL_LOVERS_LIST, -1);
-					giveItems(player, WOLF_COLLAR, 1);
+					rewardItems(player, WOLF_COLLAR, 1);
 					qs.exitQuest(true, true);
 					htmltext = "30731-15.html";
 				}

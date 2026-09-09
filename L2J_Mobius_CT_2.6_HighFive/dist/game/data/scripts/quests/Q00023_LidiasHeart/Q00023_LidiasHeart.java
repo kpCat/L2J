@@ -104,7 +104,7 @@ public class Q00023_LidiasHeart extends Quest
 						giveItems(player, MAP_FOREST_OF_THE_DEAD, 1);
 					}
 					
-					giveItems(player, SILVER_KEY, 1);
+					giveItemsWithoutQuestRate(player, SILVER_KEY, 1);
 					qs.startQuest();
 					qs.setMemoState(1);
 					htmltext = "31328-03.htm";
@@ -201,7 +201,7 @@ public class Q00023_LidiasHeart extends Quest
 			{
 				if (qs.isMemoState(9))
 				{
-					giveItems(player, SILVER_KEY, 1);
+					giveItemsWithoutQuestRate(player, SILVER_KEY, 1);
 					qs.setMemoState(10);
 					qs.setCond(8);
 					htmltext = event;
@@ -239,7 +239,7 @@ public class Q00023_LidiasHeart extends Quest
 			{
 				if (!hasQuestItems(player, LIDIAS_HAIRPIN))
 				{
-					giveItems(player, LIDIAS_HAIRPIN, 1);
+					giveItemsWithoutQuestRate(player, LIDIAS_HAIRPIN, 1);
 				}
 				
 				qs.setMemoState(qs.getMemoState() + 1);
@@ -265,7 +265,7 @@ public class Q00023_LidiasHeart extends Quest
 			}
 			case "31526-11.html":
 			{
-				giveItems(player, LIDIAS_DIARY, 1);
+				giveItemsWithoutQuestRate(player, LIDIAS_DIARY, 1);
 				qs.setMemoState(qs.getMemoState() + 1);
 				if (hasQuestItems(player, LIDIAS_HAIRPIN))
 				{
@@ -279,7 +279,7 @@ public class Q00023_LidiasHeart extends Quest
 			{
 				if (qs.isMemoState(11) && hasQuestItems(player, SILVER_KEY))
 				{
-					giveItems(player, SILVER_SPEAR, 1);
+					giveItemsWithoutQuestRate(player, SILVER_SPEAR, 1);
 					takeItems(player, SILVER_KEY, -1);
 					playSound(player, QuestSound.ITEMSOUND_WEAPON_SPEAR);
 					qs.setCond(10);

@@ -89,7 +89,7 @@ public class Q00044_HelpTheSon extends Quest
 				if (getQuestItemsCount(player, GEMSTONE_FRAGMENT) == 30)
 				{
 					takeItems(player, GEMSTONE_FRAGMENT, -1);
-					giveItems(player, GEMSTONE, 1);
+					giveItemsWithoutQuestRate(player, GEMSTONE, 1);
 					qs.setCond(4, true);
 				}
 				else
@@ -113,7 +113,7 @@ public class Q00044_HelpTheSon extends Quest
 			}
 			case "30827-09.html":
 			{
-				giveItems(player, PET_TICKET, 1);
+				rewardItems(player, PET_TICKET, 1);
 				qs.exitQuest(false, true);
 				break;
 			}

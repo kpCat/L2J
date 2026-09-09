@@ -64,12 +64,12 @@ public class Q10501_ZakenEmbroideredSoulCloak extends Quest
 			final long count = getRandom(1, 3);
 			if (count >= (FRAGMENT_COUNT - currentCount))
 			{
-				giveItems(player, ZAKENS_SOUL_FRAGMENT, FRAGMENT_COUNT - currentCount);
+				giveItemsWithoutQuestRate(player, ZAKENS_SOUL_FRAGMENT, FRAGMENT_COUNT - currentCount);
 				qs.setCond(2, true);
 			}
 			else
 			{
-				giveItems(player, ZAKENS_SOUL_FRAGMENT, count);
+				giveItemsWithoutQuestRate(player, ZAKENS_SOUL_FRAGMENT, count);
 				playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 			}
 		}
@@ -119,7 +119,7 @@ public class Q10501_ZakenEmbroideredSoulCloak extends Quest
 					{
 						if (getQuestItemsCount(player, ZAKENS_SOUL_FRAGMENT) >= FRAGMENT_COUNT)
 						{
-							giveItems(player, SOUL_CLOAK_OF_ZAKEN, 1);
+							rewardItems(player, SOUL_CLOAK_OF_ZAKEN, 1);
 							playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 							qs.exitQuest(false, true);
 							htmltext = "32612-06.html";

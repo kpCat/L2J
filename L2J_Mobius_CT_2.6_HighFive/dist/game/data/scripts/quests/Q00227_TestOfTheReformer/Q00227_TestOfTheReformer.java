@@ -154,7 +154,7 @@ public class Q00227_TestOfTheReformer extends Quest
 					qs.startQuest();
 					qs.setMemoState(1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
-					giveItems(player, BOOK_OF_REFORM, 1);
+					giveItemsWithoutQuestRate(player, BOOK_OF_REFORM, 1);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
 						giveItems(player, DIMENSIONAL_DIAMOND, 60);
@@ -173,7 +173,7 @@ public class Q00227_TestOfTheReformer extends Quest
 				if (hasQuestItems(player, BOOK_OF_REFORM))
 				{
 					takeItems(player, BOOK_OF_REFORM, 1);
-					giveItems(player, LETTER_OF_INTRODUCTION, 1);
+					giveItemsWithoutQuestRate(player, LETTER_OF_INTRODUCTION, 1);
 					takeItems(player, HUGE_NAIL, 1);
 					qs.setMemoState(4);
 					qs.setCond(4, true);
@@ -193,7 +193,7 @@ public class Q00227_TestOfTheReformer extends Quest
 			case "30666-04.html":
 			{
 				takeItems(player, LETTER_OF_INTRODUCTION, 1);
-				giveItems(player, SLAS_LETTER, 1);
+				giveItemsWithoutQuestRate(player, SLAS_LETTER, 1);
 				qs.setMemoState(5);
 				qs.setCond(5, true);
 				htmltext = event;
@@ -285,7 +285,7 @@ public class Q00227_TestOfTheReformer extends Quest
 				{
 					if (qs.isMemoState(16) && !hasQuestItems(killer, BONE_FRAGMENT7))
 					{
-						giveItems(killer, BONE_FRAGMENT7, 1);
+						giveItemsWithoutQuestRate(killer, BONE_FRAGMENT7, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, BONE_FRAGMENT4, BONE_FRAGMENT5, BONE_FRAGMENT6, BONE_FRAGMENT8))
 						{
@@ -299,7 +299,7 @@ public class Q00227_TestOfTheReformer extends Quest
 				{
 					if (qs.isMemoState(16) && !hasQuestItems(killer, BONE_FRAGMENT8))
 					{
-						giveItems(killer, BONE_FRAGMENT8, 1);
+						giveItemsWithoutQuestRate(killer, BONE_FRAGMENT8, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, BONE_FRAGMENT4, BONE_FRAGMENT5, BONE_FRAGMENT6, BONE_FRAGMENT7))
 						{
@@ -313,7 +313,7 @@ public class Q00227_TestOfTheReformer extends Quest
 				{
 					if (qs.isMemoState(16) && !hasQuestItems(killer, BONE_FRAGMENT6))
 					{
-						giveItems(killer, BONE_FRAGMENT6, 1);
+						giveItemsWithoutQuestRate(killer, BONE_FRAGMENT6, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, BONE_FRAGMENT4, BONE_FRAGMENT5, BONE_FRAGMENT7, BONE_FRAGMENT8))
 						{
@@ -327,7 +327,7 @@ public class Q00227_TestOfTheReformer extends Quest
 				{
 					if (qs.isMemoState(16) && !hasQuestItems(killer, BONE_FRAGMENT5))
 					{
-						giveItems(killer, BONE_FRAGMENT5, 1);
+						giveItemsWithoutQuestRate(killer, BONE_FRAGMENT5, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, BONE_FRAGMENT4, BONE_FRAGMENT6, BONE_FRAGMENT7, BONE_FRAGMENT8))
 						{
@@ -341,7 +341,7 @@ public class Q00227_TestOfTheReformer extends Quest
 				{
 					if (qs.isMemoState(16) && !hasQuestItems(killer, BONE_FRAGMENT4))
 					{
-						giveItems(killer, BONE_FRAGMENT4, 1);
+						giveItemsWithoutQuestRate(killer, BONE_FRAGMENT4, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, BONE_FRAGMENT5, BONE_FRAGMENT6, BONE_FRAGMENT7, BONE_FRAGMENT8))
 						{
@@ -374,7 +374,7 @@ public class Q00227_TestOfTheReformer extends Quest
 					if (!hasQuestItems(killer, HUGE_NAIL))
 					{
 						npc.broadcastPacket(new NpcSay(npc, ChatType.NPC_GENERAL, NpcStringId.THE_CONCEALED_TRUTH_WILL_ALWAYS_BE_REVEALED));
-						giveItems(killer, HUGE_NAIL, 1);
+						giveItemsWithoutQuestRate(killer, HUGE_NAIL, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						qs.setMemoState(3);
 						qs.setCond(3);
@@ -396,7 +396,7 @@ public class Q00227_TestOfTheReformer extends Quest
 					{
 						qs.setMemoState(9);
 						qs.setCond(9);
-						giveItems(killer, LETTER_OF_BETRAYER, 1);
+						giveItemsWithoutQuestRate(killer, LETTER_OF_BETRAYER, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					}
 					break;
@@ -498,18 +498,18 @@ public class Q00227_TestOfTheReformer extends Quest
 						if (hasQuestItems(player, OL_MAHUM_MONEY))
 						{
 							takeItems(player, OL_MAHUM_MONEY, 1);
-							giveItems(player, GREETINGS, 1);
-							giveItems(player, LETTER_GREETINGS1, 1);
-							giveItems(player, LETTER_GREETINGS2, 1);
+							giveItemsWithoutQuestRate(player, GREETINGS, 1);
+							giveItemsWithoutQuestRate(player, LETTER_GREETINGS1, 1);
+							giveItemsWithoutQuestRate(player, LETTER_GREETINGS2, 1);
 							qs.setMemoState(11);
 							qs.setCond(11, true);
 							htmltext = "30666-06.html";
 						}
 						else
 						{
-							giveItems(player, GREETINGS, 1);
-							giveItems(player, LETTER_GREETINGS1, 1);
-							giveItems(player, LETTER_GREETINGS2, 1);
+							giveItemsWithoutQuestRate(player, GREETINGS, 1);
+							giveItemsWithoutQuestRate(player, LETTER_GREETINGS1, 1);
+							giveItemsWithoutQuestRate(player, LETTER_GREETINGS2, 1);
 							qs.setMemoState(11);
 							qs.setCond(11, true);
 							htmltext = "30666-06a.html";
@@ -520,7 +520,7 @@ public class Q00227_TestOfTheReformer extends Quest
 						if (hasQuestItems(player, KATARIS_LETTER, KAKANS_LETTER, NYAKURIS_LETTER, RAMUSS_LETTER))
 						{
 							giveAdena(player, 226528, true);
-							giveItems(player, MARK_OF_REFORMER, 1);
+							giveItemsWithoutQuestRate(player, MARK_OF_REFORMER, 1);
 							addExpAndSp(player, 1252844, 85972);
 							qs.exitQuest(false, true);
 							player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -535,7 +535,7 @@ public class Q00227_TestOfTheReformer extends Quest
 					{
 						if (hasQuestItems(player, LETTER_GREETINGS2) && !hasQuestItems(player, UNDEAD_LIST))
 						{
-							giveItems(player, UNDEAD_LIST, 1);
+							giveItemsWithoutQuestRate(player, UNDEAD_LIST, 1);
 							takeItems(player, LETTER_GREETINGS2, 1);
 							qs.setMemoState(16);
 							qs.setCond(18, true);
@@ -551,7 +551,7 @@ public class Q00227_TestOfTheReformer extends Quest
 						if (hasQuestItems(player, UNDEAD_LIST))
 						{
 							takeItems(player, UNDEAD_LIST, 1);
-							giveItems(player, RAMUSS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, RAMUSS_LETTER, 1);
 							takeItems(player, BONE_FRAGMENT4, 1);
 							takeItems(player, BONE_FRAGMENT5, 1);
 							takeItems(player, BONE_FRAGMENT6, 1);
@@ -600,7 +600,7 @@ public class Q00227_TestOfTheReformer extends Quest
 					{
 						if (hasQuestItems(player, LETTER_OF_BETRAYER))
 						{
-							giveItems(player, KATARIS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, KATARIS_LETTER, 1);
 							takeItems(player, LETTER_OF_BETRAYER, 1);
 							qs.setMemoState(10);
 							qs.setCond(10, true);
@@ -627,7 +627,7 @@ public class Q00227_TestOfTheReformer extends Quest
 						if (hasQuestItems(player, GREETINGS) && !hasQuestItems(player, KAKANS_LETTER))
 						{
 							takeItems(player, GREETINGS, 1);
-							giveItems(player, KAKANS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, KAKANS_LETTER, 1);
 							qs.setMemoState(13);
 							qs.setCond(14, true);
 							htmltext = "30669-04.html";
@@ -648,7 +648,7 @@ public class Q00227_TestOfTheReformer extends Quest
 					{
 						if (hasQuestItems(player, LETTER_GREETINGS1) && !hasQuestItems(player, NYAKURIS_LETTER))
 						{
-							giveItems(player, NYAKURIS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, NYAKURIS_LETTER, 1);
 							takeItems(player, LETTER_GREETINGS1, 1);
 							qs.setMemoState(15);
 							qs.setCond(17, true);
@@ -661,7 +661,7 @@ public class Q00227_TestOfTheReformer extends Quest
 				{
 					if (memoState == 7)
 					{
-						giveItems(player, OL_MAHUM_MONEY, 1);
+						giveItemsWithoutQuestRate(player, OL_MAHUM_MONEY, 1);
 						qs.setMemoState(8);
 						htmltext = "30732-01.html";
 					}

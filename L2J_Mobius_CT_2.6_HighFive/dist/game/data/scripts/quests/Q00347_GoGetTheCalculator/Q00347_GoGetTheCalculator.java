@@ -242,7 +242,7 @@ public class Q00347_GoGetTheCalculator extends Quest
 							case 5:
 							{
 								takeItems(talker, GEMSTONE, -1);
-								giveItems(talker, STOLEN_CALCULATOR, 1);
+								giveItemsWithoutQuestRate(talker, STOLEN_CALCULATOR, 1);
 								qs.setCond(6, true);
 								htmltext = "30527-03.html";
 								break;

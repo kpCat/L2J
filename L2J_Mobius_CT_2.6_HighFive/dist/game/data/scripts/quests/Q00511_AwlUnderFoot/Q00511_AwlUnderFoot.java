@@ -470,7 +470,7 @@ public class Q00511_AwlUnderFoot extends Quest
 		final QuestState qs = getQuestState(player, false);
 		if ((qs != null) && qs.isCond(1))
 		{
-			giveItems(player, DL_MARK, 140);
+			giveItemsWithoutQuestRate(player, DL_MARK, 140);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 		}
 	}

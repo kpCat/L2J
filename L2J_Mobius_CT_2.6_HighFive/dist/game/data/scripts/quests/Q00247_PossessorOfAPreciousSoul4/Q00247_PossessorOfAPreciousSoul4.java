@@ -97,7 +97,7 @@ public class Q00247_PossessorOfAPreciousSoul4 extends Quest
 				{
 					player.setNoble(true);
 					addExpAndSp(player, 93836, 0);
-					giveItems(player, NOBLESS_TIARA, 1);
+					rewardItems(player, NOBLESS_TIARA, 1);
 					npc.setTarget(player);
 					npc.doCast(MIMIRS_ELIXIR.getSkill());
 					player.sendPacket(new SocialAction(player.getObjectId(), 3));

@@ -88,7 +88,7 @@ public class Q00616_MagicalPowerOfFirePart2 extends Quest
 					{
 						if (!hasQuestItems(player, NASTRON_HEART))
 						{
-							giveItems(player, NASTRON_HEART, 1);
+							giveItemsWithoutQuestRate(player, NASTRON_HEART, 1);
 						}
 						
 						qs.setCond(3, true);

@@ -125,7 +125,7 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 				if (qs.isCreated())
 				{
 					qs.startQuest();
-					giveItems(player, GOUPHS_CONTRACT, 1);
+					giveItemsWithoutQuestRate(player, GOUPHS_CONTRACT, 1);
 					htmltext = event;
 				}
 				break;
@@ -135,7 +135,7 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 				if (qs.isCond(2) && hasQuestItems(player, REEPS_CONTRACT))
 				{
 					takeItems(player, REEPS_CONTRACT, -1);
-					giveItems(player, ELVEN_WINE, 1);
+					giveItemsWithoutQuestRate(player, ELVEN_WINE, 1);
 					qs.setCond(3, true);
 					htmltext = event;
 				}
@@ -146,7 +146,7 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 				if (qs.isCond(4) && hasQuestItems(player, BRUNONS_DICE))
 				{
 					takeItems(player, BRUNONS_DICE, -1);
-					giveItems(player, BRUNONS_CONTRACT, 1);
+					giveItemsWithoutQuestRate(player, BRUNONS_CONTRACT, 1);
 					qs.setCond(5, true);
 					htmltext = event;
 				}
@@ -214,7 +214,7 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 								if (hasQuestItems(talker, GEM_BOX))
 								{
 									takeItems(talker, GEM_BOX, -1);
-									giveItems(talker, COAL_PIECE, 1);
+									giveItemsWithoutQuestRate(talker, COAL_PIECE, 1);
 									qs.setCond(8, true);
 									htmltext = "30523-07.html";
 								}
@@ -239,12 +239,12 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 									{
 										if (talker.isMageClass())
 										{
-											giveItems(talker, SPIRITSHOTS_NO_GRADE_FOR_ROOKIES);
+											rewardItems(talker, SPIRITSHOTS_NO_GRADE_FOR_ROOKIES);
 											playSound(talker, "tutorial_voice_027");
 										}
 										else
 										{
-											giveItems(talker, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
+											rewardItems(talker, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
 											playSound(talker, "tutorial_voice_026");
 										}
 									}
@@ -275,10 +275,10 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 									giveAdena(talker, 14666, true);
 									for (ItemHolder reward : REWARDS)
 									{
-										giveItems(talker, reward);
+										rewardItems(talker, reward);
 									}
 									
-									giveItems(talker, SILVERSMITH_HAMMER, 1);
+									rewardItems(talker, SILVERSMITH_HAMMER, 1);
 									qs.exitQuest(false, true);
 									talker.sendPacket(new SocialAction(talker.getObjectId(), 3));
 									htmltext = "30523-09.html";
@@ -305,7 +305,7 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 						if (hasQuestItems(talker, GOUPHS_CONTRACT))
 						{
 							takeItems(talker, GOUPHS_CONTRACT, -1);
-							giveItems(talker, REEPS_CONTRACT, 1);
+							giveItemsWithoutQuestRate(talker, REEPS_CONTRACT, 1);
 							qs.setCond(2, true);
 							htmltext = "30516-01.html";
 						}
@@ -378,7 +378,7 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 						if (hasQuestItems(talker, ELVEN_WINE))
 						{
 							takeItems(talker, ELVEN_WINE, -1);
-							giveItems(talker, BRUNONS_DICE, 1);
+							giveItemsWithoutQuestRate(talker, BRUNONS_DICE, 1);
 							qs.setCond(4, true);
 							htmltext = "30529-01.html";
 						}
@@ -428,7 +428,7 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 						if (hasQuestItems(talker, BRUNONS_CONTRACT) && (getQuestItemsCount(talker, AQUAMARINE) >= MAX_GEM_COUNT) && (getQuestItemsCount(talker, CHRYSOBERYL) >= MAX_GEM_COUNT))
 						{
 							takeItems(talker, -1, BRUNONS_CONTRACT, AQUAMARINE, CHRYSOBERYL);
-							giveItems(talker, GEM_BOX, 1);
+							giveItemsWithoutQuestRate(talker, GEM_BOX, 1);
 							qs.setCond(7, true);
 							htmltext = "30526-04.html";
 						}
@@ -447,7 +447,7 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 						if (hasQuestItems(talker, COAL_PIECE))
 						{
 							takeItems(talker, COAL_PIECE, -1);
-							giveItems(talker, BRUNONS_LETTER, 1);
+							giveItemsWithoutQuestRate(talker, BRUNONS_LETTER, 1);
 							qs.setCond(9, true);
 							htmltext = "30526-06.html";
 						}
@@ -483,7 +483,7 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 						if (hasQuestItems(talker, BRUNONS_LETTER))
 						{
 							takeItems(talker, BRUNONS_LETTER, -1);
-							giveItems(talker, BERRY_TART, 1);
+							giveItemsWithoutQuestRate(talker, BERRY_TART, 1);
 							qs.setCond(10, true);
 							htmltext = "30521-01.html";
 						}
@@ -515,7 +515,7 @@ public class Q00108_JumbleTumbleDiamondFuss extends Quest
 						if (hasQuestItems(talker, BERRY_TART))
 						{
 							takeItems(talker, BERRY_TART, -1);
-							giveItems(talker, BAT_DIAGRAM, 1);
+							giveItemsWithoutQuestRate(talker, BAT_DIAGRAM, 1);
 							qs.setCond(11, true);
 							htmltext = "30522-01.html";
 						}

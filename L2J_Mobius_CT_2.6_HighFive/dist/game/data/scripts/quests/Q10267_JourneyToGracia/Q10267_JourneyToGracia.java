@@ -63,7 +63,7 @@ public class Q10267_JourneyToGracia extends Quest
 			case "30857-06.html":
 			{
 				qs.startQuest();
-				giveItems(player, LETTER, 1);
+				giveItemsWithoutQuestRate(player, LETTER, 1);
 				break;
 			}
 			case "32564-02.html":

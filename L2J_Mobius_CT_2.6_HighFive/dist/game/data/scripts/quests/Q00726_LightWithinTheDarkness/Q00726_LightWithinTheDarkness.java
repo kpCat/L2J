@@ -142,7 +142,7 @@ public class Q00726_LightWithinTheDarkness extends Quest
 		else if (event.equalsIgnoreCase("reward") && qs.isCond(2) && (qs.getInt("done") == 1))
 		{
 			qs.set("done", "0");
-			giveItems(player, KNIGHTS_EPAULETTE, 152);
+			rewardItems(player, KNIGHTS_EPAULETTE, 152);
 			qs.exitQuest(true, true);
 			return null;
 		}

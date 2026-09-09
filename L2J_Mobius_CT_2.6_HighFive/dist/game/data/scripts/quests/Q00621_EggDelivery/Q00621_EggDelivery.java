@@ -86,7 +86,7 @@ public class Q00621_EggDelivery extends Quest
 				if (qs.isCreated())
 				{
 					qs.startQuest();
-					giveItems(player, BOILED_EGG, 5);
+					giveItemsWithoutQuestRate(player, BOILED_EGG, 5);
 					htmltext = event;
 				}
 				break;
@@ -116,7 +116,7 @@ public class Q00621_EggDelivery extends Quest
 					{
 						qs.setCond(2, true);
 						takeItems(player, BOILED_EGG, 1);
-						giveItems(player, EGG_PRICE, 1);
+						giveItemsWithoutQuestRate(player, EGG_PRICE, 1);
 						htmltext = event;
 					}
 					else
@@ -137,7 +137,7 @@ public class Q00621_EggDelivery extends Quest
 					{
 						qs.setCond(qs.getCond() + 1, true);
 						takeItems(player, BOILED_EGG, 1);
-						giveItems(player, EGG_PRICE, 1);
+						giveItemsWithoutQuestRate(player, EGG_PRICE, 1);
 						htmltext = event;
 					}
 					else

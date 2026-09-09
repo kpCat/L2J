@@ -108,7 +108,7 @@ public class Q00223_TestOfTheChampion extends Quest
 				{
 					qs.startQuest();
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
-					giveItems(player, ASCALONS_1ST_LETTER, 1);
+					giveItemsWithoutQuestRate(player, ASCALONS_1ST_LETTER, 1);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
 						if (player.getPlayerClass() == PlayerClass.WARRIOR)
@@ -142,7 +142,7 @@ public class Q00223_TestOfTheChampion extends Quest
 				if (hasQuestItems(player, MASONS_LETTER))
 				{
 					takeItems(player, MASONS_LETTER, 1);
-					giveItems(player, ASCALONS_2ND_LETTER, 1);
+					giveItemsWithoutQuestRate(player, ASCALONS_2ND_LETTER, 1);
 					qs.setCond(5, true);
 					htmltext = event;
 				}
@@ -153,7 +153,7 @@ public class Q00223_TestOfTheChampion extends Quest
 				if (hasQuestItems(player, GROOTS_LETTER))
 				{
 					takeItems(player, GROOTS_LETTER, 1);
-					giveItems(player, ASCALONS_3RD_LETTER, 1);
+					giveItemsWithoutQuestRate(player, ASCALONS_3RD_LETTER, 1);
 					qs.setCond(9, true);
 					htmltext = event;
 				}
@@ -164,7 +164,7 @@ public class Q00223_TestOfTheChampion extends Quest
 				if (hasQuestItems(player, ASCALONS_2ND_LETTER))
 				{
 					takeItems(player, ASCALONS_2ND_LETTER, 1);
-					giveItems(player, WHITE_ROSE_INSIGNIA, 1);
+					giveItemsWithoutQuestRate(player, WHITE_ROSE_INSIGNIA, 1);
 					qs.setCond(6, true);
 					htmltext = event;
 				}
@@ -175,7 +175,7 @@ public class Q00223_TestOfTheChampion extends Quest
 				if (hasQuestItems(player, ASCALONS_3RD_LETTER))
 				{
 					takeItems(player, ASCALONS_3RD_LETTER, 1);
-					giveItems(player, MOUENS_1ST_ORDER, 1);
+					giveItemsWithoutQuestRate(player, MOUENS_1ST_ORDER, 1);
 					qs.setCond(10, true);
 					htmltext = event;
 				}
@@ -186,7 +186,7 @@ public class Q00223_TestOfTheChampion extends Quest
 				if (getQuestItemsCount(player, ROAD_RATMAN_HEAD) >= 10)
 				{
 					takeItems(player, MOUENS_1ST_ORDER, 1);
-					giveItems(player, MOUENS_2ND_ORDER, 1);
+					giveItemsWithoutQuestRate(player, MOUENS_2ND_ORDER, 1);
 					takeItems(player, ROAD_RATMAN_HEAD, -1);
 					qs.setCond(12, true);
 					htmltext = event;
@@ -198,7 +198,7 @@ public class Q00223_TestOfTheChampion extends Quest
 				if (hasQuestItems(player, ASCALONS_1ST_LETTER))
 				{
 					takeItems(player, ASCALONS_1ST_LETTER, 1);
-					giveItems(player, IRON_ROSE_RING, 1);
+					giveItemsWithoutQuestRate(player, IRON_ROSE_RING, 1);
 					qs.setCond(2, true);
 					htmltext = event;
 				}
@@ -513,7 +513,7 @@ public class Q00223_TestOfTheChampion extends Quest
 					else if (hasQuestItems(player, MOUENS_LETTER))
 					{
 						giveAdena(player, 229764, true);
-						giveItems(player, MARK_OF_CHAMPION, 1);
+						giveItemsWithoutQuestRate(player, MARK_OF_CHAMPION, 1);
 						addExpAndSp(player, 1270742, 87200);
 						qs.exitQuest(false, true);
 						player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -532,7 +532,7 @@ public class Q00223_TestOfTheChampion extends Quest
 						if ((getQuestItemsCount(player, HARPYS_EGG) >= 30) && (getQuestItemsCount(player, MEDUSA_VENOM) >= 30) && (getQuestItemsCount(player, WINDSUS_BILE) >= 30))
 						{
 							takeItems(player, WHITE_ROSE_INSIGNIA, 1);
-							giveItems(player, GROOTS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, GROOTS_LETTER, 1);
 							takeItems(player, HARPYS_EGG, -1);
 							takeItems(player, MEDUSA_VENOM, -1);
 							takeItems(player, WINDSUS_BILE, -1);
@@ -580,7 +580,7 @@ public class Q00223_TestOfTheChampion extends Quest
 						else
 						{
 							takeItems(player, MOUENS_2ND_ORDER, 1);
-							giveItems(player, MOUENS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, MOUENS_LETTER, 1);
 							takeItems(player, LETO_LIZARDMAN_FANG, -1);
 							qs.setCond(14, true);
 							htmltext = "30196-08.html";
@@ -606,7 +606,7 @@ public class Q00223_TestOfTheChampion extends Quest
 						}
 						else
 						{
-							giveItems(player, MASONS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, MASONS_LETTER, 1);
 							takeItems(player, IRON_ROSE_RING, 1);
 							takeItems(player, BLOODY_AXE_HEAD, -1);
 							qs.setCond(4, true);

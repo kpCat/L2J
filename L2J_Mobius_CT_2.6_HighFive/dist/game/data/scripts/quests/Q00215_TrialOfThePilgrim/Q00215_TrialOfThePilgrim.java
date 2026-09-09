@@ -99,7 +99,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 				{
 					qs.startQuest();
 					qs.setMemoState(1);
-					giveItems(player, VOUCHER_OF_TRIAL, 1);
+					giveItemsWithoutQuestRate(player, VOUCHER_OF_TRIAL, 1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
@@ -147,7 +147,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 			{
 				if (qs.isMemoState(4) && hasQuestItems(player, ESSENSE_OF_FLAME))
 				{
-					giveItems(player, SPIRIT_OF_FLAME, 1);
+					giveItemsWithoutQuestRate(player, SPIRIT_OF_FLAME, 1);
 					takeItems(player, ESSENSE_OF_FLAME, 1);
 					qs.setMemoState(5);
 					qs.setCond(5, true);
@@ -161,7 +161,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 				{
 					if (getQuestItemsCount(player, ADENA) >= 100000)
 					{
-						giveItems(player, BOOK_OF_GERALD, 1);
+						giveItemsWithoutQuestRate(player, BOOK_OF_GERALD, 1);
 						takeItems(player, ADENA, 100000);
 						qs.setMemoState(7);
 						htmltext = event;
@@ -185,7 +185,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 			{
 				if (qs.isMemoState(14) && hasQuestItems(player, DEBRIS_OF_WILLOW))
 				{
-					giveItems(player, BOOK_OF_DARKNESS, 1);
+					giveItemsWithoutQuestRate(player, BOOK_OF_DARKNESS, 1);
 					takeItems(player, DEBRIS_OF_WILLOW, 1);
 					qs.setMemoState(15);
 					qs.setCond(15, true);
@@ -212,7 +212,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 					{
 						qs.setMemoState(4);
 						qs.setCond(4, true);
-						giveItems(killer, ESSENSE_OF_FLAME, 1);
+						giveItemsWithoutQuestRate(killer, ESSENSE_OF_FLAME, 1);
 					}
 					break;
 				}
@@ -222,7 +222,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 					{
 						qs.setMemoState(11);
 						qs.setCond(11, true);
-						giveItems(killer, HAIR_OF_NAHIR, 1);
+						giveItemsWithoutQuestRate(killer, HAIR_OF_NAHIR, 1);
 					}
 					break;
 				}
@@ -232,7 +232,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 					{
 						qs.setMemoState(14);
 						qs.setCond(14, true);
-						giveItems(killer, DEBRIS_OF_WILLOW, 1);
+						giveItemsWithoutQuestRate(killer, DEBRIS_OF_WILLOW, 1);
 					}
 					break;
 				}
@@ -279,7 +279,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 						else
 						{
 							giveAdena(player, 229298, true);
-							giveItems(player, MARK_OF_PILGRIM, 1);
+							giveItemsWithoutQuestRate(player, MARK_OF_PILGRIM, 1);
 							addExpAndSp(player, 1258250, 81606);
 							qs.exitQuest(false, true);
 							player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -292,7 +292,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 				{
 					if (memoState == 9)
 					{
-						giveItems(player, PICTURE_OF_NAHIR, 1);
+						giveItemsWithoutQuestRate(player, PICTURE_OF_NAHIR, 1);
 						qs.setMemoState(10);
 						qs.setCond(10, true);
 						htmltext = "30036-01.html";
@@ -305,7 +305,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 					{
 						takeItems(player, PICTURE_OF_NAHIR, 1);
 						takeItems(player, HAIR_OF_NAHIR, 1);
-						giveItems(player, STATUE_OF_EINHASAD, 1);
+						giveItemsWithoutQuestRate(player, STATUE_OF_EINHASAD, 1);
 						qs.setMemoState(12);
 						qs.setCond(12, true);
 						htmltext = "30036-03.html";
@@ -382,7 +382,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 						if (hasQuestItems(player, SPIRIT_OF_FLAME))
 						{
 							takeItems(player, SPIRIT_OF_FLAME, 1);
-							giveItems(player, TAG_OF_RUMOR, 1);
+							giveItemsWithoutQuestRate(player, TAG_OF_RUMOR, 1);
 							qs.setMemoState(6);
 							qs.setCond(7, true);
 							htmltext = "30550-01.html";
@@ -427,7 +427,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 						qs.setMemoState(17);
 						if (!hasQuestItems(player, BOOK_OF_SAGE))
 						{
-							giveItems(player, BOOK_OF_SAGE, 1);
+							giveItemsWithoutQuestRate(player, BOOK_OF_SAGE, 1);
 						}
 						
 						takeItems(player, GREY_BADGE, 1);
@@ -492,7 +492,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 					{
 						if (hasQuestItems(player, TAG_OF_RUMOR))
 						{
-							giveItems(player, GREY_BADGE, 1);
+							giveItemsWithoutQuestRate(player, GREY_BADGE, 1);
 							takeItems(player, TAG_OF_RUMOR, 1);
 							qs.setMemoState(8);
 							htmltext = "30651-01.html";
@@ -502,7 +502,7 @@ public class Q00215_TrialOfThePilgrim extends Quest
 					{
 						if (hasQuestItems(player, TAG_OF_RUMOR))
 						{
-							giveItems(player, GREY_BADGE, 1);
+							giveItemsWithoutQuestRate(player, GREY_BADGE, 1);
 							takeItems(player, TAG_OF_RUMOR, 1);
 							qs.setMemoState(8);
 							htmltext = "30651-02.html";

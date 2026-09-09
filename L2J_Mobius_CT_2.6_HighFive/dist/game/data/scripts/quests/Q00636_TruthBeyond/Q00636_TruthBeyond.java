@@ -62,7 +62,7 @@ public class Q00636_TruthBeyond extends Quest
 		}
 		else if ("32010-02.htm".equals(event))
 		{
-			giveItems(player, VISITOR_MARK, 1);
+			giveItemsWithoutQuestRate(player, VISITOR_MARK, 1);
 			qs.exitQuest(true, true);
 		}
 		
@@ -78,7 +78,7 @@ public class Q00636_TruthBeyond extends Quest
 			final Player player = creature.asPlayer();
 			if (player.destroyItemByItemId(ItemProcessType.FEE, VISITOR_MARK, 1, player, false))
 			{
-				player.addItem(ItemProcessType.QUEST, FADED_MARK, 1, player, true);
+				giveItemsWithoutQuestRate(player, FADED_MARK, 1);
 			}
 		}
 	}

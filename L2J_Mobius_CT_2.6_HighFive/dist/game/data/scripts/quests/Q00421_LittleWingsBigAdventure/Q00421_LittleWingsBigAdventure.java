@@ -172,7 +172,7 @@ public class Q00421_LittleWingsBigAdventure extends Quest
 				}
 				else
 				{
-					giveItems(player, FAIRY_LEAF, 4);
+					giveItemsWithoutQuestRate(player, FAIRY_LEAF, 4);
 					qs.setCond(2, true);
 					qs.setMemoState(0);
 					htmltext = event;

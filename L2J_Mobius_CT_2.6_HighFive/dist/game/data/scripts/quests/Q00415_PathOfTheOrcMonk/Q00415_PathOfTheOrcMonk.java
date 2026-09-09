@@ -140,7 +140,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 			case "30587-06.htm":
 			{
 				qs.startQuest();
-				giveItems(player, POMEGRANATE, 1);
+				giveItemsWithoutQuestRate(player, POMEGRANATE, 1);
 				htmltext = event;
 				break;
 			}
@@ -149,7 +149,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 				if (hasQuestItems(player, FIERY_SPIRIT_SCROLL, ROSHEEKS_LETTER))
 				{
 					takeItems(player, ROSHEEKS_LETTER, 1);
-					giveItems(player, GANTAKIS_LETTRT_OF_RECOMMENDATION, 1);
+					giveItemsWithoutQuestRate(player, GANTAKIS_LETTRT_OF_RECOMMENDATION, 1);
 					qs.setCond(9);
 					htmltext = event;
 				}
@@ -179,7 +179,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 				if (qs.isMemoState(5))
 				{
 					giveAdena(player, 81900, true);
-					giveItems(player, KHAVATARI_TOTEM, 1);
+					giveItemsWithoutQuestRate(player, KHAVATARI_TOTEM, 1);
 					final int level = player.getLevel();
 					if (level >= 20)
 					{
@@ -292,7 +292,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 						if (ItemCount >= 11)
 						{
 							takeItems(killer, LEATHER_POUCH_4TF, 1);
-							giveItems(killer, LEATHER_POUCH_4TF_FULL, 1);
+							giveItemsWithoutQuestRate(killer, LEATHER_POUCH_4TF_FULL, 1);
 							takeItems(killer, VUKU_ORK_TUSK, -1);
 							takeItems(killer, RATMAN_FANG, -1);
 							takeItems(killer, LANGK_LIZARDMAN_TOOTH, -1);
@@ -314,7 +314,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 						if (ItemCount >= 11)
 						{
 							takeItems(killer, LEATHER_POUCH_4TF, 1);
-							giveItems(killer, LEATHER_POUCH_4TF_FULL, 1);
+							giveItemsWithoutQuestRate(killer, LEATHER_POUCH_4TF_FULL, 1);
 							takeItems(killer, VUKU_ORK_TUSK, -1);
 							takeItems(killer, RATMAN_FANG, -1);
 							takeItems(killer, LANGK_LIZARDMAN_TOOTH, -1);
@@ -336,7 +336,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 						if (ItemCount >= 11)
 						{
 							takeItems(killer, LEATHER_POUCH_4TF, 1);
-							giveItems(killer, LEATHER_POUCH_4TF_FULL, 1);
+							giveItemsWithoutQuestRate(killer, LEATHER_POUCH_4TF_FULL, 1);
 							takeItems(killer, VUKU_ORK_TUSK, -1);
 							takeItems(killer, RATMAN_FANG, -1);
 							takeItems(killer, LANGK_LIZARDMAN_TOOTH, -1);
@@ -358,7 +358,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 						if (ItemCount >= 11)
 						{
 							takeItems(killer, LEATHER_POUCH_4TF, 1);
-							giveItems(killer, LEATHER_POUCH_4TF_FULL, 1);
+							giveItemsWithoutQuestRate(killer, LEATHER_POUCH_4TF_FULL, 1);
 							takeItems(killer, VUKU_ORK_TUSK, -1);
 							takeItems(killer, RATMAN_FANG, -1);
 							takeItems(killer, LANGK_LIZARDMAN_TOOTH, -1);
@@ -525,7 +525,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 					if (hasQuestItems(player, GANTAKIS_LETTRT_OF_RECOMMENDATION))
 					{
 						takeItems(player, GANTAKIS_LETTRT_OF_RECOMMENDATION, 1);
-						giveItems(player, FIG, 1);
+						giveItemsWithoutQuestRate(player, FIG, 1);
 						qs.setCond(10);
 						htmltext = "30501-01.html";
 					}
@@ -540,7 +540,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 					else if (hasQuestItems(player, IRON_WILL_SCROLL))
 					{
 						giveAdena(player, 163800, true);
-						giveItems(player, KHAVATARI_TOTEM, 1);
+						giveItemsWithoutQuestRate(player, KHAVATARI_TOTEM, 1);
 						final int level = player.getLevel();
 						if (level >= 20)
 						{
@@ -566,7 +566,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 					if (hasQuestItems(player, POMEGRANATE))
 					{
 						takeItems(player, POMEGRANATE, 1);
-						giveItems(player, LEATHER_POUCH_1ST, 1);
+						giveItemsWithoutQuestRate(player, LEATHER_POUCH_1ST, 1);
 						qs.setCond(2);
 						htmltext = "30590-01.html";
 					}
@@ -576,7 +576,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 					}
 					else if (!hasQuestItems(player, LEATHER_POUCH_1ST) && hasQuestItems(player, LEATHER_POUCH_1ST_FULL))
 					{
-						giveItems(player, LEATHER_POUCH_2ND, 1);
+						giveItemsWithoutQuestRate(player, LEATHER_POUCH_2ND, 1);
 						takeItems(player, LEATHER_POUCH_1ST_FULL, 1);
 						qs.setCond(4);
 						htmltext = "30590-03.html";
@@ -587,7 +587,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 					}
 					else if (!hasQuestItems(player, LEATHER_POUCH_2ND) && hasQuestItems(player, LEATHER_POUCH_2ND_FULL))
 					{
-						giveItems(player, LEATHER_POUCH_3RD, 1);
+						giveItemsWithoutQuestRate(player, LEATHER_POUCH_3RD, 1);
 						takeItems(player, LEATHER_POUCH_2ND_FULL, 1);
 						qs.setCond(6);
 						htmltext = "30590-05.html";
@@ -599,8 +599,8 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 					else if (!hasQuestItems(player, LEATHER_POUCH_3RD) && hasQuestItems(player, LEATHER_POUCH_3RD_FULL))
 					{
 						takeItems(player, LEATHER_POUCH_3RD_FULL, 1);
-						giveItems(player, FIERY_SPIRIT_SCROLL, 1);
-						giveItems(player, ROSHEEKS_LETTER, 1);
+						giveItemsWithoutQuestRate(player, FIERY_SPIRIT_SCROLL, 1);
+						giveItemsWithoutQuestRate(player, ROSHEEKS_LETTER, 1);
 						qs.setCond(8);
 						htmltext = "30590-07.html";
 					}
@@ -619,7 +619,7 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 					if (hasQuestItems(player, FIG))
 					{
 						takeItems(player, FIG, 1);
-						giveItems(player, LEATHER_POUCH_4TF, 1);
+						giveItemsWithoutQuestRate(player, LEATHER_POUCH_4TF, 1);
 						qs.setCond(11);
 						htmltext = "30591-01.html";
 					}
@@ -630,8 +630,8 @@ public class Q00415_PathOfTheOrcMonk extends Quest
 					else if (!hasQuestItems(player, LEATHER_POUCH_4TF) && hasQuestItems(player, LEATHER_POUCH_4TF_FULL))
 					{
 						takeItems(player, LEATHER_POUCH_4TF_FULL, 1);
-						giveItems(player, IRON_WILL_SCROLL, 1);
-						giveItems(player, TORUKUS_LETTER, 1);
+						giveItemsWithoutQuestRate(player, IRON_WILL_SCROLL, 1);
+						giveItemsWithoutQuestRate(player, TORUKUS_LETTER, 1);
 						qs.setCond(13);
 						htmltext = "30591-03.html";
 					}

@@ -125,12 +125,12 @@ public class Q00175_TheWayOfTheWarrior extends Quest
 				if (hasItem(player, MUERTOS_CLAW))
 				{
 					takeItem(player, MUERTOS_CLAW);
-					giveItems(player, WARRIORS_SWORD, 1);
+					rewardItems(player, WARRIORS_SWORD, 1);
 					
 					if (player.getLevel() < 25)
 					{
 						playSound(player, "tutorial_voice_026");
-						giveItems(player, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
+						rewardItems(player, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
 					}
 					
 					// Newbie Guide.
@@ -156,7 +156,7 @@ public class Q00175_TheWayOfTheWarrior extends Quest
 					giveAdena(player, 8799, true);
 					for (ItemHolder reward : REWARDS)
 					{
-						giveItems(player, reward);
+						rewardItems(player, reward);
 					}
 					
 					qs.exitQuest(false, true);

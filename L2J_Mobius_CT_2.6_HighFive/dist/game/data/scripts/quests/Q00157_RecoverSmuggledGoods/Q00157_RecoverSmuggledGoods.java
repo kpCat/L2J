@@ -111,7 +111,7 @@ public class Q00157_RecoverSmuggledGoods extends Quest
 			{
 				if (qs.isCond(2) && (getQuestItemsCount(player, ADAMANTITE_ORE) >= 20))
 				{
-					giveItems(player, BUCKLER, 1);
+					rewardItems(player, BUCKLER, 1);
 					qs.exitQuest(false, true);
 					htmltext = "30005-06.html";
 				}

@@ -176,7 +176,7 @@ public class Q00345_MethodToRaiseTheDead extends Quest
 				{
 					if (player.getAdena() >= 1000)
 					{
-						giveItems(player, POWDER_TO_SUMMON_DEAD_SOULS, 1);
+						giveItemsWithoutQuestRate(player, POWDER_TO_SUMMON_DEAD_SOULS, 1);
 						takeItems(player, Inventory.ADENA_ID, 1000);
 						qs.setMemoState(3);
 						qs.setCond(3, true);
@@ -324,7 +324,7 @@ public class Q00345_MethodToRaiseTheDead extends Quest
 							final long uselessBonePiecesCount = getQuestItemsCount(player, USELESS_BONE_PIECES);
 							if ((memoStateEx == 1) || (memoStateEx == 2))
 							{
-								giveItems(player, BILL_OF_IASON_HEINE, 3);
+								rewardItems(player, BILL_OF_IASON_HEINE, 3);
 								giveAdena(player, 5390 + (70 * uselessBonePiecesCount), true);
 								htmltext = "30970-11.html";
 							}
@@ -332,11 +332,11 @@ public class Q00345_MethodToRaiseTheDead extends Quest
 							{
 								if (getRandom(100) <= 92)
 								{
-									giveItems(player, BILL_OF_IASON_HEINE, 5);
+									rewardItems(player, BILL_OF_IASON_HEINE, 5);
 								}
 								else
 								{
-									giveItems(player, IMPERIAL_DIAMOND, 1);
+									rewardItems(player, IMPERIAL_DIAMOND, 1);
 								}
 								
 								giveAdena(player, 3040 + (70 * uselessBonePiecesCount), true);

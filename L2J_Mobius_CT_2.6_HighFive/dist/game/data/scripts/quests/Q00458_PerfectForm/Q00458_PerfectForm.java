@@ -204,8 +204,8 @@ public class Q00458_PerfectForm extends Quest
 						rewardItems(player, ICARUS_WEAPON_PIECES[rnd], 2);
 						
 						// not sure if this should use rewardItems
-						giveItems(player, 15482, 10); // Golden Spice Crate
-						giveItems(player, 15483, 10); // Crystal Spice Crate
+						rewardItems(player, 15482, 10); // Golden Spice Crate
+						rewardItems(player, 15483, 10); // Crystal Spice Crate
 					}
 					
 					qs.exitQuest(QuestType.DAILY, true);

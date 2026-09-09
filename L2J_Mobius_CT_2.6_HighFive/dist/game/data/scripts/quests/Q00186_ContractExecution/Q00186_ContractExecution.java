@@ -88,7 +88,7 @@ public class Q00186_ContractExecution extends Quest
 				{
 					qs.startQuest();
 					qs.setMemoState(1);
-					giveItems(player, METALLOGRAPH_RESEARCH_REPORT, 1);
+					giveItemsWithoutQuestRate(player, METALLOGRAPH_RESEARCH_REPORT, 1);
 					takeItems(player, LORAINES_CERTIFICATE, -1);
 					htmltext = event;
 				}

@@ -143,7 +143,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 					qs.startQuest();
 					if (!hasQuestItems(player, MIRIENS_1ST_SIGIL))
 					{
-						giveItems(player, MIRIENS_1ST_SIGIL, 1);
+						giveItemsWithoutQuestRate(player, MIRIENS_1ST_SIGIL, 1);
 					}
 					
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
@@ -198,7 +198,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 				if (hasQuestItems(player, MIRIENS_2ND_SIGIL, SYMBOL_OF_JUREK))
 				{
 					takeItems(player, MIRIENS_2ND_SIGIL, 1);
-					giveItems(player, MIRIENS_3RD_SIGIL, 1);
+					giveItemsWithoutQuestRate(player, MIRIENS_3RD_SIGIL, 1);
 					takeItems(player, SYMBOL_OF_JUREK, 1);
 					qs.setCond(19, true);
 					htmltext = event;
@@ -207,8 +207,8 @@ public class Q00214_TrialOfTheScholar extends Quest
 			}
 			case "30070-02.html":
 			{
-				giveItems(player, HIGH_PRIESTS_SIGIL, 1);
-				giveItems(player, SYLVAINS_LETTER, 1);
+				giveItemsWithoutQuestRate(player, HIGH_PRIESTS_SIGIL, 1);
+				giveItemsWithoutQuestRate(player, SYLVAINS_LETTER, 1);
 				qs.setCond(2, true);
 				htmltext = event;
 				break;
@@ -218,7 +218,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 				if (hasQuestItems(player, CRERAS_PAINTING2))
 				{
 					takeItems(player, CRERAS_PAINTING2, 1);
-					giveItems(player, CRERAS_PAINTING3, 1);
+					giveItemsWithoutQuestRate(player, CRERAS_PAINTING3, 1);
 					qs.setCond(10, true);
 					htmltext = event;
 				}
@@ -226,7 +226,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 			}
 			case "30103-04.html":
 			{
-				giveItems(player, VALKONS_REQUEST, 1);
+				giveItemsWithoutQuestRate(player, VALKONS_REQUEST, 1);
 				htmltext = event;
 				break;
 			}
@@ -235,7 +235,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 				if (hasQuestItems(player, CRONOS_LETTER))
 				{
 					takeItems(player, CRONOS_LETTER, 1);
-					giveItems(player, DIETERS_KEY, 1);
+					giveItemsWithoutQuestRate(player, DIETERS_KEY, 1);
 					qs.setCond(21, true);
 					htmltext = event;
 				}
@@ -246,8 +246,8 @@ public class Q00214_TrialOfTheScholar extends Quest
 				if (hasQuestItems(player, CRETAS_2ND_LETTER))
 				{
 					takeItems(player, CRETAS_2ND_LETTER, 1);
-					giveItems(player, DIETERS_LETTER, 1);
-					giveItems(player, DIETERS_DIARY, 1);
+					giveItemsWithoutQuestRate(player, DIETERS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, DIETERS_DIARY, 1);
 					qs.setCond(23, true);
 					htmltext = event;
 				}
@@ -255,8 +255,8 @@ public class Q00214_TrialOfTheScholar extends Quest
 			}
 			case "30115-03.html":
 			{
-				giveItems(player, JUREKS_LIST, 1);
-				giveItems(player, GRAND_MAGISTER_SIGIL, 1);
+				giveItemsWithoutQuestRate(player, JUREKS_LIST, 1);
+				giveItemsWithoutQuestRate(player, GRAND_MAGISTER_SIGIL, 1);
 				qs.setCond(16, true);
 				htmltext = event;
 				break;
@@ -266,7 +266,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 				if (hasQuestItems(player, DIETERS_LETTER))
 				{
 					takeItems(player, DIETERS_LETTER, 1);
-					giveItems(player, RAUTS_LETTER_ENVELOPE, 1);
+					giveItemsWithoutQuestRate(player, RAUTS_LETTER_ENVELOPE, 1);
 					qs.setCond(24, true);
 					htmltext = event;
 				}
@@ -277,8 +277,8 @@ public class Q00214_TrialOfTheScholar extends Quest
 				if (hasQuestItems(player, RAUTS_LETTER_ENVELOPE))
 				{
 					takeItems(player, RAUTS_LETTER_ENVELOPE, 1);
-					giveItems(player, SCRIPTURE_CHAPTER_1, 1);
-					giveItems(player, STRONG_LIGUOR, 1);
+					giveItemsWithoutQuestRate(player, SCRIPTURE_CHAPTER_1, 1);
+					giveItemsWithoutQuestRate(player, STRONG_LIGUOR, 1);
 					qs.setCond(25, true);
 					htmltext = event;
 				}
@@ -288,7 +288,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 			{
 				if (hasQuestItems(player, SYLVAINS_LETTER))
 				{
-					giveItems(player, MARIAS_1ST_LETTER, 1);
+					giveItemsWithoutQuestRate(player, MARIAS_1ST_LETTER, 1);
 					takeItems(player, SYLVAINS_LETTER, 1);
 					qs.setCond(3, true);
 					htmltext = event;
@@ -299,7 +299,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 			{
 				if (hasQuestItems(player, CRETAS_1ST_LETTER))
 				{
-					giveItems(player, LUCILLAS_HANDBAG, 1);
+					giveItemsWithoutQuestRate(player, LUCILLAS_HANDBAG, 1);
 					takeItems(player, CRETAS_1ST_LETTER, 1);
 					qs.setCond(7, true);
 					htmltext = event;
@@ -312,7 +312,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 				{
 					takeItems(player, CRERAS_PAINTING3, 1);
 					takeItems(player, BROWN_SCROLL_SCRAP, -1);
-					giveItems(player, CRYSTAL_OF_PURITY1, 1);
+					giveItemsWithoutQuestRate(player, CRYSTAL_OF_PURITY1, 1);
 					qs.setCond(13, true);
 					htmltext = event;
 				}
@@ -323,7 +323,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 				if (hasQuestItems(player, MARIAS_2ND_LETTER))
 				{
 					takeItems(player, MARIAS_2ND_LETTER, 1);
-					giveItems(player, CRETAS_1ST_LETTER, 1);
+					giveItemsWithoutQuestRate(player, CRETAS_1ST_LETTER, 1);
 					qs.setCond(6, true);
 					htmltext = event;
 				}
@@ -334,7 +334,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 				if (hasQuestItems(player, LUCILLAS_HANDBAG))
 				{
 					takeItems(player, LUCILLAS_HANDBAG, 1);
-					giveItems(player, CRERAS_PAINTING1, 1);
+					giveItemsWithoutQuestRate(player, CRERAS_PAINTING1, 1);
 					qs.setCond(8, true);
 					htmltext = event;
 				}
@@ -345,7 +345,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 				if (hasQuestItems(player, DIETERS_KEY))
 				{
 					takeItems(player, DIETERS_KEY, 1);
-					giveItems(player, CRETAS_2ND_LETTER, 1);
+					giveItemsWithoutQuestRate(player, CRETAS_2ND_LETTER, 1);
 					qs.setCond(22, true);
 					htmltext = event;
 				}
@@ -353,8 +353,8 @@ public class Q00214_TrialOfTheScholar extends Quest
 			}
 			case "30610-10.html":
 			{
-				giveItems(player, CRONOS_SIGIL, 1);
-				giveItems(player, CRONOS_LETTER, 1);
+				giveItemsWithoutQuestRate(player, CRONOS_SIGIL, 1);
+				giveItemsWithoutQuestRate(player, CRONOS_LETTER, 1);
 				qs.setCond(20, true);
 				htmltext = event;
 				break;
@@ -370,7 +370,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 					takeItems(player, SCRIPTURE_CHAPTER_2, 1);
 					takeItems(player, SCRIPTURE_CHAPTER_3, 1);
 					takeItems(player, SCRIPTURE_CHAPTER_4, 1);
-					giveItems(player, SYMBOL_OF_CRONOS, 1);
+					giveItemsWithoutQuestRate(player, SYMBOL_OF_CRONOS, 1);
 					qs.setCond(31, true);
 					htmltext = event;
 				}
@@ -380,7 +380,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 			{
 				if (hasQuestItems(player, STRONG_LIGUOR))
 				{
-					giveItems(player, TRIFFS_RING, 1);
+					giveItemsWithoutQuestRate(player, TRIFFS_RING, 1);
 					takeItems(player, STRONG_LIGUOR, 1);
 					qs.setCond(26, true);
 					htmltext = event;
@@ -389,14 +389,14 @@ public class Q00214_TrialOfTheScholar extends Quest
 			}
 			case "30612-04.html":
 			{
-				giveItems(player, CASIANS_LIST, 1);
+				giveItemsWithoutQuestRate(player, CASIANS_LIST, 1);
 				qs.setCond(28, true);
 				htmltext = event;
 				break;
 			}
 			case "30612-07.html":
 			{
-				giveItems(player, SCRIPTURE_CHAPTER_4, 1);
+				giveItemsWithoutQuestRate(player, SCRIPTURE_CHAPTER_4, 1);
 				takeItems(player, POITANS_NOTES, 1);
 				takeItems(player, CASIANS_LIST, 1);
 				takeItems(player, GHOULS_SKIN, -1);
@@ -603,7 +603,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 						else
 						{
 							takeItems(player, MIRIENS_1ST_SIGIL, 1);
-							giveItems(player, MIRIENS_2ND_SIGIL, 1);
+							giveItemsWithoutQuestRate(player, MIRIENS_2ND_SIGIL, 1);
 							takeItems(player, SYMBOL_OF_SYLVAIN, 1);
 							qs.setCond(15, true);
 							htmltext = "30461-06.html";
@@ -629,7 +629,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 						else
 						{
 							takeItems(player, MIRIENS_INSTRUCTION, 1);
-							giveItems(player, MIRIENS_3RD_SIGIL, 1);
+							giveItemsWithoutQuestRate(player, MIRIENS_3RD_SIGIL, 1);
 							qs.setCond(19, true);
 							htmltext = "30461-12.html";
 						}
@@ -643,7 +643,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 						else
 						{
 							giveAdena(player, 319628, true);
-							giveItems(player, MARK_OF_SCHOLAR, 1);
+							giveItemsWithoutQuestRate(player, MARK_OF_SCHOLAR, 1);
 							addExpAndSp(player, 1753926, 113754);
 							qs.exitQuest(false, true);
 							player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -666,7 +666,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 					{
 						takeItems(player, CRYSTAL_OF_PURITY1, 1);
 						takeItems(player, HIGH_PRIESTS_SIGIL, 1);
-						giveItems(player, SYMBOL_OF_SYLVAIN, 1);
+						giveItemsWithoutQuestRate(player, SYMBOL_OF_SYLVAIN, 1);
 						qs.setCond(14, true);
 						htmltext = "30070-04.html";
 					}
@@ -687,7 +687,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 						if (hasQuestItems(player, MARIAS_1ST_LETTER))
 						{
 							takeItems(player, MARIAS_1ST_LETTER, 1);
-							giveItems(player, LUCASS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, LUCASS_LETTER, 1);
 							qs.setCond(4, true);
 							htmltext = "30071-01.html";
 						}
@@ -731,7 +731,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 						}
 						else if (hasQuestItems(player, CRYSTAL_OF_PURITY2) && !hasAtLeastOneQuestItem(player, VALKONS_REQUEST, SCRIPTURE_CHAPTER_2))
 						{
-							giveItems(player, SCRIPTURE_CHAPTER_2, 1);
+							giveItemsWithoutQuestRate(player, SCRIPTURE_CHAPTER_2, 1);
 							takeItems(player, CRYSTAL_OF_PURITY2, 1);
 							htmltext = "30103-06.html";
 						}
@@ -805,7 +805,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 								takeItems(player, MONSTER_EYE_DESTROYER_SKIN, -1);
 								takeItems(player, SHAMANS_NECKLACE, -1);
 								takeItems(player, SHACKLES_SCALP, -1);
-								giveItems(player, SYMBOL_OF_JUREK, 1);
+								giveItemsWithoutQuestRate(player, SYMBOL_OF_JUREK, 1);
 								qs.setCond(18, true);
 								htmltext = "30115-05.html";
 							}
@@ -865,7 +865,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 					{
 						if (!hasAtLeastOneQuestItem(player, POITANS_NOTES, CASIANS_LIST, SCRIPTURE_CHAPTER_4))
 						{
-							giveItems(player, POITANS_NOTES, 1);
+							giveItemsWithoutQuestRate(player, POITANS_NOTES, 1);
 							htmltext = "30458-01.html";
 						}
 						else if (hasQuestItems(player, POITANS_NOTES) && !hasAtLeastOneQuestItem(player, CASIANS_LIST, SCRIPTURE_CHAPTER_4))
@@ -897,7 +897,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 						}
 						else if (hasQuestItems(player, LUCASS_LETTER))
 						{
-							giveItems(player, MARIAS_2ND_LETTER, 1);
+							giveItemsWithoutQuestRate(player, MARIAS_2ND_LETTER, 1);
 							takeItems(player, LUCASS_LETTER, 1);
 							qs.setCond(5, true);
 							htmltext = "30608-04.html";
@@ -917,7 +917,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 						else if (hasQuestItems(player, CRERAS_PAINTING1))
 						{
 							takeItems(player, CRERAS_PAINTING1, 1);
-							giveItems(player, CRERAS_PAINTING2, 1);
+							giveItemsWithoutQuestRate(player, CRERAS_PAINTING2, 1);
 							qs.setCond(9, true);
 							htmltext = "30608-10.html";
 						}
@@ -955,7 +955,7 @@ public class Q00214_TrialOfTheScholar extends Quest
 						else
 						{
 							takeItems(player, VALKONS_REQUEST, 1);
-							giveItems(player, CRYSTAL_OF_PURITY2, 1);
+							giveItemsWithoutQuestRate(player, CRYSTAL_OF_PURITY2, 1);
 							htmltext = "30608-18.html";
 						}
 					}

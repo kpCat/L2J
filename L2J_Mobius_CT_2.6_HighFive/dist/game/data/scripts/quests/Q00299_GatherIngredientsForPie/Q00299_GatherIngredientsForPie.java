@@ -88,7 +88,7 @@ public class Q00299_GatherIngredientsForPie extends Quest
 			{
 				if (qs.isCond(3))
 				{
-					giveItems(player, AVELLAN_SPICE, 1);
+					giveItemsWithoutQuestRate(player, AVELLAN_SPICE, 1);
 					qs.setCond(4, true);
 					html = event;
 				}
@@ -98,7 +98,7 @@ public class Q00299_GatherIngredientsForPie extends Quest
 			{
 				if (qs.isCond(5))
 				{
-					giveItems(player, FRUIT_BASKET, 1);
+					giveItemsWithoutQuestRate(player, FRUIT_BASKET, 1);
 					qs.setCond(6, true);
 					html = event;
 				}

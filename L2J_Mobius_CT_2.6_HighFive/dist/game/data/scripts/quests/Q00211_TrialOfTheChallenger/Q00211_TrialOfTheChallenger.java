@@ -240,7 +240,7 @@ public class Q00211_TrialOfTheChallenger extends Quest
 							if (hasQuestItems(talker, SCROLL_OF_SHYSLASSYS))
 							{
 								takeItems(talker, SCROLL_OF_SHYSLASSYS, -1);
-								giveItems(talker, LETTER_OF_KASH, 1);
+								giveItemsWithoutQuestRate(talker, LETTER_OF_KASH, 1);
 								qs.setCond(3, true);
 								htmltext = "30644-08.html";
 							}
@@ -344,13 +344,13 @@ public class Q00211_TrialOfTheChallenger extends Quest
 					{
 						addExpAndSp(talker, 1067606, 69242);
 						giveAdena(talker, 194556, true);
-						giveItems(talker, MARK_OF_CHALLENGER, 1);
+						giveItemsWithoutQuestRate(talker, MARK_OF_CHALLENGER, 1);
 						
 						// redundant retail check - already rewarded at beginning of quest
 						final PlayerVariables vars = talker.getVariables();
 						if (vars.getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 						{
-							giveItems(talker, DIMENSIONAL_DIAMONDS);
+							rewardItems(talker, DIMENSIONAL_DIAMONDS);
 							vars.set("2ND_CLASS_DIAMOND_REWARD", 1);
 						}
 						
@@ -411,8 +411,8 @@ public class Q00211_TrialOfTheChallenger extends Quest
 						addSpawn(CHEST_OF_SHYSLASSYS, npc, false, 200000);
 					}
 					
-					giveItems(killer, SCROLL_OF_SHYSLASSYS, 1);
-					giveItems(killer, BROKEN_KEY, 1);
+					giveItemsWithoutQuestRate(killer, SCROLL_OF_SHYSLASSYS, 1);
+					giveItemsWithoutQuestRate(killer, BROKEN_KEY, 1);
 					qs.setCond(2, true);
 				}
 				break;
@@ -421,7 +421,7 @@ public class Q00211_TrialOfTheChallenger extends Quest
 			{
 				if (qs.isCond(4))
 				{
-					giveItems(killer, WATCHERS_EYE1, 1);
+					giveItemsWithoutQuestRate(killer, WATCHERS_EYE1, 1);
 					qs.setCond(5, true);
 				}
 				break;
@@ -435,7 +435,7 @@ public class Q00211_TrialOfTheChallenger extends Quest
 						addSpawn(RALDO, npc, false, 100000);
 					}
 					
-					giveItems(killer, WATCHERS_EYE2, 1);
+					giveItemsWithoutQuestRate(killer, WATCHERS_EYE2, 1);
 					qs.setCond(7, true);
 				}
 				break;

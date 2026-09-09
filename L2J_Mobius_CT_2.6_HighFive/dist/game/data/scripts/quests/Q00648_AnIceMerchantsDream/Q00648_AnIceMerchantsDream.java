@@ -242,7 +242,7 @@ public class Q00648_AnIceMerchantsDream extends Quest
 					if (val1 == val2)
 					{
 						htmltext = "32023-07.html";
-						giveItems(player, BLACK_ICE_CRYSTAL, 1);
+						giveItemsWithoutQuestRate(player, BLACK_ICE_CRYSTAL, 1);
 						playSound(player, QuestSound.ITEMSOUND_ENCHANT_SUCCESS);
 					}
 					else
@@ -265,7 +265,7 @@ public class Q00648_AnIceMerchantsDream extends Quest
 					if (val1 == val2)
 					{
 						htmltext = "32023-07.html";
-						giveItems(player, BLACK_ICE_CRYSTAL, 1);
+						giveItemsWithoutQuestRate(player, BLACK_ICE_CRYSTAL, 1);
 						playSound(player, QuestSound.ITEMSOUND_ENCHANT_SUCCESS);
 					}
 					else

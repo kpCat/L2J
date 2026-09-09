@@ -167,8 +167,8 @@ public class Q00196_SevenSignsSealOfTheEmperor extends Quest
 			{
 				if (qs.isCond(3))
 				{
-					giveItems(player, ELMOREDEN_HOLY_WATER, 1);
-					giveItems(player, SACRED_SWORD_OF_EINHASAD, 1);
+					giveItemsWithoutQuestRate(player, ELMOREDEN_HOLY_WATER, 1);
+					giveItemsWithoutQuestRate(player, SACRED_SWORD_OF_EINHASAD, 1);
 					qs.setCond(4, true);
 					player.sendPacket(SystemMessageId.BY_USING_THE_SKILL_OF_EINHASAD_S_HOLY_SWORD_DEFEAT_THE_EVIL_LILIMS);
 					player.sendPacket(SystemMessageId.BY_USING_THE_HOLY_WATER_OF_EINHASAD_OPEN_THE_DOOR_POSSESSED_BY_THE_CURSE_OF_FLAMES);
@@ -217,7 +217,7 @@ public class Q00196_SevenSignsSealOfTheEmperor extends Quest
 			{
 				if (qs.isCond(3) || qs.isCond(4))
 				{
-					giveItems(player, COURT_MAGICIANS_MAGIC_STAFF, 1);
+					giveItemsWithoutQuestRate(player, COURT_MAGICIANS_MAGIC_STAFF, 1);
 					htmltext = event;
 				}
 				break;
@@ -326,12 +326,12 @@ public class Q00196_SevenSignsSealOfTheEmperor extends Quest
 									else if (!hasQuestItems(player, ELMOREDEN_HOLY_WATER) && hasQuestItems(player, SACRED_SWORD_OF_EINHASAD))
 									{
 										htmltext = "32586-09.html";
-										giveItems(player, ELMOREDEN_HOLY_WATER, 1);
+										giveItemsWithoutQuestRate(player, ELMOREDEN_HOLY_WATER, 1);
 									}
 									else if (hasQuestItems(player, ELMOREDEN_HOLY_WATER) && !hasQuestItems(player, SACRED_SWORD_OF_EINHASAD))
 									{
 										htmltext = "32586-09.html";
-										giveItems(player, SACRED_SWORD_OF_EINHASAD, 1);
+										giveItemsWithoutQuestRate(player, SACRED_SWORD_OF_EINHASAD, 1);
 									}
 									
 									player.sendPacket(SystemMessageId.BY_USING_THE_SKILL_OF_EINHASAD_S_HOLY_SWORD_DEFEAT_THE_EVIL_LILIMS);

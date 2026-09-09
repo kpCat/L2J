@@ -84,7 +84,7 @@ public class Q10274_CollectingInTheAir extends Quest
 		if (event.equals("32557-03.html"))
 		{
 			qs.startQuest();
-			giveItems(player, SCROLL, 8);
+			giveItemsWithoutQuestRate(player, SCROLL, 8);
 		}
 		
 		return event;
@@ -162,7 +162,7 @@ public class Q10274_CollectingInTheAir extends Quest
 				if ((getQuestItemsCount(player, RED) + getQuestItemsCount(player, BLUE) + getQuestItemsCount(player, GREEN)) >= 8)
 				{
 					htmltext = "32557-05.html";
-					giveItems(player, 13728, 1);
+					rewardItems(player, 13728, 1);
 					addExpAndSp(player, 25160, 2525);
 					qs.exitQuest(false, true);
 				}

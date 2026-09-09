@@ -227,7 +227,7 @@ public class Q00334_TheWishingPotion extends Quest
 					String html = null;
 					if (random < 10)
 					{
-						giveItems(player, Q_FOBBIDEN_LOVE_SCROLL, 1);
+						giveItemsWithoutQuestRate(player, Q_FOBBIDEN_LOVE_SCROLL, 1);
 						html = "30743-02.html";
 					}
 					else if ((random >= 10) && (random < 50))
@@ -439,7 +439,7 @@ public class Q00334_TheWishingPotion extends Quest
 					qs.showQuestionMark(334);
 					if (!hasQuestItems(player, Q_ALCHEMY_TEXT))
 					{
-						giveItems(player, Q_ALCHEMY_TEXT, 1);
+						giveItemsWithoutQuestRate(player, Q_ALCHEMY_TEXT, 1);
 					}
 					
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
@@ -456,8 +456,8 @@ public class Q00334_TheWishingPotion extends Quest
 					{
 						takeItems(player, Q_SECRET_BOOK_OF_POTION, -1);
 						takeItems(player, Q_ALCHEMY_TEXT, -1);
-						giveItems(player, Q_POTION_RECIPE_1, 1);
-						giveItems(player, Q_POTION_RECIPE_2, 1);
+						giveItemsWithoutQuestRate(player, Q_POTION_RECIPE_1, 1);
+						giveItemsWithoutQuestRate(player, Q_POTION_RECIPE_2, 1);
 						qs.setMemoState(2);
 						qs.setCond(3, true);
 						qs.showQuestionMark(334);
@@ -471,10 +471,10 @@ public class Q00334_TheWishingPotion extends Quest
 					{
 						if (hasQuestItems(player, Q_AMBER_SCALE, Q_GLASS_EYE, Q_HORROR_ECTOPLASM, Q_SILENOS_HORN, Q_ANT_SOLDIER_APHID, Q_TYRANTS_CHITIN, Q_BUGBEAR_BLOOD, Q_WIND_SOULSTONE, Q_POTION_RECIPE_1, Q_POTION_RECIPE_2))
 						{
-							giveItems(player, Q_WISH_POTION, 1);
+							giveItemsWithoutQuestRate(player, Q_WISH_POTION, 1);
 							if (!hasQuestItems(player, Q_MATILDS_ORB))
 							{
-								giveItems(player, Q_MATILDS_ORB, 1);
+								giveItemsWithoutQuestRate(player, Q_MATILDS_ORB, 1);
 							}
 							
 							takeItems(player, Q_AMBER_SCALE, 1);
@@ -516,8 +516,8 @@ public class Q00334_TheWishingPotion extends Quest
 							return "30738-15a.html";
 						}
 						
-						giveItems(player, Q_POTION_RECIPE_1, 1);
-						giveItems(player, Q_POTION_RECIPE_2, 1);
+						giveItemsWithoutQuestRate(player, Q_POTION_RECIPE_1, 1);
+						giveItemsWithoutQuestRate(player, Q_POTION_RECIPE_2, 1);
 						return "30738-15.html";
 					}
 					case 7:
@@ -741,7 +741,7 @@ public class Q00334_TheWishingPotion extends Quest
 				{
 					if (hasQuestItems(killer, Q_POTION_RECIPE_1, Q_POTION_RECIPE_2) && !hasQuestItems(killer, Q_WIND_SOULSTONE) && (getRandom(10) == 0))
 					{
-						giveItems(killer, Q_WIND_SOULSTONE, 1);
+						giveItemsWithoutQuestRate(killer, Q_WIND_SOULSTONE, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, Q_AMBER_SCALE, Q_GLASS_EYE, Q_HORROR_ECTOPLASM, Q_SILENOS_HORN, Q_ANT_SOLDIER_APHID, Q_TYRANTS_CHITIN, Q_BUGBEAR_BLOOD))
 						{
@@ -760,7 +760,7 @@ public class Q00334_TheWishingPotion extends Quest
 				{
 					if (hasQuestItems(killer, Q_POTION_RECIPE_1, Q_POTION_RECIPE_2) && !hasQuestItems(killer, Q_ANT_SOLDIER_APHID) && (getRandom(10) == 0))
 					{
-						giveItems(killer, Q_ANT_SOLDIER_APHID, 1);
+						giveItemsWithoutQuestRate(killer, Q_ANT_SOLDIER_APHID, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, Q_AMBER_SCALE, Q_WIND_SOULSTONE, Q_GLASS_EYE, Q_HORROR_ECTOPLASM, Q_SILENOS_HORN, Q_ANT_SOLDIER_APHID, Q_TYRANTS_CHITIN, Q_BUGBEAR_BLOOD))
 						{
@@ -778,7 +778,7 @@ public class Q00334_TheWishingPotion extends Quest
 				{
 					if (hasQuestItems(killer, Q_POTION_RECIPE_1, Q_POTION_RECIPE_2) && !hasQuestItems(killer, Q_SILENOS_HORN) && (getRandom(10) == 0))
 					{
-						giveItems(killer, Q_SILENOS_HORN, 1);
+						giveItemsWithoutQuestRate(killer, Q_SILENOS_HORN, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, Q_AMBER_SCALE, Q_WIND_SOULSTONE, Q_GLASS_EYE, Q_HORROR_ECTOPLASM, Q_ANT_SOLDIER_APHID, Q_TYRANTS_CHITIN, Q_BUGBEAR_BLOOD))
 						{
@@ -797,7 +797,7 @@ public class Q00334_TheWishingPotion extends Quest
 				{
 					if (hasQuestItems(killer, Q_POTION_RECIPE_1, Q_POTION_RECIPE_2) && !hasQuestItems(killer, Q_TYRANTS_CHITIN) && (getRandom(10) == 0))
 					{
-						giveItems(killer, Q_TYRANTS_CHITIN, 1);
+						giveItemsWithoutQuestRate(killer, Q_TYRANTS_CHITIN, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, Q_AMBER_SCALE, Q_WIND_SOULSTONE, Q_GLASS_EYE, Q_HORROR_ECTOPLASM, Q_SILENOS_HORN, Q_ANT_SOLDIER_APHID, Q_TYRANTS_CHITIN, Q_BUGBEAR_BLOOD))
 						{
@@ -815,7 +815,7 @@ public class Q00334_TheWishingPotion extends Quest
 				{
 					if (hasQuestItems(killer, Q_POTION_RECIPE_1, Q_POTION_RECIPE_2) && !hasQuestItems(killer, Q_AMBER_SCALE) && (getRandom(10) == 0))
 					{
-						giveItems(killer, Q_AMBER_SCALE, 1);
+						giveItemsWithoutQuestRate(killer, Q_AMBER_SCALE, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, Q_WIND_SOULSTONE, Q_GLASS_EYE, Q_HORROR_ECTOPLASM, Q_SILENOS_HORN, Q_ANT_SOLDIER_APHID, Q_TYRANTS_CHITIN, Q_BUGBEAR_BLOOD))
 						{
@@ -833,7 +833,7 @@ public class Q00334_TheWishingPotion extends Quest
 				{
 					if (hasQuestItems(killer, Q_POTION_RECIPE_1, Q_POTION_RECIPE_2) && !hasQuestItems(killer, Q_HORROR_ECTOPLASM) && (getRandom(10) == 0))
 					{
-						giveItems(killer, Q_HORROR_ECTOPLASM, 1);
+						giveItemsWithoutQuestRate(killer, Q_HORROR_ECTOPLASM, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, Q_AMBER_SCALE, Q_WIND_SOULSTONE, Q_GLASS_EYE, Q_HORROR_ECTOPLASM, Q_SILENOS_HORN, Q_ANT_SOLDIER_APHID, Q_TYRANTS_CHITIN, Q_BUGBEAR_BLOOD))
 						{
@@ -852,7 +852,7 @@ public class Q00334_TheWishingPotion extends Quest
 				{
 					if (hasQuestItems(killer, Q_POTION_RECIPE_1, Q_POTION_RECIPE_2) && !hasQuestItems(killer, Q_BUGBEAR_BLOOD) && (getRandom(10) == 0))
 					{
-						giveItems(killer, Q_BUGBEAR_BLOOD, 1);
+						giveItemsWithoutQuestRate(killer, Q_BUGBEAR_BLOOD, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, Q_AMBER_SCALE, Q_WIND_SOULSTONE, Q_GLASS_EYE, Q_HORROR_ECTOPLASM, Q_SILENOS_HORN, Q_ANT_SOLDIER_APHID, Q_TYRANTS_CHITIN, Q_BUGBEAR_BLOOD))
 						{
@@ -870,7 +870,7 @@ public class Q00334_TheWishingPotion extends Quest
 				{
 					if (hasQuestItems(killer, Q_POTION_RECIPE_1, Q_POTION_RECIPE_2) && !hasQuestItems(killer, Q_GLASS_EYE) && (getRandom(10) == 0))
 					{
-						giveItems(killer, Q_GLASS_EYE, 1);
+						giveItemsWithoutQuestRate(killer, Q_GLASS_EYE, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, Q_AMBER_SCALE, Q_WIND_SOULSTONE, Q_GLASS_EYE, Q_HORROR_ECTOPLASM, Q_SILENOS_HORN, Q_ANT_SOLDIER_APHID, Q_TYRANTS_CHITIN, Q_BUGBEAR_BLOOD))
 						{
@@ -926,7 +926,7 @@ public class Q00334_TheWishingPotion extends Quest
 				{
 					if (qs.isMemoState(1) && !hasQuestItems(killer, Q_SECRET_BOOK_OF_POTION))
 					{
-						giveItems(killer, Q_SECRET_BOOK_OF_POTION, 1);
+						giveItemsWithoutQuestRate(killer, Q_SECRET_BOOK_OF_POTION, 1);
 						qs.setCond(2, true);
 						qs.showQuestionMark(334);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);

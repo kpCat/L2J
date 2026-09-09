@@ -68,7 +68,7 @@ public class Q00189_ContractCompletion extends Quest
 				{
 					qs.startQuest();
 					qs.setMemoState(1);
-					giveItems(player, SCROLL_OF_DECODING, 1);
+					giveItemsWithoutQuestRate(player, SCROLL_OF_DECODING, 1);
 					htmltext = event;
 				}
 				break;

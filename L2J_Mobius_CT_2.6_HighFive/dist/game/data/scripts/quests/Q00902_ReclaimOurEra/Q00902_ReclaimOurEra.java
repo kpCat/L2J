@@ -218,17 +218,17 @@ public class Q00902_ReclaimOurEra extends Quest
 					{
 						if (hasQuestItems(player, SHATTERED_BONES))
 						{
-							giveItems(player, PROOF_OF_CHALLENGE, 1);
+							rewardItems(player, PROOF_OF_CHALLENGE, 1);
 							giveAdena(player, 134038, true);
 						}
 						else if (hasQuestItems(player, CANNIBALISTIC_STAKATO_LDR_CLAW))
 						{
-							giveItems(player, PROOF_OF_CHALLENGE, 3);
+							rewardItems(player, PROOF_OF_CHALLENGE, 3);
 							giveAdena(player, 210119, true);
 						}
 						else if (hasQuestItems(player, ANAIS_SCROLL))
 						{
-							giveItems(player, PROOF_OF_CHALLENGE, 3);
+							rewardItems(player, PROOF_OF_CHALLENGE, 3);
 							giveAdena(player, 348155, true);
 						}
 						

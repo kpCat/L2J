@@ -103,7 +103,7 @@ public class Q00142_FallenAngelRequestOfDawn extends Quest
 			}
 			case "30894-03.html":
 			{
-				giveItems(player, CRYPTOGRAM_OF_THE_ANGEL_SEARCH, 1);
+				giveItemsWithoutQuestRate(player, CRYPTOGRAM_OF_THE_ANGEL_SEARCH, 1);
 				qs.setCond(2, true);
 				break;
 			}
@@ -163,7 +163,7 @@ public class Q00142_FallenAngelRequestOfDawn extends Quest
 			qs = getQuestState(player, false);
 			if (qs.isCond(5))
 			{
-				giveItems(player, FALLEN_ANGEL_BLOOD, 1);
+				giveItemsWithoutQuestRate(player, FALLEN_ANGEL_BLOOD, 1);
 				qs.setCond(6, true);
 				isAngelSpawned = false;
 			}

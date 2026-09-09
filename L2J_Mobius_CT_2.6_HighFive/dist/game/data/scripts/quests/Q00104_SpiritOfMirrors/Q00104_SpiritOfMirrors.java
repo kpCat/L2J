@@ -95,7 +95,7 @@ public class Q00104_SpiritOfMirrors extends Quest
 		if ((qs != null) && event.equals("30017-04.htm"))
 		{
 			qs.startQuest();
-			giveItems(player, GALLINTS_OAK_WAND, 3);
+			giveItemsWithoutQuestRate(player, GALLINTS_OAK_WAND, 3);
 			return event;
 		}
 		
@@ -143,22 +143,22 @@ public class Q00104_SpiritOfMirrors extends Quest
 						{
 							if ((player.getLevel() < 25) && player.isMageClass())
 							{
-								giveItems(player, SPIRITSHOTS_NO_GRADE_FOR_ROOKIES);
+								rewardItems(player, SPIRITSHOTS_NO_GRADE_FOR_ROOKIES);
 								playSound(player, "tutorial_voice_027");
 							}
 							
 							if (!player.isMageClass())
 							{
-								giveItems(player, SOULSHOTS_NO_GRADE);
+								rewardItems(player, SOULSHOTS_NO_GRADE);
 							}
 							else
 							{
-								giveItems(player, SPIRITSHOTS_NO_GRADE);
+								rewardItems(player, SPIRITSHOTS_NO_GRADE);
 							}
 							
 							for (ItemHolder reward : REWARDS)
 							{
-								giveItems(player, reward);
+								rewardItems(player, reward);
 							}
 							
 							// Newbie Guide.

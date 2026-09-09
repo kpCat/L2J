@@ -107,7 +107,7 @@ public class Q00601_WatchingEyes extends Quest
 				final int i = getRandom(4);
 				if (i < 3)
 				{
-					giveItems(player, REWARD[i][0], 5);
+					rewardItems(player, REWARD[i][0], 5);
 					addExpAndSp(player, 120000, 10000);
 				}
 				

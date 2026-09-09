@@ -125,7 +125,7 @@ public class Q00319_ScentOfDeath extends Quest
 					case 2:
 					{
 						giveAdena(player, 3350, false);
-						giveItems(player, LESSER_HEALING_POTION);
+						rewardItems(player, LESSER_HEALING_POTION);
 						takeItems(player, ZOMBIES_SKIN, -1);
 						qs.exitQuest(true, true);
 						htmltext = "30138-06.html";

@@ -210,7 +210,7 @@ public class Q00040_ASpecialOrder extends Quest
 						if ((getQuestItemsCount(player, ORANGE_SWIFT_FISH) >= 10) && (getQuestItemsCount(player, ORANGE_UGLY_FISH) >= 10) && (getQuestItemsCount(player, ORANGE_WIDE_FISH) >= 10))
 						{
 							qs.setCond(4, true);
-							giveItems(player, BOX_OF_FISH, 1);
+							giveItemsWithoutQuestRate(player, BOX_OF_FISH, 1);
 							takeItems(player, 10, ORANGE_SWIFT_FISH, ORANGE_UGLY_FISH, ORANGE_WIDE_FISH);
 							htmltext = "31572-05.html";
 						}
@@ -242,7 +242,7 @@ public class Q00040_ASpecialOrder extends Quest
 						if ((getQuestItemsCount(player, GOLDEN_COBOL) >= 40) && (getQuestItemsCount(player, BUR_COBOL) >= 40) && (getQuestItemsCount(player, GREAT_COBOL) >= 40))
 						{
 							qs.setCond(7, true);
-							giveItems(player, BOX_OF_SEED, 1);
+							giveItemsWithoutQuestRate(player, BOX_OF_SEED, 1);
 							takeItems(player, 40, GOLDEN_COBOL, BUR_COBOL, GREAT_COBOL);
 							htmltext = "30511-05.html";
 						}

@@ -111,7 +111,7 @@ public class Q00129_PailakaDevilsLegacy extends Quest
 			{
 				if (qs.isCond(2))
 				{
-					giveItems(player, SWORD, 1);
+					giveItemsWithoutQuestRate(player, SWORD, 1);
 					qs.setCond(3, true);
 					htmltext = event;
 				}
@@ -196,7 +196,7 @@ public class Q00129_PailakaDevilsLegacy extends Quest
 					{
 						takeItems(player, SWORD, -1);
 						takeItems(player, SCROLL_1, -1);
-						giveItems(player, ENH_SWORD1, 1);
+						giveItemsWithoutQuestRate(player, ENH_SWORD1, 1);
 						htmltext = "32508-03.htm";
 					}
 					else
@@ -210,7 +210,7 @@ public class Q00129_PailakaDevilsLegacy extends Quest
 					{
 						takeItems(player, ENH_SWORD1, -1);
 						takeItems(player, SCROLL_2, -1);
-						giveItems(player, ENH_SWORD2, 1);
+						giveItemsWithoutQuestRate(player, ENH_SWORD2, 1);
 						htmltext = "32508-05.htm";
 						break;
 					}
@@ -245,7 +245,7 @@ public class Q00129_PailakaDevilsLegacy extends Quest
 						npc.doCast(VITALITY_REPLENISHING.getSkill());
 						addExpAndSp(player, 10800000, 950000);
 						rewardItems(player, BRACELET, 1);
-						giveItems(player, ESCAPE, 1);
+						rewardItems(player, ESCAPE, 1);
 					}
 					else
 					{

@@ -214,7 +214,7 @@ public class Q00197_SevenSignsTheSacredBookOfSeal extends Quest
 			{
 				if (qs.isCond(5) && hasQuestItems(player, SCULPTURE_OF_DOUBT))
 				{
-					giveItems(player, MYSTERIOUS_HAND_WRITTEN_TEXT, 1);
+					giveItemsWithoutQuestRate(player, MYSTERIOUS_HAND_WRITTEN_TEXT, 1);
 					qs.setCond(6, true);
 					htmltext = event;
 				}
@@ -237,7 +237,7 @@ public class Q00197_SevenSignsTheSacredBookOfSeal extends Quest
 		final QuestState qs = getQuestState(partyMember, false);
 		if (npc.isInsideRadius3D(partyMember, PlayerConfig.ALT_PARTY_RANGE))
 		{
-			giveItems(player, SCULPTURE_OF_DOUBT, 1);
+			giveItemsWithoutQuestRate(player, SCULPTURE_OF_DOUBT, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_FINISH);
 			qs.setCond(4);
 		}

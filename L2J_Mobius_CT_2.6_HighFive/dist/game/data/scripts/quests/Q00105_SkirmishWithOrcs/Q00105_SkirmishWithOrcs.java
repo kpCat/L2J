@@ -157,7 +157,7 @@ public class Q00105_SkirmishWithOrcs extends Quest
 				{
 					if (qs.isCond(1) && hasQuestItems(killer, MONSTER_DROP.get(npc.getId())))
 					{
-						giveItems(killer, KABOO_CHIEFS_1ST_TORQUE, 1);
+						giveItemsWithoutQuestRate(killer, KABOO_CHIEFS_1ST_TORQUE, 1);
 						qs.setCond(2, true);
 					}
 					break;
@@ -169,7 +169,7 @@ public class Q00105_SkirmishWithOrcs extends Quest
 				{
 					if (qs.isCond(3) && hasQuestItems(killer, MONSTER_DROP.get(npc.getId())))
 					{
-						giveItems(killer, KABOO_CHIEFS_2ST_TORQUE, 1);
+						giveItemsWithoutQuestRate(killer, KABOO_CHIEFS_2ST_TORQUE, 1);
 						qs.setCond(4, true);
 					}
 					break;
@@ -213,7 +213,7 @@ public class Q00105_SkirmishWithOrcs extends Quest
 					}
 					
 					takeItems(talker, KABOO_CHIEFS_1ST_TORQUE, 1);
-					giveItems(talker, KENDNELLS_ORDERS[getRandom(4, 7)], 1);
+					rewardItems(talker, KENDNELLS_ORDERS[getRandom(4, 7)], 1);
 					qs.setCond(3, true);
 					htmltext = "30218-07.html";
 				}
@@ -227,37 +227,37 @@ public class Q00105_SkirmishWithOrcs extends Quest
 				{
 					for (ItemHolder reward : REWARDS)
 					{
-						giveItems(talker, reward);
+						rewardItems(talker, reward);
 					}
 					
 					if (!talker.isMageClass())
 					{
-						giveItems(talker, SOULSHOTS_NO_GRADE);
+						rewardItems(talker, SOULSHOTS_NO_GRADE);
 					}
 					else
 					{
-						giveItems(talker, SPIRITSHOTS_NO_GRADE);
+						rewardItems(talker, SPIRITSHOTS_NO_GRADE);
 					}
 					
 					if (!talker.isMageClass() && !qs.isCompleted())
 					{
-						giveItems(talker, RED_SUNSET_SWORD);
+						rewardItems(talker, RED_SUNSET_SWORD);
 					}
 					else if (!qs.isCompleted())
 					{
-						giveItems(talker, RED_SUNSET_STAFF);
+						rewardItems(talker, RED_SUNSET_STAFF);
 					}
 					
 					if (talker.getLevel() < 25)
 					{
 						if (talker.isMageClass())
 						{
-							giveItems(talker, SPIRITSHOTS_NO_GRADE_FOR_ROOKIES);
+							rewardItems(talker, SPIRITSHOTS_NO_GRADE_FOR_ROOKIES);
 							playSound(talker, "tutorial_voice_027");
 						}
 						else
 						{
-							giveItems(talker, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
+							rewardItems(talker, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
 							playSound(talker, "tutorial_voice_026");
 						}
 					}

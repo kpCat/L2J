@@ -143,7 +143,7 @@ public class Q00003_WillTheSealBeBroken extends Quest
 				}
 				else
 				{
-					giveItems(player, ENCHANT, 1);
+					rewardItems(player, ENCHANT, 1);
 					qs.exitQuest(false, true);
 					htmltext = "30141-06.html";
 				}

@@ -78,7 +78,7 @@ public class Q00641_AttackSailren extends Quest
 			{
 				if (getQuestItemsCount(player, GAZKH_FRAGMENT) >= 30)
 				{
-					giveItems(player, GAZKH, 1);
+					giveItemsWithoutQuestRate(player, GAZKH, 1);
 					qs.exitQuest(true, true);
 				}
 				break;

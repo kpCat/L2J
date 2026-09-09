@@ -130,7 +130,7 @@ public class Q00246_PossessorOfAPreciousSoul3 extends Quest
 				{
 					takeItems(player, RAIN_SONG, -1);
 					takeItems(player, FRAGMENTS, -1);
-					giveItems(player, RELIC_BOX, 1);
+					giveItemsWithoutQuestRate(player, RELIC_BOX, 1);
 					st.setCond(6, true);
 				}
 				else
@@ -144,7 +144,7 @@ public class Q00246_PossessorOfAPreciousSoul3 extends Quest
 				if (st.isCond(6) && hasQuestItems(player, RELIC_BOX))
 				{
 					takeItems(player, RELIC_BOX, -1);
-					giveItems(player, CARADINE_LETTER_LAST, 1);
+					rewardItems(player, CARADINE_LETTER_LAST, 1);
 					addExpAndSp(player, 719843, 0);
 					st.exitQuest(false, true);
 				}
@@ -171,7 +171,7 @@ public class Q00246_PossessorOfAPreciousSoul3 extends Quest
 					final int chance = getRandom(100);
 					if (st.isCond(2) && !hasQuestItems(partyMember, WATERBINDER) && (chance < CHANCE_FOR_DROP))
 					{
-						giveItems(partyMember, WATERBINDER, 1);
+						giveItemsWithoutQuestRate(partyMember, WATERBINDER, 1);
 						st.unset("awaitsWaterbinder");
 						if (hasQuestItems(partyMember, EVERGREEN))
 						{
@@ -194,7 +194,7 @@ public class Q00246_PossessorOfAPreciousSoul3 extends Quest
 					final long chance = getRandom(100);
 					if (st.isCond(2) && !hasQuestItems(partyMember, EVERGREEN) && (chance < CHANCE_FOR_DROP))
 					{
-						giveItems(partyMember, EVERGREEN, 1);
+						giveItemsWithoutQuestRate(partyMember, EVERGREEN, 1);
 						st.unset("awaitsEvergreen");
 						if (hasQuestItems(partyMember, WATERBINDER))
 						{
@@ -224,7 +224,7 @@ public class Q00246_PossessorOfAPreciousSoul3 extends Quest
 						pst = getQuestState(member, false);
 						if ((pst != null) && pst.isCond(4) && !hasQuestItems(member, RAIN_SONG))
 						{
-							giveItems(member, RAIN_SONG, 1);
+							giveItemsWithoutQuestRate(member, RAIN_SONG, 1);
 							pst.setCond(5, true);
 						}
 					}
@@ -234,7 +234,7 @@ public class Q00246_PossessorOfAPreciousSoul3 extends Quest
 					pst = player.getQuestState(getName());
 					if ((pst != null) && pst.isCond(4) && !hasQuestItems(player, RAIN_SONG))
 					{
-						giveItems(player, RAIN_SONG, 1);
+						giveItemsWithoutQuestRate(player, RAIN_SONG, 1);
 						pst.setCond(5, true);
 					}
 				}

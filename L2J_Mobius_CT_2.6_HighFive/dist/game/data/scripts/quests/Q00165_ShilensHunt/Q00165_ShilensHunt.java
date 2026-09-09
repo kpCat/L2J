@@ -110,7 +110,7 @@ public class Q00165_ShilensHunt extends Quest
 			{
 				if (qs.isCond(2) && (getQuestItemsCount(player, DARK_BEZOAR) >= REQUIRED_COUNT))
 				{
-					giveItems(player, LESSER_HEALING_POTION, 5);
+					rewardItems(player, LESSER_HEALING_POTION, 5);
 					addExpAndSp(player, 1000, 0);
 					qs.exitQuest(false, true);
 					htmltext = "30348-05.html";

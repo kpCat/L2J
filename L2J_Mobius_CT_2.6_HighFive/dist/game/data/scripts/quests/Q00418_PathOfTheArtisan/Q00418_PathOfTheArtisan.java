@@ -117,7 +117,7 @@ public class Q00418_PathOfTheArtisan extends Quest
 			case "30527-06.htm":
 			{
 				qs.startQuest();
-				giveItems(player, SILVERYS_RING, 1);
+				giveItemsWithoutQuestRate(player, SILVERYS_RING, 1);
 				htmltext = event;
 				break;
 			}
@@ -126,7 +126,7 @@ public class Q00418_PathOfTheArtisan extends Quest
 				takeItems(player, SILVERYS_RING, 1);
 				takeItems(player, BOOGLE_RATMAN_TOOTH, -1);
 				takeItems(player, BOOGLE_RATMAN_LEADERS_TOOTH, -1);
-				giveItems(player, PASS_1ST_CERTIFICATE, 1);
+				giveItemsWithoutQuestRate(player, PASS_1ST_CERTIFICATE, 1);
 				qs.setCond(3, true);
 				htmltext = event;
 				break;
@@ -169,7 +169,7 @@ public class Q00418_PathOfTheArtisan extends Quest
 				if (hasQuestItems(player, KLUTOS_LETTER))
 				{
 					takeItems(player, KLUTOS_LETTER, 1);
-					giveItems(player, FOOTPRINT_OF_THIEF, 1);
+					giveItemsWithoutQuestRate(player, FOOTPRINT_OF_THIEF, 1);
 					qs.setCond(5, true);
 					htmltext = event;
 				}
@@ -179,10 +179,10 @@ public class Q00418_PathOfTheArtisan extends Quest
 			{
 				if (hasQuestItems(player, FOOTPRINT_OF_THIEF, STOLEN_SECRET_BOX))
 				{
-					giveItems(player, PASS_2ND_CERTIFICATE, 1);
+					giveItemsWithoutQuestRate(player, PASS_2ND_CERTIFICATE, 1);
 					takeItems(player, FOOTPRINT_OF_THIEF, 1);
 					takeItems(player, STOLEN_SECRET_BOX, 1);
-					giveItems(player, SECRET_BOX, 1);
+					giveItemsWithoutQuestRate(player, SECRET_BOX, 1);
 					qs.setCond(7, true);
 					htmltext = event;
 				}
@@ -190,14 +190,14 @@ public class Q00418_PathOfTheArtisan extends Quest
 			}
 			case "30317-04.html":
 			{
-				giveItems(player, KLUTOS_LETTER, 1);
+				giveItemsWithoutQuestRate(player, KLUTOS_LETTER, 1);
 				qs.setCond(4, true);
 				htmltext = event;
 				break;
 			}
 			case "30317-07.html":
 			{
-				giveItems(player, KLUTOS_LETTER, 1);
+				giveItemsWithoutQuestRate(player, KLUTOS_LETTER, 1);
 				qs.setCond(4);
 				htmltext = event;
 				break;
@@ -207,7 +207,7 @@ public class Q00418_PathOfTheArtisan extends Quest
 				if (hasQuestItems(player, PASS_2ND_CERTIFICATE, SECRET_BOX))
 				{
 					giveAdena(player, 163800, true);
-					giveItems(player, FINAL_PASS_CERTIFICATE, 1);
+					giveItemsWithoutQuestRate(player, FINAL_PASS_CERTIFICATE, 1);
 					final int level = player.getLevel();
 					if (level >= 20)
 					{
@@ -233,7 +233,7 @@ public class Q00418_PathOfTheArtisan extends Quest
 				if (hasQuestItems(player, PASS_2ND_CERTIFICATE, SECRET_BOX))
 				{
 					giveAdena(player, 81900, true);
-					giveItems(player, FINAL_PASS_CERTIFICATE, 1);
+					giveItemsWithoutQuestRate(player, FINAL_PASS_CERTIFICATE, 1);
 					final int level = player.getLevel();
 					if (level >= 20)
 					{
@@ -259,7 +259,7 @@ public class Q00418_PathOfTheArtisan extends Quest
 				if (qs.isMemoState(101))
 				{
 					giveAdena(player, 81900, true);
-					giveItems(player, FINAL_PASS_CERTIFICATE, 1);
+					giveItemsWithoutQuestRate(player, FINAL_PASS_CERTIFICATE, 1);
 					final int level = player.getLevel();
 					if (level >= 20)
 					{
@@ -285,7 +285,7 @@ public class Q00418_PathOfTheArtisan extends Quest
 				if (qs.isMemoState(201))
 				{
 					giveAdena(player, 81900, true);
-					giveItems(player, FINAL_PASS_CERTIFICATE, 1);
+					giveItemsWithoutQuestRate(player, FINAL_PASS_CERTIFICATE, 1);
 					final int level = player.getLevel();
 					if (level >= 20)
 					{
@@ -359,7 +359,7 @@ public class Q00418_PathOfTheArtisan extends Quest
 				if (qs.isMemoState(202))
 				{
 					giveAdena(player, 81900, true);
-					giveItems(player, FINAL_PASS_CERTIFICATE, 1);
+					giveItemsWithoutQuestRate(player, FINAL_PASS_CERTIFICATE, 1);
 					final int level = player.getLevel();
 					if (level >= 20)
 					{
@@ -395,7 +395,7 @@ public class Q00418_PathOfTheArtisan extends Quest
 				if (qs.isMemoState(102))
 				{
 					giveAdena(player, 81900, true);
-					giveItems(player, FINAL_PASS_CERTIFICATE, 1);
+					giveItemsWithoutQuestRate(player, FINAL_PASS_CERTIFICATE, 1);
 					final int level = player.getLevel();
 					if (level >= 20)
 					{
@@ -433,7 +433,7 @@ public class Q00418_PathOfTheArtisan extends Quest
 				{
 					if (hasQuestItems(killer, FOOTPRINT_OF_THIEF) && !hasQuestItems(killer, STOLEN_SECRET_BOX) && (getRandom(10) < 2))
 					{
-						giveItems(killer, STOLEN_SECRET_BOX, 1);
+						giveItemsWithoutQuestRate(killer, STOLEN_SECRET_BOX, 1);
 						qs.setCond(6, true);
 					}
 					break;

@@ -108,7 +108,7 @@ public class Q00297_GatekeepersFavor extends Quest
 				}
 				else if (qs.isCond(2) && (getQuestItemsCount(player, STARSTONE) >= STARSTONE_COUT))
 				{
-					giveItems(player, GATEKEEPER_TOKEN, 2);
+					rewardItems(player, GATEKEEPER_TOKEN, 2);
 					qs.exitQuest(true, true);
 					htmltext = "30540-05.html";
 				}

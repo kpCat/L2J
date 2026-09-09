@@ -97,7 +97,7 @@ public class Q00038_DragonFangs extends Quest
 					{
 						qs.setCond(3, true);
 						takeItem(player, FEATHER);
-						giveItems(player, TOTEM_TOOTH_1ST, 1);
+						giveItemsWithoutQuestRate(player, TOTEM_TOOTH_1ST, 1);
 						htmltext = event;
 					}
 					else
@@ -115,7 +115,7 @@ public class Q00038_DragonFangs extends Quest
 					{
 						qs.setCond(4, true);
 						takeItems(player, TOTEM_TOOTH_1ST, 1);
-						giveItems(player, LETTER_1ST, 1);
+						giveItemsWithoutQuestRate(player, LETTER_1ST, 1);
 						htmltext = event;
 					}
 					else
@@ -189,7 +189,7 @@ public class Q00038_DragonFangs extends Quest
 					{
 						qs.setCond(5, true);
 						takeItems(player, LETTER_1ST, 1);
-						giveItems(player, LETTER_2ND, 1);
+						giveItemsWithoutQuestRate(player, LETTER_2ND, 1);
 						htmltext = event;
 					}
 					else

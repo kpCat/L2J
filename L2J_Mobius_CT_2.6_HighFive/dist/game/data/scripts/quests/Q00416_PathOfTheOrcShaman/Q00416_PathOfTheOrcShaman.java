@@ -137,7 +137,7 @@ public class Q00416_PathOfTheOrcShaman extends Quest
 			{
 				qs.startQuest();
 				qs.setMemoState(1);
-				giveItems(player, FIRE_CHARM, 1);
+				giveItemsWithoutQuestRate(player, FIRE_CHARM, 1);
 				htmltext = event;
 				break;
 			}
@@ -154,7 +154,7 @@ public class Q00416_PathOfTheOrcShaman extends Quest
 				if (hasQuestItems(player, TOTEM_SPIRIT_CLAW))
 				{
 					takeItems(player, TOTEM_SPIRIT_CLAW, -1);
-					giveItems(player, TATARUS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, TATARUS_LETTER, 1);
 					qs.setCond(5, true);
 					htmltext = event;
 				}
@@ -176,7 +176,7 @@ public class Q00416_PathOfTheOrcShaman extends Quest
 				if (hasQuestItems(player, TOTEM_SPIRIT_BLOOD))
 				{
 					takeItems(player, TOTEM_SPIRIT_BLOOD, -1);
-					giveItems(player, MASK_OF_MEDIUM, 1);
+					giveItemsWithoutQuestRate(player, MASK_OF_MEDIUM, 1);
 					final int level = player.getLevel();
 					if (level >= 20)
 					{
@@ -229,7 +229,7 @@ public class Q00416_PathOfTheOrcShaman extends Quest
 				if (hasQuestItems(player, BLOOD_CAULDRON))
 				{
 					takeItems(player, BLOOD_CAULDRON, -1);
-					giveItems(player, SPIRIT_NET, 1);
+					giveItemsWithoutQuestRate(player, SPIRIT_NET, 1);
 					qs.setCond(9, true);
 					htmltext = event;
 				}
@@ -248,7 +248,7 @@ public class Q00416_PathOfTheOrcShaman extends Quest
 				if (hasQuestItems(player, HESTUI_MASK, SECOND_FIERY_EGG))
 				{
 					takeItems(player, -1, HESTUI_MASK, SECOND_FIERY_EGG);
-					giveItems(player, TOTEM_SPIRIT_CLAW, 1);
+					giveItemsWithoutQuestRate(player, TOTEM_SPIRIT_CLAW, 1);
 					qs.setCond(4, true);
 					htmltext = event;
 				}
@@ -406,8 +406,8 @@ public class Q00416_PathOfTheOrcShaman extends Quest
 							else
 							{
 								takeItems(player, -1, FIRE_CHARM, KASHA_BEAR_PELT, KASHA_BLADE_SPIDER_HUSK, FIRST_FIERY_EGG);
-								giveItems(player, HESTUI_MASK, 1);
-								giveItems(player, SECOND_FIERY_EGG, 1);
+								giveItemsWithoutQuestRate(player, HESTUI_MASK, 1);
+								giveItemsWithoutQuestRate(player, SECOND_FIERY_EGG, 1);
 								qs.setCond(3, true);
 								htmltext = "30585-09.html";
 							}
@@ -441,7 +441,7 @@ public class Q00416_PathOfTheOrcShaman extends Quest
 					{
 						if (hasQuestItems(player, TATARUS_LETTER))
 						{
-							giveItems(player, FLAME_CHARM, 1);
+							giveItemsWithoutQuestRate(player, FLAME_CHARM, 1);
 							takeItems(player, TATARUS_LETTER, -1);
 							qs.setCond(6, true);
 							htmltext = "30502-01.html";
@@ -455,7 +455,7 @@ public class Q00416_PathOfTheOrcShaman extends Quest
 							else
 							{
 								takeItems(player, -1, FLAME_CHARM, GRIZZLY_BLOOD);
-								giveItems(player, BLOOD_CAULDRON, 1);
+								giveItemsWithoutQuestRate(player, BLOOD_CAULDRON, 1);
 								qs.setCond(8, true);
 								htmltext = "30502-03.html";
 							}
@@ -490,7 +490,7 @@ public class Q00416_PathOfTheOrcShaman extends Quest
 					}
 					else if (memoState == 110)
 					{
-						giveItems(player, MASK_OF_MEDIUM, 1);
+						giveItemsWithoutQuestRate(player, MASK_OF_MEDIUM, 1);
 						final int level = player.getLevel();
 						if (level >= 20)
 						{
@@ -569,7 +569,7 @@ public class Q00416_PathOfTheOrcShaman extends Quest
 						else if (!hasQuestItems(player, SPIRIT_NET) && hasQuestItems(player, BOUND_DURKA_SPIRIT))
 						{
 							takeItems(player, BOUND_DURKA_SPIRIT, -1);
-							giveItems(player, TOTEM_SPIRIT_BLOOD, 1);
+							giveItemsWithoutQuestRate(player, TOTEM_SPIRIT_BLOOD, 1);
 							qs.setCond(11, true);
 							htmltext = "30593-05.html";
 						}

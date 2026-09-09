@@ -73,7 +73,7 @@ public class Q00030_ChestCaughtWithABaitOfFire extends Quest
 			{
 				if (st.isCond(1) && hasQuestItems(player, RED_TREASURE_BOX))
 				{
-					giveItems(player, RUKAL_MUSICAL, 1);
+					giveItemsWithoutQuestRate(player, RUKAL_MUSICAL, 1);
 					takeItems(player, RED_TREASURE_BOX, -1);
 					st.setCond(2, true);
 					htmltext = "31577-04.htm";
@@ -84,7 +84,7 @@ public class Q00030_ChestCaughtWithABaitOfFire extends Quest
 			{
 				if (st.isCond(2) && hasQuestItems(player, RUKAL_MUSICAL))
 				{
-					giveItems(player, PROTECTION_NECKLACE, 1);
+					rewardItems(player, PROTECTION_NECKLACE, 1);
 					st.exitQuest(false, true);
 					htmltext = "30629-03.htm";
 				}

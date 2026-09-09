@@ -70,7 +70,7 @@ public class Q00452_FindingtheLostSoldiers extends Quest
 		{
 			if (getRandom(10) < 5)
 			{
-				giveItems(player, TAG_ID, 1);
+				giveItemsWithoutQuestRate(player, TAG_ID, 1);
 			}
 			else
 			{

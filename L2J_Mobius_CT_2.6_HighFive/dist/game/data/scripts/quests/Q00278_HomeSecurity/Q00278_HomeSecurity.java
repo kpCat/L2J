@@ -78,55 +78,55 @@ public class Q00278_HomeSecurity extends Quest
 				final int i0 = getRandom(100);
 				if (i0 < 10)
 				{
-					giveItems(player, 960, 1);
+					rewardItems(player, 960, 1);
 				}
 				else if (i0 < 19)
 				{
-					giveItems(player, 960, 2);
+					rewardItems(player, 960, 2);
 				}
 				else if (i0 < 27)
 				{
-					giveItems(player, 960, 3);
+					rewardItems(player, 960, 3);
 				}
 				else if (i0 < 34)
 				{
-					giveItems(player, 960, 4);
+					rewardItems(player, 960, 4);
 				}
 				else if (i0 < 40)
 				{
-					giveItems(player, 960, 5);
+					rewardItems(player, 960, 5);
 				}
 				else if (i0 < 45)
 				{
-					giveItems(player, 960, 6);
+					rewardItems(player, 960, 6);
 				}
 				else if (i0 < 49)
 				{
-					giveItems(player, 960, 7);
+					rewardItems(player, 960, 7);
 				}
 				else if (i0 < 52)
 				{
-					giveItems(player, 960, 8);
+					rewardItems(player, 960, 8);
 				}
 				else if (i0 < 54)
 				{
-					giveItems(player, 960, 9);
+					rewardItems(player, 960, 9);
 				}
 				else if (i0 < 55)
 				{
-					giveItems(player, 960, 10);
+					rewardItems(player, 960, 10);
 				}
 				else if (i0 < 75)
 				{
-					giveItems(player, 9553, 1);
+					rewardItems(player, 9553, 1);
 				}
 				else if (i0 < 90)
 				{
-					giveItems(player, 9553, 2);
+					rewardItems(player, 9553, 2);
 				}
 				else
 				{
-					giveItems(player, 959, 1);
+					rewardItems(player, 959, 1);
 				}
 				
 				qs.exitQuest(true, true);

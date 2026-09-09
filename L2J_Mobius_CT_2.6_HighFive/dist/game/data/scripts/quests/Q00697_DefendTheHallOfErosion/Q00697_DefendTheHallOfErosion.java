@@ -91,7 +91,7 @@ public class Q00697_DefendTheHallOfErosion extends Quest
 				}
 				else if (qs.isCond(1) && (qs.getInt("defenceDone") != 0))
 				{
-					giveItems(player, VESPER_STONE, getRandom(12, 20));
+					rewardItems(player, VESPER_STONE, getRandom(12, 20));
 					qs.unset("defenceDone");
 					qs.exitQuest(true);
 					htmltext = "32603-05.html";

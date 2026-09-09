@@ -143,7 +143,7 @@ public class Q00340_SubjugationOfLizardmen extends Quest
 				{
 					qs.setMemoState(6);
 					qs.setCond(6, true);
-					giveItems(player, SINISTER_TOTEM, 1);
+					giveItemsWithoutQuestRate(player, SINISTER_TOTEM, 1);
 					htmltext = event;
 				}
 				else

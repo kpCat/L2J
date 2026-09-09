@@ -454,7 +454,7 @@ public class Q00335_TheSongOfTheHunter extends Quest
 						else
 						{
 							qs.setCond(2, true);
-							giveItems(player, FIRST_CIRCLE_HUNTER_LICENSE, 1);
+							giveItemsWithoutQuestRate(player, FIRST_CIRCLE_HUNTER_LICENSE, 1);
 							takeItems(player, GUARDIAN_BASILISK_SCALE, -1);
 							takeItems(player, KARUT_WEED, -1);
 							takeItems(player, HAKAS_HEAD, -1);
@@ -490,7 +490,7 @@ public class Q00335_TheSongOfTheHunter extends Quest
 						else
 						{
 							qs.setCond(3, true);
-							giveItems(player, SECOND_CIRCLE_HUNTER_LICENSE, 1);
+							giveItemsWithoutQuestRate(player, SECOND_CIRCLE_HUNTER_LICENSE, 1);
 							takeItems(player, TRISALIM_SILK, -1);
 							takeItems(player, TIMAK_ORC_TOTEM, -1);
 							takeItems(player, AMBROSIUS_FRUIT, -1);
@@ -619,7 +619,7 @@ public class Q00335_TheSongOfTheHunter extends Quest
 				qs.startQuest();
 				if (!hasQuestItems(player, TEST_INSTRUCTIONS_1))
 				{
-					giveItems(player, TEST_INSTRUCTIONS_1, 1);
+					giveItemsWithoutQuestRate(player, TEST_INSTRUCTIONS_1, 1);
 				}
 				
 				qs.setMemoState(0);
@@ -669,7 +669,7 @@ public class Q00335_TheSongOfTheHunter extends Quest
 					getQuestItemsCount(player, FIRST_CIRCLE_REQUEST_4B) + getQuestItemsCount(player, FIRST_CIRCLE_REQUEST_5B) + getQuestItemsCount(player, FIRST_CIRCLE_REQUEST_6B) + //
 					getQuestItemsCount(player, FIRST_CIRCLE_REQUEST_1A) + getQuestItemsCount(player, FIRST_CIRCLE_REQUEST_2A) + getQuestItemsCount(player, FIRST_CIRCLE_REQUEST_3A)) == 0)
 				{
-					giveItems(player, TEST_INSTRUCTIONS_2, 1);
+					giveItemsWithoutQuestRate(player, TEST_INSTRUCTIONS_2, 1);
 					htmltext = event;
 				}
 				else
@@ -925,15 +925,15 @@ public class Q00335_TheSongOfTheHunter extends Quest
 			{
 				if (!hasQuestItems(player, CYBELLINS_DAGGER))
 				{
-					giveItems(player, CYBELLINS_DAGGER, 1);
+					giveItemsWithoutQuestRate(player, CYBELLINS_DAGGER, 1);
 				}
 				
 				if (getQuestItemsCount(player, CYBELLINS_REQUEST) == 0)
 				{
-					giveItems(player, CYBELLINS_REQUEST, 1);
+					giveItemsWithoutQuestRate(player, CYBELLINS_REQUEST, 1);
 				}
 				
-				giveItems(player, BLOOD_CRYSTAL_PURITY_1, 1);
+				giveItemsWithoutQuestRate(player, BLOOD_CRYSTAL_PURITY_1, 1);
 				if (hasQuestItems(player, BROKEN_BLOOD_CRYSTAL))
 				{
 					takeItems(player, BROKEN_BLOOD_CRYSTAL, -1);
@@ -1026,229 +1026,229 @@ public class Q00335_TheSongOfTheHunter extends Quest
 			}
 			case "30745-10a.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_1C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_1C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-10b.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_2C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_2C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-10c.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_3C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_3C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-10d.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_4C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_4C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-10e.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_5C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_5C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-10f.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_6C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_6C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-10g.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_7C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_7C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-10h.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_8C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_8C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-10i.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_9C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_9C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-10j.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_10C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_10C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-10k.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_11C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_11C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-10l.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_12C, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_12C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-11a.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_1B, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_1B, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-11b.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_2B, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_2B, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-11c.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_3B, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_3B, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-11d.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_4B, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_4B, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-11e.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_5B, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_5B, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-11f.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_6B, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_6B, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-12a.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_1A, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_1A, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-12b.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_2A, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_2A, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-12c.html":
 			{
-				giveItems(player, FIRST_CIRCLE_REQUEST_3A, 1);
+				giveItemsWithoutQuestRate(player, FIRST_CIRCLE_REQUEST_3A, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-13a.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_1C, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_1C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-13b.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_2C, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_2C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-13c.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_3C, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_3C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-13d.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_4C, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_4C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-13e.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_5C, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_5C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-13f.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_6C, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_6C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-13g.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_7C, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_7C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-13k.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_11C, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_11C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-13i.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_9C, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_9C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-13j.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_10C, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_10C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-13l.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_12C, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_12C, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-14a.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_1B, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_1B, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-14b.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_2B, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_2B, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-14c.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_3B, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_3B, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-14d.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_4B, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_4B, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-14e.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_5B, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_5B, 1);
 				htmltext = event;
 				break;
 			}
 			case "30745-14f.html":
 			{
-				giveItems(player, SECOND_CIRCLE_REQUEST_6B, 1);
+				giveItemsWithoutQuestRate(player, SECOND_CIRCLE_REQUEST_6B, 1);
 				htmltext = event;
 				break;
 			}
@@ -1552,7 +1552,7 @@ public class Q00335_TheSongOfTheHunter extends Quest
 			{
 				if (getQuestItemsCount(player, reward[1]) >= reward[2])
 				{
-					giveItems(player, LAUREL_LEAF_PIN, 1);
+					giveItemsWithoutQuestRate(player, LAUREL_LEAF_PIN, 1);
 					giveAdena(player, reward[3], true);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 					qs.setMemoState(0);
@@ -1598,50 +1598,50 @@ public class Q00335_TheSongOfTheHunter extends Quest
 				{
 					if (hasQuestItems(player, BLOOD_CRYSTAL_PURITY_1))
 					{
-						giveItems(player, BLOOD_CRYSTAL_PURITY_2, 1);
+						giveItemsWithoutQuestRate(player, BLOOD_CRYSTAL_PURITY_2, 1);
 						takeItems(player, BLOOD_CRYSTAL_PURITY_1, -1);
 					}
 					else if (hasQuestItems(player, BLOOD_CRYSTAL_PURITY_2))
 					{
-						giveItems(player, BLOOD_CRYSTAL_PURITY_3, 1);
+						giveItemsWithoutQuestRate(player, BLOOD_CRYSTAL_PURITY_3, 1);
 						takeItems(player, BLOOD_CRYSTAL_PURITY_2, -1);
 					}
 					else if (hasQuestItems(player, BLOOD_CRYSTAL_PURITY_3))
 					{
-						giveItems(player, BLOOD_CRYSTAL_PURITY_4, 1);
+						giveItemsWithoutQuestRate(player, BLOOD_CRYSTAL_PURITY_4, 1);
 						takeItems(player, BLOOD_CRYSTAL_PURITY_3, -1);
 					}
 					else if (hasQuestItems(player, BLOOD_CRYSTAL_PURITY_4))
 					{
-						giveItems(player, BLOOD_CRYSTAL_PURITY_5, 1);
+						giveItemsWithoutQuestRate(player, BLOOD_CRYSTAL_PURITY_5, 1);
 						takeItems(player, BLOOD_CRYSTAL_PURITY_4, -1);
 					}
 					else if (hasQuestItems(player, BLOOD_CRYSTAL_PURITY_5))
 					{
-						giveItems(player, BLOOD_CRYSTAL_PURITY_6, 1);
+						giveItemsWithoutQuestRate(player, BLOOD_CRYSTAL_PURITY_6, 1);
 						takeItems(player, BLOOD_CRYSTAL_PURITY_5, -1);
 					}
 					else if (hasQuestItems(player, BLOOD_CRYSTAL_PURITY_6))
 					{
-						giveItems(player, BLOOD_CRYSTAL_PURITY_7, 1);
+						giveItemsWithoutQuestRate(player, BLOOD_CRYSTAL_PURITY_7, 1);
 						playSound(player, QuestSound.ITEMSOUND_QUEST_JACKPOT);
 						takeItems(player, BLOOD_CRYSTAL_PURITY_6, -1);
 					}
 					else if (hasQuestItems(player, BLOOD_CRYSTAL_PURITY_7))
 					{
-						giveItems(player, BLOOD_CRYSTAL_PURITY_8, 1);
+						giveItemsWithoutQuestRate(player, BLOOD_CRYSTAL_PURITY_8, 1);
 						playSound(player, QuestSound.ITEMSOUND_QUEST_JACKPOT);
 						takeItems(player, BLOOD_CRYSTAL_PURITY_7, -1);
 					}
 					else if (hasQuestItems(player, BLOOD_CRYSTAL_PURITY_8))
 					{
-						giveItems(player, BLOOD_CRYSTAL_PURITY_9, 1);
+						giveItemsWithoutQuestRate(player, BLOOD_CRYSTAL_PURITY_9, 1);
 						playSound(player, QuestSound.ITEMSOUND_QUEST_JACKPOT);
 						takeItems(player, BLOOD_CRYSTAL_PURITY_8, -1);
 					}
 					else if (hasQuestItems(player, BLOOD_CRYSTAL_PURITY_9))
 					{
-						giveItems(player, BLOOD_CRYSTAL_PURITY_10, 1);
+						giveItemsWithoutQuestRate(player, BLOOD_CRYSTAL_PURITY_10, 1);
 						playSound(player, QuestSound.ITEMSOUND_QUEST_JACKPOT);
 						takeItems(player, BLOOD_CRYSTAL_PURITY_9, -1);
 					}
@@ -1650,7 +1650,7 @@ public class Q00335_TheSongOfTheHunter extends Quest
 			else if (hasQuestItems(player, CYBELLINS_REQUEST) && (hasQuestItems(player, BLOOD_CRYSTAL_PURITY_1) || hasQuestItems(player, BLOOD_CRYSTAL_PURITY_2) || hasQuestItems(player, BLOOD_CRYSTAL_PURITY_3) || hasQuestItems(player, BLOOD_CRYSTAL_PURITY_4) || hasQuestItems(player, BLOOD_CRYSTAL_PURITY_5) || hasQuestItems(player, BLOOD_CRYSTAL_PURITY_6) || hasQuestItems(player, BLOOD_CRYSTAL_PURITY_7) || hasQuestItems(player, BLOOD_CRYSTAL_PURITY_8) || hasQuestItems(player, BLOOD_CRYSTAL_PURITY_9)))
 			{
 				takeItems(player, -1, BLOOD_CRYSTAL_PURITY_1, BLOOD_CRYSTAL_PURITY_2, BLOOD_CRYSTAL_PURITY_3, BLOOD_CRYSTAL_PURITY_4, BLOOD_CRYSTAL_PURITY_5, BLOOD_CRYSTAL_PURITY_6, BLOOD_CRYSTAL_PURITY_7, BLOOD_CRYSTAL_PURITY_8, BLOOD_CRYSTAL_PURITY_9);
-				giveItems(player, BROKEN_BLOOD_CRYSTAL, 1);
+				giveItemsWithoutQuestRate(player, BROKEN_BLOOD_CRYSTAL, 1);
 			}
 		}
 	}

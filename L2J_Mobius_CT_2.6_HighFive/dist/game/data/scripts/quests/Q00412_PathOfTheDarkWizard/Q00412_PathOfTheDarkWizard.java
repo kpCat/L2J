@@ -97,7 +97,7 @@ public class Q00412_PathOfTheDarkWizard extends Quest
 						else
 						{
 							qs.startQuest();
-							giveItems(player, SEEDS_OF_DESPAIR, 1);
+							giveItemsWithoutQuestRate(player, SEEDS_OF_DESPAIR, 1);
 							htmltext = "30421-05.htm";
 						}
 					}
@@ -160,13 +160,13 @@ public class Q00412_PathOfTheDarkWizard extends Quest
 			}
 			case "30415-03.html":
 			{
-				giveItems(player, LUCKY_KEY, 1);
+				giveItemsWithoutQuestRate(player, LUCKY_KEY, 1);
 				htmltext = event;
 				break;
 			}
 			case "30418-02.html":
 			{
-				giveItems(player, CANDLE, 1);
+				giveItemsWithoutQuestRate(player, CANDLE, 1);
 				htmltext = event;
 				break;
 			}
@@ -265,7 +265,7 @@ public class Q00412_PathOfTheDarkWizard extends Quest
 					if (hasQuestItems(player, SEEDS_OF_DESPAIR, SEEDS_OF_HORROR, SEEDS_OF_LUNACY, SEEDS_OF_ANGER))
 					{
 						giveAdena(player, 163800, true);
-						giveItems(player, JEWEL_OF_DARKNESS, 1);
+						giveItemsWithoutQuestRate(player, JEWEL_OF_DARKNESS, 1);
 						final int level = player.getLevel();
 						if (level >= 20)
 						{
@@ -319,7 +319,7 @@ public class Q00412_PathOfTheDarkWizard extends Quest
 						}
 						else
 						{
-							giveItems(player, SEEDS_OF_ANGER, 1);
+							giveItemsWithoutQuestRate(player, SEEDS_OF_ANGER, 1);
 							takeItems(player, FAMILYS_REMAINS, -1);
 							takeItems(player, LUCKY_KEY, 1);
 							htmltext = "30415-05.html";
@@ -345,7 +345,7 @@ public class Q00412_PathOfTheDarkWizard extends Quest
 						}
 						else
 						{
-							giveItems(player, SEEDS_OF_HORROR, 1);
+							giveItemsWithoutQuestRate(player, SEEDS_OF_HORROR, 1);
 							takeItems(player, KNEE_BONE, -1);
 							takeItems(player, CANDLE, 1);
 							htmltext = "30418-04.html";
@@ -359,7 +359,7 @@ public class Q00412_PathOfTheDarkWizard extends Quest
 					{
 						if (!hasAtLeastOneQuestItem(player, HUB_SCENT, HEART_OF_LUNACY))
 						{
-							giveItems(player, HUB_SCENT, 1);
+							giveItemsWithoutQuestRate(player, HUB_SCENT, 1);
 							htmltext = "30419-01.html";
 						}
 						else if (hasQuestItems(player, HUB_SCENT) && (getQuestItemsCount(player, HEART_OF_LUNACY) < 3))
@@ -368,7 +368,7 @@ public class Q00412_PathOfTheDarkWizard extends Quest
 						}
 						else
 						{
-							giveItems(player, SEEDS_OF_LUNACY, 1);
+							giveItemsWithoutQuestRate(player, SEEDS_OF_LUNACY, 1);
 							takeItems(player, HEART_OF_LUNACY, -1);
 							takeItems(player, HUB_SCENT, 1);
 							htmltext = "30419-03.html";

@@ -121,7 +121,7 @@ public class Q10296_SevenSignsOneWhoSeeksThePowerOfTheSeal extends Quest
 					else
 					{
 						addExpAndSp(player, 125000000, 12500000);
-						giveItems(player, CERTIFICATE_OF_DAWN, 1);
+						giveItemsWithoutQuestRate(player, CERTIFICATE_OF_DAWN, 1);
 						qs.exitQuest(false, true);
 						htmltext = "32597-04.html";
 					}

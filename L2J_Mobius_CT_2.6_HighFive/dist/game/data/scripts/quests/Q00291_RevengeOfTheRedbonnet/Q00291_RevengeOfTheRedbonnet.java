@@ -98,20 +98,20 @@ public class Q00291_RevengeOfTheRedbonnet extends Quest
 				final int chance = getRandom(100);
 				if (chance <= 2)
 				{
-					giveItems(player, GRANDMAS_PEARL, 1);
+					rewardItems(player, GRANDMAS_PEARL, 1);
 				}
 				else if (chance <= 20)
 				{
-					giveItems(player, GRANDMAS_MIRROR, 1);
+					rewardItems(player, GRANDMAS_MIRROR, 1);
 				}
 				else if (chance <= 45)
 				{
-					giveItems(player, GRANDMAS_NECKLACE, 1);
+					rewardItems(player, GRANDMAS_NECKLACE, 1);
 				}
 				else
 				{
-					giveItems(player, GRANDMAS_HAIRPIN, 1);
-					giveItems(player, SCROLL_OF_ESCAPE, 1);
+					rewardItems(player, GRANDMAS_HAIRPIN, 1);
+					rewardItems(player, SCROLL_OF_ESCAPE, 1);
 				}
 				
 				qs.exitQuest(true, true);

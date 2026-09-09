@@ -62,7 +62,7 @@ public class Q00109_InSearchOfTheNest extends Quest
 			}
 			case "32015-2.html":
 			{
-				giveItems(player, SCOUTS_NOTE, 1);
+				giveItemsWithoutQuestRate(player, SCOUTS_NOTE, 1);
 				qs.setCond(2, true);
 				break;
 			}

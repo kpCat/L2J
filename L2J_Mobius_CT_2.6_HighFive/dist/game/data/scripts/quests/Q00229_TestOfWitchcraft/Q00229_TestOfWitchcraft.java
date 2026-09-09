@@ -139,7 +139,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 				{
 					qs.startQuest();
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
-					giveItems(player, ORIMS_DIAGRAM, 1);
+					giveItemsWithoutQuestRate(player, ORIMS_DIAGRAM, 1);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
 						if (player.getPlayerClass() == PlayerClass.WIZARD)
@@ -186,7 +186,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 					takeItems(player, AKLANTOTH_4TH_GEM, 1);
 					takeItems(player, AKLANTOTH_5TH_GEM, 1);
 					takeItems(player, AKLANTOTH_6TH_GEM, 1);
-					giveItems(player, BRIMSTONE_1ST, 1);
+					giveItemsWithoutQuestRate(player, BRIMSTONE_1ST, 1);
 					qs.setCond(4, true);
 					addSpawn(DREVANUL_PRINCE_ZERUEL, npc, true, 0, false);
 					htmltext = event;
@@ -198,9 +198,9 @@ public class Q00229_TestOfWitchcraft extends Quest
 				if (hasQuestItems(player, BRIMSTONE_1ST))
 				{
 					takeItems(player, BRIMSTONE_1ST, 1);
-					giveItems(player, ORIMS_INSTRUCTIONS, 1);
-					giveItems(player, ORIMS_1ST_LETTER, 1);
-					giveItems(player, ORIMS_2ND_LETTER, 1);
+					giveItemsWithoutQuestRate(player, ORIMS_INSTRUCTIONS, 1);
+					giveItemsWithoutQuestRate(player, ORIMS_1ST_LETTER, 1);
+					giveItemsWithoutQuestRate(player, ORIMS_2ND_LETTER, 1);
 					qs.setCond(6, true);
 					htmltext = event;
 				}
@@ -211,7 +211,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 				if (hasQuestItems(player, ZERUEL_BIND_CRYSTAL))
 				{
 					giveAdena(player, 372154, true);
-					giveItems(player, MARK_OF_WITCHCRAFT, 1);
+					giveItemsWithoutQuestRate(player, MARK_OF_WITCHCRAFT, 1);
 					addExpAndSp(player, 2058244, 141240);
 					qs.exitQuest(false, true);
 					player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -221,7 +221,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 			}
 			case "30063-02.htm":
 			{
-				giveItems(player, LARAS_MEMO, 1);
+				giveItemsWithoutQuestRate(player, LARAS_MEMO, 1);
 				htmltext = event;
 				break;
 			}
@@ -230,7 +230,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 				if (hasQuestItems(player, ORIMS_DIAGRAM))
 				{
 					takeItems(player, ORIMS_DIAGRAM, 1);
-					giveItems(player, ALEXANDRIAS_BOOK, 1);
+					giveItemsWithoutQuestRate(player, ALEXANDRIAS_BOOK, 1);
 					qs.setCond(2, true);
 					htmltext = event;
 				}
@@ -238,15 +238,15 @@ public class Q00229_TestOfWitchcraft extends Quest
 			}
 			case "30110-03.htm":
 			{
-				giveItems(player, IKERS_LIST, 1);
+				giveItemsWithoutQuestRate(player, IKERS_LIST, 1);
 				htmltext = event;
 				break;
 			}
 			case "30110-08.htm":
 			{
 				takeItems(player, ORIMS_2ND_LETTER, 1);
-				giveItems(player, IKERS_AMULET, 1);
-				giveItems(player, SOULTRAP_CRYSTAL, 1);
+				giveItemsWithoutQuestRate(player, IKERS_AMULET, 1);
+				giveItemsWithoutQuestRate(player, SOULTRAP_CRYSTAL, 1);
 				if (hasQuestItems(player, SWORD_OF_BINDING))
 				{
 					qs.setCond(7, true);
@@ -257,7 +257,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 			}
 			case "30314-02.htm":
 			{
-				giveItems(player, NESTLES_MEMO, 1);
+				giveItemsWithoutQuestRate(player, NESTLES_MEMO, 1);
 				htmltext = event;
 				break;
 			}
@@ -266,7 +266,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 				if (hasQuestItems(player, ORIMS_1ST_LETTER))
 				{
 					takeItems(player, ORIMS_1ST_LETTER, 1);
-					giveItems(player, SIR_VASPERS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, SIR_VASPERS_LETTER, 1);
 					htmltext = event;
 				}
 				break;
@@ -276,14 +276,14 @@ public class Q00229_TestOfWitchcraft extends Quest
 				if (hasQuestItems(player, NESTLES_MEMO))
 				{
 					takeItems(player, NESTLES_MEMO, 1);
-					giveItems(player, LEOPOLDS_JOURNAL, 1);
+					giveItemsWithoutQuestRate(player, LEOPOLDS_JOURNAL, 1);
 					htmltext = event;
 				}
 				break;
 			}
 			case "30476-02.htm":
 			{
-				giveItems(player, AKLANTOTH_2ND_GEM, 1);
+				giveItemsWithoutQuestRate(player, AKLANTOTH_2ND_GEM, 1);
 				if (hasQuestItems(player, AKLANTOTH_1ST_GEM, AKLANTOTH_3RD_GEM, AKLANTOTH_4TH_GEM, AKLANTOTH_5TH_GEM, AKLANTOTH_6TH_GEM))
 				{
 					qs.setCond(3, true);
@@ -294,7 +294,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 			}
 			case "30633-02.htm":
 			{
-				giveItems(player, BRIMSTONE_2ND, 1);
+				giveItemsWithoutQuestRate(player, BRIMSTONE_2ND, 1);
 				qs.setCond(9, true);
 				if (npc.getSummonedNpcCount() < 1)
 				{
@@ -437,7 +437,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 					if (hasQuestItems(killer, ALEXANDRIAS_BOOK, LARAS_MEMO) && !hasQuestItems(killer, AKLANTOTH_3RD_GEM))
 					{
 						takeItems(killer, LARAS_MEMO, 1);
-						giveItems(killer, AKLANTOTH_3RD_GEM, 1);
+						giveItemsWithoutQuestRate(killer, AKLANTOTH_3RD_GEM, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						if (hasQuestItems(killer, AKLANTOTH_1ST_GEM, AKLANTOTH_2ND_GEM, AKLANTOTH_4TH_GEM, AKLANTOTH_5TH_GEM, AKLANTOTH_6TH_GEM))
 						{
@@ -463,7 +463,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 						else if (!hasQuestItems(killer, AKLANTOTH_6TH_GEM))
 						{
 							takeItems(killer, LEOPOLDS_JOURNAL, 1);
-							giveItems(killer, AKLANTOTH_6TH_GEM, 1);
+							giveItemsWithoutQuestRate(killer, AKLANTOTH_6TH_GEM, 1);
 							playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 							if (hasQuestItems(killer, AKLANTOTH_1ST_GEM, AKLANTOTH_2ND_GEM, AKLANTOTH_3RD_GEM))
 							{
@@ -479,8 +479,8 @@ public class Q00229_TestOfWitchcraft extends Quest
 					{
 						npc.broadcastPacket(new NpcSay(npc, ChatType.NPC_GENERAL, NpcStringId.NO_I_HAVEN_T_COMPLETELY_FINISHED_THE_COMMAND_FOR_DESTRUCTION_AND_SLAUGHTER_YET));
 						takeItems(killer, SOULTRAP_CRYSTAL, 1);
-						giveItems(killer, PURGATORY_KEY, 1);
-						giveItems(killer, ZERUEL_BIND_CRYSTAL, 1);
+						giveItemsWithoutQuestRate(killer, PURGATORY_KEY, 1);
+						giveItemsWithoutQuestRate(killer, ZERUEL_BIND_CRYSTAL, 1);
 						takeItems(killer, BRIMSTONE_2ND, 1);
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						qs.setCond(10);
@@ -620,7 +620,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 								takeItems(player, DIRE_WYRM_FANG, -1);
 								takeItems(player, LETO_LIZARDMAN_CHARM, -1);
 								takeItems(player, ENCHANTED_STONE_GOLEM_HEARTSTONE, -1);
-								giveItems(player, AKLANTOTH_1ST_GEM, 1);
+								giveItemsWithoutQuestRate(player, AKLANTOTH_1ST_GEM, 1);
 								if (hasQuestItems(player, AKLANTOTH_2ND_GEM, AKLANTOTH_3RD_GEM, AKLANTOTH_4TH_GEM, AKLANTOTH_5TH_GEM, AKLANTOTH_6TH_GEM))
 								{
 									qs.setCond(3, true);
@@ -660,7 +660,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 					if (hasQuestItems(player, ORIMS_INSTRUCTIONS, SIR_VASPERS_LETTER))
 					{
 						takeItems(player, SIR_VASPERS_LETTER, 1);
-						giveItems(player, VADINS_CRUCIFIX, 1);
+						giveItemsWithoutQuestRate(player, VADINS_CRUCIFIX, 1);
 						htmltext = "30188-01.htm";
 					}
 					else if (hasQuestItems(player, VADINS_CRUCIFIX))
@@ -673,7 +673,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 						{
 							takeItems(player, VADINS_CRUCIFIX, 1);
 							takeItems(player, TAMLIN_ORC_AMULET, -1);
-							giveItems(player, VADINS_SANCTIONS, 1);
+							giveItemsWithoutQuestRate(player, VADINS_SANCTIONS, 1);
 							htmltext = "30188-03.htm";
 						}
 					}
@@ -723,7 +723,7 @@ public class Q00229_TestOfWitchcraft extends Quest
 						}
 						else if (hasQuestItems(player, VADINS_SANCTIONS))
 						{
-							giveItems(player, SWORD_OF_BINDING, 1);
+							giveItemsWithoutQuestRate(player, SWORD_OF_BINDING, 1);
 							takeItems(player, VADINS_SANCTIONS, 1);
 							if (hasQuestItems(player, SOULTRAP_CRYSTAL))
 							{

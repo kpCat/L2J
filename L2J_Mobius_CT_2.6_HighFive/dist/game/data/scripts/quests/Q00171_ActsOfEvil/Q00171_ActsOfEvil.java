@@ -130,8 +130,8 @@ public class Q00171_ActsOfEvil extends Quest
 			case "30437-04.html":
 			{
 				takeItems(player, WEAPONS_TRADE_CONTRACT, 1);
-				giveItems(player, CERTIFICATE_OF_THE_SILVER_GUILD, 1);
-				giveItems(player, ROLENTOS_CARGOBOX, 1);
+				giveItemsWithoutQuestRate(player, CERTIFICATE_OF_THE_SILVER_GUILD, 1);
+				giveItemsWithoutQuestRate(player, ROLENTOS_CARGOBOX, 1);
 				qs.setMemoState(9);
 				qs.setCond(9, true);
 				htmltext = event;
@@ -508,7 +508,7 @@ public class Q00171_ActsOfEvil extends Quest
 						else
 						{
 							takeItems(player, BLADE_MOLD, -1);
-							giveItems(player, TYRAS_BILL, 1);
+							giveItemsWithoutQuestRate(player, TYRAS_BILL, 1);
 							qs.setMemoState(3);
 							qs.setCond(3, true);
 							htmltext = "30420-02.html";

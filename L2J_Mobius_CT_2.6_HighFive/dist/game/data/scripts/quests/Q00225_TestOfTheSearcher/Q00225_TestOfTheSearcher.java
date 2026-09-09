@@ -115,7 +115,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 					qs.startQuest();
 					qs.setMemoState(1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
-					giveItems(player, LUTHERS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, LUTHERS_LETTER, 1);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
 						if (player.getPlayerClass() == PlayerClass.SCAVENGER)
@@ -156,9 +156,9 @@ public class Q00225_TestOfTheSearcher extends Quest
 				{
 					takeItems(player, LEIRYNNS_REPORT, 1);
 					takeItems(player, STRINGE_MAP, 1);
-					giveItems(player, LAMBERTS_MAP, 1);
-					giveItems(player, ALEXS_LETTER, 1);
-					giveItems(player, ALEXS_ORDER, 1);
+					giveItemsWithoutQuestRate(player, LAMBERTS_MAP, 1);
+					giveItemsWithoutQuestRate(player, ALEXS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, ALEXS_ORDER, 1);
 					qs.setCond(8, true);
 					htmltext = event;
 				}
@@ -169,7 +169,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 				if (hasQuestItems(player, WINE_CATALOG))
 				{
 					takeItems(player, WINE_CATALOG, 1);
-					giveItems(player, TYRAS_CONTRACT, 1);
+					giveItemsWithoutQuestRate(player, TYRAS_CONTRACT, 1);
 					qs.setCond(10, true);
 					htmltext = event;
 				}
@@ -179,7 +179,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 			{
 				if (npc.getSummonedNpcCount() < 5)
 				{
-					giveItems(player, RUSTED_KEY, 1);
+					giveItemsWithoutQuestRate(player, RUSTED_KEY, 1);
 					addSpawn(npc, STRONG_WOODEN_CHEST, npc, true, 0);
 					qs.setCond(17, true);
 					htmltext = event;
@@ -189,7 +189,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 			case "30628-01a.html":
 			{
 				takeItems(player, RUSTED_KEY, 1);
-				giveItems(player, GOLD_BAR, 20);
+				giveItemsWithoutQuestRate(player, GOLD_BAR, 20);
 				qs.setCond(18, true);
 				npc.deleteMe();
 				htmltext = event;
@@ -200,7 +200,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 				if (hasQuestItems(player, OLD_ORDER))
 				{
 					takeItems(player, OLD_ORDER, 1);
-					giveItems(player, JAXS_DIARY, 1);
+					giveItemsWithoutQuestRate(player, JAXS_DIARY, 1);
 					qs.setCond(14, true);
 					htmltext = event;
 				}
@@ -313,8 +313,8 @@ public class Q00225_TestOfTheSearcher extends Quest
 				{
 					if (hasQuestItems(killer, LEIRYNNS_2ND_ORDER) && !hasAtLeastOneQuestItem(killer, CHIEF_KALKIS_FANG, STRINGE_MAP))
 					{
-						giveItems(killer, CHIEF_KALKIS_FANG, 1);
-						giveItems(killer, STRINGE_MAP, 1);
+						giveItemsWithoutQuestRate(killer, CHIEF_KALKIS_FANG, 1);
+						giveItemsWithoutQuestRate(killer, STRINGE_MAP, 1);
 						qs.setCond(6, true);
 					}
 					break;
@@ -373,7 +373,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 					else if (!hasQuestItems(player, LUTHERS_LETTER) && hasQuestItems(player, ALEXS_RECOMMEND))
 					{
 						giveAdena(player, 161806, true);
-						giveItems(player, MARK_OF_SEARCHER, 1);
+						giveItemsWithoutQuestRate(player, MARK_OF_SEARCHER, 1);
 						addExpAndSp(player, 894888, 61408);
 						qs.exitQuest(false, true);
 						player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -386,7 +386,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 					if (hasQuestItems(player, LUTHERS_LETTER))
 					{
 						takeItems(player, LUTHERS_LETTER, 1);
-						giveItems(player, ALEXS_WARRANT, 1);
+						giveItemsWithoutQuestRate(player, ALEXS_WARRANT, 1);
 						qs.setCond(2, true);
 						htmltext = "30291-01.html";
 					}
@@ -419,7 +419,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 								takeItems(player, ALEXS_ORDER, 1);
 								takeItems(player, COMBINED_MAP, 1);
 								takeItems(player, GOLD_BAR, -1);
-								giveItems(player, ALEXS_RECOMMEND, 1);
+								giveItemsWithoutQuestRate(player, ALEXS_RECOMMEND, 1);
 								player.getRadar().removeMarker(10133, 157155, -2383);
 								qs.setCond(19, true);
 								htmltext = "30291-11.html";
@@ -452,7 +452,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 						{
 							takeItems(player, TYRAS_CONTRACT, 1);
 							takeItems(player, RED_SPORE_DUST, -1);
-							giveItems(player, MALRUKIAN_WINE, 1);
+							giveItemsWithoutQuestRate(player, MALRUKIAN_WINE, 1);
 							qs.setCond(12, true);
 							htmltext = "30420-03.html";
 						}
@@ -491,7 +491,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 					if (hasQuestItems(player, ALEXS_WARRANT))
 					{
 						takeItems(player, ALEXS_WARRANT, 1);
-						giveItems(player, LEIRYNNS_1ST_ORDER, 1);
+						giveItemsWithoutQuestRate(player, LEIRYNNS_1ST_ORDER, 1);
 						qs.setCond(3, true);
 						htmltext = "30728-01.html";
 					}
@@ -505,7 +505,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 						{
 							takeItems(player, LEIRYNNS_1ST_ORDER, 1);
 							takeItems(player, DELU_TOTEM, -1);
-							giveItems(player, LEIRYNNS_2ND_ORDER, 1);
+							giveItemsWithoutQuestRate(player, LEIRYNNS_2ND_ORDER, 1);
 							qs.setCond(5, true);
 							htmltext = "30728-03.html";
 						}
@@ -520,7 +520,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 						{
 							takeItems(player, LEIRYNNS_2ND_ORDER, 1);
 							takeItems(player, CHIEF_KALKIS_FANG, 1);
-							giveItems(player, LEIRYNNS_REPORT, 1);
+							giveItemsWithoutQuestRate(player, LEIRYNNS_REPORT, 1);
 							qs.setCond(7, true);
 							htmltext = "30728-05.html";
 						}
@@ -540,7 +540,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 					if (hasQuestItems(player, ALEXS_LETTER))
 					{
 						takeItems(player, ALEXS_LETTER, 1);
-						giveItems(player, WINE_CATALOG, 1);
+						giveItemsWithoutQuestRate(player, WINE_CATALOG, 1);
 						qs.setCond(9, true);
 						htmltext = "30729-01.html";
 					}
@@ -551,7 +551,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 					else if (hasQuestItems(player, MALRUKIAN_WINE) && !hasQuestItems(player, WINE_CATALOG))
 					{
 						takeItems(player, MALRUKIAN_WINE, 1);
-						giveItems(player, OLD_ORDER, 1);
+						giveItemsWithoutQuestRate(player, OLD_ORDER, 1);
 						qs.setCond(13, true);
 						htmltext = "30729-03.html";
 					}
@@ -583,7 +583,7 @@ public class Q00225_TestOfTheSearcher extends Quest
 							takeItems(player, JAXS_DIARY, 1);
 							takeItems(player, SOLTS_MAP, 1);
 							takeItems(player, MAKELS_MAP, -1);
-							giveItems(player, COMBINED_MAP, 1);
+							giveItemsWithoutQuestRate(player, COMBINED_MAP, 1);
 							qs.setCond(16, true);
 							htmltext = "30730-03.html";
 						}

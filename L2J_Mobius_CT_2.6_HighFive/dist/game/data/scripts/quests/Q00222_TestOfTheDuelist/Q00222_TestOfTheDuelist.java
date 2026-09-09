@@ -110,11 +110,11 @@ public class Q00222_TestOfTheDuelist extends Quest
 				{
 					qs.startQuest();
 					qs.setMemoState(1);
-					giveItems(player, ORDER_GLUDIO, 1);
-					giveItems(player, ORDER_DION, 1);
-					giveItems(player, ORDER_GIRAN, 1);
-					giveItems(player, ORDER_OREN, 1);
-					giveItems(player, ORDER_ADEN, 1);
+					giveItemsWithoutQuestRate(player, ORDER_GLUDIO, 1);
+					giveItemsWithoutQuestRate(player, ORDER_DION, 1);
+					giveItemsWithoutQuestRate(player, ORDER_GIRAN, 1);
+					giveItemsWithoutQuestRate(player, ORDER_OREN, 1);
+					giveItemsWithoutQuestRate(player, ORDER_ADEN, 1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
@@ -183,7 +183,7 @@ public class Q00222_TestOfTheDuelist extends Quest
 				takeItems(player, ORDER_GIRAN, 1);
 				takeItems(player, ORDER_OREN, 1);
 				takeItems(player, ORDER_ADEN, 1);
-				giveItems(player, FINAL_ORDER, 1);
+				giveItemsWithoutQuestRate(player, FINAL_ORDER, 1);
 				qs.setMemoState(2);
 				qs.setCond(4, true);
 				htmltext = event;
@@ -517,7 +517,7 @@ public class Q00222_TestOfTheDuelist extends Quest
 				if (getQuestItemsCount(player, EXCUROS_SKIN, KRATORS_SHARD, LAKINS_MACE, GRANDIS_SKIN, TIMAK_ORCS_BELT) == 15)
 				{
 					giveAdena(player, 161806, true);
-					giveItems(player, MARK_OF_DUELIST, 1);
+					giveItemsWithoutQuestRate(player, MARK_OF_DUELIST, 1);
 					addExpAndSp(player, 894888, 61408);
 					qs.exitQuest(false, true);
 					player.sendPacket(new SocialAction(player.getObjectId(), 3));

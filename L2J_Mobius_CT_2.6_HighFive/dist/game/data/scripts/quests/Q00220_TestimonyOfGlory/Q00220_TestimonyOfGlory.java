@@ -144,7 +144,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 				{
 					qs.startQuest();
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
-					giveItems(player, VOKIANS_ORDER, 1);
+					giveItemsWithoutQuestRate(player, VOKIANS_ORDER, 1);
 					if (player.getVariables().getInt("2ND_CLASS_DIAMOND_REWARD", 0) == 0)
 					{
 						giveItems(player, DIMENSIONAL_DIAMOND, 109);
@@ -178,7 +178,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 				}
 				else if (!hasAtLeastOneQuestItem(player, SCEPTER_OF_VUKU, KASMANS_1ST_LETTER))
 				{
-					giveItems(player, KASMANS_1ST_LETTER, 1);
+					giveItemsWithoutQuestRate(player, KASMANS_1ST_LETTER, 1);
 					player.getRadar().addMarker(-2150, 124443, -3724);
 					htmltext = "30501-03.html";
 				}
@@ -197,7 +197,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 				}
 				else if (!hasAtLeastOneQuestItem(player, SCEPTER_OF_TUREK, KASMANS_2ND_LETTER))
 				{
-					giveItems(player, KASMANS_2ND_LETTER, 1);
+					giveItemsWithoutQuestRate(player, KASMANS_2ND_LETTER, 1);
 					player.getRadar().addMarker(-94294, 110818, -3563);
 					htmltext = "30501-06.html";
 				}
@@ -216,7 +216,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 				}
 				else if (!hasAtLeastOneQuestItem(player, SCEPTER_OF_TUNATH, KASMANS_3RD_LETTER))
 				{
-					giveItems(player, KASMANS_3RD_LETTER, 1);
+					giveItemsWithoutQuestRate(player, KASMANS_3RD_LETTER, 1);
 					player.getRadar().addMarker(-55217, 200628, -3724);
 					htmltext = "30501-09.html";
 				}
@@ -240,7 +240,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 				}
 				else if (!hasAtLeastOneQuestItem(player, SCEPTER_OF_BREKA, MANAKIA_1ST_LETTER))
 				{
-					giveItems(player, MANAKIA_1ST_LETTER, 1);
+					giveItemsWithoutQuestRate(player, MANAKIA_1ST_LETTER, 1);
 					player.getRadar().addMarker(80100, 119991, -2264);
 					htmltext = "30515-03.html";
 				}
@@ -254,7 +254,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 				}
 				else if (!hasAtLeastOneQuestItem(player, SCEPTER_OF_ENKU, MANAKIA_2ND_LETTER))
 				{
-					giveItems(player, MANAKIA_2ND_LETTER, 1);
+					giveItemsWithoutQuestRate(player, MANAKIA_2ND_LETTER, 1);
 					player.getRadar().addMarker(12805, 189249, -3616);
 					htmltext = "30515-06.html";
 				}
@@ -270,7 +270,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 				if (hasQuestItems(player, SCEPTER_BOX))
 				{
 					takeItems(player, SCEPTER_BOX, 1);
-					giveItems(player, TANAPIS_ORDER, 1);
+					giveItemsWithoutQuestRate(player, TANAPIS_ORDER, 1);
 					qs.setCond(9, true);
 					htmltext = event;
 				}
@@ -280,7 +280,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 			{
 				if (hasQuestItems(player, MANAKIA_1ST_LETTER))
 				{
-					giveItems(player, GLOVE_OF_VOLTAR, 1);
+					giveItemsWithoutQuestRate(player, GLOVE_OF_VOLTAR, 1);
 					takeItems(player, MANAKIA_1ST_LETTER, 1);
 					addAttackDesire(addSpawn(npc, PASHIKA_SON_OF_VOLTAR, npc, true, 200000), player);
 					addAttackDesire(addSpawn(npc, VULTUS_SON_OF_VOLTAR, npc, true, 200000), player);
@@ -292,7 +292,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 			{
 				if (hasQuestItems(player, MANAKIA_2ND_LETTER))
 				{
-					giveItems(player, GLOVE_OF_KEPRA, 1);
+					giveItemsWithoutQuestRate(player, GLOVE_OF_KEPRA, 1);
 					takeItems(player, MANAKIA_2ND_LETTER, 1);
 					addAttackDesire(addSpawn(npc, ENKU_ORC_OVERLORD, npc, true, 200000), player);
 					addAttackDesire(addSpawn(npc, ENKU_ORC_OVERLORD, npc, true, 200000), player);
@@ -306,7 +306,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 			{
 				if (hasQuestItems(player, KASMANS_2ND_LETTER))
 				{
-					giveItems(player, GLOVE_OF_BURAI, 1);
+					giveItemsWithoutQuestRate(player, GLOVE_OF_BURAI, 1);
 					takeItems(player, KASMANS_2ND_LETTER, 1);
 					addAttackDesire(addSpawn(npc, MAKUM_BUGBEAR_THUG, npc, true, 200000), player);
 					addAttackDesire(addSpawn(npc, MAKUM_BUGBEAR_THUG, npc, true, 200000), player);
@@ -318,7 +318,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 			{
 				if (hasQuestItems(player, KASMANS_3RD_LETTER))
 				{
-					giveItems(player, SCEPTER_OF_TUNATH, 1);
+					giveItemsWithoutQuestRate(player, SCEPTER_OF_TUNATH, 1);
 					takeItems(player, KASMANS_3RD_LETTER, 1);
 					if (hasQuestItems(player, SCEPTER_OF_TUREK, SCEPTER_OF_ENKU, SCEPTER_OF_BREKA, SCEPTER_OF_VUKU))
 					{
@@ -333,7 +333,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 			{
 				if (hasQuestItems(player, KASMANS_1ST_LETTER))
 				{
-					giveItems(player, DRIKOS_CONTRACT, 1);
+					giveItemsWithoutQuestRate(player, DRIKOS_CONTRACT, 1);
 					takeItems(player, KASMANS_1ST_LETTER, 1);
 					htmltext = event;
 				}
@@ -344,7 +344,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 				if (hasQuestItems(player, VOKIANS_ORDER2))
 				{
 					takeItems(player, VOKIANS_ORDER2, 1);
-					giveItems(player, CHIANTA_1ST_ORDER, 1);
+					giveItemsWithoutQuestRate(player, CHIANTA_1ST_ORDER, 1);
 					qs.setCond(4, true);
 					htmltext = event;
 				}
@@ -363,7 +363,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 					takeItems(player, MANAKIA_1ST_LETTER, 1);
 					takeItems(player, MANAKIA_2ND_LETTER, 1);
 					takeItems(player, KASMANS_1ST_LETTER, 1);
-					giveItems(player, CHIANTA_3RD_ORDER, 1);
+					giveItemsWithoutQuestRate(player, CHIANTA_3RD_ORDER, 1);
 					qs.setCond(6, true);
 					htmltext = event;
 				}
@@ -658,7 +658,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 				{
 					if (hasQuestItems(killer, TANAPIS_ORDER) && !hasQuestItems(killer, SCEPTER_OF_TANTOS))
 					{
-						giveItems(killer, SCEPTER_OF_TANTOS, 1);
+						giveItemsWithoutQuestRate(killer, SCEPTER_OF_TANTOS, 1);
 						npc.broadcastPacket(new NpcSay(npc, ChatType.NPC_GENERAL, NpcStringId.I_LL_GET_REVENGE_SOMEDAY));
 						qs.setCond(10, true);
 					}
@@ -712,8 +712,8 @@ public class Q00220_TestimonyOfGlory extends Quest
 							takeItems(player, MANASHEN_SHARD, -1);
 							takeItems(player, TYRANT_TALON, -1);
 							takeItems(player, GUARDIAN_BASILISK_FANG, -1);
-							giveItems(player, VOKIANS_ORDER2, 1);
-							giveItems(player, NECKLACE_OF_AUTHORITY, 1);
+							giveItemsWithoutQuestRate(player, VOKIANS_ORDER2, 1);
+							giveItemsWithoutQuestRate(player, NECKLACE_OF_AUTHORITY, 1);
 							qs.setCond(3, true);
 							htmltext = "30514-08.html";
 						}
@@ -765,7 +765,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 					else if (hasQuestItems(player, RITUAL_BOX))
 					{
 						giveAdena(player, 262720, true);
-						giveItems(player, MARK_OF_GLORY, 1);
+						giveItemsWithoutQuestRate(player, MARK_OF_GLORY, 1);
 						addExpAndSp(player, 1448226, 96648);
 						qs.exitQuest(false, true);
 						player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -789,7 +789,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 						{
 							takeItems(player, TANAPIS_ORDER, 1);
 							takeItems(player, SCEPTER_OF_TANTOS, 1);
-							giveItems(player, RITUAL_BOX, 1);
+							giveItemsWithoutQuestRate(player, RITUAL_BOX, 1);
 							qs.setCond(11, true);
 							htmltext = "30571-05.html";
 						}
@@ -825,7 +825,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 						}
 						else if (hasQuestItems(player, PASHIKAS_HEAD, VULTUS_HEAD))
 						{
-							giveItems(player, SCEPTER_OF_BREKA, 1);
+							giveItemsWithoutQuestRate(player, SCEPTER_OF_BREKA, 1);
 							takeItems(player, PASHIKAS_HEAD, 1);
 							takeItems(player, VULTUS_HEAD, 1);
 							if (hasQuestItems(player, SCEPTER_OF_ENKU, SCEPTER_OF_VUKU, SCEPTER_OF_TUREK, SCEPTER_OF_TUNATH))
@@ -870,7 +870,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 						}
 						else if (getQuestItemsCount(player, ENKU_OVERLORD_HEAD) >= 4)
 						{
-							giveItems(player, SCEPTER_OF_ENKU, 1);
+							giveItemsWithoutQuestRate(player, SCEPTER_OF_ENKU, 1);
 							takeItems(player, ENKU_OVERLORD_HEAD, -1);
 							if (hasQuestItems(player, SCEPTER_OF_BREKA, SCEPTER_OF_VUKU, SCEPTER_OF_TUREK, SCEPTER_OF_TUNATH))
 							{
@@ -915,7 +915,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 						}
 						else if (getQuestItemsCount(player, MAKUM_BUGBEAR_HEAD) >= 2)
 						{
-							giveItems(player, SCEPTER_OF_TUREK, 1);
+							giveItemsWithoutQuestRate(player, SCEPTER_OF_TUREK, 1);
 							takeItems(player, MAKUM_BUGBEAR_HEAD, -1);
 							if (hasQuestItems(player, SCEPTER_OF_ENKU, SCEPTER_OF_BREKA, SCEPTER_OF_VUKU, SCEPTER_OF_TUNATH))
 							{
@@ -980,7 +980,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 							}
 							else
 							{
-								giveItems(player, SCEPTER_OF_VUKU, 1);
+								giveItemsWithoutQuestRate(player, SCEPTER_OF_VUKU, 1);
 								takeItems(player, DRIKOS_CONTRACT, 1);
 								takeItems(player, STAKATO_DRONE_HUSK, -1);
 								if (hasQuestItems(player, SCEPTER_OF_TUREK, SCEPTER_OF_ENKU, SCEPTER_OF_BREKA, SCEPTER_OF_TUNATH))
@@ -1021,7 +1021,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 					}
 					else if (hasQuestItems(player, NECKLACE_OF_AUTHORITY, CHIANTA_2ND_ORDER))
 					{
-						giveItems(player, CHIANTA_3RD_ORDER, 1);
+						giveItemsWithoutQuestRate(player, CHIANTA_3RD_ORDER, 1);
 						takeItems(player, CHIANTA_2ND_ORDER, 1);
 						htmltext = "30642-09.html";
 					}
@@ -1033,7 +1033,7 @@ public class Q00220_TestimonyOfGlory extends Quest
 							takeItems(player, CHIANTA_3RD_ORDER, 1);
 							takeItems(player, TAMLIN_ORC_SKULL, -1);
 							takeItems(player, TIMAK_ORC_HEAD, -1);
-							giveItems(player, SCEPTER_BOX, 1);
+							giveItemsWithoutQuestRate(player, SCEPTER_BOX, 1);
 							qs.setCond(8, true);
 							htmltext = "30642-11.html";
 						}

@@ -76,7 +76,7 @@ public class Q00018_MeetingWithTheGoldenRam extends Quest
 			case "31315-02.html":
 			{
 				qs.setCond(2, true);
-				giveItems(player, BOX, 1);
+				giveItemsWithoutQuestRate(player, BOX, 1);
 				break;
 			}
 			case "31555-02.html":

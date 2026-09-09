@@ -138,7 +138,7 @@ public class Q00120_PavelsLastResearch extends Quest
 			{
 				if (qs.isMemoState(3))
 				{
-					giveItems(player, FLOWER_OF_PAVEL, 1);
+					giveItemsWithoutQuestRate(player, FLOWER_OF_PAVEL, 1);
 					qs.setMemoState(4);
 					qs.setCond(6, true);
 					html = event;
@@ -225,7 +225,7 @@ public class Q00120_PavelsLastResearch extends Quest
 			{
 				if (qs.isMemoState(22))
 				{
-					giveItems(player, HEART_OF_ATLANTA, 1);
+					giveItemsWithoutQuestRate(player, HEART_OF_ATLANTA, 1);
 					qs.setMemoState(23);
 					qs.setCond(23, true);
 					html = event;
@@ -362,7 +362,7 @@ public class Q00120_PavelsLastResearch extends Quest
 			{
 				if (qs.isMemoState(25))
 				{
-					giveItems(player, WENDYS_NECKLACE, 1);
+					giveItemsWithoutQuestRate(player, WENDYS_NECKLACE, 1);
 					qs.setMemoState(26);
 					qs.setCond(25, true);
 					html = event;
@@ -430,7 +430,7 @@ public class Q00120_PavelsLastResearch extends Quest
 			{
 				if (qs.isMemoState(14) && hasQuestItems(player, LOCKUP_RESEARCH_REPORT))
 				{
-					giveItems(player, KEY_OF_ENIGMA, 1);
+					giveItemsWithoutQuestRate(player, KEY_OF_ENIGMA, 1);
 					qs.setMemoState(15);
 					qs.setCond(16, true);
 					html = event;
@@ -1092,7 +1092,7 @@ public class Q00120_PavelsLastResearch extends Quest
 			{
 				if (qs.isMemoState(13))
 				{
-					giveItems(player, LOCKUP_RESEARCH_REPORT, 1);
+					giveItemsWithoutQuestRate(player, LOCKUP_RESEARCH_REPORT, 1);
 					
 					// IMPORTANT!
 					// locked report is exchanged to unlocked by using key of enigma

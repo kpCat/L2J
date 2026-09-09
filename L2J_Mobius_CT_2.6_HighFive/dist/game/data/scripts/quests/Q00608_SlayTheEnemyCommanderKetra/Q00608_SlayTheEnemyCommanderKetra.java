@@ -59,7 +59,7 @@ public class Q00608_SlayTheEnemyCommanderKetra extends Quest
 		final QuestState qs = getQuestState(player, false);
 		if ((qs != null) && qs.isCond(1) && LocationUtil.checkIfInRange(PlayerConfig.ALT_PARTY_RANGE, npc, player, false))
 		{
-			giveItems(player, MOS_HEAD, 1);
+			giveItemsWithoutQuestRate(player, MOS_HEAD, 1);
 			qs.setCond(2, true);
 		}
 	}
@@ -85,7 +85,7 @@ public class Q00608_SlayTheEnemyCommanderKetra extends Quest
 			{
 				if (hasQuestItems(player, MOS_HEAD) && qs.isCond(2))
 				{
-					giveItems(player, WISDOM_TOTEM, 1);
+					giveItemsWithoutQuestRate(player, WISDOM_TOTEM, 1);
 					addExpAndSp(player, 10000, 0);
 					qs.exitQuest(true, true);
 				}

@@ -64,7 +64,7 @@ public class Q00160_NerupasRequest extends Quest
 			qs.startQuest();
 			if (!hasQuestItems(player, SILVERY_SPIDERSILK))
 			{
-				giveItems(player, SILVERY_SPIDERSILK, 1);
+				giveItemsWithoutQuestRate(player, SILVERY_SPIDERSILK, 1);
 			}
 			
 			return event;
@@ -116,7 +116,7 @@ public class Q00160_NerupasRequest extends Quest
 						}
 						else if (hasQuestItems(player, NIGHTSHADE_LEAF))
 						{
-							giveItems(player, LESSER_HEALING_POTION, 5);
+							rewardItems(player, LESSER_HEALING_POTION, 5);
 							addExpAndSp(player, 1000, 0);
 							qs.exitQuest(false, true);
 							htmltext = "30370-06.html";
@@ -130,7 +130,7 @@ public class Q00160_NerupasRequest extends Quest
 							takeItems(player, SILVERY_SPIDERSILK, -1);
 							if (!hasQuestItems(player, UNOS_RECEIPT))
 							{
-								giveItems(player, UNOS_RECEIPT, 1);
+								giveItemsWithoutQuestRate(player, UNOS_RECEIPT, 1);
 							}
 							
 							qs.setCond(2, true);
@@ -153,7 +153,7 @@ public class Q00160_NerupasRequest extends Quest
 							takeItems(player, UNOS_RECEIPT, -1);
 							if (!hasQuestItems(player, CELS_TICKET))
 							{
-								giveItems(player, CELS_TICKET, 1);
+								giveItemsWithoutQuestRate(player, CELS_TICKET, 1);
 							}
 							
 							qs.setCond(3, true);
@@ -176,7 +176,7 @@ public class Q00160_NerupasRequest extends Quest
 							takeItems(player, CELS_TICKET, -1);
 							if (!hasQuestItems(player, NIGHTSHADE_LEAF))
 							{
-								giveItems(player, NIGHTSHADE_LEAF, 1);
+								giveItemsWithoutQuestRate(player, NIGHTSHADE_LEAF, 1);
 							}
 							
 							qs.setCond(4, true);

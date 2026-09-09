@@ -115,7 +115,7 @@ public class Q00401_PathOfTheWarrior extends Quest
 				if (!hasQuestItems(player, AURONS_LETTER))
 				{
 					qs.startQuest();
-					giveItems(player, AURONS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, AURONS_LETTER, 1);
 					htmltext = event;
 				}
 				break;
@@ -130,7 +130,7 @@ public class Q00401_PathOfTheWarrior extends Quest
 				if (hasQuestItems(player, SIMPLONS_LETTER, RUSTED_BRONZE_SWORD2))
 				{
 					takeItems(player, RUSTED_BRONZE_SWORD2, 1);
-					giveItems(player, RUSTED_BRONZE_SWORD3, 1);
+					giveItemsWithoutQuestRate(player, RUSTED_BRONZE_SWORD3, 1);
 					takeItems(player, SIMPLONS_LETTER, 1);
 					qs.setCond(5, true);
 					htmltext = event;
@@ -142,7 +142,7 @@ public class Q00401_PathOfTheWarrior extends Quest
 				if (hasQuestItems(player, AURONS_LETTER))
 				{
 					takeItems(player, AURONS_LETTER, 1);
-					giveItems(player, WARRIOR_GUILD_MARK, 1);
+					giveItemsWithoutQuestRate(player, WARRIOR_GUILD_MARK, 1);
 					qs.setCond(2, true);
 					htmltext = event;
 				}
@@ -203,7 +203,7 @@ public class Q00401_PathOfTheWarrior extends Quest
 				{
 					if (hasQuestItems(killer, WARRIOR_GUILD_MARK) && (getQuestItemsCount(killer, RUSTED_BRONZE_SWORD1) < 10) && (getRandom(10) < 4))
 					{
-						giveItems(killer, RUSTED_BRONZE_SWORD1, 1);
+						giveQuestItemsUpTo(killer, RUSTED_BRONZE_SWORD1, 1, 10);
 						if (getQuestItemsCount(killer, RUSTED_BRONZE_SWORD1) == 10)
 						{
 							qs.setCond(3, true);
@@ -220,7 +220,7 @@ public class Q00401_PathOfTheWarrior extends Quest
 				{
 					if ((getQuestItemsCount(killer, VENOMOUS_SPIDERS_LEG) < 20) && npc.isScriptValue(1))
 					{
-						giveItems(killer, VENOMOUS_SPIDERS_LEG, 1);
+						giveQuestItemsUpTo(killer, VENOMOUS_SPIDERS_LEG, 1, 20);
 						if (getQuestItemsCount(killer, VENOMOUS_SPIDERS_LEG) == 20)
 						{
 							qs.setCond(6, true);
@@ -275,7 +275,7 @@ public class Q00401_PathOfTheWarrior extends Quest
 						else
 						{
 							giveAdena(player, 163800, true);
-							giveItems(player, MEDALLION_OF_WARRIOR, 1);
+							giveItemsWithoutQuestRate(player, MEDALLION_OF_WARRIOR, 1);
 							final int level = player.getLevel();
 							if (level >= 20)
 							{
@@ -317,8 +317,8 @@ public class Q00401_PathOfTheWarrior extends Quest
 						{
 							takeItems(player, WARRIOR_GUILD_MARK, 1);
 							takeItems(player, RUSTED_BRONZE_SWORD1, -1);
-							giveItems(player, RUSTED_BRONZE_SWORD2, 1);
-							giveItems(player, SIMPLONS_LETTER, 1);
+							giveItemsWithoutQuestRate(player, RUSTED_BRONZE_SWORD2, 1);
+							giveItemsWithoutQuestRate(player, SIMPLONS_LETTER, 1);
 							qs.setCond(4, true);
 							htmltext = "30253-05.html";
 						}

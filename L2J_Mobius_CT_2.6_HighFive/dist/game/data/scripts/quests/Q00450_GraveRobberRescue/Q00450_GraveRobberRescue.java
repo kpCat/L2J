@@ -147,7 +147,7 @@ public class Q00450_GraveRobberRescue extends Quest
 			
 			if (getRandom(100) < 66)
 			{
-				giveItems(player, EVIDENCE_OF_MIGRATION, 1);
+				giveItemsWithoutQuestRate(player, EVIDENCE_OF_MIGRATION, 1);
 				playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 				npc.getAI().setIntention(Intention.MOVE_TO, new Location(npc.getX() + 100, npc.getY() + 100, npc.getZ(), 0));
 				npc.setBusy(true);

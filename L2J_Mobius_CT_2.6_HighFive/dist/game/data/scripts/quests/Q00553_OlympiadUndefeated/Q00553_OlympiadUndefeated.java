@@ -69,10 +69,10 @@ public class Q00553_OlympiadUndefeated extends Quest
 			final long count = getQuestItemsCount(player, WIN_CONF_2) + getQuestItemsCount(player, WIN_CONF_5);
 			if (count > 0)
 			{
-				giveItems(player, OLY_CHEST, count);
+				rewardItems(player, OLY_CHEST, count);
 				if (count == 2)
 				{
-					giveItems(player, MEDAL_OF_GLORY, 3);
+					giveItemsWithoutQuestRate(player, MEDAL_OF_GLORY, 3);
 				}
 				
 				qs.exitQuest(QuestType.DAILY, true);
@@ -108,7 +108,7 @@ public class Q00553_OlympiadUndefeated extends Quest
 					{
 						if (!hasQuestItems(player, WIN_CONF_2))
 						{
-							giveItems(player, WIN_CONF_2, 1);
+							giveItemsWithoutQuestRate(player, WIN_CONF_2, 1);
 						}
 						break;
 					}
@@ -116,7 +116,7 @@ public class Q00553_OlympiadUndefeated extends Quest
 					{
 						if (!hasQuestItems(player, WIN_CONF_5))
 						{
-							giveItems(player, WIN_CONF_5, 1);
+							giveItemsWithoutQuestRate(player, WIN_CONF_5, 1);
 						}
 						break;
 					}
@@ -124,7 +124,7 @@ public class Q00553_OlympiadUndefeated extends Quest
 					{
 						if (!hasQuestItems(player, WIN_CONF_10))
 						{
-							giveItems(player, WIN_CONF_10, 1);
+							giveItemsWithoutQuestRate(player, WIN_CONF_10, 1);
 							qs.setCond(2);
 						}
 						break;
@@ -182,8 +182,8 @@ public class Q00553_OlympiadUndefeated extends Quest
 			final long count = getQuestItemsCount(player, WIN_CONF_2) + getQuestItemsCount(player, WIN_CONF_5) + getQuestItemsCount(player, WIN_CONF_10);
 			if ((count == 3) && qs.isCond(2))
 			{
-				giveItems(player, OLY_CHEST, 4);
-				giveItems(player, MEDAL_OF_GLORY, 5);
+				rewardItems(player, OLY_CHEST, 4);
+				giveItemsWithoutQuestRate(player, MEDAL_OF_GLORY, 5);
 				qs.exitQuest(QuestType.DAILY, true);
 				htmltext = "31688-04.html";
 			}

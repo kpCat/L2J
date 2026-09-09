@@ -161,14 +161,14 @@ public class Q10273_GoodDayToFly extends Quest
 					htmltext = "32557-14.html";
 					if (transform == 1)
 					{
-						giveItems(player, 13553, 1);
+						rewardItems(player, 13553, 1);
 					}
 					else if (transform == 2)
 					{
-						giveItems(player, 13554, 1);
+						rewardItems(player, 13554, 1);
 					}
 					
-					giveItems(player, 13857, 1);
+					giveItemsWithoutQuestRate(player, 13857, 1);
 					addExpAndSp(player, 25160, 2525);
 					qs.exitQuest(false, true);
 				}

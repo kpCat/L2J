@@ -105,7 +105,7 @@ public class Q00603_DaimonTheWhiteEyedPart1 extends Quest
 			{
 				if (qs.getCond() < 6)
 				{
-					giveItems(player, BROKEN_CRYSTAL, 1);
+					giveItemsWithoutQuestRate(player, BROKEN_CRYSTAL, 1);
 					qs.set("TABLET_" + npc.getId(), 1);
 					qs.setCond(qs.getCond() + 1, true);
 					htmltext = event;
@@ -129,7 +129,7 @@ public class Q00603_DaimonTheWhiteEyedPart1 extends Quest
 					if (getQuestItemsCount(player, SPIRIT_OF_DARKNESS) >= 200)
 					{
 						takeItems(player, SPIRIT_OF_DARKNESS, -1);
-						giveItems(player, UNFINISHED_CRYSTAL, 1);
+						giveItemsWithoutQuestRate(player, UNFINISHED_CRYSTAL, 1);
 						qs.exitQuest(true, true);
 						htmltext = event;
 					}

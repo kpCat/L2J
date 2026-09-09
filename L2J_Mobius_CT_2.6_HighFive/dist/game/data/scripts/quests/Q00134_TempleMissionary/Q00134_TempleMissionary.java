@@ -109,13 +109,13 @@ public class Q00134_TempleMissionary extends Quest
 			case "31418-08.html":
 			{
 				qs.setCond(5, true);
-				giveItems(player, ROUKES_REPOT, 1);
+				giveItemsWithoutQuestRate(player, ROUKES_REPOT, 1);
 				qs.unset("talk");
 				break;
 			}
 			case "30067-10.html":
 			{
-				giveItems(player, BADGE_TEMPLE_MISSIONARY, 1);
+				giveItemsWithoutQuestRate(player, BADGE_TEMPLE_MISSIONARY, 1);
 				giveAdena(player, 15100, true);
 				if (player.getLevel() < MAX_REWARD_LEVEL)
 				{
@@ -255,7 +255,7 @@ public class Q00134_TempleMissionary extends Quest
 							{
 								final int count = (int) (getQuestItemsCount(player, GIANTS_EXPERIMENTAL_TOOL_FRAGMENT) / 10);
 								takeItems(player, GIANTS_EXPERIMENTAL_TOOL_FRAGMENT, count * 10);
-								giveItems(player, GIANTS_EXPERIMENTAL_TOOL, count);
+								giveItemsWithoutQuestRate(player, GIANTS_EXPERIMENTAL_TOOL, count);
 								htmltext = "31418-05.html";
 							}
 							break;

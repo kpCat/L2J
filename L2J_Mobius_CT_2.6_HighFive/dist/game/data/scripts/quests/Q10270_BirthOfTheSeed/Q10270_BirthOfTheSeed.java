@@ -78,7 +78,7 @@ public class Q10270_BirthOfTheSeed extends Quest
 				{
 					if (!hasQuestItems(player, YEHAN_KLODEKUS_BADGE))
 					{
-						giveItems(player, YEHAN_KLODEKUS_BADGE, 1);
+						giveItemsWithoutQuestRate(player, YEHAN_KLODEKUS_BADGE, 1);
 						playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					}
 					break;
@@ -87,7 +87,7 @@ public class Q10270_BirthOfTheSeed extends Quest
 				{
 					if (!hasQuestItems(player, YEHAN_KLANIKUS_BADGE))
 					{
-						giveItems(player, YEHAN_KLANIKUS_BADGE, 1);
+						giveItemsWithoutQuestRate(player, YEHAN_KLANIKUS_BADGE, 1);
 						playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					}
 					break;
@@ -96,7 +96,7 @@ public class Q10270_BirthOfTheSeed extends Quest
 				{
 					if (!hasQuestItems(player, LICH_CRYSTAL))
 					{
-						giveItems(player, LICH_CRYSTAL, 1);
+						giveItemsWithoutQuestRate(player, LICH_CRYSTAL, 1);
 						playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					}
 					break;

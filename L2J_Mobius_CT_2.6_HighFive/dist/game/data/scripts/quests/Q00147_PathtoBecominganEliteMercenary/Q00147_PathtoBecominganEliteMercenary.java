@@ -71,7 +71,7 @@ public class Q00147_PathtoBecominganEliteMercenary extends Quest
 				return "elite-02a.htm";
 			}
 			
-			giveItems(player, ORDINARY_CERTIFICATE, 1);
+			giveItemsWithoutQuestRate(player, ORDINARY_CERTIFICATE, 1);
 		}
 		else if (event.equalsIgnoreCase("elite-04.htm"))
 		{
@@ -109,7 +109,7 @@ public class Q00147_PathtoBecominganEliteMercenary extends Quest
 				else if (qs.isCond(4))
 				{
 					takeItems(player, ORDINARY_CERTIFICATE, -1);
-					giveItems(player, ELITE_CERTIFICATE, 1);
+					giveItemsWithoutQuestRate(player, ELITE_CERTIFICATE, 1);
 					qs.exitQuest(false);
 					htmltext = "elite-06.htm";
 				}

@@ -73,7 +73,7 @@ public class Q00053_LinnaeusSpecialBait extends Quest
 			{
 				if (qs.isCond(2) && (getQuestItemsCount(player, CRIMSON_DRAKE_HEART) >= 100))
 				{
-					giveItems(player, FLAMING_FISHING_LURE, 4);
+					rewardItems(player, FLAMING_FISHING_LURE, 4);
 					qs.exitQuest(false, true);
 				}
 				else

@@ -354,26 +354,26 @@ public class Q00123_TheLeaderAndTheFollower extends Quest
 					{
 						if (qs.getMemoStateEx(1) == 1)
 						{
-							giveItems(player, CLAN_OATH_HELM, 1);
-							giveItems(player, CLAN_OATH_ARMOR, 1);
-							giveItems(player, CLAN_OATH_GAUNTLETS_HEAVY_ARMOR, 1);
-							giveItems(player, CLAN_OATH_SABATON_HEAVY_ARMOR, 1);
+							rewardItems(player, CLAN_OATH_HELM, 1);
+							rewardItems(player, CLAN_OATH_ARMOR, 1);
+							rewardItems(player, CLAN_OATH_GAUNTLETS_HEAVY_ARMOR, 1);
+							rewardItems(player, CLAN_OATH_SABATON_HEAVY_ARMOR, 1);
 							takeItems(player, PICOT_ARANEIDS_LEG, -1);
 						}
 						else if (qs.getMemoStateEx(1) == 2)
 						{
-							giveItems(player, CLAN_OATH_HELM, 1);
-							giveItems(player, CLAN_OATH_BRIGANDINE, 1);
-							giveItems(player, CLAN_OATH_LEATHER_GLOVES_LIGHT_ARMOR, 1);
-							giveItems(player, CLAN_OATH_BOOTS_LIGHT_ARMOR, 1);
+							rewardItems(player, CLAN_OATH_HELM, 1);
+							rewardItems(player, CLAN_OATH_BRIGANDINE, 1);
+							rewardItems(player, CLAN_OATH_LEATHER_GLOVES_LIGHT_ARMOR, 1);
+							rewardItems(player, CLAN_OATH_BOOTS_LIGHT_ARMOR, 1);
 							takeItems(player, PICOT_ARANEIDS_LEG, -1);
 						}
 						else if (qs.getMemoStateEx(1) == 3)
 						{
-							giveItems(player, CLAN_OATH_HELM, 1);
-							giveItems(player, CLAN_OATH_AKETON, 1);
-							giveItems(player, CLAN_OATH_PADDED_GLOVES_ROBE, 1);
-							giveItems(player, CLAN_OATH_SANDALS_ROBE, 1);
+							rewardItems(player, CLAN_OATH_HELM, 1);
+							rewardItems(player, CLAN_OATH_AKETON, 1);
+							rewardItems(player, CLAN_OATH_PADDED_GLOVES_ROBE, 1);
+							rewardItems(player, CLAN_OATH_SANDALS_ROBE, 1);
 							takeItems(player, PICOT_ARANEIDS_LEG, -1);
 						}
 						

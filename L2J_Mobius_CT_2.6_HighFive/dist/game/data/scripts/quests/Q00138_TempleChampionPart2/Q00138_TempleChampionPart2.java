@@ -76,7 +76,7 @@ public class Q00138_TempleChampionPart2 extends Quest
 			case "30070-02.htm":
 			{
 				qs.startQuest();
-				giveItems(player, TEMPLE_MANIFESTO, 1);
+				giveItemsWithoutQuestRate(player, TEMPLE_MANIFESTO, 1);
 				break;
 			}
 			case "30070-05.html":
@@ -103,7 +103,7 @@ public class Q00138_TempleChampionPart2 extends Quest
 			case "30118-09.html":
 			{
 				qs.setCond(6, true);
-				giveItems(player, PUPINAS_RECOMMENDATION, 1);
+				giveItemsWithoutQuestRate(player, PUPINAS_RECOMMENDATION, 1);
 				break;
 			}
 			case "30474-02.html":
@@ -248,7 +248,7 @@ public class Q00138_TempleChampionPart2 extends Quest
 						if (getQuestItemsCount(player, RELICS_OF_THE_DARK_ELF_TRAINEE) >= 10)
 						{
 							takeItems(player, RELICS_OF_THE_DARK_ELF_TRAINEE, -1);
-							giveItems(player, ANGUS_RECOMMENDATION, 1);
+							giveItemsWithoutQuestRate(player, ANGUS_RECOMMENDATION, 1);
 							qs.setCond(5, true);
 							htmltext = "30474-04.html";
 						}

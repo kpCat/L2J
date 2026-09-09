@@ -89,7 +89,7 @@ public class Q00036_MakeASewingKit extends Quest
 				{
 					takeItems(player, ARTISANS_FRAME, 10);
 					takeItems(player, ORIHARUKON, 10);
-					giveItems(player, SEWING_KIT, 1);
+					rewardItems(player, SEWING_KIT, 1);
 					qs.exitQuest(false, true);
 				}
 				else

@@ -103,7 +103,7 @@ public class Q00652_AnAgedExAdventurer extends Quest
 				{
 					if (getRandom(10) <= 4)
 					{
-						giveItems(player, ENCHANT_ARMOR_D, 1);
+						rewardItems(player, ENCHANT_ARMOR_D, 1);
 						giveAdena(player, 5026, true);
 						htmltext = "30180-01.html";
 					}

@@ -54,7 +54,7 @@ public class Q00155_FindSirWindawood extends Quest
 		if ((qs != null) && event.equalsIgnoreCase("30042-03.htm"))
 		{
 			qs.startQuest();
-			giveItems(player, OFFICIAL_LETTER, 1);
+			giveItemsWithoutQuestRate(player, OFFICIAL_LETTER, 1);
 			return event;
 		}
 		
@@ -94,7 +94,7 @@ public class Q00155_FindSirWindawood extends Quest
 			{
 				if (qs.isStarted() && hasQuestItems(player, OFFICIAL_LETTER))
 				{
-					giveItems(player, HASTE_POTION, 1);
+					rewardItems(player, HASTE_POTION, 1);
 					qs.exitQuest(false, true);
 					htmltext = "30311-01.html";
 				}

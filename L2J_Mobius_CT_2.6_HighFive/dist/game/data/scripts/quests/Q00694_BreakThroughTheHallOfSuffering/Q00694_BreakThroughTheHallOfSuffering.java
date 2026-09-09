@@ -117,11 +117,11 @@ public class Q00694_BreakThroughTheHallOfSuffering extends Quest
 										{
 											if (getQuestItemsCount(member, MARK) == 0)
 											{
-												giveItems(member, MARK, 1);
+												giveItemsWithoutQuestRate(member, MARK, 1);
 											}
 											
-											giveItems(member, 13777, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13777, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -132,11 +132,11 @@ public class Q00694_BreakThroughTheHallOfSuffering extends Quest
 										{
 											if (getQuestItemsCount(member, MARK) == 0)
 											{
-												giveItems(member, MARK, 1);
+												giveItemsWithoutQuestRate(member, MARK, 1);
 											}
 											
-											giveItems(member, 13778, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13778, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -147,11 +147,11 @@ public class Q00694_BreakThroughTheHallOfSuffering extends Quest
 										{
 											if (getQuestItemsCount(member, MARK) == 0)
 											{
-												giveItems(member, MARK, 1);
+												giveItemsWithoutQuestRate(member, MARK, 1);
 											}
 											
-											giveItems(member, 13779, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13779, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -162,11 +162,11 @@ public class Q00694_BreakThroughTheHallOfSuffering extends Quest
 										{
 											if (getQuestItemsCount(member, MARK) == 0)
 											{
-												giveItems(member, MARK, 1);
+												giveItemsWithoutQuestRate(member, MARK, 1);
 											}
 											
-											giveItems(member, 13780, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13780, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -177,11 +177,11 @@ public class Q00694_BreakThroughTheHallOfSuffering extends Quest
 										{
 											if (getQuestItemsCount(member, MARK) == 0)
 											{
-												giveItems(member, MARK, 1);
+												giveItemsWithoutQuestRate(member, MARK, 1);
 											}
 											
-											giveItems(member, 13781, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13781, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -192,11 +192,11 @@ public class Q00694_BreakThroughTheHallOfSuffering extends Quest
 										{
 											if (getQuestItemsCount(member, MARK) == 0)
 											{
-												giveItems(member, MARK, 1);
+												giveItemsWithoutQuestRate(member, MARK, 1);
 											}
 											
-											giveItems(member, 13782, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13782, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -207,11 +207,11 @@ public class Q00694_BreakThroughTheHallOfSuffering extends Quest
 										{
 											if (getQuestItemsCount(member, MARK) == 0)
 											{
-												giveItems(member, MARK, 1);
+												giveItemsWithoutQuestRate(member, MARK, 1);
 											}
 											
-											giveItems(member, 13783, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13783, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -222,11 +222,11 @@ public class Q00694_BreakThroughTheHallOfSuffering extends Quest
 										{
 											if (getQuestItemsCount(member, MARK) == 0)
 											{
-												giveItems(member, MARK, 1);
+												giveItemsWithoutQuestRate(member, MARK, 1);
 											}
 											
-											giveItems(member, 13784, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13784, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -237,11 +237,11 @@ public class Q00694_BreakThroughTheHallOfSuffering extends Quest
 										{
 											if (getQuestItemsCount(member, MARK) == 0)
 											{
-												giveItems(member, MARK, 1);
+												giveItemsWithoutQuestRate(member, MARK, 1);
 											}
 											
-											giveItems(member, 13785, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13785, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");
@@ -252,11 +252,11 @@ public class Q00694_BreakThroughTheHallOfSuffering extends Quest
 										{
 											if (getQuestItemsCount(member, MARK) == 0)
 											{
-												giveItems(member, MARK, 1);
+												giveItemsWithoutQuestRate(member, MARK, 1);
 											}
 											
-											giveItems(member, 13786, 1);
-											giveItems(member, SOE, 1);
+											rewardItems(member, 13786, 1);
+											rewardItems(member, SOE, 1);
 											qs1.unset("cond");
 											qs1.exitQuest(true);
 											playSound(member, "ItemSound.quest_finish");

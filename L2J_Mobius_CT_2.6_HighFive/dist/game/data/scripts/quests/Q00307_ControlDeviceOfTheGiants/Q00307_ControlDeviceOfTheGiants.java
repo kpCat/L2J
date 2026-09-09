@@ -207,7 +207,7 @@ public class Q00307_ControlDeviceOfTheGiants extends Quest
 				}
 				else if (qs.isCond(2))
 				{
-					giveItems(player, SUPPORT_ITEMS, 1);
+					rewardItems(player, SUPPORT_ITEMS, 1);
 					qs.exitQuest(true, true);
 					htmltext = "32711-10.html";
 				}

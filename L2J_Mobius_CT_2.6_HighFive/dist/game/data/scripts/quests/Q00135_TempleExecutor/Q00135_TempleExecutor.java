@@ -111,7 +111,7 @@ public class Q00135_TempleExecutor extends Quest
 			}
 			case "30068-11.html":
 			{
-				giveItems(player, BADGE_TEMPLE_EXECUTOR, 1);
+				giveItemsWithoutQuestRate(player, BADGE_TEMPLE_EXECUTOR, 1);
 				giveAdena(player, 16924, true);
 				if (player.getLevel() < MAX_REWARD_LEVEL)
 				{
@@ -271,7 +271,7 @@ public class Q00135_TempleExecutor extends Quest
 								
 								qs.setCond(5, true);
 								takeItems(player, OLD_TREASURE_MAP, -1);
-								giveItems(player, ALEXS_CREDENTIALS, 1);
+								giveItemsWithoutQuestRate(player, ALEXS_CREDENTIALS, 1);
 								htmltext = "30291-10.html";
 							}
 							else
@@ -320,7 +320,7 @@ public class Q00135_TempleExecutor extends Quest
 								}
 								
 								takeItems(player, HATE_CRYSTAL, -1);
-								giveItems(player, PANOS_CREDENTIALS, 1);
+								giveItemsWithoutQuestRate(player, PANOS_CREDENTIALS, 1);
 								qs.set("Pano", "1");
 								htmltext = "30078-04.html";
 							}
@@ -366,7 +366,7 @@ public class Q00135_TempleExecutor extends Quest
 								}
 								
 								takeItems(player, STOLEN_CARGO, -1);
-								giveItems(player, SONINS_CREDENTIALS, 1);
+								giveItemsWithoutQuestRate(player, SONINS_CREDENTIALS, 1);
 								qs.set("Sonin", "1");
 								htmltext = "31773-04.html";
 							}

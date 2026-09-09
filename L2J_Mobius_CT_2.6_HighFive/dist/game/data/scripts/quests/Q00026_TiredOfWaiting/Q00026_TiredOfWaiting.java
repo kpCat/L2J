@@ -83,7 +83,7 @@ public class Q00026_TiredOfWaiting extends Quest
 			{
 				if (qs.isCreated())
 				{
-					giveItems(player, DELIVERY_BOX, 1);
+					giveItemsWithoutQuestRate(player, DELIVERY_BOX, 1);
 					qs.startQuest();
 					htmltext = event;
 				}
@@ -104,7 +104,7 @@ public class Q00026_TiredOfWaiting extends Quest
 			{
 				if (qs.isStarted())
 				{
-					giveItems(player, REWARDS.get(event), 1);
+					rewardItems(player, REWARDS.get(event), 1);
 					qs.exitQuest(false, true);
 					htmltext = event;
 				}

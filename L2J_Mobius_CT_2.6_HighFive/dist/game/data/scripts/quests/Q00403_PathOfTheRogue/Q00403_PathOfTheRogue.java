@@ -142,7 +142,7 @@ public class Q00403_PathOfTheRogue extends Quest
 			case "30379-06.htm":
 			{
 				qs.startQuest();
-				giveItems(player, BEZIQUES_LETTER, 1);
+				giveItemsWithoutQuestRate(player, BEZIQUES_LETTER, 1);
 				htmltext = event;
 				break;
 			}
@@ -160,12 +160,12 @@ public class Q00403_PathOfTheRogue extends Quest
 					takeItems(player, BEZIQUES_LETTER, 1);
 					if (!hasQuestItems(player, NETIS_BOW))
 					{
-						giveItems(player, NETIS_BOW, 1);
+						giveItemsWithoutQuestRate(player, NETIS_BOW, 1);
 					}
 					
 					if (!hasQuestItems(player, NETIS_DAGGER))
 					{
-						giveItems(player, NETIS_DAGGER, 1);
+						giveItemsWithoutQuestRate(player, NETIS_DAGGER, 1);
 					}
 					
 					qs.setCond(2, true);
@@ -300,7 +300,7 @@ public class Q00403_PathOfTheRogue extends Quest
 						takeItems(player, STOLEN_TOMES, 1);
 						takeItems(player, STOLEN_RING, 1);
 						takeItems(player, STOLEN_NECKLACE, 1);
-						giveItems(player, BEZIQUES_RECOMMENDATION, 1);
+						giveItemsWithoutQuestRate(player, BEZIQUES_RECOMMENDATION, 1);
 						final int level = player.getLevel();
 						if (level >= 20)
 						{
@@ -326,7 +326,7 @@ public class Q00403_PathOfTheRogue extends Quest
 					else if (hasQuestItems(player, HORSESHOE_OF_LIGHT))
 					{
 						takeItems(player, HORSESHOE_OF_LIGHT, 1);
-						giveItems(player, MOST_WANTED_LIST, 1);
+						giveItemsWithoutQuestRate(player, MOST_WANTED_LIST, 1);
 						qs.setCond(5, true);
 						htmltext = "30379-08.html";
 					}
@@ -359,7 +359,7 @@ public class Q00403_PathOfTheRogue extends Quest
 						else
 						{
 							takeItems(player, SPARTOIS_BONES, REQUIRED_ITEM_COUNT);
-							giveItems(player, HORSESHOE_OF_LIGHT, 1);
+							giveItemsWithoutQuestRate(player, HORSESHOE_OF_LIGHT, 1);
 							qs.setCond(4, true);
 							htmltext = "30425-07.html";
 						}

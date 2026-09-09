@@ -74,7 +74,7 @@ public class Q00185_NikolasCooperation extends Quest
 				{
 					qs.startQuest();
 					qs.setMemoState(1);
-					giveItems(player, NIKOLAS_MAP, 1);
+					giveItemsWithoutQuestRate(player, NIKOLAS_MAP, 1);
 					htmltext = event;
 				}
 				break;
@@ -133,7 +133,7 @@ public class Q00185_NikolasCooperation extends Quest
 				{
 					if (hasQuestItems(player, METALLOGRAPH))
 					{
-						giveItems(player, LORAINES_CERTIFICATE, 1);
+						giveItemsWithoutQuestRate(player, LORAINES_CERTIFICATE, 1);
 						qs.exitQuest(false, true);
 						htmltext = event;
 					}
@@ -167,7 +167,7 @@ public class Q00185_NikolasCooperation extends Quest
 			{
 				if (qs.isMemoState(4))
 				{
-					giveItems(player, METALLOGRAPH, 1);
+					giveItemsWithoutQuestRate(player, METALLOGRAPH, 1);
 					qs.setMemoState(6);
 					qs.setCond(4, true);
 					htmltext = event;
@@ -178,7 +178,7 @@ public class Q00185_NikolasCooperation extends Quest
 			{
 				if (qs.isMemoState(5))
 				{
-					giveItems(player, BROKEN_METAL_PIECES, 1);
+					giveItemsWithoutQuestRate(player, BROKEN_METAL_PIECES, 1);
 					qs.setMemoState(6);
 					qs.setCond(5, true);
 					htmltext = event;

@@ -157,7 +157,7 @@ public class Q00144_PailakaInjuredDragon extends Quest
 							{
 								takeItems(player, SPEAR_OF_SILENOS, -1);
 								takeItems(player, WEAPON_UPGRADE_STAGE_1, -1);
-								giveItems(player, ENHANCED_SPEAR_OF_SILENOS, 1);
+								giveItemsWithoutQuestRate(player, ENHANCED_SPEAR_OF_SILENOS, 1);
 								playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 								htmltext = "32509-02.html";
 							}
@@ -172,7 +172,7 @@ public class Q00144_PailakaInjuredDragon extends Quest
 							{
 								takeItems(player, ENHANCED_SPEAR_OF_SILENOS, -1);
 								takeItems(player, WEAPON_UPGRADE_STAGE_2, -1);
-								giveItems(player, COMPLETE_SPEAR_OF_SILENOS, 1);
+								giveItemsWithoutQuestRate(player, COMPLETE_SPEAR_OF_SILENOS, 1);
 								playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 								htmltext = "32509-03.html";
 							}
@@ -196,8 +196,8 @@ public class Q00144_PailakaInjuredDragon extends Quest
 					{
 						if (!qs.isCompleted() && qs.isCond(4))
 						{
-							giveItems(player, PAILAKA_SHIRT, 1);
-							giveItems(player, SCROLL_OF_ESCAPE, 1);
+							rewardItems(player, PAILAKA_SHIRT, 1);
+							rewardItems(player, SCROLL_OF_ESCAPE, 1);
 							addExpAndSp(player, XP_REWARD, SP_REWARD);
 							npc.setTarget(player);
 							npc.doCast(PAILAKA_REWARD_ENERGY_REPLENISHING.getSkill());
@@ -247,7 +247,7 @@ public class Q00144_PailakaInjuredDragon extends Quest
 						{
 							qs.setCond(3, true);
 							qs.setMemoState(3);
-							giveItems(player, SPEAR_OF_SILENOS, 1);
+							giveItemsWithoutQuestRate(player, SPEAR_OF_SILENOS, 1);
 							playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 							htmltext = "32502-05.html";
 						}

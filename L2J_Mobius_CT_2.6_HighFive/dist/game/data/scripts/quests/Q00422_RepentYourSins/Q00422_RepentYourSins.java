@@ -132,7 +132,7 @@ public class Q00422_RepentYourSins extends Quest
 					}
 					
 					qs.setMemoStateEx(1, player.getLevel());
-					giveItems(player, PENITENTS_MANACLES, 1);
+					giveItemsWithoutQuestRate(player, PENITENTS_MANACLES, 1);
 					qs.setCond(16);
 					htmltext = event;
 				}
@@ -178,7 +178,7 @@ public class Q00422_RepentYourSins extends Quest
 						final int i0 = getRandom(i1) + 1;
 						if (player.getPkKills() <= i0)
 						{
-							giveItems(player, MANACLES_OF_PENITENT, 1);
+							rewardItems(player, MANACLES_OF_PENITENT, 1);
 							if (petItem != null)
 							{
 								takeItems(player, PENITENTS_MANACLES, -1);
@@ -190,7 +190,7 @@ public class Q00422_RepentYourSins extends Quest
 						}
 						else
 						{
-							giveItems(player, MANACLES_OF_PENITENT, 1);
+							rewardItems(player, MANACLES_OF_PENITENT, 1);
 							if (petItem != null)
 							{
 								takeItems(player, PENITENTS_MANACLES, -1);
@@ -328,7 +328,7 @@ public class Q00422_RepentYourSins extends Quest
 					{
 						if (!hasAtLeastOneQuestItem(player, MANUAL_OF_MANACLES, MANACLES_OF_PENITENT, PENITENTS_MANACLES1, PENITENTS_MANACLES))
 						{
-							giveItems(player, MANUAL_OF_MANACLES, 1);
+							giveItemsWithoutQuestRate(player, MANUAL_OF_MANACLES, 1);
 							qs.setCond(14, true);
 							htmltext = "30981-08.html";
 						}
@@ -373,7 +373,7 @@ public class Q00422_RepentYourSins extends Quest
 								takeItems(player, COKES, 10);
 								takeItems(player, STEEL, 5);
 								takeItems(player, BLACKSMITHS_FRAME, 1);
-								giveItems(player, PENITENTS_MANACLES1, 1);
+								giveItemsWithoutQuestRate(player, PENITENTS_MANACLES1, 1);
 								takeItems(player, MANUAL_OF_MANACLES, 1);
 								qs.setCond(15, true);
 								htmltext = "30300-01.html";

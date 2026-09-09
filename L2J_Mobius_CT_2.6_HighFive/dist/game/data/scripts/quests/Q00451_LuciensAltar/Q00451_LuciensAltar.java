@@ -75,7 +75,7 @@ public class Q00451_LuciensAltar extends Quest
 		else if (event.equals("30537-05.htm"))
 		{
 			qs.startQuest();
-			giveItems(player, REPLENISHED_BEAD, 5);
+			giveItemsWithoutQuestRate(player, REPLENISHED_BEAD, 5);
 			htmltext = event;
 		}
 		
@@ -138,7 +138,7 @@ public class Q00451_LuciensAltar extends Quest
 			{
 				qs.set(String.valueOf(npcId), "1");
 				takeItems(player, REPLENISHED_BEAD, 1);
-				giveItems(player, DISCHARGED_BEAD, 1);
+				giveItemsWithoutQuestRate(player, DISCHARGED_BEAD, 1);
 				playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 				if (getQuestItemsCount(player, DISCHARGED_BEAD) >= 5)
 				{

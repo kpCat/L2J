@@ -84,7 +84,7 @@ public class Q00178_IconicTrinity extends Quest
 			{
 				if ((qs.isMemoState(10) && (player.getLevel() <= TWENTY_LEVEL) && (player.getPlayerClass() == PlayerClass.MALE_SOLDIER)) || (player.getPlayerClass() == PlayerClass.FEMALE_SOLDIER))
 				{
-					giveItems(player, SCROLL_ENCHANT_ARMOR_D_GRADE, 1);
+					rewardItems(player, SCROLL_ENCHANT_ARMOR_D_GRADE, 1);
 					addExpAndSp(player, 20123, 976);
 					qs.exitQuest(false, true);
 					htmltext = event;
@@ -95,7 +95,7 @@ public class Q00178_IconicTrinity extends Quest
 			{
 				if ((qs.isMemoState(10) && (player.getLevel() > TWENTY_LEVEL) && (player.getPlayerClass() != PlayerClass.MALE_SOLDIER)) || (player.getPlayerClass() != PlayerClass.FEMALE_SOLDIER))
 				{
-					giveItems(player, SCROLL_ENCHANT_ARMOR_D_GRADE, 1);
+					rewardItems(player, SCROLL_ENCHANT_ARMOR_D_GRADE, 1);
 					qs.exitQuest(false, true);
 					htmltext = event;
 				}

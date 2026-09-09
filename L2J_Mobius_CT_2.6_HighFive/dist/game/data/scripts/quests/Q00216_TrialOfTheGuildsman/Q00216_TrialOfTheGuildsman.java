@@ -118,7 +118,7 @@ public class Q00216_TrialOfTheGuildsman extends Quest
 					takeItems(player, Inventory.ADENA_ID, 2000);
 					if (!hasQuestItems(player, VALKONS_RECOMMENDATION))
 					{
-						giveItems(player, VALKONS_RECOMMENDATION, 1);
+						giveItemsWithoutQuestRate(player, VALKONS_RECOMMENDATION, 1);
 					}
 					
 					playSound(player, QuestSound.ITEMSOUND_QUEST_MIDDLE);
@@ -167,7 +167,7 @@ public class Q00216_TrialOfTheGuildsman extends Quest
 				if (hasQuestItems(player, ALLTRANS_INSTRUCTIONS) && (getQuestItemsCount(player, JOURNEYMAN_RING) >= 7))
 				{
 					giveAdena(player, 187606, true);
-					giveItems(player, MARK_OF_GUILDSMAN, 1);
+					giveItemsWithoutQuestRate(player, MARK_OF_GUILDSMAN, 1);
 					addExpAndSp(player, 1029478, 66768);
 					qs.exitQuest(false, true);
 					player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -180,7 +180,7 @@ public class Q00216_TrialOfTheGuildsman extends Quest
 				if (hasQuestItems(player, ALLTRANS_INSTRUCTIONS) && (getQuestItemsCount(player, JOURNEYMAN_RING) >= 7))
 				{
 					giveAdena(player, 93803, true);
-					giveItems(player, MARK_OF_GUILDSMAN, 1);
+					giveItemsWithoutQuestRate(player, MARK_OF_GUILDSMAN, 1);
 					addExpAndSp(player, 514739, 33384);
 					qs.exitQuest(false, true);
 					player.sendPacket(new SocialAction(player.getObjectId(), 3));
@@ -193,8 +193,8 @@ public class Q00216_TrialOfTheGuildsman extends Quest
 				if (hasQuestItems(player, ALLTRANS_1ST_RECOMMENDATION))
 				{
 					takeItems(player, ALLTRANS_1ST_RECOMMENDATION, 1);
-					giveItems(player, NORMANS_INSTRUCTIONS, 1);
-					giveItems(player, NORMANS_RECEIPT, 1);
+					giveItemsWithoutQuestRate(player, NORMANS_INSTRUCTIONS, 1);
+					giveItemsWithoutQuestRate(player, NORMANS_RECEIPT, 1);
 					htmltext = event;
 				}
 				break;
@@ -205,7 +205,7 @@ public class Q00216_TrialOfTheGuildsman extends Quest
 				{
 					takeItems(player, NORMANS_INSTRUCTIONS, 1);
 					takeItems(player, DUNINGS_KEY, -1);
-					giveItems(player, NORMANS_LIST, 1);
+					giveItemsWithoutQuestRate(player, NORMANS_LIST, 1);
 					htmltext = event;
 				}
 				break;
@@ -214,12 +214,12 @@ public class Q00216_TrialOfTheGuildsman extends Quest
 			{
 				if (hasQuestItems(player, VALKONS_RECOMMENDATION, MANDRAGORA_BERRY))
 				{
-					giveItems(player, RECIPE_JOURNEYMAN_RING, 1);
+					giveItemsWithoutQuestRate(player, RECIPE_JOURNEYMAN_RING, 1);
 					takeItems(player, VALKONS_RECOMMENDATION, 1);
 					takeItems(player, MANDRAGORA_BERRY, 1);
-					giveItems(player, ALLTRANS_INSTRUCTIONS, 1);
-					giveItems(player, ALLTRANS_1ST_RECOMMENDATION, 1);
-					giveItems(player, ALLTRANS_2ND_RECOMMENDATION, 1);
+					giveItemsWithoutQuestRate(player, ALLTRANS_INSTRUCTIONS, 1);
+					giveItemsWithoutQuestRate(player, ALLTRANS_1ST_RECOMMENDATION, 1);
+					giveItemsWithoutQuestRate(player, ALLTRANS_2ND_RECOMMENDATION, 1);
 					qs.setCond(5, true);
 					htmltext = event;
 				}
@@ -232,15 +232,15 @@ public class Q00216_TrialOfTheGuildsman extends Quest
 					if (hasQuestItems(player, ALLTRANS_2ND_RECOMMENDATION))
 					{
 						takeItems(player, ALLTRANS_2ND_RECOMMENDATION, 1);
-						giveItems(player, PINTERS_INSTRUCTIONS, 1);
+						giveItemsWithoutQuestRate(player, PINTERS_INSTRUCTIONS, 1);
 						htmltext = event;
 					}
 				}
 				else if (hasQuestItems(player, ALLTRANS_2ND_RECOMMENDATION))
 				{
-					giveItems(player, RECIPE_AMBER_BEAD, 1);
+					giveItemsWithoutQuestRate(player, RECIPE_AMBER_BEAD, 1);
 					takeItems(player, ALLTRANS_2ND_RECOMMENDATION, 1);
-					giveItems(player, PINTERS_INSTRUCTIONS, 1);
+					giveItemsWithoutQuestRate(player, PINTERS_INSTRUCTIONS, 1);
 					htmltext = "30298-05.html";
 				}
 				break;
@@ -250,7 +250,7 @@ public class Q00216_TrialOfTheGuildsman extends Quest
 				if (hasQuestItems(player, NORMANS_RECEIPT))
 				{
 					takeItems(player, NORMANS_RECEIPT, 1);
-					giveItems(player, DUNINGS_INSTRUCTIONS, 1);
+					giveItemsWithoutQuestRate(player, DUNINGS_INSTRUCTIONS, 1);
 					htmltext = event;
 				}
 				break;
@@ -321,7 +321,7 @@ public class Q00216_TrialOfTheGuildsman extends Quest
 				final QuestState qs = getQuestState(killer, false);
 				if ((qs != null) && qs.isStarted() && LocationUtil.checkIfInRange(PlayerConfig.ALT_PARTY_RANGE, npc, killer, true) && hasQuestItems(killer, VALKONS_RECOMMENDATION) && !hasQuestItems(killer, MANDRAGORA_BERRY))
 				{
-					giveItems(killer, MANDRAGORA_BERRY, 1);
+					giveItemsWithoutQuestRate(killer, MANDRAGORA_BERRY, 1);
 					qs.setCond(4, true);
 				}
 				break;
@@ -483,7 +483,7 @@ public class Q00216_TrialOfTheGuildsman extends Quest
 								takeItems(player, GRANITE_WHETSTONE, -1);
 								takeItems(player, RED_PIGMENT, -1);
 								takeItems(player, BRAIDED_YARN, -1);
-								giveItems(player, JOURNEYMAN_GEM, 7);
+								giveItemsWithoutQuestRate(player, JOURNEYMAN_GEM, 7);
 								if (getQuestItemsCount(player, JOURNEYMAN_DECO_BEADS) >= 7)
 								{
 									qs.setCond(6, true);
@@ -550,7 +550,7 @@ public class Q00216_TrialOfTheGuildsman extends Quest
 								takeItems(player, PINTERS_INSTRUCTIONS, 1);
 								takeItems(player, AMBER_BEAD, -1);
 								takeItems(player, AMBER_LUMP, -1);
-								giveItems(player, JOURNEYMAN_DECO_BEADS, 7);
+								giveItemsWithoutQuestRate(player, JOURNEYMAN_DECO_BEADS, 7);
 								if (getQuestItemsCount(player, JOURNEYMAN_GEM) >= 7)
 								{
 									qs.setCond(6, true);

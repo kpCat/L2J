@@ -129,7 +129,7 @@ public class Q00381_LetsBecomeARoyalMember extends Quest
 					if (hasAlbum && hasCoin)
 					{
 						takeItems(talker, 1, KAILS_COIN, COIN_ALBUM);
-						giveItems(talker, ROYAL_MEMBERSHIP, 1);
+						giveItemsWithoutQuestRate(talker, ROYAL_MEMBERSHIP, 1);
 						qs.exitQuest(false, true);
 						htmltext = "30232-06.html";
 					}

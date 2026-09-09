@@ -73,7 +73,7 @@ public class Q00052_WilliesSpecialBait extends Quest
 				if (qs.isCond(2) && (getQuestItemsCount(player, TARLK_EYE) >= 100))
 				{
 					htmltext = "31574-06.htm";
-					giveItems(player, EARTH_FISHING_LURE, 4);
+					rewardItems(player, EARTH_FISHING_LURE, 4);
 					qs.exitQuest(false, true);
 				}
 				break;

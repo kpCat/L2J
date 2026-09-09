@@ -46,17 +46,17 @@
 | Goal034 — Automated black-box local stack acceptance | SUCCESS | Closure8: verify-only `[Player._skillListTask]` не воспроизведён (`NOT_REPRODUCED`); standalone manor `2/2`, checkpoint2 aggregate `56/56`, fresh full verify и standalone jar PASS; real run `20260908-135425-0b7d8b31` дал gen1/gen2 `5/5/5` с одинаковыми ID, два native restart/drain и exact cleanup без forced kill; production DB unused |
 | Goal035 — Siege gameplay slice | SUCCESS | Bounded Giran castleId=3: native registration/schedule/sides/zones/doors, factual gathering, capped roles, shared Combat/Navigation/Party support, retreat/recovery/restart cleanup; focused `8/8` |
 | Goal036 — Bounded quests/instances slice | SUCCESS | Exact whitelist: native Q102/Q152 completion, Q401 + canonical Fighter→Warrior, Kamaloka 57, Pailaka Q128/template 43; focused `8/8`, affected gates, fresh verify and standalone jar PASS; без universal solver |
-| Goal037 — Full High Five quest-script inventory + rates normalization/parity | PLANNED | 100% `dist/game/data/scripts/quests/**`, no unclassified quest; reward/drop/rate-path и control/key/singleton exception classification; structural/AST-style corpus audit, compile/load corpus, deterministic 1x/non-1x matrix и representative real-server mechanics; Player/Phantom ACTIVE/BACKGROUND parity where applicable; canonical rates authoritative, bypass = diagnostic/gate |
+| Goal037 — Full High Five quest-script inventory + rates normalization/parity | SUCCESS | JDK AST inventory 543/543 source и 7,066/7,066 sites; 1,876 proven corrections в 331 quest source, 1,538 explicit fixed exceptions, zero unclassified/stale; full corpus compile/load, distinct 1x/non-1x Player/Phantom ACTIVE/BACKGROUND, Q401/Pailaka controls, ordinary XP/SP/drop/spoil/manor, affected gates, fresh verify and standalone jar PASS; production DB unused |
 | Goal038 — Humanized Russian Semantic Pack + social/custom conversation | PLANNED | Natural RU social/off-topic conversation, relationship progression, bounded personal memory, humor/sarcasm/teasing, follow-ups, emotion-sensitive reactions, personal ↔ game transitions, light flirt, contextual profanity с personality/relationship/intensity и anti-repeat; versioned custom overrides без Java recompilation, strict fail-closed core/custom validation; optional mature opt-in, shipped `OFF`; no runtime LLM/internet |
 | Goal039 — Final full-vision release gate + freeze | PLANNED | Единственный final exam: safe install/config/defaults, Goal034 real stack, ecology/restart/recovery, siege, quests/instances, rates parity, Humanized/custom packs, scale/rollback и documentation consistency |
 
-После успешного Goal036 остаются два content/feature stage — Goal037–Goal038
-— и единственный final exam Goal039. После `ACCEPT` Goal039 статус становится
+После успешного Goal037 остаётся один content/feature stage — Goal038 — и
+единственный final exam Goal039. После `ACCEPT` Goal039 статус становится
 `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`; automatic Goal040+ запрещены.
 
-Текущее следующее действие: Goal037 — следующий planned feature Goal, но он
-остаётся `NOT_STARTED` и требует отдельной явной задачи. Goal036 не начинал
-Goal037 и не менял Roadmap v5 scope Goal037–039.
+Текущее следующее действие: Goal038 — следующий planned feature Goal, но он
+остаётся `NOT_STARTED` и требует отдельной явной задачи. Goal037 не начинал
+Goal038 и не менял Roadmap v5 scope Goal038–039.
 
 Shipped config по-прежнему `EnablePhantomSystem=False`, population/ACTIVE `0/0`; destructive auto-reset flag отсутствует. Reset вызывается только GM-командой после read-only preview и одноразового confirm. Automated tests работают только с allowlisted test DB; ручная игра пользователя остаётся финальной experience validation, а не промежуточным техническим gate.
 

@@ -96,13 +96,13 @@ public class Q10275_ContainingTheAttributePower extends Quest
 			case "32325-03.html":
 			{
 				qs.setCond(3, true);
-				giveItems(player, YINSWORD, 1, Elementals.FIRE, 10);
+				giveItemsWithoutQuestRate(player, YINSWORD, 1, Elementals.FIRE, 10);
 				break;
 			}
 			case "32326-03.html":
 			{
 				qs.setCond(8, true);
-				giveItems(player, YANGSWORD, 1, Elementals.EARTH, 10);
+				giveItemsWithoutQuestRate(player, YANGSWORD, 1, Elementals.EARTH, 10);
 				break;
 			}
 			case "32325-06.html":
@@ -113,7 +113,7 @@ public class Q10275_ContainingTheAttributePower extends Quest
 					htmltext = "32325-07.html";
 				}
 				
-				giveItems(player, YINSWORD, 1, Elementals.FIRE, 10);
+				giveItemsWithoutQuestRate(player, YINSWORD, 1, Elementals.FIRE, 10);
 				break;
 			}
 			case "32326-06.html":
@@ -124,21 +124,21 @@ public class Q10275_ContainingTheAttributePower extends Quest
 					htmltext = "32326-07.html";
 				}
 				
-				giveItems(player, YANGSWORD, 1, Elementals.EARTH, 10);
+				giveItemsWithoutQuestRate(player, YANGSWORD, 1, Elementals.EARTH, 10);
 				break;
 			}
 			case "32325-09.html":
 			{
 				qs.setCond(5, true);
 				BLESSING_OF_FIRE.getSkill().applyEffects(player, player);
-				giveItems(player, YINSWORD, 1, Elementals.FIRE, 10);
+				giveItemsWithoutQuestRate(player, YINSWORD, 1, Elementals.FIRE, 10);
 				break;
 			}
 			case "32326-09.html":
 			{
 				qs.setCond(10, true);
 				BLESSING_OF_EARTH.getSkill().applyEffects(player, player);
-				giveItems(player, YANGSWORD, 1, Elementals.EARTH, 10);
+				giveItemsWithoutQuestRate(player, YANGSWORD, 1, Elementals.EARTH, 10);
 				break;
 			}
 		}
@@ -146,7 +146,7 @@ public class Q10275_ContainingTheAttributePower extends Quest
 		if (StringUtil.isNumeric(event))
 		{
 			htmltext = npc.getId() + "-1" + event + ".html";
-			giveItems(player, 10520 + Integer.parseInt(event), 2);
+			rewardItems(player, 10520 + Integer.parseInt(event), 2);
 			addExpAndSp(player, 202160, 20375);
 			qs.exitQuest(false, true);
 		}

@@ -87,25 +87,25 @@ public class Q00901_HowLavasaurusesAreMade extends Quest
 			}
 			case "32049-12.html":
 			{
-				giveItems(player, TOTEM_OF_BODY, 1);
+				rewardItems(player, TOTEM_OF_BODY, 1);
 				qs.exitQuest(QuestType.DAILY, true);
 				break;
 			}
 			case "32049-13.html":
 			{
-				giveItems(player, TOTEM_OF_SPIRIT, 1);
+				rewardItems(player, TOTEM_OF_SPIRIT, 1);
 				qs.exitQuest(QuestType.DAILY, true);
 				break;
 			}
 			case "32049-14.html":
 			{
-				giveItems(player, TOTEM_OF_FORTITUDE, 1);
+				rewardItems(player, TOTEM_OF_FORTITUDE, 1);
 				qs.exitQuest(QuestType.DAILY, true);
 				break;
 			}
 			case "32049-15.html":
 			{
-				giveItems(player, TOTEM_OF_COURAGE, 1);
+				rewardItems(player, TOTEM_OF_COURAGE, 1);
 				qs.exitQuest(QuestType.DAILY, true);
 				break;
 			}

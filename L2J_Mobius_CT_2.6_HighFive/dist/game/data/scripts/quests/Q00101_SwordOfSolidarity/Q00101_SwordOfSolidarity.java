@@ -99,7 +99,7 @@ public class Q00101_SwordOfSolidarity extends Quest
 				case "30008-04.htm":
 				{
 					qs.startQuest();
-					giveItems(player, ROIENS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, ROIENS_LETTER, 1);
 					htmltext = event;
 					break;
 				}
@@ -108,7 +108,7 @@ public class Q00101_SwordOfSolidarity extends Quest
 					if (qs.isCond(1) && hasQuestItems(player, ROIENS_LETTER))
 					{
 						takeItems(player, ROIENS_LETTER, -1);
-						giveItems(player, DIRECTIONS_TO_RUINS, 1);
+						giveItemsWithoutQuestRate(player, DIRECTIONS_TO_RUINS, 1);
 						qs.setCond(2, true);
 						htmltext = event;
 					}
@@ -120,13 +120,13 @@ public class Q00101_SwordOfSolidarity extends Quest
 					{
 						if ((player.getLevel() < 25) && !player.isMageClass())
 						{
-							giveItems(player, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
+							rewardItems(player, SOULSHOTS_NO_GRADE_FOR_ROOKIES);
 							playSound(player, "tutorial_voice_026");
 						}
 						
 						for (ItemHolder reward : REWARDS)
 						{
-							giveItems(player, reward);
+							rewardItems(player, reward);
 						}
 						
 						addExpAndSp(player, 25747, 2171);
@@ -172,7 +172,7 @@ public class Q00101_SwordOfSolidarity extends Quest
 		{
 			if (!hasQuestItems(killer, BROKEN_BLADE_TOP))
 			{
-				giveItems(killer, BROKEN_BLADE_TOP, 1);
+				giveItemsWithoutQuestRate(killer, BROKEN_BLADE_TOP, 1);
 				if (hasQuestItems(killer, BROKEN_BLADE_BOTTOM))
 				{
 					qs.setCond(3, true);
@@ -184,7 +184,7 @@ public class Q00101_SwordOfSolidarity extends Quest
 			}
 			else if (!hasQuestItems(killer, BROKEN_BLADE_BOTTOM))
 			{
-				giveItems(killer, BROKEN_BLADE_BOTTOM, 1);
+				giveItemsWithoutQuestRate(killer, BROKEN_BLADE_BOTTOM, 1);
 				if (hasQuestItems(killer, BROKEN_BLADE_TOP))
 				{
 					qs.setCond(3, true);
@@ -250,7 +250,7 @@ public class Q00101_SwordOfSolidarity extends Quest
 								if (hasQuestItems(player, ALTRANS_NOTE))
 								{
 									takeItems(player, ALTRANS_NOTE, -1);
-									giveItems(player, BROKEN_SWORD_HANDLE, 1);
+									giveItemsWithoutQuestRate(player, BROKEN_SWORD_HANDLE, 1);
 									qs.setCond(5, true);
 									htmltext = "30008-06.html";
 								}
@@ -304,7 +304,7 @@ public class Q00101_SwordOfSolidarity extends Quest
 						if (hasQuestItems(player, BROKEN_BLADE_BOTTOM, BROKEN_BLADE_TOP))
 						{
 							takeItems(player, -1, DIRECTIONS_TO_RUINS, BROKEN_BLADE_TOP, BROKEN_BLADE_BOTTOM);
-							giveItems(player, ALTRANS_NOTE, 1);
+							giveItemsWithoutQuestRate(player, ALTRANS_NOTE, 1);
 							qs.setCond(4, true);
 							htmltext = "30283-04.html";
 						}

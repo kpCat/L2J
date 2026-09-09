@@ -93,7 +93,7 @@ public class Q00193_SevenSignsDyingMessage extends Quest
 		{
 			case "30191-02.html":
 			{
-				giveItems(player, JACOBS_NECKLACE, 1);
+				giveItemsWithoutQuestRate(player, JACOBS_NECKLACE, 1);
 				qs.startQuest();
 				htmltext = event;
 				break;
@@ -152,7 +152,7 @@ public class Q00193_SevenSignsDyingMessage extends Quest
 			{
 				if (qs.isCond(2))
 				{
-					giveItems(player, DEADMANS_HERB, 1);
+					giveItemsWithoutQuestRate(player, DEADMANS_HERB, 1);
 					qs.setCond(3, true);
 					htmltext = event;
 				}
@@ -228,7 +228,7 @@ public class Q00193_SevenSignsDyingMessage extends Quest
 		final QuestState qs = getQuestState(partyMember, false);
 		if (npc.isInsideRadius3D(partyMember, PlayerConfig.ALT_PARTY_RANGE))
 		{
-			giveItems(player, SCULPTURE_OF_DOUBT, 1);
+			giveItemsWithoutQuestRate(player, SCULPTURE_OF_DOUBT, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_FINISH);
 			qs.setCond(5);
 		}

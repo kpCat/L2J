@@ -95,7 +95,7 @@ public class Q00414_PathOfTheOrcRaider extends Quest
 						{
 							if (!hasQuestItems(player, GOBLIN_DWELLING_MAP))
 							{
-								giveItems(player, GOBLIN_DWELLING_MAP, 1);
+								giveItemsWithoutQuestRate(player, GOBLIN_DWELLING_MAP, 1);
 							}
 							
 							qs.startQuest();
@@ -123,8 +123,8 @@ public class Q00414_PathOfTheOrcRaider extends Quest
 				{
 					takeItems(player, GOBLIN_DWELLING_MAP, 1);
 					takeItems(player, KURUKA_RATMAN_TOOTH, -1);
-					giveItems(player, BETRAYER_UMBAR_REPORT, 1);
-					giveItems(player, BETRAYER_ZAKAN_REPORT, 1);
+					giveItemsWithoutQuestRate(player, BETRAYER_UMBAR_REPORT, 1);
+					giveItemsWithoutQuestRate(player, BETRAYER_ZAKAN_REPORT, 1);
 					qs.setCond(3, true);
 					htmltext = event;
 				}
@@ -237,7 +237,7 @@ public class Q00414_PathOfTheOrcRaider extends Quest
 				{
 					if (qs.isMemoState(3) && !hasQuestItems(killer, TIMORA_ORC_HEAD) && (getRandom(100) < 60))
 					{
-						giveItems(killer, TIMORA_ORC_HEAD, 1);
+						giveItemsWithoutQuestRate(killer, TIMORA_ORC_HEAD, 1);
 						qs.setCond(7, true);
 					}
 					break;
@@ -298,7 +298,7 @@ public class Q00414_PathOfTheOrcRaider extends Quest
 					else if (getQuestItemsCount(player, HEAD_OF_BETRAYER) == 2)
 					{
 						giveAdena(player, 163800, true);
-						giveItems(player, MARK_OF_RAIDER, 1);
+						giveItemsWithoutQuestRate(player, MARK_OF_RAIDER, 1);
 						final int level = player.getLevel();
 						if (level >= 20)
 						{
@@ -334,7 +334,7 @@ public class Q00414_PathOfTheOrcRaider extends Quest
 						else
 						{
 							giveAdena(player, 81900, true);
-							giveItems(player, MARK_OF_RAIDER, 1);
+							giveItemsWithoutQuestRate(player, MARK_OF_RAIDER, 1);
 							final int level = player.getLevel();
 							if (level >= 20)
 							{

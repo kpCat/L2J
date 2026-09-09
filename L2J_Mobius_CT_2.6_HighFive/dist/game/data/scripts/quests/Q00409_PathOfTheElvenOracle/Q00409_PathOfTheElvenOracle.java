@@ -95,7 +95,7 @@ public class Q00409_PathOfTheElvenOracle extends Quest
 						{
 							qs.startQuest();
 							qs.setMemoState(1);
-							giveItems(player, CRYSTAL_MEDALLION, 1);
+							giveItemsWithoutQuestRate(player, CRYSTAL_MEDALLION, 1);
 							htmltext = "30293-05.htm";
 						}
 					}
@@ -221,7 +221,7 @@ public class Q00409_PathOfTheElvenOracle extends Quest
 					if (!hasQuestItems(killer, LIZARD_CAPTAIN_ORDER))
 					{
 						npc.broadcastPacket(new NpcSay(npc, ChatType.NPC_GENERAL, NpcStringId.ARRGHH_WE_SHALL_NEVER_SURRENDER));
-						giveItems(killer, LIZARD_CAPTAIN_ORDER, 1);
+						giveItemsWithoutQuestRate(killer, LIZARD_CAPTAIN_ORDER, 1);
 						qs.setCond(3, true);
 					}
 					break;
@@ -231,7 +231,7 @@ public class Q00409_PathOfTheElvenOracle extends Quest
 				{
 					if (!hasQuestItems(killer, LIZARD_CAPTAIN_ORDER))
 					{
-						giveItems(killer, LIZARD_CAPTAIN_ORDER, 1);
+						giveItemsWithoutQuestRate(killer, LIZARD_CAPTAIN_ORDER, 1);
 						qs.setCond(3, true);
 					}
 					break;
@@ -240,7 +240,7 @@ public class Q00409_PathOfTheElvenOracle extends Quest
 				{
 					if (!hasQuestItems(killer, TAMIL_NECKLACE))
 					{
-						giveItems(killer, TAMIL_NECKLACE, 1);
+						giveItemsWithoutQuestRate(killer, TAMIL_NECKLACE, 1);
 						qs.setCond(5, true);
 					}
 					break;
@@ -295,7 +295,7 @@ public class Q00409_PathOfTheElvenOracle extends Quest
 							if (!hasQuestItems(player, HALF_OF_DAIRY))
 							{
 								giveAdena(player, 163800, true);
-								giveItems(player, LEAF_OF_ORACLE, 1);
+								giveItemsWithoutQuestRate(player, LEAF_OF_ORACLE, 1);
 								final int level = player.getLevel();
 								if (level >= 20)
 								{
@@ -341,7 +341,7 @@ public class Q00409_PathOfTheElvenOracle extends Quest
 						else if (!hasAtLeastOneQuestItem(player, SWINDLERS_MONEY, ALLANA_OF_DAIRY, HALF_OF_DAIRY) && hasQuestItems(player, LIZARD_CAPTAIN_ORDER))
 						{
 							qs.setMemoState(2);
-							giveItems(player, HALF_OF_DAIRY, 1);
+							giveItemsWithoutQuestRate(player, HALF_OF_DAIRY, 1);
 							qs.setCond(4, true);
 							htmltext = "30424-02.html";
 						}
@@ -360,7 +360,7 @@ public class Q00409_PathOfTheElvenOracle extends Quest
 						}
 						else if (hasQuestItems(player, SWINDLERS_MONEY, LIZARD_CAPTAIN_ORDER, HALF_OF_DAIRY) && !hasQuestItems(player, ALLANA_OF_DAIRY))
 						{
-							giveItems(player, ALLANA_OF_DAIRY, 1);
+							giveItemsWithoutQuestRate(player, ALLANA_OF_DAIRY, 1);
 							takeItems(player, HALF_OF_DAIRY, 1);
 							qs.setCond(9, true);
 							htmltext = "30424-04.html";
@@ -379,7 +379,7 @@ public class Q00409_PathOfTheElvenOracle extends Quest
 					{
 						if (hasQuestItems(player, TAMIL_NECKLACE))
 						{
-							giveItems(player, SWINDLERS_MONEY, 1);
+							giveItemsWithoutQuestRate(player, SWINDLERS_MONEY, 1);
 							takeItems(player, TAMIL_NECKLACE, 1);
 							qs.setCond(6, true);
 							htmltext = "30428-04.html";

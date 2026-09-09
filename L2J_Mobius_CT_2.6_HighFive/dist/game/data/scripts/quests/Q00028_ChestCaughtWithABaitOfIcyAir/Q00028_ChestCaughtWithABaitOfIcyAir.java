@@ -73,7 +73,7 @@ public class Q00028_ChestCaughtWithABaitOfIcyAir extends Quest
 			{
 				if (st.isCond(1) && hasQuestItems(player, YELLOW_TREASURE_BOX))
 				{
-					giveItems(player, KIKIS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, KIKIS_LETTER, 1);
 					takeItems(player, YELLOW_TREASURE_BOX, -1);
 					st.setCond(2, true);
 					htmltext = "31572-07.htm";
@@ -84,7 +84,7 @@ public class Q00028_ChestCaughtWithABaitOfIcyAir extends Quest
 			{
 				if (st.isCond(2) && hasQuestItems(player, KIKIS_LETTER))
 				{
-					giveItems(player, ELVEN_RING, 1);
+					rewardItems(player, ELVEN_RING, 1);
 					st.exitQuest(false, true);
 					htmltext = "31442-02.htm";
 				}

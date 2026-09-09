@@ -74,13 +74,13 @@ public class Q00037_MakeFormalWear extends Quest
 			}
 			case "31520-02.html":
 			{
-				giveItems(player, SIGNET_RING, 1);
+				giveItemsWithoutQuestRate(player, SIGNET_RING, 1);
 				qs.setCond(2, true);
 				break;
 			}
 			case "31521-02.html":
 			{
-				giveItems(player, ICE_WINE, 1);
+				giveItemsWithoutQuestRate(player, ICE_WINE, 1);
 				qs.setCond(3, true);
 				break;
 			}
@@ -97,7 +97,7 @@ public class Q00037_MakeFormalWear extends Quest
 			}
 			case "31521-05.html":
 			{
-				giveItems(player, BOX_OF_COOKIES, 1);
+				giveItemsWithoutQuestRate(player, BOX_OF_COOKIES, 1);
 				qs.setCond(5, true);
 				break;
 			}
@@ -133,7 +133,7 @@ public class Q00037_MakeFormalWear extends Quest
 				}
 				
 				takeItems(player, DRESS_SHOES_BOX, 1);
-				giveItems(player, FORMAL_WEAR, 1);
+				rewardItems(player, FORMAL_WEAR, 1);
 				qs.exitQuest(false, true);
 				break;
 			}

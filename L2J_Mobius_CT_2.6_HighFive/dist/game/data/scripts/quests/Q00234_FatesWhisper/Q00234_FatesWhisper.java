@@ -247,7 +247,7 @@ public class Q00234_FatesWhisper extends Quest
 				
 				if (qs.isMemoState(8) && hasQuestItems(player, Q_RED_PIPETTE_KNIFE) && (whiteBloodyFabricCount <= 0))
 				{
-					giveItems(player, Q_MAESTRO_REORINS_MOLD, 1);
+					giveItemsWithoutQuestRate(player, Q_MAESTRO_REORINS_MOLD, 1);
 					takeItems(player, Q_RED_PIPETTE_KNIFE, 1);
 					qs.setMemoState(9);
 					qs.setCond(10, true);
@@ -262,7 +262,7 @@ public class Q00234_FatesWhisper extends Quest
 				
 				if (qs.isMemoState(8) && !hasQuestItems(player, Q_RED_PIPETTE_KNIFE) && (bloodyFabricCount >= 30) && (whiteBloodyFabricCount >= 30))
 				{
-					giveItems(player, Q_MAESTRO_REORINS_MOLD, 1);
+					giveItemsWithoutQuestRate(player, Q_MAESTRO_REORINS_MOLD, 1);
 					takeItems(player, Q_BLOODY_FABRIC_Q0234, -1);
 					qs.setMemoState(9);
 					qs.setCond(10, true);
@@ -272,7 +272,7 @@ public class Q00234_FatesWhisper extends Quest
 				
 				if (qs.isMemoState(8) && !hasQuestItems(player, Q_RED_PIPETTE_KNIFE) && (whiteBloodyFabricCount < 30) && (whiteBloodyFabricCount > 0))
 				{
-					giveItems(player, Q_WHITE_FABRIC_Q0234, 30 - whiteFabricCount);
+					giveItemsWithoutQuestRate(player, Q_WHITE_FABRIC_Q0234, 30 - whiteFabricCount);
 					takeItems(player, Q_BLOODY_FABRIC_Q0234, -1);
 					return "30833-03e.html";
 				}
@@ -292,7 +292,7 @@ public class Q00234_FatesWhisper extends Quest
 						return "30847-02.html";
 					}
 					
-					giveItems(player, Q_MAESTRO_REORINS_HAMMER, 1);
+					giveItemsWithoutQuestRate(player, Q_MAESTRO_REORINS_HAMMER, 1);
 					return "30847-01.html";
 				}
 				
@@ -505,7 +505,7 @@ public class Q00234_FatesWhisper extends Quest
 			{
 				if (qs.isMemoState(1) && !hasQuestItems(player, Q_REIRIAS_SOULORB))
 				{
-					giveItems(player, Q_REIRIAS_SOULORB, 1);
+					giveItemsWithoutQuestRate(player, Q_REIRIAS_SOULORB, 1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					return "31027-01.html";
 				}
@@ -520,7 +520,7 @@ public class Q00234_FatesWhisper extends Quest
 			{
 				if (qs.isMemoState(2) && !hasQuestItems(player, Q_INFERNIUM_SCEPTER_1))
 				{
-					giveItems(player, Q_INFERNIUM_SCEPTER_1, 1);
+					giveItemsWithoutQuestRate(player, Q_INFERNIUM_SCEPTER_1, 1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					return "31028-01.html";
 				}
@@ -535,7 +535,7 @@ public class Q00234_FatesWhisper extends Quest
 			{
 				if (qs.isMemoState(2) && !hasQuestItems(player, Q_INFERNIUM_SCEPTER_2))
 				{
-					giveItems(player, Q_INFERNIUM_SCEPTER_2, 1);
+					giveItemsWithoutQuestRate(player, Q_INFERNIUM_SCEPTER_2, 1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					return "31029-01.html";
 				}
@@ -550,7 +550,7 @@ public class Q00234_FatesWhisper extends Quest
 			{
 				if (qs.isMemoState(2) && !hasQuestItems(player, Q_INFERNIUM_SCEPTER_3))
 				{
-					giveItems(player, Q_INFERNIUM_SCEPTER_3, 1);
+					giveItemsWithoutQuestRate(player, Q_INFERNIUM_SCEPTER_3, 1);
 					playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 					return "31030-01.html";
 				}
@@ -636,7 +636,7 @@ public class Q00234_FatesWhisper extends Quest
 					{
 						if ((qs.getMemoState() == 4) && !hasQuestItems(player, Q_INFERNIUM_VARNISH))
 						{
-							giveItems(player, Q_INFERNIUM_VARNISH, 1);
+							giveItemsWithoutQuestRate(player, Q_INFERNIUM_VARNISH, 1);
 							return "30182-04.html";
 						}
 					}
@@ -659,7 +659,7 @@ public class Q00234_FatesWhisper extends Quest
 					{
 						if (qs.isMemoState(7))
 						{
-							giveItems(player, Q_PIPETTE_KNIFE, 1);
+							giveItemsWithoutQuestRate(player, Q_PIPETTE_KNIFE, 1);
 							qs.setMemoState(8);
 							qs.setCond(7, true);
 							qs.showQuestionMark(234);
@@ -671,7 +671,7 @@ public class Q00234_FatesWhisper extends Quest
 					{
 						if (qs.isMemoState(7))
 						{
-							giveItems(player, Q_WHITE_FABRIC_Q0234, 30);
+							giveItemsWithoutQuestRate(player, Q_WHITE_FABRIC_Q0234, 30);
 							qs.setMemoState(8);
 							qs.setCond(8, true);
 							qs.showQuestionMark(234);
@@ -1157,8 +1157,8 @@ public class Q00234_FatesWhisper extends Quest
 	{
 		if (hasAtLeastOneQuestItem(player, item1, item2, item3, item4))
 		{
-			giveItems(player, reward, 1);
-			giveItems(player, Q_STAR_OF_DESTINY, 1);
+			rewardItems(player, reward, 1);
+			giveItemsWithoutQuestRate(player, Q_STAR_OF_DESTINY, 1);
 			if (hasQuestItems(player, item1))
 			{
 				takeItems(player, item1, 1);

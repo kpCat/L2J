@@ -104,7 +104,7 @@ public class Q00647_InfluxOfMachines extends Quest
 			{
 				if (qs.isCond(2) && (getQuestItemsCount(player, BROKEN_GOLEM_FRAGMENT) >= FRAGMENT_COUNT))
 				{
-					giveItems(player, getRandomEntry(RECIPES), 1);
+					rewardItems(player, getRandomEntry(RECIPES), 1);
 					qs.exitQuest(true, true);
 					htmltext = event;
 				}

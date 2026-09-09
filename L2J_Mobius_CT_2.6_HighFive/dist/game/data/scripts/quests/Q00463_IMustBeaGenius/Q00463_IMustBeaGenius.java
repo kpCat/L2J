@@ -198,7 +198,7 @@ public class Q00463_IMustBeaGenius extends Quest
 				if (getQuestItemsCount(player, CORPSE_LOG) == qs.getInt("number"))
 				{
 					takeItems(player, CORPSE_LOG, -1);
-					giveItems(player, COLLECTION, 1);
+					giveItemsWithoutQuestRate(player, COLLECTION, 1);
 					qs.setCond(2, true);
 				}
 			}

@@ -71,7 +71,7 @@ public class Q00016_TheComingDarkness extends Quest
 			case "31517-02.htm":
 			{
 				qs.startQuest();
-				giveItems(player, CRYSTAL_OF_SEAL, 5);
+				giveItemsWithoutQuestRate(player, CRYSTAL_OF_SEAL, 5);
 				break;
 			}
 			case "31512-01.html":

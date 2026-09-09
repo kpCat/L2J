@@ -111,7 +111,7 @@ public class Q00257_TheGuardIsBusy extends Quest
 			case "30039-03.htm":
 			{
 				qs.startQuest();
-				giveItems(player, GLUDIO_LORDS_MARK, 1);
+				giveItemsWithoutQuestRate(player, GLUDIO_LORDS_MARK, 1);
 				htmltext = event;
 				break;
 			}

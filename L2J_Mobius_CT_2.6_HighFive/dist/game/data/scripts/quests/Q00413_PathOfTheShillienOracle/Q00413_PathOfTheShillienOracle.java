@@ -115,7 +115,7 @@ public class Q00413_PathOfTheShillienOracle extends Quest
 			{
 				if (!hasQuestItems(player, SIDRAS_LETTER))
 				{
-					giveItems(player, SIDRAS_LETTER, 1);
+					giveItemsWithoutQuestRate(player, SIDRAS_LETTER, 1);
 				}
 				
 				qs.startQuest();
@@ -134,7 +134,7 @@ public class Q00413_PathOfTheShillienOracle extends Quest
 				if (hasQuestItems(player, PRAYER_OF_ADONIUS))
 				{
 					takeItems(player, PRAYER_OF_ADONIUS, 1);
-					giveItems(player, PENITENTS_MARK, 1);
+					giveItemsWithoutQuestRate(player, PENITENTS_MARK, 1);
 					qs.setCond(5, true);
 				}
 				
@@ -146,7 +146,7 @@ public class Q00413_PathOfTheShillienOracle extends Quest
 				if (hasQuestItems(player, SIDRAS_LETTER))
 				{
 					takeItems(player, SIDRAS_LETTER, 1);
-					giveItems(player, BLANK_SHEET, 5);
+					giveItemsWithoutQuestRate(player, BLANK_SHEET, 5);
 					qs.setCond(2, true);
 				}
 				
@@ -239,7 +239,7 @@ public class Q00413_PathOfTheShillienOracle extends Quest
 					else if (hasAtLeastOneQuestItem(player, ANDARIEL_BOOK, GARMIELS_BOOK))
 					{
 						giveAdena(player, 163800, true);
-						giveItems(player, ORB_OF_ABYSS, 1);
+						giveItemsWithoutQuestRate(player, ORB_OF_ABYSS, 1);
 						final int level = player.getLevel();
 						if (level >= 20)
 						{
@@ -280,7 +280,7 @@ public class Q00413_PathOfTheShillienOracle extends Quest
 						{
 							takeItems(player, PENITENTS_MARK, 1);
 							takeItems(player, ASHEN_BONES, -1);
-							giveItems(player, ANDARIEL_BOOK, 1);
+							giveItemsWithoutQuestRate(player, ANDARIEL_BOOK, 1);
 							qs.setCond(7, true);
 							htmltext = "30375-07.html";
 						}
@@ -308,8 +308,8 @@ public class Q00413_PathOfTheShillienOracle extends Quest
 					else if (getQuestItemsCount(player, BLOODY_RUNE) >= 5)
 					{
 						takeItems(player, BLOODY_RUNE, -1);
-						giveItems(player, GARMIELS_BOOK, 1);
-						giveItems(player, PRAYER_OF_ADONIUS, 1);
+						giveItemsWithoutQuestRate(player, GARMIELS_BOOK, 1);
+						giveItemsWithoutQuestRate(player, PRAYER_OF_ADONIUS, 1);
 						qs.setCond(4, true);
 						htmltext = "30377-05.html";
 					}

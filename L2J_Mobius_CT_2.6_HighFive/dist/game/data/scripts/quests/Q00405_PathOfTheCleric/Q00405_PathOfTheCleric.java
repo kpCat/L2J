@@ -96,7 +96,7 @@ public class Q00405_PathOfTheCleric extends Quest
 						else
 						{
 							qs.startQuest();
-							giveItems(player, LETTER_OF_ORDER_1ST, 1);
+							giveItemsWithoutQuestRate(player, LETTER_OF_ORDER_1ST, 1);
 							htmltext = "30022-05.htm";
 						}
 					}
@@ -165,7 +165,7 @@ public class Q00405_PathOfTheCleric extends Quest
 						giveAdena(player, 163800, true);
 						takeItems(player, LETTER_OF_ORDER_2ND, 1);
 						takeItems(player, LEMONIELLS_COVENANT, 1);
-						giveItems(player, MARK_OF_FAITH, 1);
+						giveItemsWithoutQuestRate(player, MARK_OF_FAITH, 1);
 						final int level = player.getLevel();
 						if (level >= 20)
 						{
@@ -189,7 +189,7 @@ public class Q00405_PathOfTheCleric extends Quest
 						if (hasQuestItems(player, BOOK_OF_VIVYAN, BOOK_OF_SIMPLON, BOOK_OF_PRAGA))
 						{
 							takeItems(player, LETTER_OF_ORDER_1ST, 1);
-							giveItems(player, LETTER_OF_ORDER_2ND, 1);
+							giveItemsWithoutQuestRate(player, LETTER_OF_ORDER_2ND, 1);
 							takeItems(player, BOOK_OF_VIVYAN, 1);
 							takeItems(player, BOOK_OF_SIMPLON, -1);
 							takeItems(player, BOOK_OF_PRAGA, 1);
@@ -210,7 +210,7 @@ public class Q00405_PathOfTheCleric extends Quest
 						if (!hasQuestItems(player, CERTIFICATE_OF_GALLINT) && hasQuestItems(player, LIONELS_BOOK))
 						{
 							takeItems(player, LIONELS_BOOK, 1);
-							giveItems(player, CERTIFICATE_OF_GALLINT, 1);
+							giveItemsWithoutQuestRate(player, CERTIFICATE_OF_GALLINT, 1);
 							qs.setCond(5, true);
 							htmltext = "30017-01.html";
 						}
@@ -227,7 +227,7 @@ public class Q00405_PathOfTheCleric extends Quest
 					{
 						if (!hasQuestItems(player, BOOK_OF_VIVYAN))
 						{
-							giveItems(player, BOOK_OF_VIVYAN, 1);
+							giveItemsWithoutQuestRate(player, BOOK_OF_VIVYAN, 1);
 							if ((getQuestItemsCount(player, BOOK_OF_SIMPLON) >= 3) && (getQuestItemsCount(player, BOOK_OF_VIVYAN) >= 0) && (getQuestItemsCount(player, BOOK_OF_PRAGA) >= 1))
 							{
 								qs.setCond(2, true);
@@ -248,7 +248,7 @@ public class Q00405_PathOfTheCleric extends Quest
 					{
 						if (!hasQuestItems(player, BOOK_OF_SIMPLON))
 						{
-							giveItems(player, BOOK_OF_SIMPLON, 3);
+							giveItemsWithoutQuestRate(player, BOOK_OF_SIMPLON, 3);
 							if ((getQuestItemsCount(player, BOOK_OF_SIMPLON) >= 0) && (getQuestItemsCount(player, BOOK_OF_VIVYAN) >= 1) && (getQuestItemsCount(player, BOOK_OF_PRAGA) >= 1))
 							{
 								qs.setCond(2, true);
@@ -269,7 +269,7 @@ public class Q00405_PathOfTheCleric extends Quest
 					{
 						if (!hasAtLeastOneQuestItem(player, BOOK_OF_PRAGA, NECKLACE_OF_MOTHER))
 						{
-							giveItems(player, NECKLACE_OF_MOTHER, 1);
+							giveItemsWithoutQuestRate(player, NECKLACE_OF_MOTHER, 1);
 							htmltext = "30333-01.html";
 						}
 						else if (!hasAtLeastOneQuestItem(player, BOOK_OF_PRAGA, PENDANT_OF_MOTHER) && hasQuestItems(player, NECKLACE_OF_MOTHER))
@@ -278,7 +278,7 @@ public class Q00405_PathOfTheCleric extends Quest
 						}
 						else if (!hasQuestItems(player, BOOK_OF_PRAGA) && hasQuestItems(player, NECKLACE_OF_MOTHER, PENDANT_OF_MOTHER))
 						{
-							giveItems(player, BOOK_OF_PRAGA, 1);
+							giveItemsWithoutQuestRate(player, BOOK_OF_PRAGA, 1);
 							takeItems(player, PENDANT_OF_MOTHER, 1);
 							takeItems(player, NECKLACE_OF_MOTHER, 1);
 							if ((getQuestItemsCount(player, BOOK_OF_SIMPLON) >= 3) && (getQuestItemsCount(player, BOOK_OF_VIVYAN) >= 1) && (getQuestItemsCount(player, BOOK_OF_PRAGA) >= 0))
@@ -303,7 +303,7 @@ public class Q00405_PathOfTheCleric extends Quest
 					}
 					else if (!hasAtLeastOneQuestItem(player, LIONELS_BOOK, LEMONIELLS_COVENANT, CERTIFICATE_OF_GALLINT) && hasQuestItems(player, LETTER_OF_ORDER_2ND))
 					{
-						giveItems(player, LIONELS_BOOK, 1);
+						giveItemsWithoutQuestRate(player, LIONELS_BOOK, 1);
 						qs.setCond(4, true);
 						htmltext = "30408-01.html";
 					}
@@ -314,7 +314,7 @@ public class Q00405_PathOfTheCleric extends Quest
 					else if (!hasAtLeastOneQuestItem(player, LIONELS_BOOK, LEMONIELLS_COVENANT) && hasQuestItems(player, LETTER_OF_ORDER_2ND, CERTIFICATE_OF_GALLINT))
 					{
 						takeItems(player, CERTIFICATE_OF_GALLINT, 1);
-						giveItems(player, LEMONIELLS_COVENANT, 1);
+						giveItemsWithoutQuestRate(player, LEMONIELLS_COVENANT, 1);
 						qs.setCond(6, true);
 						htmltext = "30408-04.html";
 					}

@@ -92,7 +92,7 @@ public class Q00696_ConquerTheHallOfErosion extends Quest
 					if (getQuestItemsCount(player, MARK_OF_KEUCEREUS_STAGE_2) < 1)
 					{
 						takeItems(player, MARK_OF_KEUCEREUS_STAGE_1, 1);
-						giveItems(player, MARK_OF_KEUCEREUS_STAGE_2, 1);
+						giveItemsWithoutQuestRate(player, MARK_OF_KEUCEREUS_STAGE_2, 1);
 					}
 					
 					htmltext = "32603-04.html";

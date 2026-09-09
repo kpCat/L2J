@@ -62,7 +62,7 @@ public class Q10505_JewelOfValakas extends Quest
 		if ((qs != null) && qs.isCond(1) && LocationUtil.checkIfInRange(PlayerConfig.ALT_PARTY_RANGE, npc, player, false))
 		{
 			takeItems(player, EMPTY_CRYSTAL, -1);
-			giveItems(player, FILLED_CRYSTAL_VALAKAS_ENERGY, 1);
+			giveItemsWithoutQuestRate(player, FILLED_CRYSTAL_VALAKAS_ENERGY, 1);
 			playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 			qs.setCond(2, true);
 		}
@@ -91,7 +91,7 @@ public class Q10505_JewelOfValakas extends Quest
 				case "31540-07.html":
 				{
 					qs.startQuest();
-					giveItems(player, EMPTY_CRYSTAL, 1);
+					giveItemsWithoutQuestRate(player, EMPTY_CRYSTAL, 1);
 					htmltext = event;
 					break;
 				}
@@ -142,14 +142,14 @@ public class Q10505_JewelOfValakas extends Quest
 						}
 						else
 						{
-							giveItems(player, EMPTY_CRYSTAL, 1);
+							giveItemsWithoutQuestRate(player, EMPTY_CRYSTAL, 1);
 							htmltext = "31540-09.html";
 						}
 						break;
 					}
 					case 2:
 					{
-						giveItems(player, JEWEL_OF_VALAKAS, 1);
+						rewardItems(player, JEWEL_OF_VALAKAS, 1);
 						playSound(player, QuestSound.ITEMSOUND_QUEST_ITEMGET);
 						qs.exitQuest(false, true);
 						htmltext = "31540-10.html";

@@ -107,7 +107,7 @@ public class Q00106_ForgottenTruth extends Quest
 				if (qs.isCreated())
 				{
 					qs.startQuest();
-					giveItems(player, ONYX_TALISMAN1, 1);
+					giveItemsWithoutQuestRate(player, ONYX_TALISMAN1, 1);
 					htmltext = event;
 				}
 				break;
@@ -131,7 +131,7 @@ public class Q00106_ForgottenTruth extends Quest
 			else if (!hasQuestItems(killer, ANCIENT_CLAY_TABLET))
 			{
 				qs.setCond(3, true);
-				giveItems(killer, ANCIENT_CLAY_TABLET, 1);
+				giveItemsWithoutQuestRate(killer, ANCIENT_CLAY_TABLET, 1);
 			}
 		}
 	}
@@ -170,22 +170,22 @@ public class Q00106_ForgottenTruth extends Quest
 						{
 							if ((talker.getLevel() < 25) && talker.isMageClass())
 							{
-								giveItems(talker, SPIRITSHOTS_NO_GRADE_FOR_ROOKIES);
+								rewardItems(talker, SPIRITSHOTS_NO_GRADE_FOR_ROOKIES);
 								playSound(talker, "tutorial_voice_027");
 							}
 							
 							if (!talker.isMageClass())
 							{
-								giveItems(talker, SOULSHOTS_NO_GRADE);
+								rewardItems(talker, SOULSHOTS_NO_GRADE);
 							}
 							else
 							{
-								giveItems(talker, SPIRITSHOTS_NO_GRADE);
+								rewardItems(talker, SPIRITSHOTS_NO_GRADE);
 							}
 							
 							for (ItemHolder reward : REWARDS)
 							{
-								giveItems(talker, reward);
+								rewardItems(talker, reward);
 							}
 							
 							// Newbie Guide.
@@ -209,7 +209,7 @@ public class Q00106_ForgottenTruth extends Quest
 							
 							giveAdena(talker, 10266, true);
 							addExpAndSp(talker, 24195, 2074);
-							giveItems(talker, qs.getPlayer().isMageClass() ? ELDRITCH_STAFF : ELDRITCH_DAGGER, 1);
+							rewardItems(talker, qs.getPlayer().isMageClass() ? ELDRITCH_STAFF : ELDRITCH_DAGGER, 1);
 							qs.exitQuest(false, true);
 							talker.sendPacket(new SocialAction(talker.getObjectId(), 3));
 							htmltext = "30358-07.html";
@@ -236,7 +236,7 @@ public class Q00106_ForgottenTruth extends Quest
 							{
 								qs.setCond(2, true);
 								takeItems(talker, ONYX_TALISMAN1, -1);
-								giveItems(talker, ONYX_TALISMAN2, 1);
+								giveItemsWithoutQuestRate(talker, ONYX_TALISMAN2, 1);
 								htmltext = "30133-01.html";
 							}
 							break;
@@ -255,7 +255,7 @@ public class Q00106_ForgottenTruth extends Quest
 							{
 								qs.setCond(4, true);
 								takeItems(talker, -1, ANCIENT_SCROLL, ANCIENT_CLAY_TABLET, ONYX_TALISMAN2);
-								giveItems(talker, KARTAS_TRANSLATION, 1);
+								giveItemsWithoutQuestRate(talker, KARTAS_TRANSLATION, 1);
 								htmltext = "30133-03.html";
 							}
 							break;

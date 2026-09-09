@@ -84,8 +84,8 @@ public class Q00624_TheFinestIngredientsPart1 extends Quest
 				{
 					if (qs.isCond(2) && (getQuestItemsCount(player, getRegisteredItemIds()) == 150))
 					{
-						giveItems(player, ICE_CRYSTAL, 1);
-						giveItems(player, SOY_SAUCE_JAR, 1);
+						rewardItems(player, ICE_CRYSTAL, 1);
+						giveItemsWithoutQuestRate(player, SOY_SAUCE_JAR, 1);
 						qs.exitQuest(true, true);
 						htmltext = "31521-05.html";
 					}

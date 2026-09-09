@@ -176,7 +176,7 @@ public class Q00708_PathToBecomingALordGludio extends Quest
 			}
 			else if (npc.getId() == HEADLESS_KNIGHT)
 			{
-				giveItems(killer, HEADLESS_KNIGHT_ARMOR, 1);
+				giveItemsWithoutQuestRate(killer, HEADLESS_KNIGHT_ARMOR, 1);
 				qs.setCond(7);
 			}
 		}

@@ -132,7 +132,7 @@ public class Q00327_RecoverTheFarmland extends Quest
 			case "30382-03.htm":
 			{
 				qs.startQuest();
-				giveItems(player, LEIKANS_LETTER, 1);
+				giveItemsWithoutQuestRate(player, LEIKANS_LETTER, 1);
 				qs.setCond(2);
 				html = event;
 				break;

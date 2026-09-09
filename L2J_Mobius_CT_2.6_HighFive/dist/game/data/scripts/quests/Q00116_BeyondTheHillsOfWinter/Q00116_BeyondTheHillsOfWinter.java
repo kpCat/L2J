@@ -78,7 +78,7 @@ public class Q00116_BeyondTheHillsOfWinter extends Quest
 				{
 					qs.setMemoState(2);
 					qs.setCond(2, true);
-					giveItems(player, SUPPLYING_GOODS, 1);
+					giveItemsWithoutQuestRate(player, SUPPLYING_GOODS, 1);
 					htmltext = event;
 				}
 				break;

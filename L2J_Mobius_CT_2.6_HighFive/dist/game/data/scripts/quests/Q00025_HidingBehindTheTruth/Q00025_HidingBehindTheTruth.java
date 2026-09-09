@@ -211,7 +211,7 @@ public class Q00025_HidingBehindTheTruth extends Quest
 			{
 				if (qs.isMemoState(3))
 				{
-					giveItems(player, GEMSTONE_KEY, 1);
+					giveItemsWithoutQuestRate(player, GEMSTONE_KEY, 1);
 					qs.setMemoState(6);
 					qs.setCond(5, true);
 					htmltext = event;
@@ -316,7 +316,7 @@ public class Q00025_HidingBehindTheTruth extends Quest
 			{
 				if (qs.isMemoState(8) && hasQuestItems(player, TOTEM_DOLL3, GEMSTONE_KEY))
 				{
-					giveItems(player, CONTRACT, 1);
+					giveItemsWithoutQuestRate(player, CONTRACT, 1);
 					takeItems(player, GEMSTONE_KEY, -1);
 					qs.setMemoState(9);
 					qs.setCond(9);
@@ -441,7 +441,7 @@ public class Q00025_HidingBehindTheTruth extends Quest
 			final QuestState qs = getQuestState(attacker, false);
 			if (qs.isMemoState(8) && !hasQuestItems(attacker, TOTEM_DOLL3) && (attacker.getObjectId() == npc.getScriptValue()))
 			{
-				giveItems(attacker, TOTEM_DOLL3, 1);
+				giveItemsWithoutQuestRate(attacker, TOTEM_DOLL3, 1);
 				qs.setCond(8, true);
 				npc.broadcastPacket(new NpcSay(npc.getObjectId(), ChatType.GENERAL, npc.getId(), NpcStringId.YOU_VE_ENDED_MY_IMMORTAL_LIFE_YOU_RE_PROTECTED_BY_THE_FEUDAL_LORD_AREN_T_YOU));
 				
@@ -508,7 +508,7 @@ public class Q00025_HidingBehindTheTruth extends Quest
 							{
 								if (!hasQuestItems(talker, TOTEM_DOLL2))
 								{
-									giveItems(talker, TOTEM_DOLL2, 1);
+									giveItemsWithoutQuestRate(talker, TOTEM_DOLL2, 1);
 									qs.setCond(3, true);
 									htmltext = "31522-01.html";
 								}
@@ -729,7 +729,7 @@ public class Q00025_HidingBehindTheTruth extends Quest
 					{
 						if (qs.isMemoState(11))
 						{
-							giveItems(talker, LIDAS_DRESS, 1);
+							giveItemsWithoutQuestRate(talker, LIDAS_DRESS, 1);
 							cancelQuestTimer("DESPAWN_BOX", npc, talker);
 							startQuestTimer("DESPAWN_BOX", 3000, npc, talker);
 							qs.setMemoState(12);

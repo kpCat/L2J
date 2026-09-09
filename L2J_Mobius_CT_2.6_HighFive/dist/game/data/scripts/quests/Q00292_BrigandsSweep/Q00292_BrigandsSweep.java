@@ -131,7 +131,7 @@ public class Q00292_BrigandsSweep extends Quest
 					if (giveItemRandomly(killer, npc, SUSPICIOUS_MEMO, 1, 3, 1, false))
 					{
 						playSound(killer, QuestSound.ITEMSOUND_QUEST_ITEMGET);
-						giveItems(killer, SUSPICIOUS_CONTRACT, 1);
+						giveItemsWithoutQuestRate(killer, SUSPICIOUS_CONTRACT, 1);
 						takeItems(killer, SUSPICIOUS_MEMO, -1);
 						qs.setCond(2, true);
 					}

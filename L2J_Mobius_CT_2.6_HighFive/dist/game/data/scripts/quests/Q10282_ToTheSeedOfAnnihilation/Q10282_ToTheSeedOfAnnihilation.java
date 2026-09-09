@@ -63,7 +63,7 @@ public class Q10282_ToTheSeedOfAnnihilation extends Quest
 			case "32733-07.htm":
 			{
 				qs.startQuest();
-				giveItems(player, SOA_ORDERS, 1);
+				giveItemsWithoutQuestRate(player, SOA_ORDERS, 1);
 				break;
 			}
 			case "32734-02.htm":

@@ -79,7 +79,7 @@ public class Q00170_DangerousSeduction extends Quest
 		if ((qs != null) && qs.isCond(1))
 		{
 			qs.setCond(2, true);
-			giveItems(player, NIGHTMARE_CRYSTAL, 1);
+			giveItemsWithoutQuestRate(player, NIGHTMARE_CRYSTAL, 1);
 			npc.broadcastPacket(new NpcSay(npc.getObjectId(), ChatType.NPC_GENERAL, npc.getId(), NpcStringId.SEND_MY_SOUL_TO_LICH_KING_ICARUS));
 		}
 	}

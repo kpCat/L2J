@@ -102,7 +102,7 @@ public class Q00612_BattleAgainstKetraOrcs extends Quest
 				}
 				
 				takeItems(player, MOLAR, MOLAR_COUNT);
-				giveItems(player, SEED, 20);
+				giveItemsWithoutQuestRate(player, SEED, 20);
 				break;
 			}
 			case "31377-09.html":

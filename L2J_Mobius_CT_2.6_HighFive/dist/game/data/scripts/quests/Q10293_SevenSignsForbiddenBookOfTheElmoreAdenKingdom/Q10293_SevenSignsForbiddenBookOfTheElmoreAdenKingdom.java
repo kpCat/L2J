@@ -181,7 +181,7 @@ public class Q10293_SevenSignsForbiddenBookOfTheElmoreAdenKingdom extends Quest
 				if (qs.isCond(6))
 				{
 					qs.setCond(7, true);
-					giveItems(player, SOLINAS_BIOGRAPHY, 1);
+					giveItemsWithoutQuestRate(player, SOLINAS_BIOGRAPHY, 1);
 					htmltext = event;
 				}
 				break;

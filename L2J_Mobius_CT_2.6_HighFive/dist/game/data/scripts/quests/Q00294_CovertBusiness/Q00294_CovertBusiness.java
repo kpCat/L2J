@@ -120,7 +120,7 @@ public class Q00294_CovertBusiness extends Quest
 				}
 				else
 				{
-					giveItems(talker, RING_OF_RACCOON, 1);
+					rewardItems(talker, RING_OF_RACCOON, 1);
 					html = "30534-05.html";
 				}
 				

@@ -75,7 +75,7 @@ public class Q00027_ChestCaughtWithABaitOfWind extends Quest
 				{
 					htmltext = "31570-06.htm";
 					st.setCond(2, true);
-					giveItems(player, STRANGE_BLUESPRINT, 1);
+					giveItemsWithoutQuestRate(player, STRANGE_BLUESPRINT, 1);
 					takeItems(player, BLUE_TREASURE_BOX, -1);
 				}
 				break;
@@ -84,7 +84,7 @@ public class Q00027_ChestCaughtWithABaitOfWind extends Quest
 			{
 				if (st.isCond(2) && hasQuestItems(player, STRANGE_BLUESPRINT))
 				{
-					giveItems(player, BLACK_PEARL_RING, 1);
+					rewardItems(player, BLACK_PEARL_RING, 1);
 					st.exitQuest(false, true);
 					htmltext = "31434-01.htm";
 				}
