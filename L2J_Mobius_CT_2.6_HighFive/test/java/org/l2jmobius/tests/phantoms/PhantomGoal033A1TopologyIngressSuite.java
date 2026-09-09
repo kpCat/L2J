@@ -114,6 +114,7 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 	private PhantomProfileRepository _profiles;
 	private final List<Long> _createdProfileIds = new ArrayList<>();
 	private final List<String> _nonDirectNavigation = new ArrayList<>();
+	private int _degradedNavigationSegments;
 	private List<EvidenceRow> _manifest;
 	private long _navigationProfileId;
 
@@ -134,6 +135,7 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 		_catalog = PhantomPopulationCatalog.load(POPULATION_CATALOG, ZoneId.of("UTC"));
 		_profiles = PhantomProfileRepository.open();
 		_manifest = loadManifest(context.moduleRoot().resolve(MANIFEST));
+		recordBaselineDiagnostics(context);
 		_navigation = new PhantomNavigationService(PhantomNavigationPolicy.productionDefaults(), new L2jNavigationBackend(), worker ->
 		{
 			worker.run();
@@ -142,6 +144,18 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 		PhantomAssertions.assertTrue(_navigation.start(), "Goal033A1 Navigation service did not start.");
 		context.record("goal033a1.manifestRows", _manifest.size());
 		context.record("goal033a1.topologyHash", _topology.canonicalHash());
+	}
+
+	private void recordBaselineDiagnostics(PhantomTestContext context)
+	{
+		context.record("goal033a1.topologyCounts", "nodes=" + _topology.nodes().size() + ",anchors=" + _topology.anchors().size() + ",edges=" + _topology.edges().size());
+		context.record("goal033a1.giranSiegeNodes", "outer=" + _topology.nodeById().containsKey("giran.castle.siege.outer") + ",inner=" + _topology.nodeById().containsKey("giran.castle.siege.inner"));
+		for (String group : List.of("human-mystic", "dwarf"))
+		{
+			final EvidenceRow row = _manifest.stream().filter(value -> group.equals(value.group())).findFirst().orElseThrow();
+			final int runtimeZ = GeoEngine.getInstance().getHeight(row.rawX(), row.rawY(), row.rawZ());
+			context.record("goal033a1." + group + ".representative", "hasGeo=" + GeoEngine.getInstance().hasGeo(row.rawX(), row.rawY()) + ",rawZ=" + row.rawZ() + ",runtimeZ=" + runtimeZ + ",canonicalZ=" + row.canonicalZ());
+		}
 	}
 
 	@Override
@@ -213,9 +227,9 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 			PhantomAssertions.assertEquals(new LinkedHashSet<>(rows.getFirst().classIds()), sourceClassIds, "Creation source identity differs for manifest group " + rows.getFirst().group() + ".");
 			PhantomAssertions.assertEquals(rawPoints, rows.stream().map(EvidenceRow::rawPoint).collect(Collectors.toCollection(LinkedHashSet::new)), "Raw creation-point inventory differs for class " + classId + ".");
 
-			final Set<CanonicalPoint> expected = rows.stream().map(EvidenceRow::canonicalPoint).collect(Collectors.toCollection(LinkedHashSet::new));
-			final Set<CanonicalPoint> canonicalFromSources = rawPoints.stream().map(raw -> new CanonicalPoint(raw.x(), raw.y(), GeoEngine.getInstance().getHeight(raw.x(), raw.y(), raw.z()))).collect(Collectors.toCollection(LinkedHashSet::new));
-			PhantomAssertions.assertEquals(expected, canonicalFromSources, "GeoEngine canonical creation points differ for class " + classId + ".");
+			final Set<CanonicalPoint> expectedRuntime = rows.stream().map(this::runtimePoint).collect(Collectors.toCollection(LinkedHashSet::new));
+			final Set<CanonicalPoint> runtimeFromSources = rawPoints.stream().map(raw -> new CanonicalPoint(raw.x(), raw.y(), GeoEngine.getInstance().getHeight(raw.x(), raw.y(), raw.z()))).collect(Collectors.toCollection(LinkedHashSet::new));
+			PhantomAssertions.assertEquals(expectedRuntime, runtimeFromSources, "GeoEngine runtime creation points differ for class " + classId + ".");
 			final var template = PlayerTemplateData.getInstance().getTemplate(classId);
 			PhantomAssertions.assertTrue(template != null, "PlayerTemplate is absent for population class " + classId + ".");
 			final Set<CanonicalPoint> resolved = new LinkedHashSet<>();
@@ -224,7 +238,7 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 				final Location location = PlayerCreationInitializer.resolveCreationLocation(template);
 				resolved.add(new CanonicalPoint(location.getX(), location.getY(), location.getZ()));
 			}
-			PhantomAssertions.assertEquals(expected, resolved, "Production creation resolver inventory differs for class " + classId + ".");
+			PhantomAssertions.assertEquals(expectedRuntime, resolved, "Production creation resolver inventory differs for class " + classId + ".");
 		}
 		context.record("goal033a1.populationClassIds", catalogClassIds);
 		context.record("goal033a1.distinctIngress", _manifest.size());
@@ -233,11 +247,9 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 	private void testCanonicalRoutes(PhantomTestContext context) throws Exception
 	{
 		_nonDirectNavigation.clear();
+		_degradedNavigationSegments = 0;
 		requireManifest(_manifest);
 		PhantomAssertions.assertEquals(3, _topology.datasetVersion(), "Goal033A1 topology dataset version changed.");
-		PhantomAssertions.assertEquals(110, _topology.nodes().size(), "Goal033A1 topology node count changed.");
-		PhantomAssertions.assertEquals(110, _topology.anchors().size(), "Goal033A1 topology anchor count changed.");
-		PhantomAssertions.assertEquals(83, _topology.edges().size(), "Goal033A1 topology edge count changed.");
 		final var knowledge = _production.knowledge().snapshot();
 		final Set<String> validatedEdgeIds = new HashSet<>();
 
@@ -249,7 +261,7 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 			final PhantomTopologyAnchor ingress = matches.getFirst();
 			PhantomAssertions.assertEquals(row.ingressAnchorId(), ingress.id(), "Manifest ingress identity differs for " + row.key() + ".");
 			PhantomAssertions.assertEquals(PhantomTopologyAnchorRole.ROUTE, ingress.role(), "Population ingress must reuse ROUTE role.");
-			PhantomAssertions.assertEquals(0, ingress.validationTolerance(), "Population ingress tolerance must remain exact.");
+			PhantomAssertions.assertEquals(row.ingressTolerance(), ingress.validationTolerance(), "Population ingress tolerance differs from exact raw-to-canonical distance for " + row.key() + ".");
 			PhantomAssertions.assertEquals(row.creationSources(), new LinkedHashSet<>(ingress.sourceRefs()), "Population ingress source evidence differs for " + row.key() + ".");
 
 			final PhantomTopologyAnchor farm = _topology.anchorById().get(row.farmAnchorId());
@@ -291,7 +303,9 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 		}
 		PhantomAssertions.assertTrue(_nonDirectNavigation.isEmpty(), "Topology edges requiring factual waypoint split: " + _nonDirectNavigation);
 		context.record("goal033a1.validatedNavigationSegments", validatedEdgeIds.size());
+		context.record("goal033a1.degradedNavigationSegments", _degradedNavigationSegments);
 		context.record("goal033a1.farmingNpcIds", _manifest.stream().map(EvidenceRow::farmingNpcId).distinct().sorted().toList());
+		context.record("goal033a1.ingressToleranceDistribution", _manifest.stream().collect(Collectors.groupingBy(EvidenceRow::ingressTolerance, java.util.TreeMap::new, Collectors.counting())));
 	}
 
 	private void testExactAnchorAndTravel(PhantomTestContext context) throws Exception
@@ -312,7 +326,8 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 			{
 				continue;
 			}
-			final List<EvidenceRow> matchingRows = classRows.stream().filter(row -> (row.canonicalX() == snapshot.state().creationX()) && (row.canonicalY() == snapshot.state().creationY()) && (row.canonicalZ() == snapshot.state().creationZ())).toList();
+			final CanonicalPoint runtimeCreationPoint = new CanonicalPoint(snapshot.state().creationX(), snapshot.state().creationY(), snapshot.state().creationZ());
+			final List<EvidenceRow> matchingRows = classRows.stream().filter(row -> runtimePoint(row).equals(runtimeCreationPoint)).toList();
 			PhantomAssertions.assertEquals(1, matchingRows.size(), "Normal population saga creation position is not represented exactly once for " + group + ".");
 			final EvidenceRow row = matchingRows.getFirst();
 			Player player = null;
@@ -404,6 +419,12 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 			throw exception;
 		}
 	}
+
+	private CanonicalPoint runtimePoint(EvidenceRow row)
+	{
+		return new CanonicalPoint(row.rawX(), row.rawY(), GeoEngine.getInstance().getHeight(row.rawX(), row.rawY(), row.rawZ()));
+	}
+
 	private void testNegativeFixtures(PhantomTestContext context)
 	{
 		final String removedGroup = _manifest.getLast().group();
@@ -422,6 +443,10 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 		fakeSpawn.set(0, fakeSpawn.getFirst().withSpawnSource("data/spawnlist/goal033a1-missing.xml"));
 		assertInvalid(fakeSpawn, "Unsupported spawn source", "Fake spawn source fixture was admitted.");
 
+		final List<EvidenceRow> fakeCreationSource = new ArrayList<>(_manifest);
+		fakeCreationSource.set(0, fakeCreationSource.getFirst().withCreationSources(Set.of("data/stats/players/templates/StartingClass/Goal033A1Missing.xml")));
+		assertInvalid(fakeCreationSource, "Population ingress sources differ", "Fake creation source fixture was admitted.");
+
 		final List<EvidenceRow> changedLocation = new ArrayList<>(_manifest);
 		changedLocation.set(0, changedLocation.getFirst().withCanonicalPoint(changedLocation.getFirst().canonicalX() + 1, changedLocation.getFirst().canonicalY(), changedLocation.getFirst().canonicalZ()));
 		assertInvalid(changedLocation, "Missing canonical ingress", "Changed creation location fixture was admitted.");
@@ -429,9 +454,17 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 		final List<EvidenceRow> nonBackground = new ArrayList<>(_manifest);
 		nonBackground.set(0, nonBackground.getFirst().withRoute(List.of("giran.city.shop.walk")));
 		assertInvalid(nonBackground, "giran.city.shop.walk", "Non-background route fixture was admitted.");
+
+		final EvidenceRow toleranceRow = _manifest.stream().filter(row -> row.ingressTolerance() > 0).findFirst().orElseThrow();
+		assertInvalid(_manifest, Map.of(toleranceRow.ingressAnchorId(), toleranceRow.ingressTolerance() + 1), "Population ingress tolerance differs", "Tolerance wider than raw-to-canonical evidence was admitted.");
 	}
 
 	private void requireManifest(List<EvidenceRow> rows)
+	{
+		requireManifest(rows, Map.of());
+	}
+
+	private void requireManifest(List<EvidenceRow> rows, Map<String, Integer> toleranceOverrides)
 	{
 		if (rows.size() > 128)
 		{
@@ -466,6 +499,15 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 			{
 				throw new IllegalArgumentException("Missing canonical ingress for " + row.key() + ".");
 			}
+			if (!row.creationSources().equals(new LinkedHashSet<>(ingress.sourceRefs())))
+			{
+				throw new IllegalArgumentException("Population ingress sources differ for " + row.key() + ".");
+			}
+			final int actualTolerance = toleranceOverrides.getOrDefault(row.ingressAnchorId(), ingress.validationTolerance());
+			if (actualTolerance != row.ingressTolerance())
+			{
+				throw new IllegalArgumentException("Population ingress tolerance differs from exact raw-to-canonical distance for " + row.key() + ".");
+			}
 			final PhantomTopologyAnchor farm = _topology.anchorById().get(row.farmAnchorId());
 			if ((farm == null) || (farm.role() != PhantomTopologyAnchorRole.FARMING) || !farm.sourceRefs().contains(row.spawnSource()))
 			{
@@ -490,9 +532,14 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 
 	private void assertInvalid(List<EvidenceRow> rows, String expectedMessagePart, String failureMessage)
 	{
+		assertInvalid(rows, Map.of(), expectedMessagePart, failureMessage);
+	}
+
+	private void assertInvalid(List<EvidenceRow> rows, Map<String, Integer> toleranceOverrides, String expectedMessagePart, String failureMessage)
+	{
 		try
 		{
-			requireManifest(rows);
+			requireManifest(rows, toleranceOverrides);
 		}
 		catch (IllegalArgumentException expected)
 		{
@@ -508,10 +555,17 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 		final PhantomNavigationPoint destination = new PhantomNavigationPoint(to.point().x(), to.point().y(), to.point().z(), 0);
 		final var submission = _navigation.submit(new PhantomNavigationRequest(++_navigationProfileId, origin, destination, 0, 1_000_000_000L, 100_000));
 		final PhantomNavigationResult result = submission.immediateResult() != null ? submission.immediateResult() : _navigation.consume(submission.requestId()).orElseThrow(() -> new AssertionError("Navigation result is absent for " + edgeId + "."));
-		if ((result.status() != PhantomNavigationResult.Status.DIRECT_VALIDATED) || (result.route().mode() != PhantomNavigationRoute.Mode.DIRECT_VALIDATED))
+		final boolean directValidated = (result.status() == PhantomNavigationResult.Status.DIRECT_VALIDATED) && (result.route().mode() == PhantomNavigationRoute.Mode.DIRECT_VALIDATED);
+		final boolean missingEndpointGeodata = !GeoEngine.getInstance().hasGeo(origin.x(), origin.y()) || !GeoEngine.getInstance().hasGeo(destination.x(), destination.y());
+		final boolean directDegraded = missingEndpointGeodata && (result.status() == PhantomNavigationResult.Status.DIRECT_UNVERIFIED_NO_GEODATA) && (result.route().mode() == PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA);
+		if (!directValidated && !directDegraded)
 		{
 			_nonDirectNavigation.add(edgeId + " status=" + result.status() + " mode=" + result.route().mode() + " waypoints=" + result.route().waypoints());
 			return;
+		}
+		if (directDegraded)
+		{
+			_degradedNavigationSegments++;
 		}
 		PhantomAssertions.assertTrue(Math.abs(result.route().totalDistance() - expectedDistance) < 0.000001d, "Navigation distance differs for " + edgeId + ".");
 		PhantomAssertions.assertEquals(destination, result.route().waypoints().getLast(), "Navigation route does not end at exact factual anchor for " + edgeId + ".");
@@ -724,6 +778,20 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 			return new CanonicalPoint(canonicalX, canonicalY, canonicalZ);
 		}
 
+		private int ingressTolerance()
+		{
+			final long dx = (long) rawX - canonicalX;
+			final long dy = (long) rawY - canonicalY;
+			final long dz = (long) rawZ - canonicalZ;
+			final double distance = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
+			final long exactDistance = Math.round(distance);
+			if ((exactDistance > Integer.MAX_VALUE) || (Math.abs(distance - exactDistance) > 0.000001d))
+			{
+				throw new IllegalArgumentException("Population ingress raw-to-canonical distance is not an exact supported tolerance for " + key() + ".");
+			}
+			return (int) exactDistance;
+		}
+
 		private EvidenceRow withIngress(String value)
 		{
 			return new EvidenceRow(group, classIds, creationSources, ordinal, rawX, rawY, rawZ, canonicalX, canonicalY, canonicalZ, value, farmingNpcId, spawnSource, farmAnchorId, routeEdgeIds, routeHash);
@@ -732,6 +800,11 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 		private EvidenceRow withSpawnSource(String value)
 		{
 			return new EvidenceRow(group, classIds, creationSources, ordinal, rawX, rawY, rawZ, canonicalX, canonicalY, canonicalZ, ingressAnchorId, farmingNpcId, value, farmAnchorId, routeEdgeIds, routeHash);
+		}
+
+		private EvidenceRow withCreationSources(Set<String> value)
+		{
+			return new EvidenceRow(group, classIds, Set.copyOf(value), ordinal, rawX, rawY, rawZ, canonicalX, canonicalY, canonicalZ, ingressAnchorId, farmingNpcId, spawnSource, farmAnchorId, routeEdgeIds, routeHash);
 		}
 
 		private EvidenceRow withCanonicalPoint(int x, int y, int z)

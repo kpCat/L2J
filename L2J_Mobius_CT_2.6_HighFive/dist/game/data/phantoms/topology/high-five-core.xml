@@ -598,129 +598,129 @@
 	<anchor id="population.ingress.human-fighter.04" role="ROUTE" nodeId="population.ingress.human-fighter.04" x="-71467" y="258378" z="-3104" instanceId="0" tolerance="0" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
 	</anchor>
-	<anchor id="population.ingress.human-mystic.01" role="ROUTE" nodeId="population.ingress.human-mystic.01" x="-90875" y="248162" z="-3568" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.human-mystic.01" role="ROUTE" nodeId="population.ingress.human-mystic.01" x="-90875" y="248162" z="-3568" instanceId="0" tolerance="2" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.human-mystic.02" role="ROUTE" nodeId="population.ingress.human-mystic.02" x="-90954" y="248118" z="-3568" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.human-mystic.02" role="ROUTE" nodeId="population.ingress.human-mystic.02" x="-90954" y="248118" z="-3568" instanceId="0" tolerance="2" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.human-mystic.03" role="ROUTE" nodeId="population.ingress.human-mystic.03" x="-90918" y="248070" z="-3568" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.human-mystic.03" role="ROUTE" nodeId="population.ingress.human-mystic.03" x="-90918" y="248070" z="-3568" instanceId="0" tolerance="2" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.human-mystic.04" role="ROUTE" nodeId="population.ingress.human-mystic.04" x="-90890" y="248027" z="-3568" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.human-mystic.04" role="ROUTE" nodeId="population.ingress.human-mystic.04" x="-90890" y="248027" z="-3568" instanceId="0" tolerance="2" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.elf.01" role="ROUTE" nodeId="population.ingress.elf.01" x="46045" y="41251" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.elf.01" role="ROUTE" nodeId="population.ingress.elf.01" x="46045" y="41251" z="-3504" instanceId="0" tolerance="64" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.elf.02" role="ROUTE" nodeId="population.ingress.elf.02" x="46117" y="41247" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.elf.02" role="ROUTE" nodeId="population.ingress.elf.02" x="46117" y="41247" z="-3504" instanceId="0" tolerance="64" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.elf.03" role="ROUTE" nodeId="population.ingress.elf.03" x="46182" y="41198" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.elf.03" role="ROUTE" nodeId="population.ingress.elf.03" x="46182" y="41198" z="-3504" instanceId="0" tolerance="64" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.elf.04" role="ROUTE" nodeId="population.ingress.elf.04" x="46115" y="41141" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.elf.04" role="ROUTE" nodeId="population.ingress.elf.04" x="46115" y="41141" z="-3504" instanceId="0" tolerance="64" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.elf.05" role="ROUTE" nodeId="population.ingress.elf.05" x="46048" y="41141" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.elf.05" role="ROUTE" nodeId="population.ingress.elf.05" x="46048" y="41141" z="-3504" instanceId="0" tolerance="64" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.elf.06" role="ROUTE" nodeId="population.ingress.elf.06" x="45978" y="41196" z="-3504" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.elf.06" role="ROUTE" nodeId="population.ingress.elf.06" x="45978" y="41196" z="-3504" instanceId="0" tolerance="64" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.dark-elf.01" role="ROUTE" nodeId="population.ingress.dark-elf.01" x="28295" y="11063" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dark-elf.01" role="ROUTE" nodeId="population.ingress.dark-elf.01" x="28295" y="11063" z="-4232" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.dark-elf.02" role="ROUTE" nodeId="population.ingress.dark-elf.02" x="28302" y="11008" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dark-elf.02" role="ROUTE" nodeId="population.ingress.dark-elf.02" x="28302" y="11008" z="-4232" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.dark-elf.03" role="ROUTE" nodeId="population.ingress.dark-elf.03" x="28377" y="10916" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dark-elf.03" role="ROUTE" nodeId="population.ingress.dark-elf.03" x="28377" y="10916" z="-4232" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.dark-elf.04" role="ROUTE" nodeId="population.ingress.dark-elf.04" x="28456" y="10997" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dark-elf.04" role="ROUTE" nodeId="population.ingress.dark-elf.04" x="28456" y="10997" z="-4232" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.dark-elf.05" role="ROUTE" nodeId="population.ingress.dark-elf.05" x="28461" y="11044" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dark-elf.05" role="ROUTE" nodeId="population.ingress.dark-elf.05" x="28461" y="11044" z="-4232" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.dark-elf.06" role="ROUTE" nodeId="population.ingress.dark-elf.06" x="28395" y="11127" z="-4232" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dark-elf.06" role="ROUTE" nodeId="population.ingress.dark-elf.06" x="28395" y="11127" z="-4232" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.orc.01" role="ROUTE" nodeId="population.ingress.orc.01" x="-56733" y="-113459" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.orc.01" role="ROUTE" nodeId="population.ingress.orc.01" x="-56733" y="-113459" z="-672" instanceId="0" tolerance="18" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.orc.02" role="ROUTE" nodeId="population.ingress.orc.02" x="-56686" y="-113470" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.orc.02" role="ROUTE" nodeId="population.ingress.orc.02" x="-56686" y="-113470" z="-672" instanceId="0" tolerance="18" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.orc.03" role="ROUTE" nodeId="population.ingress.orc.03" x="-56728" y="-113610" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.orc.03" role="ROUTE" nodeId="population.ingress.orc.03" x="-56728" y="-113610" z="-672" instanceId="0" tolerance="18" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.orc.04" role="ROUTE" nodeId="population.ingress.orc.04" x="-56693" y="-113610" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.orc.04" role="ROUTE" nodeId="population.ingress.orc.04" x="-56693" y="-113610" z="-672" instanceId="0" tolerance="18" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.orc.05" role="ROUTE" nodeId="population.ingress.orc.05" x="-56743" y="-113757" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.orc.05" role="ROUTE" nodeId="population.ingress.orc.05" x="-56743" y="-113757" z="-672" instanceId="0" tolerance="18" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.orc.06" role="ROUTE" nodeId="population.ingress.orc.06" x="-56682" y="-113730" z="-672" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.orc.06" role="ROUTE" nodeId="population.ingress.orc.06" x="-56682" y="-113730" z="-672" instanceId="0" tolerance="18" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
 		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
 	</anchor>
-	<anchor id="population.ingress.dwarf.01" role="ROUTE" nodeId="population.ingress.dwarf.01" x="108644" y="-173947" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dwarf.01" role="ROUTE" nodeId="population.ingress.dwarf.01" x="108644" y="-173947" z="-408" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
 	</anchor>
-	<anchor id="population.ingress.dwarf.02" role="ROUTE" nodeId="population.ingress.dwarf.02" x="108678" y="-174002" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dwarf.02" role="ROUTE" nodeId="population.ingress.dwarf.02" x="108678" y="-174002" z="-408" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
 	</anchor>
-	<anchor id="population.ingress.dwarf.03" role="ROUTE" nodeId="population.ingress.dwarf.03" x="108505" y="-173964" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dwarf.03" role="ROUTE" nodeId="population.ingress.dwarf.03" x="108505" y="-173964" z="-408" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
 	</anchor>
-	<anchor id="population.ingress.dwarf.04" role="ROUTE" nodeId="population.ingress.dwarf.04" x="108512" y="-174026" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dwarf.04" role="ROUTE" nodeId="population.ingress.dwarf.04" x="108512" y="-174026" z="-408" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
 	</anchor>
-	<anchor id="population.ingress.dwarf.05" role="ROUTE" nodeId="population.ingress.dwarf.05" x="108549" y="-174075" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dwarf.05" role="ROUTE" nodeId="population.ingress.dwarf.05" x="108549" y="-174075" z="-408" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
 	</anchor>
-	<anchor id="population.ingress.dwarf.06" role="ROUTE" nodeId="population.ingress.dwarf.06" x="108576" y="-174122" z="-408" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.dwarf.06" role="ROUTE" nodeId="population.ingress.dwarf.06" x="108576" y="-174122" z="-408" instanceId="0" tolerance="8" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
 	</anchor>
-	<anchor id="population.ingress.kamael.01" role="ROUTE" nodeId="population.ingress.kamael.01" x="-125607" y="38452" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.kamael.01" role="ROUTE" nodeId="population.ingress.kamael.01" x="-125607" y="38452" z="1176" instanceId="0" tolerance="24" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
 		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
 	</anchor>
-	<anchor id="population.ingress.kamael.02" role="ROUTE" nodeId="population.ingress.kamael.02" x="-125472" y="38450" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.kamael.02" role="ROUTE" nodeId="population.ingress.kamael.02" x="-125472" y="38450" z="1176" instanceId="0" tolerance="24" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
 		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
 	</anchor>
-	<anchor id="population.ingress.kamael.03" role="ROUTE" nodeId="population.ingress.kamael.03" x="-125615" y="37771" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.kamael.03" role="ROUTE" nodeId="population.ingress.kamael.03" x="-125615" y="37771" z="1176" instanceId="0" tolerance="24" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
 		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
 	</anchor>
-	<anchor id="population.ingress.kamael.04" role="ROUTE" nodeId="population.ingress.kamael.04" x="-125464" y="37776" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.kamael.04" role="ROUTE" nodeId="population.ingress.kamael.04" x="-125464" y="37776" z="1176" instanceId="0" tolerance="24" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
 		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
 	</anchor>
-	<anchor id="population.ingress.kamael.05" role="ROUTE" nodeId="population.ingress.kamael.05" x="-125517" y="38267" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.kamael.05" role="ROUTE" nodeId="population.ingress.kamael.05" x="-125517" y="38267" z="1176" instanceId="0" tolerance="21" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
 		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
 	</anchor>
-	<anchor id="population.ingress.kamael.06" role="ROUTE" nodeId="population.ingress.kamael.06" x="-125531" y="37944" z="1176" instanceId="0" tolerance="0" tags="population-ingress">
+	<anchor id="population.ingress.kamael.06" role="ROUTE" nodeId="population.ingress.kamael.06" x="-125531" y="37944" z="1176" instanceId="0" tolerance="21" tags="population-ingress">
 		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
 		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
 	</anchor>

@@ -6,33 +6,46 @@ Status: **BLOCKED**
 
 Ветка: `feature/phantom-world`
 
-Required parent / проверенный `HEAD` / `origin/feature/phantom-world`: `ba692bd0a5e86fbbfe5f87c9c851f3a629e4d5a1`
+Исходный required parent: `ba692bd0a5e86fbbfe5f87c9c851f3a629e4d5a1`
 
-Blocker: `BLOCKED_GOAL039_GOAL033A1_CURRENT_HEAD_DRIFT`
+Опубликованный blocker baseline: `1ceb045c663a4d6877d2fc8de06822bd78b4769e`
+
+Blocker: `BLOCKED_GOAL039_RESUME1_BACKGROUND_POSITION_NO_GEODATA`
 
 ## Решение
 
-Goal039 остановлен на первом обязательном domain gate. Production feature fix в
-этом final gate не вносился. Единственный допустимый следующий шаг — bounded
-Goal039 resume после отдельного исправления или reconciliation точного
-Goal033A1 topology-ingress blocker. Новый Goal не создан.
+Первый Goal039 blocker исправлен в Resume-1, но следующий обязательный focused
+gate на clean no-geodata candidate выявил независимый Goal015 Background
+position defect. Единственный разрешённый confirmation run воспроизвёл те же
+два failures. По stop-budget Resume-1 не исправляет вторую family, не запускает
+оставшиеся focused и expensive этапы и сохраняет Goal039 в состоянии `BLOCKED`.
+Новый Goal не создан.
 
-## Clean candidate и scope
+## Хронология и публикационный gate
 
-Release candidate создан read-only командой `git archive` из exact required
-parent в task-owned каталоге
-`.phantom-local/goal039-rc-20260909-191843/L2J_Mobius_CT_2.6_HighFive`.
-Runtime overlay содержал только `build.xml`, Goal039 suite/launcher и финальную
-TSV-матрицу. SHA-256 manifest этого проверенного runtime overlay:
-`36dbbcb0885328f10adaf5bb8e357146a31119773a18636e1e9b111252b28c1c`.
+Исходный Goal039 остановился на Goal033A1 `1/4`: suite владел устаревшими total
+topology counts `110/110`, а creation/ingress contract предполагал наличие
+geodata. Blocker commit `1ceb045c...` имел required parent `ba692bd...`.
 
-Для совместимости schema guard 121 clean tracked SQL input был перенесён из
-checkout-normalized представления тех же байтов Git; все три schema roots перед
-копированием имели clean exact-path status. Manifest сохранён как
-`checkout-normalized-schema-inputs.tsv`; schema aggregate в обоих DB-backed
-запусках — `394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E`.
+Перед Resume-1 выполнены bounded `fetch` и проверка remote ref. Origin был на
+`ba692bd...`, после чего ровно один разрешённый non-force push опубликовал
+существующий commit `1ceb045c...`. Resume-1 edits начались только после
+`origin/feature/phantom-world == 1ceb045c...`.
 
-Из candidate и всех release artifacts исключены существовавшие до Goal039
+## Clean candidates и сохранение пользовательского дерева
+
+No-geodata candidate экспортирован read-only `git archive` из exact
+`1ceb045c...` в `.phantom-local/r1/L2J_Mobius_CT_2.6_HighFive`. В candidate
+перенесены только Resume-1 code/data overlay, guarded `Database.test.ini`, schema
+manifest и 121 checkout-normalized clean SQL input. Schema aggregate:
+`394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E`.
+
+Второй candidate создан из того же archive и того же code/data overlay в
+`.phantom-local/r1g/L2J_Mobius_CT_2.6_HighFive`. Дополнительно в него скопированы
+только 203 внешних `.l2j` geodata files общим размером `1063452308` bytes.
+Geodata не входит в commit.
+
+Из обоих candidates и task-owned artifacts исключены существовавшие до Resume-1
 пользовательские изменения:
 
 - `java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java`;
@@ -40,16 +53,42 @@ checkout-normalized представления тех же байтов Git; в�
 - `test/java/org/l2jmobius/tests/phantoms/PhantomMultipartyEconomySuite.java`;
 - все pre-existing untracked task packages и launcher files.
 
-Goal030 historical matrix не менялась: 20/20 строк сохранены со статусом `PASS`,
-raw committed SHA-256 —
-`fd891490e7bed44dba7d33f1b72d5c1de46ff67003190b31d22b7dd96206e64e`.
-Goal039 declared-scope matrix содержит 28 строк: historical 20 `PASS`,
-safe-defaults 1 `PASS`, ecology 1 `BLOCKED`, остальные 6
-`NOT_RUN_BLOCKED`.
+## Resume-1 root cause и correction
 
-Production Java/data/config не изменялись. Из build/runtime test surface добавлены
-только Goal039 orchestration targets, launcher routes, machine-readable matrix и
-её validator suite.
+Baseline diagnostics подтвердили одну заявленную Goal033A1 family:
+
+- whole-corpus owner фактически содержит `112 nodes / 113 anchors / 83 edges`;
+- новые Giran siege outer/inner nodes присутствуют и не относятся к Goal033A1;
+- без geodata Human Mystic сохраняет raw Z `-3570` вместо historical canonical
+  `-3568`;
+- без geodata Dwarf сохраняет raw Z `-400` вместо historical canonical `-408`.
+
+Goal033A1 больше не утверждает global topology cardinality. Suite по-прежнему
+проверяет собственный полный slice: 11 starting classes, 38 manifest rows,
+unique ingress IDs/positions, exact sources, farms, route IDs, route hashes,
+contiguity, cost/travel rules, семь normal population saga groups и fail-closed
+negative fixtures. Runtime point теперь явно отделён от source raw point и
+historical geodata-normalized canonical point.
+
+Из production data изменены только 34 ненулевых `population-ingress` tolerance
+в `high-five-core.xml`; четыре zero-delta Human Fighter anchors остались `0`.
+Каждый из 38 tolerance равен точному manifest raw↔canonical расстоянию. Текущие
+X/Y одинаковы, поэтому распределение `abs(rawZ-canonicalZ)` равно:
+
+- `0 × 4`;
+- `2 × 4`;
+- `8 × 12`;
+- `18 × 6`;
+- `21 × 2`;
+- `24 × 4`;
+- `64 × 6`.
+
+Generic `exactAnchor`, `PlayerCreationInitializer`, `PhantomPopulationStore`,
+Player coordinates и `high-five-siege.xml` не менялись. No-geodata navigation
+принимается suite только как официальный `DIRECT_UNVERIFIED_NO_GEODATA`, когда
+geodata действительно отсутствует у endpoint; IDs, endpoint, distance и весь
+route evidence остаются строгими. При наличии geodata требуется и получен
+`DIRECT_VALIDATED`.
 
 ## Safe defaults и static phase
 
@@ -61,7 +100,7 @@ Shipped defaults подтверждены:
 - mature conversation `OFF`;
 - destructive DB preparation отсутствует в Goal039 aggregate routes.
 
-Fresh clean-candidate static phase: **22/22 PASS**:
+Исходная fresh clean-candidate static phase: **22/22 PASS**:
 
 - Goal039 structure/static suite: `3/3`;
 - Goal031 local-play preflight: `8/8`;
@@ -70,79 +109,104 @@ Fresh clean-candidate static phase: **22/22 PASS**:
 - Goal030 release baseline: `3/3`;
 - DB guard negative control: `1/1`.
 
-## Exact blocker evidence
+## Focused результаты
 
-Первый domain target `phantom-canonical-population-topology-ingress-goal033a1-test`
-завершился **1/4**. Разрешённый stop-budget focused confirmation того же target
-повторил **1/4** с тем же seed `33003311`, topology hash
-`aa35060a80c4ee1e3161d8826931e0144a98ba4925c28d1d3d40f74cde69f3e2`
-и теми же failures:
+Clean no-geodata candidate:
 
-1. Class 10: manifest ожидает четыре canonical point с Z `-3568`, GeoEngine
-   возвращает те же X/Y с Z `-3570`.
-2. Topology snapshot: ожидается `110` nodes, фактически `112`.
-3. Normal population saga: dwarf creation ожидает один exact manifest match,
-   фактически `0`.
+- Goal033A1 topology ingress: **4/4 PASS**;
+- unique production exactAnchor: семь из семи групп;
+- 80 из 80 factual route segments проверены, все 80 в официальном DEGRADED
+  mode из-за отсутствия geodata;
+- topology production corpus: **7/7 PASS**, `112/113/83`;
+- Background production audit: **1/1 PASS**;
+- Background position canonicalization: **0/2 FAIL**;
+- единственный confirmation run Background position: **0/2 FAIL** с теми же
+  diagnostics.
 
-Fail-closed evidence fixtures прошли `1/1`. Результат воспроизведён на exact
-clean candidate, поэтому классифицирован как mandatory current-HEAD contract
-drift, а не как transient test-order эффект.
+Geodata-present candidate:
+
+- Goal033A1 topology ingress: **4/4 PASS**;
+- representative Human Mystic/Dwarf: `hasGeo=true`, runtime Z равен canonical Z;
+- 80 из 80 route segments `DIRECT_VALIDATED`, DEGRADED segments `0`;
+- topology production corpus: **7/7 PASS**, `112/113/83`;
+- Background position canonicalization: **2/2 PASS**.
+
+## Новый независимый blocker
+
+Clean no-geodata Background position suite дважды воспроизвела:
+
+1. production farming anchor factual Z `-3061` при identity GeoEngine fallback
+   остаётся `-3061`, а historical Goal015 assertion требует geodata-normalized
+   Z `-3056`;
+2. malformed arrival fixture с tolerance `0` при identity fallback считается
+   stable canonical position, тогда как suite ожидает rejection.
+
+Это не population-ingress data и не Goal033A1 ownership. Geodata-present
+Background position `2/2` подтверждает зависимость именно от отдельного
+Goal015 canonical committed-anchor contract. Исправлять эту вторую family в
+Resume-1 запрещено.
 
 ## Остановленные этапы
 
-По stop-budget после подтверждения blocker не запускались:
+После confirmation blocker не запускались:
 
-- оставшиеся Goal033/033A ecology/restart/recovery gates;
-- Goal035 siege;
-- Goal036 quests/instances;
-- Goal037 rates runtime parity;
-- Goal038 Humanized/custom runtime gates;
-- Goal029 scale/endurance;
-- Goal030 rollback;
+- Navigation core и Topology core;
+- Goal033A и Goal033 focused/production-composed ecology;
+- Goal032 ownership/reseed;
+- Goal031 local-play readiness;
+- Goal030 restart/rollback controls;
+- fresh DB negative guard;
+- Goal039 safe/static повтор Resume-1;
+- Goal035–038 final-domain aggregate;
+- Goal029 scale/environment/endurance;
 - fresh full `ant verify` — `NOT_RUN_BLOCKED`, timing отсутствует;
 - standalone final JAR — `NOT_RUN_BLOCKED`, SHA-256 и bytes отсутствуют;
-- fresh Goal034 real stack — `NOT_RUN_BLOCKED`, run ID отсутствует;
-- gen1 desired/expected/online и IDs — `NOT_RUN_BLOCKED`;
-- native restart/drain — `NOT_RUN_BLOCKED`;
-- gen2 desired/expected/online и IDs — `NOT_RUN_BLOCKED`;
-- continuity — `NOT_RUN_BLOCKED`;
-- real-stack cleanup/forced/orphans/integrity — `NOT_RUN_BLOCKED`;
+- fresh Goal034 real stack — `NOT_RUN_BLOCKED`, run ID и
+  gen1/restart/gen2/continuity/cleanup evidence отсутствуют;
 - final documentation/freeze acceptance verifier — `NOT_RUN_BLOCKED`.
 
 Completion/freeze marker не выставлен; freeze document не создан.
 
-## DB safety и сохранённые artifacts
+## DB safety и evidence
 
-Оба DB-backed запуска использовали только `l2jmobiush5_phantom_test`.
+Все DB-backed запуски использовали только `127.0.0.1:3308`, базу
+`l2jmobiush5_phantom_test` и пользователя `l2j_phantom_test`.
+
 Production DB used: **NO**.
 
 `prepare-phantom-test-db`: **NOT RUN**.
 
-Evidence root:
-`.phantom-local/logs/goal039/goal039-rc-20260909-191843`.
+Evidence root: `.phantom-local/r1/evidence`.
 
 Ключевые artifacts:
 
-- `01-static-pass.log` и `static-reports/`;
-- `02-domain.log` и `domain-failure-1/goal033a1-topology-ingress.{txt,xml}`;
-- `02-goal033a1-confirm.log` и
-  `domain-confirmation/goal033a1-topology-ingress.{txt,xml}`;
-- `candidate-metadata.properties`;
-- `runtime-overlay-manifest.tsv`;
-- `checkout-normalized-schema-inputs.tsv`;
-- `blocked-overlay-manifest.tsv` после lightweight blocked-doc overlay.
+- `no-geodata/goal033a1-topology-ingress.{txt,xml}`;
+- `geodata-present/goal033a1-topology-ingress.{txt,xml}`;
+- `geodata-present/topology-corpus.{txt,xml}`;
+- `geodata-present/background-position-canonicalization.{txt,xml}`;
+- `focused-no-geodata/topology-corpus.{txt,xml}`;
+- `focused-no-geodata/background-production-audit.{txt,xml}`;
+- `blocker-background-position-run1/background-position-canonicalization.{txt,xml}`;
+- `blocker-background-position-confirmation/background-position-canonicalization.{txt,xml}`.
 
-## Финальные проверки и handoff
+## Matrix и handoff
 
-На BLOCKED-пути lightweight Goal039 structure validation прошла `3/3`
-(`BUILD SUCCESSFUL`, 17 seconds); full verify/JAR/real stack намеренно не
-подменяются. Mojibake, escaped Cyrillic, strict UTF-8/control characters,
-`git diff --check` и final candidate fingerprint проверяются перед exact-path
-commit.
+Historical Goal030 matrix остаётся byte-identical: 20/20 `PASS`, SHA-256
+`fd891490e7bed44dba7d33f1b72d5c1de46ff67003190b31d22b7dd96206e64e`.
+Goal039 declared-scope matrix сохраняет 28 строк: historical 20 `PASS`,
+safe-defaults 1 `PASS`, living/Background domain 1 `BLOCKED`, остальные 6
+`NOT_RUN_BLOCKED`.
 
-Commit с этим отчётом является Goal039 blocker-report commit; exact SHA и
-результат non-force push фиксируются в итоговом handoff. Historical reports и
-Goal030 semantics не переписывались.
+Lightweight blocked-overlay Goal039 structure validator: **3/3 PASS**,
+`BUILD SUCCESSFUL`, 18 seconds. Exact source↔clean-candidate overlay fingerprint
+comparison прошёл для всех четырёх task-owned paths.
+
+Финальные quality checks: mojibake markers отсутствуют; escaped Cyrillic
+отсутствует; strict UTF-8/control-character checks прошли; changed topology XML
+загружается strict parser; `git diff --check` прошёл.
+
+Goal034–038 historical reports и SUCCESS решения не переписывались. Goal040 не
+создан.
 
 Declared limitations Goal035–038 остаются прежними: bounded Giran, bounded
 Q102/Q152 + Q401 Fighter→Warrior, Kamaloka 57, Pailaka Q128/template 43,
