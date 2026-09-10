@@ -570,3 +570,137 @@ Escaped Cyrillic в изменённых файлах проверены: сов
 Strict UTF-8 и control-character checks прошли. Оба изменённых XML прошли
 strict parse с запрещённым DTD. `git diff --check` прошёл. Exact leaf-source,
 historical Goal036/037 report и Goal037 manifest diffs пусты.
+
+## Goal039 Resume 5 — exact supported-content bootstrap и новый Goal032 blocker
+
+Дата: 2026-09-10.
+
+Required parent / HEAD / origin:
+`8e77b4b94e0a58eafac29504a2845a96b02a3e51`.
+Ветка: `feature/phantom-world`.
+
+Operator checkout до изменений содержал три user-owned tracked change:
+
+- `java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java`;
+- `test/java/org/l2jmobius/gameserver/phantoms/PhantomClanDirectiveIntegrationGoal030C2ASuite.java`;
+- `test/java/org/l2jmobius/tests/phantoms/PhantomMultipartyEconomySuite.java`.
+
+После извлечения Resume-5 package существовало 415 user-owned untracked paths;
+они также сохранены. Все пользовательские изменения исключены из clean
+candidate и из exact-path staging Resume 5.
+
+### Root cause и реализация
+
+Baseline clean no-geodata Goal033 production-composed воспроизвёл **0/2 FAIL**
+с primary diagnostic `Supported content owner is not loaded with its exact
+identity: class.warrior-q401/profession`; второй failure был каскадным
+`Expected <10> but was <0>`.
+
+Подтверждён исходный startup-order mismatch: production `GameServer` загружает
+scripts до `PhantomSystem`, а общий headless fixture намеренно загружает только
+`ScriptEngine(effect-master-only)`. При этом Goal033 production suite запускал
+текущий `PhantomSystem` без accepted Goal036 supported-content bootstrap.
+Production defect отсутствует.
+
+Внесены ровно три test-only изменения:
+
+1. добавлен
+   `test/java/org/l2jmobius/tests/phantoms/PhantomSupportedContentScriptBootstrap.java`;
+2. `PhantomQuestInstanceGoal036Suite` делегирует ему прежний bootstrap;
+3. `PhantomPopulationEcologyProductionGoal033Suite` вызывает helper один раз
+   сразу после headless initialization и до первого `PhantomSystem` start.
+
+Production changes: **0**. Общий `PhantomHeadlessPlayerTestEnvironment`,
+`PhantomSystem`, `PhantomQuestInstanceCatalog.validateRuntime`, gameplay/data,
+config и `build.xml` не менялись. `executeScriptList()` и mock owners не
+добавлялись; runtime validation не ослаблялась.
+
+Accepted sequence сохранена буквально:
+
+1. `ScriptEngine.MASTER_HANDLER_FILE`;
+2. `quests/QuestMasterHandler.java`;
+3. `village_master/ElfHumanFighterChange1/ElfHumanFighterChange1.java`;
+4. `instances/Kamaloka/Kamaloka.java`;
+5. `instances/PailakaSongOfIceAndFire/PailakaSongOfIceAndFire.java`.
+
+Helper сразу после загрузки проверяет exact registration/identity для Q102
+`Q00102_SeaOfSporesFever`, Q152 `Q00152_ShardsOfGolem`, Q401
+`Q00401_PathOfTheWarrior`, Q128 `Q00128_PailakaSongOfIceAndFire`, а также
+`ElfHumanFighterChange1`, `Kamaloka` и `PailakaSongOfIceAndFire`.
+
+Goal036 XML и Goal033 production XML оба записали:
+
+- `supportedContentBootstrap.invocations=1`;
+- owners `Q102,Q152,Q401,Q128,ElfHumanFighterChange1,Kamaloka,PailakaSongOfIceAndFire`;
+- точную пятишаговую sequence выше.
+
+Goal033 restart bootstrap повторно не вызывал. Generic headless evidence осталось
+`ScriptEngine(effect-master-only)`, то есть общий fixture не расширен.
+
+### Focused affected gates
+
+Clean no-geodata candidate:
+
+- Goal036 focused: **8/8 PASS**;
+- Goal037 native non-1x: **8/8 PASS**;
+- Goal033 production-composed: **2/2 PASS**;
+- Goal033 focused: **9/9 PASS**;
+- Goal033A: **4/4 PASS**;
+- Goal033A1 no-geodata: **4/4 PASS**;
+- Background position no-geodata: **2/2 PASS**;
+- Goal021 quest catalog/current: **3/3 PASS**;
+- Goal021 Q102/Q152 ACTIVE: **4/4 PASS**;
+- Goal021 Q102/Q152 BACKGROUND: **4/4 PASS**;
+- Goal021 quest-focused atomic route: **1/1 PASS**;
+- Goal021 full restart/atomic: **6/6 PASS**;
+- Goal037 static: **2/2 PASS**;
+- Goal039 static/safety aggregate: **25/25 PASS**;
+- DB negative guard: **1/1 PASS**, expected exit `2`, driver loads `0`,
+  connection attempts `0`.
+
+Goal033 production evidence сохранило cold reseed 10 identities, restart с теми
+же assignments и ACTIVE set, `pending=0`, а после shutdown existing cleanup
+assertions подтвердили: configured `PhantomSystem` отсутствует,
+`phantom_profiles=0`, `phantom_profile_components=0`, headless environment и
+infrastructure pools остановлены.
+
+### Новый независимый blocker и STOP
+
+Последний обязательный affected target,
+`phantom-population-reset-reseed-goal032-test`, завершился **0/2 FAIL**.
+Primary failure:
+`Supported content owner is not loaded with its exact identity:
+class.warrior-q401/profession`. Каскадный второй failure: suite сохранил 0 вместо
+10 durable identities.
+
+Это отдельный route-specific startup seam: Goal032 suite также использует общий
+EffectMaster-only headless fixture, а затем напрямую вызывает
+`PhantomSystem.startConfiguredForTesting` без supported-content bootstrap.
+Focused target и его XML дали одно требуемое confirmation. Расширять Resume 5
+на четвёртый suite запрещает stop budget, поэтому Goal032 не изменялся.
+
+Blocker:
+`GOAL039_RESUME5_GOAL032_HEADLESS_QUEST_OWNER_NOT_LOADED`.
+
+По stop budget geodata-present gates, финальный Goal039 domain aggregate,
+Goal029 scale/environment/endurance, Goal030 rollback/release, fresh
+`ant verify`, standalone final JAR, fresh Goal034 real stack и freeze
+**NOT RUN BLOCKED**.
+
+Completion marker `FEATURE_COMPLETE_FOR_DECLARED_SCOPE` не выставлен. Final JAR
+SHA/bytes и Goal034 run ID отсутствуют. Goal040 не создан.
+
+Guarded test DB: только `127.0.0.1:3308/l2jmobiush5_phantom_test`, user
+`l2j_phantom_test`. Production DB used/probed: **NO**.
+`prepare-phantom-test-db`: **NOT RUN**.
+
+Evidence root: `.phantom-local/goal039-resume5/evidence`; сохранены Goal036,
+Goal037-native, Goal033-production и Goal032-blocker TXT/XML.
+
+Lightweight blocked-overlay `phantom-full-vision-goal039-structure-test` после
+обновления отчёта: **6/6 PASS**, `BUILD SUCCESSFUL`, 20 секунд; final matrix
+осталась незамороженной, Goal040 отсутствует.
+
+Mojibake-маркеры в изменённых файлах проверены: совпадений нет.
+Escaped Cyrillic в изменённых файлах проверены: совпадений нет.
+Strict UTF-8 и control-character checks прошли. `git diff --check` прошёл.

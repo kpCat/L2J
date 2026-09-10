@@ -1,0 +1,9 @@
+/goal Выполни Goal039 Resume 5 строго по docs/phantoms/tasks/039-resume5-goal033-native-owner-bootstrap/TASK.md.
+Required HEAD/origin: 8e77b4b94e0a58eafac29504a2845a96b02a3e51
+Branch: feature/phantom-world
+
+Exact blocker: GOAL039_RESUME4_GOAL033_HEADLESS_QUEST_OWNER_NOT_LOADED. Это test-fixture integration drift, не production bug: GameServer грузит server scripts ДО PhantomSystem, generic PhantomHeadlessPlayerTestEnvironment намеренно остаётся EffectMaster-only, а Goal033 production-composed стартует современный PhantomSystem без Goal036 native-owner prerequisites.
+
+Сделай test-only reusable bootstrap и переиспользуй РОВНО proven Goal036 sequence: MASTER_HANDLER_FILE -> quests/QuestMasterHandler.java -> village_master/ElfHumanFighterChange1/... -> instances/Kamaloka/Kamaloka.java -> instances/PailakaSongOfIceAndFire/PailakaSongOfIceAndFire.java. Goal036 должен делегировать текущие calls helper-у; Goal033 production вызывает helper один раз после headless initialize и до первого PhantomSystem start. Проверь exact Q102/Q152/Q401/Q128 + ElfHumanFighterChange1/Kamaloka/Pailaka owners. Generic headless, PhantomSystem, validateRuntime, gameplay/data/config/build НЕ менять; executeScriptList() не добавлять.
+
+После Goal036 + Goal037 native + Goal033 production 2-case + Goal033/033A/033A1/Background/Goal021/Goal037 static/Goal039 static/DB guard green продолжай исходный Goal039: final domains -> scale/endurance -> rollback -> fresh verify -> standalone final jar -> fresh Goal034 real stack на clean jar -> freeze. Новый независимый blocker = одно focused confirmation и STOP/BLOCKED. Production l2jmobiush5 запрещена; prepare-phantom-test-db не выполнять. ACCEPT => FEATURE_COMPLETE_FOR_DECLARED_SCOPE, Goal040 не создавать.

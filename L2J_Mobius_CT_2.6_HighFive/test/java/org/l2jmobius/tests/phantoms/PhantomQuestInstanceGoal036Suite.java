@@ -87,7 +87,6 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyMetrics;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
-import org.l2jmobius.gameserver.scripting.ScriptEngine;
 
 /** Focused Goal036 catalog and guarded native quest/instance acceptance. */
 public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
@@ -159,11 +158,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 				RatesConfig.RATE_QUEST_REWARD_ADENA = 4;
 				RatesConfig.RATE_QUEST_REWARD_USE_MULTIPLIERS = false;
 			}
-			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
-			ScriptEngine.getInstance().executeScript(Path.of("quests/QuestMasterHandler.java"));
-			ScriptEngine.getInstance().executeScript(Path.of("village_master/ElfHumanFighterChange1/ElfHumanFighterChange1.java"));
-			ScriptEngine.getInstance().executeScript(Path.of("instances/Kamaloka/Kamaloka.java"));
-			ScriptEngine.getInstance().executeScript(Path.of("instances/PailakaSongOfIceAndFire/PailakaSongOfIceAndFire.java"));
+			PhantomSupportedContentScriptBootstrap.loadGoal036Owners(context);
 			MapRegionData.getInstance();
 			SpawnData.getInstance();
 			DoorData.getInstance();

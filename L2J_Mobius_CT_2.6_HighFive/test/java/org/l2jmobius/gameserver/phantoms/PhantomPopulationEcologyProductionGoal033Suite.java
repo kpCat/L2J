@@ -46,6 +46,7 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.Manage
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 import org.l2jmobius.tests.phantoms.PhantomHeadlessPlayerTestEnvironment;
+import org.l2jmobius.tests.phantoms.PhantomSupportedContentScriptBootstrap;
 import org.l2jmobius.tests.phantoms.PhantomTestContext;
 import org.l2jmobius.tests.phantoms.PhantomTestRegistry;
 import org.l2jmobius.tests.phantoms.PhantomTestSuite;
@@ -93,6 +94,7 @@ public final class PhantomPopulationEcologyProductionGoal033Suite implements Pha
 		resetOperatorState();
 		_environment.initialize(context, IRRELEVANT_WORLD_TIMER_START_MILLIS);
 		_environmentInitialized = true;
+		PhantomSupportedContentScriptBootstrap.loadGoal036Owners(context);
 		_profiles = PhantomProfileRepository.open();
 		final long recoveredProfiles = scalar("SELECT COUNT(*) FROM phantom_profiles");
 		if (recoveredProfiles > 0)

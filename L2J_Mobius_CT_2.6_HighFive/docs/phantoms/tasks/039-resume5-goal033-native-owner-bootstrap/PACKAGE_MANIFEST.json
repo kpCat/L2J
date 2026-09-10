@@ -1,0 +1,47 @@
+{
+  "task": "Goal039 Resume 5 — Goal033 native-owner bootstrap",
+  "required_parent": "8e77b4b94e0a58eafac29504a2845a96b02a3e51",
+  "branch": "feature/phantom-world",
+  "blocker": "GOAL039_RESUME4_GOAL033_HEADLESS_QUEST_OWNER_NOT_LOADED",
+  "expected_production_changes": 0,
+  "success_marker": "FEATURE_COMPLETE_FOR_DECLARED_SCOPE",
+  "automatic_next_goal": null,
+  "files": [
+    {
+      "path": "docs/phantoms/tasks/039-resume5-goal033-native-owner-bootstrap/ACCEPTANCE.md",
+      "sha256": "b84f94844de3df3375d1bd42d1474dd357fdb3bea562010548b7b9925bc96db8",
+      "bytes": 2062,
+      "lines": 80
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume5-goal033-native-owner-bootstrap/BOOTSTRAP_CONTRACT.md",
+      "sha256": "a5a02a55aafa307626ba35939953adbfa3c550b6eac09a0fb308b801c4597a86",
+      "bytes": 2734,
+      "lines": 87
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume5-goal033-native-owner-bootstrap/CODEX_LAUNCHER.txt",
+      "sha256": "4d868e28fb2ac0161de8848fdd16764d727d22c4e7f670742f0b7d00474ecb59",
+      "bytes": 1993,
+      "lines": 9
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume5-goal033-native-owner-bootstrap/CONTEXT.md",
+      "sha256": "fe159e23dadc199930728b80c8ea66a0095027bc38e6d82d6a84f10568b6b2b1",
+      "bytes": 3188,
+      "lines": 111
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume5-goal033-native-owner-bootstrap/TASK.md",
+      "sha256": "957a84113d2f98c4d474aa5871b0408a82c407b719f68a0e165e37d680616b79",
+      "bytes": 3063,
+      "lines": 128
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume5-goal033-native-owner-bootstrap/TEST_PLAN.md",
+      "sha256": "0b4ca6bdab90cb077ea0eaaa0e3994dfa2fbea107eedda9005e314b74bf2043d",
+      "bytes": 4231,
+      "lines": 163
+    }
+  ]
+}
