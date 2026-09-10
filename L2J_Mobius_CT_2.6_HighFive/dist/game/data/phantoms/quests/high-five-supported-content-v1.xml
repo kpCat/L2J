@@ -2,8 +2,8 @@
 <supportedContentCatalog id="high-five-supported-content-v1" version="1">
 	<content id="class.warrior-q401" kind="CLASS_PATH" minLevel="18" maxLevel="99" races="HUMAN" classes="0" questId="401" instanceTemplateId="0" acquisitionRuleId="-">
 		<owners>
-			<owner role="profession" questId="-1" scriptName="ElfHumanFighterChange1" className="village_master.ElfHumanFighterChange1.ElfHumanFighterChange1" source="data/scripts/village_master/ElfHumanFighterChange1/ElfHumanFighterChange1.java" sourceSha256="54c8a746401e022d6ae85f2231236dc01e17c4718f9a52dcb3d189c4a4688556" />
-			<owner role="quest" questId="401" scriptName="Q00401_PathOfTheWarrior" className="quests.Q00401_PathOfTheWarrior.Q00401_PathOfTheWarrior" source="data/scripts/quests/Q00401_PathOfTheWarrior/Q00401_PathOfTheWarrior.java" sourceSha256="b2072d71b8f0d16ca3ce128a0bfc4f0341579c41ee7419bda6461901dbb72187" />
+			<owner role="profession" questId="-1" scriptName="ElfHumanFighterChange1" className="village_master.ElfHumanFighterChange1.ElfHumanFighterChange1" source="data/scripts/village_master/ElfHumanFighterChange1/ElfHumanFighterChange1.java" sourceSha256="e20ca5e54d51a68bfda125d7ddc032fbf628ede254bf77dc920133954c23db0e" />
+			<owner role="quest" questId="401" scriptName="Q00401_PathOfTheWarrior" className="quests.Q00401_PathOfTheWarrior.Q00401_PathOfTheWarrior" source="data/scripts/quests/Q00401_PathOfTheWarrior/Q00401_PathOfTheWarrior.java" sourceSha256="ef8947fbb6457bf823bceff45994ace5118e02845c1a8b9b755337bfd493c9f2" />
 		</owners>
 		<steps>
 			<step id="auron.complete" operation="TALK" ownerRole="quest" npcIds="30010" event="-" itemId="0" />
@@ -24,7 +24,7 @@
 	</content>
 	<content id="instance.kamaloka-57" kind="KAMALOKA" minLevel="18" maxLevel="28" races="*" classes="*" questId="0" instanceTemplateId="57" acquisitionRuleId="-">
 		<owners>
-			<owner role="instance" questId="-1" scriptName="Kamaloka" className="instances.Kamaloka.Kamaloka" source="data/scripts/instances/Kamaloka/Kamaloka.java" sourceSha256="25deb19fae2841c80c9b5f227954d5011e7c2841e5f475c651faee50a74133a5" />
+			<owner role="instance" questId="-1" scriptName="Kamaloka" className="instances.Kamaloka.Kamaloka" source="data/scripts/instances/Kamaloka/Kamaloka.java" sourceSha256="f62484224522d4c9d05a721284aa65c9aa49b88cdad534e17bf826809f76191b" />
 		</owners>
 		<steps>
 			<step id="combat.boss" operation="COMBAT" ownerRole="instance" npcIds="18554" event="-" itemId="0" />
@@ -32,13 +32,13 @@
 		</steps>
 		<items />
 		<sources>
-			<source path="data/instances/Kamaloka/Kamaloka57.xml" sha256="7519d2f2259c891b9435bfa63dd28581f90abe4e6d0591d39103bed19980e466" />
+			<source path="data/instances/Kamaloka/Kamaloka57.xml" sha256="cc8e7553a4dfec76ac50b08260a2e15589ef4be16ef944250cfb382c76208984" />
 		</sources>
 	</content>
 	<content id="instance.pailaka-128" kind="PAILAKA" minLevel="36" maxLevel="42" races="*" classes="*" questId="128" instanceTemplateId="43" acquisitionRuleId="-">
 		<owners>
-			<owner role="instance" questId="-1" scriptName="PailakaSongOfIceAndFire" className="instances.PailakaSongOfIceAndFire.PailakaSongOfIceAndFire" source="data/scripts/instances/PailakaSongOfIceAndFire/PailakaSongOfIceAndFire.java" sourceSha256="90ea1a83e0ccd6d5321538de4ace8573784a4d009993c32dda38861061b681e0" />
-			<owner role="quest" questId="128" scriptName="Q00128_PailakaSongOfIceAndFire" className="quests.Q00128_PailakaSongOfIceAndFire.Q00128_PailakaSongOfIceAndFire" source="data/scripts/quests/Q00128_PailakaSongOfIceAndFire/Q00128_PailakaSongOfIceAndFire.java" sourceSha256="1a4eb79a4e9b8f24c699b2a1f9535366a7dab7e90733bf0a5361dcadaee839b4" />
+			<owner role="instance" questId="-1" scriptName="PailakaSongOfIceAndFire" className="instances.PailakaSongOfIceAndFire.PailakaSongOfIceAndFire" source="data/scripts/instances/PailakaSongOfIceAndFire/PailakaSongOfIceAndFire.java" sourceSha256="d682835136e6a72eddbe7e35a6d21fed46c3d6024ffa9122456249f134ae6798" />
+			<owner role="quest" questId="128" scriptName="Q00128_PailakaSongOfIceAndFire" className="quests.Q00128_PailakaSongOfIceAndFire.Q00128_PailakaSongOfIceAndFire" source="data/scripts/quests/Q00128_PailakaSongOfIceAndFire/Q00128_PailakaSongOfIceAndFire.java" sourceSha256="88f13479748033270525b5e188adf11169d1a6951cf9249b7311966edf3bc618" />
 		</owners>
 		<steps>
 			<step id="combat.adiantum" operation="COMBAT" ownerRole="quest" npcIds="18620" event="-" itemId="0" />
@@ -61,12 +61,12 @@
 			<item id="736" /><item id="13032" /><item id="13033" /><item id="13034" /><item id="13035" /><item id="13036" /><item id="13038" /><item id="13039" /><item id="13040" /><item id="13041" /><item id="13130" /><item id="13131" /><item id="13132" /><item id="13133" /><item id="13134" /><item id="13135" /><item id="13136" /><item id="13293" /><item id="13294" />
 		</items>
 		<sources>
-			<source path="data/instances/Pailaka/PailakaSongOfIceAndFire.xml" sha256="e9f2d0ce300fa0cd676ac294457e68ea987d5087d23fad2b03202ddeaad13f16" />
+			<source path="data/instances/Pailaka/PailakaSongOfIceAndFire.xml" sha256="224720ee90c1a6de80226d9e58315415a1156f10a861f5fc3390863d4faddeb3" />
 		</sources>
 	</content>
 	<content id="quest.102" kind="QUEST" minLevel="12" maxLevel="99" races="ELF" classes="*" questId="102" instanceTemplateId="0" acquisitionRuleId="q00102-dryads-tear">
 		<owners>
-			<owner role="quest" questId="102" scriptName="Q00102_SeaOfSporesFever" className="quests.Q00102_SeaOfSporesFever.Q00102_SeaOfSporesFever" source="data/scripts/quests/Q00102_SeaOfSporesFever/Q00102_SeaOfSporesFever.java" sourceSha256="ac2d5c6eb9082bb605df535cdd8c854b54ced6a4b5ebd4d59aaff38bbb8d137d" />
+			<owner role="quest" questId="102" scriptName="Q00102_SeaOfSporesFever" className="quests.Q00102_SeaOfSporesFever.Q00102_SeaOfSporesFever" source="data/scripts/quests/Q00102_SeaOfSporesFever/Q00102_SeaOfSporesFever.java" sourceSha256="135a8351757d209d0308b43b00576bd9fb22b84555cdae57a48a821fdeb0f833" />
 		</owners>
 		<steps>
 			<step id="collect" operation="COMBAT" ownerRole="quest" npcIds="20013,20019" event="-" itemId="0" />
@@ -84,12 +84,12 @@
 			<item id="743" /><item id="744" /><item id="746" /><item id="964" /><item id="965" /><item id="966" /><item id="1060" /><item id="1130" /><item id="1131" /><item id="1132" /><item id="1133" /><item id="1134" /><item id="1835" /><item id="2509" /><item id="4412" /><item id="4413" /><item id="4414" /><item id="4415" /><item id="4416" />
 		</items>
 		<sources>
-			<source path="data/phantoms/acquisition/high-five-quest-collection-v1.xml" sha256="e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b" />
+			<source path="data/phantoms/acquisition/high-five-quest-collection-v1.xml" sha256="9e83e63dad2c9d3865867f24022a8006196877db24aaaa2ece4b899955b87843" />
 		</sources>
 	</content>
 	<content id="quest.152" kind="QUEST" minLevel="10" maxLevel="99" races="*" classes="*" questId="152" instanceTemplateId="0" acquisitionRuleId="q00152-golem-shard">
 		<owners>
-			<owner role="quest" questId="152" scriptName="Q00152_ShardsOfGolem" className="quests.Q00152_ShardsOfGolem.Q00152_ShardsOfGolem" source="data/scripts/quests/Q00152_ShardsOfGolem/Q00152_ShardsOfGolem.java" sourceSha256="bfdde72c661d13106301d3421effb4e19d886e5db7f33fe7d4de6cf44b3e22c6" />
+			<owner role="quest" questId="152" scriptName="Q00152_ShardsOfGolem" className="quests.Q00152_ShardsOfGolem.Q00152_ShardsOfGolem" source="data/scripts/quests/Q00152_ShardsOfGolem/Q00152_ShardsOfGolem.java" sourceSha256="4d98611cd59a1a7987013c0e475ffd9e88c8c072ec9dea836546088f094aca08" />
 		</owners>
 		<steps>
 			<step id="collect" operation="COMBAT" ownerRole="quest" npcIds="20016" event="-" itemId="0" />
@@ -103,7 +103,7 @@
 			<item id="23" /><item id="1008" /><item id="1009" /><item id="1010" /><item id="1011" />
 		</items>
 		<sources>
-			<source path="data/phantoms/acquisition/high-five-quest-collection-v1.xml" sha256="e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b" />
+			<source path="data/phantoms/acquisition/high-five-quest-collection-v1.xml" sha256="9e83e63dad2c9d3865867f24022a8006196877db24aaaa2ece4b899955b87843" />
 		</sources>
 	</content>
 </supportedContentCatalog>

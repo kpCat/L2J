@@ -14,9 +14,6 @@
 package org.l2jmobius.gameserver.phantoms.questinstance;
 
 import java.io.ByteArrayInputStream;
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,6 +43,7 @@ import org.l2jmobius.gameserver.managers.InstanceManager;
 import org.l2jmobius.gameserver.managers.ScriptManager;
 import org.l2jmobius.gameserver.model.events.ListenerRegisterType;
 import org.l2jmobius.gameserver.model.script.Quest;
+import org.l2jmobius.gameserver.phantoms.PhantomUtf8SourceHash;
 import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog;
 import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog.Rule;
 
@@ -79,7 +77,7 @@ public final class PhantomQuestInstanceCatalog
 			{
 				throw new IllegalArgumentException("Supported content catalog size is invalid.");
 			}
-			strictUtf8(bytes);
+			final String catalogHash = PhantomUtf8SourceHash.sha256(bytes);
 			final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 			factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
@@ -104,7 +102,7 @@ public final class PhantomQuestInstanceCatalog
 			{
 				throw new IllegalArgumentException("Supported content identities are not exact, unique and ordered.");
 			}
-			return new PhantomQuestInstanceCatalog(canonicalRoot, hash(bytes), contents);
+			return new PhantomQuestInstanceCatalog(canonicalRoot, catalogHash, contents);
 		}
 		catch (RuntimeException exception)
 		{
@@ -254,11 +252,14 @@ public final class PhantomQuestInstanceCatalog
 				throw new IllegalArgumentException("Supported content source path is invalid: " + relativePath);
 			}
 			final byte[] bytes = Files.readAllBytes(source);
-			if ((bytes.length == 0) || (bytes.length > MAX_SOURCE_BYTES) || !hash(bytes).equals(expectedHash))
+			if ((bytes.length == 0) || (bytes.length > MAX_SOURCE_BYTES))
 			{
 				throw new IllegalArgumentException("Supported content source hash is stale: " + relativePath);
 			}
-			strictUtf8(bytes);
+			if (!PhantomUtf8SourceHash.sha256(bytes).equals(expectedHash))
+			{
+				throw new IllegalArgumentException("Supported content source hash is stale: " + relativePath);
+			}
 		}
 		catch (RuntimeException exception)
 		{
@@ -387,16 +388,6 @@ public final class PhantomQuestInstanceCatalog
 		{
 			throw new IllegalArgumentException("Duplicate supported " + kind + " identity.", exception);
 		}
-	}
-
-	private static void strictUtf8(byte[] bytes) throws CharacterCodingException
-	{
-		StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes));
-	}
-
-	private static String hash(byte[] bytes) throws Exception
-	{
-		return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
 	}
 
 	private static String digest(Object... values)

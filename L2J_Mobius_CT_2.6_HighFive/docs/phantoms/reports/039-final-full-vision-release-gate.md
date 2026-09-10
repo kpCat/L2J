@@ -445,3 +445,128 @@ Goal039 matrix — 28 rows; Goal040 отсутствует.
 Mojibake-маркеры в изменённом файле проверены: совпадений нет.
 Escaped Cyrillic в изменённом файле проверена: совпадений нет.
 Strict UTF-8/control-character checks прошли. `git diff --check` прошёл.
+
+## Goal039 Resume 4 — canonical pin migration и новый Goal033 blocker
+
+Дата: 2026-09-10.
+
+Required parent / HEAD / origin:
+`efc815889d08de42331ad5afad68e465383ab05e`.
+Ветка: `feature/phantom-world`.
+
+После извлечения Resume-4 package operator checkout содержал три ранее
+изменённых tracked файла и 408 untracked paths. Sorted porcelain LF fingerprint:
+`7c16f92324d2ce8e06848dea14f7072cb246361d116ec68aad7ef788bc67a46a`.
+Все эти пользовательские изменения сохранены и исключены из clean candidates.
+
+### Реализация и atomic pin migration
+
+Добавлен один общий `PhantomUtf8SourceHash`: strict UTF-8 decoder с
+`REPORT` для malformed/unmappable input, затем только `CRLF -> LF` и оставшийся
+`CR -> LF`, повторное UTF-8 encoding и lowercase SHA-256. Trim, XML reserialize,
+Unicode normalization, whitespace normalization и BOM stripping отсутствуют.
+Общий helper используется `PhantomAcquisitionQuestCatalog` и
+`PhantomQuestInstanceCatalog` одновременно для `catalogHash` и всех их
+script/owner/source pin checks; alternate raw-hash acceptance отсутствует.
+
+Все девять leaf canonical hashes независимо совпали с `MIGRATION_MAP.md`.
+Dependency-ordered cascade выполнен ровно так:
+
+1. Q102 `scriptSha256` ->
+   `135a8351757d209d0308b43b00576bd9fb22b84555cdae57a48a821fdeb0f833`;
+2. Q152 `scriptSha256` ->
+   `4d98611cd59a1a7987013c0e475ffd9e88c8c072ec9dea836546088f094aca08`;
+3. новый canonical acquisition catalog hash ->
+   `9e83e63dad2c9d3865867f24022a8006196877db24aaaa2ece4b899955b87843`;
+4. девять Goal036 leaf refs и обе ссылки на acquisition XML обновлены на
+   canonical values.
+
+Итог migration: **13/13 active pin attributes changed**, **13/13 references
+match**, **10/10 unique paths accounted for**. Девять leaf gameplay/script/
+instance-template sources не менялись; Goal036/037 historical reports и
+Goal037 manifests не переписывались.
+
+### Permanent controls и clean archive parity
+
+Clean no-geodata candidate создан read-only `git archive` exact parent в
+`.phantom-local/r4/L2J_Mobius_CT_2.6_HighFive`; geodata-present candidate — в
+`.phantom-local/r4g/L2J_Mobius_CT_2.6_HighFive`. Оба получили одинаковый exact
+seven-file runtime overlay, guarded `Database.test.ini`, schema manifest и 121
+checkout-normalized clean SQL inputs. Второй candidate дополнительно содержит
+только 203 внешних `.l2j`, `1063452308` bytes. Production DB не читалась и не
+проверялась.
+
+Runtime-overlay manifest SHA-256:
+`a6da39d3a48f5703e99840e737bb837fec95f46dbf635854e7fd41280bd7bf84`.
+Exact source-to-both-candidate SHA-256 comparison совпал для всех семи paths.
+
+Clean `phantom-full-vision-goal039-structure-test`: **6/6 PASS**. Permanent
+verify-owned evidence подтверждает:
+
+- LF = CRLF = CR для canonical hash, при различающихся raw hashes;
+- content mutation, non-EOL whitespace и trailing-newline mutation дают другой
+  hash;
+- malformed UTF-8 rejected, BOM не игнорируется;
+- archive/LF/CRLF/CR parity для всех 13 refs и 10 unique paths;
+- Goal021 `catalogHash`
+  `9e83e63dad2c9d3865867f24022a8006196877db24aaaa2ece4b899955b87843`,
+  `authorityHash`
+  `399be9aecfe6cac6436f558b420b6a024a818d4f8d968a5964a50f538c52cdf3`;
+- Goal036 `catalogHash`
+  `cd8fb45f89033013db2ae0ee764a20287f5f2d31ecd1378bd638cd2b6b65b937`,
+  `authorityHash`
+  `1e113a8fc6099c8a089f118fd09b04aac59f5b30088952566bc3c38fbf578d4d`.
+
+Synthetic pre-migration `QuestBinding` имеет другие rule/script/authority
+identities. Existing Background guard отвергает его до
+`readAcquisitionQuestRows`, возвращает `quest.script_stale`, а planner создаёт
+binding только с текущими identity. Legacy alias и DB migration отсутствуют;
+до item/reward mutation выполнение не доходит, поэтому duplicate reward
+невозможен.
+
+После корректного clean-candidate runtime overlay static/safety aggregate
+завершился **25/25 PASS**: Goal039 `6/6`, Goal031 `8/8`, Goal030 release baseline
+`3/3`, Goal038 catalog `5/5`, Goal037 static `2/2`, DB negative guard `1/1`.
+Focused `phantom-quest-instance-goal036-test` завершился **2/2 PASS** до перехода
+к следующему target.
+
+### Новый независимый blocker и STOP
+
+Следующий обязательный target,
+`phantom-population-ecology-production-goal033-test`, завершился **0/2 FAIL**.
+Primary failure:
+`Supported content owner is not loaded with its exact identity:
+class.warrior-q401/profession`. Каскадный второй failure: cold LIVING case
+сохранил 0 вместо 10 reseeded identities.
+
+Трассировка подтверждает отдельную integration family: Goal033 headless fixture
+загружает `ScriptEngine(effect-master-only)`, а startup текущего
+`PhantomQuestInstanceService` требует уже зарегистрированный exact Q401 owner.
+Failure возникает в runtime identity check до source-hash verification и не
+является продолжением canonical pin mismatch.
+
+Ровно один standalone focused confirmation воспроизвёл **0/2 FAIL** с той же
+primary diagnostic за 51 секунду. По Resume-4 stop-budget дальнейшие Goal021 и
+Resume1/2 lineage gates, geodata-present gates, Goal033A/Goal033 focused,
+Goal035-038 domain aggregate, Goal029 scale/environment/endurance, Goal030
+rollback/release, fresh `ant verify`, standalone final JAR, fresh Goal034 real
+stack и freeze **NOT RUN BLOCKED**. Эта вторая family не исправлялась.
+
+Blocker:
+`GOAL039_RESUME4_GOAL033_HEADLESS_QUEST_OWNER_NOT_LOADED`.
+
+Completion marker `FEATURE_COMPLETE_FOR_DECLARED_SCOPE` не выставлен. Final JAR
+SHA/bytes и Goal034 run ID отсутствуют. Goal040 не создан.
+
+Guarded test DB: только `127.0.0.1:3308/l2jmobiush5_phantom_test`, user
+`l2j_phantom_test`. Production DB used/probed: **NO**.
+`prepare-phantom-test-db`: **NOT RUN**.
+
+Evidence root: `.phantom-local/goal039-resume4/evidence`; сохранены exact
+Goal033 production confirmation TXT/XML и runtime-overlay manifest.
+
+Mojibake-маркеры в изменённых файлах проверены: совпадений нет.
+Escaped Cyrillic в изменённых файлах проверены: совпадений нет.
+Strict UTF-8 и control-character checks прошли. Оба изменённых XML прошли
+strict parse с запрещённым DTD. `git diff --check` прошёл. Exact leaf-source,
+historical Goal036/037 report и Goal037 manifest diffs пусты.

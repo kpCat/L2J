@@ -6,13 +6,12 @@ package org.l2jmobius.tests.phantoms;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.util.HexFormat;
 import java.util.List;
 
 import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.managers.ScriptManager;
 import org.l2jmobius.gameserver.model.events.ListenerRegisterType;
+import org.l2jmobius.gameserver.phantoms.PhantomUtf8SourceHash;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.Method;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Candidate;
@@ -132,7 +131,7 @@ public final class PhantomAcquisitionQuestSuite implements PhantomTestSuite
 		for (Rule rule : _catalog.rules())
 		{
 			final Path source = context.moduleRoot().resolve("dist/game/data/scripts").resolve(rule.scriptPath());
-			PhantomAssertions.assertEquals(rule.scriptHash(), HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(source))), "Curated quest source hash differs.");
+			PhantomAssertions.assertEquals(rule.scriptHash(), PhantomUtf8SourceHash.sha256(Files.readAllBytes(source)), "Curated quest source hash differs.");
 			final var runtime = ScriptManager.getInstance().getQuest(rule.questId());
 			PhantomAssertions.assertTrue((runtime != null) && (runtime == ScriptManager.getInstance().getScript(rule.questName())), "Curated quest runtime identity differs.");
 			PhantomAssertions.assertTrue(runtime.getRegisteredIds(ListenerRegisterType.NPC).containsAll(rule.targetNpcIds()), "Curated quest kill registration differs.");

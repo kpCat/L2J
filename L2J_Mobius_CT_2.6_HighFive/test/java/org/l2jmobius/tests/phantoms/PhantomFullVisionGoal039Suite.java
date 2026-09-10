@@ -36,6 +36,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.QuestBinding;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog;
+import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQuestCatalog.Rule;
+import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog;
 
 public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 {
@@ -46,8 +50,12 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 	}
 
 	private static final long SEED = 39003901L;
-	private static final String REQUIRED_PARENT = "ba692bd0a5e86fbbfe5f87c9c851f3a629e4d5a1";
+	private static final String REQUIRED_PARENT = "efc815889d08de42331ad5afad68e465383ab05e";
 	private static final String FINAL_MARKER = "FEATURE_COMPLETE_FOR_DECLARED_SCOPE";
+	private static final String OLD_ACQUISITION_CATALOG_HASH = "e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b";
+	private static final Map<String, String> OLD_QUEST_SCRIPT_HASHES = Map.of(
+		"q00102-dryads-tear", "ac2d5c6eb9082bb605df535cdd8c854b54ced6a4b5ebd4d59aaff38bbb8d137d",
+		"q00152-golem-shard", "bfdde72c661d13106301d3421effb4e19d886e5db7f33fe7d4de6cf44b3e22c6");
 	private static final String HISTORICAL_MATRIX = "test/resources/phantoms/release/goal030-release-coverage.tsv";
 	private static final String HISTORICAL_MATRIX_SHA256 = "fd891490e7bed44dba7d33f1b72d5c1de46ff67003190b31d22b7dd96206e64e";
 	private static final String FINAL_MATRIX = "test/resources/phantoms/release/goal039-full-vision-coverage.tsv";
@@ -120,6 +128,9 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 			registry.add("01-historical-and-final-matrices", this::testMatrices);
 			registry.add("02-safe-defaults-and-routes", this::testSafeDefaultsAndRoutes);
 			registry.add("03-lineage-reports-and-no-goal040", this::testLineageReportsAndNoGoal040);
+			registry.add("04-canonical-utf8-source-hash-controls", this::testCanonicalUtf8SourceHash);
+			registry.add("05-canonical-active-pin-and-catalog-parity", this::testCanonicalActivePins);
+			registry.add("06-stale-quest-binding-authority-migration", this::testStaleQuestBindingMigration);
 		}
 		else
 		{
@@ -301,6 +312,227 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 		context.record("goal039.goal040", "absent");
 	}
 
+	private void testCanonicalUtf8SourceHash(PhantomTestContext context) throws Exception
+	{
+		final Path root = context.moduleRoot();
+		final Path source = root.resolve("dist/game/data/phantoms/acquisition/high-five-quest-collection-v1.xml");
+		final Path scripts = root.resolve("dist/game/data/scripts");
+		final PhantomAcquisitionQuestCatalog canonical = PhantomAcquisitionQuestCatalog.load(source, scripts);
+		final String lf = Files.readString(source, StandardCharsets.UTF_8).replace("\r\n", "\n").replace('\r', '\n');
+		final List<Path> temporary = new ArrayList<>();
+		try
+		{
+			final List<Path> variants = eolVariants(context, source, "goal039-hash-eol-", temporary);
+			for (Path variant : variants)
+			{
+				final PhantomAcquisitionQuestCatalog loaded = PhantomAcquisitionQuestCatalog.load(variant, scripts);
+				PhantomAssertions.assertEquals(canonical.catalogHash(), loaded.catalogHash(), "LF/CRLF/CR catalogHash identity differs.");
+				PhantomAssertions.assertEquals(canonical.authorityHash(), loaded.authorityHash(), "LF/CRLF/CR authorityHash identity differs.");
+			}
+			PhantomAssertions.assertFalse(sha256(Files.readAllBytes(variants.get(0))).equals(sha256(Files.readAllBytes(variants.get(1)))), "Raw LF and CRLF hashes unexpectedly agree.");
+
+			final Path contentMutation = writeTemporary(context, "goal039-hash-content-", lf.replace("?>\n", "?>\n<!--content-mutation-->\n").getBytes(StandardCharsets.UTF_8), temporary);
+			final Path whitespaceMutation = writeTemporary(context, "goal039-hash-whitespace-", lf.replace("\t<rule", "\t <rule").getBytes(StandardCharsets.UTF_8), temporary);
+			final String withoutTrailing = lf.endsWith("\n") ? lf.substring(0, lf.length() - 1) : lf;
+			final Path trailingMutation = writeTemporary(context, "goal039-hash-trailing-", withoutTrailing.getBytes(StandardCharsets.UTF_8), temporary);
+			PhantomAssertions.assertFalse(canonical.catalogHash().equals(PhantomAcquisitionQuestCatalog.load(contentMutation, scripts).catalogHash()), "Content mutation retained the canonical hash.");
+			PhantomAssertions.assertFalse(canonical.catalogHash().equals(PhantomAcquisitionQuestCatalog.load(whitespaceMutation, scripts).catalogHash()), "Non-EOL whitespace was ignored.");
+			PhantomAssertions.assertFalse(canonical.catalogHash().equals(PhantomAcquisitionQuestCatalog.load(trailingMutation, scripts).catalogHash()), "Trailing newline add/remove was ignored.");
+
+			final byte[] sourceBytes = Files.readAllBytes(source);
+			final byte[] bom = new byte[sourceBytes.length + 3];
+			bom[0] = (byte) 0xef;
+			bom[1] = (byte) 0xbb;
+			bom[2] = (byte) 0xbf;
+			System.arraycopy(sourceBytes, 0, bom, 3, sourceBytes.length);
+			final Path bomPath = writeTemporary(context, "goal039-hash-bom-", bom, temporary);
+			PhantomAssertions.assertFalse(canonical.catalogHash().equals(PhantomAcquisitionQuestCatalog.load(bomPath, scripts).catalogHash()), "UTF-8 BOM was silently ignored.");
+			final Path malformed = writeTemporary(context, "goal039-hash-malformed-", new byte[]
+			{
+				(byte) 0xc3,
+				(byte) 0x28
+			}, temporary);
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomAcquisitionQuestCatalog.load(malformed, scripts), "Malformed UTF-8 was accepted.");
+		}
+		finally
+		{
+			for (Path path : temporary)
+			{
+				Files.deleteIfExists(path);
+			}
+		}
+		context.record("goal039.canonicalHashControls", "LF=CRLF=CR;negative=content,whitespace,trailing-newline,malformed,bom;raw-diff=true");
+	}
+
+	private void testCanonicalActivePins(PhantomTestContext context) throws Exception
+	{
+		final Path moduleRoot = context.moduleRoot();
+		final Path gameRoot = moduleRoot.resolve("dist/game");
+		final Path acquisitionPath = gameRoot.resolve("data/phantoms/acquisition/high-five-quest-collection-v1.xml");
+		final Path supportedPath = gameRoot.resolve("data/phantoms/quests/high-five-supported-content-v1.xml");
+		final PhantomAcquisitionQuestCatalog acquisition = PhantomAcquisitionQuestCatalog.load(acquisitionPath, gameRoot.resolve("data/scripts"));
+		final PhantomQuestInstanceCatalog supported = PhantomQuestInstanceCatalog.load(supportedPath, gameRoot);
+		final List<PinRef> refs = new ArrayList<>();
+		for (Rule rule : acquisition.rules())
+		{
+			refs.add(new PinRef("data/scripts/" + rule.scriptPath(), rule.scriptHash()));
+		}
+		for (PhantomQuestInstanceCatalog.Content content : supported.contents())
+		{
+			for (PhantomQuestInstanceCatalog.Owner owner : content.owners())
+			{
+				refs.add(new PinRef(owner.sourcePath(), owner.sourceHash()));
+			}
+			for (PhantomQuestInstanceCatalog.SourceRef source : content.sources())
+			{
+				refs.add(new PinRef(source.path(), source.sha256()));
+			}
+		}
+		PhantomAssertions.assertEquals(13, refs.size(), "Active source-pin reference count changed.");
+		final Map<String, String> unique = new LinkedHashMap<>();
+		for (PinRef ref : refs)
+		{
+			final String prior = unique.putIfAbsent(ref.path(), ref.expectedHash());
+			PhantomAssertions.assertTrue((prior == null) || prior.equals(ref.expectedHash()), "Active duplicate path has conflicting pins: " + ref.path());
+			PhantomAssertions.assertTrue(Files.isRegularFile(gameRoot.resolve(ref.path())), "Active source path is absent: " + ref.path());
+		}
+		PhantomAssertions.assertEquals(10, unique.size(), "Active unique source-pin path count changed.");
+
+		final List<Path> fixtureRoots = new ArrayList<>();
+		try
+		{
+			final List<String> separators = List.of("\n", "\r\n", "\r");
+			for (int index = 0; index < separators.size(); index++)
+			{
+				final Path fixtureRoot = Files.createTempDirectory(context.reportsDirectory(), "goal039-pin-fixture-" + index + '-');
+				fixtureRoots.add(fixtureRoot);
+				for (String relative : unique.keySet())
+				{
+					writeEolVariant(gameRoot.resolve(relative), fixtureRoot.resolve(relative), separators.get(index));
+				}
+				final Path supportedFixture = fixtureRoot.resolve("data/phantoms/quests/high-five-supported-content-v1.xml");
+				writeEolVariant(supportedPath, supportedFixture, separators.get(index));
+				final PhantomAcquisitionQuestCatalog acquisitionVariant = PhantomAcquisitionQuestCatalog.load(fixtureRoot.resolve("data/phantoms/acquisition/high-five-quest-collection-v1.xml"), fixtureRoot.resolve("data/scripts"));
+				final PhantomQuestInstanceCatalog supportedVariant = PhantomQuestInstanceCatalog.load(supportedFixture, fixtureRoot);
+				PhantomAssertions.assertEquals(acquisition.catalogHash(), acquisitionVariant.catalogHash(), "Goal021 catalogHash changed across EOL archive fixtures.");
+				PhantomAssertions.assertEquals(acquisition.authorityHash(), acquisitionVariant.authorityHash(), "Goal021 authorityHash changed across EOL archive fixtures.");
+				PhantomAssertions.assertEquals(supported.catalogHash(), supportedVariant.catalogHash(), "Goal036 catalogHash changed across EOL archive fixtures.");
+				PhantomAssertions.assertEquals(supported.authorityHash(), supportedVariant.authorityHash(), "Goal036 authorityHash changed across EOL archive fixtures.");
+			}
+			PhantomAssertions.assertFalse(sha256(Files.readAllBytes(fixtureRoots.get(0).resolve("data/phantoms/acquisition/high-five-quest-collection-v1.xml"))).equals(sha256(Files.readAllBytes(fixtureRoots.get(1).resolve("data/phantoms/acquisition/high-five-quest-collection-v1.xml")))), "Goal021 LF/CRLF raw hashes unexpectedly agree.");
+			PhantomAssertions.assertFalse(sha256(Files.readAllBytes(fixtureRoots.get(0).resolve("data/phantoms/quests/high-five-supported-content-v1.xml"))).equals(sha256(Files.readAllBytes(fixtureRoots.get(1).resolve("data/phantoms/quests/high-five-supported-content-v1.xml")))), "Goal036 LF/CRLF raw hashes unexpectedly agree.");
+		}
+		finally
+		{
+			for (Path path : fixtureRoots)
+			{
+				deleteTree(path);
+			}
+		}
+		context.record("goal039.activePinParity", "references=13/13,unique=10/10,representations=working+LF+CRLF+CR");
+		context.record("goal039.goal021CatalogHash", acquisition.catalogHash());
+		context.record("goal039.goal021AuthorityHash", acquisition.authorityHash());
+		context.record("goal039.goal036CatalogHash", supported.catalogHash());
+		context.record("goal039.goal036AuthorityHash", supported.authorityHash());
+	}
+
+	private void testStaleQuestBindingMigration(PhantomTestContext context) throws Exception
+	{
+		final Path root = context.moduleRoot();
+		final PhantomAcquisitionQuestCatalog catalog = PhantomAcquisitionQuestCatalog.load(root.resolve("dist/game/data/phantoms/acquisition/high-five-quest-collection-v1.xml"), root.resolve("dist/game/data/scripts"));
+		final List<String> oldRuleHashes = catalog.rules().stream().map(rule -> legacyRuleHash(rule, OLD_QUEST_SCRIPT_HASHES.get(rule.id()))).toList();
+		final String oldAuthorityHash = digest("QUEST_COLLECTION_V1", OLD_ACQUISITION_CATALOG_HASH, oldRuleHashes);
+		final Rule currentRule = catalog.rule("q00102-dryads-tear").orElseThrow();
+		final QuestBinding oldBinding = new QuestBinding(currentRule.id(), oldRuleHashes.getFirst(), currentRule.questId(), currentRule.questName(), OLD_QUEST_SCRIPT_HASHES.get(currentRule.id()), currentRule.requiredState(), currentRule.allowedConds().getFirst(), currentRule.questItemId(), currentRule.itemCap(), currentRule.targetNpcIds().getFirst(), 0, 0, oldAuthorityHash);
+		final QuestBinding currentBinding = new QuestBinding(currentRule.id(), currentRule.ruleHash(), currentRule.questId(), currentRule.questName(), currentRule.scriptHash(), currentRule.requiredState(), currentRule.allowedConds().getFirst(), currentRule.questItemId(), currentRule.itemCap(), currentRule.targetNpcIds().getFirst(), 0, 0, catalog.authorityHash());
+		PhantomAssertions.assertFalse(oldBinding.ruleHash().equals(currentBinding.ruleHash()), "Canonical migration preserved the old rule identity.");
+		PhantomAssertions.assertFalse(oldBinding.scriptHash().equals(currentBinding.scriptHash()), "Canonical migration preserved the old script identity.");
+		PhantomAssertions.assertFalse(oldBinding.authorityHash().equals(currentBinding.authorityHash()), "Canonical migration preserved the old authority identity.");
+		final boolean oldAccepted = catalog.rule(oldBinding.ruleId()).filter(rule -> rule.ruleHash().equals(oldBinding.ruleHash()) && rule.scriptHash().equals(oldBinding.scriptHash()) && oldBinding.authorityHash().equals(catalog.authorityHash())).isPresent();
+		final boolean currentAccepted = catalog.rule(currentBinding.ruleId()).filter(rule -> rule.ruleHash().equals(currentBinding.ruleHash()) && rule.scriptHash().equals(currentBinding.scriptHash()) && currentBinding.authorityHash().equals(catalog.authorityHash())).isPresent();
+		PhantomAssertions.assertFalse(oldAccepted, "Pre-migration QuestBinding remained executable.");
+		PhantomAssertions.assertTrue(currentAccepted, "Current planner identity is not executable.");
+
+		final String background = read(root, "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java");
+		final int authorityGuard = background.indexOf("!quest.authorityHash().equals(_quests.authorityHash())");
+		final int staleReplan = background.indexOf("OperationResult.replan(\"quest.script_stale\")", authorityGuard);
+		final int firstQuestRead = background.indexOf("readAcquisitionQuestRows", authorityGuard);
+		PhantomAssertions.assertTrue((authorityGuard >= 0) && (staleReplan > authorityGuard) && (firstQuestRead > staleReplan), "Background stale QuestBinding is not rejected before quest-row/item mutation work.");
+		final String planner = read(root, "java/org/l2jmobius/gameserver/phantoms/acquisition/PhantomAcquisitionSourcePlanner.java");
+		PhantomAssertions.assertTrue(planner.contains("rule.ruleHash(), rule.scriptHash()") && planner.contains("0, _quests.authorityHash()"), "Goal021 planner does not bind current rule/script/authority identity.");
+		PhantomAssertions.assertFalse(background.contains(OLD_ACQUISITION_CATALOG_HASH) || planner.contains(OLD_ACQUISITION_CATALOG_HASH), "Production retained a pre-migration compatibility alias.");
+		context.record("goal039.questBindingMigration", "old=fail-closed-before-read,current=replanned,no-alias,no-db-migration");
+	}
+
+	private static List<Path> eolVariants(PhantomTestContext context, Path source, String prefix, List<Path> temporary) throws Exception
+	{
+		final String lf = Files.readString(source, StandardCharsets.UTF_8).replace("\r\n", "\n").replace('\r', '\n');
+		final List<String> values = List.of(lf, lf.replace("\n", "\r\n"), lf.replace('\n', '\r'));
+		final List<Path> result = new ArrayList<>();
+		for (int index = 0; index < values.size(); index++)
+		{
+			final Path path = Files.createTempFile(context.reportsDirectory(), prefix + index + '-', ".xml");
+			Files.writeString(path, values.get(index), StandardCharsets.UTF_8);
+			temporary.add(path);
+			result.add(path);
+		}
+		return List.copyOf(result);
+	}
+
+	private static Path writeTemporary(PhantomTestContext context, String prefix, byte[] bytes, List<Path> temporary) throws Exception
+	{
+		final Path path = Files.createTempFile(context.reportsDirectory(), prefix, ".xml");
+		Files.write(path, bytes);
+		temporary.add(path);
+		return path;
+	}
+
+	private static void writeEolVariant(Path source, Path target, String separator) throws Exception
+	{
+		final String lf = Files.readString(source, StandardCharsets.UTF_8).replace("\r\n", "\n").replace('\r', '\n');
+		Files.createDirectories(target.getParent());
+		Files.writeString(target, "\n".equals(separator) ? lf : lf.replace("\n", separator), StandardCharsets.UTF_8);
+	}
+
+	private static void deleteTree(Path root) throws Exception
+	{
+		if (Files.notExists(root))
+		{
+			return;
+		}
+		try (Stream<Path> paths = Files.walk(root))
+		{
+			for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList())
+			{
+				Files.delete(path);
+			}
+		}
+	}
+
+	private static String legacyRuleHash(Rule rule, String scriptHash)
+	{
+		final String identity = String.join("\u0000", rule.id(), Integer.toString(rule.questId()), rule.questName(), rule.scriptPath(), scriptHash, rule.requiredState(), rule.allowedConds().toString(), rule.targetNpcIds().toString(), Integer.toString(rule.questItemId()), rule.grantShape().name(), rule.chanceKind().name(), Integer.toString(rule.rollBound()), Integer.toString(rule.rollThreshold()), Integer.toString(rule.minimumCount()), Integer.toString(rule.maximumCount()), Integer.toString(rule.itemCap()), rule.summonPolicy().name(), rule.partyPolicy().name(), Boolean.toString(rule.registeredQuestItem()), rule.expectedVars().toString(), rule.sourceRefs().toString());
+		return digest("QUEST_RULE_V1", identity);
+	}
+
+	private static String digest(Object... values)
+	{
+		try
+		{
+			final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			for (Object value : values)
+			{
+				digest.update(String.valueOf(value).getBytes(StandardCharsets.UTF_8));
+				digest.update((byte) 0);
+			}
+			return HexFormat.of().formatHex(digest.digest());
+		}
+		catch (Exception exception)
+		{
+			throw new IllegalStateException("SHA-256 is unavailable.", exception);
+		}
+	}
+
 	private void testFinalStatusAndFreeze(PhantomTestContext context) throws Exception
 	{
 		final Path root = context.moduleRoot();
@@ -471,6 +703,10 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 	}
 
 	private record FinalRow(String domainId, String goalLineage, String ownerPaths, String freshEvidence, String predecessorEvidence, String evidenceKind, String finalStatus, String claimBoundary)
+	{
+	}
+
+	private record PinRef(String path, String expectedHash)
 	{
 	}
 }

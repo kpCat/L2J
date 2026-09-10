@@ -14,9 +14,6 @@
 package org.l2jmobius.gameserver.phantoms.acquisition.quest;
 
 import java.io.ByteArrayInputStream;
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,6 +40,7 @@ import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.managers.ScriptManager;
 import org.l2jmobius.gameserver.model.events.ListenerRegisterType;
 import org.l2jmobius.gameserver.model.script.Quest;
+import org.l2jmobius.gameserver.phantoms.PhantomUtf8SourceHash;
 
 /** Strict source-hashed allowlist for the audited pure kill-collection subset. */
 public final class PhantomAcquisitionQuestCatalog
@@ -73,7 +71,7 @@ public final class PhantomAcquisitionQuestCatalog
 			{
 				throw new IllegalArgumentException("Quest collection catalog size is invalid.");
 			}
-			strictUtf8(bytes);
+			final String catalogHash = PhantomUtf8SourceHash.sha256(bytes);
 			final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 			factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
@@ -98,7 +96,7 @@ public final class PhantomAcquisitionQuestCatalog
 			{
 				throw new IllegalArgumentException("Quest collection rules are not unique, ordered and bounded.");
 			}
-			return new PhantomAcquisitionQuestCatalog(hash(bytes), canonicalRoot, rules);
+			return new PhantomAcquisitionQuestCatalog(catalogHash, canonicalRoot, rules);
 		}
 		catch (RuntimeException exception)
 		{
@@ -206,11 +204,14 @@ public final class PhantomAcquisitionQuestCatalog
 		try
 		{
 			final byte[] bytes = Files.readAllBytes(source);
-			if ((bytes.length == 0) || (bytes.length > MAX_SCRIPT_BYTES) || !hash(bytes).equals(expectedHash))
+			if ((bytes.length == 0) || (bytes.length > MAX_SCRIPT_BYTES))
 			{
 				throw new IllegalArgumentException("Curated quest script hash is stale: " + source);
 			}
-			strictUtf8(bytes);
+			if (!PhantomUtf8SourceHash.sha256(bytes).equals(expectedHash))
+			{
+				throw new IllegalArgumentException("Curated quest script hash is stale: " + source);
+			}
 		}
 		catch (RuntimeException exception)
 		{
@@ -336,16 +337,6 @@ public final class PhantomAcquisitionQuestCatalog
 			throw new IllegalArgumentException("Invalid quest collection hash: " + name);
 		}
 		return value;
-	}
-
-	private static void strictUtf8(byte[] bytes) throws CharacterCodingException
-	{
-		StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes));
-	}
-
-	private static String hash(byte[] bytes) throws Exception
-	{
-		return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
 	}
 
 	private static String digest(Object... values)
