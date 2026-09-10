@@ -10,16 +10,19 @@ Status: **BLOCKED**
 
 Опубликованный blocker baseline: `1ceb045c663a4d6877d2fc8de06822bd78b4769e`
 
-Blocker: `BLOCKED_GOAL039_RESUME2_GOAL036_SOURCE_HASH_ARCHIVE_NORMALIZATION`
+Blocker: `GOAL039_RESUME3_EXISTING_RAW_PINS_NOT_CANONICAL`
 
 ## Решение
 
-Первый Goal039 blocker исправлен в Resume-1, но следующий обязательный focused
-gate на clean no-geodata candidate выявил независимый Goal015 Background
-position defect. Единственный разрешённый confirmation run воспроизвёл те же
-два failures. По stop-budget Resume-1 не исправляет вторую family, не запускает
-оставшиеся focused и expensive этапы и сохраняет Goal039 в состоянии `BLOCKED`.
-Новый Goal не создан.
+Resume-3 воспроизвёл заявленный Goal036 archive blocker и доказал, что canonical
+UTF-8 EOL policy исправляет конкретную пару `e9b5...` / `b4d8...`. Однако exact
+audit всех Goal036/Goal021 source pins показал, что 11 из 13 pin references уже
+закреплены raw CRLF либо mixed-EOL hashes, которые не равны обязательным
+canonical-LF hashes. Пробное применение одной общей policy поэтому немедленно
+ломает Goal021 на Q102. Миграция этих pin values, изменение quest scripts либо
+legacy mapping/alternate-hash прямо запрещены Resume-3 contract. По Phase 5 и
+stop-budget выполнен STOP; production correction и последующие Goal039 gates не
+публикуются. Goal039 остаётся `BLOCKED`, новый Goal не создан.
 
 ## Хронология и публикационный gate
 
@@ -345,3 +348,100 @@ Escaped Cyrillic в изменённых файлах проверена: сов
 Strict UTF-8/control-character checks прошли. `git diff --check`
 прошёл. Exact source↔clean-candidate SHA-256 fingerprints совпали
 для всех трёх task-owned paths.
+
+## Goal039 Resume 3 — canonical source-hash audit blocker
+
+Дата: 2026-09-10.
+
+Required parent / HEAD / origin:
+`239d327974a0df9594efa251d512ab74e08cee3d`.
+Ветка: `feature/phantom-world`.
+
+Baseline exact-parent `git archive` candidate воспроизвёл исходный blocker ровно
+один раз: `phantom-quest-instance-goal036-test` завершился **0/2 FAIL**. Primary
+diagnostic: `Supported content source hash is stale:
+data/phantoms/acquisition/high-five-quest-collection-v1.xml`; after-all cleanup
+failure был каскадным. Candidate использовал только guarded
+`127.0.0.1:3308/l2jmobiush5_phantom_test`, user `l2j_phantom_test`, schema
+aggregate `394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E`.
+
+Пробная bounded реализация одной pure strict-UTF-8 policy выполняла только
+`CRLF -> LF`, затем `CR -> LF` и SHA-256; trim, XML reserialize, Unicode
+normalization, whitespace ignore и BOM stripping отсутствовали. Deterministic
+controls подтвердили LF=CRLF=CR, различие raw LF/CRLF hashes, fail-closed для
+content mutation, non-EOL whitespace, trailing newline, BOM и malformed UTF-8.
+Clean confirmation `phantom-full-vision-goal039-structure-test` получил **5/6
+PASS**: первые пять checks прошли, а единственный catalog/authority check
+остановился на Q102 с `Curated quest script hash is stale`.
+
+### Exact archive audit всех source-pin references
+
+Формат EOL: `LF/CRLF/CR`. Canonical SHA в каждой строке одинаков для checkout и
+archive; различия между ними отсутствуют, кроме двух ссылок на acquisition XML.
+
+| # | Owner | Relative path | Expected pin | Checkout bytes; EOL; raw SHA | Archive bytes; EOL; raw SHA | Canonical SHA | Match |
+|---:|---|---|---|---|---|---|---|
+| 1 | Goal036 owner:profession | `data/scripts/village_master/ElfHumanFighterChange1/ElfHumanFighterChange1.java` | `54c8a746401e022d6ae85f2231236dc01e17c4718f9a52dcb3d189c4a4688556` | 11095; `0/346/0`; `54c8a746401e022d6ae85f2231236dc01e17c4718f9a52dcb3d189c4a4688556` | 11095; `0/346/0`; `54c8a746401e022d6ae85f2231236dc01e17c4718f9a52dcb3d189c4a4688556` | `e20ca5e54d51a68bfda125d7ddc032fbf628ede254bf77dc920133954c23db0e` | FAIL |
+| 2 | Goal036 owner:quest | `data/scripts/quests/Q00401_PathOfTheWarrior/Q00401_PathOfTheWarrior.java` | `b2072d71b8f0d16ca3ce128a0bfc4f0341579c41ee7419bda6461901dbb72187` | 9351; `8/335/0`; `b2072d71b8f0d16ca3ce128a0bfc4f0341579c41ee7419bda6461901dbb72187` | 9351; `8/335/0`; `b2072d71b8f0d16ca3ce128a0bfc4f0341579c41ee7419bda6461901dbb72187` | `ef8947fbb6457bf823bceff45994ace5118e02845c1a8b9b755337bfd493c9f2` | FAIL |
+| 3 | Goal036 owner:instance | `data/scripts/instances/Kamaloka/Kamaloka.java` | `25deb19fae2841c80c9b5f227954d5011e7c2841e5f475c651faee50a74133a5` | 28193; `0/958/0`; `25deb19fae2841c80c9b5f227954d5011e7c2841e5f475c651faee50a74133a5` | 28193; `0/958/0`; `25deb19fae2841c80c9b5f227954d5011e7c2841e5f475c651faee50a74133a5` | `f62484224522d4c9d05a721284aa65c9aa49b88cdad534e17bf826809f76191b` | FAIL |
+| 4 | Goal036 owner:instance | `data/scripts/instances/PailakaSongOfIceAndFire/PailakaSongOfIceAndFire.java` | `90ea1a83e0ccd6d5321538de4ace8573784a4d009993c32dda38861061b681e0` | 5285; `0/204/0`; `90ea1a83e0ccd6d5321538de4ace8573784a4d009993c32dda38861061b681e0` | 5285; `0/204/0`; `90ea1a83e0ccd6d5321538de4ace8573784a4d009993c32dda38861061b681e0` | `d682835136e6a72eddbe7e35a6d21fed46c3d6024ffa9122456249f134ae6798` | FAIL |
+| 5 | Goal036 owner:quest | `data/scripts/quests/Q00128_PailakaSongOfIceAndFire/Q00128_PailakaSongOfIceAndFire.java` | `1a4eb79a4e9b8f24c699b2a1f9535366a7dab7e90733bf0a5361dcadaee839b4` | 9344; `13/353/0`; `1a4eb79a4e9b8f24c699b2a1f9535366a7dab7e90733bf0a5361dcadaee839b4` | 9344; `13/353/0`; `1a4eb79a4e9b8f24c699b2a1f9535366a7dab7e90733bf0a5361dcadaee839b4` | `88f13479748033270525b5e188adf11169d1a6951cf9249b7311966edf3bc618` | FAIL |
+| 6 | Goal036 owner:quest | `data/scripts/quests/Q00102_SeaOfSporesFever/Q00102_SeaOfSporesFever.java` | `ac2d5c6eb9082bb605df535cdd8c854b54ced6a4b5ebd4d59aaff38bbb8d137d` | 9255; `19/276/0`; `ac2d5c6eb9082bb605df535cdd8c854b54ced6a4b5ebd4d59aaff38bbb8d137d` | 9255; `19/276/0`; `ac2d5c6eb9082bb605df535cdd8c854b54ced6a4b5ebd4d59aaff38bbb8d137d` | `135a8351757d209d0308b43b00576bd9fb22b84555cdae57a48a821fdeb0f833` | FAIL |
+| 7 | Goal036 owner:quest | `data/scripts/quests/Q00152_ShardsOfGolem/Q00152_ShardsOfGolem.java` | `bfdde72c661d13106301d3421effb4e19d886e5db7f33fe7d4de6cf44b3e22c6` | 5357; `5/209/0`; `bfdde72c661d13106301d3421effb4e19d886e5db7f33fe7d4de6cf44b3e22c6` | 5357; `5/209/0`; `bfdde72c661d13106301d3421effb4e19d886e5db7f33fe7d4de6cf44b3e22c6` | `4d98611cd59a1a7987013c0e475ffd9e88c8c072ec9dea836546088f094aca08` | FAIL |
+| 8 | Goal036 source | `data/instances/Kamaloka/Kamaloka57.xml` | `7519d2f2259c891b9435bfa63dd28581f90abe4e6d0591d39103bed19980e466` | 271; `0/6/0`; `7519d2f2259c891b9435bfa63dd28581f90abe4e6d0591d39103bed19980e466` | 271; `0/6/0`; `7519d2f2259c891b9435bfa63dd28581f90abe4e6d0591d39103bed19980e466` | `cc8e7553a4dfec76ac50b08260a2e15589ef4be16ef944250cfb382c76208984` | FAIL |
+| 9 | Goal036 source | `data/instances/Pailaka/PailakaSongOfIceAndFire.xml` | `e9f2d0ce300fa0cd676ac294457e68ea987d5087d23fad2b03202ddeaad13f16` | 9661; `0/127/0`; `e9f2d0ce300fa0cd676ac294457e68ea987d5087d23fad2b03202ddeaad13f16` | 9661; `0/127/0`; `e9f2d0ce300fa0cd676ac294457e68ea987d5087d23fad2b03202ddeaad13f16` | `224720ee90c1a6de80226d9e58315415a1156f10a861f5fc3390863d4faddeb3` | FAIL |
+| 10 | Goal036 source | `data/phantoms/acquisition/high-five-quest-collection-v1.xml` | `e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b` | 1731; `24/0/0`; `e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b` | 1755; `0/24/0`; `b4d83f03e7dd5020b87058d7e23cb210b375a4b08c320719cb66595a752bf2e9` | `e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b` | PASS |
+| 11 | Goal036 source | `data/phantoms/acquisition/high-five-quest-collection-v1.xml` | `e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b` | 1731; `24/0/0`; `e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b` | 1755; `0/24/0`; `b4d83f03e7dd5020b87058d7e23cb210b375a4b08c320719cb66595a752bf2e9` | `e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b` | PASS |
+| 12 | Goal021 script:q00102 | `quests/Q00102_SeaOfSporesFever/Q00102_SeaOfSporesFever.java` | `ac2d5c6eb9082bb605df535cdd8c854b54ced6a4b5ebd4d59aaff38bbb8d137d` | 9255; `19/276/0`; `ac2d5c6eb9082bb605df535cdd8c854b54ced6a4b5ebd4d59aaff38bbb8d137d` | 9255; `19/276/0`; `ac2d5c6eb9082bb605df535cdd8c854b54ced6a4b5ebd4d59aaff38bbb8d137d` | `135a8351757d209d0308b43b00576bd9fb22b84555cdae57a48a821fdeb0f833` | FAIL |
+| 13 | Goal021 script:q00152 | `quests/Q00152_ShardsOfGolem/Q00152_ShardsOfGolem.java` | `bfdde72c661d13106301d3421effb4e19d886e5db7f33fe7d4de6cf44b3e22c6` | 5357; `5/209/0`; `bfdde72c661d13106301d3421effb4e19d886e5db7f33fe7d4de6cf44b3e22c6` | 5357; `5/209/0`; `bfdde72c661d13106301d3421effb4e19d886e5db7f33fe7d4de6cf44b3e22c6` | `4d98611cd59a1a7987013c0e475ffd9e88c8c072ec9dea836546088f094aca08` | FAIL |
+
+Итог: **13 references / 10 unique paths / 2 canonical matches / 11
+mismatches**. Для девяти уникальных non-acquisition source paths expected pin
+равен raw CRLF либо mixed-EOL hash, а не canonical-LF hash. Pin migration count:
+**0**, потому что Resume-3 запрещает менять `sourceSha256`/`scriptSha256` только
+из-за EOL. `e9b5...` не менялся; `b4d8...` не добавлялся как второй hash.
+Whitelist и quest scripts не менялись.
+
+### Catalog identity и authority gate
+
+| Catalog | Checkout bytes/EOL/raw | Archive bytes/EOL/raw | Canonical catalogHash |
+|---|---|---|---|
+| Goal021 acquisition | 1731; `24/0/0`; `e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b` | 1755; `0/24/0`; `b4d83f03e7dd5020b87058d7e23cb210b375a4b08c320719cb66595a752bf2e9` | `e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b` |
+| Goal036 supported content | 9691; `109/0/0`; `9d6e0eafbdfaf7a173ddfc6559f4affea9113d3649db467a9ff395469b793002` | 9800; `0/109/0`; `0b2ac5afc0d554a52b2bc6a58559b5290ed5fb2406785cbebd3d0f425361ec72` | `9d6e0eafbdfaf7a173ddfc6559f4affea9113d3649db467a9ff395469b793002` |
+
+Canonical catalogHash parity для обоих XML доказан, включая неизменный LF
+Goal021 `e9b5...`. AuthorityHash parity **NOT REACHED / BLOCKED**: обязательные
+catalog loaders fail-closed на первом из 11 incompatible source pins до создания
+authority object. Ослаблять проверку для получения authority evidence запрещено.
+
+### Stop decision и сохранение scope
+
+Новый blocker:
+`GOAL039_RESUME3_EXISTING_RAW_PINS_NOT_CANONICAL`.
+
+Чтобы выполнить 100% canonical pin parity, потребовалось бы мигрировать 11 pin
+references (девять unique source paths) на canonical values, переписать EOL
+исходных scripts/XML либо добавить legacy mapping/alternate accepted hash. Все
+три действия запрещены текущим task. После одного focused confirmation выполнен
+STOP. Пробные изменения общего helper, двух catalog consumers и static suite
+полностью убраны; exact Git diff по этим paths пуст. Production code/data
+changes: **0**.
+
+Goal036 focused, Goal033 production, Goal021 affected, Goal037 static, Resume1/2
+regressions, Goal039 static aggregate, final domain aggregate, scale/endurance,
+rollback, fresh verify, standalone final JAR, fresh Goal034 real stack и freeze:
+**NOT RUN BLOCKED** после confirmation. Final JAR SHA/bytes и Goal034 run ID
+отсутствуют. Completion marker `FEATURE_COMPLETE_FOR_DECLARED_SCOPE` не
+выставлен. Goal040 не создан.
+
+Production DB used/probed: **NO**. `prepare-phantom-test-db`: **NOT RUN**.
+Evidence root: `.phantom-local/goal039-resume3/evidence`; сохранены baseline
+Goal036 report и canonical-policy Goal039 static confirmation report.
+
+Lightweight blocked-overlay Goal039 structure validator: **3/3 PASS**,
+`BUILD SUCCESSFUL`, 16 seconds. Historical matrix осталась 20/20 `PASS`,
+Goal039 matrix — 28 rows; Goal040 отсутствует.
+
+Mojibake-маркеры в изменённом файле проверены: совпадений нет.
+Escaped Cyrillic в изменённом файле проверена: совпадений нет.
+Strict UTF-8/control-character checks прошли. `git diff --check` прошёл.
