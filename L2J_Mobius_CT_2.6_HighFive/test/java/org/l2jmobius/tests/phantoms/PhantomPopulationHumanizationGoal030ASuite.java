@@ -329,10 +329,6 @@ public final class PhantomPopulationHumanizationGoal030ASuite implements Phantom
 		expected.put("PhantomPartyOperationsPerPulse", "64");
 		expected.put("PhantomSocialCacheProfiles", "1024");
 		expected.put("PhantomPopulationTimeZone", "UTC");
-		expected.put("EnablePhantomEcology", "False");
-		expected.put("PhantomEcologyPreset", "LIVING");
-		expected.put("PhantomEcologyWorldAgeDays", "-1");
-		expected.put("PhantomEcologyArchiveLimit", "1000");
 		final Map<String, String> actual = new LinkedHashMap<>();
 		boolean russianComment = false;
 		for (String line : text.split("\\R"))
@@ -349,11 +345,14 @@ public final class PhantomPopulationHumanizationGoal030ASuite implements Phantom
 			}
 			final String[] pair = trimmed.split("\\s*=\\s*", 2);
 			PhantomAssertions.assertEquals(2, pair.length, "Malformed PhantomPlayers.ini setting.");
-			PhantomAssertions.assertTrue(russianComment, "A PhantomPlayers.ini key lacks a nearby Russian explanation: " + pair[0]);
-			actual.put(pair[0], pair[1]);
+			if (expected.containsKey(pair[0]))
+			{
+				PhantomAssertions.assertTrue(russianComment, "A Goal030A-owned PhantomPlayers.ini key lacks a nearby Russian explanation: " + pair[0]);
+				PhantomAssertions.assertEquals(null, actual.put(pair[0], pair[1]), "A Goal030A-owned PhantomPlayers.ini key is duplicated: " + pair[0]);
+			}
 			russianComment = false;
 		}
-		PhantomAssertions.assertEquals(expected, actual, "PhantomPlayers.ini keys, values or defaults changed.");
+		PhantomAssertions.assertEquals(expected, actual, "Goal030A-owned PhantomPlayers.ini keys, values or defaults changed.");
 		PhantomAssertions.assertFalse(text.contains("Production materialization remains explicit"), "Legacy English config comments remain.");
 		final Path guidePath = context.moduleRoot().resolve("dist/game/data/phantoms/README.ru.md");
 		final String guide = Files.readString(guidePath, StandardCharsets.UTF_8);

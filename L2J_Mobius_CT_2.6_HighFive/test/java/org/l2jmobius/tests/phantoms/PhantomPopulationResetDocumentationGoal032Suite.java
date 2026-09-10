@@ -16,7 +16,20 @@ public final class PhantomPopulationResetDocumentationGoal032Suite implements Ph
 {
 	private static final long SEED = 32003203L;
 	private static final Pattern CONFIG_KEY = Pattern.compile("^([A-Za-z][A-Za-z0-9]+)\\s*=", Pattern.MULTILINE);
-	private static final List<String> ROADMAP_TAIL = List.of("Goal032", "Goal033", "Goal034", "Goal035", "Goal036", "Goal037");
+	private static final Set<String> GOAL032_CONFIG_KEYS = Set.of(
+		"EnablePhantomSystem",
+		"EnablePhantomDiagnostics",
+		"MaxMaterializedPhantoms",
+		"MaxScheduledPhantomProfiles",
+		"PhantomSchedulerPulseMillis",
+		"PhantomSchedulerProfilesPerPulse",
+		"PhantomPopulationTarget",
+		"PhantomPopulationActiveTarget",
+		"PhantomPopulationCreationInFlight",
+		"PhantomPopulationBoundariesPerPulse",
+		"PhantomPartyOperationsPerPulse",
+		"PhantomSocialCacheProfiles",
+		"PhantomPopulationTimeZone");
 
 	@Override
 	public String id()
@@ -39,25 +52,24 @@ public final class PhantomPopulationResetDocumentationGoal032Suite implements Ph
 		final String parser = read(root, "java/org/l2jmobius/gameserver/config/custom/PhantomPlayersConfig.java");
 		final String tuning = read(root, "docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md");
 		final String quickStart = read(root, "docs/phantoms/PHANTOM_QUICKSTART_RU.md");
-		final String roadmap = read(root, "docs/PHANTOM_BOTS_ROADMAP.md");
-		final String master = read(root, "PHANTOM_DEVELOPMENT_MASTER_PLAN.md");
-		final String status = read(root, "docs/phantoms/PHANTOM_CURRENT_STATUS.md");
-		final String handoff = read(root, "docs/phantoms/NEW_DIALOG_START_MESSAGE.txt");
+		final String report = read(root, "docs/phantoms/reports/032-phantom-reset-operator-control.md");
 		final String admin = read(root, "dist/game/data/scripts/handlers/chat/commands/admin/AdminPhantom.java");
 		final String gameServer = read(root, "java/org/l2jmobius/gameserver/GameServer.java");
 
 		final Set<String> shippedKeys = keys(shipped);
-		PhantomAssertions.assertEquals(17, shippedKeys.size(), "Shipped Phantom config key inventory changed.");
-		PhantomAssertions.assertEquals(shippedKeys, keys(preset), "Local-play preset key inventory differs from shipped config.");
-		for (String key : shippedKeys)
+		final Set<String> presetKeys = keys(preset);
+		PhantomAssertions.assertTrue(shippedKeys.containsAll(GOAL032_CONFIG_KEYS), "Shipped config lost a Goal032-owned key.");
+		PhantomAssertions.assertTrue(presetKeys.containsAll(GOAL032_CONFIG_KEYS), "Local-play preset lost a Goal032-owned key.");
+		for (String key : GOAL032_CONFIG_KEYS)
 		{
+			PhantomAssertions.assertEquals(1, occurrences(shipped, key), "Shipped config duplicates Goal032-owned key " + key + ".");
+			PhantomAssertions.assertEquals(1, occurrences(preset, key), "Local-play preset duplicates Goal032-owned key " + key + ".");
 			PhantomAssertions.assertTrue(parser.contains("\"" + key + "\""), "Production parser does not reference shipped key " + key + ".");
-			PhantomAssertions.assertTrue(tuning.contains("`" + key + "`"), "Tuning guide omits shipped key " + key + ".");
+			PhantomAssertions.assertTrue(tuning.contains("`" + key + "`"), "Tuning guide omits Goal032-owned key " + key + ".");
 		}
 		PhantomAssertions.assertTrue(shipped.contains("EnablePhantomSystem = False") && shipped.contains("PhantomPopulationTarget = 0") && shipped.contains("PhantomPopulationActiveTarget = 0"), "Shipped fail-closed defaults changed.");
-		PhantomAssertions.assertTrue(shipped.contains("EnablePhantomEcology = False") && shipped.contains("PhantomEcologyPreset = LIVING") && preset.contains("EnablePhantomEcology = True"), "Ecology shipped/local-play defaults drifted.");
-		PhantomAssertions.assertTrue(tuning.contains("## Что можно крутить для количества ботов") && tuning.contains("## Что относится только к производительности") && tuning.contains("## Что не надо крутить без причины") && tuning.contains("## Настройки живой экологии"), "Required tuning guide sections are missing.");
-		PhantomAssertions.assertTrue(tuning.contains("Goal033 — Living population ecology"), "Tuning guide does not describe Goal033 ecology knobs.");
+		PhantomAssertions.assertTrue(preset.contains("EnablePhantomSystem = True") && preset.contains("MaxMaterializedPhantoms = 32") && preset.contains("PhantomPopulationTarget = 10") && preset.contains("PhantomPopulationActiveTarget = 5"), "Goal032 local-play core population/cap values drifted.");
+		PhantomAssertions.assertTrue(tuning.contains("## Что можно крутить для количества ботов") && tuning.contains("## Что относится только к производительности") && tuning.contains("## Что не надо крутить без причины") && tuning.contains("## Безопасный reset/reseed"), "Required Goal032 tuning/reset sections are missing.");
 
 		for (String command : List.of("//phantom reset preview", "//phantom reset confirm <TOKEN>", "//phantom reset cancel"))
 		{
@@ -68,18 +80,24 @@ public final class PhantomPopulationResetDocumentationGoal032Suite implements Ph
 		PhantomAssertions.assertTrue(admin.contains("arguments.equals(\"reset preview\")") && admin.contains("arguments.startsWith(\"reset confirm \")") && admin.contains("arguments.equals(\"reset cancel\")"), "AdminPhantom reset routes drifted.");
 		PhantomAssertions.assertFalse(gameServer.contains("operatorReset"), "GameServer startup contains an automatic reset path.");
 
-		assertRoadmapOrder(roadmap);
-		assertRoadmapOrder(master);
-		assertRoadmapOrder(status);
-		assertRoadmapOrder(handoff);
-		PhantomAssertions.assertTrue(roadmap.contains("Версия дорожной карты:** 3"), "Canonical roadmap is not v3.");
-		PhantomAssertions.assertTrue(roadmap.contains("FEATURE_COMPLETE_FOR_DECLARED_SCOPE") && roadmap.contains("ручная игра"), "Roadmap v3 omits finite freeze or QA philosophy.");
-		PhantomAssertions.assertTrue(status.contains("Goal032 Phantom-only reset/reseed") && status.contains("Goal033 living population ecology") && status.contains("Следующий Goal034"), "Current status does not preserve Goal032/Goal033 and the Goal034 transition.");
-		PhantomAssertions.assertTrue(handoff.contains("Следующий реальный шаг: **Goal034 — Automated black-box local stack acceptance**"), "Handoff does not lead to Goal034 after Goal033 SUCCESS.");
+		for (String token : List.of(
+			"`SUCCESS`",
+			"every one of the 13 keys",
+			"deferred to Goal 033",
+			"//phantom reset preview",
+			"//phantom reset confirm <TOKEN>",
+			"//phantom reset confirm <TOKEN> reseed",
+			"//phantom reset cancel",
+			"Any SQL/runtime failure rolls back",
+			"No startup path invokes reset",
+			"Production database `l2jmobiush5` was not opened"))
+		{
+			PhantomAssertions.assertTrue(report.contains(token), "Historical Goal032 SUCCESS report lost accepted token: " + token);
+		}
 
-		context.record("goal032.documentation.configKeys", shippedKeys);
+		context.record("goal032.documentation.configKeys", GOAL032_CONFIG_KEYS);
 		context.record("goal032.documentation.commands", "preview,confirm,confirm-reseed,cancel");
-		context.record("goal032.documentation.roadmap", "v3:032-success>033-success>034-next>035>036>037,finite=true");
+		context.record("goal032.documentation.history", "SUCCESS,ownedKeys=13,ecology=deferred-goal033");
 	}
 
 	private static String read(Path root, String relative) throws Exception
@@ -98,14 +116,17 @@ public final class PhantomPopulationResetDocumentationGoal032Suite implements Ph
 		return Set.copyOf(result);
 	}
 
-	private static void assertRoadmapOrder(String text)
+	private static int occurrences(String text, String key)
 	{
-		int previous = -1;
-		for (String goal : ROADMAP_TAIL)
+		int result = 0;
+		final Matcher matcher = CONFIG_KEY.matcher(text);
+		while (matcher.find())
 		{
-			final int current = text.indexOf(goal, previous + 1);
-			PhantomAssertions.assertTrue(current > previous, "Roadmap tail order is missing or invalid at " + goal + ".");
-			previous = current;
+			if (key.equals(matcher.group(1)))
+			{
+				result++;
+			}
 		}
+		return result;
 	}
 }

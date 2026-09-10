@@ -195,13 +195,14 @@ public final class PhantomLocalPlayGoal031Suite implements PhantomTestSuite
 		final Path docs = context.moduleRoot().resolve("docs/phantoms");
 		final String quickstart = Files.readString(docs.resolve("PHANTOM_QUICKSTART_RU.md"), StandardCharsets.UTF_8);
 		final String status = Files.readString(docs.resolve("PHANTOM_CURRENT_STATUS.md"), StandardCharsets.UTF_8);
+		final String historicalReport = Files.readString(docs.resolve("reports/031-local-play-readiness.md"), StandardCharsets.UTF_8);
 		for (int section = 1; section <= 16; section++)
 		{
 			PhantomAssertions.assertTrue(quickstart.contains("## " + section + "."), "Quick-start is missing required section " + section + ".");
 		}
 		PhantomAssertions.assertTrue(quickstart.contains("phantom-local-play-preflight") && quickstart.contains("//phantom status") && quickstart.contains("//phantom drain") && quickstart.contains("//phantom disable"), "Quick-start is missing canonical preflight/status/rollback commands.");
 		PhantomAssertions.assertTrue(status.contains("Goal030 accepted 20-domain release slice") && status.contains("original master-plan full vision"), "Current status does not separate release scope from the original full vision.");
-		PhantomAssertions.assertTrue(status.contains("DEFERRED_NOT_IMPLEMENTED"), "Current status does not expose deferred gameplay scope.");
+		PhantomAssertions.assertTrue(historicalReport.contains("DEFERRED_NOT_IMPLEMENTED"), "Historical Goal031 report does not preserve its deferred gameplay scope.");
 	}
 
 	private void testReleaseMatrix(PhantomTestContext context) throws Exception

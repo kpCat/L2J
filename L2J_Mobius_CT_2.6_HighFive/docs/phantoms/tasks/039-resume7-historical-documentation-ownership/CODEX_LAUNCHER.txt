@@ -1,0 +1,9 @@
+/goal Выполни Goal039 Resume 7 строго по docs/phantoms/tasks/039-resume7-historical-documentation-ownership/TASK.md.
+Required HEAD/origin: 49a33254f2b5645ac8f9966fb60c0b3fa3474d47
+Branch: feature/phantom-world
+
+Blocker — HISTORICAL_DOCUMENTATION_FORWARD_STATE_OWNERSHIP_DRIFT, а не реальный config defect. Не делай тупое 17->23. Historical Goal032 report доказывает: Goal032 владел 13 base keys, ecology была deferred Goal033. Сейчас shipped=23: Goal032 13 + Goal033 ecology 4 + Goal038 conversation 6; local-play preset=17 (13+4), а 6 Goal038 keys optional и должны разрешаться parser defaults: humanized=true, custom=true, CASUAL, CONTEXTUAL, HIGH, mature=false.
+
+Сначала census historical test assertions по CENSUS_CONTRACT.md. Goal032 doc suite должен проверять только свои 13 base keys как subset + parser/tuning/reset UX/Admin/no-auto-reset + historical Goal032 SUCCESS contract; убрать ownership текущего roadmap v3 / next Goal034 / Goal034 handoff / future tail. Exact current 23-key union перенеси в Goal039 static/current owner; preset exact 17 + шесть defaulted Goal038 settings тоже докажи там. Goal031 documentation уже выглядит healthy — не ломай его. Production/config/data behavior changes=0, historical reports не переписывать.
+
+После Goal032 doc + Goal039 static + Goal032/031 + Goal033 + Goal036 + Goal037 native/static + Goal038 config/catalog + DB guard + affected lineage green продолжай Goal039: final domains -> scale/endurance -> rollback -> fresh verify -> standalone final jar -> fresh Goal034 real stack на clean final jar -> freeze. Same-family stale historical doc assertions можно исправлять в этом Resume; НОВЫЙ независимый blocker = одно focused confirmation и STOP/BLOCKED. Production l2jmobiush5 запрещена; prepare-phantom-test-db не выполнять. ACCEPT => FEATURE_COMPLETE_FOR_DECLARED_SCOPE, Goal040 не создавать.

@@ -1,0 +1,59 @@
+{
+  "task": "Goal039 Resume 7 — historical documentation ownership sweep",
+  "required_parent": "49a33254f2b5645ac8f9966fb60c0b3fa3474d47",
+  "branch": "feature/phantom-world",
+  "blocker": "GOAL039_RESUME6_GOAL032_DOCUMENTATION_CONFIG_KEY_INVENTORY_STALE",
+  "family": "HISTORICAL_DOCUMENTATION_FORWARD_STATE_OWNERSHIP_DRIFT",
+  "goal032_owned_config_keys": 13,
+  "goal033_additive_config_keys": 4,
+  "goal038_additive_config_keys": 6,
+  "current_shipped_keys": 23,
+  "current_local_play_explicit_keys": 17,
+  "expected_production_changes": 0,
+  "success_marker": "FEATURE_COMPLETE_FOR_DECLARED_SCOPE",
+  "automatic_next_goal": null,
+  "files": [
+    {
+      "path": "docs/phantoms/tasks/039-resume7-historical-documentation-ownership/ACCEPTANCE.md",
+      "sha256": "aedf16f7c9839eb534cb8ce2af7a742edb5332913f8f3f5018fe51e707fb73eb",
+      "bytes": 2554,
+      "lines": 82
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume7-historical-documentation-ownership/CENSUS_CONTRACT.md",
+      "sha256": "2c3d4ae2086bbcd007d8713ebcb12141ee17660d2ab365ef333b9c57a581788e",
+      "bytes": 1866,
+      "lines": 58
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume7-historical-documentation-ownership/CODEX_LAUNCHER.txt",
+      "sha256": "10677d53b52a813c0bfde19d20cba9b60d1cdbb42d6e4cefbccdac8c384f6fc4",
+      "bytes": 2137,
+      "lines": 9
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume7-historical-documentation-ownership/CONTEXT.md",
+      "sha256": "eed574b9b5630e827bcb6b28b4f6d705c6adcc0c96e28751240653cae8295f04",
+      "bytes": 5988,
+      "lines": 218
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume7-historical-documentation-ownership/OWNERSHIP_CONTRACT.md",
+      "sha256": "cb12ff99e7c16d5a251955e471f7166bddc9ead56c870cdc552ef48125cbf627",
+      "bytes": 3547,
+      "lines": 120
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume7-historical-documentation-ownership/TASK.md",
+      "sha256": "c3624c6045ae7f90b4a5df936ac908ed2ef136a6b205e57fa22ca22debc7a449",
+      "bytes": 2967,
+      "lines": 117
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume7-historical-documentation-ownership/TEST_PLAN.md",
+      "sha256": "39d2dc2b5e89d7fe8a544178603c3fb2a51c3d62ed141bd0676ed78fd9a496b5",
+      "bytes": 4807,
+      "lines": 169
+    }
+  ]
+}

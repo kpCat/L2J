@@ -50,7 +50,7 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 	}
 
 	private static final long SEED = 39003901L;
-	private static final String REQUIRED_PARENT = "efc815889d08de42331ad5afad68e465383ab05e";
+	private static final String REQUIRED_PARENT = "49a33254f2b5645ac8f9966fb60c0b3fa3474d47";
 	private static final String FINAL_MARKER = "FEATURE_COMPLETE_FOR_DECLARED_SCOPE";
 	private static final String OLD_ACQUISITION_CATALOG_HASH = "e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b";
 	private static final Map<String, String> OLD_QUEST_SCRIPT_HASHES = Map.of(
@@ -63,6 +63,35 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 	private static final String SUPPORTED_OWNER_BOOTSTRAP_CALL = "PhantomSupportedContentScriptBootstrap." + "loadGoal036Owners(context)";
 	private static final String FINAL_HEADER = "domain_id\tgoal_lineage\tauthoritative_owner_paths\tfresh_goal039_evidence\tpredecessor_evidence\tevidence_kind\tfinal_status\tclaim_boundary";
 	private static final Set<String> FINAL_STATUSES = Set.of("PASS", "ACCEPT", "BLOCKED", "NOT_RUN_BLOCKED");
+	private static final Set<String> GOAL032_CONFIG_KEYS = Set.of(
+		"EnablePhantomSystem",
+		"EnablePhantomDiagnostics",
+		"MaxMaterializedPhantoms",
+		"MaxScheduledPhantomProfiles",
+		"PhantomSchedulerPulseMillis",
+		"PhantomSchedulerProfilesPerPulse",
+		"PhantomPopulationTarget",
+		"PhantomPopulationActiveTarget",
+		"PhantomPopulationCreationInFlight",
+		"PhantomPopulationBoundariesPerPulse",
+		"PhantomPartyOperationsPerPulse",
+		"PhantomSocialCacheProfiles",
+		"PhantomPopulationTimeZone");
+	private static final Set<String> GOAL033_CONFIG_KEYS = Set.of(
+		"EnablePhantomEcology",
+		"PhantomEcologyPreset",
+		"PhantomEcologyWorldAgeDays",
+		"PhantomEcologyArchiveLimit");
+	private static final Set<String> GOAL038_CONFIG_KEYS = Set.of(
+		"EnablePhantomHumanizedConversation",
+		"EnablePhantomCustomConversationPack",
+		"PhantomConversationRegister",
+		"PhantomConversationProfanity",
+		"PhantomConversationVariation",
+		"EnablePhantomMatureConversation");
+	private static final Set<String> CURRENT_SHIPPED_CONFIG_KEYS = configUnion(GOAL032_CONFIG_KEYS, GOAL033_CONFIG_KEYS, GOAL038_CONFIG_KEYS);
+	private static final Set<String> LOCAL_PLAY_EXPLICIT_CONFIG_KEYS = configUnion(GOAL032_CONFIG_KEYS, GOAL033_CONFIG_KEYS);
+	private static final Pattern CONFIG_KEY = Pattern.compile("^([A-Za-z][A-Za-z0-9]+)\\s*=", Pattern.MULTILINE);
 	private static final Pattern BUILD_TARGET = Pattern.compile("<target\\s+name=\"([^\"]+)\"");
 	private static final Pattern TARGET_DEPENDS = Pattern.compile("<target\\s+name=\"([^\"]+)\"\\s+depends=\"([^\"]*)\"");
 	private static final Pattern FINAL_JAR = Pattern.compile("(?i)final JAR SHA-256:\\s*`?[0-9a-f]{64}`?.*bytes:\\s*`?[0-9]+`?", Pattern.DOTALL);
@@ -213,11 +242,28 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 		if (blocked)
 		{
 			PhantomAssertions.assertEquals("PASS", rows.get("safe-defaults-preflight").finalStatus(), "Goal039 blocked matrix lost the completed static phase.");
-			PhantomAssertions.assertEquals("BLOCKED", rows.get("living-population-ecology").finalStatus(), "Goal039 blocked matrix does not identify the first failed domain.");
-			for (String domain : POST_GOAL030_DOMAINS.subList(2, POST_GOAL030_DOMAINS.size()))
+			PhantomAssertions.assertEquals("NOT_RUN_BLOCKED", rows.get("final-documentation-freeze").finalStatus(), "Goal039 blocked matrix overclaims the final freeze.");
+			int blockedRows = 0;
+			int incompleteRows = 0;
+			for (String domain : POST_GOAL030_DOMAINS)
 			{
-				PhantomAssertions.assertEquals("NOT_RUN_BLOCKED", rows.get(domain).finalStatus(), "Goal039 blocked matrix overclaims a later domain: " + domain);
+				final String status = rows.get(domain).finalStatus();
+				PhantomAssertions.assertFalse("ACCEPT".equals(status), "Goal039 blocked matrix contains an ACCEPT row: " + domain);
+				if (!"PASS".equals(status))
+				{
+					incompleteRows++;
+					if ("BLOCKED".equals(status))
+					{
+						blockedRows++;
+					}
+					else
+					{
+						PhantomAssertions.assertEquals("NOT_RUN_BLOCKED", status, "Goal039 blocked matrix has an unsupported incomplete status: " + domain);
+					}
+				}
 			}
+			PhantomAssertions.assertTrue(incompleteRows > 0, "Goal039 blocked matrix has no incomplete row.");
+			PhantomAssertions.assertTrue(blockedRows <= 1, "Goal039 blocked matrix identifies more than one failed domain.");
 		}
 		else
 		{
@@ -236,6 +282,22 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 	{
 		final Path root = context.moduleRoot();
 		final String shipped = read(root, "dist/game/config/Custom/PhantomPlayers.ini");
+		final String preset = read(root, "docs/phantoms/examples/PhantomPlayers.local-play.ini");
+		final String parser = read(root, "java/org/l2jmobius/gameserver/config/custom/PhantomPlayersConfig.java");
+		final List<String> shippedKeyList = configKeys(shipped);
+		final List<String> presetKeyList = configKeys(preset);
+		PhantomAssertions.assertEquals(13, GOAL032_CONFIG_KEYS.size(), "Goal032 current config ownership cardinality drifted.");
+		PhantomAssertions.assertEquals(4, GOAL033_CONFIG_KEYS.size(), "Goal033 current config ownership cardinality drifted.");
+		PhantomAssertions.assertEquals(6, GOAL038_CONFIG_KEYS.size(), "Goal038 current config ownership cardinality drifted.");
+		PhantomAssertions.assertEquals(23, shippedKeyList.size(), "Current shipped Phantom config assignment count drifted.");
+		PhantomAssertions.assertEquals(CURRENT_SHIPPED_CONFIG_KEYS, new HashSet<>(shippedKeyList), "Current shipped Phantom config is not the exact Goal032+Goal033+Goal038 union.");
+		PhantomAssertions.assertEquals(17, presetKeyList.size(), "Current local-play preset assignment count drifted.");
+		PhantomAssertions.assertEquals(LOCAL_PLAY_EXPLICIT_CONFIG_KEYS, new HashSet<>(presetKeyList), "Current local-play preset is not the exact Goal032+Goal033 explicit union.");
+		PhantomAssertions.assertTrue(GOAL038_CONFIG_KEYS.stream().noneMatch(new HashSet<>(presetKeyList)::contains), "Local-play preset unexpectedly makes a Goal038 optional setting explicit.");
+		for (String key : CURRENT_SHIPPED_CONFIG_KEYS)
+		{
+			PhantomAssertions.assertTrue(parser.contains("\"" + key + "\""), "Current production parser does not reference shipped key " + key + ".");
+		}
 		for (String line : List.of(
 			"EnablePhantomSystem = False",
 			"PhantomPopulationTarget = 0",
@@ -253,6 +315,14 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(0, settings.populationTarget(), "Goal039 shipped population target is nonzero.");
 		PhantomAssertions.assertEquals(0, settings.populationActiveTarget(), "Goal039 shipped ACTIVE target is nonzero.");
 		PhantomAssertions.assertFalse(settings.conversation().matureEnabled(), "Goal039 shipped mature conversation is reachable while disabled.");
+		final PhantomPlayersConfig.Settings presetSettings = PhantomPlayersConfig.read(root.resolve("docs/phantoms/examples/PhantomPlayers.local-play.ini"));
+		PhantomAssertions.assertTrue(presetSettings.enabled(), "Goal039 local-play preset is not parser-runnable.");
+		PhantomAssertions.assertTrue(presetSettings.conversation().humanizedEnabled(), "Omitted Goal038 humanized setting did not default to true.");
+		PhantomAssertions.assertTrue(presetSettings.conversation().customPackEnabled(), "Omitted Goal038 custom-pack setting did not default to true.");
+		PhantomAssertions.assertEquals(PhantomPlayersConfig.ConversationRegister.CASUAL, presetSettings.conversation().register(), "Omitted Goal038 register did not default to CASUAL.");
+		PhantomAssertions.assertEquals(PhantomPlayersConfig.ConversationProfanity.CONTEXTUAL, presetSettings.conversation().profanity(), "Omitted Goal038 profanity did not default to CONTEXTUAL.");
+		PhantomAssertions.assertEquals(PhantomPlayersConfig.ConversationVariation.HIGH, presetSettings.conversation().variation(), "Omitted Goal038 variation did not default to HIGH.");
+		PhantomAssertions.assertFalse(presetSettings.conversation().matureEnabled(), "Omitted Goal038 mature setting did not default to false.");
 
 		final String build = read(root, "build.xml");
 		final Map<String, Set<String>> dependencies = targetDependencies(build);
@@ -289,6 +359,8 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 		}
 		PhantomAssertions.assertFalse(staticDependencies.contains("prepare-phantom-test-db") || domainDependencies.contains("prepare-phantom-test-db"), "Goal039 aggregate depends on destructive DB preparation.");
 		context.record("goal039.shipped", "enabled=false,population=0,active=0,diagnostics=false,mature=false");
+		context.record("goal039.configOwnership", "goal032=13,goal033=4,goal038=6,shipped=23,preset=17");
+		context.record("goal039.presetConversationDefaults", "humanized=true,custom=true,register=CASUAL,profanity=CONTEXTUAL,variation=HIGH,mature=false");
 		context.record("goal039.aggregateTargets", "static=" + staticDependencies.size() + ",domain=" + domainDependencies.size());
 	}
 
@@ -687,6 +759,34 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 			offset += needle.length();
 		}
 		return count;
+	}
+
+	@SafeVarargs
+	private static Set<String> configUnion(Set<String>... owners)
+	{
+		final Set<String> result = new HashSet<>();
+		for (Set<String> owner : owners)
+		{
+			for (String key : owner)
+			{
+				if (!result.add(key))
+				{
+					throw new IllegalStateException("Phantom config key has multiple declared owners: " + key);
+				}
+			}
+		}
+		return Set.copyOf(result);
+	}
+
+	private static List<String> configKeys(String text)
+	{
+		final List<String> result = new ArrayList<>();
+		final Matcher matcher = CONFIG_KEY.matcher(text);
+		while (matcher.find())
+		{
+			result.add(matcher.group(1));
+		}
+		return List.copyOf(result);
 	}
 
 	private static Set<String> buildTargets(String build)

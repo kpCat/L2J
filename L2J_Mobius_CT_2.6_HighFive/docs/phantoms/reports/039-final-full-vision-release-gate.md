@@ -10,7 +10,7 @@ Status: **BLOCKED**
 
 Опубликованный blocker baseline: `1ceb045c663a4d6877d2fc8de06822bd78b4769e`
 
-Blocker: `GOAL039_RESUME3_EXISTING_RAW_PINS_NOT_CANONICAL`
+Blocker: `GOAL039_RESUME7_FRESH_VERIFY_CANDIDATE_ENVIRONMENT_FAILURE`
 
 ## Решение
 
@@ -841,3 +841,148 @@ Escaped Cyrillic в изменённых файлах проверены: сов
 Strict UTF-8 и control-character checks прошли для 16 файлов. Resume-6 package
 manifest подтвердил SHA-256/bytes всех шести payload files. `git diff --check`
 прошёл; exact-path staging исключает все user-owned paths.
+
+## Goal039 Resume 7 — historical documentation ownership закрыт, verify environment blocker
+
+Дата: 2026-09-10.
+
+Required parent / исходные HEAD / origin:
+`49a33254f2b5645ac8f9966fb60c0b3fa3474d47`.
+Ветка: `feature/phantom-world`. Precondition exact branch и
+`HEAD == origin/feature/phantom-world` выполнен.
+
+До изменений operator checkout содержал 419 dirty paths: три user-owned
+tracked change и 416 user-owned untracked paths. LF-joined porcelain
+fingerprint:
+`cbae2a41ef3d4fdd22747654812fb3da0ddc6a747a960e48dfcd3ac1244b33b2`.
+Все пользовательские изменения сохранены и исключены из clean candidate и
+exact-path staging Resume 7.
+
+### Census и ownership correction
+
+До изменений выполнен полный census historical TEST assertions по
+`CENSUS_CONTRACT.md`. Классификация relevant suites:
+
+| Suite | Классификация | Коррекция |
+|---|---|---|
+| Goal030A humanization | `STALE_FORWARD_STATE_OWNERSHIP` | historical exact 13, без владения Goal033/038 |
+| Goal031 documentation | в целом `HEALTHY_HISTORICAL_CONTRACT`, один stale current-status anchor | stale anchor переведён на immutable Goal031 report |
+| Goal032 reset documentation | `STALE_FORWARD_STATE_OWNERSHIP` | exact owned 13 как subset; mutable roadmap/handoff/future tail удалены |
+| Goal034 black-box documentation | `STALE_FORWARD_STATE_OWNERSHIP` | current docs заменены immutable Goal034 closure8 report/acceptance |
+| Goal038 documentation/config | `CURRENT_OWNER` собственной conversation family | без изменений |
+| Goal039 full vision | `CURRENT_FINAL_OWNER` | exact current 23/17/defaults усилены |
+
+Historical Goal032 report остался byte-unchanged и является source of truth:
+Goal032 `SUCCESS`, 13 base keys, reset/reseed UX и safety, ecology deferred в
+Goal033. Исправленный Goal032 suite проверяет свои 13 ключей как subset shipped
+и preset, отсутствие duplicates, parser/tuning coverage, preview/confirm/
+confirm-reseed/cancel, Admin routes, no startup auto-reset и historical SUCCESS.
+Он больше не владеет current roadmap v3, next Goal034, Goal034 handoff либо
+future tail.
+
+Текущее declared-scope ownership перенесено в Goal039 static owner:
+
+- shipped exact 23 = Goal032 base 13 + Goal033 ecology 4 + Goal038 conversation 6;
+- local-play preset exact 17 = Goal032 13 + Goal033 4;
+- шесть отсутствующих в preset Goal038 settings разрешаются parser defaults:
+  `humanized=true`, `custom=true`, `CASUAL`, `CONTEXTUAL`, `HIGH`,
+  `mature=false`;
+- duplicates/unknown keys запрещены; shipped OFF/0/0 и mature OFF сохранены.
+
+Production Java/config/data/build behavior changes: **0**. Historical Goal030A,
+Goal031, Goal032, Goal034 и Goal038 reports не переписывались.
+
+### Focused и affected lineage
+
+Clean candidate подтвердил:
+
+- Goal032 documentation **1/1 PASS**;
+- Goal030A historical ownership **5/5 PASS**;
+- Goal034 historical contract **18/18 PASS**;
+- Goal039 structure **7/7 PASS**, static aggregate **26/26 PASS**;
+- Goal032 reset/reseed **2/2 PASS**, ownership **3/3 PASS**;
+- Goal031 documentation **4/4 PASS**, readiness **3/3 PASS**;
+- Goal033 production **2/2 PASS**, focused **9/9 PASS**;
+- Goal033A **4/4 PASS** после единственного transient focused confirmation;
+- Goal033A1 no-geodata **4/4 PASS** и geodata-present **4/4 PASS**;
+- Goal036 **8/8 PASS**;
+- Goal037 static **2/2 PASS**, native **8/8 PASS**;
+- Goal038 catalog/config и affected routes PASS;
+- Background/topology dual-mode, Goal021 acquisition/restart/atomic,
+  Goal030 restart/rollback и shipped-disabled lineage PASS;
+- DB negative guard: expected exit `2`, driver loads `0`, connection attempts `0`.
+
+### Final sequence до blocker
+
+После полного focused/affected green выполнены:
+
+- Goal039 final-domain aggregate: **PASS**, `BUILD SUCCESSFUL`, 50 минут 21 секунда;
+- Goal029 scale/environment/endurance: **PASS**, `BUILD SUCCESSFUL`,
+  32 минуты 1 секунда;
+- Goal030 rollback/release-control: **PASS**, `BUILD SUCCESSFUL`,
+  1 минута 56 секунд.
+
+Goal029 CP2/CP3 использовали только уже разрешённые локальные status-env values
+для test stack в том же PowerShell process. Реальное provisioning не
+выполнялось.
+
+Первый fresh `ant verify` прошёл весь runtime/DB test tail, включая final DB
+integration `9/9`, scenario `1/1` и performance `1/1`, затем завершился на
+`phantom-static-verify-014`: вложенный archive candidate находился внутри
+operator Git worktree, поэтому legacy verifier вычислил неправильный repository
+root и классифицировал historical Goal014 `build.xml` как out-of-scope. Exact
+focused confirmation того же static target в изолированном Git-контексте прошёл
+`BUILD SUCCESSFUL`. Это доказало candidate-isolation environment cause, а не
+product defect.
+
+По исходному Goal039 retry budget выполнен единственный разрешённый full
+`ant verify` repeat. После переноса candidate JDK 25 zipfs воспроизвёл
+`AccessDeniedException` на `dist/libs/LoginServer.jar`; target `test` затем
+завершился exit `2`, потому что guard не смог выполнить `toRealPath()` для
+существующего `.phantom-local/Database.test.ini` в перенесённом candidate.
+Ровно один focused confirmation существующим `ant -q test` повторил тот же JDK
+zipfs AccessDenied и exit `2` за 22 секунды.
+
+Это новый независимый environment family, не
+`HISTORICAL_DOCUMENTATION_FORWARD_STATE_OWNERSHIP_DRIFT` и не config defect.
+Второй independent verify blocker запрещает дальнейшие retries и repair в
+Resume 7. Выполнен обязательный STOP.
+
+Blocker:
+`GOAL039_RESUME7_FRESH_VERIFY_CANDIDATE_ENVIRONMENT_FAILURE`.
+
+### Остановленные этапы и safety
+
+После confirmation не выполнялись:
+
+- standalone final `ant -q jar` — `NOT_RUN_BLOCKED`, final SHA/bytes отсутствуют;
+- fresh Goal034 real stack на final JAR — `NOT_RUN_BLOCKED`, run ID отсутствует;
+- final Goal039 ACCEPT documentation/freeze — `NOT_RUN_BLOCKED`.
+
+Completion marker не выставлен; freeze document не создан; Goal040 не создан.
+Goal039 остаётся **BLOCKED**. Goal034–038 historical SUCCESS решения сохранены.
+
+Guarded test DB: только `127.0.0.1:3308/l2jmobiush5_phantom_test`, user
+`l2j_phantom_test`. Production `l2jmobiush5` не использовалась и не
+проверялась. `prepare-phantom-test-db`: **NOT RUN**.
+
+Candidate semantic XML/TSV были checkout-normalized только внутри temporary
+candidate для совместимости с historical raw-byte activation pins; repository
+files не менялись. External 203-region geodata использовалась через temporary
+junction и не входит в commit.
+
+Final blocked matrix: 28 rows = **26 PASS + 2 NOT_RUN_BLOCKED**. Lightweight
+blocked-overlay `phantom-full-vision-goal039-structure-test`: **7/7 PASS**,
+`BUILD SUCCESSFUL`, 25 секунд.
+
+Bounded scope exception: 15 staged files — пять same-family TEST changes,
+Goal039 report, Goal039 matrix и восемь файлов переданного Resume-7 task
+package. Это одна historical-documentation/current-gate family плюс обязательная
+BLOCKED evidence; production и независимые подсистемы не изменены.
+
+Resume-7 package manifest подтвердил SHA-256/bytes/lines всех семи payload
+files. Immutable historical Goal030A/031/032/034/038 report diffs пусты.
+Mojibake-маркеры в 15 изменённых файлах проверены: совпадений нет.
+Escaped Cyrillic в 15 изменённых файлах проверены: совпадений нет.
+Strict UTF-8 и control-character checks прошли. Exact-path `git diff --check`
+прошёл; line-ending warnings не являются whitespace errors.
