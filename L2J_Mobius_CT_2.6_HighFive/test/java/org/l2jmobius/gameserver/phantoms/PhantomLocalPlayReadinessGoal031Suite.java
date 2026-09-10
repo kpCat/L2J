@@ -35,6 +35,7 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.ManagedProfile;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 import org.l2jmobius.tests.phantoms.PhantomHeadlessPlayerTestEnvironment;
+import org.l2jmobius.tests.phantoms.PhantomSupportedContentScriptBootstrap;
 import org.l2jmobius.tests.phantoms.PhantomTestContext;
 import org.l2jmobius.tests.phantoms.PhantomTestRegistry;
 import org.l2jmobius.tests.phantoms.PhantomTestSuite;
@@ -73,6 +74,7 @@ public final class PhantomLocalPlayReadinessGoal031Suite implements PhantomTestS
 		resetOperatorState();
 		_environment.initialize(context);
 		_environmentInitialized = true;
+		PhantomSupportedContentScriptBootstrap.loadGoal036Owners(context);
 		_profiles = PhantomProfileRepository.open();
 		final long recoveredProfiles = scalar("SELECT COUNT(*) FROM phantom_profiles");
 		if (recoveredProfiles > 0)

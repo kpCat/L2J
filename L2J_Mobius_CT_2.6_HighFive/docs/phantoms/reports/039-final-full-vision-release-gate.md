@@ -704,3 +704,140 @@ Lightweight blocked-overlay `phantom-full-vision-goal039-structure-test` пос�
 Mojibake-маркеры в изменённых файлах проверены: совпадений нет.
 Escaped Cyrillic в изменённых файлах проверены: совпадений нет.
 Strict UTF-8 и control-character checks прошли. `git diff --check` прошёл.
+
+## Goal039 Resume 6 — полный census bootstrap-family и новый documentation blocker
+
+Дата: 2026-09-10.
+
+Required parent / исходные HEAD / origin:
+`eaac00e0cbdd3a6d076e4d9290ab4760e4c1cbf0`.
+Ветка: `feature/phantom-world`. После обязательного `fetch` precondition
+`HEAD == origin/feature/phantom-world` выполнен.
+
+До изменений operator checkout содержал 418 dirty paths: три user-owned
+tracked change и 415 user-owned untracked paths. Их fingerprint:
+`3a508beb54b202fe20aecc0bf4e04615b3e10fb7779803c9fbdb29f2cf32c11f`.
+Три tracked файла сохранены без изменений Resume 6:
+
+- `java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java`;
+- `test/java/org/l2jmobius/gameserver/phantoms/PhantomClanDirectiveIntegrationGoal030C2ASuite.java`;
+- `test/java/org/l2jmobius/tests/phantoms/PhantomMultipartyEconomySuite.java`.
+
+Clean candidate создан из required parent через `git archive`, затем получил
+только семь разрешённых TEST overlay. Checkout-normalized SQL inputs и guarded
+test-DB config были скопированы отдельно. Runtime-overlay manifest SHA-256:
+`5b7a75cf2d1eebc39c2224c6004dd9a0ae2921a6feb4b116d2049041b29fdf2f`.
+Изолированный Windows sandbox не позволял вложенному JDK читать candidate JAR;
+тот же candidate и те же Ant targets успешно выполнены вне sandbox без изменения
+содержимого candidate.
+
+### Census до изменений
+
+Полный поиск TEST sources нашёл ровно семь suites и девять вызовов
+`PhantomSystem.startConfiguredForTesting(...)`:
+
+| Suite | Вызовов | Headless | Script setup до первого full start | Helper | Поздний restart | Классификация |
+|---|---:|---|---|---|---|---|
+| `PhantomPopulationResetReseedGoal032Suite` | 2 | да | общий EffectMaster-only fixture | нет | да | `LEGACY_SAME_FAMILY` |
+| `PhantomPopulationResetOwnershipGoal032Suite` | 1 | да | общий EffectMaster-only fixture | нет | нет | `LEGACY_SAME_FAMILY` |
+| `PhantomLocalPlayReadinessGoal031Suite` | 1 | да | общий EffectMaster-only fixture | нет | да | `LEGACY_SAME_FAMILY` |
+| `PhantomRestartFailureRecoveryGoal030Checkpoint3Suite` | 1 | да | общий EffectMaster-only fixture | нет | да | `LEGACY_SAME_FAMILY` |
+| `PhantomReleaseDecisionRollbackGoal030Checkpoint3Suite` | 1 | да | общий EffectMaster-only fixture | нет | да | `LEGACY_SAME_FAMILY` |
+| `PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite` | 1 | да | прямой `MASTER_HANDLER_FILE` | нет | нет | `LEGACY_SAME_FAMILY` |
+| `PhantomPopulationEcologyProductionGoal033Suite` | 2 | да | exact shared helper | да | да | `ALREADY_CURRENT` |
+
+`CUSTOM_SCRIPT_LIFECYCLE_REVIEW` и `NOT_HEADLESS_FULL_RUNTIME` не найдены.
+`PhantomQuestInstanceGoal036Suite` подтверждён как `REFERENCE_FOCUSED`: он не
+вызывает full `PhantomSystem` и его поведение не менялось.
+
+### TEST-only correction
+
+В шести legacy suites существующий
+`PhantomSupportedContentScriptBootstrap.loadGoal036Owners(context)` добавлен
+ровно один раз после headless initialization и до первого full start. В
+`startRuntime()` и restart paths helper не добавлялся. В CrossDomain прежний
+прямой `MASTER_HANDLER_FILE` заменён helper; двойной загрузки нет, native
+WHISPER lookup сохранён.
+
+`PhantomFullVisionGoal039Suite` получил verify-owned structural guard с exact
+allowlist всех семи suites и девяти вызовов. Guard требует headless lifecycle,
+ровно один helper до первого full start, запрещает helper после входа в
+`startRuntime`, запрещает `executeScriptList()` и отдельно запрещает прежний
+CrossDomain direct `MASTER_HANDLER_FILE`.
+
+Production changes: **0**. Не менялись generic headless fixture,
+`PhantomSystem`, `GameServer`, `validateRuntime`, gameplay/scripts/catalogs,
+config, hashes/pins, topology, schema/data и `build.xml`. Fake owners и
+`executeScriptList()` не добавлялись.
+
+Каждая из семи full-runtime suites записала
+`supportedContentBootstrap.invocations=1` и exact owners:
+`Q102,Q152,Q401,Q128,ElfHumanFighterChange1,Kamaloka,PailakaSongOfIceAndFire`.
+Во всех XML сохранена точная sequence:
+
+1. `ScriptEngine.MASTER_HANDLER_FILE`;
+2. `quests/QuestMasterHandler.java`;
+3. `village_master/ElfHumanFighterChange1/ElfHumanFighterChange1.java`;
+4. `instances/Kamaloka/Kamaloka.java`;
+5. `instances/PailakaSongOfIceAndFire/PailakaSongOfIceAndFire.java`.
+
+### Mandatory family gates
+
+Clean no-geodata candidate:
+
+- Goal032 reseed: **2/2 PASS**;
+- Goal032 ownership: **3/3 PASS**;
+- Goal031 readiness: **3/3 PASS**;
+- Goal030 CP3 restart/failure: **3/3 PASS**;
+- Goal030 CP3 rollback/release: **3/3 PASS**;
+- Goal030 CP2 cross-domain: **6/6 PASS**;
+- Goal033 production-composed: **2/2 PASS**;
+- Goal036 focused: **8/8 PASS**;
+- Goal037 native: **8/8 PASS**;
+- Goal039 static/safety aggregate: **26/26 PASS** — Goal039 `7/7`,
+  Goal031 `8/8`, Goal030 release baseline `3/3`, Goal038 catalog `5/5`,
+  Goal037 static `2/2`, DB negative guard `1/1` с expected exit `2`.
+
+### Новый независимый blocker и STOP
+
+Первый следующий affected target,
+`phantom-population-reset-documentation-goal032-test`, завершился **0/1 FAIL**:
+`Shipped Phantom config key inventory changed. Expected <17> but was <23>.`
+
+Локальная only-read проверка показывает отдельную documentation/config-contract
+family: suite жёстко ожидает 17 ключей в shipped `PhantomPlayers.ini`, тогда как
+текущий shipped inventory содержит 23. Failure не относится к native-owner
+bootstrap и возникает до оставшейся affected lineage. Выполнено ровно одно
+focused confirmation; assertion и production/config/docs не исправлялись.
+
+Blocker:
+`GOAL039_RESUME6_GOAL032_DOCUMENTATION_CONFIG_KEY_INVENTORY_STALE`.
+
+По Resume-6 stop rule не запускались Goal033 focused, Goal033A/Goal033A1,
+Background position, Goal021 acquisition/restart lineage и dual-mode geodata
+gates. Также **NOT RUN BLOCKED**: финальный Goal039 domain aggregate, Goal029
+scale/environment/endurance, Goal030 rollback/release, fresh `ant verify`,
+standalone final JAR, fresh Goal034 real stack на финальном clean JAR и freeze.
+
+Completion marker `FEATURE_COMPLETE_FOR_DECLARED_SCOPE` не выставлен. Final JAR
+SHA/bytes и Goal034 run ID отсутствуют. Goal040 не создан.
+
+Guarded test DB: только `127.0.0.1:3308/l2jmobiush5_phantom_test`, user
+`l2j_phantom_test`. Production `l2jmobiush5` не использовалась и не проверялась.
+`prepare-phantom-test-db`: **NOT RUN**.
+
+Evidence root: `.phantom-local/goal039-resume6/evidence`; сохранены XML/TXT всех
+mandatory gates, каждого legacy suite и единственного blocker confirmation.
+
+Финальный blocked-overlay `phantom-full-vision-goal039-structure-test` после
+обновления report/matrix: **7/7 PASS**, `BUILD SUCCESSFUL`, 22 секунды.
+
+Bounded scope exception составляет 16 staged files: семь TEST changes, report,
+matrix и семь файлов переданного Resume-6 task package. Это одна artifact family,
+прямо требуемая задачей; production и независимые подсистемы не затронуты.
+
+Mojibake-маркеры в изменённых файлах проверены: совпадений нет.
+Escaped Cyrillic в изменённых файлах проверены: совпадений нет.
+Strict UTF-8 и control-character checks прошли для 16 файлов. Resume-6 package
+manifest подтвердил SHA-256/bytes всех шести payload files. `git diff --check`
+прошёл; exact-path staging исключает все user-owned paths.

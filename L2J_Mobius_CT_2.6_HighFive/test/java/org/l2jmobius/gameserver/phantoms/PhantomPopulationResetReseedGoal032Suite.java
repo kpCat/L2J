@@ -29,6 +29,7 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.ManagedProfile;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 import org.l2jmobius.tests.phantoms.PhantomHeadlessPlayerTestEnvironment;
+import org.l2jmobius.tests.phantoms.PhantomSupportedContentScriptBootstrap;
 import org.l2jmobius.tests.phantoms.PhantomTestContext;
 import org.l2jmobius.tests.phantoms.PhantomTestRegistry;
 import org.l2jmobius.tests.phantoms.PhantomTestSuite;
@@ -57,6 +58,7 @@ public final class PhantomPopulationResetReseedGoal032Suite implements PhantomTe
 		resetOperatorState();
 		_environment.initialize(context);
 		_environmentInitialized = true;
+		PhantomSupportedContentScriptBootstrap.loadGoal036Owners(context);
 		_profiles = PhantomProfileRepository.open();
 		PhantomAssertions.assertEquals(0L, scalar("SELECT COUNT(*) FROM phantom_profiles"), "Goal032 reseed suite requires a clean profile table.");
 		context.record("goal032.reseed.database", "127.0.0.1:3308/l2jmobiush5_phantom_test");

@@ -1,0 +1,9 @@
+/goal Выполни Goal039 Resume 6 строго по docs/phantoms/tasks/039-resume6-headless-native-owner-bootstrap-census/TASK.md.
+Required HEAD/origin: eaac00e0cbdd3a6d076e4d9290ab4760e4c1cbf0
+Branch: feature/phantom-world
+
+Primary Goal032 blocker — часть одной доказанной TEST-only family: старые headless suites вызывают полный PhantomSystem.startConfiguredForTesting после EffectMaster-only среды и не моделируют native prerequisites Goal036. Сначала census ВСЕХ test call-sites startConfiguredForTesting по CENSUS_CONTRACT.md. Уже подтверждены same-family: Goal032 reseed+ownership, Goal031 readiness, Goal030 CP3 restart+rollback, Goal030 CP2 cross-domain; Goal033 уже исправлен, Goal036 reference.
+
+Во всех доказанных same-family suites используй существующий PhantomSupportedContentScriptBootstrap.loadGoal036Owners(context) РОВНО один раз после headless initialize и до первого full PhantomSystem start. Не вызывай из startRuntime/restart. В CrossDomain замени его direct MASTER_HANDLER_FILE на helper, не выполняй оба. Generic headless, PhantomSystem, GameServer, validateRuntime, gameplay/data/config/build/hashes/pins НЕ менять; production changes=0; executeScriptList() не добавлять.
+
+После Goal032 обе suites + Goal031 + Goal030 CP2/CP3 + Goal033 production + Goal036 + Goal037 native + Goal039 static + affected lineage green продолжай исходный Goal039: final domains -> scale/endurance -> rollback -> fresh verify -> standalone final jar -> fresh Goal034 real stack на clean jar -> freeze. Same-family census finding можно чинить; НОВЫЙ независимый blocker = одно focused confirmation и STOP/BLOCKED. Production l2jmobiush5 запрещена; prepare-phantom-test-db не выполнять. ACCEPT => FEATURE_COMPLETE_FOR_DECLARED_SCOPE, Goal040 не создавать.

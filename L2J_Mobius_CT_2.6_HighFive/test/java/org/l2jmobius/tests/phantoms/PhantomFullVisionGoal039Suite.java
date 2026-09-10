@@ -59,6 +59,8 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 	private static final String HISTORICAL_MATRIX = "test/resources/phantoms/release/goal030-release-coverage.tsv";
 	private static final String HISTORICAL_MATRIX_SHA256 = "fd891490e7bed44dba7d33f1b72d5c1de46ff67003190b31d22b7dd96206e64e";
 	private static final String FINAL_MATRIX = "test/resources/phantoms/release/goal039-full-vision-coverage.tsv";
+	private static final String FULL_RUNTIME_START_CALL = "PhantomSystem." + "startConfiguredForTesting(";
+	private static final String SUPPORTED_OWNER_BOOTSTRAP_CALL = "PhantomSupportedContentScriptBootstrap." + "loadGoal036Owners(context)";
 	private static final String FINAL_HEADER = "domain_id\tgoal_lineage\tauthoritative_owner_paths\tfresh_goal039_evidence\tpredecessor_evidence\tevidence_kind\tfinal_status\tclaim_boundary";
 	private static final Set<String> FINAL_STATUSES = Set.of("PASS", "ACCEPT", "BLOCKED", "NOT_RUN_BLOCKED");
 	private static final Pattern BUILD_TARGET = Pattern.compile("<target\\s+name=\"([^\"]+)\"");
@@ -106,6 +108,14 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 		"docs/phantoms/reports/036-bounded-quests-instances.md",
 		"docs/phantoms/reports/037-full-quest-rates-audit.md",
 		"docs/phantoms/reports/038-humanized-russian-semantic-pack.md");
+	private static final Set<String> FULL_RUNTIME_BOOTSTRAP_SUITES = Set.of(
+		"test/java/org/l2jmobius/gameserver/phantoms/PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite.java",
+		"test/java/org/l2jmobius/gameserver/phantoms/PhantomLocalPlayReadinessGoal031Suite.java",
+		"test/java/org/l2jmobius/gameserver/phantoms/PhantomPopulationEcologyProductionGoal033Suite.java",
+		"test/java/org/l2jmobius/gameserver/phantoms/PhantomPopulationResetOwnershipGoal032Suite.java",
+		"test/java/org/l2jmobius/gameserver/phantoms/PhantomPopulationResetReseedGoal032Suite.java",
+		"test/java/org/l2jmobius/gameserver/phantoms/PhantomReleaseDecisionRollbackGoal030Checkpoint3Suite.java",
+		"test/java/org/l2jmobius/gameserver/phantoms/PhantomRestartFailureRecoveryGoal030Checkpoint3Suite.java");
 
 	private final Mode _mode;
 
@@ -131,6 +141,7 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 			registry.add("04-canonical-utf8-source-hash-controls", this::testCanonicalUtf8SourceHash);
 			registry.add("05-canonical-active-pin-and-catalog-parity", this::testCanonicalActivePins);
 			registry.add("06-stale-quest-binding-authority-migration", this::testStaleQuestBindingMigration);
+			registry.add("07-headless-full-runtime-native-owner-bootstrap-census", this::testHeadlessFullRuntimeBootstrapCensus);
 		}
 		else
 		{
@@ -310,6 +321,44 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 		}
 		context.record("goal039.requiredParent", REQUIRED_PARENT);
 		context.record("goal039.goal040", "absent");
+	}
+
+	private void testHeadlessFullRuntimeBootstrapCensus(PhantomTestContext context) throws Exception
+	{
+		final Path root = context.moduleRoot();
+		final Set<String> audited = new HashSet<>();
+		int startupCalls = 0;
+		try (Stream<Path> sources = Files.walk(root.resolve("test/java")))
+		{
+			for (Path path : sources.filter(Files::isRegularFile).filter(value -> value.getFileName().toString().endsWith(".java")).toList())
+			{
+				final String source = Files.readString(path, StandardCharsets.UTF_8);
+				final int calls = occurrences(source, FULL_RUNTIME_START_CALL);
+				if (calls == 0)
+				{
+					continue;
+				}
+				final String relative = root.relativize(path).toString().replace('\\', '/');
+				audited.add(relative);
+				startupCalls += calls;
+				PhantomAssertions.assertTrue(source.contains("PhantomHeadlessPlayerTestEnvironment"), "Full PhantomSystem test startup is outside the audited headless family: " + relative);
+				PhantomAssertions.assertEquals(1, occurrences(source, SUPPORTED_OWNER_BOOTSTRAP_CALL), "Supported-content bootstrap invocation count drifted: " + relative);
+				final int initialize = source.indexOf("_environment.initialize(");
+				final int bootstrap = source.indexOf(SUPPORTED_OWNER_BOOTSTRAP_CALL);
+				final int startup = source.indexOf(FULL_RUNTIME_START_CALL);
+				PhantomAssertions.assertTrue((initialize >= 0) && (initialize < bootstrap) && (bootstrap < startup), "Headless native-owner bootstrap order drifted: " + relative);
+				final int startRuntime = source.indexOf("private void startRuntime(");
+				PhantomAssertions.assertTrue((startRuntime < 0) || (bootstrap < startRuntime), "Supported-content bootstrap moved into startRuntime/restart: " + relative);
+				PhantomAssertions.assertFalse(source.contains("executeScriptList()"), "Audited full-runtime suite uses the unbounded script-list shortcut: " + relative);
+				if (relative.endsWith("PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite.java"))
+				{
+					PhantomAssertions.assertFalse(source.contains("ScriptEngine.MASTER_HANDLER_FILE"), "CrossDomain CP2 retained direct master-handler setup alongside the shared helper.");
+				}
+			}
+		}
+		PhantomAssertions.assertEquals(FULL_RUNTIME_BOOTSTRAP_SUITES, audited, "Full PhantomSystem test startup census drifted.");
+		PhantomAssertions.assertEquals(9, startupCalls, "Full PhantomSystem test startup call-site count drifted.");
+		context.record("goal039.headlessFullRuntimeCensus", "suites=7,startupCalls=9,helperInvocationsPerSuite=1");
 	}
 
 	private void testCanonicalUtf8SourceHash(PhantomTestContext context) throws Exception
@@ -626,6 +675,18 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(null, rows.putIfAbsent(row.domainId(), row), "Historical Goal030 matrix contains a duplicate domain.");
 		}
 		return rows;
+	}
+
+	private static int occurrences(String text, String needle)
+	{
+		int count = 0;
+		int offset = 0;
+		while ((offset = text.indexOf(needle, offset)) >= 0)
+		{
+			count++;
+			offset += needle.length();
+		}
+		return count;
 	}
 
 	private static Set<String> buildTargets(String build)

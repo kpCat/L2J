@@ -39,6 +39,7 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.Manage
 import org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 import org.l2jmobius.tests.phantoms.PhantomHeadlessPlayerTestEnvironment;
+import org.l2jmobius.tests.phantoms.PhantomSupportedContentScriptBootstrap;
 import org.l2jmobius.tests.phantoms.PhantomTestContext;
 import org.l2jmobius.tests.phantoms.PhantomTestRegistry;
 import org.l2jmobius.tests.phantoms.PhantomTestSuite;
@@ -72,6 +73,7 @@ public final class PhantomRestartFailureRecoveryGoal030Checkpoint3Suite implemen
 		PhantomAssertions.assertFalse(PhantomSystem.hasConfiguredInstance(), "A configured Phantom owner exists before the CP3 restart suite.");
 		_environment.initialize(context);
 		_environmentInitialized = true;
+		PhantomSupportedContentScriptBootstrap.loadGoal036Owners(context);
 		_profiles = PhantomProfileRepository.open();
 		PhantomAssertions.assertEquals(0L, scalar("SELECT COUNT(*) FROM phantom_profiles"), "CP3 restart suite requires a clean Phantom profile table.");
 		PhantomAssertions.assertEquals(0L, scalar("SELECT COUNT(*) FROM phantom_profile_components"), "CP3 restart suite requires a clean Phantom component table.");

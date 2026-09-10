@@ -1,0 +1,48 @@
+{
+  "task": "Goal039 Resume 6 — legacy headless native-owner bootstrap census",
+  "required_parent": "eaac00e0cbdd3a6d076e4d9290ab4760e4c1cbf0",
+  "branch": "feature/phantom-world",
+  "primary_blocker": "GOAL039_RESUME5_GOAL032_HEADLESS_QUEST_OWNER_NOT_LOADED",
+  "family": "LEGACY_HEADLESS_FULL_PHANTOMSYSTEM_MISSING_SUPPORTED_OWNER_BOOTSTRAP",
+  "expected_production_changes": 0,
+  "success_marker": "FEATURE_COMPLETE_FOR_DECLARED_SCOPE",
+  "automatic_next_goal": null,
+  "files": [
+    {
+      "path": "docs/phantoms/tasks/039-resume6-headless-native-owner-bootstrap-census/ACCEPTANCE.md",
+      "sha256": "e6153668b36e2279d41bc66234b10073a3ddd477e854df8622465c03da65333a",
+      "bytes": 1231,
+      "lines": 9
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume6-headless-native-owner-bootstrap-census/CENSUS_CONTRACT.md",
+      "sha256": "27163a40869c11cff2a8c3eb9f966625cccbfa2d9f3f6ce96dd5aeb47ca130f3",
+      "bytes": 1330,
+      "lines": 22
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume6-headless-native-owner-bootstrap-census/CODEX_LAUNCHER.txt",
+      "sha256": "bd9097b5f8be178cad5b3f2557ddfaf2b3355bf84b3eb14750db32383feae6cd",
+      "bytes": 2077,
+      "lines": 9
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume6-headless-native-owner-bootstrap-census/CONTEXT.md",
+      "sha256": "779c45a5e42550adc24ac69641bd428cf849f8884a717eac9330d4e0e08978e3",
+      "bytes": 1238,
+      "lines": 11
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume6-headless-native-owner-bootstrap-census/TASK.md",
+      "sha256": "f76d0108b3b696e6dd1aca801fe56c63a556e61501009f9de994547235e99c7a",
+      "bytes": 2696,
+      "lines": 38
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume6-headless-native-owner-bootstrap-census/TEST_PLAN.md",
+      "sha256": "8e26bea6ed1cd1e82564f80d35836a1aebc70764f4a4554c756dcf4efd5f85c1",
+      "bytes": 1536,
+      "lines": 30
+    }
+  ]
+}

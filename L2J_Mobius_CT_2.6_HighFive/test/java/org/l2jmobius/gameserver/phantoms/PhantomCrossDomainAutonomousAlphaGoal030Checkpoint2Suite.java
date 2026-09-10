@@ -62,9 +62,9 @@ import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService.StoredState;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialStore;
-import org.l2jmobius.gameserver.scripting.ScriptEngine;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 import org.l2jmobius.tests.phantoms.PhantomHeadlessPlayerTestEnvironment;
+import org.l2jmobius.tests.phantoms.PhantomSupportedContentScriptBootstrap;
 import org.l2jmobius.tests.phantoms.PhantomTestContext;
 import org.l2jmobius.tests.phantoms.PhantomTestRegistry;
 import org.l2jmobius.tests.phantoms.PhantomTestSuite;
@@ -115,6 +115,7 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		PhantomAssertions.assertFalse(PhantomSystem.hasConfiguredInstance(), "BLOCKED_030CP2_TEST_DB_NOT_CLEAN: configured owner exists before CP2.");
 		_environment.initialize(context);
 		_environmentInitialized = true;
+		PhantomSupportedContentScriptBootstrap.loadGoal036Owners(context);
 		_profiles = PhantomProfileRepository.open();
 		PhantomAssertions.assertEquals(0L, scalar("SELECT COUNT(*) FROM phantom_profiles"), "BLOCKED_030CP2_TEST_DB_NOT_CLEAN: Phantom profiles remain.");
 		PhantomAssertions.assertTrue(_profiles.listManagedAfter(PhantomPopulationState.COMPONENT_TYPE, 0, 2).isEmpty(), "BLOCKED_030CP2_TEST_DB_NOT_CLEAN: managed Population residue remains.");
@@ -126,7 +127,6 @@ public final class PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite impl
 		_humanOutputAttachment = _human.attachOutboundSession(_humanOutput);
 		_human.spawnMe();
 
-		ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 		_nativeWhisper = ChatHandler.getInstance().getHandler(ChatType.WHISPER);
 		PhantomAssertions.assertTrue(_nativeWhisper != null, "Native WHISPER handler is absent.");
 		final PhantomConversationExecutionCatalog executionCatalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml"));
