@@ -1,0 +1,72 @@
+{
+  "task": "Goal039 Resume 8 — final candidate environment qualification and freeze",
+  "required_parent": "539688cda76c06bf48528f210cbff03524818871",
+  "branch": "feature/phantom-world",
+  "blocker": "GOAL039_RESUME7_FRESH_VERIFY_CANDIDATE_ENVIRONMENT_FAILURE",
+  "family": "FINAL_CANDIDATE_ISOLATION_AND_FILESYSTEM_STABILITY",
+  "current_matrix": {
+    "pass": 26,
+    "not_run_blocked": 2,
+    "total": 28
+  },
+  "expected_production_changes": 0,
+  "required_test_provenance_parent": "539688cda76c06bf48528f210cbff03524818871",
+  "reuse_resume7_expensive_gates_if_byte_identical": true,
+  "qualification_ant_test_consecutive_passes": 2,
+  "max_preverify_candidate_qualification_attempts_same_family": 3,
+  "max_postqualification_full_verify_retries_same_environment_family": 1,
+  "success_commit_subject": "phantom(goal-039): freeze declared full vision",
+  "blocked_commit_subject": "phantom(goal-039): record resume 8 blocker",
+  "success_marker": "FEATURE_COMPLETE_FOR_DECLARED_SCOPE",
+  "automatic_next_goal": null,
+  "payload_files": [
+    {
+      "path": "docs/phantoms/tasks/039-resume8-final-candidate-environment-qualification/ACCEPTANCE.md",
+      "sha256": "6af47f08c0c7293473501e4741e737929f4466117ba267295e1988bc7fccb7dd",
+      "bytes": 2437,
+      "lines": 86
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume8-final-candidate-environment-qualification/CANDIDATE_ENVIRONMENT.md",
+      "sha256": "5d9ef4df57575fa3984f4b035d34875c4875c1959b4d343347684b57530d8e59",
+      "bytes": 4811,
+      "lines": 207
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume8-final-candidate-environment-qualification/CODEX_LAUNCHER.txt",
+      "sha256": "56057cdbac650067996b573b9ed0455597b79c918f2dd4c6087cfe30e6475d3c",
+      "bytes": 2568,
+      "lines": 13
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume8-final-candidate-environment-qualification/CONTEXT.md",
+      "sha256": "8b46e14ff1cefeedcd47e70f43ae95e68910aae1fe54c777c7910106d1e920e2",
+      "bytes": 4316,
+      "lines": 154
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume8-final-candidate-environment-qualification/EVIDENCE_REUSE.md",
+      "sha256": "313d51c2f1f07b39205061739959f626c69fe78c2055069bb42d949896c05c46",
+      "bytes": 2151,
+      "lines": 72
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume8-final-candidate-environment-qualification/ROOT_CAUSE.md",
+      "sha256": "1d0c9f1faf68d6d9ba96760a68f0662be93c24202326f7b0bde37f3f0be76906",
+      "bytes": 3667,
+      "lines": 121
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume8-final-candidate-environment-qualification/TASK.md",
+      "sha256": "7f1e56ff58ca0cd90d7d0f98727cbecea09e992f1ce8c361543bf6dba257ee2f",
+      "bytes": 6755,
+      "lines": 247
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume8-final-candidate-environment-qualification/TEST_PLAN.md",
+      "sha256": "067effb5a8e11a2995ffb2a44cd8e72ad8929694d4d0d17d4637b31487d51713",
+      "bytes": 5697,
+      "lines": 241
+    }
+  ]
+}

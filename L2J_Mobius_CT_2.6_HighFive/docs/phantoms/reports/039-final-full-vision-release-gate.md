@@ -986,3 +986,167 @@ Mojibake-маркеры в 15 изменённых файлах проверен
 Escaped Cyrillic в 15 изменённых файлах проверены: совпадений нет.
 Strict UTF-8 и control-character checks прошли. Exact-path `git diff --check`
 прошёл; line-ending warnings не являются whitespace errors.
+
+## Goal039 Resume 8 — final candidate qualification и исчерпанный environment budget
+
+Дата: 2026-09-11.
+
+Required parent / исходные HEAD / origin:
+`539688cda76c06bf48528f210cbff03524818871`.
+Ветка: `feature/phantom-world`. До изменений подтверждены exact branch,
+`HEAD == origin/feature/phantom-world` и subject Resume 7.
+
+До изменений operator checkout содержал 420 dirty paths: три user-owned tracked
+change и 417 user-owned untracked paths. LF-joined porcelain fingerprint:
+`da67c769ba09618136f7a2e875ff0f0f06df6b0d2d98c564315ac9123e9372cf`.
+Все существовавшие пользовательские изменения сохранены и исключены из
+candidate overlays и exact-path staging Resume 8.
+
+### TEST provenance и evidence reuse
+
+Единственное изменение TEST-кода до expensive verify:
+`PhantomFullVisionGoal039Suite.REQUIRED_PARENT` обновлён с
+`49a33254f2b5645ac8f9966fb60c0b3fa3474d47` на
+`539688cda76c06bf48528f210cbff03524818871`.
+
+Resume-7 owner inputs, кроме этой provenance-константы и изолированной
+checkout/EOL materialization, остались byte-identical. Поэтому по
+`EVIDENCE_REUSE.md` не повторялись уже свежие дорогие результаты:
+
+- Goal039 final-domain aggregate: **PASS**, 50 минут 21 секунда;
+- Goal029 scale/environment/endurance: **PASS**, 32 минуты 1 секунда;
+- Goal030 rollback/release-control: **PASS**, 1 минута 56 секунд.
+
+Production Java/config/data/build, DB guard и Goal014 changes: **0**.
+
+### Normal isolated candidates и qualification
+
+Все candidates были ordinary local Git clones вне operator repository, со
+своим `.git`, branch `feature/phantom-world` и exact HEAD
+`539688cda76c06bf48528f210cbff03524818871`. Candidate root, module и
+`.phantom-local` были real directories, не reparse points; candidates никогда
+не перемещались и не переименовывались. Guarded `Database.test.ini` был
+скопирован внутрь candidate `.phantom-local` без публикации password.
+
+Три разрешённые дешёвые qualification attempts локализовали Windows checkout
+materialization:
+
+- `C:\Users\ZBook\L2J_Goal039_RC8_20260910_01a08cd9` — schema manifest stale:
+  normal clone преобразовал шесть SQL inputs LF -> CRLF;
+- `C:\Users\ZBook\L2J_Goal039_RC8_20260910_03c5e72a` — вариант
+  `core.autocrlf=input` сохранил SQL иначе, но изменил immutable Goal030 matrix
+  hash;
+- `C:\Users\ZBook\L2J_Goal039_RC8_20260910_02b16f49` — exact смешанная
+  materialization собрана без product changes и квалифицирована.
+
+В candidate `...02b16f49` в одном unmoved checkout прошли:
+
+- canary `ant -q jar`, затем `jar tf` LoginServer.jar и GameServer.jar;
+- `compile-tests`;
+- два последовательных `ant -q test`;
+- `phantom-static-verify-014`;
+- Goal039 static **7/7 PASS**;
+- local-play preflight **8/8 PASS**;
+- release baseline **3/3 PASS**;
+- DB negative guard **1/1 PASS**.
+
+После этого был записан `CANDIDATE_ENVIRONMENT_QUALIFIED`; его SHA-256:
+`be1d36d534ab6507a7673c8418bb38512eff2f362b5c469b3a9f069b2ecf619d`.
+
+### Fresh verify №1 и focused environment confirmation
+
+Fresh `ant verify` в qualified candidate `...02b16f49` завершился через
+12 минут 53 секунды на `semantic-activation.02`: pinned semantic pack ожидал
+`16c749b9e151e7d5fe7d702989a71dfc2ab3eedde9fa103c40b7d01a36e66a18`,
+но clone materialization дала
+`aefbe38ae6826cf855451661fc51f8284ee8141a1fc935da278a4e29744578a6`.
+
+Focused byte comparison подтвердил ту же environment family: operator owner
+XML имел 15198 bytes, 0 CRLF и exact expected SHA; candidate имел 15434 bytes,
+236 CRLF и actual SHA. Corpus аналогично: expected
+`2b7676bccfd4395c267bc298e2f2c8dae265e23cee76d76853504bf7172f935e`,
+23819 bytes, 0 CRLF; candidate
+`9df96e6c043f60215bbb944cfc8216367e4fe81e00bbd1ffbeef1a86ba43fd2a`,
+24062 bytes, 243 CRLF. Product/test defect не обнаружен.
+
+### Единственная recovery recreation и final verify retry
+
+По post-qualification budget создан один новый candidate сразу в окончательном
+пути:
+`C:\Users\ZBook\L2J_Goal039_RC8_20260910_04e9a31c`.
+
+После exact materialization owner inputs он прошёл полную requalification:
+
+- canary `ant -q jar`: **PASS**, 15 секунд;
+- LoginServer.jar `jar tf`: **PASS**,
+  SHA-256 `4367c9e09d88b424ad875762837cd3e5373b3a1ac344ca13e54a7345571eecfe`,
+  313181 bytes;
+- GameServer.jar `jar tf`: **PASS**,
+  SHA-256 `3ae4972107c900c343b0e9e32d88f76c034599e0fe1f7d7062cfd2a91dd8ece0`,
+  8954933 bytes;
+- `compile-tests`: **PASS**, 18 секунд;
+- `ant -q test` run 1: **PASS**, 19 секунд;
+- `ant -q test` run 2: **PASS**, 18 секунд;
+- `phantom-static-verify-014`: **PASS**;
+- Goal039 static **7/7 PASS**;
+- local-play preflight **8/8 PASS**;
+- release baseline **3/3 PASS**;
+- DB negative guard **1/1 PASS**.
+
+Marker `CANDIDATE_ENVIRONMENT_QUALIFIED` записан до verify; SHA-256:
+`8bb95120159a0782202149f24ed00159f834b4f2ec74438f7c69f8980078db35`.
+После terminal verify candidate-owned Java/Ant process count: **0**.
+
+Единственный разрешённый final full `ant verify` retry прошёл runtime/DB test
+tail и завершился `BUILD FAILED` через 15 минут 34 секунды на
+`phantom-static-verify-016`. Historical raw-byte manifest ожидал для
+`docs/phantoms/tasks/016-population-manager-schedules/ACCEPTANCE.md` SHA-256
+`fc5bbcc02129ca80760dd03b80122fac6318d5cb6664374337b2cf7eb3cbca5a`,
+2366 bytes и LF. Normal clone checkout имел SHA-256
+`b44da3b3a90d8bce566e2cef6acbbe1d599952c456a365512231e2615c608b86`,
+2405 bytes и 39 CRLF. Это снова та же
+`FINAL_CANDIDATE_ISOLATION_AND_FILESYSTEM_STABILITY` family.
+
+Разрешённый same-family budget исчерпан. Итог Resume 8:
+**BLOCKED_ENVIRONMENT**. Дальнейшие candidate recreation, verify retry или
+ослабление historical verifiers запрещены.
+
+### Остановленные этапы, matrix и safety
+
+После исчерпания budget не выполнялись:
+
+- standalone final `ant -q jar` — `NOT_RUN_BLOCKED`; qualification canary JAR
+  не объявлены FINAL;
+- fresh Goal034 real stack — `NOT_RUN_BLOCKED`, run ID отсутствует;
+- final Goal039 documentation/freeze — `NOT_RUN_BLOCKED`.
+
+Final JAR SHA/bytes отсутствуют. Completion marker
+`FEATURE_COMPLETE_FOR_DECLARED_SCOPE` не выставлен; freeze document и Goal040
+не созданы. Goal039 остаётся **BLOCKED**.
+
+Final blocked matrix: 28 rows = **26 PASS + 2 NOT_RUN_BLOCKED**. Две blocked
+claims обновлены на исчерпанный Resume-8 environment budget; fake 28/28 нет.
+
+Guarded DB во всех DB gates: только
+`127.0.0.1:3308/l2jmobiush5_phantom_test`, user `l2j_phantom_test`.
+Production `l2jmobiush5` не открывалась и не проверялась. Production DB used:
+**NO**. `prepare-phantom-test-db`: **NOT RUN**. Wildcard process kill не
+использовался.
+
+Candidate evidence:
+`.phantom-local/goal039-resume8/evidence` внутри соответствующего candidate.
+Final recovery marker `BLOCKED_ENVIRONMENT` имеет SHA-256
+`e5e832c2fc40d12145519f148774322b0d71cf82a88a7c3f450941dc2c96ee1f`.
+
+Blocked-overlay `phantom-full-vision-goal039-structure-test`: **7/7 PASS**,
+`BUILD SUCCESSFUL`, 20 секунд. Matrix shape: 29 lines, 28 data rows, 8 columns,
+26 `PASS` + 2 `NOT_RUN_BLOCKED`.
+
+Bounded scope exception: 12 files — один TEST provenance change, Goal039 report,
+Goal039 matrix, восемь immutable Resume-8 payload files и их
+`PACKAGE_MANIFEST.json`. Manifest подтвердил SHA-256/bytes/lines всех восьми
+payload files. Production/build/config/data/DB-guard/Goal014 change count: **0**.
+
+Strict UTF-8 и control-character checks прошли для всех 12 файлов.
+Mojibake-маркеры в изменённых файлах проверены: совпадений нет.
+Escaped Cyrillic в изменённых файлах проверены: совпадений нет.

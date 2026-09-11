@@ -50,7 +50,7 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 	}
 
 	private static final long SEED = 39003901L;
-	private static final String REQUIRED_PARENT = "49a33254f2b5645ac8f9966fb60c0b3fa3474d47";
+	private static final String REQUIRED_PARENT = "539688cda76c06bf48528f210cbff03524818871";
 	private static final String FINAL_MARKER = "FEATURE_COMPLETE_FOR_DECLARED_SCOPE";
 	private static final String OLD_ACQUISITION_CATALOG_HASH = "e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b";
 	private static final Map<String, String> OLD_QUEST_SCRIPT_HASHES = Map.of(

@@ -1,0 +1,13 @@
+/goal Выполни Goal039 Resume 8 строго по docs/phantoms/tasks/039-resume8-final-candidate-environment-qualification/TASK.md.
+Required HEAD/origin: 539688cda76c06bf48528f210cbff03524818871
+Branch: feature/phantom-world
+
+Это environment closure + final freeze, не новая feature. Resume7 уже дал 26/28 PASS и свежие final-domain 50m21s + Goal029 scale/endurance 32m01s + rollback 1m56s; при byte-identical owner inputs повторно их НЕ гоняй. Исправь только test provenance: PhantomFullVisionGoal039Suite.REQUIRED_PARENT -> 539688cda76c06bf48528f210cbff03524818871.
+
+Главное: final candidate больше НЕ git-archive внутри operator repo и НЕ перемещаемая папка. Создай normal isolated local clone сразу в уникальном финальном real path вне C:\Users\ZBook\L2J_Mobius, со своим .git, branch feature/phantom-world, HEAD 539688cda76c06bf48528f210cbff03524818871; root/module/.phantom-local не reparse/junction. Скопируй guarded Database.test.ini внутрь candidate .phantom-local без вывода password. Candidate НИКОГДА не move/rename.
+
+До дорогого verify обязательная qualification: canary `ant -q jar`, `jar tf` LoginServer.jar + GameServer.jar, `compile-tests`, `ant -q test` ДВА раза подряд, `phantom-static-verify-014`, Goal039 static 7/7, DB guard/preflight. Всё должно PASS в одном unmoved candidate; только после CANDIDATE_ENVIRONMENT_QUALIFIED запускай fresh full `ant verify`.
+
+После verify PASS: standalone `ant -q jar` = FINAL; зафиксируй SHA/bytes обоих JAR. Затем fresh Goal034 real stack БЕЗ повторного jar и докажи JAR hashes неизменны, gen1/restart/gen2/continuity/cleanup, forced=false, no orphans, integrity=true. Потом только final docs/matrix 28/28/freeze + Goal039 documentation 2/2 + structure 7/7, commit `phantom(goal-039): freeze declared full vision`, non-force push, HEAD==origin.
+
+Production/build/config/data/DB-guard/Goal014 changes=0. Production l2jmobiush5 запрещена даже read/probe; prepare-phantom-test-db не запускать. Same environment family можно чинить только bounded recreation/requalification по ROOT_CAUSE.md; НОВЫЙ product/test blocker = одно focused confirmation и STOP. ACCEPT => exact FEATURE_COMPLETE_FOR_DECLARED_SCOPE; Resume9/Goal040 не создавать.
