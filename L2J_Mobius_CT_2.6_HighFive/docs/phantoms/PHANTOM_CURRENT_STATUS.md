@@ -1,6 +1,6 @@
 # Phantom World: текущий статус
 
-Дата сверки: 2026-09-09. Source of truth для release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv` и принятый `docs/phantoms/reports/030-checkpoint-3-release-decision.md`; для operator reset/tuning и Roadmap v3 — `docs/phantoms/reports/032-phantom-reset-operator-control.md`; для historical Goal033 blocker — `docs/phantoms/reports/033-living-population-ecology.md`; для текущего повтора Goal033 — `docs/phantoms/reports/033-living-population-ecology-resume.md`; для historical Goal033A blocker — `docs/phantoms/reports/033A-causal-background-catchup.md`; для Goal033A SUCCESS — `docs/phantoms/reports/033A-causal-background-catchup-resume.md`; для закрывшего topology blocker Goal033A1 — `docs/phantoms/reports/033A1-canonical-population-topology-ingress.md`; для Goal034 closure8 `SUCCESS` — `docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-closure8-final.md`; для Goal035 `SUCCESS` — `docs/phantoms/reports/035-siege-gameplay.md`; для Goal036 `SUCCESS` — `docs/phantoms/reports/036-bounded-quests-instances.md`; для Goal037 `SUCCESS` — `docs/phantoms/reports/037-full-quest-rates-audit.md`; для Goal038 `SUCCESS` — `docs/phantoms/reports/038-humanized-russian-semantic-pack.md`; для текущего Goal039 `BLOCKED` — `docs/phantoms/reports/039-final-full-vision-release-gate.md`. Статусы полного vision основаны на production code/data/tests, а не на историческом номере Goal.
+Дата сверки: 2026-09-12. Source of truth для accepted release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv`; для финального declared scope — `test/resources/phantoms/release/goal039-full-vision-coverage.tsv`, `docs/phantoms/reports/039-final-full-vision-release-gate.md` и `docs/phantoms/PHANTOM_FEATURE_COMPLETE_FREEZE.md`. Goal034, Goal035, Goal036, Goal037 и Goal038 имеют статус `SUCCESS`; Goal039 — `ACCEPT`. Статусы полного vision основаны на production code/data/tests и guarded evidence. Финальный статус: `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`.
 
 | Capability/domain | Implementation status | Release evidence | Known limitation | Next action |
 |---|---|---|---|---|
@@ -9,7 +9,7 @@
 | **Goal033 living population ecology** | **SUCCESS** | Focused 7/7; production-composed LIVING 10/5 2/2; Goal033A 4/4; Goal032/031/030CP3 DB regressions PASS на `l2jmobiush5_phantom_test` с cleanup | Goal036 доказал только bounded Q401 Fighter→Warrior; universal profession realism не заявлен | Поддерживать accepted regressions; production `l2jmobiush5` не использовать |
 | **Goal033A causal historical Background catch-up** | **SUCCESS** | Real-data planner, lifecycle baseline, atomic minute cursor, restart/death semantics и fences; focused tests + final jar PASS | Не является отдельным ecology engine | Используется Goal033 |
 | **Goal033A1 canonical population topology ingress** | **SUCCESS; topology blocker CLOSED BY Goal033A1** | 38/38 exact ingress; 7 real farms; 80/80 factual Background edges; Goal033A1 4/4; focused regressions PASS | Historical catch-up закрыт Goal033A | Используется Goal033A и Goal033 |
-| **Goal034 automated black-box local stack acceptance** | **SUCCESS на closure8** | Standalone manor `2/2`; checkpoint2 aggregate `56/56`; fresh full verify и standalone jar PASS; real run `20260908-135425-0b7d8b31` — gen1/gen2 `5/5/5`, два native restart/drain, continuity и exact cleanup PASS | Verify-only `[Player._skillListTask]` не воспроизведён (`NOT_REPRODUCED`); semantic fix не вносился | Поддерживать accepted regression evidence |
+| **Goal034 automated black-box local stack acceptance** | **SUCCESS** | Resume 9 fresh run `20260912-211821-7f37cc56`: gen1/gen2 `5/5/5`, два native restart/drain, continuity и exact cleanup PASS; final JAR hashes unchanged | Bounded guarded local stack; production DB не используется | Поддерживать accepted regression evidence |
 | Fresh bootstrap | IMPLEMENTED_AND_RELEASE_COVERED | matrix `fresh-bootstrap`; `prepare-phantom-test-db` | Production schema apply только явным installer action | Preflight перед запуском |
 | Population | IMPLEMENTED_AND_RELEASE_COVERED | matrix `population`; `phantom-population-server-integration-test` | Target/caps задаются config | Preset 10/5 для local play |
 | Progression | IMPLEMENTED_AND_RELEASE_COVERED | matrix `progression`; `phantom-progression-production-composition-test` | Использует accepted High Five capability catalog | Поддерживать catalog parity |
@@ -37,7 +37,7 @@
 | Class quest automation | IMPLEMENTED_BOUNDED_GOAL036; SUCCESS | Q401 + Fighter→Warrior only through `village_master.ElfHumanFighterChange1` | Иные class quests/transfers unsupported | Расширять только через audited normal-player owner |
 | Kamaloka | IMPLEMENTED_BOUNDED_GOAL036; SUCCESS | Native template 57 lifecycle, boss callback, reuse/exit and cleanup | Только audited template 57 | Расширять отдельным audited template slice |
 | Pailaka | IMPLEMENTED_BOUNDED_GOAL036; SUCCESS | Native Q128 / template 43 lifecycle, weapon handoffs, bosses, rewards/exit | Только Song of Ice and Fire | Расширять отдельным audited content slice |
-| Full-scope release gate после gameplay gaps | BLOCKED_GOAL039 | Goal039 static `22/22`; Goal033A1 дважды `1/4` | Current HEAD не удовлетворяет принятому topology-ingress контракту | Только bounded Goal039 resume для exact blocker |
+| Full-scope release gate после gameplay gaps | ACCEPT_GOAL039 | historical Goal030 `20/20`; final declared scope `28/28`; Goal039 static `8/8`; documentation `2/2`; fresh verify/JAR/Goal034 PASS | Claims остаются bounded перечисленными gameplay slices | Roadmap v5 FINISHED; поддерживать regressions |
 
 ## Roadmap v5
 
@@ -48,14 +48,11 @@
 | Goal036 — Bounded quests/instances slice | SUCCESS | Exact whitelist: native Q102/Q152 completion, Q401 + canonical Fighter→Warrior, Kamaloka 57, Pailaka Q128/template 43; focused `8/8`, affected gates, fresh verify and standalone jar PASS; без universal solver |
 | Goal037 — Full High Five quest-script inventory + rates normalization/parity | SUCCESS | JDK AST inventory 543/543 source и 7,066/7,066 sites; 1,876 proven corrections в 331 quest source, 1,538 explicit fixed exceptions, zero unclassified/stale; full corpus compile/load, distinct 1x/non-1x Player/Phantom ACTIVE/BACKGROUND, Q401/Pailaka controls, ordinary XP/SP/drop/spoil/manor, affected gates, fresh verify and standalone jar PASS; production DB unused |
 | Goal038 — Humanized Russian Semantic Pack + social/custom conversation | SUCCESS | Functional-first Humanized RU layer: 25 topics, 22 acts, 60 patterns, 67 templates, 109/109 corpus; Social authority, bounded `conversation.personal` schema v1, strict six-file custom layer, mature `OFF`; Phantom↔Phantom budget/cooldown proof; focused `12/12`, affected `133/133`, restart `1/1`, fresh verify/jar PASS; production DB unused |
-| Goal039 — Final full-vision release gate + freeze | BLOCKED | Static `22/22`; первый domain gate Goal033A1 дважды `1/4`: class 10 canonical Z `-3568/-3570`, topology `110/112`, dwarf exact manifest match `1/0`; поздние gates не запускались |
+| Goal039 — Final full-vision release gate + freeze | ACCEPT | Resume 9: commit-backed Goal016 historical verifier; fresh full verify, standalone final JAR и Goal034 PASS; matrix `28/28`; freeze `FEATURE_COMPLETE_FOR_DECLARED_SCOPE` |
 
-Goal039 выполнен до первого обязательного domain blocker и остановлен по
-stop-budget. Final completion/freeze status не выставлен; новый Goal не создан.
-
-Текущее следующее действие: только bounded Goal039 resume для отдельно
-исправленного или согласованного Goal033A1 topology-ingress blocker. Остальные
-этапы Goal039 нельзя продолжать до восстановления этого gate.
+Goal039 принят. Roadmap v5 **FINISHED**; `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`.
+No automatic Goal040; Resume10/Goal040 не создаются. Новая feature work возможна
+только по отдельному явному запросу пользователя.
 
 Shipped config по-прежнему `EnablePhantomSystem=False`, population/ACTIVE `0/0`; destructive auto-reset flag отсутствует. Reset вызывается только GM-командой после read-only preview и одноразового confirm. Automated tests работают только с allowlisted test DB; ручная игра пользователя остаётся финальной experience validation, а не промежуточным техническим gate.
 

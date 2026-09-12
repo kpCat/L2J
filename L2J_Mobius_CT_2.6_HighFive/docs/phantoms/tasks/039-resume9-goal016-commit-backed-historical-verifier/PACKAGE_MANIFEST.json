@@ -1,0 +1,48 @@
+{
+  "task": "Goal039 Resume 9 — Goal016 commit-backed historical verifier and final freeze",
+  "required_parent": "f01401d79d5f41aac87cd8425b78a2f00abbf417",
+  "branch": "feature/phantom-world",
+  "blocker_family": "HISTORICAL_VERIFIER_WORKTREE_EOL_COUPLING",
+  "expected_production_changes": 0,
+  "goal039_static_expected": "8/8",
+  "success_marker": "FEATURE_COMPLETE_FOR_DECLARED_SCOPE",
+  "automatic_next_goal": null,
+  "payload_files": [
+    {
+      "path": "docs/phantoms/tasks/039-resume9-goal016-commit-backed-historical-verifier/ACCEPTANCE.md",
+      "sha256": "5efe9770a5aad09d33ece4911617317447c5ff60ebbfc08e570aca8d854013f7",
+      "bytes": 1035,
+      "lines": 27
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume9-goal016-commit-backed-historical-verifier/CODEX_LAUNCHER.txt",
+      "sha256": "6e2e76ff5f9616381b4e158f4c96d103296e0342cc5406f26cd783d80c50a1d7",
+      "bytes": 2392,
+      "lines": 13
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume9-goal016-commit-backed-historical-verifier/CONTEXT.md",
+      "sha256": "200c50e09ef1546237695a6d82a8ea9a90c8e6447e8547df2dfc2faf99785767",
+      "bytes": 1234,
+      "lines": 29
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume9-goal016-commit-backed-historical-verifier/TASK.md",
+      "sha256": "6187deae48c209132f069ad134007cf80f6b9e3c8606dcd8325f654830872088",
+      "bytes": 6359,
+      "lines": 182
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume9-goal016-commit-backed-historical-verifier/TEST_PLAN.md",
+      "sha256": "2e35e91db7708efbdac994d946c1a7ff9d00a962c4a43c08b7b1108f0ba0b7a2",
+      "bytes": 1062,
+      "lines": 28
+    },
+    {
+      "path": "docs/phantoms/tasks/039-resume9-goal016-commit-backed-historical-verifier/VERIFIER_CONTRACT.md",
+      "sha256": "9ffdc3c3a511c7eaf539fda3cb00d3476ed899f74fab94ad1f389a3204f183c5",
+      "bytes": 1030,
+      "lines": 22
+    }
+  ]
+}

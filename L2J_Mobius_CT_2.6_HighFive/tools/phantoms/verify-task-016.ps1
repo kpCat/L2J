@@ -21,12 +21,45 @@ function Assert-True([bool] $condition, [string] $message)
 	}
 }
 
+function Read-CommitBytes([string] $commit, [string] $relativePath)
+{
+	$repositoryPath = $script:moduleRelative + "/" + $relativePath
+	$object = "${commit}:$repositoryPath"
+	$startInfo = [Diagnostics.ProcessStartInfo]::new()
+	$startInfo.FileName = "git"
+	$startInfo.UseShellExecute = $false
+	$startInfo.RedirectStandardOutput = $true
+	$startInfo.RedirectStandardError = $true
+	$startInfo.CreateNoWindow = $true
+	$startInfo.Arguments = "-C `"$repositoryRoot`" show `"$object`""
+	$process = [Diagnostics.Process]::new()
+	$process.StartInfo = $startInfo
+	[void] $process.Start()
+	$memory = [IO.MemoryStream]::new()
+	$copy = $process.StandardOutput.BaseStream.CopyToAsync($memory)
+	$errorRead = $process.StandardError.ReadToEndAsync()
+	$process.WaitForExit()
+	[void] $copy.GetAwaiter().GetResult()
+	$errorText = $errorRead.GetAwaiter().GetResult()
+	Assert-True ($process.ExitCode -eq 0) "Cannot read Goal 016 blob at $commit`: $relativePath ($errorText)"
+	return ,$memory.ToArray()
+}
+
+function Read-VerificationBytes([string] $relativePath)
+{
+	if ($mode -eq "working-completion")
+	{
+		$path = Join-Path $moduleRoot $relativePath
+		Assert-True (Test-Path -LiteralPath $path -PathType Leaf) "Required file is missing: $relativePath"
+		return ,([IO.File]::ReadAllBytes($path))
+	}
+	return Read-CommitBytes $completionCommit $relativePath
+}
+
 function Read-Utf8Strict([string] $relativePath)
 {
-	$path = Join-Path $moduleRoot $relativePath
-	Assert-True (Test-Path -LiteralPath $path -PathType Leaf) "Required file is missing: $relativePath"
 	$encoding = [Text.UTF8Encoding]::new($false, $true)
-	return $encoding.GetString([IO.File]::ReadAllBytes($path))
+	return $encoding.GetString((Read-VerificationBytes $relativePath))
 }
 
 function Get-Sha256([string] $relativePath)
@@ -34,7 +67,7 @@ function Get-Sha256([string] $relativePath)
 	$sha256 = [Security.Cryptography.SHA256]::Create()
 	try
 	{
-		return ([BitConverter]::ToString($sha256.ComputeHash([IO.File]::ReadAllBytes((Join-Path $moduleRoot $relativePath))))).Replace("-", "")
+		return ([BitConverter]::ToString($sha256.ComputeHash((Read-VerificationBytes $relativePath)))).Replace("-", "")
 	}
 	finally
 	{
@@ -232,8 +265,16 @@ Assert-True ($shortcutData -match "enum DeliveryMode" -and $shortcutData -match 
 Assert-True ($shortcutData -match "(?s)if\s*\(deliveryMode == DeliveryMode\.CLIENT\)\s*\{\s*player\.sendPacket\(new ShortcutRegister") "Legacy shortcut packet delivery is not isolated to CLIENT mode."
 Assert-True ($shortcutData -match "(?s)if\s*\(deliveryMode == DeliveryMode\.POPULATION\).*?registerPopulationMacro") "Population macro registration does not use the durable packet-free writer."
 
-$populationSources = Get-ChildItem -LiteralPath (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/population") -Filter "*.java" -File
-$populationText = ($populationSources | ForEach-Object { Read-Utf8Strict ("java/org/l2jmobius/gameserver/phantoms/population/" + $_.Name) }) -join "`n"
+if ($mode -eq "working-completion")
+{
+	$populationSourcePaths = @(Get-ChildItem -LiteralPath (Join-Path $moduleRoot "java/org/l2jmobius/gameserver/phantoms/population") -Filter "*.java" -File | ForEach-Object { "java/org/l2jmobius/gameserver/phantoms/population/" + $_.Name })
+}
+else
+{
+	$populationSourcePaths = @(Invoke-Git @("ls-tree", "-r", "--name-only", $completionCommit, "--", ($script:moduleRelative + "/java/org/l2jmobius/gameserver/phantoms/population")) | ForEach-Object { To-ModulePath $_ } | Where-Object { $_ -match "\.java$" })
+}
+Assert-True ($populationSourcePaths.Count -gt 0) "Goal 016 population source set is empty."
+$populationText = ($populationSourcePaths | ForEach-Object { Read-Utf8Strict $_ }) -join "`n"
 Assert-True ($populationText -notmatch "GameClient|CharacterCreate|OnPlayerCreate|sendPacket|network\.serverpackets") "Population code directly invokes a forbidden client/packet path."
 Assert-True ($populationText -notmatch "\b(?:new\s+Thread|ExecutorService|ScheduledFuture|CompletableFuture)\b|ThreadPool\.") "Population code creates worker/task/Future infrastructure."
 Assert-True ($populationText -notmatch "l2jmobiush5(?!_phantom_test)") "Population code names the production database."

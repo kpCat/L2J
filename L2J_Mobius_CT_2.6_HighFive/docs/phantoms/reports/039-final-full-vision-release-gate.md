@@ -1,16 +1,16 @@
 # Goal039 — final full-vision release gate
 
-Status: **BLOCKED**
+Status: SUCCESS / ACCEPT
 
-Дата: 2026-09-09
+Дата: 2026-09-12
 
 Ветка: `feature/phantom-world`
 
-Исходный required parent: `ba692bd0a5e86fbbfe5f87c9c851f3a629e4d5a1`
+Финальный Resume 9 required parent: `f01401d79d5f41aac87cd8425b78a2f00abbf417`
 
 Опубликованный blocker baseline: `1ceb045c663a4d6877d2fc8de06822bd78b4769e`
 
-Blocker: `GOAL039_RESUME7_FRESH_VERIFY_CANDIDATE_ENVIRONMENT_FAILURE`
+Финальное решение: `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`
 
 ## Решение
 
@@ -567,6 +567,124 @@ Goal033 production confirmation TXT/XML и runtime-overlay manifest.
 
 Mojibake-маркеры в изменённых файлах проверены: совпадений нет.
 Escaped Cyrillic в изменённых файлах проверены: совпадений нет.
+
+## Goal039 Resume 9 — Goal016 commit-backed historical verifier и final freeze
+
+Дата: 2026-09-12.
+
+Status: SUCCESS / ACCEPT
+
+Финальный marker: `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`.
+
+Required parent / исходные HEAD / origin:
+`f01401d79d5f41aac87cd8425b78a2f00abbf417`.
+Ветка: `feature/phantom-world`. Exact branch и
+`HEAD == origin/feature/phantom-world` были подтверждены до изменений.
+
+До изменений operator checkout содержал 418 dirty paths: три user-owned
+tracked change и 415 user-owned untracked paths. LF-joined porcelain
+fingerprint:
+`b4f94e080f936dd90b9949a7d9cbb7947368e4f2fd7c93180804ccd5de866374`.
+Все пользовательские изменения сохранены и исключены из candidate overlay и
+exact-path staging Goal039 Resume 9.
+
+### Historical verifier census и коррекция owner
+
+До edit выполнен обязательный final static census Goal014, Goal015, Goal016,
+Goal017, Goal018, Goal019, Goal020c1, Goal020c2, Goal022c1 и Goal022c2.
+Goal017+ уже читали historical content из accepted commit; Goal015 package hash
+также commit-backed. Только Goal016 имел доказанный
+`HISTORICAL_VERIFIER_WORKTREE_EOL_COUPLING`; unrelated verifiers не менялись.
+
+`tools/phantoms/verify-task-016.ps1` теперь в accepted/descendant mode читает
+PACKAGE_MANIFEST и каждый payload как binary-safe raw bytes через
+`git show <unique-completion-commit>:<module-path>`. Те же commit bytes являются
+источником strict UTF-8 check и SHA-256. Working mode на Goal016 implementation
+HEAD сохраняет current-working-tree source. Graph uniqueness/ancestor,
+subject/scope/seed/safety/content assertions не ослаблены. Alternate CRLF hash,
+EOL/BOM/whitespace/XML/Unicode normalization и manifest rewrite не добавлены.
+
+Goal039 `REQUIRED_PARENT` обновлён на
+`f01401d79d5f41aac87cd8425b78a2f00abbf417`; static case 08 защищает
+commit-backed historical Goal016 и отсутствие alternate EOL acceptance.
+
+Portability proof в ordinary Windows clone:
+
+- current-worktree Goal016 `ACCEPTANCE.md`: SHA-256
+  `b44da3b3a90d8bce566e2cef6acbbe1d599952c456a365512231e2615c608b86`,
+  2405 bytes, 39 CRLF;
+- unique completion commit:
+  `57caea2e5b5597c9a06b87cb8e868f227c4aa88e`;
+- authoritative accepted blob: SHA-256
+  `fc5bbcc02129ca80760dd03b80122fac6318d5cb6664374337b2cf7eb3cbca5a`,
+  2366 bytes, 39 LF и 0 CRLF;
+- accepted blob hash точно равен единственному manifest expected hash;
+- `phantom-static-verify-016` прошёл в candidate, несмотря на CRLF worktree,
+  потому что historical payload не читался из checkout.
+
+### Единственный final candidate и qualification
+
+Использован один unmoved ordinary isolated clone:
+`C:\Users\ZBook\L2J_Goal039_RC9_20260912_01a096df`.
+Он имел собственный Git root, ветку и exact parent; root/module/`.phantom-local`
+не являлись reparse points. По доказанному Resume 8 recipe перенесены 121
+tracked-clean schema SQL с exact byte parity, semantic XML/TSV с SHA-256
+`16c749b9e151e7d5fe7d702989a71dfc2ab3eedde9fa103c40b7d01a36e66a18` /
+`2b7676bccfd4395c267bc298e2f2c8dae265e23cee76d76853504bf7172f935e`,
+guarded local DB config/manifest и только два task-owned source files. Goal016
+payload специально не подгонялся. Historical Goal030 matrix осталась
+byte-identical с SHA-256
+`fd891490e7bed44dba7d33f1b72d5c1de46ff67003190b31d22b7dd96206e64e`.
+
+До full verify в candidate прошли canary jar и `jar tf` обоих JAR,
+`compile-tests`, два последовательных `ant -q test`, DB guard negative control,
+local-play preflight, все десять historical static targets и Goal039 static
+`8/8`. Прямой Goal016 verifier завершился `TASK016_VERIFIER_OK` с
+`graph=completion-ancestor`, package/UTF-8/JAR `OK`.
+
+### Evidence reuse и финальная sequence
+
+Production/build/config/data/SQL semantic changes: **0**. Поэтому не
+повторялись byte-identical owner results:
+
+- Goal039 final-domain aggregate: **PASS**, 50m21s, включая Goal033/033A;
+- Goal029 scale/environment/endurance: **PASS**, 32m01s;
+- Goal030 rollback/release: **PASS**, 1m56s.
+
+После qualification выполнен ровно один fresh `ant verify`: **PASS**,
+`BUILD SUCCESSFUL`, 30m41s. Затем standalone FINAL `ant -q jar`: **PASS**,
+18s.
+
+- LoginServer final JAR SHA-256: `64a3e616b4be6373749fde73d4a91af61d5a8e03a578dfd27521709a087ab67a`; bytes: `313193`.
+- GameServer final JAR SHA-256: `fe1c82b4d2968f502189eb3e783d2486bf25c9201e1e51e1abc8799d83e82986`; bytes: `8954943`.
+
+Без JAR rebuild выполнен fresh Goal034 real stack
+`20260912-211821-7f37cc56`: **PASS**, 14m10s. `gen1` и `gen2` имели по 10
+profiles, 5 desired ACTIVE / expected admitted / online, одинаковые ID,
+schedule parity, ownership и canonical online; два native restart/drain прошли,
+`identity.ecology.continuity=true`. Cleanup:
+`population=10`, `registration=true`, `cleanup.forced=false`,
+`orphans.none=true`, `working.integrity=true`, failure `none`. SHA-256 и bytes
+обоих final JAR до и после Goal034 совпали.
+
+historical Goal030 matrix: 20/20. final declared-scope matrix: 28/28.
+Goal035, Goal036, Goal037 и Goal038 остаются в ранее принятом bounded SUCCESS
+scope; historical reports не переписывались. Финальные Goal039 gates:
+documentation `2/2 PASS`, static `8/8 PASS`.
+
+### DB safety и freeze boundary
+
+Во всех DB-backed gates использовалась только
+`127.0.0.1:3308/l2jmobiush5_phantom_test`, user `l2j_phantom_test`.
+production DB used: NO. `prepare-phantom-test-db: NOT RUN`.
+
+Shipped system/population/ACTIVE/diagnostics/mature defaults не изменены.
+Accepted claims остаются bounded: Giran castleId=3, Q102/Q152, Q401
+Fighter→Warrior, Kamaloka 57, Pailaka Q128/template 43; universal solver,
+open-domain LLM и universal multi-castle AI не заявлены; без geodata допустим
+только documented DEGRADED navigation mode.
+
+Roadmap v5 FINISHED. No automatic Goal040. Resume10 и Goal040 не созданы.
 Strict UTF-8 и control-character checks прошли. Оба изменённых XML прошли
 strict parse с запрещённым DTD. `git diff --check` прошёл. Exact leaf-source,
 historical Goal036/037 report и Goal037 manifest diffs пусты.

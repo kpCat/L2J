@@ -1,0 +1,13 @@
+/goal Выполни Goal039 Resume 9 строго по docs/phantoms/tasks/039-resume9-goal016-commit-backed-historical-verifier/TASK.md.
+Required HEAD/origin: f01401d79d5f41aac87cd8425b78a2f00abbf417
+Branch: feature/phantom-world
+
+Resume8 доказал, что текущий blocker не product/runtime: final verify retry дошёл до historical phantom-static-verify-016 и упал только на EOL current-working-tree hash. Goal016 manifest ожидает ACCEPTANCE.md fc5bbc.../2366 LF, normal Windows clone даёт b44da.../2405 CRLF. Не разрешай alternate CRLF hash и не нормализуй manifest. Исправь owner правильно: accepted/descendant Goal016 verifier читает manifest+payload exact bytes через binary-safe `git show <unique completion commit>:<path>`, working mode на implementation HEAD сохранить. Existing graph/scope/safety assertions не ослаблять.
+
+Перед edit census final static chain Goal014/015/016/017/018/019/020c1/c2/022c1/c2. Goal017+ уже commit-backed; same-family можно править только при доказанном current-worktree historical hash. Goal039 REQUIRED_PARENT -> f01401d79d5f41aac87cd8425b78a2f00abbf417; добавь static case 08 для commit-backed Goal016.
+
+Final candidate один, по proven Resume8 mixed-materialization recipe из TASK.md: default isolated clone, 121 tracked-clean schema SQL byte-parity с operator, exact Goal020 semantic XML/corpus pins, historical Goal030 matrix fd891... оставить clone, Goal016 task payload НЕ подгонять. До full verify обязательно ALL historical static targets + Goal039 static 8/8 + double ant test + DB guard/preflight.
+
+Не повторяй final-domain 50m21s, Goal029 32m01s, rollback 1m56s при byte-identical owners. Green qualification -> ONE fresh ant verify -> FINAL ant -q jar -> SHA/bytes обоих JAR -> fresh Goal034 без rebuild -> matrix 28/28 + freeze -> Goal039 docs 2/2/static 8/8 -> commit `phantom(goal-039): freeze declared full vision` -> push.
+
+Production l2jmobiush5 запрещена даже read/probe; prepare запрещён. Новый independent product/test blocker = одна focused confirmation и STOP. ACCEPT => FEATURE_COMPLETE_FOR_DECLARED_SCOPE, Roadmap v5 FINISHED, Resume10/Goal040 не создавать.

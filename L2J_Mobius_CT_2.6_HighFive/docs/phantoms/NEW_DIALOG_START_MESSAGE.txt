@@ -1,121 +1,41 @@
-Продолжай работу только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
+Работай только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
 
-Goal039 запущен от required parent:
-ba692bd0a5e86fbbfe5f87c9c851f3a629e4d5a1.
-Goal039 остановлен как BLOCKED на воспроизводимом Goal033A1 domain gate;
-exact blocker-report commit SHA и push result указаны в итоговом handoff;
-actual HEAD и origin обязательны к новой проверке по следующему task package.
-Goal038 DB-backed evidence выполнялось только через guarded test harness;
-production DB и destructive prepare запрещены.
-Перед следующими изменениями выполни git fetch, git rev-parse HEAD и git rev-parse origin/feature/phantom-world; divergence не исправляй reset/force-push.
+Phantom World принят в статусе FEATURE_COMPLETE_FOR_DECLARED_SCOPE.
+Goal039 — ACCEPT; Roadmap v5 FINISHED. Goal034, Goal035, Goal036, Goal037 и
+Goal038 — SUCCESS. No automatic Goal040; Resume10/Goal040 не создавать.
 
-Состояние release:
-- Goal030 — ACCEPT;
-- release matrix — 20 covered domains / 0 pending;
-- Goal031 local-play readiness — SUCCESS;
-- Goal032 Phantom-only reset/reseed + operator tuning + Roadmap v3 — SUCCESS;
-- Goal033 living population ecology — SUCCESS: production implementation, production-composed LIVING 10/5/restart и cross-goal DB regressions прошли на `l2jmobiush5_phantom_test` с cleanup;
-- Goal033A causal historical Background catch-up prerequisite — SUCCESS;
-- Goal033A1 canonical population topology ingress — SUCCESS; blocker Goal033A CLOSED BY Goal033A1;
-- Goal034 closure 8 — SUCCESS: verify-only predecessor `[Player._skillListTask]` не воспроизведён (`NOT_REPRODUCED`); standalone manor `2/2`, acquisition checkpoint2 aggregate `56/56`, fresh full verify и standalone final jar PASS; fresh real run `20260908-135425-0b7d8b31` дал gen1/gen2 `5/5/5` с одинаковыми ID, два native restart/drain PASS, cleanup `population=10`, `registration=true`, `forced=false`, `orphans.none=true`, `working.integrity=true`; production DB unused;
-- Goal035 siege gameplay — SUCCESS: bounded Giran castleId=3 vertical использует native schedule/registration/sides/zones/doors, factual topology, capped roles, shared Navigation/Combat/Party support, retreat/recovery/restart cleanup; focused `8/8`, affected routes `6/6`, fresh full verify and standalone jar PASS; test fixture restored with zero residue; production DB unused;
-- Goal036 bounded quests/instances — SUCCESS: exact whitelist Q102/Q152 native start→completion, Q401 + Fighter→Warrior только через canonical normal-player profession owner, Kamaloka 57 и Pailaka Q128/template 43 через native lifecycle; focused `8/8`, affected gates, fresh full verify and standalone jar PASS; exact cleanup без residue; production DB unused;
-- Goal037 full quest rates audit — SUCCESS: deterministic JDK AST inventory охватывает 543/543 quest Java source и 7,066/7,066 rate sites; 1,876 proven corrections в 331 source, 1,538 explicit fixed exceptions и zero unclassified/stale; production corpus compile/load, distinct 1x/non-1x Player/Phantom ACTIVE/BACKGROUND, Q401/Pailaka controls, ordinary XP/SP/drop/spoil/manor, affected gates, fresh verify и standalone jar PASS; production DB unused;
-- Goal038 Humanized RU conversation — SUCCESS: separate versioned functional-first layer над Goal018–020, existing Social authority, 25 topics/22 acts/60 patterns/67 templates и 109/109 corpus; bounded structured `conversation.personal` schema v1, six strict editable `my-*.xml`, persona/relationship/emotion/humor/light-flirt/contextual-profanity behavior, mature opt-in shipped OFF; distinct bounded Phantom↔Phantom origin/budget/cooldown proof; focused `12/12`, affected `133/133`, restart composition `1/1`, fresh verify и standalone jar PASS; cleanup zero, production DB unused;
-- Goal039 final full-vision gate — BLOCKED: static phase `22/22`; первый обязательный Goal033A1 domain gate и единственный разрешённый focused confirmation оба дали `1/4` с теми же тремя failures (class 10 canonical Z `-3568/-3570`, topology nodes `110/112`, dwarf exact manifest match `1/0`); поздние domain gates, verify, JAR, real stack и freeze не запускались;
-- shipped dist/game/config/Custom/PhantomPlayers.ini остаётся safe: EnablePhantomSystem=False, population=0, ACTIVE=0;
-- local-play preset 10/5: docs/phantoms/examples/PhantomPlayers.local-play.ini;
-- read-only operator entrypoint: ant phantom-local-play-preflight;
-- quick-start: docs/phantoms/PHANTOM_QUICKSTART_RU.md;
-- authoritative status: docs/phantoms/PHANTOM_CURRENT_STATUS.md;
-- Goal031 report: docs/phantoms/reports/031-local-play-readiness.md.
-- Goal032 report: docs/phantoms/reports/032-phantom-reset-operator-control.md;
-- Goal033 report: docs/phantoms/reports/033-living-population-ecology.md;
-- Goal033 repeat report: docs/phantoms/reports/033-living-population-ecology-resume.md;
-- Goal033A historical blocked report: docs/phantoms/reports/033A-causal-background-catchup.md;
-- Goal033A SUCCESS report: docs/phantoms/reports/033A-causal-background-catchup-resume.md;
-- Goal033A1 report: docs/phantoms/reports/033A1-canonical-population-topology-ingress.md;
-- Goal034 SUCCESS report: docs/phantoms/reports/034-automated-black-box-local-stack-acceptance-closure8-final.md;
-- Goal035 SUCCESS report: docs/phantoms/reports/035-siege-gameplay.md;
-- Goal036 SUCCESS report: docs/phantoms/reports/036-bounded-quests-instances.md;
-- Goal037 SUCCESS report: docs/phantoms/reports/037-full-quest-rates-audit.md;
-- Goal038 SUCCESS report: docs/phantoms/reports/038-humanized-russian-semantic-pack.md;
-- Goal039 BLOCKED report: docs/phantoms/reports/039-final-full-vision-release-gate.md;
-- Humanized RU customization guide: docs/phantoms/PHANTOM_HUMANIZED_CONVERSATION_RU.md;
-- operator tuning: docs/phantoms/PHANTOM_OPERATOR_TUNING_RU.md.
+Финальный Goal039 required parent:
+f01401d79d5f41aac87cd8425b78a2f00abbf417.
 
-Roadmap v5 — finite authoritative forward sequence:
+Authoritative artifacts:
+- historical Goal030 matrix: test/resources/phantoms/release/goal030-release-coverage.tsv, 20/20 PASS;
+- final Goal039 matrix: test/resources/phantoms/release/goal039-full-vision-coverage.tsv, 28/28 accepted;
+- final report: docs/phantoms/reports/039-final-full-vision-release-gate.md;
+- freeze: docs/phantoms/PHANTOM_FEATURE_COMPLETE_FREEZE.md;
+- current status: docs/phantoms/PHANTOM_CURRENT_STATUS.md.
 
-1. Goal034 — automated black-box local-stack acceptance, SUCCESS.
-2. Goal035 — siege gameplay slice, SUCCESS для bounded Giran castleId=3 vertical.
-3. Goal036 — bounded whitelist quests/instances/class transfer/Kamaloka/Pailaka, SUCCESS.
-4. Goal037 — 100% High Five quest-script inventory + rates normalization/parity, SUCCESS.
-5. Goal038 — Humanized Russian Semantic Pack + social/custom conversation, SUCCESS.
-6. Goal039 — final full-vision release gate + freeze, `BLOCKED` на
-   воспроизводимом Goal033A1 topology-ingress gate.
+Resume 9 исправил только historical byte-source Goal016 verifier: historical
+accepted/descendant mode читает exact manifest и payload bytes из unique
+completion commit через binary-safe git show; implementation-HEAD working mode
+сохранён. Alternate CRLF hash и EOL normalization не разрешены. Goal039 static
+case 08 защищает этот контракт; static 8/8 и documentation 2/2.
 
-Final completion/freeze status не выставлен. Automatic Goal040+ запрещены.
-Следующий runtime step — только bounded Goal039 resume для exact blocker;
-этот handoff не разрешает продолжать поздние Goal039 gate-этапы.
+Финальная evidence chain:
+- один fresh ant verify — PASS, 30m41s;
+- standalone final ant -q jar — PASS;
+- LoginServer final JAR SHA-256 64a3e616b4be6373749fde73d4a91af61d5a8e03a578dfd27521709a087ab67a, 313193 bytes;
+- GameServer final JAR SHA-256 fe1c82b4d2968f502189eb3e783d2486bf25c9201e1e51e1abc8799d83e82986, 8954943 bytes;
+- fresh Goal034 run 20260912-211821-7f37cc56 — PASS: gen1/gen2 5/5/5, два native restart, identity/ecology continuity, cleanup.forced=false, orphans.none=true, working.integrity=true; final JAR hashes unchanged.
 
-Goal031 доказал guarded production-composed путь: 10 durable identities, Scheduler/Decision, real headless Player в World, autonomous decision trace, restart без duplicate rows, bounded shutdown retry и drain/disable rollback. GameServer запускает PhantomSystem только после World/data/scripts/managers и восстановления offline owners.
+Использовалась только guarded test DB
+127.0.0.1:3308/l2jmobiush5_phantom_test с test user. Production DB used: NO.
+prepare-phantom-test-db: NOT RUN.
 
-Goal032 добавил явный `//phantom reset preview` → one-time 120-second `confirm`/`cancel` workflow, exact ownership validation, canonical drain-before-mutation, transactional Phantom-private cleanup, human/shared-state guards, empty no-op и optional reseed через существующий PopulationManager. Auto-reset при startup отсутствует; shipped safe defaults не изменены.
+Accepted scope остаётся bounded: Giran castleId=3; Q102/Q152; Q401
+Fighter→Warrior; Kamaloka 57; Pailaka Q128/template 43. Universal quest solver,
+open-domain LLM и universal multi-castle AI не заявлены. Без geodata navigation
+может работать в documented DEGRADED mode. Shipped system/population/ACTIVE,
+diagnostics и mature conversation остаются OFF/0.
 
-Goal033A1 закрыл topology-ingress blocker: все 11 managed-population starting classes и 38 authoritative creation positions сопоставлены unique exact instance-zero ingress anchors; семь real-spawn low-level farming destinations связаны 80 factual one-way `BACKGROUND` edges. Production Navigation, exact-anchor, travel/restart и negative gates PASS. `PlayerCreationInitializer`, creation coordinates и `exactAnchor()` не менялись; direct teleport/fallback отсутствуют. На этапе Goal033A1 planner/cursor/fence не реализовывались; они закрыты Goal033A ниже.
-
-Goal033A закрыл causal catch-up prerequisite: production planner потребляет Goal033A1 ingress/routes и собственный canonical level/class; initial READY/DEAD baseline проходит через existing materialization/store lifecycle; minute cursor и Background/player/inventory mutation атомарны и idempotent; restart/DEAD-idle semantics детерминированы; NORMAL materialization/Decision закрыты до COMPLETE. Direct XP/free resources/teleport, human-level input, второй Player lifecycle и новый scheduler отсутствуют.
-
-Повтор Goal033 реализовал durable `population.ecology`, FRESH/LIVING/MATURE, immutable low-discrepancy CASUAL/REGULAR/FAST/OUTLIER pace/personality/schedule assignment, schedule-aware causal windows через accepted Goal033A, restart-safe ongoing reconciliation, safe MANAGED→ARCHIVED turnover/replacement и bounded operator status с live level histogram. Human level не используется; direct XP/free resources/teleport, reward multipliers, второй lifecycle и новый timer/thread отсутствуют. Focused Goal033 7/7, production-composed LIVING 10/5 2/2, Goal033A 4/4 и Goal032/031/030CP3 DB regressions PASS на `l2jmobiush5_phantom_test`; созданные тестовые профили очищены. Production `l2jmobiush5` не использовалась.
-
-Closure7 проверила factual resume boundary: faithful cold regression прошёл
-`2/2`, а единственный real run `20260908-112158-bfe101b7` дал gen1/gen2
-`5/5/5` и два native restart/drain PASS. Closure6 loss profiles
-`6028,6029,6032,6033` не воспроизведён и классифицирован `F`; speculative
-semantic fix не внесён. Closure остановлена вторым независимым predecessor
-full-verify blocker `[Player._skillListTask]`, standalone final jar не запускался.
-
-Closure8 восстановила predecessor baseline в обязательном порядке: standalone
-manor `2/2`, acquisition checkpoint2 aggregate `56/56`, затем один fresh full
-verify PASS. `[Player._skillListTask]` не воспроизведён, поэтому late re-arm,
-`sendSkillList()`/`stopAllTasks()` race и test/DB order effect не объявлены
-доказанными; classification — `NOT_REPRODUCED`, production semantic fix не
-вносился. Standalone final jar PASS. Fresh guarded real run
-`20260908-135425-0b7d8b31` дал gen1/gen2 `5/5/5` с IDs
-`6786,6790,6791,6794,6795`, два native restart/drain и exact cleanup без forced
-kill или orphan JVM. Использовалась только `l2jmobiush5_phantom_test`;
-`prepare-phantom-test-db` не выполнялся.
-
-Не объявляй universal готовность и не расширяй принятые bounded slices:
-- siege AI beyond bounded Giran castleId=3 — DEFERRED_NOT_IMPLEMENTED;
-- quests beyond bounded Q102/Q152 и universal solver — DEFERRED_NOT_IMPLEMENTED;
-- class quest/transfer beyond Q401 Fighter→Warrior — DEFERRED_NOT_IMPLEMENTED;
-- Kamaloka beyond audited template 57 — DEFERRED_NOT_IMPLEMENTED;
-- Pailaka beyond Q128/template 43 — DEFERRED_NOT_IMPLEMENTED.
-
-Goal038 добавил отдельный versioned Humanized слой только после rejected
-functional semantic: game intent/clarification/proposal/action Goal018–020 всегда
-имеют приоритет. `PhantomSocialService` остаётся relationship/personality
-authority; personal facts и anti-repeat живут в bounded `conversation.personal`
-schema v1 без raw chat log и новой DB schema. Six exact `my-*.xml` позволяют
-менять aliases/topics/phrases/profanity/mature без Java recompilation и проходят
-strict fail-closed validation. Generated social egress имеет отдельный
-`PHANTOM_SOCIAL` origin, exact counterpart proof, budget 1/side, cooldown 5
-minutes, self/generic-generated rejection и anti-repeat; A→B→A остановлен после
-двух replies. Mature register — explicit opt-in only, shipped OFF.
-
-Следующий planned step: только **bounded Goal039 resume** для доказанного
-Goal033A1 topology-ingress blocker. Goal039 остаётся `BLOCKED`; late domain,
-verify, JAR, real-stack и freeze этапы не начинать до восстановления gate.
-Для любых DB-backed проверок сохраняй allowlisted `l2jmobiush5_phantom_test`;
-production `l2jmobiush5` и destructive prepare запрещены.
-
-Сначала прочитай `Agents.md`, `PHANTOM_DEVELOPMENT_MASTER_PLAN.md`,
-`docs/PHANTOM_BOTS_ROADMAP.md`, `docs/phantoms/PHANTOM_CURRENT_STATUS.md`, этот
-handoff, Goal034 closure8 SUCCESS report, Goal035, Goal036, Goal037 и Goal038
-SUCCESS reports и новый explicit task package.
-Работай по `docs/phantoms/CODEX_WORKFLOW_CONTRACT.md`; исполняемый контракт
-каждой задачи находится в `docs/phantoms/tasks/<task>/TASK.md`. Не трогай
-historical reports, production DB, accepted Goal030 semantics и shipped safe
-defaults. Промежуточный QA должен быть автоматизирован; ручная игра
-пользователя — финальная experience validation.
+Не начинай следующий goal автоматически. Дальнейшая работа допустима только как
+proven bugfix/regression либо новая явно запрошенная пользователем feature.

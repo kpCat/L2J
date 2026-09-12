@@ -50,7 +50,7 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 	}
 
 	private static final long SEED = 39003901L;
-	private static final String REQUIRED_PARENT = "539688cda76c06bf48528f210cbff03524818871";
+	private static final String REQUIRED_PARENT = "f01401d79d5f41aac87cd8425b78a2f00abbf417";
 	private static final String FINAL_MARKER = "FEATURE_COMPLETE_FOR_DECLARED_SCOPE";
 	private static final String OLD_ACQUISITION_CATALOG_HASH = "e9b5e5d0038414d892a64971425601807910526aeb073d19d59039072dc4247b";
 	private static final Map<String, String> OLD_QUEST_SCRIPT_HASHES = Map.of(
@@ -171,6 +171,7 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 			registry.add("05-canonical-active-pin-and-catalog-parity", this::testCanonicalActivePins);
 			registry.add("06-stale-quest-binding-authority-migration", this::testStaleQuestBindingMigration);
 			registry.add("07-headless-full-runtime-native-owner-bootstrap-census", this::testHeadlessFullRuntimeBootstrapCensus);
+			registry.add("08-goal016-commit-backed-historical-verifier", this::testGoal016CommitBackedHistoricalVerifier);
 		}
 		else
 		{
@@ -431,6 +432,32 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(FULL_RUNTIME_BOOTSTRAP_SUITES, audited, "Full PhantomSystem test startup census drifted.");
 		PhantomAssertions.assertEquals(9, startupCalls, "Full PhantomSystem test startup call-site count drifted.");
 		context.record("goal039.headlessFullRuntimeCensus", "suites=7,startupCalls=9,helperInvocationsPerSuite=1");
+	}
+
+	private void testGoal016CommitBackedHistoricalVerifier(PhantomTestContext context) throws Exception
+	{
+		final String verifier = read(context.moduleRoot(), "tools/phantoms/verify-task-016.ps1");
+		for (String token : List.of(
+			"function Read-CommitBytes",
+			"StandardOutput.BaseStream.CopyToAsync",
+			"function Read-VerificationBytes",
+			"$mode -eq \"working-completion\"",
+			"return Read-CommitBytes $completionCommit $relativePath",
+			"$encoding.GetString((Read-VerificationBytes $relativePath))",
+			"$sha256.ComputeHash((Read-VerificationBytes $relativePath))",
+			"Expected one unique ordinary Goal 016 completion direct child.",
+			"merge-base\", \"--is-ancestor\", $completionCommit, $head",
+			"Assert-True ($actual -eq ([string] $property.Value).ToUpperInvariant())"))
+		{
+			PhantomAssertions.assertTrue(verifier.contains(token), "Goal016 verifier lost commit-backed integrity token: " + token);
+		}
+		final int hashStart = verifier.indexOf("function Get-Sha256");
+		final int hashEnd = verifier.indexOf("function Invoke-Git", hashStart);
+		PhantomAssertions.assertTrue((hashStart >= 0) && (hashEnd > hashStart), "Goal016 SHA-256 byte-source function is not isolated.");
+		final String hashFunction = verifier.substring(hashStart, hashEnd);
+		PhantomAssertions.assertFalse(hashFunction.contains("ReadAllBytes") || hashFunction.contains("UTF8Encoding") || hashFunction.contains("GetString") || hashFunction.contains("GetBytes") || hashFunction.contains("Trim("), "Goal016 historical SHA-256 path normalizes or decodes authoritative bytes.");
+		PhantomAssertions.assertFalse(verifier.toLowerCase(java.util.Locale.ROOT).contains("b44da3b3a90d8bce566e2cef6acbbe1d599952c456a365512231e2615c608b86"), "Goal016 verifier accepts the Windows CRLF checkout hash as an alternate.");
+		context.record("goal039.goal016Verifier", "historical=completion-commit-raw-bytes,working=implementation-head,no-alternate-eol-hash");
 	}
 
 	private void testCanonicalUtf8SourceHash(PhantomTestContext context) throws Exception
