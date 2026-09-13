@@ -32,6 +32,7 @@ import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.instance.Folk;
 import org.l2jmobius.gameserver.network.serverpackets.ActionFailed;
 import org.l2jmobius.gameserver.network.serverpackets.NpcHtmlMessage;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 
 public class SkillList implements IBypassHandler
 {
@@ -48,14 +49,23 @@ public class SkillList implements IBypassHandler
 			return false;
 		}
 		
-		if (PlayerConfig.ALT_GAME_SKILL_LEARN)
+		final PersonalCharacterQoLService personalService = PersonalCharacterQoLService.getInstance();
+		if (personalService.canOpenAlternativeSkillList(player, target.asNpc()))
 		{
 			try
 			{
 				final String id = command.substring(9).trim();
 				if (id.length() != 0)
 				{
-					Folk.showSkillList(player, target.asNpc(), PlayerClass.getPlayerClass(Integer.parseInt(id)));
+					final PlayerClass learningClass = PlayerClass.getPlayerClass(Integer.parseInt(id));
+					if (PlayerConfig.ALT_GAME_SKILL_LEARN)
+					{
+						Folk.showSkillList(player, target.asNpc(), learningClass);
+					}
+					else if (personalService.canAcquireClassSkill(player, target.asNpc(), learningClass))
+					{
+						Folk.showSkillList(player, target.asNpc(), learningClass, true);
+					}
 				}
 				else
 				{

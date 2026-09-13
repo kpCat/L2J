@@ -1,4 +1,4 @@
-# L2-QOL-001 — инструкция оператора
+# Personal/Premium QoL — инструкция оператора
 
 ## Файлы и включение
 
@@ -38,6 +38,44 @@ Reward actor остаётся штатным: для party/servitor действ
 
 Предмет не даёт Spoil skill, не меняет шанс успешного Spoil cast, не гарантирует выпадение или количество, не меняет RNG/check order, XP/SP, quest rewards/rates, manor и raid curse.
 
+## Личный allowlist QOL-002
+
+Конфигурация: `dist/game/config/Custom/PersonalCharacterQoL.ini`. Она независима от QOL-001 и поставляется полностью выключенной:
+
+```ini
+EnablePersonalCharacterQoL=False
+EnablePersonalCrossClassSkills=False
+EnablePersonalCrystallization=False
+AllowedCharacterIds=
+AllowedAccounts=
+```
+
+Для одного или нескольких персонажей включите master switch и нужные subfeature, затем заполните хотя бы один allowlist. `AllowedCharacterIds` принимает положительные decimal object ID персонажей, `AllowedAccounts` — имена аккаунтов без пробелов; регистр аккаунта не учитывается. Разделители — запятая или точка с запятой, максимум 256 значений и 4096 символов на список. Пример с синтетическими значениями:
+
+```ini
+EnablePersonalCharacterQoL=True
+EnablePersonalCrossClassSkills=True
+EnablePersonalCrystallization=True
+AllowedCharacterIds=100001;100002
+AllowedAccounts=test_account
+```
+
+После изменения нужен перезапуск Game Server. Ошибка формата отключает только QOL-002; QOL-001 продолжает использовать свой отдельный конфиг. Пустые allowlist не разрешают доступ никому. Headless Phantom не допускается даже при совпадении ID/account.
+
+## Cross-class обучение
+
+Глобальный `AltGameSkillLearn` оставляйте в прежнем состоянии; для personal path включать его не требуется. Allowlisted Player на основной профессии использует обычный `SkillList` у NPC-наставника. Выбранная профессия должна реально входить в production teach set этого NPC, а её hierarchy level не может быть выше активной профессии игрока.
+
+Доступны только штатные `CLASS`-навыки, изучаемые у NPC: forgotten-scroll и auto-get не добавляются, GM/hero/clan/subclass/transform trees не расширяются. Сервер повторно проверяет trainer, выбранный class, level, previous level, prerequisites, required items и SP непосредственно перед mutation. Для чужой профессии действует native alternative цена: одинаковый fighter/mage тип — 2x, противоположный — 3x; свой class — 1x. Изученные навыки сохраняются обычным `character_skills` path и восстанавливаются после relog, пока персонаж остаётся allowlisted и функция включена.
+
+## Кристаллизация
+
+Race bypass отсутствует: персонаж любой расы обязан реально знать `CRYSTALLIZE` нужного уровня. Native client packet продолжает работать; если H5 client не показывает действие non-dwarf, доступен server-side fallback на личной странице Alt+B.
+
+Alt+B выводит только ограниченный список подходящих предметов. После выбора показываются exact item/count/enchant и ожидаемый `Item.getCrystalCount()` result. Подтверждение необратимо, одноразово, действует не более 120 секунд и заменяется при подготовке другого предмета. При replay, смене владельца, count/enchant/item drift, отзыве allowlist или гонке с native packet операция закрывается без повторного credit.
+
+Сохраняются native ограничения: достаточный уровень навыка для D/C/B/A/S grade, ownership/manipulation, store/in-flight state, hero/shadow/time-limited/augmentation и `isCrystallizable`. Экипированный предмет сначала снимается. Кристаллы начисляются только после точного destruction; `inCrystallize` очищается в `finally`.
+
 ## Магазин и цены
 
 Alt+B вызывает отдельный guarded route, который подготавливает native multisell `91001`. Generic multisell bypass для этого list ID запрещён. При execute повторно проверяются dedicated provenance и live `EnablePersonalPremiumShop`; поэтому prepared до выключения список после disable отклоняется до списания.
@@ -48,7 +86,7 @@ Alt+B вызывает отдельный guarded route, который подг
 
 ## Откат
 
-Установите оба switch в `False` и перезапустите Game Server. DB migration отсутствует. Купленные предметы останутся обычными stock items, но QoL-эффект прекратится; stale shop execution будет отклонён до debit. PhantomPlayers.ini и Phantom schema для включения/отката не меняются.
+Для QOL-001 установите оба switch в `PersonalPremiumQoL.ini` в `False`. Для QOL-002 установите `EnablePersonalCharacterQoL=False` или выключите отдельные subfeature в `PersonalCharacterQoL.ini`, затем перезапустите Game Server. DB migration отсутствует. Купленные предметы останутся обычными stock items, но level-gap эффект прекратится; stale shop/crystallization execution будет отклонён до debit/credit. Изученные foreign skills хранятся штатно; при выключенном admission штатный skill checker может удалить их как недопустимые при следующем restore. `PhantomPlayers.ini` и Phantom schema не меняются.
 
 ## Проверка
 
@@ -57,13 +95,16 @@ Alt+B вызывает отдельный guarded route, который подг
 ```text
 ant qol-level-gap-test
 ant qol-shop-test
-ant qol-affected-test
+ant qol-personal-skills-test
+ant qol-crystallization-test
+ant qol-002-affected-test
+ant qol-002-verify
 ant verify
 ant -q jar
 ```
 
-`qol-level-gap-test` покрывает grouped/ungrouped/spoil, boundaries, inventory/relog и bot exclusions. `qol-shop-test` использует реальные native debit/credit и отрицательные prepare/execute/flood/capacity controls. База должна быть заранее подготовленным allowlisted test schema по действующей Phantom test policy; `prepare-phantom-test-db` в этом workflow не запускается.
+`qol-level-gap-test` покрывает grouped/ungrouped/spoil, boundaries, inventory/relog и bot exclusions. `qol-shop-test` использует реальные native debit/credit и отрицательные prepare/execute/flood/capacity controls. Новые focused targets покрывают personal policy, настоящий `RequestAcquireSkill`, relog и required items, а также native/common/Alt+B crystallization, replay/stale/expiry/concurrency. База должна быть заранее подготовленным allowlisted test schema по действующей Phantom test policy; `prepare-phantom-test-db` в этом workflow не запускается.
 
 Клиентский визуальный статус релиза: **NOT_TESTED_CLIENT_UI**.
 
-Следующие L2-QOL-002/003 остаются PLANNED: см. `docs/personal-qol/ROADMAP.md`.
+L2-QOL-003 остаётся PLANNED: см. `docs/personal-qol/ROADMAP.md`. Vitality/rate items остаются только в backlog.

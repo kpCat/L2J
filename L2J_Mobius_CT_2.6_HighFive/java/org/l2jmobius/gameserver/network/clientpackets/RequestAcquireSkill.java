@@ -28,6 +28,7 @@ import org.l2jmobius.gameserver.managers.ScriptManager;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.IllegalActionPunishmentType;
+import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.instance.Fisherman;
 import org.l2jmobius.gameserver.model.actor.instance.Folk;
 import org.l2jmobius.gameserver.model.actor.instance.VillageMaster;
@@ -53,6 +54,7 @@ import org.l2jmobius.gameserver.network.serverpackets.AcquireSkillList;
 import org.l2jmobius.gameserver.network.serverpackets.ExStorageMaxCount;
 import org.l2jmobius.gameserver.network.serverpackets.PledgeSkillList;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 
 /**
  * Request Acquire Skill client packet implementation.
@@ -109,6 +111,10 @@ public class RequestAcquireSkill extends ClientPacket
 		
 		final Npc trainer = player.getLastFolkNPC();
 		if ((trainer == null) || !trainer.isNpc() || (!trainer.canInteract(player) && !player.isGM()))
+		{
+			return;
+		}
+		if ((_skillType == AcquireSkillType.CLASS) && !PersonalCharacterQoLService.getInstance().canAcquireClassSkill(player, trainer, player.getLearningClass()))
 		{
 			return;
 		}
@@ -423,6 +429,26 @@ public class RequestAcquireSkill extends ClientPacket
 	{
 		if ((skillLearn != null) && (skillLearn.getSkillId() == _id) && (skillLearn.getSkillLevel() == _level))
 		{
+			final PlayerClass learningClass = player.getLearningClass();
+			final boolean alternativeClassLearning;
+			if (_skillType == AcquireSkillType.CLASS)
+			{
+				final PersonalCharacterQoLService personalService = PersonalCharacterQoLService.getInstance();
+				if (!personalService.canAcquireClassSkill(player, trainer, learningClass))
+				{
+					return false;
+				}
+				alternativeClassLearning = personalService.usesAlternativeSkillPrice(player, trainer, learningClass);
+				if (!PlayerConfig.ALT_GAME_SKILL_LEARN && alternativeClassLearning && (!skillLearn.isLearnedByNpc() || skillLearn.isAutoGet() || skillLearn.isLearnedByFS() || !SkillTreeData.getInstance().getAvailableSkills(player, learningClass, false, false).contains(skillLearn)))
+				{
+					return false;
+				}
+			}
+			else
+			{
+				alternativeClassLearning = false;
+			}
+
 			// Hack check.
 			if (skillLearn.getGetLevel() > player.getLevel())
 			{
@@ -432,7 +458,7 @@ public class RequestAcquireSkill extends ClientPacket
 			}
 			
 			// First it checks that the skill require SP and the player has enough SP to learn it.
-			final int levelUpSp = skillLearn.getCalculatedLevelUpSp(player.getPlayerClass(), player.getLearningClass());
+			final int levelUpSp = _skillType == AcquireSkillType.CLASS ? skillLearn.getCalculatedLevelUpSp(player.getPlayerClass(), learningClass, alternativeClassLearning) : skillLearn.getCalculatedLevelUpSp(player.getPlayerClass(), learningClass);
 			if ((levelUpSp > 0) && (levelUpSp > player.getSp()))
 			{
 				player.sendPacket(SystemMessageId.YOU_DO_NOT_HAVE_ENOUGH_SP_TO_LEARN_THIS_SKILL);
@@ -558,7 +584,9 @@ public class RequestAcquireSkill extends ClientPacket
 		}
 		else
 		{
-			Folk.showSkillList(player, trainer, player.getLearningClass());
+			final PlayerClass learningClass = player.getLearningClass();
+			final boolean alternativeLearning = (_skillType == AcquireSkillType.CLASS) && PersonalCharacterQoLService.getInstance().usesAlternativeSkillPrice(player, trainer, learningClass);
+			Folk.showSkillList(player, trainer, learningClass, alternativeLearning);
 		}
 	}
 	

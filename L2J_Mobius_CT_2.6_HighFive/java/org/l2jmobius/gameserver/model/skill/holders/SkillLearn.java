@@ -283,6 +283,18 @@ public class SkillLearn
 	 */
 	public int getCalculatedLevelUpSp(PlayerClass playerClass, PlayerClass learningClass)
 	{
+		return getCalculatedLevelUpSp(playerClass, learningClass, PlayerConfig.ALT_GAME_SKILL_LEARN);
+	}
+
+	/**
+	 * Calculates the alternative learning cost using an explicit admission decision.
+	 * @param playerClass the player's active class.
+	 * @param learningClass the class tree being learned.
+	 * @param alternativeLearning whether alternative class pricing is authorized.
+	 * @return the SP cost.
+	 */
+	public int getCalculatedLevelUpSp(PlayerClass playerClass, PlayerClass learningClass, boolean alternativeLearning)
+	{
 		if ((playerClass == null) || (learningClass == null))
 		{
 			return _levelUpSp;
@@ -291,7 +303,7 @@ public class SkillLearn
 		int levelUpSp = _levelUpSp;
 		
 		// If the alternative skill learn system is enabled and the player is learning a skill from a different class apply a fee.
-		if (PlayerConfig.ALT_GAME_SKILL_LEARN && (playerClass != learningClass))
+		if (alternativeLearning && (playerClass != learningClass))
 		{
 			// If the player is learning a skill from other class type (mage learning warrior skills or vice versa) the fee is higher.
 			if (playerClass.isMage() != learningClass.isMage())

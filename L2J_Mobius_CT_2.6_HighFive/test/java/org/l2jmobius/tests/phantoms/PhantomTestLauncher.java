@@ -52,6 +52,8 @@ import org.l2jmobius.gameserver.phantoms.PhantomScaleEnvironmentGoal029Checkpoin
 import org.l2jmobius.gameserver.phantoms.PhantomScaleEnduranceGoal029Checkpoint3Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomClanDirectiveIntegrationGoal030C2ASuite;
 import org.l2jmobius.gameserver.qol.QoLLevelGapSuite;
+import org.l2jmobius.gameserver.qol.QoLCrystallizationSuite;
+import org.l2jmobius.gameserver.qol.QoLPersonalSkillsSuite;
 import org.l2jmobius.gameserver.qol.QoLShopSuite;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanGoal027Checkpoint2Suite;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanAffiliationHumanizationGoal030C1Suite;
@@ -276,6 +278,8 @@ public final class PhantomTestLauncher
 			case "full-vision-goal039-documentation" -> new PhantomFullVisionGoal039Suite(PhantomFullVisionGoal039Suite.Mode.DOCUMENTATION);
 			case "qol-level-gap" -> new QoLLevelGapSuite();
 			case "qol-shop" -> new QoLShopSuite();
+			case "qol-personal-skills" -> new QoLPersonalSkillsSuite();
+			case "qol-crystallization" -> new QoLCrystallizationSuite();
 			case "topology-performance" -> new PhantomTopologyPerformanceSuite();
 			case "knowledge-core" -> new PhantomGameKnowledgeCoreSuite();
 			case "knowledge-query-truth" -> new PhantomGameKnowledgeQueryTruthSuite();

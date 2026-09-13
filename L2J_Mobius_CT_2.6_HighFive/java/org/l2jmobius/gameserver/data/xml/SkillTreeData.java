@@ -53,6 +53,7 @@ import org.l2jmobius.gameserver.model.skill.enums.AcquireSkillType;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn.SubClassData;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 
 /**
  * This class loads and manage the characters and pledges skills trees.<br>
@@ -101,6 +102,7 @@ public class SkillTreeData implements IXmlReader
 	private Map<Integer, int[]> _skillsByClassIdHashCodes; // Occupation skills
 	private Map<Integer, int[]> _skillsByRaceHashCodes; // Race-specific Transformations
 	private int[] _allSkillsHashCodes; // Fishing, Collection, Transformations, Common Skills.
+	private Map<Integer, Integer> _personalNpcClassSkillMinLevels; // QOL-002 eligible cross-class skills by minimum class hierarchy level.
 	
 	/** Parent class Ids are read from XML and stored in this map, to allow easy customization. */
 	private final Map<PlayerClass, PlayerClass> _parentClassMap = new LinkedHashMap<>();
@@ -1229,7 +1231,8 @@ public class SkillTreeData implements IXmlReader
 	{
 		int index;
 		int[] skillHashes;
-		
+		final Map<Integer, Integer> personalNpcClassSkillMinLevels = new HashMap<>();
+
 		// Class-specific skills.
 		Map<Integer, SkillLearn> skillLearnMap;
 		final Set<PlayerClass> playerClassSet = _classSkillTrees.keySet();
@@ -1243,11 +1246,20 @@ public class SkillTreeData implements IXmlReader
 			{
 				skillHashes[index++] = skillHash;
 			}
-			
+			for (Entry<Integer, SkillLearn> entry : skillLearnMap.entrySet())
+			{
+				final SkillLearn skillLearn = entry.getValue();
+				if (skillLearn.isLearnedByNpc() && !skillLearn.isAutoGet() && !skillLearn.isLearnedByFS())
+				{
+					personalNpcClassSkillMinLevels.merge(entry.getKey(), playerClass.level(), Math::min);
+				}
+			}
+
 			skillLearnMap.clear();
 			Arrays.sort(skillHashes);
 			_skillsByClassIdHashCodes.put(playerClass.getId(), skillHashes);
 		}
+		_personalNpcClassSkillMinLevels = Map.copyOf(personalNpcClassSkillMinLevels);
 		
 		// Race-specific skills from Fishing and Transformation skill trees.
 		final List<Integer> skillHashList = new LinkedList<>();
@@ -1363,7 +1375,13 @@ public class SkillTreeData implements IXmlReader
 		{
 			return true;
 		}
-		
+
+		final Integer minimumClassLevel = _personalNpcClassSkillMinLevels.get(hashCode);
+		if ((minimumClassLevel != null) && (minimumClassLevel <= player.getPlayerClass().level()) && PersonalCharacterQoLService.getInstance().isCrossClassSkillsEnabled(player))
+		{
+			return true;
+		}
+
 		// Exclude Transfer Skills from this check.
 		return getTransferSkill(skill.getId(), Math.min(skill.getLevel(), maxLevel), player.getPlayerClass()) != null;
 	}

@@ -23,6 +23,7 @@ package org.l2jmobius.gameserver.model.actor.instance;
 import java.util.List;
 import java.util.Map;
 
+import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.model.actor.Npc;
@@ -76,6 +77,18 @@ public class Folk extends Npc
 	 * @param playerClass the player's active class identifier as a {@link PlayerClass} enum value
 	 */
 	public static void showSkillList(Player player, Npc npc, PlayerClass playerClass)
+	{
+		showSkillList(player, npc, playerClass, PlayerConfig.ALT_GAME_SKILL_LEARN);
+	}
+
+	/**
+	 * Displays a class skill tree with an explicit alternative-learning price decision.
+	 * @param player the active character.
+	 * @param npc the last folk.
+	 * @param playerClass the class tree to display.
+	 * @param alternativeLearning whether alternative class pricing applies.
+	 */
+	public static void showSkillList(Player player, Npc npc, PlayerClass playerClass, boolean alternativeLearning)
 	{
 		final int npcId = npc.getTemplate().getId();
 		if (npcId == 32611) // Tolonis (Officer)
@@ -138,7 +151,7 @@ public class Folk extends Npc
 		{
 			if (SkillData.getInstance().getSkill(s.getSkillId(), s.getSkillLevel()) != null)
 			{
-				asl.addSkill(s.getSkillId(), s.getSkillLevel(), s.getSkillLevel(), s.getCalculatedLevelUpSp(player.getPlayerClass(), playerClass), 0);
+				asl.addSkill(s.getSkillId(), s.getSkillLevel(), s.getSkillLevel(), s.getCalculatedLevelUpSp(player.getPlayerClass(), playerClass, alternativeLearning), 0);
 				count++;
 			}
 		}

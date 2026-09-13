@@ -10,9 +10,9 @@
 
 ## L2-QOL-002 — личные cross-class skills и crystallization
 
-Статус: **PLANNED**. Это отдельная будущая задача, сейчас она не запущена.
+Статус: **SUCCESS**.
 
-Нужны явный account/character allowlist, штатные владельцы skill data/levels/payment и безопасная crystallization с точным native расчётом, ownership-проверкой и защитой от повторного исполнения. GM/hero/clan/NPC/transform skills и глобальная выдача не подразумеваются.
+Добавлены отдельный shipped-OFF/empty account+character allowlist, personal-only доступ real main-class Player к обычным foreign `CLASS`-деревьям реального trainer owner и native alternative SP 1x/2x/3x без включения глобального `AltGameSkillLearn`. Уровни, предыдущие навыки, required items, persistence и stock skill data остаются штатными. Non-dwarf должен реально изучить `CRYSTALLIZE`; native packet и Alt+B используют один mutation owner с точным `Item.getCrystalCount()`, preview, одноразовым token до 120 секунд и at-most-once защитой. GM/hero/clan/subclass/transform/FS/auto trees не расширены.
 
 ## L2-QOL-003 — длительность buff/dance/song
 
