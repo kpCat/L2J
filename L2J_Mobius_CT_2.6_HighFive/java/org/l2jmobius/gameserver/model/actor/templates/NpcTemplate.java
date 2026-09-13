@@ -53,6 +53,9 @@ import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.holders.ItemHolder;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.qol.LevelGapProtectionPolicy;
+import org.l2jmobius.gameserver.qol.LevelGapProtectionPolicy.Decision;
+import org.l2jmobius.gameserver.qol.PersonalPremiumQoLService;
 import org.l2jmobius.gameserver.util.MathUtil;
 
 /**
@@ -679,13 +682,14 @@ public class NpcTemplate extends CreatureTemplate
 	
 	public List<ItemHolder> calculateDrops(DropType dropType, Creature victim, Creature killer)
 	{
+		final Decision levelGapProtection = PersonalPremiumQoLService.getInstance().snapshot(victim, killer);
 		if (dropType == DropType.DROP)
 		{
 			// calculate group drops
 			List<ItemHolder> groupDrops = null;
 			if (_dropGroups != null)
 			{
-				groupDrops = calculateGroupDrops(victim, killer);
+				groupDrops = calculateGroupDrops(victim, killer, levelGapProtection);
 				
 				if ((groupDrops != null) && victim.isMonster() && victim.asMonster().isSeeded())
 				{
@@ -697,7 +701,7 @@ public class NpcTemplate extends CreatureTemplate
 			List<ItemHolder> ungroupedDrops = null;
 			if (_dropListDeath != null)
 			{
-				ungroupedDrops = calculateUngroupedDrops(dropType, victim, killer);
+				ungroupedDrops = calculateUngroupedDrops(dropType, victim, killer, levelGapProtection);
 				
 				if ((ungroupedDrops != null) && victim.isMonster() && victim.asMonster().isSeeded())
 				{
@@ -725,19 +729,19 @@ public class NpcTemplate extends CreatureTemplate
 		}
 		else if ((dropType == DropType.SPOIL) && (_dropListSpoil != null))
 		{
-			return calculateUngroupedDrops(dropType, victim, killer);
+			return calculateUngroupedDrops(dropType, victim, killer, levelGapProtection);
 		}
 		
 		// no drops
 		return null;
 	}
 	
-	private List<ItemHolder> calculateGroupDrops(Creature victim, Creature killer)
+	private List<ItemHolder> calculateGroupDrops(Creature victim, Creature killer, Decision levelGapProtection)
 	{
 		// level difference calculations
 		final int levelDifference = victim.getLevel() - killer.getLevel();
-		final double levelGapChanceToDropAdena = MathUtil.scaleToRange(levelDifference, -RatesConfig.DROP_ADENA_MAX_LEVEL_DIFFERENCE, -RatesConfig.DROP_ADENA_MIN_LEVEL_DIFFERENCE, RatesConfig.DROP_ADENA_MIN_LEVEL_GAP_CHANCE, 100d);
-		final double levelGapChanceToDrop = MathUtil.scaleToRange(levelDifference, -RatesConfig.DROP_ITEM_MAX_LEVEL_DIFFERENCE, -RatesConfig.DROP_ITEM_MIN_LEVEL_DIFFERENCE, RatesConfig.DROP_ITEM_MIN_LEVEL_GAP_CHANCE, 100d);
+		final double levelGapChanceToDropAdena = LevelGapProtectionPolicy.apply(MathUtil.scaleToRange(levelDifference, -RatesConfig.DROP_ADENA_MAX_LEVEL_DIFFERENCE, -RatesConfig.DROP_ADENA_MIN_LEVEL_DIFFERENCE, RatesConfig.DROP_ADENA_MIN_LEVEL_GAP_CHANCE, 100d), levelGapProtection);
+		final double levelGapChanceToDrop = LevelGapProtectionPolicy.apply(MathUtil.scaleToRange(levelDifference, -RatesConfig.DROP_ITEM_MAX_LEVEL_DIFFERENCE, -RatesConfig.DROP_ITEM_MIN_LEVEL_DIFFERENCE, RatesConfig.DROP_ITEM_MIN_LEVEL_GAP_CHANCE, 100d), levelGapProtection);
 		
 		List<ItemHolder> calculatedDrops = null;
 		int dropOccurrenceCounter = victim.isRaid() ? RatesConfig.DROP_MAX_OCCURRENCES_RAIDBOSS : RatesConfig.DROP_MAX_OCCURRENCES_NORMAL;
@@ -925,14 +929,14 @@ public class NpcTemplate extends CreatureTemplate
 		return calculatedDrops;
 	}
 	
-	private List<ItemHolder> calculateUngroupedDrops(DropType dropType, Creature victim, Creature killer)
+	private List<ItemHolder> calculateUngroupedDrops(DropType dropType, Creature victim, Creature killer, Decision levelGapProtection)
 	{
 		final List<DropHolder> dropList = dropType == DropType.SPOIL ? _dropListSpoil : _dropListDeath;
 		
 		// level difference calculations
 		final int levelDifference = victim.getLevel() - killer.getLevel();
-		final double levelGapChanceToDropAdena = MathUtil.scaleToRange(levelDifference, -RatesConfig.DROP_ADENA_MAX_LEVEL_DIFFERENCE, -RatesConfig.DROP_ADENA_MIN_LEVEL_DIFFERENCE, RatesConfig.DROP_ADENA_MIN_LEVEL_GAP_CHANCE, 100d);
-		final double levelGapChanceToDrop = MathUtil.scaleToRange(levelDifference, -RatesConfig.DROP_ITEM_MAX_LEVEL_DIFFERENCE, -RatesConfig.DROP_ITEM_MIN_LEVEL_DIFFERENCE, RatesConfig.DROP_ITEM_MIN_LEVEL_GAP_CHANCE, 100d);
+		final double levelGapChanceToDropAdena = LevelGapProtectionPolicy.apply(MathUtil.scaleToRange(levelDifference, -RatesConfig.DROP_ADENA_MAX_LEVEL_DIFFERENCE, -RatesConfig.DROP_ADENA_MIN_LEVEL_DIFFERENCE, RatesConfig.DROP_ADENA_MIN_LEVEL_GAP_CHANCE, 100d), levelGapProtection);
+		final double levelGapChanceToDrop = LevelGapProtectionPolicy.apply(MathUtil.scaleToRange(levelDifference, -RatesConfig.DROP_ITEM_MAX_LEVEL_DIFFERENCE, -RatesConfig.DROP_ITEM_MIN_LEVEL_DIFFERENCE, RatesConfig.DROP_ITEM_MIN_LEVEL_GAP_CHANCE, 100d), levelGapProtection);
 		
 		int dropOccurrenceCounter = victim.isRaid() ? RatesConfig.DROP_MAX_OCCURRENCES_RAIDBOSS : RatesConfig.DROP_MAX_OCCURRENCES_NORMAL;
 		List<ItemHolder> calculatedDrops = null;

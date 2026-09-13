@@ -47,6 +47,7 @@ import org.l2jmobius.gameserver.config.custom.OfflinePlayConfig;
 import org.l2jmobius.gameserver.config.custom.OfflineTradeConfig;
 import org.l2jmobius.gameserver.config.custom.OnlineInfoConfig;
 import org.l2jmobius.gameserver.config.custom.PasswordChangeConfig;
+import org.l2jmobius.gameserver.config.custom.PersonalPremiumQoLConfig;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.config.custom.PremiumSystemConfig;
 import org.l2jmobius.gameserver.config.custom.PrivateStoreRangeConfig;
@@ -122,6 +123,7 @@ public class ConfigLoader
 		OfflineTradeConfig.load();
 		OnlineInfoConfig.load();
 		PasswordChangeConfig.load();
+		PersonalPremiumQoLConfig.load();
 		PhantomPlayersConfig.load();
 		PremiumSystemConfig.load();
 		PrivateStoreRangeConfig.load();

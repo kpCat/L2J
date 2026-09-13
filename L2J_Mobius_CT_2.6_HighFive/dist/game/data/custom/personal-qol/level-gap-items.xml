@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<levelGapItems version="1">
+	<item itemId="22290" maximumGap="5" label="Оберег разницы уровней: 5" />
+	<item itemId="22296" maximumGap="10" label="Оберег разницы уровней: 10" />
+	<item itemId="22297" maximumGap="20" label="Оберег разницы уровней: 20" />
+	<item itemId="22298" maximumGap="40" label="Оберег разницы уровней: 40" />
+</levelGapItems>

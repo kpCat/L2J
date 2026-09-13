@@ -35,6 +35,8 @@
 	<property name="phantom.test.seed" value="20260725001" />
 	<property name="phantom.goal038.seed" value="38003801" />
 	<property name="phantom.goal039.seed" value="39003901" />
+	<property name="qol.level.gap.seed" value="1001001" />
+	<property name="qol.shop.seed" value="1001002" />
 	<property name="phantom.goal013b.seed" value="13001302" />
 	<property name="phantom.goal014.seed" value="140014" />
 	<property name="phantom.goal014a.seed" value="14001401" />
@@ -3724,6 +3726,39 @@
 		</java>
 	</target>
 	<target name="phantom-clan-checkpoint1-goal027-test" depends="phantom-clan-creation-restart-goal027cp1-test,phantom-clan-recruitment-goal027cp1-test,phantom-clan-roles-goal027cp1-test,phantom-clan-treasury-goal027cp1-test,phantom-clan-chat-decision-goal027cp1-test,phantom-profile-persistence-test,phantom-chat-observation-test" description="Run the final Goal 027 CP1 persistent clan organization aggregate and directly affected regressions." />
+	<target name="qol-level-gap-test" depends="compile-tests" description="Run L2-QOL-001 level-gap policy, native loot, inventory and bot-exclusion tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; use an already prepared allowlisted test database." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; use an already prepared allowlisted test database." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="qol-level-gap" />
+			<arg value="${qol.level.gap.seed}" />
+		</java>
+	</target>
+
+	<target name="qol-shop-test" depends="compile-tests" description="Run L2-QOL-001 registered board and native multisell debit/credit tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; use an already prepared allowlisted test database." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; use an already prepared allowlisted test database." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="qol-shop" />
+			<arg value="${qol.shop.seed}" />
+		</java>
+	</target>
+
+	<target name="qol-affected-test" depends="phantom-progression-server-integration-test,phantom-quest-rates-goal037-test,phantom-master-handler-java8-compat-goal030cp2a-test,phantom-commerce-test,phantom-release-baseline-goal030cp1-test,phantom-db-guard-negative-control" description="Run existing reward, rates, acquisition/background, handler, commerce, disabled-default and DB-guard regressions affected by L2-QOL-001." />
+	<target name="qol-verify" depends="qol-level-gap-test,qol-shop-test,qol-affected-test" description="Run L2-QOL-001 focused and affected verification without provisioning, Goal039 full domain, soak, or Goal034 stack tests." />
+
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->
 	<target name="verify" depends="jar,test,phantom-skeleton-test,phantom-headless-player-test,phantom-headless-player-performance-smoke,phantom-profile-persistence-test,phantom-production-materialization-test,phantom-production-materialization-performance-smoke,phantom-server-shutdown-handoff-test,phantom-activity-scheduler-test,phantom-activity-scheduler-performance-smoke,phantom-decision-core-test,phantom-decision-persistence-test,phantom-decision-performance-smoke,phantom-navigation-core-test,phantom-navigation-performance-smoke,phantom-topology-core-test,phantom-topology-perception-test,phantom-topology-scheduler-signal-integration-test,phantom-topology-signal-ledger-test,phantom-topology-generation-test,phantom-topology-production-corpus-test,phantom-topology-performance-smoke,phantom-game-knowledge-core-test,phantom-game-knowledge-query-truth-test,phantom-game-knowledge-parity-test,phantom-game-knowledge-content-test,phantom-game-knowledge-performance-smoke,phantom-combat-core-test,phantom-combat-ownership-test,phantom-combat-action-ownership-test,phantom-combat-server-integration-test,phantom-combat-performance-smoke,phantom-progression-catalog-test,phantom-progression-parity-test,phantom-capability-runtime-test,phantom-progression-operations-test,phantom-progression-server-integration-test,phantom-progression-durability-test,phantom-progression-performance-smoke,phantom-progression-extensibility-test,phantom-progression-production-composition-test,phantom-commerce-test,phantom-commerce-hardening-test,phantom-background-test,phantom-population-test,phantom-party-test,phantom-social-test,phantom-semantic-test,phantom-social-activation-test,phantom-semantic-activation-test,phantom-chat-observation-test,phantom-conversation-catalog-codec-test,phantom-conversation-understanding-test,phantom-conversation-social-style-test,phantom-conversation-chat-integration-test,phantom-conversation-lifecycle-performance-smoke,phantom-economy-checkpoint1-test,phantom-economy-checkpoint1-affected-test,phantom-economy-checkpoint2-test,phantom-economy-checkpoint2-affected-test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a,phantom-static-verify-003,phantom-static-verify-004,phantom-static-verify-004a,phantom-static-verify-004b,phantom-static-verify-005,phantom-static-verify-006,phantom-static-verify-006a,phantom-static-verify-006b,phantom-static-verify-007,phantom-static-verify-014a,phantom-static-verify-015,phantom-static-verify-016,phantom-static-verify-017,phantom-static-verify-018,phantom-static-verify-019,phantom-static-verify-020c1,phantom-static-verify-020c2,phantom-static-verify-022c1,phantom-static-verify-022c2,phantom-farming-goal024-test,phantom-siege-goal035-test,phantom-quest-instance-goal036-test,phantom-quest-rates-goal037-test,phantom-humanized-goal038-focused-test,phantom-humanized-goal038-affected-test,phantom-humanized-goal038-production-restart-test,phantom-full-vision-goal039-structure-test" description="Run the Goal039 final release structure gate and all prior Phantom verification gates." />

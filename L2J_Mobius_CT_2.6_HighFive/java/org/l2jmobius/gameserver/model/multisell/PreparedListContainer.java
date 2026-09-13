@@ -31,10 +31,17 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 public class PreparedListContainer extends ListContainer
 {
 	private int _npcObjectId = 0;
-	
+	private final boolean _personalPremiumQoL;
+
 	public PreparedListContainer(ListContainer template, boolean inventoryOnly, Player player, Npc npc)
 	{
+		this(template, inventoryOnly, player, npc, false);
+	}
+
+	public PreparedListContainer(ListContainer template, boolean inventoryOnly, Player player, Npc npc, boolean personalPremiumQoL)
+	{
 		super(template.getListId());
+		_personalPremiumQoL = personalPremiumQoL;
 		setMaintainEnchantment(template.getMaintainEnchantment());
 		setApplyTaxes(false);
 		double taxRate = 0;
@@ -97,5 +104,10 @@ public class PreparedListContainer extends ListContainer
 	public boolean checkNpcObjectId(int npcObjectId)
 	{
 		return (_npcObjectId == 0) || (_npcObjectId == npcObjectId);
+	}
+
+	public boolean isPersonalPremiumQoL()
+	{
+		return _personalPremiumQoL;
 	}
 }

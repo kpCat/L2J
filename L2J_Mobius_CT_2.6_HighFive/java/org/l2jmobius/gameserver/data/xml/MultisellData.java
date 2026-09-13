@@ -47,6 +47,7 @@ import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.ExPCCafePointInfo;
 import org.l2jmobius.gameserver.network.serverpackets.MultiSellList;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalPremiumQoLService;
 
 public class MultisellData implements IXmlReader
 {
@@ -257,11 +258,32 @@ public class MultisellData implements IXmlReader
 	 */
 	public void separateAndSend(int listId, Player player, Npc npc, boolean inventoryOnly, double productMultiplier, double ingredientMultiplier)
 	{
+		if (PersonalPremiumQoLService.isShopList(listId))
+		{
+			player.setMultiSell(null);
+			LOGGER.warning(getClass().getSimpleName() + ": rejected generic access to Personal/Premium QoL multisell " + listId + " for " + player + ".");
+			return;
+		}
+		prepareAndSend(listId, player, npc, inventoryOnly, productMultiplier, ingredientMultiplier, false);
+	}
+
+	public boolean separateAndSendPersonalPremiumQoL(Player player)
+	{
+		if (!PersonalPremiumQoLService.getInstance().isShopEnabled())
+		{
+			player.setMultiSell(null);
+			return false;
+		}
+		return prepareAndSend(PersonalPremiumQoLService.SHOP_LIST_ID, player, null, false, 1, 1, true);
+	}
+
+	private boolean prepareAndSend(int listId, Player player, Npc npc, boolean inventoryOnly, double productMultiplier, double ingredientMultiplier, boolean personalPremiumQoL)
+	{
 		final ListContainer template = _entries.get(listId);
 		if (template == null)
 		{
 			LOGGER.warning(getClass().getSimpleName() + ": can't find list id: " + listId + " requested by player: " + player.getName() + ", npcId:" + (npc != null ? npc.getId() : 0));
-			return;
+			return false;
 		}
 		
 		if (!template.isNpcAllowed(-1))
@@ -275,12 +297,12 @@ public class MultisellData implements IXmlReader
 				else
 				{
 					LOGGER.warning(getClass().getSimpleName() + ": " + player + " attempted to open multisell " + listId + " from npc " + npc + " which is not allowed!");
-					return;
+					return false;
 				}
 			}
 		}
-		
-		final PreparedListContainer list = new PreparedListContainer(template, inventoryOnly, player, npc);
+
+		final PreparedListContainer list = new PreparedListContainer(template, inventoryOnly, player, npc, personalPremiumQoL);
 		
 		// Pass through this only when multipliers are different from 1
 		if ((productMultiplier != 1) || (ingredientMultiplier != 1))
@@ -304,13 +326,19 @@ public class MultisellData implements IXmlReader
 		}
 		while (index < list.getEntries().size());
 		player.setMultiSell(list);
+		return true;
 	}
 	
 	public void separateAndSend(int listId, Player player, Npc npc, boolean inventoryOnly)
 	{
 		separateAndSend(listId, player, npc, inventoryOnly, 1, 1);
 	}
-	
+
+	public boolean hasList(int listId)
+	{
+		return _entries.containsKey(listId);
+	}
+
 	public static boolean hasSpecialIngredient(int id, long amount, Player player)
 	{
 		switch (id)

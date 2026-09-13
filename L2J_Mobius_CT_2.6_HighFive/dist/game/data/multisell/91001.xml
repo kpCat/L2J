@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/multisell.xsd">
+	<npcs>
+		<npc>-1</npc>
+	</npcs>
+	<!-- DEMO: 1,000 Adena -> level-gap tier 5 carrier. -->
+	<item>
+		<ingredient id="57" count="1000" />
+		<production id="22290" count="1" />
+	</item>
+	<!-- DEMO: 5,000 Adena -> level-gap tier 10 carrier. -->
+	<item>
+		<ingredient id="57" count="5000" />
+		<production id="22296" count="1" />
+	</item>
+	<!-- DEMO: 20,000 Adena -> level-gap tier 20 carrier. -->
+	<item>
+		<ingredient id="57" count="20000" />
+		<production id="22297" count="1" />
+	</item>
+	<!-- DEMO: 50,000 Adena -> level-gap tier 40 carrier. -->
+	<item>
+		<ingredient id="57" count="50000" />
+		<production id="22298" count="1" />
+	</item>
+</list>

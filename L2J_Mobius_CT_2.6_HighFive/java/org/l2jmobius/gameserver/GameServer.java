@@ -173,6 +173,7 @@ import org.l2jmobius.gameserver.network.GamePacketHandler;
 import org.l2jmobius.gameserver.network.NpcStringId;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
+import org.l2jmobius.gameserver.qol.PersonalPremiumQoLService;
 import org.l2jmobius.gameserver.scripting.ScriptEngine;
 import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 import org.l2jmobius.gameserver.taskmanagers.ItemLifeTimeTaskManager;
@@ -258,6 +259,7 @@ public class GameServer
 		MerchantPriceConfigTable.getInstance().loadInstances();
 		BuyListData.getInstance();
 		MultisellData.getInstance();
+		PersonalPremiumQoLService.getInstance().initialize();
 		RecipeData.getInstance();
 		ArmorSetData.getInstance();
 		FishData.getInstance();
