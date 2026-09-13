@@ -31,7 +31,11 @@ public final class PersonalCharacterQoLService
 
 	public boolean isPersonalUser(Player player)
 	{
-		final Settings settings = settings();
+		return isPersonalUser(player, settings());
+	}
+
+	boolean isPersonalUser(Player player, Settings settings)
+	{
 		if (!settings.enabled() || (player == null) || player.hasHeadlessOutboundSession())
 		{
 			return false;
@@ -90,7 +94,7 @@ public final class PersonalCharacterQoLService
 		return previous;
 	}
 
-	private Settings settings()
+	Settings settings()
 	{
 		final Settings testSettings = _testSettings;
 		return testSettings != null ? testSettings : PersonalCharacterQoLConfig.settings();

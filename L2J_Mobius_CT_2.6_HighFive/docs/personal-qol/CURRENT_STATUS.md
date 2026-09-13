@@ -4,13 +4,22 @@
 
 Ветка: `feature/phantom-world`
 
-Required parent: `78f41e441cef6b70e65a087c4e463df4779e7844`
+Required parent: `7fa6789802555afb9b1962f82413e5c79b649362`
 
-Текущая задача: `L2-QOL-002`
+Текущая задача: `L2-QOL-003`
 
 Статус: **SUCCESS**
 
-## L2-QOL-002
+## L2-QOL-003
+
+- В `PersonalCharacterQoL.ini` добавлены отдельный shipped-OFF switch, множители положительных buff/dance/song и bounded override по skill ID.
+- Сначала полностью вычисляется штатный `Formulas.calcEffectAbnormalTime`, затем результат один раз корректируется в новом per-recipient seam `BuffInfo`. Общий `Skill._abnormalTime` не изменяется.
+- Множитель действует только для allowlisted real Player из QOL-002, включая активный subclass. Headless Phantom, summon/pet и NPC используют stock duration.
+- Passive, toggle, triggered, abnormal-instant, debuff и negative effects исключены. Положительный explicit `abnormalTime` остаётся авторитетным и не умножается повторно.
+- Song/dance определяется по реальному H5 `SkillTreeData`: `SWORDSINGER`/`SWORD_MUSE` и `BLADEDANCER`/`SPECTRAL_DANCER`. Конфликтное или неизвестное происхождение fail-closed оставляет stock duration; snapshot обновляется после reload дерева.
+- Ошибка новых ключей fail-closed отключает только duration feature. Валидные QOL-001, QOL-002 и базовые allowlist продолжают работать.
+
+## Сохранённое поведение L2-QOL-002
 
 - Новый `PersonalCharacterQoL.ini` поставляется с master/subfeature switch в `False` и пустыми allowlist character ID/account.
 - Только allowlisted real main-class Player может открыть у реального владельца-тренера обычное `CLASS`-дерево другой профессии того же или более низкого hierarchy level. Headless Phantom и active subclass исключены.
@@ -33,12 +42,13 @@ Required parent: `78f41e441cef6b70e65a087c4e463df4779e7844`
 - native multisell: `dist/game/data/multisell/91001.xml`
 - Alt+B HTML: `dist/game/data/html/CommunityBoard/Custom/personal-qol/main.html`
 - personal access INI: `dist/game/config/Custom/PersonalCharacterQoL.ini`
+- duration policy: `java/org/l2jmobius/gameserver/qol/PersonalEffectDurationPolicy.java`
 - Alt+B crystallization HTML: `dist/game/data/html/CommunityBoard/Custom/personal-qol/crystallization*.html`
 - операторская инструкция: `docs/personal-qol/OPERATOR_GUIDE_RU.md`
-- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`
+- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`
 
 Focused, affected, historical static, Goal039 structure/static/docs, финальный fresh `ant verify` и standalone jar зафиксированы в evidence report. Использовалась только allowlisted test DB; production DB не читалась и не проверялась.
 
 Клиентский UI: **NOT_TESTED_CLIENT_UI**. Серверная страница и bypass проверены, но визуальная проверка в H5-клиенте не выдаётся за выполненную. Client patch не требуется: в инвентаре остаются исходные stock names/icons.
 
-L2-QOL-003 остаётся **PLANNED**. Vitality/rate items сохранены в backlog. Phantom freeze и алгоритмы Phantom не переписывались; Goal040 не создавался.
+L2-QOL-001/002/003 имеют статус **SUCCESS**; базовый Personal QoL завершён. Vitality/rate/premium-item идеи сохранены только в backlog и автоматически не реализованы. Phantom freeze и алгоритмы Phantom не переписывались; Goal040 не создавался.

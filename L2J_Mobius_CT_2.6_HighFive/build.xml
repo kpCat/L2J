@@ -39,6 +39,7 @@
 	<property name="qol.shop.seed" value="1001002" />
 	<property name="qol.personal.skills.seed" value="1002001" />
 	<property name="qol.crystallization.seed" value="1002002" />
+	<property name="qol.effect.duration.seed" value="1003001" />
 	<property name="phantom.goal013b.seed" value="13001302" />
 	<property name="phantom.goal014.seed" value="140014" />
 	<property name="phantom.goal014a.seed" value="14001401" />
@@ -3793,6 +3794,24 @@
 	<target name="qol-002-affected-test" depends="qol-level-gap-test,qol-shop-test,qol-affected-test" description="Run QOL-001 and reward/rates/acquisition/handler/commerce/default/DB-guard regressions affected by L2-QOL-002." />
 	<target name="qol-002-historical-static-test" depends="phantom-static-verify-014,phantom-static-verify-014a,phantom-static-verify-015,phantom-static-verify-016,phantom-static-verify-017,phantom-static-verify-018,phantom-static-verify-019,phantom-static-verify-020c1,phantom-static-verify-020c2,phantom-static-verify-022c1,phantom-static-verify-022c2" description="Run the required retained historical static chain for L2-QOL-002." />
 	<target name="qol-002-verify" depends="qol-personal-skills-test,qol-crystallization-test,qol-002-affected-test,qol-002-historical-static-test,phantom-full-vision-goal039-static-test,phantom-full-vision-goal039-documentation-test" description="Run L2-QOL-002 focused, affected, retained historical and Goal039 freeze verification without provisioning, Goal029 soak, or Goal034 real stack." />
+	<target name="qol-effect-duration-test" depends="compile-tests" description="Run L2-QOL-003 config, policy, actual H5 classification, per-recipient and restore duration tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; use an already prepared allowlisted test database." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; use an already prepared allowlisted test database." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="qol-effect-duration" />
+			<arg value="${qol.effect.duration.seed}" />
+		</java>
+	</target>
+
+	<target name="qol-003-affected-test" depends="qol-personal-skills-test,qol-crystallization-test,qol-002-affected-test" description="Run QOL-001/QOL-002 and DB-guard regressions affected by L2-QOL-003." />
+	<target name="qol-003-historical-static-test" depends="phantom-static-verify-014,phantom-static-verify-014a,phantom-static-verify-015,phantom-static-verify-016,phantom-static-verify-017,phantom-static-verify-018,phantom-static-verify-019,phantom-static-verify-020c1,phantom-static-verify-020c2,phantom-static-verify-022c1,phantom-static-verify-022c2" description="Run the required retained historical static chain for L2-QOL-003." />
+	<target name="qol-003-verify" depends="qol-effect-duration-test,qol-003-affected-test,qol-003-historical-static-test,phantom-full-vision-goal039-static-test,phantom-full-vision-goal039-documentation-test" description="Run L2-QOL-003 focused, affected, retained historical and Goal039 freeze verification without provisioning, Goal029 soak, or Goal034 real stack." />
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->

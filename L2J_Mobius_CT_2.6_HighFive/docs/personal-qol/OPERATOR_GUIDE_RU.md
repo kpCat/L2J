@@ -48,6 +48,11 @@ EnablePersonalCrossClassSkills=False
 EnablePersonalCrystallization=False
 AllowedCharacterIds=
 AllowedAccounts=
+EnablePersonalEffectDurations=False
+PersonalBuffDurationMultiplier=1.0
+PersonalDanceDurationMultiplier=1.0
+PersonalSongDurationMultiplier=1.0
+PersonalEffectDurationOverrides=
 ```
 
 Для одного или нескольких персонажей включите master switch и нужные subfeature, затем заполните хотя бы один allowlist. `AllowedCharacterIds` принимает положительные decimal object ID персонажей, `AllowedAccounts` — имена аккаунтов без пробелов; регистр аккаунта не учитывается. Разделители — запятая или точка с запятой, максимум 256 значений и 4096 символов на список. Пример с синтетическими значениями:
@@ -60,7 +65,27 @@ AllowedCharacterIds=100001;100002
 AllowedAccounts=test_account
 ```
 
-После изменения нужен перезапуск Game Server. Ошибка формата отключает только QOL-002; QOL-001 продолжает использовать свой отдельный конфиг. Пустые allowlist не разрешают доступ никому. Headless Phantom не допускается даже при совпадении ID/account.
+После изменения нужен перезапуск Game Server. Ошибка базовых ключей или allowlist отключает QOL-002; QOL-001 продолжает использовать свой отдельный конфиг. Ошибка только в duration-ключах изолированно отключает QOL-003. Пустые allowlist не разрешают доступ никому. Headless Phantom не допускается даже при совпадении ID/account.
+
+## Личная длительность эффектов
+
+`EnablePersonalEffectDurations=True` включает QOL-003 только внутри общего `EnablePersonalCharacterQoL=True` и только для тех же allowlist. Отдельные множители принимают конечное decimal-значение от `0.01` до `100.0`. Десятичный разделитель — точка. Override имеет формат `positiveSkillId,multiplier`, записи разделяются точкой с запятой; максимум 256 записей и 4096 символов. Повторяющиеся skill ID, неположительные ID, нечисловые и бесконечные значения отклоняют весь duration-блок.
+
+Пример:
+
+```ini
+EnablePersonalEffectDurations=True
+PersonalBuffDurationMultiplier=2.0
+PersonalDanceDurationMultiplier=1.5
+PersonalSongDurationMultiplier=1.25
+PersonalEffectDurationOverrides=1068,3.0;269,2.0
+```
+
+Override заменяет, а не умножает category multiplier. Сначала сервер получает полный stock duration с учётом `SkillDurationList` и штатных правил, затем один раз применяет personal multiplier к конкретному получателю. Положительный explicit `abnormalTime` при наложении эффекта остаётся точным и повторно не умножается. Recast, relog/restore и refresh используют исходное сохранённое время без накопительного умножения.
+
+Категория song/dance подтверждается реальным H5 class tree: song принадлежит `SWORDSINGER`/`SWORD_MUSE`, dance — `BLADEDANCER`/`SPECTRAL_DANCER`, и шаблон навыка должен иметь штатный dance-флаг. Неизвестное или конфликтное происхождение сохраняет stock duration. Passive, toggle, triggered, abnormal-instant, debuff/negative effects также исключены. Изменение QOL-003 действует только на real Player; active subclass допускается, а headless Phantom, summon/pet и NPC всегда остаются stock.
+
+Все изменения этого блока требуют перезапуска Game Server. Если новые ключи отсутствуют, конфигурация считается legacy-valid и QOL-003 выключен. Ошибка только в новых ключах отключает duration feature, но не выключает валидные QOL-001/QOL-002 и не стирает базовые allowlist.
 
 ## Cross-class обучение
 
@@ -86,7 +111,7 @@ Alt+B вызывает отдельный guarded route, который подг
 
 ## Откат
 
-Для QOL-001 установите оба switch в `PersonalPremiumQoL.ini` в `False`. Для QOL-002 установите `EnablePersonalCharacterQoL=False` или выключите отдельные subfeature в `PersonalCharacterQoL.ini`, затем перезапустите Game Server. DB migration отсутствует. Купленные предметы останутся обычными stock items, но level-gap эффект прекратится; stale shop/crystallization execution будет отклонён до debit/credit. Изученные foreign skills хранятся штатно; при выключенном admission штатный skill checker может удалить их как недопустимые при следующем restore. `PhantomPlayers.ini` и Phantom schema не меняются.
+Для QOL-001 установите оба switch в `PersonalPremiumQoL.ini` в `False`. Для QOL-002 установите `EnablePersonalCharacterQoL=False` или выключите отдельные subfeature в `PersonalCharacterQoL.ini`. Для отдельного отката QOL-003 установите `EnablePersonalEffectDurations=False`, затем перезапустите Game Server. DB migration отсутствует. Купленные предметы останутся обычными stock items, но level-gap эффект прекратится; stale shop/crystallization execution будет отклонён до debit/credit. Изученные foreign skills хранятся штатно; при выключенном admission штатный skill checker может удалить их как недопустимые при следующем restore. Уже наложенные эффекты сохраняют записанное остаточное время, новые эффекты после перезапуска используют stock duration. `PhantomPlayers.ini` и Phantom schema не меняются.
 
 ## Проверка
 
@@ -97,14 +122,17 @@ ant qol-level-gap-test
 ant qol-shop-test
 ant qol-personal-skills-test
 ant qol-crystallization-test
+ant qol-effect-duration-test
 ant qol-002-affected-test
 ant qol-002-verify
+ant qol-003-affected-test
+ant qol-003-verify
 ant verify
 ant -q jar
 ```
 
-`qol-level-gap-test` покрывает grouped/ungrouped/spoil, boundaries, inventory/relog и bot exclusions. `qol-shop-test` использует реальные native debit/credit и отрицательные prepare/execute/flood/capacity controls. Новые focused targets покрывают personal policy, настоящий `RequestAcquireSkill`, relog и required items, а также native/common/Alt+B crystallization, replay/stale/expiry/concurrency. База должна быть заранее подготовленным allowlisted test schema по действующей Phantom test policy; `prepare-phantom-test-db` в этом workflow не запускается.
+`qol-level-gap-test` покрывает grouped/ungrouped/spoil, boundaries, inventory/relog и bot exclusions. `qol-shop-test` использует реальные native debit/credit и отрицательные prepare/execute/flood/capacity controls. Focused QOL-002 targets покрывают personal policy, настоящий `RequestAcquireSkill`, relog и required items, а также native/common/Alt+B crystallization, replay/stale/expiry/concurrency. `qol-effect-duration-test` покрывает strict config isolation/master OFF, pure policy/rounding, реальные H5 buff/song/dance/debuff, self/NPC/ordinary/headless/summon recipient semantics, global-then-personal ordering, Skill immutability, override, explicit/steal-copy time, recast и restore/relog. База должна быть заранее подготовленным allowlisted test schema по действующей Phantom test policy; `prepare-phantom-test-db` в этом workflow не запускается.
 
 Клиентский визуальный статус релиза: **NOT_TESTED_CLIENT_UI**.
 
-L2-QOL-003 остаётся PLANNED: см. `docs/personal-qol/ROADMAP.md`. Vitality/rate items остаются только в backlog.
+L2-QOL-001/002/003 завершены со статусом SUCCESS; базовый Personal QoL complete. Vitality/rate/premium-item идеи остаются только в backlog и автоматически не реализуются.

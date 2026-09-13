@@ -16,9 +16,11 @@
 
 ## L2-QOL-003 — длительность buff/dance/song
 
-Статус: **PLANNED**. Это отдельная будущая задача, сейчас она не запущена.
+Статус: **SUCCESS**.
 
-Настраиваемая длительность относится только к положительным buff/dance/song. Debuffs исключены. Нужны per-recipient semantics без протекания в общие skill templates и без повторного умножения при relog/restore/refresh.
+Добавлены отдельные shipped-OFF множители положительных buff/dance/song и bounded override по skill ID. Stock duration сначала полностью вычисляется в `Formulas.calcEffectAbnormalTime`, после чего personal policy применяется один раз к конкретному allowlisted real Player в `BuffInfo`; общие skill templates не меняются. Passive/toggle/triggered/abnormal-instant/debuff/negative, explicit abnormal time, неизвестное или конфликтное music ownership, summon/pet/NPC и headless Phantom остаются stock. Restore/relog/recast не создают повторного умножения.
+
+L2-QOL-001/002/003 завершены: базовый Personal QoL имеет статус **SUCCESS**.
 
 ## Backlog
 

@@ -54,6 +54,7 @@ import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn.SubClassData;
 import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
+import org.l2jmobius.gameserver.qol.PersonalEffectMusicClassifier;
 
 /**
  * This class loads and manage the characters and pledges skills trees.<br>
@@ -176,6 +177,7 @@ public class SkillTreeData implements IXmlReader
 		report();
 		
 		_loading = false;
+		PersonalEffectMusicClassifier.getInstance().invalidate();
 	}
 	
 	/**

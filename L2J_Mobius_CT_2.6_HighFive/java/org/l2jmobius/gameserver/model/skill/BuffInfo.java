@@ -37,6 +37,7 @@ import org.l2jmobius.gameserver.model.skill.enums.SkillFinishType;
 import org.l2jmobius.gameserver.model.stats.Formulas;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalEffectDurationService;
 import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 
 /**
@@ -81,7 +82,8 @@ public class BuffInfo
 		_effector = effector;
 		_effected = effected;
 		_skill = skill;
-		_abnormalTime = Formulas.calcEffectAbnormalTime(effector, effected, skill);
+		final int stockAbnormalTime = Formulas.calcEffectAbnormalTime(effector, effected, skill);
+		_abnormalTime = PersonalEffectDurationService.getInstance().adjustAbnormalTime(effected, skill, stockAbnormalTime);
 		_periodStartTicks = GameTimeTaskManager.getInstance().getGameTicks();
 	}
 	
