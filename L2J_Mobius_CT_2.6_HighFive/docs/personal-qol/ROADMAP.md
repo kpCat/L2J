@@ -20,7 +20,13 @@
 
 Добавлены отдельные shipped-OFF множители положительных buff/dance/song и bounded override по skill ID. Stock duration сначала полностью вычисляется в `Formulas.calcEffectAbnormalTime`, после чего personal policy применяется один раз к конкретному allowlisted real Player в `BuffInfo`; общие skill templates не меняются. Passive/toggle/triggered/abnormal-instant/debuff/negative, explicit abnormal time, неизвестное или конфликтное music ownership, summon/pet/NPC и headless Phantom остаются stock. Restore/relog/recast не создают повторного умножения.
 
-L2-QOL-001/002/003 завершены: базовый Personal QoL имеет статус **SUCCESS**.
+## L2-QOL-003-HF1 — гонка reload music classifier
+
+Статус: **SUCCESS**.
+
+Refresh, invalidate и публикация immutable music snapshot сериализованы одним монитором, поэтому завершившаяся invalidation побеждает ранее начатую сборку. `classify()` и `conflictCount()` используют по одному локальному snapshot, а прогретый путь остаётся без повторного обхода skill trees. Исправление защищено controlled concurrency regressions с конечными deadlines и не меняет множители, exclusions, allowlist, `Formulas`, `Skill` или `BuffInfo`.
+
+L2-QOL-001/002/003 и hotfix L2-QOL-003-HF1 завершены: базовый Personal QoL закрыт со статусом **SUCCESS**.
 
 ## Backlog
 

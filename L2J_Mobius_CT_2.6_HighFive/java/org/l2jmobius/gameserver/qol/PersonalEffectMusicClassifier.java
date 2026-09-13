@@ -11,7 +11,9 @@ package org.l2jmobius.gameserver.qol;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import org.l2jmobius.gameserver.data.xml.SkillData;
@@ -27,14 +29,81 @@ import org.l2jmobius.gameserver.qol.PersonalEffectDurationPolicy.Category;
 public final class PersonalEffectMusicClassifier
 {
 	private static final Logger LOGGER = Logger.getLogger(PersonalEffectMusicClassifier.class.getName());
+	private final Object _snapshotMonitor = new Object();
+	private final Supplier<SkillTreeData> _skillTrees;
 	private volatile Snapshot _snapshot;
 	private boolean _conflictWarningLogged;
 
 	private PersonalEffectMusicClassifier()
 	{
+		this(SkillTreeData::getInstance);
 	}
 
-	public synchronized void refresh(SkillTreeData skillTrees)
+	PersonalEffectMusicClassifier(Supplier<SkillTreeData> skillTrees)
+	{
+		_skillTrees = Objects.requireNonNull(skillTrees);
+	}
+
+	public void refresh(SkillTreeData skillTrees)
+	{
+		synchronized (_snapshotMonitor)
+		{
+			publish(buildSnapshot(skillTrees));
+		}
+	}
+
+	public void invalidate()
+	{
+		synchronized (_snapshotMonitor)
+		{
+			_snapshot = null;
+		}
+	}
+
+	public Category classify(Skill skill)
+	{
+		if ((skill == null) || !skill.isDance())
+		{
+			return Category.BUFF;
+		}
+		final Snapshot snapshot = snapshot();
+		return snapshot.categories().getOrDefault(skill.getId(), Category.UNKNOWN);
+	}
+
+	int conflictCount()
+	{
+		return snapshot().conflictCount();
+	}
+
+	private Snapshot snapshot()
+	{
+		Snapshot snapshot = _snapshot;
+		if (snapshot == null)
+		{
+			synchronized (_snapshotMonitor)
+			{
+				snapshot = _snapshot;
+				if (snapshot == null)
+				{
+					snapshot = buildSnapshot(_skillTrees.get());
+					publish(snapshot);
+				}
+			}
+		}
+		return snapshot;
+	}
+
+	private void publish(Snapshot snapshot)
+	{
+		_snapshot = snapshot;
+		if ((snapshot.conflictCount() > 0) && !_conflictWarningLogged)
+		{
+			_conflictWarningLogged = true;
+			LOGGER.warning("Personal effect duration music classification found " + snapshot.conflictCount() + " conflicting skill identifiers; those skills remain stock.");
+		}
+	}
+
+	private static Snapshot buildSnapshot(SkillTreeData skillTrees)
 	{
 		final Set<Integer> songs = new HashSet<>();
 		final Set<Integer> dances = new HashSet<>();
@@ -60,43 +129,7 @@ public final class PersonalEffectMusicClassifier
 				categories.put(skillId, Category.DANCE);
 			}
 		}
-		_snapshot = new Snapshot(Map.copyOf(categories), conflicts.size());
-		if (!conflicts.isEmpty() && !_conflictWarningLogged)
-		{
-			_conflictWarningLogged = true;
-			LOGGER.warning("Personal effect duration music classification found " + conflicts.size() + " conflicting skill identifiers; those skills remain stock.");
-		}
-	}
-
-	public void invalidate()
-	{
-		_snapshot = null;
-	}
-
-	public Category classify(Skill skill)
-	{
-		if ((skill == null) || !skill.isDance())
-		{
-			return Category.BUFF;
-		}
-		Snapshot snapshot = _snapshot;
-		if (snapshot == null)
-		{
-			refresh(SkillTreeData.getInstance());
-			snapshot = _snapshot;
-		}
-		return snapshot.categories().getOrDefault(skill.getId(), Category.UNKNOWN);
-	}
-
-	int conflictCount()
-	{
-		Snapshot snapshot = _snapshot;
-		if (snapshot == null)
-		{
-			refresh(SkillTreeData.getInstance());
-			snapshot = _snapshot;
-		}
-		return snapshot.conflictCount();
+		return new Snapshot(Map.copyOf(categories), conflicts.size());
 	}
 
 	private static void collectMusic(SkillTreeData skillTrees, PlayerClass playerClass, Set<Integer> result)

@@ -4,11 +4,18 @@
 
 Ветка: `feature/phantom-world`
 
-Required parent: `7fa6789802555afb9b1962f82413e5c79b649362`
+Required parent: `a53fb9f4c9ebc304d0142a895103451f83dfc780`
 
-Текущая задача: `L2-QOL-003`
+Текущая задача: `L2-QOL-003-HF1`
 
 Статус: **SUCCESS**
+
+## L2-QOL-003-HF1
+
+- `PersonalEffectMusicClassifier` публикует и инвалидирует immutable snapshot под одним монитором: завершившийся `invalidate()` больше не может быть затёрт публикацией ранее начатого refresh.
+- Каждый вызов `classify()` и `conflictCount()` работает с одним локально захваченным snapshot; прогретый путь не сканирует `SkillTreeData` повторно.
+- Controlled concurrency regression использует production classifier, конечные latch/barrier deadlines, baseline negative control и обязательный cleanup. Сохранены все пять исходных QOL-003 cases, включая реальный reload H5 skill tree.
+- Множители, exclusions, allowlist и владельцы `Formulas`/`Skill`/`BuffInfo` не менялись.
 
 ## L2-QOL-003
 
@@ -45,10 +52,10 @@ Required parent: `7fa6789802555afb9b1962f82413e5c79b649362`
 - duration policy: `java/org/l2jmobius/gameserver/qol/PersonalEffectDurationPolicy.java`
 - Alt+B crystallization HTML: `dist/game/data/html/CommunityBoard/Custom/personal-qol/crystallization*.html`
 - операторская инструкция: `docs/personal-qol/OPERATOR_GUIDE_RU.md`
-- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`
+- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`
 
 Focused, affected, historical static, Goal039 structure/static/docs, финальный fresh `ant verify` и standalone jar зафиксированы в evidence report. Использовалась только allowlisted test DB; production DB не читалась и не проверялась.
 
 Клиентский UI: **NOT_TESTED_CLIENT_UI**. Серверная страница и bypass проверены, но визуальная проверка в H5-клиенте не выдаётся за выполненную. Client patch не требуется: в инвентаре остаются исходные stock names/icons.
 
-L2-QOL-001/002/003 имеют статус **SUCCESS**; базовый Personal QoL завершён. Vitality/rate/premium-item идеи сохранены только в backlog и автоматически не реализованы. Phantom freeze и алгоритмы Phantom не переписывались; Goal040 не создавался.
+L2-QOL-001/002/003 и L2-QOL-003-HF1 имеют статус **SUCCESS**; базовый Personal QoL закрыт. Vitality/rate/premium-item идеи сохранены только в backlog и автоматически не реализованы. Phantom freeze и алгоритмы Phantom не переписывались; Goal040 не создавался.

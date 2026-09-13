@@ -10,6 +10,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.custom.PersonalCharacterQoLConfig;
@@ -28,6 +38,7 @@ import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.SkillOperateType;
 import org.l2jmobius.gameserver.model.skill.enums.SkillFinishType;
+import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
 import org.l2jmobius.gameserver.model.stats.Formulas;
 import org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession;
 import org.l2jmobius.gameserver.qol.PersonalEffectDurationPolicy.Category;
@@ -50,6 +61,7 @@ public final class QoLEffectDurationSuite implements PhantomTestSuite
 	private static final int SONG_ID = 269;
 	private static final int DANCE_ID = 274;
 	private static final int HEX_ID = 122;
+	private static final int CONCURRENCY_ITERATIONS = 10_000;
 
 	private final PhantomHeadlessPlayerTestEnvironment _environment = new PhantomHeadlessPlayerTestEnvironment();
 	private Settings _previousSettings;
@@ -93,6 +105,9 @@ public final class QoLEffectDurationSuite implements PhantomTestSuite
 		registry.add("03-actual-h5-skill-and-reload-aware-music-classification", this::actualH5Classification);
 		registry.add("04-per-recipient-stock-order-template-immutability-and-subclass", this::perRecipientIntegration);
 		registry.add("05-explicit-time-recast-and-relog-do-not-multiply-twice", this::explicitRecastAndRelog);
+		registry.add("06-baseline-negative-control-completed-invalidation-wins", this::completedInvalidationWins);
+		registry.add("07-concurrent-refresh-invalidate-and-local-snapshot-reads", this::concurrentSnapshotReads);
+		registry.add("08-warm-snapshot-does-not-rescan-skill-trees", this::warmSnapshotDoesNotRescan);
 	}
 
 	private void configAndIsolation(PhantomTestContext context) throws Exception
@@ -297,6 +312,128 @@ public final class QoLEffectDurationSuite implements PhantomTestSuite
 		context.record("qol003.exactTime", "explicit=37;stolenCopy=29;override=3x;recast=noMultiplierSquared;stored=71;restored=" + restored);
 	}
 
+	private void completedInvalidationWins(PhantomTestContext context) throws Exception
+	{
+		final Skill dance = skill(DANCE_ID, 1);
+		final ControlledMusicSkillTrees skillTrees = new ControlledMusicSkillTrees(skillLearn(PlayerClass.BLADEDANCER, DANCE_ID), true);
+		final PersonalEffectMusicClassifier classifier = new PersonalEffectMusicClassifier(() -> skillTrees);
+		final ExecutorService workers = newWorkerPool(2, "qol003-reload-race-");
+		final CountDownLatch invalidationStarted = new CountDownLatch(1);
+		Future<Category> oldLookup = null;
+		Future<?> invalidation = null;
+		boolean invalidationReturnedBeforeRelease = false;
+		try
+		{
+			oldLookup = workers.submit(() -> classifier.classify(dance));
+			PhantomAssertions.assertTrue(skillTrees.awaitOldBuild(5, TimeUnit.SECONDS), "Old music snapshot build did not reach the controlled barrier.");
+			skillTrees.installNewGeneration();
+			invalidation = workers.submit(() ->
+			{
+				invalidationStarted.countDown();
+				classifier.invalidate();
+			});
+			PhantomAssertions.assertTrue(invalidationStarted.await(5, TimeUnit.SECONDS), "Music snapshot invalidation worker did not start.");
+			try
+			{
+				invalidation.get(1, TimeUnit.SECONDS);
+				invalidationReturnedBeforeRelease = true;
+			}
+			catch (TimeoutException expected)
+			{
+				// A monitor-based implementation may correctly wait for the old refresh.
+			}
+
+			skillTrees.releaseOldBuild();
+			final Category inFlight = oldLookup.get(5, TimeUnit.SECONDS);
+			invalidation.get(5, TimeUnit.SECONDS);
+			PhantomAssertions.assertTrue((inFlight == Category.SONG) || (inFlight == Category.DANCE), "In-flight lookup returned an invalid music category.");
+			PhantomAssertions.assertEquals(Category.DANCE, classifier.classify(dance), "A completed invalidation was lost to an older music snapshot build.");
+			context.record("qol003.reloadRace", "baseline=SONG;afterCompletedInvalidation=DANCE;invalidationReturnedWhileBlocked=" + invalidationReturnedBeforeRelease);
+		}
+		finally
+		{
+			skillTrees.releaseOldBuild();
+			cancel(oldLookup);
+			cancel(invalidation);
+			workers.shutdownNow();
+			PhantomAssertions.assertTrue(workers.awaitTermination(5, TimeUnit.SECONDS), "Music reload race workers leaked after cleanup.");
+		}
+	}
+
+	private void concurrentSnapshotReads(PhantomTestContext context) throws Exception
+	{
+		final Skill dance = skill(DANCE_ID, 1);
+		final ControlledMusicSkillTrees skillTrees = new ControlledMusicSkillTrees(skillLearn(PlayerClass.BLADEDANCER, DANCE_ID), false);
+		skillTrees.installNewGeneration();
+		final PersonalEffectMusicClassifier classifier = new PersonalEffectMusicClassifier(() -> skillTrees);
+		classifier.refresh(skillTrees);
+		final ExecutorService workers = newWorkerPool(3, "qol003-snapshot-race-");
+		final CyclicBarrier start = new CyclicBarrier(4);
+		Future<?> refresher = null;
+		Future<?> invalidator = null;
+		Future<?> reader = null;
+		try
+		{
+			refresher = workers.submit(() ->
+			{
+				await(start);
+				for (int i = 0; i < CONCURRENCY_ITERATIONS; i++)
+				{
+					classifier.refresh(skillTrees);
+				}
+			});
+			invalidator = workers.submit(() ->
+			{
+				await(start);
+				for (int i = 0; i < CONCURRENCY_ITERATIONS; i++)
+				{
+					classifier.invalidate();
+				}
+			});
+			reader = workers.submit(() ->
+			{
+				await(start);
+				for (int i = 0; i < CONCURRENCY_ITERATIONS; i++)
+				{
+					PhantomAssertions.assertEquals(Category.DANCE, classifier.classify(dance), "Concurrent lookup observed a stale or missing dance category.");
+					PhantomAssertions.assertEquals(0, classifier.conflictCount(), "Concurrent conflict count observed an invalid snapshot.");
+				}
+			});
+			await(start);
+			refresher.get(15, TimeUnit.SECONDS);
+			invalidator.get(15, TimeUnit.SECONDS);
+			reader.get(15, TimeUnit.SECONDS);
+			context.record("qol003.snapshotRace", "refresh/invalidate=" + CONCURRENCY_ITERATIONS + ";classify/conflictCount=" + CONCURRENCY_ITERATIONS + ";failures=0");
+		}
+		finally
+		{
+			start.reset();
+			cancel(refresher);
+			cancel(invalidator);
+			cancel(reader);
+			workers.shutdownNow();
+			PhantomAssertions.assertTrue(workers.awaitTermination(5, TimeUnit.SECONDS), "Music snapshot race workers leaked after cleanup.");
+		}
+	}
+
+	private void warmSnapshotDoesNotRescan(PhantomTestContext context)
+	{
+		final Skill dance = skill(DANCE_ID, 1);
+		final ControlledMusicSkillTrees skillTrees = new ControlledMusicSkillTrees(skillLearn(PlayerClass.BLADEDANCER, DANCE_ID), false);
+		skillTrees.installNewGeneration();
+		final PersonalEffectMusicClassifier classifier = new PersonalEffectMusicClassifier(() -> skillTrees);
+		classifier.refresh(skillTrees);
+		final int coldReads = skillTrees.readCount();
+		PhantomAssertions.assertEquals(4, coldReads, "A cold music snapshot did not scan exactly the four canonical owner trees.");
+		for (int i = 0; i < CONCURRENCY_ITERATIONS; i++)
+		{
+			PhantomAssertions.assertEquals(Category.DANCE, classifier.classify(dance), "Warm music snapshot classification changed.");
+			PhantomAssertions.assertEquals(0, classifier.conflictCount(), "Warm music snapshot conflict count changed.");
+		}
+		PhantomAssertions.assertEquals(coldReads, skillTrees.readCount(), "Warm music snapshot lookup rescanned the skill trees.");
+		context.record("qol003.warmSnapshot", "coldScans=4;warmLookups=" + (CONCURRENCY_ITERATIONS * 2) + ";additionalScans=0");
+	}
+
 	private void assertDurationOnlyInvalid(Settings settings, String message)
 	{
 		PhantomAssertions.assertTrue(settings.valid() && settings.enabled() && settings.crossClassSkillsEnabled() && settings.crystallizationEnabled(), message + " Existing QOL-002 state was not retained.");
@@ -347,6 +484,42 @@ public final class QoLEffectDurationSuite implements PhantomTestSuite
 		return SkillTreeData.getInstance().getCompleteClassSkillTree(playerClass).values().stream().anyMatch(value -> value.getSkillId() == skillId);
 	}
 
+	private static SkillLearn skillLearn(PlayerClass playerClass, int skillId)
+	{
+		return SkillTreeData.getInstance().getCompleteClassSkillTree(playerClass).values().stream().filter(value -> value.getSkillId() == skillId).findFirst().orElseThrow(() -> new AssertionError("Required H5 skill tree owner " + playerClass + "/" + skillId + " is absent."));
+	}
+
+	private static ExecutorService newWorkerPool(int size, String namePrefix)
+	{
+		final AtomicInteger sequence = new AtomicInteger();
+		return Executors.newFixedThreadPool(size, task -> new Thread(task, namePrefix + sequence.incrementAndGet()));
+	}
+
+	private static void cancel(Future<?> future)
+	{
+		if ((future != null) && !future.isDone())
+		{
+			future.cancel(true);
+		}
+	}
+
+	private static void await(CyclicBarrier barrier)
+	{
+		try
+		{
+			barrier.await(5, TimeUnit.SECONDS);
+		}
+		catch (InterruptedException e)
+		{
+			Thread.currentThread().interrupt();
+			throw new AssertionError("Music snapshot concurrency worker was interrupted at its barrier.", e);
+		}
+		catch (BrokenBarrierException | TimeoutException e)
+		{
+			throw new AssertionError("Music snapshot concurrency barrier did not complete.", e);
+		}
+	}
+
 	private static Skill syntheticSkill(int id, int abnormalTime, int magicType)
 	{
 		final StatSet set = new StatSet();
@@ -363,6 +536,74 @@ public final class QoLEffectDurationSuite implements PhantomTestSuite
 	{
 		final double product = stock * multiplier;
 		return product >= Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.max(1, (int) Math.round(product));
+	}
+
+	private static final class ControlledMusicSkillTrees extends SkillTreeData
+	{
+		private final SkillLearn _musicSkill;
+		private final boolean _blockOldBuild;
+		private final AtomicBoolean _oldBuildPending = new AtomicBoolean(true);
+		private final AtomicInteger _readCount = new AtomicInteger();
+		private final CountDownLatch _oldBuildBlocked = new CountDownLatch(1);
+		private final CountDownLatch _releaseOldBuild = new CountDownLatch(1);
+		private volatile boolean _newGeneration;
+
+		private ControlledMusicSkillTrees(SkillLearn musicSkill, boolean blockOldBuild)
+		{
+			_musicSkill = musicSkill;
+			_blockOldBuild = blockOldBuild;
+		}
+
+		@Override
+		public void load()
+		{
+			// The inherited constructor must not load production trees for this controlled fixture.
+		}
+
+		@Override
+		public Map<Integer, SkillLearn> getCompleteClassSkillTree(PlayerClass playerClass)
+		{
+			final boolean newGeneration = _newGeneration;
+			_readCount.incrementAndGet();
+			final Map<Integer, SkillLearn> result = ((!newGeneration && (playerClass == PlayerClass.SWORDSINGER)) || (newGeneration && (playerClass == PlayerClass.BLADEDANCER))) ? Map.of(_musicSkill.getSkillId(), _musicSkill) : Map.of();
+			if (_blockOldBuild && !newGeneration && (playerClass == PlayerClass.SPECTRAL_DANCER) && _oldBuildPending.compareAndSet(true, false))
+			{
+				_oldBuildBlocked.countDown();
+				try
+				{
+					if (!_releaseOldBuild.await(5, TimeUnit.SECONDS))
+					{
+						throw new AssertionError("Timed out waiting to release the old music snapshot build.");
+					}
+				}
+				catch (InterruptedException e)
+				{
+					Thread.currentThread().interrupt();
+					throw new AssertionError("Old music snapshot build was interrupted.", e);
+				}
+			}
+			return result;
+		}
+
+		private boolean awaitOldBuild(long timeout, TimeUnit unit) throws InterruptedException
+		{
+			return _oldBuildBlocked.await(timeout, unit);
+		}
+
+		private void installNewGeneration()
+		{
+			_newGeneration = true;
+		}
+
+		private void releaseOldBuild()
+		{
+			_releaseOldBuild.countDown();
+		}
+
+		private int readCount()
+		{
+			return _readCount.get();
+		}
 	}
 
 	private BuffInfo activeMight()
