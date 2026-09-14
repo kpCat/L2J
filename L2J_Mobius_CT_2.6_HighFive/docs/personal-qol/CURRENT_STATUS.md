@@ -4,11 +4,19 @@
 
 Ветка: `feature/phantom-world`
 
-Required parent: `58672daf0bcd008c7c8b9c022c40671873ad89ce`
+Required parent: `0b1d88165dd747d3325d7bbb6c86f16d5bef88c4`
 
-Текущая задача: `L2-QOL-005`
+Текущая задача: `L2-QOL-006`
 
 Статус: **SUCCESS**
+
+## L2-QOL-006
+
+- Source audit классифицировал remote PM, exact-name remote party invite и self-only Summon Friend как `NO_CHANGE_REQUIRED_ALREADY_NATIVE`. Существующие `Say2`/`ChatHandler`, `RequestJoinParty`/`PartyInvitationService` и skill `1403`/`CallPc`/`SummonRequestHolder` не дублировались и не обходились.
+- Heal, resurrection и negative-reputation cleanup классифицированы как `CHANGE_REQUIRED` и добавлены в существующий Alt+B раздел `Расходники и утилиты` под отдельным shipped-OFF `EnablePersonalPartySupport`.
+- Привилегированный actor — только allowlisted real personal Player. Перед mutation цель повторно разрешается через `World` и проверяется как self или актуальный online Player-участник той же `Party`; stale former member, outsider, malformed/forged bypass, ordinary Player и headless Phantom не изменяются.
+- Heal использует `Player.fullRestore()` только для живой цели; resurrection — `Player.doRevive()` без XP restoration; cleanup — только `Player.setKarma(0)` при положительной karma. PvP/PK counters, clan reputation, fame, recommendations, Seven Signs, inventory, skills и quests остаются неизменными.
+- Combat/casting, duel, Olympiad, siege/PvP, event, store, teleport/observer/vehicle, jail, cursed weapon, instance и Rift states закрыты fail-closed. Arbitrary teleport, direct party insertion, auto-accept, cross-party support и Phantom lifecycle changes отсутствуют.
 
 ## L2-QOL-005
 
@@ -68,13 +76,14 @@ Required parent: `58672daf0bcd008c7c8b9c022c40671873ad89ce`
 - Alt+B HTML: `dist/game/data/html/CommunityBoard/Custom/personal-qol/main.html`
 - personal access INI: `dist/game/config/Custom/PersonalCharacterQoL.ini`
 - duration policy: `java/org/l2jmobius/gameserver/qol/PersonalEffectDurationPolicy.java`
+- party support owner: `java/org/l2jmobius/gameserver/qol/PersonalPartySupportService.java`
 - Alt+B crystallization HTML: `dist/game/data/html/CommunityBoard/Custom/personal-qol/crystallization*.html`
 - storefront pricing policy: `docs/personal-qol/SHOP_PRICING.md`
 - операторская инструкция: `docs/personal-qol/OPERATOR_GUIDE_RU.md`
-- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`, `docs/personal-qol/reports/004-personal-board-storefront-controls.md`, `docs/personal-qol/reports/005-seven-signs-personal-access.md`
+- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`, `docs/personal-qol/reports/004-personal-board-storefront-controls.md`, `docs/personal-qol/reports/005-seven-signs-personal-access.md`, `docs/personal-qol/reports/006-party-mobility-support.md`
 
 Focused, affected, historical static, Goal039 structure/static/docs, финальный fresh `ant verify` и standalone jar зафиксированы в evidence report. Использовалась только allowlisted test DB; production DB не читалась и не проверялась.
 
 Клиентский UI: **NOT_TESTED_CLIENT_UI**. Серверная страница и bypass проверены, но визуальная проверка в H5-клиенте не выдаётся за выполненную. Client patch не требуется: в инвентаре остаются исходные stock names/icons.
 
-L2-QOL-001/002/003/004/005 и L2-QOL-003-HF1 имеют статус **SUCCESS**. Неаудированные utility-продажи отложены; дальнейшие bounded задачи перечислены в roadmap и автоматически не запускаются. Phantom freeze и алгоритмы Phantom не переписывались; следующий Goal не создавался.
+L2-QOL-001/002/003/004/005/006 и L2-QOL-003-HF1 имеют статус **SUCCESS**. Неаудированные utility-продажи отложены; дальнейшие bounded задачи перечислены в roadmap и автоматически не запускаются. Phantom freeze и алгоритмы Phantom не переписывались; следующий Goal не создавался.

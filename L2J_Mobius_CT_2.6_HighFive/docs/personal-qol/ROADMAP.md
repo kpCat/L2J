@@ -38,10 +38,15 @@ Alt+B объединён в категории персонаж/EXP, дроп и
 
 Добавлен отдельный shipped-OFF personal switch. Allowlisted real Player получает штатный priest/hunting route, bypass только player registration/cabal/winner admission и защиту от cabal-only period/relog ejection; глобальные winner/seal owners и special NPC lifecycle сохранены. Все 14 Catacomb/Necropolis normal combat lists уже оказались period-independent и имеют native respawn, поэтому глобальная spawn-relaxation не нужна. Rift combat rooms также изначально не зависят от Seven Signs phase: production Rift не изменён, а native party/leader/min-size/capacity/fragments/jumps/timers/population/cleanup доказаны focused regression. Mammon не force-spawned; personal interaction возможен только при существующем stock global spawn.
 
+## L2-QOL-006 — bounded party mobility/support
+
+Статус: **SUCCESS**.
+
+Remote PM, exact-name invite и self-only Summon Friend подтверждены как уже достаточные native flows; новые transports, direct party insertion, auto-accept и teleport service не добавлялись. В существующем Alt+B utilities-разделе появился отдельный shipped-OFF блок heal/res/karma cleanup только для allowlisted real personal actor и self/current own-party Player targets. `World` identity и party membership повторно проверяются перед mutation; competitive/special states закрыты. Heal использует `fullRestore`, resurrection — `doRevive()` без XP, cleanup — только `setKarma(0)` без изменения PvP/PK/clan/fame/recommendation state. Phantom AI/lifecycle и client не менялись.
+
 ## Следующие bounded задачи
 
-- `L2-QOL-006` — bounded party mobility/support: remote PM/invite, Summon Friend, heal/res/reputation без расширения Phantom freeze.
 - `L2-QOL-007` — Semantic Pack v2, identity/gender/class aliases и richer social phrases как отдельный artifact family.
 - `L2-QOL-008` — broad economy/Ancient Adena/resources, SP/global quest-rate audit и финальная personal-server acceptance.
 
-L2-QOL-001/002/003/004/005 и hotfix L2-QOL-003-HF1 завершены. Ни одна следующая задача не начата и не включена автоматически; client names/icons также остаются deferred из-за запрета client patch.
+L2-QOL-001/002/003/004/005/006 и hotfix L2-QOL-003-HF1 завершены. Ни одна следующая задача не начата и не включена автоматически; client names/icons также остаются deferred из-за запрета client patch.

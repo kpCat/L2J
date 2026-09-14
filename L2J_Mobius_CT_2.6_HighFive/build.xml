@@ -41,6 +41,7 @@
 	<property name="qol.crystallization.seed" value="1002002" />
 	<property name="qol.effect.duration.seed" value="1003001" />
 	<property name="qol.seven.signs.access.seed" value="1005001" />
+	<property name="qol.party.support.seed" value="1006001" />
 	<property name="phantom.goal013b.seed" value="13001302" />
 	<property name="phantom.goal014.seed" value="140014" />
 	<property name="phantom.goal014a.seed" value="14001401" />
@@ -3833,6 +3834,23 @@
 	<target name="qol-005-affected-test" depends="qol-004-storefront-controls-test,qol-004-affected-test" description="Run affected QOL-001 through QOL-004 regressions for L2-QOL-005." />
 	<target name="qol-005-freeze-test" depends="qol-003-historical-static-test,phantom-full-vision-goal039-static-test,phantom-full-vision-goal039-documentation-test" description="Run retained historical and Goal039 structure/static/documentation freeze checks for L2-QOL-005." />
 	<target name="qol-005-verify" depends="qol-seven-signs-access-test,qol-005-affected-test,qol-005-freeze-test" description="Run L2-QOL-005 focused, affected and freeze verification without provisioning, production DB access, Goal029 soak, or Goal034 real stack." />
+	<target name="qol-party-support-test" depends="compile-tests" description="Run L2-QOL-006 party support, native PM/invite/Summon Friend and boundary tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; use an already prepared allowlisted test database." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; use an already prepared allowlisted test database." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="qol-party-support" />
+			<arg value="${qol.party.support.seed}" />
+		</java>
+	</target>
+	<target name="qol-006-affected-test" depends="qol-005-affected-test" description="Run affected QOL-001 through QOL-004 regressions for L2-QOL-006." />
+	<target name="qol-006-freeze-test" depends="qol-seven-signs-access-test,qol-005-freeze-test" description="Run QOL-005 focused and retained historical/Goal039 freeze checks for L2-QOL-006." />
+	<target name="qol-006-verify" depends="qol-party-support-test,qol-006-affected-test,qol-006-freeze-test" description="Run L2-QOL-006 focused, affected, QOL-005 and Goal039 freeze verification without provisioning or production DB access." />
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->

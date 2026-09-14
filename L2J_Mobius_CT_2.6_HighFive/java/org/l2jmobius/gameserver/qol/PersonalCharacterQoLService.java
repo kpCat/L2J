@@ -60,6 +60,11 @@ public final class PersonalCharacterQoLService
 		return settings().sevenSignsAccessEnabled() && isPersonalUser(player);
 	}
 
+	public boolean isPartySupportEnabled(Player player)
+	{
+		return settings().partySupportEnabled() && isPersonalUser(player);
+	}
+
 	public boolean isSevenSignsRegistered(Player player, int playerCabal)
 	{
 		return (playerCabal != SevenSigns.CABAL_NULL) || isSevenSignsAccessEnabled(player);
@@ -78,7 +83,7 @@ public final class PersonalCharacterQoLService
 	public boolean isAnyFeatureEnabled(Player player)
 	{
 		final Settings settings = settings();
-		return isPersonalUser(player) && (settings.crossClassSkillsEnabled() || settings.crystallizationEnabled() || settings.sevenSignsAccessEnabled());
+		return isPersonalUser(player) && (settings.crossClassSkillsEnabled() || settings.crystallizationEnabled() || settings.sevenSignsAccessEnabled() || settings.partySupportEnabled());
 	}
 
 	public boolean canOpenAlternativeSkillList(Player player, Npc trainer)

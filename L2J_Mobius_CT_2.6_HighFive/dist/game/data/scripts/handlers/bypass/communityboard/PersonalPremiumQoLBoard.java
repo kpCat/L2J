@@ -23,6 +23,11 @@ import org.l2jmobius.gameserver.qol.PersonalCrystallizationService.ConfirmResult
 import org.l2jmobius.gameserver.qol.PersonalCrystallizationService.Page;
 import org.l2jmobius.gameserver.qol.PersonalCrystallizationService.PendingConfirmation;
 import org.l2jmobius.gameserver.qol.PersonalCrystallizationService.PrepareResult;
+import org.l2jmobius.gameserver.qol.PersonalPartySupportService;
+import org.l2jmobius.gameserver.qol.PersonalPartySupportService.Action;
+import org.l2jmobius.gameserver.qol.PersonalPartySupportService.Result;
+import org.l2jmobius.gameserver.qol.PersonalPartySupportService.Status;
+import org.l2jmobius.gameserver.qol.PersonalPartySupportService.TargetSnapshot;
 import org.l2jmobius.gameserver.qol.PersonalPlayerControlService;
 import org.l2jmobius.gameserver.qol.PersonalPlayerControlService.HerbCategory;
 import org.l2jmobius.gameserver.qol.PersonalPremiumQoLService;
@@ -45,6 +50,10 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 	@Override
 	public boolean onCommand(String command, Player player)
 	{
+		final PersonalPremiumQoLService premiumService = PersonalPremiumQoLService.getInstance();
+		final PersonalCharacterQoLService personalService = PersonalCharacterQoLService.getInstance();
+		final PersonalPlayerControlService controlService = PersonalPlayerControlService.getInstance();
+		final PersonalPartySupportService partySupportService = PersonalPartySupportService.getInstance();
 		if (!CommunityBoardConfig.CUSTOM_CB_ENABLED)
 		{
 			player.setMultiSell(null);
@@ -57,7 +66,7 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 			player.sendMessage("Сейчас нельзя использовать Community Board.");
 			return false;
 		}
-		if (CommunityBoardConfig.COMMUNITYBOARD_KARMA_DISABLED && (player.getKarma() > 0))
+		if (CommunityBoardConfig.COMMUNITYBOARD_KARMA_DISABLED && (player.getKarma() > 0) && !isKarmaCleanupAccess(command, player, partySupportService))
 		{
 			player.setMultiSell(null);
 			player.sendMessage("Игроки с кармой не могут использовать Community Board.");
@@ -70,9 +79,6 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 			return false;
 		}
 
-		final PersonalPremiumQoLService premiumService = PersonalPremiumQoLService.getInstance();
-		final PersonalCharacterQoLService personalService = PersonalCharacterQoLService.getInstance();
-		final PersonalPlayerControlService controlService = PersonalPlayerControlService.getInstance();
 		String section = "overview";
 		if ("_bbsqol;shop".equals(command))
 		{
@@ -123,6 +129,18 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 				controlService.setHerbEnabled(player, category, "on".equals(parts[3]));
 				section = "herbs";
 			}
+			else if ((parts.length == 4) && "_bbsqol".equals(parts[0]) && "party".equals(parts[1]))
+			{
+				final Action action = parsePartyAction(parts[2]);
+				final int targetObjectId = parsePositiveInt(parts[3]);
+				if ((action == null) || (targetObjectId <= 0))
+				{
+					return false;
+				}
+				final Result result = partySupportService.execute(action, player, targetObjectId);
+				player.sendMessage(partySupportMessage(action, result));
+				section = "utilities";
+			}
 			else
 			{
 				return false;
@@ -140,7 +158,7 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 		html = html.replace("%navigation%", navigation);
 		html = html.replace("%section_navigation%", sectionNavigation());
 		html = html.replace("%section_title%", sectionTitle(section));
-		html = html.replace("%section_content%", sectionContent(section, player, premiumService, personalService, controlService));
+		html = html.replace("%section_content%", sectionContent(section, player, premiumService, personalService, controlService, partySupportService));
 		CommunityBoardHandler.getInstance().addBypass(player, "Personal QoL", "_bbsqol");
 		CommunityBoardHandler.separateAndSend(html, player);
 		return false;
@@ -327,7 +345,7 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 		return "help".equals(section) ? "Статус и справка" : "Личная QoL-панель";
 	}
 
-	private static String sectionContent(String section, Player player, PersonalPremiumQoLService premiumService, PersonalCharacterQoLService personalService, PersonalPlayerControlService controlService)
+	private static String sectionContent(String section, Player player, PersonalPremiumQoLService premiumService, PersonalCharacterQoLService personalService, PersonalPlayerControlService controlService, PersonalPartySupportService partySupportService)
 	{
 		if ("character".equals(section))
 		{
@@ -347,7 +365,7 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 		}
 		if ("utilities".equals(section))
 		{
-			return utilitiesContent();
+			return utilitiesContent(player, partySupportService);
 		}
 		return "help".equals(section) ? helpContent(player, premiumService, personalService, controlService) : overviewContent();
 	}
@@ -423,10 +441,51 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 			"<button value=\"Открыть кристаллизацию\" action=\"bypass _bbsqol;crystallize\" width=210 height=30 back=\"L2UI_CT1.OlympiadWnd_DF_Reward_Down\" fore=\"L2UI_CT1.OlympiadWnd_DF_Reward\">";
 	}
 
-	private static String utilitiesContent()
+	private static String utilitiesContent(Player player, PersonalPartySupportService service)
 	{
-		return "Mana-, Vitality- и rate-расходники проверены по серверным данным, но безопасный источник розничной цены в Adena не найден.<br><br>" +
-			"Продажа отложена: панель не создаёт новые предметы или цены без подтверждённого экономического контракта.";
+		final StringBuilder content = new StringBuilder("Mana-, Vitality- и rate-расходники проверены по серверным данным, но безопасный источник розничной цены в Adena не найден.<br1>");
+		content.append("Продажа отложена: панель не создаёт новые предметы или цены без подтверждённого экономического контракта.<br><br>");
+		content.append("Личные сообщения, приглашения в группу и Summon Friend остаются в штатных клиентских путях.<br><br>");
+		if (!service.isEnabled(player))
+		{
+			content.append("Партийная поддержка выключена или недоступна этому персонажу.");
+			return content.toString();
+		}
+
+		content.append("<font color=\"LEVEL\">Поддержка текущей группы</font><br1>");
+		content.append("Цель и членство в группе повторно проверяются при каждом действии.<br><br>");
+		content.append("<table width=520 border=0 cellspacing=0 cellpadding=3>");
+		for (TargetSnapshot target : service.listTargets(player))
+		{
+			content.append("<tr><td width=150>").append(escapeHtml(target.name()));
+			if (target.objectId() == player.getObjectId())
+			{
+				content.append(" (вы)");
+			}
+			content.append("</td><td width=100>").append(target.dead() ? "мёртв" : "жив").append(", карма ").append(target.karma()).append("</td><td width=270>");
+			if (target.restricted())
+			{
+				content.append("<font color=\"777777\">недоступно в текущем состоянии</font>");
+			}
+			else
+			{
+				if (target.dead())
+				{
+					content.append(partyButton("Воскресить", "resurrect", target.objectId()));
+				}
+				else
+				{
+					content.append(partyButton("Восстановить", "heal", target.objectId()));
+				}
+				if (target.karma() > 0)
+				{
+					content.append(partyButton("Снять карму", "reputation", target.objectId()));
+				}
+			}
+			content.append("</td></tr>");
+		}
+		content.append("</table>");
+		return content.toString();
 	}
 
 	private static String helpContent(Player player, PersonalPremiumQoLService premiumService, PersonalCharacterQoLService personalService, PersonalPlayerControlService controlService)
@@ -436,8 +495,74 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 			"Боевые травы: <font color=\"LEVEL\">" + state(controlService.isHerbEnabled(player, HerbCategory.COMBAT)) + "</font><br1>" +
 			"Vitality-травы: <font color=\"LEVEL\">" + state(controlService.isHerbEnabled(player, HerbCategory.VITALITY)) + "</font><br1>" +
 			"Магазин пропусков: <font color=\"LEVEL\">" + (premiumService.isShopEnabled() ? "включён" : "выключен") + "</font><br1>" +
-			"Кристаллизация: <font color=\"LEVEL\">" + (personalService.isCrystallizationEnabled(player) ? "доступна" : "недоступна") + "</font><br><br>" +
-			"Все кнопки применяются только к текущему персонажу. Штатные ограничения Community Board сохраняются.";
+			"Кристаллизация: <font color=\"LEVEL\">" + (personalService.isCrystallizationEnabled(player) ? "доступна" : "недоступна") + "</font><br1>" +
+			"Поддержка своей группы: <font color=\"LEVEL\">" + (personalService.isPartySupportEnabled(player) ? "доступна" : "недоступна") + "</font><br><br>" +
+			"Персональные действия применяются только к текущему персонажу или его текущей группе. Штатные ограничения Community Board сохраняются.";
+	}
+
+	private static String partyButton(String label, String action, int targetObjectId)
+	{
+		return " <button value=\"" + label + "\" action=\"bypass _bbsqol;party;" + action + ";" + targetObjectId + "\" width=105 height=25 back=\"L2UI_CT1.Button_DF_Down\" fore=\"L2UI_CT1.Button_DF\"> ";
+	}
+
+	private static Action parsePartyAction(String value)
+	{
+		if ("heal".equals(value))
+		{
+			return Action.HEAL;
+		}
+		if ("resurrect".equals(value))
+		{
+			return Action.RESURRECT;
+		}
+		return "reputation".equals(value) ? Action.REPUTATION : null;
+	}
+
+	private static String partySupportMessage(Action action, Result result)
+	{
+		if (result.status() == Status.SUCCESS)
+		{
+			if (action == Action.HEAL)
+			{
+				return "HP, MP и CP персонажа " + result.targetName() + " восстановлены.";
+			}
+			if (action == Action.RESURRECT)
+			{
+				return "Персонаж " + result.targetName() + " воскрешён без восстановления опыта.";
+			}
+			return "Карма персонажа " + result.targetName() + " очищена до 0.";
+		}
+		if (result.status() == Status.NO_CHANGE)
+		{
+			return "Изменение не требуется.";
+		}
+		if (result.status() == Status.FEATURE_DISABLED)
+		{
+			return "Партийная поддержка выключена или недоступна.";
+		}
+		if ((result.status() == Status.ACTOR_RESTRICTED) || (result.status() == Status.TARGET_RESTRICTED))
+		{
+			return "Действие недоступно в текущем состоянии.";
+		}
+		if (result.status() == Status.TARGET_STATE_REJECTED)
+		{
+			return action == Action.RESURRECT ? "Можно воскресить только мёртвого персонажа." : "Можно восстановить только живого персонажа.";
+		}
+		return "Цель недоступна или больше не состоит в вашей группе.";
+	}
+
+	private static boolean isKarmaCleanupAccess(String command, Player player, PersonalPartySupportService service)
+	{
+		if (!service.isEnabled(player))
+		{
+			return false;
+		}
+		if ("_bbsqol".equals(command) || "_bbsqol;view;utilities".equals(command))
+		{
+			return true;
+		}
+		final String[] parts = command.split(";", -1);
+		return (parts.length == 4) && "_bbsqol".equals(parts[0]) && "party".equals(parts[1]) && "reputation".equals(parts[2]) && (parsePositiveInt(parts[3]) > 0);
 	}
 
 	private static String toggleButton(String label, String command, boolean current)
