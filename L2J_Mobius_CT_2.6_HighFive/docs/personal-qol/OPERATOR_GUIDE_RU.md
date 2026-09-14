@@ -19,12 +19,12 @@ LevelGapItemsFile=data/custom/personal-qol/level-gap-items.xml
 
 ## Предметы
 
-| Item ID | Исходное имя H5 в инвентаре | Русская метка в Alt+B | N | DEMO цена |
+| Item ID | Исходное имя H5 в инвентаре | Русская метка в Alt+B | N | Финальная цена |
 |---:|---|---|---:|---:|
-| 22290 | Recipe: Happy Cake - Event | Оберег разницы уровней: 5 | 5 | 1 000 Adena |
-| 22296 | Cake Ingredient: Dark Chocolate - Event | Оберег разницы уровней: 10 | 10 | 5 000 Adena |
-| 22297 | Cake Ingredient: White Chocolate - Event | Оберег разницы уровней: 20 | 20 | 20 000 Adena |
-| 22298 | Cake Ingredient: Creme Fraiche - Event | Оберег разницы уровней: 40 | 40 | 50 000 Adena |
+| 22290 | Recipe: Happy Cake - Event | Оберег разницы уровней: 5 | 5 | 100 000 Adena |
+| 22296 | Cake Ingredient: Dark Chocolate - Event | Оберег разницы уровней: 10 | 10 | 500 000 Adena |
+| 22297 | Cake Ingredient: White Chocolate - Event | Оберег разницы уровней: 20 | 20 | 2 000 000 Adena |
+| 22298 | Cake Ingredient: Creme Fraiche - Event | Оберег разницы уровней: 40 | 40 | 8 000 000 Adena |
 
 Это проверенные stackable inert H5 templates без handler/skill/action/timer/condition/reference-price поведения. Сами item templates не изменены, поэтому client patch не нужен и stock-клиент показывает исходные английские имена/иконки. Русские tier labels существуют только на серверной странице Alt+B.
 
@@ -107,7 +107,19 @@ Alt+B вызывает отдельный guarded route, который подг
 
 Оплата, ownership, capacity, inventory slots/weight и flood protection остаются штатными в `MultiSellChoose`/multisell engine.
 
-Цены в `91001.xml` демонстрационные. Для замены цены измените `count` у соответствующего `<ingredient id="57">`. Для другой валюты измените `id` и `count`, убедившись, что template существует и экономика согласована. Новый товар добавляется штатным `<item>` с ingredient/production, но текущий QoL guard намеренно принимает только четыре ожидаемых tier-carrier; расширение allowlist требует отдельного кодового изменения и теста, а не только XML-правки.
+Финальные цены хранятся только в `91001.xml`; Alt+B получает их из валидированного runtime snapshot, а не из HTML или Java literals. Точный audit, anchors и таблица владельцев данных находятся в `docs/personal-qol/SHOP_PRICING.md`. Для замены цены измените `count` у соответствующего `<ingredient id="57">`, выполните focused test и перезапустите Game Server. Одного `//reload multisell` недостаточно: runtime metadata панели кэшируется при старте.
+
+Текущий guard принимает только Adena `57` и четыре ожидаемых tier-carrier. Другая валюта, новый товар или utility требуют отдельного economy audit, кодового изменения и теста; простой XML append fail-closed отклоняется.
+
+## Личные настройки EXP и трав
+
+Панель Alt+B доступна через категорию `Персонаж / EXP` и меняет тот же persisted `EXPOFF`, что команды `.expon` и `.expoff`. После relog состояние восстанавливается прежним login path. Отдельной модели состояния у панели нет.
+
+Категория `Травы` хранит для текущего персонажа три независимых выключателя: восстановление HP/MP, боевые усиления и Vitality. По умолчанию все категории включены, то есть поведение полностью штатное. При выключении известная H5 herb всё равно подбирается и уничтожается native pickup flow, но effect handler/cast не вызывается; предмет в инвентаре не остаётся. Настройка одного персонажа не влияет на другого. Неизвестные immediate-effect items и headless Phantom всегда используют vanilla path.
+
+Аудированный набор строится из H5 item/skill XML: recovery `8154/8155`, `8600–8605`, `8614`, `8952/8953`, `10432/10433`, `14777/14779`; Vitality `13028–13031`, `20273`, `20926`; остальные известные ex-immediate herbs относятся к combat. Pet flow не менялся.
+
+Mana Potion `728`, Vitality items `20034/20391/20392` и XP rune `21084` технически присутствуют в H5 data, но безопасный Adena retail owner не подтверждён, а часть template premium/non-trade/non-sellable. Они намеренно не продаются в L2-QOL-004.
 
 ## Откат
 
@@ -123,6 +135,9 @@ ant qol-shop-test
 ant qol-personal-skills-test
 ant qol-crystallization-test
 ant qol-effect-duration-test
+ant qol-004-storefront-controls-test
+ant qol-004-affected-test
+ant qol-004-verify
 ant qol-002-affected-test
 ant qol-002-verify
 ant qol-003-affected-test
@@ -131,8 +146,8 @@ ant verify
 ant -q jar
 ```
 
-`qol-level-gap-test` покрывает grouped/ungrouped/spoil, boundaries, inventory/relog и bot exclusions. `qol-shop-test` использует реальные native debit/credit и отрицательные prepare/execute/flood/capacity controls. Focused QOL-002 targets покрывают personal policy, настоящий `RequestAcquireSkill`, relog и required items, а также native/common/Alt+B crystallization, replay/stale/expiry/concurrency. `qol-effect-duration-test` покрывает strict config isolation/master OFF, pure policy/rounding, реальные H5 buff/song/dance/debuff, self/NPC/ordinary/headless/summon recipient semantics, global-then-personal ordering, Skill immutability, override, explicit/steal-copy time, recast и restore/relog. База должна быть заранее подготовленным allowlisted test schema по действующей Phantom test policy; `prepare-phantom-test-db` в этом workflow не запускается.
+`qol-level-gap-test` покрывает grouped/ungrouped/spoil, boundaries, inventory/relog и bot exclusions. `qol-shop-test` использует реальные native debit/credit и отрицательные prepare/execute/flood/capacity controls; в L2-QOL-004 он также проверяет data-driven prices, Java-8 script routes, единый EXP owner и persisted/isolation herb state. Focused QOL-002 targets покрывают personal policy, настоящий `RequestAcquireSkill`, relog и required items, а также native/common/Alt+B crystallization, replay/stale/expiry/concurrency. `qol-effect-duration-test` покрывает strict config isolation/master OFF, pure policy/rounding, реальные H5 buff/song/dance/debuff, self/NPC/ordinary/headless/summon recipient semantics, global-then-personal ordering, Skill immutability, override, explicit/steal-copy time, recast и restore/relog. База должна быть заранее подготовленным allowlisted test schema по действующей Phantom test policy; `prepare-phantom-test-db` в этом workflow не запускается.
 
 Клиентский визуальный статус релиза: **NOT_TESTED_CLIENT_UI**.
 
-L2-QOL-001/002/003 завершены со статусом SUCCESS; базовый Personal QoL complete. Vitality/rate/premium-item идеи остаются только в backlog и автоматически не реализуются.
+L2-QOL-001/002/003/004 завершены со статусом SUCCESS. Следующие roadmap-задачи автоматически не запускаются.

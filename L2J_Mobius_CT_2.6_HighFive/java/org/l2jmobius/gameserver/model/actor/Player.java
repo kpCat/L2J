@@ -360,6 +360,7 @@ import org.l2jmobius.gameserver.network.serverpackets.TradeOtherDone;
 import org.l2jmobius.gameserver.network.serverpackets.TradeStart;
 import org.l2jmobius.gameserver.network.serverpackets.UserInfo;
 import org.l2jmobius.gameserver.network.serverpackets.ValidateLocation;
+import org.l2jmobius.gameserver.qol.PersonalPlayerControlService;
 import org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager;
 import org.l2jmobius.gameserver.taskmanagers.AutoUseTaskManager;
@@ -3505,12 +3506,15 @@ public class Player extends Playable
 			// Auto-use herbs.
 			if (item.hasExImmediateEffect() && item.isEtcItem())
 			{
-				for (SkillHolder skillHolder : item.getSkills())
+				if (PersonalPlayerControlService.getInstance().shouldApplyImmediateEffect(this, item))
 				{
-					doSimultaneousCast(skillHolder.getSkill());
+					for (SkillHolder skillHolder : item.getSkills())
+					{
+						doSimultaneousCast(skillHolder.getSkill());
+					}
+
+					broadcastInfo();
 				}
-				
-				broadcastInfo();
 			}
 			else
 			{
@@ -4675,14 +4679,17 @@ public class Player extends Playable
 		// Auto use herbs - pick up
 		if (target.getTemplate().hasExImmediateEffect())
 		{
-			final IItemHandler handler = ItemHandler.getInstance().getHandler(target.getEtcItem());
-			if (handler != null)
+			if (PersonalPlayerControlService.getInstance().shouldApplyImmediateEffect(this, target.getTemplate()))
 			{
-				handler.onItemUse(this, target, false);
-			}
-			else
-			{
-				LOGGER.warning("No item handler registered for item ID: " + target.getId() + ".");
+				final IItemHandler handler = ItemHandler.getInstance().getHandler(target.getEtcItem());
+				if (handler != null)
+				{
+					handler.onItemUse(this, target, false);
+				}
+				else
+				{
+					LOGGER.warning("No item handler registered for item ID: " + target.getId() + ".");
+				}
 			}
 			
 			ItemManager.destroyItem(ItemProcessType.NONE, target, this, null);

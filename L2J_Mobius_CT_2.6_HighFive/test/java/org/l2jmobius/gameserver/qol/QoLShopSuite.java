@@ -8,6 +8,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -25,8 +27,11 @@ import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.custom.CommunityBoardConfig;
 import org.l2jmobius.gameserver.config.custom.PersonalPremiumQoLConfig;
 import org.l2jmobius.gameserver.config.custom.PersonalPremiumQoLConfig.Settings;
+import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.data.xml.MultisellData;
 import org.l2jmobius.gameserver.handler.CommunityBoardHandler;
+import org.l2jmobius.gameserver.handler.IVoicedCommandHandler;
+import org.l2jmobius.gameserver.handler.VoicedCommandHandler;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
@@ -34,6 +39,7 @@ import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.multisell.PreparedListContainer;
 import org.l2jmobius.gameserver.network.GameClient;
 import org.l2jmobius.gameserver.network.clientpackets.MultiSellChoose;
+import org.l2jmobius.gameserver.qol.PersonalPlayerControlService.HerbCategory;
 import org.l2jmobius.gameserver.scripting.ScriptEngine;
 import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
@@ -51,7 +57,7 @@ public final class QoLShopSuite implements PhantomTestSuite
 	private static final int TIER_20_ITEM = 22297;
 	private static final int TIER_40_ITEM = 22298;
 	private static final int WEIGHT_ITEM = 1865;
-	private static final long TIER_5_PRICE = 1000;
+	private static final long TIER_5_PRICE = 100000;
 	private static final int TIER_5_ENTRY = 100000;
 	private static final int TIER_10_ENTRY = 200000;
 	private static final int TIER_40_ENTRY = 400000;
@@ -62,6 +68,7 @@ public final class QoLShopSuite implements PhantomTestSuite
 	private CommunitySettings _communitySettings;
 	private NetworkBackedClient _network;
 	private Player _player;
+	private Player _observer;
 
 	@Override
 	public String id()
@@ -83,7 +90,8 @@ public final class QoLShopSuite implements PhantomTestSuite
 		ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 		PhantomAssertions.assertTrue(CommunityBoardHandler.getInstance().getHandler("_bbsqol") != null, "Registered MasterHandler did not expose _bbsqol.");
 		_player = Player.load(_environment.primary().objectId());
-		PhantomAssertions.assertTrue(_player != null, "L2-QOL-001 shop fixture Player did not load.");
+		_observer = Player.load(_environment.observer().objectId());
+		PhantomAssertions.assertTrue((_player != null) && (_observer != null), "L2-QOL-001 shop fixture Players did not load.");
 		_network = NetworkBackedClient.attach(_player);
 		context.record("qol001.shopList", PersonalPremiumQoLService.SHOP_LIST_ID);
 		context.record("qol001.shopPrices", _activeState.prices());
@@ -99,6 +107,8 @@ public final class QoLShopSuite implements PhantomTestSuite
 		registry.add("04-insufficient-capacity-and-weight-controls", this::nativeInventoryControls);
 		registry.add("05-community-board-combat-and-store-controls", this::communityStateControls);
 		registry.add("06-repeated-concurrent-paid-and-unrelated-native-list", this::concurrencyAndNativeIsolation);
+		registry.add("07-final-data-driven-storefront-prices", this::finalStorefrontPrices);
+		registry.add("08-shared-exp-and-per-character-herb-controls", this::personalBoardControls);
 	}
 
 	private void positivePurchaseAndRelog(PhantomTestContext context) throws Exception
@@ -110,7 +120,7 @@ public final class QoLShopSuite implements PhantomTestSuite
 		final long itemBefore = count(TIER_5_ITEM);
 		prepareViaBoard();
 		execute(PersonalPremiumQoLService.SHOP_LIST_ID, TIER_5_ENTRY, 1);
-		PhantomAssertions.assertEquals(adenaBefore - TIER_5_PRICE, count(57), "Native multisell did not debit the exact DEMO price.");
+		PhantomAssertions.assertEquals(adenaBefore - TIER_5_PRICE, count(57), "Native multisell did not debit the exact final price.");
 		PhantomAssertions.assertEquals(itemBefore + 1, count(TIER_5_ITEM), "Native multisell did not credit exactly one carrier.");
 		PhantomAssertions.assertEquals(5, PersonalPremiumQoLService.getInstance().maximumGap(_player), "Purchased carrier did not update the inventory-derived tier.");
 
@@ -123,7 +133,7 @@ public final class QoLShopSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(itemBefore + 1, count(TIER_5_ITEM), "Purchased carrier was not persisted by native inventory.");
 		PhantomAssertions.assertEquals(5, PersonalPremiumQoLService.getInstance().maximumGap(_player), "Reloaded purchase did not restore tier 5.");
 		_network = NetworkBackedClient.attach(_player);
-		context.record("qol001.shopPositive", "adenaDebit=1000,itemCredit=1,relogTier=5");
+		context.record("qol001.shopPositive", "adenaDebit=100000,itemCredit=1,relogTier=5");
 	}
 
 	private void invalidPacketControls(PhantomTestContext context) throws Exception
@@ -154,7 +164,7 @@ public final class QoLShopSuite implements PhantomTestSuite
 	{
 		resetEconomy();
 		resetFloodState();
-		fund(100000);
+		fund(500000);
 		final long adena = count(57);
 		final long products = productCount();
 
@@ -198,7 +208,7 @@ public final class QoLShopSuite implements PhantomTestSuite
 		execute(PersonalPremiumQoLService.SHOP_LIST_ID, TIER_40_ENTRY, 1);
 		PhantomAssertions.assertEquals(products, productCount(), "Insufficient currency granted a product.");
 
-		fund(100000);
+		fund(500000);
 		final long adena = count(57);
 		final int inventoryLimit = PlayerConfig.INVENTORY_MAXIMUM_NO_DWARF;
 		try
@@ -262,7 +272,7 @@ public final class QoLShopSuite implements PhantomTestSuite
 	{
 		resetEconomy();
 		resetFloodState();
-		fund(4000);
+		fund(TIER_5_PRICE * 4);
 		final long adenaBeforeRepeated = count(57);
 		final long itemBeforeRepeated = count(TIER_5_ITEM);
 		prepareDirect();
@@ -304,6 +314,70 @@ public final class QoLShopSuite implements PhantomTestSuite
 		nativeNpc.deleteMe();
 		context.record("qol001.concurrent", "credited=" + credited + ",debited=" + debited + ",free=0");
 		context.record("qol001.unrelatedNativeList", "list=2,prepared=true,qolProvenance=false");
+	}
+
+	private void finalStorefrontPrices(PhantomTestContext context) throws Exception
+	{
+		final List<PersonalPremiumQoLService.StorefrontOffer> offers = PersonalPremiumQoLService.getInstance().storefrontOffers();
+		PhantomAssertions.assertEquals(List.of(100000L, 500000L, 2000000L, 8000000L), offers.stream().map(PersonalPremiumQoLService.StorefrontOffer::price).toList(), "Validated storefront prices differ from the audited final ladder.");
+		PhantomAssertions.assertEquals(List.of(5, 10, 20, 40), offers.stream().map(PersonalPremiumQoLService.StorefrontOffer::maximumGap).toList(), "Storefront offers lost catalog tier order.");
+		final String html = Files.readString(Path.of("data/html/CommunityBoard/Custom/personal-qol/main.html"), StandardCharsets.UTF_8);
+		PhantomAssertions.assertFalse(html.contains("DEMO") || html.matches("(?s).*100[ ]000.*500[ ]000.*"), "Board HTML retained provisional or duplicated storefront prices.");
+		PhantomAssertions.assertTrue(html.contains("%section_navigation%") && html.contains("%section_content%"), "Board shell does not expose categorized data-driven content slots.");
+		context.record("qol004.storefront", offers.stream().map(offer -> offer.maximumGap() + "=" + offer.price()).toList());
+	}
+
+	private void personalBoardControls(PhantomTestContext context) throws Exception
+	{
+		final PersonalPlayerControlService service = PersonalPlayerControlService.getInstance();
+		service.setExperienceGainEnabled(_player, true);
+		for (HerbCategory category : HerbCategory.values())
+		{
+			service.setHerbEnabled(_player, category, true);
+			service.setHerbEnabled(_observer, category, true);
+		}
+
+		final IVoicedCommandHandler voice = VoicedCommandHandler.getInstance().getHandler("expoff");
+		PhantomAssertions.assertTrue(voice != null, "Registered MasterHandler did not expose .expoff/.expon.");
+		voice.onCommand("expoff", _player, null);
+		PhantomAssertions.assertFalse(service.isExperienceGainEnabled(_player), ".expoff did not update the authoritative EXP state.");
+		CommunityBoardHandler.getInstance().handleParseCommand("_bbsqol;exp;on", _player);
+		PhantomAssertions.assertTrue(service.isExperienceGainEnabled(_player), "Alt+B did not update the same authoritative EXP state.");
+
+		CommunityBoardHandler.getInstance().handleParseCommand("_bbsqol;herb;recovery;off", _player);
+		CommunityBoardHandler.getInstance().handleParseCommand("_bbsqol;herb;combat;off", _player);
+		CommunityBoardHandler.getInstance().handleParseCommand("_bbsqol;herb;vitality;off", _player);
+		for (HerbCategory category : HerbCategory.values())
+		{
+			PhantomAssertions.assertFalse(service.isHerbEnabled(_player, category), "Alt+B did not disable herb category " + category + ".");
+			PhantomAssertions.assertTrue(service.isHerbEnabled(_observer, category), "One Player herb setting leaked to another Player for " + category + ".");
+		}
+		PhantomAssertions.assertFalse(service.shouldApplyImmediateEffect(_player, ItemData.getInstance().getTemplate(8600)), "Disabled recovery herb retained its effect path.");
+		PhantomAssertions.assertFalse(service.shouldApplyImmediateEffect(_player, ItemData.getInstance().getTemplate(8606)), "Disabled combat herb retained its effect path.");
+		PhantomAssertions.assertFalse(service.shouldApplyImmediateEffect(_player, ItemData.getInstance().getTemplate(13028)), "Disabled Vitality herb retained its effect path.");
+		PhantomAssertions.assertEquals(HerbCategory.RECOVERY, service.categoryOf(14777), "HP regeneration event herb was misclassified.");
+		PhantomAssertions.assertEquals(HerbCategory.COMBAT, service.categoryOf(14778), "Multi-stat event herb was misclassified.");
+		PhantomAssertions.assertEquals(HerbCategory.VITALITY, service.categoryOf(20926), "Vitality recovery event herb was misclassified.");
+		PhantomAssertions.assertTrue(service.shouldApplyImmediateEffect(_player, ItemData.getInstance().getTemplate(57)), "Unknown/non-herb item was removed from vanilla handling.");
+
+		CommunityBoardHandler.getInstance().handleParseCommand("_bbsqol;herb;recovery;on;extra", _player);
+		PhantomAssertions.assertFalse(service.isHerbEnabled(_player, HerbCategory.RECOVERY), "Malformed board bypass changed per-character state.");
+		_player.getVariables().saveNow();
+		_network.close();
+		_network = null;
+		_player.deleteMe();
+		_player = Player.load(_environment.primary().objectId());
+		PhantomAssertions.assertTrue(_player != null, "Control fixture Player did not reload.");
+		_network = NetworkBackedClient.attach(_player);
+		PhantomAssertions.assertFalse(service.isHerbEnabled(_player, HerbCategory.RECOVERY) || service.isHerbEnabled(_player, HerbCategory.COMBAT) || service.isHerbEnabled(_player, HerbCategory.VITALITY), "Relog did not restore per-character herb settings.");
+
+		for (HerbCategory category : HerbCategory.values())
+		{
+			service.setHerbEnabled(_player, category, true);
+		}
+		service.setExperienceGainEnabled(_player, true);
+		_player.getVariables().saveNow();
+		context.record("qol004.controls", "voiceAndBoardOneOwner=true;herbIsolation=true;relog=true;unknownImmediate=vanilla");
 	}
 
 	private static void runAfter(CountDownLatch start, MultiSellChoose packet)
@@ -441,6 +515,11 @@ public final class QoLShopSuite implements PhantomTestSuite
 			{
 				_environment.cleanupLoadedPlayer(_player);
 				_player = null;
+			}
+			if (_observer != null)
+			{
+				_environment.cleanupLoadedPlayer(_observer);
+				_observer = null;
 			}
 		}
 		catch (Throwable throwable)

@@ -119,6 +119,7 @@ import org.l2jmobius.gameserver.network.serverpackets.SkillCoolTime;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
 import org.l2jmobius.gameserver.network.serverpackets.UserInfo;
 import org.l2jmobius.gameserver.network.serverpackets.ValidateLocation;
+import org.l2jmobius.gameserver.qol.PersonalPlayerControlService;
 import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 
 /**
@@ -657,12 +658,7 @@ public class EnterWorld extends ClientPacket
 			OfflineTraderTable.getInstance().onTransaction(player, true, false);
 		}
 		
-		// Check if expoff is enabled.
-		if (player.getVariables().getBoolean("EXPOFF", false))
-		{
-			player.disableExpGain();
-			player.sendMessage("Experience gain is disabled.");
-		}
+		PersonalPlayerControlService.getInstance().restoreExperienceGainState(player);
 		
 		player.broadcastUserInfo();
 		

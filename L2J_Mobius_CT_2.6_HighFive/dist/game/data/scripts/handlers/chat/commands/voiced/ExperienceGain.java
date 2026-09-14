@@ -22,6 +22,7 @@ package handlers.chat.commands.voiced;
 
 import org.l2jmobius.gameserver.handler.IVoicedCommandHandler;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.qol.PersonalPlayerControlService;
 
 /**
  * @author xban1x, Mobius
@@ -39,21 +40,11 @@ public class ExperienceGain implements IVoicedCommandHandler
 	{
 		if (command.equals("expoff"))
 		{
-			if (!player.getVariables().getBoolean("EXPOFF", false))
-			{
-				player.disableExpGain();
-				player.getVariables().set("EXPOFF", true);
-				player.sendMessage("Experience gain is disabled.");
-			}
+			PersonalPlayerControlService.getInstance().setExperienceGainEnabled(player, false);
 		}
 		else if (command.equals("expon"))
 		{
-			if (player.getVariables().getBoolean("EXPOFF", false))
-			{
-				player.enableExpGain();
-				player.getVariables().set("EXPOFF", false);
-				player.sendMessage("Experience gain is enabled.");
-			}
+			PersonalPlayerControlService.getInstance().setExperienceGainEnabled(player, true);
 		}
 		
 		return true;

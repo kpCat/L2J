@@ -1,14 +1,23 @@
 # Personal/Premium QoL — current status
 
-Дата: 2026-09-13
+Дата: 2026-09-14
 
 Ветка: `feature/phantom-world`
 
-Required parent: `a53fb9f4c9ebc304d0142a895103451f83dfc780`
+Required parent: `728f5c40b325e1a38295389f97138cb9d36aa869`
 
-Текущая задача: `L2-QOL-003-HF1`
+Текущая задача: `L2-QOL-004`
 
 Статус: **SUCCESS**
+
+## L2-QOL-004
+
+- Personal QoL Alt+B стал одной категоризированной панелью: персонаж/EXP, дроп и спойл, травы, кристаллизация, расходники и статус/справка. Внутренние item/list ID запоминать не нужно.
+- Четыре provisional цены заменены финальной data-owned лестницей `100 000 / 500 000 / 2 000 000 / 8 000 000 Adena`; HTML не содержит копии цен. Политика и anchors записаны в `SHOP_PRICING.md`.
+- `.expon`/`.expoff`, Alt+B и login restore используют один `PersonalPlayerControlService` и прежний persisted `EXPOFF`.
+- Отдельно для персонажа сохраняется включение recovery/combat/Vitality трав. Vanilla default включён; при ignore штатный pickup уничтожает траву без эффекта и без inventory clutter. Другие игроки, неизвестные immediate-effect items и headless Phantom не меняются.
+- Кристаллизация остаётся inventory-derived и делегирует canonical `CrystallizationService`; общий item catalog не создан.
+- Mana/vitality/rate store entries отложены: templates существуют, но безопасный repository-local Adena retail owner отсутствует; новые товары, multisell ID и client patch не добавлялись.
 
 ## L2-QOL-003-HF1
 
@@ -51,11 +60,12 @@ Required parent: `a53fb9f4c9ebc304d0142a895103451f83dfc780`
 - personal access INI: `dist/game/config/Custom/PersonalCharacterQoL.ini`
 - duration policy: `java/org/l2jmobius/gameserver/qol/PersonalEffectDurationPolicy.java`
 - Alt+B crystallization HTML: `dist/game/data/html/CommunityBoard/Custom/personal-qol/crystallization*.html`
+- storefront pricing policy: `docs/personal-qol/SHOP_PRICING.md`
 - операторская инструкция: `docs/personal-qol/OPERATOR_GUIDE_RU.md`
-- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`
+- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`, `docs/personal-qol/reports/004-personal-board-storefront-controls.md`
 
 Focused, affected, historical static, Goal039 structure/static/docs, финальный fresh `ant verify` и standalone jar зафиксированы в evidence report. Использовалась только allowlisted test DB; production DB не читалась и не проверялась.
 
 Клиентский UI: **NOT_TESTED_CLIENT_UI**. Серверная страница и bypass проверены, но визуальная проверка в H5-клиенте не выдаётся за выполненную. Client patch не требуется: в инвентаре остаются исходные stock names/icons.
 
-L2-QOL-001/002/003 и L2-QOL-003-HF1 имеют статус **SUCCESS**; базовый Personal QoL закрыт. Vitality/rate/premium-item идеи сохранены только в backlog и автоматически не реализованы. Phantom freeze и алгоритмы Phantom не переписывались; Goal040 не создавался.
+L2-QOL-001/002/003/004 и L2-QOL-003-HF1 имеют статус **SUCCESS**. Неаудированные utility-продажи отложены; дальнейшие bounded задачи перечислены в roadmap и автоматически не запускаются. Phantom freeze и алгоритмы Phantom не переписывались; следующий Goal не создавался.

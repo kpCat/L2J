@@ -8,6 +8,7 @@
  */
 package org.l2jmobius.gameserver.qol;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,7 +55,12 @@ public final class PersonalPremiumQoLService
 	{
 		try
 		{
-			_state = build(PersonalPremiumQoLConfig.settings(), Path.of("."));
+			final Settings settings = PersonalPremiumQoLConfig.settings();
+			_state = build(settings, Path.of("."));
+			if (!_state.enabled() && settings.valid() && Files.isRegularFile(Path.of(PersonalPremiumQoLConfig.PERSONAL_PREMIUM_QOL_CONFIG_FILE)))
+			{
+				_state = loadDisabledStorefront(settings, Path.of("."));
+			}
 			if (_state.enabled())
 			{
 				LOGGER.info("Personal/Premium QoL enabled with " + _state.catalog().tiers().size() + " level-gap tiers; shop=" + _state.shopEnabled() + ".");
@@ -102,6 +108,16 @@ public final class PersonalPremiumQoLService
 		return _state.diagnostic();
 	}
 
+	public List<StorefrontOffer> storefrontOffers()
+	{
+		final RuntimeState state = _state;
+		if ((state.catalog() == null) || state.prices().isEmpty())
+		{
+			return List.of();
+		}
+		return state.catalog().tiers().stream().map(tier -> new StorefrontOffer(tier.itemId(), tier.maximumGap(), tier.label(), state.prices().get(tier.itemId()))).toList();
+	}
+
 	public static boolean isShopList(int listId)
 	{
 		return listId == SHOP_LIST_ID;
@@ -140,17 +156,30 @@ public final class PersonalPremiumQoLService
 		final LevelGapItemCatalog catalog = LevelGapItemCatalog.load(catalogPath);
 		validateTemplates(catalog);
 
-		Map<Integer, Long> prices = Map.of();
+		final Path multisellPath = root.resolve("data/multisell/" + SHOP_LIST_ID + ".xml").normalize();
+		final Map<Integer, Long> prices = validateShop(catalog, multisellPath);
 		if (settings.shopEnabled())
 		{
-			final Path multisellPath = root.resolve("data/multisell/" + SHOP_LIST_ID + ".xml").normalize();
-			prices = validateShop(catalog, multisellPath);
 			if (!MultisellData.getInstance().hasList(SHOP_LIST_ID))
 			{
 				throw new IllegalArgumentException("Native multisell " + SHOP_LIST_ID + " was not loaded.");
 			}
 		}
 		return new RuntimeState(true, settings.shopEnabled(), catalog, prices, "Active configuration validated.");
+	}
+
+	private static RuntimeState loadDisabledStorefront(Settings settings, Path workingDirectory)
+	{
+		final Path root = workingDirectory.toAbsolutePath().normalize();
+		final Path catalogPath = root.resolve(settings.catalogPath()).normalize();
+		if (!catalogPath.startsWith(root))
+		{
+			throw new IllegalArgumentException("Level-gap catalog resolves outside the runtime root.");
+		}
+		final LevelGapItemCatalog catalog = LevelGapItemCatalog.load(catalogPath);
+		validateTemplates(catalog);
+		final Map<Integer, Long> prices = validateShop(catalog, root.resolve("data/multisell/" + SHOP_LIST_ID + ".xml").normalize());
+		return new RuntimeState(false, false, catalog, prices, settings.diagnostic());
 	}
 
 	static RuntimeState installForTests(RuntimeState state)
@@ -315,6 +344,10 @@ public final class PersonalPremiumQoLService
 		{
 			return new RuntimeState(false, false, null, Map.of(), diagnostic);
 		}
+	}
+
+	public record StorefrontOffer(int itemId, int maximumGap, String label, long price)
+	{
 	}
 
 	public static PersonalPremiumQoLService getInstance()

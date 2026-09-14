@@ -3,24 +3,24 @@
 	<npcs>
 		<npc>-1</npc>
 	</npcs>
-	<!-- DEMO: 1,000 Adena -> level-gap tier 5 carrier. -->
+	<!-- Final audited price: 100,000 Adena -> level-gap tier 5 carrier. -->
 	<item>
-		<ingredient id="57" count="1000" />
+		<ingredient id="57" count="100000" />
 		<production id="22290" count="1" />
 	</item>
-	<!-- DEMO: 5,000 Adena -> level-gap tier 10 carrier. -->
+	<!-- Final audited price: 500,000 Adena -> level-gap tier 10 carrier. -->
 	<item>
-		<ingredient id="57" count="5000" />
+		<ingredient id="57" count="500000" />
 		<production id="22296" count="1" />
 	</item>
-	<!-- DEMO: 20,000 Adena -> level-gap tier 20 carrier. -->
+	<!-- Final audited price: 2,000,000 Adena -> level-gap tier 20 carrier. -->
 	<item>
-		<ingredient id="57" count="20000" />
+		<ingredient id="57" count="2000000" />
 		<production id="22297" count="1" />
 	</item>
-	<!-- DEMO: 50,000 Adena -> level-gap tier 40 carrier. -->
+	<!-- Final audited price: 8,000,000 Adena -> level-gap tier 40 carrier. -->
 	<item>
-		<ingredient id="57" count="50000" />
+		<ingredient id="57" count="8000000" />
 		<production id="22298" count="1" />
 	</item>
 </list>
