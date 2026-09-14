@@ -153,6 +153,7 @@ public class DuskPriest extends SignsPriest
 		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 		html.setFile(player, filename);
 		html.replace("%objectId%", String.valueOf(getObjectId()));
+		addPersonalDungeonAccess(player, html);
 		player.sendPacket(html);
 	}
 }

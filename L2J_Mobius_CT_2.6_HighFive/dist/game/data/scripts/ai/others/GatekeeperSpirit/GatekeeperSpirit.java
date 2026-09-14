@@ -21,6 +21,7 @@ import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.script.Script;
 import org.l2jmobius.gameserver.model.sevensigns.SevenSigns;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 
 /**
  * Gatekeeper Spirit AI.
@@ -77,11 +78,11 @@ public class GatekeeperSpirit extends Script
 				{
 					htmltext = "31111-no.html";
 				}
-				else if ((compWinner == SevenSigns.CABAL_DUSK) && (playerCabal == SevenSigns.CABAL_DUSK) && (sealOfAvariceOwner == SevenSigns.CABAL_DUSK))
+				else if ((compWinner == SevenSigns.CABAL_DUSK) && PersonalCharacterQoLService.getInstance().isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealOfAvariceOwner))
 				{
 					player.teleToLocation(TELEPORT_DUSK, false);
 				}
-				else if ((compWinner == SevenSigns.CABAL_DAWN) && (playerCabal == SevenSigns.CABAL_DAWN) && (sealOfAvariceOwner == SevenSigns.CABAL_DAWN))
+				else if ((compWinner == SevenSigns.CABAL_DAWN) && PersonalCharacterQoLService.getInstance().isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealOfAvariceOwner))
 				{
 					player.teleToLocation(TELEPORT_DAWN, false);
 				}

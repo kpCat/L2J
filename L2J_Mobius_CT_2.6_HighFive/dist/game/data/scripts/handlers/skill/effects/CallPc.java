@@ -33,6 +33,7 @@ import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.ConfirmDlg;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 
 /**
  * Call Pc effect implementation.
@@ -180,13 +181,13 @@ public class CallPc extends AbstractEffect
 			final int targetCabal = SevenSigns.getInstance().getPlayerCabal(target.getObjectId());
 			if (SevenSigns.getInstance().isSealValidationPeriod())
 			{
-				if (targetCabal != SevenSigns.getInstance().getCabalHighestScore())
+				if (!PersonalCharacterQoLService.getInstance().isSevenSignsCabalEligible(target, targetCabal, SevenSigns.getInstance().getCabalHighestScore()))
 				{
 					activeChar.sendPacket(SystemMessageId.YOUR_TARGET_IS_IN_AN_AREA_WHICH_BLOCKS_SUMMONING);
 					return false;
 				}
 			}
-			else if (targetCabal == SevenSigns.CABAL_NULL)
+			else if (!PersonalCharacterQoLService.getInstance().isSevenSignsRegistered(target, targetCabal))
 			{
 				activeChar.sendPacket(SystemMessageId.YOUR_TARGET_IS_IN_AN_AREA_WHICH_BLOCKS_SUMMONING);
 				return false;

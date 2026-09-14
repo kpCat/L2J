@@ -31,6 +31,7 @@ public final class PersonalCharacterQoLConfig
 	private static final int MAX_ACCOUNT_LENGTH = 45;
 	private static final double MIN_DURATION_MULTIPLIER = 0.01;
 	private static final double MAX_DURATION_MULTIPLIER = 100.0;
+	private static final String SEVEN_SIGNS_ACCESS_ENABLED_KEY = "EnablePersonalSevenSignsAccess";
 	private static final String DURATION_ENABLED_KEY = "EnablePersonalEffectDurations";
 	private static final String BUFF_MULTIPLIER_KEY = "PersonalBuffDurationMultiplier";
 	private static final String DANCE_MULTIPLIER_KEY = "PersonalDanceDurationMultiplier";
@@ -69,7 +70,8 @@ public final class PersonalCharacterQoLConfig
 			final Boolean enabled = strictBoolean(config.getValue("EnablePersonalCharacterQoL"));
 			final Boolean crossClassSkillsEnabled = strictBoolean(config.getValue("EnablePersonalCrossClassSkills"));
 			final Boolean crystallizationEnabled = strictBoolean(config.getValue("EnablePersonalCrystallization"));
-			if ((enabled == null) || (crossClassSkillsEnabled == null) || (crystallizationEnabled == null))
+			final Boolean sevenSignsAccessEnabled = config.containsKey(SEVEN_SIGNS_ACCESS_ENABLED_KEY) ? strictBoolean(config.getValue(SEVEN_SIGNS_ACCESS_ENABLED_KEY)) : false;
+			if ((enabled == null) || (crossClassSkillsEnabled == null) || (crystallizationEnabled == null) || (sevenSignsAccessEnabled == null))
 			{
 				return Settings.invalid("All Personal Character QoL switches must be True or False.");
 			}
@@ -81,7 +83,7 @@ public final class PersonalCharacterQoLConfig
 			{
 				return Settings.disabled("Disabled by configuration.");
 			}
-			return new Settings(true, crossClassSkillsEnabled, crystallizationEnabled, characterIds, accounts, true, "Configuration accepted.", effectDurationSettings);
+			return new Settings(true, crossClassSkillsEnabled, crystallizationEnabled, sevenSignsAccessEnabled, characterIds, accounts, true, "Configuration accepted.", effectDurationSettings);
 		}
 		catch (IllegalArgumentException e)
 		{
@@ -303,11 +305,21 @@ public final class PersonalCharacterQoLConfig
 		}
 	}
 
-	public record Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic, EffectDurationSettings effectDurationSettings)
+	public record Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, boolean sevenSignsAccessEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic, EffectDurationSettings effectDurationSettings)
 	{
 		public Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic)
 		{
-			this(enabled, crossClassSkillsEnabled, crystallizationEnabled, allowedCharacterIds, allowedAccounts, valid, diagnostic, EffectDurationSettings.disabled("Duration settings are absent; backward-compatible defaults apply."));
+			this(enabled, crossClassSkillsEnabled, crystallizationEnabled, false, allowedCharacterIds, allowedAccounts, valid, diagnostic, EffectDurationSettings.disabled("Duration settings are absent; backward-compatible defaults apply."));
+		}
+
+		public Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, boolean sevenSignsAccessEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic)
+		{
+			this(enabled, crossClassSkillsEnabled, crystallizationEnabled, sevenSignsAccessEnabled, allowedCharacterIds, allowedAccounts, valid, diagnostic, EffectDurationSettings.disabled("Duration settings are absent; backward-compatible defaults apply."));
+		}
+
+		public Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic, EffectDurationSettings effectDurationSettings)
+		{
+			this(enabled, crossClassSkillsEnabled, crystallizationEnabled, false, allowedCharacterIds, allowedAccounts, valid, diagnostic, effectDurationSettings);
 		}
 
 		public Settings
@@ -320,6 +332,7 @@ public final class PersonalCharacterQoLConfig
 				enabled = false;
 				crossClassSkillsEnabled = false;
 				crystallizationEnabled = false;
+				sevenSignsAccessEnabled = false;
 				allowedCharacterIds = Set.of();
 				allowedAccounts = Set.of();
 			}
@@ -327,12 +340,12 @@ public final class PersonalCharacterQoLConfig
 
 		public static Settings disabled(String diagnostic)
 		{
-			return new Settings(false, false, false, Set.of(), Set.of(), true, diagnostic, EffectDurationSettings.disabled("Master Personal Character QoL is disabled."));
+			return new Settings(false, false, false, false, Set.of(), Set.of(), true, diagnostic, EffectDurationSettings.disabled("Master Personal Character QoL is disabled."));
 		}
 
 		public static Settings invalid(String diagnostic)
 		{
-			return new Settings(false, false, false, Set.of(), Set.of(), false, diagnostic, EffectDurationSettings.disabled("Master Personal Character QoL configuration is invalid."));
+			return new Settings(false, false, false, false, Set.of(), Set.of(), false, diagnostic, EffectDurationSettings.disabled("Master Personal Character QoL configuration is invalid."));
 		}
 	}
 }

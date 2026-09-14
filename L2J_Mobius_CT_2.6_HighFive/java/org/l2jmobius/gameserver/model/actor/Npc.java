@@ -121,6 +121,7 @@ import org.l2jmobius.gameserver.network.serverpackets.PrivateStoreMsgSell;
 import org.l2jmobius.gameserver.network.serverpackets.RecipeShopMsg;
 import org.l2jmobius.gameserver.network.serverpackets.ServerObjectInfo;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 import org.l2jmobius.gameserver.taskmanagers.DecayTaskManager;
 import org.l2jmobius.gameserver.taskmanagers.ItemsAutoDestroyTaskManager;
 import org.l2jmobius.gameserver.util.Broadcast;
@@ -968,7 +969,7 @@ public class Npc extends Creature
 					{
 						case SevenSigns.CABAL_DAWN:
 						{
-							if ((playerCabal != compWinner) || (playerCabal != sealAvariceOwner))
+							if (!PersonalCharacterQoLService.getInstance().isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealAvariceOwner))
 							{
 								player.sendPacket(SystemMessageId.ONLY_A_LORD_OF_DAWN_MAY_USE_THIS);
 								player.sendPacket(ActionFailed.STATIC_PACKET);
@@ -978,7 +979,7 @@ public class Npc extends Creature
 						}
 						case SevenSigns.CABAL_DUSK:
 						{
-							if ((playerCabal != compWinner) || (playerCabal != sealAvariceOwner))
+							if (!PersonalCharacterQoLService.getInstance().isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealAvariceOwner))
 							{
 								player.sendPacket(SystemMessageId.ONLY_A_REVOLUTIONARY_OF_DUSK_MAY_USE_THIS);
 								player.sendPacket(ActionFailed.STATIC_PACKET);
@@ -1005,7 +1006,7 @@ public class Npc extends Creature
 					{
 						case SevenSigns.CABAL_DAWN:
 						{
-							if ((playerCabal != compWinner) || (playerCabal != sealGnosisOwner))
+							if (!PersonalCharacterQoLService.getInstance().isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealGnosisOwner))
 							{
 								player.sendPacket(SystemMessageId.ONLY_A_LORD_OF_DAWN_MAY_USE_THIS);
 								player.sendPacket(ActionFailed.STATIC_PACKET);
@@ -1015,7 +1016,7 @@ public class Npc extends Creature
 						}
 						case SevenSigns.CABAL_DUSK:
 						{
-							if ((playerCabal != compWinner) || (playerCabal != sealGnosisOwner))
+							if (!PersonalCharacterQoLService.getInstance().isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealGnosisOwner))
 							{
 								player.sendPacket(SystemMessageId.ONLY_A_REVOLUTIONARY_OF_DUSK_MAY_USE_THIS);
 								player.sendPacket(ActionFailed.STATIC_PACKET);

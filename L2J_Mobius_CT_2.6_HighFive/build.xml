@@ -40,6 +40,7 @@
 	<property name="qol.personal.skills.seed" value="1002001" />
 	<property name="qol.crystallization.seed" value="1002002" />
 	<property name="qol.effect.duration.seed" value="1003001" />
+	<property name="qol.seven.signs.access.seed" value="1005001" />
 	<property name="phantom.goal013b.seed" value="13001302" />
 	<property name="phantom.goal014.seed" value="140014" />
 	<property name="phantom.goal014a.seed" value="14001401" />
@@ -3815,6 +3816,23 @@
 	<target name="qol-004-storefront-controls-test" depends="qol-shop-test" description="Run L2-QOL-004 final storefront pricing, categorized board, shared EXP and per-character herb controls." />
 	<target name="qol-004-affected-test" depends="qol-crystallization-test,qol-003-affected-test" description="Run crystallization and QOL-001 through QOL-003 regressions affected by L2-QOL-004." />
 	<target name="qol-004-verify" depends="qol-004-storefront-controls-test,qol-004-affected-test,qol-003-historical-static-test,phantom-full-vision-goal039-static-test,phantom-full-vision-goal039-documentation-test" description="Run L2-QOL-004 focused, affected, retained historical and Goal039 freeze verification without provisioning, production DB access, Goal029 soak, or Goal034 real stack." />
+	<target name="qol-seven-signs-access-test" depends="compile-tests" description="Run L2-QOL-005 personal Seven Signs gate, Rift lifecycle and Mammon boundary tests.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; use an already prepared allowlisted test database." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; use an already prepared allowlisted test database." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="qol-seven-signs-access" />
+			<arg value="${qol.seven.signs.access.seed}" />
+		</java>
+	</target>
+	<target name="qol-005-affected-test" depends="qol-004-storefront-controls-test,qol-004-affected-test" description="Run affected QOL-001 through QOL-004 regressions for L2-QOL-005." />
+	<target name="qol-005-freeze-test" depends="qol-003-historical-static-test,phantom-full-vision-goal039-static-test,phantom-full-vision-goal039-documentation-test" description="Run retained historical and Goal039 structure/static/documentation freeze checks for L2-QOL-005." />
+	<target name="qol-005-verify" depends="qol-seven-signs-access-test,qol-005-affected-test,qol-005-freeze-test" description="Run L2-QOL-005 focused, affected and freeze verification without provisioning, production DB access, Goal029 soak, or Goal034 real stack." />
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->

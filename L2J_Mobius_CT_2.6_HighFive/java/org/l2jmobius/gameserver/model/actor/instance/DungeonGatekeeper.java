@@ -34,6 +34,7 @@ import org.l2jmobius.gameserver.model.teleporter.TeleportHolder;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.ActionFailed;
 import org.l2jmobius.gameserver.network.serverpackets.NpcHtmlMessage;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 
 public class DungeonGatekeeper extends Npc
 {
@@ -60,6 +61,7 @@ public class DungeonGatekeeper extends Npc
 		final int playerCabal = SevenSigns.getInstance().getPlayerCabal(player.getObjectId());
 		final boolean isSealValidationPeriod = SevenSigns.getInstance().isSealValidationPeriod();
 		final int compWinner = SevenSigns.getInstance().getCabalHighestScore();
+		final PersonalCharacterQoLService personalQoL = PersonalCharacterQoLService.getInstance();
 		if (actualCommand.startsWith("necro"))
 		{
 			boolean canPort = true;
@@ -67,28 +69,28 @@ public class DungeonGatekeeper extends Npc
 			{
 				if (isSealValidationPeriod)
 				{
-					if ((compWinner == SevenSigns.CABAL_DAWN) && ((playerCabal != SevenSigns.CABAL_DAWN) || (sealAvariceOwner != SevenSigns.CABAL_DAWN)))
+					if ((compWinner == SevenSigns.CABAL_DAWN) && !personalQoL.isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealAvariceOwner))
 					{
 						player.sendPacket(SystemMessageId.ONLY_A_LORD_OF_DAWN_MAY_USE_THIS);
 						canPort = false;
 					}
-					else if ((compWinner == SevenSigns.CABAL_DUSK) && ((playerCabal != SevenSigns.CABAL_DUSK) || (sealAvariceOwner != SevenSigns.CABAL_DUSK)))
+					else if ((compWinner == SevenSigns.CABAL_DUSK) && !personalQoL.isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealAvariceOwner))
 					{
 						player.sendPacket(SystemMessageId.ONLY_A_REVOLUTIONARY_OF_DUSK_MAY_USE_THIS);
 						canPort = false;
 					}
-					else if ((compWinner == SevenSigns.CABAL_NULL) && (playerCabal != SevenSigns.CABAL_NULL))
+					else if ((compWinner == SevenSigns.CABAL_NULL) && personalQoL.isSevenSignsRegistered(player, playerCabal))
 					{
 						canPort = true;
 					}
-					else if (playerCabal == SevenSigns.CABAL_NULL)
+					else if (!personalQoL.isSevenSignsRegistered(player, playerCabal))
 					{
 						canPort = false;
 					}
 				}
 				else
 				{
-					if (playerCabal == SevenSigns.CABAL_NULL)
+					if (!personalQoL.isSevenSignsRegistered(player, playerCabal))
 					{
 						canPort = false;
 					}
@@ -115,28 +117,28 @@ public class DungeonGatekeeper extends Npc
 			{
 				if (isSealValidationPeriod)
 				{
-					if ((compWinner == SevenSigns.CABAL_DAWN) && ((playerCabal != SevenSigns.CABAL_DAWN) || (sealGnosisOwner != SevenSigns.CABAL_DAWN)))
+					if ((compWinner == SevenSigns.CABAL_DAWN) && !personalQoL.isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealGnosisOwner))
 					{
 						player.sendPacket(SystemMessageId.ONLY_A_LORD_OF_DAWN_MAY_USE_THIS);
 						canPort = false;
 					}
-					else if ((compWinner == SevenSigns.CABAL_DUSK) && ((playerCabal != SevenSigns.CABAL_DUSK) || (sealGnosisOwner != SevenSigns.CABAL_DUSK)))
+					else if ((compWinner == SevenSigns.CABAL_DUSK) && !personalQoL.isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealGnosisOwner))
 					{
 						player.sendPacket(SystemMessageId.ONLY_A_REVOLUTIONARY_OF_DUSK_MAY_USE_THIS);
 						canPort = false;
 					}
-					else if ((compWinner == SevenSigns.CABAL_NULL) && (playerCabal != SevenSigns.CABAL_NULL))
+					else if ((compWinner == SevenSigns.CABAL_NULL) && personalQoL.isSevenSignsRegistered(player, playerCabal))
 					{
 						canPort = true;
 					}
-					else if (playerCabal == SevenSigns.CABAL_NULL)
+					else if (!personalQoL.isSevenSignsRegistered(player, playerCabal))
 					{
 						canPort = false;
 					}
 				}
 				else
 				{
-					if (playerCabal == SevenSigns.CABAL_NULL)
+					if (!personalQoL.isSevenSignsRegistered(player, playerCabal))
 					{
 						canPort = false;
 					}

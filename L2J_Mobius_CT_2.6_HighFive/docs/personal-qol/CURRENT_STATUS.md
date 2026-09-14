@@ -4,11 +4,20 @@
 
 Ветка: `feature/phantom-world`
 
-Required parent: `728f5c40b325e1a38295389f97138cb9d36aa869`
+Required parent: `58672daf0bcd008c7c8b9c022c40671873ad89ce`
 
-Текущая задача: `L2-QOL-004`
+Текущая задача: `L2-QOL-005`
 
 Статус: **SUCCESS**
+
+## L2-QOL-005
+
+- Добавлен отдельный shipped-OFF `EnablePersonalSevenSignsAccess`, использующий прежний allowlist real Player и исключающий headless Phantom.
+- Personal Player получает personal-only ссылку из любого stock Dawn/Dusk Priest page в штатный `HuntingGroundsTeleport`, проходит только player-specific registration/cabal/winner checks Catacomb/Necropolis и не выбрасывается за отсутствие cabal при period transition или relog.
+- Глобальные winner/seal owner, Seven Signs scores/contributions/festival, special NPC spawn lifecycle и Mammon economy не меняются. Mammon interaction bypass применяется только если штатно spawned Merchant/Blacksmith уже существует и его глобальные winner/seal условия выполнены.
+- Все 14 Catacomb/Necropolis normal combat spawn lists (1 716 attackable declarations) загружаются общим `SpawnData` во всех четырёх периодах и используют штатный respawn; отдельная глобальная spawn-relaxation не понадобилась.
+- Rift waiting/start/first room/timed/manual jump/spawn/respawn/cleanup census не обнаружил Seven Signs period/cabal dependency. Production Rift code не менялся; party, leader, min-size, capacity, fragments 7079, jump/timers и ejection сохранены.
+- Focused suite проверяет четыре периода, actual normal combat respawn, native two-Player Rift start, обе населённые combat rooms и stock cleanup.
 
 ## L2-QOL-004
 
@@ -62,10 +71,10 @@ Required parent: `728f5c40b325e1a38295389f97138cb9d36aa869`
 - Alt+B crystallization HTML: `dist/game/data/html/CommunityBoard/Custom/personal-qol/crystallization*.html`
 - storefront pricing policy: `docs/personal-qol/SHOP_PRICING.md`
 - операторская инструкция: `docs/personal-qol/OPERATOR_GUIDE_RU.md`
-- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`, `docs/personal-qol/reports/004-personal-board-storefront-controls.md`
+- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`, `docs/personal-qol/reports/004-personal-board-storefront-controls.md`, `docs/personal-qol/reports/005-seven-signs-personal-access.md`
 
 Focused, affected, historical static, Goal039 structure/static/docs, финальный fresh `ant verify` и standalone jar зафиксированы в evidence report. Использовалась только allowlisted test DB; production DB не читалась и не проверялась.
 
 Клиентский UI: **NOT_TESTED_CLIENT_UI**. Серверная страница и bypass проверены, но визуальная проверка в H5-клиенте не выдаётся за выполненную. Client patch не требуется: в инвентаре остаются исходные stock names/icons.
 
-L2-QOL-001/002/003/004 и L2-QOL-003-HF1 имеют статус **SUCCESS**. Неаудированные utility-продажи отложены; дальнейшие bounded задачи перечислены в roadmap и автоматически не запускаются. Phantom freeze и алгоритмы Phantom не переписывались; следующий Goal не создавался.
+L2-QOL-001/002/003/004/005 и L2-QOL-003-HF1 имеют статус **SUCCESS**. Неаудированные utility-продажи отложены; дальнейшие bounded задачи перечислены в roadmap и автоматически не запускаются. Phantom freeze и алгоритмы Phantom не переписывались; следующий Goal не создавался.

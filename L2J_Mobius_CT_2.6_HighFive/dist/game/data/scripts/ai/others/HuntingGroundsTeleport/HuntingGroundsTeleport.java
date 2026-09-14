@@ -20,6 +20,7 @@ import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.script.Script;
 import org.l2jmobius.gameserver.model.sevensigns.SevenSigns;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 import org.l2jmobius.gameserver.util.ArrayUtil;
 
 /**
@@ -55,7 +56,7 @@ public class HuntingGroundsTeleport extends Script
 	{
 		final SevenSigns ss = SevenSigns.getInstance();
 		final int playerCabal = ss.getPlayerCabal(player.getObjectId());
-		if (playerCabal == SevenSigns.CABAL_NULL)
+		if (!PersonalCharacterQoLService.getInstance().isSevenSignsRegistered(player, playerCabal))
 		{
 			return ArrayUtil.contains(DAWN_NPCS, npc.getId()) ? "dawn_tele-no.htm" : "dusk_tele-no.htm";
 		}

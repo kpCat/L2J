@@ -32,11 +32,16 @@ Refresh, invalidate и публикация immutable music snapshot сериа�
 
 Alt+B объединён в категории персонаж/EXP, дроп и спойл, травы, кристаллизация, расходники и статус. Provisional цены level-gap pass заменены audited data-owned лестницей `100 000 / 500 000 / 2 000 000 / 8 000 000 Adena`; `91001.xml` остался списком только четырёх pass. Chat и board используют один persisted EXP owner. Recovery/combat/Vitality herb preferences сохраняются per-character, vanilla default включён, pickup остаётся clean consume/no-effect. Кристаллизация остаётся inventory-derived и canonical. Utility store entries без надёжного Adena retail owner отложены.
 
+## L2-QOL-005 — личный Seven Signs access и playability
+
+Статус: **SUCCESS**.
+
+Добавлен отдельный shipped-OFF personal switch. Allowlisted real Player получает штатный priest/hunting route, bypass только player registration/cabal/winner admission и защиту от cabal-only period/relog ejection; глобальные winner/seal owners и special NPC lifecycle сохранены. Все 14 Catacomb/Necropolis normal combat lists уже оказались period-independent и имеют native respawn, поэтому глобальная spawn-relaxation не нужна. Rift combat rooms также изначально не зависят от Seven Signs phase: production Rift не изменён, а native party/leader/min-size/capacity/fragments/jumps/timers/population/cleanup доказаны focused regression. Mammon не force-spawned; personal interaction возможен только при существующем stock global spawn.
+
 ## Следующие bounded задачи
 
-- `L2-QOL-005` — Seven Signs, Catacomb/Necropolis, Rift и Mammon policy после отдельного source audit.
 - `L2-QOL-006` — bounded party mobility/support: remote PM/invite, Summon Friend, heal/res/reputation без расширения Phantom freeze.
 - `L2-QOL-007` — Semantic Pack v2, identity/gender/class aliases и richer social phrases как отдельный artifact family.
 - `L2-QOL-008` — broad economy/Ancient Adena/resources, SP/global quest-rate audit и финальная personal-server acceptance.
 
-L2-QOL-001/002/003/004 и hotfix L2-QOL-003-HF1 завершены. Ни одна следующая задача не начата и не включена автоматически; client names/icons также остаются deferred из-за запрета client patch.
+L2-QOL-001/002/003/004/005 и hotfix L2-QOL-003-HF1 завершены. Ни одна следующая задача не начата и не включена автоматически; client names/icons также остаются deferred из-за запрета client patch.

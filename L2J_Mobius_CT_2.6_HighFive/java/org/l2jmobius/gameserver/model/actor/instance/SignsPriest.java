@@ -32,6 +32,7 @@ import org.l2jmobius.gameserver.model.sevensigns.SevenSigns;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.NpcHtmlMessage;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 
 /**
  * Dawn/Dusk Seven Signs Priest Instance
@@ -43,6 +44,14 @@ public class SignsPriest extends Npc
 	{
 		super(template);
 		setInstanceType(InstanceType.SignsPriest);
+	}
+
+	protected void addPersonalDungeonAccess(Player player, NpcHtmlMessage html)
+	{
+		if (PersonalCharacterQoLService.getInstance().isSevenSignsAccessEnabled(player))
+		{
+			html.replace("</body>", "<br><a action=\"bypass -h Script HuntingGroundsTeleport\">Teleport to the nearest Necropolis or Catacomb.</a></body>");
+		}
 	}
 	
 	@Override

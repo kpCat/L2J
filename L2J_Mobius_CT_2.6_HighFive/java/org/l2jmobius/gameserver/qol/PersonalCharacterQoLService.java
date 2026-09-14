@@ -17,9 +17,10 @@ import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.instance.Folk;
+import org.l2jmobius.gameserver.model.sevensigns.SevenSigns;
 
 /**
- * Per-character admission policy for QOL-002.
+ * Per-character admission policy for personal QoL features.
  */
 public final class PersonalCharacterQoLService
 {
@@ -54,10 +55,30 @@ public final class PersonalCharacterQoLService
 		return settings().crystallizationEnabled() && isPersonalUser(player);
 	}
 
+	public boolean isSevenSignsAccessEnabled(Player player)
+	{
+		return settings().sevenSignsAccessEnabled() && isPersonalUser(player);
+	}
+
+	public boolean isSevenSignsRegistered(Player player, int playerCabal)
+	{
+		return (playerCabal != SevenSigns.CABAL_NULL) || isSevenSignsAccessEnabled(player);
+	}
+
+	public boolean isSevenSignsCabalEligible(Player player, int playerCabal, int requiredCabal)
+	{
+		return (playerCabal == requiredCabal) || isSevenSignsAccessEnabled(player);
+	}
+
+	public boolean isSevenSignsWinningSealEligible(Player player, int playerCabal, int competitionWinner, int sealOwner)
+	{
+		return ((competitionWinner == SevenSigns.CABAL_DAWN) || (competitionWinner == SevenSigns.CABAL_DUSK)) && (sealOwner == competitionWinner) && isSevenSignsCabalEligible(player, playerCabal, competitionWinner);
+	}
+
 	public boolean isAnyFeatureEnabled(Player player)
 	{
 		final Settings settings = settings();
-		return isPersonalUser(player) && (settings.crossClassSkillsEnabled() || settings.crystallizationEnabled());
+		return isPersonalUser(player) && (settings.crossClassSkillsEnabled() || settings.crystallizationEnabled() || settings.sevenSignsAccessEnabled());
 	}
 
 	public boolean canOpenAlternativeSkillList(Player player, Npc trainer)

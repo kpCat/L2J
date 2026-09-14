@@ -46,6 +46,7 @@ Reward actor остаётся штатным: для party/servitor действ
 EnablePersonalCharacterQoL=False
 EnablePersonalCrossClassSkills=False
 EnablePersonalCrystallization=False
+EnablePersonalSevenSignsAccess=False
 AllowedCharacterIds=
 AllowedAccounts=
 EnablePersonalEffectDurations=False
@@ -61,11 +62,22 @@ PersonalEffectDurationOverrides=
 EnablePersonalCharacterQoL=True
 EnablePersonalCrossClassSkills=True
 EnablePersonalCrystallization=True
+EnablePersonalSevenSignsAccess=True
 AllowedCharacterIds=100001;100002
 AllowedAccounts=test_account
 ```
 
 После изменения нужен перезапуск Game Server. Ошибка базовых ключей или allowlist отключает QOL-002; QOL-001 продолжает использовать свой отдельный конфиг. Ошибка только в duration-ключах изолированно отключает QOL-003. Пустые allowlist не разрешают доступ никому. Headless Phantom не допускается даже при совпадении ID/account.
+
+## Личный Seven Signs access
+
+`EnablePersonalSevenSignsAccess=True` действует только внутри `EnablePersonalCharacterQoL=True` и для тех же allowlist. На любой странице Dawn/Dusk Priest такому real Player добавляется отдельная ссылка в штатный `HuntingGroundsTeleport`; исходные действия страницы не скрываются. Дальше сервер разрешает только player-specific регистрацию/cabal/winner admission в Catacomb/Necropolis и не выполняет cabal-only ejection при смене периода или relog.
+
+Эта функция не записывает синтетическую Seven Signs регистрацию, не выбирает seal и не меняет contributions, score, festival, winner или награды. В Seal Validation остаются обязательными реальный глобальный winner и соответствующий owner Avarice/Gnosis. Обычные игроки и headless Phantom получают точное stock-поведение.
+
+Normal combat population Catacomb/Necropolis не переключается Seven Signs controller: 14 штатных spawn lists всегда загружаются общим `SpawnData` и используют свои обычные respawn delays. Mammon, preacher/orator, crests и другие special/event NPC остаются отдельным stock lifecycle. Функция не force-spawnит Merchant/Blacksmith of Mammon; если они штатно существуют, personal bypass касается только player cabal/winner interaction, а global period/seal/winner и экономика остаются обязательными.
+
+Dimensional Rift уже не имеет cabal/period gate в waiting-room, start или combat-room population. Функция его не упрощает: по-прежнему нужны party leader, `RIFT_MIN_PARTY_SIZE`, свободная capacity, присутствие всех участников в waiting room и native Dimensional Fragment `7079` у каждого. Сохраняются штатное списание, первый combat room, spawn cadence/respawn, jump limit/timers, leader-only manual jump/exit, low-member return, quest/session cleanup и relog return в waiting room.
 
 ## Личная длительность эффектов
 
@@ -123,7 +135,7 @@ Mana Potion `728`, Vitality items `20034/20391/20392` и XP rune `21084` тех�
 
 ## Откат
 
-Для QOL-001 установите оба switch в `PersonalPremiumQoL.ini` в `False`. Для QOL-002 установите `EnablePersonalCharacterQoL=False` или выключите отдельные subfeature в `PersonalCharacterQoL.ini`. Для отдельного отката QOL-003 установите `EnablePersonalEffectDurations=False`, затем перезапустите Game Server. DB migration отсутствует. Купленные предметы останутся обычными stock items, но level-gap эффект прекратится; stale shop/crystallization execution будет отклонён до debit/credit. Изученные foreign skills хранятся штатно; при выключенном admission штатный skill checker может удалить их как недопустимые при следующем restore. Уже наложенные эффекты сохраняют записанное остаточное время, новые эффекты после перезапуска используют stock duration. `PhantomPlayers.ini` и Phantom schema не меняются.
+Для QOL-001 установите оба switch в `PersonalPremiumQoL.ini` в `False`. Для QOL-002 установите `EnablePersonalCharacterQoL=False` или выключите отдельные subfeature в `PersonalCharacterQoL.ini`. Для отдельного отката QOL-003 установите `EnablePersonalEffectDurations=False`; для отдельного отката QOL-005 — `EnablePersonalSevenSignsAccess=False`, затем перезапустите Game Server. DB migration отсутствует. Купленные предметы останутся обычными stock items, но level-gap эффект прекратится; stale shop/crystallization execution будет отклонён до debit/credit. Изученные foreign skills хранятся штатно; при выключенном admission штатный skill checker может удалить их как недопустимые при следующем restore. Уже наложенные эффекты сохраняют записанное остаточное время, новые эффекты после перезапуска используют stock duration. После отключения QOL-005 следующий admission/relog/period check снова применяет stock Seven Signs eligibility. `PhantomPlayers.ini` и Phantom schema не меняются.
 
 ## Проверка
 
@@ -138,6 +150,10 @@ ant qol-effect-duration-test
 ant qol-004-storefront-controls-test
 ant qol-004-affected-test
 ant qol-004-verify
+ant qol-seven-signs-access-test
+ant qol-005-affected-test
+ant qol-005-freeze-test
+ant qol-005-verify
 ant qol-002-affected-test
 ant qol-002-verify
 ant qol-003-affected-test
@@ -146,8 +162,8 @@ ant verify
 ant -q jar
 ```
 
-`qol-level-gap-test` покрывает grouped/ungrouped/spoil, boundaries, inventory/relog и bot exclusions. `qol-shop-test` использует реальные native debit/credit и отрицательные prepare/execute/flood/capacity controls; в L2-QOL-004 он также проверяет data-driven prices, Java-8 script routes, единый EXP owner и persisted/isolation herb state. Focused QOL-002 targets покрывают personal policy, настоящий `RequestAcquireSkill`, relog и required items, а также native/common/Alt+B crystallization, replay/stale/expiry/concurrency. `qol-effect-duration-test` покрывает strict config isolation/master OFF, pure policy/rounding, реальные H5 buff/song/dance/debuff, self/NPC/ordinary/headless/summon recipient semantics, global-then-personal ordering, Skill immutability, override, explicit/steal-copy time, recast и restore/relog. База должна быть заранее подготовленным allowlisted test schema по действующей Phantom test policy; `prepare-phantom-test-db` в этом workflow не запускается.
+`qol-level-gap-test` покрывает grouped/ungrouped/spoil, boundaries, inventory/relog и bot exclusions. `qol-shop-test` использует реальные native debit/credit и отрицательные prepare/execute/flood/capacity controls; в L2-QOL-004 он также проверяет data-driven prices, Java-8 script routes, единый EXP owner и persisted/isolation herb state. Focused QOL-002 targets покрывают personal policy, настоящий `RequestAcquireSkill`, relog и required items, а также native/common/Alt+B crystallization, replay/stale/expiry/concurrency. `qol-effect-duration-test` покрывает strict config isolation/master OFF, pure policy/rounding, реальные H5 buff/song/dance/debuff, self/NPC/ordinary/headless/summon recipient semantics, global-then-personal ordering, Skill immutability, override, explicit/steal-copy time, recast и restore/relog. `qol-seven-signs-access-test` покрывает shipped OFF/real-only policy, все четыре Seven Signs периода, Catacomb/Necropolis route/admission/continued/relog wiring, полный normal combat spawn census и actual respawn, native Rift prerequisites/first/jump populations/cleanup и Mammon global boundary. База должна быть заранее подготовленным allowlisted test schema по действующей Phantom test policy; `prepare-phantom-test-db` в этом workflow не запускается.
 
 Клиентский визуальный статус релиза: **NOT_TESTED_CLIENT_UI**.
 
-L2-QOL-001/002/003/004 завершены со статусом SUCCESS. Следующие roadmap-задачи автоматически не запускаются.
+L2-QOL-001/002/003/004/005 завершены со статусом SUCCESS. Следующие roadmap-задачи автоматически не запускаются.

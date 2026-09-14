@@ -46,6 +46,7 @@ import org.l2jmobius.gameserver.model.spawns.AutoSpawnHandler.AutoSpawnInstance;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.SSQInfo;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 import org.l2jmobius.gameserver.util.Broadcast;
 
 /**
@@ -1482,7 +1483,7 @@ public class SevenSigns
 			final StatSet currPlayer = _signsPlayerData.get(player.getObjectId());
 			if (isSealValidationPeriod() || isCompResultsPeriod())
 			{
-				if (!player.isGM() && player.isIn7sDungeon() && ((currPlayer == null) || !currPlayer.getString("cabal").equals(compWinner)))
+				if (!player.isGM() && player.isIn7sDungeon() && !PersonalCharacterQoLService.getInstance().isSevenSignsAccessEnabled(player) && ((currPlayer == null) || !currPlayer.getString("cabal").equals(compWinner)))
 				{
 					player.teleToLocation(TeleportWhereType.TOWN);
 					player.setIn7sDungeon(false);
@@ -1491,7 +1492,7 @@ public class SevenSigns
 			}
 			else
 			{
-				if (!player.isGM() && player.isIn7sDungeon() && ((currPlayer == null) || !currPlayer.getString("cabal").isEmpty()))
+				if (!player.isGM() && player.isIn7sDungeon() && !PersonalCharacterQoLService.getInstance().isSevenSignsAccessEnabled(player) && ((currPlayer == null) || !currPlayer.getString("cabal").isEmpty()))
 				{
 					player.teleToLocation(TeleportWhereType.TOWN);
 					player.setIn7sDungeon(false);

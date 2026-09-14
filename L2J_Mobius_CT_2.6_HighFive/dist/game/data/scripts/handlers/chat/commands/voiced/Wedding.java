@@ -44,6 +44,7 @@ import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.network.serverpackets.ConfirmDlg;
 import org.l2jmobius.gameserver.network.serverpackets.MagicSkillUse;
 import org.l2jmobius.gameserver.network.serverpackets.SetupGauge;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 
 /**
@@ -430,7 +431,7 @@ public class Wedding implements IVoicedCommandHandler
 			
 			if (isSealValidationPeriod)
 			{
-				if (playerCabal != compWinner)
+				if (!PersonalCharacterQoLService.getInstance().isSevenSignsCabalEligible(activeChar, playerCabal, compWinner))
 				{
 					activeChar.sendMessage("Your Partner is in a Seven Signs Dungeon and you are not in the winner Cabal!");
 					return false;
@@ -438,7 +439,7 @@ public class Wedding implements IVoicedCommandHandler
 			}
 			else
 			{
-				if (playerCabal == SevenSigns.CABAL_NULL)
+				if (!PersonalCharacterQoLService.getInstance().isSevenSignsRegistered(activeChar, playerCabal))
 				{
 					activeChar.sendMessage("Your Partner is in a Seven Signs Dungeon and you are not registered!");
 					return false;

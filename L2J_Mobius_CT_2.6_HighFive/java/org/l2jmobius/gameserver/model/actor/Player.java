@@ -360,6 +360,7 @@ import org.l2jmobius.gameserver.network.serverpackets.TradeOtherDone;
 import org.l2jmobius.gameserver.network.serverpackets.TradeStart;
 import org.l2jmobius.gameserver.network.serverpackets.UserInfo;
 import org.l2jmobius.gameserver.network.serverpackets.ValidateLocation;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 import org.l2jmobius.gameserver.qol.PersonalPlayerControlService;
 import org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager;
@@ -11051,7 +11052,7 @@ public class Player extends Playable
 		
 		if (SevenSigns.getInstance().isSealValidationPeriod() || SevenSigns.getInstance().isCompResultsPeriod())
 		{
-			if (!isGM() && isIn7sDungeon() && (SevenSigns.getInstance().getPlayerCabal(getObjectId()) != SevenSigns.getInstance().getCabalHighestScore()))
+			if (!isGM() && isIn7sDungeon() && !PersonalCharacterQoLService.getInstance().isSevenSignsCabalEligible(this, SevenSigns.getInstance().getPlayerCabal(getObjectId()), SevenSigns.getInstance().getCabalHighestScore()))
 			{
 				teleToLocation(TeleportWhereType.TOWN);
 				setIn7sDungeon(false);
@@ -11060,7 +11061,7 @@ public class Player extends Playable
 		}
 		else
 		{
-			if (!isGM() && isIn7sDungeon() && (SevenSigns.getInstance().getPlayerCabal(getObjectId()) == SevenSigns.CABAL_NULL))
+			if (!isGM() && isIn7sDungeon() && !PersonalCharacterQoLService.getInstance().isSevenSignsRegistered(this, SevenSigns.getInstance().getPlayerCabal(getObjectId())))
 			{
 				teleToLocation(TeleportWhereType.TOWN);
 				setIn7sDungeon(false);
