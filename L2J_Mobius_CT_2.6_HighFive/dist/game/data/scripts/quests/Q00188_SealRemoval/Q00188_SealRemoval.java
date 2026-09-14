@@ -115,7 +115,7 @@ public class Q00188_SealRemoval extends Quest
 				if (qs.isMemoState(2))
 				{
 					giveAdena(player, 98583, true);
-					if (player.getLevel() < MAX_LEVEL_FOR_EXP_SP)
+					if (isQuestUpperLevelAllowed(player, player.getLevel() < MAX_LEVEL_FOR_EXP_SP))
 					{
 						addExpAndSp(player, 285935, 18711);
 					}

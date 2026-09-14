@@ -50,6 +50,7 @@ import org.l2jmobius.gameserver.network.serverpackets.PledgeShowMemberListUpdate
 import org.l2jmobius.gameserver.network.serverpackets.SocialAction;
 import org.l2jmobius.gameserver.network.serverpackets.StatusUpdate;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalProgressionQoLService;
 
 public class PlayerStat extends PlayableStat
 {
@@ -347,7 +348,11 @@ public class PlayerStat extends PlayableStat
 			player.sendPacket(new ExVoteSystemInfo(player));
 			player.getNevitSystem().addPoints(2000);
 		}
-		
+		if (levelIncreased && player.isSubClassActive())
+		{
+			PersonalProgressionQoLService.getInstance().tryGrantAutoNoblesse(player);
+		}
+
 		return levelIncreased;
 	}
 	

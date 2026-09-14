@@ -113,7 +113,7 @@ public class Q00135_TempleExecutor extends Quest
 			{
 				giveItemsWithoutQuestRate(player, BADGE_TEMPLE_EXECUTOR, 1);
 				giveAdena(player, 16924, true);
-				if (player.getLevel() < MAX_REWARD_LEVEL)
+				if (isQuestUpperLevelAllowed(player, player.getLevel() < MAX_REWARD_LEVEL))
 				{
 					addExpAndSp(player, 30000, 2000);
 				}

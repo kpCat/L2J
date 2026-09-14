@@ -117,7 +117,7 @@ public class Q00134_TempleMissionary extends Quest
 			{
 				giveItemsWithoutQuestRate(player, BADGE_TEMPLE_MISSIONARY, 1);
 				giveAdena(player, 15100, true);
-				if (player.getLevel() < MAX_REWARD_LEVEL)
+				if (isQuestUpperLevelAllowed(player, player.getLevel() < MAX_REWARD_LEVEL))
 				{
 					addExpAndSp(player, 30000, 2000);
 				}

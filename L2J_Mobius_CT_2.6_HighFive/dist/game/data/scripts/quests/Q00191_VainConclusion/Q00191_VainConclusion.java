@@ -101,7 +101,7 @@ public class Q00191_VainConclusion extends Quest
 				if (qs.isMemoState(4))
 				{
 					giveAdena(player, 117327, true);
-					if (player.getLevel() < MAX_LEVEL_FOR_EXP_SP)
+					if (isQuestUpperLevelAllowed(player, player.getLevel() < MAX_LEVEL_FOR_EXP_SP))
 					{
 						addExpAndSp(player, 309467, 20614);
 					}

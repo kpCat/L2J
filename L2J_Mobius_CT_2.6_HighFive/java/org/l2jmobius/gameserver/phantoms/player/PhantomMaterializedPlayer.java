@@ -28,6 +28,7 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.Player.OutboundSessionAttachment;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
+import org.l2jmobius.gameserver.qol.PersonalProgressionQoLService;
 import org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager;
 
 /**
@@ -202,6 +203,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				throw new MaterializationException(MaterializationFailure.AUTOSAVE_IDENTITY_BUSY, "Loaded Player is not the only autosave owner for the claimed character");
 			}
 			_lifecycleSupport.afterPlayerLoad(_player);
+			PersonalProgressionQoLService.getInstance().tryGrantAutoNoblesse(_player);
 			failAfter(FailurePoint.AFTER_PLAYER_LOAD);
 
 			_identityAttached = true;
@@ -332,6 +334,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				failAfter(FailurePoint.BEFORE_DELETE_OPERATION);
 				requireNoForeignWorldIdentity(cleanupPlayer);
 				cleanupPlayer.deleteMe();
+				cleanupPlayer.stopAllTasks();
 
 				try
 				{

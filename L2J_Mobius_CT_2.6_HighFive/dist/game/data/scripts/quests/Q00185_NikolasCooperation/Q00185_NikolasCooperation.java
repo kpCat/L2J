@@ -144,7 +144,7 @@ public class Q00185_NikolasCooperation extends Quest
 					}
 					
 					giveAdena(player, 72527, true);
-					if (player.getLevel() < MAX_LEVEL_FOR_EXP_SP)
+					if (isQuestUpperLevelAllowed(player, player.getLevel() < MAX_LEVEL_FOR_EXP_SP))
 					{
 						addExpAndSp(player, 203717, 14032);
 					}

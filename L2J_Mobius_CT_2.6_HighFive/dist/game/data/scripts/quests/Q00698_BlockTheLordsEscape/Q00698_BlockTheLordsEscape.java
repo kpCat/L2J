@@ -66,7 +66,7 @@ public class Q00698_BlockTheLordsEscape extends Quest
 		{
 			case State.CREATED:
 			{
-				if ((player.getLevel() < 75) || (player.getLevel() > 85))
+				if ((player.getLevel() < 75) || !isQuestUpperLevelAllowed(player, player.getLevel() <= 85))
 				{
 					htmltext = "32603-00.html";
 					qs.exitQuest(true);

@@ -42,6 +42,7 @@
 	<property name="qol.effect.duration.seed" value="1003001" />
 	<property name="qol.seven.signs.access.seed" value="1005001" />
 	<property name="qol.party.support.seed" value="1006001" />
+	<property name="qol.economy.progression.seed" value="1008001" />
 	<property name="phantom.goal013b.seed" value="13001302" />
 	<property name="phantom.goal014.seed" value="140014" />
 	<property name="phantom.goal014a.seed" value="14001401" />
@@ -3862,6 +3863,23 @@
 	<target name="qol-007-affected-test" depends="phantom-humanized-goal038-catalog-test,phantom-humanized-goal038-behavior-test,phantom-semantic-test,phantom-social-test,phantom-conversation-checkpoint1-test" description="Run the humanized, functional semantic, social and conversation regressions directly affected by L2-QOL-007." />
 	<target name="qol-007-freeze-test" depends="qol-006-affected-test,qol-006-freeze-test" description="Run retained Goal039 and applicable QOL-005/QOL-006 freeze guards for L2-QOL-007 without provisioning." />
 	<target name="qol-007-verify" depends="qol-semantic-v2-test,qol-007-affected-test,qol-007-freeze-test" description="Run L2-QOL-007 focused, affected, functional-v1 and freeze verification without provisioning or production DB access." />
+	<target name="qol-economy-progression-closure-test" depends="compile-tests" description="Run L2-QOL-008 economy census, quest relief, curated store and real/Phantom auto-Noblesse acceptance.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; use an already prepared allowlisted test database." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; use an already prepared allowlisted test database." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="qol-economy-progression-closure" />
+			<arg value="${qol.economy.progression.seed}" />
+		</java>
+	</target>
+	<target name="qol-008-affected-test" depends="qol-007-verify,phantom-quest-rates-goal037-test" description="Run the QOL-001 through QOL-007 and Goal037 regressions affected by L2-QOL-008." />
+	<target name="qol-008-freeze-test" depends="phantom-full-vision-goal039-static-test,phantom-full-vision-goal039-documentation-test" description="Run retained Goal039 static and documentation freeze checks for L2-QOL-008." />
+	<target name="qol-008-verify" depends="qol-economy-progression-closure-test,qol-008-affected-test,qol-008-freeze-test" description="Run L2-QOL-008 focused, affected QOL-001 through QOL-007/Goal037 and Goal039 freeze verification without provisioning or production DB access." />
 
 	<!-- Historical Task 002A verifier token:
 	     depends="jar,test,phantom-negative-control,phantom-db-guard-negative-control,phantom-provisioning-lock-control,phantom-schema-freshness-negative-control,phantom-lifecycle-negative-control,phantom-db-test,phantom-scenario-test,phantom-performance-smoke,phantom-static-verify,phantom-static-verify-002a" -->

@@ -53,6 +53,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomScaleEnduranceGoal029Checkpoint3
 import org.l2jmobius.gameserver.phantoms.PhantomClanDirectiveIntegrationGoal030C2ASuite;
 import org.l2jmobius.gameserver.qol.QoLLevelGapSuite;
 import org.l2jmobius.gameserver.qol.QoLCrystallizationSuite;
+import org.l2jmobius.gameserver.qol.QoLEconomyProgressionClosureSuite;
 import org.l2jmobius.gameserver.qol.QoLEffectDurationSuite;
 import org.l2jmobius.gameserver.qol.QoLPersonalSkillsSuite;
 import org.l2jmobius.gameserver.qol.QoLPartySupportSuite;
@@ -287,6 +288,7 @@ public final class PhantomTestLauncher
 			case "qol-seven-signs-access" -> new QoLSevenSignsAccessSuite();
 			case "qol-party-support" -> new QoLPartySupportSuite();
 			case "qol-semantic-v2" -> new PhantomHumanizedSemanticV2Qol007Suite();
+			case "qol-economy-progression-closure" -> new QoLEconomyProgressionClosureSuite();
 			case "topology-performance" -> new PhantomTopologyPerformanceSuite();
 			case "knowledge-core" -> new PhantomGameKnowledgeCoreSuite();
 			case "knowledge-query-truth" -> new PhantomGameKnowledgeQueryTruthSuite();

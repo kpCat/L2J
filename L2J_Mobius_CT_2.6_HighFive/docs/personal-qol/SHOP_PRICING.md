@@ -32,3 +32,28 @@
 - Revita-Pop `20034`, Vitality potions `20391/20392` и XP rune `21084` имеют client-visible templates/actions, но являются premium и/или non-trade/non-sellable; безопасный Adena price anchor отсутствует.
 
 Поэтому mana/vitality/rate-продажи в L2-QOL-004 явно отложены. Новый multisell ID не выделялся, collision scan не требовался, client data и цены не выдумывались.
+
+## L2-QOL-008 — curated progression
+
+`dist/game/data/multisell/91002.xml` — отдельный и единственный владелец цен progression-витрины. Collision census подтвердил, что до QOL-008 list ID `91002` не использовался. Java содержит только строгий allowlist ожидаемых product ID/count и читает цены из XML; Alt+B preview и native transaction используют один runtime snapshot. Валюта всех предложений — Adena `57`.
+
+| Переход clan level | Предложение | Результат | Цена | Canonical consumption owner | Ценовой anchor и rationale |
+|---|---|---:|---:|---|---|
+| 2 -> 3 | Blood Mark | `1419 x1` | 5 000 000 | `Clan.levelUpClan(Player)` | Точный native Adena anchor `5 000 000` присутствует в `multisell/644.xml`; это первый item-gated переход и цена уже выше QOL-004 convenience ladder. |
+| 3 -> 4 | Alliance Manifesto | `3874 x1` | 15 000 000 | `Clan.levelUpClan(Player)` | Точный native Adena anchor `15 000 000` присутствует в `multisell/644.xml`; следующая ступень сохраняет рост вместе с требованием `1 000 000 SP`. |
+| 4 -> 5 | Seal of Aspiration | `3870 x1` | 30 000 000 | `Clan.levelUpClan(Player)` | Точный native Adena anchor `30 000 000` присутствует в `multisell/323470001.xml`; последний ранний item-gated переход также требует `2 500 000 SP`. |
+| 8 -> 9 | Blood Oath | `9910 x150` | 75 000 000 | `Clan.levelUpClan(Player)` | Serious late-clan midpoint между повторяющимися native anchors `50 000 000` и `100 000 000` в `multisell/631.xml`; сохраняются `40 000 CRP` и 120 members. |
+| 9 -> 10 | Blood Alliance | `9911 x5` | 100 000 000 | `Clan.levelUpClan(Player)` | Точный верхний native Adena anchor `100 000 000` из `multisell/631.xml`; остаются `40 000 CRP` и 140 members. |
+
+Покупка не повышает clan level. `Clan.levelUpClan` остаётся единственным mutation/consumption owner и повторно проверяет текущий level, exact item count, SP/CRP, member count и territory requirements. Поэтому цены дают bounded путь к реальному inventory bottleneck, но не обходят прочие условия.
+
+В `91002` намеренно не включены hidden QuestState markers, промежуточные quest tokens, Noblesse items, raid jewelry, обычное equipment, enchant-scroll dump, GM/hero items и arbitrary rare loot. Ancient Adena также не продаётся: её штатное получение через seal stones, Black Marketeer и quests доказано достаточным. Это curated progression surface, а не generic GM shop.
+
+Цены QOL-004 в `91001.xml` остаются без изменений: `100 000 / 500 000 / 2 000 000 / 8 000 000 Adena`.
+
+### Как изменить progression-цену
+
+1. В `dist/game/data/multisell/91002.xml` измените только `count` у `<ingredient id="57">` нужного предложения.
+2. Не меняйте product ID/count и не добавляйте строки: strict catalog guard требует точное соответствие пяти audited clan prerequisites.
+3. Запустите `ant qol-economy-progression-closure-test` и `ant qol-004-storefront-controls-test`.
+4. Перезапустите Game Server; одного `//reload multisell` недостаточно для обновления кэшированного preview metadata.

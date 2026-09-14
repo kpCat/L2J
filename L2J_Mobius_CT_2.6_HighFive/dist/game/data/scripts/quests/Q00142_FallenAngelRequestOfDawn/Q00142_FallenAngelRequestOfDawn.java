@@ -262,7 +262,7 @@ public class Q00142_FallenAngelRequestOfDawn extends Quest
 						case 6:
 						{
 							giveAdena(player, 92676, true);
-							if (player.getLevel() <= MAX_REWARD_LEVEL)
+							if (isQuestUpperLevelAllowed(player, player.getLevel() <= MAX_REWARD_LEVEL))
 							{
 								addExpAndSp(player, 223036, 13091);
 							}

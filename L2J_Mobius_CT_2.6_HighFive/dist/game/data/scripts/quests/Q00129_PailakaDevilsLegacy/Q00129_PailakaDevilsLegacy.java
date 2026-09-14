@@ -151,7 +151,7 @@ public class Q00129_PailakaDevilsLegacy extends Quest
 						{
 							htmltext = "32498-11.htm";
 						}
-						else if (player.getLevel() > MAX_LEVEL)
+						else if (!isQuestUpperLevelAllowed(player, player.getLevel() <= MAX_LEVEL))
 						{
 							htmltext = "32498-12.htm";
 						}

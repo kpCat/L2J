@@ -93,7 +93,7 @@ public class Q00182_NewRecruits extends Quest
 					{
 						htmltext = "32138-00.html";
 					}
-					else if ((level >= 17) && (level <= 21) && (player.getPlayerClass().level() == 0))
+					else if ((level >= 17) && isQuestUpperLevelAllowed(player, level <= 21) && (player.getPlayerClass().level() == 0))
 					{
 						htmltext = "32138-01.htm";
 					}

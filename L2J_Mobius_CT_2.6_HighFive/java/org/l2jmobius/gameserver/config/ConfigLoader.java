@@ -49,6 +49,7 @@ import org.l2jmobius.gameserver.config.custom.OnlineInfoConfig;
 import org.l2jmobius.gameserver.config.custom.PasswordChangeConfig;
 import org.l2jmobius.gameserver.config.custom.PersonalCharacterQoLConfig;
 import org.l2jmobius.gameserver.config.custom.PersonalPremiumQoLConfig;
+import org.l2jmobius.gameserver.config.custom.PersonalProgressionQoLConfig;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.config.custom.PremiumSystemConfig;
 import org.l2jmobius.gameserver.config.custom.PrivateStoreRangeConfig;
@@ -126,6 +127,7 @@ public class ConfigLoader
 		PasswordChangeConfig.load();
 		PersonalCharacterQoLConfig.load();
 		PersonalPremiumQoLConfig.load();
+		PersonalProgressionQoLConfig.load();
 		PhantomPlayersConfig.load();
 		PremiumSystemConfig.load();
 		PrivateStoreRangeConfig.load();

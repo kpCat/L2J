@@ -32,6 +32,7 @@ import org.l2jmobius.gameserver.qol.PersonalPlayerControlService;
 import org.l2jmobius.gameserver.qol.PersonalPlayerControlService.HerbCategory;
 import org.l2jmobius.gameserver.qol.PersonalPremiumQoLService;
 import org.l2jmobius.gameserver.qol.PersonalPremiumQoLService.StorefrontOffer;
+import org.l2jmobius.gameserver.qol.PersonalProgressionShopService;
 
 /**
  * Personal/Premium QoL Community Board page and the sole admitted shop entry point.
@@ -51,6 +52,7 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 	public boolean onCommand(String command, Player player)
 	{
 		final PersonalPremiumQoLService premiumService = PersonalPremiumQoLService.getInstance();
+		final PersonalProgressionShopService progressionShopService = PersonalProgressionShopService.getInstance();
 		final PersonalCharacterQoLService personalService = PersonalCharacterQoLService.getInstance();
 		final PersonalPlayerControlService controlService = PersonalPlayerControlService.getInstance();
 		final PersonalPartySupportService partySupportService = PersonalPartySupportService.getInstance();
@@ -90,6 +92,18 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 			else
 			{
 				ThreadPool.schedule(() -> MultisellData.getInstance().separateAndSendPersonalPremiumQoL(player), 100);
+			}
+		}
+		else if ("_bbsqol;progression-shop".equals(command))
+		{
+			if (!progressionShopService.isShopEnabled())
+			{
+				player.setMultiSell(null);
+				player.sendMessage("Магазин предметов прогрессии выключен.");
+			}
+			else
+			{
+				ThreadPool.schedule(() -> MultisellData.getInstance().separateAndSendPersonalProgressionQoL(player), 100);
 			}
 		}
 		else if ("_bbsqol;crystallize".equals(command) || command.startsWith("_bbsqol;crystallize;"))
@@ -158,7 +172,7 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 		html = html.replace("%navigation%", navigation);
 		html = html.replace("%section_navigation%", sectionNavigation());
 		html = html.replace("%section_title%", sectionTitle(section));
-		html = html.replace("%section_content%", sectionContent(section, player, premiumService, personalService, controlService, partySupportService));
+		html = html.replace("%section_content%", sectionContent(section, player, premiumService, progressionShopService, personalService, controlService, partySupportService));
 		CommunityBoardHandler.getInstance().addBypass(player, "Personal QoL", "_bbsqol");
 		CommunityBoardHandler.separateAndSend(html, player);
 		return false;
@@ -287,7 +301,7 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 
 	private static boolean isKnownSection(String section)
 	{
-		return "overview".equals(section) || "character".equals(section) || "passes".equals(section) || "herbs".equals(section) || "crystallization".equals(section) || "utilities".equals(section) || "help".equals(section);
+		return "overview".equals(section) || "character".equals(section) || "passes".equals(section) || "progression".equals(section) || "herbs".equals(section) || "crystallization".equals(section) || "utilities".equals(section) || "help".equals(section);
 	}
 
 	private static boolean isOnOff(String value)
@@ -316,6 +330,7 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 			"<td><button value=\"Травы\" action=\"bypass _bbsqol;view;herbs\" width=85 height=25 back=\"L2UI_CT1.Button_DF_Down\" fore=\"L2UI_CT1.Button_DF\"></td>" +
 			"<td><button value=\"Кристаллизация\" action=\"bypass _bbsqol;view;crystallization\" width=135 height=25 back=\"L2UI_CT1.Button_DF_Down\" fore=\"L2UI_CT1.Button_DF\"></td></tr><tr>" +
 			"<td><button value=\"Расходники\" action=\"bypass _bbsqol;view;utilities\" width=120 height=25 back=\"L2UI_CT1.Button_DF_Down\" fore=\"L2UI_CT1.Button_DF\"></td>" +
+			"<td><button value=\"Прогрессия\" action=\"bypass _bbsqol;view;progression\" width=120 height=25 back=\"L2UI_CT1.Button_DF_Down\" fore=\"L2UI_CT1.Button_DF\"></td>" +
 			"<td><button value=\"Статус / справка\" action=\"bypass _bbsqol;view;help\" width=120 height=25 back=\"L2UI_CT1.Button_DF_Down\" fore=\"L2UI_CT1.Button_DF\"></td>" +
 			"<td><button value=\"Обзор\" action=\"bypass _bbsqol\" width=85 height=25 back=\"L2UI_CT1.Button_DF_Down\" fore=\"L2UI_CT1.Button_DF\"></td><td></td></tr></table>";
 	}
@@ -334,6 +349,10 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 		{
 			return "Травы";
 		}
+		if ("progression".equals(section))
+		{
+			return "Предметы прогрессии";
+		}
 		if ("crystallization".equals(section))
 		{
 			return "Кристаллизация";
@@ -345,7 +364,7 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 		return "help".equals(section) ? "Статус и справка" : "Личная QoL-панель";
 	}
 
-	private static String sectionContent(String section, Player player, PersonalPremiumQoLService premiumService, PersonalCharacterQoLService personalService, PersonalPlayerControlService controlService, PersonalPartySupportService partySupportService)
+	private static String sectionContent(String section, Player player, PersonalPremiumQoLService premiumService, PersonalProgressionShopService progressionShopService, PersonalCharacterQoLService personalService, PersonalPlayerControlService controlService, PersonalPartySupportService partySupportService)
 	{
 		if ("character".equals(section))
 		{
@@ -354,6 +373,10 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 		if ("passes".equals(section))
 		{
 			return passesContent(player, premiumService);
+		}
+		if ("progression".equals(section))
+		{
+			return progressionContent(progressionShopService);
 		}
 		if ("herbs".equals(section))
 		{
@@ -367,7 +390,7 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 		{
 			return utilitiesContent(player, partySupportService);
 		}
-		return "help".equals(section) ? helpContent(player, premiumService, personalService, controlService) : overviewContent();
+		return "help".equals(section) ? helpContent(player, premiumService, progressionShopService, personalService, controlService) : overviewContent();
 	}
 
 	private static String overviewContent()
@@ -409,6 +432,26 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 		if (service.isShopEnabled())
 		{
 			content.append("<button value=\"Открыть магазин\" action=\"bypass _bbsqol;shop\" width=200 height=30 back=\"L2UI_CT1.OlympiadWnd_DF_Reward_Down\" fore=\"L2UI_CT1.OlympiadWnd_DF_Reward\">");
+		}
+		return content.toString();
+	}
+
+	private static String progressionContent(PersonalProgressionShopService service)
+	{
+		final StringBuilder content = new StringBuilder("Только предметы, которые штатный владелец повышения уровня клана напрямую проверяет и расходует. SP, репутация, число участников, территория и текущий уровень клана по-прежнему обязательны.<br><br>");
+		content.append("<table width=500 border=0 cellspacing=0 cellpadding=3>");
+		for (PersonalProgressionShopService.StorefrontOffer offer : service.storefrontOffers())
+		{
+			content.append("<tr><td width=280><font color=\"LEVEL\">").append(escapeHtml(offer.label())).append("</font> x").append(offer.count()).append("</td><td>").append(formatNumber(offer.price())).append(" Adena</td></tr>");
+		}
+		if (service.storefrontOffers().isEmpty())
+		{
+			content.append("<tr><td width=500>Каталог временно недоступен.</td></tr>");
+		}
+		content.append("</table><br><font color=\"B09878\">Магазин:</font> ").append(service.isShopEnabled() ? "включён" : "выключен администратором").append("<br>");
+		if (service.isShopEnabled())
+		{
+			content.append("<button value=\"Открыть магазин прогрессии\" action=\"bypass _bbsqol;progression-shop\" width=230 height=30 back=\"L2UI_CT1.OlympiadWnd_DF_Reward_Down\" fore=\"L2UI_CT1.OlympiadWnd_DF_Reward\">");
 		}
 		return content.toString();
 	}
@@ -488,13 +531,14 @@ public class PersonalPremiumQoLBoard implements IParseBoardHandler
 		return content.toString();
 	}
 
-	private static String helpContent(Player player, PersonalPremiumQoLService premiumService, PersonalCharacterQoLService personalService, PersonalPlayerControlService controlService)
+	private static String helpContent(Player player, PersonalPremiumQoLService premiumService, PersonalProgressionShopService progressionShopService, PersonalCharacterQoLService personalService, PersonalPlayerControlService controlService)
 	{
 		return "EXP: <font color=\"LEVEL\">" + state(controlService.isExperienceGainEnabled(player)) + "</font><br1>" +
 			"Травы HP/MP: <font color=\"LEVEL\">" + state(controlService.isHerbEnabled(player, HerbCategory.RECOVERY)) + "</font><br1>" +
 			"Боевые травы: <font color=\"LEVEL\">" + state(controlService.isHerbEnabled(player, HerbCategory.COMBAT)) + "</font><br1>" +
 			"Vitality-травы: <font color=\"LEVEL\">" + state(controlService.isHerbEnabled(player, HerbCategory.VITALITY)) + "</font><br1>" +
 			"Магазин пропусков: <font color=\"LEVEL\">" + (premiumService.isShopEnabled() ? "включён" : "выключен") + "</font><br1>" +
+			"Магазин прогрессии: <font color=\"LEVEL\">" + (progressionShopService.isShopEnabled() ? "включён" : "выключен") + "</font><br1>" +
 			"Кристаллизация: <font color=\"LEVEL\">" + (personalService.isCrystallizationEnabled(player) ? "доступна" : "недоступна") + "</font><br1>" +
 			"Поддержка своей группы: <font color=\"LEVEL\">" + (personalService.isPartySupportEnabled(player) ? "доступна" : "недоступна") + "</font><br><br>" +
 			"Персональные действия применяются только к текущему персонажу или его текущей группе. Штатные ограничения Community Board сохраняются.";

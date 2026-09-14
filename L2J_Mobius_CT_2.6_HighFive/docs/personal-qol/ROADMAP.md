@@ -50,8 +50,14 @@ Remote PM, exact-name invite и self-only Summon Friend подтверждены
 
 Functional command semantic v1 и corpus сохранены байт-в-байт. Отдельная humanized-v2 family добавляет strict/bounded/content-addressed identity, gender, exact-class и explicit role-family aliases, а также существенно больше русских social patterns/templates. Runtime передаёт только immutable read-only snapshot canonical `Player`/profile/appearance/active `PlayerClass`; persistent identity и action authority не дублируются. Неоднозначные роли сопоставляются с явным множеством canonical classes без произвольного выбора exact class. Existing relationship/profanity/mature/command/recent-response gates, deterministic selection и custom-overlay precedence сохранены.
 
+## L2-QOL-008 — economy/progression closure
+
+Статус: **SUCCESS**.
+
+Ancient Adena/resources и SP/quest rates закрыты доказательством существующих canonical owners без глобальной инфляции или free grants. Allowlisted real Personal Player получает shipped-OFF relief только для 26 переписанных upper-level predicates при сохранении minimum/prerequisite/state/rate правил. Отдельный server-wide shipped-OFF auto-Noblesse идемпотентно применяет `Player.setNoble(true)` к real и Phantom Player при stored subclass level 75, не создавая Hero, quest state или награды. Alt+B progression list `91002` содержит только пять реально потребляемых clan prerequisites по XML-owned ценам; QOL-004 цены не изменены.
+
 ## Следующие bounded задачи
 
-- `L2-QOL-008` — broad economy/Ancient Adena/resources, SP/global quest-rate audit и финальная personal-server acceptance.
+- `L2-QOL-009` — Summoner/Servitor combat hardening. Эта работа всё ещё остаётся и не входила в QOL-008.
 
-L2-QOL-001/002/003/004/005/006/007 и hotfix L2-QOL-003-HF1 завершены. Ни одна следующая задача не начата и не включена автоматически; client names/icons также остаются deferred из-за запрета client patch.
+L2-QOL-008 завершён после acceptance; L2-QOL-001/002/003/004/005/006/007 и hotfix L2-QOL-003-HF1 также имеют статус SUCCESS. Проект не объявлен завершённым до отдельного принятия QOL-009. QOL-009 не начат и не включён автоматически; client names/icons также остаются deferred из-за запрета client patch.

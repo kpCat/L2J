@@ -4,11 +4,19 @@
 
 Ветка: `feature/phantom-world`
 
-Required parent: `50f857585f652cbe9dd7483d35f11410943e1f8b`
+Required parent: `3cf8f5d35997ff65e5e484c1c3d6224d7f759859`
 
-Текущая задача: `L2-QOL-007`
+Текущая задача: `L2-QOL-008`
 
 Статус: **SUCCESS**
+
+## L2-QOL-008
+
+- Ancient Adena и seal-stone acquisition закрыты результатом `ALREADY_NATIVE`: все 14 QOL-005 Catacomb/Necropolis populations используют штатные drops, Seven Signs конвертирует Blue/Green/Red stones по `3/5/10`, Black Marketeer имеет daily exchange `2 000 000 Adena -> 500 000 Ancient Adena`, а Phantom acquisition/commerce сохраняют canonical drop, budget и inventory owners. Free grant и Mammon force-spawn не добавлялись.
+- Combat SP и quest XP/SP/Adena/item rates подтверждены как config-owned и применяемые ровно один раз; shipped rates не менялись. Goal037 manifests детерминированно обновлены после точечных quest-script правок.
+- Отдельный shipped-OFF `EnablePersonalQuestOverLevelRelief` разрешает только allowlisted real Personal Player пройти 26 явно переписанных upper/too-high predicates. Minimum level, prerequisite, QuestState, item/kill/party/cooldown/repeatability и rate-aware reward rules сохранены. Q186 Leto подтверждён полным start/progress/kill/reward сценарием; ordinary Player и Phantom остаются stock.
+- Независимый server-wide shipped-OFF `EnableServerWideAutoNoblesse` проверяет реальный stored subclass level `75` при login, subclass level-up и Phantom materialization. Grant использует только `Player.setNoble(true)` и штатный Player store, идемпотентен и не создаёт Hero, QuestState, class mutation, tiara или quest rewards.
+- В существующей Alt+B панели добавлен отдельный защищённый multisell `91002`: только канонически потребляемые clan prerequisites `1419 x1`, `3874 x1`, `3870 x1`, `9910 x150`, `9911 x5`. Prices `5/15/30/75/100 млн Adena` читаются из XML и совпадают в preview/transaction. QOL-004 list `91001` и цены `100 000 / 500 000 / 2 000 000 / 8 000 000` не изменены.
 
 ## L2-QOL-007
 
@@ -85,15 +93,18 @@ Required parent: `50f857585f652cbe9dd7483d35f11410943e1f8b`
 - personal access INI: `dist/game/config/Custom/PersonalCharacterQoL.ini`
 - duration policy: `java/org/l2jmobius/gameserver/qol/PersonalEffectDurationPolicy.java`
 - party support owner: `java/org/l2jmobius/gameserver/qol/PersonalPartySupportService.java`
+- progression config: `dist/game/config/Custom/PersonalProgressionQoL.ini`
+- progression multisell: `dist/game/data/multisell/91002.xml`
+- progression owners: `java/org/l2jmobius/gameserver/qol/PersonalProgressionQoLService.java`, `java/org/l2jmobius/gameserver/qol/PersonalProgressionShopService.java`
 - humanized-v2 semantic catalog: `dist/game/data/phantoms/semantic/humanized/high-five-ru-humanized-semantic-v2.xml`
 - humanized-v2 conversation catalog: `dist/game/data/phantoms/conversation/humanized/high-five-ru-humanized-conversation-v2.xml`
 - Alt+B crystallization HTML: `dist/game/data/html/CommunityBoard/Custom/personal-qol/crystallization*.html`
 - storefront pricing policy: `docs/personal-qol/SHOP_PRICING.md`
 - операторская инструкция: `docs/personal-qol/OPERATOR_GUIDE_RU.md`
-- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`, `docs/personal-qol/reports/004-personal-board-storefront-controls.md`, `docs/personal-qol/reports/005-seven-signs-personal-access.md`, `docs/personal-qol/reports/006-party-mobility-support.md`, `docs/personal-qol/reports/007-semantic-pack-v2.md`
+- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`, `docs/personal-qol/reports/004-personal-board-storefront-controls.md`, `docs/personal-qol/reports/005-seven-signs-personal-access.md`, `docs/personal-qol/reports/006-party-mobility-support.md`, `docs/personal-qol/reports/007-semantic-pack-v2.md`, `docs/personal-qol/reports/008-economy-progression-closure.md`
 
 Focused, affected, historical static, Goal039 structure/static/docs, финальный fresh `ant verify` и standalone jar зафиксированы в evidence report. Использовалась только allowlisted test DB; production DB не читалась и не проверялась.
 
 Клиентский UI: **NOT_TESTED_CLIENT_UI**. Серверная страница и bypass проверены, но визуальная проверка в H5-клиенте не выдаётся за выполненную. Client patch не требуется: в инвентаре остаются исходные stock names/icons.
 
-L2-QOL-001/002/003/004/005/006/007 и L2-QOL-003-HF1 имеют статус **SUCCESS**. Неаудированные utility-продажи отложены; дальнейшие bounded задачи перечислены в roadmap и автоматически не запускаются. Phantom freeze и алгоритмы Phantom не переписывались; следующий Goal не создавался.
+L2-QOL-001/002/003/004/005/006/007/008 и L2-QOL-003-HF1 имеют статус **SUCCESS**. QOL-009 Summoner/Servitor combat hardening остаётся отдельной незавершённой задачей, поэтому Personal QoL project ещё не объявлен завершённым. Неаудированные utility-продажи отложены; следующая bounded задача автоматически не запускается. Phantom acquisition/commerce owners и Goal039 freeze сохранены.

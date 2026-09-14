@@ -232,7 +232,7 @@ public class Q00143_FallenAngelRequestOfDusk extends Quest
 						case 5:
 						{
 							giveAdena(player, 89046, true);
-							if (player.getLevel() <= MAX_REWARD_LEVEL)
+							if (isQuestUpperLevelAllowed(player, player.getLevel() <= MAX_REWARD_LEVEL))
 							{
 								addExpAndSp(player, 223036, 13901);
 							}

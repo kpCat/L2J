@@ -5,6 +5,8 @@
 - конфигурация: `dist/game/config/Custom/PersonalPremiumQoL.ini`;
 - каталог tier: `dist/game/data/custom/personal-qol/level-gap-items.xml`;
 - магазин: `dist/game/data/multisell/91001.xml`;
+- curated progression-магазин: `dist/game/data/multisell/91002.xml`;
+- конфигурация progression: `dist/game/config/Custom/PersonalProgressionQoL.ini`;
 - страница: `dist/game/data/html/CommunityBoard/Custom/personal-qol/main.html`.
 
 Поставка безопасная: оба ключа выключены.
@@ -71,6 +73,23 @@ AllowedAccounts=test_account
 
 После изменения нужен перезапуск Game Server. Ошибка базовых ключей или allowlist отключает QOL-002; QOL-001 продолжает использовать свой отдельный конфиг. Ошибка только в duration-ключах изолированно отключает QOL-003. Пустые allowlist не разрешают доступ никому. Headless Phantom не допускается даже при совпадении ID/account.
 
+## Верхнеуровневые квесты и auto-Noblesse
+
+Обе новые возможности находятся в отдельном файле `dist/game/config/Custom/PersonalProgressionQoL.ini` и поставляются выключенными:
+
+```ini
+EnablePersonalQuestOverLevelRelief=False
+EnableServerWideAutoNoblesse=False
+```
+
+После изменения перезапустите Game Server. Оба значения принимают только `True` или `False`; malformed-файл закрывает обе возможности fail-closed.
+
+`EnablePersonalQuestOverLevelRelief=True` дополнительно требует действующие `EnablePersonalCharacterQoL=True` и allowlist из `PersonalCharacterQoL.ini`. Оно применяется только к real Player и только к явно проаудированным upper/too-high predicates. Minimum level, race/class, prerequisite quest, QuestState, item/kill/party/cooldown/repeatability и reward-rate правила не обходятся. Headless Phantom и ordinary Player всегда используют stock behavior. В частности, Q186 всё ещё требует level 41, завершённый Q184 и Loraine's Certificate; персональное relief только возвращает XP/SP ветку на уровне 47 и выше, а множители остаются из `Rates.ini`.
+
+`EnableServerWideAutoNoblesse=True` — независимая server-wide настройка: Personal allowlist для неё не используется. При login, реальном level-up активного subclass и Phantom materialization сервер ищет любой сохранённый subclass level 75 или выше. Подходящий real или Phantom Player один раз проходит canonical `Player.setNoble(true)` и штатный store. Main class может быть активен. Функция не завершает Q247, не выдаёт tiara/quest rewards, не делает Hero и не меняет class/subclass identity. Повторная проверка уже Noble Player ничего не делает.
+
+Ancient Adena не получила отдельного переключателя: штатные seal-stone drops, Seven Signs exchange `3/5/10`, Black Marketeer daily exchange и существующие quest paths уже дают canonical acquisition. QOL-008 не включает и не force-spawnит Mammon NPC.
+
 ## Личный Seven Signs access
 
 `EnablePersonalSevenSignsAccess=True` действует только внутри `EnablePersonalCharacterQoL=True` и для тех же allowlist. На любой странице Dawn/Dusk Priest такому real Player добавляется отдельная ссылка в штатный `HuntingGroundsTeleport`; исходные действия страницы не скрываются. Дальше сервер разрешает только player-specific регистрацию/cabal/winner admission в Catacomb/Necropolis и не выполняет cabal-only ejection при смене периода или relog.
@@ -135,13 +154,13 @@ Alt+B выводит только ограниченный список подх
 
 ## Магазин и цены
 
-Alt+B вызывает отдельный guarded route, который подготавливает native multisell `91001`. Generic multisell bypass для этого list ID запрещён. При execute повторно проверяются dedicated provenance и live `EnablePersonalPremiumShop`; поэтому prepared до выключения список после disable отклоняется до списания.
+Alt+B вызывает отдельные guarded routes, которые подготавливают native multisell `91001` для level-gap pass и `91002` для curated clan progression. Generic multisell bypass для обоих list ID запрещён. При execute повторно проверяются dedicated provenance и live `EnablePersonalPremiumShop`; поэтому prepared до выключения список после disable отклоняется до списания.
 
 Оплата, ownership, capacity, inventory slots/weight и flood protection остаются штатными в `MultiSellChoose`/multisell engine.
 
-Финальные цены хранятся только в `91001.xml`; Alt+B получает их из валидированного runtime snapshot, а не из HTML или Java literals. Точный audit, anchors и таблица владельцев данных находятся в `docs/personal-qol/SHOP_PRICING.md`. Для замены цены измените `count` у соответствующего `<ingredient id="57">`, выполните focused test и перезапустите Game Server. Одного `//reload multisell` недостаточно: runtime metadata панели кэшируется при старте.
+Финальные цены хранятся только в `91001.xml` и `91002.xml`; Alt+B получает их из валидированных runtime snapshots, а не из HTML или Java literals. Точный audit, anchors и таблицы владельцев данных находятся в `docs/personal-qol/SHOP_PRICING.md`. Для замены цены измените `count` у соответствующего `<ingredient id="57">`, выполните соответствующий focused test и перезапустите Game Server. Одного `//reload multisell` недостаточно: runtime metadata панели кэшируется при старте.
 
-Текущий guard принимает только Adena `57` и четыре ожидаемых tier-carrier. Другая валюта, новый товар или utility требуют отдельного economy audit, кодового изменения и теста; простой XML append fail-closed отклоняется.
+Guard `91001` принимает только Adena `57` и четыре ожидаемых tier-carrier. Guard `91002` принимает ровно пять canonical clan inventory prerequisites: Blood Mark `1419 x1`, Alliance Manifesto `3874 x1`, Seal of Aspiration `3870 x1`, Blood Oath `9910 x150`, Blood Alliance `9911 x5`. Предметы сами не повышают clan level: `Clan.levelUpClan` по-прежнему проверяет текущий level, SP/CRP/members/territory и сам потребляет нужное количество. Stateful quest tokens, Noblesse items, raid jewelry, equipment, enchant dump и arbitrary rare loot не продаются. Другая валюта или новый товар требуют отдельного economy audit, кодового изменения и теста; простой XML append fail-closed отклоняется.
 
 ## Личные настройки EXP и трав
 
@@ -155,7 +174,7 @@ Mana Potion `728`, Vitality items `20034/20391/20392` и XP rune `21084` тех�
 
 ## Откат
 
-Для QOL-001 установите оба switch в `PersonalPremiumQoL.ini` в `False`. Для QOL-002 установите `EnablePersonalCharacterQoL=False` или выключите отдельные subfeature в `PersonalCharacterQoL.ini`. Для отдельного отката QOL-003 установите `EnablePersonalEffectDurations=False`; для отдельного отката QOL-005 — `EnablePersonalSevenSignsAccess=False`; для отдельного отката QOL-006 — `EnablePersonalPartySupport=False`. Для operational rollback QOL-007 установите `EnablePhantomHumanizedConversation=False`, затем перезапустите Game Server; functional command semantic v1 продолжит работать. DB migration отсутствует. Купленные предметы останутся обычными stock items, но level-gap эффект прекратится; stale shop/crystallization execution будет отклонён до debit/credit. Изученные foreign skills хранятся штатно; при выключенном admission штатный skill checker может удалить их как недопустимые при следующем restore. Уже наложенные эффекты сохраняют записанное остаточное время, новые эффекты после перезапуска используют stock duration. После отключения QOL-005 следующий admission/relog/period check снова применяет stock Seven Signs eligibility. После отключения QOL-006 новые support bypass отклоняются до mutation; уже выполненные heal/revive/karma cleanup не откатываются. QOL-007 не создаёт persistent state, поэтому откатывать данные не требуется. Phantom schema не меняется.
+Для QOL-001 установите оба switch в `PersonalPremiumQoL.ini` в `False`. Для QOL-002 установите `EnablePersonalCharacterQoL=False` или выключите отдельные subfeature в `PersonalCharacterQoL.ini`. Для отдельного отката QOL-003 установите `EnablePersonalEffectDurations=False`; для отдельного отката QOL-005 — `EnablePersonalSevenSignsAccess=False`; для отдельного отката QOL-006 — `EnablePersonalPartySupport=False`. Для operational rollback QOL-007 установите `EnablePhantomHumanizedConversation=False`. Для QOL-008 установите оба ключа `PersonalProgressionQoL.ini` в `False`; закрытие progression-витрины выполняется прежним `EnablePersonalPremiumShop=False`. Затем перезапустите Game Server. DB migration отсутствует. Купленные предметы останутся обычными stock items; уже полученный canonical Noble status не снимается. Stale shop/crystallization execution будет отклонён до debit/credit. Изученные foreign skills хранятся штатно; при выключенном admission штатный skill checker может удалить их как недопустимые при следующем restore. Уже наложенные эффекты сохраняют записанное остаточное время, новые эффекты после перезапуска используют stock duration. После отключения QOL-005 следующий admission/relog/period check снова применяет stock Seven Signs eligibility. После отключения QOL-006 новые support bypass отклоняются до mutation; уже выполненные heal/revive/karma cleanup не откатываются. QOL-007 не создаёт persistent state. Phantom schema не меняется.
 
 ## Проверка
 
@@ -182,6 +201,10 @@ ant qol-semantic-v2-test
 ant qol-007-affected-test
 ant qol-007-freeze-test
 ant qol-007-verify
+ant qol-economy-progression-closure-test
+ant qol-008-affected-test
+ant qol-008-freeze-test
+ant qol-008-verify
 ant qol-002-affected-test
 ant qol-002-verify
 ant qol-003-affected-test
@@ -190,8 +213,8 @@ ant verify
 ant -q jar
 ```
 
-`qol-level-gap-test` покрывает grouped/ungrouped/spoil, boundaries, inventory/relog и bot exclusions. `qol-shop-test` использует реальные native debit/credit и отрицательные prepare/execute/flood/capacity controls; в L2-QOL-004 он также проверяет data-driven prices, Java-8 script routes, единый EXP owner и persisted/isolation herb state. Focused QOL-002 targets покрывают personal policy, настоящий `RequestAcquireSkill`, relog и required items, а также native/common/Alt+B crystallization, replay/stale/expiry/concurrency. `qol-effect-duration-test` покрывает strict config isolation/master OFF, pure policy/rounding, реальные H5 buff/song/dance/debuff, self/NPC/ordinary/headless/summon recipient semantics, global-then-personal ordering, Skill immutability, override, explicit/steal-copy time, recast и restore/relog. `qol-seven-signs-access-test` покрывает shipped OFF/real-only policy, все четыре Seven Signs периода, Catacomb/Necropolis route/admission/continued/relog wiring, полный normal combat spawn census и actual respawn, native Rift prerequisites/first/jump populations/cleanup и Mammon global boundary. `qol-party-support-test` покрывает native PM/invite/Summon Friend no-op census, shipped-OFF/real-only authority, strict board parser, self/own-party heal, stale/outsider denial, narrow revive без XP, karma-only cleanup и сохранение unrelated state. `qol-semantic-v2-test` покрывает versioned/bounded/content-addressed v2 load, malformed/XXE/UTF-8/size/collision negative controls, canonical name/gender/current-class identity, exact и ambiguous role aliases, social variation и сохранение v1/custom/safety gates. База должна быть заранее подготовленным allowlisted test schema по действующей Phantom test policy; `prepare-phantom-test-db` в этом workflow не запускается.
+`qol-level-gap-test` покрывает grouped/ungrouped/spoil, boundaries, inventory/relog и bot exclusions. `qol-shop-test` использует реальные native debit/credit и отрицательные prepare/execute/flood/capacity controls; в L2-QOL-004 он также проверяет data-driven prices, Java-8 script routes, единый EXP owner и persisted/isolation herb state. Focused QOL-002 targets покрывают personal policy, настоящий `RequestAcquireSkill`, relog и required items, а также native/common/Alt+B crystallization, replay/stale/expiry/concurrency. `qol-effect-duration-test` покрывает strict config isolation/master OFF, pure policy/rounding, реальные H5 buff/song/dance/debuff, self/NPC/ordinary/headless/summon recipient semantics, global-then-personal ordering, Skill immutability, override, explicit/steal-copy time, recast и restore/relog. `qol-seven-signs-access-test` покрывает shipped OFF/real-only policy, все четыре Seven Signs периода, Catacomb/Necropolis route/admission/continued/relog wiring, полный normal combat spawn census и actual respawn, native Rift prerequisites/first/jump populations/cleanup и Mammon global boundary. `qol-party-support-test` покрывает native PM/invite/Summon Friend no-op census, shipped-OFF/real-only authority, strict board parser, self/own-party heal, stale/outsider denial, narrow revive без XP, karma-only cleanup и сохранение unrelated state. `qol-semantic-v2-test` покрывает versioned/bounded/content-addressed v2 load, malformed/XXE/UTF-8/size/collision negative controls, canonical name/gender/current-class identity, exact и ambiguous role aliases, social variation и сохранение v1/custom/safety gates. `qol-economy-progression-closure-test` покрывает native Ancient Adena/resource census, exactly-once rate authority, 26 upper gates, полный Q186 Leto path, strict shipped-OFF controls, XML-owned progression transactions и real/Phantom canonical auto-Noblesse persistence/idempotence. База должна быть заранее подготовленным allowlisted test schema по действующей Phantom test policy; `prepare-phantom-test-db` в этом workflow не запускается.
 
 Клиентский визуальный статус релиза: **NOT_TESTED_CLIENT_UI**.
 
-L2-QOL-001/002/003/004/005/006/007 завершены со статусом SUCCESS. Следующие roadmap-задачи автоматически не запускаются.
+L2-QOL-001/002/003/004/005/006/007/008 завершены со статусом SUCCESS. QOL-009 Summoner/Servitor combat hardening остаётся незавершённым и автоматически не запускается.

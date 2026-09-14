@@ -76,7 +76,7 @@ public class Q00694_BreakThroughTheHallOfSuffering extends Quest
 		{
 			case State.CREATED:
 			{
-				if ((player.getLevel() >= 75) && (player.getLevel() <= 82))
+				if ((player.getLevel() >= 75) && isQuestUpperLevelAllowed(player, player.getLevel() <= 82))
 				{
 					htmltext = "32603-01.htm";
 				}

@@ -41,6 +41,7 @@ import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.StatusUpdate;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
 import org.l2jmobius.gameserver.qol.PersonalPremiumQoLService;
+import org.l2jmobius.gameserver.qol.PersonalProgressionShopService;
 
 /**
  * The Class MultiSellChoose.
@@ -120,6 +121,11 @@ public class MultiSellChoose extends ClientPacket
 			return;
 		}
 		if (PersonalPremiumQoLService.isShopList(_listId) && (!list.isPersonalPremiumQoL() || !PersonalPremiumQoLService.getInstance().isShopEnabled()))
+		{
+			player.setMultiSell(null);
+			return;
+		}
+		if (PersonalProgressionShopService.isShopList(_listId) && (!list.isPersonalPremiumQoL() || !PersonalProgressionShopService.getInstance().isShopEnabled()))
 		{
 			player.setMultiSell(null);
 			return;

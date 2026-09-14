@@ -76,7 +76,7 @@ public class Q00183_RelicExploration extends Quest
 				if (qs.isMemoState(2))
 				{
 					giveAdena(player, 18100, true);
-					if (player.getLevel() < MAX_LEVEL_FOR_EXP_SP)
+					if (isQuestUpperLevelAllowed(player, player.getLevel() < MAX_LEVEL_FOR_EXP_SP))
 					{
 						addExpAndSp(player, 60000, 3000);
 					}

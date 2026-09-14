@@ -182,6 +182,7 @@ import org.l2jmobius.gameserver.network.serverpackets.NpcQuestHtmlMessage;
 import org.l2jmobius.gameserver.network.serverpackets.SpecialCamera;
 import org.l2jmobius.gameserver.network.serverpackets.StatusUpdate;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalProgressionQoLService;
 import org.l2jmobius.gameserver.scripting.ScriptEngine;
 import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 import org.l2jmobius.gameserver.util.LocationUtil;
@@ -5806,5 +5807,18 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 	public boolean haveNRMemo(QuestState qs, int slot)
 	{
 		return qs.getInt("NRmemo") == slot;
+	}
+
+	/**
+	 * Preserves the stock upper-level decision except for the explicitly enabled,
+	 * allowlisted real Personal QoL player. Callers must pass only an upper-level
+	 * predicate; minimum levels and every other quest condition stay local.
+	 * @param player the quest player
+	 * @param stockAllowed the original upper-level predicate
+	 * @return {@code true} when stock allows it or personal upper-level relief applies
+	 */
+	protected boolean isQuestUpperLevelAllowed(Player player, boolean stockAllowed)
+	{
+		return stockAllowed || PersonalProgressionQoLService.getInstance().isQuestOverLevelReliefEnabled(player);
 	}
 }

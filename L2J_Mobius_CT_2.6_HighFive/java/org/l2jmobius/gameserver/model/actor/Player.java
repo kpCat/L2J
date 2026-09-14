@@ -362,6 +362,7 @@ import org.l2jmobius.gameserver.network.serverpackets.UserInfo;
 import org.l2jmobius.gameserver.network.serverpackets.ValidateLocation;
 import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 import org.l2jmobius.gameserver.qol.PersonalPlayerControlService;
+import org.l2jmobius.gameserver.qol.PersonalProgressionQoLService;
 import org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager;
 import org.l2jmobius.gameserver.taskmanagers.AutoUseTaskManager;
@@ -11049,7 +11050,8 @@ public class Player extends Playable
 	public void onPlayerEnter()
 	{
 		startWarnUserTakeBreak();
-		
+		PersonalProgressionQoLService.getInstance().tryGrantAutoNoblesse(this);
+
 		if (SevenSigns.getInstance().isSealValidationPeriod() || SevenSigns.getInstance().isCompResultsPeriod())
 		{
 			if (!isGM() && isIn7sDungeon() && !PersonalCharacterQoLService.getInstance().isSevenSignsCabalEligible(this, SevenSigns.getInstance().getPlayerCabal(getObjectId()), SevenSigns.getInstance().getCabalHighestScore()))

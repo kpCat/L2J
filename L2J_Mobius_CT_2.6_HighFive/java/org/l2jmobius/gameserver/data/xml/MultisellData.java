@@ -48,6 +48,7 @@ import org.l2jmobius.gameserver.network.serverpackets.ExPCCafePointInfo;
 import org.l2jmobius.gameserver.network.serverpackets.MultiSellList;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
 import org.l2jmobius.gameserver.qol.PersonalPremiumQoLService;
+import org.l2jmobius.gameserver.qol.PersonalProgressionShopService;
 
 public class MultisellData implements IXmlReader
 {
@@ -258,7 +259,7 @@ public class MultisellData implements IXmlReader
 	 */
 	public void separateAndSend(int listId, Player player, Npc npc, boolean inventoryOnly, double productMultiplier, double ingredientMultiplier)
 	{
-		if (PersonalPremiumQoLService.isShopList(listId))
+		if (PersonalPremiumQoLService.isShopList(listId) || PersonalProgressionShopService.isShopList(listId))
 		{
 			player.setMultiSell(null);
 			LOGGER.warning(getClass().getSimpleName() + ": rejected generic access to Personal/Premium QoL multisell " + listId + " for " + player + ".");
@@ -275,6 +276,16 @@ public class MultisellData implements IXmlReader
 			return false;
 		}
 		return prepareAndSend(PersonalPremiumQoLService.SHOP_LIST_ID, player, null, false, 1, 1, true);
+	}
+
+	public boolean separateAndSendPersonalProgressionQoL(Player player)
+	{
+		if (!PersonalProgressionShopService.getInstance().isShopEnabled())
+		{
+			player.setMultiSell(null);
+			return false;
+		}
+		return prepareAndSend(PersonalProgressionShopService.SHOP_LIST_ID, player, null, false, 1, 1, true);
 	}
 
 	private boolean prepareAndSend(int listId, Player player, Npc npc, boolean inventoryOnly, double productMultiplier, double ingredientMultiplier, boolean personalPremiumQoL)

@@ -136,7 +136,7 @@ public class Q00140_ShadowFoxPart2 extends Quest
 			case "30895-11.html":
 			{
 				giveAdena(player, 18775, true);
-				if (player.getLevel() <= MAX_REWARD_LEVEL)
+				if (isQuestUpperLevelAllowed(player, player.getLevel() <= MAX_REWARD_LEVEL))
 				{
 					addExpAndSp(player, 30000, 2000);
 				}

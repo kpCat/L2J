@@ -470,7 +470,7 @@ public class Q00335_TheSongOfTheHunter extends Quest
 					
 					if (hasQuestItems(player, FIRST_CIRCLE_HUNTER_LICENSE))
 					{
-						if (player.getLevel() < MAX_LEVEL)
+						if (isQuestUpperLevelAllowed(player, player.getLevel() < MAX_LEVEL))
 						{
 							htmltext = "30744-07.html";
 						}
@@ -561,7 +561,7 @@ public class Q00335_TheSongOfTheHunter extends Quest
 						{
 							if (requestCount == 0)
 							{
-								if (player.getLevel() < MAX_LEVEL)
+								if (isQuestUpperLevelAllowed(player, player.getLevel() < MAX_LEVEL))
 								{
 									htmltext = "30745-01b.html";
 								}

@@ -76,7 +76,7 @@ public class Q00695_DefendTheHallOfSuffering extends Quest
 		{
 			case State.CREATED:
 			{
-				if ((player.getLevel() >= 75) && (player.getLevel() <= 82))
+				if ((player.getLevel() >= 75) && isQuestUpperLevelAllowed(player, player.getLevel() <= 82))
 				{
 					if (SeedOfInfinityManager.getCurrentStage() == 4)
 					{

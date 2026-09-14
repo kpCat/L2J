@@ -199,7 +199,7 @@ public class Q00128_PailakaSongOfIceAndFire extends Quest
 						{
 							htmltext = "32497-05.htm";
 						}
-						else if (player.getLevel() > MAX_LEVEL)
+						else if (!isQuestUpperLevelAllowed(player, player.getLevel() <= MAX_LEVEL))
 						{
 							htmltext = "32497-06.htm";
 						}
