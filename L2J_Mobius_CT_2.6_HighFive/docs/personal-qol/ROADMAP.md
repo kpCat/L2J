@@ -44,9 +44,14 @@ Alt+B объединён в категории персонаж/EXP, дроп и
 
 Remote PM, exact-name invite и self-only Summon Friend подтверждены как уже достаточные native flows; новые transports, direct party insertion, auto-accept и teleport service не добавлялись. В существующем Alt+B utilities-разделе появился отдельный shipped-OFF блок heal/res/karma cleanup только для allowlisted real personal actor и self/current own-party Player targets. `World` identity и party membership повторно проверяются перед mutation; competitive/special states закрыты. Heal использует `fullRestore`, resurrection — `doRevive()` без XP, cleanup — только `setKarma(0)` без изменения PvP/PK/clan/fame/recommendation state. Phantom AI/lifecycle и client не менялись.
 
+## L2-QOL-007 — Semantic Pack v2
+
+Статус: **SUCCESS**.
+
+Functional command semantic v1 и corpus сохранены байт-в-байт. Отдельная humanized-v2 family добавляет strict/bounded/content-addressed identity, gender, exact-class и explicit role-family aliases, а также существенно больше русских social patterns/templates. Runtime передаёт только immutable read-only snapshot canonical `Player`/profile/appearance/active `PlayerClass`; persistent identity и action authority не дублируются. Неоднозначные роли сопоставляются с явным множеством canonical classes без произвольного выбора exact class. Existing relationship/profanity/mature/command/recent-response gates, deterministic selection и custom-overlay precedence сохранены.
+
 ## Следующие bounded задачи
 
-- `L2-QOL-007` — Semantic Pack v2, identity/gender/class aliases и richer social phrases как отдельный artifact family.
 - `L2-QOL-008` — broad economy/Ancient Adena/resources, SP/global quest-rate audit и финальная personal-server acceptance.
 
-L2-QOL-001/002/003/004/005/006 и hotfix L2-QOL-003-HF1 завершены. Ни одна следующая задача не начата и не включена автоматически; client names/icons также остаются deferred из-за запрета client patch.
+L2-QOL-001/002/003/004/005/006/007 и hotfix L2-QOL-003-HF1 завершены. Ни одна следующая задача не начата и не включена автоматически; client names/icons также остаются deferred из-за запрета client patch.

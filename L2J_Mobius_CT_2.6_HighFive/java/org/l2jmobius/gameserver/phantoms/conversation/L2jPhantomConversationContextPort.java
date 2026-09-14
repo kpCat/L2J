@@ -12,6 +12,8 @@ import java.util.OptionalLong;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.DeliveredObservation;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.Gender;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.RuntimeIdentity;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationSnapshot;
@@ -81,7 +83,10 @@ public final class L2jPhantomConversationContextPort implements PhantomConversat
 			final PhantomDomainRef topology = _topology.mostSpecificNode(new PhantomTopologyPoint(observer.getX(), observer.getY(), observer.getZ(), observer.getInstanceId())).map(node -> new PhantomDomainRef("topology.node", node.id())).orElse(null);
 			final InputContext input = new InputContext(speaker, channel(observation), leader, members, List.of(speaker), List.of(speaker), null, topology, topology, previousIntent, previousSlots);
 			final PhantomDomainRef counterpart = observation.channel() == org.l2jmobius.gameserver.network.enums.ChatType.PARTY && (leader != null) ? leader.reference() : speaker.reference();
-			return Optional.of(new PhantomConversationService.ContextSnapshot(observerProfileId, observer.getName(), speaker.reference(), counterpart, leaderProfileId, input));
+			final String displayName = observer.getAppearance().getVisibleName();
+			final var activeClass = observer.getPlayerClass();
+			final RuntimeIdentity identity = new RuntimeIdentity(observerProfileId, observer.getObjectId(), observer.getName(), displayName, observer.getAppearance().isFemale() ? Gender.FEMALE : Gender.MALE, activeClass.getId(), activeClass.name());
+			return Optional.of(new PhantomConversationService.ContextSnapshot(observerProfileId, displayName, speaker.reference(), counterpart, leaderProfileId, input, identity));
 		}
 	}
 

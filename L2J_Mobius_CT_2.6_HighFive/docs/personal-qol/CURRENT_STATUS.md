@@ -4,11 +4,19 @@
 
 Ветка: `feature/phantom-world`
 
-Required parent: `0b1d88165dd747d3325d7bbb6c86f16d5bef88c4`
+Required parent: `50f857585f652cbe9dd7483d35f11410943e1f8b`
 
-Текущая задача: `L2-QOL-006`
+Текущая задача: `L2-QOL-007`
 
 Статус: **SUCCESS**
+
+## L2-QOL-007
+
+- Функциональный semantic v1 и его golden corpus сохранены байт-в-байт. Командные intent/slot/action, functional-first handoff и все владельцы игровых действий не менялись.
+- Добавлена отдельная явно версионированная humanized-v2 family: строгие bounded XML-каталоги идентичности/алиасов и более разнообразной русской социальной речи участвуют в детерминированном content hash. Existing humanized-v1 остаётся доступным, а operator custom overlays по-прежнему применяются последними.
+- Ответы о собственном имени, поле и текущем классе используют только read-only snapshot живого `Player`: profile/object identity, visible name, canonical appearance sex и canonical active `PlayerClass`. Новых persistent полей и DB schema нет.
+- Exact class aliases привязаны к canonical class ID. Неоднозначные слова роли/линии разрешаются только в явное множество классов и никогда не выбирают произвольный exact class; отдельно покрыта линия Warlock/Arcana Lord.
+- Relationship, profanity, mature/private, command blocklist и recent-response gates сохранены. Humanized planner по-прежнему возвращает только текстовый план без gameplay mutation.
 
 ## L2-QOL-006
 
@@ -77,13 +85,15 @@ Required parent: `0b1d88165dd747d3325d7bbb6c86f16d5bef88c4`
 - personal access INI: `dist/game/config/Custom/PersonalCharacterQoL.ini`
 - duration policy: `java/org/l2jmobius/gameserver/qol/PersonalEffectDurationPolicy.java`
 - party support owner: `java/org/l2jmobius/gameserver/qol/PersonalPartySupportService.java`
+- humanized-v2 semantic catalog: `dist/game/data/phantoms/semantic/humanized/high-five-ru-humanized-semantic-v2.xml`
+- humanized-v2 conversation catalog: `dist/game/data/phantoms/conversation/humanized/high-five-ru-humanized-conversation-v2.xml`
 - Alt+B crystallization HTML: `dist/game/data/html/CommunityBoard/Custom/personal-qol/crystallization*.html`
 - storefront pricing policy: `docs/personal-qol/SHOP_PRICING.md`
 - операторская инструкция: `docs/personal-qol/OPERATOR_GUIDE_RU.md`
-- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`, `docs/personal-qol/reports/004-personal-board-storefront-controls.md`, `docs/personal-qol/reports/005-seven-signs-personal-access.md`, `docs/personal-qol/reports/006-party-mobility-support.md`
+- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`, `docs/personal-qol/reports/004-personal-board-storefront-controls.md`, `docs/personal-qol/reports/005-seven-signs-personal-access.md`, `docs/personal-qol/reports/006-party-mobility-support.md`, `docs/personal-qol/reports/007-semantic-pack-v2.md`
 
 Focused, affected, historical static, Goal039 structure/static/docs, финальный fresh `ant verify` и standalone jar зафиксированы в evidence report. Использовалась только allowlisted test DB; production DB не читалась и не проверялась.
 
 Клиентский UI: **NOT_TESTED_CLIENT_UI**. Серверная страница и bypass проверены, но визуальная проверка в H5-клиенте не выдаётся за выполненную. Client patch не требуется: в инвентаре остаются исходные stock names/icons.
 
-L2-QOL-001/002/003/004/005/006 и L2-QOL-003-HF1 имеют статус **SUCCESS**. Неаудированные utility-продажи отложены; дальнейшие bounded задачи перечислены в roadmap и автоматически не запускаются. Phantom freeze и алгоритмы Phantom не переписывались; следующий Goal не создавался.
+L2-QOL-001/002/003/004/005/006/007 и L2-QOL-003-HF1 имеют статус **SUCCESS**. Неаудированные utility-продажи отложены; дальнейшие bounded задачи перечислены в roadmap и автоматически не запускаются. Phantom freeze и алгоритмы Phantom не переписывались; следующий Goal не создавался.

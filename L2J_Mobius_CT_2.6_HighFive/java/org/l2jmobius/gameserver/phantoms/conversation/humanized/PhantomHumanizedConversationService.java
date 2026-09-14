@@ -15,6 +15,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanized
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.ProfanityMode;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.Register;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.RelationshipBand;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.RuntimeIdentity;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.Selection;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.Variation;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomPersonalConversationStore.PersonalState;
@@ -48,14 +49,19 @@ public final class PhantomHumanizedConversationService
 		}
 	}
 
-	public record Request(long ownerProfileId, String ownerName, SubjectRef speaker, Origin origin, ChatType channel, String text, String observationHash, long nowMinute)
+	public record Request(long ownerProfileId, String ownerName, SubjectRef speaker, Origin origin, ChatType channel, String text, String observationHash, long nowMinute, RuntimeIdentity identity)
 	{
 		public Request
 		{
-			if ((ownerProfileId <= 0) || (ownerName == null) || ownerName.isBlank() || (ownerName.length() > 64) || (speaker == null) || ((origin != Origin.CLIENT_CHAT) && (origin != Origin.PHANTOM_SOCIAL)) || (channel == null) || (text == null) || text.isBlank() || (text.length() > 1024) || (observationHash == null) || !observationHash.matches("[0-9A-Fa-f]{64}") || (nowMinute < 0))
+			if ((ownerProfileId <= 0) || (ownerName == null) || ownerName.isBlank() || (ownerName.length() > 64) || (speaker == null) || ((origin != Origin.CLIENT_CHAT) && (origin != Origin.PHANTOM_SOCIAL)) || (channel == null) || (text == null) || text.isBlank() || (text.length() > 1024) || (observationHash == null) || !observationHash.matches("[0-9A-Fa-f]{64}") || (nowMinute < 0) || (identity == null) || (identity.available() && (identity.profileId() != ownerProfileId)))
 			{
 				throw new IllegalArgumentException("Humanized conversation request is invalid.");
 			}
+		}
+
+		public Request(long ownerProfileId, String ownerName, SubjectRef speaker, Origin origin, ChatType channel, String text, String observationHash, long nowMinute)
+		{
+			this(ownerProfileId, ownerName, speaker, origin, channel, text, observationHash, nowMinute, RuntimeIdentity.unavailable(ownerProfileId, ownerName));
 		}
 	}
 
@@ -118,7 +124,11 @@ public final class PhantomHumanizedConversationService
 		{
 			return Decision.ineligible();
 		}
-		final Optional<Match> matched = _catalog.understand(request.text());
+		Optional<Match> matched = _catalog.understandIdentity(request.text(), request.identity());
+		if (matched.isEmpty())
+		{
+			matched = _catalog.understand(request.text());
+		}
 		if (matched.isEmpty())
 		{
 			return Decision.ineligible();
@@ -151,7 +161,8 @@ public final class PhantomHumanizedConversationService
 			final Optional<String> memory = match.recall() == null ? Optional.empty() : PhantomPersonalConversationStore.recall(state, subjectKey, match.recall(), request.nowMinute());
 			final Set<String> recent = PhantomPersonalConversationStore.recentResponses(state, subjectKey);
 			final long responseSelector = selector(request.ownerProfileId() + "|" + request.observationHash() + "|" + personaKey + "|" + band + "|" + _catalog.combinedHash());
-			final Selection selection = _catalog.select(match.act(), band, _settings.register(), _settings.profanity(), _settings.variation(), _settings.matureEnabled(), request.channel() == ChatType.WHISPER, request.ownerName(), match.value(), memory.orElse("не успел запомнить"), interest.label(), responseSelector, recent);
+			final String ownerName = request.identity().available() ? request.identity().displayName() : request.ownerName();
+			final Selection selection = _catalog.select(match.act(), band, _settings.register(), _settings.profanity(), _settings.variation(), _settings.matureEnabled(), request.channel() == ChatType.WHISPER, ownerName, match.value(), memory.orElse("не успел запомнить"), interest.label(), responseSelector, recent);
 			state = PhantomPersonalConversationStore.apply(state, subjectKey, match, selection.responseHash(), request.origin(), request.nowMinute(), _catalog.limits());
 			try
 			{

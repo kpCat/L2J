@@ -49,6 +49,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore.S
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService.Decision;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService.Request;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.RuntimeIdentity;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -77,14 +78,19 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		Optional<ContextSnapshot> snapshot(long observerProfileId, DeliveredObservation observation, String previousIntent, List<SlotValue> previousSlots);
 	}
 
-	public record ContextSnapshot(long observerProfileId, String observerName, PhantomDomainRef speaker, PhantomDomainRef counterpart, long partyLeaderProfileId, InputContext input)
+	public record ContextSnapshot(long observerProfileId, String observerName, PhantomDomainRef speaker, PhantomDomainRef counterpart, long partyLeaderProfileId, InputContext input, RuntimeIdentity identity)
 	{
 		public ContextSnapshot
 		{
-			if ((observerProfileId <= 0) || (observerName == null) || observerName.isBlank() || (speaker == null) || (counterpart == null) || (partyLeaderProfileId < 0) || (input == null))
+			if ((observerProfileId <= 0) || (observerName == null) || observerName.isBlank() || (speaker == null) || (counterpart == null) || (partyLeaderProfileId < 0) || (input == null) || (identity == null) || (identity.available() && (identity.profileId() != observerProfileId)))
 			{
 				throw new IllegalArgumentException("Conversation context snapshot is invalid.");
 			}
+		}
+
+		public ContextSnapshot(long observerProfileId, String observerName, PhantomDomainRef speaker, PhantomDomainRef counterpart, long partyLeaderProfileId, InputContext input)
+		{
+			this(observerProfileId, observerName, speaker, counterpart, partyLeaderProfileId, input, RuntimeIdentity.unavailable(observerProfileId, observerName));
 		}
 	}
 
@@ -733,7 +739,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	private StepResult humanizedStep(BatchWork work)
 	{
 		final SubjectRef subject = work._snapshot.speaker().namespace().equals("profile") ? SubjectRef.phantom(Long.parseLong(work._snapshot.speaker().key())) : SubjectRef.character(Integer.parseInt(work._snapshot.speaker().key()));
-		final Decision decision = _humanized.plan(new Request(work._electedProfile, work._snapshot.observerName(), subject, work._descriptor.origin(), work._descriptor.channel(), work._election.text(), work._observationHash, work._nowMinute));
+		final Decision decision = _humanized.plan(new Request(work._electedProfile, work._snapshot.observerName(), subject, work._descriptor.origin(), work._descriptor.channel(), work._election.text(), work._observationHash, work._nowMinute, work._snapshot.identity()));
 		final Planned planned;
 		if (!decision.eligible())
 		{

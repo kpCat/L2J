@@ -286,6 +286,7 @@ public final class PhantomTestLauncher
 			case "qol-effect-duration" -> new QoLEffectDurationSuite();
 			case "qol-seven-signs-access" -> new QoLSevenSignsAccessSuite();
 			case "qol-party-support" -> new QoLPartySupportSuite();
+			case "qol-semantic-v2" -> new PhantomHumanizedSemanticV2Qol007Suite();
 			case "topology-performance" -> new PhantomTopologyPerformanceSuite();
 			case "knowledge-core" -> new PhantomGameKnowledgeCoreSuite();
 			case "knowledge-query-truth" -> new PhantomGameKnowledgeQueryTruthSuite();

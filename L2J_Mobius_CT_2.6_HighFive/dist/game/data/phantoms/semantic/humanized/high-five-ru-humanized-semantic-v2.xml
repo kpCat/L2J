@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedSemanticPack id="high-five-ru-humanized-semantic-v2" version="2">
+	<bounds classes="128" exactClassAliases="384" roles="16" roleAliases="64" genderAliases="16" identityPatterns="32" additionalPatterns="128" additionalTemplates="256"/>
+	<genders>
+		<gender value="MALE" label="парень" aliases="парень;мужчина;мужик;мужской"/>
+		<gender value="FEMALE" label="девушка" aliases="девушка;женщина;девчонка;женский"/>
+	</genders>
+	<roles>
+		<role id="tank" label="танк" classes="4,5,6,19,20,32,33,90,91,99,106" aliases="танк;танчик"/>
+		<role id="melee" label="милишник" classes="0,1,2,3,7,8,18,22,23,31,35,36,44,45,46,47,48,53,54,55,56,57,88,89,93,101,108,113,114,117,118,123,124,125,127,128,129,131,132,133,135,136" aliases="милишник;мили"/>
+		<role id="damage" label="ДД" classes="2,3,8,9,12,13,23,24,27,36,37,40,46,48,55,57,88,89,92,93,94,95,101,102,103,108,109,110,113,114,117,118,127,128,129,130,131,132,133,134" aliases="дд;дамагер"/>
+		<role id="archer" label="лучник" classes="9,22,24,35,37,92,102,109,126,130,134" aliases="лучник;арчер"/>
+		<role id="nuker" label="нюкер" classes="11,12,13,26,27,39,40,94,95,103,110" aliases="нюкер;кастер"/>
+		<role id="mage" label="маг" classes="10,11,12,13,14,15,16,17,25,26,27,28,29,30,38,39,40,41,42,43,49,50,51,52,94,95,96,97,98,103,104,105,110,111,112,115,116" aliases="маг;магичка"/>
+		<role id="summoner" label="суммонер" classes="14,28,41,96,104,111" aliases="суммонер;саммонер;призыватель"/>
+		<role id="cat_summoner" label="котовод" classes="14,96" aliases="варлок;котовод;кошковод"/>
+		<role id="healer" label="хилер" classes="15,16,29,30,42,43,97,105,112" aliases="хилер;хил"/>
+		<role id="bishop_line" label="биш" classes="16,97" aliases="биш;бишоп"/>
+		<role id="support" label="саппорт" classes="15,17,21,29,30,34,42,43,50,51,52,98,100,105,107,112,115,116,135,136" aliases="саппорт;бафер;поддержка"/>
+		<role id="kamael" label="камаэль" classes="123,124,125,126,127,128,129,130,131,132,133,134,135,136" aliases="камаэль;кама"/>
+	</roles>
+	<classes>
+		<class id="0" canonical="FIGHTER" label="человек-воин" aliases="файтер"/>
+		<class id="1" canonical="WARRIOR" label="воитель" aliases="варриор"/>
+		<class id="2" canonical="GLADIATOR" label="гладиатор" aliases="глад"/>
+		<class id="3" canonical="WARLORD" label="копейщик" aliases="варлорд;вл"/>
+		<class id="4" canonical="KNIGHT" label="рыцарь" aliases="найт"/>
+		<class id="5" canonical="PALADIN" label="паладин" aliases="пал;паладин"/>
+		<class id="6" canonical="DARK_AVENGER" label="тёмный мститель" aliases="дарк авенджер;да"/>
+		<class id="7" canonical="ROGUE" label="разбойник" aliases="рога"/>
+		<class id="8" canonical="TREASURE_HUNTER" label="искатель сокровищ" aliases="тх"/>
+		<class id="9" canonical="HAWKEYE" label="снайпер" aliases="хавк;хавкай"/>
+		<class id="10" canonical="MAGE" label="человек-маг"/>
+		<class id="11" canonical="WIZARD" label="волшебник" aliases="визард"/>
+		<class id="12" canonical="SORCERER" label="сорцерер" aliases="сорк"/>
+		<class id="13" canonical="NECROMANCER" label="некромант" aliases="некр"/>
+		<class id="14" canonical="WARLOCK" label="варлок"/>
+		<class id="15" canonical="CLERIC" label="клерик"/>
+		<class id="16" canonical="BISHOP" label="епископ"/>
+		<class id="17" canonical="PROPHET" label="пророк" aliases="профет;пп"/>
+		<class id="18" canonical="ELVEN_FIGHTER" label="эльф-воин"/>
+		<class id="19" canonical="ELVEN_KNIGHT" label="эльфийский рыцарь"/>
+		<class id="20" canonical="TEMPLE_KNIGHT" label="храмовник" aliases="темпл кнайт;тк"/>
+		<class id="21" canonical="SWORDSINGER" label="певец меча" aliases="свс"/>
+		<class id="22" canonical="ELVEN_SCOUT" label="эльфийский разведчик"/>
+		<class id="23" canonical="PLAINS_WALKER" label="странник равнин" aliases="пв"/>
+		<class id="24" canonical="SILVER_RANGER" label="серебряный рейнджер" aliases="ср"/>
+		<class id="25" canonical="ELVEN_MAGE" label="эльф-маг"/>
+		<class id="26" canonical="ELVEN_WIZARD" label="эльфийский волшебник"/>
+		<class id="27" canonical="SPELLSINGER" label="певец заклинаний" aliases="спелсингер;сс"/>
+		<class id="28" canonical="ELEMENTAL_SUMMONER" label="элементальный призыватель" aliases="элементал саммонер;ес"/>
+		<class id="29" canonical="ORACLE" label="оракул"/>
+		<class id="30" canonical="ELDER" label="эльфийский старейшина"/>
+		<class id="31" canonical="DARK_FIGHTER" label="тёмный эльф-воин"/>
+		<class id="32" canonical="PALUS_KNIGHT" label="рыцарь Палуса"/>
+		<class id="33" canonical="SHILLIEN_KNIGHT" label="рыцарь Шилен" aliases="шк"/>
+		<class id="34" canonical="BLADEDANCER" label="танцор клинка" aliases="бд"/>
+		<class id="35" canonical="ASSASSIN" label="ассасин"/>
+		<class id="36" canonical="ABYSS_WALKER" label="странник бездны" aliases="ав"/>
+		<class id="37" canonical="PHANTOM_RANGER" label="призрачный рейнджер" aliases="фр"/>
+		<class id="38" canonical="DARK_MAGE" label="тёмный эльф-маг"/>
+		<class id="39" canonical="DARK_WIZARD" label="тёмный волшебник"/>
+		<class id="40" canonical="SPELLHOWLER" label="заклинатель ветра" aliases="спеллхаулер;сх"/>
+		<class id="41" canonical="PHANTOM_SUMMONER" label="призрачный призыватель" aliases="фантом саммонер;фс"/>
+		<class id="42" canonical="SHILLIEN_ORACLE" label="оракул Шилен"/>
+		<class id="43" canonical="SHILLIEN_ELDER" label="старейшина Шилен"/>
+		<class id="44" canonical="ORC_FIGHTER" label="орк-воин"/>
+		<class id="45" canonical="ORC_RAIDER" label="орк-налётчик"/>
+		<class id="46" canonical="DESTROYER" label="разрушитель" aliases="дестр"/>
+		<class id="47" canonical="ORC_MONK" label="орк-монах"/>
+		<class id="48" canonical="TYRANT" label="тирант"/>
+		<class id="49" canonical="ORC_MAGE" label="орк-маг"/>
+		<class id="50" canonical="ORC_SHAMAN" label="орк-шаман"/>
+		<class id="51" canonical="OVERLORD" label="владыка" aliases="овер;ол"/>
+		<class id="52" canonical="WARCRYER" label="боевой маг" aliases="варк;вк"/>
+		<class id="53" canonical="DWARVEN_FIGHTER" label="гном-воин"/>
+		<class id="54" canonical="SCAVENGER" label="собиратель"/>
+		<class id="55" canonical="BOUNTY_HUNTER" label="охотник за наградой" aliases="бх"/>
+		<class id="56" canonical="ARTISAN" label="ремесленник"/>
+		<class id="57" canonical="WARSMITH" label="кузнец" aliases="варсмит"/>
+		<class id="88" canonical="DUELIST" label="дуэлист" aliases="дуэлист"/>
+		<class id="89" canonical="DREADNOUGHT" label="полководец" aliases="дредноут"/>
+		<class id="90" canonical="PHOENIX_KNIGHT" label="рыцарь Феникса" aliases="феникс"/>
+		<class id="91" canonical="HELL_KNIGHT" label="рыцарь Ада" aliases="хелл кнайт;хк"/>
+		<class id="92" canonical="SAGITTARIUS" label="стрелец" aliases="саг;сагитариус"/>
+		<class id="93" canonical="ADVENTURER" label="авантюрист" aliases="адв"/>
+		<class id="94" canonical="ARCHMAGE" label="архимаг" aliases="архимаг"/>
+		<class id="95" canonical="SOULTAKER" label="пожиратель душ" aliases="соултейкер"/>
+		<class id="96" canonical="ARCANA_LORD" label="лорд Арканы" aliases="аркана лорд;ал"/>
+		<class id="97" canonical="CARDINAL" label="кардинал" aliases="кардинал"/>
+		<class id="98" canonical="HIEROPHANT" label="иерарх" aliases="хиро;хиера"/>
+		<class id="99" canonical="EVA_TEMPLAR" label="храмовник Евы" aliases="ева темплар"/>
+		<class id="100" canonical="SWORD_MUSE" label="муза меча" aliases="см"/>
+		<class id="101" canonical="WIND_RIDER" label="всадник ветра" aliases="вр"/>
+		<class id="102" canonical="MOONLIGHT_SENTINEL" label="лунный страж" aliases="мс"/>
+		<class id="103" canonical="MYSTIC_MUSE" label="мистическая муза" aliases="мм"/>
+		<class id="104" canonical="ELEMENTAL_MASTER" label="мастер стихий" aliases="эм"/>
+		<class id="105" canonical="EVA_SAINT" label="святой Евы"/>
+		<class id="106" canonical="SHILLIEN_TEMPLAR" label="храмовник Шилен"/>
+		<class id="107" canonical="SPECTRAL_DANCER" label="призрачный танцор" aliases="сд"/>
+		<class id="108" canonical="GHOST_HUNTER" label="охотник за призраками" aliases="гх"/>
+		<class id="109" canonical="GHOST_SENTINEL" label="призрачный страж" aliases="гс"/>
+		<class id="110" canonical="STORM_SCREAMER" label="повелитель бури" aliases="шторм скример"/>
+		<class id="111" canonical="SPECTRAL_MASTER" label="призрачный мастер" aliases="спектрал мастер"/>
+		<class id="112" canonical="SHILLIEN_SAINT" label="святой Шилен"/>
+		<class id="113" canonical="TITAN" label="титан"/>
+		<class id="114" canonical="GRAND_KHAVATARI" label="великий Хаватари" aliases="гк"/>
+		<class id="115" canonical="DOMINATOR" label="доминатор" aliases="домин"/>
+		<class id="116" canonical="DOOMCRYER" label="глас судьбы" aliases="думкраер"/>
+		<class id="117" canonical="FORTUNE_SEEKER" label="искатель удачи" aliases="спойлер"/>
+		<class id="118" canonical="MAESTRO" label="маэстро" aliases="крафтер"/>
+		<class id="123" canonical="MALE_SOLDIER" label="солдат-камаэль"/>
+		<class id="124" canonical="FEMALE_SOLDIER" label="солдатка-камаэль"/>
+		<class id="125" canonical="TROOPER" label="драгун" aliases="трупер"/>
+		<class id="126" canonical="WARDER" label="надзирательница" aliases="вардер"/>
+		<class id="127" canonical="BERSERKER" label="берсерк" aliases="берс;берсерк"/>
+		<class id="128" canonical="MALE_SOULBREAKER" label="мужчина-разрушитель душ" aliases="соулбрейкер мужчина;сбм"/>
+		<class id="129" canonical="FEMALE_SOULBREAKER" label="женщина-разрушитель душ" aliases="соулбрейкер женщина;сбж"/>
+		<class id="130" canonical="ARBALESTER" label="арбалетчица" aliases="арба"/>
+		<class id="131" canonical="DOOMBRINGER" label="каратель" aliases="думбрингер"/>
+		<class id="132" canonical="MALE_SOUL_HOUND" label="мужчина-гончая душ" aliases="соул хаунд мужчина"/>
+		<class id="133" canonical="FEMALE_SOUL_HOUND" label="женщина-гончая душ" aliases="соул хаунд женщина"/>
+		<class id="134" canonical="TRICKSTER" label="арбалетчик судьбы" aliases="трикстер"/>
+		<class id="135" canonical="INSPECTOR" label="инспектор"/>
+		<class id="136" canonical="JUDICATOR" label="арбитр" aliases="джудикатор;джуд"/>
+	</classes>
+	<identityPatterns>
+		<pattern id="identity.name.ask" kind="NAME_QUERY" phrase="как тебя зовут" priority="1000"/>
+		<pattern id="identity.name.ask.direct" kind="NAME_QUERY" phrase="назови свое имя" priority="990"/>
+		<pattern id="identity.name.ask.short" kind="NAME_QUERY" phrase="твое имя" priority="980"/>
+		<pattern id="identity.summary.ask" kind="SUMMARY_QUERY" phrase="кто ты" priority="1000"/>
+		<pattern id="identity.summary.ask.male" kind="SUMMARY_QUERY" phrase="ты кто такой" priority="1000"/>
+		<pattern id="identity.summary.ask.female" kind="SUMMARY_QUERY" phrase="ты кто такая" priority="1000"/>
+		<pattern id="identity.gender.ask" kind="GENDER_QUERY" phrase="ты парень или девушка" priority="1000"/>
+		<pattern id="identity.gender.ask.reverse" kind="GENDER_QUERY" phrase="ты девушка или парень" priority="1000"/>
+		<pattern id="identity.gender.ask.formal" kind="GENDER_QUERY" phrase="какого ты пола" priority="990"/>
+		<pattern id="identity.class.ask" kind="CLASS_QUERY" phrase="какой у тебя класс" priority="1000"/>
+		<pattern id="identity.class.ask.role" kind="CLASS_QUERY" phrase="кто ты по классу" priority="990"/>
+		<pattern id="identity.class.ask.profession" kind="CLASS_QUERY" phrase="какая у тебя профессия" priority="980"/>
+		<pattern id="identity.gender.assert" kind="GENDER_ASSERTION" phrase="ты {alias}" priority="970"/>
+		<pattern id="identity.class.assert" kind="CLASS_ASSERTION" phrase="ты {alias}" priority="960"/>
+	</identityPatterns>
+	<patterns>
+		<pattern id="v2.greeting.day" topic="greeting" act="greet.reply" phrase="доброго дня" salience="100" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.greeting.hey" topic="greeting" act="greet.reply" phrase="здорово дружище" salience="100" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.farewell.later" topic="farewell" act="farewell.reply" phrase="увидимся позже" salience="80" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.farewell.luck" topic="farewell" act="farewell.reply" phrase="удачи тебе" salience="80" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.acquaintance.meet" topic="acquaintance" act="acquaintance.reply" phrase="приятно познакомиться" salience="200" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.acquaintance.introduce" topic="acquaintance" act="acquaintance.reply" phrase="давай познакомимся" salience="200" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.mood.weary" topic="mood" act="mood.empathy" phrase="я сегодня вымотался" fact="MOOD" salience="700" ttlMinutes="1440" priority="940"/>
+		<pattern id="v2.mood.cheerful" topic="mood" act="mood.share" phrase="настроение отличное" fact="MOOD" salience="500" ttlMinutes="1440" priority="940"/>
+		<pattern id="v2.smalltalk.busy" topic="smalltalk" act="smalltalk.reply" phrase="чем сейчас занят" salience="100" ttlMinutes="0" priority="800"/>
+		<pattern id="v2.smalltalk.server" topic="smalltalk" act="smalltalk.reply" phrase="как тебе сегодня играется" salience="100" ttlMinutes="0" priority="800"/>
+		<pattern id="v2.rest.pause" topic="rest" act="rest.reply" phrase="часто делаешь перерыв" salience="120" ttlMinutes="0" priority="800"/>
+		<pattern id="v2.rest.sleep" topic="rest" act="rest.reply" phrase="когда будешь отдыхать" salience="120" ttlMinutes="0" priority="800"/>
+		<pattern id="v2.food.favorite" topic="food" act="preference.ack" phrase="какая у тебя любимая еда" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="v2.food.tell" topic="food" act="preference.ack" phrase="моя любимая еда {value}" fact="FOOD" salience="650" ttlMinutes="0" priority="930"/>
+		<pattern id="v2.music.favorite" topic="music" act="preference.ack" phrase="что у тебя в плейлисте" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="v2.music.tell" topic="music" act="preference.ack" phrase="моя любимая музыка {value}" fact="MUSIC" salience="650" ttlMinutes="0" priority="930"/>
+		<pattern id="v2.movies.recommend" topic="movies" act="preference.ack" phrase="посоветуй хороший фильм" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="v2.movies.tell" topic="movies" act="preference.ack" phrase="недавно смотрел {value}" fact="MOVIE" salience="650" ttlMinutes="0" priority="930"/>
+		<pattern id="v2.games.other" topic="games" act="preference.ack" phrase="какие еще игры любишь" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="v2.games.tell" topic="games" act="preference.ack" phrase="из игр люблю {value}" fact="GAME" salience="650" ttlMinutes="0" priority="930"/>
+		<pattern id="v2.hobbies.free" topic="hobbies" act="preference.ack" phrase="чем занимаешься в свободное время" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="v2.hobbies.tell" topic="hobbies" act="preference.ack" phrase="я увлекаюсь {value}" fact="HOBBY" salience="650" ttlMinutes="0" priority="930"/>
+		<pattern id="v2.plans.today" topic="plans" act="smalltalk.reply" phrase="что сегодня планируешь" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="v2.plans.tell" topic="plans" act="smalltalk.reply" phrase="сегодня хочу {value}" fact="PLAN" salience="550" ttlMinutes="10080" priority="930"/>
+		<pattern id="v2.likes.ask" topic="likes" act="preference.ack" phrase="что тебе нравится" salience="180" ttlMinutes="0" priority="820"/>
+		<pattern id="v2.likes.dislike" topic="likes" act="preference.ack" phrase="терпеть не могу {value}" fact="DISLIKE" salience="700" ttlMinutes="0" priority="940"/>
+		<pattern id="v2.achievement.level" topic="achievement" act="achievement.congratulate" phrase="я взял новый уровень" fact="ACHIEVEMENT" salience="900" ttlMinutes="43200" priority="920"/>
+		<pattern id="v2.achievement.success" topic="achievement" act="achievement.congratulate" phrase="сегодня мне повезло {value}" fact="ACHIEVEMENT" salience="900" ttlMinutes="43200" priority="920"/>
+		<pattern id="v2.failure.drop" topic="failure" act="failure.empathy" phrase="мне опять ничего не выпало" fact="FAILURE" salience="850" ttlMinutes="10080" priority="930"/>
+		<pattern id="v2.failure.wipe" topic="failure" act="failure.empathy" phrase="мы снова упали {value}" fact="FAILURE" salience="850" ttlMinutes="10080" priority="930"/>
+		<pattern id="v2.humor.cheer" topic="humor" act="humor.reply" phrase="развесели меня" salience="100" ttlMinutes="0" priority="850"/>
+		<pattern id="v2.humor.good" topic="humor" act="humor.reply" phrase="хорошая шутка" salience="100" ttlMinutes="0" priority="850"/>
+		<pattern id="v2.teasing.lost" topic="teasing" act="teasing.reply" phrase="ты опять заблудился" salience="250" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.teasing.loot" topic="teasing" act="teasing.reply" phrase="весь дроп себе забрал" salience="250" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.sarcasm.hero" topic="sarcasm" act="sarcasm.reply" phrase="великий герой нашелся" salience="300" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.sarcasm.plan" topic="sarcasm" act="sarcasm.reply" phrase="прекрасный был план" salience="300" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.surprise.serious" topic="surprise" act="surprise.reply" phrase="ты серьезно" salience="200" ttlMinutes="0" priority="880"/>
+		<pattern id="v2.surprise.amazing" topic="surprise" act="surprise.reply" phrase="невероятно" salience="200" ttlMinutes="0" priority="880"/>
+		<pattern id="v2.disagreement.doubt" topic="disagreement" act="disagreement.reply" phrase="сомневаюсь что это так" salience="300" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.disagreement.other" topic="disagreement" act="disagreement.reply" phrase="я думаю иначе" salience="300" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.irritation.enough" topic="irritation" act="irritation.reply" phrase="мне это уже надоело" salience="700" ttlMinutes="1440" priority="930"/>
+		<pattern id="v2.irritation.leave" topic="irritation" act="irritation.reply" phrase="оставь меня в покое" salience="700" ttlMinutes="1440" priority="930"/>
+		<pattern id="v2.apology.fault" topic="apology" act="apology.accept" phrase="это моя вина" salience="600" ttlMinutes="10080" priority="930"/>
+		<pattern id="v2.apology.pardon" topic="apology" act="apology.accept" phrase="не сердись на меня" salience="650" ttlMinutes="10080" priority="930"/>
+		<pattern id="v2.reconcile.reset" topic="reconcile" act="reconcile.reply" phrase="начнем с чистого листа" salience="700" ttlMinutes="10080" priority="930"/>
+		<pattern id="v2.reconcile.peace" topic="reconcile" act="reconcile.reply" phrase="не хочу больше ссориться" salience="700" ttlMinutes="10080" priority="930"/>
+		<pattern id="v2.relationship.close" topic="relationship" act="relationship.reply" phrase="мы стали ближе" salience="500" ttlMinutes="0" priority="880"/>
+		<pattern id="v2.relationship.flirt" topic="relationship" act="flirt.light" phrase="с тобой приятно общаться" salience="550" ttlMinutes="0" priority="900"/>
+		<pattern id="v2.pivot.adventure" topic="pivot" act="pivot.reply" phrase="ладно продолжим приключение" salience="100" ttlMinutes="0" priority="880"/>
+		<pattern id="v2.pivot.chat" topic="pivot" act="pivot.reply" phrase="поговорим об этом потом" salience="100" ttlMinutes="0" priority="880"/>
+	</patterns>
+</humanizedSemanticPack>

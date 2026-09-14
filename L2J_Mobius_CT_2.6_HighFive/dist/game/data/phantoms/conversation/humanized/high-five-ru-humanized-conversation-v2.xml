@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedConversationPack id="high-five-ru-humanized-conversation-v2" version="2">
+	<templates>
+		<template id="v2.greet.04" act="greet.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Привет! Рад, что заглянул."/>
+		<template id="v2.greet.05" act="greet.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Здорово, {name}. Как твои дела?"/>
+		<template id="v2.greet.06" act="greet.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="О, знакомый голос. Привет!"/>
+		<template id="v2.farewell.04" act="farewell.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="До скорого. Пусть дорога будет спокойной."/>
+		<template id="v2.farewell.05" act="farewell.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Увидимся, {name}. Хорошего дропа!"/>
+		<template id="v2.farewell.06" act="farewell.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Давай, ещё пересечёмся в Адене."/>
+		<template id="v2.acquaintance.04" act="acquaintance.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Рад знакомству. Моё имя — {name}."/>
+		<template id="v2.acquaintance.05" act="acquaintance.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Отлично, будем знакомы. Я {name}."/>
+		<template id="v2.acquaintance.06" act="acquaintance.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Запомнил тебя. Если что, зови меня {name}."/>
+		<template id="v2.memory.04" act="memory.recall" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Да, помню твои слова: {memory}."/>
+		<template id="v2.memory.05" act="memory.recall" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Ты упоминал {memory}; это осталось в памяти."/>
+		<template id="v2.memory.06" act="memory.recall" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Конечно помню — {memory}."/>
+		<template id="v2.mood.share.04" act="mood.share" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Настроение бодрое. Можно и пообщаться."/>
+		<template id="v2.mood.share.05" act="mood.share" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Всё хорошо: день тихий, мысли ясные."/>
+		<template id="v2.mood.share.06" act="mood.share" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Сегодня на подъёме. Даже заточка не пугает."/>
+		<template id="v2.mood.empathy.04" act="mood.empathy" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Мне жаль это слышать. Можем просто поговорить."/>
+		<template id="v2.mood.empathy.05" act="mood.empathy" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Тяжёлый день бывает у каждого. Не дави на себя."/>
+		<template id="v2.mood.empathy.06" act="mood.empathy" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Выдохни немного. Я выслушаю без лишних советов."/>
+		<template id="v2.smalltalk.04" act="smalltalk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Пока всё спокойно. Наблюдаю за суетой вокруг."/>
+		<template id="v2.smalltalk.05" act="smalltalk.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Ничего особенного, просто ловлю хороший ритм дня."/>
+		<template id="v2.smalltalk.06" act="smalltalk.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Между делом думаю про {interest}."/>
+		<template id="v2.rest.04" act="rest.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Иногда достаточно посидеть в городе и никуда не спешить."/>
+		<template id="v2.rest.05" act="rest.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Снимаю броню, выдыхаю и ненадолго забываю про гринд."/>
+		<template id="v2.rest.06" act="rest.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Хорошая компания для меня лучше любого привала."/>
+		<template id="v2.preference.04" act="preference.ack" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Понятно. У {value} явно есть своя прелесть."/>
+		<template id="v2.preference.05" act="preference.ack" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Хороший вкус. Про {value} можно долго говорить."/>
+		<template id="v2.preference.06" act="preference.ack" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Принято, {value} записываю в список важных тем."/>
+		<template id="v2.achievement.04" act="achievement.congratulate" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Сильный результат. Поздравляю от души!"/>
+		<template id="v2.achievement.05" act="achievement.congratulate" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Вот это прогресс! Хорошо сработано."/>
+		<template id="v2.achievement.06" act="achievement.congratulate" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Красота. Такой успех стоит отметить."/>
+		<template id="v2.failure.04" act="failure.empathy" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Неудача неприятная, но она не последняя точка."/>
+		<template id="v2.failure.05" act="failure.empathy" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Бывает. Соберёмся и зайдём ещё раз."/>
+		<template id="v2.failure.06" act="failure.empathy" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Сегодня не легло — значит, повезёт в следующий заход."/>
+		<template id="v2.humor.04" act="humor.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Гном назвал сундук компактным складом и снова оказался прав."/>
+		<template id="v2.humor.05" act="humor.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Мой план был безупречен, пока не начался бой."/>
+		<template id="v2.humor.06" act="humor.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Шанс заточки честный: он одинаково не любит всех."/>
+		<template id="v2.teasing.04" act="teasing.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" mature="false" text="Я не заблудился, а проверял альтернативный маршрут."/>
+		<template id="v2.teasing.05" act="teasing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" mature="false" text="Продолжай, я уже готовлю ответную подколку."/>
+		<template id="v2.teasing.06" act="teasing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" mature="false" text="Да-да, весь дроп твой. Особенно пустые мешки."/>
+		<template id="v2.sarcasm.04" act="sarcasm.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" mature="false" text="Блестящая мысль. Жаль, реальность её не поддержала."/>
+		<template id="v2.sarcasm.05" act="sarcasm.reply" band="RIVAL" register="CASUAL" profanity="NONE" mature="false" text="Конечно, без тебя рейд бы даже не заметил победу."/>
+		<template id="v2.sarcasm.06" act="sarcasm.reply" band="RIVAL" register="CASUAL" profanity="NONE" mature="false" text="Смелый план. Особенно та часть, где думают остальные."/>
+		<template id="v2.surprise.04" act="surprise.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Вот это неожиданность. Мне нужно мгновение осмыслить."/>
+		<template id="v2.surprise.05" act="surprise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Серьёзно? Такого поворота я не ждал."/>
+		<template id="v2.surprise.06" act="surprise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Ого, теперь ты точно завладел моим вниманием."/>
+		<template id="v2.disagreement.04" act="disagreement.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Я вижу это иначе, но готов выслушать доводы."/>
+		<template id="v2.disagreement.05" act="disagreement.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Не уверен. Давай сверим факты без крика."/>
+		<template id="v2.disagreement.06" act="disagreement.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Тут наши мнения разошлись. Ничего страшного."/>
+		<template id="v2.irritation.04" act="irritation.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Я услышал. Остановлюсь и дам тебе пространство."/>
+		<template id="v2.irritation.05" act="irritation.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Хорошо, без нажима. Вернёмся к разговору позже."/>
+		<template id="v2.irritation.06" act="irritation.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Понял намёк. Сбавляю громкость и темп."/>
+		<template id="v2.apology.04" act="apology.accept" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Спасибо за честность. Я принимаю извинение."/>
+		<template id="v2.apology.05" act="apology.accept" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Не переживай, зла не держу."/>
+		<template id="v2.apology.06" act="apology.accept" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Договорились, оставим это позади."/>
+		<template id="v2.reconcile.04" act="reconcile.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Я за мир. Начнём заново без старых обид."/>
+		<template id="v2.reconcile.05" act="reconcile.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Хватит ссориться. Лучше снова быть одной командой."/>
+		<template id="v2.reconcile.06" act="reconcile.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Мир. На этот раз без подвоха."/>
+		<template id="v2.relationship.04" act="relationship.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Мне важно наше доверие, даже если оно строится медленно."/>
+		<template id="v2.relationship.05" act="relationship.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="С тобой уже можно говорить без лишней осторожности."/>
+		<template id="v2.relationship.06" act="relationship.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Пожалуй, это дружба. Хорошая и без лишнего пафоса."/>
+		<template id="v2.flirt.04" act="flirt.light" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Мне приятно это слышать. Ты умеешь поднять настроение."/>
+		<template id="v2.flirt.05" act="flirt.light" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="С тобой опасно болтать — слишком быстро привыкаешь."/>
+		<template id="v2.flirt.06" act="flirt.light" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Кажется, этот разговор мне нравится всё больше."/>
+		<template id="v2.pivot.04" act="pivot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Хорошо, вернёмся к делам. Разговор продолжим потом."/>
+		<template id="v2.pivot.05" act="pivot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Ладно, снова в путь. Тему я не забуду."/>
+		<template id="v2.pivot.06" act="pivot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Переключаемся на игру, пока нас не отвлёк следующий моб."/>
+
+		<template id="v2.identity.name.01" act="identity.name.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Меня зовут {name}."/>
+		<template id="v2.identity.name.02" act="identity.name.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Я {name}. Будем знакомы."/>
+		<template id="v2.identity.name.03" act="identity.name.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Зови меня {name}."/>
+		<template id="v2.identity.summary.01" act="identity.summary.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Я {name}, мой текущий класс — {value}."/>
+		<template id="v2.identity.summary.02" act="identity.summary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="{name}. Сейчас я {value}."/>
+		<template id="v2.identity.summary.03" act="identity.summary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Я {name}; по классу — {value}."/>
+		<template id="v2.identity.gender.01" act="identity.gender.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Я {value}."/>
+		<template id="v2.identity.gender.02" act="identity.gender.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Если прямо: я {value}."/>
+		<template id="v2.identity.gender.03" act="identity.gender.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Да тут без загадки — я {value}."/>
+		<template id="v2.identity.gender.confirm.01" act="identity.gender.confirm" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Да, я {value}."/>
+		<template id="v2.identity.gender.confirm.02" act="identity.gender.confirm" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Верно, я {value}."/>
+		<template id="v2.identity.gender.confirm.03" act="identity.gender.confirm" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Угадал: я {value}."/>
+		<template id="v2.identity.gender.deny.01" act="identity.gender.deny" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Нет, я {value}."/>
+		<template id="v2.identity.gender.deny.02" act="identity.gender.deny" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Не совсем: я {value}."/>
+		<template id="v2.identity.gender.deny.03" act="identity.gender.deny" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Мимо. На самом деле я {value}."/>
+		<template id="v2.identity.class.01" act="identity.class.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Мой активный класс — {value}."/>
+		<template id="v2.identity.class.02" act="identity.class.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Сейчас я {value}."/>
+		<template id="v2.identity.class.03" act="identity.class.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="По текущему классу я {value}."/>
+		<template id="v2.identity.class.confirm.01" act="identity.class.confirm" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Да, мой текущий класс — {value}."/>
+		<template id="v2.identity.class.confirm.02" act="identity.class.confirm" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Точно, сейчас я {value}."/>
+		<template id="v2.identity.class.confirm.03" act="identity.class.confirm" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Верно: {value}."/>
+		<template id="v2.identity.class.deny.01" act="identity.class.deny" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Нет, мой текущий класс — {value}."/>
+		<template id="v2.identity.class.deny.02" act="identity.class.deny" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Не угадал. Сейчас я {value}."/>
+		<template id="v2.identity.class.deny.03" act="identity.class.deny" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Мимо: по классу я {value}."/>
+		<template id="v2.identity.role.confirm.01" act="identity.role.confirm" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Да, по роли я {value}."/>
+		<template id="v2.identity.role.confirm.02" act="identity.role.confirm" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Верно, меня можно считать {value}."/>
+		<template id="v2.identity.role.confirm.03" act="identity.role.confirm" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Ага, моя роль — {value}."/>
+		<template id="v2.identity.role.deny.01" act="identity.role.deny" band="UNKNOWN" register="NEUTRAL" profanity="NONE" mature="false" text="Нет, к этой роли мой текущий класс не относится: {value}."/>
+		<template id="v2.identity.role.deny.02" act="identity.role.deny" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Не в этот раз. Сейчас я {value}."/>
+		<template id="v2.identity.role.deny.03" act="identity.role.deny" band="UNKNOWN" register="CASUAL" profanity="NONE" mature="false" text="Нет, по активному классу я {value}."/>
+	</templates>
+</humanizedConversationPack>

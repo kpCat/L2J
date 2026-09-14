@@ -547,7 +547,7 @@ public final class PhantomSystem
 				final PhantomHumanizedConversationService humanizedConversation;
 				if (_settings.conversation().humanizedEnabled())
 				{
-					final PhantomHumanizedCatalog humanizedCatalog = PhantomHumanizedCatalog.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms").toPath(), _settings.conversation().customPackEnabled());
+					final PhantomHumanizedCatalog humanizedCatalog = PhantomHumanizedCatalog.loadV2(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms").toPath(), _settings.conversation().customPackEnabled());
 					final PhantomHumanizedConversationService.Settings humanizedSettings = new PhantomHumanizedConversationService.Settings(
 						true,
 						PhantomHumanizedCatalog.Register.valueOf(_settings.conversation().register().name()),

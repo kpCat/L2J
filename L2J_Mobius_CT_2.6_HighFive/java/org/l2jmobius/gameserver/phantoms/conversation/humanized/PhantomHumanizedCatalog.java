@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -87,6 +88,93 @@ public final class PhantomHumanizedCatalog
 		MOOD,
 		ACHIEVEMENT,
 		FAILURE
+	}
+
+	public enum Gender
+	{
+		MALE,
+		FEMALE,
+		UNKNOWN
+	}
+
+	public enum IdentityKind
+	{
+		NAME_QUERY,
+		SUMMARY_QUERY,
+		GENDER_QUERY,
+		GENDER_ASSERTION,
+		CLASS_QUERY,
+		CLASS_ASSERTION
+	}
+
+	public record RuntimeIdentity(long profileId, int characterObjectId, String characterName, String displayName, Gender gender, int activeClassId, String activeClassName)
+	{
+		public RuntimeIdentity
+		{
+			characterName = safe(characterName, "");
+			displayName = safe(displayName, characterName);
+			gender = gender == null ? Gender.UNKNOWN : gender;
+			activeClassName = safe(activeClassName, "");
+			if ((profileId < 0) || (characterObjectId < 0) || (characterName.length() > 64) || (displayName.length() > 64) || (activeClassId < -1) || (activeClassName.length() > 64))
+			{
+				throw new IllegalArgumentException("Humanized runtime identity is invalid.");
+			}
+		}
+
+		public static RuntimeIdentity unavailable(long profileId, String displayName)
+		{
+			return new RuntimeIdentity(Math.max(0, profileId), 0, safe(displayName, ""), safe(displayName, ""), Gender.UNKNOWN, -1, "");
+		}
+
+		public boolean available()
+		{
+			return (profileId > 0) && (characterObjectId > 0) && !characterName.isBlank() && !displayName.isBlank() && (gender != Gender.UNKNOWN) && (activeClassId >= 0) && !activeClassName.isBlank();
+		}
+	}
+
+	public record ClassAliasResolution(Integer exactClassId, String roleId, String roleLabel, Set<Integer> classIds)
+	{
+		public ClassAliasResolution
+		{
+			classIds = Set.copyOf(classIds);
+			roleLabel = roleId == null ? "" : boundedText(roleLabel, 64, "Humanized v2 role label");
+			if (((exactClassId == null) == (roleId == null)) || classIds.isEmpty() || ((exactClassId != null) && ((classIds.size() != 1) || !classIds.contains(exactClassId))))
+			{
+				throw new IllegalArgumentException("Humanized class alias resolution is invalid.");
+			}
+		}
+
+		public boolean exact()
+		{
+			return exactClassId != null;
+		}
+	}
+
+	private record GenderDefinition(Gender gender, String label, Set<String> aliases)
+	{
+	}
+
+	private record ClassDefinition(int id, String canonical, String label, Set<String> aliases)
+	{
+	}
+
+	private record RoleDefinition(String id, String label, Set<Integer> classIds, Set<String> aliases)
+	{
+	}
+
+	private record IdentityPattern(String id, IdentityKind kind, String phrase, int priority)
+	{
+		private IdentityPattern
+		{
+			id = key(id, "Humanized identity pattern ID");
+			Objects.requireNonNull(kind);
+			phrase = normalize(phrase);
+			final int aliases = count(phrase, "{alias}");
+			if (phrase.isEmpty() || (phrase.length() > 160) || (aliases > 1) || ((kind == IdentityKind.GENDER_ASSERTION) || (kind == IdentityKind.CLASS_ASSERTION)) != (aliases == 1) || (phrase.contains("{alias}") && !phrase.startsWith("{alias}") && !phrase.endsWith("{alias}")) || (priority < 0) || (priority > 1000))
+			{
+				throw new IllegalArgumentException("Humanized identity pattern is invalid: " + id);
+			}
+		}
 	}
 
 	public record Limits(int subjects, int facts, int factsPerSubject, int recentResponses, int valueCodePoints, int valueUtf8Bytes, int generatedTurnBudget, int generatedCooldownMinutes, int templatesPerAct)
@@ -177,6 +265,14 @@ public final class PhantomHumanizedCatalog
 	private static final int MAX_CORE_BYTES = 262144;
 	private static final int MAX_CUSTOM_BYTES = 65536;
 	private static final int MAX_CORPUS_BYTES = 262144;
+	private static final int V2_MAX_CLASSES = 128;
+	private static final int V2_MAX_EXACT_CLASS_ALIASES = 384;
+	private static final int V2_MAX_ROLES = 16;
+	private static final int V2_MAX_ROLE_ALIASES = 64;
+	private static final int V2_MAX_GENDER_ALIASES = 16;
+	private static final int V2_MAX_IDENTITY_PATTERNS = 32;
+	private static final int V2_MAX_ADDITIONAL_PATTERNS = 128;
+	private static final int V2_MAX_ADDITIONAL_TEMPLATES = 256;
 	private final Limits _limits;
 	private final Map<String, String> _aliases;
 	private final List<TopicPattern> _patterns;
@@ -188,8 +284,15 @@ public final class PhantomHumanizedCatalog
 	private final String _customHash;
 	private final String _combinedHash;
 	private final int _corpusCases;
+	private final String _familyId;
+	private final int _familyVersion;
+	private final Map<Gender, GenderDefinition> _genders;
+	private final Map<Integer, ClassDefinition> _classes;
+	private final Map<String, ClassAliasResolution> _classAliases;
+	private final Map<String, Gender> _genderAliases;
+	private final List<IdentityPattern> _identityPatterns;
 
-	private PhantomHumanizedCatalog(Limits limits, Map<String, String> aliases, List<TopicPattern> patterns, List<Template> templates, List<Profanity> profanity, List<PersonaInterest> interests, Set<String> blocked, String coreHash, String customHash, String combinedHash, int corpusCases)
+	private PhantomHumanizedCatalog(Limits limits, Map<String, String> aliases, List<TopicPattern> patterns, List<Template> templates, List<Profanity> profanity, List<PersonaInterest> interests, Set<String> blocked, String coreHash, String customHash, String combinedHash, int corpusCases, String familyId, int familyVersion, Map<Gender, GenderDefinition> genders, Map<Integer, ClassDefinition> classes, Map<String, ClassAliasResolution> classAliases, Map<String, Gender> genderAliases, List<IdentityPattern> identityPatterns)
 	{
 		_limits = limits;
 		_aliases = Map.copyOf(aliases);
@@ -202,9 +305,26 @@ public final class PhantomHumanizedCatalog
 		_customHash = hash(customHash);
 		_combinedHash = hash(combinedHash);
 		_corpusCases = corpusCases;
+		_familyId = key(familyId, "Humanized family ID");
+		_familyVersion = familyVersion;
+		_genders = Map.copyOf(genders);
+		_classes = Map.copyOf(classes);
+		_classAliases = Map.copyOf(classAliases);
+		_genderAliases = Map.copyOf(genderAliases);
+		_identityPatterns = identityPatterns.stream().sorted(Comparator.comparingInt(IdentityPattern::priority).reversed().thenComparing(Comparator.comparingInt((IdentityPattern value) -> value.phrase().length()).reversed()).thenComparing(IdentityPattern::id)).toList();
 	}
 
 	public static PhantomHumanizedCatalog load(Path phantomDataRoot, boolean customEnabled)
+	{
+		return load(phantomDataRoot, customEnabled, false);
+	}
+
+	public static PhantomHumanizedCatalog loadV2(Path phantomDataRoot, boolean customEnabled)
+	{
+		return load(phantomDataRoot, customEnabled, true);
+	}
+
+	private static PhantomHumanizedCatalog load(Path phantomDataRoot, boolean customEnabled, boolean version2)
 	{
 		Objects.requireNonNull(phantomDataRoot);
 		final Path root = phantomDataRoot.toAbsolutePath().normalize();
@@ -212,7 +332,9 @@ public final class PhantomHumanizedCatalog
 		final Path conversation = root.resolve("conversation/humanized/high-five-ru-humanized-conversation-v1.xml");
 		final Path persona = root.resolve("conversation/humanized/high-five-ru-persona-v1.xml");
 		final Path corpus = root.resolve("semantic/humanized/high-five-ru-humanized-corpus-v1.tsv");
-		final List<Path> coreFiles = List.of(semantic, conversation, persona, corpus);
+		final Path semanticV2 = root.resolve("semantic/humanized/high-five-ru-humanized-semantic-v2.xml");
+		final Path conversationV2 = root.resolve("conversation/humanized/high-five-ru-humanized-conversation-v2.xml");
+		final List<Path> coreFiles = version2 ? List.of(semantic, conversation, persona, corpus, semanticV2, conversationV2) : List.of(semantic, conversation, persona, corpus);
 		final List<Path> customFiles = List.of(
 			root.resolve("semantic/custom/my-ru-aliases.xml"),
 			root.resolve("semantic/custom/my-slang.xml"),
@@ -224,6 +346,11 @@ public final class PhantomHumanizedCatalog
 		loader.readSemantic(semantic, false);
 		loader.readConversation(conversation, false, false);
 		loader.readPersona(persona);
+		if (version2)
+		{
+			loader.readSemanticV2(semanticV2);
+			loader.readConversationV2(conversationV2);
+		}
 		if (customEnabled)
 		{
 			loader.readAliases(customFiles.get(0), "aliases", true);
@@ -234,12 +361,18 @@ public final class PhantomHumanizedCatalog
 			loader.readTemplates(customFiles.get(5), "matureDialogue", true, true);
 		}
 		loader.validateCoverage();
+		if (version2)
+		{
+			loader.validateV2Coverage();
+		}
 		final String coreHash = contentHash(coreFiles, MAX_CORE_BYTES, MAX_CORPUS_BYTES);
 		final String customHash = customEnabled ? contentHash(customFiles, MAX_CUSTOM_BYTES, MAX_CUSTOM_BYTES) : sha256("custom.disabled");
-		final String combinedHash = sha256(coreHash + '|' + customHash + "|v1");
-		final PhantomHumanizedCatalog provisional = new PhantomHumanizedCatalog(loader._limits, loader._aliases, new ArrayList<>(loader._patterns.values()), new ArrayList<>(loader._templates.values()), new ArrayList<>(loader._profanity.values()), new ArrayList<>(loader._interests.values()), loader._blocked, coreHash, customHash, combinedHash, 0);
+		final int familyVersion = version2 ? 2 : 1;
+		final String familyId = "high-five-ru-humanized-v" + familyVersion;
+		final String combinedHash = sha256(coreHash + '|' + customHash + "|v" + familyVersion);
+		final PhantomHumanizedCatalog provisional = new PhantomHumanizedCatalog(loader._limits, loader._aliases, new ArrayList<>(loader._patterns.values()), new ArrayList<>(loader._templates.values()), new ArrayList<>(loader._profanity.values()), new ArrayList<>(loader._interests.values()), loader._blocked, coreHash, customHash, combinedHash, 0, familyId, familyVersion, loader._genders, loader._classes, loader._classAliases, loader._genderAliases, new ArrayList<>(loader._identityPatterns.values()));
 		final int corpusCases = validateCorpus(corpus, provisional);
-		return new PhantomHumanizedCatalog(loader._limits, loader._aliases, new ArrayList<>(loader._patterns.values()), new ArrayList<>(loader._templates.values()), new ArrayList<>(loader._profanity.values()), new ArrayList<>(loader._interests.values()), loader._blocked, coreHash, customHash, combinedHash, corpusCases);
+		return new PhantomHumanizedCatalog(loader._limits, loader._aliases, new ArrayList<>(loader._patterns.values()), new ArrayList<>(loader._templates.values()), new ArrayList<>(loader._profanity.values()), new ArrayList<>(loader._interests.values()), loader._blocked, coreHash, customHash, combinedHash, corpusCases, familyId, familyVersion, loader._genders, loader._classes, loader._classAliases, loader._genderAliases, new ArrayList<>(loader._identityPatterns.values()));
 	}
 
 	public Optional<Match> understand(String text)
@@ -268,6 +401,100 @@ public final class PhantomHumanizedCatalog
 			}
 		}
 		return Optional.empty();
+	}
+
+	public Optional<Match> understandIdentity(String text, RuntimeIdentity identity)
+	{
+		if ((_familyVersion < 2) || (identity == null) || !identity.available())
+		{
+			return Optional.empty();
+		}
+		String normalized = normalize(text);
+		if (normalized.isEmpty() || (normalized.codePointCount(0, normalized.length()) > 256))
+		{
+			return Optional.empty();
+		}
+		normalized = applyAliases(normalized);
+		final String padded = ' ' + normalized + ' ';
+		if (_blocked.stream().anyMatch(value -> padded.contains(' ' + value + ' ')))
+		{
+			return Optional.empty();
+		}
+		final ClassDefinition activeClass = _classes.get(identity.activeClassId());
+		final GenderDefinition gender = _genders.get(identity.gender());
+		if ((activeClass == null) || !activeClass.canonical().equals(identity.activeClassName()) || (gender == null))
+		{
+			return Optional.empty();
+		}
+		for (IdentityPattern pattern : _identityPatterns)
+		{
+			final String alias = identityMatch(pattern.phrase(), normalized);
+			if (alias == null)
+			{
+				continue;
+			}
+			String act;
+			String value;
+			switch (pattern.kind())
+			{
+				case NAME_QUERY ->
+				{
+					act = "identity.name.reply";
+					value = activeClass.label();
+				}
+				case SUMMARY_QUERY ->
+				{
+					act = "identity.summary.reply";
+					value = activeClass.label();
+				}
+				case GENDER_QUERY ->
+				{
+					act = "identity.gender.reply";
+					value = gender.label();
+				}
+				case GENDER_ASSERTION ->
+				{
+					final Gender asserted = _genderAliases.get(alias);
+					if (asserted == null)
+					{
+						continue;
+					}
+					act = asserted == identity.gender() ? "identity.gender.confirm" : "identity.gender.deny";
+					value = gender.label();
+				}
+				case CLASS_QUERY ->
+				{
+					act = "identity.class.reply";
+					value = activeClass.label();
+				}
+				case CLASS_ASSERTION ->
+				{
+					final ClassAliasResolution resolution = _classAliases.get(alias);
+					if (resolution == null)
+					{
+						continue;
+					}
+					if (resolution.exact())
+					{
+						act = resolution.exactClassId() == identity.activeClassId() ? "identity.class.confirm" : "identity.class.deny";
+						value = activeClass.label();
+					}
+					else
+					{
+						act = resolution.classIds().contains(identity.activeClassId()) ? "identity.role.confirm" : "identity.role.deny";
+						value = act.endsWith("confirm") ? resolution.roleLabel() : activeClass.label();
+					}
+				}
+				default -> throw new IllegalStateException("Unhandled humanized identity pattern.");
+			}
+			return Optional.of(new Match(pattern.id(), "identity", act, null, null, value, 0, 0, sha256(normalized)));
+		}
+		return Optional.empty();
+	}
+
+	public Optional<ClassAliasResolution> classAlias(String alias)
+	{
+		return Optional.ofNullable(_classAliases.get(normalize(alias)));
 	}
 
 	public Selection select(String act, RelationshipBand band, Register register, ProfanityMode profanityMode, Variation variation, boolean matureEnabled, boolean privateChannel, String ownerName, String value, String memory, String interest, long selector, Set<String> recentHashes)
@@ -340,6 +567,31 @@ public final class PhantomHumanizedCatalog
 	public int corpusCases()
 	{
 		return _corpusCases;
+	}
+
+	public String familyId()
+	{
+		return _familyId;
+	}
+
+	public int familyVersion()
+	{
+		return _familyVersion;
+	}
+
+	public int classCount()
+	{
+		return _classes.size();
+	}
+
+	public int classAliasCount()
+	{
+		return _classAliases.size();
+	}
+
+	public int identityPatternCount()
+	{
+		return _identityPatterns.size();
 	}
 
 	public int patternCount()
@@ -416,6 +668,28 @@ public final class PhantomHumanizedCatalog
 		return null;
 	}
 
+	private static String identityMatch(String pattern, String text)
+	{
+		final int marker = pattern.indexOf("{alias}");
+		if (marker < 0)
+		{
+			return pattern.equals(text) ? "" : null;
+		}
+		final String prefix = pattern.substring(0, marker).strip();
+		final String suffix = pattern.substring(marker + 7).strip();
+		if (!prefix.isEmpty() && text.startsWith(prefix + ' '))
+		{
+			final String value = text.substring(prefix.length()).strip();
+			return value.isEmpty() ? null : value;
+		}
+		if (!suffix.isEmpty() && text.endsWith(' ' + suffix))
+		{
+			final String value = text.substring(0, text.length() - suffix.length()).strip();
+			return value.isEmpty() ? null : value;
+		}
+		return null;
+	}
+
 	private static boolean profanityContext(String act, RelationshipBand band)
 	{
 		return (band != RelationshipBand.UNKNOWN) && Set.of("irritation.reply", "failure.empathy", "disagreement.reply", "achievement.congratulate", "humor.reply", "surprise.reply", "sarcasm.reply").contains(act);
@@ -480,7 +754,16 @@ public final class PhantomHumanizedCatalog
 		private final Map<String, Profanity> _profanity = new LinkedHashMap<>();
 		private final Map<String, PersonaInterest> _interests = new LinkedHashMap<>();
 		private final Set<String> _blocked = new HashSet<>();
+		private final Map<Gender, GenderDefinition> _genders = new java.util.EnumMap<>(Gender.class);
+		private final Map<Integer, ClassDefinition> _classes = new LinkedHashMap<>();
+		private final Map<String, RoleDefinition> _roles = new LinkedHashMap<>();
+		private final Map<String, ClassAliasResolution> _classAliases = new TreeMap<>();
+		private final Map<String, Gender> _genderAliases = new TreeMap<>();
+		private final Map<String, IdentityPattern> _identityPatterns = new LinkedHashMap<>();
 		private Limits _limits;
+		private boolean _v2BoundsRead;
+		private int _v1PatternCount;
+		private int _v1TemplateCount;
 
 		private void readSemantic(Path path, boolean custom)
 		{
@@ -523,6 +806,182 @@ public final class PhantomHumanizedCatalog
 			if ((_limits == null) || _blocked.isEmpty())
 			{
 				throw new IllegalArgumentException("Humanized semantic pack is incomplete.");
+			}
+		}
+
+		private void readSemanticV2(Path path)
+		{
+			_v1PatternCount = _patterns.size();
+			final Element root = root(path, "humanizedSemanticPack", MAX_CORE_BYTES);
+			requireAttributes(root, Set.of("id", "version"));
+			if (!attribute(root, "id").equals("high-five-ru-humanized-semantic-v2"))
+			{
+				throw new IllegalArgumentException("Humanized v2 semantic pack ID is invalid.");
+			}
+			requireVersion(root, 2);
+			for (Element child : children(root))
+			{
+				switch (child.getTagName())
+				{
+					case "bounds" -> readV2Bounds(child);
+					case "genders" -> readV2Genders(child);
+					case "roles" -> readV2Roles(child);
+					case "classes" -> readV2Classes(child);
+					case "identityPatterns" -> readV2IdentityPatterns(child);
+					case "patterns" -> readPatternElements(child, false);
+					default -> throw new IllegalArgumentException("Unknown humanized v2 semantic element: " + child.getTagName());
+				}
+			}
+			if (!_v2BoundsRead || _genders.isEmpty() || _roles.isEmpty() || _classes.isEmpty() || _identityPatterns.isEmpty())
+			{
+				throw new IllegalArgumentException("Humanized v2 semantic pack is incomplete.");
+			}
+			if ((_patterns.size() - _v1PatternCount) > V2_MAX_ADDITIONAL_PATTERNS)
+			{
+				throw new IllegalArgumentException("Humanized v2 additional pattern bound was exceeded.");
+			}
+			indexV2Aliases();
+		}
+
+		private void readConversationV2(Path path)
+		{
+			_v1TemplateCount = _templates.size();
+			final Element root = root(path, "humanizedConversationPack", MAX_CORE_BYTES);
+			requireAttributes(root, Set.of("id", "version"));
+			if (!attribute(root, "id").equals("high-five-ru-humanized-conversation-v2"))
+			{
+				throw new IllegalArgumentException("Humanized v2 conversation pack ID is invalid.");
+			}
+			requireVersion(root, 2);
+			for (Element child : children(root))
+			{
+				requireTag(child, "templates");
+				readTemplateElements(child, false, false);
+			}
+			if ((_templates.size() - _v1TemplateCount) > V2_MAX_ADDITIONAL_TEMPLATES)
+			{
+				throw new IllegalArgumentException("Humanized v2 additional template bound was exceeded.");
+			}
+		}
+
+		private void readV2Bounds(Element element)
+		{
+			if (_v2BoundsRead)
+			{
+				throw new IllegalArgumentException("Humanized v2 bounds are duplicated.");
+			}
+			requireAttributes(element, Set.of("classes", "exactClassAliases", "roles", "roleAliases", "genderAliases", "identityPatterns", "additionalPatterns", "additionalTemplates"));
+			if ((integer(element, "classes") != V2_MAX_CLASSES) || (integer(element, "exactClassAliases") != V2_MAX_EXACT_CLASS_ALIASES) || (integer(element, "roles") != V2_MAX_ROLES) || (integer(element, "roleAliases") != V2_MAX_ROLE_ALIASES) || (integer(element, "genderAliases") != V2_MAX_GENDER_ALIASES) || (integer(element, "identityPatterns") != V2_MAX_IDENTITY_PATTERNS) || (integer(element, "additionalPatterns") != V2_MAX_ADDITIONAL_PATTERNS) || (integer(element, "additionalTemplates") != V2_MAX_ADDITIONAL_TEMPLATES))
+			{
+				throw new IllegalArgumentException("Humanized v2 declared bounds do not match runtime hard bounds.");
+			}
+			_v2BoundsRead = true;
+		}
+
+		private void readV2Genders(Element parent)
+		{
+			requireAttributes(parent, Set.of());
+			for (Element item : children(parent))
+			{
+				requireTag(item, "gender");
+				requireAttributes(item, Set.of("value", "label", "aliases"));
+				final Gender gender = enumValue(item, "value", Gender.class);
+				if (gender == Gender.UNKNOWN)
+				{
+					throw new IllegalArgumentException("Humanized v2 gender value must be canonical MALE or FEMALE.");
+				}
+				final GenderDefinition definition = new GenderDefinition(gender, boundedText(attribute(item, "label"), 64, "Humanized v2 gender label"), aliases(attribute(item, "aliases"), "Humanized v2 gender alias"));
+				if (_genders.putIfAbsent(gender, definition) != null)
+				{
+					throw new IllegalArgumentException("Humanized v2 gender is duplicated: " + gender);
+				}
+			}
+		}
+
+		private void readV2Roles(Element parent)
+		{
+			requireAttributes(parent, Set.of());
+			for (Element item : children(parent))
+			{
+				requireTag(item, "role");
+				requireAttributes(item, Set.of("id", "label", "classes", "aliases"));
+				final String id = key(attribute(item, "id"), "Humanized v2 role ID");
+				final RoleDefinition definition = new RoleDefinition(id, boundedText(attribute(item, "label"), 64, "Humanized v2 role label"), integerSet(attribute(item, "classes"), "Humanized v2 role classes"), aliases(attribute(item, "aliases"), "Humanized v2 role alias"));
+				if (_roles.putIfAbsent(id, definition) != null)
+				{
+					throw new IllegalArgumentException("Humanized v2 role is duplicated: " + id);
+				}
+			}
+		}
+
+		private void readV2Classes(Element parent)
+		{
+			requireAttributes(parent, Set.of());
+			for (Element item : children(parent))
+			{
+				requireTag(item, "class");
+				requireAttributes(item, Set.of("id", "canonical", "label", "aliases"));
+				final int id = integer(item, "id");
+				final String canonical = attribute(item, "canonical");
+				final PlayerClass playerClass = PlayerClass.getPlayerClass(id);
+				if ((playerClass == null) || !playerClass.name().equals(canonical))
+				{
+					throw new IllegalArgumentException("Humanized v2 class is not a canonical PlayerClass: " + id + '/' + canonical);
+				}
+				final Set<String> aliases = item.hasAttribute("aliases") ? aliases(attribute(item, "aliases"), "Humanized v2 class alias") : Set.of();
+				final ClassDefinition definition = new ClassDefinition(id, canonical, boundedText(attribute(item, "label"), 64, "Humanized v2 class label"), aliases);
+				if (_classes.putIfAbsent(id, definition) != null)
+				{
+					throw new IllegalArgumentException("Humanized v2 class is duplicated: " + id);
+				}
+			}
+		}
+
+		private void readV2IdentityPatterns(Element parent)
+		{
+			requireAttributes(parent, Set.of());
+			for (Element item : children(parent))
+			{
+				requireTag(item, "pattern");
+				requireAttributes(item, Set.of("id", "kind", "phrase", "priority"));
+				final IdentityPattern pattern = new IdentityPattern(attribute(item, "id"), enumValue(item, "kind", IdentityKind.class), attribute(item, "phrase"), integer(item, "priority"));
+				put(_identityPatterns, pattern.id(), pattern, false);
+			}
+		}
+
+		private void indexV2Aliases()
+		{
+			for (GenderDefinition definition : _genders.values())
+			{
+				for (String alias : definition.aliases())
+				{
+					if (_genderAliases.putIfAbsent(alias, definition.gender()) != null)
+					{
+						throw new IllegalArgumentException("Humanized v2 normalized gender alias collision: " + alias);
+					}
+				}
+			}
+			for (ClassDefinition definition : _classes.values())
+			{
+				final Set<String> exactAliases = new HashSet<>(definition.aliases());
+				exactAliases.add(normalize(definition.canonical().replace('_', ' ')));
+				for (String alias : exactAliases)
+				{
+					if (_classAliases.putIfAbsent(alias, new ClassAliasResolution(definition.id(), null, "", Set.of(definition.id()))) != null)
+					{
+						throw new IllegalArgumentException("Humanized v2 normalized exact class alias collision: " + alias);
+					}
+				}
+			}
+			for (RoleDefinition definition : _roles.values())
+			{
+				for (String alias : definition.aliases())
+				{
+					if (_classAliases.putIfAbsent(alias, new ClassAliasResolution(null, definition.id(), definition.label(), definition.classIds())) != null)
+					{
+						throw new IllegalArgumentException("Humanized v2 normalized class/role alias collision: " + alias);
+					}
+				}
 			}
 		}
 
@@ -703,6 +1162,71 @@ public final class PhantomHumanizedCatalog
 				throw new IllegalArgumentException("Humanized catalog exceeds hard entry bounds.");
 			}
 		}
+
+		private void validateV2Coverage()
+		{
+			final Set<Integer> canonicalClassIds = new HashSet<>();
+			for (PlayerClass playerClass : PlayerClass.values())
+			{
+				canonicalClassIds.add(playerClass.getId());
+			}
+			if (!_classes.keySet().equals(canonicalClassIds))
+			{
+				throw new IllegalArgumentException("Humanized v2 class catalog does not exactly cover canonical PlayerClass IDs.");
+			}
+			if (!_genders.keySet().equals(EnumSet.of(Gender.MALE, Gender.FEMALE)))
+			{
+				throw new IllegalArgumentException("Humanized v2 gender catalog must contain exactly MALE and FEMALE.");
+			}
+			final Set<String> requiredRoles = Set.of("tank", "melee", "damage", "archer", "nuker", "summoner", "cat_summoner", "healer", "bishop_line", "support", "kamael");
+			if (!_roles.keySet().containsAll(requiredRoles) || !_roles.get("cat_summoner").classIds().equals(Set.of(14, 96)))
+			{
+				throw new IllegalArgumentException("Humanized v2 representative role or cat-summoner coverage is incomplete.");
+			}
+			for (RoleDefinition role : _roles.values())
+			{
+				if (!canonicalClassIds.containsAll(role.classIds()))
+				{
+					throw new IllegalArgumentException("Humanized v2 role references an unknown class: " + role.id());
+				}
+			}
+			final long exactAliases = _classAliases.values().stream().filter(ClassAliasResolution::exact).count();
+			final long roleAliases = _classAliases.size() - exactAliases;
+			if ((_classes.size() > V2_MAX_CLASSES) || (exactAliases > V2_MAX_EXACT_CLASS_ALIASES) || (_roles.size() > V2_MAX_ROLES) || (roleAliases > V2_MAX_ROLE_ALIASES) || (_genderAliases.size() > V2_MAX_GENDER_ALIASES) || (_identityPatterns.size() > V2_MAX_IDENTITY_PATTERNS))
+			{
+				throw new IllegalArgumentException("Humanized v2 identity catalog exceeds hard entry bounds.");
+			}
+			final Set<String> identityActs = Set.of("identity.name.reply", "identity.summary.reply", "identity.gender.reply", "identity.gender.confirm", "identity.gender.deny", "identity.class.reply", "identity.class.confirm", "identity.class.deny", "identity.role.confirm", "identity.role.deny");
+			final Map<String, Long> cleanTemplates = new HashMap<>();
+			final Set<String> normalizedTexts = new HashSet<>();
+			for (Template template : _templates.values())
+			{
+				if (!normalizedTexts.add(normalize(template.text())))
+				{
+					throw new IllegalArgumentException("Humanized v2 duplicate normalized response text: " + template.id());
+				}
+				if (!template.mature() && (template.profanity() == ProfanityMode.NONE))
+				{
+					cleanTemplates.merge(template.act(), 1L, Long::sum);
+				}
+			}
+			for (String act : identityActs)
+			{
+				if (cleanTemplates.getOrDefault(act, 0L) < _limits.templatesPerAct())
+				{
+					throw new IllegalArgumentException("Humanized v2 identity act has fewer than required clean templates: " + act);
+				}
+			}
+			final Set<String> socialActs = new HashSet<>();
+			_patterns.values().stream().limit(_v1PatternCount).forEach(pattern -> socialActs.add(pattern.act()));
+			for (String act : socialActs)
+			{
+				if (cleanTemplates.getOrDefault(act, 0L) < 6)
+				{
+					throw new IllegalArgumentException("Humanized v2 social act has fewer than six clean templates: " + act);
+				}
+			}
+		}
 	}
 
 	private static <T> void put(Map<String, T> values, String id, T value, boolean override)
@@ -873,10 +1397,53 @@ public final class PhantomHumanizedCatalog
 
 	private static void requireVersion(Element root)
 	{
-		if (!attribute(root, "version").equals("1"))
+		requireVersion(root, 1);
+	}
+
+	private static void requireVersion(Element root, int expected)
+	{
+		if (!attribute(root, "version").equals(Integer.toString(expected)))
 		{
-			throw new IllegalArgumentException("Humanized XML version must be 1.");
+			throw new IllegalArgumentException("Humanized XML version must be " + expected + '.');
 		}
+	}
+
+	private static Set<String> aliases(String value, String label)
+	{
+		final Set<String> result = new HashSet<>();
+		for (String part : value.split(";", -1))
+		{
+			final String alias = normalize(part);
+			if (alias.isEmpty() || (alias.codePointCount(0, alias.length()) > 48) || (alias.getBytes(StandardCharsets.UTF_8).length > 128) || !result.add(alias))
+			{
+				throw new IllegalArgumentException(label + " is empty, duplicated or outside bounds.");
+			}
+		}
+		return Set.copyOf(result);
+	}
+
+	private static Set<Integer> integerSet(String value, String label)
+	{
+		final Set<Integer> result = new HashSet<>();
+		for (String part : value.split(",", -1))
+		{
+			try
+			{
+				if (!part.equals(part.strip()) || !part.matches("[0-9]+") || !result.add(Integer.parseInt(part)))
+				{
+					throw new IllegalArgumentException(label + " is invalid or duplicated.");
+				}
+			}
+			catch (NumberFormatException exception)
+			{
+				throw new IllegalArgumentException(label + " contains an invalid integer.", exception);
+			}
+		}
+		if (result.isEmpty() || (result.size() > V2_MAX_CLASSES))
+		{
+			throw new IllegalArgumentException(label + " is empty or outside bounds.");
+		}
+		return Set.copyOf(result);
 	}
 
 	private static String contentHash(List<Path> paths, int xmlLimit, int otherLimit)
