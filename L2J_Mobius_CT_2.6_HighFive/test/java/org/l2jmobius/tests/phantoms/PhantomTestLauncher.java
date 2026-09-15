@@ -444,6 +444,7 @@ public final class PhantomTestLauncher
 			case "post001-recipe-cost" -> new PhantomPost001RecipeCostSuite();
 			case "post001-loot-fair-value" -> new PhantomPost001LootFairValueSuite();
 			case "post001-h5-source-matrix" -> new PhantomPost001H5SourceMatrixSuite();
+			case "post001-autonomous-market" -> new org.l2jmobius.gameserver.phantoms.PhantomAutonomousMarketSuite();
 			case "farming-resource-policy" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.RESOURCE_POLICY);
 			case "farming-perception-claims" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.PERCEPTION_CLAIMS);
 			case "farming-party-share" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.PARTY_SHARE);

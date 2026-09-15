@@ -138,6 +138,27 @@ public final class PhantomStoreService
 		return stored == null ? Result.REJECTED : open(profileId, activityState, stored.plan(), now);
 	}
 
+	public Optional<PhantomStorePlan> currentPlan(long profileId)
+	{
+		return Optional.ofNullable(find(profileId)).map(VersionedPlan::plan);
+	}
+
+	/** Bounded durable owner inventory for crash recovery; no per-Phantom DB scan. */
+	public List<Long> planOwnersAfter(long cursor, int limit)
+	{
+		if ((cursor < 0) || (limit < 1) || (limit > 100))
+		{
+			throw new IllegalArgumentException("Invalid private-store recovery page.");
+		}
+		return _profiles.listManagedAfter(PhantomStorePlan.COMPONENT_TYPE, cursor, limit).stream().map(managed -> managed.profile().profileId()).toList();
+	}
+
+	/** In-memory native owner fence for the shared Decision admission hot path. */
+	public boolean blocksDecision(long profileId)
+	{
+		return _ownerObservers.containsKey(profileId);
+	}
+
 	public Result close(long profileId)
 	{
 		final VersionedPlan current = find(profileId);
@@ -157,6 +178,7 @@ public final class PhantomStoreService
 			player.getBuyList().clear();
 			player.getManufactureItems().clear();
 			player.setPrivateStoreType(PrivateStoreType.NONE);
+			player.standUp();
 			player.broadcastUserInfo();
 			if ((player.getPrivateStoreType() != PrivateStoreType.NONE) || (player.getSellList().getItemCount() != 0) || (player.getBuyList().getItemCount() != 0) || !player.getManufactureItems().isEmpty())
 			{

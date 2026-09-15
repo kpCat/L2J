@@ -12,6 +12,7 @@ public final class PhantomMarketConfig
 {
 	public static final String FILE = "./config/Custom/PhantomMarket.ini";
 	private static volatile Policy _policy;
+	private static volatile AutonomousPolicy _autonomousPolicy;
 
 	private PhantomMarketConfig()
 	{
@@ -20,11 +21,17 @@ public final class PhantomMarketConfig
 	public static void load()
 	{
 		_policy = read(Path.of(FILE));
+		_autonomousPolicy = readAutonomous(Path.of(FILE));
 	}
 
 	public static Optional<Policy> policy()
 	{
 		return Optional.ofNullable(_policy);
+	}
+
+	public static Optional<AutonomousPolicy> autonomousPolicy()
+	{
+		return Optional.ofNullable(_autonomousPolicy);
 	}
 
 	public static Policy read(Path file)
@@ -41,6 +48,38 @@ public final class PhantomMarketConfig
 		catch (RuntimeException invalid)
 		{
 			return null;
+		}
+	}
+
+	public static AutonomousPolicy readAutonomous(Path file)
+	{
+		if ((file == null) || !Files.isRegularFile(file))
+		{
+			return null;
+		}
+		try
+		{
+			final ConfigReader config = new ConfigReader(file.toString());
+			if (!"True".equals(config.getValue("EnableAutonomousPhantomMarket")))
+			{
+				return null;
+			}
+			return new AutonomousPolicy(integer(config.getValue("PhantomMarketMaximumOpenStores")), integer(config.getValue("PhantomMarketStoreLifetimeSeconds")), integer(config.getValue("PhantomMarketReopenCooldownSeconds")));
+		}
+		catch (RuntimeException invalid)
+		{
+			return null;
+		}
+	}
+
+	public record AutonomousPolicy(int maximumOpenStores, int lifetimeSeconds, int reopenCooldownSeconds)
+	{
+		public AutonomousPolicy
+		{
+			if ((maximumOpenStores < 1) || (maximumOpenStores > 16) || (lifetimeSeconds < 30) || (lifetimeSeconds > 900) || (reopenCooldownSeconds < 60) || (reopenCooldownSeconds > 3600))
+			{
+				throw new IllegalArgumentException("Invalid bounded autonomous Phantom market policy.");
+			}
 		}
 	}
 

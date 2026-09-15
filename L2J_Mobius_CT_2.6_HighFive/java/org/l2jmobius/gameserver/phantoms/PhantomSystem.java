@@ -96,6 +96,7 @@ import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyDecision;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomStoreService;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomAutonomousMarketProducer;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomPrivateMarketPricingAuthority;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomRateAwareLootFairValue;
 import org.l2jmobius.gameserver.config.custom.PhantomMarketConfig;
@@ -224,6 +225,7 @@ public final class PhantomSystem
 	private PhantomEconomyOfferService _economyOffers;
 	private PhantomMultipartyEconomyService _multipartyEconomyService;
 	private PhantomStoreService _phantomStoreService;
+	private PhantomAutonomousMarketProducer _autonomousMarketProducer;
 	private PhantomBackgroundService _backgroundService;
 	private PhantomHistoricalBackgroundService _historicalBackgroundService;
 	private PhantomAcquisitionService _acquisitionService;
@@ -379,6 +381,7 @@ public final class PhantomSystem
 				_multipartyEconomyService = new PhantomMultipartyEconomyService(economyPolicy, _economyReservations, _economyOffers, _materializationService, productionGoals, productionProfiles);
 				_multipartyEconomyService.reconcileStartup(System.currentTimeMillis());
 				_phantomStoreService = new PhantomStoreService(productionProfiles, _materializationService, () -> new PhantomPrivateMarketPricingAuthority(_gameKnowledgeService.query().snapshot(), _commerceService.catalog(), PhantomRateAwareLootFairValue.Rates.capture(), PhantomMarketConfig.policy().orElseThrow(), World.getInstance().getVisibleObjects()));
+				PhantomMarketConfig.autonomousPolicy().ifPresent(policy -> _autonomousMarketProducer = new PhantomAutonomousMarketProducer(_materializationService, _scheduler, _phantomStoreService, productionGoals, acquisitionStore, _economyReservations, () -> _decisionEngine, policy));
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
 				_commerceReceiptStore = new PhantomCommerceReceiptStore(productionProfiles);
 				_commerceService = new PhantomCommerceService(commerceCatalog, _commerceReceiptStore, productionGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
@@ -632,11 +635,16 @@ public final class PhantomSystem
 				siegeDecision.registerHandlers(handlerRegistry);
 				questInstanceDecision.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
-				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null, _historicalBackgroundService::permitsNormalOperation);
+				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null, profileId -> _historicalBackgroundService.permitsNormalOperation(profileId) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
 				_decisionEngine.start();
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
 				_populationManager.installDecisionEngine(_decisionEngine);
-				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService))))
+				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService));
+				if (_autonomousMarketProducer != null)
+				{
+					controlPorts.add(_autonomousMarketProducer);
+				}
+				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(controlPorts)))
 				{
 					throw new IllegalStateException("Population control port could not be installed before scheduler start.");
 				}
