@@ -1,6 +1,8 @@
 package org.l2jmobius.gameserver.phantoms;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -254,6 +256,8 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(itemsBefore, count(owner, MATERIAL_ID) + count(other, MATERIAL_ID), "SELL purchase minted or lost items.");
 		PhantomAssertions.assertEquals(ownerItemsBefore - 1, count(owner, MATERIAL_ID), "Native SELL removed a non-requested owner quantity.");
 		PhantomAssertions.assertEquals(otherItemsBefore + 1, count(other, MATERIAL_ID), "Native SELL did not give buyer the exact requested quantity.");
+		_producer.pulse(now + 1_000);
+		PhantomAssertions.assertTrue(_stores.blocksDecision(ownerProfile) && (owner.getPrivateStoreType() == PrivateStoreType.SELL) && (_stores.currentPlan(ownerProfile).orElseThrow().lines().get(0).count() == line.count() - 1), "Partial native SELL transaction lost the tracked listing during an ordinary pulse.");
 		context.record("market.sell.transfer", "ownerBefore=" + ownerItemsBefore + ":ownerAfter=" + count(owner, MATERIAL_ID) + ":otherBefore=" + otherItemsBefore + ":otherAfter=" + count(other, MATERIAL_ID));
 		PhantomAssertions.assertEquals(adenaBefore, owner.getAdena() + other.getAdena(), "SELL purchase minted or lost Adena.");
 		PhantomAssertions.assertEquals(ownerAdenaBefore + line.price(), owner.getAdena(), "Native SELL did not pay exact quoted Adena to owner.");
@@ -320,17 +324,28 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(buyOtherItemsBefore - 1, count(other, MATERIAL_ID), "Native BUY removed a non-requested seller quantity.");
 		PhantomAssertions.assertEquals(buyOwnerAdenaBefore - bidLine.price(), owner.getAdena(), "Native BUY spent wrong Adena from owner.");
 		PhantomAssertions.assertEquals(buyOtherAdenaBefore + bidLine.price(), other.getAdena(), "Native BUY paid seller wrong Adena.");
+		_producer.pulse(buyNow + 500);
+		PhantomAssertions.assertTrue(_stores.blocksDecision(ownerProfile) && (owner.getPrivateStoreType() == PrivateStoreType.BUY) && (_stores.currentPlan(ownerProfile).orElseThrow().lines().get(0).count() == bidLine.count() - 1), "Partial native BUY transaction lost the tracked listing during an ordinary pulse.");
 		PhantomAssertions.assertEquals(PrivateStoreService.Result.REJECTED, PrivateStoreService.getInstance().sellExact(other, owner.getObjectId(), sale, buyHash, PrivateStoreService.requestHash(sale)), "BUY stale replay transferred twice.");
 		PhantomAssertions.assertEquals(PhantomStoreService.Result.CLOSED, _stores.close(ownerProfile), "BUY store did not safely close.");
 		_producer.pulse(buyNow + 1_000);
 		context.record("market.native", "sellAsk=" + line.price() + ":buyBid=" + bidLine.price() + ":sellAndBuyConserved=true:replaysRejected=true");
 	}
 
-	private void policyBounds(PhantomTestContext context)
+	private void policyBounds(PhantomTestContext context) throws Exception
 	{
 		final var policy = PhantomMarketConfig.readAutonomous(context.moduleRoot().resolve("dist/game/config/Custom/PhantomMarket.ini"));
 		PhantomAssertions.assertTrue((policy != null) && (policy.maximumOpenStores() == 2) && (policy.lifetimeSeconds() == 120) && (policy.reopenCooldownSeconds() == 600), "Shipped market frequency/TTL/participation differs from bounded policy.");
 		PhantomAssertions.assertTrue(_stores.currentPlan(_firstProfile.profileId()).isEmpty() && _stores.currentPlan(_secondProfile.profileId()).isEmpty(), "Autonomous manufacture or old native plan was durably published.");
+		final String producerSource = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/economy/PhantomAutonomousMarketProducer.java"), StandardCharsets.UTF_8);
+		final String ordinaryReconcile = producerSource.substring(producerSource.indexOf("private void reconcile(long profileId"), producerSource.indexOf("private void reconcileSlow(long profileId"));
+		PhantomAssertions.assertTrue(!ordinaryReconcile.contains("currentPlan(") && !ordinaryReconcile.contains("findComponent(") && !ordinaryReconcile.contains("goal(profileId)") && !ordinaryReconcile.contains("findActive(profileId)"), "Tracked open-owner ordinary pulse still performs a durable DB read.");
+		final String systemSource = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java"), StandardCharsets.UTF_8);
+		final String shutdownSource = systemSource.substring(systemSource.indexOf("public synchronized boolean shutdown()"));
+		final int fence = shutdownSource.indexOf("_autonomousMarketProducer.beginStop()");
+		final int firstDrain = shutdownSource.indexOf("_phantomStoreService.shutdown()");
+		final int secondDrain = shutdownSource.indexOf("_phantomStoreService.shutdown()", firstDrain + 1);
+		PhantomAssertions.assertTrue((fence >= 0) && (firstDrain > fence) && (secondDrain > firstDrain), "PhantomSystem does not fence the producer before both store shutdown drains.");
 		context.record("market.manufacture", "autonomousDisabled=true:authorityFeeWithoutSource=0");
 	}
 
@@ -428,7 +443,26 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(enchanted.lines().get(0).price(), owner.getSellList().getItems().iterator().next().getPrice(), "Expected +N quote drifted in native TradeList.");
 		Thread.sleep(2_600);
 		PhantomAssertions.assertEquals(PhantomStoreService.Result.CLOSED, _stores.close(profileId), "Enchanted object store did not close.");
+		_producer.pulse(gearNow + 1);
 		awaitNativeIdle(owner);
+		long stopNow = gearNow + 1_800_000;
+		if (Math.floorMod(profileId + (stopNow / 900_000), 2) != 0)
+		{
+			stopNow += 900_000;
+		}
+		final PhantomStorePlan fenced = _producer.consider(profileId, stopNow).orElseThrow(() -> new AssertionError("Shutdown fixture did not open an autonomous native store."));
+		PhantomAssertions.assertEquals(PrivateStoreType.SELL, owner.getPrivateStoreType(), "Shutdown fixture lacked a native SELL listing.");
+		PhantomAssertions.assertTrue(_stores.blocksDecision(profileId) && _stores.currentPlan(profileId).isPresent(), "Shutdown fixture lacked a durable plan or Decision blocker.");
+		_producer.beginStop();
+		_producer.beginStop();
+		PhantomAssertions.assertTrue(_producer.consider(profileId, stopNow + 1).isEmpty(), "Direct consider admitted a store after the producer fence.");
+		_producer.pulse(stopNow + 1_000_000);
+		_scheduler.pulse();
+		PhantomAssertions.assertTrue(_stores.shutdown().successful(), "Authoritative StoreService shutdown did not drain the fenced producer store.");
+		PhantomAssertions.assertTrue((owner.getPrivateStoreType() == PrivateStoreType.NONE) && (owner.getSellList().getItemCount() == 0) && _stores.currentPlan(profileId).isEmpty() && !_stores.blocksDecision(profileId), "Fenced shutdown left a native listing, durable plan or Decision blocker.");
+		_producer.pulse(stopNow + 2_000_000);
+		PhantomAssertions.assertTrue(_producer.consider(profileId, stopNow + 2_000_001).isEmpty() && _stores.currentPlan(profileId).isEmpty(), "Accidental post-drain pulse reopened a store.");
+		context.record("market.shutdownFence", "type=" + fenced.type() + ":nativeAndDurableDrained=true:repeatedStop=true:postDrainPulseInert=true");
 		context.record("market.safety", "reservationAndGoalExcluded=true:staleRequoteClosed=true:enchantedObjectId=" + duplicate.getObjectId() + ":plus4Ask=" + enchanted.lines().get(0).price());
 	}
 

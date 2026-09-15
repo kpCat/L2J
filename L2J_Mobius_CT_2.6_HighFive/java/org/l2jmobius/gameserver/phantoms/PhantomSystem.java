@@ -824,6 +824,10 @@ public final class PhantomSystem
 
 	public synchronized boolean shutdown()
 	{
+		if (_autonomousMarketProducer != null)
+		{
+			_autonomousMarketProducer.beginStop();
+		}
 		if (_shutdownFailureForTesting && (_state == State.RUNNING))
 		{
 			_scheduler.beginStop();

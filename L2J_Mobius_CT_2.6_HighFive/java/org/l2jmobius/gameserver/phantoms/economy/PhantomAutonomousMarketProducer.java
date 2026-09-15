@@ -12,10 +12,12 @@ import java.util.function.Supplier;
 import org.l2jmobius.gameserver.config.custom.PhantomMarketConfig.AutonomousPolicy;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.EtcItemType;
+import org.l2jmobius.gameserver.network.holders.TradeItem;
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState;
@@ -54,6 +56,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	private long _nextAttempt;
 	private long _recoveryCursor;
 	private int _cursor;
+	private boolean _stopping;
 
 	public PhantomAutonomousMarketProducer(PhantomMaterializationService materialization, PhantomScheduler scheduler, PhantomStoreService stores, PhantomGoalStateStore goals, PhantomAcquisitionStore acquisition, PhantomEconomyReservationService reservations, Supplier<PhantomDecisionEngine> decision, AutonomousPolicy policy)
 	{
@@ -73,9 +76,19 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		pulse(System.currentTimeMillis());
 	}
 
+	/** Waits for an in-flight producer pulse before the StoreService drain begins. */
+	public synchronized void beginStop()
+	{
+		_stopping = true;
+	}
+
 	/** The native owner and accepted live state are rechecked on every attempt. */
 	public synchronized void pulse(long now)
 	{
+		if (_stopping)
+		{
+			return;
+		}
 		for (long profileId : List.copyOf(_opened.keySet()))
 		{
 			reconcile(profileId, now);
@@ -85,6 +98,10 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 			return;
 		}
 		_nextAttempt = now + ATTEMPT_INTERVAL_MILLIS;
+		for (long profileId : List.copyOf(_opened.keySet()))
+		{
+			reconcileSlow(profileId, now);
+		}
 		final List<Long> retainedOwners = _stores.planOwnersAfter(_recoveryCursor, _policy.maximumOpenStores());
 		if (retainedOwners.isEmpty())
 		{
@@ -107,7 +124,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		for (int inspected = 0; inspected < actors.size(); inspected++)
 		{
 			final long profileId = actors.get(Math.floorMod(_cursor++, actors.size())).profileId();
-			if (stableActive(profileId) && (Math.floorMod(profileId + (now / ROTATION_INTERVAL_MILLIS), 2) == 0))
+			if (!_opened.containsKey(profileId) && stableActive(profileId) && (Math.floorMod(profileId + (now / ROTATION_INTERVAL_MILLIS), 2) == 0))
 			{
 				consider(profileId, active, now);
 				break;
@@ -119,12 +136,20 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	/** Exposed for a focused composed gate; production calls it from the shared pulse. */
 	public synchronized Optional<PhantomStorePlan> consider(long profileId, long now)
 	{
+		if (_stopping)
+		{
+			return Optional.empty();
+		}
 		final int active = (int) _materialization.list().stream().filter(actor -> stableActive(actor.profileId())).count();
 		return consider(profileId, active, now);
 	}
 
 	private Optional<PhantomStorePlan> consider(long profileId, int active, long now)
 	{
+		if (_stopping)
+		{
+			return Optional.empty();
+		}
 		final int participationCap = active < 2 ? 0 : Math.max(1, active / 3);
 		final Player owner = liveOwner(profileId);
 		final var retained = _stores.currentPlan(profileId).orElse(null);
@@ -302,7 +327,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 
 	private boolean publish(long profileId, Player owner, PhantomGoal goal, PhantomStorePlan plan, long now)
 	{
-		if (!stableActive(profileId) || !ownerReady(profileId, owner) || (_reservations.findActive(profileId).isPresent()))
+		if (_stopping || !stableActive(profileId) || !ownerReady(profileId, owner) || (_reservations.findActive(profileId).isPresent()))
 		{
 			return false;
 		}
@@ -346,27 +371,41 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	{
 		final var tracked = _opened.get(profileId);
 		final Player owner = liveOwner(profileId);
-		final var plan = _stores.currentPlan(profileId).orElse(null);
-		if ((plan == null) && (owner != null) && owner.isInStoreMode())
+		if (!_stores.blocksDecision(profileId))
 		{
+			if ((owner != null) && owner.isInStoreMode())
+			{
+				return;
+			}
+			if (owner != null)
+			{
+				owner.standUp();
+			}
+			_opened.remove(profileId);
+			_lastClosed.put(profileId, now);
 			return;
 		}
-		if ((plan == null) || (owner == null) || (plan.expiresEpochMillis() <= now) || !stableActive(profileId) || !sameGoal(tracked.goalId(), tracked.goalRevision(), goal(profileId)) || !listingOwned(owner, plan) || (_reservations.findActive(profileId).isPresent()))
+		if ((owner == null) || (tracked.plan().expiresEpochMillis() <= now) || !stableActive(profileId) || !sameRuntimeGoal(profileId, tracked) || !listingOwned(owner, tracked.plan()))
 		{
-			if (plan == null)
-			{
-				if (owner != null)
-				{
-					owner.standUp();
-				}
-				_opened.remove(profileId);
-				_lastClosed.put(profileId, now);
-			}
-			else
-			{
-				close(profileId, now);
-			}
+			close(profileId, now);
 		}
+	}
+
+	/** Durable goal and reservation checks run only on the bounded attempt cadence. */
+	private void reconcileSlow(long profileId, long now)
+	{
+		final var tracked = _opened.get(profileId);
+		if ((tracked != null) && _stores.blocksDecision(profileId) && (!sameGoal(tracked.goalId(), tracked.goalRevision(), goal(profileId)) || _reservations.findActive(profileId).isPresent()))
+		{
+			close(profileId, now);
+		}
+	}
+
+	private boolean sameRuntimeGoal(long profileId, Opened tracked)
+	{
+		final var decision = _decision.get();
+		final var runtime = decision == null ? null : decision.find(profileId).orElse(null);
+		return (runtime == null) || (!runtime.persistenceInFlight() && (tracked.goalId() == runtime.goalId()) && ((tracked.goalId() == 0) || (tracked.goalRevision() == runtime.goalRevision())));
 	}
 
 	private static boolean listingOwned(Player owner, PhantomStorePlan plan)
@@ -375,22 +414,32 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		{
 			return false;
 		}
-		for (PhantomStorePlan.Line line : plan.lines())
+		if (plan.lines().size() != 1)
 		{
-			if (plan.type() == PhantomStorePlan.Type.SELL)
-			{
-				final Item item = owner.getInventory().getItemByObjectId(line.objectOrRecipeId());
-				if ((item == null) || (item.getId() != line.itemId()) || (item.getCount() < line.count()))
-				{
-					return false;
-				}
-			}
-			else if ((plan.type() == PhantomStorePlan.Type.BUY) && ((line.price() <= 0) || (line.count() > owner.getAdena() / line.price())))
-			{
-				return false;
-			}
+			return false;
 		}
-		return true;
+		final PhantomStorePlan.Line line = plan.lines().get(0);
+		final var nativeLines = plan.type() == PhantomStorePlan.Type.SELL ? owner.getSellList().getItems() : owner.getBuyList().getItems();
+		if (nativeLines.isEmpty())
+		{
+			// Native transaction completion can empty the listing before its observer closes.
+			return true;
+		}
+		if (nativeLines.size() != 1)
+		{
+			return false;
+		}
+		final TradeItem nativeLine = nativeLines.iterator().next();
+		if ((nativeLine.getCount() <= 0) || (nativeLine.getCount() > line.count()) || (nativeLine.getPrice() != line.price()) || (nativeLine.getItem().getId() != line.itemId()))
+		{
+			return false;
+		}
+		if (plan.type() == PhantomStorePlan.Type.SELL)
+		{
+			final Item item = owner.getInventory().getItemByObjectId(line.objectOrRecipeId());
+			return (owner.getPrivateStoreType() == PrivateStoreType.SELL) && (nativeLine.getObjectId() == line.objectOrRecipeId()) && (item != null) && (item.getId() == line.itemId()) && (item.getCount() >= nativeLine.getCount());
+		}
+		return (plan.type() == PhantomStorePlan.Type.BUY) && (owner.getPrivateStoreType() == PrivateStoreType.BUY) && (nativeLine.getCount() <= owner.getAdena() / nativeLine.getPrice());
 	}
 
 	private void close(long profileId, long now)
@@ -404,7 +453,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 
 	private void track(long profileId, PhantomStorePlan plan, PhantomGoal goal)
 	{
-		_opened.put(profileId, new Opened(plan.expiresEpochMillis(), goal == null ? 0 : goal.goalId(), goal == null ? 0 : goal.revision()));
+		_opened.put(profileId, new Opened(plan, goal == null ? 0 : goal.goalId(), goal == null ? 0 : goal.revision()));
 	}
 
 	private boolean stableActive(long profileId)
@@ -473,7 +522,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		return goalId == 0 ? after == null : (after != null) && (after.goalId() == goalId) && (after.revision() == revision);
 	}
 
-	private record Opened(long expiry, long goalId, long goalRevision)
+	private record Opened(PhantomStorePlan plan, long goalId, long goalRevision)
 	{
 	}
 }
