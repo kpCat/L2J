@@ -51,6 +51,7 @@ import org.l2jmobius.gameserver.config.custom.PersonalCharacterQoLConfig;
 import org.l2jmobius.gameserver.config.custom.PersonalPremiumQoLConfig;
 import org.l2jmobius.gameserver.config.custom.PersonalProgressionQoLConfig;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
+import org.l2jmobius.gameserver.config.custom.PhantomMarketConfig;
 import org.l2jmobius.gameserver.config.custom.PremiumSystemConfig;
 import org.l2jmobius.gameserver.config.custom.PrivateStoreRangeConfig;
 import org.l2jmobius.gameserver.config.custom.PvpAnnounceConfig;
@@ -129,6 +130,7 @@ public class ConfigLoader
 		PersonalPremiumQoLConfig.load();
 		PersonalProgressionQoLConfig.load();
 		PhantomPlayersConfig.load();
+		PhantomMarketConfig.load();
 		PremiumSystemConfig.load();
 		PrivateStoreRangeConfig.load();
 		PvpAnnounceConfig.load();

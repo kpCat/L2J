@@ -439,6 +439,11 @@ public final class PhantomTestLauncher
 			case "economy-manufacture" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.MANUFACTURE);
 			case "economy-multiparty-restart-fault" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.RESTART_FAULT);
 			case "economy-checkpoint2-performance" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.PERFORMANCE);
+			case "post001-enchant-cost" -> new PhantomPost001EnchantCostSuite();
+			case "post001-market-quote" -> new PhantomPost001MarketQuoteSuite();
+			case "post001-recipe-cost" -> new PhantomPost001RecipeCostSuite();
+			case "post001-loot-fair-value" -> new PhantomPost001LootFairValueSuite();
+			case "post001-h5-source-matrix" -> new PhantomPost001H5SourceMatrixSuite();
 			case "farming-resource-policy" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.RESOURCE_POLICY);
 			case "farming-perception-claims" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.PERCEPTION_CLAIMS);
 			case "farming-party-share" -> new PhantomFarmingSuite(PhantomFarmingSuite.Mode.PARTY_SHARE);

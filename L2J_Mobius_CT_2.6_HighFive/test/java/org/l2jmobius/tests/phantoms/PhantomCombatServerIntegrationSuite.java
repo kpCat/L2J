@@ -1138,9 +1138,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final var selectedObject = World.getInstance().findObject(acquisitionState().targetObjectId());
 		PhantomAssertions.assertTrue(selectedObject instanceof Monster, "Planner-owned exact quest target is not a real Monster.");
 		final Monster target = (Monster) selectedObject;
-		// Loaded territories can already contain an older object id than the controlled fixture. Keep the selected
-		// production target local so this test exercises Combat and the delayed quest callback, not navigation variance.
-		target.setXYZ(_player.getX() + 20, _player.getY(), _player.getZ());
+		// Loaded territories can already contain an older object id than the controlled fixture. Re-spawn that exact
+		// selected object locally so its world/known-list and native attack path agree with the fixture position.
+		target.decayMe();
+		target.spawnMe(_player.getX() + 20, _player.getY(), _player.getZ());
 		target.setCurrentHp(1);
 		target.getStatus().stopHpMpRegeneration();
 		target.setOnKillDelay(100);

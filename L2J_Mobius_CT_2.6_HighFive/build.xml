@@ -208,6 +208,57 @@
 		</java>
 	</target>
 
+	<target name="phantom-post001-enchant-cost-test" depends="compile-tests" description="Run POST-001 deterministic enchant expected-input cost contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="post001-enchant-cost" />
+			<arg value="1001" />
+		</java>
+	</target>
+
+	<target name="phantom-post001-market-quote-test" depends="compile-tests" description="Run POST-001 NPC/Phantom integer price corridor contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="post001-market-quote" />
+			<arg value="1002" />
+		</java>
+	</target>
+
+	<target name="phantom-post001-recipe-cost-test" depends="compile-tests" description="Run POST-001 canonical recipe BOM and success cost contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="post001-recipe-cost" />
+			<arg value="1003" />
+		</java>
+	</target>
+
+	<target name="phantom-post001-loot-fair-value-test" depends="compile-tests" description="Run POST-001 relative Adena and loot/spoil rate valuation contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="post001-loot-fair-value" />
+			<arg value="1004" />
+		</java>
+	</target>
+
+	<target name="phantom-post001-h5-source-matrix-test" depends="compile-tests" description="Run POST-001 read-only H5 source-backed scroll/material matrix on the existing isolated test DB.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing isolated Phantom test DB config." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing isolated Phantom test DB schema manifest." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="post001-h5-source-matrix" />
+			<arg value="1005" />
+		</java>
+	</target>
+
 	<target name="phantom-operator-observability-goal028cp1-test" depends="compile-tests" description="Run Goal 028 CP1 operator status and selected decision trace tests.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

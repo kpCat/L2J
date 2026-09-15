@@ -25,8 +25,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.data.xml.RecipeData;
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -53,14 +55,21 @@ public final class PhantomStoreService
 {
 	private final PhantomProfileRepository _profiles;
 	private final PhantomMaterializationService _materialization;
+	private final Supplier<PhantomPrivateMarketPricingAuthority> _pricing;
 	private final ConcurrentHashMap<Long, AutoCloseable> _ownerObservers = new ConcurrentHashMap<>();
 	private final LongAdder _opened = new LongAdder();
 	private final LongAdder _closed = new LongAdder();
 
 	public PhantomStoreService(PhantomProfileRepository profiles, PhantomMaterializationService materialization)
 	{
+		this(profiles, materialization, null);
+	}
+
+	public PhantomStoreService(PhantomProfileRepository profiles, PhantomMaterializationService materialization, Supplier<PhantomPrivateMarketPricingAuthority> pricing)
+	{
 		_profiles = Objects.requireNonNull(profiles);
 		_materialization = Objects.requireNonNull(materialization);
+		_pricing = pricing;
 	}
 
 	public Result open(long profileId, PhantomActivityState activityState, PhantomStorePlan plan, long now)
@@ -71,7 +80,7 @@ public final class PhantomStoreService
 		{
 			return Result.ACTIVE_REQUIRED;
 		}
-		final VersionedPlan saved = save(profileId, plan.withState(PhantomStorePlan.State.REQUESTED));
+		VersionedPlan saved = _pricing == null ? save(profileId, plan.withState(PhantomStorePlan.State.REQUESTED)) : null;
 		try (ActionLease lease = acquireExclusive(profileId))
 		{
 			if (lease == null)
@@ -79,6 +88,22 @@ public final class PhantomStoreService
 				return Result.ACTIVE_REQUIRED;
 			}
 			final Player player = lease.player();
+			if (_pricing != null)
+			{
+				try
+				{
+					final PhantomStorePlan canonical = _pricing.get().pricePlan(player, plan);
+					if (!canonical.contentHash().equals(plan.contentHash()))
+					{
+						return Result.REJECTED;
+					}
+				}
+				catch (RuntimeException unsafe)
+				{
+					return Result.REJECTED;
+				}
+				saved = save(profileId, plan.withState(PhantomStorePlan.State.REQUESTED));
+			}
 			if (!install(player, plan))
 			{
 				return Result.REJECTED;
@@ -87,6 +112,23 @@ public final class PhantomStoreService
 			installOwnerObserver(profileId, player.getObjectId());
 			_opened.increment();
 			return Result.OPENED;
+		}
+	}
+
+	/** Price before a durable store/goal is proposed; open validates the same quote again. */
+	public Optional<PhantomStorePlan> quotePlan(long profileId, PhantomActivityState activityState, PhantomStorePlan requested, long now)
+	{
+		if ((_pricing == null) || (activityState == null) || (requested == null) || !activityState.requiresMaterialization() || (requested.expiresEpochMillis() <= now))
+		{
+			return Optional.empty();
+		}
+		try (ActionLease lease = acquireExclusive(profileId))
+		{
+			return lease == null ? Optional.empty() : Optional.of(_pricing.get().pricePlan(lease.player(), requested));
+		}
+		catch (RuntimeException unsafe)
+		{
+			return Optional.empty();
 		}
 	}
 
@@ -216,10 +258,18 @@ public final class PhantomStoreService
 				final TradeList list = player.getBuyList();
 				list.clear();
 				long total = 0;
-				for (PhantomStorePlan.Line line : plan.lines())
+				try
 				{
-					total = Math.addExact(total, Math.multiplyExact(line.count(), line.price()));
-					list.addItemByItemId(line.itemId(), line.count(), line.price());
+					for (PhantomStorePlan.Line line : plan.lines())
+					{
+						total = Math.addExact(total, Math.multiplyExact(line.count(), line.price()));
+						list.addItemByItemId(line.itemId(), line.count(), line.price());
+					}
+				}
+				catch (ArithmeticException unsafe)
+				{
+					list.clear();
+					return false;
 				}
 				if (total > player.getAdena())
 				{
