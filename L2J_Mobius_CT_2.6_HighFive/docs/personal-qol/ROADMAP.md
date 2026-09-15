@@ -58,10 +58,10 @@ Ancient Adena/resources и SP/quest rates закрыты доказательс�
 
 ## L2-QOL-009 — Summoner/Servitor combat hardening
 
-Статус реализации и delivery gate: **SUCCESS** — после устранения bounded test-only рисков четвёртый, отдельно разрешённый fresh full `ant verify` завершился `BUILD SUCCESSFUL` (39 min 13 s); focused/affected/QOL-001…008/Goal039 freeze также PASS. Единственный commit и normal non-force push с remote-SHA guard выполняются при передаче.
+Статус реализации и delivery gate: **SUCCESS** на принятом implementation SHA `71aae95b16bc1007f89dafcb40b9f7f88a608365` — после устранения bounded test-only рисков четвёртый fresh full `ant verify` завершился `BUILD SUCCESSFUL` (39 min 13 s); focused/affected/QOL-001…008/Goal039 freeze также PASS.
 
 Phantom summoner использует только live true Servitor своего Player: синхронизирует PvE/raid/PvP target, возвращает Servitor в native follow при cleanup, законно перепризывает через известный progression skill и ограниченно пробует active skill из live NPC parameters. Все resource/reuse/condition/zone/instance/geodata проверки остаются у штатных `Player`/`Summon` APIs; Pet/BabyPet исключены. В normal PvP hostile Servitor может стать transient linked tactical subtarget при угрозе, high-impact easy-removal или временной недоступности owner, но owner Player остаётся canonical PvP/consequence context.
 
-## Следующий этап
+## Final acceptance / freeze
 
-L2-QOL-001…009 и hotfix L2-QOL-003-HF1 имеют статус SUCCESS по реализации и полному verify; точный commit/push SHA фиксируется в итоговой передаче. QOL-010 не планируется. Общий проект не объявлен окончательно закрытым без отдельного final acceptance/freeze. Client names/icons остаются deferred из-за запрета client patch.
+Независимый `L2-FINAL-ACCEPTANCE` принял цепочку L2-QOL-001…009, L2-QOL-003-HF1 и ранее принятый Goal039 declared scope. Аудит shipped defaults, XML-owned pricing `91001`/`91002` и QOL-009 Servitor freeze зафиксирован в `reports/FINAL_ACCEPTANCE_FREEZE.md`. Closure не меняла product/test/build: свежий полный `ant verify` и JAR rebuild не понадобились после успешного QOL-009 full verify на точном implementation SHA. Запланированных задач больше нет; QOL-010 не существует. Визуальный H5-client UI, stock names/icons и blocking-wall owner-LoS runtime fixture остаются документированными границами принятого scope.

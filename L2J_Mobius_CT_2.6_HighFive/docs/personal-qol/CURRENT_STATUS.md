@@ -4,11 +4,11 @@
 
 Ветка: `feature/phantom-world`
 
-Required parent: `b6c609e270984d8ae6a3b14a8e7ca6acf642f564`
+Принятый implementation SHA: `71aae95b16bc1007f89dafcb40b9f7f88a608365`
 
-Текущая задача: `L2-QOL-009`
+Текущая задача: `L2-FINAL-ACCEPTANCE` — последняя запланированная задача.
 
-Статус реализации и delivery gate: **SUCCESS** — после трёх диагностированных fresh full failures и bounded test-only исправлений четвёртый, отдельно разрешённый пользователем fresh `ant verify` завершился `BUILD SUCCESSFUL` (39 min 13 s). QOL-009, historical QOL-001…008/Goal039 freeze, focused и affected gates прошли. Единственный commit и normal non-force push выполняются после финального scope guard; их SHA фиксируется в итоговой передаче.
+Статус: **SUCCESS / ACCEPT** для declared scope Phantom World и QOL-001…009. QOL-009 завершила fresh full `ant verify` с `BUILD SUCCESSFUL` (39 min 13 s); независимый final acceptance подтвердил цепочку, shipped defaults, pricing/data owners и freeze без изменений product/test/build. Поэтому новый full `ant verify` и JAR rebuild на документационном пути не требовались. Результаты closure и границы приёмки записаны в `reports/FINAL_ACCEPTANCE_FREEZE.md`; SHA единственного closure commit и remote equality фиксируются после normal non-force push в итоговой передаче.
 
 ## L2-QOL-009
 
@@ -115,4 +115,4 @@ Focused, affected, historical static и Goal039 structure/static/docs зафик
 
 Клиентский UI: **NOT_TESTED_CLIENT_UI**. Серверная страница и bypass проверены, но визуальная проверка в H5-клиенте не выдаётся за выполненную. Client patch не требуется: в инвентаре остаются исходные stock names/icons.
 
-L2-QOL-001/002/003/004/005/006/007/008, L2-QOL-003-HF1 и L2-QOL-009 имеют статус **SUCCESS** по реализации и полному delivery verify. Единственный commit/push проверяется отдельно в итоговой передаче. QOL-010 не планируется; Personal QoL project не объявлен окончательно закрытым без отдельного final acceptance/freeze. Неаудированные utility-продажи отложены. Phantom acquisition/commerce owners и Goal039 freeze сохранены.
+L2-QOL-001…009 и L2-QOL-003-HF1 приняты; final acceptance/freeze завершает запланированную цепочку. QOL-010 и следующая автоматическая задача не планируются. Неаудированные utility-продажи, визуальный H5-client UI и детерминированная blocking-wall owner-LoS fixture остаются документированными ограничениями. Phantom acquisition/commerce owners и Goal039 freeze сохранены.

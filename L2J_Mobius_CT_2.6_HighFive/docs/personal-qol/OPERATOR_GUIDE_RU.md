@@ -226,4 +226,4 @@ ant -q jar
 
 Клиентский визуальный статус релиза: **NOT_TESTED_CLIENT_UI**.
 
-L2-QOL-001/002/003/004/005/006/007/008/009 завершены со статусом SUCCESS по реализации и полному delivery verify. После трёх диагностированных full failures и bounded test-only исправлений четвёртый отдельно разрешённый fresh `ant verify` завершился `BUILD SUCCESSFUL` (39 min 13 s), включая QOL-009 8/8 и historical shop 8/8; standalone jars проверены. Единственный commit/push и remote-SHA guard фиксируются в итоговой передаче. QOL-010 не планируется; отдельный final acceptance/freeze автоматически не запускается.
+L2-QOL-001…009 приняты на implementation SHA `71aae95b16bc1007f89dafcb40b9f7f88a608365`: последний QOL-009 full `ant verify` завершился `BUILD SUCCESSFUL` (39 min 13 s), включая QOL-009 8/8 и historical shop 8/8; standalone jars проверены. Независимый final acceptance/freeze закрыл запланированный scope без product/test/build изменений и без повторного full verify. Итоговая матрица и ограничения — в `docs/personal-qol/reports/FINAL_ACCEPTANCE_FREEZE.md`. QOL-010 и следующая автоматическая задача не планируются.
