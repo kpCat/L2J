@@ -1,14 +1,22 @@
 # Personal/Premium QoL — current status
 
-Дата: 2026-09-14
+Дата: 2026-09-15
 
 Ветка: `feature/phantom-world`
 
-Required parent: `3cf8f5d35997ff65e5e484c1c3d6224d7f759859`
+Required parent: `b6c609e270984d8ae6a3b14a8e7ca6acf642f564`
 
-Текущая задача: `L2-QOL-008`
+Текущая задача: `L2-QOL-009`
 
-Статус: **SUCCESS**
+Статус реализации и delivery gate: **SUCCESS** — после трёх диагностированных fresh full failures и bounded test-only исправлений четвёртый, отдельно разрешённый пользователем fresh `ant verify` завершился `BUILD SUCCESSFUL` (39 min 13 s). QOL-009, historical QOL-001…008/Goal039 freeze, focused и affected gates прошли. Единственный commit и normal non-force push выполняются после финального scope guard; их SHA фиксируется в итоговой передаче.
+
+## L2-QOL-009
+
+- Stock human Servitor attack/pathfinding остаётся без изменений: `RequestActionUse` передаёт команду `Summon`, а `SummonAI` строит путь от самого summon к target. Focused evidence подтверждает cat ATTACK на доступном пути и native rejection недоступного пути; тестовая geodata не дала воспроизводимую стену для полного owner-LoS runtime fixture, поэтому source ownership зафиксирован отдельно.
+- Phantom summoner координирует только live owned `Servitor`: target sync/retarget, PvE и raid assist, bounded active skill из live NPC parameters, no-spam и native follow/return при cleanup. Warlock и Arcana Lord/Feline King покрыты отдельными сценариями.
+- Resummon выбирается из canonical progression `SummonActorFact` и вызывается через `Player.useMagic`. Штатный `ConditionPlayerCanSummon` проверяется явно из-за общего fake-player condition bypass; reagent, MP, reuse, summon effect, lifetime/upkeep, zone и path semantics не переопределены.
+- Normal Phantom PvP может выбрать hostile true Servitor как linked tactical subtarget при direct threat, high-impact/easy-removal либо недоступном/invulnerable owner. Owner Player остаётся canonical target context для admission и consequences; Pet/BabyPet, allied, dead, stale, wrong-instance и incompatible candidates отклоняются.
+- Production DB/schema, provisioning, client, stock summon engine, economy/progression contracts и unrelated lifecycle не менялись.
 
 ## L2-QOL-008
 
@@ -101,10 +109,10 @@ Required parent: `3cf8f5d35997ff65e5e484c1c3d6224d7f759859`
 - Alt+B crystallization HTML: `dist/game/data/html/CommunityBoard/Custom/personal-qol/crystallization*.html`
 - storefront pricing policy: `docs/personal-qol/SHOP_PRICING.md`
 - операторская инструкция: `docs/personal-qol/OPERATOR_GUIDE_RU.md`
-- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`, `docs/personal-qol/reports/004-personal-board-storefront-controls.md`, `docs/personal-qol/reports/005-seven-signs-personal-access.md`, `docs/personal-qol/reports/006-party-mobility-support.md`, `docs/personal-qol/reports/007-semantic-pack-v2.md`, `docs/personal-qol/reports/008-economy-progression-closure.md`
+- evidence reports: `docs/personal-qol/reports/001-level-gap-and-shop.md`, `docs/personal-qol/reports/002-cross-class-skills-crystallization.md`, `docs/personal-qol/reports/003-personal-effect-duration-rates.md`, `docs/personal-qol/reports/003-hf1-music-classifier-reload-race.md`, `docs/personal-qol/reports/004-personal-board-storefront-controls.md`, `docs/personal-qol/reports/005-seven-signs-personal-access.md`, `docs/personal-qol/reports/006-party-mobility-support.md`, `docs/personal-qol/reports/007-semantic-pack-v2.md`, `docs/personal-qol/reports/008-economy-progression-closure.md`, `docs/personal-qol/reports/009-summoner-servitor-combat-hardening.md`
 
-Focused, affected, historical static, Goal039 structure/static/docs, финальный fresh `ant verify` и standalone jar зафиксированы в evidence report. Использовалась только allowlisted test DB; production DB не читалась и не проверялась.
+Focused, affected, historical static и Goal039 structure/static/docs зафиксированы в evidence report. Baseline и первые два отдельно разрешённых повтора fresh `ant verify` выявили соответственно combat test-race, QOL-001 shop fixture и QOL-009 after-all future; после bounded test-only исправлений четвёртый отдельно разрешённый fresh full `ant verify` — PASS (`BUILD SUCCESSFUL`, 39 min 13 s). QOL-009 8/8 и historical shop 8/8 подтверждены в этом полном запуске. Standalone `ant -q jar` и оба `jar tf` после него PASS. Использовалась только allowlisted test DB; production DB не читалась и не проверялась.
 
 Клиентский UI: **NOT_TESTED_CLIENT_UI**. Серверная страница и bypass проверены, но визуальная проверка в H5-клиенте не выдаётся за выполненную. Client patch не требуется: в инвентаре остаются исходные stock names/icons.
 
-L2-QOL-001/002/003/004/005/006/007/008 и L2-QOL-003-HF1 имеют статус **SUCCESS**. QOL-009 Summoner/Servitor combat hardening остаётся отдельной незавершённой задачей, поэтому Personal QoL project ещё не объявлен завершённым. Неаудированные utility-продажи отложены; следующая bounded задача автоматически не запускается. Phantom acquisition/commerce owners и Goal039 freeze сохранены.
+L2-QOL-001/002/003/004/005/006/007/008, L2-QOL-003-HF1 и L2-QOL-009 имеют статус **SUCCESS** по реализации и полному delivery verify. Единственный commit/push проверяется отдельно в итоговой передаче. QOL-010 не планируется; Personal QoL project не объявлен окончательно закрытым без отдельного final acceptance/freeze. Неаудированные utility-продажи отложены. Phantom acquisition/commerce owners и Goal039 freeze сохранены.

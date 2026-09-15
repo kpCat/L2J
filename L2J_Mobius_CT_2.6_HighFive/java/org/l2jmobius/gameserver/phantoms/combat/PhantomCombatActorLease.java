@@ -15,6 +15,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapsh
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionUse;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConsequenceSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLinkedServitorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLocalSupportSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
@@ -51,6 +52,18 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	default PvpTargetSnapshot pvpTargetSnapshot(int targetObjectId)
 	{
 		return null;
+	}
+
+	default PvpLinkedServitorSnapshot pvpLinkedServitorSnapshot(int ownerObjectId)
+	{
+		return null;
+	}
+
+	default int pvpTacticalTargetObjectId(int ownerObjectId, int maximumDistance)
+	{
+		final PvpTargetSnapshot owner = pvpTargetSnapshot(ownerObjectId);
+		final PvpLinkedServitorSnapshot servitor = pvpLinkedServitorSnapshot(ownerObjectId);
+		return servitor == null ? ownerObjectId : servitor.preferredTargetObjectId(actorSnapshot(), owner, maximumDistance);
 	}
 
 	default SiegeTargetSnapshot siegeTargetSnapshot(int targetObjectId, PhantomSiegeCombatRequest request)
@@ -201,9 +214,19 @@ public interface PhantomCombatActorLease extends AutoCloseable
 		return ActionOutcome.REJECTED;
 	}
 
+	default ActionOutcome attackPvp(int ownerObjectId, int tacticalTargetObjectId, String authorityHash)
+	{
+		return attackPvp(tacticalTargetObjectId, authorityHash);
+	}
+
 	default ActionOutcome castPvp(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode, boolean forceUse, String authorityHash)
 	{
 		return ActionOutcome.REJECTED;
+	}
+
+	default ActionOutcome castPvp(int ownerObjectId, int tacticalTargetObjectId, SelectedSkill skill, PhantomCombatMode mode, boolean forceUse, String authorityHash)
+	{
+		return castPvp(tacticalTargetObjectId, skill, mode, forceUse, authorityHash);
 	}
 
 	default ActionOutcome attackSiege(int targetObjectId, PhantomSiegeCombatRequest request)

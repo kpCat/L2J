@@ -43,16 +43,22 @@ import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
 import org.l2jmobius.gameserver.data.SpawnTable;
+import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.PvpConfig;
 import org.l2jmobius.gameserver.config.RatesConfig;
+import org.l2jmobius.gameserver.config.GeoEngineConfig;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
+import org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding;
 import org.l2jmobius.gameserver.managers.InstanceManager;
 import org.l2jmobius.gameserver.managers.ItemManager;
 import org.l2jmobius.gameserver.managers.ScriptManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.actor.instance.GrandBoss;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.actor.instance.RaidBoss;
+import org.l2jmobius.gameserver.model.actor.instance.Servitor;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.enums.ShotType;
@@ -60,6 +66,7 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.script.QuestState;
 import org.l2jmobius.gameserver.model.script.State;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.model.skill.EffectScope;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
@@ -102,6 +109,8 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionUse
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConsequenceSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLinkedServitorSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
@@ -150,6 +159,7 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalogBuilder;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ActorKind;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
@@ -168,12 +178,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		ACQUISITION,
 		MANOR,
 		QUEST,
-		PVP
+		PVP,
+		QOL009_SERVITOR
 	}
 
 	private static final long ACQUISITION_SEED = 21002101L;
 	private static final long CHECKPOINT_2_SEED = 21002102L;
 	private static final long PVP_SEED = 25002501L;
+	private static final long QOL009_SEED = 1009001L;
 	private static final String PVP_AUTHORITY_HASH = "A".repeat(64);
 	private static final int MELEE_CLASS_ID = 88;
 	private static final int MAGIC_CLASS_ID = 94;
@@ -181,6 +193,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private static final int WEAPON_ITEM_ID = 6;
 	private static final int SOULSHOT_ITEM_ID = 1835;
 	private static final int ADENA_ITEM_ID = 57;
+	private static final int SPIRIT_ORE_ITEM_ID = 3031;
+	private static final int WARLOCK_CLASS_ID = 14;
+	private static final int ARCANA_LORD_CLASS_ID = 96;
+	private static final int SUMMON_MEW_SKILL_ID = 1225;
+	private static final int SUMMON_MEW_SKILL_LEVEL = 18;
+	private static final int SUMMON_FELINE_KING_SKILL_ID = 1406;
+	private static final int SUMMON_FELINE_KING_SKILL_LEVEL = 1;
 	private static final long WAIT_MILLIS = 10000;
 	private static final int SPOIL_CLASS_ID = 117;
 	private static final int SPOIL_SKILL_ID = 254;
@@ -238,6 +257,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	{
 		return switch (_mode)
 		{
+			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
 			case MANOR -> "acquisition-manor-active";
@@ -249,7 +269,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.ACQUISITION)
+		if (_mode == Mode.QOL009_SERVITOR)
+		{
+			PhantomAssertions.assertEquals(QOL009_SEED, context.seed(), "L2-QOL-009 used the wrong deterministic seed.");
+		}
+		else if (_mode == Mode.ACQUISITION)
 		{
 			PhantomAssertions.assertEquals(ACQUISITION_SEED, context.seed(), "Active acquisition mode used the wrong seed.");
 		}
@@ -382,6 +406,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.QOL009_SERVITOR)
+		{
+			registry.add("01-stock-human-servitor-path-and-canonical-census", this::testQol009SourceCensus);
+			registry.add("02-warlock-native-resummon-sync-retarget-follow", _ -> testQol009WarlockControl());
+			registry.add("03-human-owner-loses-los-summon-path-remains-authoritative", this::testQol009OwnerLosesLos);
+			registry.add("04-native-resummon-resource-reuse-and-state-guards", _ -> testQol009ResummonGuards());
+			registry.add("05-arcana-lord-feline-king-native-active-skill", _ -> testQol009ArcanaActiveSkill());
+			registry.add("06-pet-babypet-stale-dead-and-instance-exclusion", this::testQol009Exclusions);
+			registry.add("07-pvp-owner-and-linked-servitor-policy", _ -> testQol009PvpPolicy());
+			registry.add("08-live-linked-servitor-owner-context-and-cleanup", _ -> testQol009LivePvpAndCleanup());
+			return;
+		}
 		if (_mode == Mode.PVP)
 		{
 			registry.add("01-canonical-player-forced-physical-path", _ -> testPvpPhysical());
@@ -1437,6 +1473,426 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(Double.compare(first.currentCp(), firstCp) == 0, "Immutable combat snapshot changed after canonical CP mutation.");
 	}
 
+	private void testQol009SourceCensus(PhantomTestContext context) throws Exception
+	{
+		final String requestAction = Files.readString(_moduleRoot.resolve("java/org/l2jmobius/gameserver/network/clientpackets/RequestActionUse.java"), StandardCharsets.UTF_8);
+		final String summon = Files.readString(_moduleRoot.resolve("java/org/l2jmobius/gameserver/model/actor/Summon.java"), StandardCharsets.UTF_8);
+		final String summonAi = Files.readString(_moduleRoot.resolve("java/org/l2jmobius/gameserver/ai/SummonAI.java"), StandardCharsets.UTF_8);
+		PhantomAssertions.assertTrue(requestAction.contains("case 22: // Attack (Servitors)") && requestAction.contains("summon.canAttack(_ctrlPressed)") && requestAction.contains("summon.doSummonAttack(target)"), "Stock human Servitor attack route drifted.");
+		PhantomAssertions.assertTrue(summon.contains("GeoEngine.getInstance().canSeeTarget(this, target)") && !summon.contains("GeoEngine.getInstance().canSeeTarget(_owner, target)"), "Stock Servitor command stopped using summon-to-target visibility.");
+		PhantomAssertions.assertTrue(summonAi.contains("PathFinding.getInstance().findPath(_actor.getX(), _actor.getY(), _actor.getZ(), target.getX(), target.getY(), target.getZ(), _actor.getInstanceId(), false)"), "SummonAI path authority is no longer summon-to-target.");
+
+		for (int classId : List.of(14, 28, 41, 96, 104, 111))
+		{
+			PhantomAssertions.assertTrue(_progression.classFact(classId).summoner(), "Canonical summoner class fact is absent: " + classId);
+			PhantomAssertions.assertTrue(_progression.summons(classId).stream().anyMatch(fact -> fact.actorKind() == ActorKind.SERVITOR), "Canonical summoner class has no Servitor fact: " + classId);
+			PhantomAssertions.assertTrue(_progression.summons(classId).stream().noneMatch(fact -> (fact.actorKind() == ActorKind.PET) || (fact.actorKind() == ActorKind.BABY_PET)), "Summoner class mixed Pet/BabyPet into class-owned actor facts: " + classId);
+		}
+		PhantomAssertions.assertTrue(_progression.summons(WARLOCK_CLASS_ID).stream().anyMatch(fact -> (fact.skillId() == SUMMON_MEW_SKILL_ID) && (fact.skillLevel() == SUMMON_MEW_SKILL_LEVEL) && (fact.actorKind() == ActorKind.SERVITOR)), "Warlock Mew cat fact is absent.");
+		PhantomAssertions.assertTrue(_progression.summons(ARCANA_LORD_CLASS_ID).stream().anyMatch(fact -> (fact.skillId() == SUMMON_FELINE_KING_SKILL_ID) && (fact.skillLevel() == SUMMON_FELINE_KING_SKILL_LEVEL) && (fact.actorKind() == ActorKind.SERVITOR)), "Arcana Lord Feline King fact is absent.");
+		context.record("qol009.census", "stock=already_native;summoners=14,28,41,96,104,111;warlock=1225/18;arcana=1406/1");
+	}
+
+	private void testQol009WarlockControl() throws Exception
+	{
+		resetActor(true);
+		final long oreBaseline = spiritOreCount(_player);
+		try
+		{
+			final Monster first = spawnNormalMonster(targetMaximumHp());
+			final Servitor cat = nativeSummon(_player, WARLOCK_CLASS_ID, SUMMON_MEW_SKILL_ID, SUMMON_MEW_SKILL_LEVEL, first, true);
+			cat.setCurrentMp(0);
+			try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				lease.attack(first.getObjectId());
+				PhantomAssertions.assertTrue(cat.hasAI() && (cat.getAI().getIntention() == Intention.ATTACK) && (cat.getAI().getAttackTarget() == first) && (cat.getTarget() == first), "Warlock cat did not synchronize target A through stock attack AI.");
+				final Object exactAi = cat.getAI();
+				lease.attack(first.getObjectId());
+				PhantomAssertions.assertTrue((cat.getAI() == exactAi) && (cat.getAI().getAttackTarget() == first), "Repeated target A pulse replaced or disturbed the existing cat attack intention.");
+
+				final Monster second = spawnNormalMonster(targetMaximumHp());
+				lease.attack(second.getObjectId());
+				PhantomAssertions.assertTrue((cat.getAI().getIntention() == Intention.ATTACK) && (cat.getAI().getAttackTarget() == second) && (cat.getTarget() == second), "Warlock cat did not retarget from A to B.");
+				lease.cancelOwnedAction(new PhantomOwnedAction(1, second.getObjectId(), null, 0));
+				PhantomAssertions.assertTrue(cat.getFollowStatus() && (cat.getAI().getIntention() == Intention.FOLLOW) && (cat.getAI().getFollowTarget() == _player), "Combat cleanup did not return the cat to native owner follow.");
+			}
+		}
+		finally
+		{
+			clearSummon(_player);
+			restoreSpiritOre(_player, oreBaseline);
+		}
+	}
+
+	private void testQol009OwnerLosesLos(PhantomTestContext context) throws Exception
+	{
+		resetActor(true);
+		final long oreBaseline = spiritOreCount(_player);
+		final int ownerX = _player.getX();
+		final int ownerY = _player.getY();
+		final int ownerZ = _player.getZ();
+		try
+		{
+			final Monster target = spawnNormalMonster(targetMaximumHp());
+			final Servitor cat = nativeSummon(_player, WARLOCK_CLASS_ID, SUMMON_MEW_SKILL_ID, SUMMON_MEW_SKILL_LEVEL, target);
+			cat.setCurrentMp(0);
+			cat.cancelAction();
+			_player.setXYZInvisible(ownerX, ownerY, ownerZ + 2000);
+			final boolean ownerStillVisibleInLoadedGeodata = GeoEngine.getInstance().canSeeTarget(_player, target);
+			PhantomAssertions.assertTrue(GeoEngine.getInstance().canSeeTarget(cat, target), "Cat-to-target route was not directly reachable in the positive fixture.");
+			if (GeoEngineConfig.PATHFINDING > 0)
+			{
+				PhantomAssertions.assertTrue(PathFinding.getInstance().findPath(cat.getX(), cat.getY(), cat.getZ(), target.getX(), target.getY(), target.getZ(), cat.getInstanceId(), false) != null, "Stock summon-to-target pathfinder rejected the reachable fixture.");
+			}
+			_player.setTarget(target);
+			PhantomAssertions.assertTrue(cat.canAttack(false), "Stock human command rejected a reachable cat target only because owner LoS was lost.");
+			cat.doSummonAttack(target);
+			PhantomAssertions.assertTrue((cat.getAI().getIntention() == Intention.ATTACK) && (cat.getAI().getAttackTarget() == target), "Owner LoS loss cleared stock cat ATTACK.");
+			context.record("qol009.ownerLosPath", "sourceHasNoOwnerLos=true;loadedGeodataOwnerStillVisible=" + ownerStillVisibleInLoadedGeodata + ";servitorLos=true;servitorPath=true");
+
+			final Monster unreachable = spawnNormalMonster(targetMaximumHp());
+			unreachable.setXYZInvisible(cat.getX() + 20, cat.getY(), cat.getZ() + 5000);
+			cat.cancelAction();
+			_player.setTarget(unreachable);
+			PhantomAssertions.assertFalse(cat.canAttack(false), "Unreachable cat target bypassed native visibility/geodata checks.");
+			PhantomAssertions.assertFalse((cat.getAI().getIntention() == Intention.ATTACK) && (cat.getAI().getAttackTarget() == unreachable), "Unreachable route fabricated a cat ATTACK intention.");
+		}
+		finally
+		{
+			_player.setXYZInvisible(ownerX, ownerY, ownerZ);
+			clearSummon(_player);
+			restoreSpiritOre(_player, oreBaseline);
+		}
+	}
+
+	private void testQol009ResummonGuards() throws Exception
+	{
+		resetActor(true);
+		final long oreBaseline = spiritOreCount(_player);
+		final int teleportProtectionBaseline = PlayerConfig.PLAYER_TELEPORT_PROTECTION;
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		String stage = "setup";
+		try
+		{
+			stage = "missing-reagent";
+			prepareSummoner(_player, WARLOCK_CLASS_ID, SUMMON_MEW_SKILL_ID, SUMMON_MEW_SKILL_LEVEL);
+			restoreSpiritOre(_player, 0);
+			final Skill summonSkill = _player.getKnownSkill(SUMMON_MEW_SKILL_ID);
+			PhantomAssertions.assertFalse(_player.checkDoCastConditions(summonSkill), "Native missing-reagent guard unexpectedly admitted the summon skill.");
+			PhantomAssertions.assertTrue(_player.getSummon() == null, "Missing Spirit Ore produced a free Servitor.");
+			PhantomAssertions.assertEquals(0L, spiritOreCount(_player), "Missing-reagent path fabricated Spirit Ore.");
+
+			stage = "zero-mp";
+			addSpiritOre(_player, 20);
+			_player.setCurrentMp(0);
+			PhantomAssertions.assertFalse(_player.checkDoCastConditions(summonSkill), "Native zero-MP guard unexpectedly admitted the summon skill.");
+			PhantomAssertions.assertTrue(_player.getSummon() == null, "Zero MP produced a free Servitor.");
+			_player.setCurrentMp(_player.getMaxMp());
+
+			stage = "active-reuse";
+			_player.disableSkill(summonSkill, 60_000);
+			PhantomAssertions.assertFalse(_player.checkDoCastConditions(summonSkill), "Native active-reuse guard unexpectedly admitted the summon skill.");
+			PhantomAssertions.assertTrue(_player.getSummon() == null, "Active reuse produced a duplicate Servitor.");
+			stage = "active-reuse-enable";
+			_player.enableSkill(summonSkill);
+
+			stage = "teleport-protection";
+			final long oreBeforeProtection = spiritOreCount(_player);
+			_player.abortCast();
+			_player.setCurrentSkill(null, false, false);
+			_player.getAI().setIntention(Intention.IDLE);
+			PlayerConfig.PLAYER_TELEPORT_PROTECTION = Math.max(1, teleportProtectionBaseline);
+			_player.setTeleportProtection(true);
+			try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				lease.attack(target.getObjectId());
+			}
+			PhantomAssertions.assertTrue(_player.getSummon() == null, "Illegal teleport-protected state bypassed summon conditions.");
+			PhantomAssertions.assertEquals(oreBeforeProtection, spiritOreCount(_player), "Teleport-protected resummon consumed a reagent.");
+			PhantomAssertions.assertFalse(_player.isCastingNow() && (_player.getCurrentSkill() != null) && (_player.getCurrentSkill().getSkillId() == SUMMON_MEW_SKILL_ID), "Teleport-protected resummon entered native CAST ownership.");
+			_player.setTeleportProtection(false);
+
+			stage = "legal-resummon";
+			final Servitor legal = nativeSummon(_player, WARLOCK_CLASS_ID, SUMMON_MEW_SKILL_ID, SUMMON_MEW_SKILL_LEVEL, target);
+			final int exactObjectId = legal.getObjectId();
+			final long oreBeforeExisting = spiritOreCount(_player);
+			stage = "existing-servitor";
+			try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				lease.attack(target.getObjectId());
+			}
+			PhantomAssertions.assertTrue((_player.getSummon() == legal) && (legal.getObjectId() == exactObjectId), "Existing live Servitor was replaced or duplicated.");
+			PhantomAssertions.assertEquals(oreBeforeExisting, spiritOreCount(_player), "Existing live Servitor triggered another summon debit.");
+		}
+		catch (Throwable throwable)
+		{
+			throw new AssertionError("QOL-009 resummon guard stage failed: " + stage + ": " + throwable, throwable);
+		}
+		finally
+		{
+			_player.setTeleportProtection(false);
+			PlayerConfig.PLAYER_TELEPORT_PROTECTION = teleportProtectionBaseline;
+			clearSummon(_player);
+			restoreSpiritOre(_player, oreBaseline);
+		}
+	}
+
+	private void testQol009ArcanaActiveSkill() throws Exception
+	{
+		resetActor(true);
+		final long oreBaseline = spiritOreCount(_player);
+		try
+		{
+			final Monster target = spawnNormalMonster(targetMaximumHp());
+			final Servitor king = nativeSummon(_player, ARCANA_LORD_CLASS_ID, SUMMON_FELINE_KING_SKILL_ID, SUMMON_FELINE_KING_SKILL_LEVEL, target);
+			positionAtReachableServitorPath(king, target);
+			final Skill slash = SkillData.getInstance().getSkill(5135, 1);
+			PhantomAssertions.assertTrue((slash != null) && king.getTemplate().getParameters().getSet().values().stream().anyMatch(value -> (value instanceof org.l2jmobius.gameserver.model.skill.holders.SkillHolder holder) && (holder.getSkillId() == 5135)), "Feline King Slash was not discovered from canonical live NPC parameters.");
+			_player.setCurrentPetSkill(null, false, false);
+			final double mpBeforeSlash = king.getCurrentMp();
+			final double hpBeforeSlash = target.getCurrentHp();
+			try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				final ActionOutcome attackOutcome = lease.attack(target.getObjectId());
+				PhantomAssertions.assertEquals(ActionOutcome.ISSUED, attackOutcome, "Feline King combat target did not enter the canonical actor attack route: actor=" + lease.actorSnapshot() + ", target=" + lease.targetSnapshot(target.getObjectId()) + ", spawned=" + target.isSpawned() + ", worldExact=" + (World.getInstance().findObject(target.getObjectId()) == target));
+				final boolean nativeSlashObserved = waitFor(() -> (_player.getCurrentPetSkill() != null) && (_player.getCurrentPetSkill().getSkillId() == 5135) && (((king.getAI().getIntention() == Intention.CAST) && (king.getAI().getCastTarget() == target)) || (king.getCurrentMp() < mpBeforeSlash) || king.isSkillDisabled(slash) || (target.getCurrentHp() < hpBeforeSlash)), WAIT_MILLIS);
+				PhantomAssertions.assertTrue(nativeSlashObserved, "Legal Feline King Slash produced no native CAST, resource, reuse, or damage signal: mp=" + king.getCurrentMp() + '/' + king.getMaxMp() + ", required=" + (king.getStat().getMpConsume(slash) + king.getStat().getMpInitialConsume(slash)) + ", distance=" + king.calculateDistance2D(target) + ", target=" + king.getTarget() + ", intention=" + king.getAI().getIntention() + ", castTarget=" + king.getAI().getCastTarget() + ", currentPetSkill=" + _player.getCurrentPetSkill() + ", disabled=" + king.isSkillDisabled(slash) + ", damage=" + slash.isDamage() + ", negative=" + slash.hasNegativeEffect());
+				king.abortCast();
+				king.getAI().setIntention(Intention.ACTIVE);
+				lease.attack(target.getObjectId());
+				PhantomAssertions.assertTrue(waitFor(() -> (king.getAI().getIntention() == Intention.ATTACK) && (king.getAI().getAttackTarget() == target), WAIT_MILLIS), "Active-skill anti-spam did not fall back to stock cat attack.");
+			}
+
+			king.abortAttack();
+			king.getAI().setIntention(Intention.ACTIVE);
+			king.setCurrentMp(0);
+			try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				lease.attack(target.getObjectId());
+			}
+			PhantomAssertions.assertTrue(waitFor(() -> (king.getAI().getIntention() == Intention.ATTACK) && (king.getAI().getAttackTarget() == target) && !king.isCastingNow(), WAIT_MILLIS), "Insufficient Servitor MP bypassed native skill resource checks.");
+
+			king.abortAttack();
+			king.getAI().setIntention(Intention.ACTIVE);
+			king.setCurrentMp(king.getMaxMp());
+			king.disableSkill(slash, 60_000);
+			try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				lease.attack(target.getObjectId());
+			}
+			PhantomAssertions.assertTrue(waitFor(() -> (king.getAI().getIntention() == Intention.ATTACK) && (king.getAI().getAttackTarget() == target) && !king.isCastingNow(), WAIT_MILLIS), "Servitor skill reuse was bypassed.");
+			king.enableSkill(slash);
+		}
+		finally
+		{
+			clearSummon(_player);
+			restoreSpiritOre(_player, oreBaseline);
+		}
+	}
+
+	private void testQol009Exclusions(PhantomTestContext context) throws Exception
+	{
+		final String backend = Files.readString(_moduleRoot.resolve("java/org/l2jmobius/gameserver/phantoms/combat/L2jCombatBackend.java"), StandardCharsets.UTF_8);
+		PhantomAssertions.assertTrue(backend.contains("controlled instanceof Servitor servitor") && !backend.contains("instanceof BabyPet") && !backend.contains("instanceof Pet pet"), "QOL-009 controller does not remain true-Servitor-only.");
+		final ActorSnapshot actor = pvpActor();
+		final PvpTargetSnapshot owner = pvpOwner(false, true);
+		PhantomAssertions.assertEquals(owner.objectId(), linked(false, false, 0, false, false, true, true, 1).preferredTargetObjectId(actor, owner, 2000), "Pet-shaped candidate became a tactical Servitor target.");
+		PhantomAssertions.assertEquals(owner.objectId(), linked(true, true, 0, false, false, true, true, 1).preferredTargetObjectId(actor, owner, 2000), "Dead Servitor became a tactical target.");
+		PhantomAssertions.assertEquals(owner.objectId(), linked(true, false, 1, false, false, true, true, 1).preferredTargetObjectId(actor, owner, 2000), "Wrong-instance Servitor became a tactical target.");
+		PhantomAssertions.assertEquals(owner.objectId(), linked(true, false, 0, true, false, true, true, 1).preferredTargetObjectId(actor, owner, 2000), "Same-party Servitor became a tactical target.");
+		PhantomAssertions.assertEquals(owner.objectId(), linked(true, false, 0, false, true, true, true, 1).preferredTargetObjectId(actor, owner, 2000), "Illegal-context Servitor became a tactical target.");
+		PhantomAssertions.assertEquals(owner.objectId(), linked(true, false, 0, false, false, true, true, 1, false).preferredTargetObjectId(actor, owner, 2000), "Non-attackable Servitor became a tactical target.");
+		context.record("qol009.exclusions", "pet=false;babyPet=false;dead=false;wrongInstance=false;sameParty=false;illegalContext=false;attackable=false");
+	}
+
+	private void testQol009PvpPolicy()
+	{
+		final ActorSnapshot actor = pvpActor();
+		final PvpTargetSnapshot neutralOwner = pvpOwner(false, true);
+		PhantomAssertions.assertEquals(neutralOwner.objectId(), linked(true, false, 0, false, false, false, false, 4).preferredTargetObjectId(actor, neutralOwner, 2000), "Neutral owner lost to a non-threatening low-impact Servitor.");
+		PhantomAssertions.assertEquals(901, linked(true, false, 0, false, false, true, false, 4).preferredTargetObjectId(actor, neutralOwner, 2000), "Directly threatening Servitor did not win tactical selection.");
+		PhantomAssertions.assertEquals(901, linked(true, false, 0, false, false, false, true, 1).preferredTargetObjectId(actor, neutralOwner, 2000), "High-impact easy-removal Servitor did not win tactical selection.");
+		PhantomAssertions.assertEquals(901, linked(true, false, 0, false, false, false, false, 4).preferredTargetObjectId(actor, pvpOwner(true, true), 2000), "Invulnerable owner did not allow a legal Servitor preference.");
+		PhantomAssertions.assertEquals(901, linked(true, false, 0, false, false, false, false, 4).preferredTargetObjectId(actor, pvpOwner(false, false), 2000), "Unreachable owner did not allow a legal Servitor preference.");
+	}
+
+	private void testQol009LivePvpAndCleanup() throws Exception
+	{
+		resetActor(true);
+		clearSummon(_player);
+		final Player owner = preparePvpTarget();
+		final long oreBaseline = spiritOreCount(owner);
+		try
+		{
+			clearSummon(owner);
+			final Monster summonAnchor = spawnNormalMonster(targetMaximumHp());
+			final Servitor enemyServitor = nativeSummon(owner, ARCANA_LORD_CLASS_ID, SUMMON_FELINE_KING_SKILL_ID, SUMMON_FELINE_KING_SKILL_LEVEL, summonAnchor);
+			owner.setTarget(_player);
+			enemyServitor.doSummonAttack(_player);
+			PhantomAssertions.assertTrue((enemyServitor.getAI().getIntention() == Intention.ATTACK) && (enemyServitor.getAI().getAttackTarget() == _player), "Stock enemy Feline King command did not establish the direct-threat fixture.");
+			final int karmaBefore = _player.getKarma();
+			try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				final PvpTargetSnapshot ownerSnapshot = lease.pvpTargetSnapshot(owner.getObjectId());
+				final PvpLinkedServitorSnapshot linked = lease.pvpLinkedServitorSnapshot(owner.getObjectId());
+				final PvpConsequenceSnapshot consequences = lease.pvpConsequences(owner.getObjectId());
+				PhantomAssertions.assertTrue((ownerSnapshot != null) && (linked != null) && (linked.ownerObjectId() == owner.getObjectId()) && linked.directThreat(), "Live enemy Servitor was not observed as an exact linked owner subtarget.");
+				PhantomAssertions.assertEquals(enemyServitor.getObjectId(), lease.pvpTacticalTargetObjectId(owner.getObjectId(), 2000), "Live direct-threat Servitor did not win tactical selection.");
+				PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.attackPvp(owner.getObjectId(), enemyServitor.getObjectId(), PVP_AUTHORITY_HASH), "Canonical PvP route did not admit the linked Servitor target.");
+				PhantomAssertions.assertTrue((_player.getAI().getAttackTarget() == enemyServitor) && (_player.getTarget() == enemyServitor), "Player attack did not route to the exact linked Servitor.");
+				PhantomAssertions.assertEquals(consequences, lease.pvpConsequences(owner.getObjectId()), "Linked tactical target replaced canonical owner consequence context.");
+				lease.cancelOwnedAction(new PhantomOwnedAction(1, owner.getObjectId(), null, 0));
+				PhantomAssertions.assertTrue((_player.getAI().getIntention() == Intention.IDLE) && (_player.getTarget() == null), "Linked Servitor PvP action survived owned cleanup.");
+			}
+			PhantomAssertions.assertEquals(karmaBefore, _player.getKarma(), "QOL-009 manually mutated Player karma.");
+		}
+		finally
+		{
+			clearSummon(owner);
+			restoreSpiritOre(owner, oreBaseline);
+			resetActor(true);
+		}
+	}
+
+	private Servitor nativeSummon(Player owner, int classId, int skillId, int skillLevel, Monster target) throws Exception
+	{
+		return nativeSummon(owner, classId, skillId, skillLevel, target, false);
+	}
+
+	private Servitor nativeSummon(Player owner, int classId, int skillId, int skillLevel, Monster target, boolean requireNativeDebit) throws Exception
+	{
+		clearSummon(owner);
+		prepareSummoner(owner, classId, skillId, skillLevel);
+		addSpiritOre(owner, 20);
+		final Skill summonSkill = owner.getKnownSkill(skillId);
+		final long oreBeforeAttempt = spiritOreCount(owner);
+		final double mpBeforeAttempt = owner.getCurrentMp();
+		if (owner == _player)
+		{
+			try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				PhantomAssertions.assertEquals(ActionOutcome.UNAVAILABLE, lease.attack(target.getObjectId()), "Combat lease did not pause owner action for a native resummon attempt.");
+			}
+		}
+		else
+		{
+			PhantomAssertions.assertTrue(owner.useMagic(summonSkill, false, false), "Native summon attempt was rejected.");
+		}
+		PhantomAssertions.assertTrue(owner.isCastingNow() && (owner.getCurrentSkill() != null) && (owner.getCurrentSkill().getSkillId() == skillId), "Canonical native summon attempt did not own the exact CAST/currentSkill state.");
+		if (requireNativeDebit)
+		{
+			final boolean nativeDebitObserved = waitFor(() -> (spiritOreCount(owner) == (oreBeforeAttempt - summonSkill.getItemConsumeCount())) && (owner.getCurrentMp() < mpBeforeAttempt) && owner.isSkillDisabled(summonSkill), WAIT_MILLIS);
+			PhantomAssertions.assertTrue(nativeDebitObserved, "Canonical summon attempt did not establish exact native reagent/MP/reuse ownership: oreBefore=" + oreBeforeAttempt + ", oreAfter=" + spiritOreCount(owner) + ", itemConsume=" + summonSkill.getItemConsumeCount() + ", mpBefore=" + mpBeforeAttempt + ", mpAfter=" + owner.getCurrentMp() + ", disabled=" + owner.isSkillDisabled(summonSkill));
+		}
+		PhantomAssertions.assertTrue(summonSkill.hasEffects(EffectScope.GENERAL), "Canonical summon skill has no loaded native Summon effect.");
+		owner.abortCast();
+		owner.getAI().setIntention(Intention.IDLE);
+		owner.setCurrentSkill(null, false, false);
+		summonSkill.activateSkill(owner, List.of(owner));
+		PhantomAssertions.assertTrue(owner.getSummon() instanceof Servitor, "Native Summon effect did not materialize a true Servitor test fixture.");
+		final Servitor servitor = (Servitor) owner.getSummon();
+		PhantomAssertions.assertTrue((servitor.getOwner() == owner) && servitor.isSpawned() && (servitor.getInstanceId() == owner.getInstanceId()), "Native Servitor ownership/live identity is invalid.");
+		return servitor;
+	}
+
+	private void prepareSummoner(Player owner, int classId, int skillId, int skillLevel)
+	{
+		owner.abortAttack();
+		owner.abortCast();
+		owner.setTarget(null);
+		owner.getAI().setIntention(Intention.IDLE);
+		owner.removeSkill(SUMMON_MEW_SKILL_ID, false);
+		owner.removeSkill(SUMMON_FELINE_KING_SKILL_ID, false);
+		owner.setPlayerClass(classId);
+		owner.getStat().setLevel((byte) 85);
+		owner.setSpawnProtection(false);
+		owner.setTeleportProtection(false);
+		owner.setCurrentHp(owner.getMaxHp());
+		owner.setCurrentMp(owner.getMaxMp());
+		final Skill skill = SkillData.getInstance().getSkill(skillId, skillLevel);
+		PhantomAssertions.assertTrue(skill != null, "Canonical summon skill is unavailable: " + skillId + '/' + skillLevel);
+		owner.addSkill(skill, false);
+		owner.enableSkill(skill);
+	}
+
+	private static void positionAtReachableServitorPath(Servitor servitor, Monster target)
+	{
+		if (GeoEngineConfig.PATHFINDING <= 0)
+		{
+			return;
+		}
+		for (int offset = 20; offset <= 200; offset += 20)
+		{
+			if (target.isSpawned())
+			{
+				target.decayMe();
+			}
+			target.setXYZInvisible(servitor.getX() + offset, servitor.getY(), servitor.getZ());
+			target.spawnMe();
+			target.revalidateZone(true);
+			if (PathFinding.getInstance().findPath(servitor.getX(), servitor.getY(), servitor.getZ(), target.getX(), target.getY(), target.getZ(), servitor.getInstanceId(), false) != null)
+			{
+				return;
+			}
+		}
+		throw new AssertionError("No native-reachable Feline King active-skill fixture was found within 200 units.");
+	}
+
+	private static void clearSummon(Player owner)
+	{
+		final Summon summon = owner == null ? null : owner.getSummon();
+		if (summon != null)
+		{
+			summon.unSummon(owner);
+		}
+	}
+
+	private static long spiritOreCount(Player owner)
+	{
+		return owner.getInventory().getInventoryItemCount(SPIRIT_ORE_ITEM_ID, -1);
+	}
+
+	private static void addSpiritOre(Player owner, long count)
+	{
+		if (count > 0)
+		{
+			PhantomAssertions.assertTrue(owner.getInventory().addItem(ItemProcessType.REWARD, SPIRIT_ORE_ITEM_ID, count, owner, PhantomCombatServerIntegrationSuite.class) != null, "Could not add test-owned Spirit Ore.");
+		}
+	}
+
+	private static void restoreSpiritOre(Player owner, long baseline)
+	{
+		final long current = spiritOreCount(owner);
+		if (current > baseline)
+		{
+			destroyInventoryCount(owner, SPIRIT_ORE_ITEM_ID, current - baseline);
+		}
+		else if (current < baseline)
+		{
+			addSpiritOre(owner, baseline - current);
+		}
+	}
+
+	private static ActorSnapshot pvpActor()
+	{
+		return new ActorSnapshot(800, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
+	}
+
+	private static PvpTargetSnapshot pvpOwner(boolean invulnerable, boolean reachable)
+	{
+		return new PvpTargetSnapshot(900, 96, 0, 85, 4, 4, 100, true, true, true, false, false, false, true, false, false, false, false, false, false, false, false, false, false, true, invulnerable, reachable);
+	}
+
+	private static PvpLinkedServitorSnapshot linked(boolean trueServitor, boolean dead, int instanceId, boolean sameParty, boolean incompatibleContext, boolean directThreat, boolean highImpact, int hpBand)
+	{
+		return linked(trueServitor, dead, instanceId, sameParty, incompatibleContext, directThreat, highImpact, hpBand, true);
+	}
+
+	private static PvpLinkedServitorSnapshot linked(boolean trueServitor, boolean dead, int instanceId, boolean sameParty, boolean incompatibleContext, boolean directThreat, boolean highImpact, int hpBand, boolean attackable)
+	{
+		return new PvpLinkedServitorSnapshot(901, 900, instanceId, 80, hpBand, 100, trueServitor, true, false, dead, dead, false, true, true, false, sameParty, false, incompatibleContext, attackable, directThreat, highImpact);
+	}
+
 	private void testPvpPhysical() throws Exception
 	{
 		resetActor(true);
@@ -1622,7 +2078,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		await(() -> target.isDead() || target.isAlikeDead(), "Canonical PlayerAI attack did not kill the deterministic target.");
 		final PhantomCombatSessionSnapshot terminal = awaitTerminal();
 		PhantomAssertions.assertEquals(PhantomCombatResult.VICTORY, terminal.result(), "Canonical target death did not produce victory.");
-		PhantomAssertions.assertTrue(_player.getTarget() == null, "Victory cleanup retained the exact dead combat target.");
+		await(() -> _player.getTarget() == null, "Victory cleanup retained the exact dead combat target.");
 		consumeTerminal();
 	}
 
@@ -2131,10 +2587,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		_player.abortAttack();
 		_player.abortCast();
+		_player.setCurrentSkill(null, false, false);
 		_player.setInvul(false);
 		_player.setTarget(null);
 		_player.getAI().setIntention(Intention.IDLE);
-		_player.setPlayerClass(MELEE_CLASS_ID);
+		if (_player.getPlayerClass().getId() != MELEE_CLASS_ID)
+		{
+			_player.setPlayerClass(MELEE_CLASS_ID);
+		}
 		_player.getStat().setLevel((byte) 85);
 		_player.setCurrentHp(_player.getMaxHp());
 		_player.setCurrentMp(_player.getMaxMp());
@@ -2380,6 +2840,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				}
 				PhantomAssertions.assertTrue(_combat.finishStop(), "Combat service did not stop cleanly.");
 			}
+			if ((_mode == Mode.QOL009_SERVITOR) && (_player != null))
+			{
+				// setPlayerClass schedules a 100 ms refresh, then sendSkillList schedules a 300 ms future.
+				Thread.sleep(500);
+				PhantomAssertions.assertTrue(waitFor(() -> !PhantomHeadlessPlayerTestEnvironment.liveFutureFields(_player).contains("Player._skillListTask"), WAIT_MILLIS), "Test-owned class refresh did not drain before materialization shutdown.");
+			}
 			for (Monster fixture : List.copyOf(_worldFixtures))
 			{
 				if (fixture.isSpawned())
@@ -2390,6 +2856,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_worldFixtures.clear();
 			if (_observer != null)
 			{
+				clearSummon(_observer);
 				_environment.cleanupLoadedPlayer(_observer);
 				_observer = null;
 			}
@@ -2413,6 +2880,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			if (_player != null)
 			{
+				clearSummon(_player);
 				_environment.assertClean(_environment.primary(), _player);
 			}
 		}

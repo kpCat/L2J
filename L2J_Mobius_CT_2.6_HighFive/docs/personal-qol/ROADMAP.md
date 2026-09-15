@@ -56,8 +56,12 @@ Functional command semantic v1 и corpus сохранены байт-в-байт
 
 Ancient Adena/resources и SP/quest rates закрыты доказательством существующих canonical owners без глобальной инфляции или free grants. Allowlisted real Personal Player получает shipped-OFF relief только для 26 переписанных upper-level predicates при сохранении minimum/prerequisite/state/rate правил. Отдельный server-wide shipped-OFF auto-Noblesse идемпотентно применяет `Player.setNoble(true)` к real и Phantom Player при stored subclass level 75, не создавая Hero, quest state или награды. Alt+B progression list `91002` содержит только пять реально потребляемых clan prerequisites по XML-owned ценам; QOL-004 цены не изменены.
 
-## Следующие bounded задачи
+## L2-QOL-009 — Summoner/Servitor combat hardening
 
-- `L2-QOL-009` — Summoner/Servitor combat hardening. Эта работа всё ещё остаётся и не входила в QOL-008.
+Статус реализации и delivery gate: **SUCCESS** — после устранения bounded test-only рисков четвёртый, отдельно разрешённый fresh full `ant verify` завершился `BUILD SUCCESSFUL` (39 min 13 s); focused/affected/QOL-001…008/Goal039 freeze также PASS. Единственный commit и normal non-force push с remote-SHA guard выполняются при передаче.
 
-L2-QOL-008 завершён после acceptance; L2-QOL-001/002/003/004/005/006/007 и hotfix L2-QOL-003-HF1 также имеют статус SUCCESS. Проект не объявлен завершённым до отдельного принятия QOL-009. QOL-009 не начат и не включён автоматически; client names/icons также остаются deferred из-за запрета client patch.
+Phantom summoner использует только live true Servitor своего Player: синхронизирует PvE/raid/PvP target, возвращает Servitor в native follow при cleanup, законно перепризывает через известный progression skill и ограниченно пробует active skill из live NPC parameters. Все resource/reuse/condition/zone/instance/geodata проверки остаются у штатных `Player`/`Summon` APIs; Pet/BabyPet исключены. В normal PvP hostile Servitor может стать transient linked tactical subtarget при угрозе, high-impact easy-removal или временной недоступности owner, но owner Player остаётся canonical PvP/consequence context.
+
+## Следующий этап
+
+L2-QOL-001…009 и hotfix L2-QOL-003-HF1 имеют статус SUCCESS по реализации и полному verify; точный commit/push SHA фиксируется в итоговой передаче. QOL-010 не планируется. Общий проект не объявлен окончательно закрытым без отдельного final acceptance/freeze. Client names/icons остаются deferred из-за запрета client patch.

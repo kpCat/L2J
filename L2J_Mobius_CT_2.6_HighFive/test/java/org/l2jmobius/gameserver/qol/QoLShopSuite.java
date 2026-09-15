@@ -422,9 +422,12 @@ public final class QoLShopSuite implements PhantomTestSuite
 	{
 		if (_network != null)
 		{
+			final GameClient previousClient = _network.client();
 			_network.close();
+			PhantomAssertions.assertEquals(null, previousClient.getPlayer(), "Closed shop test client retained the Player for a late native disconnection.");
 		}
 		_network = NetworkBackedClient.attach(_player);
+		PhantomAssertions.assertEquals(_network.client(), _player.getClient(), "Fresh shop test client did not own the Player session.");
 	}
 
 	private static void awaitFloodInterval() throws InterruptedException
@@ -617,7 +620,11 @@ public final class QoLShopSuite implements PhantomTestSuite
 		@Override
 		public void close() throws Exception
 		{
-			_player.setClient(null);
+			_client.setPlayer(null);
+			if (_player.getClient() == _client)
+			{
+				_player.setClient(null);
+			}
 			_connection.close();
 			_peer.close();
 			_server.close();

@@ -110,8 +110,13 @@ public interface PhantomCombatBackend
 		}
 	}
 
-	record PvpTargetSnapshot(int objectId, int classId, int instanceId, int level, int hpBand, int effectivePoolBand, double distance, boolean player, boolean exactKnowledge, boolean targetable, boolean invisible, boolean dead, boolean alikeDead, boolean surroundingRegion, boolean peaceRestricted, boolean sameParty, boolean self, boolean unmanagedEvent, boolean olympiad, boolean duel, boolean siege, boolean jailed, boolean festival, boolean boatOrAirship, boolean autoAttackable)
+	record PvpTargetSnapshot(int objectId, int classId, int instanceId, int level, int hpBand, int effectivePoolBand, double distance, boolean player, boolean exactKnowledge, boolean targetable, boolean invisible, boolean dead, boolean alikeDead, boolean surroundingRegion, boolean peaceRestricted, boolean sameParty, boolean self, boolean unmanagedEvent, boolean olympiad, boolean duel, boolean siege, boolean jailed, boolean festival, boolean boatOrAirship, boolean autoAttackable, boolean invulnerable, boolean reachable)
 	{
+		public PvpTargetSnapshot(int objectId, int classId, int instanceId, int level, int hpBand, int effectivePoolBand, double distance, boolean player, boolean exactKnowledge, boolean targetable, boolean invisible, boolean dead, boolean alikeDead, boolean surroundingRegion, boolean peaceRestricted, boolean sameParty, boolean self, boolean unmanagedEvent, boolean olympiad, boolean duel, boolean siege, boolean jailed, boolean festival, boolean boatOrAirship, boolean autoAttackable)
+		{
+			this(objectId, classId, instanceId, level, hpBand, effectivePoolBand, distance, player, exactKnowledge, targetable, invisible, dead, alikeDead, surroundingRegion, peaceRestricted, sameParty, self, unmanagedEvent, olympiad, duel, siege, jailed, festival, boatOrAirship, autoAttackable, false, true);
+		}
+
 		public PvpTargetSnapshot
 		{
 			if ((objectId <= 0) || (classId < 0) || (instanceId < 0) || (level < 1) || (hpBand < 0) || (hpBand > 4) || (effectivePoolBand < 0) || (effectivePoolBand > 4) || !Double.isFinite(distance) || (distance < 0))
@@ -123,6 +128,31 @@ public interface PhantomCombatBackend
 		public boolean validFor(ActorSnapshot actor, int maximumDistance)
 		{
 			return player && exactKnowledge && targetable && !invisible && !dead && !alikeDead && surroundingRegion && !peaceRestricted && !sameParty && !self && !unmanagedEvent && !olympiad && !duel && !siege && !jailed && !festival && !boatOrAirship && (instanceId == actor.instanceId()) && (distance <= maximumDistance);
+		}
+	}
+
+	record PvpLinkedServitorSnapshot(int objectId, int ownerObjectId, int instanceId, int level, int hpBand, double distance, boolean trueServitor, boolean targetable, boolean invisible, boolean dead, boolean alikeDead, boolean invulnerable, boolean spawned, boolean surroundingRegion, boolean peaceRestricted, boolean sameParty, boolean selfOwned, boolean incompatibleContext, boolean attackable, boolean directThreat, boolean highImpact)
+	{
+		public PvpLinkedServitorSnapshot
+		{
+			if ((objectId <= 0) || (ownerObjectId <= 0) || (instanceId < 0) || (level < 1) || (hpBand < 0) || (hpBand > 4) || !Double.isFinite(distance) || (distance < 0))
+			{
+				throw new IllegalArgumentException("Invalid linked PvP Servitor snapshot.");
+			}
+		}
+
+		public boolean validFor(ActorSnapshot actor, PvpTargetSnapshot owner, int maximumDistance)
+		{
+			return (owner != null) && (owner.objectId() == ownerObjectId) && trueServitor && targetable && !invisible && !dead && !alikeDead && !invulnerable && spawned && surroundingRegion && !peaceRestricted && !sameParty && !selfOwned && !incompatibleContext && attackable && (instanceId == actor.instanceId()) && (instanceId == owner.instanceId()) && (distance <= maximumDistance);
+		}
+
+		public int preferredTargetObjectId(ActorSnapshot actor, PvpTargetSnapshot owner, int maximumDistance)
+		{
+			if (!validFor(actor, owner, maximumDistance))
+			{
+				return owner == null ? 0 : owner.objectId();
+			}
+			return directThreat || owner.invulnerable() || !owner.reachable() || (highImpact && (hpBand <= 1)) ? objectId : owner.objectId();
 		}
 	}
 

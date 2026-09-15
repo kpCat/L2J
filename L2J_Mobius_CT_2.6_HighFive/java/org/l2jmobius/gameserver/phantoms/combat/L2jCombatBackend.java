@@ -15,9 +15,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import org.l2jmobius.gameserver.config.PvpConfig;
 import org.l2jmobius.gameserver.config.RatesConfig;
+import org.l2jmobius.gameserver.config.GeoEngineConfig;
 
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
+import org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding;
 import org.l2jmobius.gameserver.handler.IItemHandler;
 import org.l2jmobius.gameserver.handler.ItemHandler;
 import org.l2jmobius.gameserver.managers.CastleManager;
@@ -27,13 +30,16 @@ import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.WorldRegion;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.actor.instance.Chest;
 import org.l2jmobius.gameserver.model.actor.instance.Door;
 import org.l2jmobius.gameserver.model.actor.instance.EventMonster;
 import org.l2jmobius.gameserver.model.actor.instance.GrandBoss;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.actor.instance.RaidBoss;
+import org.l2jmobius.gameserver.model.actor.instance.Servitor;
 import org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType;
+import org.l2jmobius.gameserver.model.conditions.ConditionPlayerCanSummon;
 import org.l2jmobius.gameserver.model.item.Weapon;
 import org.l2jmobius.gameserver.model.item.EtcItem;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
@@ -58,6 +64,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionOut
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionUse;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConsequenceSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLinkedServitorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLocalSupportSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
@@ -79,7 +86,9 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ActorKind;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CapabilityRule;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SummonActorFact;
 import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.NativeSide;
 import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.TargetKind;
 
@@ -87,6 +96,9 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 {
 	private static final int MAXIMUM_ACQUISITION_DISTANCE = 2000;
 	private static final int MAXIMUM_LOOT_DISTANCE = 300;
+	private static final long MINIMUM_SERVITOR_SKILL_ATTEMPT_NANOS = 3_000_000_000L;
+	private static final long RESUMMON_ATTEMPT_NANOS = 5_000_000_000L;
+	private static final ConditionPlayerCanSummon CAN_SUMMON_SERVITOR = new ConditionPlayerCanSummon(true);
 	private static final Set<String> PARTY_SUPPORT_CAPABILITIES = Set.of("combat.heal", "combat.recharge", "combat.resurrection", "combat.buff", "combat.song", "combat.dance");
 	private static final Set<TargetType> PARTY_SUPPORT_TARGET_TYPES = Set.of(TargetType.ONE, TargetType.SELF, TargetType.PARTY, TargetType.PARTY_MEMBER, TargetType.PARTY_NOTME, TargetType.PARTY_OTHER, TargetType.TARGET_PARTY, TargetType.PC_BODY, TargetType.AURA_FRIENDLY, TargetType.AREA_FRIENDLY);
 	private final PhantomMaterializationService _materializationService;
@@ -118,6 +130,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private final Supplier<PhantomGameKnowledgeQuery> _knowledgeSupplier;
 		private final Supplier<PhantomProgressionCatalog> _progressionCatalog;
 		private final AtomicBoolean _closed = new AtomicBoolean();
+		private long _nextResummonAttemptNanos;
+		private long _nextServitorSkillAttemptNanos;
+		private int _controlledServitorObjectId;
+		private int _ownedSummonSkillId;
 
 		private L2jActorLease(ActionLease materializationLease, Supplier<PhantomGameKnowledgeQuery> knowledgeSupplier, Supplier<PhantomProgressionCatalog> progressionCatalog)
 		{
@@ -187,7 +203,27 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final boolean siege = _player.isInSiege() || target.isInSiege() || _player.isInsideZone(ZoneId.SIEGE) || target.isInsideZone(ZoneId.SIEGE);
 			final boolean peace = _player.isInsideZone(ZoneId.PEACE) || target.isInsideZone(ZoneId.PEACE);
 			final boolean boatOrAirship = _player.isInBoat() || _player.isInAirShip() || target.isInBoat() || target.isInAirShip();
-			return new PvpTargetSnapshot(target.getObjectId(), target.getActiveClass(), target.getInstanceId(), target.getLevel(), band(target.getCurrentHp(), target.getMaxHp()), band(target.getCurrentHp() + target.getCurrentCp(), target.getMaxHp() + target.getMaxCp()), distance(_player, target), true, true, target.isTargetable(), target.isInvisible(), target.isDead(), target.isAlikeDead(), surrounding, peace, sameParty, target == _player, unmanagedEvent, olympiad, duel, siege, _player.isJailed() || target.isJailed(), _player.isFestivalParticipant() || target.isFestivalParticipant(), boatOrAirship, target.isAutoAttackable(_player));
+			return new PvpTargetSnapshot(target.getObjectId(), target.getActiveClass(), target.getInstanceId(), target.getLevel(), band(target.getCurrentHp(), target.getMaxHp()), band(target.getCurrentHp() + target.getCurrentCp(), target.getMaxHp() + target.getMaxCp()), distance(_player, target), true, true, target.isTargetable(), target.isInvisible(), target.isDead(), target.isAlikeDead(), surrounding, peace, sameParty, target == _player, unmanagedEvent, olympiad, duel, siege, _player.isJailed() || target.isJailed(), _player.isFestivalParticipant() || target.isFestivalParticipant(), boatOrAirship, target.isAutoAttackable(_player), target.isInvul(), reachable(_player, target));
+		}
+
+		@Override
+		public PvpLinkedServitorSnapshot pvpLinkedServitorSnapshot(int ownerObjectId)
+		{
+			final WorldObject object = World.getInstance().findObject(ownerObjectId);
+			if (!(object instanceof Player owner))
+			{
+				return null;
+			}
+			final Summon summon = owner.getSummon();
+			if (!(summon instanceof Servitor servitor) || (servitor.getOwner() != owner) || (World.getInstance().findObject(servitor.getObjectId()) != servitor))
+			{
+				return null;
+			}
+			final WorldRegion actorRegion = _player.getWorldRegion();
+			final boolean surrounding = (actorRegion != null) && actorRegion.isSurroundingRegion(servitor.getWorldRegion());
+			final boolean sameParty = (_player.getParty() != null) && (_player.getParty() == owner.getParty());
+			final boolean incompatible = _player.isOnEvent() || owner.isOnEvent() || _player.isInOlympiadMode() || owner.isInOlympiadMode() || _player.isInDuel() || owner.isInDuel() || _player.isInSiege() || owner.isInSiege() || _player.isJailed() || owner.isJailed() || _player.isFestivalParticipant() || owner.isFestivalParticipant() || _player.isInBoat() || _player.isInAirShip() || owner.isInBoat() || owner.isInAirShip();
+			return new PvpLinkedServitorSnapshot(servitor.getObjectId(), owner.getObjectId(), servitor.getInstanceId(), servitor.getLevel(), band(servitor.getCurrentHp(), servitor.getMaxHp()), distance(_player, servitor), true, servitor.isTargetable(), servitor.isInvisible(), servitor.isDead(), servitor.isAlikeDead(), servitor.isInvul(), servitor.isSpawned(), surrounding, _player.isInsideZone(ZoneId.PEACE) || servitor.isInsideZone(ZoneId.PEACE), sameParty, owner == _player, incompatible, servitor.canBeAttacked(), targets(servitor, _player), hasActiveCombatSkill(servitor));
 		}
 
 		@Override
@@ -795,11 +831,15 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.REJECTED;
 			}
+			_player.setTarget(target);
+			if (coordinateServitor(target, false))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
 			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == target))
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
-			_player.setTarget(target);
 			_player.getAI().setIntention(Intention.ATTACK, target);
 			return ActionOutcome.ISSUED;
 		}
@@ -817,6 +857,11 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.REJECTED;
 			}
+			_player.setTarget(target);
+			if (coordinateServitor(target, false))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
 			final Skill skill = _player.getKnownSkill(selected.skillId());
 			if (_player.isSkillDisabled(skill) || !_player.checkDoCastConditions(skill))
 			{
@@ -827,7 +872,6 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
-			_player.setTarget(target);
 			_player.getAI().setIntention(Intention.CAST, skill, target);
 			return ActionOutcome.ISSUED;
 		}
@@ -849,11 +893,15 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.REJECTED;
 			}
+			_player.setTarget(target);
+			if (coordinateServitor(target, false))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
 			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == target))
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
-			_player.setTarget(target);
 			_player.getAI().setIntention(Intention.ATTACK, target);
 			return ActionOutcome.ISSUED;
 		}
@@ -875,6 +923,11 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.REJECTED;
 			}
+			_player.setTarget(target);
+			if (coordinateServitor(target, false))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
 			final Skill skill = _player.getKnownSkill(selected.skillId());
 			if (_player.isSkillDisabled(skill) || !_player.checkDoCastConditions(skill))
 			{
@@ -885,7 +938,6 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
-			_player.setTarget(target);
 			_player.getAI().setIntention(Intention.CAST, skill, target);
 			return ActionOutcome.ISSUED;
 		}
@@ -893,25 +945,40 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public ActionOutcome attackPvp(int targetObjectId, String authorityHash)
 		{
+			return attackPvp(targetObjectId, targetObjectId, authorityHash);
+		}
+
+		@Override
+		public ActionOutcome attackPvp(int ownerObjectId, int tacticalTargetObjectId, String authorityHash)
+		{
 			if ((authorityHash == null) || !authorityHash.matches("[0-9A-F]{64}"))
 			{
 				return ActionOutcome.REJECTED;
 			}
-			final WorldObject object = World.getInstance().findObject(targetObjectId);
-			if (!(object instanceof Player target))
+			final WorldObject object = World.getInstance().findObject(ownerObjectId);
+			if (!(object instanceof Player owner))
 			{
 				return ActionOutcome.REJECTED;
 			}
-			final PvpTargetSnapshot snapshot = pvpTargetSnapshot(targetObjectId);
+			final PvpTargetSnapshot snapshot = pvpTargetSnapshot(ownerObjectId);
 			if ((snapshot == null) || !snapshot.validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE))
 			{
 				return ActionOutcome.REJECTED;
+			}
+			final Creature target = pvpActionTarget(owner, tacticalTargetObjectId, snapshot);
+			if (target == null)
+			{
+				return ActionOutcome.REJECTED;
+			}
+			_player.setTarget(target);
+			if (coordinateServitor(target, true))
+			{
+				return ActionOutcome.UNAVAILABLE;
 			}
 			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == target))
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
-			_player.setTarget(target);
 			target.onForcedAttack(_player);
 			return _player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == target) ? ActionOutcome.ISSUED : ActionOutcome.REJECTED;
 		}
@@ -919,19 +986,35 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public ActionOutcome castPvp(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode, boolean forceUse, String authorityHash)
 		{
+			return castPvp(targetObjectId, targetObjectId, selected, mode, forceUse, authorityHash);
+		}
+
+		@Override
+		public ActionOutcome castPvp(int ownerObjectId, int tacticalTargetObjectId, SelectedSkill selected, PhantomCombatMode mode, boolean forceUse, String authorityHash)
+		{
 			if ((authorityHash == null) || !authorityHash.matches("[0-9A-F]{64}") || (selected == null))
 			{
 				return ActionOutcome.REJECTED;
 			}
-			final WorldObject object = World.getInstance().findObject(targetObjectId);
-			if (!(object instanceof Player target))
+			final WorldObject object = World.getInstance().findObject(ownerObjectId);
+			if (!(object instanceof Player owner))
 			{
 				return ActionOutcome.REJECTED;
 			}
-			final PvpTargetSnapshot snapshot = pvpTargetSnapshot(targetObjectId);
+			final PvpTargetSnapshot snapshot = pvpTargetSnapshot(ownerObjectId);
 			if ((snapshot == null) || !snapshot.validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE) || !supportsPvpSkill(selected, mode))
 			{
 				return ActionOutcome.REJECTED;
+			}
+			final Creature target = pvpActionTarget(owner, tacticalTargetObjectId, snapshot);
+			if (target == null)
+			{
+				return ActionOutcome.REJECTED;
+			}
+			_player.setTarget(target);
+			if (coordinateServitor(target, forceUse))
+			{
+				return ActionOutcome.UNAVAILABLE;
 			}
 			final Skill skill = _player.getKnownSkill(selected.skillId());
 			final SkillUseHolder current = _player.getCurrentSkill();
@@ -943,7 +1026,6 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}
-			_player.setTarget(target);
 			if (!_player.useMagic(skill, forceUse, false))
 			{
 				return ActionOutcome.UNAVAILABLE;
@@ -1131,6 +1213,171 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			return ActionOutcome.ISSUED;
 		}
 
+		private boolean coordinateServitor(Creature target, boolean forceUse)
+		{
+			final Summon controlled = _player.getSummon();
+			if (controlled == null)
+			{
+				return tryNativeResummon();
+			}
+			if (!(controlled instanceof Servitor servitor) || !liveOwnedServitor(servitor))
+			{
+				return false;
+			}
+			if ((target == null) || target.isDead() || target.isAlikeDead() || !target.isSpawned() || (target.getInstanceId() != _player.getInstanceId()) || (World.getInstance().findObject(target.getObjectId()) != target))
+			{
+				returnServitor(servitor);
+				return false;
+			}
+			_controlledServitorObjectId = servitor.getObjectId();
+			if (servitor.isCastingNow() && servitor.hasAI() && (servitor.getAI().getCastTarget() == target))
+			{
+				return false;
+			}
+
+			final long now = System.nanoTime();
+			if (now >= _nextServitorSkillAttemptNanos)
+			{
+				final Skill activeSkill = activeCombatSkills(servitor).stream().findFirst().orElse(null);
+				if (activeSkill != null)
+				{
+					_nextServitorSkillAttemptNanos = saturatingAdd(now, Math.max(MINIMUM_SERVITOR_SKILL_ATTEMPT_NANOS, activeSkill.getReuseDelay() * 1_000_000L));
+					servitor.setTarget(target);
+					if (servitor.useMagic(activeSkill, forceUse, false))
+					{
+						return false;
+					}
+				}
+			}
+			if (servitor.hasAI() && (servitor.getAI().getIntention() == Intention.ATTACK) && (servitor.getAI().getAttackTarget() == target))
+			{
+				return false;
+			}
+			_player.setTarget(target);
+			if (servitor.canAttack(forceUse))
+			{
+				servitor.doSummonAttack(target);
+			}
+			return false;
+		}
+
+		private boolean tryNativeResummon()
+		{
+			final PhantomProgressionCatalog catalog = _progressionCatalog.get();
+			if ((catalog == null) || (catalog.classFact(_player.getActiveClass()) == null) || !catalog.classFact(_player.getActiveClass()).summoner())
+			{
+				return false;
+			}
+			final long now = System.nanoTime();
+			if (now < _nextResummonAttemptNanos)
+			{
+				return false;
+			}
+			final SummonActorFact fact = catalog.summons(_player.getActiveClass()).stream()
+				.filter(candidate -> candidate.actorKind() == ActorKind.SERVITOR)
+				.filter(candidate -> candidate.ownerClassIds().contains(_player.getActiveClass()))
+				.filter(candidate ->
+				{
+					final Skill known = _player.getKnownSkill(candidate.skillId());
+					return (known != null) && (known.getLevel() == candidate.skillLevel());
+				})
+				.max(Comparator.comparingInt(SummonActorFact::skillLevel).thenComparingInt(SummonActorFact::skillId))
+				.orElse(null);
+			if ((fact == null) || (_player.getSummon() != null))
+			{
+				return false;
+			}
+			final Skill skill = _player.getKnownSkill(fact.skillId());
+			if ((skill == null) || (skill.getLevel() != fact.skillLevel()))
+			{
+				return false;
+			}
+			if (!CAN_SUMMON_SERVITOR.test(_player, _player, skill))
+			{
+				return false;
+			}
+			_nextResummonAttemptNanos = saturatingAdd(now, RESUMMON_ATTEMPT_NANOS);
+			final boolean issued = _player.useMagic(skill, false, false);
+			if (issued)
+			{
+				_ownedSummonSkillId = skill.getId();
+			}
+			return issued;
+		}
+
+		private Creature pvpActionTarget(Player owner, int tacticalTargetObjectId, PvpTargetSnapshot ownerSnapshot)
+		{
+			if (tacticalTargetObjectId == owner.getObjectId())
+			{
+				return owner;
+			}
+			final PvpLinkedServitorSnapshot linked = pvpLinkedServitorSnapshot(owner.getObjectId());
+			if ((linked == null) || (linked.objectId() != tacticalTargetObjectId) || (linked.preferredTargetObjectId(actorSnapshot(), ownerSnapshot, MAXIMUM_ACQUISITION_DISTANCE) != tacticalTargetObjectId))
+			{
+				return owner;
+			}
+			final WorldObject target = World.getInstance().findObject(tacticalTargetObjectId);
+			return (target instanceof Servitor servitor) && (servitor.getOwner() == owner) ? servitor : owner;
+		}
+
+		private boolean liveOwnedServitor(Servitor servitor)
+		{
+			return (servitor.getOwner() == _player) && (_player.getSummon() == servitor) && (servitor.getInstanceId() == _player.getInstanceId()) && servitor.isSpawned() && !servitor.isDead() && !servitor.isAlikeDead() && (World.getInstance().findObject(servitor.getObjectId()) == servitor);
+		}
+
+		private static List<Skill> activeCombatSkills(Servitor servitor)
+		{
+			return servitor.getTemplate().getParameters().getSet().values().stream()
+				.filter(SkillHolder.class::isInstance)
+				.map(SkillHolder.class::cast)
+				.map(SkillHolder::getSkill)
+				.filter(Objects::nonNull)
+				.filter(skill -> !skill.isPassive() && !skill.isToggle() && (skill.isDamage() || skill.isDebuff() || skill.hasNegativeEffect()))
+				.distinct()
+				.sorted(Comparator.comparingInt((Skill skill) -> skill.getTargetType() == TargetType.ONE ? 0 : 1).thenComparingInt(Skill::getId))
+				.toList();
+		}
+
+		private static boolean hasActiveCombatSkill(Servitor servitor)
+		{
+			return !activeCombatSkills(servitor).isEmpty();
+		}
+
+		private static boolean targets(Summon summon, Creature target)
+		{
+			return (summon.getTarget() == target) || (summon.hasAI() && ((summon.getAI().getAttackTarget() == target) || (summon.getAI().getCastTarget() == target)));
+		}
+
+		private void returnServitor(Servitor servitor)
+		{
+			if (!liveOwnedServitor(servitor) || ((_controlledServitorObjectId != 0) && (_controlledServitorObjectId != servitor.getObjectId())))
+			{
+				return;
+			}
+			if (servitor.isAttackingNow())
+			{
+				servitor.abortAttack();
+			}
+			if (servitor.isCastingNow())
+			{
+				servitor.abortCast();
+			}
+			servitor.setTarget(null);
+			servitor.cancelAction();
+			servitor.followOwner();
+			_controlledServitorObjectId = 0;
+		}
+
+		private static boolean reachable(Creature actor, Creature target)
+		{
+			return GeoEngine.getInstance().canSeeTarget(actor, target) || (GeoEngineConfig.PATHFINDING <= 0) || (PathFinding.getInstance().findPath(actor.getX(), actor.getY(), actor.getZ(), target.getX(), target.getY(), target.getZ(), actor.getInstanceId(), false) != null);
+		}
+
+		private static long saturatingAdd(long left, long right)
+		{
+			return right > (Long.MAX_VALUE - left) ? Long.MAX_VALUE : left + right;
+		}
+
 		@Override
 		public ActionOutcome pickUp(int objectId)
 		{
@@ -1151,6 +1398,21 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public void cancelOwnedAction(PhantomOwnedAction action)
 		{
+			final SkillUseHolder currentPlayerSkill = _player.getCurrentSkill();
+			if ((_ownedSummonSkillId > 0) && (currentPlayerSkill != null) && (currentPlayerSkill.getSkillId() == _ownedSummonSkillId))
+			{
+				_player.abortCast();
+				if (_player.hasAI() && (_player.getAI().getIntention() == Intention.CAST))
+				{
+					_player.getAI().setIntention(Intention.IDLE);
+				}
+			}
+			_ownedSummonSkillId = 0;
+			final Summon controlled = _player.getSummon();
+			if ((controlled instanceof Servitor servitor) && (_controlledServitorObjectId == servitor.getObjectId()))
+			{
+				returnServitor(servitor);
+			}
 			if (!_player.hasAI())
 			{
 				return;
@@ -1158,7 +1420,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			boolean cancelledOwnedAction = false;
 			final WorldObject selectedTarget = _player.getTarget();
 			final int selectedTargetObjectId = selectedTarget == null ? 0 : selectedTarget.getObjectId();
-			if ((_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() != null) && (_player.getAI().getAttackTarget().getObjectId() == action.combatTargetObjectId()))
+			if ((_player.getAI().getIntention() == Intention.ATTACK) && ownedCombatTarget(_player.getAI().getAttackTarget(), action.combatTargetObjectId()))
 			{
 				_player.abortAttack();
 				_player.getAI().setIntention(Intention.IDLE);
@@ -1166,7 +1428,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			}
 			final SkillUseHolder current = _player.getCurrentSkill();
 			final SelectedSkill selectedSkill = action.selectedSkill();
-			if ((_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() != null) && (_player.getAI().getCastTarget().getObjectId() == action.combatTargetObjectId()) && (selectedSkill != null) && (current != null) && (current.getSkillId() == selectedSkill.skillId()) && (current.getSkillLevel() == selectedSkill.skillLevel()))
+			if ((_player.getAI().getIntention() == Intention.CAST) && ownedCombatTarget(_player.getAI().getCastTarget(), action.combatTargetObjectId()) && (selectedSkill != null) && (current != null) && (current.getSkillId() == selectedSkill.skillId()) && (current.getSkillLevel() == selectedSkill.skillLevel()))
 			{
 				_player.abortCast();
 				_player.getAI().setIntention(Intention.IDLE);
@@ -1177,10 +1439,15 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				_player.getAI().setIntention(Intention.IDLE);
 				cancelledOwnedAction = true;
 			}
-			if (cancelledOwnedAction || ((_player.getAI().getIntention() == Intention.IDLE) && (selectedTargetObjectId == action.combatTargetObjectId())))
+			if (cancelledOwnedAction || ((_player.getAI().getIntention() == Intention.IDLE) && ownedCombatTarget(selectedTarget, action.combatTargetObjectId())))
 			{
 				_player.setTarget(null);
 			}
+		}
+
+		private static boolean ownedCombatTarget(WorldObject target, int canonicalTargetObjectId)
+		{
+			return (target != null) && ((target.getObjectId() == canonicalTargetObjectId) || ((target instanceof Servitor servitor) && (servitor.getOwner() != null) && (servitor.getOwner().getObjectId() == canonicalTargetObjectId)));
 		}
 
 		@Override

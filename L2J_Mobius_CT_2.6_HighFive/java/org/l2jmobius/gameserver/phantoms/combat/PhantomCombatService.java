@@ -34,6 +34,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutc
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConsequenceSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLinkedServitorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLocalSupportSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
@@ -130,8 +131,13 @@ public final class PhantomCombatService
 		}
 	}
 
-	public record PvpObservedTarget(PvpTargetSnapshot target, PvpConsequenceSnapshot consequences, PvpLocalSupportSnapshot localSupport, boolean canonicalContextAllowed, boolean actualAttacker, boolean selectedTarget)
+	public record PvpObservedTarget(PvpTargetSnapshot target, PvpConsequenceSnapshot consequences, PvpLocalSupportSnapshot localSupport, PvpLinkedServitorSnapshot linkedServitor, boolean canonicalContextAllowed, boolean actualAttacker, boolean selectedTarget)
 	{
+		public PvpObservedTarget(PvpTargetSnapshot target, PvpConsequenceSnapshot consequences, PvpLocalSupportSnapshot localSupport, boolean canonicalContextAllowed, boolean actualAttacker, boolean selectedTarget)
+		{
+			this(target, consequences, localSupport, null, canonicalContextAllowed, actualAttacker, selectedTarget);
+		}
+
 		public PvpObservedTarget
 		{
 			Objects.requireNonNull(target, "target");
@@ -646,7 +652,9 @@ public final class PhantomCombatService
 				if ((target != null) && (consequences != null))
 				{
 					final PvpLocalSupportSnapshot localSupport = lease.pvpLocalSupport(targetObjectId, localRiskPlayerLimit);
-					observed.put(targetObjectId, new PvpObservedTarget(target, consequences, localSupport, target.validFor(actor, _policy.maximumAcquisitionDistance()), attackers.contains(targetObjectId), actor.currentTargetObjectId() == targetObjectId));
+					final PvpLinkedServitorSnapshot linkedServitor = lease.pvpLinkedServitorSnapshot(targetObjectId);
+					final boolean selectedOwnerOrServitor = (actor.currentTargetObjectId() == targetObjectId) || ((linkedServitor != null) && (actor.currentTargetObjectId() == linkedServitor.objectId()));
+					observed.put(targetObjectId, new PvpObservedTarget(target, consequences, localSupport, linkedServitor, target.validFor(actor, _policy.maximumAcquisitionDistance()), attackers.contains(targetObjectId), selectedOwnerOrServitor));
 				}
 			}
 			return Optional.of(new PvpObservation(actor, lease.pvpLevel(), modes, List.copyOf(observed.values())));
@@ -1435,6 +1443,8 @@ public final class PhantomCombatService
 
 	private void issuePvpAction(PhantomCombatSession session, ActorSnapshot actor)
 	{
+		final int ownerObjectId = session._request.targetObjectId();
+		final int tacticalTargetObjectId = session._actorLease.pvpTacticalTargetObjectId(ownerObjectId, _policy.maximumAcquisitionDistance());
 		SelectedSkill selected = null;
 		if (!session._loadout.selectedSkills().isEmpty() && (percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()))
 		{
@@ -1450,7 +1460,7 @@ public final class PhantomCombatService
 		}
 		if (selected != null)
 		{
-			final ActionOutcome outcome = session._actorLease.castPvp(session._request.targetObjectId(), selected, session._request.mode(), session._pvpRequest.forceUse(), session._pvpRequest.authorityHash());
+			final ActionOutcome outcome = session._actorLease.castPvp(ownerObjectId, tacticalTargetObjectId, selected, session._request.mode(), session._pvpRequest.forceUse(), session._pvpRequest.authorityHash());
 			if (outcome == ActionOutcome.ISSUED)
 			{
 				session._ownedAction = session._ownedAction.withSelectedSkill(selected);
@@ -1466,7 +1476,7 @@ public final class PhantomCombatService
 				return;
 			}
 		}
-		final ActionOutcome outcome = session._actorLease.attackPvp(session._request.targetObjectId(), session._pvpRequest.authorityHash());
+		final ActionOutcome outcome = session._actorLease.attackPvp(ownerObjectId, tacticalTargetObjectId, session._pvpRequest.authorityHash());
 		if (outcome == ActionOutcome.ISSUED)
 		{
 			session._ownedAction = session._ownedAction.withSelectedSkill(null);

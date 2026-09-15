@@ -300,6 +300,7 @@ public final class PhantomTestLauncher
 			case "combat-action-ownership" -> new PhantomCombatActionOwnershipSuite();
 			case "combat-server-integration" -> new PhantomCombatServerIntegrationSuite();
 			case "pvp-combat-server-integration" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.PVP);
+			case "qol-summoner-servitor-combat" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.QOL009_SERVITOR);
 			case "combat-performance" -> new PhantomCombatPerformanceSuite();
 			case "progression-parity" -> new PhantomProgressionParitySuite();
 			case "progression-catalog" -> new PhantomProgressionCatalogSuite();
