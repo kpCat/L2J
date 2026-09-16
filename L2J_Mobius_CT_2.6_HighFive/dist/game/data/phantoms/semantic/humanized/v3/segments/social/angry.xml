@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.social.angry.semantic" version="3" category="social.angry">
+	<aliases>
+		<alias from="zlost" to="злость" />
+		<alias from="zlos" to="злость" />
+		<alias from="злсть" to="злость" />
+		<alias from="злостьь" to="злость" />
+		<alias from="granica" to="граница" />
+		<alias from="granic" to="граница" />
+		<alias from="грница" to="граница" />
+		<alias from="границаа" to="граница" />
+		<alias from="pauza" to="пауза" />
+		<alias from="pauz" to="пауза" />
+		<alias from="пуза" to="пауза" />
+		<alias from="паузаа" to="пауза" />
+		<alias from="konflikt" to="конфликт" />
+		<alias from="konflik" to="конфликт" />
+		<alias from="кнфликт" to="конфликт" />
+		<alias from="конфликтт" to="конфликт" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.social.angry.pattern.boundary.0001" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="что думаешь про прямую границу" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.boundary.0002" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="как тебе прямую границу" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.boundary.0003" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="обсудим прямую границу" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.boundary.0004" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="есть мысли про прямую границу" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.boundary.0005" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="какое мнение про прямую границу" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.boundary.0006" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="что думаешь про просьбу прекратить" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.boundary.0007" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="как тебе просьбу прекратить" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.boundary.0008" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="обсудим просьбу прекратить" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.boundary.0009" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="есть мысли про просьбу прекратить" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.boundary.0010" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="какое мнение про просьбу прекратить" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.boundary.0011" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="что думаешь про неприятный тон" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.boundary.0012" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="как тебе неприятный тон" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.boundary.0013" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="обсудим неприятный тон" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.boundary.0014" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="есть мысли про неприятный тон" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.boundary.0015" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="какое мнение про неприятный тон" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.boundary.0016" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="что думаешь про уважение к отказу" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.boundary.0017" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="как тебе уважение к отказу" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.boundary.0018" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="обсудим уважение к отказу" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.boundary.0019" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="есть мысли про уважение к отказу" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.boundary.0020" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="какое мнение про уважение к отказу" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.boundary.0021" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="что думаешь про стоп без объяснений" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.boundary.0022" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="как тебе стоп без объяснений" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.boundary.0023" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="обсудим стоп без объяснений" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.boundary.0024" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="есть мысли про стоп без объяснений" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.boundary.0025" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="какое мнение про стоп без объяснений" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.boundary.0026" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="что думаешь про личное пространство" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.boundary.0027" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="как тебе личное пространство" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.boundary.0028" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="обсудим личное пространство" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.boundary.0029" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="есть мысли про личное пространство" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.boundary.0030" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="какое мнение про личное пространство" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.boundary.0031" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="что думаешь про право выйти из разговора" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.boundary.0032" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="как тебе право выйти из разговора" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.boundary.0033" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="обсудим право выйти из разговора" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.boundary.0034" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="есть мысли про право выйти из разговора" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.boundary.0035" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="какое мнение про право выйти из разговора" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.boundary.0036" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="что думаешь про чёткую короткую фразу" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.boundary.0037" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="как тебе чёткую короткую фразу" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.boundary.0038" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="обсудим чёткую короткую фразу" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.boundary.0039" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="есть мысли про чёткую короткую фразу" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.boundary.0040" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="какое мнение про чёткую короткую фразу" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.boundary.0041" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="что думаешь про отказ терпеть давление" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.boundary.0042" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="как тебе отказ терпеть давление" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.boundary.0043" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="обсудим отказ терпеть давление" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.boundary.0044" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="есть мысли про отказ терпеть давление" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.boundary.0045" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="какое мнение про отказ терпеть давление" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.boundary.0046" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="что думаешь про завершение перепалки" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.boundary.0047" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="как тебе завершение перепалки" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.boundary.0048" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="обсудим завершение перепалки" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.boundary.0049" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="есть мысли про завершение перепалки" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.boundary.0050" topic="social.angry.boundary" act="social.angry.boundary.reply" phrase="какое мнение про завершение перепалки" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.deescalate.0001" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="что думаешь про снижение накала" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.deescalate.0002" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="как тебе снижение накала" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.deescalate.0003" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="обсудим снижение накала" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.deescalate.0004" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="есть мысли про снижение накала" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.deescalate.0005" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="какое мнение про снижение накала" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.deescalate.0006" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="что думаешь про паузу перед ответом в игре" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.deescalate.0007" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="как тебе паузу перед ответом в игре" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.deescalate.0008" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="обсудим паузу перед ответом в игре" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.deescalate.0009" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="есть мысли про паузу перед ответом в игре" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.deescalate.0010" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="какое мнение про паузу перед ответом в игре" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.deescalate.0011" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="что думаешь про более тихий тон" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.deescalate.0012" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="как тебе более тихий тон" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.deescalate.0013" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="обсудим более тихий тон" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.deescalate.0014" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="есть мысли про более тихий тон" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.deescalate.0015" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="какое мнение про более тихий тон" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.deescalate.0016" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="что думаешь про отказ кричать в ответ" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.deescalate.0017" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="как тебе отказ кричать в ответ" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.deescalate.0018" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="обсудим отказ кричать в ответ" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.deescalate.0019" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="есть мысли про отказ кричать в ответ" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.deescalate.0020" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="какое мнение про отказ кричать в ответ" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.deescalate.0021" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="что думаешь про несколько спокойных слов" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.deescalate.0022" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="как тебе несколько спокойных слов" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.deescalate.0023" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="обсудим несколько спокойных слов" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.deescalate.0024" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="есть мысли про несколько спокойных слов" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.deescalate.0025" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="какое мнение про несколько спокойных слов" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.deescalate.0026" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="что думаешь про смену темы" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.deescalate.0027" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="как тебе смену темы" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.deescalate.0028" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="обсудим смену темы" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.deescalate.0029" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="есть мысли про смену темы" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.deescalate.0030" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="какое мнение про смену темы" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.deescalate.0031" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="что думаешь про временный выход из спора" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.deescalate.0032" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="как тебе временный выход из спора" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.deescalate.0033" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="обсудим временный выход из спора" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.deescalate.0034" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="есть мысли про временный выход из спора" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.deescalate.0035" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="какое мнение про временный выход из спора" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.deescalate.0036" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="что думаешь про признание сильных эмоций" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.deescalate.0037" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="как тебе признание сильных эмоций" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.deescalate.0038" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="обсудим признание сильных эмоций" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.deescalate.0039" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="есть мысли про признание сильных эмоций" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.deescalate.0040" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="какое мнение про признание сильных эмоций" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.deescalate.0041" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="что думаешь про разговор позже" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.deescalate.0042" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="как тебе разговор позже" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.deescalate.0043" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="обсудим разговор позже" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.deescalate.0044" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="есть мысли про разговор позже" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.deescalate.0045" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="какое мнение про разговор позже" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.deescalate.0046" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="что думаешь про остановку взаимных выпадов" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.deescalate.0047" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="как тебе остановку взаимных выпадов" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.deescalate.0048" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="обсудим остановку взаимных выпадов" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.deescalate.0049" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="есть мысли про остановку взаимных выпадов" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.deescalate.0050" topic="social.angry.deescalate" act="social.angry.deescalate.reply" phrase="какое мнение про остановку взаимных выпадов" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.complaint.0001" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="что думаешь про конкретную претензию" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.complaint.0002" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="как тебе конкретную претензию" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.complaint.0003" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="обсудим конкретную претензию" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.complaint.0004" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="есть мысли про конкретную претензию" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.complaint.0005" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="какое мнение про конкретную претензию" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.complaint.0006" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="что думаешь про раздражающий поступок" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.complaint.0007" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="как тебе раздражающий поступок" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.complaint.0008" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="обсудим раздражающий поступок" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.complaint.0009" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="есть мысли про раздражающий поступок" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.complaint.0010" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="какое мнение про раздражающий поступок" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.complaint.0011" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="что думаешь про обиду без оскорблений" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.complaint.0012" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="как тебе обиду без оскорблений" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.complaint.0013" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="обсудим обиду без оскорблений" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.complaint.0014" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="есть мысли про обиду без оскорблений" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.complaint.0015" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="какое мнение про обиду без оскорблений" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.complaint.0016" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="что думаешь про повторившуюся проблему" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.complaint.0017" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="как тебе повторившуюся проблему" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.complaint.0018" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="обсудим повторившуюся проблему" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.complaint.0019" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="есть мысли про повторившуюся проблему" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.complaint.0020" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="какое мнение про повторившуюся проблему" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.complaint.0021" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="что думаешь про нечестную реплику" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.complaint.0022" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="как тебе нечестную реплику" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.complaint.0023" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="обсудим нечестную реплику" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.complaint.0024" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="есть мысли про нечестную реплику" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.complaint.0025" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="какое мнение про нечестную реплику" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.complaint.0026" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="что думаешь про неуместную шутку" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.complaint.0027" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="как тебе неуместную шутку" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.complaint.0028" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="обсудим неуместную шутку" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.complaint.0029" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="есть мысли про неуместную шутку" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.complaint.0030" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="какое мнение про неуместную шутку" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.complaint.0031" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="что думаешь про давление в разговоре" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.complaint.0032" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="как тебе давление в разговоре" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.complaint.0033" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="обсудим давление в разговоре" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.complaint.0034" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="есть мысли про давление в разговоре" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.complaint.0035" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="какое мнение про давление в разговоре" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.complaint.0036" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="что думаешь про игнорирование просьбы" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.complaint.0037" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="как тебе игнорирование просьбы" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.complaint.0038" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="обсудим игнорирование просьбы" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.complaint.0039" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="есть мысли про игнорирование просьбы" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.complaint.0040" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="какое мнение про игнорирование просьбы" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.complaint.0041" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="что думаешь про желание быть услышанным" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.complaint.0042" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="как тебе желание быть услышанным" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.complaint.0043" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="обсудим желание быть услышанным" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.complaint.0044" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="есть мысли про желание быть услышанным" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.complaint.0045" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="какое мнение про желание быть услышанным" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.complaint.0046" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="что думаешь про разницу между фактом и нападкой" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.complaint.0047" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="как тебе разницу между фактом и нападкой" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.complaint.0048" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="обсудим разницу между фактом и нападкой" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.complaint.0049" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="есть мысли про разницу между фактом и нападкой" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.complaint.0050" topic="social.angry.complaint" act="social.angry.complaint.reply" phrase="какое мнение про разницу между фактом и нападкой" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.pause.0001" topic="social.angry.pause" act="social.angry.pause.reply" phrase="что думаешь про короткую паузу" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.pause.0002" topic="social.angry.pause" act="social.angry.pause.reply" phrase="как тебе короткую паузу" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.pause.0003" topic="social.angry.pause" act="social.angry.pause.reply" phrase="обсудим короткую паузу" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.pause.0004" topic="social.angry.pause" act="social.angry.pause.reply" phrase="есть мысли про короткую паузу" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.pause.0005" topic="social.angry.pause" act="social.angry.pause.reply" phrase="какое мнение про короткую паузу" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.pause.0006" topic="social.angry.pause" act="social.angry.pause.reply" phrase="что думаешь про время остыть" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.pause.0007" topic="social.angry.pause" act="social.angry.pause.reply" phrase="как тебе время остыть" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.pause.0008" topic="social.angry.pause" act="social.angry.pause.reply" phrase="обсудим время остыть" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.pause.0009" topic="social.angry.pause" act="social.angry.pause.reply" phrase="есть мысли про время остыть" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.pause.0010" topic="social.angry.pause" act="social.angry.pause.reply" phrase="какое мнение про время остыть" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.pause.0011" topic="social.angry.pause" act="social.angry.pause.reply" phrase="что думаешь про тишину вместо новой ссоры" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.pause.0012" topic="social.angry.pause" act="social.angry.pause.reply" phrase="как тебе тишину вместо новой ссоры" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.pause.0013" topic="social.angry.pause" act="social.angry.pause.reply" phrase="обсудим тишину вместо новой ссоры" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.pause.0014" topic="social.angry.pause" act="social.angry.pause.reply" phrase="есть мысли про тишину вместо новой ссоры" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.pause.0015" topic="social.angry.pause" act="social.angry.pause.reply" phrase="какое мнение про тишину вместо новой ссоры" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.pause.0016" topic="social.angry.pause" act="social.angry.pause.reply" phrase="что думаешь про отложенный ответ" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.pause.0017" topic="social.angry.pause" act="social.angry.pause.reply" phrase="как тебе отложенный ответ" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.pause.0018" topic="social.angry.pause" act="social.angry.pause.reply" phrase="обсудим отложенный ответ" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.pause.0019" topic="social.angry.pause" act="social.angry.pause.reply" phrase="есть мысли про отложенный ответ" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.pause.0020" topic="social.angry.pause" act="social.angry.pause.reply" phrase="какое мнение про отложенный ответ" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.pause.0021" topic="social.angry.pause" act="social.angry.pause.reply" phrase="что думаешь про возврат после перерыва" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.pause.0022" topic="social.angry.pause" act="social.angry.pause.reply" phrase="как тебе возврат после перерыва" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.pause.0023" topic="social.angry.pause" act="social.angry.pause.reply" phrase="обсудим возврат после перерыва" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.pause.0024" topic="social.angry.pause" act="social.angry.pause.reply" phrase="есть мысли про возврат после перерыва" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.pause.0025" topic="social.angry.pause" act="social.angry.pause.reply" phrase="какое мнение про возврат после перерыва" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.pause.0026" topic="social.angry.pause" act="social.angry.pause.reply" phrase="что думаешь про решение не писать сгоряча" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.pause.0027" topic="social.angry.pause" act="social.angry.pause.reply" phrase="как тебе решение не писать сгоряча" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.pause.0028" topic="social.angry.pause" act="social.angry.pause.reply" phrase="обсудим решение не писать сгоряча" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.pause.0029" topic="social.angry.pause" act="social.angry.pause.reply" phrase="есть мысли про решение не писать сгоряча" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.pause.0030" topic="social.angry.pause" act="social.angry.pause.reply" phrase="какое мнение про решение не писать сгоряча" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.pause.0031" topic="social.angry.pause" act="social.angry.pause.reply" phrase="что думаешь про несколько глубоких вдохов без советов" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.pause.0032" topic="social.angry.pause" act="social.angry.pause.reply" phrase="как тебе несколько глубоких вдохов без советов" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.pause.0033" topic="social.angry.pause" act="social.angry.pause.reply" phrase="обсудим несколько глубоких вдохов без советов" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.pause.0034" topic="social.angry.pause" act="social.angry.pause.reply" phrase="есть мысли про несколько глубоких вдохов без советов" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.pause.0035" topic="social.angry.pause" act="social.angry.pause.reply" phrase="какое мнение про несколько глубоких вдохов без советов" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.pause.0036" topic="social.angry.pause" act="social.angry.pause.reply" phrase="что думаешь про завершение разговора на сегодня" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.pause.0037" topic="social.angry.pause" act="social.angry.pause.reply" phrase="как тебе завершение разговора на сегодня" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.pause.0038" topic="social.angry.pause" act="social.angry.pause.reply" phrase="обсудим завершение разговора на сегодня" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.pause.0039" topic="social.angry.pause" act="social.angry.pause.reply" phrase="есть мысли про завершение разговора на сегодня" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.pause.0040" topic="social.angry.pause" act="social.angry.pause.reply" phrase="какое мнение про завершение разговора на сегодня" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.pause.0041" topic="social.angry.pause" act="social.angry.pause.reply" phrase="что думаешь про нейтральную финальную фразу" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.angry.pattern.pause.0042" topic="social.angry.pause" act="social.angry.pause.reply" phrase="как тебе нейтральную финальную фразу" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.angry.pattern.pause.0043" topic="social.angry.pause" act="social.angry.pause.reply" phrase="обсудим нейтральную финальную фразу" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.angry.pattern.pause.0044" topic="social.angry.pause" act="social.angry.pause.reply" phrase="есть мысли про нейтральную финальную фразу" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.angry.pattern.pause.0045" topic="social.angry.pause" act="social.angry.pause.reply" phrase="какое мнение про нейтральную финальную фразу" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.angry.pattern.pause.0046" topic="social.angry.pause" act="social.angry.pause.reply" phrase="что думаешь про право не мириться сразу" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.angry.pattern.pause.0047" topic="social.angry.pause" act="social.angry.pause.reply" phrase="как тебе право не мириться сразу" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.angry.pattern.pause.0048" topic="social.angry.pause" act="social.angry.pause.reply" phrase="обсудим право не мириться сразу" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.angry.pattern.pause.0049" topic="social.angry.pause" act="social.angry.pause.reply" phrase="есть мысли про право не мириться сразу" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.angry.pattern.pause.0050" topic="social.angry.pause" act="social.angry.pause.reply" phrase="какое мнение про право не мириться сразу" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

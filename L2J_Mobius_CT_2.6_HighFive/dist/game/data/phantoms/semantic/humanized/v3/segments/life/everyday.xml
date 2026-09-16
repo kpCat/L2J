@@ -1,8 +1,223 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <humanizedV3SemanticSegment id="v3.life.everyday.semantic" version="3" category="life.everyday">
+	<aliases>
+		<alias from="byt" to="быт" />
+		<alias from="bytx" to="быт" />
+		<alias from="бт" to="быт" />
+		<alias from="бытт" to="быт" />
+		<alias from="dela" to="дела" />
+		<alias from="delax" to="дела" />
+		<alias from="дла" to="дела" />
+		<alias from="делаа" to="дела" />
+		<alias from="ochered" to="очередь" />
+		<alias from="ochere" to="очередь" />
+		<alias from="очредь" to="очередь" />
+		<alias from="очередьь" to="очередь" />
+		<alias from="rutina" to="рутина" />
+		<alias from="rutin" to="рутина" />
+		<alias from="ртина" to="рутина" />
+		<alias from="рутинаа" to="рутина" />
+	</aliases>
 	<patterns>
-		<pattern id="v3.life.everyday.001" topic="smalltalk" act="smalltalk.reply" phrase="как проходит день" salience="350" ttlMinutes="0" priority="500"/>
-		<pattern id="v3.life.everyday.002" topic="smalltalk" act="smalltalk.reply" phrase="чем занят сегодня" salience="350" ttlMinutes="0" priority="495"/>
-		<pattern id="v3.life.everyday.003" topic="smalltalk" act="smalltalk.reply" phrase="как дела сегодня" salience="350" ttlMinutes="0" priority="490"/>
+		<pattern id="v3.life.everyday.001" topic="smalltalk" act="smalltalk.reply" phrase="как проходит день" salience="350" ttlMinutes="0" priority="500" />
+		<pattern id="v3.life.everyday.002" topic="smalltalk" act="smalltalk.reply" phrase="чем занят сегодня" salience="350" ttlMinutes="0" priority="495" />
+		<pattern id="v3.life.everyday.003" topic="smalltalk" act="smalltalk.reply" phrase="как дела сегодня" salience="350" ttlMinutes="0" priority="490" />
+		<pattern id="v3.life.everyday.pattern.errands.0001" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="что думаешь про мелкие бытовые дела" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.errands.0002" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="как тебе мелкие бытовые дела" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.errands.0003" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="обсудим мелкие бытовые дела" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.errands.0004" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="есть мысли про мелкие бытовые дела" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.errands.0005" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="какое мнение про мелкие бытовые дела" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.errands.0006" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="что думаешь про поход за покупками" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.errands.0007" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="как тебе поход за покупками" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.errands.0008" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="обсудим поход за покупками" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.errands.0009" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="есть мысли про поход за покупками" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.errands.0010" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="какое мнение про поход за покупками" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.errands.0011" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="что думаешь про длинный список мелочей" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.errands.0012" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="как тебе длинный список мелочей" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.errands.0013" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="обсудим длинный список мелочей" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.errands.0014" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="есть мысли про длинный список мелочей" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.errands.0015" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="какое мнение про длинный список мелочей" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.errands.0016" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="что думаешь про забытую задачу" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.errands.0017" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="как тебе забытую задачу" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.errands.0018" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="обсудим забытую задачу" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.errands.0019" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="есть мысли про забытую задачу" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.errands.0020" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="какое мнение про забытую задачу" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.errands.0021" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="что думаешь про быстрое поручение" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.errands.0022" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="как тебе быстрое поручение" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.errands.0023" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="обсудим быстрое поручение" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.errands.0024" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="есть мысли про быстрое поручение" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.errands.0025" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="какое мнение про быстрое поручение" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.errands.0026" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="что думаешь про дела по дороге" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.errands.0027" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="как тебе дела по дороге" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.errands.0028" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="обсудим дела по дороге" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.errands.0029" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="есть мысли про дела по дороге" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.errands.0030" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="какое мнение про дела по дороге" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.errands.0031" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="что думаешь про неожиданную очередь" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.errands.0032" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="как тебе неожиданную очередь" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.errands.0033" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="обсудим неожиданную очередь" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.errands.0034" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="есть мысли про неожиданную очередь" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.errands.0035" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="какое мнение про неожиданную очередь" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.errands.0036" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="что думаешь про порядок в бумагах" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.errands.0037" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="как тебе порядок в бумагах" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.errands.0038" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="обсудим порядок в бумагах" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.errands.0039" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="есть мысли про порядок в бумагах" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.errands.0040" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="какое мнение про порядок в бумагах" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.errands.0041" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="что думаешь про оплату обычных счетов" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.errands.0042" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="как тебе оплату обычных счетов" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.errands.0043" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="обсудим оплату обычных счетов" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.errands.0044" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="есть мысли про оплату обычных счетов" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.errands.0045" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="какое мнение про оплату обычных счетов" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.errands.0046" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="что думаешь про момент всё отложить" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.errands.0047" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="как тебе момент всё отложить" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.errands.0048" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="обсудим момент всё отложить" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.errands.0049" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="есть мысли про момент всё отложить" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.errands.0050" topic="life.everyday.errands" act="life.everyday.errands.reply" phrase="какое мнение про момент всё отложить" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.weather.0001" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="что думаешь про разговор о погоде" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.weather.0002" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="как тебе разговор о погоде" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.weather.0003" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="обсудим разговор о погоде" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.weather.0004" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="есть мысли про разговор о погоде" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.weather.0005" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="какое мнение про разговор о погоде" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.weather.0006" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="что думаешь про серое утро" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.weather.0007" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="как тебе серое утро" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.weather.0008" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="обсудим серое утро" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.weather.0009" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="есть мысли про серое утро" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.weather.0010" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="какое мнение про серое утро" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.weather.0011" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="что думаешь про слишком жаркий день" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.weather.0012" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="как тебе слишком жаркий день" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.weather.0013" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="обсудим слишком жаркий день" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.weather.0014" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="есть мысли про слишком жаркий день" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.weather.0015" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="какое мнение про слишком жаркий день" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.weather.0016" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="что думаешь про ветреный вечер" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.weather.0017" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="как тебе ветреный вечер" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.weather.0018" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="обсудим ветреный вечер" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.weather.0019" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="есть мысли про ветреный вечер" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.weather.0020" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="какое мнение про ветреный вечер" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.weather.0021" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="что думаешь про дождь без зонта" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.weather.0022" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="как тебе дождь без зонта" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.weather.0023" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="обсудим дождь без зонта" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.weather.0024" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="есть мысли про дождь без зонта" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.weather.0025" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="какое мнение про дождь без зонта" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.weather.0026" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="что думаешь про первый снег" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.weather.0027" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="как тебе первый снег" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.weather.0028" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="обсудим первый снег" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.weather.0029" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="есть мысли про первый снег" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.weather.0030" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="какое мнение про первый снег" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.weather.0031" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="что думаешь про резкую смену погоды" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.weather.0032" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="как тебе резкую смену погоды" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.weather.0033" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="обсудим резкую смену погоды" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.weather.0034" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="есть мысли про резкую смену погоды" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.weather.0035" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="какое мнение про резкую смену погоды" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.weather.0036" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="что думаешь про прогулку в прохладе" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.weather.0037" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="как тебе прогулку в прохладе" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.weather.0038" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="обсудим прогулку в прохладе" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.weather.0039" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="есть мысли про прогулку в прохладе" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.weather.0040" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="какое мнение про прогулку в прохладе" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.weather.0041" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="что думаешь про солнце после туч" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.weather.0042" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="как тебе солнце после туч" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.weather.0043" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="обсудим солнце после туч" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.weather.0044" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="есть мысли про солнце после туч" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.weather.0045" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="какое мнение про солнце после туч" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.weather.0046" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="что думаешь про планы с оглядкой на улицу" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.weather.0047" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="как тебе планы с оглядкой на улицу" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.weather.0048" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="обсудим планы с оглядкой на улицу" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.weather.0049" topic="life.everyday.weather" act="life.everyday.weather.reply" phrase="есть мысли про планы с оглядкой на улицу" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.routine.0001" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="что думаешь про обычный ход дня" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.routine.0002" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="как тебе обычный ход дня" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.routine.0003" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="обсудим обычный ход дня" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.routine.0004" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="есть мысли про обычный ход дня" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.routine.0005" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="какое мнение про обычный ход дня" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.routine.0006" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="что думаешь про утреннюю суету" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.routine.0007" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="как тебе утреннюю суету" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.routine.0008" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="обсудим утреннюю суету" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.routine.0009" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="есть мысли про утреннюю суету" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.routine.0010" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="какое мнение про утреннюю суету" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.routine.0011" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="что думаешь про вечернюю тишину" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.routine.0012" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="как тебе вечернюю тишину" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.routine.0013" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="обсудим вечернюю тишину" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.routine.0014" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="есть мысли про вечернюю тишину" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.routine.0015" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="какое мнение про вечернюю тишину" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.routine.0016" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="что думаешь про повторяющиеся мелочи" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.routine.0017" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="как тебе повторяющиеся мелочи" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.routine.0018" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="обсудим повторяющиеся мелочи" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.routine.0019" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="есть мысли про повторяющиеся мелочи" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.routine.0020" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="какое мнение про повторяющиеся мелочи" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.routine.0021" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="что думаешь про привычный маршрут" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.routine.0022" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="как тебе привычный маршрут" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.routine.0023" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="обсудим привычный маршрут" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.routine.0024" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="есть мысли про привычный маршрут" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.routine.0025" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="какое мнение про привычный маршрут" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.routine.0026" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="что думаешь про домашний порядок" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.routine.0027" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="как тебе домашний порядок" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.routine.0028" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="обсудим домашний порядок" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.routine.0029" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="есть мысли про домашний порядок" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.routine.0030" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="какое мнение про домашний порядок" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.routine.0031" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="что думаешь про маленький перерыв" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.routine.0032" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="как тебе маленький перерыв" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.routine.0033" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="обсудим маленький перерыв" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.routine.0034" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="есть мысли про маленький перерыв" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.routine.0035" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="какое мнение про маленький перерыв" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.routine.0036" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="что думаешь про день без громких событий" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.routine.0037" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="как тебе день без громких событий" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.routine.0038" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="обсудим день без громких событий" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.routine.0039" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="есть мысли про день без громких событий" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.routine.0040" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="какое мнение про день без громких событий" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.routine.0041" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="что думаешь про смену планов" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.routine.0042" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="как тебе смену планов" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.routine.0043" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="обсудим смену планов" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.routine.0044" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="есть мысли про смену планов" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.routine.0045" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="какое мнение про смену планов" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.routine.0046" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="что думаешь про спокойное завершение дел" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.routine.0047" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="как тебе спокойное завершение дел" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.routine.0048" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="обсудим спокойное завершение дел" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.routine.0049" topic="life.everyday.routine" act="life.everyday.routine.reply" phrase="есть мысли про спокойное завершение дел" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0001" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="что думаешь про опоздавший транспорт" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0002" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="как тебе опоздавший транспорт" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0003" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="обсудим опоздавший транспорт" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0004" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="есть мысли про опоздавший транспорт" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0005" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="какое мнение про опоздавший транспорт" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0006" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="что думаешь про шумных соседей без деталей" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0007" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="как тебе шумных соседей без деталей" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0008" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="обсудим шумных соседей без деталей" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0009" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="есть мысли про шумных соседей без деталей" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0010" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="какое мнение про шумных соседей без деталей" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0011" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="что думаешь про сломавшуюся мелочь" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0012" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="как тебе сломавшуюся мелочь" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0013" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="обсудим сломавшуюся мелочь" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0014" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="есть мысли про сломавшуюся мелочь" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0015" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="какое мнение про сломавшуюся мелочь" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0016" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="что думаешь про забытые ключи" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0017" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="как тебе забытые ключи" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0018" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="обсудим забытые ключи" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0019" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="есть мысли про забытые ключи" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0020" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="какое мнение про забытые ключи" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0021" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="что думаешь про медленный интернет" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0022" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="как тебе медленный интернет" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0023" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="обсудим медленный интернет" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0024" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="есть мысли про медленный интернет" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0025" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="какое мнение про медленный интернет" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0026" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="что думаешь про неуместный звонок" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0027" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="как тебе неуместный звонок" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0028" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="обсудим неуместный звонок" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0029" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="есть мысли про неуместный звонок" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0030" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="какое мнение про неуместный звонок" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0031" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="что думаешь про пустой холодильник" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0032" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="как тебе пустой холодильник" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0033" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="обсудим пустой холодильник" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0034" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="есть мысли про пустой холодильник" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0035" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="какое мнение про пустой холодильник" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0036" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="что думаешь про разряженный телефон" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0037" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="как тебе разряженный телефон" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0038" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="обсудим разряженный телефон" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0039" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="есть мысли про разряженный телефон" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0040" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="какое мнение про разряженный телефон" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0041" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="что думаешь про неожиданную отмену" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0042" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="как тебе неожиданную отмену" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0043" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="обсудим неожиданную отмену" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0044" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="есть мысли про неожиданную отмену" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0045" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="какое мнение про неожиданную отмену" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0046" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="что думаешь про юмор в бытовой неудаче" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0047" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="как тебе юмор в бытовой неудаче" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0048" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="обсудим юмор в бытовой неудаче" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.everyday.pattern.annoyances.0049" topic="life.everyday.annoyances" act="life.everyday.annoyances.reply" phrase="есть мысли про юмор в бытовой неудаче" salience="420" ttlMinutes="0" priority="540" />
 	</patterns>
 </humanizedV3SemanticSegment>

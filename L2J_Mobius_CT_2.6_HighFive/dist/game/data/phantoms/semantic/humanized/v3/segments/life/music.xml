@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.life.music.semantic" version="3" category="life.music">
+	<aliases>
+		<alias from="muzyka" to="музыка" />
+		<alias from="muzyk" to="музыка" />
+		<alias from="мзыка" to="музыка" />
+		<alias from="музыкаа" to="музыка" />
+		<alias from="trek" to="трек" />
+		<alias from="trekx" to="трек" />
+		<alias from="трк" to="трек" />
+		<alias from="трекк" to="трек" />
+		<alias from="albom" to="альбом" />
+		<alias from="albo" to="альбом" />
+		<alias from="альбм" to="альбом" />
+		<alias from="альбомм" to="альбом" />
+		<alias from="pleylist" to="плейлист" />
+		<alias from="pleylis" to="плейлист" />
+		<alias from="плйлист" to="плейлист" />
+		<alias from="плейлистт" to="плейлист" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.life.music.pattern.taste.0001" topic="life.music.taste" act="life.music.taste.reply" phrase="что думаешь про музыкальный вкус" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.taste.0002" topic="life.music.taste" act="life.music.taste.reply" phrase="как тебе музыкальный вкус" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.taste.0003" topic="life.music.taste" act="life.music.taste.reply" phrase="обсудим музыкальный вкус" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.taste.0004" topic="life.music.taste" act="life.music.taste.reply" phrase="есть мысли про музыкальный вкус" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.taste.0005" topic="life.music.taste" act="life.music.taste.reply" phrase="какое мнение про музыкальный вкус" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.taste.0006" topic="life.music.taste" act="life.music.taste.reply" phrase="что думаешь про любимый жанр" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.taste.0007" topic="life.music.taste" act="life.music.taste.reply" phrase="как тебе любимый жанр" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.taste.0008" topic="life.music.taste" act="life.music.taste.reply" phrase="обсудим любимый жанр" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.taste.0009" topic="life.music.taste" act="life.music.taste.reply" phrase="есть мысли про любимый жанр" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.taste.0010" topic="life.music.taste" act="life.music.taste.reply" phrase="какое мнение про любимый жанр" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.taste.0011" topic="life.music.taste" act="life.music.taste.reply" phrase="что думаешь про тяжёлое звучание" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.taste.0012" topic="life.music.taste" act="life.music.taste.reply" phrase="как тебе тяжёлое звучание" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.taste.0013" topic="life.music.taste" act="life.music.taste.reply" phrase="обсудим тяжёлое звучание" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.taste.0014" topic="life.music.taste" act="life.music.taste.reply" phrase="есть мысли про тяжёлое звучание" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.taste.0015" topic="life.music.taste" act="life.music.taste.reply" phrase="какое мнение про тяжёлое звучание" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.taste.0016" topic="life.music.taste" act="life.music.taste.reply" phrase="что думаешь про спокойную музыку" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.taste.0017" topic="life.music.taste" act="life.music.taste.reply" phrase="как тебе спокойную музыку" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.taste.0018" topic="life.music.taste" act="life.music.taste.reply" phrase="обсудим спокойную музыку" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.taste.0019" topic="life.music.taste" act="life.music.taste.reply" phrase="есть мысли про спокойную музыку" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.taste.0020" topic="life.music.taste" act="life.music.taste.reply" phrase="какое мнение про спокойную музыку" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.taste.0021" topic="life.music.taste" act="life.music.taste.reply" phrase="что думаешь про электронный ритм" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.taste.0022" topic="life.music.taste" act="life.music.taste.reply" phrase="как тебе электронный ритм" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.taste.0023" topic="life.music.taste" act="life.music.taste.reply" phrase="обсудим электронный ритм" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.taste.0024" topic="life.music.taste" act="life.music.taste.reply" phrase="есть мысли про электронный ритм" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.taste.0025" topic="life.music.taste" act="life.music.taste.reply" phrase="какое мнение про электронный ритм" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.taste.0026" topic="life.music.taste" act="life.music.taste.reply" phrase="что думаешь про старые записи" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.taste.0027" topic="life.music.taste" act="life.music.taste.reply" phrase="как тебе старые записи" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.taste.0028" topic="life.music.taste" act="life.music.taste.reply" phrase="обсудим старые записи" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.taste.0029" topic="life.music.taste" act="life.music.taste.reply" phrase="есть мысли про старые записи" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.taste.0030" topic="life.music.taste" act="life.music.taste.reply" phrase="какое мнение про старые записи" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.taste.0031" topic="life.music.taste" act="life.music.taste.reply" phrase="что думаешь про новые исполнители" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.taste.0032" topic="life.music.taste" act="life.music.taste.reply" phrase="как тебе новые исполнители" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.taste.0033" topic="life.music.taste" act="life.music.taste.reply" phrase="обсудим новые исполнители" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.taste.0034" topic="life.music.taste" act="life.music.taste.reply" phrase="есть мысли про новые исполнители" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.taste.0035" topic="life.music.taste" act="life.music.taste.reply" phrase="какое мнение про новые исполнители" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.taste.0036" topic="life.music.taste" act="life.music.taste.reply" phrase="что думаешь про песни без привязки к моде" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.taste.0037" topic="life.music.taste" act="life.music.taste.reply" phrase="как тебе песни без привязки к моде" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.taste.0038" topic="life.music.taste" act="life.music.taste.reply" phrase="обсудим песни без привязки к моде" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.taste.0039" topic="life.music.taste" act="life.music.taste.reply" phrase="есть мысли про песни без привязки к моде" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.taste.0040" topic="life.music.taste" act="life.music.taste.reply" phrase="какое мнение про песни без привязки к моде" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.taste.0041" topic="life.music.taste" act="life.music.taste.reply" phrase="что думаешь про голос в композиции" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.taste.0042" topic="life.music.taste" act="life.music.taste.reply" phrase="как тебе голос в композиции" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.taste.0043" topic="life.music.taste" act="life.music.taste.reply" phrase="обсудим голос в композиции" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.taste.0044" topic="life.music.taste" act="life.music.taste.reply" phrase="есть мысли про голос в композиции" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.taste.0045" topic="life.music.taste" act="life.music.taste.reply" phrase="какое мнение про голос в композиции" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.taste.0046" topic="life.music.taste" act="life.music.taste.reply" phrase="что думаешь про музыку для фона" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.taste.0047" topic="life.music.taste" act="life.music.taste.reply" phrase="как тебе музыку для фона" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.taste.0048" topic="life.music.taste" act="life.music.taste.reply" phrase="обсудим музыку для фона" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.taste.0049" topic="life.music.taste" act="life.music.taste.reply" phrase="есть мысли про музыку для фона" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.taste.0050" topic="life.music.taste" act="life.music.taste.reply" phrase="какое мнение про музыку для фона" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.listening.0001" topic="life.music.listening" act="life.music.listening.reply" phrase="что думаешь про наушники вечером" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.listening.0002" topic="life.music.listening" act="life.music.listening.reply" phrase="как тебе наушники вечером" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.listening.0003" topic="life.music.listening" act="life.music.listening.reply" phrase="обсудим наушники вечером" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.listening.0004" topic="life.music.listening" act="life.music.listening.reply" phrase="есть мысли про наушники вечером" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.listening.0005" topic="life.music.listening" act="life.music.listening.reply" phrase="какое мнение про наушники вечером" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.listening.0006" topic="life.music.listening" act="life.music.listening.reply" phrase="что думаешь про музыку во время дел" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.listening.0007" topic="life.music.listening" act="life.music.listening.reply" phrase="как тебе музыку во время дел" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.listening.0008" topic="life.music.listening" act="life.music.listening.reply" phrase="обсудим музыку во время дел" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.listening.0009" topic="life.music.listening" act="life.music.listening.reply" phrase="есть мысли про музыку во время дел" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.listening.0010" topic="life.music.listening" act="life.music.listening.reply" phrase="какое мнение про музыку во время дел" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.listening.0011" topic="life.music.listening" act="life.music.listening.reply" phrase="что думаешь про тихий плейлист" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.listening.0012" topic="life.music.listening" act="life.music.listening.reply" phrase="как тебе тихий плейлист" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.listening.0013" topic="life.music.listening" act="life.music.listening.reply" phrase="обсудим тихий плейлист" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.listening.0014" topic="life.music.listening" act="life.music.listening.reply" phrase="есть мысли про тихий плейлист" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.listening.0015" topic="life.music.listening" act="life.music.listening.reply" phrase="какое мнение про тихий плейлист" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.listening.0016" topic="life.music.listening" act="life.music.listening.reply" phrase="что думаешь про громкий припев" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.listening.0017" topic="life.music.listening" act="life.music.listening.reply" phrase="как тебе громкий припев" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.listening.0018" topic="life.music.listening" act="life.music.listening.reply" phrase="обсудим громкий припев" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.listening.0019" topic="life.music.listening" act="life.music.listening.reply" phrase="есть мысли про громкий припев" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.listening.0020" topic="life.music.listening" act="life.music.listening.reply" phrase="какое мнение про громкий припев" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.listening.0021" topic="life.music.listening" act="life.music.listening.reply" phrase="что думаешь про случайный трек" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.listening.0022" topic="life.music.listening" act="life.music.listening.reply" phrase="как тебе случайный трек" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.listening.0023" topic="life.music.listening" act="life.music.listening.reply" phrase="обсудим случайный трек" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.listening.0024" topic="life.music.listening" act="life.music.listening.reply" phrase="есть мысли про случайный трек" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.listening.0025" topic="life.music.listening" act="life.music.listening.reply" phrase="какое мнение про случайный трек" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.listening.0026" topic="life.music.listening" act="life.music.listening.reply" phrase="что думаешь про повтор любимой песни" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.listening.0027" topic="life.music.listening" act="life.music.listening.reply" phrase="как тебе повтор любимой песни" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.listening.0028" topic="life.music.listening" act="life.music.listening.reply" phrase="обсудим повтор любимой песни" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.listening.0029" topic="life.music.listening" act="life.music.listening.reply" phrase="есть мысли про повтор любимой песни" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.listening.0030" topic="life.music.listening" act="life.music.listening.reply" phrase="какое мнение про повтор любимой песни" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.listening.0031" topic="life.music.listening" act="life.music.listening.reply" phrase="что думаешь про долгую подборку" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.listening.0032" topic="life.music.listening" act="life.music.listening.reply" phrase="как тебе долгую подборку" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.listening.0033" topic="life.music.listening" act="life.music.listening.reply" phrase="обсудим долгую подборку" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.listening.0034" topic="life.music.listening" act="life.music.listening.reply" phrase="есть мысли про долгую подборку" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.listening.0035" topic="life.music.listening" act="life.music.listening.reply" phrase="какое мнение про долгую подборку" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.listening.0036" topic="life.music.listening" act="life.music.listening.reply" phrase="что думаешь про паузу без музыки" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.listening.0037" topic="life.music.listening" act="life.music.listening.reply" phrase="как тебе паузу без музыки" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.listening.0038" topic="life.music.listening" act="life.music.listening.reply" phrase="обсудим паузу без музыки" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.listening.0039" topic="life.music.listening" act="life.music.listening.reply" phrase="есть мысли про паузу без музыки" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.listening.0040" topic="life.music.listening" act="life.music.listening.reply" phrase="какое мнение про паузу без музыки" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.listening.0041" topic="life.music.listening" act="life.music.listening.reply" phrase="что думаешь про живое выступление" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.listening.0042" topic="life.music.listening" act="life.music.listening.reply" phrase="как тебе живое выступление" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.listening.0043" topic="life.music.listening" act="life.music.listening.reply" phrase="обсудим живое выступление" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.listening.0044" topic="life.music.listening" act="life.music.listening.reply" phrase="есть мысли про живое выступление" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.listening.0045" topic="life.music.listening" act="life.music.listening.reply" phrase="какое мнение про живое выступление" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.listening.0046" topic="life.music.listening" act="life.music.listening.reply" phrase="что думаешь про звук на фоне игры" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.listening.0047" topic="life.music.listening" act="life.music.listening.reply" phrase="как тебе звук на фоне игры" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.listening.0048" topic="life.music.listening" act="life.music.listening.reply" phrase="обсудим звук на фоне игры" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.listening.0049" topic="life.music.listening" act="life.music.listening.reply" phrase="есть мысли про звук на фоне игры" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.listening.0050" topic="life.music.listening" act="life.music.listening.reply" phrase="какое мнение про звук на фоне игры" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.mood.0001" topic="life.music.mood" act="life.music.mood.reply" phrase="что думаешь про музыку под настроение" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.mood.0002" topic="life.music.mood" act="life.music.mood.reply" phrase="как тебе музыку под настроение" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.mood.0003" topic="life.music.mood" act="life.music.mood.reply" phrase="обсудим музыку под настроение" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.mood.0004" topic="life.music.mood" act="life.music.mood.reply" phrase="есть мысли про музыку под настроение" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.mood.0005" topic="life.music.mood" act="life.music.mood.reply" phrase="какое мнение про музыку под настроение" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.mood.0006" topic="life.music.mood" act="life.music.mood.reply" phrase="что думаешь про трек для бодрости" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.mood.0007" topic="life.music.mood" act="life.music.mood.reply" phrase="как тебе трек для бодрости" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.mood.0008" topic="life.music.mood" act="life.music.mood.reply" phrase="обсудим трек для бодрости" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.mood.0009" topic="life.music.mood" act="life.music.mood.reply" phrase="есть мысли про трек для бодрости" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.mood.0010" topic="life.music.mood" act="life.music.mood.reply" phrase="какое мнение про трек для бодрости" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.mood.0011" topic="life.music.mood" act="life.music.mood.reply" phrase="что думаешь про спокойную мелодию" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.mood.0012" topic="life.music.mood" act="life.music.mood.reply" phrase="как тебе спокойную мелодию" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.mood.0013" topic="life.music.mood" act="life.music.mood.reply" phrase="обсудим спокойную мелодию" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.mood.0014" topic="life.music.mood" act="life.music.mood.reply" phrase="есть мысли про спокойную мелодию" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.mood.0015" topic="life.music.mood" act="life.music.mood.reply" phrase="какое мнение про спокойную мелодию" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.mood.0016" topic="life.music.mood" act="life.music.mood.reply" phrase="что думаешь про песню для дороги" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.mood.0017" topic="life.music.mood" act="life.music.mood.reply" phrase="как тебе песню для дороги" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.mood.0018" topic="life.music.mood" act="life.music.mood.reply" phrase="обсудим песню для дороги" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.mood.0019" topic="life.music.mood" act="life.music.mood.reply" phrase="есть мысли про песню для дороги" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.mood.0020" topic="life.music.mood" act="life.music.mood.reply" phrase="какое мнение про песню для дороги" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.mood.0021" topic="life.music.mood" act="life.music.mood.reply" phrase="что думаешь про звук после тяжёлого дня" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.mood.0022" topic="life.music.mood" act="life.music.mood.reply" phrase="как тебе звук после тяжёлого дня" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.mood.0023" topic="life.music.mood" act="life.music.mood.reply" phrase="обсудим звук после тяжёлого дня" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.mood.0024" topic="life.music.mood" act="life.music.mood.reply" phrase="есть мысли про звук после тяжёлого дня" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.mood.0025" topic="life.music.mood" act="life.music.mood.reply" phrase="какое мнение про звук после тяжёлого дня" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.mood.0026" topic="life.music.mood" act="life.music.mood.reply" phrase="что думаешь про ритм для работы" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.mood.0027" topic="life.music.mood" act="life.music.mood.reply" phrase="как тебе ритм для работы" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.mood.0028" topic="life.music.mood" act="life.music.mood.reply" phrase="обсудим ритм для работы" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.mood.0029" topic="life.music.mood" act="life.music.mood.reply" phrase="есть мысли про ритм для работы" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.mood.0030" topic="life.music.mood" act="life.music.mood.reply" phrase="какое мнение про ритм для работы" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.mood.0031" topic="life.music.mood" act="life.music.mood.reply" phrase="что думаешь про музыку без слов" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.mood.0032" topic="life.music.mood" act="life.music.mood.reply" phrase="как тебе музыку без слов" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.mood.0033" topic="life.music.mood" act="life.music.mood.reply" phrase="обсудим музыку без слов" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.mood.0034" topic="life.music.mood" act="life.music.mood.reply" phrase="есть мысли про музыку без слов" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.mood.0035" topic="life.music.mood" act="life.music.mood.reply" phrase="какое мнение про музыку без слов" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.mood.0036" topic="life.music.mood" act="life.music.mood.reply" phrase="что думаешь про знакомый припев" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.mood.0037" topic="life.music.mood" act="life.music.mood.reply" phrase="как тебе знакомый припев" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.mood.0038" topic="life.music.mood" act="life.music.mood.reply" phrase="обсудим знакомый припев" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.mood.0039" topic="life.music.mood" act="life.music.mood.reply" phrase="есть мысли про знакомый припев" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.mood.0040" topic="life.music.mood" act="life.music.mood.reply" phrase="какое мнение про знакомый припев" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.mood.0041" topic="life.music.mood" act="life.music.mood.reply" phrase="что думаешь про ностальгию от песни" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.mood.0042" topic="life.music.mood" act="life.music.mood.reply" phrase="как тебе ностальгию от песни" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.mood.0043" topic="life.music.mood" act="life.music.mood.reply" phrase="обсудим ностальгию от песни" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.mood.0044" topic="life.music.mood" act="life.music.mood.reply" phrase="есть мысли про ностальгию от песни" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.mood.0045" topic="life.music.mood" act="life.music.mood.reply" phrase="какое мнение про ностальгию от песни" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.mood.0046" topic="life.music.mood" act="life.music.mood.reply" phrase="что думаешь про смену настроения через звук" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.mood.0047" topic="life.music.mood" act="life.music.mood.reply" phrase="как тебе смену настроения через звук" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.mood.0048" topic="life.music.mood" act="life.music.mood.reply" phrase="обсудим смену настроения через звук" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.mood.0049" topic="life.music.mood" act="life.music.mood.reply" phrase="есть мысли про смену настроения через звук" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.mood.0050" topic="life.music.mood" act="life.music.mood.reply" phrase="какое мнение про смену настроения через звук" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.discovery.0001" topic="life.music.discovery" act="life.music.discovery.reply" phrase="что думаешь про новый трек" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.discovery.0002" topic="life.music.discovery" act="life.music.discovery.reply" phrase="как тебе новый трек" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.discovery.0003" topic="life.music.discovery" act="life.music.discovery.reply" phrase="обсудим новый трек" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.discovery.0004" topic="life.music.discovery" act="life.music.discovery.reply" phrase="есть мысли про новый трек" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.discovery.0005" topic="life.music.discovery" act="life.music.discovery.reply" phrase="какое мнение про новый трек" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.discovery.0006" topic="life.music.discovery" act="life.music.discovery.reply" phrase="что думаешь про совет по музыке" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.discovery.0007" topic="life.music.discovery" act="life.music.discovery.reply" phrase="как тебе совет по музыке" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.discovery.0008" topic="life.music.discovery" act="life.music.discovery.reply" phrase="обсудим совет по музыке" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.discovery.0009" topic="life.music.discovery" act="life.music.discovery.reply" phrase="есть мысли про совет по музыке" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.discovery.0010" topic="life.music.discovery" act="life.music.discovery.reply" phrase="какое мнение про совет по музыке" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.discovery.0011" topic="life.music.discovery" act="life.music.discovery.reply" phrase="что думаешь про неизвестный альбом" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.discovery.0012" topic="life.music.discovery" act="life.music.discovery.reply" phrase="как тебе неизвестный альбом" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.discovery.0013" topic="life.music.discovery" act="life.music.discovery.reply" phrase="обсудим неизвестный альбом" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.discovery.0014" topic="life.music.discovery" act="life.music.discovery.reply" phrase="есть мысли про неизвестный альбом" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.discovery.0015" topic="life.music.discovery" act="life.music.discovery.reply" phrase="какое мнение про неизвестный альбом" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.discovery.0016" topic="life.music.discovery" act="life.music.discovery.reply" phrase="что думаешь про случайную находку" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.discovery.0017" topic="life.music.discovery" act="life.music.discovery.reply" phrase="как тебе случайную находку" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.discovery.0018" topic="life.music.discovery" act="life.music.discovery.reply" phrase="обсудим случайную находку" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.discovery.0019" topic="life.music.discovery" act="life.music.discovery.reply" phrase="есть мысли про случайную находку" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.discovery.0020" topic="life.music.discovery" act="life.music.discovery.reply" phrase="какое мнение про случайную находку" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.discovery.0021" topic="life.music.discovery" act="life.music.discovery.reply" phrase="что думаешь про обмен плейлистами" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.discovery.0022" topic="life.music.discovery" act="life.music.discovery.reply" phrase="как тебе обмен плейлистами" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.discovery.0023" topic="life.music.discovery" act="life.music.discovery.reply" phrase="обсудим обмен плейлистами" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.discovery.0024" topic="life.music.discovery" act="life.music.discovery.reply" phrase="есть мысли про обмен плейлистами" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.discovery.0025" topic="life.music.discovery" act="life.music.discovery.reply" phrase="какое мнение про обмен плейлистами" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.discovery.0026" topic="life.music.discovery" act="life.music.discovery.reply" phrase="что думаешь про исполнителя без рекламы" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.discovery.0027" topic="life.music.discovery" act="life.music.discovery.reply" phrase="как тебе исполнителя без рекламы" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.discovery.0028" topic="life.music.discovery" act="life.music.discovery.reply" phrase="обсудим исполнителя без рекламы" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.discovery.0029" topic="life.music.discovery" act="life.music.discovery.reply" phrase="есть мысли про исполнителя без рекламы" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.discovery.0030" topic="life.music.discovery" act="life.music.discovery.reply" phrase="какое мнение про исполнителя без рекламы" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.discovery.0031" topic="life.music.discovery" act="life.music.discovery.reply" phrase="что думаешь про старую группу" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.discovery.0032" topic="life.music.discovery" act="life.music.discovery.reply" phrase="как тебе старую группу" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.discovery.0033" topic="life.music.discovery" act="life.music.discovery.reply" phrase="обсудим старую группу" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.discovery.0034" topic="life.music.discovery" act="life.music.discovery.reply" phrase="есть мысли про старую группу" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.discovery.0035" topic="life.music.discovery" act="life.music.discovery.reply" phrase="какое мнение про старую группу" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.discovery.0036" topic="life.music.discovery" act="life.music.discovery.reply" phrase="что думаешь про неожиданный жанр" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.discovery.0037" topic="life.music.discovery" act="life.music.discovery.reply" phrase="как тебе неожиданный жанр" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.discovery.0038" topic="life.music.discovery" act="life.music.discovery.reply" phrase="обсудим неожиданный жанр" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.discovery.0039" topic="life.music.discovery" act="life.music.discovery.reply" phrase="есть мысли про неожиданный жанр" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.discovery.0040" topic="life.music.discovery" act="life.music.discovery.reply" phrase="какое мнение про неожиданный жанр" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.discovery.0041" topic="life.music.discovery" act="life.music.discovery.reply" phrase="что думаешь про песню от знакомого" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.music.pattern.discovery.0042" topic="life.music.discovery" act="life.music.discovery.reply" phrase="как тебе песню от знакомого" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.music.pattern.discovery.0043" topic="life.music.discovery" act="life.music.discovery.reply" phrase="обсудим песню от знакомого" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.music.pattern.discovery.0044" topic="life.music.discovery" act="life.music.discovery.reply" phrase="есть мысли про песню от знакомого" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.music.pattern.discovery.0045" topic="life.music.discovery" act="life.music.discovery.reply" phrase="какое мнение про песню от знакомого" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.music.pattern.discovery.0046" topic="life.music.discovery" act="life.music.discovery.reply" phrase="что думаешь про желание послушать позже" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.music.pattern.discovery.0047" topic="life.music.discovery" act="life.music.discovery.reply" phrase="как тебе желание послушать позже" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.music.pattern.discovery.0048" topic="life.music.discovery" act="life.music.discovery.reply" phrase="обсудим желание послушать позже" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.music.pattern.discovery.0049" topic="life.music.discovery" act="life.music.discovery.reply" phrase="есть мысли про желание послушать позже" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.music.pattern.discovery.0050" topic="life.music.discovery" act="life.music.discovery.reply" phrase="какое мнение про желание послушать позже" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

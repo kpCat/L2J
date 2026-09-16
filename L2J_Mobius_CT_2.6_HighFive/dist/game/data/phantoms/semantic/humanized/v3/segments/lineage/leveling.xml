@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.lineage.leveling.semantic" version="3" category="lineage.leveling">
+	<aliases>
+		<alias from="prokachka" to="прокачка" />
+		<alias from="prokachk" to="прокачка" />
+		<alias from="пркачка" to="прокачка" />
+		<alias from="прокачкаа" to="прокачка" />
+		<alias from="ekspa" to="экспа" />
+		<alias from="eksp" to="экспа" />
+		<alias from="эксп" to="экспа" />
+		<alias from="экспаа" to="экспа" />
+		<alias from="level" to="левел" />
+		<alias from="leve" to="левел" />
+		<alias from="лвел" to="левел" />
+		<alias from="левелл" to="левел" />
+		<alias from="apnulsya" to="апнулся" />
+		<alias from="apnulsy" to="апнулся" />
+		<alias from="апнлся" to="апнулся" />
+		<alias from="апнулсяя" to="апнулся" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.lineage.leveling.pattern.pace.0001" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="что думаешь про темп прокачки" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0002" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="как тебе темп прокачки" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0003" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="обсудим темп прокачки" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0004" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="есть мысли про темп прокачки" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0005" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="какое мнение про темп прокачки" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0006" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="что думаешь про спокойный кач" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0007" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="как тебе спокойный кач" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0008" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="обсудим спокойный кач" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0009" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="есть мысли про спокойный кач" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0010" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="какое мнение про спокойный кач" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0011" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="что думаешь про гонку за уровнем" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0012" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="как тебе гонку за уровнем" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0013" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="обсудим гонку за уровнем" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0014" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="есть мысли про гонку за уровнем" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0015" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="какое мнение про гонку за уровнем" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0016" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="что думаешь про ровный набор опыта" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0017" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="как тебе ровный набор опыта" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0018" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="обсудим ровный набор опыта" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0019" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="есть мысли про ровный набор опыта" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0020" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="какое мнение про ровный набор опыта" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0021" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="что думаешь про долгую прокачку" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0022" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="как тебе долгую прокачку" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0023" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="обсудим долгую прокачку" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0024" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="есть мысли про долгую прокачку" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0025" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="какое мнение про долгую прокачку" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0026" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="что думаешь про короткие сессии кача" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0027" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="как тебе короткие сессии кача" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0028" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="обсудим короткие сессии кача" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0029" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="есть мысли про короткие сессии кача" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0030" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="какое мнение про короткие сессии кача" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0031" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="что думаешь про перерывы между заходами" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0032" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="как тебе перерывы между заходами" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0033" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="обсудим перерывы между заходами" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0034" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="есть мысли про перерывы между заходами" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0035" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="какое мнение про перерывы между заходами" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0036" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="что думаешь про усталость от гринда" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0037" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="как тебе усталость от гринда" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0038" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="обсудим усталость от гринда" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0039" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="есть мысли про усталость от гринда" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0040" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="какое мнение про усталость от гринда" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0041" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="что думаешь про погоню за следующим уровнем" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0042" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="как тебе погоню за следующим уровнем" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0043" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="обсудим погоню за следующим уровнем" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0044" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="есть мысли про погоню за следующим уровнем" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0045" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="какое мнение про погоню за следующим уровнем" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0046" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="что думаешь про баланс темпа и отдыха" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0047" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="как тебе баланс темпа и отдыха" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0048" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="обсудим баланс темпа и отдыха" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0049" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="есть мысли про баланс темпа и отдыха" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.pace.0050" topic="lineage.leveling.pace" act="lineage.leveling.pace.reply" phrase="какое мнение про баланс темпа и отдыха" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.route.0001" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="что думаешь про маршрут прокачки" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.route.0002" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="как тебе маршрут прокачки" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.route.0003" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="обсудим маршрут прокачки" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.route.0004" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="есть мысли про маршрут прокачки" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.route.0005" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="какое мнение про маршрут прокачки" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.route.0006" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="что думаешь про смену места для кача" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.route.0007" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="как тебе смену места для кача" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.route.0008" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="обсудим смену места для кача" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.route.0009" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="есть мысли про смену места для кача" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.route.0010" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="какое мнение про смену места для кача" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.route.0011" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="что думаешь про выбор подходящих мобов" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.route.0012" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="как тебе выбор подходящих мобов" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.route.0013" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="обсудим выбор подходящих мобов" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.route.0014" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="есть мысли про выбор подходящих мобов" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.route.0015" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="какое мнение про выбор подходящих мобов" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.route.0016" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="что думаешь про дорогу между спотами" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.route.0017" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="как тебе дорогу между спотами" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.route.0018" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="обсудим дорогу между спотами" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.route.0019" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="есть мысли про дорогу между спотами" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.route.0020" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="какое мнение про дорогу между спотами" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.route.0021" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="что думаешь про поиск удобной зоны" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.route.0022" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="как тебе поиск удобной зоны" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.route.0023" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="обсудим поиск удобной зоны" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.route.0024" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="есть мысли про поиск удобной зоны" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.route.0025" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="какое мнение про поиск удобной зоны" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.route.0026" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="что думаешь про возвращение после смерти" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.route.0027" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="как тебе возвращение после смерти" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.route.0028" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="обсудим возвращение после смерти" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.route.0029" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="есть мысли про возвращение после смерти" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.route.0030" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="какое мнение про возвращение после смерти" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.route.0031" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="что думаешь про запасной маршрут" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.route.0032" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="как тебе запасной маршрут" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.route.0033" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="обсудим запасной маршрут" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.route.0034" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="есть мысли про запасной маршрут" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.route.0035" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="какое мнение про запасной маршрут" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.route.0036" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="что думаешь про безопасный путь к споту" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.route.0037" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="как тебе безопасный путь к споту" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.route.0038" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="обсудим безопасный путь к споту" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.route.0039" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="есть мысли про безопасный путь к споту" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.route.0040" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="какое мнение про безопасный путь к споту" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.route.0041" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="что думаешь про смену локации по уровню" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.route.0042" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="как тебе смену локации по уровню" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.route.0043" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="обсудим смену локации по уровню" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.route.0044" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="есть мысли про смену локации по уровню" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.route.0045" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="какое мнение про смену локации по уровню" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.route.0046" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="что думаешь про проверку нового места" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.route.0047" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="как тебе проверку нового места" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.route.0048" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="обсудим проверку нового места" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.route.0049" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="есть мысли про проверку нового места" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.route.0050" topic="lineage.leveling.route" act="lineage.leveling.route.reply" phrase="какое мнение про проверку нового места" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0001" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="что думаешь про ощущение прогресса" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0002" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="как тебе ощущение прогресса" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0003" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="обсудим ощущение прогресса" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0004" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="есть мысли про ощущение прогресса" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0005" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="какое мнение про ощущение прогресса" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0006" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="что думаешь про медленный рост опыта" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0007" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="как тебе медленный рост опыта" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0008" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="обсудим медленный рост опыта" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0009" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="есть мысли про медленный рост опыта" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0010" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="какое мнение про медленный рост опыта" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0011" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="что думаешь про удачную серию заходов" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0012" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="как тебе удачную серию заходов" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0013" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="обсудим удачную серию заходов" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0014" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="есть мысли про удачную серию заходов" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0015" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="какое мнение про удачную серию заходов" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0016" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="что думаешь про порог нового уровня" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0017" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="как тебе порог нового уровня" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0018" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="обсудим порог нового уровня" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0019" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="есть мысли про порог нового уровня" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0020" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="какое мнение про порог нового уровня" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0021" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="что думаешь про отставание от группы" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0022" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="как тебе отставание от группы" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0023" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="обсудим отставание от группы" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0024" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="есть мысли про отставание от группы" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0025" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="какое мнение про отставание от группы" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0026" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="что думаешь про разницу в темпе" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0027" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="как тебе разницу в темпе" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0028" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="обсудим разницу в темпе" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0029" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="есть мысли про разницу в темпе" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0030" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="какое мнение про разницу в темпе" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0031" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="что думаешь про рост без спешки" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0032" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="как тебе рост без спешки" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0033" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="обсудим рост без спешки" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0034" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="есть мысли про рост без спешки" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0035" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="какое мнение про рост без спешки" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0036" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="что думаешь про план на ближайший уровень" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0037" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="как тебе план на ближайший уровень" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0038" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="обсудим план на ближайший уровень" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0039" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="есть мысли про план на ближайший уровень" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0040" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="какое мнение про план на ближайший уровень" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0041" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="что думаешь про время до следующего апа" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0042" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="как тебе время до следующего апа" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0043" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="обсудим время до следующего апа" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0044" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="есть мысли про время до следующего апа" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0045" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="какое мнение про время до следующего апа" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0046" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="что думаешь про пользу регулярного кача" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0047" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="как тебе пользу регулярного кача" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0048" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="обсудим пользу регулярного кача" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0049" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="есть мысли про пользу регулярного кача" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.progress.0050" topic="lineage.leveling.progress" act="lineage.leveling.progress.reply" phrase="какое мнение про пользу регулярного кача" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0001" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="что думаешь про усталость от кача" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0002" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="как тебе усталость от кача" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0003" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="обсудим усталость от кача" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0004" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="есть мысли про усталость от кача" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0005" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="какое мнение про усталость от кача" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0006" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="что думаешь про скуку на одном споте" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0007" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="как тебе скуку на одном споте" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0008" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="обсудим скуку на одном споте" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0009" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="есть мысли про скуку на одном споте" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0010" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="какое мнение про скуку на одном споте" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0011" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="что думаешь про перерыв после гринда" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0012" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="как тебе перерыв после гринда" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0013" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="обсудим перерыв после гринда" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0014" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="есть мысли про перерыв после гринда" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0015" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="какое мнение про перерыв после гринда" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0016" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="что думаешь про смену занятия" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0017" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="как тебе смену занятия" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0018" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="обсудим смену занятия" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0019" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="есть мысли про смену занятия" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0020" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="какое мнение про смену занятия" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0021" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="что думаешь про раздражение от медленного опыта" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0022" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="как тебе раздражение от медленного опыта" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0023" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="обсудим раздражение от медленного опыта" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0024" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="есть мысли про раздражение от медленного опыта" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0025" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="какое мнение про раздражение от медленного опыта" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0026" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="что думаешь про потерю концентрации" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0027" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="как тебе потерю концентрации" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0028" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="обсудим потерю концентрации" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0029" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="есть мысли про потерю концентрации" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0030" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="какое мнение про потерю концентрации" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0031" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="что думаешь про вечерний марафон" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0032" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="как тебе вечерний марафон" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0033" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="обсудим вечерний марафон" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0034" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="есть мысли про вечерний марафон" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0035" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="какое мнение про вечерний марафон" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0036" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="что думаешь про желание ускориться" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0037" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="как тебе желание ускориться" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0038" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="обсудим желание ускориться" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0039" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="есть мысли про желание ускориться" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0040" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="какое мнение про желание ускориться" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0041" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="что думаешь про паузу перед новым заходом" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0042" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="как тебе паузу перед новым заходом" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0043" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="обсудим паузу перед новым заходом" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0044" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="есть мысли про паузу перед новым заходом" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0045" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="какое мнение про паузу перед новым заходом" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0046" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="что думаешь про спокойное завершение сессии" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0047" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="как тебе спокойное завершение сессии" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0048" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="обсудим спокойное завершение сессии" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0049" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="есть мысли про спокойное завершение сессии" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.leveling.pattern.fatigue.0050" topic="lineage.leveling.fatigue" act="lineage.leveling.fatigue.reply" phrase="какое мнение про спокойное завершение сессии" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.lineage.clan.semantic" version="3" category="lineage.clan">
+	<aliases>
+		<alias from="klan" to="клан" />
+		<alias from="klanx" to="клан" />
+		<alias from="клн" to="клан" />
+		<alias from="кланн" to="клан" />
+		<alias from="klanchat" to="кланчат" />
+		<alias from="klancha" to="кланчат" />
+		<alias from="клнчат" to="кланчат" />
+		<alias from="кланчатт" to="кланчат" />
+		<alias from="liderstvo" to="лидерство" />
+		<alias from="liderstv" to="лидерство" />
+		<alias from="лдерство" to="лидерство" />
+		<alias from="лидерствоо" to="лидерство" />
+		<alias from="nabor" to="набор" />
+		<alias from="nabo" to="набор" />
+		<alias from="нбор" to="набор" />
+		<alias from="наборр" to="набор" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.lineage.clan.pattern.community.0001" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="что думаешь про атмосферу в клане" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.community.0002" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="как тебе атмосферу в клане" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.community.0003" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="обсудим атмосферу в клане" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.community.0004" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="есть мысли про атмосферу в клане" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.community.0005" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="какое мнение про атмосферу в клане" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.community.0006" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="что думаешь про общение в кланчате" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.community.0007" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="как тебе общение в кланчате" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.community.0008" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="обсудим общение в кланчате" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.community.0009" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="есть мысли про общение в кланчате" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.community.0010" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="какое мнение про общение в кланчате" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.community.0011" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="что думаешь про помощь новичкам" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.community.0012" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="как тебе помощь новичкам" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.community.0013" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="обсудим помощь новичкам" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.community.0014" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="есть мысли про помощь новичкам" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.community.0015" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="какое мнение про помощь новичкам" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.community.0016" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="что думаешь про совместные планы" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.community.0017" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="как тебе совместные планы" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.community.0018" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="обсудим совместные планы" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.community.0019" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="есть мысли про совместные планы" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.community.0020" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="какое мнение про совместные планы" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.community.0021" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="что думаешь про внутренние шутки" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.community.0022" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="как тебе внутренние шутки" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.community.0023" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="обсудим внутренние шутки" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.community.0024" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="есть мысли про внутренние шутки" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.community.0025" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="какое мнение про внутренние шутки" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.community.0026" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="что думаешь про встречи старых участников" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.community.0027" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="как тебе встречи старых участников" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.community.0028" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="обсудим встречи старых участников" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.community.0029" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="есть мысли про встречи старых участников" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.community.0030" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="какое мнение про встречи старых участников" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.community.0031" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="что думаешь про ощущение команды" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.community.0032" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="как тебе ощущение команды" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.community.0033" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="обсудим ощущение команды" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.community.0034" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="есть мысли про ощущение команды" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.community.0035" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="какое мнение про ощущение команды" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.community.0036" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="что думаешь про тишину в чате" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.community.0037" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="как тебе тишину в чате" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.community.0038" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="обсудим тишину в чате" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.community.0039" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="есть мысли про тишину в чате" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.community.0040" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="какое мнение про тишину в чате" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.community.0041" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="что думаешь про уважение между сокланами" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.community.0042" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="как тебе уважение между сокланами" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.community.0043" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="обсудим уважение между сокланами" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.community.0044" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="есть мысли про уважение между сокланами" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.community.0045" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="какое мнение про уважение между сокланами" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.community.0046" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="что думаешь про общие воспоминания" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.community.0047" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="как тебе общие воспоминания" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.community.0048" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="обсудим общие воспоминания" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.community.0049" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="есть мысли про общие воспоминания" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.community.0050" topic="lineage.clan.community" act="lineage.clan.community.reply" phrase="какое мнение про общие воспоминания" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.duty.0001" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="что думаешь про обязанности участника" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.duty.0002" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="как тебе обязанности участника" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.duty.0003" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="обсудим обязанности участника" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.duty.0004" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="есть мысли про обязанности участника" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.duty.0005" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="какое мнение про обязанности участника" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.duty.0006" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="что думаешь про участие в сборах" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.duty.0007" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="как тебе участие в сборах" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.duty.0008" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="обсудим участие в сборах" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.duty.0009" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="есть мысли про участие в сборах" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.duty.0010" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="какое мнение про участие в сборах" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.duty.0011" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="что думаешь про предупреждение об отсутствии" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.duty.0012" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="как тебе предупреждение об отсутствии" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.duty.0013" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="обсудим предупреждение об отсутствии" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.duty.0014" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="есть мысли про предупреждение об отсутствии" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.duty.0015" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="какое мнение про предупреждение об отсутствии" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.duty.0016" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="что думаешь про вклад в общее дело" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.duty.0017" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="как тебе вклад в общее дело" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.duty.0018" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="обсудим вклад в общее дело" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.duty.0019" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="есть мысли про вклад в общее дело" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.duty.0020" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="какое мнение про вклад в общее дело" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.duty.0021" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="что думаешь про помощь по возможности" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.duty.0022" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="как тебе помощь по возможности" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.duty.0023" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="обсудим помощь по возможности" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.duty.0024" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="есть мысли про помощь по возможности" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.duty.0025" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="какое мнение про помощь по возможности" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.duty.0026" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="что думаешь про разумные ожидания" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.duty.0027" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="как тебе разумные ожидания" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.duty.0028" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="обсудим разумные ожидания" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.duty.0029" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="есть мысли про разумные ожидания" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.duty.0030" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="какое мнение про разумные ожидания" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.duty.0031" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="что думаешь про распределение задач" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.duty.0032" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="как тебе распределение задач" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.duty.0033" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="обсудим распределение задач" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.duty.0034" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="есть мысли про распределение задач" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.duty.0035" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="какое мнение про распределение задач" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.duty.0036" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="что думаешь про ответственность за обещание" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.duty.0037" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="как тебе ответственность за обещание" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.duty.0038" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="обсудим ответственность за обещание" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.duty.0039" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="есть мысли про ответственность за обещание" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.duty.0040" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="какое мнение про ответственность за обещание" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.duty.0041" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="что думаешь про отказ без конфликта" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.duty.0042" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="как тебе отказ без конфликта" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.duty.0043" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="обсудим отказ без конфликта" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.duty.0044" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="есть мысли про отказ без конфликта" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.duty.0045" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="какое мнение про отказ без конфликта" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.duty.0046" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="что думаешь про баланс игры и обязанностей" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.duty.0047" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="как тебе баланс игры и обязанностей" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.duty.0048" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="обсудим баланс игры и обязанностей" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.duty.0049" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="есть мысли про баланс игры и обязанностей" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.duty.0050" topic="lineage.clan.duty" act="lineage.clan.duty.reply" phrase="какое мнение про баланс игры и обязанностей" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0001" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="что думаешь про решения лидера" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0002" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="как тебе решения лидера" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0003" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="обсудим решения лидера" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0004" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="есть мысли про решения лидера" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0005" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="какое мнение про решения лидера" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0006" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="что думаешь про объяснение планов" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0007" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="как тебе объяснение планов" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0008" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="обсудим объяснение планов" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0009" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="есть мысли про объяснение планов" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0010" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="какое мнение про объяснение планов" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0011" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="что думаешь про доверие к командованию" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0012" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="как тебе доверие к командованию" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0013" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="обсудим доверие к командованию" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0014" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="есть мысли про доверие к командованию" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0015" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="какое мнение про доверие к командованию" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0016" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="что думаешь про спор с руководством" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0017" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="как тебе спор с руководством" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0018" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="обсудим спор с руководством" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0019" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="есть мысли про спор с руководством" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0020" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="какое мнение про спор с руководством" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0021" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="что думаешь про смену приоритетов" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0022" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="как тебе смену приоритетов" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0023" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="обсудим смену приоритетов" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0024" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="есть мысли про смену приоритетов" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0025" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="какое мнение про смену приоритетов" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0026" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="что думаешь про честную обратную связь" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0027" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="как тебе честную обратную связь" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0028" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="обсудим честную обратную связь" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0029" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="есть мысли про честную обратную связь" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0030" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="какое мнение про честную обратную связь" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0031" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="что думаешь про умение слушать" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0032" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="как тебе умение слушать" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0033" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="обсудим умение слушать" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0034" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="есть мысли про умение слушать" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0035" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="какое мнение про умение слушать" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0036" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="что думаешь про границы власти" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0037" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="как тебе границы власти" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0038" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="обсудим границы власти" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0039" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="есть мысли про границы власти" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0040" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="какое мнение про границы власти" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0041" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="что думаешь про ответственность лидера" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0042" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="как тебе ответственность лидера" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0043" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="обсудим ответственность лидера" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0044" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="есть мысли про ответственность лидера" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0045" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="какое мнение про ответственность лидера" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0046" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="что думаешь про передачу важных ролей" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0047" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="как тебе передачу важных ролей" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0048" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="обсудим передачу важных ролей" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0049" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="есть мысли про передачу важных ролей" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.leadership.0050" topic="lineage.clan.leadership" act="lineage.clan.leadership.reply" phrase="какое мнение про передачу важных ролей" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0001" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="что думаешь про набор в клан" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0002" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="как тебе набор в клан" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0003" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="обсудим набор в клан" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0004" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="есть мысли про набор в клан" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0005" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="какое мнение про набор в клан" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0006" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="что думаешь про разговор с кандидатом" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0007" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="как тебе разговор с кандидатом" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0008" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="обсудим разговор с кандидатом" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0009" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="есть мысли про разговор с кандидатом" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0010" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="какое мнение про разговор с кандидатом" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0011" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="что думаешь про испытательный период" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0012" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="как тебе испытательный период" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0013" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="обсудим испытательный период" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0014" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="есть мысли про испытательный период" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0015" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="какое мнение про испытательный период" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0016" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="что думаешь про ожидания от новичка" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0017" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="как тебе ожидания от новичка" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0018" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="обсудим ожидания от новичка" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0019" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="есть мысли про ожидания от новичка" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0020" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="какое мнение про ожидания от новичка" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0021" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="что думаешь про знакомство с правилами" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0022" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="как тебе знакомство с правилами" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0023" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="обсудим знакомство с правилами" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0024" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="есть мысли про знакомство с правилами" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0025" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="какое мнение про знакомство с правилами" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0026" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="что думаешь про отказ без унижения" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0027" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="как тебе отказ без унижения" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0028" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="обсудим отказ без унижения" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0029" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="есть мысли про отказ без унижения" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0030" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="какое мнение про отказ без унижения" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0031" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="что думаешь про поиск активных людей" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0032" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="как тебе поиск активных людей" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0033" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="обсудим поиск активных людей" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0034" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="есть мысли про поиск активных людей" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0035" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="какое мнение про поиск активных людей" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0036" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="что думаешь про совместимость характеров" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0037" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="как тебе совместимость характеров" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0038" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="обсудим совместимость характеров" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0039" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="есть мысли про совместимость характеров" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0040" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="какое мнение про совместимость характеров" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0041" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="что думаешь про приглашение знакомого" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0042" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="как тебе приглашение знакомого" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0043" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="обсудим приглашение знакомого" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0044" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="есть мысли про приглашение знакомого" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0045" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="какое мнение про приглашение знакомого" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0046" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="что думаешь про решение остаться вне клана" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0047" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="как тебе решение остаться вне клана" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0048" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="обсудим решение остаться вне клана" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0049" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="есть мысли про решение остаться вне клана" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.clan.pattern.recruitment.0050" topic="lineage.clan.recruitment" act="lineage.clan.recruitment.reply" phrase="какое мнение про решение остаться вне клана" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

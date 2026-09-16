@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.lineage.farming.semantic" version="3" category="lineage.farming">
+	<aliases>
+		<alias from="farm" to="фарм" />
+		<alias from="farmx" to="фарм" />
+		<alias from="фрм" to="фарм" />
+		<alias from="фармм" to="фарм" />
+		<alias from="drop" to="дроп" />
+		<alias from="dropx" to="дроп" />
+		<alias from="дрп" to="дроп" />
+		<alias from="дропп" to="дроп" />
+		<alias from="spot" to="спот" />
+		<alias from="spotx" to="спот" />
+		<alias from="спт" to="спот" />
+		<alias from="спотт" to="спот" />
+		<alias from="mobov" to="мобов" />
+		<alias from="mobo" to="мобов" />
+		<alias from="мбов" to="мобов" />
+		<alias from="мобовв" to="мобов" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.lineage.farming.pattern.spot.0001" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="что думаешь про выбор фармового спота" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.spot.0002" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="как тебе выбор фармового спота" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.spot.0003" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="обсудим выбор фармового спота" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.spot.0004" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="есть мысли про выбор фармового спота" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.spot.0005" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="какое мнение про выбор фармового спота" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.spot.0006" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="что думаешь про свободное место для фарма" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.spot.0007" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="как тебе свободное место для фарма" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.spot.0008" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="обсудим свободное место для фарма" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.spot.0009" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="есть мысли про свободное место для фарма" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.spot.0010" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="какое мнение про свободное место для фарма" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.spot.0011" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="что думаешь про плотность мобов" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.spot.0012" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="как тебе плотность мобов" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.spot.0013" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="обсудим плотность мобов" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.spot.0014" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="есть мысли про плотность мобов" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.spot.0015" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="какое мнение про плотность мобов" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.spot.0016" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="что думаешь про удобство подходов" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.spot.0017" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="как тебе удобство подходов" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.spot.0018" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="обсудим удобство подходов" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.spot.0019" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="есть мысли про удобство подходов" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.spot.0020" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="какое мнение про удобство подходов" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.spot.0021" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="что думаешь про конкуренцию на точке" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.spot.0022" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="как тебе конкуренцию на точке" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.spot.0023" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="обсудим конкуренцию на точке" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.spot.0024" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="есть мысли про конкуренцию на точке" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.spot.0025" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="какое мнение про конкуренцию на точке" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.spot.0026" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="что думаешь про смену занятого спота" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.spot.0027" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="как тебе смену занятого спота" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.spot.0028" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="обсудим смену занятого спота" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.spot.0029" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="есть мысли про смену занятого спота" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.spot.0030" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="какое мнение про смену занятого спота" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.spot.0031" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="что думаешь про возврат после респауна" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.spot.0032" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="как тебе возврат после респауна" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.spot.0033" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="обсудим возврат после респауна" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.spot.0034" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="есть мысли про возврат после респауна" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.spot.0035" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="какое мнение про возврат после респауна" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.spot.0036" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="что думаешь про безопасность места" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.spot.0037" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="как тебе безопасность места" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.spot.0038" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="обсудим безопасность места" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.spot.0039" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="есть мысли про безопасность места" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.spot.0040" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="какое мнение про безопасность места" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.spot.0041" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="что думаешь про соседей по фарму" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.spot.0042" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="как тебе соседей по фарму" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.spot.0043" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="обсудим соседей по фарму" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.spot.0044" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="есть мысли про соседей по фарму" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.spot.0045" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="какое мнение про соседей по фарму" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.spot.0046" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="что думаешь про запасную точку" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.spot.0047" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="как тебе запасную точку" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.spot.0048" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="обсудим запасную точку" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.spot.0049" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="есть мысли про запасную точку" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.spot.0050" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="какое мнение про запасную точку" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.loot.0001" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="что думаешь про обычный дроп" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.loot.0002" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="как тебе обычный дроп" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.loot.0003" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="обсудим обычный дроп" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.loot.0004" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="есть мысли про обычный дроп" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.loot.0005" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="какое мнение про обычный дроп" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.loot.0006" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="что думаешь про полезный лут" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.loot.0007" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="как тебе полезный лут" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.loot.0008" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="обсудим полезный лут" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.loot.0009" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="есть мысли про полезный лут" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.loot.0010" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="какое мнение про полезный лут" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.loot.0011" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="что думаешь про сбор ресурсов" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.loot.0012" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="как тебе сбор ресурсов" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.loot.0013" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="обсудим сбор ресурсов" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.loot.0014" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="есть мысли про сбор ресурсов" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.loot.0015" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="какое мнение про сбор ресурсов" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.loot.0016" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="что думаешь про ценность добычи" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.loot.0017" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="как тебе ценность добычи" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.loot.0018" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="обсудим ценность добычи" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.loot.0019" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="есть мысли про ценность добычи" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.loot.0020" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="какое мнение про ценность добычи" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.loot.0021" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="что думаешь про пустые заходы" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.loot.0022" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="как тебе пустые заходы" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.loot.0023" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="обсудим пустые заходы" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.loot.0024" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="есть мысли про пустые заходы" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.loot.0025" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="какое мнение про пустые заходы" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.loot.0026" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="что думаешь про удачную добычу" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.loot.0027" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="как тебе удачную добычу" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.loot.0028" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="обсудим удачную добычу" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.loot.0029" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="есть мысли про удачную добычу" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.loot.0030" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="какое мнение про удачную добычу" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.loot.0031" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="что думаешь про переполненный инвентарь" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.loot.0032" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="как тебе переполненный инвентарь" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.loot.0033" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="обсудим переполненный инвентарь" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.loot.0034" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="есть мысли про переполненный инвентарь" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.loot.0035" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="какое мнение про переполненный инвентарь" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.loot.0036" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="что думаешь про продажу лишнего лута" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.loot.0037" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="как тебе продажу лишнего лута" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.loot.0038" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="обсудим продажу лишнего лута" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.loot.0039" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="есть мысли про продажу лишнего лута" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.loot.0040" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="какое мнение про продажу лишнего лута" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.loot.0041" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="что думаешь про распределение находок" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.loot.0042" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="как тебе распределение находок" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.loot.0043" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="обсудим распределение находок" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.loot.0044" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="есть мысли про распределение находок" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.loot.0045" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="какое мнение про распределение находок" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.loot.0046" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="что думаешь про ожидания от фарма" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.loot.0047" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="как тебе ожидания от фарма" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.loot.0048" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="обсудим ожидания от фарма" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.loot.0049" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="есть мысли про ожидания от фарма" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.loot.0050" topic="lineage.farming.loot" act="lineage.farming.loot.reply" phrase="какое мнение про ожидания от фарма" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0001" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="что думаешь про ритм фарма" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0002" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="как тебе ритм фарма" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0003" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="обсудим ритм фарма" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0004" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="есть мысли про ритм фарма" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0005" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="какое мнение про ритм фарма" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0006" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="что думаешь про серии без остановки" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0007" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="как тебе серии без остановки" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0008" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="обсудим серии без остановки" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0009" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="есть мысли про серии без остановки" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0010" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="какое мнение про серии без остановки" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0011" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="что думаешь про паузы на расходники" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0012" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="как тебе паузы на расходники" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0013" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="обсудим паузы на расходники" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0014" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="есть мысли про паузы на расходники" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0015" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="какое мнение про паузы на расходники" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0016" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="что думаешь про возврат в город" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0017" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="как тебе возврат в город" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0018" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="обсудим возврат в город" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0019" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="есть мысли про возврат в город" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0020" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="какое мнение про возврат в город" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0021" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="что думаешь про темп убийства мобов" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0022" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="как тебе темп убийства мобов" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0023" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="обсудим темп убийства мобов" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0024" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="есть мысли про темп убийства мобов" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0025" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="какое мнение про темп убийства мобов" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0026" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="что думаешь про долгий фарм" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0027" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="как тебе долгий фарм" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0028" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="обсудим долгий фарм" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0029" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="есть мысли про долгий фарм" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0030" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="какое мнение про долгий фарм" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0031" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="что думаешь про короткий заход" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0032" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="как тебе короткий заход" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0033" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="обсудим короткий заход" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0034" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="есть мысли про короткий заход" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0035" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="какое мнение про короткий заход" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0036" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="что думаешь про контроль запаса сосок" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0037" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="как тебе контроль запаса сосок" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0038" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="обсудим контроль запаса сосок" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0039" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="есть мысли про контроль запаса сосок" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0040" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="какое мнение про контроль запаса сосок" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0041" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="что думаешь про ровную зачистку" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0042" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="как тебе ровную зачистку" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0043" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="обсудим ровную зачистку" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0044" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="есть мысли про ровную зачистку" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0045" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="какое мнение про ровную зачистку" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0046" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="что думаешь про момент для смены цели" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0047" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="как тебе момент для смены цели" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0048" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="обсудим момент для смены цели" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0049" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="есть мысли про момент для смены цели" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.rhythm.0050" topic="lineage.farming.rhythm" act="lineage.farming.rhythm.reply" phrase="какое мнение про момент для смены цели" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.competition.0001" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="что думаешь про спор за мобов" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.competition.0002" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="как тебе спор за мобов" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.competition.0003" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="обсудим спор за мобов" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.competition.0004" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="есть мысли про спор за мобов" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.competition.0005" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="какое мнение про спор за мобов" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.competition.0006" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="что думаешь про занятый спот" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.competition.0007" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="как тебе занятый спот" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.competition.0008" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="обсудим занятый спот" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.competition.0009" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="есть мысли про занятый спот" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.competition.0010" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="какое мнение про занятый спот" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.competition.0011" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="что думаешь про чужую очередь" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.competition.0012" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="как тебе чужую очередь" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.competition.0013" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="обсудим чужую очередь" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.competition.0014" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="есть мысли про чужую очередь" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.competition.0015" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="какое мнение про чужую очередь" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.competition.0016" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="что думаешь про перетягивание целей" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.competition.0017" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="как тебе перетягивание целей" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.competition.0018" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="обсудим перетягивание целей" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.competition.0019" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="есть мысли про перетягивание целей" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.competition.0020" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="какое мнение про перетягивание целей" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.competition.0021" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="что думаешь про вежливую смену комнаты" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.competition.0022" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="как тебе вежливую смену комнаты" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.competition.0023" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="обсудим вежливую смену комнаты" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.competition.0024" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="есть мысли про вежливую смену комнаты" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.competition.0025" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="какое мнение про вежливую смену комнаты" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.competition.0026" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="что думаешь про конкуренцию за респаун" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.competition.0027" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="как тебе конкуренцию за респаун" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.competition.0028" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="обсудим конкуренцию за респаун" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.competition.0029" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="есть мысли про конкуренцию за респаун" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.competition.0030" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="какое мнение про конкуренцию за респаун" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.competition.0031" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="что думаешь про случайный перехват моба" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.competition.0032" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="как тебе случайный перехват моба" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.competition.0033" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="обсудим случайный перехват моба" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.competition.0034" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="есть мысли про случайный перехват моба" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.competition.0035" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="какое мнение про случайный перехват моба" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.competition.0036" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="что думаешь про границы фармовой точки" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.competition.0037" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="как тебе границы фармовой точки" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.competition.0038" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="обсудим границы фармовой точки" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.competition.0039" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="есть мысли про границы фармовой точки" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.competition.0040" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="какое мнение про границы фармовой точки" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.competition.0041" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="что думаешь про разговор с соседями" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.farming.pattern.competition.0042" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="как тебе разговор с соседями" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.farming.pattern.competition.0043" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="обсудим разговор с соседями" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.farming.pattern.competition.0044" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="есть мысли про разговор с соседями" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.farming.pattern.competition.0045" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="какое мнение про разговор с соседями" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.farming.pattern.competition.0046" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="что думаешь про уход без конфликта" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.farming.pattern.competition.0047" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="как тебе уход без конфликта" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.farming.pattern.competition.0048" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="обсудим уход без конфликта" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.farming.pattern.competition.0049" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="есть мысли про уход без конфликта" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.farming.pattern.competition.0050" topic="lineage.farming.competition" act="lineage.farming.competition.reply" phrase="какое мнение про уход без конфликта" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

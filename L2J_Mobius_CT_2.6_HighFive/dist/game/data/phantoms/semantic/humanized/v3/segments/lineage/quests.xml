@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.lineage.quests.semantic" version="3" category="lineage.quests">
+	<aliases>
+		<alias from="kvest" to="квест" />
+		<alias from="kves" to="квест" />
+		<alias from="квст" to="квест" />
+		<alias from="квестт" to="квест" />
+		<alias from="zadanie" to="задание" />
+		<alias from="zadani" to="задание" />
+		<alias from="здание" to="задание" />
+		<alias from="заданиее" to="задание" />
+		<alias from="cepochka" to="цепочка" />
+		<alias from="cepochk" to="цепочка" />
+		<alias from="цпочка" to="цепочка" />
+		<alias from="цепочкаа" to="цепочка" />
+		<alias from="cel" to="цель" />
+		<alias from="celx" to="цель" />
+		<alias from="цль" to="цель" />
+		<alias from="цельь" to="цель" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.lineage.quests.pattern.route.0001" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="что думаешь про маршрут по заданию" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.route.0002" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="как тебе маршрут по заданию" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.route.0003" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="обсудим маршрут по заданию" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.route.0004" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="есть мысли про маршрут по заданию" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.route.0005" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="какое мнение про маршрут по заданию" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.route.0006" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="что думаешь про порядок этапов" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.route.0007" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="как тебе порядок этапов" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.route.0008" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="обсудим порядок этапов" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.route.0009" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="есть мысли про порядок этапов" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.route.0010" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="какое мнение про порядок этапов" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.route.0011" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="что думаешь про долгую дорогу" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.route.0012" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="как тебе долгую дорогу" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.route.0013" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="обсудим долгую дорогу" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.route.0014" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="есть мысли про долгую дорогу" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.route.0015" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="какое мнение про долгую дорогу" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.route.0016" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="что думаешь про возврат к началу" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.route.0017" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="как тебе возврат к началу" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.route.0018" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="обсудим возврат к началу" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.route.0019" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="есть мысли про возврат к началу" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.route.0020" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="какое мнение про возврат к началу" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.route.0021" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="что думаешь про поиск следующего шага без координат" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.route.0022" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="как тебе поиск следующего шага без координат" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.route.0023" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="обсудим поиск следующего шага без координат" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.route.0024" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="есть мысли про поиск следующего шага без координат" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.route.0025" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="какое мнение про поиск следующего шага без координат" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.route.0026" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="что думаешь про удобную последовательность" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.route.0027" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="как тебе удобную последовательность" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.route.0028" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="обсудим удобную последовательность" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.route.0029" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="есть мысли про удобную последовательность" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.route.0030" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="какое мнение про удобную последовательность" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.route.0031" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="что думаешь про смену задачи по пути" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.route.0032" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="как тебе смену задачи по пути" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.route.0033" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="обсудим смену задачи по пути" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.route.0034" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="есть мысли про смену задачи по пути" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.route.0035" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="какое мнение про смену задачи по пути" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.route.0036" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="что думаешь про проверку журнала" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.route.0037" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="как тебе проверку журнала" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.route.0038" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="обсудим проверку журнала" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.route.0039" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="есть мысли про проверку журнала" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.route.0040" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="какое мнение про проверку журнала" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.route.0041" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="что думаешь про остановку перед новым этапом" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.route.0042" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="как тебе остановку перед новым этапом" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.route.0043" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="обсудим остановку перед новым этапом" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.route.0044" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="есть мысли про остановку перед новым этапом" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.route.0045" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="какое мнение про остановку перед новым этапом" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.route.0046" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="что думаешь про запасной план прохождения" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.route.0047" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="как тебе запасной план прохождения" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.route.0048" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="обсудим запасной план прохождения" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.route.0049" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="есть мысли про запасной план прохождения" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.route.0050" topic="lineage.quests.route" act="lineage.quests.route.reply" phrase="какое мнение про запасной план прохождения" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.objective.0001" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="что думаешь про текущую цель задания" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.objective.0002" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="как тебе текущую цель задания" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.objective.0003" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="обсудим текущую цель задания" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.objective.0004" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="есть мысли про текущую цель задания" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.objective.0005" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="какое мнение про текущую цель задания" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.objective.0006" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="что думаешь про неясное описание" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.objective.0007" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="как тебе неясное описание" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.objective.0008" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="обсудим неясное описание" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.objective.0009" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="есть мысли про неясное описание" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.objective.0010" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="какое мнение про неясное описание" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.objective.0011" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="что думаешь про сбор нужных предметов" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.objective.0012" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="как тебе сбор нужных предметов" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.objective.0013" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="обсудим сбор нужных предметов" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.objective.0014" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="есть мысли про сбор нужных предметов" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.objective.0015" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="какое мнение про сбор нужных предметов" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.objective.0016" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="что думаешь про серии убийств по задаче" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.objective.0017" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="как тебе серии убийств по задаче" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.objective.0018" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="обсудим серии убийств по задаче" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.objective.0019" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="есть мысли про серии убийств по задаче" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.objective.0020" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="какое мнение про серии убийств по задаче" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.objective.0021" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="что думаешь про разговор с нужным персонажем" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.objective.0022" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="как тебе разговор с нужным персонажем" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.objective.0023" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="обсудим разговор с нужным персонажем" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.objective.0024" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="есть мысли про разговор с нужным персонажем" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.objective.0025" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="какое мнение про разговор с нужным персонажем" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.objective.0026" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="что думаешь про проверку прогресса" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.objective.0027" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="как тебе проверку прогресса" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.objective.0028" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="обсудим проверку прогресса" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.objective.0029" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="есть мысли про проверку прогресса" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.objective.0030" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="какое мнение про проверку прогресса" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.objective.0031" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="что думаешь про завершённый этап" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.objective.0032" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="как тебе завершённый этап" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.objective.0033" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="обсудим завершённый этап" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.objective.0034" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="есть мысли про завершённый этап" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.objective.0035" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="какое мнение про завершённый этап" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.objective.0036" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="что думаешь про пропущенное условие" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.objective.0037" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="как тебе пропущенное условие" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.objective.0038" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="обсудим пропущенное условие" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.objective.0039" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="есть мысли про пропущенное условие" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.objective.0040" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="какое мнение про пропущенное условие" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.objective.0041" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="что думаешь про повторную попытку" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.objective.0042" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="как тебе повторную попытку" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.objective.0043" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="обсудим повторную попытку" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.objective.0044" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="есть мысли про повторную попытку" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.objective.0045" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="какое мнение про повторную попытку" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.objective.0046" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="что думаешь про понимание следующей цели" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.objective.0047" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="как тебе понимание следующей цели" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.objective.0048" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="обсудим понимание следующей цели" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.objective.0049" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="есть мысли про понимание следующей цели" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.objective.0050" topic="lineage.quests.objective" act="lineage.quests.objective.reply" phrase="какое мнение про понимание следующей цели" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.routine.0001" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="что думаешь про повседневные задания" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.routine.0002" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="как тебе повседневные задания" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.routine.0003" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="обсудим повседневные задания" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.routine.0004" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="есть мысли про повседневные задания" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.routine.0005" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="какое мнение про повседневные задания" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.routine.0006" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="что думаешь про повторяемую задачу" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.routine.0007" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="как тебе повторяемую задачу" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.routine.0008" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="обсудим повторяемую задачу" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.routine.0009" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="есть мысли про повторяемую задачу" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.routine.0010" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="какое мнение про повторяемую задачу" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.routine.0011" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="что думаешь про скучный этап" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.routine.0012" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="как тебе скучный этап" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.routine.0013" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="обсудим скучный этап" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.routine.0014" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="есть мысли про скучный этап" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.routine.0015" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="какое мнение про скучный этап" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.routine.0016" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="что думаешь про спокойное прохождение" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.routine.0017" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="как тебе спокойное прохождение" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.routine.0018" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="обсудим спокойное прохождение" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.routine.0019" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="есть мысли про спокойное прохождение" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.routine.0020" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="какое мнение про спокойное прохождение" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.routine.0021" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="что думаешь про совмещение с фармом" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.routine.0022" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="как тебе совмещение с фармом" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.routine.0023" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="обсудим совмещение с фармом" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.routine.0024" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="есть мысли про совмещение с фармом" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.routine.0025" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="какое мнение про совмещение с фармом" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.routine.0026" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="что думаешь про короткий квестовый заход" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.routine.0027" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="как тебе короткий квестовый заход" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.routine.0028" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="обсудим короткий квестовый заход" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.routine.0029" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="есть мысли про короткий квестовый заход" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.routine.0030" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="какое мнение про короткий квестовый заход" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.routine.0031" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="что думаешь про перерыв между цепочками" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.routine.0032" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="как тебе перерыв между цепочками" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.routine.0033" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="обсудим перерыв между цепочками" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.routine.0034" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="есть мысли про перерыв между цепочками" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.routine.0035" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="какое мнение про перерыв между цепочками" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.routine.0036" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="что думаешь про очистку списка задач" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.routine.0037" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="как тебе очистку списка задач" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.routine.0038" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="обсудим очистку списка задач" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.routine.0039" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="есть мысли про очистку списка задач" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.routine.0040" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="какое мнение про очистку списка задач" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.routine.0041" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="что думаешь про возврат к старому заданию" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.routine.0042" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="как тебе возврат к старому заданию" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.routine.0043" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="обсудим возврат к старому заданию" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.routine.0044" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="есть мысли про возврат к старому заданию" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.routine.0045" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="какое мнение про возврат к старому заданию" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.routine.0046" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="что думаешь про привычный ритм квестов" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.routine.0047" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="как тебе привычный ритм квестов" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.routine.0048" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="обсудим привычный ритм квестов" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.routine.0049" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="есть мысли про привычный ритм квестов" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.routine.0050" topic="lineage.quests.routine" act="lineage.quests.routine.reply" phrase="какое мнение про привычный ритм квестов" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.choice.0001" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="что думаешь про выбор следующего квеста" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.choice.0002" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="как тебе выбор следующего квеста" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.choice.0003" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="обсудим выбор следующего квеста" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.choice.0004" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="есть мысли про выбор следующего квеста" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.choice.0005" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="какое мнение про выбор следующего квеста" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.choice.0006" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="что думаешь про решение отложить цепочку" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.choice.0007" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="как тебе решение отложить цепочку" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.choice.0008" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="обсудим решение отложить цепочку" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.choice.0009" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="есть мысли про решение отложить цепочку" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.choice.0010" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="какое мнение про решение отложить цепочку" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.choice.0011" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="что думаешь про интерес к сюжету" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.choice.0012" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="как тебе интерес к сюжету" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.choice.0013" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="обсудим интерес к сюжету" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.choice.0014" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="есть мысли про интерес к сюжету" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.choice.0015" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="какое мнение про интерес к сюжету" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.choice.0016" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="что думаешь про пользу без точных наград" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.choice.0017" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="как тебе пользу без точных наград" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.choice.0018" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="обсудим пользу без точных наград" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.choice.0019" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="есть мысли про пользу без точных наград" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.choice.0020" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="какое мнение про пользу без точных наград" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.choice.0021" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="что думаешь про сложность для текущего класса" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.choice.0022" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="как тебе сложность для текущего класса" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.choice.0023" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="обсудим сложность для текущего класса" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.choice.0024" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="есть мысли про сложность для текущего класса" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.choice.0025" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="какое мнение про сложность для текущего класса" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.choice.0026" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="что думаешь про прохождение с группой" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.choice.0027" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="как тебе прохождение с группой" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.choice.0028" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="обсудим прохождение с группой" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.choice.0029" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="есть мысли про прохождение с группой" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.choice.0030" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="какое мнение про прохождение с группой" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.choice.0031" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="что думаешь про отказ от неудобной задачи" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.choice.0032" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="как тебе отказ от неудобной задачи" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.choice.0033" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="обсудим отказ от неудобной задачи" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.choice.0034" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="есть мысли про отказ от неудобной задачи" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.choice.0035" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="какое мнение про отказ от неудобной задачи" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.choice.0036" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="что думаешь про сравнение двух направлений" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.choice.0037" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="как тебе сравнение двух направлений" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.choice.0038" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="обсудим сравнение двух направлений" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.choice.0039" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="есть мысли про сравнение двух направлений" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.choice.0040" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="какое мнение про сравнение двух направлений" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.choice.0041" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="что думаешь про желание закончить начатое" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.quests.pattern.choice.0042" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="как тебе желание закончить начатое" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.quests.pattern.choice.0043" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="обсудим желание закончить начатое" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.quests.pattern.choice.0044" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="есть мысли про желание закончить начатое" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.quests.pattern.choice.0045" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="какое мнение про желание закончить начатое" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.quests.pattern.choice.0046" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="что думаешь про новую цель на вечер" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.quests.pattern.choice.0047" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="как тебе новую цель на вечер" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.quests.pattern.choice.0048" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="обсудим новую цель на вечер" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.quests.pattern.choice.0049" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="есть мысли про новую цель на вечер" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.quests.pattern.choice.0050" topic="lineage.quests.choice" act="lineage.quests.choice.reply" phrase="какое мнение про новую цель на вечер" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

@@ -1,14 +1,223 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <humanizedV3SemanticSegment id="v3.lineage.buffs.semantic" version="3" category="lineage.buffs">
+	<aliases>
+		<alias from="bafy" to="бафы" />
+		<alias from="bafyx" to="бафы" />
+		<alias from="бфы" to="бафы" />
+		<alias from="бафыы" to="бафы" />
+		<alias from="songi" to="сонги" />
+		<alias from="song" to="сонги" />
+		<alias from="снги" to="сонги" />
+		<alias from="сонгии" to="сонги" />
+		<alias from="densy" to="денсы" />
+		<alias from="dens" to="денсы" />
+		<alias from="днсы" to="денсы" />
+		<alias from="денсыы" to="денсы" />
+		<alias from="rebaf" to="ребаф" />
+		<alias from="reba" to="ребаф" />
+		<alias from="рбаф" to="ребаф" />
+		<alias from="ребафф" to="ребаф" />
+	</aliases>
 	<patterns>
-		<pattern id="v3.lineage.buffs.request.001" topic="support" act="support.buff.request" phrase="бафни меня" salience="850" ttlMinutes="0" priority="1000"/>
-		<pattern id="v3.lineage.buffs.request.002" topic="support" act="support.buff.request" phrase="баф пожалуйста" salience="850" ttlMinutes="0" priority="995"/>
-		<pattern id="v3.lineage.buffs.request.003" topic="support" act="support.buff.request" phrase="можешь бафнуть" salience="850" ttlMinutes="0" priority="990"/>
-		<pattern id="v3.lineage.buffs.request.004" topic="support" act="support.buff.request" phrase="дай баф" salience="850" ttlMinutes="0" priority="985"/>
-		<pattern id="v3.lineage.buffs.request.005" topic="support" act="support.buff.request" phrase="забафай" salience="850" ttlMinutes="0" priority="980"/>
-		<pattern id="v3.lineage.song.request.001" topic="support" act="support.song.request" phrase="спой песню" salience="850" ttlMinutes="0" priority="975"/>
-		<pattern id="v3.lineage.song.request.002" topic="support" act="support.song.request" phrase="дай сонг" salience="850" ttlMinutes="0" priority="970"/>
-		<pattern id="v3.lineage.dance.request.001" topic="support" act="support.dance.request" phrase="станцуй танец" salience="850" ttlMinutes="0" priority="965"/>
-		<pattern id="v3.lineage.dance.request.002" topic="support" act="support.dance.request" phrase="дай денс" salience="850" ttlMinutes="0" priority="960"/>
+		<pattern id="v3.lineage.buffs.request.001" topic="support" act="support.buff.request" phrase="бафни меня" salience="850" ttlMinutes="0" priority="1000" />
+		<pattern id="v3.lineage.buffs.request.002" topic="support" act="support.buff.request" phrase="баф пожалуйста" salience="850" ttlMinutes="0" priority="995" />
+		<pattern id="v3.lineage.buffs.request.003" topic="support" act="support.buff.request" phrase="можешь бафнуть" salience="850" ttlMinutes="0" priority="990" />
+		<pattern id="v3.lineage.buffs.request.004" topic="support" act="support.buff.request" phrase="дай баф" salience="850" ttlMinutes="0" priority="985" />
+		<pattern id="v3.lineage.buffs.request.005" topic="support" act="support.buff.request" phrase="забафай" salience="850" ttlMinutes="0" priority="980" />
+		<pattern id="v3.lineage.song.request.001" topic="support" act="support.song.request" phrase="спой песню" salience="850" ttlMinutes="0" priority="975" />
+		<pattern id="v3.lineage.song.request.002" topic="support" act="support.song.request" phrase="дай сонг" salience="850" ttlMinutes="0" priority="970" />
+		<pattern id="v3.lineage.dance.request.001" topic="support" act="support.dance.request" phrase="станцуй танец" salience="850" ttlMinutes="0" priority="965" />
+		<pattern id="v3.lineage.dance.request.002" topic="support" act="support.dance.request" phrase="дай денс" salience="850" ttlMinutes="0" priority="960" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0001" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="что думаешь про набор усилений" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0002" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="как тебе набор усилений" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0003" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="обсудим набор усилений" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0004" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="есть мысли про набор усилений" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0005" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="какое мнение про набор усилений" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0006" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="что думаешь про бафы под состав" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0007" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="как тебе бафы под состав" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0008" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="обсудим бафы под состав" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0009" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="есть мысли про бафы под состав" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0010" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="какое мнение про бафы под состав" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0011" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="что думаешь про лишние усиления" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0012" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="как тебе лишние усиления" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0013" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="обсудим лишние усиления" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0014" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="есть мысли про лишние усиления" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0015" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="какое мнение про лишние усиления" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0016" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="что думаешь про пропущенный баф" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0017" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="как тебе пропущенный баф" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0018" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="обсудим пропущенный баф" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0019" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="есть мысли про пропущенный баф" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0020" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="какое мнение про пропущенный баф" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0021" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="что думаешь про защиту перед боем" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0022" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="как тебе защиту перед боем" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0023" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="обсудим защиту перед боем" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0024" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="есть мысли про защиту перед боем" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0025" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="какое мнение про защиту перед боем" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0026" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="что думаешь про усиление атаки" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0027" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="как тебе усиление атаки" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0028" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="обсудим усиление атаки" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0029" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="есть мысли про усиление атаки" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0030" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="какое мнение про усиление атаки" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0031" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="что думаешь про поддержку группы" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0032" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="как тебе поддержку группы" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0033" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="обсудим поддержку группы" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0034" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="есть мысли про поддержку группы" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0035" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="какое мнение про поддержку группы" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0036" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="что думаешь про бафы для соло" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0037" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="как тебе бафы для соло" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0038" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="обсудим бафы для соло" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0039" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="есть мысли про бафы для соло" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0040" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="какое мнение про бафы для соло" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0041" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="что думаешь про разницу наборов" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0042" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="как тебе разницу наборов" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0043" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="обсудим разницу наборов" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0044" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="есть мысли про разницу наборов" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0045" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="какое мнение про разницу наборов" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0046" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="что думаешь про проверку эффектов" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0047" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="как тебе проверку эффектов" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.coverage.0048" topic="lineage.buffs.coverage" act="lineage.buffs.coverage.reply" phrase="обсудим проверку эффектов" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0001" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="что думаешь про время ребафа" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0002" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="как тебе время ребафа" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0003" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="обсудим время ребафа" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0004" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="есть мысли про время ребафа" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0005" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="какое мнение про время ребафа" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0006" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="что думаешь про остаток усилений" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0007" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="как тебе остаток усилений" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0008" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="обсудим остаток усилений" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0009" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="есть мысли про остаток усилений" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0010" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="какое мнение про остаток усилений" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0011" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="что думаешь про баф перед заходом" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0012" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="как тебе баф перед заходом" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0013" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="обсудим баф перед заходом" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0014" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="есть мысли про баф перед заходом" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0015" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="какое мнение про баф перед заходом" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0016" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="что думаешь про обновление после смерти" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0017" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="как тебе обновление после смерти" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0018" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="обсудим обновление после смерти" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0019" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="есть мысли про обновление после смерти" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0020" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="какое мнение про обновление после смерти" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0021" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="что думаешь про паузу на сонги" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0022" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="как тебе паузу на сонги" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0023" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="обсудим паузу на сонги" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0024" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="есть мысли про паузу на сонги" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0025" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="какое мнение про паузу на сонги" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0026" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="что думаешь про момент для денсов" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0027" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="как тебе момент для денсов" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0028" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="обсудим момент для денсов" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0029" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="есть мысли про момент для денсов" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0030" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="какое мнение про момент для денсов" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0031" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="что думаешь про ранний ребаф" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0032" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="как тебе ранний ребаф" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0033" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="обсудим ранний ребаф" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0034" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="есть мысли про ранний ребаф" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0035" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="какое мнение про ранний ребаф" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0036" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="что думаешь про опоздание с усилением" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0037" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="как тебе опоздание с усилением" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0038" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="обсудим опоздание с усилением" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0039" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="есть мысли про опоздание с усилением" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0040" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="какое мнение про опоздание с усилением" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0041" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="что думаешь про проверку таймеров" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0042" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="как тебе проверку таймеров" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0043" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="обсудим проверку таймеров" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0044" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="есть мысли про проверку таймеров" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0045" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="какое мнение про проверку таймеров" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0046" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="что думаешь про обновление между боями" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0047" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="как тебе обновление между боями" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.timing.0048" topic="lineage.buffs.timing" act="lineage.buffs.timing.reply" phrase="обсудим обновление между боями" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0001" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="что думаешь про главный баф" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0002" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="как тебе главный баф" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0003" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="обсудим главный баф" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0004" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="есть мысли про главный баф" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0005" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="какое мнение про главный баф" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0006" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="что думаешь про приоритет защиты" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0007" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="как тебе приоритет защиты" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0008" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="обсудим приоритет защиты" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0009" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="есть мысли про приоритет защиты" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0010" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="какое мнение про приоритет защиты" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0011" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="что думаешь про усиление лекаря" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0012" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="как тебе усиление лекаря" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0013" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="обсудим усиление лекаря" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0014" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="есть мысли про усиление лекаря" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0015" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="какое мнение про усиление лекаря" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0016" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="что думаешь про поддержку танка" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0017" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="как тебе поддержку танка" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0018" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="обсудим поддержку танка" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0019" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="есть мысли про поддержку танка" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0020" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="какое мнение про поддержку танка" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0021" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="что думаешь про бафы дамагеров" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0022" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="как тебе бафы дамагеров" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0023" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="обсудим бафы дамагеров" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0024" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="есть мысли про бафы дамагеров" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0025" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="какое мнение про бафы дамагеров" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0026" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="что думаешь про экономию маны" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0027" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="как тебе экономию маны" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0028" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="обсудим экономию маны" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0029" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="есть мысли про экономию маны" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0030" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="какое мнение про экономию маны" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0031" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="что думаешь про важный сонг" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0032" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="как тебе важный сонг" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0033" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="обсудим важный сонг" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0034" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="есть мысли про важный сонг" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0035" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="какое мнение про важный сонг" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0036" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="что думаешь про нужный денс" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0037" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="как тебе нужный денс" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0038" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="обсудим нужный денс" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0039" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="есть мысли про нужный денс" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0040" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="какое мнение про нужный денс" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0041" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="что думаешь про порядок усилений" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0042" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="как тебе порядок усилений" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0043" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="обсудим порядок усилений" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0044" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="есть мысли про порядок усилений" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0045" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="какое мнение про порядок усилений" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0046" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="что думаешь про выбор без лишней суеты" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0047" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="как тебе выбор без лишней суеты" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.priority.0048" topic="lineage.buffs.priority" act="lineage.buffs.priority.reply" phrase="обсудим выбор без лишней суеты" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0001" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="что думаешь про просьбу о бафе" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0002" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="как тебе просьбу о бафе" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0003" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="обсудим просьбу о бафе" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0004" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="есть мысли про просьбу о бафе" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0005" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="какое мнение про просьбу о бафе" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0006" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="что думаешь про вопрос про усиления" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0007" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="как тебе вопрос про усиления" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0008" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="обсудим вопрос про усиления" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0009" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="есть мысли про вопрос про усиления" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0010" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="какое мнение про вопрос про усиления" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0011" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="что думаешь про спор о наборе" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0012" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="как тебе спор о наборе" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0013" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="обсудим спор о наборе" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0014" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="есть мысли про спор о наборе" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0015" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="какое мнение про спор о наборе" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0016" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="что думаешь про напоминание саппорту" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0017" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="как тебе напоминание саппорту" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0018" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="обсудим напоминание саппорту" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0019" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="есть мысли про напоминание саппорту" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0020" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="какое мнение про напоминание саппорту" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0021" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="что думаешь про вежливую просьбу" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0022" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="как тебе вежливую просьбу" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0023" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="обсудим вежливую просьбу" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0024" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="есть мысли про вежливую просьбу" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0025" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="какое мнение про вежливую просьбу" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0026" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="что думаешь про ответ без обещаний" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0027" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="как тебе ответ без обещаний" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0028" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="обсудим ответ без обещаний" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0029" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="есть мысли про ответ без обещаний" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0030" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="какое мнение про ответ без обещаний" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0031" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="что думаешь про обсуждение состава" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0032" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="как тебе обсуждение состава" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0033" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="обсудим обсуждение состава" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0034" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="есть мысли про обсуждение состава" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0035" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="какое мнение про обсуждение состава" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0036" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="что думаешь про проверку доступного бафа" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0037" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="как тебе проверку доступного бафа" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0038" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="обсудим проверку доступного бафа" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0039" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="есть мысли про проверку доступного бафа" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0040" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="какое мнение про проверку доступного бафа" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0041" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="что думаешь про разницу привычек" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0042" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="как тебе разницу привычек" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0043" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="обсудим разницу привычек" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0044" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="есть мысли про разницу привычек" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0045" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="какое мнение про разницу привычек" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0046" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="что думаешь про спокойный разговор о бафах" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.buffs.pattern.discussion.0047" topic="lineage.buffs.discussion" act="lineage.buffs.discussion.reply" phrase="как тебе спокойный разговор о бафах" salience="495" ttlMinutes="0" priority="530" />
 	</patterns>
 </humanizedV3SemanticSegment>

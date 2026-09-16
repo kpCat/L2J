@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.lineage.enchant.semantic" version="3" category="lineage.enchant">
+	<aliases>
+		<alias from="zatochka" to="заточка" />
+		<alias from="zatochk" to="заточка" />
+		<alias from="зточка" to="заточка" />
+		<alias from="заточкаа" to="заточка" />
+		<alias from="tochit" to="точить" />
+		<alias from="tochi" to="точить" />
+		<alias from="тчить" to="точить" />
+		<alias from="точитьь" to="точить" />
+		<alias from="slomalos" to="сломалось" />
+		<alias from="slomalo" to="сломалось" />
+		<alias from="слмалось" to="сломалось" />
+		<alias from="сломалосьь" to="сломалось" />
+		<alias from="svitok" to="свиток" />
+		<alias from="svito" to="свиток" />
+		<alias from="свток" to="свиток" />
+		<alias from="свитокк" to="свиток" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.lineage.enchant.pattern.risk.0001" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="что думаешь про риск заточки" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0002" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="как тебе риск заточки" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0003" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="обсудим риск заточки" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0004" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="есть мысли про риск заточки" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0005" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="какое мнение про риск заточки" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0006" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="что думаешь про ценность предмета" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0007" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="как тебе ценность предмета" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0008" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="обсудим ценность предмета" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0009" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="есть мысли про ценность предмета" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0010" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="какое мнение про ценность предмета" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0011" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="что думаешь про запасную экипировку" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0012" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="как тебе запасную экипировку" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0013" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="обсудим запасную экипировку" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0014" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="есть мысли про запасную экипировку" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0015" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="какое мнение про запасную экипировку" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0016" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="что думаешь про дорогую попытку" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0017" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="как тебе дорогую попытку" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0018" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="обсудим дорогую попытку" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0019" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="есть мысли про дорогую попытку" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0020" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="какое мнение про дорогую попытку" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0021" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="что думаешь про границу потерь" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0022" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="как тебе границу потерь" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0023" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="обсудим границу потерь" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0024" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="есть мысли про границу потерь" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0025" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="какое мнение про границу потерь" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0026" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="что думаешь про шанс без точных цифр" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0027" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="как тебе шанс без точных цифр" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0028" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="обсудим шанс без точных цифр" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0029" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="есть мысли про шанс без точных цифр" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0030" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="какое мнение про шанс без точных цифр" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0031" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="что думаешь про решение рискнуть" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0032" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="как тебе решение рискнуть" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0033" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="обсудим решение рискнуть" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0034" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="есть мысли про решение рискнуть" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0035" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="какое мнение про решение рискнуть" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0036" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="что думаешь про страх сломать вещь" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0037" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="как тебе страх сломать вещь" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0038" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="обсудим страх сломать вещь" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0039" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="есть мысли про страх сломать вещь" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0040" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="какое мнение про страх сломать вещь" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0041" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="что думаешь про цену ошибки" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0042" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="как тебе цену ошибки" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0043" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="обсудим цену ошибки" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0044" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="есть мысли про цену ошибки" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0045" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="какое мнение про цену ошибки" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0046" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="что думаешь про осторожную стратегию" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0047" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="как тебе осторожную стратегию" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0048" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="обсудим осторожную стратегию" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0049" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="есть мысли про осторожную стратегию" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.risk.0050" topic="lineage.enchant.risk" act="lineage.enchant.risk.reply" phrase="какое мнение про осторожную стратегию" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0001" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="что думаешь про серию неудач" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0002" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="как тебе серию неудач" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0003" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="обсудим серию неудач" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0004" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="есть мысли про серию неудач" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0005" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="какое мнение про серию неудач" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0006" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="что думаешь про одну удачную попытку" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0007" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="как тебе одну удачную попытку" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0008" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="обсудим одну удачную попытку" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0009" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="есть мысли про одну удачную попытку" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0010" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="какое мнение про одну удачную попытку" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0011" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="что думаешь про желание отыграться" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0012" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="как тебе желание отыграться" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0013" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="обсудим желание отыграться" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0014" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="есть мысли про желание отыграться" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0015" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="какое мнение про желание отыграться" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0016" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="что думаешь про эмоции после провала" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0017" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="как тебе эмоции после провала" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0018" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="обсудим эмоции после провала" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0019" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="есть мысли про эмоции после провала" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0020" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="какое мнение про эмоции после провала" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0021" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="что думаешь про случайную полосу везения" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0022" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="как тебе случайную полосу везения" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0023" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="обсудим случайную полосу везения" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0024" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="есть мысли про случайную полосу везения" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0025" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="какое мнение про случайную полосу везения" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0026" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="что думаешь про перерыв между попытками" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0027" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="как тебе перерыв между попытками" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0028" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="обсудим перерыв между попытками" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0029" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="есть мысли про перерыв между попытками" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0030" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="какое мнение про перерыв между попытками" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0031" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="что думаешь про плохой вечер для заточки" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0032" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="как тебе плохой вечер для заточки" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0033" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="обсудим плохой вечер для заточки" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0034" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="есть мысли про плохой вечер для заточки" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0035" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="какое мнение про плохой вечер для заточки" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0036" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="что думаешь про лишнюю самоуверенность" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0037" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="как тебе лишнюю самоуверенность" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0038" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="обсудим лишнюю самоуверенность" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0039" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="есть мысли про лишнюю самоуверенность" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0040" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="какое мнение про лишнюю самоуверенность" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0041" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="что думаешь про спокойствие после успеха" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0042" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="как тебе спокойствие после успеха" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0043" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="обсудим спокойствие после успеха" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0044" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="есть мысли про спокойствие после успеха" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0045" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="какое мнение про спокойствие после успеха" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0046" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="что думаешь про разговор о везении" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0047" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="как тебе разговор о везении" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0048" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="обсудим разговор о везении" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0049" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="есть мысли про разговор о везении" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.streak.0050" topic="lineage.enchant.streak" act="lineage.enchant.streak.reply" phrase="какое мнение про разговор о везении" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0001" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="что думаешь про момент остановиться" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0002" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="как тебе момент остановиться" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0003" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="обсудим момент остановиться" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0004" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="есть мысли про момент остановиться" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0005" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="какое мнение про момент остановиться" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0006" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="что думаешь про последнюю попытку" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0007" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="как тебе последнюю попытку" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0008" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="обсудим последнюю попытку" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0009" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="есть мысли про последнюю попытку" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0010" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="какое мнение про последнюю попытку" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0011" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="что думаешь про лимит расходов" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0012" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="как тебе лимит расходов" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0013" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="обсудим лимит расходов" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0014" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="есть мысли про лимит расходов" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0015" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="какое мнение про лимит расходов" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0016" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="что думаешь про решение оставить как есть" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0017" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="как тебе решение оставить как есть" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0018" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="обсудим решение оставить как есть" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0019" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="есть мысли про решение оставить как есть" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0020" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="какое мнение про решение оставить как есть" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0021" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="что думаешь про отказ гнаться дальше" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0022" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="как тебе отказ гнаться дальше" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0023" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="обсудим отказ гнаться дальше" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0024" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="есть мысли про отказ гнаться дальше" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0025" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="какое мнение про отказ гнаться дальше" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0026" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="что думаешь про паузу до завтра" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0027" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="как тебе паузу до завтра" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0028" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="обсудим паузу до завтра" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0029" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="есть мысли про паузу до завтра" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0030" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="какое мнение про паузу до завтра" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0031" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="что думаешь про сохранение рабочего предмета" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0032" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="как тебе сохранение рабочего предмета" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0033" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="обсудим сохранение рабочего предмета" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0034" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="есть мысли про сохранение рабочего предмета" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0035" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="какое мнение про сохранение рабочего предмета" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0036" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="что думаешь про выход без больших потерь" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0037" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="как тебе выход без больших потерь" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0038" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="обсудим выход без больших потерь" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0039" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="есть мысли про выход без больших потерь" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0040" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="какое мнение про выход без больших потерь" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0041" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="что думаешь про холодную голову" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0042" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="как тебе холодную голову" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0043" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="обсудим холодную голову" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0044" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="есть мысли про холодную голову" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0045" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="какое мнение про холодную голову" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0046" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="что думаешь про план перед заточкой" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0047" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="как тебе план перед заточкой" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0048" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="обсудим план перед заточкой" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0049" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="есть мысли про план перед заточкой" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.stopping.0050" topic="lineage.enchant.stopping" act="lineage.enchant.stopping.reply" phrase="какое мнение про план перед заточкой" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0001" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="что думаешь про злость после слома" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0002" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="как тебе злость после слома" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0003" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="обсудим злость после слома" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0004" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="есть мысли про злость после слома" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0005" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="какое мнение про злость после слома" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0006" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="что думаешь про обиду на случайность" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0007" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="как тебе обиду на случайность" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0008" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="обсудим обиду на случайность" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0009" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="есть мысли про обиду на случайность" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0010" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="какое мнение про обиду на случайность" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0011" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="что думаешь про шутки про кристаллы" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0012" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="как тебе шутки про кристаллы" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0013" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="обсудим шутки про кристаллы" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0014" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="есть мысли про шутки про кристаллы" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0015" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="какое мнение про шутки про кристаллы" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0016" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="что думаешь про раздражение от серии" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0017" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="как тебе раздражение от серии" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0018" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="обсудим раздражение от серии" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0019" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="есть мысли про раздражение от серии" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0020" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="какое мнение про раздражение от серии" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0021" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="что думаешь про совет выдохнуть" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0022" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="как тебе совет выдохнуть" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0023" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="обсудим совет выдохнуть" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0024" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="есть мысли про совет выдохнуть" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0025" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="какое мнение про совет выдохнуть" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0026" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="что думаешь про желание купить новый свиток" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0027" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="как тебе желание купить новый свиток" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0028" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="обсудим желание купить новый свиток" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0029" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="есть мысли про желание купить новый свиток" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0030" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="какое мнение про желание купить новый свиток" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0031" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="что думаешь про спор о риске" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0032" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="как тебе спор о риске" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0033" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="обсудим спор о риске" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0034" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="есть мысли про спор о риске" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0035" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="какое мнение про спор о риске" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0036" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="что думаешь про неудачу без обвинений" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0037" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="как тебе неудачу без обвинений" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0038" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="обсудим неудачу без обвинений" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0039" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="есть мысли про неудачу без обвинений" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0040" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="какое мнение про неудачу без обвинений" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0041" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="что думаешь про поддержку после провала" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0042" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="как тебе поддержку после провала" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0043" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="обсудим поддержку после провала" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0044" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="есть мысли про поддержку после провала" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0045" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="какое мнение про поддержку после провала" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0046" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="что думаешь про возвращение к обычной игре" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0047" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="как тебе возвращение к обычной игре" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0048" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="обсудим возвращение к обычной игре" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0049" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="есть мысли про возвращение к обычной игре" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.enchant.pattern.frustration.0050" topic="lineage.enchant.frustration" act="lineage.enchant.frustration.reply" phrase="какое мнение про возвращение к обычной игре" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

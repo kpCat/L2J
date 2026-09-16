@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.lineage.raids.semantic" version="3" category="lineage.raids">
+	<aliases>
+		<alias from="reyd" to="рейд" />
+		<alias from="reydx" to="рейд" />
+		<alias from="рйд" to="рейд" />
+		<alias from="рейдд" to="рейд" />
+		<alias from="boss" to="босс" />
+		<alias from="bossx" to="босс" />
+		<alias from="бсс" to="босс" />
+		<alias from="боссс" to="босс" />
+		<alias from="sbor" to="сбор" />
+		<alias from="sborx" to="сбор" />
+		<alias from="сбр" to="сбор" />
+		<alias from="сборр" to="сбор" />
+		<alias from="droplist" to="дроплист" />
+		<alias from="droplis" to="дроплист" />
+		<alias from="дрплист" to="дроплист" />
+		<alias from="дроплистт" to="дроплист" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.lineage.raids.pattern.preparation.0001" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="что думаешь про подготовку к рейду" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0002" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="как тебе подготовку к рейду" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0003" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="обсудим подготовку к рейду" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0004" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="есть мысли про подготовку к рейду" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0005" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="какое мнение про подготовку к рейду" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0006" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="что думаешь про запас расходников в игре" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0007" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="как тебе запас расходников в игре" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0008" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="обсудим запас расходников в игре" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0009" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="есть мысли про запас расходников в игре" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0010" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="какое мнение про запас расходников в игре" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0011" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="что думаешь про проверку экипировки" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0012" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="как тебе проверку экипировки" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0013" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="обсудим проверку экипировки" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0014" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="есть мысли про проверку экипировки" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0015" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="какое мнение про проверку экипировки" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0016" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="что думаешь про сбор у точки" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0017" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="как тебе сбор у точки" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0018" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="обсудим сбор у точки" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0019" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="есть мысли про сбор у точки" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0020" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="какое мнение про сбор у точки" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0021" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="что думаешь про время на дорогу" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0022" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="как тебе время на дорогу" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0023" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="обсудим время на дорогу" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0024" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="есть мысли про время на дорогу" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0025" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="какое мнение про время на дорогу" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0026" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="что думаешь про готовность участников" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0027" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="как тебе готовность участников" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0028" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="обсудим готовность участников" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0029" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="есть мысли про готовность участников" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0030" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="какое мнение про готовность участников" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0031" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="что думаешь про план на неудачный заход" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0032" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="как тебе план на неудачный заход" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0033" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="обсудим план на неудачный заход" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0034" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="есть мысли про план на неудачный заход" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0035" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="какое мнение про план на неудачный заход" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0036" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="что думаешь про замену опоздавшего" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0037" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="как тебе замену опоздавшего" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0038" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="обсудим замену опоздавшего" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0039" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="есть мысли про замену опоздавшего" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0040" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="какое мнение про замену опоздавшего" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0041" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="что думаешь про последнюю проверку" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0042" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="как тебе последнюю проверку" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0043" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="обсудим последнюю проверку" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0044" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="есть мысли про последнюю проверку" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0045" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="какое мнение про последнюю проверку" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0046" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="что думаешь про спокойствие перед стартом" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0047" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="как тебе спокойствие перед стартом" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0048" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="обсудим спокойствие перед стартом" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0049" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="есть мысли про спокойствие перед стартом" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.preparation.0050" topic="lineage.raids.preparation" act="lineage.raids.preparation.reply" phrase="какое мнение про спокойствие перед стартом" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.roles.0001" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="что думаешь про распределение ролей" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.roles.0002" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="как тебе распределение ролей" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.roles.0003" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="обсудим распределение ролей" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.roles.0004" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="есть мысли про распределение ролей" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.roles.0005" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="какое мнение про распределение ролей" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.roles.0006" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="что думаешь про работу танков" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.roles.0007" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="как тебе работу танков" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.roles.0008" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="обсудим работу танков" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.roles.0009" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="есть мысли про работу танков" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.roles.0010" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="какое мнение про работу танков" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.roles.0011" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="что думаешь про группы лечения" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.roles.0012" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="как тебе группы лечения" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.roles.0013" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="обсудим группы лечения" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.roles.0014" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="есть мысли про группы лечения" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.roles.0015" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="какое мнение про группы лечения" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.roles.0016" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="что думаешь про контроль поддержки" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.roles.0017" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="как тебе контроль поддержки" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.roles.0018" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="обсудим контроль поддержки" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.roles.0019" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="есть мысли про контроль поддержки" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.roles.0020" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="какое мнение про контроль поддержки" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.roles.0021" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="что думаешь про задачи дамагеров в игре" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.roles.0022" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="как тебе задачи дамагеров в игре" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.roles.0023" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="обсудим задачи дамагеров в игре" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.roles.0024" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="есть мысли про задачи дамагеров в игре" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.roles.0025" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="какое мнение про задачи дамагеров в игре" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.roles.0026" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="что думаешь про резерв на ошибку" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.roles.0027" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="как тебе резерв на ошибку" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.roles.0028" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="обсудим резерв на ошибку" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.roles.0029" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="есть мысли про резерв на ошибку" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.roles.0030" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="какое мнение про резерв на ошибку" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.roles.0031" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="что думаешь про команды лидеров групп" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.roles.0032" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="как тебе команды лидеров групп" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.roles.0033" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="обсудим команды лидеров групп" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.roles.0034" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="есть мысли про команды лидеров групп" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.roles.0035" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="какое мнение про команды лидеров групп" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.roles.0036" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="что думаешь про место новичка" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.roles.0037" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="как тебе место новичка" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.roles.0038" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="обсудим место новичка" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.roles.0039" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="есть мысли про место новичка" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.roles.0040" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="какое мнение про место новичка" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.roles.0041" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="что думаешь про подстраховку ключевой роли" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.roles.0042" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="как тебе подстраховку ключевой роли" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.roles.0043" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="обсудим подстраховку ключевой роли" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.roles.0044" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="есть мысли про подстраховку ключевой роли" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.roles.0045" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="какое мнение про подстраховку ключевой роли" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.roles.0046" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="что думаешь про понимание общего плана" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.roles.0047" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="как тебе понимание общего плана" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.roles.0048" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="обсудим понимание общего плана" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.roles.0049" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="есть мысли про понимание общего плана" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.roles.0050" topic="lineage.raids.roles" act="lineage.raids.roles.reply" phrase="какое мнение про понимание общего плана" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.timing.0001" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="что думаешь про момент начала" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.timing.0002" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="как тебе момент начала" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.timing.0003" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="обсудим момент начала" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.timing.0004" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="есть мысли про момент начала" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.timing.0005" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="какое мнение про момент начала" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.timing.0006" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="что думаешь про ожидание команды" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.timing.0007" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="как тебе ожидание команды" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.timing.0008" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="обсудим ожидание команды" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.timing.0009" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="есть мысли про ожидание команды" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.timing.0010" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="какое мнение про ожидание команды" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.timing.0011" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="что думаешь про синхронный заход" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.timing.0012" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="как тебе синхронный заход" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.timing.0013" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="обсудим синхронный заход" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.timing.0014" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="есть мысли про синхронный заход" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.timing.0015" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="какое мнение про синхронный заход" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.timing.0016" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="что думаешь про паузы между попытками" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.timing.0017" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="как тебе паузы между попытками" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.timing.0018" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="обсудим паузы между попытками" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.timing.0019" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="есть мысли про паузы между попытками" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.timing.0020" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="какое мнение про паузы между попытками" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.timing.0021" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="что думаешь про время на восстановление" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.timing.0022" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="как тебе время на восстановление" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.timing.0023" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="обсудим время на восстановление" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.timing.0024" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="есть мысли про время на восстановление" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.timing.0025" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="какое мнение про время на восстановление" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.timing.0026" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="что думаешь про реакцию на смену фазы" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.timing.0027" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="как тебе реакцию на смену фазы" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.timing.0028" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="обсудим реакцию на смену фазы" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.timing.0029" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="есть мысли про реакцию на смену фазы" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.timing.0030" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="какое мнение про реакцию на смену фазы" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.timing.0031" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="что думаешь про ранний старт" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.timing.0032" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="как тебе ранний старт" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.timing.0033" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="обсудим ранний старт" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.timing.0034" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="есть мысли про ранний старт" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.timing.0035" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="какое мнение про ранний старт" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.timing.0036" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="что думаешь про опоздание части группы" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.timing.0037" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="как тебе опоздание части группы" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.timing.0038" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="обсудим опоздание части группы" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.timing.0039" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="есть мысли про опоздание части группы" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.timing.0040" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="какое мнение про опоздание части группы" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.timing.0041" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="что думаешь про решение отменить попытку" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.timing.0042" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="как тебе решение отменить попытку" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.timing.0043" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="обсудим решение отменить попытку" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.timing.0044" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="есть мысли про решение отменить попытку" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.timing.0045" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="какое мнение про решение отменить попытку" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.timing.0046" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="что думаешь про следующий удобный сбор" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.timing.0047" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="как тебе следующий удобный сбор" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.timing.0048" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="обсудим следующий удобный сбор" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.timing.0049" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="есть мысли про следующий удобный сбор" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.timing.0050" topic="lineage.raids.timing" act="lineage.raids.timing.reply" phrase="какое мнение про следующий удобный сбор" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.loot.0001" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="что думаешь про правила распределения" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.loot.0002" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="как тебе правила распределения" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.loot.0003" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="обсудим правила распределения" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.loot.0004" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="есть мысли про правила распределения" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.loot.0005" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="какое мнение про правила распределения" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.loot.0006" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="что думаешь про обсуждение дропа заранее" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.loot.0007" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="как тебе обсуждение дропа заранее" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.loot.0008" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="обсудим обсуждение дропа заранее" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.loot.0009" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="есть мысли про обсуждение дропа заранее" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.loot.0010" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="какое мнение про обсуждение дропа заранее" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.loot.0011" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="что думаешь про спорный предмет" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.loot.0012" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="как тебе спорный предмет" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.loot.0013" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="обсудим спорный предмет" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.loot.0014" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="есть мысли про спорный предмет" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.loot.0015" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="какое мнение про спорный предмет" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.loot.0016" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="что думаешь про очередь на награду" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.loot.0017" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="как тебе очередь на награду" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.loot.0018" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="обсудим очередь на награду" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.loot.0019" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="есть мысли про очередь на награду" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.loot.0020" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="какое мнение про очередь на награду" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.loot.0021" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="что думаешь про честный ролл" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.loot.0022" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="как тебе честный ролл" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.loot.0023" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="обсудим честный ролл" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.loot.0024" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="есть мысли про честный ролл" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.loot.0025" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="какое мнение про честный ролл" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.loot.0026" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="что думаешь про память о договорённости" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.loot.0027" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="как тебе память о договорённости" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.loot.0028" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="обсудим память о договорённости" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.loot.0029" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="есть мысли про память о договорённости" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.loot.0030" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="какое мнение про память о договорённости" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.loot.0031" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="что думаешь про отказ от лишнего" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.loot.0032" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="как тебе отказ от лишнего" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.loot.0033" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="обсудим отказ от лишнего" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.loot.0034" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="есть мысли про отказ от лишнего" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.loot.0035" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="какое мнение про отказ от лишнего" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.loot.0036" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="что думаешь про объяснение решения" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.loot.0037" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="как тебе объяснение решения" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.loot.0038" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="обсудим объяснение решения" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.loot.0039" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="есть мысли про объяснение решения" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.loot.0040" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="какое мнение про объяснение решения" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.loot.0041" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="что думаешь про конфликт после победы" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.raids.pattern.loot.0042" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="как тебе конфликт после победы" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.raids.pattern.loot.0043" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="обсудим конфликт после победы" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.raids.pattern.loot.0044" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="есть мысли про конфликт после победы" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.raids.pattern.loot.0045" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="какое мнение про конфликт после победы" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.raids.pattern.loot.0046" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="что думаешь про спокойное завершение рейда" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.raids.pattern.loot.0047" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="как тебе спокойное завершение рейда" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.raids.pattern.loot.0048" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="обсудим спокойное завершение рейда" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.raids.pattern.loot.0049" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="есть мысли про спокойное завершение рейда" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.raids.pattern.loot.0050" topic="lineage.raids.loot" act="lineage.raids.loot.reply" phrase="какое мнение про спокойное завершение рейда" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

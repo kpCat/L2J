@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.life.greeting.semantic" version="3" category="life.greeting">
+	<aliases>
+		<alias from="privetstvie" to="приветствие" />
+		<alias from="privetstvi" to="приветствие" />
+		<alias from="прветствие" to="приветствие" />
+		<alias from="приветствиее" to="приветствие" />
+		<alias from="zdorovo" to="здорово" />
+		<alias from="zdorov" to="здорово" />
+		<alias from="здрово" to="здорово" />
+		<alias from="здоровоо" to="здорово" />
+		<alias from="privetik" to="приветик" />
+		<alias from="priveti" to="приветик" />
+		<alias from="прветик" to="приветик" />
+		<alias from="приветикк" to="приветик" />
+		<alias from="uvidelis" to="увиделись" />
+		<alias from="uvideli" to="увиделись" />
+		<alias from="увделись" to="увиделись" />
+		<alias from="увиделисьь" to="увиделись" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.life.greeting.pattern.arrival.0001" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="что думаешь про обычное приветствие" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.arrival.0002" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="как тебе обычное приветствие" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.arrival.0003" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="обсудим обычное приветствие" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.arrival.0004" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="есть мысли про обычное приветствие" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.arrival.0005" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="какое мнение про обычное приветствие" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.arrival.0006" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="что думаешь про встречу без пафоса" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.arrival.0007" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="как тебе встречу без пафоса" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.arrival.0008" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="обсудим встречу без пафоса" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.arrival.0009" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="есть мысли про встречу без пафоса" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.arrival.0010" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="какое мнение про встречу без пафоса" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.arrival.0011" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="что думаешь про короткое «привет»" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.arrival.0012" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="как тебе короткое «привет»" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.arrival.0013" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="обсудим короткое «привет»" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.arrival.0014" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="есть мысли про короткое «привет»" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.arrival.0015" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="какое мнение про короткое «привет»" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.arrival.0016" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="что думаешь про первую реплику" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.arrival.0017" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="как тебе первую реплику" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.arrival.0018" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="обсудим первую реплику" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.arrival.0019" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="есть мысли про первую реплику" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.arrival.0020" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="какое мнение про первую реплику" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.arrival.0021" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="что думаешь про начало разговора" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.arrival.0022" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="как тебе начало разговора" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.arrival.0023" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="обсудим начало разговора" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.arrival.0024" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="есть мысли про начало разговора" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.arrival.0025" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="какое мнение про начало разговора" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.arrival.0026" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="что думаешь про неожиданную встречу" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.arrival.0027" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="как тебе неожиданную встречу" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.arrival.0028" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="обсудим неожиданную встречу" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.arrival.0029" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="есть мысли про неожиданную встречу" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.arrival.0030" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="какое мнение про неожиданную встречу" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.arrival.0031" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="что думаешь про приветствие в чате" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.arrival.0032" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="как тебе приветствие в чате" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.arrival.0033" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="обсудим приветствие в чате" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.arrival.0034" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="есть мысли про приветствие в чате" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.arrival.0035" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="какое мнение про приветствие в чате" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.arrival.0036" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="что думаешь про ответ новому знакомому" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.arrival.0037" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="как тебе ответ новому знакомому" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.arrival.0038" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="обсудим ответ новому знакомому" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.arrival.0039" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="есть мысли про ответ новому знакомому" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.arrival.0040" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="какое мнение про ответ новому знакомому" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.arrival.0041" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="что думаешь про спокойный вход в беседу" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.arrival.0042" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="как тебе спокойный вход в беседу" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.arrival.0043" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="обсудим спокойный вход в беседу" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.arrival.0044" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="есть мысли про спокойный вход в беседу" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.arrival.0045" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="какое мнение про спокойный вход в беседу" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.arrival.0046" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="что думаешь про добрый тон с первых слов" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.arrival.0047" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="как тебе добрый тон с первых слов" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.arrival.0048" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="обсудим добрый тон с первых слов" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.arrival.0049" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="есть мысли про добрый тон с первых слов" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.arrival.0050" topic="life.greeting.arrival" act="life.greeting.arrival.reply" phrase="какое мнение про добрый тон с первых слов" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.return.0001" topic="life.greeting.return" act="life.greeting.return.reply" phrase="что думаешь про возвращение после паузы" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.return.0002" topic="life.greeting.return" act="life.greeting.return.reply" phrase="как тебе возвращение после паузы" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.return.0003" topic="life.greeting.return" act="life.greeting.return.reply" phrase="обсудим возвращение после паузы" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.return.0004" topic="life.greeting.return" act="life.greeting.return.reply" phrase="есть мысли про возвращение после паузы" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.return.0005" topic="life.greeting.return" act="life.greeting.return.reply" phrase="какое мнение про возвращение после паузы" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.return.0006" topic="life.greeting.return" act="life.greeting.return.reply" phrase="что думаешь про встречу со знакомым" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.return.0007" topic="life.greeting.return" act="life.greeting.return.reply" phrase="как тебе встречу со знакомым" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.return.0008" topic="life.greeting.return" act="life.greeting.return.reply" phrase="обсудим встречу со знакомым" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.return.0009" topic="life.greeting.return" act="life.greeting.return.reply" phrase="есть мысли про встречу со знакомым" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.return.0010" topic="life.greeting.return" act="life.greeting.return.reply" phrase="какое мнение про встречу со знакомым" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.return.0011" topic="life.greeting.return" act="life.greeting.return.reply" phrase="что думаешь про реплику «давно не виделись»" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.return.0012" topic="life.greeting.return" act="life.greeting.return.reply" phrase="как тебе реплику «давно не виделись»" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.return.0013" topic="life.greeting.return" act="life.greeting.return.reply" phrase="обсудим реплику «давно не виделись»" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.return.0014" topic="life.greeting.return" act="life.greeting.return.reply" phrase="есть мысли про реплику «давно не виделись»" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.return.0015" topic="life.greeting.return" act="life.greeting.return.reply" phrase="какое мнение про реплику «давно не виделись»" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.return.0016" topic="life.greeting.return" act="life.greeting.return.reply" phrase="что думаешь про продолжение старого разговора" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.return.0017" topic="life.greeting.return" act="life.greeting.return.reply" phrase="как тебе продолжение старого разговора" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.return.0018" topic="life.greeting.return" act="life.greeting.return.reply" phrase="обсудим продолжение старого разговора" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.return.0019" topic="life.greeting.return" act="life.greeting.return.reply" phrase="есть мысли про продолжение старого разговора" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.return.0020" topic="life.greeting.return" act="life.greeting.return.reply" phrase="какое мнение про продолжение старого разговора" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.return.0021" topic="life.greeting.return" act="life.greeting.return.reply" phrase="что думаешь про тёплый ответ" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.return.0022" topic="life.greeting.return" act="life.greeting.return.reply" phrase="как тебе тёплый ответ" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.return.0023" topic="life.greeting.return" act="life.greeting.return.reply" phrase="обсудим тёплый ответ" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.return.0024" topic="life.greeting.return" act="life.greeting.return.reply" phrase="есть мысли про тёплый ответ" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.return.0025" topic="life.greeting.return" act="life.greeting.return.reply" phrase="какое мнение про тёплый ответ" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.return.0026" topic="life.greeting.return" act="life.greeting.return.reply" phrase="что думаешь про узнавание собеседника" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.return.0027" topic="life.greeting.return" act="life.greeting.return.reply" phrase="как тебе узнавание собеседника" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.return.0028" topic="life.greeting.return" act="life.greeting.return.reply" phrase="обсудим узнавание собеседника" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.return.0029" topic="life.greeting.return" act="life.greeting.return.reply" phrase="есть мысли про узнавание собеседника" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.return.0030" topic="life.greeting.return" act="life.greeting.return.reply" phrase="какое мнение про узнавание собеседника" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.return.0031" topic="life.greeting.return" act="life.greeting.return.reply" phrase="что думаешь про возврат в общий чат" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.return.0032" topic="life.greeting.return" act="life.greeting.return.reply" phrase="как тебе возврат в общий чат" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.return.0033" topic="life.greeting.return" act="life.greeting.return.reply" phrase="обсудим возврат в общий чат" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.return.0034" topic="life.greeting.return" act="life.greeting.return.reply" phrase="есть мысли про возврат в общий чат" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.return.0035" topic="life.greeting.return" act="life.greeting.return.reply" phrase="какое мнение про возврат в общий чат" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.return.0036" topic="life.greeting.return" act="life.greeting.return.reply" phrase="что думаешь про встречу после долгого дня" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.return.0037" topic="life.greeting.return" act="life.greeting.return.reply" phrase="как тебе встречу после долгого дня" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.return.0038" topic="life.greeting.return" act="life.greeting.return.reply" phrase="обсудим встречу после долгого дня" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.return.0039" topic="life.greeting.return" act="life.greeting.return.reply" phrase="есть мысли про встречу после долгого дня" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.return.0040" topic="life.greeting.return" act="life.greeting.return.reply" phrase="какое мнение про встречу после долгого дня" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.return.0041" topic="life.greeting.return" act="life.greeting.return.reply" phrase="что думаешь про короткий обмен новостями" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.return.0042" topic="life.greeting.return" act="life.greeting.return.reply" phrase="как тебе короткий обмен новостями" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.return.0043" topic="life.greeting.return" act="life.greeting.return.reply" phrase="обсудим короткий обмен новостями" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.return.0044" topic="life.greeting.return" act="life.greeting.return.reply" phrase="есть мысли про короткий обмен новостями" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.return.0045" topic="life.greeting.return" act="life.greeting.return.reply" phrase="какое мнение про короткий обмен новостями" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.return.0046" topic="life.greeting.return" act="life.greeting.return.reply" phrase="что думаешь про приветствие без лишних вопросов" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.return.0047" topic="life.greeting.return" act="life.greeting.return.reply" phrase="как тебе приветствие без лишних вопросов" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.return.0048" topic="life.greeting.return" act="life.greeting.return.reply" phrase="обсудим приветствие без лишних вопросов" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.return.0049" topic="life.greeting.return" act="life.greeting.return.reply" phrase="есть мысли про приветствие без лишних вопросов" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.return.0050" topic="life.greeting.return" act="life.greeting.return.reply" phrase="какое мнение про приветствие без лишних вопросов" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0001" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="что думаешь про утреннее приветствие" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0002" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="как тебе утреннее приветствие" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0003" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="обсудим утреннее приветствие" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0004" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="есть мысли про утреннее приветствие" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0005" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="какое мнение про утреннее приветствие" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0006" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="что думаешь про вечернее «привет»" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0007" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="как тебе вечернее «привет»" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0008" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="обсудим вечернее «привет»" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0009" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="есть мысли про вечернее «привет»" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0010" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="какое мнение про вечернее «привет»" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0011" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="что думаешь про пожелание доброго дня" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0012" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="как тебе пожелание доброго дня" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0013" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="обсудим пожелание доброго дня" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0014" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="есть мысли про пожелание доброго дня" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0015" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="какое мнение про пожелание доброго дня" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0016" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="что думаешь про нейтральную фразу ночью" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0017" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="как тебе нейтральную фразу ночью" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0018" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="обсудим нейтральную фразу ночью" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0019" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="есть мысли про нейтральную фразу ночью" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0020" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="какое мнение про нейтральную фразу ночью" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0021" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="что думаешь про приветствие без привязки ко времени" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0022" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="как тебе приветствие без привязки ко времени" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0023" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="обсудим приветствие без привязки ко времени" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0024" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="есть мысли про приветствие без привязки ко времени" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0025" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="какое мнение про приветствие без привязки ко времени" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0026" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="что думаешь про сонный чат" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0027" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="как тебе сонный чат" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0028" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="обсудим сонный чат" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0029" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="есть мысли про сонный чат" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0030" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="какое мнение про сонный чат" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0031" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="что думаешь про бодрое начало дня" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0032" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="как тебе бодрое начало дня" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0033" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="обсудим бодрое начало дня" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0034" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="есть мысли про бодрое начало дня" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0035" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="какое мнение про бодрое начало дня" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0036" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="что думаешь про тихий вечерний разговор" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0037" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="как тебе тихий вечерний разговор" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0038" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="обсудим тихий вечерний разговор" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0039" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="есть мысли про тихий вечерний разговор" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0040" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="какое мнение про тихий вечерний разговор" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0041" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="что думаешь про короткое пожелание" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0042" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="как тебе короткое пожелание" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0043" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="обсудим короткое пожелание" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0044" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="есть мысли про короткое пожелание" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0045" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="какое мнение про короткое пожелание" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0046" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="что думаешь про уместный тон по времени" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0047" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="как тебе уместный тон по времени" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0048" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="обсудим уместный тон по времени" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0049" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="есть мысли про уместный тон по времени" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.timeofday.0050" topic="life.greeting.timeofday" act="life.greeting.timeofday.reply" phrase="какое мнение про уместный тон по времени" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.farewell.0001" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="что думаешь про короткое прощание" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.farewell.0002" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="как тебе короткое прощание" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.farewell.0003" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="обсудим короткое прощание" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.farewell.0004" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="есть мысли про короткое прощание" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.farewell.0005" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="какое мнение про короткое прощание" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.farewell.0006" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="что думаешь про пожелание доброй дороги" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.farewell.0007" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="как тебе пожелание доброй дороги" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.farewell.0008" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="обсудим пожелание доброй дороги" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.farewell.0009" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="есть мысли про пожелание доброй дороги" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.farewell.0010" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="какое мнение про пожелание доброй дороги" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.farewell.0011" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="что думаешь про фразу «до встречи»" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.farewell.0012" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="как тебе фразу «до встречи»" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.farewell.0013" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="обсудим фразу «до встречи»" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.farewell.0014" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="есть мысли про фразу «до встречи»" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.farewell.0015" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="какое мнение про фразу «до встречи»" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.farewell.0016" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="что думаешь про завершение разговора" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.farewell.0017" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="как тебе завершение разговора" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.farewell.0018" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="обсудим завершение разговора" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.farewell.0019" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="есть мысли про завершение разговора" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.farewell.0020" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="какое мнение про завершение разговора" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.farewell.0021" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="что думаешь про уход без обиды" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.farewell.0022" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="как тебе уход без обиды" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.farewell.0023" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="обсудим уход без обиды" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.farewell.0024" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="есть мысли про уход без обиды" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.farewell.0025" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="какое мнение про уход без обиды" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.farewell.0026" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="что думаешь про обещание без точного срока" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.farewell.0027" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="как тебе обещание без точного срока" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.farewell.0028" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="обсудим обещание без точного срока" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.farewell.0029" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="есть мысли про обещание без точного срока" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.farewell.0030" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="какое мнение про обещание без точного срока" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.farewell.0031" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="что думаешь про добрые слова напоследок" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.farewell.0032" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="как тебе добрые слова напоследок" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.farewell.0033" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="обсудим добрые слова напоследок" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.farewell.0034" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="есть мысли про добрые слова напоследок" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.farewell.0035" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="какое мнение про добрые слова напоследок" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.farewell.0036" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="что думаешь про прощание в общем чате" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.farewell.0037" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="как тебе прощание в общем чате" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.farewell.0038" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="обсудим прощание в общем чате" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.farewell.0039" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="есть мысли про прощание в общем чате" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.farewell.0040" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="какое мнение про прощание в общем чате" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.farewell.0041" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="что думаешь про паузу до следующей встречи" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.greeting.pattern.farewell.0042" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="как тебе паузу до следующей встречи" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.greeting.pattern.farewell.0043" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="обсудим паузу до следующей встречи" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.greeting.pattern.farewell.0044" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="есть мысли про паузу до следующей встречи" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.greeting.pattern.farewell.0045" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="какое мнение про паузу до следующей встречи" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.greeting.pattern.farewell.0046" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="что думаешь про спокойный конец беседы" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.greeting.pattern.farewell.0047" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="как тебе спокойный конец беседы" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.greeting.pattern.farewell.0048" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="обсудим спокойный конец беседы" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.greeting.pattern.farewell.0049" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="есть мысли про спокойный конец беседы" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.greeting.pattern.farewell.0050" topic="life.greeting.farewell" act="life.greeting.farewell.reply" phrase="какое мнение про спокойный конец беседы" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

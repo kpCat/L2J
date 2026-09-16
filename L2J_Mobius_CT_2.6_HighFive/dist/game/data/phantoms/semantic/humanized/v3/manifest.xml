@@ -1,76 +1,330 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <humanizedV3Manifest id="high-five-ru-humanized-v3" version="3" maxFiles="64" maxFileBytes="1048576" maxTotalBytes="33554432" maxPatterns="8192" maxTemplates="32768" maxAliases="2048" maxProfanity="1024">
 	<topics>
-		<topic key="achievement"/>
-		<topic key="acquaintance"/>
-		<topic key="apology"/>
-		<topic key="disagreement"/>
-		<topic key="failure"/>
-		<topic key="farewell"/>
-		<topic key="food"/>
-		<topic key="games"/>
-		<topic key="greeting"/>
-		<topic key="hobbies"/>
-		<topic key="humor"/>
-		<topic key="irritation"/>
-		<topic key="likes"/>
-		<topic key="mood"/>
-		<topic key="movies"/>
-		<topic key="music"/>
-		<topic key="pivot"/>
-		<topic key="plans"/>
-		<topic key="reconcile"/>
-		<topic key="relationship"/>
-		<topic key="rest"/>
-		<topic key="sarcasm"/>
-		<topic key="smalltalk"/>
-		<topic key="support"/>
-		<topic key="surprise"/>
-		<topic key="teasing"/>
+		<topic key="achievement" />
+		<topic key="acquaintance" />
+		<topic key="apology" />
+		<topic key="disagreement" />
+		<topic key="failure" />
+		<topic key="farewell" />
+		<topic key="food" />
+		<topic key="games" />
+		<topic key="greeting" />
+		<topic key="hobbies" />
+		<topic key="humor" />
+		<topic key="irritation" />
+		<topic key="likes" />
+		<topic key="mood" />
+		<topic key="movies" />
+		<topic key="music" />
+		<topic key="pivot" />
+		<topic key="plans" />
+		<topic key="reconcile" />
+		<topic key="relationship" />
+		<topic key="rest" />
+		<topic key="sarcasm" />
+		<topic key="smalltalk" />
+		<topic key="support" />
+		<topic key="surprise" />
+		<topic key="teasing" />
+		<topic key="lineage.leveling.pace" />
+		<topic key="lineage.leveling.route" />
+		<topic key="lineage.leveling.progress" />
+		<topic key="lineage.leveling.fatigue" />
+		<topic key="lineage.farming.spot" />
+		<topic key="lineage.farming.loot" />
+		<topic key="lineage.farming.rhythm" />
+		<topic key="lineage.farming.competition" />
+		<topic key="lineage.party.roles" />
+		<topic key="lineage.party.coordination" />
+		<topic key="lineage.party.recruitment" />
+		<topic key="lineage.party.etiquette" />
+		<topic key="lineage.classes.choice" />
+		<topic key="lineage.classes.role" />
+		<topic key="lineage.classes.matchup" />
+		<topic key="lineage.classes.build" />
+		<topic key="lineage.buffs.coverage" />
+		<topic key="lineage.buffs.timing" />
+		<topic key="lineage.buffs.priority" />
+		<topic key="lineage.buffs.discussion" />
+		<topic key="lineage.crafting.materials" />
+		<topic key="lineage.crafting.recipes" />
+		<topic key="lineage.crafting.chance" />
+		<topic key="lineage.crafting.workshop" />
+		<topic key="lineage.trade.price" />
+		<topic key="lineage.trade.bargain" />
+		<topic key="lineage.trade.market" />
+		<topic key="lineage.trade.safety" />
+		<topic key="lineage.enchant.risk" />
+		<topic key="lineage.enchant.streak" />
+		<topic key="lineage.enchant.stopping" />
+		<topic key="lineage.enchant.frustration" />
+		<topic key="lineage.pvp.duel" />
+		<topic key="lineage.pvp.tactics" />
+		<topic key="lineage.pvp.risk" />
+		<topic key="lineage.pvp.respect" />
+		<topic key="lineage.clan.community" />
+		<topic key="lineage.clan.duty" />
+		<topic key="lineage.clan.leadership" />
+		<topic key="lineage.clan.recruitment" />
+		<topic key="lineage.raids.preparation" />
+		<topic key="lineage.raids.roles" />
+		<topic key="lineage.raids.timing" />
+		<topic key="lineage.raids.loot" />
+		<topic key="lineage.quests.route" />
+		<topic key="lineage.quests.objective" />
+		<topic key="lineage.quests.routine" />
+		<topic key="lineage.quests.choice" />
+		<topic key="life.greeting.arrival" />
+		<topic key="life.greeting.return" />
+		<topic key="life.greeting.timeofday" />
+		<topic key="life.greeting.farewell" />
+		<topic key="life.mood.checkin" />
+		<topic key="life.mood.empathy" />
+		<topic key="life.mood.calm" />
+		<topic key="life.mood.energy" />
+		<topic key="life.food.taste" />
+		<topic key="life.food.choice" />
+		<topic key="life.food.cooking" />
+		<topic key="life.food.hunger" />
+		<topic key="life.music.taste" />
+		<topic key="life.music.listening" />
+		<topic key="life.music.mood" />
+		<topic key="life.music.discovery" />
+		<topic key="life.movies.genre" />
+		<topic key="life.movies.impression" />
+		<topic key="life.movies.choice" />
+		<topic key="life.movies.discussion" />
+		<topic key="life.work.load" />
+		<topic key="life.work.break" />
+		<topic key="life.work.routine" />
+		<topic key="life.work.boundaries" />
+		<topic key="life.sleep.fatigue" />
+		<topic key="life.sleep.schedule" />
+		<topic key="life.sleep.insomnia" />
+		<topic key="life.sleep.rest" />
+		<topic key="life.everyday.errands" />
+		<topic key="life.everyday.weather" />
+		<topic key="life.everyday.routine" />
+		<topic key="life.everyday.annoyances" />
+		<topic key="social.friendly.warmth" />
+		<topic key="social.friendly.trust" />
+		<topic key="social.friendly.support" />
+		<topic key="social.friendly.meeting" />
+		<topic key="social.teasing.banter" />
+		<topic key="social.teasing.comeback" />
+		<topic key="social.teasing.limit" />
+		<topic key="social.teasing.humor" />
+		<topic key="social.rivalry.challenge" />
+		<topic key="social.rivalry.score" />
+		<topic key="social.rivalry.respect" />
+		<topic key="social.rivalry.pressure" />
+		<topic key="social.angry.boundary" />
+		<topic key="social.angry.deescalate" />
+		<topic key="social.angry.complaint" />
+		<topic key="social.angry.pause" />
+		<topic key="social.apology.accept" />
+		<topic key="social.apology.clarify" />
+		<topic key="social.apology.repair" />
+		<topic key="social.apology.sincerity" />
+		<topic key="social.reconcile.peace" />
+		<topic key="social.reconcile.restart" />
+		<topic key="social.reconcile.compromise" />
+		<topic key="social.reconcile.closure" />
 	</topics>
 	<acts>
-		<act key="achievement.congratulate"/>
-		<act key="acquaintance.reply"/>
-		<act key="apology.accept"/>
-		<act key="disagreement.reply"/>
-		<act key="failure.empathy"/>
-		<act key="farewell.reply"/>
-		<act key="flirt.light"/>
-		<act key="greet.reply"/>
-		<act key="humor.reply"/>
-		<act key="identity.class.confirm"/>
-		<act key="identity.class.deny"/>
-		<act key="identity.class.reply"/>
-		<act key="identity.gender.confirm"/>
-		<act key="identity.gender.deny"/>
-		<act key="identity.gender.reply"/>
-		<act key="identity.name.reply"/>
-		<act key="identity.role.confirm"/>
-		<act key="identity.role.deny"/>
-		<act key="identity.summary.reply"/>
-		<act key="irritation.reply"/>
-		<act key="memory.recall"/>
-		<act key="mood.empathy"/>
-		<act key="mood.share"/>
-		<act key="pivot.reply"/>
-		<act key="preference.ack"/>
-		<act key="reconcile.reply"/>
-		<act key="relationship.reply"/>
-		<act key="rest.reply"/>
-		<act key="sarcasm.reply"/>
-		<act key="smalltalk.reply"/>
-		<act key="support.buff.request"/>
-		<act key="support.dance.request"/>
-		<act key="support.song.request"/>
-		<act key="surprise.reply"/>
-		<act key="teasing.reply"/>
+		<act key="achievement.congratulate" />
+		<act key="acquaintance.reply" />
+		<act key="apology.accept" />
+		<act key="disagreement.reply" />
+		<act key="failure.empathy" />
+		<act key="farewell.reply" />
+		<act key="flirt.light" />
+		<act key="greet.reply" />
+		<act key="humor.reply" />
+		<act key="identity.class.confirm" />
+		<act key="identity.class.deny" />
+		<act key="identity.class.reply" />
+		<act key="identity.gender.confirm" />
+		<act key="identity.gender.deny" />
+		<act key="identity.gender.reply" />
+		<act key="identity.name.reply" />
+		<act key="identity.role.confirm" />
+		<act key="identity.role.deny" />
+		<act key="identity.summary.reply" />
+		<act key="irritation.reply" />
+		<act key="memory.recall" />
+		<act key="mood.empathy" />
+		<act key="mood.share" />
+		<act key="pivot.reply" />
+		<act key="preference.ack" />
+		<act key="reconcile.reply" />
+		<act key="relationship.reply" />
+		<act key="rest.reply" />
+		<act key="sarcasm.reply" />
+		<act key="smalltalk.reply" />
+		<act key="support.buff.request" />
+		<act key="support.dance.request" />
+		<act key="support.song.request" />
+		<act key="surprise.reply" />
+		<act key="teasing.reply" />
+		<act key="lineage.leveling.pace.reply" />
+		<act key="lineage.leveling.route.reply" />
+		<act key="lineage.leveling.progress.reply" />
+		<act key="lineage.leveling.fatigue.reply" />
+		<act key="lineage.farming.spot.reply" />
+		<act key="lineage.farming.loot.reply" />
+		<act key="lineage.farming.rhythm.reply" />
+		<act key="lineage.farming.competition.reply" />
+		<act key="lineage.party.roles.reply" />
+		<act key="lineage.party.coordination.reply" />
+		<act key="lineage.party.recruitment.reply" />
+		<act key="lineage.party.etiquette.reply" />
+		<act key="lineage.classes.choice.reply" />
+		<act key="lineage.classes.role.reply" />
+		<act key="lineage.classes.matchup.reply" />
+		<act key="lineage.classes.build.reply" />
+		<act key="lineage.buffs.coverage.reply" />
+		<act key="lineage.buffs.timing.reply" />
+		<act key="lineage.buffs.priority.reply" />
+		<act key="lineage.buffs.discussion.reply" />
+		<act key="lineage.crafting.materials.reply" />
+		<act key="lineage.crafting.recipes.reply" />
+		<act key="lineage.crafting.chance.reply" />
+		<act key="lineage.crafting.workshop.reply" />
+		<act key="lineage.trade.price.reply" />
+		<act key="lineage.trade.bargain.reply" />
+		<act key="lineage.trade.market.reply" />
+		<act key="lineage.trade.safety.reply" />
+		<act key="lineage.enchant.risk.reply" />
+		<act key="lineage.enchant.streak.reply" />
+		<act key="lineage.enchant.stopping.reply" />
+		<act key="lineage.enchant.frustration.reply" />
+		<act key="lineage.pvp.duel.reply" />
+		<act key="lineage.pvp.tactics.reply" />
+		<act key="lineage.pvp.risk.reply" />
+		<act key="lineage.pvp.respect.reply" />
+		<act key="lineage.clan.community.reply" />
+		<act key="lineage.clan.duty.reply" />
+		<act key="lineage.clan.leadership.reply" />
+		<act key="lineage.clan.recruitment.reply" />
+		<act key="lineage.raids.preparation.reply" />
+		<act key="lineage.raids.roles.reply" />
+		<act key="lineage.raids.timing.reply" />
+		<act key="lineage.raids.loot.reply" />
+		<act key="lineage.quests.route.reply" />
+		<act key="lineage.quests.objective.reply" />
+		<act key="lineage.quests.routine.reply" />
+		<act key="lineage.quests.choice.reply" />
+		<act key="life.greeting.arrival.reply" />
+		<act key="life.greeting.return.reply" />
+		<act key="life.greeting.timeofday.reply" />
+		<act key="life.greeting.farewell.reply" />
+		<act key="life.mood.checkin.reply" />
+		<act key="life.mood.empathy.reply" />
+		<act key="life.mood.calm.reply" />
+		<act key="life.mood.energy.reply" />
+		<act key="life.food.taste.reply" />
+		<act key="life.food.choice.reply" />
+		<act key="life.food.cooking.reply" />
+		<act key="life.food.hunger.reply" />
+		<act key="life.music.taste.reply" />
+		<act key="life.music.listening.reply" />
+		<act key="life.music.mood.reply" />
+		<act key="life.music.discovery.reply" />
+		<act key="life.movies.genre.reply" />
+		<act key="life.movies.impression.reply" />
+		<act key="life.movies.choice.reply" />
+		<act key="life.movies.discussion.reply" />
+		<act key="life.work.load.reply" />
+		<act key="life.work.break.reply" />
+		<act key="life.work.routine.reply" />
+		<act key="life.work.boundaries.reply" />
+		<act key="life.sleep.fatigue.reply" />
+		<act key="life.sleep.schedule.reply" />
+		<act key="life.sleep.insomnia.reply" />
+		<act key="life.sleep.rest.reply" />
+		<act key="life.everyday.errands.reply" />
+		<act key="life.everyday.weather.reply" />
+		<act key="life.everyday.routine.reply" />
+		<act key="life.everyday.annoyances.reply" />
+		<act key="social.friendly.warmth.reply" />
+		<act key="social.friendly.trust.reply" />
+		<act key="social.friendly.support.reply" />
+		<act key="social.friendly.meeting.reply" />
+		<act key="social.teasing.banter.reply" />
+		<act key="social.teasing.comeback.reply" />
+		<act key="social.teasing.limit.reply" />
+		<act key="social.teasing.humor.reply" />
+		<act key="social.rivalry.challenge.reply" />
+		<act key="social.rivalry.score.reply" />
+		<act key="social.rivalry.respect.reply" />
+		<act key="social.rivalry.pressure.reply" />
+		<act key="social.angry.boundary.reply" />
+		<act key="social.angry.deescalate.reply" />
+		<act key="social.angry.complaint.reply" />
+		<act key="social.angry.pause.reply" />
+		<act key="social.apology.accept.reply" />
+		<act key="social.apology.clarify.reply" />
+		<act key="social.apology.repair.reply" />
+		<act key="social.apology.sincerity.reply" />
+		<act key="social.reconcile.peace.reply" />
+		<act key="social.reconcile.restart.reply" />
+		<act key="social.reconcile.compromise.reply" />
+		<act key="social.reconcile.closure.reply" />
 	</acts>
 	<segments>
-		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/buffs.xml"/>
-		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/buffs.xml"/>
-		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/life/everyday.xml"/>
-		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/life/everyday.xml"/>
-		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/social/friendly.xml"/>
-		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/social/friendly.xml"/>
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/leveling.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/leveling.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/farming.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/farming.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/party.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/party.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/classes.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/classes.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/buffs.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/buffs.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/crafting.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/crafting.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/trade.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/trade.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/enchant.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/enchant.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/pvp.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/pvp.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/clan.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/clan.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/raids.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/raids.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/quests.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/quests.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/life/greeting.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/life/greeting.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/life/mood.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/life/mood.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/life/food.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/life/food.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/life/music.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/life/music.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/life/movies.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/life/movies.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/life/work.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/life/work.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/life/sleep.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/life/sleep.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/life/everyday.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/life/everyday.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/social/friendly.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/social/friendly.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/social/teasing.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/social/teasing.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/social/rivalry.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/social/rivalry.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/social/angry.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/social/angry.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/social/apology.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/social/apology.xml" />
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/social/reconcile.xml" />
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/social/reconcile.xml" />
 	</segments>
 </humanizedV3Manifest>

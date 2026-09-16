@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.lineage.trade.semantic" version="3" category="lineage.trade">
+	<aliases>
+		<alias from="treyd" to="трейд" />
+		<alias from="trey" to="трейд" />
+		<alias from="трйд" to="трейд" />
+		<alias from="трейдд" to="трейд" />
+		<alias from="cena" to="цена" />
+		<alias from="cenax" to="цена" />
+		<alias from="цна" to="цена" />
+		<alias from="ценаа" to="цена" />
+		<alias from="rynok" to="рынок" />
+		<alias from="ryno" to="рынок" />
+		<alias from="рнок" to="рынок" />
+		<alias from="рынокк" to="рынок" />
+		<alias from="torg" to="торг" />
+		<alias from="torgx" to="торг" />
+		<alias from="трг" to="торг" />
+		<alias from="торгг" to="торг" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.lineage.trade.pattern.price.0001" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="что думаешь про цену предмета" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.price.0002" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="как тебе цену предмета" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.price.0003" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="обсудим цену предмета" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.price.0004" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="есть мысли про цену предмета" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.price.0005" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="какое мнение про цену предмета" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.price.0006" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="что думаешь про разумную наценку" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.price.0007" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="как тебе разумную наценку" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.price.0008" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="обсудим разумную наценку" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.price.0009" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="есть мысли про разумную наценку" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.price.0010" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="какое мнение про разумную наценку" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.price.0011" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="что думаешь про слишком дешёвое предложение" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.price.0012" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="как тебе слишком дешёвое предложение" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.price.0013" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="обсудим слишком дешёвое предложение" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.price.0014" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="есть мысли про слишком дешёвое предложение" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.price.0015" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="какое мнение про слишком дешёвое предложение" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.price.0016" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="что думаешь про дорогой лот" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.price.0017" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="как тебе дорогой лот" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.price.0018" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="обсудим дорогой лот" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.price.0019" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="есть мысли про дорогой лот" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.price.0020" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="какое мнение про дорогой лот" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.price.0021" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="что думаешь про сравнение цен" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.price.0022" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="как тебе сравнение цен" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.price.0023" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="обсудим сравнение цен" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.price.0024" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="есть мысли про сравнение цен" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.price.0025" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="какое мнение про сравнение цен" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.price.0026" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="что думаешь про колебание рынка" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.price.0027" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="как тебе колебание рынка" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.price.0028" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="обсудим колебание рынка" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.price.0029" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="есть мысли про колебание рынка" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.price.0030" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="какое мнение про колебание рынка" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.price.0031" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="что думаешь про цену без спешки" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.price.0032" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="как тебе цену без спешки" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.price.0033" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="обсудим цену без спешки" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.price.0034" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="есть мысли про цену без спешки" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.price.0035" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="какое мнение про цену без спешки" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.price.0036" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="что думаешь про стоимость редкой вещи" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.price.0037" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="как тебе стоимость редкой вещи" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.price.0038" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="обсудим стоимость редкой вещи" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.price.0039" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="есть мысли про стоимость редкой вещи" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.price.0040" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="какое мнение про стоимость редкой вещи" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.price.0041" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="что думаешь про ожидания продавца" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.price.0042" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="как тебе ожидания продавца" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.price.0043" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="обсудим ожидания продавца" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.price.0044" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="есть мысли про ожидания продавца" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.price.0045" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="какое мнение про ожидания продавца" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.price.0046" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="что думаешь про бюджет покупателя" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.price.0047" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="как тебе бюджет покупателя" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.price.0048" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="обсудим бюджет покупателя" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.price.0049" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="есть мысли про бюджет покупателя" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.price.0050" topic="lineage.trade.price" act="lineage.trade.price.reply" phrase="какое мнение про бюджет покупателя" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0001" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="что думаешь про спокойный торг" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0002" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="как тебе спокойный торг" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0003" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="обсудим спокойный торг" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0004" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="есть мысли про спокойный торг" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0005" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="какое мнение про спокойный торг" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0006" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="что думаешь про встречное предложение" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0007" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="как тебе встречное предложение" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0008" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="обсудим встречное предложение" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0009" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="есть мысли про встречное предложение" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0010" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="какое мнение про встречное предложение" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0011" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="что думаешь про скидку знакомому" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0012" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="как тебе скидку знакомому" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0013" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="обсудим скидку знакомому" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0014" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="есть мысли про скидку знакомому" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0015" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="какое мнение про скидку знакомому" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0016" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="что думаешь про отказ от цены" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0017" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="как тебе отказ от цены" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0018" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="обсудим отказ от цены" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0019" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="есть мысли про отказ от цены" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0020" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="какое мнение про отказ от цены" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0021" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="что думаешь про последнюю цену" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0022" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="как тебе последнюю цену" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0023" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="обсудим последнюю цену" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0024" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="есть мысли про последнюю цену" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0025" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="какое мнение про последнюю цену" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0026" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="что думаешь про аргументы покупателя" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0027" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="как тебе аргументы покупателя" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0028" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="обсудим аргументы покупателя" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0029" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="есть мысли про аргументы покупателя" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0030" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="какое мнение про аргументы покупателя" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0031" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="что думаешь про уступку продавца" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0032" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="как тебе уступку продавца" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0033" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="обсудим уступку продавца" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0034" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="есть мысли про уступку продавца" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0035" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="какое мнение про уступку продавца" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0036" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="что думаешь про паузу на раздумье" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0037" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="как тебе паузу на раздумье" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0038" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="обсудим паузу на раздумье" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0039" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="есть мысли про паузу на раздумье" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0040" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="какое мнение про паузу на раздумье" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0041" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="что думаешь про торг без давления" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0042" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="как тебе торг без давления" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0043" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="обсудим торг без давления" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0044" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="есть мысли про торг без давления" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0045" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="какое мнение про торг без давления" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0046" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="что думаешь про момент закончить спор" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0047" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="как тебе момент закончить спор" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0048" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="обсудим момент закончить спор" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0049" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="есть мысли про момент закончить спор" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.bargain.0050" topic="lineage.trade.bargain" act="lineage.trade.bargain.reply" phrase="какое мнение про момент закончить спор" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.market.0001" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="что думаешь про частные лавки" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.market.0002" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="как тебе частные лавки" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.market.0003" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="обсудим частные лавки" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.market.0004" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="есть мысли про частные лавки" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.market.0005" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="какое мнение про частные лавки" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.market.0006" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="что думаешь про поиск нужного лота" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.market.0007" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="как тебе поиск нужного лота" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.market.0008" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="обсудим поиск нужного лота" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.market.0009" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="есть мысли про поиск нужного лота" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.market.0010" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="какое мнение про поиск нужного лота" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.market.0011" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="что думаешь про разницу предложений" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.market.0012" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="как тебе разницу предложений" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.market.0013" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="обсудим разницу предложений" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.market.0014" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="есть мысли про разницу предложений" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.market.0015" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="какое мнение про разницу предложений" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.market.0016" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="что думаешь про пустой рынок" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.market.0017" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="как тебе пустой рынок" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.market.0018" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="обсудим пустой рынок" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.market.0019" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="есть мысли про пустой рынок" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.market.0020" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="какое мнение про пустой рынок" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.market.0021" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="что думаешь про удачную покупку" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.market.0022" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="как тебе удачную покупку" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.market.0023" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="обсудим удачную покупку" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.market.0024" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="есть мысли про удачную покупку" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.market.0025" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="какое мнение про удачную покупку" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.market.0026" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="что думаешь про долгое ожидание покупателя" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.market.0027" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="как тебе долгое ожидание покупателя" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.market.0028" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="обсудим долгое ожидание покупателя" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.market.0029" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="есть мысли про долгое ожидание покупателя" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.market.0030" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="какое мнение про долгое ожидание покупателя" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.market.0031" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="что думаешь про выбор места для торговли" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.market.0032" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="как тебе выбор места для торговли" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.market.0033" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="обсудим выбор места для торговли" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.market.0034" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="есть мысли про выбор места для торговли" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.market.0035" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="какое мнение про выбор места для торговли" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.market.0036" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="что думаешь про обновление ассортимента" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.market.0037" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="как тебе обновление ассортимента" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.market.0038" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="обсудим обновление ассортимента" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.market.0039" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="есть мысли про обновление ассортимента" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.market.0040" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="какое мнение про обновление ассортимента" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.market.0041" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="что думаешь про спрос на ресурсы" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.market.0042" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="как тебе спрос на ресурсы" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.market.0043" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="обсудим спрос на ресурсы" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.market.0044" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="есть мысли про спрос на ресурсы" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.market.0045" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="какое мнение про спрос на ресурсы" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.market.0046" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="что думаешь про медленную продажу" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.market.0047" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="как тебе медленную продажу" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.market.0048" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="обсудим медленную продажу" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.market.0049" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="есть мысли про медленную продажу" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.market.0050" topic="lineage.trade.market" act="lineage.trade.market.reply" phrase="какое мнение про медленную продажу" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.safety.0001" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="что думаешь про проверку окна обмена" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.safety.0002" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="как тебе проверку окна обмена" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.safety.0003" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="обсудим проверку окна обмена" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.safety.0004" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="есть мысли про проверку окна обмена" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.safety.0005" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="какое мнение про проверку окна обмена" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.safety.0006" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="что думаешь про количество предметов" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.safety.0007" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="как тебе количество предметов" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.safety.0008" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="обсудим количество предметов" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.safety.0009" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="есть мысли про количество предметов" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.safety.0010" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="какое мнение про количество предметов" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.safety.0011" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="что думаешь про сумму адены" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.safety.0012" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="как тебе сумму адены" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.safety.0013" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="обсудим сумму адены" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.safety.0014" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="есть мысли про сумму адены" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.safety.0015" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="какое мнение про сумму адены" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.safety.0016" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="что думаешь про подозрительную спешку" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.safety.0017" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="как тебе подозрительную спешку" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.safety.0018" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="обсудим подозрительную спешку" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.safety.0019" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="есть мысли про подозрительную спешку" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.safety.0020" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="какое мнение про подозрительную спешку" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.safety.0021" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="что думаешь про повторную проверку лота" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.safety.0022" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="как тебе повторную проверку лота" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.safety.0023" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="обсудим повторную проверку лота" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.safety.0024" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="есть мысли про повторную проверку лота" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.safety.0025" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="какое мнение про повторную проверку лота" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.safety.0026" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="что думаешь про отмену сомнительной сделки" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.safety.0027" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="как тебе отмену сомнительной сделки" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.safety.0028" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="обсудим отмену сомнительной сделки" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.safety.0029" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="есть мысли про отмену сомнительной сделки" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.safety.0030" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="какое мнение про отмену сомнительной сделки" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.safety.0031" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="что думаешь про честность условий" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.safety.0032" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="как тебе честность условий" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.safety.0033" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="обсудим честность условий" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.safety.0034" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="есть мысли про честность условий" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.safety.0035" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="какое мнение про честность условий" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.safety.0036" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="что думаешь про ошибку в количестве" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.safety.0037" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="как тебе ошибку в количестве" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.safety.0038" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="обсудим ошибку в количестве" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.safety.0039" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="есть мысли про ошибку в количестве" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.safety.0040" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="какое мнение про ошибку в количестве" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.safety.0041" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="что думаешь про спокойное подтверждение" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.trade.pattern.safety.0042" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="как тебе спокойное подтверждение" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.trade.pattern.safety.0043" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="обсудим спокойное подтверждение" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.trade.pattern.safety.0044" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="есть мысли про спокойное подтверждение" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.trade.pattern.safety.0045" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="какое мнение про спокойное подтверждение" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.trade.pattern.safety.0046" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="что думаешь про безопасный direct trade" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.trade.pattern.safety.0047" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="как тебе безопасный direct trade" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.trade.pattern.safety.0048" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="обсудим безопасный direct trade" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.trade.pattern.safety.0049" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="есть мысли про безопасный direct trade" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.trade.pattern.safety.0050" topic="lineage.trade.safety" act="lineage.trade.safety.reply" phrase="какое мнение про безопасный direct trade" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

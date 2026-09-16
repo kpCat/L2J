@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.social.teasing.semantic" version="3" category="social.teasing">
+	<aliases>
+		<alias from="podkol" to="подкол" />
+		<alias from="podko" to="подкол" />
+		<alias from="пдкол" to="подкол" />
+		<alias from="подколл" to="подкол" />
+		<alias from="shutka" to="шутка" />
+		<alias from="shutk" to="шутка" />
+		<alias from="штка" to="шутка" />
+		<alias from="шуткаа" to="шутка" />
+		<alias from="prikol" to="прикол" />
+		<alias from="priko" to="прикол" />
+		<alias from="пркол" to="прикол" />
+		<alias from="приколл" to="прикол" />
+		<alias from="otvetka" to="ответка" />
+		<alias from="otvetk" to="ответка" />
+		<alias from="отвтка" to="ответка" />
+		<alias from="ответкаа" to="ответка" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.social.teasing.pattern.banter.0001" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="что думаешь про лёгкий подкол" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.banter.0002" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="как тебе лёгкий подкол" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.banter.0003" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="обсудим лёгкий подкол" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.banter.0004" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="есть мысли про лёгкий подкол" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.banter.0005" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="какое мнение про лёгкий подкол" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.banter.0006" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="что думаешь про дружескую колкость" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.banter.0007" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="как тебе дружескую колкость" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.banter.0008" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="обсудим дружескую колкость" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.banter.0009" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="есть мысли про дружескую колкость" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.banter.0010" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="какое мнение про дружескую колкость" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.banter.0011" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="что думаешь про шутку про промах" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.banter.0012" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="как тебе шутку про промах" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.banter.0013" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="обсудим шутку про промах" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.banter.0014" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="есть мысли про шутку про промах" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.banter.0015" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="какое мнение про шутку про промах" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.banter.0016" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="что думаешь про иронию без злобы" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.banter.0017" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="как тебе иронию без злобы" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.banter.0018" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="обсудим иронию без злобы" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.banter.0019" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="есть мысли про иронию без злобы" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.banter.0020" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="какое мнение про иронию без злобы" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.banter.0021" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="что думаешь про соревновательный юмор" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.banter.0022" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="как тебе соревновательный юмор" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.banter.0023" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="обсудим соревновательный юмор" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.banter.0024" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="есть мысли про соревновательный юмор" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.banter.0025" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="какое мнение про соревновательный юмор" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.banter.0026" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="что думаешь про короткую шпильку" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.banter.0027" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="как тебе короткую шпильку" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.banter.0028" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="обсудим короткую шпильку" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.banter.0029" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="есть мысли про короткую шпильку" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.banter.0030" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="какое мнение про короткую шпильку" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.banter.0031" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="что думаешь про самоиронию" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.banter.0032" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="как тебе самоиронию" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.banter.0033" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="обсудим самоиронию" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.banter.0034" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="есть мысли про самоиронию" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.banter.0035" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="какое мнение про самоиронию" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.banter.0036" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="что думаешь про весёлый обмен репликами" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.banter.0037" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="как тебе весёлый обмен репликами" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.banter.0038" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="обсудим весёлый обмен репликами" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.banter.0039" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="есть мысли про весёлый обмен репликами" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.banter.0040" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="какое мнение про весёлый обмен репликами" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.banter.0041" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="что думаешь про подкол между знакомыми" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.banter.0042" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="как тебе подкол между знакомыми" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.banter.0043" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="обсудим подкол между знакомыми" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.banter.0044" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="есть мысли про подкол между знакомыми" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.banter.0045" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="какое мнение про подкол между знакомыми" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.banter.0046" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="что думаешь про смех без унижения" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.banter.0047" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="как тебе смех без унижения" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.banter.0048" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="обсудим смех без унижения" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.banter.0049" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="есть мысли про смех без унижения" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.banter.0050" topic="social.teasing.banter" act="social.teasing.banter.reply" phrase="какое мнение про смех без унижения" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.comeback.0001" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="что думаешь про ответ на подкол" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.comeback.0002" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="как тебе ответ на подкол" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.comeback.0003" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="обсудим ответ на подкол" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.comeback.0004" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="есть мысли про ответ на подкол" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.comeback.0005" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="какое мнение про ответ на подкол" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.comeback.0006" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="что думаешь про быструю ответку" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.comeback.0007" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="как тебе быструю ответку" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.comeback.0008" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="обсудим быструю ответку" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.comeback.0009" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="есть мысли про быструю ответку" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.comeback.0010" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="какое мнение про быструю ответку" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.comeback.0011" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="что думаешь про ироничное возражение" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.comeback.0012" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="как тебе ироничное возражение" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.comeback.0013" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="обсудим ироничное возражение" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.comeback.0014" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="есть мысли про ироничное возражение" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.comeback.0015" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="какое мнение про ироничное возражение" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.comeback.0016" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="что думаешь про спокойную шутку в ответ" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.comeback.0017" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="как тебе спокойную шутку в ответ" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.comeback.0018" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="обсудим спокойную шутку в ответ" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.comeback.0019" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="есть мысли про спокойную шутку в ответ" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.comeback.0020" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="какое мнение про спокойную шутку в ответ" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.comeback.0021" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="что думаешь про перевод стрелок без обиды" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.comeback.0022" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="как тебе перевод стрелок без обиды" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.comeback.0023" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="обсудим перевод стрелок без обиды" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.comeback.0024" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="есть мысли про перевод стрелок без обиды" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.comeback.0025" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="какое мнение про перевод стрелок без обиды" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.comeback.0026" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="что думаешь про добрый сарказм" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.comeback.0027" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="как тебе добрый сарказм" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.comeback.0028" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="обсудим добрый сарказм" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.comeback.0029" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="есть мысли про добрый сарказм" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.comeback.0030" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="какое мнение про добрый сарказм" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.comeback.0031" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="что думаешь про реплику без злости" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.comeback.0032" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="как тебе реплику без злости" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.comeback.0033" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="обсудим реплику без злости" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.comeback.0034" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="есть мысли про реплику без злости" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.comeback.0035" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="какое мнение про реплику без злости" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.comeback.0036" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="что думаешь про смешное признание ошибки" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.comeback.0037" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="как тебе смешное признание ошибки" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.comeback.0038" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="обсудим смешное признание ошибки" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.comeback.0039" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="есть мысли про смешное признание ошибки" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.comeback.0040" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="какое мнение про смешное признание ошибки" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.comeback.0041" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="что думаешь про ответ с достоинством" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.comeback.0042" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="как тебе ответ с достоинством" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.comeback.0043" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="обсудим ответ с достоинством" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.comeback.0044" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="есть мысли про ответ с достоинством" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.comeback.0045" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="какое мнение про ответ с достоинством" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.comeback.0046" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="что думаешь про шутливый реванш" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.comeback.0047" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="как тебе шутливый реванш" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.comeback.0048" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="обсудим шутливый реванш" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.comeback.0049" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="есть мысли про шутливый реванш" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.comeback.0050" topic="social.teasing.comeback" act="social.teasing.comeback.reply" phrase="какое мнение про шутливый реванш" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.limit.0001" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="что думаешь про границу шутки" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.limit.0002" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="как тебе границу шутки" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.limit.0003" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="обсудим границу шутки" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.limit.0004" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="есть мысли про границу шутки" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.limit.0005" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="какое мнение про границу шутки" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.limit.0006" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="что думаешь про неудачный подкол" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.limit.0007" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="как тебе неудачный подкол" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.limit.0008" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="обсудим неудачный подкол" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.limit.0009" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="есть мысли про неудачный подкол" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.limit.0010" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="какое мнение про неудачный подкол" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.limit.0011" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="что думаешь про просьбу остановиться" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.limit.0012" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="как тебе просьбу остановиться" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.limit.0013" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="обсудим просьбу остановиться" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.limit.0014" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="есть мысли про просьбу остановиться" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.limit.0015" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="какое мнение про просьбу остановиться" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.limit.0016" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="что думаешь про разницу между юмором и обидой" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.limit.0017" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="как тебе разницу между юмором и обидой" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.limit.0018" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="обсудим разницу между юмором и обидой" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.limit.0019" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="есть мысли про разницу между юмором и обидой" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.limit.0020" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="какое мнение про разницу между юмором и обидой" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.limit.0021" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="что думаешь про проверку реакции" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.limit.0022" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="как тебе проверку реакции" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.limit.0023" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="обсудим проверку реакции" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.limit.0024" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="есть мысли про проверку реакции" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.limit.0025" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="какое мнение про проверку реакции" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.limit.0026" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="что думаешь про извинение за перегиб" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.limit.0027" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="как тебе извинение за перегиб" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.limit.0028" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="обсудим извинение за перегиб" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.limit.0029" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="есть мысли про извинение за перегиб" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.limit.0030" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="какое мнение про извинение за перегиб" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.limit.0031" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="что думаешь про смену тона" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.limit.0032" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="как тебе смену тона" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.limit.0033" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="обсудим смену тона" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.limit.0034" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="есть мысли про смену тона" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.limit.0035" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="какое мнение про смену тона" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.limit.0036" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="что думаешь про паузу после неловкости" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.limit.0037" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="как тебе паузу после неловкости" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.limit.0038" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="обсудим паузу после неловкости" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.limit.0039" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="есть мысли про паузу после неловкости" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.limit.0040" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="какое мнение про паузу после неловкости" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.limit.0041" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="что думаешь про уважение к стоп-слову" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.limit.0042" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="как тебе уважение к стоп-слову" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.limit.0043" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="обсудим уважение к стоп-слову" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.limit.0044" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="есть мысли про уважение к стоп-слову" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.limit.0045" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="какое мнение про уважение к стоп-слову" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.limit.0046" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="что думаешь про возврат к нормальной беседе" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.limit.0047" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="как тебе возврат к нормальной беседе" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.limit.0048" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="обсудим возврат к нормальной беседе" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.limit.0049" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="есть мысли про возврат к нормальной беседе" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.limit.0050" topic="social.teasing.limit" act="social.teasing.limit.reply" phrase="какое мнение про возврат к нормальной беседе" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.humor.0001" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="что думаешь про общий юмор" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.humor.0002" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="как тебе общий юмор" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.humor.0003" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="обсудим общий юмор" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.humor.0004" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="есть мысли про общий юмор" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.humor.0005" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="какое мнение про общий юмор" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.humor.0006" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="что думаешь про смешную ситуацию" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.humor.0007" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="как тебе смешную ситуацию" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.humor.0008" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="обсудим смешную ситуацию" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.humor.0009" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="есть мысли про смешную ситуацию" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.humor.0010" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="какое мнение про смешную ситуацию" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.humor.0011" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="что думаешь про шутку над собой" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.humor.0012" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="как тебе шутку над собой" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.humor.0013" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="обсудим шутку над собой" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.humor.0014" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="есть мысли про шутку над собой" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.humor.0015" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="какое мнение про шутку над собой" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.humor.0016" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="что думаешь про иронию про удачу" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.humor.0017" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="как тебе иронию про удачу" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.humor.0018" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="обсудим иронию про удачу" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.humor.0019" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="есть мысли про иронию про удачу" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.humor.0020" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="какое мнение про иронию про удачу" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.humor.0021" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="что думаешь про добрую нелепость" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.humor.0022" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="как тебе добрую нелепость" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.humor.0023" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="обсудим добрую нелепость" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.humor.0024" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="есть мысли про добрую нелепость" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.humor.0025" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="какое мнение про добрую нелепость" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.humor.0026" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="что думаешь про абсурдный ответ" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.humor.0027" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="как тебе абсурдный ответ" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.humor.0028" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="обсудим абсурдный ответ" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.humor.0029" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="есть мысли про абсурдный ответ" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.humor.0030" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="какое мнение про абсурдный ответ" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.humor.0031" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="что думаешь про сухую подачу" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.humor.0032" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="как тебе сухую подачу" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.humor.0033" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="обсудим сухую подачу" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.humor.0034" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="есть мысли про сухую подачу" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.humor.0035" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="какое мнение про сухую подачу" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.humor.0036" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="что думаешь про неожиданный поворот" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.humor.0037" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="как тебе неожиданный поворот" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.humor.0038" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="обсудим неожиданный поворот" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.humor.0039" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="есть мысли про неожиданный поворот" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.humor.0040" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="какое мнение про неожиданный поворот" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.humor.0041" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="что думаешь про короткий каламбур" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.social.teasing.pattern.humor.0042" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="как тебе короткий каламбур" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.social.teasing.pattern.humor.0043" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="обсудим короткий каламбур" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.social.teasing.pattern.humor.0044" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="есть мысли про короткий каламбур" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.social.teasing.pattern.humor.0045" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="какое мнение про короткий каламбур" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.social.teasing.pattern.humor.0046" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="что думаешь про смех без повторов" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.social.teasing.pattern.humor.0047" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="как тебе смех без повторов" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.social.teasing.pattern.humor.0048" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="обсудим смех без повторов" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.social.teasing.pattern.humor.0049" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="есть мысли про смех без повторов" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.social.teasing.pattern.humor.0050" topic="social.teasing.humor" act="social.teasing.humor.reply" phrase="какое мнение про смех без повторов" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

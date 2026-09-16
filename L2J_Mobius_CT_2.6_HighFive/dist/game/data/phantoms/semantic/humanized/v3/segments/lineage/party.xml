@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.lineage.party.semantic" version="3" category="lineage.party">
+	<aliases>
+		<alias from="pati" to="пати" />
+		<alias from="patix" to="пати" />
+		<alias from="пти" to="пати" />
+		<alias from="патии" to="пати" />
+		<alias from="lider" to="лидер" />
+		<alias from="lide" to="лидер" />
+		<alias from="лдер" to="лидер" />
+		<alias from="лидерр" to="лидер" />
+		<alias from="hiler" to="хилер" />
+		<alias from="hile" to="хилер" />
+		<alias from="хлер" to="хилер" />
+		<alias from="хилерр" to="хилер" />
+		<alias from="sapport" to="саппорт" />
+		<alias from="sappor" to="саппорт" />
+		<alias from="сппорт" to="саппорт" />
+		<alias from="саппортт" to="саппорт" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.lineage.party.pattern.roles.0001" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="что думаешь про роли в группе" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.roles.0002" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="как тебе роли в группе" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.roles.0003" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="обсудим роли в группе" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.roles.0004" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="есть мысли про роли в группе" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.roles.0005" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="какое мнение про роли в группе" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.roles.0006" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="что думаешь про нехватку лечения" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.roles.0007" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="как тебе нехватку лечения" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.roles.0008" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="обсудим нехватку лечения" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.roles.0009" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="есть мысли про нехватку лечения" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.roles.0010" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="какое мнение про нехватку лечения" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.roles.0011" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="что думаешь про место танка" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.roles.0012" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="как тебе место танка" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.roles.0013" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="обсудим место танка" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.roles.0014" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="есть мысли про место танка" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.roles.0015" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="какое мнение про место танка" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.roles.0016" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="что думаешь про работу саппорта" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.roles.0017" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="как тебе работу саппорта" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.roles.0018" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="обсудим работу саппорта" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.roles.0019" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="есть мысли про работу саппорта" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.roles.0020" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="какое мнение про работу саппорта" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.roles.0021" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="что думаешь про задачи дамагеров" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.roles.0022" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="как тебе задачи дамагеров" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.roles.0023" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="обсудим задачи дамагеров" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.roles.0024" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="есть мысли про задачи дамагеров" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.roles.0025" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="какое мнение про задачи дамагеров" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.roles.0026" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="что думаешь про смену роли по ситуации" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.roles.0027" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="как тебе смену роли по ситуации" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.roles.0028" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="обсудим смену роли по ситуации" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.roles.0029" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="есть мысли про смену роли по ситуации" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.roles.0030" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="какое мнение про смену роли по ситуации" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.roles.0031" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="что думаешь про понятный состав группы" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.roles.0032" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="как тебе понятный состав группы" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.roles.0033" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="обсудим понятный состав группы" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.roles.0034" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="есть мысли про понятный состав группы" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.roles.0035" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="какое мнение про понятный состав группы" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.roles.0036" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="что думаешь про дублирование ролей" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.roles.0037" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="как тебе дублирование ролей" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.roles.0038" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="обсудим дублирование ролей" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.roles.0039" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="есть мысли про дублирование ролей" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.roles.0040" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="какое мнение про дублирование ролей" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.roles.0041" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="что думаешь про баланс ближних и дальних" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.roles.0042" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="как тебе баланс ближних и дальних" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.roles.0043" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="обсудим баланс ближних и дальних" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.roles.0044" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="есть мысли про баланс ближних и дальних" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.roles.0045" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="какое мнение про баланс ближних и дальних" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.roles.0046" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="что думаешь про готовность подстраховать" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.roles.0047" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="как тебе готовность подстраховать" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.roles.0048" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="обсудим готовность подстраховать" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.roles.0049" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="есть мысли про готовность подстраховать" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.roles.0050" topic="lineage.party.roles" act="lineage.party.roles.reply" phrase="какое мнение про готовность подстраховать" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.coordination.0001" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="что думаешь про общий ассист" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.coordination.0002" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="как тебе общий ассист" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.coordination.0003" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="обсудим общий ассист" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.coordination.0004" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="есть мысли про общий ассист" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.coordination.0005" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="какое мнение про общий ассист" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.coordination.0006" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="что думаешь про выбор цели лидером" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.coordination.0007" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="как тебе выбор цели лидером" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.coordination.0008" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="обсудим выбор цели лидером" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.coordination.0009" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="есть мысли про выбор цели лидером" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.coordination.0010" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="какое мнение про выбор цели лидером" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.coordination.0011" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="что думаешь про движение всей группы" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.coordination.0012" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="как тебе движение всей группы" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.coordination.0013" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="обсудим движение всей группы" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.coordination.0014" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="есть мысли про движение всей группы" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.coordination.0015" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="какое мнение про движение всей группы" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.coordination.0016" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="что думаешь про сбор после отставания" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.coordination.0017" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="как тебе сбор после отставания" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.coordination.0018" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="обсудим сбор после отставания" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.coordination.0019" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="есть мысли про сбор после отставания" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.coordination.0020" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="какое мнение про сбор после отставания" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.coordination.0021" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="что думаешь про короткие команды в чате" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.coordination.0022" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="как тебе короткие команды в чате" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.coordination.0023" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="обсудим короткие команды в чате" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.coordination.0024" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="есть мысли про короткие команды в чате" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.coordination.0025" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="какое мнение про короткие команды в чате" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.coordination.0026" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="что думаешь про паузу перед заходом" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.coordination.0027" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="как тебе паузу перед заходом" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.coordination.0028" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="обсудим паузу перед заходом" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.coordination.0029" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="есть мысли про паузу перед заходом" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.coordination.0030" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="какое мнение про паузу перед заходом" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.coordination.0031" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="что думаешь про синхронный старт" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.coordination.0032" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="как тебе синхронный старт" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.coordination.0033" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="обсудим синхронный старт" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.coordination.0034" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="есть мысли про синхронный старт" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.coordination.0035" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="какое мнение про синхронный старт" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.coordination.0036" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="что думаешь про контроль дистанции" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.coordination.0037" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="как тебе контроль дистанции" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.coordination.0038" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="обсудим контроль дистанции" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.coordination.0039" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="есть мысли про контроль дистанции" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.coordination.0040" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="какое мнение про контроль дистанции" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.coordination.0041" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="что думаешь про реакцию на опасность" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.coordination.0042" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="как тебе реакцию на опасность" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.coordination.0043" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="обсудим реакцию на опасность" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.coordination.0044" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="есть мысли про реакцию на опасность" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.coordination.0045" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="какое мнение про реакцию на опасность" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.coordination.0046" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="что думаешь про понятный план боя" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.coordination.0047" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="как тебе понятный план боя" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.coordination.0048" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="обсудим понятный план боя" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.coordination.0049" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="есть мысли про понятный план боя" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.coordination.0050" topic="lineage.party.coordination" act="lineage.party.coordination.reply" phrase="какое мнение про понятный план боя" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0001" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="что думаешь про поиск участника" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0002" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="как тебе поиск участника" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0003" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="обсудим поиск участника" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0004" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="есть мысли про поиск участника" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0005" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="какое мнение про поиск участника" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0006" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="что думаешь про добор последнего места" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0007" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="как тебе добор последнего места" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0008" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="обсудим добор последнего места" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0009" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="есть мысли про добор последнего места" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0010" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="какое мнение про добор последнего места" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0011" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="что думаешь про ожидание нужной роли" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0012" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="как тебе ожидание нужной роли" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0013" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="обсудим ожидание нужной роли" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0014" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="есть мысли про ожидание нужной роли" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0015" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="какое мнение про ожидание нужной роли" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0016" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="что думаешь про проверку готовности" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0017" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="как тебе проверку готовности" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0018" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="обсудим проверку готовности" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0019" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="есть мысли про проверку готовности" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0020" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="какое мнение про проверку готовности" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0021" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="что думаешь про вопросы перед приглашением" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0022" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="как тебе вопросы перед приглашением" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0023" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="обсудим вопросы перед приглашением" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0024" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="есть мысли про вопросы перед приглашением" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0025" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="какое мнение про вопросы перед приглашением" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0026" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="что думаешь про отказ без обиды" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0027" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="как тебе отказ без обиды" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0028" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="обсудим отказ без обиды" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0029" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="есть мысли про отказ без обиды" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0030" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="какое мнение про отказ без обиды" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0031" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="что думаешь про замену ушедшего игрока" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0032" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="как тебе замену ушедшего игрока" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0033" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="обсудим замену ушедшего игрока" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0034" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="есть мысли про замену ушедшего игрока" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0035" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="какое мнение про замену ушедшего игрока" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0036" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="что думаешь про быстрый сбор группы" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0037" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="как тебе быстрый сбор группы" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0038" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="обсудим быстрый сбор группы" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0039" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="есть мысли про быстрый сбор группы" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0040" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="какое мнение про быстрый сбор группы" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0041" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="что думаешь про поиск знакомого саппорта" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0042" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="как тебе поиск знакомого саппорта" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0043" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="обсудим поиск знакомого саппорта" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0044" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="есть мысли про поиск знакомого саппорта" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0045" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="какое мнение про поиск знакомого саппорта" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0046" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="что думаешь про решение идти неполным составом" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0047" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="как тебе решение идти неполным составом" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0048" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="обсудим решение идти неполным составом" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0049" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="есть мысли про решение идти неполным составом" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.recruitment.0050" topic="lineage.party.recruitment" act="lineage.party.recruitment.reply" phrase="какое мнение про решение идти неполным составом" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0001" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="что думаешь про лут в группе" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0002" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="как тебе лут в группе" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0003" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="обсудим лут в группе" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0004" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="есть мысли про лут в группе" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0005" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="какое мнение про лут в группе" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0006" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="что думаешь про очередь на перерыв" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0007" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="как тебе очередь на перерыв" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0008" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="обсудим очередь на перерыв" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0009" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="есть мысли про очередь на перерыв" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0010" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="какое мнение про очередь на перерыв" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0011" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="что думаешь про отношение к ошибкам" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0012" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="как тебе отношение к ошибкам" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0013" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="обсудим отношение к ошибкам" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0014" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="есть мысли про отношение к ошибкам" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0015" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="какое мнение про отношение к ошибкам" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0016" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="что думаешь про спор с лидером" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0017" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="как тебе спор с лидером" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0018" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="обсудим спор с лидером" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0019" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="есть мысли про спор с лидером" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0020" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="какое мнение про спор с лидером" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0021" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="что думаешь про предупреждение об уходе" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0022" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="как тебе предупреждение об уходе" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0023" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="обсудим предупреждение об уходе" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0024" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="есть мысли про предупреждение об уходе" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0025" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="какое мнение про предупреждение об уходе" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0026" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="что думаешь про уважение к чужому времени" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0027" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="как тебе уважение к чужому времени" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0028" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="обсудим уважение к чужому времени" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0029" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="есть мысли про уважение к чужому времени" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0030" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="какое мнение про уважение к чужому времени" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0031" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="что думаешь про обсуждение тактики" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0032" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="как тебе обсуждение тактики" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0033" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="обсудим обсуждение тактики" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0034" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="есть мысли про обсуждение тактики" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0035" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="какое мнение про обсуждение тактики" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0036" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="что думаешь про спокойный разбор вайпа" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0037" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="как тебе спокойный разбор вайпа" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0038" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="обсудим спокойный разбор вайпа" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0039" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="есть мысли про спокойный разбор вайпа" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0040" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="какое мнение про спокойный разбор вайпа" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0041" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="что думаешь про шутки без перегиба" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0042" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="как тебе шутки без перегиба" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0043" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="обсудим шутки без перегиба" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0044" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="есть мысли про шутки без перегиба" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0045" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="какое мнение про шутки без перегиба" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0046" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="что думаешь про честный разговор о составе" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0047" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="как тебе честный разговор о составе" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0048" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="обсудим честный разговор о составе" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0049" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="есть мысли про честный разговор о составе" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.party.pattern.etiquette.0050" topic="lineage.party.etiquette" act="lineage.party.etiquette.reply" phrase="какое мнение про честный разговор о составе" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

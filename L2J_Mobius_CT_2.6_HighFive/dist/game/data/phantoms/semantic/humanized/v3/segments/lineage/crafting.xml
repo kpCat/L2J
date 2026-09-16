@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.lineage.crafting.semantic" version="3" category="lineage.crafting">
+	<aliases>
+		<alias from="kraft" to="крафт" />
+		<alias from="kraf" to="крафт" />
+		<alias from="крфт" to="крафт" />
+		<alias from="крафтт" to="крафт" />
+		<alias from="recept" to="рецепт" />
+		<alias from="recep" to="рецепт" />
+		<alias from="рцепт" to="рецепт" />
+		<alias from="рецептт" to="рецепт" />
+		<alias from="resursy" to="ресурсы" />
+		<alias from="resurs" to="ресурсы" />
+		<alias from="рсурсы" to="ресурсы" />
+		<alias from="ресурсыы" to="ресурсы" />
+		<alias from="krafter" to="крафтер" />
+		<alias from="krafte" to="крафтер" />
+		<alias from="крфтер" to="крафтер" />
+		<alias from="крафтерр" to="крафтер" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.lineage.crafting.pattern.materials.0001" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="что думаешь про список материалов" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0002" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="как тебе список материалов" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0003" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="обсудим список материалов" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0004" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="есть мысли про список материалов" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0005" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="какое мнение про список материалов" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0006" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="что думаешь про нехватку ресурсов" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0007" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="как тебе нехватку ресурсов" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0008" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="обсудим нехватку ресурсов" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0009" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="есть мысли про нехватку ресурсов" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0010" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="какое мнение про нехватку ресурсов" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0011" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="что думаешь про лишние заготовки" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0012" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="как тебе лишние заготовки" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0013" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="обсудим лишние заготовки" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0014" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="есть мысли про лишние заготовки" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0015" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="какое мнение про лишние заготовки" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0016" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="что думаешь про сбор компонентов" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0017" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="как тебе сбор компонентов" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0018" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="обсудим сбор компонентов" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0019" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="есть мысли про сбор компонентов" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0020" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="какое мнение про сбор компонентов" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0021" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="что думаешь про проверку склада" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0022" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="как тебе проверку склада" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0023" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="обсудим проверку склада" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0024" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="есть мысли про проверку склада" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0025" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="какое мнение про проверку склада" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0026" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="что думаешь про обмен материалами" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0027" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="как тебе обмен материалами" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0028" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="обсудим обмен материалами" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0029" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="есть мысли про обмен материалами" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0030" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="какое мнение про обмен материалами" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0031" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="что думаешь про дорогой компонент" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0032" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="как тебе дорогой компонент" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0033" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="обсудим дорогой компонент" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0034" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="есть мысли про дорогой компонент" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0035" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="какое мнение про дорогой компонент" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0036" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="что думаешь про последнюю недостающую часть" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0037" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="как тебе последнюю недостающую часть" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0038" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="обсудим последнюю недостающую часть" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0039" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="есть мысли про последнюю недостающую часть" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0040" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="какое мнение про последнюю недостающую часть" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0041" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="что думаешь про запас на повтор" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0042" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="как тебе запас на повтор" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0043" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="обсудим запас на повтор" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0044" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="есть мысли про запас на повтор" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0045" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="какое мнение про запас на повтор" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0046" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="что думаешь про порядок закупки" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0047" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="как тебе порядок закупки" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0048" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="обсудим порядок закупки" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0049" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="есть мысли про порядок закупки" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.materials.0050" topic="lineage.crafting.materials" act="lineage.crafting.materials.reply" phrase="какое мнение про порядок закупки" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0001" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="что думаешь про поиск рецепта" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0002" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="как тебе поиск рецепта" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0003" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="обсудим поиск рецепта" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0004" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="есть мысли про поиск рецепта" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0005" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="какое мнение про поиск рецепта" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0006" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="что думаешь про изученный рецепт" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0007" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="как тебе изученный рецепт" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0008" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="обсудим изученный рецепт" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0009" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="есть мысли про изученный рецепт" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0010" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="какое мнение про изученный рецепт" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0011" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="что думаешь про редкую схему" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0012" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="как тебе редкую схему" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0013" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="обсудим редкую схему" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0014" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="есть мысли про редкую схему" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0015" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="какое мнение про редкую схему" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0016" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="что думаешь про выбор следующего крафта" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0017" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="как тебе выбор следующего крафта" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0018" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="обсудим выбор следующего крафта" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0019" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="есть мысли про выбор следующего крафта" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0020" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="какое мнение про выбор следующего крафта" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0021" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="что думаешь про полезность рецепта" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0022" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="как тебе полезность рецепта" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0023" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="обсудим полезность рецепта" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0024" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="есть мысли про полезность рецепта" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0025" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="какое мнение про полезность рецепта" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0026" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="что думаешь про дубликат рецепта" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0027" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="как тебе дубликат рецепта" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0028" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="обсудим дубликат рецепта" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0029" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="есть мысли про дубликат рецепта" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0030" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="какое мнение про дубликат рецепта" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0031" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="что думаешь про проверку доступных изделий" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0032" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="как тебе проверку доступных изделий" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0033" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="обсудим проверку доступных изделий" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0034" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="есть мысли про проверку доступных изделий" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0035" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="какое мнение про проверку доступных изделий" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0036" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="что думаешь про рецепт для знакомого" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0037" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="как тебе рецепт для знакомого" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0038" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="обсудим рецепт для знакомого" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0039" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="есть мысли про рецепт для знакомого" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0040" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="какое мнение про рецепт для знакомого" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0041" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="что думаешь про очередь на изготовление" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0042" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="как тебе очередь на изготовление" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0043" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="обсудим очередь на изготовление" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0044" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="есть мысли про очередь на изготовление" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0045" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="какое мнение про очередь на изготовление" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0046" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="что думаешь про решение отложить рецепт" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0047" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="как тебе решение отложить рецепт" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0048" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="обсудим решение отложить рецепт" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0049" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="есть мысли про решение отложить рецепт" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.recipes.0050" topic="lineage.crafting.recipes" act="lineage.crafting.recipes.reply" phrase="какое мнение про решение отложить рецепт" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0001" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="что думаешь про риск неудачи" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0002" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="как тебе риск неудачи" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0003" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="обсудим риск неудачи" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0004" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="есть мысли про риск неудачи" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0005" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="какое мнение про риск неудачи" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0006" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="что думаешь про ожидание результата" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0007" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="как тебе ожидание результата" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0008" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="обсудим ожидание результата" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0009" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="есть мысли про ожидание результата" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0010" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="какое мнение про ожидание результата" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0011" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="что думаешь про серии крафтов" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0012" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="как тебе серии крафтов" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0013" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="обсудим серии крафтов" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0014" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="есть мысли про серии крафтов" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0015" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="какое мнение про серии крафтов" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0016" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="что думаешь про бережный расход материалов" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0017" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="как тебе бережный расход материалов" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0018" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="обсудим бережный расход материалов" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0019" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="есть мысли про бережный расход материалов" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0020" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="какое мнение про бережный расход материалов" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0021" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="что думаешь про эмоции перед попыткой" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0022" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="как тебе эмоции перед попыткой" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0023" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="обсудим эмоции перед попыткой" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0024" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="есть мысли про эмоции перед попыткой" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0025" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="какое мнение про эмоции перед попыткой" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0026" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="что думаешь про неудачный результат" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0027" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="как тебе неудачный результат" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0028" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="обсудим неудачный результат" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0029" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="есть мысли про неудачный результат" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0030" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="какое мнение про неудачный результат" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0031" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="что думаешь про удачную попытку" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0032" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="как тебе удачную попытку" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0033" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="обсудим удачную попытку" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0034" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="есть мысли про удачную попытку" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0035" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="какое мнение про удачную попытку" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0036" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="что думаешь про границу разумного риска" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0037" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="как тебе границу разумного риска" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0038" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="обсудим границу разумного риска" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0039" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="есть мысли про границу разумного риска" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0040" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="какое мнение про границу разумного риска" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0041" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="что думаешь про повтор после провала" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0042" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="как тебе повтор после провала" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0043" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="обсудим повтор после провала" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0044" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="есть мысли про повтор после провала" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0045" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="какое мнение про повтор после провала" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0046" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="что думаешь про спокойное отношение к шансу" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0047" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="как тебе спокойное отношение к шансу" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0048" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="обсудим спокойное отношение к шансу" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0049" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="есть мысли про спокойное отношение к шансу" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.chance.0050" topic="lineage.crafting.chance" act="lineage.crafting.chance.reply" phrase="какое мнение про спокойное отношение к шансу" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0001" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="что думаешь про работу крафтера" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0002" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="как тебе работу крафтера" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0003" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="обсудим работу крафтера" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0004" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="есть мысли про работу крафтера" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0005" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="какое мнение про работу крафтера" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0006" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="что думаешь про очередь у мастера" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0007" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="как тебе очередь у мастера" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0008" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="обсудим очередь у мастера" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0009" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="есть мысли про очередь у мастера" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0010" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="какое мнение про очередь у мастера" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0011" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="что думаешь про понятную цену услуги" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0012" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="как тебе понятную цену услуги" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0013" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="обсудим понятную цену услуги" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0014" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="есть мысли про понятную цену услуги" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0015" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="какое мнение про понятную цену услуги" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0016" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="что думаешь про подготовку перед созданием" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0017" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="как тебе подготовку перед созданием" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0018" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="обсудим подготовку перед созданием" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0019" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="есть мысли про подготовку перед созданием" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0020" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="какое мнение про подготовку перед созданием" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0021" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="что думаешь про проверку количества" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0022" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="как тебе проверку количества" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0023" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="обсудим проверку количества" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0024" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="есть мысли про проверку количества" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0025" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="какое мнение про проверку количества" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0026" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="что думаешь про разговор с заказчиком" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0027" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="как тебе разговор с заказчиком" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0028" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="обсудим разговор с заказчиком" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0029" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="есть мысли про разговор с заказчиком" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0030" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="какое мнение про разговор с заказчиком" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0031" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="что думаешь про честный расчёт" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0032" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="как тебе честный расчёт" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0033" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="обсудим честный расчёт" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0034" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="есть мысли про честный расчёт" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0035" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="какое мнение про честный расчёт" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0036" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="что думаешь про возврат лишних материалов" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0037" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="как тебе возврат лишних материалов" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0038" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="обсудим возврат лишних материалов" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0039" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="есть мысли про возврат лишних материалов" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0040" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="какое мнение про возврат лишних материалов" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0041" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="что думаешь про порядок в мастерской" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0042" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="как тебе порядок в мастерской" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0043" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="обсудим порядок в мастерской" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0044" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="есть мысли про порядок в мастерской" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0045" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="какое мнение про порядок в мастерской" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0046" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="что думаешь про завершение заказа" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0047" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="как тебе завершение заказа" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0048" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="обсудим завершение заказа" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0049" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="есть мысли про завершение заказа" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.crafting.pattern.workshop.0050" topic="lineage.crafting.workshop" act="lineage.crafting.workshop.reply" phrase="какое мнение про завершение заказа" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

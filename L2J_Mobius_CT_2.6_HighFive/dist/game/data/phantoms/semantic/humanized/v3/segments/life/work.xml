@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.life.work.semantic" version="3" category="life.work">
+	<aliases>
+		<alias from="rabota" to="работа" />
+		<alias from="rabot" to="работа" />
+		<alias from="рбота" to="работа" />
+		<alias from="работаа" to="работа" />
+		<alias from="dedlayn" to="дедлайн" />
+		<alias from="dedlay" to="дедлайн" />
+		<alias from="ддлайн" to="дедлайн" />
+		<alias from="дедлайнн" to="дедлайн" />
+		<alias from="pereryv" to="перерыв" />
+		<alias from="perery" to="перерыв" />
+		<alias from="прерыв" to="перерыв" />
+		<alias from="перерывв" to="перерыв" />
+		<alias from="smena" to="смена" />
+		<alias from="smen" to="смена" />
+		<alias from="смна" to="смена" />
+		<alias from="сменаа" to="смена" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.life.work.pattern.load.0001" topic="life.work.load" act="life.work.load.reply" phrase="что думаешь про рабочую нагрузку" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.load.0002" topic="life.work.load" act="life.work.load.reply" phrase="как тебе рабочую нагрузку" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.load.0003" topic="life.work.load" act="life.work.load.reply" phrase="обсудим рабочую нагрузку" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.load.0004" topic="life.work.load" act="life.work.load.reply" phrase="есть мысли про рабочую нагрузку" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.load.0005" topic="life.work.load" act="life.work.load.reply" phrase="какое мнение про рабочую нагрузку" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.load.0006" topic="life.work.load" act="life.work.load.reply" phrase="что думаешь про слишком длинный список дел" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.load.0007" topic="life.work.load" act="life.work.load.reply" phrase="как тебе слишком длинный список дел" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.load.0008" topic="life.work.load" act="life.work.load.reply" phrase="обсудим слишком длинный список дел" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.load.0009" topic="life.work.load" act="life.work.load.reply" phrase="есть мысли про слишком длинный список дел" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.load.0010" topic="life.work.load" act="life.work.load.reply" phrase="какое мнение про слишком длинный список дел" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.load.0011" topic="life.work.load" act="life.work.load.reply" phrase="что думаешь про одну главную задачу" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.load.0012" topic="life.work.load" act="life.work.load.reply" phrase="как тебе одну главную задачу" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.load.0013" topic="life.work.load" act="life.work.load.reply" phrase="обсудим одну главную задачу" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.load.0014" topic="life.work.load" act="life.work.load.reply" phrase="есть мысли про одну главную задачу" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.load.0015" topic="life.work.load" act="life.work.load.reply" phrase="какое мнение про одну главную задачу" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.load.0016" topic="life.work.load" act="life.work.load.reply" phrase="что думаешь про неожиданный аврал" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.load.0017" topic="life.work.load" act="life.work.load.reply" phrase="как тебе неожиданный аврал" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.load.0018" topic="life.work.load" act="life.work.load.reply" phrase="обсудим неожиданный аврал" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.load.0019" topic="life.work.load" act="life.work.load.reply" phrase="есть мысли про неожиданный аврал" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.load.0020" topic="life.work.load" act="life.work.load.reply" phrase="какое мнение про неожиданный аврал" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.load.0021" topic="life.work.load" act="life.work.load.reply" phrase="что думаешь про спокойный темп" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.load.0022" topic="life.work.load" act="life.work.load.reply" phrase="как тебе спокойный темп" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.load.0023" topic="life.work.load" act="life.work.load.reply" phrase="обсудим спокойный темп" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.load.0024" topic="life.work.load" act="life.work.load.reply" phrase="есть мысли про спокойный темп" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.load.0025" topic="life.work.load" act="life.work.load.reply" phrase="какое мнение про спокойный темп" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.load.0026" topic="life.work.load" act="life.work.load.reply" phrase="что думаешь про усталость от рутины" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.load.0027" topic="life.work.load" act="life.work.load.reply" phrase="как тебе усталость от рутины" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.load.0028" topic="life.work.load" act="life.work.load.reply" phrase="обсудим усталость от рутины" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.load.0029" topic="life.work.load" act="life.work.load.reply" phrase="есть мысли про усталость от рутины" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.load.0030" topic="life.work.load" act="life.work.load.reply" phrase="какое мнение про усталость от рутины" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.load.0031" topic="life.work.load" act="life.work.load.reply" phrase="что думаешь про разбросанные мелочи" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.load.0032" topic="life.work.load" act="life.work.load.reply" phrase="как тебе разбросанные мелочи" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.load.0033" topic="life.work.load" act="life.work.load.reply" phrase="обсудим разбросанные мелочи" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.load.0034" topic="life.work.load" act="life.work.load.reply" phrase="есть мысли про разбросанные мелочи" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.load.0035" topic="life.work.load" act="life.work.load.reply" phrase="какое мнение про разбросанные мелочи" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.load.0036" topic="life.work.load" act="life.work.load.reply" phrase="что думаешь про ощущение завала" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.load.0037" topic="life.work.load" act="life.work.load.reply" phrase="как тебе ощущение завала" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.load.0038" topic="life.work.load" act="life.work.load.reply" phrase="обсудим ощущение завала" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.load.0039" topic="life.work.load" act="life.work.load.reply" phrase="есть мысли про ощущение завала" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.load.0040" topic="life.work.load" act="life.work.load.reply" phrase="какое мнение про ощущение завала" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.load.0041" topic="life.work.load" act="life.work.load.reply" phrase="что думаешь про реалистичный объём" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.load.0042" topic="life.work.load" act="life.work.load.reply" phrase="как тебе реалистичный объём" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.load.0043" topic="life.work.load" act="life.work.load.reply" phrase="обсудим реалистичный объём" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.load.0044" topic="life.work.load" act="life.work.load.reply" phrase="есть мысли про реалистичный объём" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.load.0045" topic="life.work.load" act="life.work.load.reply" phrase="какое мнение про реалистичный объём" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.load.0046" topic="life.work.load" act="life.work.load.reply" phrase="что думаешь про право перенести часть дел" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.load.0047" topic="life.work.load" act="life.work.load.reply" phrase="как тебе право перенести часть дел" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.load.0048" topic="life.work.load" act="life.work.load.reply" phrase="обсудим право перенести часть дел" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.load.0049" topic="life.work.load" act="life.work.load.reply" phrase="есть мысли про право перенести часть дел" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.load.0050" topic="life.work.load" act="life.work.load.reply" phrase="какое мнение про право перенести часть дел" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.break.0001" topic="life.work.break" act="life.work.break.reply" phrase="что думаешь про короткий перерыв" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.break.0002" topic="life.work.break" act="life.work.break.reply" phrase="как тебе короткий перерыв" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.break.0003" topic="life.work.break" act="life.work.break.reply" phrase="обсудим короткий перерыв" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.break.0004" topic="life.work.break" act="life.work.break.reply" phrase="есть мысли про короткий перерыв" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.break.0005" topic="life.work.break" act="life.work.break.reply" phrase="какое мнение про короткий перерыв" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.break.0006" topic="life.work.break" act="life.work.break.reply" phrase="что думаешь про обед без экрана" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.break.0007" topic="life.work.break" act="life.work.break.reply" phrase="как тебе обед без экрана" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.break.0008" topic="life.work.break" act="life.work.break.reply" phrase="обсудим обед без экрана" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.break.0009" topic="life.work.break" act="life.work.break.reply" phrase="есть мысли про обед без экрана" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.break.0010" topic="life.work.break" act="life.work.break.reply" phrase="какое мнение про обед без экрана" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.break.0011" topic="life.work.break" act="life.work.break.reply" phrase="что думаешь про несколько минут тишины" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.break.0012" topic="life.work.break" act="life.work.break.reply" phrase="как тебе несколько минут тишины" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.break.0013" topic="life.work.break" act="life.work.break.reply" phrase="обсудим несколько минут тишины" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.break.0014" topic="life.work.break" act="life.work.break.reply" phrase="есть мысли про несколько минут тишины" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.break.0015" topic="life.work.break" act="life.work.break.reply" phrase="какое мнение про несколько минут тишины" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.break.0016" topic="life.work.break" act="life.work.break.reply" phrase="что думаешь про разминку между делами" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.break.0017" topic="life.work.break" act="life.work.break.reply" phrase="как тебе разминку между делами" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.break.0018" topic="life.work.break" act="life.work.break.reply" phrase="обсудим разминку между делами" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.break.0019" topic="life.work.break" act="life.work.break.reply" phrase="есть мысли про разминку между делами" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.break.0020" topic="life.work.break" act="life.work.break.reply" phrase="какое мнение про разминку между делами" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.break.0021" topic="life.work.break" act="life.work.break.reply" phrase="что думаешь про смену занятия в игре" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.break.0022" topic="life.work.break" act="life.work.break.reply" phrase="как тебе смену занятия в игре" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.break.0023" topic="life.work.break" act="life.work.break.reply" phrase="обсудим смену занятия в игре" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.break.0024" topic="life.work.break" act="life.work.break.reply" phrase="есть мысли про смену занятия в игре" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.break.0025" topic="life.work.break" act="life.work.break.reply" phrase="какое мнение про смену занятия в игре" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.break.0026" topic="life.work.break" act="life.work.break.reply" phrase="что думаешь про отдых без чувства вины" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.break.0027" topic="life.work.break" act="life.work.break.reply" phrase="как тебе отдых без чувства вины" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.break.0028" topic="life.work.break" act="life.work.break.reply" phrase="обсудим отдых без чувства вины" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.break.0029" topic="life.work.break" act="life.work.break.reply" phrase="есть мысли про отдых без чувства вины" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.break.0030" topic="life.work.break" act="life.work.break.reply" phrase="какое мнение про отдых без чувства вины" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.break.0031" topic="life.work.break" act="life.work.break.reply" phrase="что думаешь про паузу перед сложной задачей" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.break.0032" topic="life.work.break" act="life.work.break.reply" phrase="как тебе паузу перед сложной задачей" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.break.0033" topic="life.work.break" act="life.work.break.reply" phrase="обсудим паузу перед сложной задачей" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.break.0034" topic="life.work.break" act="life.work.break.reply" phrase="есть мысли про паузу перед сложной задачей" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.break.0035" topic="life.work.break" act="life.work.break.reply" phrase="какое мнение про паузу перед сложной задачей" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.break.0036" topic="life.work.break" act="life.work.break.reply" phrase="что думаешь про глоток воды" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.break.0037" topic="life.work.break" act="life.work.break.reply" phrase="как тебе глоток воды" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.break.0038" topic="life.work.break" act="life.work.break.reply" phrase="обсудим глоток воды" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.break.0039" topic="life.work.break" act="life.work.break.reply" phrase="есть мысли про глоток воды" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.break.0040" topic="life.work.break" act="life.work.break.reply" phrase="какое мнение про глоток воды" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.break.0041" topic="life.work.break" act="life.work.break.reply" phrase="что думаешь про выход на воздух" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.break.0042" topic="life.work.break" act="life.work.break.reply" phrase="как тебе выход на воздух" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.break.0043" topic="life.work.break" act="life.work.break.reply" phrase="обсудим выход на воздух" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.break.0044" topic="life.work.break" act="life.work.break.reply" phrase="есть мысли про выход на воздух" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.break.0045" topic="life.work.break" act="life.work.break.reply" phrase="какое мнение про выход на воздух" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.break.0046" topic="life.work.break" act="life.work.break.reply" phrase="что думаешь про возвращение с ясной головой" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.break.0047" topic="life.work.break" act="life.work.break.reply" phrase="как тебе возвращение с ясной головой" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.break.0048" topic="life.work.break" act="life.work.break.reply" phrase="обсудим возвращение с ясной головой" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.break.0049" topic="life.work.break" act="life.work.break.reply" phrase="есть мысли про возвращение с ясной головой" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.break.0050" topic="life.work.break" act="life.work.break.reply" phrase="какое мнение про возвращение с ясной головой" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.routine.0001" topic="life.work.routine" act="life.work.routine.reply" phrase="что думаешь про начало рабочего дня" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.routine.0002" topic="life.work.routine" act="life.work.routine.reply" phrase="как тебе начало рабочего дня" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.routine.0003" topic="life.work.routine" act="life.work.routine.reply" phrase="обсудим начало рабочего дня" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.routine.0004" topic="life.work.routine" act="life.work.routine.reply" phrase="есть мысли про начало рабочего дня" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.routine.0005" topic="life.work.routine" act="life.work.routine.reply" phrase="какое мнение про начало рабочего дня" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.routine.0006" topic="life.work.routine" act="life.work.routine.reply" phrase="что думаешь про завершение смены" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.routine.0007" topic="life.work.routine" act="life.work.routine.reply" phrase="как тебе завершение смены" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.routine.0008" topic="life.work.routine" act="life.work.routine.reply" phrase="обсудим завершение смены" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.routine.0009" topic="life.work.routine" act="life.work.routine.reply" phrase="есть мысли про завершение смены" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.routine.0010" topic="life.work.routine" act="life.work.routine.reply" phrase="какое мнение про завершение смены" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.routine.0011" topic="life.work.routine" act="life.work.routine.reply" phrase="что думаешь про повторяющиеся задачи" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.routine.0012" topic="life.work.routine" act="life.work.routine.reply" phrase="как тебе повторяющиеся задачи" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.routine.0013" topic="life.work.routine" act="life.work.routine.reply" phrase="обсудим повторяющиеся задачи" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.routine.0014" topic="life.work.routine" act="life.work.routine.reply" phrase="есть мысли про повторяющиеся задачи" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.routine.0015" topic="life.work.routine" act="life.work.routine.reply" phrase="какое мнение про повторяющиеся задачи" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.routine.0016" topic="life.work.routine" act="life.work.routine.reply" phrase="что думаешь про порядок в списке дел" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.routine.0017" topic="life.work.routine" act="life.work.routine.reply" phrase="как тебе порядок в списке дел" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.routine.0018" topic="life.work.routine" act="life.work.routine.reply" phrase="обсудим порядок в списке дел" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.routine.0019" topic="life.work.routine" act="life.work.routine.reply" phrase="есть мысли про порядок в списке дел" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.routine.0020" topic="life.work.routine" act="life.work.routine.reply" phrase="какое мнение про порядок в списке дел" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.routine.0021" topic="life.work.routine" act="life.work.routine.reply" phrase="что думаешь про спокойную переписку" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.routine.0022" topic="life.work.routine" act="life.work.routine.reply" phrase="как тебе спокойную переписку" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.routine.0023" topic="life.work.routine" act="life.work.routine.reply" phrase="обсудим спокойную переписку" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.routine.0024" topic="life.work.routine" act="life.work.routine.reply" phrase="есть мысли про спокойную переписку" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.routine.0025" topic="life.work.routine" act="life.work.routine.reply" phrase="какое мнение про спокойную переписку" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.routine.0026" topic="life.work.routine" act="life.work.routine.reply" phrase="что думаешь про лишние уведомления" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.routine.0027" topic="life.work.routine" act="life.work.routine.reply" phrase="как тебе лишние уведомления" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.routine.0028" topic="life.work.routine" act="life.work.routine.reply" phrase="обсудим лишние уведомления" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.routine.0029" topic="life.work.routine" act="life.work.routine.reply" phrase="есть мысли про лишние уведомления" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.routine.0030" topic="life.work.routine" act="life.work.routine.reply" phrase="какое мнение про лишние уведомления" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.routine.0031" topic="life.work.routine" act="life.work.routine.reply" phrase="что думаешь про маленький ежедневный ритуал" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.routine.0032" topic="life.work.routine" act="life.work.routine.reply" phrase="как тебе маленький ежедневный ритуал" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.routine.0033" topic="life.work.routine" act="life.work.routine.reply" phrase="обсудим маленький ежедневный ритуал" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.routine.0034" topic="life.work.routine" act="life.work.routine.reply" phrase="есть мысли про маленький ежедневный ритуал" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.routine.0035" topic="life.work.routine" act="life.work.routine.reply" phrase="какое мнение про маленький ежедневный ритуал" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.routine.0036" topic="life.work.routine" act="life.work.routine.reply" phrase="что думаешь про план на ближайший час" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.routine.0037" topic="life.work.routine" act="life.work.routine.reply" phrase="как тебе план на ближайший час" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.routine.0038" topic="life.work.routine" act="life.work.routine.reply" phrase="обсудим план на ближайший час" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.routine.0039" topic="life.work.routine" act="life.work.routine.reply" phrase="есть мысли про план на ближайший час" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.routine.0040" topic="life.work.routine" act="life.work.routine.reply" phrase="какое мнение про план на ближайший час" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.routine.0041" topic="life.work.routine" act="life.work.routine.reply" phrase="что думаешь про уборку рабочего места" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.routine.0042" topic="life.work.routine" act="life.work.routine.reply" phrase="как тебе уборку рабочего места" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.routine.0043" topic="life.work.routine" act="life.work.routine.reply" phrase="обсудим уборку рабочего места" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.routine.0044" topic="life.work.routine" act="life.work.routine.reply" phrase="есть мысли про уборку рабочего места" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.routine.0045" topic="life.work.routine" act="life.work.routine.reply" phrase="какое мнение про уборку рабочего места" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.routine.0046" topic="life.work.routine" act="life.work.routine.reply" phrase="что думаешь про границу между делом и отдыхом" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.routine.0047" topic="life.work.routine" act="life.work.routine.reply" phrase="как тебе границу между делом и отдыхом" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.routine.0048" topic="life.work.routine" act="life.work.routine.reply" phrase="обсудим границу между делом и отдыхом" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.routine.0049" topic="life.work.routine" act="life.work.routine.reply" phrase="есть мысли про границу между делом и отдыхом" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.routine.0050" topic="life.work.routine" act="life.work.routine.reply" phrase="какое мнение про границу между делом и отдыхом" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.boundaries.0001" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="что думаешь про отказ от лишней задачи" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.boundaries.0002" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="как тебе отказ от лишней задачи" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.boundaries.0003" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="обсудим отказ от лишней задачи" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.boundaries.0004" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="есть мысли про отказ от лишней задачи" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.boundaries.0005" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="какое мнение про отказ от лишней задачи" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.boundaries.0006" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="что думаешь про честный разговор о сроках" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.boundaries.0007" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="как тебе честный разговор о сроках" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.boundaries.0008" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="обсудим честный разговор о сроках" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.boundaries.0009" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="есть мысли про честный разговор о сроках" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.boundaries.0010" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="какое мнение про честный разговор о сроках" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.boundaries.0011" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="что думаешь про время закончить работу" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.boundaries.0012" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="как тебе время закончить работу" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.boundaries.0013" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="обсудим время закончить работу" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.boundaries.0014" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="есть мысли про время закончить работу" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.boundaries.0015" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="какое мнение про время закончить работу" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.boundaries.0016" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="что думаешь про право быть недоступным" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.boundaries.0017" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="как тебе право быть недоступным" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.boundaries.0018" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="обсудим право быть недоступным" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.boundaries.0019" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="есть мысли про право быть недоступным" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.boundaries.0020" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="какое мнение про право быть недоступным" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.boundaries.0021" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="что думаешь про перенос без оправданий" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.boundaries.0022" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="как тебе перенос без оправданий" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.boundaries.0023" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="обсудим перенос без оправданий" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.boundaries.0024" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="есть мысли про перенос без оправданий" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.boundaries.0025" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="какое мнение про перенос без оправданий" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.boundaries.0026" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="что думаешь про уважение к чужому времени в игре" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.boundaries.0027" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="как тебе уважение к чужому времени в игре" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.boundaries.0028" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="обсудим уважение к чужому времени в игре" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.boundaries.0029" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="есть мысли про уважение к чужому времени в игре" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.boundaries.0030" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="какое мнение про уважение к чужому времени в игре" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.boundaries.0031" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="что думаешь про ясные ожидания" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.boundaries.0032" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="как тебе ясные ожидания" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.boundaries.0033" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="обсудим ясные ожидания" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.boundaries.0034" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="есть мысли про ясные ожидания" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.boundaries.0035" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="какое мнение про ясные ожидания" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.boundaries.0036" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="что думаешь про разумный дедлайн" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.boundaries.0037" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="как тебе разумный дедлайн" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.boundaries.0038" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="обсудим разумный дедлайн" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.boundaries.0039" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="есть мысли про разумный дедлайн" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.boundaries.0040" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="какое мнение про разумный дедлайн" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.boundaries.0041" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="что думаешь про помощь без перегруза" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.work.pattern.boundaries.0042" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="как тебе помощь без перегруза" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.work.pattern.boundaries.0043" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="обсудим помощь без перегруза" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.work.pattern.boundaries.0044" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="есть мысли про помощь без перегруза" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.work.pattern.boundaries.0045" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="какое мнение про помощь без перегруза" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.work.pattern.boundaries.0046" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="что думаешь про разговор без выдуманной профессии" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.work.pattern.boundaries.0047" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="как тебе разговор без выдуманной профессии" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.work.pattern.boundaries.0048" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="обсудим разговор без выдуманной профессии" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.work.pattern.boundaries.0049" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="есть мысли про разговор без выдуманной профессии" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.work.pattern.boundaries.0050" topic="life.work.boundaries" act="life.work.boundaries.reply" phrase="какое мнение про разговор без выдуманной профессии" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

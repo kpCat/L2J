@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.life.mood.semantic" version="3" category="life.mood">
+	<aliases>
+		<alias from="nastroenie" to="настроение" />
+		<alias from="nastroeni" to="настроение" />
+		<alias from="нстроение" to="настроение" />
+		<alias from="настроениее" to="настроение" />
+		<alias from="ustalost" to="усталость" />
+		<alias from="ustalos" to="усталость" />
+		<alias from="устлость" to="усталость" />
+		<alias from="усталостьь" to="усталость" />
+		<alias from="trevoga" to="тревога" />
+		<alias from="trevog" to="тревога" />
+		<alias from="трвога" to="тревога" />
+		<alias from="тревогаа" to="тревога" />
+		<alias from="bodrost" to="бодрость" />
+		<alias from="bodros" to="бодрость" />
+		<alias from="бдрость" to="бодрость" />
+		<alias from="бодростьь" to="бодрость" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.life.mood.pattern.checkin.0001" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="что думаешь про вопрос о самочувствии" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.checkin.0002" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="как тебе вопрос о самочувствии" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.checkin.0003" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="обсудим вопрос о самочувствии" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.checkin.0004" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="есть мысли про вопрос о самочувствии" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.checkin.0005" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="какое мнение про вопрос о самочувствии" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.checkin.0006" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="что думаешь про бережный вопрос о настроении" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.checkin.0007" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="как тебе бережный вопрос о настроении" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.checkin.0008" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="обсудим бережный вопрос о настроении" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.checkin.0009" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="есть мысли про бережный вопрос о настроении" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.checkin.0010" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="какое мнение про бережный вопрос о настроении" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.checkin.0011" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="что думаешь про разговор без давления" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.checkin.0012" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="как тебе разговор без давления" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.checkin.0013" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="обсудим разговор без давления" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.checkin.0014" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="есть мысли про разговор без давления" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.checkin.0015" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="какое мнение про разговор без давления" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.checkin.0016" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="что думаешь про нейтральное «как ты»" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.checkin.0017" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="как тебе нейтральное «как ты»" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.checkin.0018" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="обсудим нейтральное «как ты»" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.checkin.0019" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="есть мысли про нейтральное «как ты»" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.checkin.0020" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="какое мнение про нейтральное «как ты»" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.checkin.0021" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="что думаешь про готовность выслушать" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.checkin.0022" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="как тебе готовность выслушать" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.checkin.0023" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="обсудим готовность выслушать" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.checkin.0024" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="есть мысли про готовность выслушать" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.checkin.0025" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="какое мнение про готовность выслушать" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.checkin.0026" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="что думаешь про право не отвечать" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.checkin.0027" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="как тебе право не отвечать" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.checkin.0028" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="обсудим право не отвечать" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.checkin.0029" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="есть мысли про право не отвечать" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.checkin.0030" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="какое мнение про право не отвечать" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.checkin.0031" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="что думаешь про проверку состояния собеседника" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.checkin.0032" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="как тебе проверку состояния собеседника" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.checkin.0033" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="обсудим проверку состояния собеседника" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.checkin.0034" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="есть мысли про проверку состояния собеседника" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.checkin.0035" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="какое мнение про проверку состояния собеседника" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.checkin.0036" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="что думаешь про короткий вопрос без допроса" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.checkin.0037" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="как тебе короткий вопрос без допроса" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.checkin.0038" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="обсудим короткий вопрос без допроса" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.checkin.0039" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="есть мысли про короткий вопрос без допроса" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.checkin.0040" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="какое мнение про короткий вопрос без допроса" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.checkin.0041" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="что думаешь про внимание к тону" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.checkin.0042" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="как тебе внимание к тону" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.checkin.0043" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="обсудим внимание к тону" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.checkin.0044" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="есть мысли про внимание к тону" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.checkin.0045" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="какое мнение про внимание к тону" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.checkin.0046" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="что думаешь про спокойное начало личной темы" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.checkin.0047" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="как тебе спокойное начало личной темы" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.checkin.0048" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="обсудим спокойное начало личной темы" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.checkin.0049" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="есть мысли про спокойное начало личной темы" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.checkin.0050" topic="life.mood.checkin" act="life.mood.checkin.reply" phrase="какое мнение про спокойное начало личной темы" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.empathy.0001" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="что думаешь про поддержку без советов" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.empathy.0002" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="как тебе поддержку без советов" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.empathy.0003" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="обсудим поддержку без советов" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.empathy.0004" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="есть мысли про поддержку без советов" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.empathy.0005" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="какое мнение про поддержку без советов" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.empathy.0006" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="что думаешь про признание чужой усталости" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.empathy.0007" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="как тебе признание чужой усталости" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.empathy.0008" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="обсудим признание чужой усталости" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.empathy.0009" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="есть мысли про признание чужой усталости" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.empathy.0010" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="какое мнение про признание чужой усталости" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.empathy.0011" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="что думаешь про сочувствие без драматизации" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.empathy.0012" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="как тебе сочувствие без драматизации" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.empathy.0013" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="обсудим сочувствие без драматизации" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.empathy.0014" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="есть мысли про сочувствие без драматизации" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.empathy.0015" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="какое мнение про сочувствие без драматизации" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.empathy.0016" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="что думаешь про возможность выговориться" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.empathy.0017" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="как тебе возможность выговориться" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.empathy.0018" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="обсудим возможность выговориться" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.empathy.0019" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="есть мысли про возможность выговориться" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.empathy.0020" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="какое мнение про возможность выговориться" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.empathy.0021" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="что думаешь про паузу в тяжёлый день" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.empathy.0022" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="как тебе паузу в тяжёлый день" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.empathy.0023" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="обсудим паузу в тяжёлый день" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.empathy.0024" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="есть мысли про паузу в тяжёлый день" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.empathy.0025" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="какое мнение про паузу в тяжёлый день" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.empathy.0026" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="что думаешь про уважение к чувствам" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.empathy.0027" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="как тебе уважение к чувствам" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.empathy.0028" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="обсудим уважение к чувствам" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.empathy.0029" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="есть мысли про уважение к чувствам" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.empathy.0030" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="какое мнение про уважение к чувствам" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.empathy.0031" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="что думаешь про простые слова поддержки" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.empathy.0032" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="как тебе простые слова поддержки" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.empathy.0033" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="обсудим простые слова поддержки" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.empathy.0034" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="есть мысли про простые слова поддержки" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.empathy.0035" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="какое мнение про простые слова поддержки" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.empathy.0036" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="что думаешь про отказ от пустого оптимизма" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.empathy.0037" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="как тебе отказ от пустого оптимизма" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.empathy.0038" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="обсудим отказ от пустого оптимизма" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.empathy.0039" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="есть мысли про отказ от пустого оптимизма" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.empathy.0040" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="какое мнение про отказ от пустого оптимизма" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.empathy.0041" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="что думаешь про тихое присутствие" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.empathy.0042" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="как тебе тихое присутствие" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.empathy.0043" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="обсудим тихое присутствие" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.empathy.0044" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="есть мысли про тихое присутствие" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.empathy.0045" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="какое мнение про тихое присутствие" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.empathy.0046" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="что думаешь про разговор на удобной дистанции" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.empathy.0047" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="как тебе разговор на удобной дистанции" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.empathy.0048" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="обсудим разговор на удобной дистанции" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.empathy.0049" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="есть мысли про разговор на удобной дистанции" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.empathy.0050" topic="life.mood.empathy" act="life.mood.empathy.reply" phrase="какое мнение про разговор на удобной дистанции" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.calm.0001" topic="life.mood.calm" act="life.mood.calm.reply" phrase="что думаешь про способ немного успокоиться" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.calm.0002" topic="life.mood.calm" act="life.mood.calm.reply" phrase="как тебе способ немного успокоиться" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.calm.0003" topic="life.mood.calm" act="life.mood.calm.reply" phrase="обсудим способ немного успокоиться" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.calm.0004" topic="life.mood.calm" act="life.mood.calm.reply" phrase="есть мысли про способ немного успокоиться" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.calm.0005" topic="life.mood.calm" act="life.mood.calm.reply" phrase="какое мнение про способ немного успокоиться" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.calm.0006" topic="life.mood.calm" act="life.mood.calm.reply" phrase="что думаешь про короткую передышку" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.calm.0007" topic="life.mood.calm" act="life.mood.calm.reply" phrase="как тебе короткую передышку" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.calm.0008" topic="life.mood.calm" act="life.mood.calm.reply" phrase="обсудим короткую передышку" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.calm.0009" topic="life.mood.calm" act="life.mood.calm.reply" phrase="есть мысли про короткую передышку" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.calm.0010" topic="life.mood.calm" act="life.mood.calm.reply" phrase="какое мнение про короткую передышку" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.calm.0011" topic="life.mood.calm" act="life.mood.calm.reply" phrase="что думаешь про ровный темп разговора" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.calm.0012" topic="life.mood.calm" act="life.mood.calm.reply" phrase="как тебе ровный темп разговора" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.calm.0013" topic="life.mood.calm" act="life.mood.calm.reply" phrase="обсудим ровный темп разговора" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.calm.0014" topic="life.mood.calm" act="life.mood.calm.reply" phrase="есть мысли про ровный темп разговора" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.calm.0015" topic="life.mood.calm" act="life.mood.calm.reply" phrase="какое мнение про ровный темп разговора" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.calm.0016" topic="life.mood.calm" act="life.mood.calm.reply" phrase="что думаешь про смену тяжёлой темы" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.calm.0017" topic="life.mood.calm" act="life.mood.calm.reply" phrase="как тебе смену тяжёлой темы" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.calm.0018" topic="life.mood.calm" act="life.mood.calm.reply" phrase="обсудим смену тяжёлой темы" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.calm.0019" topic="life.mood.calm" act="life.mood.calm.reply" phrase="есть мысли про смену тяжёлой темы" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.calm.0020" topic="life.mood.calm" act="life.mood.calm.reply" phrase="какое мнение про смену тяжёлой темы" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.calm.0021" topic="life.mood.calm" act="life.mood.calm.reply" phrase="что думаешь про тишину без неловкости" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.calm.0022" topic="life.mood.calm" act="life.mood.calm.reply" phrase="как тебе тишину без неловкости" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.calm.0023" topic="life.mood.calm" act="life.mood.calm.reply" phrase="обсудим тишину без неловкости" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.calm.0024" topic="life.mood.calm" act="life.mood.calm.reply" phrase="есть мысли про тишину без неловкости" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.calm.0025" topic="life.mood.calm" act="life.mood.calm.reply" phrase="какое мнение про тишину без неловкости" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.calm.0026" topic="life.mood.calm" act="life.mood.calm.reply" phrase="что думаешь про несколько спокойных минут" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.calm.0027" topic="life.mood.calm" act="life.mood.calm.reply" phrase="как тебе несколько спокойных минут" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.calm.0028" topic="life.mood.calm" act="life.mood.calm.reply" phrase="обсудим несколько спокойных минут" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.calm.0029" topic="life.mood.calm" act="life.mood.calm.reply" phrase="есть мысли про несколько спокойных минут" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.calm.0030" topic="life.mood.calm" act="life.mood.calm.reply" phrase="какое мнение про несколько спокойных минут" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.calm.0031" topic="life.mood.calm" act="life.mood.calm.reply" phrase="что думаешь про отдых от споров" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.calm.0032" topic="life.mood.calm" act="life.mood.calm.reply" phrase="как тебе отдых от споров" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.calm.0033" topic="life.mood.calm" act="life.mood.calm.reply" phrase="обсудим отдых от споров" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.calm.0034" topic="life.mood.calm" act="life.mood.calm.reply" phrase="есть мысли про отдых от споров" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.calm.0035" topic="life.mood.calm" act="life.mood.calm.reply" phrase="какое мнение про отдых от споров" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.calm.0036" topic="life.mood.calm" act="life.mood.calm.reply" phrase="что думаешь про мягкое переключение внимания" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.calm.0037" topic="life.mood.calm" act="life.mood.calm.reply" phrase="как тебе мягкое переключение внимания" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.calm.0038" topic="life.mood.calm" act="life.mood.calm.reply" phrase="обсудим мягкое переключение внимания" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.calm.0039" topic="life.mood.calm" act="life.mood.calm.reply" phrase="есть мысли про мягкое переключение внимания" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.calm.0040" topic="life.mood.calm" act="life.mood.calm.reply" phrase="какое мнение про мягкое переключение внимания" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.calm.0041" topic="life.mood.calm" act="life.mood.calm.reply" phrase="что думаешь про простую бытовую беседу" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.calm.0042" topic="life.mood.calm" act="life.mood.calm.reply" phrase="как тебе простую бытовую беседу" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.calm.0043" topic="life.mood.calm" act="life.mood.calm.reply" phrase="обсудим простую бытовую беседу" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.calm.0044" topic="life.mood.calm" act="life.mood.calm.reply" phrase="есть мысли про простую бытовую беседу" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.calm.0045" topic="life.mood.calm" act="life.mood.calm.reply" phrase="какое мнение про простую бытовую беседу" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.calm.0046" topic="life.mood.calm" act="life.mood.calm.reply" phrase="что думаешь про время собраться с мыслями" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.calm.0047" topic="life.mood.calm" act="life.mood.calm.reply" phrase="как тебе время собраться с мыслями" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.calm.0048" topic="life.mood.calm" act="life.mood.calm.reply" phrase="обсудим время собраться с мыслями" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.calm.0049" topic="life.mood.calm" act="life.mood.calm.reply" phrase="есть мысли про время собраться с мыслями" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.calm.0050" topic="life.mood.calm" act="life.mood.calm.reply" phrase="какое мнение про время собраться с мыслями" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.energy.0001" topic="life.mood.energy" act="life.mood.energy.reply" phrase="что думаешь про ощущение бодрости" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.energy.0002" topic="life.mood.energy" act="life.mood.energy.reply" phrase="как тебе ощущение бодрости" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.energy.0003" topic="life.mood.energy" act="life.mood.energy.reply" phrase="обсудим ощущение бодрости" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.energy.0004" topic="life.mood.energy" act="life.mood.energy.reply" phrase="есть мысли про ощущение бодрости" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.energy.0005" topic="life.mood.energy" act="life.mood.energy.reply" phrase="какое мнение про ощущение бодрости" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.energy.0006" topic="life.mood.energy" act="life.mood.energy.reply" phrase="что думаешь про нехватку сил" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.energy.0007" topic="life.mood.energy" act="life.mood.energy.reply" phrase="как тебе нехватку сил" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.energy.0008" topic="life.mood.energy" act="life.mood.energy.reply" phrase="обсудим нехватку сил" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.energy.0009" topic="life.mood.energy" act="life.mood.energy.reply" phrase="есть мысли про нехватку сил" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.energy.0010" topic="life.mood.energy" act="life.mood.energy.reply" phrase="какое мнение про нехватку сил" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.energy.0011" topic="life.mood.energy" act="life.mood.energy.reply" phrase="что думаешь про желание сделать паузу" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.energy.0012" topic="life.mood.energy" act="life.mood.energy.reply" phrase="как тебе желание сделать паузу" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.energy.0013" topic="life.mood.energy" act="life.mood.energy.reply" phrase="обсудим желание сделать паузу" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.energy.0014" topic="life.mood.energy" act="life.mood.energy.reply" phrase="есть мысли про желание сделать паузу" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.energy.0015" topic="life.mood.energy" act="life.mood.energy.reply" phrase="какое мнение про желание сделать паузу" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.energy.0016" topic="life.mood.energy" act="life.mood.energy.reply" phrase="что думаешь про собранность перед делом" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.energy.0017" topic="life.mood.energy" act="life.mood.energy.reply" phrase="как тебе собранность перед делом" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.energy.0018" topic="life.mood.energy" act="life.mood.energy.reply" phrase="обсудим собранность перед делом" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.energy.0019" topic="life.mood.energy" act="life.mood.energy.reply" phrase="есть мысли про собранность перед делом" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.energy.0020" topic="life.mood.energy" act="life.mood.energy.reply" phrase="какое мнение про собранность перед делом" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.energy.0021" topic="life.mood.energy" act="life.mood.energy.reply" phrase="что думаешь про обычный спад энергии" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.energy.0022" topic="life.mood.energy" act="life.mood.energy.reply" phrase="как тебе обычный спад энергии" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.energy.0023" topic="life.mood.energy" act="life.mood.energy.reply" phrase="обсудим обычный спад энергии" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.energy.0024" topic="life.mood.energy" act="life.mood.energy.reply" phrase="есть мысли про обычный спад энергии" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.energy.0025" topic="life.mood.energy" act="life.mood.energy.reply" phrase="какое мнение про обычный спад энергии" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.energy.0026" topic="life.mood.energy" act="life.mood.energy.reply" phrase="что думаешь про восстановление после отдыха" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.energy.0027" topic="life.mood.energy" act="life.mood.energy.reply" phrase="как тебе восстановление после отдыха" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.energy.0028" topic="life.mood.energy" act="life.mood.energy.reply" phrase="обсудим восстановление после отдыха" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.energy.0029" topic="life.mood.energy" act="life.mood.energy.reply" phrase="есть мысли про восстановление после отдыха" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.energy.0030" topic="life.mood.energy" act="life.mood.energy.reply" phrase="какое мнение про восстановление после отдыха" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.energy.0031" topic="life.mood.energy" act="life.mood.energy.reply" phrase="что думаешь про бережное отношение к себе" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.energy.0032" topic="life.mood.energy" act="life.mood.energy.reply" phrase="как тебе бережное отношение к себе" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.energy.0033" topic="life.mood.energy" act="life.mood.energy.reply" phrase="обсудим бережное отношение к себе" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.energy.0034" topic="life.mood.energy" act="life.mood.energy.reply" phrase="есть мысли про бережное отношение к себе" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.energy.0035" topic="life.mood.energy" act="life.mood.energy.reply" phrase="какое мнение про бережное отношение к себе" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.energy.0036" topic="life.mood.energy" act="life.mood.energy.reply" phrase="что думаешь про отказ геройствовать" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.energy.0037" topic="life.mood.energy" act="life.mood.energy.reply" phrase="как тебе отказ геройствовать" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.energy.0038" topic="life.mood.energy" act="life.mood.energy.reply" phrase="обсудим отказ геройствовать" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.energy.0039" topic="life.mood.energy" act="life.mood.energy.reply" phrase="есть мысли про отказ геройствовать" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.energy.0040" topic="life.mood.energy" act="life.mood.energy.reply" phrase="какое мнение про отказ геройствовать" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.energy.0041" topic="life.mood.energy" act="life.mood.energy.reply" phrase="что думаешь про маленький шаг вместо рывка" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.mood.pattern.energy.0042" topic="life.mood.energy" act="life.mood.energy.reply" phrase="как тебе маленький шаг вместо рывка" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.mood.pattern.energy.0043" topic="life.mood.energy" act="life.mood.energy.reply" phrase="обсудим маленький шаг вместо рывка" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.mood.pattern.energy.0044" topic="life.mood.energy" act="life.mood.energy.reply" phrase="есть мысли про маленький шаг вместо рывка" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.mood.pattern.energy.0045" topic="life.mood.energy" act="life.mood.energy.reply" phrase="какое мнение про маленький шаг вместо рывка" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.mood.pattern.energy.0046" topic="life.mood.energy" act="life.mood.energy.reply" phrase="что думаешь про разговор о ресурсе без диагнозов" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.mood.pattern.energy.0047" topic="life.mood.energy" act="life.mood.energy.reply" phrase="как тебе разговор о ресурсе без диагнозов" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.mood.pattern.energy.0048" topic="life.mood.energy" act="life.mood.energy.reply" phrase="обсудим разговор о ресурсе без диагнозов" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.mood.pattern.energy.0049" topic="life.mood.energy" act="life.mood.energy.reply" phrase="есть мысли про разговор о ресурсе без диагнозов" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.mood.pattern.energy.0050" topic="life.mood.energy" act="life.mood.energy.reply" phrase="какое мнение про разговор о ресурсе без диагнозов" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>

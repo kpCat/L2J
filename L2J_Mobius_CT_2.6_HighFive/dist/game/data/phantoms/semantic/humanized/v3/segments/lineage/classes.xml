@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.lineage.classes.semantic" version="3" category="lineage.classes">
+	<aliases>
+		<alias from="klass" to="класс" />
+		<alias from="klas" to="класс" />
+		<alias from="клсс" to="класс" />
+		<alias from="классс" to="класс" />
+		<alias from="profa" to="профа" />
+		<alias from="prof" to="профа" />
+		<alias from="прфа" to="профа" />
+		<alias from="профаа" to="профа" />
+		<alias from="sabklass" to="сабкласс" />
+		<alias from="sabklas" to="сабкласс" />
+		<alias from="сбкласс" to="сабкласс" />
+		<alias from="сабклассс" to="сабкласс" />
+		<alias from="rol" to="роль" />
+		<alias from="rolx" to="роль" />
+		<alias from="рль" to="роль" />
+		<alias from="рольь" to="роль" />
+	</aliases>
+	<patterns>
+		<pattern id="v3.lineage.classes.pattern.choice.0001" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="что думаешь про выбор класса" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.choice.0002" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="как тебе выбор класса" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.choice.0003" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="обсудим выбор класса" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.choice.0004" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="есть мысли про выбор класса" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.choice.0005" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="какое мнение про выбор класса" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.choice.0006" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="что думаешь про первое впечатление от профессии" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.choice.0007" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="как тебе первое впечатление от профессии" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.choice.0008" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="обсудим первое впечатление от профессии" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.choice.0009" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="есть мысли про первое впечатление от профессии" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.choice.0010" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="какое мнение про первое впечатление от профессии" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.choice.0011" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="что думаешь про удобство соло игры" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.choice.0012" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="как тебе удобство соло игры" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.choice.0013" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="обсудим удобство соло игры" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.choice.0014" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="есть мысли про удобство соло игры" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.choice.0015" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="какое мнение про удобство соло игры" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.choice.0016" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="что думаешь про интерес к новой роли" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.choice.0017" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="как тебе интерес к новой роли" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.choice.0018" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="обсудим интерес к новой роли" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.choice.0019" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="есть мысли про интерес к новой роли" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.choice.0020" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="какое мнение про интерес к новой роли" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.choice.0021" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="что думаешь про смену привычного стиля" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.choice.0022" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="как тебе смену привычного стиля" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.choice.0023" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="обсудим смену привычного стиля" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.choice.0024" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="есть мысли про смену привычного стиля" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.choice.0025" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="какое мнение про смену привычного стиля" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.choice.0026" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="что думаешь про сложность освоения класса" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.choice.0027" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="как тебе сложность освоения класса" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.choice.0028" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="обсудим сложность освоения класса" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.choice.0029" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="есть мысли про сложность освоения класса" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.choice.0030" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="какое мнение про сложность освоения класса" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.choice.0031" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="что думаешь про выбор по характеру игры" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.choice.0032" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="как тебе выбор по характеру игры" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.choice.0033" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="обсудим выбор по характеру игры" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.choice.0034" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="есть мысли про выбор по характеру игры" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.choice.0035" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="какое мнение про выбор по характеру игры" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.choice.0036" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="что думаешь про любимый тип боя" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.choice.0037" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="как тебе любимый тип боя" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.choice.0038" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="обсудим любимый тип боя" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.choice.0039" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="есть мысли про любимый тип боя" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.choice.0040" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="какое мнение про любимый тип боя" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.choice.0041" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="что думаешь про желание попробовать другое" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.choice.0042" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="как тебе желание попробовать другое" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.choice.0043" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="обсудим желание попробовать другое" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.choice.0044" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="есть мысли про желание попробовать другое" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.choice.0045" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="какое мнение про желание попробовать другое" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.choice.0046" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="что думаешь про решение не гнаться за модой" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.choice.0047" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="как тебе решение не гнаться за модой" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.choice.0048" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="обсудим решение не гнаться за модой" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.choice.0049" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="есть мысли про решение не гнаться за модой" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.choice.0050" topic="lineage.classes.choice" act="lineage.classes.choice.reply" phrase="какое мнение про решение не гнаться за модой" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.role.0001" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="что думаешь про роль класса в группе" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.role.0002" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="как тебе роль класса в группе" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.role.0003" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="обсудим роль класса в группе" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.role.0004" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="есть мысли про роль класса в группе" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.role.0005" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="какое мнение про роль класса в группе" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.role.0006" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="что думаешь про ожидания от саппорта" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.role.0007" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="как тебе ожидания от саппорта" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.role.0008" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="обсудим ожидания от саппорта" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.role.0009" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="есть мысли про ожидания от саппорта" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.role.0010" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="какое мнение про ожидания от саппорта" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.role.0011" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="что думаешь про задачи танка" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.role.0012" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="как тебе задачи танка" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.role.0013" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="обсудим задачи танка" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.role.0014" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="есть мысли про задачи танка" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.role.0015" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="какое мнение про задачи танка" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.role.0016" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="что думаешь про ответственность лекаря" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.role.0017" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="как тебе ответственность лекаря" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.role.0018" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="обсудим ответственность лекаря" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.role.0019" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="есть мысли про ответственность лекаря" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.role.0020" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="какое мнение про ответственность лекаря" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.role.0021" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="что думаешь про позицию дальнего бойца" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.role.0022" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="как тебе позицию дальнего бойца" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.role.0023" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="обсудим позицию дальнего бойца" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.role.0024" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="есть мысли про позицию дальнего бойца" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.role.0025" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="какое мнение про позицию дальнего бойца" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.role.0026" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="что думаешь про темп ближнего бойца" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.role.0027" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="как тебе темп ближнего бойца" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.role.0028" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="обсудим темп ближнего бойца" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.role.0029" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="есть мысли про темп ближнего бойца" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.role.0030" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="какое мнение про темп ближнего бойца" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.role.0031" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="что думаешь про работу призывателя" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.role.0032" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="как тебе работу призывателя" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.role.0033" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="обсудим работу призывателя" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.role.0034" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="есть мысли про работу призывателя" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.role.0035" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="какое мнение про работу призывателя" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.role.0036" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="что думаешь про контроль противника" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.role.0037" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="как тебе контроль противника" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.role.0038" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="обсудим контроль противника" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.role.0039" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="есть мысли про контроль противника" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.role.0040" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="какое мнение про контроль противника" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.role.0041" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="что думаешь про поддержку союзников" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.role.0042" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="как тебе поддержку союзников" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.role.0043" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="обсудим поддержку союзников" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.role.0044" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="есть мысли про поддержку союзников" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.role.0045" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="какое мнение про поддержку союзников" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.role.0046" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="что думаешь про понимание сильной стороны" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.role.0047" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="как тебе понимание сильной стороны" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.role.0048" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="обсудим понимание сильной стороны" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.role.0049" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="есть мысли про понимание сильной стороны" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.role.0050" topic="lineage.classes.role" act="lineage.classes.role.reply" phrase="какое мнение про понимание сильной стороны" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0001" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="что думаешь про неудобный бой для класса" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0002" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="как тебе неудобный бой для класса" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0003" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="обсудим неудобный бой для класса" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0004" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="есть мысли про неудобный бой для класса" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0005" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="какое мнение про неудобный бой для класса" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0006" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="что думаешь про встречу с контрролью" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0007" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="как тебе встречу с контрролью" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0008" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="обсудим встречу с контрролью" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0009" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="есть мысли про встречу с контрролью" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0010" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="какое мнение про встречу с контрролью" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0011" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="что думаешь про выбор дистанции" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0012" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="как тебе выбор дистанции" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0013" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="обсудим выбор дистанции" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0014" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="есть мысли про выбор дистанции" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0015" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="какое мнение про выбор дистанции" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0016" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="что думаешь про момент для отступления" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0017" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="как тебе момент для отступления" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0018" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="обсудим момент для отступления" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0019" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="есть мысли про момент для отступления" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0020" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="какое мнение про момент для отступления" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0021" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="что думаешь про силу в узкой ситуации" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0022" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="как тебе силу в узкой ситуации" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0023" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="обсудим силу в узкой ситуации" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0024" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="есть мысли про силу в узкой ситуации" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0025" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="какое мнение про силу в узкой ситуации" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0026" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="что думаешь про слабость без поддержки" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0027" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="как тебе слабость без поддержки" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0028" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="обсудим слабость без поддержки" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0029" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="есть мысли про слабость без поддержки" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0030" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="какое мнение про слабость без поддержки" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0031" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="что думаешь про игру против быстрых целей" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0032" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="как тебе игру против быстрых целей" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0033" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="обсудим игру против быстрых целей" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0034" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="есть мысли про игру против быстрых целей" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0035" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="какое мнение про игру против быстрых целей" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0036" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="что думаешь про давление на лекаря" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0037" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="как тебе давление на лекаря" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0038" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="обсудим давление на лекаря" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0039" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="есть мысли про давление на лекаря" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0040" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="какое мнение про давление на лекаря" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0041" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="что думаешь про защиту от контроля" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0042" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="как тебе защиту от контроля" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0043" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="обсудим защиту от контроля" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0044" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="есть мысли про защиту от контроля" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0045" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="какое мнение про защиту от контроля" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0046" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="что думаешь про смену тактики по сопернику" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0047" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="как тебе смену тактики по сопернику" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0048" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="обсудим смену тактики по сопернику" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0049" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="есть мысли про смену тактики по сопернику" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.matchup.0050" topic="lineage.classes.matchup" act="lineage.classes.matchup.reply" phrase="какое мнение про смену тактики по сопернику" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.build.0001" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="что думаешь про набор умений" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.build.0002" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="как тебе набор умений" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.build.0003" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="обсудим набор умений" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.build.0004" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="есть мысли про набор умений" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.build.0005" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="какое мнение про набор умений" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.build.0006" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="что думаешь про привычную панель" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.build.0007" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="как тебе привычную панель" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.build.0008" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="обсудим привычную панель" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.build.0009" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="есть мысли про привычную панель" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.build.0010" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="какое мнение про привычную панель" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.build.0011" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="что думаешь про порядок нажатий" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.build.0012" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="как тебе порядок нажатий" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.build.0013" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="обсудим порядок нажатий" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.build.0014" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="есть мысли про порядок нажатий" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.build.0015" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="какое мнение про порядок нажатий" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.build.0016" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="что думаешь про выбор экипировки под роль" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.build.0017" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="как тебе выбор экипировки под роль" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.build.0018" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="обсудим выбор экипировки под роль" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.build.0019" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="есть мысли про выбор экипировки под роль" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.build.0020" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="какое мнение про выбор экипировки под роль" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.build.0021" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="что думаешь про запас расходников" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.build.0022" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="как тебе запас расходников" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.build.0023" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="обсудим запас расходников" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.build.0024" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="есть мысли про запас расходников" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.build.0025" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="какое мнение про запас расходников" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.build.0026" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="что думаешь про тренировку ротации" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.build.0027" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="как тебе тренировку ротации" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.build.0028" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="обсудим тренировку ротации" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.build.0029" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="есть мысли про тренировку ротации" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.build.0030" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="какое мнение про тренировку ротации" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.build.0031" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="что думаешь про ошибки в управлении" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.build.0032" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="как тебе ошибки в управлении" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.build.0033" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="обсудим ошибки в управлении" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.build.0034" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="есть мысли про ошибки в управлении" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.build.0035" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="какое мнение про ошибки в управлении" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.build.0036" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="что думаешь про удобные горячие клавиши" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.build.0037" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="как тебе удобные горячие клавиши" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.build.0038" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="обсудим удобные горячие клавиши" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.build.0039" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="есть мысли про удобные горячие клавиши" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.build.0040" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="какое мнение про удобные горячие клавиши" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.build.0041" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="что думаешь про подготовку к группе" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.classes.pattern.build.0042" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="как тебе подготовку к группе" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.classes.pattern.build.0043" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="обсудим подготовку к группе" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.classes.pattern.build.0044" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="есть мысли про подготовку к группе" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.classes.pattern.build.0045" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="какое мнение про подготовку к группе" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.classes.pattern.build.0046" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="что думаешь про личный стиль класса" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.classes.pattern.build.0047" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="как тебе личный стиль класса" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.classes.pattern.build.0048" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="обсудим личный стиль класса" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.classes.pattern.build.0049" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="есть мысли про личный стиль класса" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.classes.pattern.build.0050" topic="lineage.classes.build" act="lineage.classes.build.reply" phrase="какое мнение про личный стиль класса" salience="435" ttlMinutes="0" priority="545" />
+	</patterns>
+</humanizedV3SemanticSegment>
