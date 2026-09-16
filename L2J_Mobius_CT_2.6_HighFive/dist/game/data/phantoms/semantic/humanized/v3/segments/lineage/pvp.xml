@@ -19,205 +19,205 @@
 		<alias from="кармаа" to="карма" />
 	</aliases>
 	<patterns>
-		<pattern id="v3.lineage.pvp.pattern.duel.0001" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="что думаешь про честную дуэль" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0002" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="как тебе честную дуэль" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0003" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="обсудим честную дуэль" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0004" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="есть мысли про честную дуэль" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0005" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="какое мнение про честную дуэль" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0006" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="что думаешь про вызов один на один" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0007" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="как тебе вызов один на один" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0008" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="обсудим вызов один на один" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0009" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="есть мысли про вызов один на один" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0010" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="какое мнение про вызов один на один" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0011" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="что думаешь про правила перед боем" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0012" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="как тебе правила перед боем" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0013" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="обсудим правила перед боем" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0014" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="есть мысли про правила перед боем" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0015" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="какое мнение про правила перед боем" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0016" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="что думаешь про начало по готовности" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0017" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="как тебе начало по готовности" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0018" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="обсудим начало по готовности" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0019" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="есть мысли про начало по готовности" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0020" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="какое мнение про начало по готовности" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0021" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="что думаешь про остановку после результата" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0022" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="как тебе остановку после результата" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0023" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="обсудим остановку после результата" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0024" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="есть мысли про остановку после результата" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0025" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="какое мнение про остановку после результата" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0026" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="что думаешь про повторный поединок" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0027" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="как тебе повторный поединок" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0028" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="обсудим повторный поединок" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0029" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="есть мысли про повторный поединок" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0030" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="какое мнение про повторный поединок" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0031" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="что думаешь про уважение к сопернику" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0032" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="как тебе уважение к сопернику" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0033" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="обсудим уважение к сопернику" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0034" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="есть мысли про уважение к сопернику" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0035" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="какое мнение про уважение к сопернику" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0036" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="что думаешь про бой без вмешательства" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0037" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="как тебе бой без вмешательства" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0038" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="обсудим бой без вмешательства" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0039" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="есть мысли про бой без вмешательства" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0040" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="какое мнение про бой без вмешательства" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0041" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="что думаешь про разговор после дуэли" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0042" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="как тебе разговор после дуэли" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0043" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="обсудим разговор после дуэли" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0044" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="есть мысли про разговор после дуэли" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0045" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="какое мнение про разговор после дуэли" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0046" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="что думаешь про отказ от вызова" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0047" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="как тебе отказ от вызова" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0048" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="обсудим отказ от вызова" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0049" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="есть мысли про отказ от вызова" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.duel.0050" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="какое мнение про отказ от вызова" salience="435" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0001" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="что думаешь про выбор дистанции в игре" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0002" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="как тебе выбор дистанции в игре" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0003" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="обсудим выбор дистанции в игре" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0004" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="есть мысли про выбор дистанции в игре" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0005" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="какое мнение про выбор дистанции в игре" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0006" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="что думаешь про смену цели" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0007" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="как тебе смену цели" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0008" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="обсудим смену цели" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0009" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="есть мысли про смену цели" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0010" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="какое мнение про смену цели" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0011" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="что думаешь про контроль поля" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0012" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="как тебе контроль поля" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0013" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="обсудим контроль поля" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0014" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="есть мысли про контроль поля" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0015" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="какое мнение про контроль поля" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0016" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="что думаешь про момент для рывка" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0017" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="как тебе момент для рывка" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0018" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="обсудим момент для рывка" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0019" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="есть мысли про момент для рывка" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0020" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="какое мнение про момент для рывка" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0021" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="что думаешь про отход под давлением" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0022" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="как тебе отход под давлением" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0023" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="обсудим отход под давлением" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0024" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="есть мысли про отход под давлением" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0025" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="какое мнение про отход под давлением" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0026" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="что думаешь про работу с союзниками" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0027" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="как тебе работу с союзниками" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0028" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="обсудим работу с союзниками" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0029" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="есть мысли про работу с союзниками" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0030" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="какое мнение про работу с союзниками" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0031" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="что думаешь про ошибку в позиции" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0032" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="как тебе ошибку в позиции" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0033" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="обсудим ошибку в позиции" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0034" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="есть мысли про ошибку в позиции" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0035" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="какое мнение про ошибку в позиции" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0036" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="что думаешь про ответ на контроль" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0037" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="как тебе ответ на контроль" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0038" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="обсудим ответ на контроль" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0039" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="есть мысли про ответ на контроль" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0040" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="какое мнение про ответ на контроль" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0041" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="что думаешь про бережное использование умений" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0042" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="как тебе бережное использование умений" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0043" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="обсудим бережное использование умений" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0044" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="есть мысли про бережное использование умений" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0045" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="какое мнение про бережное использование умений" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0046" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="что думаешь про чтение действий соперника" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0047" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="как тебе чтение действий соперника" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0048" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="обсудим чтение действий соперника" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0049" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="есть мысли про чтение действий соперника" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.tactics.0050" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="какое мнение про чтение действий соперника" salience="435" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0001" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="что думаешь про риск получить карму" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0002" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="как тебе риск получить карму" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0003" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="обсудим риск получить карму" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0004" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть мысли про риск получить карму" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0005" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="какое мнение про риск получить карму" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0006" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="что думаешь про случайный флаг" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0007" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="как тебе случайный флаг" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0008" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="обсудим случайный флаг" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0009" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть мысли про случайный флаг" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0010" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="какое мнение про случайный флаг" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0011" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="что думаешь про лишнюю погоню" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0012" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="как тебе лишнюю погоню" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0013" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="обсудим лишнюю погоню" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0014" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть мысли про лишнюю погоню" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0015" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="какое мнение про лишнюю погоню" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0016" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="что думаешь про опасный размен" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0017" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="как тебе опасный размен" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0018" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="обсудим опасный размен" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0019" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть мысли про опасный размен" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0020" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="какое мнение про опасный размен" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0021" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="что думаешь про бой без подготовки" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0022" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="как тебе бой без подготовки" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0023" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="обсудим бой без подготовки" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0024" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть мысли про бой без подготовки" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0025" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="какое мнение про бой без подготовки" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0026" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="что думаешь про цену смерти" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0027" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="как тебе цену смерти" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0028" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="обсудим цену смерти" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0029" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть мысли про цену смерти" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0030" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="какое мнение про цену смерти" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0031" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="что думаешь про решение отступить" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0032" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="как тебе решение отступить" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0033" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="обсудим решение отступить" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0034" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть мысли про решение отступить" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0035" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="какое мнение про решение отступить" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0036" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="что думаешь про вмешательство третьих лиц" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0037" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="как тебе вмешательство третьих лиц" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0038" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="обсудим вмешательство третьих лиц" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0039" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть мысли про вмешательство третьих лиц" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0040" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="какое мнение про вмешательство третьих лиц" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0041" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="что думаешь про границу преследования" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0042" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="как тебе границу преследования" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0043" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="обсудим границу преследования" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0044" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть мысли про границу преследования" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0045" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="какое мнение про границу преследования" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0046" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="что думаешь про спокойную оценку риска" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0047" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="как тебе спокойную оценку риска" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0048" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="обсудим спокойную оценку риска" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0049" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть мысли про спокойную оценку риска" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.risk.0050" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="какое мнение про спокойную оценку риска" salience="435" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0001" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="что думаешь про уважение после боя" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0002" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="как тебе уважение после боя" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0003" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="обсудим уважение после боя" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0004" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="есть мысли про уважение после боя" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0005" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="какое мнение про уважение после боя" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0006" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="что думаешь про признание сильной игры" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0007" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="как тебе признание сильной игры" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0008" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="обсудим признание сильной игры" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0009" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="есть мысли про признание сильной игры" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0010" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="какое мнение про признание сильной игры" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0011" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="что думаешь про спорный результат" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0012" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="как тебе спорный результат" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0013" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="обсудим спорный результат" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0014" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="есть мысли про спорный результат" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0015" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="какое мнение про спорный результат" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0016" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="что думаешь про реванш без оскорблений" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0017" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="как тебе реванш без оскорблений" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0018" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="обсудим реванш без оскорблений" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0019" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="есть мысли про реванш без оскорблений" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0020" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="какое мнение про реванш без оскорблений" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0021" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="что думаешь про разбор своей ошибки" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0022" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="как тебе разбор своей ошибки" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0023" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="обсудим разбор своей ошибки" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0024" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="есть мысли про разбор своей ошибки" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0025" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="какое мнение про разбор своей ошибки" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0026" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="что думаешь про шутку после поражения" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0027" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="как тебе шутку после поражения" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0028" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="обсудим шутку после поражения" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0029" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="есть мысли про шутку после поражения" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0030" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="какое мнение про шутку после поражения" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0031" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="что думаешь про похвалу сопернику" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0032" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="как тебе похвалу сопернику" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0033" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="обсудим похвалу сопернику" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0034" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="есть мысли про похвалу сопернику" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0035" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="какое мнение про похвалу сопернику" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0036" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="что думаешь про отказ от травли" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0037" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="как тебе отказ от травли" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0038" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="обсудим отказ от травли" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0039" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="есть мысли про отказ от травли" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0040" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="какое мнение про отказ от травли" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0041" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="что думаешь про разницу между боем и обидой" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0042" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="как тебе разницу между боем и обидой" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0043" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="обсудим разницу между боем и обидой" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0044" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="есть мысли про разницу между боем и обидой" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0045" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="какое мнение про разницу между боем и обидой" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0046" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="что думаешь про честное завершение конфликта" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0047" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="как тебе честное завершение конфликта" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0048" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="обсудим честное завершение конфликта" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0049" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="есть мысли про честное завершение конфликта" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.lineage.pvp.pattern.respect.0050" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="какое мнение про честное завершение конфликта" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0001" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="го дуэль" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0002" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="выйдешь один на один?" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0003" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="без банок дерёмся?" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0004" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="давай реванш" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0005" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="ещё один бой" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0006" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="дуэль до первого фрага" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0007" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="не убегай с арены" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0008" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="принимай вызов" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0009" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="готов подраться" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0010" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="кто хочет проверить билд" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0011" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="выйдем за город" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0012" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="бафы оставляем?" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0013" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="с питомцами или без" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0014" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="правила дуэли какие" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0015" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="начинаем по отсчёту" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0016" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="не бей раньше времени" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0017" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="я ещё не готов" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0018" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="секунду перезарядка" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0019" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="сейчас приму" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0020" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="вызов не пришёл" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0021" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="ты отменил дуэль?" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0022" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="давай без зрителей" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0023" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="смотрим честный один на один" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0024" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="хочу проверить урон" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0025" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="тестим новый сет" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0026" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="не добивай после теста" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0027" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="это тренировочный бой" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0028" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="кто судит результат" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0029" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="лагнул в начале" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0030" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="повторим нормально" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0031" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="не засчитывай этот раунд" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0032" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="ты победил честно" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0033" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="мой раунд" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0034" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="счёт один один" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0035" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="решающий бой" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0036" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="хватит реваншей" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0037" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="остановимся на трёх" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0038" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="в дуэли без личных оскорблений" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0039" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="это просто дуэль" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0040" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="хороший файт" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0041" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="жёстко попал" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0042" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="почти дожал тебя" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0043" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="красиво увернулся" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0044" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="не ожидал такого" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0045" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="билд реально работает" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0046" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="мне надо потренироваться" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0047" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="в следующий раз возьму" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0048" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="спасибо за бой" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0049" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="руки пожали" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.duel.0050" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="дуэль закрыта" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0001" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="кого фокусим первым" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0002" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="держим саппорта" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0003" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="не растягивайтесь" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0004" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="соберитесь на метке" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0005" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="заходим с фланга" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0006" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="не бегите по одному" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0007" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="ждём откат умений" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0008" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="снимаем вражеский баф" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0009" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="танк начинает" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0010" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="дд не спешат" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0011" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="хил под прикрытием" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0012" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="кто держит контроль" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0013" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="сбивайте каст" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0014" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="не стойте кучно" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0015" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="разойдитесь от аое" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0016" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="отступаем к проходу" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0017" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="не гонимся далеко" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0018" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="сохраняйте ману" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0019" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="выбиваем защитные умения" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0020" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="переключаем цель" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0021" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="метка сменилась" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0022" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="цель уже мертва" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0023" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="смотрите по ассисту" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0024" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="не ломайте построение" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0025" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="держите дистанцию" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0026" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="милишники ждут вход" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0027" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="луки на возвышении" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0028" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="магам нужен обзор" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0029" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="закройте тыл" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0030" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="слева обходят" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0031" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="справа пусто" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0032" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="центр не отдаём" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0033" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="зажимаем у стены" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0034" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="не стойте в дверях" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0035" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="пропустите танка" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0036" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="хил без маны" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0037" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="саппорт в контроле" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0038" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="снимите дебаф" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0039" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="у них откатился сейв" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0040" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="готовим второй заход" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0041" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="первый вход провалился" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0042" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="перегруппировка" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0043" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="считаю до трёх" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0044" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="все готовы?" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0045" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="не кричите одновременно" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0046" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="команды только от лидера" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0047" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="вижу хорошее окно" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0048" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="заходим сейчас" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0049" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="отходим вместе" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.tactics.0050" topic="lineage.pvp.tactics" act="lineage.pvp.tactics.reply" phrase="тактика сработала" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0001" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="там вдвое больше врагов" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0002" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="не лезем без разведки" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0003" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="красные уже рядом" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0004" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="можем потерять баф" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0005" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="дропа не боитесь?" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0006" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="на нас охота" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0007" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="это ловушка" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0008" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="выход перекрыт" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0009" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="телепорт может не спасти" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0010" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="не флагайтесь случайно" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0011" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="проверьте карму" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0012" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="я не хочу пк" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0013" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="цель слишком далеко" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0014" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="погоня опасная" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0015" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="у них подкрепление" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0016" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="наших меньше" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0017" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="ресы закончились" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0018" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="хилы без маны" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0019" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="отступать уже поздно?" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0020" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть путь назад" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0021" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="прикройте отход" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0022" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="не бросайте отставших" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0023" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="лучше отдать точку" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0024" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="сохраним состав" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0025" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="это не наш бой" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0026" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="можем принять бой здесь" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0027" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="позиция плохая" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0028" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="в узком месте шанс есть" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0029" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="разведчик не отвечает" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0030" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="ждём информацию" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0031" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="не верьте приманке" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0032" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="они тянут нас в засаду" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0033" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="флаг истекает" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0034" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="не бейте нейтралов" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0035" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="кто начал конфликт" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0036" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="есть свидетели" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0037" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="не раздувайте войну" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0038" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="один килл того не стоит" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0039" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="клану будет хуже" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0040" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="уходим без провокации" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0041" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="если ударят отвечаем?" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0042" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="защищаемся вместе" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0043" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="не мстим случайным людям" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0044" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="риск слишком высокий" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0045" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="награда маленькая" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0046" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="план не окупается" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0047" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="бой можно избежать" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0048" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="решение за группой" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0049" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="отходим сейчас" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.risk.0050" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="все вышли?" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0001" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="гг хороший бой" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0002" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="красиво сыграли" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0003" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="сильный соперник" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0004" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="без обид" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0005" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="это было честно" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0006" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="признаю поражение" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0007" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="заслуженная победа" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0008" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="реванш потом" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0009" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="не спамьте проигравшим" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0010" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="не унижайте новичка" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0011" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="хватит смеяться над ним" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0012" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="в пвп ошибки случаются у всех" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0013" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="подскажем после боя" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0014" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="не учите во время драки" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0015" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="совет попросили?" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0016" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="без токсичности пожалуйста" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0017" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="не трогайте семью" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0018" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="оскорбления лишние" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0019" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="обсуждаем только игру" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0020" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="не преследуй после победы" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0021" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="дай им подняться" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0022" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="реснули и разошлись" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0023" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="не кемпите точку" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0024" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="это уже травля" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0025" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="остановитесь" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0026" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="победа ничего не доказывает вне боя" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0027" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="поражение не делает тебя слабаком" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0028" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="спасибо соперникам" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0029" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="они хорошо держались" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0030" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="бой был близкий" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0031" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="нам повезло с моментом" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0032" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="у них был лаг" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0033" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="повторим при равных условиях" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0034" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="не оправдываемся бесконечно" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0035" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="счёт на табло" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0036" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="разберём свои ошибки" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0037" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="чужие ошибки не высмеиваем" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0038" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="похвалите хила" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0039" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="танк выдержал всё" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0040" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="дд поймал тайминг" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0041" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="лидер хорошо командовал" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0042" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="команда не развалилась" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0043" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="проиграли вместе" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0044" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="выиграли вместе" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0045" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="никаких крайних" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0046" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="извини за резкость" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0047" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="принято проехали" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0048" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="до следующего боя" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0049" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="удачи на арене" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.lineage.pvp.pattern.respect.0050" topic="lineage.pvp.respect" act="lineage.pvp.respect.reply" phrase="закрыли спор" salience="435" ttlMinutes="0" priority="545" />
 	</patterns>
 </humanizedV3SemanticSegment>

@@ -19,205 +19,205 @@
 		<alias from="вкусс" to="вкус" />
 	</aliases>
 	<patterns>
-		<pattern id="v3.life.food.pattern.taste.0001" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь про любимый вкус" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.taste.0002" topic="life.food.taste" act="life.food.taste.reply" phrase="как тебе любимый вкус" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.taste.0003" topic="life.food.taste" act="life.food.taste.reply" phrase="обсудим любимый вкус" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.taste.0004" topic="life.food.taste" act="life.food.taste.reply" phrase="есть мысли про любимый вкус" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.taste.0005" topic="life.food.taste" act="life.food.taste.reply" phrase="какое мнение про любимый вкус" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.taste.0006" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь про спор о сладком" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.taste.0007" topic="life.food.taste" act="life.food.taste.reply" phrase="как тебе спор о сладком" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.taste.0008" topic="life.food.taste" act="life.food.taste.reply" phrase="обсудим спор о сладком" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.taste.0009" topic="life.food.taste" act="life.food.taste.reply" phrase="есть мысли про спор о сладком" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.taste.0010" topic="life.food.taste" act="life.food.taste.reply" phrase="какое мнение про спор о сладком" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.taste.0011" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь про отношение к острому" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.taste.0012" topic="life.food.taste" act="life.food.taste.reply" phrase="как тебе отношение к острому" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.taste.0013" topic="life.food.taste" act="life.food.taste.reply" phrase="обсудим отношение к острому" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.taste.0014" topic="life.food.taste" act="life.food.taste.reply" phrase="есть мысли про отношение к острому" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.taste.0015" topic="life.food.taste" act="life.food.taste.reply" phrase="какое мнение про отношение к острому" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.taste.0016" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь про простую домашнюю еду" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.taste.0017" topic="life.food.taste" act="life.food.taste.reply" phrase="как тебе простую домашнюю еду" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.taste.0018" topic="life.food.taste" act="life.food.taste.reply" phrase="обсудим простую домашнюю еду" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.taste.0019" topic="life.food.taste" act="life.food.taste.reply" phrase="есть мысли про простую домашнюю еду" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.taste.0020" topic="life.food.taste" act="life.food.taste.reply" phrase="какое мнение про простую домашнюю еду" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.taste.0021" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь про необычное сочетание" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.taste.0022" topic="life.food.taste" act="life.food.taste.reply" phrase="как тебе необычное сочетание" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.taste.0023" topic="life.food.taste" act="life.food.taste.reply" phrase="обсудим необычное сочетание" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.taste.0024" topic="life.food.taste" act="life.food.taste.reply" phrase="есть мысли про необычное сочетание" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.taste.0025" topic="life.food.taste" act="life.food.taste.reply" phrase="какое мнение про необычное сочетание" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.taste.0026" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь про солёный перекус" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.taste.0027" topic="life.food.taste" act="life.food.taste.reply" phrase="как тебе солёный перекус" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.taste.0028" topic="life.food.taste" act="life.food.taste.reply" phrase="обсудим солёный перекус" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.taste.0029" topic="life.food.taste" act="life.food.taste.reply" phrase="есть мысли про солёный перекус" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.taste.0030" topic="life.food.taste" act="life.food.taste.reply" phrase="какое мнение про солёный перекус" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.taste.0031" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь про лёгкий завтрак" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.taste.0032" topic="life.food.taste" act="life.food.taste.reply" phrase="как тебе лёгкий завтрак" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.taste.0033" topic="life.food.taste" act="life.food.taste.reply" phrase="обсудим лёгкий завтрак" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.taste.0034" topic="life.food.taste" act="life.food.taste.reply" phrase="есть мысли про лёгкий завтрак" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.taste.0035" topic="life.food.taste" act="life.food.taste.reply" phrase="какое мнение про лёгкий завтрак" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.taste.0036" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь про плотный ужин" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.taste.0037" topic="life.food.taste" act="life.food.taste.reply" phrase="как тебе плотный ужин" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.taste.0038" topic="life.food.taste" act="life.food.taste.reply" phrase="обсудим плотный ужин" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.taste.0039" topic="life.food.taste" act="life.food.taste.reply" phrase="есть мысли про плотный ужин" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.taste.0040" topic="life.food.taste" act="life.food.taste.reply" phrase="какое мнение про плотный ужин" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.taste.0041" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь про знакомое блюдо" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.taste.0042" topic="life.food.taste" act="life.food.taste.reply" phrase="как тебе знакомое блюдо" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.taste.0043" topic="life.food.taste" act="life.food.taste.reply" phrase="обсудим знакомое блюдо" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.taste.0044" topic="life.food.taste" act="life.food.taste.reply" phrase="есть мысли про знакомое блюдо" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.taste.0045" topic="life.food.taste" act="life.food.taste.reply" phrase="какое мнение про знакомое блюдо" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.taste.0046" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь про еду без лишней моды" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.taste.0047" topic="life.food.taste" act="life.food.taste.reply" phrase="как тебе еду без лишней моды" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.taste.0048" topic="life.food.taste" act="life.food.taste.reply" phrase="обсудим еду без лишней моды" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.taste.0049" topic="life.food.taste" act="life.food.taste.reply" phrase="есть мысли про еду без лишней моды" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.taste.0050" topic="life.food.taste" act="life.food.taste.reply" phrase="какое мнение про еду без лишней моды" salience="435" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.choice.0001" topic="life.food.choice" act="life.food.choice.reply" phrase="что думаешь про выбор между блюдами" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.choice.0002" topic="life.food.choice" act="life.food.choice.reply" phrase="как тебе выбор между блюдами" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.choice.0003" topic="life.food.choice" act="life.food.choice.reply" phrase="обсудим выбор между блюдами" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.choice.0004" topic="life.food.choice" act="life.food.choice.reply" phrase="есть мысли про выбор между блюдами" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.choice.0005" topic="life.food.choice" act="life.food.choice.reply" phrase="какое мнение про выбор между блюдами" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.choice.0006" topic="life.food.choice" act="life.food.choice.reply" phrase="что думаешь про идею для перекуса" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.choice.0007" topic="life.food.choice" act="life.food.choice.reply" phrase="как тебе идею для перекуса" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.choice.0008" topic="life.food.choice" act="life.food.choice.reply" phrase="обсудим идею для перекуса" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.choice.0009" topic="life.food.choice" act="life.food.choice.reply" phrase="есть мысли про идею для перекуса" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.choice.0010" topic="life.food.choice" act="life.food.choice.reply" phrase="какое мнение про идею для перекуса" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.choice.0011" topic="life.food.choice" act="life.food.choice.reply" phrase="что думаешь про еду на ходу" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.choice.0012" topic="life.food.choice" act="life.food.choice.reply" phrase="как тебе еду на ходу" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.choice.0013" topic="life.food.choice" act="life.food.choice.reply" phrase="обсудим еду на ходу" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.choice.0014" topic="life.food.choice" act="life.food.choice.reply" phrase="есть мысли про еду на ходу" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.choice.0015" topic="life.food.choice" act="life.food.choice.reply" phrase="какое мнение про еду на ходу" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.choice.0016" topic="life.food.choice" act="life.food.choice.reply" phrase="что думаешь про что-нибудь тёплое" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.choice.0017" topic="life.food.choice" act="life.food.choice.reply" phrase="как тебе что-нибудь тёплое" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.choice.0018" topic="life.food.choice" act="life.food.choice.reply" phrase="обсудим что-нибудь тёплое" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.choice.0019" topic="life.food.choice" act="life.food.choice.reply" phrase="есть мысли про что-нибудь тёплое" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.choice.0020" topic="life.food.choice" act="life.food.choice.reply" phrase="какое мнение про что-нибудь тёплое" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.choice.0021" topic="life.food.choice" act="life.food.choice.reply" phrase="что думаешь про быстрый вариант" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.choice.0022" topic="life.food.choice" act="life.food.choice.reply" phrase="как тебе быстрый вариант" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.choice.0023" topic="life.food.choice" act="life.food.choice.reply" phrase="обсудим быстрый вариант" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.choice.0024" topic="life.food.choice" act="life.food.choice.reply" phrase="есть мысли про быстрый вариант" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.choice.0025" topic="life.food.choice" act="life.food.choice.reply" phrase="какое мнение про быстрый вариант" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.choice.0026" topic="life.food.choice" act="life.food.choice.reply" phrase="что думаешь про заказ без долгих раздумий" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.choice.0027" topic="life.food.choice" act="life.food.choice.reply" phrase="как тебе заказ без долгих раздумий" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.choice.0028" topic="life.food.choice" act="life.food.choice.reply" phrase="обсудим заказ без долгих раздумий" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.choice.0029" topic="life.food.choice" act="life.food.choice.reply" phrase="есть мысли про заказ без долгих раздумий" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.choice.0030" topic="life.food.choice" act="life.food.choice.reply" phrase="какое мнение про заказ без долгих раздумий" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.choice.0031" topic="life.food.choice" act="life.food.choice.reply" phrase="что думаешь про простое меню" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.choice.0032" topic="life.food.choice" act="life.food.choice.reply" phrase="как тебе простое меню" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.choice.0033" topic="life.food.choice" act="life.food.choice.reply" phrase="обсудим простое меню" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.choice.0034" topic="life.food.choice" act="life.food.choice.reply" phrase="есть мысли про простое меню" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.choice.0035" topic="life.food.choice" act="life.food.choice.reply" phrase="какое мнение про простое меню" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.choice.0036" topic="life.food.choice" act="life.food.choice.reply" phrase="что думаешь про желание попробовать новое" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.choice.0037" topic="life.food.choice" act="life.food.choice.reply" phrase="как тебе желание попробовать новое" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.choice.0038" topic="life.food.choice" act="life.food.choice.reply" phrase="обсудим желание попробовать новое" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.choice.0039" topic="life.food.choice" act="life.food.choice.reply" phrase="есть мысли про желание попробовать новое" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.choice.0040" topic="life.food.choice" act="life.food.choice.reply" phrase="какое мнение про желание попробовать новое" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.choice.0041" topic="life.food.choice" act="life.food.choice.reply" phrase="что думаешь про выбор по настроению" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.choice.0042" topic="life.food.choice" act="life.food.choice.reply" phrase="как тебе выбор по настроению" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.choice.0043" topic="life.food.choice" act="life.food.choice.reply" phrase="обсудим выбор по настроению" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.choice.0044" topic="life.food.choice" act="life.food.choice.reply" phrase="есть мысли про выбор по настроению" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.choice.0045" topic="life.food.choice" act="life.food.choice.reply" phrase="какое мнение про выбор по настроению" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.choice.0046" topic="life.food.choice" act="life.food.choice.reply" phrase="что думаешь про компромисс между вкусом и временем" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.choice.0047" topic="life.food.choice" act="life.food.choice.reply" phrase="как тебе компромисс между вкусом и временем" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.choice.0048" topic="life.food.choice" act="life.food.choice.reply" phrase="обсудим компромисс между вкусом и временем" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.choice.0049" topic="life.food.choice" act="life.food.choice.reply" phrase="есть мысли про компромисс между вкусом и временем" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.choice.0050" topic="life.food.choice" act="life.food.choice.reply" phrase="какое мнение про компромисс между вкусом и временем" salience="435" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.cooking.0001" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что думаешь про домашнюю готовку" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.cooking.0002" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как тебе домашнюю готовку" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.cooking.0003" topic="life.food.cooking" act="life.food.cooking.reply" phrase="обсудим домашнюю готовку" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.cooking.0004" topic="life.food.cooking" act="life.food.cooking.reply" phrase="есть мысли про домашнюю готовку" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.cooking.0005" topic="life.food.cooking" act="life.food.cooking.reply" phrase="какое мнение про домашнюю готовку" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.cooking.0006" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что думаешь про простой рецепт без деталей" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.cooking.0007" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как тебе простой рецепт без деталей" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.cooking.0008" topic="life.food.cooking" act="life.food.cooking.reply" phrase="обсудим простой рецепт без деталей" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.cooking.0009" topic="life.food.cooking" act="life.food.cooking.reply" phrase="есть мысли про простой рецепт без деталей" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.cooking.0010" topic="life.food.cooking" act="life.food.cooking.reply" phrase="какое мнение про простой рецепт без деталей" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.cooking.0011" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что думаешь про кухонные эксперименты" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.cooking.0012" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как тебе кухонные эксперименты" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.cooking.0013" topic="life.food.cooking" act="life.food.cooking.reply" phrase="обсудим кухонные эксперименты" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.cooking.0014" topic="life.food.cooking" act="life.food.cooking.reply" phrase="есть мысли про кухонные эксперименты" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.cooking.0015" topic="life.food.cooking" act="life.food.cooking.reply" phrase="какое мнение про кухонные эксперименты" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.cooking.0016" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что думаешь про ошибку с приправами" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.cooking.0017" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как тебе ошибку с приправами" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.cooking.0018" topic="life.food.cooking" act="life.food.cooking.reply" phrase="обсудим ошибку с приправами" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.cooking.0019" topic="life.food.cooking" act="life.food.cooking.reply" phrase="есть мысли про ошибку с приправами" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.cooking.0020" topic="life.food.cooking" act="life.food.cooking.reply" phrase="какое мнение про ошибку с приправами" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.cooking.0021" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что думаешь про запах свежей еды" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.cooking.0022" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как тебе запах свежей еды" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.cooking.0023" topic="life.food.cooking" act="life.food.cooking.reply" phrase="обсудим запах свежей еды" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.cooking.0024" topic="life.food.cooking" act="life.food.cooking.reply" phrase="есть мысли про запах свежей еды" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.cooking.0025" topic="life.food.cooking" act="life.food.cooking.reply" phrase="какое мнение про запах свежей еды" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.cooking.0026" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что думаешь про совместную готовку" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.cooking.0027" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как тебе совместную готовку" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.cooking.0028" topic="life.food.cooking" act="life.food.cooking.reply" phrase="обсудим совместную готовку" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.cooking.0029" topic="life.food.cooking" act="life.food.cooking.reply" phrase="есть мысли про совместную готовку" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.cooking.0030" topic="life.food.cooking" act="life.food.cooking.reply" phrase="какое мнение про совместную готовку" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.cooking.0031" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что думаешь про порядок на кухне" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.cooking.0032" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как тебе порядок на кухне" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.cooking.0033" topic="life.food.cooking" act="life.food.cooking.reply" phrase="обсудим порядок на кухне" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.cooking.0034" topic="life.food.cooking" act="life.food.cooking.reply" phrase="есть мысли про порядок на кухне" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.cooking.0035" topic="life.food.cooking" act="life.food.cooking.reply" phrase="какое мнение про порядок на кухне" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.cooking.0036" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что думаешь про блюдо из того что есть" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.cooking.0037" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как тебе блюдо из того что есть" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.cooking.0038" topic="life.food.cooking" act="life.food.cooking.reply" phrase="обсудим блюдо из того что есть" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.cooking.0039" topic="life.food.cooking" act="life.food.cooking.reply" phrase="есть мысли про блюдо из того что есть" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.cooking.0040" topic="life.food.cooking" act="life.food.cooking.reply" phrase="какое мнение про блюдо из того что есть" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.cooking.0041" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что думаешь про терпение у плиты" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.cooking.0042" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как тебе терпение у плиты" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.cooking.0043" topic="life.food.cooking" act="life.food.cooking.reply" phrase="обсудим терпение у плиты" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.cooking.0044" topic="life.food.cooking" act="life.food.cooking.reply" phrase="есть мысли про терпение у плиты" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.cooking.0045" topic="life.food.cooking" act="life.food.cooking.reply" phrase="какое мнение про терпение у плиты" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.cooking.0046" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что думаешь про удовольствие от процесса" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.cooking.0047" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как тебе удовольствие от процесса" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.cooking.0048" topic="life.food.cooking" act="life.food.cooking.reply" phrase="обсудим удовольствие от процесса" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.cooking.0049" topic="life.food.cooking" act="life.food.cooking.reply" phrase="есть мысли про удовольствие от процесса" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.cooking.0050" topic="life.food.cooking" act="life.food.cooking.reply" phrase="какое мнение про удовольствие от процесса" salience="435" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.hunger.0001" topic="life.food.hunger" act="life.food.hunger.reply" phrase="что думаешь про поздний голод" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.hunger.0002" topic="life.food.hunger" act="life.food.hunger.reply" phrase="как тебе поздний голод" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.hunger.0003" topic="life.food.hunger" act="life.food.hunger.reply" phrase="обсудим поздний голод" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.hunger.0004" topic="life.food.hunger" act="life.food.hunger.reply" phrase="есть мысли про поздний голод" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.hunger.0005" topic="life.food.hunger" act="life.food.hunger.reply" phrase="какое мнение про поздний голод" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.hunger.0006" topic="life.food.hunger" act="life.food.hunger.reply" phrase="что думаешь про забытый обед" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.hunger.0007" topic="life.food.hunger" act="life.food.hunger.reply" phrase="как тебе забытый обед" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.hunger.0008" topic="life.food.hunger" act="life.food.hunger.reply" phrase="обсудим забытый обед" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.hunger.0009" topic="life.food.hunger" act="life.food.hunger.reply" phrase="есть мысли про забытый обед" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.hunger.0010" topic="life.food.hunger" act="life.food.hunger.reply" phrase="какое мнение про забытый обед" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.hunger.0011" topic="life.food.hunger" act="life.food.hunger.reply" phrase="что думаешь про короткий перерыв на еду" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.hunger.0012" topic="life.food.hunger" act="life.food.hunger.reply" phrase="как тебе короткий перерыв на еду" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.hunger.0013" topic="life.food.hunger" act="life.food.hunger.reply" phrase="обсудим короткий перерыв на еду" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.hunger.0014" topic="life.food.hunger" act="life.food.hunger.reply" phrase="есть мысли про короткий перерыв на еду" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.hunger.0015" topic="life.food.hunger" act="life.food.hunger.reply" phrase="какое мнение про короткий перерыв на еду" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.hunger.0016" topic="life.food.hunger" act="life.food.hunger.reply" phrase="что думаешь про перекус перед делами" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.hunger.0017" topic="life.food.hunger" act="life.food.hunger.reply" phrase="как тебе перекус перед делами" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.hunger.0018" topic="life.food.hunger" act="life.food.hunger.reply" phrase="обсудим перекус перед делами" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.hunger.0019" topic="life.food.hunger" act="life.food.hunger.reply" phrase="есть мысли про перекус перед делами" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.hunger.0020" topic="life.food.hunger" act="life.food.hunger.reply" phrase="какое мнение про перекус перед делами" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.hunger.0021" topic="life.food.hunger" act="life.food.hunger.reply" phrase="что думаешь про разговор на пустой желудок" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.hunger.0022" topic="life.food.hunger" act="life.food.hunger.reply" phrase="как тебе разговор на пустой желудок" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.hunger.0023" topic="life.food.hunger" act="life.food.hunger.reply" phrase="обсудим разговор на пустой желудок" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.hunger.0024" topic="life.food.hunger" act="life.food.hunger.reply" phrase="есть мысли про разговор на пустой желудок" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.hunger.0025" topic="life.food.hunger" act="life.food.hunger.reply" phrase="какое мнение про разговор на пустой желудок" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.hunger.0026" topic="life.food.hunger" act="life.food.hunger.reply" phrase="что думаешь про желание чая" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.hunger.0027" topic="life.food.hunger" act="life.food.hunger.reply" phrase="как тебе желание чая" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.hunger.0028" topic="life.food.hunger" act="life.food.hunger.reply" phrase="обсудим желание чая" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.hunger.0029" topic="life.food.hunger" act="life.food.hunger.reply" phrase="есть мысли про желание чая" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.hunger.0030" topic="life.food.hunger" act="life.food.hunger.reply" phrase="какое мнение про желание чая" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.hunger.0031" topic="life.food.hunger" act="life.food.hunger.reply" phrase="что думаешь про обычную жажду" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.hunger.0032" topic="life.food.hunger" act="life.food.hunger.reply" phrase="как тебе обычную жажду" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.hunger.0033" topic="life.food.hunger" act="life.food.hunger.reply" phrase="обсудим обычную жажду" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.hunger.0034" topic="life.food.hunger" act="life.food.hunger.reply" phrase="есть мысли про обычную жажду" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.hunger.0035" topic="life.food.hunger" act="life.food.hunger.reply" phrase="какое мнение про обычную жажду" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.hunger.0036" topic="life.food.hunger" act="life.food.hunger.reply" phrase="что думаешь про своевременный отдых" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.hunger.0037" topic="life.food.hunger" act="life.food.hunger.reply" phrase="как тебе своевременный отдых" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.hunger.0038" topic="life.food.hunger" act="life.food.hunger.reply" phrase="обсудим своевременный отдых" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.hunger.0039" topic="life.food.hunger" act="life.food.hunger.reply" phrase="есть мысли про своевременный отдых" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.hunger.0040" topic="life.food.hunger" act="life.food.hunger.reply" phrase="какое мнение про своевременный отдых" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.hunger.0041" topic="life.food.hunger" act="life.food.hunger.reply" phrase="что думаешь про еду без спешки" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.food.pattern.hunger.0042" topic="life.food.hunger" act="life.food.hunger.reply" phrase="как тебе еду без спешки" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.food.pattern.hunger.0043" topic="life.food.hunger" act="life.food.hunger.reply" phrase="обсудим еду без спешки" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.food.pattern.hunger.0044" topic="life.food.hunger" act="life.food.hunger.reply" phrase="есть мысли про еду без спешки" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.food.pattern.hunger.0045" topic="life.food.hunger" act="life.food.hunger.reply" phrase="какое мнение про еду без спешки" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.food.pattern.hunger.0046" topic="life.food.hunger" act="life.food.hunger.reply" phrase="что думаешь про момент остановиться и поесть" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.food.pattern.hunger.0047" topic="life.food.hunger" act="life.food.hunger.reply" phrase="как тебе момент остановиться и поесть" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.food.pattern.hunger.0048" topic="life.food.hunger" act="life.food.hunger.reply" phrase="обсудим момент остановиться и поесть" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.food.pattern.hunger.0049" topic="life.food.hunger" act="life.food.hunger.reply" phrase="есть мысли про момент остановиться и поесть" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.food.pattern.hunger.0050" topic="life.food.hunger" act="life.food.hunger.reply" phrase="какое мнение про момент остановиться и поесть" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.taste.0001" topic="life.food.taste" act="life.food.taste.reply" phrase="что ты обычно берёшь на завтрак" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.taste.0002" topic="life.food.taste" act="life.food.taste.reply" phrase="любишь острое или обходишь стороной" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.taste.0003" topic="life.food.taste" act="life.food.taste.reply" phrase="какая еда напоминает тебе детство" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.taste.0004" topic="life.food.taste" act="life.food.taste.reply" phrase="тебе нравится сочетание сладкого и солёного" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.taste.0005" topic="life.food.taste" act="life.food.taste.reply" phrase="есть блюдо которое никогда не надоедает" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.taste.0006" topic="life.food.taste" act="life.food.taste.reply" phrase="как относишься к кинзе" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.taste.0007" topic="life.food.taste" act="life.food.taste.reply" phrase="что вкуснее домашняя еда или ресторанная" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.taste.0008" topic="life.food.taste" act="life.food.taste.reply" phrase="ты пробовал суп с морепродуктами" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.taste.0009" topic="life.food.taste" act="life.food.taste.reply" phrase="какой десерт выберешь без раздумий" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.taste.0010" topic="life.food.taste" act="life.food.taste.reply" phrase="предпочитаешь чай с сахаром или без" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.taste.0011" topic="life.food.taste" act="life.food.taste.reply" phrase="тебе заходит горький шоколад" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.taste.0012" topic="life.food.taste" act="life.food.taste.reply" phrase="какую кухню любишь больше всего" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.taste.0013" topic="life.food.taste" act="life.food.taste.reply" phrase="можешь есть одно и то же несколько дней" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.taste.0014" topic="life.food.taste" act="life.food.taste.reply" phrase="что для тебя идеальный перекус" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.taste.0015" topic="life.food.taste" act="life.food.taste.reply" phrase="любишь пробовать незнакомые блюда" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.taste.0016" topic="life.food.taste" act="life.food.taste.reply" phrase="какой вкус у тебя связан с праздником" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.taste.0017" topic="life.food.taste" act="life.food.taste.reply" phrase="тебе нравится еда с дымком" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.taste.0018" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь о сладких соусах к мясу" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.taste.0019" topic="life.food.taste" act="life.food.taste.reply" phrase="выбираешь хрустящую корочку или мягкую середину" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.taste.0020" topic="life.food.taste" act="life.food.taste.reply" phrase="есть продукт который все любят а ты нет" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.taste.0021" topic="life.food.taste" act="life.food.taste.reply" phrase="какой сыр тебе нравится" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.taste.0022" topic="life.food.taste" act="life.food.taste.reply" phrase="можешь назвать самое вкусное блюдо из поездки" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.taste.0023" topic="life.food.taste" act="life.food.taste.reply" phrase="как относишься к очень кислому" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.taste.0024" topic="life.food.taste" act="life.food.taste.reply" phrase="тебе важнее запах или вкус еды" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.taste.0025" topic="life.food.taste" act="life.food.taste.reply" phrase="любишь простую картошку без добавок" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.taste.0026" topic="life.food.taste" act="life.food.taste.reply" phrase="какие специи чаще всего используешь" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.taste.0027" topic="life.food.taste" act="life.food.taste.reply" phrase="что закажешь к кофе" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.taste.0028" topic="life.food.taste" act="life.food.taste.reply" phrase="тебе нравится холодный суп" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.taste.0029" topic="life.food.taste" act="life.food.taste.reply" phrase="какую кашу действительно любишь" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.taste.0030" topic="life.food.taste" act="life.food.taste.reply" phrase="ешь пиццу с ананасом" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.taste.0031" topic="life.food.taste" act="life.food.taste.reply" phrase="что думаешь о растительном молоке" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.taste.0032" topic="life.food.taste" act="life.food.taste.reply" phrase="какой соус всегда держишь дома" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.taste.0033" topic="life.food.taste" act="life.food.taste.reply" phrase="любишь хрустящие овощи" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.taste.0034" topic="life.food.taste" act="life.food.taste.reply" phrase="есть странное сочетание которое тебе нравится" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.taste.0035" topic="life.food.taste" act="life.food.taste.reply" phrase="какой фрукт сейчас хочется больше всего" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.taste.0036" topic="life.food.taste" act="life.food.taste.reply" phrase="предпочитаешь рыбу или мясо" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.taste.0037" topic="life.food.taste" act="life.food.taste.reply" phrase="как относишься к еде без соли" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.taste.0038" topic="life.food.taste" act="life.food.taste.reply" phrase="тебе нравится мятный вкус в десертах" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.taste.0039" topic="life.food.taste" act="life.food.taste.reply" phrase="что выберешь пирог или мороженое" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.taste.0040" topic="life.food.taste" act="life.food.taste.reply" phrase="любишь завтракать чем-нибудь несладким" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.taste.0041" topic="life.food.taste" act="life.food.taste.reply" phrase="какое блюдо лучше всего согревает" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.taste.0042" topic="life.food.taste" act="life.food.taste.reply" phrase="можешь есть очень горячую еду" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.taste.0043" topic="life.food.taste" act="life.food.taste.reply" phrase="что вкуснее свежий хлеб или тёплая выпечка" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.taste.0044" topic="life.food.taste" act="life.food.taste.reply" phrase="тебе нравится имбирь" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.taste.0045" topic="life.food.taste" act="life.food.taste.reply" phrase="какую начинку положишь в блин" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.taste.0046" topic="life.food.taste" act="life.food.taste.reply" phrase="что из уличной еды берёшь чаще" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.taste.0047" topic="life.food.taste" act="life.food.taste.reply" phrase="любишь орехи в салатах" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.taste.0048" topic="life.food.taste" act="life.food.taste.reply" phrase="какой напиток подходит к ужину" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.taste.0049" topic="life.food.taste" act="life.food.taste.reply" phrase="есть еда которую полюбил не сразу" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.taste.0050" topic="life.food.taste" act="life.food.taste.reply" phrase="что тебе сегодня кажется особенно вкусным" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.choice.0001" topic="life.food.choice" act="life.food.choice.reply" phrase="что взять на обед пасту или суп" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.choice.0002" topic="life.food.choice" act="life.food.choice.reply" phrase="помоги выбрать десерт" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.choice.0003" topic="life.food.choice" act="life.food.choice.reply" phrase="лучше заказать еду или приготовить дома" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.choice.0004" topic="life.food.choice" act="life.food.choice.reply" phrase="что купить к вечернему чаю" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.choice.0005" topic="life.food.choice" act="life.food.choice.reply" phrase="какую пиццу возьмём на всех" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.choice.0006" topic="life.food.choice" act="life.food.choice.reply" phrase="выбрать знакомое блюдо или попробовать новое" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.choice.0007" topic="life.food.choice" act="life.food.choice.reply" phrase="что лучше съесть перед тренировкой" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.choice.0008" topic="life.food.choice" act="life.food.choice.reply" phrase="какой гарнир подойдёт к рыбе" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.choice.0009" topic="life.food.choice" act="life.food.choice.reply" phrase="что взять с собой в дорогу из еды" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.choice.0010" topic="life.food.choice" act="life.food.choice.reply" phrase="посоветуй быстрый завтрак" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.choice.0011" topic="life.food.choice" act="life.food.choice.reply" phrase="что выбрать в меню если всё выглядит вкусно" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.choice.0012" topic="life.food.choice" act="life.food.choice.reply" phrase="лучше салат или горячее" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.choice.0013" topic="life.food.choice" act="life.food.choice.reply" phrase="какие продукты купить на неделю" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.choice.0014" topic="life.food.choice" act="life.food.choice.reply" phrase="что приготовить гостям без долгой возни" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.choice.0015" topic="life.food.choice" act="life.food.choice.reply" phrase="взять кофе или чай" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.choice.0016" topic="life.food.choice" act="life.food.choice.reply" phrase="какой перекус не испортит аппетит" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.choice.0017" topic="life.food.choice" act="life.food.choice.reply" phrase="что заказать человеку который не ест мясо" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.choice.0018" topic="life.food.choice" act="life.food.choice.reply" phrase="лучше взять маленькую порцию или обычную" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.choice.0019" topic="life.food.choice" act="life.food.choice.reply" phrase="что положить ребёнку в ланчбокс" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.choice.0020" topic="life.food.choice" act="life.food.choice.reply" phrase="какой торт выбрать на праздник" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.choice.0021" topic="life.food.choice" act="life.food.choice.reply" phrase="что взять к фильму" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.choice.0022" topic="life.food.choice" act="life.food.choice.reply" phrase="выберем роллы или бургеры" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.choice.0023" topic="life.food.choice" act="life.food.choice.reply" phrase="какой соус подойдёт к картошке" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.choice.0024" topic="life.food.choice" act="life.food.choice.reply" phrase="что купить если дома пустой холодильник" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.choice.0025" topic="life.food.choice" act="life.food.choice.reply" phrase="лучше поесть сейчас или дождаться ужина" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.choice.0026" topic="life.food.choice" act="life.food.choice.reply" phrase="что выбрать из сезонных фруктов" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.choice.0027" topic="life.food.choice" act="life.food.choice.reply" phrase="какой сыр подать к вину" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.choice.0028" topic="life.food.choice" act="life.food.choice.reply" phrase="что приготовить из оставшихся овощей" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.choice.0029" topic="life.food.choice" act="life.food.choice.reply" phrase="посоветуй еду без острого" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.choice.0030" topic="life.food.choice" act="life.food.choice.reply" phrase="какой суп сварить на выходных" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.choice.0031" topic="life.food.choice" act="life.food.choice.reply" phrase="что взять в столовой если очередь большая" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.choice.0032" topic="life.food.choice" act="life.food.choice.reply" phrase="какое блюдо удобно разогревать завтра" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.choice.0033" topic="life.food.choice" act="life.food.choice.reply" phrase="выбрать рыбу на гриле или запечённую" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.choice.0034" topic="life.food.choice" act="life.food.choice.reply" phrase="что заказать на двоих" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.choice.0035" topic="life.food.choice" act="life.food.choice.reply" phrase="какие закуски подойдут для компании" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.choice.0036" topic="life.food.choice" act="life.food.choice.reply" phrase="что съесть когда не хочется тяжёлой еды" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.choice.0037" topic="life.food.choice" act="life.food.choice.reply" phrase="какое молоко взять для кофе" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.choice.0038" topic="life.food.choice" act="life.food.choice.reply" phrase="что выбрать на поздний ужин" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.choice.0039" topic="life.food.choice" act="life.food.choice.reply" phrase="лучше купить свежую выпечку или печенье" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.choice.0040" topic="life.food.choice" act="life.food.choice.reply" phrase="какую начинку выбрать для пирога" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.choice.0041" topic="life.food.choice" act="life.food.choice.reply" phrase="что приготовить без духовки" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.choice.0042" topic="life.food.choice" act="life.food.choice.reply" phrase="какой напиток взять в жару" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.choice.0043" topic="life.food.choice" act="life.food.choice.reply" phrase="что заказать если не знаешь местную кухню" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.choice.0044" topic="life.food.choice" act="life.food.choice.reply" phrase="какую еду взять на пикник" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.choice.0045" topic="life.food.choice" act="life.food.choice.reply" phrase="что выбрать при аллергии на орехи" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.choice.0046" topic="life.food.choice" act="life.food.choice.reply" phrase="лучше одно большое блюдо или несколько закусок" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.choice.0047" topic="life.food.choice" act="life.food.choice.reply" phrase="что съесть после долгой дороги" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.choice.0048" topic="life.food.choice" act="life.food.choice.reply" phrase="какой набор продуктов взять для завтрака" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.choice.0049" topic="life.food.choice" act="life.food.choice.reply" phrase="посоветуй недорогой вариант ужина" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.choice.0050" topic="life.food.choice" act="life.food.choice.reply" phrase="что бы ты выбрал прямо сейчас" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.cooking.0001" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как сварить рис чтобы он не слипся" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.cooking.0002" topic="life.food.cooking" act="life.food.cooking.reply" phrase="сколько жарить курицу на сковороде" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.cooking.0003" topic="life.food.cooking" act="life.food.cooking.reply" phrase="чем заменить яйца в выпечке" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.cooking.0004" topic="life.food.cooking" act="life.food.cooking.reply" phrase="почему тесто не поднялось" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.cooking.0005" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как сделать соус гуще" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.cooking.0006" topic="life.food.cooking" act="life.food.cooking.reply" phrase="когда солить бульон" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.cooking.0007" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как понять что рыба готова" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.cooking.0008" topic="life.food.cooking" act="life.food.cooking.reply" phrase="можно ли заморозить этот суп" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.cooking.0009" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что приготовить из вчерашней гречки" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.cooking.0010" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как быстро разморозить мясо безопасно" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.cooking.0011" topic="life.food.cooking" act="life.food.cooking.reply" phrase="сколько держать овощи в духовке" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.cooking.0012" topic="life.food.cooking" act="life.food.cooking.reply" phrase="чем убрать лишнюю остроту" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.cooking.0013" topic="life.food.cooking" act="life.food.cooking.reply" phrase="почему блины рвутся при переворачивании" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.cooking.0014" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как сохранить зелень свежей" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.cooking.0015" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что добавить в пресную кашу" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.cooking.0016" topic="life.food.cooking" act="life.food.cooking.reply" phrase="можно готовить без масла" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.cooking.0017" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как добиться хрустящей корочки" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.cooking.0018" topic="life.food.cooking" act="life.food.cooking.reply" phrase="чем заменить сливки в соусе" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.cooking.0019" topic="life.food.cooking" act="life.food.cooking.reply" phrase="почему картошка разваливается" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.cooking.0020" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как нарезать лук без слёз" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.cooking.0021" topic="life.food.cooking" act="life.food.cooking.reply" phrase="сколько времени варится чечевица" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.cooking.0022" topic="life.food.cooking" act="life.food.cooking.reply" phrase="надо ли промывать макароны" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.cooking.0023" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как спасти пересоленный суп" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.cooking.0024" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что сделать с засохшим хлебом" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.cooking.0025" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как замариновать овощи для гриля" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.cooking.0026" topic="life.food.cooking" act="life.food.cooking.reply" phrase="какая температура нужна для пирога" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.cooking.0027" topic="life.food.cooking" act="life.food.cooking.reply" phrase="можно ли разогревать еду второй раз" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.cooking.0028" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как приготовить омлет пышным" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.cooking.0029" topic="life.food.cooking" act="life.food.cooking.reply" phrase="почему котлеты получились сухими" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.cooking.0030" topic="life.food.cooking" act="life.food.cooking.reply" phrase="чем заменить разрыхлитель" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.cooking.0031" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как сделать домашнюю заправку для салата" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.cooking.0032" topic="life.food.cooking" act="life.food.cooking.reply" phrase="сколько специй класть в рагу" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.cooking.0033" topic="life.food.cooking" act="life.food.cooking.reply" phrase="нужно ли снимать пену с бульона" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.cooking.0034" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как сварить яйцо с жидким желтком" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.cooking.0035" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что приготовить в одной кастрюле" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.cooking.0036" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как не пережарить чеснок" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.cooking.0037" topic="life.food.cooking" act="life.food.cooking.reply" phrase="когда добавлять сыр в пасту" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.cooking.0038" topic="life.food.cooking" act="life.food.cooking.reply" phrase="почему печенье растеклось" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.cooking.0039" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как очистить помидор от кожицы" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.cooking.0040" topic="life.food.cooking" act="life.food.cooking.reply" phrase="можно ли печь на пергаменте без масла" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.cooking.0041" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что делать если крем расслоился" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.cooking.0042" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как проверить свежесть яйца" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.cooking.0043" topic="life.food.cooking" act="life.food.cooking.reply" phrase="сколько дать мясу отдохнуть после жарки" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.cooking.0044" topic="life.food.cooking" act="life.food.cooking.reply" phrase="чем измельчить суп без блендера" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.cooking.0045" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как сделать овощи ароматнее" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.cooking.0046" topic="life.food.cooking" act="life.food.cooking.reply" phrase="надо ли заранее разогревать духовку" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.cooking.0047" topic="life.food.cooking" act="life.food.cooking.reply" phrase="почему рис получился твёрдым" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.cooking.0048" topic="life.food.cooking" act="life.food.cooking.reply" phrase="как хранить домашний соус" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.cooking.0049" topic="life.food.cooking" act="life.food.cooking.reply" phrase="что можно приготовить за пятнадцать минут" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.cooking.0050" topic="life.food.cooking" act="life.food.cooking.reply" phrase="с чего начать если почти не умеешь готовить" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.hunger.0001" topic="life.food.hunger" act="life.food.hunger.reply" phrase="я ужасно голоден" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.hunger.0002" topic="life.food.hunger" act="life.food.hunger.reply" phrase="что-то пора перекусить" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.hunger.0003" topic="life.food.hunger" act="life.food.hunger.reply" phrase="с утра ничего не ел" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.hunger.0004" topic="life.food.hunger" act="life.food.hunger.reply" phrase="живот уже урчит" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.hunger.0005" topic="life.food.hunger" act="life.food.hunger.reply" phrase="до обеда ещё далеко а я хочу есть" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.hunger.0006" topic="life.food.hunger" act="life.food.hunger.reply" phrase="после тренировки проснулся зверский аппетит" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.hunger.0007" topic="life.food.hunger" act="life.food.hunger.reply" phrase="не могу решить голоден я или просто скучаю" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.hunger.0008" topic="life.food.hunger" act="life.food.hunger.reply" phrase="хочется чего-нибудь сытного" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.hunger.0009" topic="life.food.hunger" act="life.food.hunger.reply" phrase="мне бы сейчас горячий суп" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.hunger.0010" topic="life.food.hunger" act="life.food.hunger.reply" phrase="есть лёгкий перекус под рукой" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.hunger.0011" topic="life.food.hunger" act="life.food.hunger.reply" phrase="я опять пропустил завтрак" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.hunger.0012" topic="life.food.hunger" act="life.food.hunger.reply" phrase="до ужина точно не дотяну" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.hunger.0013" topic="life.food.hunger" act="life.food.hunger.reply" phrase="хочу есть но готовить лень" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.hunger.0014" topic="life.food.hunger" act="life.food.hunger.reply" phrase="аппетит внезапно пропал" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.hunger.0015" topic="life.food.hunger" act="life.food.hunger.reply" phrase="после запаха выпечки сразу проголодался" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.hunger.0016" topic="life.food.hunger" act="life.food.hunger.reply" phrase="ночью снова захотелось есть" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.hunger.0017" topic="life.food.hunger" act="life.food.hunger.reply" phrase="я наелся слишком быстро" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.hunger.0018" topic="life.food.hunger" act="life.food.hunger.reply" phrase="кажется порция была маленькой" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.hunger.0019" topic="life.food.hunger" act="life.food.hunger.reply" phrase="после обеда всё равно голодный" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.hunger.0020" topic="life.food.hunger" act="life.food.hunger.reply" phrase="могу съесть что угодно" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.hunger.0021" topic="life.food.hunger" act="life.food.hunger.reply" phrase="хочется именно сладкого" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.hunger.0022" topic="life.food.hunger" act="life.food.hunger.reply" phrase="организм требует чего-нибудь солёного" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.hunger.0023" topic="life.food.hunger" act="life.food.hunger.reply" phrase="я весь день перехватываю на ходу" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.hunger.0024" topic="life.food.hunger" act="life.food.hunger.reply" phrase="нормально ли так часто хотеть есть" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.hunger.0025" topic="life.food.hunger" act="life.food.hunger.reply" phrase="из-за волнения не могу поесть" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.hunger.0026" topic="life.food.hunger" act="life.food.hunger.reply" phrase="утром совсем нет аппетита" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.hunger.0027" topic="life.food.hunger" act="life.food.hunger.reply" phrase="после прогулки захотелось плотного ужина" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.hunger.0028" topic="life.food.hunger" act="life.food.hunger.reply" phrase="я забыл взять еду с собой" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.hunger.0029" topic="life.food.hunger" act="life.food.hunger.reply" phrase="нужен перекус который можно съесть быстро" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.hunger.0030" topic="life.food.hunger" act="life.food.hunger.reply" phrase="сегодня аппетит лучше обычного" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.hunger.0031" topic="life.food.hunger" act="life.food.hunger.reply" phrase="меня мутит от одной мысли о еде" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.hunger.0032" topic="life.food.hunger" act="life.food.hunger.reply" phrase="хочу поесть но ничего не нравится" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.hunger.0033" topic="life.food.hunger" act="life.food.hunger.reply" phrase="после кофе голод стал только сильнее" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.hunger.0034" topic="life.food.hunger" act="life.food.hunger.reply" phrase="я поздно пообедал и теперь не хочу ужинать" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.hunger.0035" topic="life.food.hunger" act="life.food.hunger.reply" phrase="кажется я ем просто за компанию" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.hunger.0036" topic="life.food.hunger" act="life.food.hunger.reply" phrase="перед сном опять тянет к холодильнику" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.hunger.0037" topic="life.food.hunger" act="life.food.hunger.reply" phrase="пора сделать перерыв на еду" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.hunger.0038" topic="life.food.hunger" act="life.food.hunger.reply" phrase="без завтрака у меня нет сил" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.hunger.0039" topic="life.food.hunger" act="life.food.hunger.reply" phrase="в дороге постоянно хочется жевать" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.hunger.0040" topic="life.food.hunger" act="life.food.hunger.reply" phrase="мне хватит половины порции" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.hunger.0041" topic="life.food.hunger" act="life.food.hunger.reply" phrase="я уже сыт но десерт всё ещё хочу" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.food.pattern.hunger.0042" topic="life.food.hunger" act="life.food.hunger.reply" phrase="от острого аппетит только разыгрался" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.food.pattern.hunger.0043" topic="life.food.hunger" act="life.food.hunger.reply" phrase="сегодня могу обойтись лёгким салатом" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.food.pattern.hunger.0044" topic="life.food.hunger" act="life.food.hunger.reply" phrase="я голодный и начинаю злиться" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.food.pattern.hunger.0045" topic="life.food.hunger" act="life.food.hunger.reply" phrase="пока готовил успел наесться запахами" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.food.pattern.hunger.0046" topic="life.food.hunger" act="life.food.hunger.reply" phrase="после болезни наконец вернулся аппетит" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.food.pattern.hunger.0047" topic="life.food.hunger" act="life.food.hunger.reply" phrase="не успеваю нормально пообедать" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.food.pattern.hunger.0048" topic="life.food.hunger" act="life.food.hunger.reply" phrase="хочу домашней еды а не перекуса" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.food.pattern.hunger.0049" topic="life.food.hunger" act="life.food.hunger.reply" phrase="до доставки ещё сорок минут" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.food.pattern.hunger.0050" topic="life.food.hunger" act="life.food.hunger.reply" phrase="давай поедим пока все не стали раздражёнными" salience="435" ttlMinutes="0" priority="545" />
 	</patterns>
 </humanizedV3SemanticSegment>

@@ -19,205 +19,205 @@
 		<alias from="выспатьсяя" to="выспаться" />
 	</aliases>
 	<patterns>
-		<pattern id="v3.life.sleep.pattern.fatigue.0001" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="что думаешь про обычную сонливость" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0002" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как тебе обычную сонливость" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0003" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="обсудим обычную сонливость" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0004" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="есть мысли про обычную сонливость" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0005" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="какое мнение про обычную сонливость" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0006" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="что думаешь про тяжёлое утро" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0007" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как тебе тяжёлое утро" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0008" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="обсудим тяжёлое утро" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0009" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="есть мысли про тяжёлое утро" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0010" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="какое мнение про тяжёлое утро" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0011" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="что думаешь про усталость к вечеру" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0012" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как тебе усталость к вечеру" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0013" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="обсудим усталость к вечеру" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0014" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="есть мысли про усталость к вечеру" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0015" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="какое мнение про усталость к вечеру" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0016" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="что думаешь про желание прилечь" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0017" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как тебе желание прилечь" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0018" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="обсудим желание прилечь" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0019" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="есть мысли про желание прилечь" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0020" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="какое мнение про желание прилечь" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0021" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="что думаешь про нехватку отдыха" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0022" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как тебе нехватку отдыха" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0023" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="обсудим нехватку отдыха" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0024" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="есть мысли про нехватку отдыха" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0025" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="какое мнение про нехватку отдыха" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0026" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="что думаешь про медленный разгон" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0027" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как тебе медленный разгон" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0028" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="обсудим медленный разгон" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0029" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="есть мысли про медленный разгон" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0030" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="какое мнение про медленный разгон" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0031" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="что думаешь про позднее бодрствование" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0032" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как тебе позднее бодрствование" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0033" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="обсудим позднее бодрствование" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0034" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="есть мысли про позднее бодрствование" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0035" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="какое мнение про позднее бодрствование" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0036" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="что думаешь про ощущение разбитости" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0037" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как тебе ощущение разбитости" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0038" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="обсудим ощущение разбитости" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0039" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="есть мысли про ощущение разбитости" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0040" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="какое мнение про ощущение разбитости" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0041" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="что думаешь про паузу вместо рывка" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0042" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как тебе паузу вместо рывка" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0043" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="обсудим паузу вместо рывка" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0044" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="есть мысли про паузу вместо рывка" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0045" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="какое мнение про паузу вместо рывка" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0046" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="что думаешь про бережный разговор об усталости" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0047" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как тебе бережный разговор об усталости" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0048" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="обсудим бережный разговор об усталости" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0049" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="есть мысли про бережный разговор об усталости" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.fatigue.0050" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="какое мнение про бережный разговор об усталости" salience="435" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.schedule.0001" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="что думаешь про режим сна" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.schedule.0002" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как тебе режим сна" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.schedule.0003" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="обсудим режим сна" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.schedule.0004" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="есть мысли про режим сна" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.schedule.0005" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="какое мнение про режим сна" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.schedule.0006" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="что думаешь про поздний отход ко сну" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.schedule.0007" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как тебе поздний отход ко сну" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.schedule.0008" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="обсудим поздний отход ко сну" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.schedule.0009" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="есть мысли про поздний отход ко сну" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.schedule.0010" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="какое мнение про поздний отход ко сну" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.schedule.0011" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="что думаешь про ранний подъём" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.schedule.0012" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как тебе ранний подъём" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.schedule.0013" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="обсудим ранний подъём" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.schedule.0014" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="есть мысли про ранний подъём" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.schedule.0015" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="какое мнение про ранний подъём" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.schedule.0016" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="что думаешь про сбитый график" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.schedule.0017" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как тебе сбитый график" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.schedule.0018" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="обсудим сбитый график" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.schedule.0019" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="есть мысли про сбитый график" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.schedule.0020" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="какое мнение про сбитый график" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.schedule.0021" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="что думаешь про постепенный возврат к режиму" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.schedule.0022" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как тебе постепенный возврат к режиму" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.schedule.0023" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="обсудим постепенный возврат к режиму" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.schedule.0024" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="есть мысли про постепенный возврат к режиму" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.schedule.0025" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="какое мнение про постепенный возврат к режиму" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.schedule.0026" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="что думаешь про вечерние привычки" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.schedule.0027" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как тебе вечерние привычки" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.schedule.0028" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="обсудим вечерние привычки" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.schedule.0029" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="есть мысли про вечерние привычки" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.schedule.0030" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="какое мнение про вечерние привычки" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.schedule.0031" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="что думаешь про тишину перед сном" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.schedule.0032" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как тебе тишину перед сном" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.schedule.0033" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="обсудим тишину перед сном" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.schedule.0034" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="есть мысли про тишину перед сном" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.schedule.0035" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="какое мнение про тишину перед сном" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.schedule.0036" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="что думаешь про отказ от лишнего экрана" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.schedule.0037" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как тебе отказ от лишнего экрана" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.schedule.0038" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="обсудим отказ от лишнего экрана" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.schedule.0039" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="есть мысли про отказ от лишнего экрана" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.schedule.0040" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="какое мнение про отказ от лишнего экрана" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.schedule.0041" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="что думаешь про стабильное время отдыха" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.schedule.0042" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как тебе стабильное время отдыха" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.schedule.0043" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="обсудим стабильное время отдыха" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.schedule.0044" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="есть мысли про стабильное время отдыха" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.schedule.0045" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="какое мнение про стабильное время отдыха" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.schedule.0046" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="что думаешь про реалистичный распорядок" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.schedule.0047" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как тебе реалистичный распорядок" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.schedule.0048" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="обсудим реалистичный распорядок" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.schedule.0049" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="есть мысли про реалистичный распорядок" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.schedule.0050" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="какое мнение про реалистичный распорядок" salience="435" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0001" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что думаешь про долгое засыпание" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0002" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как тебе долгое засыпание" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0003" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="обсудим долгое засыпание" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0004" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="есть мысли про долгое засыпание" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0005" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="какое мнение про долгое засыпание" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0006" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что думаешь про ночные мысли" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0007" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как тебе ночные мысли" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0008" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="обсудим ночные мысли" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0009" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="есть мысли про ночные мысли" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0010" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="какое мнение про ночные мысли" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0011" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что думаешь про беспокойный сон" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0012" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как тебе беспокойный сон" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0013" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="обсудим беспокойный сон" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0014" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="есть мысли про беспокойный сон" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0015" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="какое мнение про беспокойный сон" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0016" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что думаешь про разговор без медицинских советов" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0017" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как тебе разговор без медицинских советов" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0018" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="обсудим разговор без медицинских советов" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0019" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="есть мысли про разговор без медицинских советов" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0020" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="какое мнение про разговор без медицинских советов" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0021" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что думаешь про спокойную музыку ночью" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0022" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как тебе спокойную музыку ночью" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0023" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="обсудим спокойную музыку ночью" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0024" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="есть мысли про спокойную музыку ночью" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0025" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="какое мнение про спокойную музыку ночью" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0026" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что думаешь про тусклый свет" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0027" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как тебе тусклый свет" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0028" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="обсудим тусклый свет" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0029" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="есть мысли про тусклый свет" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0030" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="какое мнение про тусклый свет" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0031" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что думаешь про попытку не смотреть на часы" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0032" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как тебе попытку не смотреть на часы" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0033" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="обсудим попытку не смотреть на часы" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0034" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="есть мысли про попытку не смотреть на часы" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0035" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="какое мнение про попытку не смотреть на часы" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0036" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что думаешь про простую смену обстановки" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0037" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как тебе простую смену обстановки" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0038" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="обсудим простую смену обстановки" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0039" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="есть мысли про простую смену обстановки" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0040" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="какое мнение про простую смену обстановки" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0041" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что думаешь про принятие бессонной ночи" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0042" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как тебе принятие бессонной ночи" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0043" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="обсудим принятие бессонной ночи" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0044" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="есть мысли про принятие бессонной ночи" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0045" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="какое мнение про принятие бессонной ночи" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0046" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что думаешь про обращение за помощью при необходимости" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0047" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как тебе обращение за помощью при необходимости" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0048" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="обсудим обращение за помощью при необходимости" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0049" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="есть мысли про обращение за помощью при необходимости" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.insomnia.0050" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="какое мнение про обращение за помощью при необходимости" salience="435" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.rest.0001" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что думаешь про ощущение после хорошего сна" salience="435" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.rest.0002" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как тебе ощущение после хорошего сна" salience="450" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.rest.0003" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="обсудим ощущение после хорошего сна" salience="465" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.rest.0004" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="есть мысли про ощущение после хорошего сна" salience="480" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.rest.0005" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="какое мнение про ощущение после хорошего сна" salience="495" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.rest.0006" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что думаешь про короткий дневной отдых" salience="510" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.rest.0007" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как тебе короткий дневной отдых" salience="420" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.rest.0008" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="обсудим короткий дневной отдых" salience="435" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.rest.0009" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="есть мысли про короткий дневной отдых" salience="450" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.rest.0010" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="какое мнение про короткий дневной отдых" salience="465" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.rest.0011" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что думаешь про медленное пробуждение" salience="480" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.rest.0012" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как тебе медленное пробуждение" salience="495" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.rest.0013" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="обсудим медленное пробуждение" salience="510" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.rest.0014" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="есть мысли про медленное пробуждение" salience="420" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.rest.0015" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="какое мнение про медленное пробуждение" salience="435" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.rest.0016" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что думаешь про тихое утро" salience="450" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.rest.0017" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как тебе тихое утро" salience="465" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.rest.0018" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="обсудим тихое утро" salience="480" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.rest.0019" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="есть мысли про тихое утро" salience="495" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.rest.0020" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="какое мнение про тихое утро" salience="510" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.rest.0021" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что думаешь про восстановление сил" salience="420" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.rest.0022" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как тебе восстановление сил" salience="435" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.rest.0023" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="обсудим восстановление сил" salience="450" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.rest.0024" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="есть мысли про восстановление сил" salience="465" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.rest.0025" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="какое мнение про восстановление сил" salience="480" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.rest.0026" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что думаешь про удобную подушку" salience="495" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.rest.0027" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как тебе удобную подушку" salience="510" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.rest.0028" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="обсудим удобную подушку" salience="420" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.rest.0029" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="есть мысли про удобную подушку" salience="435" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.rest.0030" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="какое мнение про удобную подушку" salience="450" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.rest.0031" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что думаешь про проветренную комнату" salience="465" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.rest.0032" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как тебе проветренную комнату" salience="480" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.rest.0033" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="обсудим проветренную комнату" salience="495" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.rest.0034" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="есть мысли про проветренную комнату" salience="510" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.rest.0035" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="какое мнение про проветренную комнату" salience="420" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.rest.0036" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что думаешь про спокойный вечер" salience="435" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.rest.0037" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как тебе спокойный вечер" salience="450" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.rest.0038" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="обсудим спокойный вечер" salience="465" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.rest.0039" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="есть мысли про спокойный вечер" salience="480" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.rest.0040" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="какое мнение про спокойный вечер" salience="495" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.rest.0041" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что думаешь про планы после отдыха" salience="510" ttlMinutes="0" priority="545" />
-		<pattern id="v3.life.sleep.pattern.rest.0042" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как тебе планы после отдыха" salience="420" ttlMinutes="0" priority="550" />
-		<pattern id="v3.life.sleep.pattern.rest.0043" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="обсудим планы после отдыха" salience="435" ttlMinutes="0" priority="555" />
-		<pattern id="v3.life.sleep.pattern.rest.0044" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="есть мысли про планы после отдыха" salience="450" ttlMinutes="0" priority="560" />
-		<pattern id="v3.life.sleep.pattern.rest.0045" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="какое мнение про планы после отдыха" salience="465" ttlMinutes="0" priority="520" />
-		<pattern id="v3.life.sleep.pattern.rest.0046" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что думаешь про уважение к своему ритму" salience="480" ttlMinutes="0" priority="525" />
-		<pattern id="v3.life.sleep.pattern.rest.0047" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как тебе уважение к своему ритму" salience="495" ttlMinutes="0" priority="530" />
-		<pattern id="v3.life.sleep.pattern.rest.0048" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="обсудим уважение к своему ритму" salience="510" ttlMinutes="0" priority="535" />
-		<pattern id="v3.life.sleep.pattern.rest.0049" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="есть мысли про уважение к своему ритму" salience="420" ttlMinutes="0" priority="540" />
-		<pattern id="v3.life.sleep.pattern.rest.0050" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="какое мнение про уважение к своему ритму" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0001" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="я сегодня совсем не выспался" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0002" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="глаза закрываются на ходу" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0003" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="после обеда ужасно клонит в сон" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0004" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="у меня нет сил даже думать" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0005" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="проснулся уже уставшим" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0006" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="весь день хожу как в тумане" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0007" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="не могу сосредоточиться из-за усталости" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0008" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="хочется лечь прямо сейчас" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0009" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="кофе уже не помогает" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0010" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="голова тяжёлая после короткой ночи" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0011" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="я еле дотянул до вечера" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0012" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="усталость накопилась за неделю" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0013" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="не могу закончить простую задачу" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0014" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="меня раздражает любой шум" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0015" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="после дороги совсем разбит" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0016" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="ноги стали тяжёлыми" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0017" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="хочется отменить все планы" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0018" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="не хватает энергии на разговор" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0019" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="я часто зеваю на встрече" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0020" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="боюсь уснуть за рулём" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0021" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="после тренировки странная слабость" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0022" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="не понимаю почему так устал" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0023" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="спал достаточно но всё равно сонный" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0024" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="к вечеру просто выключаюсь" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0025" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="не могу заставить себя встать" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0026" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="всё делаю медленнее обычного" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0027" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="устал притворяться бодрым" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0028" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="нужен день без нагрузки" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0029" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как пережить смену после бессонной ночи" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0030" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="можно вздремнуть днём" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0031" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="я перестал замечать ошибки" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0032" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="от усталости болит голова" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0033" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="сложно слушать людей" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0034" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="чувствую себя опустошённым" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0035" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="не хочу никуда идти вечером" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0036" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="мне тяжело держать глаза открытыми" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0037" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="организм требует остановиться" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0038" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="работаю на одном упрямстве" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0039" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="усталость делает меня резким" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0040" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="мне нужен отдых а не ещё кофе" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0041" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как восстановиться после тяжёлой недели" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0042" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="я постоянно откладываю сон" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0043" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="кажется силы закончились" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0044" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="не могу нормально проснуться" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0045" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="весь день думаю только о кровати" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0046" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="надо ли отменить тренировку" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0047" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="я устал ещё до начала дня" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0048" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="можно сегодня ничего не делать" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0049" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="как понять что пора отдыхать" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.fatigue.0050" topic="life.sleep.fatigue" act="life.sleep.fatigue.reply" phrase="хочу просто выспаться" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.schedule.0001" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="во сколько лучше ложиться спать" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.schedule.0002" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как вернуть нормальный режим" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.schedule.0003" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="я засыпаю слишком поздно" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.schedule.0004" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="по выходным сплю до обеда" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.schedule.0005" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как вставать в одно время" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.schedule.0006" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="смены сбили весь сон" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.schedule.0007" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="не могу лечь раньше полуночи" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.schedule.0008" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="стоит ли отсыпаться в выходные" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.schedule.0009" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как перестроиться после ночной работы" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.schedule.0010" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="я постоянно нажимаю повтор будильника" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.schedule.0011" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="когда прекращать пить кофе" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.schedule.0012" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="во сколько выключать экран" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.schedule.0013" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="нужен вечерний ритуал" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.schedule.0014" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как подготовиться ко сну" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.schedule.0015" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="я поздно ужинаю и плохо сплю" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.schedule.0016" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="можно тренироваться вечером" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.schedule.0017" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как пережить смену часового пояса" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.schedule.0018" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="режим ломается после одной ночи" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.schedule.0019" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="в будни сплю по пять часов" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.schedule.0020" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="хочу раньше просыпаться" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.schedule.0021" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как не засиживаться в интернете" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.schedule.0022" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="ложусь вовремя но долго не сплю" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.schedule.0023" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="стоит ставить несколько будильников" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.schedule.0024" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="я работаю по плавающему графику" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.schedule.0025" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как планировать сон перед поездкой" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.schedule.0026" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="можно ли менять режим резко" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.schedule.0027" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="я просыпаюсь раньше будильника" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.schedule.0028" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="к вечеру появляется второе дыхание" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.schedule.0029" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="утром не вижу дневного света" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.schedule.0030" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как выстроить режим зимой" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.schedule.0031" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="днём сплю а ночью бодрствую" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.schedule.0032" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="когда лучше принимать душ" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.schedule.0033" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="мешает поздний рабочий созвон" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.schedule.0034" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как договориться о тихом времени" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.schedule.0035" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="я не успеваю закончить день до сна" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.schedule.0036" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="надо ли ложиться если не хочется" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.schedule.0037" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как сохранить режим в отпуске" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.schedule.0038" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="почему выходные сбивают понедельник" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.schedule.0039" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="можно спать дольше после тяжёлой недели" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.schedule.0040" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="во сколько делать последний приём пищи" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.schedule.0041" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как уменьшить вечернее освещение" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.schedule.0042" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="мне трудно уйти с вечеринки вовремя" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.schedule.0043" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="режим ребёнка сбивает мой сон" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.schedule.0044" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как делить ночные дежурства дома" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.schedule.0045" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="я просыпаюсь каждый день в разное время" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.schedule.0046" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="нужно ли вставать сразу после будильника" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.schedule.0047" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как не работать из кровати" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.schedule.0048" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="хочу отделить спальню от дел" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.schedule.0049" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="что делать перед ранним подъёмом" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.schedule.0050" topic="life.sleep.schedule" act="life.sleep.schedule.reply" phrase="как начать менять режим сегодня" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0001" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="не могу уснуть уже два часа" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0002" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="мысли не дают мне спать" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0003" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="просыпаюсь среди ночи" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0004" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="после пробуждения долго лежу без сна" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0005" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="боюсь снова не уснуть" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0006" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="каждый шорох меня будит" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0007" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="сердце стучит когда ложусь" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0008" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="постоянно смотрю на часы" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0009" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="в кровати становится тревожно" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0010" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как остановить ночные мысли" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0011" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="можно встать если не спится" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0012" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что делать ночью без телефона" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0013" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="засыпаю только под видео" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0014" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="тишина мешает мне уснуть" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0015" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="соседи шумят по ночам" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0016" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="слишком жарко в спальне" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0017" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="просыпаюсь от кошмаров" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0018" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="не могу расслабить тело" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0019" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="кажется я совсем разучился спать" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0020" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="бессонница длится уже неделю" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0021" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что делать если сон не приходит" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0022" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="можно читать в кровати" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0023" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как не злиться на себя ночью" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0024" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="после кофе не могу уснуть" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0025" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="дневной сон опять всё испортил" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0026" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="я прокручиваю разговоры перед сном" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0027" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="боюсь смотреть на будильник" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0028" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="не могу найти удобную позу" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0029" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="просыпаюсь от сухости во рту" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0030" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="мне мешает свет с улицы" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0031" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как заглушить ночной шум" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0032" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="я вздрагиваю при засыпании" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0033" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="сон приходит только под утро" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0034" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="не могу уснуть перед важным днём" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0035" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="кажется ночь никогда не закончится" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0036" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="я лежу и считаю сколько осталось спать" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0037" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="стоит ли попробовать дыхание" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0038" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="можно записать мысли на бумагу" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0039" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как вернуться в кровать после пробуждения" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0040" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="я начинаю работать когда не спится" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0041" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="ночью всё кажется страшнее" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0042" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="не хочу будить человека рядом" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0043" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="как попросить тишины" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0044" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="мне мешает чужой храп" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0045" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="я просыпаюсь несколько раз за ночь" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0046" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="после кошмара боюсь закрывать глаза" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0047" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="что делать при долгой бессоннице" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0048" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="сон пропал без понятной причины" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0049" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="я вымотан но всё равно не засыпаю" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.insomnia.0050" topic="life.sleep.insomnia" act="life.sleep.insomnia.reply" phrase="можно просто переждать эту ночь" salience="435" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.rest.0001" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как нормально отдохнуть" salience="435" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.rest.0002" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="выходные совсем не восстановили" salience="450" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.rest.0003" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="хочу день провести дома" salience="465" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.rest.0004" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что лучше активный отдых или диван" salience="480" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.rest.0005" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="не умею ничего не делать" salience="495" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.rest.0006" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="чувствую вину когда отдыхаю" salience="510" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.rest.0007" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как восстановиться без поездки" salience="420" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.rest.0008" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="мне нужен тихий вечер" salience="435" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.rest.0009" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="хочу отменить все планы" salience="450" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.rest.0010" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="можно провести выходной одному" salience="465" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.rest.0011" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как понять что отдых помогает" salience="480" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.rest.0012" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="после отпуска всё равно устал" salience="495" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.rest.0013" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="нужен день без экрана" salience="510" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.rest.0014" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что делать для спокойного вечера" salience="420" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.rest.0015" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="не хочу никого развлекать" salience="435" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.rest.0016" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как отдохнуть после общения" salience="450" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.rest.0017" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="можно не отвечать весь день" salience="465" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.rest.0018" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="хочу просто лежать и читать" salience="480" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.rest.0019" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="поможет ли прогулка" salience="495" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.rest.0020" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="не могу перестать думать о работе" salience="510" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.rest.0021" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как переключиться дома" salience="420" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.rest.0022" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="отдых превращается в список дел" salience="435" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.rest.0023" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="я запланировал слишком много на выходные" salience="450" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.rest.0024" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="можно отказаться от встречи ради отдыха" salience="465" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.rest.0025" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="хочу провести утро без будильника" salience="480" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.rest.0026" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как выбрать занятие для восстановления" salience="495" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.rest.0027" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="мне надо побыть в тишине" salience="510" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.rest.0028" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="не хочу чувствовать себя ленивым" salience="420" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.rest.0029" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что значит полноценный отдых" salience="435" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.rest.0030" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как восстановить силы за вечер" salience="450" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.rest.0031" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="можно ничего не достигать сегодня" salience="465" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.rest.0032" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="я устал от постоянного контента" salience="480" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.rest.0033" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="хочу посидеть без музыки и видео" salience="495" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.rest.0034" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как сделать дом спокойнее" salience="510" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.rest.0035" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="мне нужен отдых после отдыха" salience="420" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.rest.0036" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="стоит сменить обстановку" salience="435" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.rest.0037" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="хочу уехать за город на день" salience="450" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.rest.0038" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как не взять работу в поездку" salience="465" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.rest.0039" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="можно отключить телефон" salience="480" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.rest.0040" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="хочу провести время с близким человеком" salience="495" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.rest.0041" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как отдыхать когда мало времени" salience="510" ttlMinutes="0" priority="545" />
+		<pattern id="v3.life.sleep.pattern.rest.0042" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="нужен короткий ритуал завершения дня" salience="420" ttlMinutes="0" priority="550" />
+		<pattern id="v3.life.sleep.pattern.rest.0043" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что делать если планы отменились" salience="435" ttlMinutes="0" priority="555" />
+		<pattern id="v3.life.sleep.pattern.rest.0044" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="я не знаю чего хочу от выходного" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.life.sleep.pattern.rest.0045" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как совместить дела и отдых" salience="465" ttlMinutes="0" priority="520" />
+		<pattern id="v3.life.sleep.pattern.rest.0046" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="можно оставить уборку на завтра" salience="480" ttlMinutes="0" priority="525" />
+		<pattern id="v3.life.sleep.pattern.rest.0047" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="хочу лечь спать пораньше" salience="495" ttlMinutes="0" priority="530" />
+		<pattern id="v3.life.sleep.pattern.rest.0048" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="что поможет почувствовать выходной" salience="510" ttlMinutes="0" priority="535" />
+		<pattern id="v3.life.sleep.pattern.rest.0049" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="как вернуться к делам после отдыха" salience="420" ttlMinutes="0" priority="540" />
+		<pattern id="v3.life.sleep.pattern.rest.0050" topic="life.sleep.rest" act="life.sleep.rest.reply" phrase="сегодня я выбираю восстановление" salience="435" ttlMinutes="0" priority="545" />
 	</patterns>
 </humanizedV3SemanticSegment>
