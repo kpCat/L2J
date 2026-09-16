@@ -12,10 +12,10 @@
 		<template id="v3.lineage.trade.reply.price.0009" act="lineage.trade.price.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="За одну штуку это приемлемо, за пачку нужно пересчитать." />
 		<template id="v3.lineage.trade.reply.price.0010" act="lineage.trade.price.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сумму стоит сравнить с исходным бюджетом, не заявляя личный расчёт заранее." />
 		<template id="v3.lineage.trade.reply.price.0011" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Важно, чтобы после сделки не осталось чувства давления." />
-		<template id="v3.lineage.trade.reply.price.0012" act="lineage.trade.price.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, ты снова оцениваешь вещь дороже собственной победы." />
+		<template id="v3.lineage.trade.reply.price.0012" act="lineage.trade.price.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, неужели ты снова оцениваешь вещь дороже собственной победы?" />
 		<template id="v3.lineage.trade.reply.price.0013" act="lineage.trade.price.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Скрытая доплата — повод потребовать полную цену сразу." />
 		<template id="v3.lineage.trade.reply.price.0014" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Даже перекупы могут просить меньше, если это видно по рынку." />
-		<template id="v3.lineage.trade.reply.price.0015" act="lineage.trade.price.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Покажите предмет, тогда я смогу понять, оправдан ли ценник." />
+		<template id="v3.lineage.trade.reply.price.0015" act="lineage.trade.price.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Покажите предмет, тогда можно понять, оправдан ли ценник." />
 		<template id="v3.lineage.trade.reply.price.0016" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Цена чуть выше средней, зато продавец уже на месте." />
 		<template id="v3.lineage.trade.reply.price.0017" act="lineage.trade.price.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Да бери, раз бюджет позволяет и вещь нужна сейчас." />
 		<template id="v3.lineage.trade.reply.price.0018" act="lineage.trade.price.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я бы не экономил на твоём спокойствии ради пары монет." />
@@ -35,10 +35,10 @@
 		<template id="v3.lineage.trade.reply.price.0032" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если сомневаешься, мы можем пройти рынок ещё раз." />
 		<template id="v3.lineage.trade.reply.price.0033" act="lineage.trade.price.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="С такой скидкой ты опаснее на рынке, чем на арене." />
 		<template id="v3.lineage.trade.reply.price.0034" act="lineage.trade.price.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Говори итог без рекламной речи." />
-		<template id="v3.lineage.trade.reply.price.0035" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне неинтересно, сколько ты мечтал заработать." />
+		<template id="v3.lineage.trade.reply.price.0035" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Чужие мечты о заработке меня не интересуют." />
 		<template id="v3.lineage.trade.reply.price.0036" act="lineage.trade.price.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Пока мы незнакомы, авансом доверять оценке не буду." />
 		<template id="v3.lineage.trade.reply.price.0037" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Для редкого лота цена высокая, но объяснимая." />
-		<template id="v3.lineage.trade.reply.price.0038" act="lineage.trade.price.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Слушай, за эти деньги я ожидал хотя бы блеск поярче." />
+		<template id="v3.lineage.trade.reply.price.0038" act="lineage.trade.price.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Слушай, за такую цену хочется хотя бы более яркого блеска." />
 		<template id="v3.lineage.trade.reply.price.0039" act="lineage.trade.price.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне нравится, что ты не прячешь расходы за округлением." />
 		<template id="v3.lineage.trade.reply.price.0040" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не уступай мне из жалости, соперник; снижай по рынку." />
 		<template id="v3.lineage.trade.reply.price.0041" act="lineage.trade.price.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Указанная сумма устраивает. Переходим к обмену." />
@@ -46,7 +46,7 @@
 		<template id="v3.lineage.trade.reply.price.0043" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Скажите, почему стоимость выросла со вчерашнего объявления." />
 		<template id="v3.lineage.trade.reply.price.0044" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="На рынке мало таких вещей, поэтому разброс большой." />
 		<template id="v3.lineage.trade.reply.price.0045" act="lineage.trade.price.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Можем взять пополам, если предмет делится на пачки." />
-		<template id="v3.lineage.trade.reply.price.0046" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я знаю, как долго ты это собирал; слишком дёшево не отдавай." />
+		<template id="v3.lineage.trade.reply.price.0046" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Важно помнить, как долго ты это собирал; слишком дёшево не отдавай." />
 		<template id="v3.lineage.trade.reply.price.0047" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты решил победить меня бухгалтерией?" />
 		<template id="v3.lineage.trade.reply.price.0048" act="lineage.trade.price.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Цена изменилась — сделка на паузе." />
 		<template id="v3.lineage.trade.reply.price.0049" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Со мной этот трюк не пройдёт." />
@@ -66,7 +66,7 @@
 		<template id="v3.lineage.trade.reply.price.0063" act="lineage.trade.price.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Товар мне не нужен даже бесплатно с твоими условиями." />
 		<template id="v3.lineage.trade.reply.price.0064" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Назовите цену каждой позиции отдельно." />
 		<template id="v3.lineage.trade.reply.price.0065" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Комплект оценён ровно, явной переплаты не вижу." />
-		<template id="v3.lineage.trade.reply.price.0066" act="lineage.trade.price.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если уберём лишнюю часть, я впишусь в бюджет." />
+		<template id="v3.lineage.trade.reply.price.0066" act="lineage.trade.price.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если уберём лишнюю часть, можно вписаться в бюджет." />
 		<template id="v3.lineage.trade.reply.price.0067" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне знаком этот продавец, но цифры всё равно должны быть прозрачными." />
 		<template id="v3.lineage.trade.reply.price.0068" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твоя скидка меньше погрешности при подсчёте." />
 		<template id="v3.lineage.trade.reply.price.0069" act="lineage.trade.price.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Договорились на этой сумме, не растягиваем." />
@@ -80,14 +80,14 @@
 		<template id="v3.lineage.trade.reply.price.0077" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Это грабёж с торговой вывеской." />
 		<template id="v3.lineage.trade.reply.price.0078" act="lineage.trade.price.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне нужна стоимость без будущих доплат и обязательств." />
 		<template id="v3.lineage.trade.reply.price.0079" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Разумная наценка за готовность товара уже учтена." />
-		<template id="v3.lineage.trade.reply.price.0080" act="lineage.trade.price.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Скинь совсем немного, и я перестану мучить тебя вопросами." />
+		<template id="v3.lineage.trade.reply.price.0080" act="lineage.trade.price.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Скинь совсем немного, и можно перестать мучить тебя вопросами." />
 		<template id="v3.lineage.trade.reply.price.0081" act="lineage.trade.price.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мы давно торгуем; скажи честно, сколько хочешь получить на руки." />
 		<template id="v3.lineage.trade.reply.price.0082" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты так дорожишь этим лотом, будто он выиграл за тебя осаду." />
 		<template id="v3.lineage.trade.reply.price.0083" act="lineage.trade.price.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Условия понятны, но решение ещё не принято." />
 		<template id="v3.lineage.trade.reply.price.0084" act="lineage.trade.price.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="С этой суммой можешь разговаривать сам." />
 		<template id="v3.lineage.trade.reply.price.0085" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Цена указана за весь объём или за одну единицу?" />
 		<template id="v3.lineage.trade.reply.price.0086" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если брать поштучно, итог получится заметно дороже." />
-		<template id="v3.lineage.trade.reply.price.0087" act="lineage.trade.price.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="У меня ровно столько и есть — судьба явно подталкивает." />
+		<template id="v3.lineage.trade.reply.price.0087" act="lineage.trade.price.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Когда адены ровно столько, запас важнее красивой покупки." />
 		<template id="v3.lineage.trade.reply.price.0088" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не дам тебе продешевить только ради быстрой сделки." />
 		<template id="v3.lineage.trade.reply.price.0089" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой конкурент снова притворяется благотворителем." />
 		<template id="v3.lineage.trade.reply.price.0090" act="lineage.trade.price.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Бюджет не резиновый. Ответ нужен сейчас." />
@@ -98,7 +98,7 @@
 		<template id="v3.lineage.trade.reply.price.0095" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если тебе комфортна цена, чужое мнение уже не так важно." />
 		<template id="v3.lineage.trade.reply.price.0096" act="lineage.trade.price.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Раз уж ты дороже, покажи, чем товар лучше моего." />
 		<template id="v3.lineage.trade.reply.price.0097" act="lineage.trade.price.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не добавляй комиссию в последний момент." />
-		<template id="v3.lineage.trade.reply.price.0098" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты продаёшь пиксели, а ведёшь себя как ростовщик." />
+		<template id="v3.lineage.trade.reply.price.0098" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Неужели ты продаёшь пиксели, а ведёшь себя как ростовщик?" />
 		<template id="v3.lineage.trade.reply.price.0099" act="lineage.trade.price.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я не спорю с ценой, пока не проверю остальные магазины." />
 		<template id="v3.lineage.trade.reply.price.0100" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="На срочной продаже обычно можно найти дешевле." />
 		<template id="v3.lineage.trade.reply.price.0101" act="lineage.trade.price.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Дружище, не бери первое попавшееся — пройдёмся ещё минуту." />
@@ -106,18 +106,18 @@
 		<template id="v3.lineage.trade.reply.price.0103" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, твоя арифметика хромает сильнее проигравшего танка." />
 		<template id="v3.lineage.trade.reply.price.0104" act="lineage.trade.price.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Итоговую сумму в чат, без намёков." />
 		<template id="v3.lineage.trade.reply.price.0105" act="lineage.trade.price.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Подобные предложения я просто закрываю." />
-		<template id="v3.lineage.trade.reply.price.0106" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="В объявлении одна цена, сейчас вы называете другую." />
+		<template id="v3.lineage.trade.reply.price.0106" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Разве в объявлении одна цена, сейчас вы называете другую?" />
 		<template id="v3.lineage.trade.reply.price.0107" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Возможно, продавец включил в неё редкий внешний вид." />
 		<template id="v3.lineage.trade.reply.price.0108" act="lineage.trade.price.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если второй предмет идёт бонусом, предложение уже интереснее." />
-		<template id="v3.lineage.trade.reply.price.0109" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="С тобой я могу говорить прямо: дороже брать не стоит." />
+		<template id="v3.lineage.trade.reply.price.0109" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="С близким собеседником можно говорить прямо: дороже брать не стоит." />
 		<template id="v3.lineage.trade.reply.price.0110" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не рассчитывай, что моё нетерпение оплатит твою наценку." />
 		<template id="v3.lineage.trade.reply.price.0111" act="lineage.trade.price.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Согласен только на сумму из объявления." />
 		<template id="v3.lineage.trade.reply.price.0112" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я не обязан финансировать твою фантазию." />
 		<template id="v3.lineage.trade.reply.price.0113" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Поясните, какая валюта имеется в виду." />
 		<template id="v3.lineage.trade.reply.price.0114" act="lineage.trade.price.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="После пересчёта пачки сумма совпала." />
 		<template id="v3.lineage.trade.reply.price.0115" act="lineage.trade.price.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="О, наконец-то число, от которого не хочется убежать." />
-		<template id="v3.lineage.trade.reply.price.0116" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я запомнил, сколько ты вложил; ниже себестоимости отдавать обидно." />
-		<template id="v3.lineage.trade.reply.price.0117" act="lineage.trade.price.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты снизил цену раньше, чем я начал торг. Слабеешь." />
+		<template id="v3.lineage.trade.reply.price.0116" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ниже себестоимости отдавать обидно, даже если покупатель знает вложения." />
+		<template id="v3.lineage.trade.reply.price.0117" act="lineage.trade.price.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Начавший торг не обязан сразу уступать." />
 		<template id="v3.lineage.trade.reply.price.0118" act="lineage.trade.price.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Решай быстрее, предложение не будет ждать." />
 		<template id="v3.lineage.trade.reply.price.0119" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твой лот столько не стоит. Точка." />
 		<template id="v3.lineage.trade.reply.price.0120" act="lineage.trade.price.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне подходит предмет, но цена пока удерживает от сделки." />
@@ -131,8 +131,8 @@
 		<template id="v3.lineage.trade.reply.price.0128" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Несколько свежих лотов стоят в том же диапазоне." />
 		<template id="v3.lineage.trade.reply.price.0129" act="lineage.trade.price.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мне выгоднее купить всю пачку и поделиться с группой." />
 		<template id="v3.lineage.trade.reply.price.0130" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я рядом, если хочешь спокойно решить, а не уступать под давлением." />
-		<template id="v3.lineage.trade.reply.price.0131" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты продаёшь быстрее, зато я продаю дороже. Ничья." />
-		<template id="v3.lineage.trade.reply.price.0132" act="lineage.trade.price.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мы договаривались без надбавки." />
+		<template id="v3.lineage.trade.reply.price.0131" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Быстрая продажа и высокая цена редко приходят вместе. Ничья." />
+		<template id="v3.lineage.trade.reply.price.0132" act="lineage.trade.price.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Договорённость без надбавки лучше фиксировать до сделки." />
 		<template id="v3.lineage.trade.reply.price.0133" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сказки о дефиците оставь новичкам." />
 		<template id="v3.lineage.trade.reply.price.0134" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сколько останется доплатить после обмена предметами?" />
 		<template id="v3.lineage.trade.reply.price.0135" act="lineage.trade.price.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Оценка обоих лотов должна быть сделана по одной логике." />
@@ -144,8 +144,8 @@
 		<template id="v3.lineage.trade.reply.price.0141" act="lineage.trade.price.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Покажите расчёт стоимости материалов и работы отдельно." />
 		<template id="v3.lineage.trade.reply.price.0142" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мастерская наценка здесь небольшая." />
 		<template id="v3.lineage.trade.reply.price.0143" act="lineage.trade.price.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если крафтер отвечает за свои ресурсы, цена понятна." />
-		<template id="v3.lineage.trade.reply.price.0144" act="lineage.trade.price.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я знаю этого мастера; он не станет прятать лишний сбор." />
-		<template id="v3.lineage.trade.reply.price.0145" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, ты оценил работу так, будто ковал корону." />
+		<template id="v3.lineage.trade.reply.price.0144" act="lineage.trade.price.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Важно помнить этого мастера; он не станет прятать лишний сбор." />
+		<template id="v3.lineage.trade.reply.price.0145" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, неужели ты оценил работу так, будто ковал корону?" />
 		<template id="v3.lineage.trade.reply.price.0146" act="lineage.trade.price.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не начинай заказ, пока итог не подтверждён." />
 		<template id="v3.lineage.trade.reply.price.0147" act="lineage.trade.price.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="За посредственную работу платить премию не буду." />
 		<template id="v3.lineage.trade.reply.price.0148" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне назвали ориентир, а не гарантированную цену — я это понимаю." />
@@ -155,7 +155,7 @@
 		<template id="v3.lineage.trade.reply.price.0152" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Пока ты ждёшь идеальную цену, я уже торгую." />
 		<template id="v3.lineage.trade.reply.price.0153" act="lineage.trade.price.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне нужен ответ: продаёшь или нет." />
 		<template id="v3.lineage.trade.reply.price.0154" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Манипуляция срочностью не делает лот ценнее." />
-		<template id="v3.lineage.trade.reply.price.0155" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я внесу ровно ту сумму, которую сейчас подтвердим." />
+		<template id="v3.lineage.trade.reply.price.0155" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Разумнее внести ровно ту сумму, которую сейчас подтвердим." />
 		<template id="v3.lineage.trade.reply.price.0156" act="lineage.trade.price.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="С продавцом договорились, комиссия площадки отдельно." />
 		<template id="v3.lineage.trade.reply.price.0157" act="lineage.trade.price.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Отлично, осталось не потратить скидку на телепорт." />
 		<template id="v3.lineage.trade.reply.price.0158" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если цена тебя тревожит, откажись — я не обижусь." />
@@ -187,14 +187,14 @@
 		<template id="v3.lineage.trade.reply.price.0184" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Это обычное условие, продавец не возражает." />
 		<template id="v3.lineage.trade.reply.price.0185" act="lineage.trade.price.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Показывай лот, дружище, адена уже наготове." />
 		<template id="v3.lineage.trade.reply.price.0186" act="lineage.trade.price.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Сделку нужно проверять до конца самостоятельно, не полагаясь на чужое присутствие." />
-		<template id="v3.lineage.trade.reply.price.0187" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не улыбайся, я покупаю предмет, а не признаю твоё превосходство." />
+		<template id="v3.lineage.trade.reply.price.0187" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Покупка предмета не равна признанию чужого превосходства." />
 		<template id="v3.lineage.trade.reply.price.0188" act="lineage.trade.price.reply" band="TENSE" register="CASUAL" profanity="NONE" text="В окне другая сумма. Исправь." />
-		<template id="v3.lineage.trade.reply.price.0189" act="lineage.trade.price.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты снова попытался добавить ноль. Сделки не будет." />
+		<template id="v3.lineage.trade.reply.price.0189" act="lineage.trade.price.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Неужели ты снова попытался добавить ноль. Сделки не будет?" />
 		<template id="v3.lineage.trade.reply.price.0190" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Стоимость совпала, количество тоже." />
 		<template id="v3.lineage.trade.reply.price.0191" act="lineage.trade.price.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Для меня это достаточное подтверждение." />
 		<template id="v3.lineage.trade.reply.price.0192" act="lineage.trade.price.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="По рукам, и пусть лут оправдает расходы." />
 		<template id="v3.lineage.trade.reply.price.0193" act="lineage.trade.price.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Хорошая сделка: никто не чувствует себя обманутым." />
-		<template id="v3.lineage.trade.reply.price.0194" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Запомни этот день, соперник: я согласился с твоей ценой." />
+		<template id="v3.lineage.trade.reply.price.0194" act="lineage.trade.price.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Согласие с ценой означает, что торг закончен." />
 		<template id="v3.lineage.trade.reply.price.0195" act="lineage.trade.price.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Оплата готова, подтверждаем после последней сверки." />
 		<template id="v3.lineage.trade.reply.price.0196" act="lineage.trade.price.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сумма верная. Завершаем." />
 		<template id="v3.lineage.trade.reply.price.0197" act="lineage.trade.price.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Спасибо, цена названа ясно; дальше всё просто." />
@@ -219,7 +219,7 @@
 		<template id="v3.lineage.trade.reply.bargain.0016" act="lineage.trade.bargain.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Разницу можно честно поделить пополам." />
 		<template id="v3.lineage.trade.reply.bargain.0017" act="lineage.trade.bargain.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Округление вниз можно предложить без обещания немедленно забрать лот." />
 		<template id="v3.lineage.trade.reply.bargain.0018" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы можем уступить друг другу по мелочи и сохранить настроение." />
-		<template id="v3.lineage.trade.reply.bargain.0019" act="lineage.trade.bargain.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ты торгуешься лучше, чем дерёшься, но всё ещё недостаточно." />
+		<template id="v3.lineage.trade.reply.bargain.0019" act="lineage.trade.bargain.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Правда ты торгуешься лучше, чем дерёшься, но всё ещё недостаточно?" />
 		<template id="v3.lineage.trade.reply.bargain.0020" act="lineage.trade.bargain.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Последнее предложение лучше явно зафиксировать в чате." />
 		<template id="v3.lineage.trade.reply.bargain.0021" act="lineage.trade.bargain.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне неинтересен спектакль из пятидесяти ставок." />
 		<template id="v3.lineage.trade.reply.bargain.0022" act="lineage.trade.bargain.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я не стану сбивать цену, пока не увижу товар." />
@@ -228,7 +228,7 @@
 		<template id="v3.lineage.trade.reply.bargain.0025" act="lineage.trade.bargain.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если вещь нужна сейчас, мягкий торг всё равно должен оставаться честным." />
 		<template id="v3.lineage.trade.reply.bargain.0026" act="lineage.trade.bargain.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, не прячь желание сэкономить за анализом рынка." />
 		<template id="v3.lineage.trade.reply.bargain.0027" act="lineage.trade.bargain.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Либо подтверждай, либо освободи продавца." />
-		<template id="v3.lineage.trade.reply.bargain.0028" act="lineage.trade.bargain.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты тратишь моё время ради копеек." />
+		<template id="v3.lineage.trade.reply.bargain.0028" act="lineage.trade.bargain.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Почему ты тратишь моё время ради копеек?" />
 		<template id="v3.lineage.trade.reply.bargain.0029" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Скажите, интересует ли вас обмен с доплатой." />
 		<template id="v3.lineage.trade.reply.bargain.0030" act="lineage.trade.bargain.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Такой вариант уменьшит сумму для обеих сторон." />
 		<template id="v3.lineage.trade.reply.bargain.0031" act="lineage.trade.bargain.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="У меня есть нужные тебе ресурсы; давай считать." />
@@ -236,7 +236,7 @@
 		<template id="v3.lineage.trade.reply.bargain.0033" act="lineage.trade.bargain.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мой лут лучше твоей адены, просто рынок ещё не понял." />
 		<template id="v3.lineage.trade.reply.bargain.0034" act="lineage.trade.bargain.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="В окне должны быть все части договорённости." />
 		<template id="v3.lineage.trade.reply.bargain.0035" act="lineage.trade.bargain.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Подсовывать ненужное вместо скидки не надо." />
-		<template id="v3.lineage.trade.reply.bargain.0036" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я могу предложить цену, но не хочу вас оскорбить случайной оценкой." />
+		<template id="v3.lineage.trade.reply.bargain.0036" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Можно предложить цену и не превращать случайную оценку в оскорбление." />
 		<template id="v3.lineage.trade.reply.bargain.0037" act="lineage.trade.bargain.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Начните с комфортной суммы, потом найдём середину." />
 		<template id="v3.lineage.trade.reply.bargain.0038" act="lineage.trade.bargain.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не стесняйся, говори сколько реально готов отдать." />
 		<template id="v3.lineage.trade.reply.bargain.0039" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Со мной можешь не играть продавца — назови честный минимум." />
@@ -250,7 +250,7 @@
 		<template id="v3.lineage.trade.reply.bargain.0047" act="lineage.trade.bargain.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Проверим, кто быстрее сдастся в этой торговой дуэли." />
 		<template id="v3.lineage.trade.reply.bargain.0048" act="lineage.trade.bargain.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Моя готовность не означает согласие на любую цифру." />
 		<template id="v3.lineage.trade.reply.bargain.0049" act="lineage.trade.bargain.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Давление не работает. Цена остаётся прежней." />
-		<template id="v3.lineage.trade.reply.bargain.0050" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я рассматриваю несколько лотов и никого не тороплю." />
+		<template id="v3.lineage.trade.reply.bargain.0050" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Несколько лотов лучше рассматривать без давления на продавцов." />
 		<template id="v3.lineage.trade.reply.bargain.0051" act="lineage.trade.bargain.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Конкуренция даёт покупателю пространство для торга." />
 		<template id="v3.lineage.trade.reply.bargain.0052" act="lineage.trade.bargain.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="У соседа дешевле, но твой предмет лучше заточен." />
 		<template id="v3.lineage.trade.reply.bargain.0053" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я бы выбрал твой, если разница станет немного меньше." />
@@ -260,15 +260,15 @@
 		<template id="v3.lineage.trade.reply.bargain.0057" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Могу взять две пачки, если цена за единицу снизится." />
 		<template id="v3.lineage.trade.reply.bargain.0058" act="lineage.trade.bargain.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Оптовая скидка не должна съедать всю прибыль." />
 		<template id="v3.lineage.trade.reply.bargain.0059" act="lineage.trade.bargain.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мы поделим покупку на группу, всем будет выгодно." />
-		<template id="v3.lineage.trade.reply.bargain.0060" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я знаю, тебе важнее освободить склад; предложи разумный опт." />
-		<template id="v3.lineage.trade.reply.bargain.0061" act="lineage.trade.bargain.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="С таким объёмом ты станешь моим главным конкурентом." />
+		<template id="v3.lineage.trade.reply.bargain.0060" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Важно помнить, тебе важнее освободить склад; предложи разумный опт." />
+		<template id="v3.lineage.trade.reply.bargain.0061" act="lineage.trade.bargain.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Правда ли, что с таким объёмом ты станешь моим главным конкурентом?" />
 		<template id="v3.lineage.trade.reply.bargain.0062" act="lineage.trade.bargain.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Количество подтверждено, теперь говорим об итоговой сумме." />
 		<template id="v3.lineage.trade.reply.bargain.0063" act="lineage.trade.bargain.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не называй одну цену, а в окно клади половину." />
 		<template id="v3.lineage.trade.reply.bargain.0064" act="lineage.trade.bargain.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне нужен только остаток; можно оценить его отдельно?" />
 		<template id="v3.lineage.trade.reply.bargain.0065" act="lineage.trade.bargain.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неполная пачка обычно продаётся медленнее." />
 		<template id="v3.lineage.trade.reply.bargain.0066" act="lineage.trade.bargain.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Заберу хвост склада, пусть хоть место освободится." />
 		<template id="v3.lineage.trade.reply.bargain.0067" act="lineage.trade.bargain.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Остаток не стоит отдавать даром только из-за усталости от ожидания." />
-		<template id="v3.lineage.trade.reply.bargain.0068" act="lineage.trade.bargain.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты называешь это залежами, я — стратегическим запасом." />
+		<template id="v3.lineage.trade.reply.bargain.0068" act="lineage.trade.bargain.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Почему ты называешь это залежами, я — стратегическим запасом?" />
 		<template id="v3.lineage.trade.reply.bargain.0069" act="lineage.trade.bargain.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Цена за единицу должна совпасть с договорённостью." />
 		<template id="v3.lineage.trade.reply.bargain.0070" act="lineage.trade.bargain.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Спрячь уловку с округлением для другого." />
 		<template id="v3.lineage.trade.reply.bargain.0071" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я допускаю встречную цену, если вы объясните разницу." />
@@ -282,9 +282,9 @@
 		<template id="v3.lineage.trade.reply.bargain.0079" act="lineage.trade.bargain.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Обе стороны уже уступили достаточно." />
 		<template id="v3.lineage.trade.reply.bargain.0080" act="lineage.trade.bargain.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="По рукам, пока никто не придумал новую цифру." />
 		<template id="v3.lineage.trade.reply.bargain.0081" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важнее закрыть сделку без осадка между нами." />
-		<template id="v3.lineage.trade.reply.bargain.0082" act="lineage.trade.bargain.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Поздравляю, соперник: ты выторговал ровно один телепорт." />
+		<template id="v3.lineage.trade.reply.bargain.0082" act="lineage.trade.bargain.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Разве поздравляю, соперник: ты выторговал ровно один телепорт?" />
 		<template id="v3.lineage.trade.reply.bargain.0083" act="lineage.trade.bargain.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Последняя цена зафиксирована." />
-		<template id="v3.lineage.trade.reply.bargain.0084" act="lineage.trade.bargain.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ещё один круг — и я отменяю всё." />
+		<template id="v3.lineage.trade.reply.bargain.0084" act="lineage.trade.bargain.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ещё один круг — и можно отменять всё." />
 		<template id="v3.lineage.trade.reply.bargain.0085" act="lineage.trade.bargain.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я не готов принять ваш минимум, поэтому спокойно откажусь." />
 		<template id="v3.lineage.trade.reply.bargain.0086" act="lineage.trade.bargain.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Иногда разойтись честнее, чем выжимать согласие." />
 		<template id="v3.lineage.trade.reply.bargain.0087" act="lineage.trade.bargain.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ничего личного, просто бюджет не сошёлся." />
@@ -311,33 +311,33 @@
 		<template id="v3.lineage.trade.reply.bargain.0108" act="lineage.trade.bargain.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Диапазоны пересекаются, значит договор возможен." />
 		<template id="v3.lineage.trade.reply.bargain.0109" act="lineage.trade.bargain.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы почти рядом; одна аккуратная уступка решит вопрос." />
 		<template id="v3.lineage.trade.reply.bargain.0110" act="lineage.trade.bargain.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если разница мала, я предпочту сохранить хорошие отношения." />
-		<template id="v3.lineage.trade.reply.bargain.0111" act="lineage.trade.bargain.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты называешь это компромиссом только потому, что выигрываешь." />
+		<template id="v3.lineage.trade.reply.bargain.0111" act="lineage.trade.bargain.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Правда ты называешь это компромиссом только потому, что выигрываешь?" />
 		<template id="v3.lineage.trade.reply.bargain.0112" act="lineage.trade.bargain.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не меняй предел после моего согласия." />
 		<template id="v3.lineage.trade.reply.bargain.0113" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="С тобой любой компромисс пахнет ловушкой." />
-		<template id="v3.lineage.trade.reply.bargain.0114" act="lineage.trade.bargain.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я могу добавить немного за доставку к месту встречи." />
+		<template id="v3.lineage.trade.reply.bargain.0114" act="lineage.trade.bargain.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Лучше добавить немного за доставку к месту встречи." />
 		<template id="v3.lineage.trade.reply.bargain.0115" act="lineage.trade.bargain.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Это отдельная услуга, её цена названа заранее." />
-		<template id="v3.lineage.trade.reply.bargain.0116" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Тогда привези к складу, и я доплачу как договорились." />
+		<template id="v3.lineage.trade.reply.bargain.0116" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Тогда привези к складу, и можно доплатить как договорились." />
 		<template id="v3.lineage.trade.reply.bargain.0117" act="lineage.trade.bargain.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне спокойнее, когда каждая часть расчёта понятна тебе." />
 		<template id="v3.lineage.trade.reply.bargain.0118" act="lineage.trade.bargain.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, даже курьер у тебя участвует в ценовой войне." />
 		<template id="v3.lineage.trade.reply.bargain.0119" act="lineage.trade.bargain.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="За доставку заплачу после появления продавца." />
 		<template id="v3.lineage.trade.reply.bargain.0120" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Никаких выдуманных сборов по прибытии." />
 		<template id="v3.lineage.trade.reply.bargain.0121" act="lineage.trade.bargain.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Предоплата за резерв для меня неприемлема." />
 		<template id="v3.lineage.trade.reply.bargain.0122" act="lineage.trade.bargain.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можно подтвердить намерение без передачи адены." />
-		<template id="v3.lineage.trade.reply.bargain.0123" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я подойду скоро; подержи лот, если тебе удобно." />
+		<template id="v3.lineage.trade.reply.bargain.0123" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Подойти позже нормально; держать лот стоит только по договорённости." />
 		<template id="v3.lineage.trade.reply.bargain.0124" act="lineage.trade.bargain.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не рискуй ресурсами ради моего опоздания." />
 		<template id="v3.lineage.trade.reply.bargain.0125" act="lineage.trade.bargain.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, кто опоздал, тот торгуется с пустым местом." />
 		<template id="v3.lineage.trade.reply.bargain.0126" act="lineage.trade.bargain.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Резерв действует до названного времени." />
 		<template id="v3.lineage.trade.reply.bargain.0127" act="lineage.trade.bargain.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты не получишь деньги за обещание подождать." />
 		<template id="v3.lineage.trade.reply.bargain.0128" act="lineage.trade.bargain.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если другой покупатель предложит больше, сообщите мне прямо." />
 		<template id="v3.lineage.trade.reply.bargain.0129" act="lineage.trade.bargain.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Скрытый аукцион в личных сообщениях портит доверие." />
-		<template id="v3.lineage.trade.reply.bargain.0130" act="lineage.trade.bargain.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не втягивай меня в гонку, я назвал свой максимум." />
+		<template id="v3.lineage.trade.reply.bargain.0130" act="lineage.trade.bargain.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Названный максимум задаёт ясную границу торга." />
 		<template id="v3.lineage.trade.reply.bargain.0131" act="lineage.trade.bargain.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я пойму, если выгодный покупатель окажется быстрее." />
 		<template id="v3.lineage.trade.reply.bargain.0132" act="lineage.trade.bargain.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, повышай честно, а не чужими выдуманными ставками." />
 		<template id="v3.lineage.trade.reply.bargain.0133" act="lineage.trade.bargain.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Решение продавца окончательное." />
 		<template id="v3.lineage.trade.reply.bargain.0134" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Фальшивыми предложениями цену не разгонишь." />
 		<template id="v3.lineage.trade.reply.bargain.0135" act="lineage.trade.bargain.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне предлагают обмен на другой предмет; оценим оба варианта." />
 		<template id="v3.lineage.trade.reply.bargain.0136" act="lineage.trade.bargain.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Аденой расчёт проще, но бартер может быть выгоднее." />
-		<template id="v3.lineage.trade.reply.bargain.0137" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="У меня как раз есть то, что ты ищешь." />
+		<template id="v3.lineage.trade.reply.bargain.0137" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если нужный предмет как раз есть, цену всё равно стоит проверить." />
 		<template id="v3.lineage.trade.reply.bargain.0138" act="lineage.trade.bargain.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай сверим ценность без дружеских поблажек." />
 		<template id="v3.lineage.trade.reply.bargain.0139" act="lineage.trade.bargain.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, твой бартер похож на уборку собственного склада." />
 		<template id="v3.lineage.trade.reply.bargain.0140" act="lineage.trade.bargain.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Каждый предмет перечисляем до подтверждения." />
@@ -397,7 +397,7 @@
 		<template id="v3.lineage.trade.reply.bargain.0194" act="lineage.trade.bargain.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спасибо, что дошёл до компромисса спокойно." />
 		<template id="v3.lineage.trade.reply.bargain.0195" act="lineage.trade.bargain.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, рукопожатие не отменяет завтрашнюю конкуренцию." />
 		<template id="v3.lineage.trade.reply.bargain.0196" act="lineage.trade.bargain.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Переговоры завершены. Сумма не меняется." />
-		<template id="v3.lineage.trade.reply.bargain.0197" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Попробуешь торговаться в окне — я отменю." />
+		<template id="v3.lineage.trade.reply.bargain.0197" act="lineage.trade.bargain.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Попробуешь торговаться в окне — можно отменить." />
 		<template id="v3.lineage.trade.reply.bargain.0198" act="lineage.trade.bargain.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мы разошлись в цене и не обязаны искать виноватого." />
 		<template id="v3.lineage.trade.reply.bargain.0199" act="lineage.trade.bargain.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Товар остаётся у владельца, деньги — у покупателя." />
 		<template id="v3.lineage.trade.reply.bargain.0200" act="lineage.trade.bargain.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ничего, найдём варианты получше для обоих." />
@@ -424,7 +424,7 @@
 		<template id="v3.lineage.trade.reply.market.0021" act="lineage.trade.market.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ждать твоего идеального продавца никто не станет." />
 		<template id="v3.lineage.trade.reply.market.0022" act="lineage.trade.market.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Объявление свежее, но продавец пока не отвечает." />
 		<template id="v3.lineage.trade.reply.market.0023" act="lineage.trade.market.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Можно проверить его офлайн-магазин по указанному месту." />
-		<template id="v3.lineage.trade.reply.market.0024" act="lineage.trade.market.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я добегу туда, а ты напиши ему ещё раз." />
+		<template id="v3.lineage.trade.reply.market.0024" act="lineage.trade.market.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Можно добежать туда, а ты напиши ему ещё раз." />
 		<template id="v3.lineage.trade.reply.market.0025" act="lineage.trade.market.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не отправляй деньги до личной встречи, даже если торопишься." />
 		<template id="v3.lineage.trade.reply.market.0026" act="lineage.trade.market.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, скорость полезна только вместе с головой." />
 		<template id="v3.lineage.trade.reply.market.0027" act="lineage.trade.market.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ответа нет — ищем дальше." />
@@ -446,7 +446,7 @@
 		<template id="v3.lineage.trade.reply.market.0043" act="lineage.trade.market.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Редкий рецепт может висеть долго, это нормально." />
 		<template id="v3.lineage.trade.reply.market.0044" act="lineage.trade.market.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Нужному покупателю важнее точная версия, чем яркая реклама." />
 		<template id="v3.lineage.trade.reply.market.0045" act="lineage.trade.market.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Подпиши хроники и название без сокращений." />
-		<template id="v3.lineage.trade.reply.market.0046" act="lineage.trade.market.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я знаю, как обидно ждать; не снижай цену каждую минуту." />
+		<template id="v3.lineage.trade.reply.market.0046" act="lineage.trade.market.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Важно помнить, как обидно ждать; не снижай цену каждую минуту." />
 		<template id="v3.lineage.trade.reply.market.0047" act="lineage.trade.market.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, рынок проверит твоё терпение лучше арены." />
 		<template id="v3.lineage.trade.reply.market.0048" act="lineage.trade.market.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Лот оставляем до завтра." />
 		<template id="v3.lineage.trade.reply.market.0049" act="lineage.trade.market.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Никому не нужен твой музей рецептов." />
@@ -487,7 +487,7 @@
 		<template id="v3.lineage.trade.reply.market.0084" act="lineage.trade.market.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ещё один спам — и тебя просто перестанут замечать." />
 		<template id="v3.lineage.trade.reply.market.0085" act="lineage.trade.market.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Покупатель просит доставить товар в другой город." />
 		<template id="v3.lineage.trade.reply.market.0086" act="lineage.trade.market.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Это удобно, если место и доплата согласованы заранее." />
-		<template id="v3.lineage.trade.reply.market.0087" act="lineage.trade.market.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я могу встретить его по пути, не делая отдельный крюк." />
+		<template id="v3.lineage.trade.reply.market.0087" act="lineage.trade.market.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Разумнее встретить его по пути, не делая отдельный крюк." />
 		<template id="v3.lineage.trade.reply.market.0088" act="lineage.trade.market.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не ходи один с дорогим лотом к подозрительному нику." />
 		<template id="v3.lineage.trade.reply.market.0089" act="lineage.trade.market.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, даже курьерская гонка требует маршрута." />
 		<template id="v3.lineage.trade.reply.market.0090" act="lineage.trade.market.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Точка встречи должна быть безопасной и понятной." />
@@ -517,13 +517,13 @@
 		<template id="v3.lineage.trade.reply.market.0114" act="lineage.trade.market.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Постоянство удобно, но цену всё равно сравниваем." />
 		<template id="v3.lineage.trade.reply.market.0115" act="lineage.trade.market.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Запомним место, у него часто бывает нужное." />
 		<template id="v3.lineage.trade.reply.market.0116" act="lineage.trade.market.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Хороший контакт ценнее разовой случайной скидки." />
-		<template id="v3.lineage.trade.reply.market.0117" act="lineage.trade.market.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, ты уже заводишь дружбу с торговой вывеской." />
+		<template id="v3.lineage.trade.reply.market.0117" act="lineage.trade.market.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, неужели ты уже заводишь дружбу с торговой вывеской?" />
 		<template id="v3.lineage.trade.reply.market.0118" act="lineage.trade.market.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Проверили товар — теперь можно писать продавцу." />
 		<template id="v3.lineage.trade.reply.market.0119" act="lineage.trade.market.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Репутация не заменяет содержимое окна." />
 		<template id="v3.lineage.trade.reply.market.0120" act="lineage.trade.market.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В соседнем городе тот же лот дешевле, но дорога съест часть разницы." />
 		<template id="v3.lineage.trade.reply.market.0121" act="lineage.trade.market.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Считаем полную стоимость, включая перемещение." />
 		<template id="v3.lineage.trade.reply.market.0122" act="lineage.trade.market.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если разница останется, прогуляемся." />
-		<template id="v3.lineage.trade.reply.market.0123" act="lineage.trade.market.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я пойду с тобой, чтобы путь не казался пустой тратой." />
+		<template id="v3.lineage.trade.reply.market.0123" act="lineage.trade.market.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Разумнее идти с тобой, чтобы путь не казался пустой тратой." />
 		<template id="v3.lineage.trade.reply.market.0124" act="lineage.trade.market.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, успей раньше, пока цена не догнала тебя." />
 		<template id="v3.lineage.trade.reply.market.0125" act="lineage.trade.market.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Маршрут известен, решение принимаем сейчас." />
 		<template id="v3.lineage.trade.reply.market.0126" act="lineage.trade.market.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ради пары монет через весь мир не побегу." />
@@ -551,7 +551,7 @@
 		<template id="v3.lineage.trade.reply.market.0148" act="lineage.trade.market.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Предложений много, но нужная заточка встречается одна." />
 		<template id="v3.lineage.trade.reply.market.0149" act="lineage.trade.market.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Именно редкое свойство объясняет разницу в цене." />
 		<template id="v3.lineage.trade.reply.market.0150" act="lineage.trade.market.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Тогда не будем сравнивать её с базовыми вещами." />
-		<template id="v3.lineage.trade.reply.market.0151" act="lineage.trade.market.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я рад, что ты заметил отличие до оплаты." />
+		<template id="v3.lineage.trade.reply.market.0151" act="lineage.trade.market.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Хорошо, когда человек заметил отличие до оплаты." />
 		<template id="v3.lineage.trade.reply.market.0152" act="lineage.trade.market.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, внимательность внезапно стала твоим преимуществом." />
 		<template id="v3.lineage.trade.reply.market.0153" act="lineage.trade.market.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Смотрим полные характеристики каждого лота." />
 		<template id="v3.lineage.trade.reply.market.0154" act="lineage.trade.market.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Иконки одинаковые, а товар разный — не путай." />
@@ -666,14 +666,14 @@
 		<template id="v3.lineage.trade.reply.safety.0063" act="lineage.trade.safety.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не сваливай ошибку инвентаря на продавца." />
 		<template id="v3.lineage.trade.reply.safety.0064" act="lineage.trade.safety.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сделка закрылась, но системное сообщение не появилось." />
 		<template id="v3.lineage.trade.reply.safety.0065" act="lineage.trade.safety.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не повторяем оплату, пока не проверим состояние обоих инвентарей." />
-		<template id="v3.lineage.trade.reply.safety.0066" act="lineage.trade.safety.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="У меня адена на месте; у тебя предмет тоже — значит обмен не прошёл." />
+		<template id="v3.lineage.trade.reply.safety.0066" act="lineage.trade.safety.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Адена на месте — хороший момент ещё раз проверить окно обмена." />
 		<template id="v3.lineage.trade.reply.safety.0067" act="lineage.trade.safety.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спокойно, сверим лог и попробуем только после ясного результата." />
 		<template id="v3.lineage.trade.reply.safety.0068" act="lineage.trade.safety.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, двойная оплата — слишком дорогой реванш." />
 		<template id="v3.lineage.trade.reply.safety.0069" act="lineage.trade.safety.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Никаких повторных действий вслепую." />
 		<template id="v3.lineage.trade.reply.safety.0070" act="lineage.trade.safety.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сначала разберись, потом жми кнопки." />
 		<template id="v3.lineage.trade.reply.safety.0071" act="lineage.trade.safety.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Продавец изменил цену прямо перед подтверждением." />
 		<template id="v3.lineage.trade.reply.safety.0072" act="lineage.trade.safety.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Любое изменение отменяет прежнее согласие." />
-		<template id="v3.lineage.trade.reply.safety.0073" act="lineage.trade.safety.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я увидел, закрывай окно без разговоров." />
+		<template id="v3.lineage.trade.reply.safety.0073" act="lineage.trade.safety.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Увидев несоответствие, окно нужно закрыть без разговоров." />
 		<template id="v3.lineage.trade.reply.safety.0074" act="lineage.trade.safety.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты не обязан оправдываться перед человеком, который подменил условия." />
 		<template id="v3.lineage.trade.reply.safety.0075" act="lineage.trade.safety.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, рынок только что проверил твою реакцию." />
 		<template id="v3.lineage.trade.reply.safety.0076" act="lineage.trade.safety.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Возвращаемся к исходной цене или расходимся." />
@@ -694,7 +694,7 @@
 		<template id="v3.lineage.trade.reply.safety.0091" act="lineage.trade.safety.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твоему сообщнику я ничего не отдам." />
 		<template id="v3.lineage.trade.reply.safety.0092" act="lineage.trade.safety.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После покупки продавец просит вернуть предмет для проверки." />
 		<template id="v3.lineage.trade.reply.safety.0093" act="lineage.trade.safety.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Завершённая сделка не требует такой процедуры." />
-		<template id="v3.lineage.trade.reply.safety.0094" act="lineage.trade.safety.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Нет уж, вещь уже у меня и соответствует описанию." />
+		<template id="v3.lineage.trade.reply.safety.0094" act="lineage.trade.safety.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если предмет соответствует описанию, остаётся проверить количество." />
 		<template id="v3.lineage.trade.reply.safety.0095" act="lineage.trade.safety.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не отдавай покупку обратно незнакомцу из вежливости." />
 		<template id="v3.lineage.trade.reply.safety.0096" act="lineage.trade.safety.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, второй обмен может стать первым обманом." />
 		<template id="v3.lineage.trade.reply.safety.0097" act="lineage.trade.safety.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Запрос отклонён." />
@@ -709,7 +709,7 @@
 		<template id="v3.lineage.trade.reply.safety.0106" act="lineage.trade.safety.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Имя предмета совпадает, но грейд в окне ниже." />
 		<template id="v3.lineage.trade.reply.safety.0107" act="lineage.trade.safety.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Похожие названия не делают вещи одинаковыми." />
 		<template id="v3.lineage.trade.reply.safety.0108" act="lineage.trade.safety.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Хороший улов; на беглом взгляде я бы пропустил." />
-		<template id="v3.lineage.trade.reply.safety.0109" act="lineage.trade.safety.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я рад, что ты проверил свойства, а не доверился картинке." />
+		<template id="v3.lineage.trade.reply.safety.0109" act="lineage.trade.safety.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хорошо, когда человек проверил свойства, а не доверился картинке." />
 		<template id="v3.lineage.trade.reply.safety.0110" act="lineage.trade.safety.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, внимательность приносит больше адены, чем бравада." />
 		<template id="v3.lineage.trade.reply.safety.0111" act="lineage.trade.safety.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Нужен именно согласованный грейд." />
 		<template id="v3.lineage.trade.reply.safety.0112" act="lineage.trade.safety.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Подмена слишком очевидна. Закрывайся." />
@@ -761,7 +761,7 @@
 		<template id="v3.lineage.trade.reply.safety.0158" act="lineage.trade.safety.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я рядом, но второй запуск делаем только когда ты готов." />
 		<template id="v3.lineage.trade.reply.safety.0159" act="lineage.trade.safety.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, отмена лучше дорогостоящей ошибки." />
 		<template id="v3.lineage.trade.reply.safety.0160" act="lineage.trade.safety.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Новое окно проверяем с нуля." />
-		<template id="v3.lineage.trade.reply.safety.0161" act="lineage.trade.safety.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не надейся, что второй раз я проморгаю." />
+		<template id="v3.lineage.trade.reply.safety.0161" act="lineage.trade.safety.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Второй раз такой промах уже непростителен." />
 		<template id="v3.lineage.trade.reply.safety.0162" act="lineage.trade.safety.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я случайно положил лишний ресурс в окно." />
 		<template id="v3.lineage.trade.reply.safety.0163" act="lineage.trade.safety.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Уберите его до подтверждения, не рассчитывая на возврат потом." />
 		<template id="v3.lineage.trade.reply.safety.0164" act="lineage.trade.safety.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Точно, это из другого заказа; спасибо, что заметил." />
@@ -776,9 +776,9 @@
 		<template id="v3.lineage.trade.reply.safety.0173" act="lineage.trade.safety.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, победа на рынке не строится на опечатке." />
 		<template id="v3.lineage.trade.reply.safety.0174" act="lineage.trade.safety.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Сумму уменьшаем до договорённой." />
 		<template id="v3.lineage.trade.reply.safety.0175" act="lineage.trade.safety.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне не нужны деньги, которые ты не собирался отдавать." />
-		<template id="v3.lineage.trade.reply.safety.0176" act="lineage.trade.safety.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Все поля совпали; я проговорю итог один раз." />
+		<template id="v3.lineage.trade.reply.safety.0176" act="lineage.trade.safety.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Все поля совпали; можно проговорить итог один раз." />
 		<template id="v3.lineage.trade.reply.safety.0177" act="lineage.trade.safety.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Один предмет, указанная заточка, согласованное количество и точная сумма." />
-		<template id="v3.lineage.trade.reply.safety.0178" act="lineage.trade.safety.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Подтверждаю, у меня то же самое на экране." />
+		<template id="v3.lineage.trade.reply.safety.0178" act="lineage.trade.safety.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Одинаковое отображение на обоих экранах снижает риск спора." />
 		<template id="v3.lineage.trade.reply.safety.0179" act="lineage.trade.safety.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хорошо, теперь решение остаётся только за тобой." />
 		<template id="v3.lineage.trade.reply.safety.0180" act="lineage.trade.safety.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, наконец-то окно без сюрпризов." />
 		<template id="v3.lineage.trade.reply.safety.0181" act="lineage.trade.safety.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Первое подтверждение поставлено." />

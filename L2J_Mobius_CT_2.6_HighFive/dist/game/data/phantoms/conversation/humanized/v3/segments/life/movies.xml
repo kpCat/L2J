@@ -12,7 +12,7 @@
 		<template id="v3.life.movies.reply.genre.0009" act="life.movies.genre.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Документальное кино люблю, если автор честно показывает свою позицию." />
 		<template id="v3.life.movies.reply.genre.0010" act="life.movies.genre.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мюзиклы принимаю, когда песни двигают сюжет, а не останавливают его." />
 		<template id="v3.life.movies.reply.genre.0011" act="life.movies.genre.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Для отдыха давай найдём лёгкую комедию без унизительных шуток." />
-		<template id="v3.life.movies.reply.genre.0012" act="life.movies.genre.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты называешь артхаусом любой фильм, где мало событий." />
+		<template id="v3.life.movies.reply.genre.0012" act="life.movies.genre.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Почему ты называешь артхаусом любой фильм, где мало событий?" />
 		<template id="v3.life.movies.reply.genre.0013" act="life.movies.genre.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не обесценивай жанр после одной неудачной картины." />
 		<template id="v3.life.movies.reply.genre.0014" act="life.movies.genre.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если снова испортишь просмотр криками, уйдёшь из комнаты." />
 		<template id="v3.life.movies.reply.genre.0015" act="life.movies.genre.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Детектив хорош, когда разгадка была возможна, но не очевидна." />
@@ -26,7 +26,7 @@
 		<template id="v3.life.movies.reply.genre.0023" act="life.movies.genre.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В кинотеатре лучше всего работают масштаб, звук и общий смех зала." />
 		<template id="v3.life.movies.reply.genre.0024" act="life.movies.genre.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Артхаус смотрю без обязанности хвалить каждую непонятную сцену." />
 		<template id="v3.life.movies.reply.genre.0025" act="life.movies.genre.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="На фильм-катастрофу пойдём вместе, если он не забудет о людях." />
-		<template id="v3.life.movies.reply.genre.0026" act="life.movies.genre.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты выбираешь взрывы, я — причины смотреть между ними." />
+		<template id="v3.life.movies.reply.genre.0026" act="life.movies.genre.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Неужели ты выбираешь взрывы, я — причины смотреть между ними?" />
 		<template id="v3.life.movies.reply.genre.0027" act="life.movies.genre.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не комментируй каждый медленный кадр." />
 		<template id="v3.life.movies.reply.genre.0028" act="life.movies.genre.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твоё высокомерие громче любого авторского высказывания." />
 		<template id="v3.life.movies.reply.genre.0029" act="life.movies.genre.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="В боевике мне нужны ясные герои, иначе экшен быстро становится пустым." />
@@ -39,7 +39,7 @@
 		<template id="v3.life.movies.reply.genre.0036" act="life.movies.genre.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Фильмы о путешествиях ценю за изменение людей, а не список красивых мест." />
 		<template id="v3.life.movies.reply.genre.0037" act="life.movies.genre.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В фантастике ближе истории о контакте и последствиях технологий." />
 		<template id="v3.life.movies.reply.genre.0038" act="life.movies.genre.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Судебные драмы держатся на языке, аргументах и моральном напряжении." />
-		<template id="v3.life.movies.reply.genre.0039" act="life.movies.genre.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Фильм о музыке включим после концерта, чтобы вечер продолжился." />
+		<template id="v3.life.movies.reply.genre.0039" act="life.movies.genre.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Фильм о музыке хорошо продолжает вечер после концерта." />
 		<template id="v3.life.movies.reply.genre.0040" act="life.movies.genre.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твой космос шире, мой судебный зал напряжённее." />
 		<template id="v3.life.movies.reply.genre.0041" act="life.movies.genre.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не своди биографию музыканта к сплетням." />
 		<template id="v3.life.movies.reply.genre.0042" act="life.movies.genre.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Твои выкрики во время диалогов уже всем надоели." />
@@ -54,7 +54,7 @@
 		<template id="v3.life.movies.reply.genre.0051" act="life.movies.genre.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Биографическая картина интересна, когда оставляет человеку противоречия." />
 		<template id="v3.life.movies.reply.genre.0052" act="life.movies.genre.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Бесконечные одинаковые боевики надоедают мне быстрее других жанров." />
 		<template id="v3.life.movies.reply.genre.0053" act="life.movies.genre.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Немой фильм посмотрим с хорошим музыкальным сопровождением." />
-		<template id="v3.life.movies.reply.genre.0054" act="life.movies.genre.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты считаешь старое кино слабым только потому, что не умеешь его смотреть." />
+		<template id="v3.life.movies.reply.genre.0054" act="life.movies.genre.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Неужели ты считаешь старое кино слабым только потому, что не умеешь его смотреть?" />
 		<template id="v3.life.movies.reply.genre.0055" act="life.movies.genre.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не ускоряй фильм ради собственного нетерпения." />
 		<template id="v3.life.movies.reply.genre.0056" act="life.movies.genre.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Отдай пульт, пока не сломал весь просмотр." />
 		<template id="v3.life.movies.reply.genre.0057" act="life.movies.genre.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Семейное кино должно уважать и детей, и взрослых в одном зале." />
@@ -89,7 +89,7 @@
 		<template id="v3.life.movies.reply.genre.0086" act="life.movies.genre.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Азиатские боевики люблю за ясную постановку движения и пространства." />
 		<template id="v3.life.movies.reply.genre.0087" act="life.movies.genre.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Есть экспериментальное кино, язык которого я пока не научился читать." />
 		<template id="v3.life.movies.reply.genre.0088" act="life.movies.genre.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сегодня хочется спокойной истории без спасения мира." />
-		<template id="v3.life.movies.reply.genre.0089" act="life.movies.genre.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты выбрал длинный сериал, я хотя бы закончу фильм за вечер." />
+		<template id="v3.life.movies.reply.genre.0089" act="life.movies.genre.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Неужели ты выбрал длинный сериал, я хотя бы закончу фильм за вечер?" />
 		<template id="v3.life.movies.reply.genre.0090" act="life.movies.genre.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не смейся над непривычной актёрской манерой." />
 		<template id="v3.life.movies.reply.genre.0091" act="life.movies.genre.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твои расистские шутки закрывают любой разговор о кино." />
 		<template id="v3.life.movies.reply.genre.0092" act="life.movies.genre.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Комедия для меня — не набор гэгов, а точность наблюдения за людьми." />
@@ -116,7 +116,7 @@
 		<template id="v3.life.movies.reply.genre.0113" act="life.movies.genre.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мюзикл убеждает, когда переход к песне кажется неизбежным." />
 		<template id="v3.life.movies.reply.genre.0114" act="life.movies.genre.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Танцевальный номер должен продолжать характер, а не быть рекламной паузой." />
 		<template id="v3.life.movies.reply.genre.0115" act="life.movies.genre.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Даже условный мир требует эмоционально честной игры." />
-		<template id="v3.life.movies.reply.genre.0116" act="life.movies.genre.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Поставим субтитры и споём знакомый припев вместе." />
+		<template id="v3.life.movies.reply.genre.0116" act="life.movies.genre.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Можно поставить субтитры и споём знакомый припев вместе." />
 		<template id="v3.life.movies.reply.genre.0117" act="life.movies.genre.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мой вокал хуже, зато я хотя бы знаю слова." />
 		<template id="v3.life.movies.reply.genre.0118" act="life.movies.genre.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не смейся над человеком, который искренне поёт." />
 		<template id="v3.life.movies.reply.genre.0119" act="life.movies.genre.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если продолжишь мешать, мюзикл досмотрят без тебя." />
@@ -147,7 +147,7 @@
 		<template id="v3.life.movies.reply.genre.0144" act="life.movies.genre.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="После фильма поищем разбор историка и сравним впечатления." />
 		<template id="v3.life.movies.reply.genre.0145" act="life.movies.genre.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Моя версия точнее, твоя драматургически сильнее." />
 		<template id="v3.life.movies.reply.genre.0146" act="life.movies.genre.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не придирайся к каждой пуговице, пропуская смысл сцены." />
-		<template id="v3.life.movies.reply.genre.0147" act="life.movies.genre.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Твои выдуманные факты хуже любой сценарной условности." />
+		<template id="v3.life.movies.reply.genre.0147" act="life.movies.genre.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Фактические ошибки хуже любой сценарной условности." />
 		<template id="v3.life.movies.reply.genre.0148" act="life.movies.genre.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Камерное кино выигрывает от ограничений, если пространство начинает значить больше." />
 		<template id="v3.life.movies.reply.genre.0149" act="life.movies.genre.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Одна комната может вместить целый мир отношений." />
 		<template id="v3.life.movies.reply.genre.0150" act="life.movies.genre.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Тишина в таком фильме работает как действие, а не отсутствие событий." />
@@ -172,7 +172,7 @@
 		<template id="v3.life.movies.reply.genre.0169" act="life.movies.genre.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Биография не должна превращать человека в последовательность знаменитых эпизодов." />
 		<template id="v3.life.movies.reply.genre.0170" act="life.movies.genre.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне интересны противоречия между публичным образом и частной жизнью." />
 		<template id="v3.life.movies.reply.genre.0171" act="life.movies.genre.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Пропуски иногда честнее выдуманной сцены, заполняющей неизвестность." />
-		<template id="v3.life.movies.reply.genre.0172" act="life.movies.genre.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Давай после просмотра прочитаем короткую справку о реальных событиях." />
+		<template id="v3.life.movies.reply.genre.0172" act="life.movies.genre.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="После просмотра можно прочитать короткую справку об исторической основе." />
 		<template id="v3.life.movies.reply.genre.0173" act="life.movies.genre.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой фильм осторожнее с фактами, твой сильнее как драма." />
 		<template id="v3.life.movies.reply.genre.0174" act="life.movies.genre.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не повторяй кинематографический эпизод как подтверждённую историю." />
 		<template id="v3.life.movies.reply.genre.0175" act="life.movies.genre.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Хватит распространять клевету под видом обсуждения искусства." />
@@ -218,7 +218,7 @@
 		<template id="v3.life.movies.reply.impression.0015" act="life.movies.impression.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Запомнилась сцена на кухне: там весь конфликт был в паузах." />
 		<template id="v3.life.movies.reply.impression.0016" act="life.movies.impression.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Середина немного провисла, но последний акт вернул внимание." />
 		<template id="v3.life.movies.reply.impression.0017" act="life.movies.impression.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Актёрская игра держалась на взглядах, а не на больших речах." />
-		<template id="v3.life.movies.reply.impression.0018" act="life.movies.impression.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Музыкальная тема в финале может вернуть к разговору перед сеансом, если он действительно был." />
+		<template id="v3.life.movies.reply.impression.0018" act="life.movies.impression.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Музыкальная тема в финале может вернуть разговор к впечатлениям от сеанса." />
 		<template id="v3.life.movies.reply.impression.0019" act="life.movies.impression.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я понял развязку раньше, зато ты заметил важную деталь в начале." />
 		<template id="v3.life.movies.reply.impression.0020" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не пересказывай мне объяснение из чужого обзора как своё открытие." />
 		<template id="v3.life.movies.reply.impression.0021" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты намеренно раскрыл концовку и лишил меня первого просмотра." />
@@ -233,20 +233,20 @@
 		<template id="v3.life.movies.reply.impression.0030" act="life.movies.impression.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Больше всего понравился второстепенный персонаж, который умел слушать." />
 		<template id="v3.life.movies.reply.impression.0031" act="life.movies.impression.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Сюжет предсказуем, но путь к финалу был честным и живым." />
 		<template id="v3.life.movies.reply.impression.0032" act="life.movies.impression.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="В одной сцене я едва сдержал слёзы; спасибо, что не стал шутить." />
-		<template id="v3.life.movies.reply.impression.0033" act="life.movies.impression.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты угадал поворот, я зато понял, почему герой всё равно сделал выбор." />
+		<template id="v3.life.movies.reply.impression.0033" act="life.movies.impression.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Неужели ты угадал поворот, я зато понял, почему герой всё равно сделал выбор?" />
 		<template id="v3.life.movies.reply.impression.0034" act="life.movies.impression.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не обесценивай эмоцию словом «манипуляция» без аргументов." />
 		<template id="v3.life.movies.reply.impression.0035" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если продолжишь издеваться над моей реакцией, смотреть вместе больше не будем." />
 		<template id="v3.life.movies.reply.impression.0036" act="life.movies.impression.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Хочу обсудить сцену у двери: там персонаж впервые сказал правду молчанием." />
 		<template id="v3.life.movies.reply.impression.0037" act="life.movies.impression.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Темп был ровным до финала, где события вдруг начали торопиться." />
 		<template id="v3.life.movies.reply.impression.0038" act="life.movies.impression.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Диалоги звучали естественно, особенно когда люди перебивали и недоговаривали." />
 		<template id="v3.life.movies.reply.impression.0039" act="life.movies.impression.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Большинство шуток сработало, потому что росло из характеров." />
-		<template id="v3.life.movies.reply.impression.0040" act="life.movies.impression.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Твой смех громче, но я заметил больше тихих комических деталей." />
+		<template id="v3.life.movies.reply.impression.0040" act="life.movies.impression.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Тихие комические детали часто смешнее очевидной шутки." />
 		<template id="v3.life.movies.reply.impression.0041" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не объясняй шутку сразу после неё." />
 		<template id="v3.life.movies.reply.impression.0042" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Твои оскорбительные реплики не имеют отношения к комедии." />
 		<template id="v3.life.movies.reply.impression.0043" act="life.movies.impression.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Злодей убедителен там, где его решение логично, но всё равно страшно." />
 		<template id="v3.life.movies.reply.impression.0044" act="life.movies.impression.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Режиссура особенно сильна в сценах без прямого объяснения." />
 		<template id="v3.life.movies.reply.impression.0045" act="life.movies.impression.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Камера не просто украшала кадр, а показывала, кто владеет пространством." />
-		<template id="v3.life.movies.reply.impression.0046" act="life.movies.impression.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Фильм оказался тяжелее, чем я ожидал; побудь рядом пару минут." />
+		<template id="v3.life.movies.reply.impression.0046" act="life.movies.impression.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После тяжёлого фильма полезно пару минут посидеть рядом с кем-то." />
 		<template id="v3.life.movies.reply.impression.0047" act="life.movies.impression.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Моя оценка ниже твоей, но визуальную работу я признаю." />
 		<template id="v3.life.movies.reply.impression.0048" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не торопи меня формулировать впечатление сразу после титров." />
 		<template id="v3.life.movies.reply.impression.0049" act="life.movies.impression.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Прекрати требовать спор, пока люди ещё приходят в себя." />
@@ -254,14 +254,14 @@
 		<template id="v3.life.movies.reply.impression.0051" act="life.movies.impression.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Незавершённость здесь уместна: жизнь персонажей не обязана закрываться точкой." />
 		<template id="v3.life.movies.reply.impression.0052" act="life.movies.impression.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Судьба героя расстроила, потому что выход был рядом и всё же недоступен." />
 		<template id="v3.life.movies.reply.impression.0053" act="life.movies.impression.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Главная мысль для меня — забота без честности тоже способна ранить." />
-		<template id="v3.life.movies.reply.impression.0054" act="life.movies.impression.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты увидел надежду, я — цену, но обе реакции помещаются в финале." />
+		<template id="v3.life.movies.reply.impression.0054" act="life.movies.impression.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Неужели ты увидел надежду, я — цену, но обе реакции помещаются в финале?" />
 		<template id="v3.life.movies.reply.impression.0055" act="life.movies.impression.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не объявляй свою трактовку единственно допустимой." />
 		<template id="v3.life.movies.reply.impression.0056" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Твоя агрессия к несогласным хуже любого спорного финала." />
 		<template id="v3.life.movies.reply.impression.0057" act="life.movies.impression.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Фильм изменил моё мнение о теме, потому что показал последствия на бытовом уровне." />
 		<template id="v3.life.movies.reply.impression.0058" act="life.movies.impression.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Время провели хорошо, даже если сама картина оказалась неровной." />
 		<template id="v3.life.movies.reply.impression.0059" act="life.movies.impression.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="В кинотеатр идти стоило ради звука и реакции полного зала." />
 		<template id="v3.life.movies.reply.impression.0060" act="life.movies.impression.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Спецэффекты не бросались в глаза, поэтому мир воспринимался цельным." />
-		<template id="v3.life.movies.reply.impression.0061" act="life.movies.impression.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я рад, что ты настоял на большом экране." />
+		<template id="v3.life.movies.reply.impression.0061" act="life.movies.impression.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Хорошо, когда человек настоял на большом экране." />
 		<template id="v3.life.movies.reply.impression.0062" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Моя домашняя версия была бы удобнее, зато твои места оказались отличными." />
 		<template id="v3.life.movies.reply.impression.0063" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не шурши упаковкой в каждой тихой сцене." />
 		<template id="v3.life.movies.reply.impression.0064" act="life.movies.impression.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ещё раз включишь фонарик в зале — пересядешь от нас." />
@@ -269,7 +269,7 @@
 		<template id="v3.life.movies.reply.impression.0066" act="life.movies.impression.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Финальная сцена сработала из-за простого жеста, подготовленного раньше." />
 		<template id="v3.life.movies.reply.impression.0067" act="life.movies.impression.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Пара персонажей казались лишними, но один вернулся важной деталью." />
 		<template id="v3.life.movies.reply.impression.0068" act="life.movies.impression.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Открытый финал мне понравился: выбор остаётся за героиней, а не за зрителем." />
-		<template id="v3.life.movies.reply.impression.0069" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я заметил подсказку раньше, ты лучше прочитал последний взгляд." />
+		<template id="v3.life.movies.reply.impression.0069" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ранняя подсказка и точно прочитанный последний взгляд дополняют друг друга." />
 		<template id="v3.life.movies.reply.impression.0070" act="life.movies.impression.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не требуй продолжение только потому, что ответ оставили тебе." />
 		<template id="v3.life.movies.reply.impression.0071" act="life.movies.impression.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твоя выдуманная концовка не становится каноном от громкости." />
 		<template id="v3.life.movies.reply.impression.0072" act="life.movies.impression.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сразу после титров хочется сказать: фильм смелее, чем его реклама." />
@@ -304,15 +304,15 @@
 		<template id="v3.life.movies.reply.impression.0101" act="life.movies.impression.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Начало сразу задало правила мира и не тратило время на лекцию." />
 		<template id="v3.life.movies.reply.impression.0102" act="life.movies.impression.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Первые десять минут заинтриговали точным конфликтом." />
 		<template id="v3.life.movies.reply.impression.0103" act="life.movies.impression.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Экспозиция была длинной, зато потом почти всё сыграло." />
-		<template id="v3.life.movies.reply.impression.0104" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я заметил, как ты оживился после появления второго героя." />
+		<template id="v3.life.movies.reply.impression.0104" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Появление второго героя явно оживило сцену." />
 		<template id="v3.life.movies.reply.impression.0105" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мой интерес возник раньше, твой продержался дольше." />
 		<template id="v3.life.movies.reply.impression.0106" act="life.movies.impression.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не перематывай вступление, оно здесь действительно нужно." />
 		<template id="v3.life.movies.reply.impression.0107" act="life.movies.impression.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Из-за твоего опоздания мы пропустили основу всей истории." />
 		<template id="v3.life.movies.reply.impression.0108" act="life.movies.impression.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Финал не удивил, но эмоционально завершил линию семьи." />
 		<template id="v3.life.movies.reply.impression.0109" act="life.movies.impression.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Последний поворот был лишним и ослабил более простой выбор героя." />
 		<template id="v3.life.movies.reply.impression.0110" act="life.movies.impression.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне понравилось, что фильм не наказал персонажа за честность." />
-		<template id="v3.life.movies.reply.impression.0111" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Твою руку я сжал именно в момент, когда всё стало понятно." />
-		<template id="v3.life.movies.reply.impression.0112" act="life.movies.impression.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я предсказал событие, ты точнее угадал его последствия." />
+		<template id="v3.life.movies.reply.impression.0111" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="В решающий момент рука сама ищет чужую ладонь." />
+		<template id="v3.life.movies.reply.impression.0112" act="life.movies.impression.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Угадать событие и точнее понять его последствия — разные победы." />
 		<template id="v3.life.movies.reply.impression.0113" act="life.movies.impression.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не называй предсказуемостью хорошо подготовленный результат." />
 		<template id="v3.life.movies.reply.impression.0114" act="life.movies.impression.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Твои спойлерные намёки слышал весь ряд." />
 		<template id="v3.life.movies.reply.impression.0115" act="life.movies.impression.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Звук работал тонко: опасность сначала появлялась далеко за кадром." />
@@ -344,17 +344,17 @@
 		<template id="v3.life.movies.reply.impression.0141" act="life.movies.impression.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не придумывай сцену, которой в фильме не было." />
 		<template id="v3.life.movies.reply.impression.0142" act="life.movies.impression.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="После твоей лжи о сюжете дальнейший спор бессмысленен." />
 		<template id="v3.life.movies.reply.impression.0143" act="life.movies.impression.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Комедия оказалась добрее, чем обещал резкий трейлер." />
-		<template id="v3.life.movies.reply.impression.0144" act="life.movies.impression.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я смеялся не над падением, а над реакцией человека рядом." />
+		<template id="v3.life.movies.reply.impression.0144" act="life.movies.impression.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Иногда смешит не падение, а реакция человека рядом." />
 		<template id="v3.life.movies.reply.impression.0145" act="life.movies.impression.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Повторяющаяся шутка каждый раз меняла смысл и поэтому не надоела." />
 		<template id="v3.life.movies.reply.impression.0146" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Твой смех заразил меня в самой нелепой сцене." />
-		<template id="v3.life.movies.reply.impression.0147" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я выдержал серьёзное лицо дольше тебя, но в финале сдался." />
+		<template id="v3.life.movies.reply.impression.0147" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Серьёзное лицо редко выдерживает хороший финал." />
 		<template id="v3.life.movies.reply.impression.0148" act="life.movies.impression.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не объясняй, почему всем обязано быть смешно." />
 		<template id="v3.life.movies.reply.impression.0149" act="life.movies.impression.reply" band="TENSE" register="CASUAL" profanity="NONE" text="С твоими унизительными шутками фильм смотреть больше не хочется." />
 		<template id="v3.life.movies.reply.impression.0150" act="life.movies.impression.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Страх строился на ожидании, а не на количестве монстров." />
 		<template id="v3.life.movies.reply.impression.0151" act="life.movies.impression.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Существо показали слишком рано, и неизвестность исчезла." />
 		<template id="v3.life.movies.reply.impression.0152" act="life.movies.impression.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Обычный коридор стал страшным благодаря тому, чего камера избегала." />
-		<template id="v3.life.movies.reply.impression.0153" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Хорошо, что мы смотрели вместе; одному было бы неуютно." />
-		<template id="v3.life.movies.reply.impression.0154" act="life.movies.impression.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты вздрогнул раньше, я громче — ничья." />
+		<template id="v3.life.movies.reply.impression.0153" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Совместный просмотр уютнее одиночного, особенно для тревожного фильма." />
+		<template id="v3.life.movies.reply.impression.0154" act="life.movies.impression.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Неужели ты вздрогнул раньше, я громче — ничья?" />
 		<template id="v3.life.movies.reply.impression.0155" act="life.movies.impression.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не хватай меня внезапно во время напряжённой сцены." />
 		<template id="v3.life.movies.reply.impression.0156" act="life.movies.impression.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После такой «шутки» хорроры с тобой смотреть не буду." />
 		<template id="v3.life.movies.reply.impression.0157" act="life.movies.impression.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Драма не давила на слёзы, а позволила горю быть неловким и бытовым." />
@@ -368,7 +368,7 @@
 		<template id="v3.life.movies.reply.impression.0165" act="life.movies.impression.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Хотелось яснее понимать, какие кадры относятся к архиву." />
 		<template id="v3.life.movies.reply.impression.0166" act="life.movies.impression.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Автор признал пробелы в данных, и это усилило доверие." />
 		<template id="v3.life.movies.reply.impression.0167" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Проверим несколько утверждений отдельно, прежде чем повторять их другим." />
-		<template id="v3.life.movies.reply.impression.0168" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мой источник надёжнее, зато ты заметил монтажную манипуляцию." />
+		<template id="v3.life.movies.reply.impression.0168" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели мой источник надёжнее, зато ты заметил монтажную манипуляцию?" />
 		<template id="v3.life.movies.reply.impression.0169" act="life.movies.impression.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не принимай эмоциональную музыку за доказательство." />
 		<template id="v3.life.movies.reply.impression.0170" act="life.movies.impression.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Хватит распространять обвинения, которых фильм сам не подтверждает." />
 		<template id="v3.life.movies.reply.impression.0171" act="life.movies.impression.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Продолжительность почти не чувствовалась, пока история двигалась вперёд." />
@@ -389,14 +389,14 @@
 		<template id="v3.life.movies.reply.impression.0186" act="life.movies.impression.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="На втором круге внимание можно отдать фону и повторяющимся жестам." />
 		<template id="v3.life.movies.reply.impression.0187" act="life.movies.impression.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я пока оставлю первое впечатление незавершённым." />
 		<template id="v3.life.movies.reply.impression.0188" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Когда пересмотрим вместе, сравним, что изменилось." />
-		<template id="v3.life.movies.reply.impression.0189" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты запомнил фабулу, я — лица между событиями." />
+		<template id="v3.life.movies.reply.impression.0189" act="life.movies.impression.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты запомнил фабулу, я — лица между событиями?" />
 		<template id="v3.life.movies.reply.impression.0190" act="life.movies.impression.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не требуй окончательного вердикта сегодня." />
 		<template id="v3.life.movies.reply.impression.0191" act="life.movies.impression.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мой ответ прост: фильм всё ещё продолжается в мыслях." />
 		<template id="v3.life.movies.reply.impression.0192" act="life.movies.impression.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Титры закончились, а разговор только начинается." />
 		<template id="v3.life.movies.reply.impression.0193" act="life.movies.impression.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Первое впечатление сильное, хотя отдельные детали ещё хочется обдумать." />
-		<template id="v3.life.movies.reply.impression.0194" act="life.movies.impression.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Картина попала в настроение точнее, чем я ожидал." />
+		<template id="v3.life.movies.reply.impression.0194" act="life.movies.impression.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Картина удивительно точно попала в настроение." />
 		<template id="v3.life.movies.reply.impression.0195" act="life.movies.impression.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я рад, что мы выбрали именно этот сеанс и разделили реакцию." />
-		<template id="v3.life.movies.reply.impression.0196" act="life.movies.impression.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты оценил конструкцию, я — человеческую интонацию внутри неё." />
+		<template id="v3.life.movies.reply.impression.0196" act="life.movies.impression.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Неужели ты оценил конструкцию, я — человеческую интонацию внутри неё?" />
 		<template id="v3.life.movies.reply.impression.0197" act="life.movies.impression.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не заставляй меня защищать каждую понравившуюся сцену." />
 		<template id="v3.life.movies.reply.impression.0198" act="life.movies.impression.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Уважай чужое впечатление, даже если сам остался равнодушен." />
 		<template id="v3.life.movies.reply.impression.0199" act="life.movies.impression.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Презрение собеседника не делает фильм хуже и вполне может закончить разговор." />
@@ -407,12 +407,12 @@
 		<template id="v3.life.movies.reply.choice.0004" act="life.movies.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Лёгкая картина и чай — приятный вариант, если оба согласны смотреть вместе." />
 		<template id="v3.life.movies.reply.choice.0005" act="life.movies.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Короткая комедия не обязана быть лучше трёхчасовой драмы; важен текущий выбор." />
 		<template id="v3.life.movies.reply.choice.0006" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не выбирай за всех только потому, что держишь пульт." />
-		<template id="v3.life.movies.reply.choice.0007" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После ультиматума совместный просмотр мог бы сорваться, но событие нельзя выдумывать." />
+		<template id="v3.life.movies.reply.choice.0007" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После ультиматума совместный просмотр легко срывается." />
 		<template id="v3.life.movies.reply.choice.0008" act="life.movies.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Для гостей безопаснее выбрать доступный фильм без неловких сюрпризов." />
 		<template id="v3.life.movies.reply.choice.0009" act="life.movies.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Короткая комедия на девяносто минут часто подходит для лёгкого вечера." />
 		<template id="v3.life.movies.reply.choice.0010" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Между новинкой и классикой удобнее выбрать то, чего никто ещё не видел." />
 		<template id="v3.life.movies.reply.choice.0011" act="life.movies.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Для семьи давай найдём анимацию, интересную и детям, и взрослым." />
-		<template id="v3.life.movies.reply.choice.0012" act="life.movies.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты опять предлагаешь свой любимый фильм под видом общего выбора." />
+		<template id="v3.life.movies.reply.choice.0012" act="life.movies.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Почему ты предлагаешь свой любимый фильм под видом общего выбора?" />
 		<template id="v3.life.movies.reply.choice.0013" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не включай картину с тяжёлой темой без предупреждения." />
 		<template id="v3.life.movies.reply.choice.0014" act="life.movies.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Убери свой провокационный список и покинь комнату." />
 		<template id="v3.life.movies.reply.choice.0015" act="life.movies.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Для свидания подойдёт фильм, после которого легко продолжить разговор." />
@@ -426,7 +426,7 @@
 		<template id="v3.life.movies.reply.choice.0023" act="life.movies.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="С подростком выберу фильм, который уважает его возраст и оставляет вопросы." />
 		<template id="v3.life.movies.reply.choice.0024" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="На премьеру пойду, если большой экран действительно важен для постановки." />
 		<template id="v3.life.movies.reply.choice.0025" act="life.movies.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Найдём вариант короче двух часов и без длинной франшизы за спиной." />
-		<template id="v3.life.movies.reply.choice.0026" act="life.movies.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты выбираешь по рекламе, я хотя бы проверяю длительность." />
+		<template id="v3.life.movies.reply.choice.0026" act="life.movies.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Неужели ты выбираешь по рекламе, я хотя бы проверяю длительность?" />
 		<template id="v3.life.movies.reply.choice.0027" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не раскрывай финал, пока убеждаешь нас посмотреть фильм." />
 		<template id="v3.life.movies.reply.choice.0028" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Твои спойлеры снова вычеркнули картину из сегодняшнего списка." />
 		<template id="v3.life.movies.reply.choice.0029" act="life.movies.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Для фона лучше знакомое лёгкое кино, где не жалко пропустить сцену." />
@@ -444,7 +444,7 @@
 		<template id="v3.life.movies.reply.choice.0041" act="life.movies.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не высмеивай людей, которым удобнее дубляж." />
 		<template id="v3.life.movies.reply.choice.0042" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Твои крики о «правильном просмотре» никому не нужны." />
 		<template id="v3.life.movies.reply.choice.0043" act="life.movies.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хороший триллер могу предложить без описания поворота." />
-		<template id="v3.life.movies.reply.choice.0044" act="life.movies.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="После тяжёлого дня включим что-нибудь мягкое и не слишком длинное." />
+		<template id="v3.life.movies.reply.choice.0044" act="life.movies.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="После тяжёлого дня лучше выбрать что-нибудь мягкое и не слишком длинное." />
 		<template id="v3.life.movies.reply.choice.0045" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сегодня рискнём незнакомым фильмом, а запасной вариант оставим рядом." />
 		<template id="v3.life.movies.reply.choice.0046" act="life.movies.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Для просмотра одному выберу то, что требует полной тишины." />
 		<template id="v3.life.movies.reply.choice.0047" act="life.movies.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мой риск интереснее твоего десятого пересмотра." />
@@ -462,17 +462,17 @@
 		<template id="v3.life.movies.reply.choice.0059" act="life.movies.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Редкому зрителю покажу цельную историю, не требующую знания киноязыка." />
 		<template id="v3.life.movies.reply.choice.0060" act="life.movies.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Фильм с хорошей музыкой выберу такой, где песни не заменяют сюжет." />
 		<template id="v3.life.movies.reply.choice.0061" act="life.movies.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Из сохранённого списка возьмём самый давний общий интерес." />
-		<template id="v3.life.movies.reply.choice.0062" act="life.movies.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты сохранил сотню фильмов, я хотя бы помню зачем." />
+		<template id="v3.life.movies.reply.choice.0062" act="life.movies.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Неужели ты сохранил сотню фильмов, я хотя бы помню зачем?" />
 		<template id="v3.life.movies.reply.choice.0063" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не листай список час вместо самого просмотра." />
 		<template id="v3.life.movies.reply.choice.0064" act="life.movies.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если снова удалишь мои сохранения, доступ к профилю потеряешь." />
 		<template id="v3.life.movies.reply.choice.0065" act="life.movies.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="На выходных можно позволить длинную картину с перерывом посередине." />
 		<template id="v3.life.movies.reply.choice.0066" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Между оригиналом и ремейком начну с того, который сформировал историю." />
-		<template id="v3.life.movies.reply.choice.0067" act="life.movies.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Перед праздником поставим весёлый фильм без цинизма." />
+		<template id="v3.life.movies.reply.choice.0067" act="life.movies.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Перед праздником стоит поставить весёлый фильм без цинизма." />
 		<template id="v3.life.movies.reply.choice.0068" act="life.movies.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Взрослым подойдёт мультфильм с сильной темой, а не только скрытыми шутками." />
 		<template id="v3.life.movies.reply.choice.0069" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мой оригинал смелее, твой ремейк технически ровнее." />
 		<template id="v3.life.movies.reply.choice.0070" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не объявляй новую версию мусором до просмотра." />
 		<template id="v3.life.movies.reply.choice.0071" act="life.movies.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Твоё оскорбление авторов завершило выбор на сегодня." />
-		<template id="v3.life.movies.reply.choice.0072" act="life.movies.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Фильм на реальных событиях предложу с оговоркой о художественных изменениях." />
+		<template id="v3.life.movies.reply.choice.0072" act="life.movies.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Фильм об исторических событиях стоит предлагать с оговоркой о художественных изменениях." />
 		<template id="v3.life.movies.reply.choice.0073" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если не можем договориться, каждый назовёт два варианта и случай решит финал." />
 		<template id="v3.life.movies.reply.choice.0074" act="life.movies.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Картину без спойлеров опишу только по тону, длительности и теме." />
 		<template id="v3.life.movies.reply.choice.0075" act="life.movies.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Выберем по режиссёру, если хотим стиль, или по актёру, если интересна роль." />
@@ -483,7 +483,7 @@
 		<template id="v3.life.movies.reply.choice.0080" act="life.movies.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Для неполного внимания лучше знакомая комедия, а не сложный дебют." />
 		<template id="v3.life.movies.reply.choice.0081" act="life.movies.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Необычная картина сегодня уместна, если мы готовы принять неясность." />
 		<template id="v3.life.movies.reply.choice.0082" act="life.movies.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Прямо сейчас включу тот короткий фильм, который оба откладывали." />
-		<template id="v3.life.movies.reply.choice.0083" act="life.movies.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Право выбора лучше чередовать по явной договорённости, а не выдуманному прошлому разу." />
+		<template id="v3.life.movies.reply.choice.0083" act="life.movies.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Право выбора лучше чередовать по явной договорённости." />
 		<template id="v3.life.movies.reply.choice.0084" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не используй свою очередь, чтобы наказать остальных." />
 		<template id="v3.life.movies.reply.choice.0085" act="life.movies.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если выбор снова станет издевательством, экран выключим." />
 		<template id="v3.life.movies.reply.choice.0086" act="life.movies.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Сначала проверю возрастной рейтинг, длительность и наличие тяжёлых тем." />
@@ -497,7 +497,7 @@
 		<template id="v3.life.movies.reply.choice.0094" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Иногда правильный выбор — выключить экран и просто поговорить." />
 		<template id="v3.life.movies.reply.choice.0095" act="life.movies.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если настроение неясное, начнём с короткого фильма и решим дальше." />
 		<template id="v3.life.movies.reply.choice.0096" act="life.movies.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можно посмотреть первую сцену двух кандидатов, не читая пересказов." />
-		<template id="v3.life.movies.reply.choice.0097" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я доверюсь твоему выбору, если ты честно предупредишь о тяжёлых темах." />
+		<template id="v3.life.movies.reply.choice.0097" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Стоит довериться твоему выбору, если ты честно предупредишь о тяжёлых темах." />
 		<template id="v3.life.movies.reply.choice.0098" act="life.movies.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мой запасной вариант остаётся на случай, если твой эксперимент не сработает." />
 		<template id="v3.life.movies.reply.choice.0099" act="life.movies.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не называй отказ трусостью." />
 		<template id="v3.life.movies.reply.choice.0100" act="life.movies.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Твои попытки давить только отменяют сегодняшний просмотр." />
@@ -505,13 +505,13 @@
 		<template id="v3.life.movies.reply.choice.0102" act="life.movies.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если вкусы разные, подойдёт жанровая смесь без слишком узких отсылок." />
 		<template id="v3.life.movies.reply.choice.0103" act="life.movies.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Общая любимая актриса может стать честным критерием выбора." />
 		<template id="v3.life.movies.reply.choice.0104" act="life.movies.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Давай каждый уберёт один вариант, а из оставшихся решим вместе." />
-		<template id="v3.life.movies.reply.choice.0105" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я уступил жанр, поэтому длительность выбираю сам." />
+		<template id="v3.life.movies.reply.choice.0105" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если один уступает жанр, выбор длительности честно оставить ему." />
 		<template id="v3.life.movies.reply.choice.0106" act="life.movies.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не меняй договорённые правила после результата." />
 		<template id="v3.life.movies.reply.choice.0107" act="life.movies.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="После подмены списка я больше не участвую." />
 		<template id="v3.life.movies.reply.choice.0108" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Для тихого вечера подойдёт старое кино с ясной историей." />
 		<template id="v3.life.movies.reply.choice.0109" act="life.movies.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Когда хочется новизны, выберу дебют, а не очередную часть серии." />
 		<template id="v3.life.movies.reply.choice.0110" act="life.movies.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="В дождь хорошо работает фильм, где дом и погода становятся частью настроения." />
-		<template id="v3.life.movies.reply.choice.0111" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Устроимся у окна и включим что-нибудь неторопливое." />
+		<template id="v3.life.movies.reply.choice.0111" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="У окна особенно хорошо смотрится что-нибудь неторопливое." />
 		<template id="v3.life.movies.reply.choice.0112" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Моя чёрно-белая картина атмосфернее твоей яркой новинки." />
 		<template id="v3.life.movies.reply.choice.0113" act="life.movies.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не закрывай шторы, я хочу видеть настоящий дождь." />
 		<template id="v3.life.movies.reply.choice.0114" act="life.movies.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если ещё раз высмеешь мой выбор, смотри свой фильм отдельно." />
@@ -539,7 +539,7 @@
 		<template id="v3.life.movies.reply.choice.0136" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Новинку стоит выбирать ради любопытства, а не страха пропустить разговоры." />
 		<template id="v3.life.movies.reply.choice.0137" act="life.movies.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Классика удобна, если хочется уже проверенного ритма." />
 		<template id="v3.life.movies.reply.choice.0138" act="life.movies.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Старый фильм может оказаться новым опытом для того, кто его не видел." />
-		<template id="v3.life.movies.reply.choice.0139" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Давай ты покажешь мне любимую классику, а я тебе свежий дебют." />
+		<template id="v3.life.movies.reply.choice.0139" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Интересный обмен: любимая классика на свежий дебют." />
 		<template id="v3.life.movies.reply.choice.0140" act="life.movies.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Моя новинка смелее, твоя классика лучше держит форму." />
 		<template id="v3.life.movies.reply.choice.0141" act="life.movies.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не объявляй старое кино устаревшим по одному кадру." />
 		<template id="v3.life.movies.reply.choice.0142" act="life.movies.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Твоё презрение к прошлому не делает тебя современным." />
@@ -553,10 +553,10 @@
 		<template id="v3.life.movies.reply.choice.0150" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если хочется смеяться, проверю не только жанр, но и характер юмора." />
 		<template id="v3.life.movies.reply.choice.0151" act="life.movies.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сатиру выберу для внимательного вечера, лёгкую комедию — для отдыха." />
 		<template id="v3.life.movies.reply.choice.0152" act="life.movies.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Хороший фарс требует ритма и актёров, а не одной громкости." />
-		<template id="v3.life.movies.reply.choice.0153" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Включим то, над чем оба когда-то смеялись." />
+		<template id="v3.life.movies.reply.choice.0153" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Лучше выбрать фильм, над которым можно смеяться снова." />
 		<template id="v3.life.movies.reply.choice.0154" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Моя сухая комедия тоньше, твоя быстрее заражает зал." />
 		<template id="v3.life.movies.reply.choice.0155" act="life.movies.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не пересказывай лучший гэг до просмотра." />
-		<template id="v3.life.movies.reply.choice.0156" act="life.movies.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="С таким количеством спойлеров комедию ты уже уничтожил." />
+		<template id="v3.life.movies.reply.choice.0156" act="life.movies.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели с таким количеством спойлеров комедию ты уже уничтожил?" />
 		<template id="v3.life.movies.reply.choice.0157" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Для серьёзного разговора после фильма подойдёт драма без готовых ответов." />
 		<template id="v3.life.movies.reply.choice.0158" act="life.movies.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если сил на обсуждение нет, тяжёлую тему перенесём на другой день." />
 		<template id="v3.life.movies.reply.choice.0159" act="life.movies.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Документальная картина хороша, когда мы готовы проверить факты." />
@@ -581,11 +581,11 @@
 		<template id="v3.life.movies.reply.choice.0178" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Перед праздником хочется фильма, который объединяет, а не проверяет вкусы." />
 		<template id="v3.life.movies.reply.choice.0179" act="life.movies.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Новогоднее кино может быть несовершенным, если создаёт нужное тепло." />
 		<template id="v3.life.movies.reply.choice.0180" act="life.movies.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Для дня рождения выберу любимую картину виновника, а не критический шедевр." />
-		<template id="v3.life.movies.reply.choice.0181" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Поставим знакомый фильм и позволим людям разговаривать между сценами." />
+		<template id="v3.life.movies.reply.choice.0181" act="life.movies.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можно поставить знакомый фильм и позволим людям разговаривать между сценами." />
 		<template id="v3.life.movies.reply.choice.0182" act="life.movies.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Моя праздничная классика уютнее твоей модной премьеры." />
 		<template id="v3.life.movies.reply.choice.0183" act="life.movies.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не высмеивай семейные традиции у чужого стола." />
 		<template id="v3.life.movies.reply.choice.0184" act="life.movies.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Твои насмешки больше не будут частью нашего праздника." />
-		<template id="v3.life.movies.reply.choice.0185" act="life.movies.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Фильм о реальных событиях выберу тот, где создатели открыто говорят об изменениях." />
+		<template id="v3.life.movies.reply.choice.0185" act="life.movies.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Среди фильмов об исторических событиях интереснее те, где создатели открыто говорят об изменениях." />
 		<template id="v3.life.movies.reply.choice.0186" act="life.movies.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После просмотра отделим драматургию от подтверждённых фактов." />
 		<template id="v3.life.movies.reply.choice.0187" act="life.movies.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Биографическую картину лучше дополнить коротким документальным материалом." />
 		<template id="v3.life.movies.reply.choice.0188" act="life.movies.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Посмотрим вместе и не будем превращать героя в святого или злодея." />
@@ -599,7 +599,7 @@
 		<template id="v3.life.movies.reply.choice.0196" act="life.movies.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мой выбор сегодня победил, твой получает следующий вечер." />
 		<template id="v3.life.movies.reply.choice.0197" act="life.movies.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не спорь после честного голосования." />
 		<template id="v3.life.movies.reply.choice.0198" act="life.movies.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Либо принимаешь решение группы, либо смотришь отдельно." />
-		<template id="v3.life.movies.reply.choice.0199" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Фильм выбирает тот, кому передали ход сейчас, а не герой выдуманной прошлой уступки." />
+		<template id="v3.life.movies.reply.choice.0199" act="life.movies.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Фильм выбирает тот, кому ход передали сейчас." />
 		<template id="v3.life.movies.reply.choice.0200" act="life.movies.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Правило простое и не меняется из-за того, кому выпала очередь." />
 		<template id="v3.life.movies.reply.discussion.0001" act="life.movies.discussion.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Концовка завершает внешний конфликт, но оставляет отношения героев открытыми." />
 		<template id="v3.life.movies.reply.discussion.0002" act="life.movies.discussion.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Последняя сцена повторяет начало, только теперь персонаж делает другой выбор." />
@@ -612,7 +612,7 @@
 		<template id="v3.life.movies.reply.discussion.0009" act="life.movies.discussion.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мотив злодея понятен, но понимание не превращает вред в оправдание." />
 		<template id="v3.life.movies.reply.discussion.0010" act="life.movies.discussion.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Открытый финал переносит моральный выбор на зрителя." />
 		<template id="v3.life.movies.reply.discussion.0011" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай восстановим события по кадрам, прежде чем спорить." />
-		<template id="v3.life.movies.reply.discussion.0012" act="life.movies.discussion.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты веришь словам героя, я больше доверяю его последнему поступку." />
+		<template id="v3.life.movies.reply.discussion.0012" act="life.movies.discussion.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Почему ты веришь словам героя, я больше доверяю его последнему поступку?" />
 		<template id="v3.life.movies.reply.discussion.0013" act="life.movies.discussion.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не подменяй объяснение оправданием." />
 		<template id="v3.life.movies.reply.discussion.0014" act="life.movies.discussion.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твоя попытка защитить насилие переходит все границы." />
 		<template id="v3.life.movies.reply.discussion.0015" act="life.movies.discussion.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Главная тема для меня — невозможность близости без честного риска." />
@@ -626,7 +626,7 @@
 		<template id="v3.life.movies.reply.discussion.0023" act="life.movies.discussion.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Персонаж солгал, чтобы сохранить образ себя перед близким человеком." />
 		<template id="v3.life.movies.reply.discussion.0024" act="life.movies.discussion.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ненадёжный рассказчик сработал: кадры постепенно расходились с его словами." />
 		<template id="v3.life.movies.reply.discussion.0025" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Название описывает не место, а состояние, из которого герои не могут выйти." />
-		<template id="v3.life.movies.reply.discussion.0026" act="life.movies.discussion.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты заметил ложь по монтажу, я — по изменившемуся тону голоса." />
+		<template id="v3.life.movies.reply.discussion.0026" act="life.movies.discussion.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели ты заметил ложь по монтажу, я — по изменившемуся тону голоса?" />
 		<template id="v3.life.movies.reply.discussion.0027" act="life.movies.discussion.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не раскрывай конструкцию тем, кто ещё собирается смотреть." />
 		<template id="v3.life.movies.reply.discussion.0028" act="life.movies.discussion.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твои демонстративные спойлеры неприемлемы." />
 		<template id="v3.life.movies.reply.discussion.0029" act="life.movies.discussion.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Первая и последняя сцены связаны одинаковым жестом с противоположным смыслом." />
@@ -656,14 +656,14 @@
 		<template id="v3.life.movies.reply.discussion.0053" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Дом символизирует не семью вообще, а обещание, которое герой нарушил." />
 		<template id="v3.life.movies.reply.discussion.0054" act="life.movies.discussion.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Он понял ошибку, но фильм сознательно не дал ему лёгкого прощения." />
 		<template id="v3.life.movies.reply.discussion.0055" act="life.movies.discussion.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Развязка честная: ключевая подсказка была видна, хотя её смысл скрывался." />
-		<template id="v3.life.movies.reply.discussion.0056" act="life.movies.discussion.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты предсказал ответ, я раньше заметил вопрос." />
+		<template id="v3.life.movies.reply.discussion.0056" act="life.movies.discussion.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Неужели ты предсказал ответ, я раньше заметил вопрос?" />
 		<template id="v3.life.movies.reply.discussion.0057" act="life.movies.discussion.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не ругай фильм за то, что сам пропустил подготовку." />
 		<template id="v3.life.movies.reply.discussion.0058" act="life.movies.discussion.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твои обвинения авторов во лжи требуют доказательств." />
 		<template id="v3.life.movies.reply.discussion.0059" act="life.movies.discussion.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После поворота меняется не цель героя, а знание зрителя о цене этой цели." />
 		<template id="v3.life.movies.reply.discussion.0060" act="life.movies.discussion.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Структура по времени имитирует работу травматической памяти, а не просто путает события." />
 		<template id="v3.life.movies.reply.discussion.0061" act="life.movies.discussion.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ответ не показали, потому что важнее было решение жить без него." />
 		<template id="v3.life.movies.reply.discussion.0062" act="life.movies.discussion.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Одна короткая реплика раскрыла, что персонаж всё время знал правду." />
-		<template id="v3.life.movies.reply.discussion.0063" act="life.movies.discussion.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я соберу хронологию, а ты отметь эмоциональные переломы." />
+		<template id="v3.life.movies.reply.discussion.0063" act="life.movies.discussion.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Разумнее собрать хронологию, а ты отметь эмоциональные переломы." />
 		<template id="v3.life.movies.reply.discussion.0064" act="life.movies.discussion.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Моя схема точнее, твоя лучше объясняет, зачем нарушен порядок." />
 		<template id="v3.life.movies.reply.discussion.0065" act="life.movies.discussion.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не требуй линейности от истории, построенной на воспоминании." />
 		<template id="v3.life.movies.reply.discussion.0066" act="life.movies.discussion.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если снова назовёшь всех несогласных глупыми, разговор прекратится." />
@@ -673,7 +673,7 @@
 		<template id="v3.life.movies.reply.discussion.0070" act="life.movies.discussion.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Второстепенный персонаж важен как единственный свидетель ранней версии героя." />
 		<template id="v3.life.movies.reply.discussion.0071" act="life.movies.discussion.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты лучше знаешь историю, я внимательнее прочитал режиссёрскую позицию." />
 		<template id="v3.life.movies.reply.discussion.0072" act="life.movies.discussion.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не используй мелкую неточность, чтобы отвергнуть всю тему." />
-		<template id="v3.life.movies.reply.discussion.0073" act="life.movies.discussion.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Хватит распространять выдуманные факты о реальных людях." />
+		<template id="v3.life.movies.reply.discussion.0073" act="life.movies.discussion.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Хватит распространять ложные сведения о людях." />
 		<template id="v3.life.movies.reply.discussion.0074" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сцена на вокзале меняет смысл истории: от побега она переходит к возвращению." />
 		<template id="v3.life.movies.reply.discussion.0075" act="life.movies.discussion.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Финальным кадрам нельзя полностью доверять, потому что они повторяют фантазию героя." />
 		<template id="v3.life.movies.reply.discussion.0076" act="life.movies.discussion.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Две линии связаны одним событием, показанным с разной информацией." />
@@ -689,12 +689,12 @@
 		<template id="v3.life.movies.reply.discussion.0086" act="life.movies.discussion.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Литературный и визуальный слои можно разобрать отдельно, без обещания следить за одним из них." />
 		<template id="v3.life.movies.reply.discussion.0087" act="life.movies.discussion.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Моя граница между реальностью и метафорой строже твоей." />
 		<template id="v3.life.movies.reply.discussion.0088" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не высмеивай человека за другое чтение условной сцены." />
-		<template id="v3.life.movies.reply.discussion.0089" act="life.movies.discussion.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если продолжишь превращать анализ в травлю, я уйду." />
+		<template id="v3.life.movies.reply.discussion.0089" act="life.movies.discussion.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если продолжишь превращать анализ в травлю, можно уйти." />
 		<template id="v3.life.movies.reply.discussion.0090" act="life.movies.discussion.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Темп резко меняется после признания, потому что герой больше не может откладывать действие." />
 		<template id="v3.life.movies.reply.discussion.0091" act="life.movies.discussion.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="С другой точки зрения история выглядела бы как вторжение, а не спасение." />
 		<template id="v3.life.movies.reply.discussion.0092" act="life.movies.discussion.reply" band="TENSE" register="CASUAL" profanity="NONE" text="С решением героя согласен лишь в цели, но не в способе." />
 		<template id="v3.life.movies.reply.discussion.0093" act="life.movies.discussion.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После титров хочется говорить о том, кто получил право рассказывать эту историю." />
-		<template id="v3.life.movies.reply.discussion.0094" act="life.movies.discussion.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты защищаешь результат, я задаю вопрос о средствах." />
+		<template id="v3.life.movies.reply.discussion.0094" act="life.movies.discussion.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Результат можно защищать, но вопрос о средствах всё равно остаётся." />
 		<template id="v3.life.movies.reply.discussion.0095" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не требуй простого приговора для сложного выбора." />
 		<template id="v3.life.movies.reply.discussion.0096" act="life.movies.discussion.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Твоя угроза из-за вымышленного героя уже выходит за рамки разговора." />
 		<template id="v3.life.movies.reply.discussion.0097" act="life.movies.discussion.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Фильм оставляет несколько честных чтений, но не любое утверждение подтверждается текстом." />
@@ -710,7 +710,7 @@
 		<template id="v3.life.movies.reply.discussion.0107" act="life.movies.discussion.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ложь сначала защищает отношения, затем делает близость невозможной." />
 		<template id="v3.life.movies.reply.discussion.0108" act="life.movies.discussion.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Фильм показывает цену не самого секрета, а ежедневного выбора молчать." />
 		<template id="v3.life.movies.reply.discussion.0109" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай проследим, когда второй персонаж начал подозревать правду." />
-		<template id="v3.life.movies.reply.discussion.0110" act="life.movies.discussion.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты заметил паузу в диалоге, я — исчезнувшее обращение по имени." />
+		<template id="v3.life.movies.reply.discussion.0110" act="life.movies.discussion.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели ты заметил паузу в диалоге, я — исчезнувшее обращение по имени?" />
 		<template id="v3.life.movies.reply.discussion.0111" act="life.movies.discussion.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не оправдывай обман заботой без оговорок." />
 		<template id="v3.life.movies.reply.discussion.0112" act="life.movies.discussion.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После твоей личной атаки обсуждать мораль героя не стану." />
 		<template id="v3.life.movies.reply.discussion.0113" act="life.movies.discussion.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Злодей считает себя единственным взрослым в комнате, поэтому не видит других людей субъектами." />
@@ -724,7 +724,7 @@
 		<template id="v3.life.movies.reply.discussion.0121" act="life.movies.discussion.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="В финале он исчезает, потому что решение наконец произнесено вслух." />
 		<template id="v3.life.movies.reply.discussion.0122" act="life.movies.discussion.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Цветовой мотив слишком последователен, чтобы быть случайной декорацией." />
 		<template id="v3.life.movies.reply.discussion.0123" act="life.movies.discussion.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Посмотрим первые три появления подряд и проверим идею." />
-		<template id="v3.life.movies.reply.discussion.0124" act="life.movies.discussion.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я нашёл больше повторов, ты лучше связал их с отношениями." />
+		<template id="v3.life.movies.reply.discussion.0124" act="life.movies.discussion.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Один замечает повторы, другой лучше связывает их с отношениями — вместе картина полнее." />
 		<template id="v3.life.movies.reply.discussion.0125" act="life.movies.discussion.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не превращай каждый предмет одного цвета в символ." />
 		<template id="v3.life.movies.reply.discussion.0126" act="life.movies.discussion.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если снова будешь высмеивать наблюдения, продолжай анализ один." />
 		<template id="v3.life.movies.reply.discussion.0127" act="life.movies.discussion.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Название сначала звучит как место, а после финала — как действие." />
@@ -738,7 +738,7 @@
 		<template id="v3.life.movies.reply.discussion.0135" act="life.movies.discussion.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Изменилось положение камеры: теперь зритель находится на стороне другого героя." />
 		<template id="v3.life.movies.reply.discussion.0136" act="life.movies.discussion.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Одинаковая реплика произнесена мягче, и смысл полностью переворачивается." />
 		<template id="v3.life.movies.reply.discussion.0137" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нравится, что ты заметил эту рифму раньше меня." />
-		<template id="v3.life.movies.reply.discussion.0138" act="life.movies.discussion.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я увидел движение камеры, ты услышал смену интонации." />
+		<template id="v3.life.movies.reply.discussion.0138" act="life.movies.discussion.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Движение камеры и смена интонации одинаково важны для сцены." />
 		<template id="v3.life.movies.reply.discussion.0139" act="life.movies.discussion.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не называй повтор ленивым, пока не сравнил различия." />
 		<template id="v3.life.movies.reply.discussion.0140" act="life.movies.discussion.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Хватит перебивать просмотр ради комментария к каждой рифме." />
 		<template id="v3.life.movies.reply.discussion.0141" act="life.movies.discussion.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Хронология ломается только после события, которое герой пытается вытеснить." />
@@ -758,8 +758,8 @@
 		<template id="v3.life.movies.reply.discussion.0155" act="life.movies.discussion.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Музыкальная тема принадлежит не персонажу, а обещанию между двумя людьми." />
 		<template id="v3.life.movies.reply.discussion.0156" act="life.movies.discussion.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Она звучит неполной, пока один из них не признаёт правду." />
 		<template id="v3.life.movies.reply.discussion.0157" act="life.movies.discussion.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="В финале мелодия возвращается без последней ноты, поэтому примирение не закрыто." />
-		<template id="v3.life.movies.reply.discussion.0158" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай послушаем три появления темы отдельно от изображения." />
-		<template id="v3.life.movies.reply.discussion.0159" act="life.movies.discussion.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я заметил гармонию, ты — изменение инструмента." />
+		<template id="v3.life.movies.reply.discussion.0158" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно послушать три появления темы отдельно от изображения." />
+		<template id="v3.life.movies.reply.discussion.0159" act="life.movies.discussion.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Гармония и смена инструмента — два разных ключа к одной сцене." />
 		<template id="v3.life.movies.reply.discussion.0160" act="life.movies.discussion.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не утверждай, что музыка просто диктует эмоцию." />
 		<template id="v3.life.movies.reply.discussion.0161" act="life.movies.discussion.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твои разговоры заглушили мотив, о котором теперь споришь." />
 		<template id="v3.life.movies.reply.discussion.0162" act="life.movies.discussion.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Открытый финал не скрывает событие; он скрывает отношение героя к нему." />
@@ -793,7 +793,7 @@
 		<template id="v3.life.movies.reply.discussion.0190" act="life.movies.discussion.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После титров мне важнее вопрос ответственности рассказчика." />
 		<template id="v3.life.movies.reply.discussion.0191" act="life.movies.discussion.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Чья версия осталась за кадром и почему фильм не дал ей голоса?" />
 		<template id="v3.life.movies.reply.discussion.0192" act="life.movies.discussion.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Камера сочувствует главному герою, но монтаж иногда ему возражает." />
-		<template id="v3.life.movies.reply.discussion.0193" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты отметил отсутствующий голос, я — места, где его намеренно заменили." />
+		<template id="v3.life.movies.reply.discussion.0193" act="life.movies.discussion.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Неужели ты отметил отсутствующий голос, я — места, где его намеренно заменили?" />
 		<template id="v3.life.movies.reply.discussion.0194" act="life.movies.discussion.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Моя претензия к перспективе сильнее, твоя к финальному выводу." />
 		<template id="v3.life.movies.reply.discussion.0195" act="life.movies.discussion.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не выдавай центрального героя за единственного достойного внимания." />
 		<template id="v3.life.movies.reply.discussion.0196" act="life.movies.discussion.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твоё пренебрежение к жертвам завершает эту дискуссию." />

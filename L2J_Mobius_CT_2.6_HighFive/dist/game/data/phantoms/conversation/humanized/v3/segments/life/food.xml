@@ -3,16 +3,16 @@
 	<templates>
 		<template id="v3.life.food.reply.taste.0001" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Несладкий завтрак многим помогает проснуться без тяжести." />
 		<template id="v3.life.food.reply.taste.0002" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Острое люблю, если специи не забивают вкус самого блюда." />
-		<template id="v3.life.food.reply.taste.0003" act="life.food.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Бабушкина картошка часто возвращает людей в детство, если такое воспоминание у них есть." />
-		<template id="v3.life.food.reply.taste.0004" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сладкое с солёным может отлично сочетаться и без выдуманного спора о карамели." />
+		<template id="v3.life.food.reply.taste.0003" act="life.food.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Домашняя картошка ценна простым вкусом и хорошей корочкой." />
+		<template id="v3.life.food.reply.taste.0004" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сладкое с солёным может отлично сочетаться; карамель здесь вполне уместна." />
 		<template id="v3.life.food.reply.taste.0005" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Интересная тарелка не делает чужой вкус хуже." />
-		<template id="v3.life.food.reply.taste.0006" act="life.food.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не убеждай меня есть то, от чего я отказался." />
-		<template id="v3.life.food.reply.taste.0007" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Что у меня на завтрак — точно не твоё дело." />
+		<template id="v3.life.food.reply.taste.0006" act="life.food.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не стоит уговаривать человека есть то, от чего он уже отказался." />
+		<template id="v3.life.food.reply.taste.0007" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Для завтрака лучше выбрать то, что не испортит начало дня." />
 		<template id="v3.life.food.reply.taste.0008" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Незнакомое блюдо попробую, если в составе нет сюрпризов." />
 		<template id="v3.life.food.reply.taste.0009" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Кинза мне нравится понемногу, особенно в горячем супе." />
 		<template id="v3.life.food.reply.taste.0010" act="life.food.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Домашняя еда выигрывает уютом, ресторанная — неожиданностью." />
-		<template id="v3.life.food.reply.taste.0011" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Суп с морепродуктами можно предложить снова только при реальном общем опыте." />
-		<template id="v3.life.food.reply.taste.0012" act="life.food.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Выбирай десерт первым, а я посмотрю, насколько совпадут вкусы." />
+		<template id="v3.life.food.reply.taste.0011" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Суп с морепродуктами — вариант на любителя, но сочетание интересное." />
+		<template id="v3.life.food.reply.taste.0012" act="life.food.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Выбирай десерт первым, а можно посмотреть, насколько совпадут вкусы." />
 		<template id="v3.life.food.reply.taste.0013" act="life.food.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Горький шоколад хорош без лишнего сахара; возражения не принимаю." />
 		<template id="v3.life.food.reply.taste.0014" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не лезь в мою тарелку со своими оценками." />
 		<template id="v3.life.food.reply.taste.0015" act="life.food.taste.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="К чаю беру лимон, а сахар обычно оставляю на столе." />
@@ -25,19 +25,19 @@
 		<template id="v3.life.food.reply.taste.0022" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Хрустящая корочка для меня важнее мягкой середины." />
 		<template id="v3.life.food.reply.taste.0023" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Все любят авокадо, а я до сих пор не понимаю ажиотажа." />
 		<template id="v3.life.food.reply.taste.0024" act="life.food.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Из сыров чаще беру выдержанный чеддер или что-нибудь с ореховым оттенком." />
-		<template id="v3.life.food.reply.taste.0025" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Помнишь тот пирог в поездке? Я бы вернулся туда только ради него." />
+		<template id="v3.life.food.reply.taste.0025" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Пирог хорошо подходит для дорожного перекуса и делает его уютнее." />
 		<template id="v3.life.food.reply.taste.0026" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Кислый вкус бодрит, но соревнование на выносливость мне неинтересно." />
 		<template id="v3.life.food.reply.taste.0027" act="life.food.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Запах может заманить, однако окончательное решение всё равно за вкусом." />
 		<template id="v3.life.food.reply.taste.0028" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твоё восхищение модной едой звучит убедительнее самой еды." />
 		<template id="v3.life.food.reply.taste.0029" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Простая картошка с маслом иногда лучше сложного ресторанного блюда." />
-		<template id="v3.life.food.reply.taste.0030" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Чеснок, паприка и чёрный перец у меня заканчиваются быстрее остальных специй." />
+		<template id="v3.life.food.reply.taste.0030" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Специи, которые заканчиваются первыми, явно заслуживают места в списке покупок." />
 		<template id="v3.life.food.reply.taste.0031" act="life.food.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="К кофе возьму небольшую выпечку, чтобы напиток не потерялся за сахаром." />
 		<template id="v3.life.food.reply.taste.0032" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Холодный суп хорош в жару; в прохладный день выберу что-то горячее." />
 		<template id="v3.life.food.reply.taste.0033" act="life.food.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Гречку люблю рассыпчатой, а овсянку — только с ягодами." />
 		<template id="v3.life.food.reply.taste.0034" act="life.food.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ананас на пицце переживу, но заказывать его для всех не позволю." />
 		<template id="v3.life.food.reply.taste.0035" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Растительное молоко бывает удачным, если не пытается изображать обычное." />
-		<template id="v3.life.food.reply.taste.0036" act="life.food.taste.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты снова превратил ужин в конкурс странных сочетаний." />
-		<template id="v3.life.food.reply.taste.0037" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Дома всегда есть горчица: она спасает слишком спокойную еду." />
+		<template id="v3.life.food.reply.taste.0036" act="life.food.taste.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Неужели ты снова превратил ужин в конкурс странных сочетаний?" />
+		<template id="v3.life.food.reply.taste.0037" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Горчицу удобно держать про запас: она спасает слишком спокойную еду." />
 		<template id="v3.life.food.reply.taste.0038" act="life.food.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Хрустящие овощи люблю, особенно когда их не утопили в заправке." />
 		<template id="v3.life.food.reply.taste.0039" act="life.food.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Сыр с мёдом звучал подозрительно, пока я не попробовал." />
 		<template id="v3.life.food.reply.taste.0040" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сейчас больше всего хочется спелой груши." />
@@ -51,12 +51,12 @@
 		<template id="v3.life.food.reply.taste.0048" act="life.food.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Горячее блюдо подожду: обожжённый язык никому не доказательство смелости." />
 		<template id="v3.life.food.reply.taste.0049" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Свежий хлеб пахнет так, что любая выпечка на минуту проигрывает." />
 		<template id="v3.life.food.reply.taste.0050" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Имбирь хорош в чае и маринаде, но дозировку легко испортить." />
-		<template id="v3.life.food.reply.taste.0051" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="В блин положу творог с ягодами — ты знаешь, это мой надёжный выбор." />
+		<template id="v3.life.food.reply.taste.0051" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Серьёзно, в блин положу творог с ягодами — ты знаешь, это мой надёжный выбор?" />
 		<template id="v3.life.food.reply.taste.0052" act="life.food.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Твой острый соус не сделает обычную картошку выдающимся блюдом." />
 		<template id="v3.life.food.reply.taste.0053" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Из уличной еды чаще беру то, что готовят прямо при мне." />
 		<template id="v3.life.food.reply.taste.0054" act="life.food.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Орехи в салате добавляют текстуру, только их не должно быть слишком много." />
 		<template id="v3.life.food.reply.taste.0055" act="life.food.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="К плотному ужину предпочту воду или несладкий морс." />
-		<template id="v3.life.food.reply.taste.0056" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Оливки я распробовал поздно, зато теперь всегда замечаю их в меню." />
+		<template id="v3.life.food.reply.taste.0056" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="К оливкам иногда приходят поздно, а потом замечают их в каждом меню." />
 		<template id="v3.life.food.reply.taste.0057" act="life.food.taste.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Сегодня особенно вкусным кажется всё простое и горячее." />
 		<template id="v3.life.food.reply.taste.0058" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если ты снова принесёшь этот переслащённый десерт, ешь его сам." />
 		<template id="v3.life.food.reply.taste.0059" act="life.food.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Любимый вкус трудно назвать одним словом: всё зависит от настроения." />
@@ -84,16 +84,16 @@
 		<template id="v3.life.food.reply.taste.0081" act="life.food.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Копчёный вкус подходит рыбе, но нежные продукты он заглушает." />
 		<template id="v3.life.food.reply.taste.0082" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Иногда обычный бутерброд радует больше продуманного ужина." />
 		<template id="v3.life.food.reply.taste.0083" act="life.food.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="С тобой можно честно сказать, что блюдо не удалось, и не притворяться." />
-		<template id="v3.life.food.reply.taste.0084" act="life.food.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты выбрал безопасный вариант, а я хотя бы попробовал новое." />
+		<template id="v3.life.food.reply.taste.0084" act="life.food.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Неужели ты выбрал безопасный вариант, а я хотя бы попробовал новое?" />
 		<template id="v3.life.food.reply.taste.0085" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не оценивай мой вкус по одному заказу." />
 		<template id="v3.life.food.reply.taste.0086" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Твои гастрономические советы звучат как очередная насмешка." />
 		<template id="v3.life.food.reply.taste.0087" act="life.food.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Свежая зелень способна оживить даже простую крупу." />
 		<template id="v3.life.food.reply.taste.0088" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="В десерте мне важнее баланс, чем размер порции." />
 		<template id="v3.life.food.reply.taste.0089" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Слишком жирная еда быстро утомляет, даже если первый кусок хорош." />
-		<template id="v3.life.food.reply.taste.0090" act="life.food.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я сохранил для тебя рецепт того пирога, который тебе понравился." />
+		<template id="v3.life.food.reply.taste.0090" act="life.food.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Рецепт удачного пирога стоит сохранить." />
 		<template id="v3.life.food.reply.taste.0091" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сегодня твой выбор оказался интереснее моего — бывает." />
 		<template id="v3.life.food.reply.taste.0092" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не забирай последнее, сначала спроси остальных." />
-		<template id="v3.life.food.reply.taste.0093" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне неприятно, когда ты специально портишь общий ужин замечаниями." />
+		<template id="v3.life.food.reply.taste.0093" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если вкус неприятен, доедать из вежливости не обязательно." />
 		<template id="v3.life.food.reply.taste.0094" act="life.food.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Томатный соус люблю с заметной кислинкой и базиликом." />
 		<template id="v3.life.food.reply.taste.0095" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сладкий чай пью только тогда, когда сильно замёрз." />
 		<template id="v3.life.food.reply.taste.0096" act="life.food.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Самый удачный перекус — тот, после которого не хочется спать." />
@@ -108,13 +108,13 @@
 		<template id="v3.life.food.reply.taste.0105" act="life.food.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не путай дорогую подачу с хорошей едой." />
 		<template id="v3.life.food.reply.taste.0106" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я не просил посыпать всё перцем назло мне." />
 		<template id="v3.life.food.reply.taste.0107" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После твоего комментария аппетит окончательно пропал." />
-		<template id="v3.life.food.reply.taste.0108" act="life.food.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Этот сыр оказался нежнее, чем я ожидал." />
+		<template id="v3.life.food.reply.taste.0108" act="life.food.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Этот сыр оказался удивительно нежным." />
 		<template id="v3.life.food.reply.taste.0109" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нравится, когда в супе остаются целые кусочки овощей." />
 		<template id="v3.life.food.reply.taste.0110" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Жареное ем редко, но иногда именно его и хочется." />
-		<template id="v3.life.food.reply.taste.0111" act="life.food.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты угадал с приправой: вкус стал теплее, но не тяжелее." />
+		<template id="v3.life.food.reply.taste.0111" act="life.food.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Неужели ты угадал с приправой: вкус стал теплее, но не тяжелее?" />
 		<template id="v3.life.food.reply.taste.0112" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мой десерт закончился первым, зато твой оказался слишком приторным." />
 		<template id="v3.life.food.reply.taste.0113" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Оставь рассуждения о правильной еде для кого-нибудь другого." />
-		<template id="v3.life.food.reply.taste.0114" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не смей снова подмешивать то, на что у меня аллергия." />
+		<template id="v3.life.food.reply.taste.0114" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="При аллергии эксперимент заканчивается ещё до первой ложки." />
 		<template id="v3.life.food.reply.taste.0115" act="life.food.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Цедра добавляет свежесть, если не переборщить с горечью." />
 		<template id="v3.life.food.reply.taste.0116" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="У свежих помидоров летом почти не нужны добавки." />
 		<template id="v3.life.food.reply.taste.0117" act="life.food.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мясо получилось мягким, хотя корочка могла быть ярче." />
@@ -128,7 +128,7 @@
 		<template id="v3.life.food.reply.taste.0125" act="life.food.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Спасибо, что запомнил, какие специи я не люблю." />
 		<template id="v3.life.food.reply.taste.0126" act="life.food.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Варианты интересно сравнить вслепую, если когда-нибудь подвернётся случай." />
 		<template id="v3.life.food.reply.taste.0127" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не трогай соус: я специально оставил его отдельно." />
-		<template id="v3.life.food.reply.taste.0128" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты испортил блюдо ещё до первой пробы своим отношением." />
+		<template id="v3.life.food.reply.taste.0128" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Неужели ты испортил блюдо ещё до первой пробы своим отношением?" />
 		<template id="v3.life.food.reply.taste.0129" act="life.food.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="В этом напитке неожиданно хорошо слышен имбирь." />
 		<template id="v3.life.food.reply.taste.0130" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нравится контраст горячей начинки и прохладного соуса." />
 		<template id="v3.life.food.reply.taste.0131" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Зелёное яблоко здесь лучше сладкого — оно держит баланс." />
@@ -147,7 +147,7 @@
 		<template id="v3.life.food.reply.taste.0144" act="life.food.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Рыба свежая, поэтому лимона достаточно совсем немного." />
 		<template id="v3.life.food.reply.taste.0145" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Этот десерт хорош тем, что после него не остаётся липкой сладости." />
 		<template id="v3.life.food.reply.taste.0146" act="life.food.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давай запомним место: сюда хочется вернуться вдвоём." />
-		<template id="v3.life.food.reply.taste.0147" act="life.food.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я ожидал большего от твоей хвалёной закуски." />
+		<template id="v3.life.food.reply.taste.0147" act="life.food.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="От хвалёной закуски легко ждать большего." />
 		<template id="v3.life.food.reply.taste.0148" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не забирай специи со стола, они нужны не одному тебе." />
 		<template id="v3.life.food.reply.taste.0149" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="От твоих придирок вкус еды лучше не становится." />
 		<template id="v3.life.food.reply.taste.0150" act="life.food.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Сливочный соус оказался лёгким, хотя по описанию казался тяжёлым." />
@@ -161,7 +161,7 @@
 		<template id="v3.life.food.reply.taste.0158" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Кремовая текстура удачная, но аромата почти не чувствуется." />
 		<template id="v3.life.food.reply.taste.0159" act="life.food.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я бы добавил немного кислоты, чтобы вкус стал живее." />
 		<template id="v3.life.food.reply.taste.0160" act="life.food.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Дома обсудим рецепт и попробуем повторить вместе." />
-		<template id="v3.life.food.reply.taste.0161" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты спорил зря: свежий вариант действительно оказался лучше." />
+		<template id="v3.life.food.reply.taste.0161" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Неужели ты спорил зря: свежий вариант действительно оказался лучше?" />
 		<template id="v3.life.food.reply.taste.0162" act="life.food.taste.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не клади мне столько, я сам определю порцию." />
 		<template id="v3.life.food.reply.taste.0163" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не используй мою еду как повод снова начать конфликт." />
 		<template id="v3.life.food.reply.taste.0164" act="life.food.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Хорошее масло заметно даже на обычном хлебе." />
@@ -174,7 +174,7 @@
 		<template id="v3.life.food.reply.taste.0171" act="life.food.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ореховый вкус проявился только в послевкусии." />
 		<template id="v3.life.food.reply.taste.0172" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Хруст здесь к месту и хорошо оттеняет мягкую начинку." />
 		<template id="v3.life.food.reply.taste.0173" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Напиток освежает без лишней сладости." />
-		<template id="v3.life.food.reply.taste.0174" act="life.food.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Спасибо за маленькую порцию: ты правильно понял моё настроение." />
+		<template id="v3.life.food.reply.taste.0174" act="life.food.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Маленькая порция иногда уместнее большой." />
 		<template id="v3.life.food.reply.taste.0175" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="На этот раз мой осторожный выбор выиграл у твоего эксперимента." />
 		<template id="v3.life.food.reply.taste.0176" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я услышал критику, повторять её над тарелкой не нужно." />
 		<template id="v3.life.food.reply.taste.0177" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Твой демонстративный смех за общим столом выглядит жалко." />
@@ -189,7 +189,7 @@
 		<template id="v3.life.food.reply.taste.0186" act="life.food.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Специи раскрылись только когда блюдо немного остыло." />
 		<template id="v3.life.food.reply.taste.0187" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне нравится плотная текстура, а не воздушная пена ради вида." />
 		<template id="v3.life.food.reply.taste.0188" act="life.food.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Этот рецепт стоит оставить в нашем семейном списке." />
-		<template id="v3.life.food.reply.taste.0189" act="life.food.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты выбрал громкое название, я — то, что действительно вкусно." />
+		<template id="v3.life.food.reply.taste.0189" act="life.food.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Неужели ты выбрал громкое название, я — то, что действительно вкусно?" />
 		<template id="v3.life.food.reply.taste.0190" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не трогай мою тарелку, даже если твоя уже пустая." />
 		<template id="v3.life.food.reply.taste.0191" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Разговор окончен: мою еду ты больше не получишь." />
 		<template id="v3.life.food.reply.taste.0192" act="life.food.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я предпочитаю продукты, вкус которых не приходится угадывать." />
@@ -218,7 +218,7 @@
 		<template id="v3.life.food.reply.choice.0015" act="life.food.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если всё выглядит вкусно, спросим официанта о сегодняшнем блюде." />
 		<template id="v3.life.food.reply.choice.0016" act="life.food.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="К горячему можно добавить один салат на двоих." />
 		<template id="v3.life.food.reply.choice.0017" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="На неделю нужны крупы, овощи, яйца и что-нибудь для простых ужинов." />
-		<template id="v3.life.food.reply.choice.0018" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Гостям приготовим запеканку: останется время спокойно посидеть вместе." />
+		<template id="v3.life.food.reply.choice.0018" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Запеканка для гостей оставляет время спокойно посидеть вместе." />
 		<template id="v3.life.food.reply.choice.0019" act="life.food.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Чай и третий кофе лучше обсуждать как варианты, не приписывая выбор собеседнику." />
 		<template id="v3.life.food.reply.choice.0020" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не подсовывай перекус, когда я хочу нормально поесть." />
 		<template id="v3.life.food.reply.choice.0021" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Закажи себе что угодно и перестань задерживать очередь." />
@@ -235,18 +235,18 @@
 		<template id="v3.life.food.reply.choice.0032" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай возьмём сезонные ягоды — вместе их съедим быстрее." />
 		<template id="v3.life.food.reply.choice.0033" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Твоя сырная тарелка выглядит богато, но мой выбор точнее подходит к напитку." />
 		<template id="v3.life.food.reply.choice.0034" act="life.food.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не заполняй корзину без согласования, бюджет общий." />
-		<template id="v3.life.food.reply.choice.0035" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Убери из заказа то, на что у меня аллергия." />
+		<template id="v3.life.food.reply.choice.0035" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="При аллергии состав блюда важнее чужих предпочтений." />
 		<template id="v3.life.food.reply.choice.0036" act="life.food.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Из оставшихся овощей получится рагу или густой суп." />
 		<template id="v3.life.food.reply.choice.0037" act="life.food.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Без острого безопаснее взять сливочную пасту." />
 		<template id="v3.life.food.reply.choice.0038" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="На выходных сварю грибной суп, если найдём хорошие грибы." />
 		<template id="v3.life.food.reply.choice.0039" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="В столовой проще взять готовое и найти свободное место без обещаний его занять." />
 		<template id="v3.life.food.reply.choice.0040" act="life.food.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мой обед завтра разогреется лучше твоего салата, но спорить поздно." />
 		<template id="v3.life.food.reply.choice.0041" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не хватай первую тарелку только ради скорости." />
-		<template id="v3.life.food.reply.choice.0042" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не стану есть то, что ты выбрал мне назло." />
+		<template id="v3.life.food.reply.choice.0042" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Еда, выбранная назло, аппетита не вызывает." />
 		<template id="v3.life.food.reply.choice.0043" act="life.food.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Рыбу лучше запечь: так проще сохранить сочность." />
 		<template id="v3.life.food.reply.choice.0044" act="life.food.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="На двоих возьмём горячее и две разные закуски." />
 		<template id="v3.life.food.reply.choice.0045" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Для компании подойдут овощи, сыр и небольшие бутерброды." />
-		<template id="v3.life.food.reply.choice.0046" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если тяжёлой еды не хочется, закажем суп и салат пополам." />
+		<template id="v3.life.food.reply.choice.0046" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если тяжёлой еды не хочется, суп и салат можно разделить пополам." />
 		<template id="v3.life.food.reply.choice.0047" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Твой набор закусок выглядит эффектно, мой хотя бы удобно есть." />
 		<template id="v3.life.food.reply.choice.0048" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не забирай общую порцию к себе." />
 		<template id="v3.life.food.reply.choice.0049" act="life.food.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="После твоего поведения я ничего делить не собираюсь." />
@@ -289,7 +289,7 @@
 		<template id="v3.life.food.reply.choice.0086" act="life.food.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вместо второго кофе выберу воду и небольшой перекус." />
 		<template id="v3.life.food.reply.choice.0087" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="К острой еде закажу нейтральный гарнир." />
 		<template id="v3.life.food.reply.choice.0088" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давай возьмём две вилки и разделим один большой десерт." />
-		<template id="v3.life.food.reply.choice.0089" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В этот раз я нашёл вариант быстрее тебя." />
+		<template id="v3.life.food.reply.choice.0089" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Быстрый выбор хорош, если он подходит всем." />
 		<template id="v3.life.food.reply.choice.0090" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не торопи меня: меню можно прочитать один раз спокойно." />
 		<template id="v3.life.food.reply.choice.0091" act="life.food.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Замолчи и дай человеку сделать собственный заказ." />
 		<template id="v3.life.food.reply.choice.0092" act="life.food.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="На работу удобнее взять еду в контейнере, которая не проливается." />
@@ -302,16 +302,16 @@
 		<template id="v3.life.food.reply.choice.0099" act="life.food.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Для короткой поездки хватит воды, фруктов и пары сэндвичей." />
 		<template id="v3.life.food.reply.choice.0100" act="life.food.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="На долгую дорогу добавлю орехи и что-нибудь более сытное." />
 		<template id="v3.life.food.reply.choice.0101" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Скоропортящиеся продукты без холодильника брать не стану." />
-		<template id="v3.life.food.reply.choice.0102" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я соберу тебе перекус отдельно, чтобы не искать его в общей сумке." />
+		<template id="v3.life.food.reply.choice.0102" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Лучше собрать тебе перекус отдельно, чтобы не искать его в общей сумке." />
 		<template id="v3.life.food.reply.choice.0103" act="life.food.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Моя упаковка компактнее твоего набора контейнеров." />
 		<template id="v3.life.food.reply.choice.0104" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не перекладывай свои продукты в мой рюкзак без спроса." />
 		<template id="v3.life.food.reply.choice.0105" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сам неси лишнее, которое настоял купить." />
 		<template id="v3.life.food.reply.choice.0106" act="life.food.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Когда аппетита мало, возьму половину супа или лёгкий салат." />
 		<template id="v3.life.food.reply.choice.0107" act="life.food.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если очень голоден, начну с горячего, а десерт решу потом." />
 		<template id="v3.life.food.reply.choice.0108" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Порцию можно попросить упаковать, поэтому размер не пугает." />
-		<template id="v3.life.food.reply.choice.0109" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Закажем одно большое блюдо и спокойно поделим его." />
-		<template id="v3.life.food.reply.choice.0110" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты снова выбрал объём вместо вкуса." />
-		<template id="v3.life.food.reply.choice.0111" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не следи, сколько осталось у меня на тарелке." />
+		<template id="v3.life.food.reply.choice.0109" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Можно заказать одно большое блюдо и спокойно поделим его." />
+		<template id="v3.life.food.reply.choice.0110" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Неужели ты снова выбрал объём вместо вкуса?" />
+		<template id="v3.life.food.reply.choice.0111" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="На тарелке лучше оставить только то, что действительно хочется съесть." />
 		<template id="v3.life.food.reply.choice.0112" act="life.food.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Перестань считать мои куски, это отвратительно." />
 		<template id="v3.life.food.reply.choice.0113" act="life.food.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Из двух соусов выберу менее сладкий." />
 		<template id="v3.life.food.reply.choice.0114" act="life.food.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="К овощам подойдёт йогуртовая заправка с зеленью." />
@@ -319,18 +319,18 @@
 		<template id="v3.life.food.reply.choice.0116" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Попробуем оба варианта и оставим лучший для нашего рецепта." />
 		<template id="v3.life.food.reply.choice.0117" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Твоя уверенность не делает случайный соус подходящим." />
 		<template id="v3.life.food.reply.choice.0118" act="life.food.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не поливай общую еду, добавляй себе отдельно." />
-		<template id="v3.life.food.reply.choice.0119" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Убери бутылку: ты уже испортил одну порцию." />
+		<template id="v3.life.food.reply.choice.0119" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Серьёзно, убери бутылку: ты уже испортил одну порцию?" />
 		<template id="v3.life.food.reply.choice.0120" act="life.food.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="На ужин после работы нужен рецепт максимум на полчаса." />
 		<template id="v3.life.food.reply.choice.0121" act="life.food.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Можно взять готовую основу и добавить свежие овощи." />
 		<template id="v3.life.food.reply.choice.0122" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я лучше сварю крупу сейчас, чем снова закажу фастфуд." />
-		<template id="v3.life.food.reply.choice.0123" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай готовить вместе: ты режешь, я слежу за плитой." />
+		<template id="v3.life.food.reply.choice.0123" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Готовить вместе проще с разделением: один режет, другой следит за плитой." />
 		<template id="v3.life.food.reply.choice.0124" act="life.food.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Посмотрим, кто быстрее соберёт нормальный ужин из остатков." />
 		<template id="v3.life.food.reply.choice.0125" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не обещай мою помощь, не спросив меня." />
 		<template id="v3.life.food.reply.choice.0126" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="После твоих претензий готовь и убирай один." />
 		<template id="v3.life.food.reply.choice.0127" act="life.food.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Для вегетарианского ужина подойдут грибы, фасоль и печёные овощи." />
 		<template id="v3.life.food.reply.choice.0128" act="life.food.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если исключаем молочное, проверим состав теста и соуса." />
 		<template id="v3.life.food.reply.choice.0129" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ребёнку выберу знакомое блюдо без слишком ярких специй." />
-		<template id="v3.life.food.reply.choice.0130" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я запомнил твои ограничения и найду место, где нам обоим будет удобно." />
+		<template id="v3.life.food.reply.choice.0130" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Место лучше выбирать так, чтобы ограничения никому не мешали." />
 		<template id="v3.life.food.reply.choice.0131" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мой вариант подходит всем, а твой — только тебе." />
 		<template id="v3.life.food.reply.choice.0132" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не высмеивай чужие ограничения в еде." />
 		<template id="v3.life.food.reply.choice.0133" act="life.food.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="С таким отношением к аллергии за общий стол тебя не пустят." />
@@ -338,27 +338,27 @@
 		<template id="v3.life.food.reply.choice.0135" act="life.food.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Замороженные ягоды пригодятся, если свежие сейчас слабые." />
 		<template id="v3.life.food.reply.choice.0136" act="life.food.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Большую упаковку имеет смысл брать только для частого продукта." />
 		<template id="v3.life.food.reply.choice.0137" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Составим список вместе, чтобы не покупать лишнего." />
-		<template id="v3.life.food.reply.choice.0138" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты снова гонишься за скидкой, а не за качеством." />
+		<template id="v3.life.food.reply.choice.0138" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Неужели ты гонишься за скидкой, а не за качеством?" />
 		<template id="v3.life.food.reply.choice.0139" act="life.food.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не клади в тележку то, что никто дома не ест." />
 		<template id="v3.life.food.reply.choice.0140" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Оплачивай свои капризы отдельно." />
 		<template id="v3.life.food.reply.choice.0141" act="life.food.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Перед сном выберу тёплый напиток, а не полноценный ужин." />
 		<template id="v3.life.food.reply.choice.0142" act="life.food.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="После тренировки нужна еда с белком и углеводами." />
 		<template id="v3.life.food.reply.choice.0143" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если обед был поздним, вечером хватит овощей или йогурта." />
-		<template id="v3.life.food.reply.choice.0144" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я приготовлю тебе маленькую порцию, чтобы не ложиться голодным." />
+		<template id="v3.life.food.reply.choice.0144" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Можно приготовить тебе маленькую порцию, чтобы не ложиться голодным." />
 		<template id="v3.life.food.reply.choice.0145" act="life.food.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Твой поздний бургер утром напомнит о себе раньше будильника." />
 		<template id="v3.life.food.reply.choice.0146" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не втягивай меня в ночной заказ." />
 		<template id="v3.life.food.reply.choice.0147" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Шуми на кухне ещё раз — и будешь есть за дверью." />
 		<template id="v3.life.food.reply.choice.0148" act="life.food.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="В новом кафе начну с блюда, по которому понятен уровень кухни." />
 		<template id="v3.life.food.reply.choice.0149" act="life.food.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если место славится выпечкой, возьму одну на пробу." />
 		<template id="v3.life.food.reply.choice.0150" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Спрошу, что готовят из свежих местных продуктов." />
-		<template id="v3.life.food.reply.choice.0151" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давай закажем разные блюда и устроим маленькую дегустацию." />
+		<template id="v3.life.food.reply.choice.0151" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Можно заказать разные блюда и устроить маленькую дегустацию." />
 		<template id="v3.life.food.reply.choice.0152" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Твоя привычка выбирать по фотографии снова тебя подведёт." />
 		<template id="v3.life.food.reply.choice.0153" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не требуй заменить блюдо только потому, что сам ошибся." />
 		<template id="v3.life.food.reply.choice.0154" act="life.food.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не устраивай сцену официанту из-за собственного выбора." />
 		<template id="v3.life.food.reply.choice.0155" act="life.food.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="На семейный ужин лучше приготовить то, что удобно подавать сразу всем." />
 		<template id="v3.life.food.reply.choice.0156" act="life.food.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Для встречи друзей подойдут блюда, которые легко разделить." />
 		<template id="v3.life.food.reply.choice.0157" act="life.food.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если времени мало, оставлю один хороший главный акцент вместо десятка закусок." />
-		<template id="v3.life.food.reply.choice.0158" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты отвечаешь за напитки, а я соберу меню без суеты." />
+		<template id="v3.life.food.reply.choice.0158" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Неужели ты отвечаешь за напитки, а можно собрать меню без суеты?" />
 		<template id="v3.life.food.reply.choice.0159" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мой план проще и переживёт твою вечную задержку." />
 		<template id="v3.life.food.reply.choice.0160" act="life.food.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не добавляй гостей после того, как закупка закончена." />
 		<template id="v3.life.food.reply.choice.0161" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сам объясняй, почему на всех не хватило еды." />
@@ -366,13 +366,13 @@
 		<template id="v3.life.food.reply.choice.0163" act="life.food.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Спелые бананы лучше отправить в выпечку, а не выбрасывать." />
 		<template id="v3.life.food.reply.choice.0164" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Небольшой кусок сыра можно добавить в омлет." />
 		<template id="v3.life.food.reply.choice.0165" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Соберём ужин из остатков и освободим холодильник вместе." />
-		<template id="v3.life.food.reply.choice.0166" act="life.food.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я придумал применение продуктам раньше твоего «гениального» совета." />
+		<template id="v3.life.food.reply.choice.0166" act="life.food.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Продуктам полезнее найти применение до появления очередного «гениального» совета." />
 		<template id="v3.life.food.reply.choice.0167" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не смешивай всё подряд только ради экономии." />
-		<template id="v3.life.food.reply.choice.0168" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Эту подозрительную еду я никому не дам." />
+		<template id="v3.life.food.reply.choice.0168" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Подозрительную еду нельзя давать никому." />
 		<template id="v3.life.food.reply.choice.0169" act="life.food.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="В жаркий день выберу воду, морс или холодный чай без сиропа." />
 		<template id="v3.life.food.reply.choice.0170" act="life.food.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После долгой прогулки подойдёт напиток с минералами." />
 		<template id="v3.life.food.reply.choice.0171" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="К ужину возьму что-то нейтральное, чтобы не перебивать вкус." />
-		<template id="v3.life.food.reply.choice.0172" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Закажем один графин на двоих и не будем таскать бутылки." />
+		<template id="v3.life.food.reply.choice.0172" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Можно заказать один графин на двоих и не будем таскать бутылки." />
 		<template id="v3.life.food.reply.choice.0173" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Твой яркий коктейль проиграл обычной холодной воде." />
 		<template id="v3.life.food.reply.choice.0174" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не трогай мой стакан, закажи себе." />
 		<template id="v3.life.food.reply.choice.0175" act="life.food.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="После твоей выходки я ничего с тобой не разделю." />
@@ -380,11 +380,11 @@
 		<template id="v3.life.food.reply.choice.0177" act="life.food.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сезонный суп обычно дешевле сложного блюда и не хуже насыщает." />
 		<template id="v3.life.food.reply.choice.0178" act="life.food.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Можно приготовить сразу на два дня и сэкономить время." />
 		<template id="v3.life.food.reply.choice.0179" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай скинемся поровну и выберем продукты получше." />
-		<template id="v3.life.food.reply.choice.0180" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты потратил больше, но вкус от этого не купил." />
+		<template id="v3.life.food.reply.choice.0180" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Неужели ты потратил больше, но вкус от этого не купил?" />
 		<template id="v3.life.food.reply.choice.0181" act="life.food.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не считай мои деньги и не выбирай за мой счёт." />
 		<template id="v3.life.food.reply.choice.0182" act="life.food.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Твои долги не станут моей продуктовой корзиной." />
 		<template id="v3.life.food.reply.choice.0183" act="life.food.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Прямо сейчас мне нужен горячий суп, свежий хлеб и тишина." />
-		<template id="v3.life.food.reply.choice.0184" act="life.food.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я выберу то блюдо, после которого смогу спокойно продолжить день." />
+		<template id="v3.life.food.reply.choice.0184" act="life.food.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Лучше выбрать блюдо, после которого можно спокойно продолжить день." />
 		<template id="v3.life.food.reply.choice.0185" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если ты не уверен, бери знакомое, а новый вкус попробуешь у меня." />
 		<template id="v3.life.food.reply.choice.0186" act="life.food.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Садись рядом: решим заказ за минуту и наконец поедим." />
 		<template id="v3.life.food.reply.choice.0187" act="life.food.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Можешь выбрать первым, но последнее слово о моей порции за мной." />
@@ -393,7 +393,7 @@
 		<template id="v3.life.food.reply.choice.0190" act="life.food.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мой выбор сделан: беру овощную пасту." />
 		<template id="v3.life.food.reply.choice.0191" act="life.food.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Тебе могу подсказать, но решать всё равно будешь сам." />
 		<template id="v3.life.food.reply.choice.0192" act="life.food.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если нужно, покажу в меню несколько спокойных вариантов." />
-		<template id="v3.life.food.reply.choice.0193" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Для другого человека безопаснее предложить несколько блюд, не выдумывая общую историю." />
+		<template id="v3.life.food.reply.choice.0193" act="life.food.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Для другого человека безопаснее предложить несколько блюд и не навязывать общий вкус." />
 		<template id="v3.life.food.reply.choice.0194" act="life.food.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Моя рекомендация сильнее твоей случайной догадки." />
 		<template id="v3.life.food.reply.choice.0195" act="life.food.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не перекладывай на меня ответственность за собственный заказ." />
 		<template id="v3.life.food.reply.choice.0196" act="life.food.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Разбирайся с меню сам и больше меня не задерживай." />
@@ -425,8 +425,8 @@
 		<template id="v3.life.food.reply.cooking.0022" act="life.food.cooking.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сливки в соусе можно заменить молоком с небольшим количеством крахмала." />
 		<template id="v3.life.food.reply.cooking.0023" act="life.food.cooking.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Картошка разваливается, если сорт слишком крахмалистый или вода бурно кипит." />
 		<template id="v3.life.food.reply.cooking.0024" act="life.food.cooking.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Охладите лук и используйте острый нож — слёз будет меньше." />
-		<template id="v3.life.food.reply.cooking.0025" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я нарежу лук вместо тебя, только открой окно." />
-		<template id="v3.life.food.reply.cooking.0026" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Чечевица сварится раньше, чем ты закончишь рассказывать свой рецепт." />
+		<template id="v3.life.food.reply.cooking.0025" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Стоит нарезать лук вместо тебя, только открой окно." />
+		<template id="v3.life.food.reply.cooking.0026" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Разве чечевица сварится раньше, чем ты закончишь рассказывать свой рецепт?" />
 		<template id="v3.life.food.reply.cooking.0027" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Макароны промывать не нужно, если соус добавляется сразу." />
 		<template id="v3.life.food.reply.cooking.0028" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не учи меня варить пасту по фотографии из сети." />
 		<template id="v3.life.food.reply.cooking.0029" act="life.food.cooking.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Пересоленный суп можно разбавить несолёной основой и снова выровнять вкус." />
@@ -439,15 +439,15 @@
 		<template id="v3.life.food.reply.cooking.0036" act="life.food.cooking.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Еду лучше разогревать один раз и только нужную порцию." />
 		<template id="v3.life.food.reply.cooking.0037" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Для пышного омлета взбей яйца без фанатизма и готовь на слабом огне." />
 		<template id="v3.life.food.reply.cooking.0038" act="life.food.cooking.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Котлеты могли стать сухими из-за слишком постного фарша или долгой жарки." />
-		<template id="v3.life.food.reply.cooking.0039" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я добавлю немного сочности, а ты пока подготовь гарнир." />
+		<template id="v3.life.food.reply.cooking.0039" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Разумнее добавить немного сочности, а ты пока подготовь гарнир." />
 		<template id="v3.life.food.reply.cooking.0040" act="life.food.cooking.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мой омлет держит форму без твоих показательных трюков." />
 		<template id="v3.life.food.reply.cooking.0041" act="life.food.cooking.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не дави котлеты лопаткой, весь сок уходит на сковороду." />
 		<template id="v3.life.food.reply.cooking.0042" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Убери руки от моей порции и займись своей." />
 		<template id="v3.life.food.reply.cooking.0043" act="life.food.cooking.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Разрыхлитель заменит сода с кислым ингредиентом, если рецепт это допускает." />
 		<template id="v3.life.food.reply.cooking.0044" act="life.food.cooking.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Для салата смешайте масло, кислоту, соль и немного горчицы." />
 		<template id="v3.life.food.reply.cooking.0045" act="life.food.cooking.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="В рагу специи лучше добавлять частями и пробовать по ходу." />
-		<template id="v3.life.food.reply.cooking.0046" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты знаешь мой вкус, поэтому доверь мне финальную приправу." />
-		<template id="v3.life.food.reply.cooking.0047" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я снимаю пену ради прозрачности, а не потому что боюсь бульона." />
+		<template id="v3.life.food.reply.cooking.0046" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Неужели ты знаешь мой вкус, поэтому доверь мне финальную приправу?" />
+		<template id="v3.life.food.reply.cooking.0047" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Пену снимают ради прозрачности, а не из страха перед бульоном." />
 		<template id="v3.life.food.reply.cooking.0048" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не выливай заправку целиком, сначала проверь баланс." />
 		<template id="v3.life.food.reply.cooking.0049" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После твоей самодеятельности этот салат можно выбрасывать." />
 		<template id="v3.life.food.reply.cooking.0050" act="life.food.cooking.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Яйцо с жидким желтком обычно требует около шести минут после закипания." />
@@ -468,7 +468,7 @@
 		<template id="v3.life.food.reply.cooking.0065" act="life.food.cooking.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Свежее яйцо тонет в воде и лежит почти горизонтально." />
 		<template id="v3.life.food.reply.cooking.0066" act="life.food.cooking.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мясу после жарки нужно несколько минут, чтобы сок распределился внутри." />
 		<template id="v3.life.food.reply.cooking.0067" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Без блендера суп можно протереть через сито или хорошо размять толкушкой." />
-		<template id="v3.life.food.reply.cooking.0068" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я подержу сито, а ты аккуратно разомни овощи." />
+		<template id="v3.life.food.reply.cooking.0068" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Можно подержать сито, а ты аккуратно разомни овощи." />
 		<template id="v3.life.food.reply.cooking.0069" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Моё мясо отдыхает, твоё уже успело остыть от ожидания похвалы." />
 		<template id="v3.life.food.reply.cooking.0070" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не режь стейк сразу, сколько бы ни хотелось проверить середину." />
 		<template id="v3.life.food.reply.cooking.0071" act="life.food.cooking.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Тронешь мою сковороду ещё раз — готовить дальше будешь один." />
@@ -476,7 +476,7 @@
 		<template id="v3.life.food.reply.cooking.0073" act="life.food.cooking.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Духовку обычно прогревают заранее, иначе время рецепта теряет смысл." />
 		<template id="v3.life.food.reply.cooking.0074" act="life.food.cooking.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Твёрдый рис можно довести под крышкой с небольшим количеством горячей воды." />
 		<template id="v3.life.food.reply.cooking.0075" act="life.food.cooking.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сохраним домашний соус в чистой банке и подпишем дату." />
-		<template id="v3.life.food.reply.cooking.0076" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="За пятнадцать минут я соберу пасту быстрее твоей доставки." />
+		<template id="v3.life.food.reply.cooking.0076" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="За пятнадцать минут можно собрать пасту быстрее твоей доставки." />
 		<template id="v3.life.food.reply.cooking.0077" act="life.food.cooking.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Начни с яичницы, супа и одной крупы, а не с ресторанного десерта." />
 		<template id="v3.life.food.reply.cooking.0078" act="life.food.cooking.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не берись учить новичка, если сам оставляешь ножи в раковине." />
 		<template id="v3.life.food.reply.cooking.0079" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сначала освой безопасность, потом хвастайся сложными рецептами." />
@@ -490,7 +490,7 @@
 		<template id="v3.life.food.reply.cooking.0087" act="life.food.cooking.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Соль добавляйте постепенно: убрать её значительно труднее, чем досыпать." />
 		<template id="v3.life.food.reply.cooking.0088" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Кислоту в соус вносите понемногу и пробуйте после каждого шага." />
 		<template id="v3.life.food.reply.cooking.0089" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Свежие травы лучше класть ближе к концу, сухим нужно время раскрыться." />
-		<template id="v3.life.food.reply.cooking.0090" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты пробуешь, я приправляю — так мы быстрее найдём баланс." />
+		<template id="v3.life.food.reply.cooking.0090" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Один пробует, другой приправляет — так быстрее находится баланс." />
 		<template id="v3.life.food.reply.cooking.0091" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Твоя щепоть снова оказалась половиной банки." />
 		<template id="v3.life.food.reply.cooking.0092" act="life.food.cooking.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не сыпь специи над кастрюлей прямо из упаковки." />
 		<template id="v3.life.food.reply.cooking.0093" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Эта еда слишком острая из-за твоего упрямства, сам её и доедай." />
@@ -498,13 +498,13 @@
 		<template id="v3.life.food.reply.cooking.0095" act="life.food.cooking.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Сильное кипение делает прозрачный бульон мутным." />
 		<template id="v3.life.food.reply.cooking.0096" act="life.food.cooking.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Овощи для аромата можно слегка подрумянить перед варкой." />
 		<template id="v3.life.food.reply.cooking.0097" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Давай сварим большую кастрюлю и часть заморозим на трудный день." />
-		<template id="v3.life.food.reply.cooking.0098" act="life.food.cooking.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мой бульон чище, хотя ты смеялся над медленным огнём." />
+		<template id="v3.life.food.reply.cooking.0098" act="life.food.cooking.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Разве мой бульон чище, хотя ты смеялся над медленным огнём?" />
 		<template id="v3.life.food.reply.cooking.0099" act="life.food.cooking.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не доливай холодную воду без причины." />
 		<template id="v3.life.food.reply.cooking.0100" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если ещё раз оставишь кастрюлю на ночь, я всё выброшу." />
 		<template id="v3.life.food.reply.cooking.0101" act="life.food.cooking.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Тесто перестаёт липнуть не только от муки, но и после короткого отдыха." />
 		<template id="v3.life.food.reply.cooking.0102" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Масло для слоёного теста должно оставаться прохладным." />
 		<template id="v3.life.food.reply.cooking.0103" act="life.food.cooking.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Дрожжевой заготовке нужно тёплое место без сквозняка." />
-		<template id="v3.life.food.reply.cooking.0104" act="life.food.cooking.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я накрою миску, а ты освободи место для раскатки." />
+		<template id="v3.life.food.reply.cooking.0104" act="life.food.cooking.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Можно накрыть миску, а ты освободи место для раскатки." />
 		<template id="v3.life.food.reply.cooking.0105" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Твои булочки выше, зато мои пропеклись внутри." />
 		<template id="v3.life.food.reply.cooking.0106" act="life.food.cooking.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не забивай тесто лишней мукой из страха перед липкостью." />
 		<template id="v3.life.food.reply.cooking.0107" act="life.food.cooking.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Убери грязные руки от общей заготовки." />
@@ -512,7 +512,7 @@
 		<template id="v3.life.food.reply.cooking.0109" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не переполняйте сковороду, если нужна румяная поверхность." />
 		<template id="v3.life.food.reply.cooking.0110" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Морковь и лук кладут раньше нежного кабачка." />
 		<template id="v3.life.food.reply.cooking.0111" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Будем жарить двумя партиями, так получится быстрее и вкуснее." />
-		<template id="v3.life.food.reply.cooking.0112" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты выиграл скорость, я сохранил текстуру." />
+		<template id="v3.life.food.reply.cooking.0112" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Скорость и сохранённая текстура — равноценные результаты." />
 		<template id="v3.life.food.reply.cooking.0113" act="life.food.cooking.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не накрывай крышкой то, что должно хрустеть." />
 		<template id="v3.life.food.reply.cooking.0114" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Хватит сжигать масло и делать вид, что это аромат." />
 		<template id="v3.life.food.reply.cooking.0115" act="life.food.cooking.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Рыбу перед жаркой промокните и посолите незадолго до приготовления." />
@@ -521,7 +521,7 @@
 		<template id="v3.life.food.reply.cooking.0118" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Лимон лучше подготовить до того, как рыба окажется на огне." />
 		<template id="v3.life.food.reply.cooking.0119" act="life.food.cooking.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Моя корочка ровнее, но твоя середина сочнее." />
 		<template id="v3.life.food.reply.cooking.0120" act="life.food.cooking.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не ковыряй филе вилкой каждую минуту." />
-		<template id="v3.life.food.reply.cooking.0121" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты превратил дорогую рыбу в сухую стружку." />
+		<template id="v3.life.food.reply.cooking.0121" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели ты превратил дорогую рыбу в сухую стружку?" />
 		<template id="v3.life.food.reply.cooking.0122" act="life.food.cooking.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мясо режьте поперёк волокон, если хотите более мягкие кусочки." />
 		<template id="v3.life.food.reply.cooking.0123" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Маринад с сильной кислотой не стоит держать слишком долго." />
 		<template id="v3.life.food.reply.cooking.0124" act="life.food.cooking.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Перед жаркой поверхность нужно обсушить от лишней влаги." />
@@ -532,28 +532,28 @@
 		<template id="v3.life.food.reply.cooking.0129" act="life.food.cooking.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Для салата листья мойте заранее, но заправляйте перед подачей." />
 		<template id="v3.life.food.reply.cooking.0130" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Водянистые овощи лучше обсушить, чтобы соус не стекал вниз." />
 		<template id="v3.life.food.reply.cooking.0131" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Хрустящие добавки кладут в самом конце." />
-		<template id="v3.life.food.reply.cooking.0132" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я смешаю заправку, а ты аккуратно подготовь зелень." />
+		<template id="v3.life.food.reply.cooking.0132" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можно смешать заправку, а ты аккуратно подготовь зелень." />
 		<template id="v3.life.food.reply.cooking.0133" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мой салат переживёт дорогу лучше твоего сложного украшения." />
 		<template id="v3.life.food.reply.cooking.0134" act="life.food.cooking.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не мни листья тяжёлой ложкой." />
 		<template id="v3.life.food.reply.cooking.0135" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не подавай эту увядшую зелень гостям." />
 		<template id="v3.life.food.reply.cooking.0136" act="life.food.cooking.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Картофель для пюре лучше варить равными кусками до мягкости." />
 		<template id="v3.life.food.reply.cooking.0137" act="life.food.cooking.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Горячий картофель разминайте сразу, но не взбивайте слишком долго." />
 		<template id="v3.life.food.reply.cooking.0138" act="life.food.cooking.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Молоко добавляют тёплым, чтобы пюре не остыло и не стало серым." />
-		<template id="v3.life.food.reply.cooking.0139" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты разомнёшь картофель, а я прогрею масло с молоком." />
+		<template id="v3.life.food.reply.cooking.0139" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Картофель удобнее разминать, пока масло с молоком прогреваются отдельно." />
 		<template id="v3.life.food.reply.cooking.0140" act="life.food.cooking.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Моё пюре без комков, твоё зато сохранило характер." />
 		<template id="v3.life.food.reply.cooking.0141" act="life.food.cooking.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не используй блендер, получится липкая масса." />
 		<template id="v3.life.food.reply.cooking.0142" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Унеси эту клейкую смесь и не называй её пюре." />
 		<template id="v3.life.food.reply.cooking.0143" act="life.food.cooking.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Кастрюлю после молока проще отмыть, если сразу залить тёплой водой." />
 		<template id="v3.life.food.reply.cooking.0144" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Пригоревшее дно не скребите всухую; сначала дайте ему отмокнуть." />
 		<template id="v3.life.food.reply.cooking.0145" act="life.food.cooking.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Добавьте немного соды и прогрейте воду, если нагар держится крепко." />
-		<template id="v3.life.food.reply.cooking.0146" act="life.food.cooking.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я вымою посуду, пока ты убираешь продукты в холодильник." />
-		<template id="v3.life.food.reply.cooking.0147" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="У меня сковорода чистая, потому что я не бросаю её до утра." />
+		<template id="v3.life.food.reply.cooking.0146" act="life.food.cooking.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Лучше вымыть посуду, пока ты убираешь продукты в холодильник." />
+		<template id="v3.life.food.reply.cooking.0147" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Чистая сковорода — хороший повод начать заново, а не спорить о прошлом блюде." />
 		<template id="v3.life.food.reply.cooking.0148" act="life.food.cooking.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не оставляй жирную посуду в общей раковине." />
 		<template id="v3.life.food.reply.cooking.0149" act="life.food.cooking.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ещё раз свалишь всё мне — готовить вместе перестанем." />
 		<template id="v3.life.food.reply.cooking.0150" act="life.food.cooking.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Крем взбивайте из холодных сливок в прохладной посуде." />
 		<template id="v3.life.food.reply.cooking.0151" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Остановитесь, когда след от венчика держится, иначе получится масло." />
 		<template id="v3.life.food.reply.cooking.0152" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Сахарную пудру удобнее добавлять небольшими порциями." />
-		<template id="v3.life.food.reply.cooking.0153" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Подержи миску, а я доведу крем до нужной плотности." />
+		<template id="v3.life.food.reply.cooking.0153" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Когда один держит миску, другому проще довести крем до нужной плотности." />
 		<template id="v3.life.food.reply.cooking.0154" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мой венчик справился раньше твоего дорогого миксера." />
 		<template id="v3.life.food.reply.cooking.0155" act="life.food.cooking.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не пробуй крем одной и той же ложкой." />
 		<template id="v3.life.food.reply.cooking.0156" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Убери пальцы из миски, это еда для всех." />
@@ -568,13 +568,13 @@
 		<template id="v3.life.food.reply.cooking.0165" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сухие бобовые замачивают заранее и варят до полной мягкости." />
 		<template id="v3.life.food.reply.cooking.0166" act="life.food.cooking.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Кислые продукты добавляйте после того, как фасоль стала нежной." />
 		<template id="v3.life.food.reply.cooking.0167" act="life.food.cooking.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Давай сварим больше и заморозим готовыми порциями." />
-		<template id="v3.life.food.reply.cooking.0168" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я начал вчера, поэтому мой ужин готов раньше твоего." />
+		<template id="v3.life.food.reply.cooking.0168" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если заготовка сделана заранее, ужин закономерно готов раньше." />
 		<template id="v3.life.food.reply.cooking.0169" act="life.food.cooking.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не пробуй недоваренную фасоль и не торопи процесс." />
 		<template id="v3.life.food.reply.cooking.0170" act="life.food.cooking.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="С твоими экспериментами никто сегодня не рискует здоровьем." />
 		<template id="v3.life.food.reply.cooking.0171" act="life.food.cooking.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Грибы жарьте партиями, чтобы они подрумянились, а не сварились в соке." />
 		<template id="v3.life.food.reply.cooking.0172" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соль можно добавить после появления румяной поверхности." />
 		<template id="v3.life.food.reply.cooking.0173" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Сильный огонь требует внимания, иначе края быстро сгорят." />
-		<template id="v3.life.food.reply.cooking.0174" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты режешь грибы, я освобожу для них вторую сковороду." />
+		<template id="v3.life.food.reply.cooking.0174" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Пока один режет грибы, второй может освободить для них сковороду." />
 		<template id="v3.life.food.reply.cooking.0175" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Моя партия золотистее, зато твоя сохранила больше влаги." />
 		<template id="v3.life.food.reply.cooking.0176" act="life.food.cooking.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не мешай их каждую секунду." />
 		<template id="v3.life.food.reply.cooking.0177" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Эти почерневшие куски подавай только себе." />
@@ -596,7 +596,7 @@
 		<template id="v3.life.food.reply.cooking.0193" act="life.food.cooking.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Читайте рецепт целиком до того, как включать плиту." />
 		<template id="v3.life.food.reply.cooking.0194" act="life.food.cooking.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Подготовленные заранее продукты делают процесс намного спокойнее." />
 		<template id="v3.life.food.reply.cooking.0195" act="life.food.cooking.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Первый шаг лучше делать по понятной инструкции, но своими руками." />
-		<template id="v3.life.food.reply.cooking.0196" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если сегодня получилось ровнее, это видно по результату, а не по выдуманному прошлому разу." />
+		<template id="v3.life.food.reply.cooking.0196" act="life.food.cooking.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если сегодня получилось ровнее, это видно по результату; сравнение не обязательно." />
 		<template id="v3.life.food.reply.cooking.0197" act="life.food.cooking.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не бойся ошибки, но и не игнорируй правила безопасности." />
 		<template id="v3.life.food.reply.cooking.0198" act="life.food.cooking.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если не хочешь слушать, не проси меня спасать результат." />
 		<template id="v3.life.food.reply.cooking.0199" act="life.food.cooking.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Готовка окончена; теперь кухню нужно оставить чистой." />
@@ -606,7 +606,7 @@
 		<template id="v3.life.food.reply.hunger.0003" act="life.food.hunger.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После тренировки обычно нужен нормальный приём пищи, а не случайное печенье." />
 		<template id="v3.life.food.reply.hunger.0004" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Тёплый суп помогает выдохнуть, если он уже есть и его можно безопасно разогреть." />
 		<template id="v3.life.food.reply.hunger.0005" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Аппетит не повод соревноваться, кто съест быстрее." />
-		<template id="v3.life.food.reply.hunger.0006" act="life.food.hunger.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Пропущенный завтрак не оправдывает срыв на людях, если он действительно был." />
+		<template id="v3.life.food.reply.hunger.0006" act="life.food.hunger.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Пропущенный завтрак не оправдывает срыв на людях." />
 		<template id="v3.life.food.reply.hunger.0007" act="life.food.hunger.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Голод не оправдывает грубость, но и выдумывать чужой день не стоит." />
 		<template id="v3.life.food.reply.hunger.0008" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Когда хочется есть от скуки, помогает сначала сменить занятие." />
 		<template id="v3.life.food.reply.hunger.0009" act="life.food.hunger.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если урчит живот, тянуть до вечера уже неразумно." />
@@ -618,8 +618,8 @@
 		<template id="v3.life.food.reply.hunger.0015" act="life.food.hunger.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Горячий суп действительно подходит, когда замёрз и устал." />
 		<template id="v3.life.food.reply.hunger.0016" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Для лёгкого перекуса возьмите фрукт, йогурт или кусок сыра." />
 		<template id="v3.life.food.reply.hunger.0017" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Пропущенный завтрак можно исправить спокойным ранним обедом." />
-		<template id="v3.life.food.reply.hunger.0018" act="life.food.hunger.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я оставил тебе порцию, потому что знал, что ты снова забудешь поесть." />
-		<template id="v3.life.food.reply.hunger.0019" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="До ужина я дотяну раньше тебя, но геройствовать незачем." />
+		<template id="v3.life.food.reply.hunger.0018" act="life.food.hunger.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Порцию для другого человека лучше оставить без предположений о его привычках." />
+		<template id="v3.life.food.reply.hunger.0019" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="До ужина можно дотянуть, но геройствовать незачем." />
 		<template id="v3.life.food.reply.hunger.0020" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не жалуйся на голод, если отвергаешь каждый предложенный вариант." />
 		<template id="v3.life.food.reply.hunger.0021" act="life.food.hunger.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не трогай мою еду — ты сам отказался брать свою." />
 		<template id="v3.life.food.reply.hunger.0022" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если готовить лень, соберите холодный ужин из нормальных продуктов." />
@@ -639,15 +639,15 @@
 		<template id="v3.life.food.reply.hunger.0036" act="life.food.hunger.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Частый голод может быть связан с маленькими порциями или недосыпом." />
 		<template id="v3.life.food.reply.hunger.0037" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Из-за волнения попробуйте что-нибудь нейтральное и небольшое." />
 		<template id="v3.life.food.reply.hunger.0038" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Утром аппетит иногда приходит позже — еду можно взять с собой." />
-		<template id="v3.life.food.reply.hunger.0039" act="life.food.hunger.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="После прогулки приготовим плотный ужин, который любим оба." />
-		<template id="v3.life.food.reply.hunger.0040" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я взял запасной перекус, потому что знал, что ты забудешь свой." />
-		<template id="v3.life.food.reply.hunger.0041" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не называй заботой попытку контролировать, сколько я ем." />
+		<template id="v3.life.food.reply.hunger.0039" act="life.food.hunger.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="После прогулки плотный ужин особенно к месту." />
+		<template id="v3.life.food.reply.hunger.0040" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Запасной перекус полезен, но забывчивость другого человека предсказывать не стоит." />
+		<template id="v3.life.food.reply.hunger.0041" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Во время еды человеку лучше не мешать допросом." />
 		<template id="v3.life.food.reply.hunger.0042" act="life.food.hunger.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не проси делиться после того, как насмехался над моим контейнером." />
 		<template id="v3.life.food.reply.hunger.0043" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Для быстрого перекуса подойдёт то, что не требует приборов и не крошится." />
 		<template id="v3.life.food.reply.hunger.0044" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Хороший аппетит после болезни радует, но возвращайтесь к обычной еде постепенно." />
 		<template id="v3.life.food.reply.hunger.0045" act="life.food.hunger.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если от еды мутит, выбирайте воду и обратитесь за помощью при ухудшении." />
-		<template id="v3.life.food.reply.hunger.0046" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я переберу варианты вместе с тобой, пока не найдём что-то приемлемое." />
-		<template id="v3.life.food.reply.hunger.0047" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мой кофе не виноват, что ты снова пропустил нормальную еду." />
+		<template id="v3.life.food.reply.hunger.0046" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Лучше перебрать варианты вместе с тобой, пока не найдём что-то приемлемое." />
+		<template id="v3.life.food.reply.hunger.0047" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Серьёзно, мой кофе не виноват, что ты снова пропустил нормальную еду?" />
 		<template id="v3.life.food.reply.hunger.0048" act="life.food.hunger.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не заставляй себя ужинать только по расписанию." />
 		<template id="v3.life.food.reply.hunger.0049" act="life.food.hunger.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Уйди со своими комментариями о чужом теле и аппетите." />
 		<template id="v3.life.food.reply.hunger.0050" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Еда за компанию приятна, пока каждый слышит собственную сытость." />
@@ -662,7 +662,7 @@
 		<template id="v3.life.food.reply.hunger.0059" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сытость не отменяет желания попробовать хороший десерт." />
 		<template id="v3.life.food.reply.hunger.0060" act="life.food.hunger.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Острый вкус иногда усиливает аппетит, поэтому начните с меньшей порции." />
 		<template id="v3.life.food.reply.hunger.0061" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сегодня разделю с тобой салат и оставлю место для чая." />
-		<template id="v3.life.food.reply.hunger.0062" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты хвастаешься голодом, будто это спортивное достижение." />
+		<template id="v3.life.food.reply.hunger.0062" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты хвастаешься голодом, будто это спортивное достижение?" />
 		<template id="v3.life.food.reply.hunger.0063" act="life.food.hunger.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не разговаривай со мной таким тоном из-за пустого желудка." />
 		<template id="v3.life.food.reply.hunger.0064" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сначала поешь, потом возвращайся с извинениями." />
 		<template id="v3.life.food.reply.hunger.0065" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Во время готовки запахи иногда притупляют чувство голода." />
@@ -675,43 +675,43 @@
 		<template id="v3.life.food.reply.hunger.0072" act="life.food.hunger.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="До доставки сорок минут, поэтому выпей воды и не начинай случайный перекус." />
 		<template id="v3.life.food.reply.hunger.0073" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Лучше поесть сейчас, пока голод не превратил разговор в ссору." />
 		<template id="v3.life.food.reply.hunger.0074" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если все раздражены, простая горячая еда важнее идеального меню." />
-		<template id="v3.life.food.reply.hunger.0075" act="life.food.hunger.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я накрою стол, а ты встречай курьера у двери." />
+		<template id="v3.life.food.reply.hunger.0075" act="life.food.hunger.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Разумнее накрыть стол, а ты встречай курьера у двери." />
 		<template id="v3.life.food.reply.hunger.0076" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мой заказ приехал раньше, но издеваться над тобой не стану." />
 		<template id="v3.life.food.reply.hunger.0077" act="life.food.hunger.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не вини курьера в том, что сам указал неверный адрес." />
 		<template id="v3.life.food.reply.hunger.0078" act="life.food.hunger.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Перестань кричать на людей из-за собственной ошибки." />
 		<template id="v3.life.food.reply.hunger.0079" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сильный голод часто заставляет брать больше, чем действительно нужно." />
 		<template id="v3.life.food.reply.hunger.0080" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Начните с обычной порции и дайте себе время почувствовать сытость." />
 		<template id="v3.life.food.reply.hunger.0081" act="life.food.hunger.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Вода не заменит обед, но иногда помогает дождаться еды спокойнее." />
-		<template id="v3.life.food.reply.hunger.0082" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я положу тебе немного сейчас, добавку возьмёшь потом." />
-		<template id="v3.life.food.reply.hunger.0083" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты снова набрал гору еды и не доел половину." />
+		<template id="v3.life.food.reply.hunger.0082" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Лучше положить тебе немного сейчас, добавку возьмёшь потом." />
+		<template id="v3.life.food.reply.hunger.0083" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты снова набрал гору еды и не доел половину?" />
 		<template id="v3.life.food.reply.hunger.0084" act="life.food.hunger.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не выкладывай мне лишнее без спроса." />
 		<template id="v3.life.food.reply.hunger.0085" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сам доедай то, что жадно забрал у остальных." />
 		<template id="v3.life.food.reply.hunger.0086" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если утром не лезет еда, попробуйте жидкий или маленький завтрак." />
 		<template id="v3.life.food.reply.hunger.0087" act="life.food.hunger.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Тёплая каша обычно воспринимается мягче тяжёлого бутерброда." />
 		<template id="v3.life.food.reply.hunger.0088" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно перенести основную еду на час позже и взять её с собой." />
-		<template id="v3.life.food.reply.hunger.0089" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я приготовлю тебе напиток и пару тостов без давления." />
+		<template id="v3.life.food.reply.hunger.0089" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Стоит приготовить тебе напиток и пару тостов без давления." />
 		<template id="v3.life.food.reply.hunger.0090" act="life.food.hunger.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мой утренний аппетит просыпается раньше твоего будильника." />
 		<template id="v3.life.food.reply.hunger.0091" act="life.food.hunger.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не следи за моей тарелкой с самого утра." />
 		<template id="v3.life.food.reply.hunger.0092" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Прекрати превращать завтрак в допрос." />
 		<template id="v3.life.food.reply.hunger.0093" act="life.food.hunger.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После физической нагрузки телу нужны вода, соль и полноценная еда." />
 		<template id="v3.life.food.reply.hunger.0094" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Начните с того, что легко переваривается, если усталость сильная." />
 		<template id="v3.life.food.reply.hunger.0095" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Слишком жирный ужин после тренировки может только добавить тяжести." />
-		<template id="v3.life.food.reply.hunger.0096" act="life.food.hunger.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Давай приготовим рис с курицей и овощами на двоих." />
-		<template id="v3.life.food.reply.hunger.0097" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я закончил тренировку раньше, но еду делим честно." />
+		<template id="v3.life.food.reply.hunger.0096" act="life.food.hunger.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Рис с курицей и овощами — простой вариант на двоих." />
+		<template id="v3.life.food.reply.hunger.0097" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="После тренировки еду всё равно стоит делить честно." />
 		<template id="v3.life.food.reply.hunger.0098" act="life.food.hunger.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не забирай мой восстановительный перекус." />
 		<template id="v3.life.food.reply.hunger.0099" act="life.food.hunger.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Отойди от контейнера, пока я не позвал администратора." />
 		<template id="v3.life.food.reply.hunger.0100" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="При стрессе аппетит может исчезать или становиться сильнее обычного." />
 		<template id="v3.life.food.reply.hunger.0101" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Небольшой регулярный перекус легче, чем попытка съесть много сразу." />
 		<template id="v3.life.food.reply.hunger.0102" act="life.food.hunger.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Нейтральная тёплая еда часто переносится спокойнее ярких вкусов." />
-		<template id="v3.life.food.reply.hunger.0103" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я посижу рядом, пока ты понемногу ешь, без уговоров." />
-		<template id="v3.life.food.reply.hunger.0104" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я нервничаю не меньше, но свою тарелку всё же закончу." />
+		<template id="v3.life.food.reply.hunger.0103" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разумнее посидеть рядом, пока ты понемногу ешь, без уговоров." />
+		<template id="v3.life.food.reply.hunger.0104" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Когда оба нервничают, перекус полезнее взаимных упрёков." />
 		<template id="v3.life.food.reply.hunger.0105" act="life.food.hunger.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не дави на меня разговорами о еде." />
 		<template id="v3.life.food.reply.hunger.0106" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Твои угрозы не заставят меня проглотить ни кусочка." />
 		<template id="v3.life.food.reply.hunger.0107" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Когда хочется только сладкого, сначала проверьте, давно ли был нормальный обед." />
 		<template id="v3.life.food.reply.hunger.0108" act="life.food.hunger.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Фрукт с йогуртом насыщает дольше одной конфеты." />
 		<template id="v3.life.food.reply.hunger.0109" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Десерт можно оставить частью еды, а не заменять им весь день." />
 		<template id="v3.life.food.reply.hunger.0110" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разделим пирог после ужина, чтобы никому не стало тяжело." />
-		<template id="v3.life.food.reply.hunger.0111" act="life.food.hunger.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я выбрал один кусок, а ты снова набрал три." />
+		<template id="v3.life.food.reply.hunger.0111" act="life.food.hunger.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Один кусок или три — нормальный выбор, если не считать чужую тарелку." />
 		<template id="v3.life.food.reply.hunger.0112" act="life.food.hunger.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не прячь сладкое и не решай за меня." />
 		<template id="v3.life.food.reply.hunger.0113" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Убери мои продукты из своих игр с запретами." />
 		<template id="v3.life.food.reply.hunger.0114" act="life.food.hunger.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если тянет к солёному, подойдёт сыр, овощи или небольшая горсть орехов." />
@@ -725,7 +725,7 @@
 		<template id="v3.life.food.reply.hunger.0122" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Выделите хотя бы один приём пищи без экрана и дороги." />
 		<template id="v3.life.food.reply.hunger.0123" act="life.food.hunger.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Контейнер с готовым обедом помогает не зависеть от случайных киосков." />
 		<template id="v3.life.food.reply.hunger.0124" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Спокойный совместный обед можно предложить на завтра без обещания, что он состоится." />
-		<template id="v3.life.food.reply.hunger.0125" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я успел нормально пообедать, пока ты снова оправдывал суету." />
+		<template id="v3.life.food.reply.hunger.0125" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Спокойный обед полезнее любых оправданий суеты." />
 		<template id="v3.life.food.reply.hunger.0126" act="life.food.hunger.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не называй перекусом мою полноценную порцию." />
 		<template id="v3.life.food.reply.hunger.0127" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Твоя привычка хватать чужое закончится сегодня." />
 		<template id="v3.life.food.reply.hunger.0128" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Поздний обед может естественно сдвинуть или уменьшить ужин." />
@@ -739,27 +739,27 @@
 		<template id="v3.life.food.reply.hunger.0136" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Можно взять маленькую порцию и сосредоточиться на общении." />
 		<template id="v3.life.food.reply.hunger.0137" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если сытость пришла, остатки лучше упаковать на потом." />
 		<template id="v3.life.food.reply.hunger.0138" act="life.food.hunger.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мы пришли поговорить, поэтому никто не будет считать твои куски." />
-		<template id="v3.life.food.reply.hunger.0139" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я закончил раньше, но торопить тебя не стану." />
+		<template id="v3.life.food.reply.hunger.0139" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Кто закончил раньше, не должен торопить остальных." />
 		<template id="v3.life.food.reply.hunger.0140" act="life.food.hunger.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не подкладывай мне добавку ради собственного удобства." />
 		<template id="v3.life.food.reply.hunger.0141" act="life.food.hunger.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Прекрати стыдить людей за то, сколько они съели." />
 		<template id="v3.life.food.reply.hunger.0142" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ночной голод иногда появляется после слишком лёгкого или раннего ужина." />
 		<template id="v3.life.food.reply.hunger.0143" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Небольшой тост или йогурт спокойнее тяжёлой жареной еды." />
 		<template id="v3.life.food.reply.hunger.0144" act="life.food.hunger.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="После перекуса приглушите свет и вернитесь ко сну, а не к телефону." />
 		<template id="v3.life.food.reply.hunger.0145" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я тихо сделаю нам чай, чтобы никого не разбудить." />
-		<template id="v3.life.food.reply.hunger.0146" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты снова нашёл холодильник быстрее выключателя." />
+		<template id="v3.life.food.reply.hunger.0146" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты снова нашёл холодильник быстрее выключателя?" />
 		<template id="v3.life.food.reply.hunger.0147" act="life.food.hunger.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не греми посудой среди ночи." />
 		<template id="v3.life.food.reply.hunger.0148" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если разбудишь всех ещё раз, кухня ночью будет закрыта." />
 		<template id="v3.life.food.reply.hunger.0149" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Регулярный обед помогает сохранить внимание во второй половине дня." />
 		<template id="v3.life.food.reply.hunger.0150" act="life.food.hunger.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Даже короткий перерыв лучше еды над клавиатурой." />
 		<template id="v3.life.food.reply.hunger.0151" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Подготовленный контейнер сокращает соблазн отменить обед совсем." />
 		<template id="v3.life.food.reply.hunger.0152" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Одного напоминания обычно достаточно; дальше человек решает сам." />
-		<template id="v3.life.food.reply.hunger.0153" act="life.food.hunger.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я закончил задачу раньше, потому что вовремя остановился поесть." />
+		<template id="v3.life.food.reply.hunger.0153" act="life.food.hunger.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Вовремя остановиться на обед иногда быстрее, чем работать без перерыва." />
 		<template id="v3.life.food.reply.hunger.0154" act="life.food.hunger.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не перекладывай свою срочность на мой перерыв." />
 		<template id="v3.life.food.reply.hunger.0155" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если начальство запрещает обедать, проблема не в твоём аппетите." />
 		<template id="v3.life.food.reply.hunger.0156" act="life.food.hunger.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="В дороге лучше пить воду регулярно, а не ждать сильной жажды и голода." />
 		<template id="v3.life.food.reply.hunger.0157" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сухофрукты удобны, но небольшой порции обычно достаточно." />
 		<template id="v3.life.food.reply.hunger.0158" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="На остановке можно выбрать горячую еду вместо очередной пачки снеков." />
-		<template id="v3.life.food.reply.hunger.0159" act="life.food.hunger.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я сохранил для тебя бутерброд, потому что путь оказался длиннее." />
+		<template id="v3.life.food.reply.hunger.0159" act="life.food.hunger.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="В долгий путь стоит оставить запасной бутерброд." />
 		<template id="v3.life.food.reply.hunger.0160" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мой запас продуманнее, зато твою шоколадку делим пополам." />
 		<template id="v3.life.food.reply.hunger.0161" act="life.food.hunger.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не ройся в моей сумке в поисках еды." />
 		<template id="v3.life.food.reply.hunger.0162" act="life.food.hunger.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="После того как ты украл мой обед, помощи больше не проси." />
@@ -767,7 +767,7 @@
 		<template id="v3.life.food.reply.hunger.0164" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Остаток можно забрать с собой, не заставляя себя доедать." />
 		<template id="v3.life.food.reply.hunger.0165" act="life.food.hunger.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Размер блюда в меню не определяет вашу обязанность его закончить." />
 		<template id="v3.life.food.reply.hunger.0166" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Давай разделим заказ сразу, чтобы обоим было комфортно." />
-		<template id="v3.life.food.reply.hunger.0167" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я взял меньше и всё равно наелся раньше тебя." />
+		<template id="v3.life.food.reply.hunger.0167" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Размер порции ничего не говорит о том, кто насытится раньше." />
 		<template id="v3.life.food.reply.hunger.0168" act="life.food.hunger.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не комментируй размер моей порции." />
 		<template id="v3.life.food.reply.hunger.0169" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Следи за собственной тарелкой, пока я не убрал её совсем." />
 		<template id="v3.life.food.reply.hunger.0170" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Желание десерта после сытости может быть просто интересом к вкусу." />
@@ -781,21 +781,21 @@
 		<template id="v3.life.food.reply.hunger.0178" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Простой перекус не решит конфликт, но поможет не усугублять его." />
 		<template id="v3.life.food.reply.hunger.0179" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После еды всё равно придётся ответить за резкие слова." />
 		<template id="v3.life.food.reply.hunger.0180" act="life.food.hunger.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Сначала стоит поесть, а случившееся обсуждать уже без голода." />
-		<template id="v3.life.food.reply.hunger.0181" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты проиграл спор не из-за голода, но перекус тебе не помешает." />
+		<template id="v3.life.food.reply.hunger.0181" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты проиграл спор не из-за голода, но перекус тебе не помешает?" />
 		<template id="v3.life.food.reply.hunger.0182" act="life.food.hunger.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не оправдывай хамство пустым желудком." />
 		<template id="v3.life.food.reply.hunger.0183" act="life.food.hunger.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Еда не сотрёт того, что ты только что сказал." />
 		<template id="v3.life.food.reply.hunger.0184" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Запахи во время готовки могут создать ощущение, будто уже поел." />
 		<template id="v3.life.food.reply.hunger.0185" act="life.food.hunger.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сделайте короткую паузу после приготовления и оцените настоящий аппетит." />
 		<template id="v3.life.food.reply.hunger.0186" act="life.food.hunger.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Небольшую порцию всегда можно дополнить, если голод вернётся." />
-		<template id="v3.life.food.reply.hunger.0187" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я накрою стол, а ты пять минут подыши свежим воздухом." />
-		<template id="v3.life.food.reply.hunger.0188" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты наелся ароматами, а я хотя бы не пробовал каждую ложку." />
+		<template id="v3.life.food.reply.hunger.0187" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разумнее накрыть стол, а ты пять минут подыши свежим воздухом." />
+		<template id="v3.life.food.reply.hunger.0188" act="life.food.hunger.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты наелся ароматами, а я хотя бы не пробовал каждую ложку?" />
 		<template id="v3.life.food.reply.hunger.0189" act="life.food.hunger.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не клюй начинку прямо из кастрюли." />
 		<template id="v3.life.food.reply.hunger.0190" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После твоих постоянных проб гостям почти ничего не осталось." />
 		<template id="v3.life.food.reply.hunger.0191" act="life.food.hunger.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если аппетит вернулся после болезни, начните со знакомой и не тяжёлой еды." />
 		<template id="v3.life.food.reply.hunger.0192" act="life.food.hunger.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Порции можно увеличивать постепенно, наблюдая за самочувствием." />
 		<template id="v3.life.food.reply.hunger.0193" act="life.food.hunger.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сильная тошнота или обезвоживание требуют внимания специалиста." />
-		<template id="v3.life.food.reply.hunger.0194" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я приготовлю привычный суп и не стану торопить тебя." />
-		<template id="v3.life.food.reply.hunger.0195" act="life.food.hunger.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты уже просишь добавку — значит, силы действительно возвращаются." />
+		<template id="v3.life.food.reply.hunger.0194" act="life.food.hunger.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Лучше приготовить привычный суп и не стать торопить тебя." />
+		<template id="v3.life.food.reply.hunger.0195" act="life.food.hunger.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Правда ты просишь добавку — значит, силы действительно возвращаются?" />
 		<template id="v3.life.food.reply.hunger.0196" act="life.food.hunger.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не изображай врача и не назначай человеку диету." />
 		<template id="v3.life.food.reply.hunger.0197" act="life.food.hunger.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Уйди и перестань мешать восстановлению своими советами." />
 		<template id="v3.life.food.reply.hunger.0198" act="life.food.hunger.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Когда времени мало, заранее выбранный обед спасает от полного пропуска еды." />

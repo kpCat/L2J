@@ -22,7 +22,7 @@
 		<template id="v3.lineage.pvp.reply.duel.0019" act="lineage.pvp.duel.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, без питомца тебе уже не спрятаться." />
 		<template id="v3.lineage.pvp.reply.duel.0020" act="lineage.pvp.duel.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Правило действует для обеих сторон." />
 		<template id="v3.lineage.pvp.reply.duel.0021" act="lineage.pvp.duel.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Попробуешь вызвать помощника — дуэль закончена." />
-		<template id="v3.lineage.pvp.reply.duel.0022" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="У меня задержка, поэтому прошу секунду перед стартом." />
+		<template id="v3.lineage.pvp.reply.duel.0022" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="При задержке результат дуэли мало что доказывает." />
 		<template id="v3.lineage.pvp.reply.duel.0023" act="lineage.pvp.duel.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Нормальный соперник подождёт готовности." />
 		<template id="v3.lineage.pvp.reply.duel.0024" act="lineage.pvp.duel.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Спасибо, уже отпустило; можно считать." />
 		<template id="v3.lineage.pvp.reply.duel.0025" act="lineage.pvp.duel.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не хочу выигрывать у твоего соединения." />
@@ -32,13 +32,13 @@
 		<template id="v3.lineage.pvp.reply.duel.0029" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Вы предлагаете тест урона, а не полноценную дуэль?" />
 		<template id="v3.lineage.pvp.reply.duel.0030" act="lineage.pvp.duel.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Тогда один стоит спокойно, второй использует согласованное умение." />
 		<template id="v3.lineage.pvp.reply.duel.0031" act="lineage.pvp.duel.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Отлично, без добивания и драматичного падения." />
-		<template id="v3.lineage.pvp.reply.duel.0032" act="lineage.pvp.duel.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я запишу цифру, чтобы тебе не пришлось ловить её взглядом." />
+		<template id="v3.lineage.pvp.reply.duel.0032" act="lineage.pvp.duel.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Можно записать цифру, чтобы тебе не пришлось ловить её взглядом." />
 		<template id="v3.lineage.pvp.reply.duel.0033" act="lineage.pvp.duel.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, наконец бой, где манекеном будешь ты." />
 		<template id="v3.lineage.pvp.reply.duel.0034" act="lineage.pvp.duel.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Тест заканчивается после одного попадания." />
 		<template id="v3.lineage.pvp.reply.duel.0035" act="lineage.pvp.duel.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ещё раз ударишь — получишь настоящий ответ." />
 		<template id="v3.lineage.pvp.reply.duel.0036" act="lineage.pvp.duel.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Первый раунд начался до отсчёта." />
 		<template id="v3.lineage.pvp.reply.duel.0037" act="lineage.pvp.duel.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Такой результат нельзя считать честным." />
-		<template id="v3.lineage.pvp.reply.duel.0038" act="lineage.pvp.duel.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Согласен, я дёрнулся раньше; повторим." />
+		<template id="v3.lineage.pvp.reply.duel.0038" act="lineage.pvp.duel.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если кто-то дёрнулся раньше сигнала, честнее повторить." />
 		<template id="v3.lineage.pvp.reply.duel.0039" act="lineage.pvp.duel.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Спасибо, что признаёшь ошибку без спора." />
 		<template id="v3.lineage.pvp.reply.duel.0040" act="lineage.pvp.duel.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, твоё нетерпение проиграло раньше тебя." />
 		<template id="v3.lineage.pvp.reply.duel.0041" act="lineage.pvp.duel.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Раунд аннулирован." />
@@ -49,7 +49,7 @@
 		<template id="v3.lineage.pvp.reply.duel.0046" act="lineage.pvp.duel.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если станет некомфортно, мы перенесём бой." />
 		<template id="v3.lineage.pvp.reply.duel.0047" act="lineage.pvp.duel.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, публика пришла увидеть мою победу." />
 		<template id="v3.lineage.pvp.reply.duel.0048" act="lineage.pvp.duel.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Посторонняя помощь отменяет результат." />
-		<template id="v3.lineage.pvp.reply.duel.0049" act="lineage.pvp.duel.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Любой хил со стороны — и я ухожу." />
+		<template id="v3.lineage.pvp.reply.duel.0049" act="lineage.pvp.duel.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Уход соперника завершает дуэль." />
 		<template id="v3.lineage.pvp.reply.duel.0050" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важен не счёт, а практика против вашего класса." />
 		<template id="v3.lineage.pvp.reply.duel.0051" act="lineage.pvp.duel.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Тогда можно остановить раунд и повторить отдельный момент." />
 		<template id="v3.lineage.pvp.reply.duel.0052" act="lineage.pvp.duel.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Покажи ещё раз тот вход, я не успел ответить." />
@@ -95,7 +95,7 @@
 		<template id="v3.lineage.pvp.reply.duel.0092" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я хочу реванш сразу после поражения." />
 		<template id="v3.lineage.pvp.reply.duel.0093" act="lineage.pvp.duel.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Один повтор допустим, если оба всё ещё спокойны." />
 		<template id="v3.lineage.pvp.reply.duel.0094" act="lineage.pvp.duel.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Давай, я уже понял одну ошибку." />
-		<template id="v3.lineage.pvp.reply.duel.0095" act="lineage.pvp.duel.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я верю, что ты ищешь практику, а не срочное оправдание." />
+		<template id="v3.lineage.pvp.reply.duel.0095" act="lineage.pvp.duel.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Хочется верить, что человек ищет практику, а не срочное оправдание." />
 		<template id="v3.lineage.pvp.reply.duel.0096" act="lineage.pvp.duel.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, второй шанс только удлинит поражение." />
 		<template id="v3.lineage.pvp.reply.duel.0097" act="lineage.pvp.duel.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Реванш — последний бой." />
 		<template id="v3.lineage.pvp.reply.duel.0098" act="lineage.pvp.duel.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После этого хватит." />
@@ -106,7 +106,7 @@
 		<template id="v3.lineage.pvp.reply.duel.0103" act="lineage.pvp.duel.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, даже монстр решил спасти тебя." />
 		<template id="v3.lineage.pvp.reply.duel.0104" act="lineage.pvp.duel.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Первый результат отменён." />
 		<template id="v3.lineage.pvp.reply.duel.0105" act="lineage.pvp.duel.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Выбирай место нормально, а не жалуйся потом." />
-		<template id="v3.lineage.pvp.reply.duel.0106" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я заметил сильный дисбаланс и предлагаю закончить раньше." />
+		<template id="v3.lineage.pvp.reply.duel.0106" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="При сильном дисбалансе дуэль лучше закончить раньше." />
 		<template id="v3.lineage.pvp.reply.duel.0107" act="lineage.pvp.duel.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Тренировка не обязана превращаться в многократное избиение." />
 		<template id="v3.lineage.pvp.reply.duel.0108" act="lineage.pvp.duel.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Да, понял, мне пока рано; один раунд достаточно." />
 		<template id="v3.lineage.pvp.reply.duel.0109" act="lineage.pvp.duel.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Спасибо, что выбрал учиться, а не терпеть ради вида." />
@@ -120,7 +120,7 @@
 		<template id="v3.lineage.pvp.reply.duel.0117" act="lineage.pvp.duel.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, подготовься познакомиться со всем моим набором." />
 		<template id="v3.lineage.pvp.reply.duel.0118" act="lineage.pvp.duel.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ограничений по умениям нет." />
 		<template id="v3.lineage.pvp.reply.duel.0119" act="lineage.pvp.duel.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После боя ныть о способностях поздно." />
-		<template id="v3.lineage.pvp.reply.duel.0120" act="lineage.pvp.duel.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы договаривались не преследовать после окончания дуэли." />
+		<template id="v3.lineage.pvp.reply.duel.0120" act="lineage.pvp.duel.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После окончания дуэли преследование лучше сразу исключить из правил." />
 		<template id="v3.lineage.pvp.reply.duel.0121" act="lineage.pvp.duel.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Системный финал означает немедленную остановку атак." />
 		<template id="v3.lineage.pvp.reply.duel.0122" act="lineage.pvp.duel.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Понял, добивать вне режима не стану." />
 		<template id="v3.lineage.pvp.reply.duel.0123" act="lineage.pvp.duel.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне важно, чтобы вы оба вышли без лишнего конфликта." />
@@ -136,18 +136,18 @@
 		<template id="v3.lineage.pvp.reply.duel.0133" act="lineage.pvp.duel.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Раньше двинешься — проиграешь технически." />
 		<template id="v3.lineage.pvp.reply.duel.0134" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Победитель первого боя уже дразнит проигравшего." />
 		<template id="v3.lineage.pvp.reply.duel.0135" act="lineage.pvp.duel.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Подкол допустим только пока он остаётся взаимным." />
-		<template id="v3.lineage.pvp.reply.duel.0136" act="lineage.pvp.duel.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Эй, полегче; я пришёл тренироваться, а не слушать унижения." />
+		<template id="v3.lineage.pvp.reply.duel.0136" act="lineage.pvp.duel.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Тренировка не даёт права унижать соперника." />
 		<template id="v3.lineage.pvp.reply.duel.0137" act="lineage.pvp.duel.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я поддержу остановку шуток сразу после этой просьбы." />
 		<template id="v3.lineage.pvp.reply.duel.0138" act="lineage.pvp.duel.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, острый язык не добавляет очков к счёту." />
 		<template id="v3.lineage.pvp.reply.duel.0139" act="lineage.pvp.duel.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Дальше обсуждаем только сам бой." />
 		<template id="v3.lineage.pvp.reply.duel.0140" act="lineage.pvp.duel.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не умеешь проигрывать — не выходи на арену." />
-		<template id="v3.lineage.pvp.reply.duel.0141" act="lineage.pvp.duel.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я увидел спорный момент и не могу определить победителя." />
+		<template id="v3.lineage.pvp.reply.duel.0141" act="lineage.pvp.duel.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Спорный момент без ясного победителя лучше переиграть." />
 		<template id="v3.lineage.pvp.reply.duel.0142" act="lineage.pvp.duel.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если системный результат неясен, лучше считать раунд незавершённым." />
 		<template id="v3.lineage.pvp.reply.duel.0143" act="lineage.pvp.duel.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне подходит ничья, повторять прямо сейчас не хочу." />
 		<template id="v3.lineage.pvp.reply.duel.0144" act="lineage.pvp.duel.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я уважаю решение оставить спор без нового конфликта." />
 		<template id="v3.lineage.pvp.reply.duel.0145" act="lineage.pvp.duel.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, редкий бой, где оба проиграли интерфейсу." />
 		<template id="v3.lineage.pvp.reply.duel.0146" act="lineage.pvp.duel.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Раунд закрыт без победителя." />
-		<template id="v3.lineage.pvp.reply.duel.0147" act="lineage.pvp.duel.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Твои сомнения ничего не меняют: я выиграл." />
+		<template id="v3.lineage.pvp.reply.duel.0147" act="lineage.pvp.duel.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Победа говорит за себя; унижать проигравшего незачем." />
 		<template id="v3.lineage.pvp.reply.duel.0148" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Перед дуэлью мы не обсуждали использование этого умения." />
 		<template id="v3.lineage.pvp.reply.duel.0149" act="lineage.pvp.duel.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Раз оно не было запрещено, результат остаётся действительным." />
 		<template id="v3.lineage.pvp.reply.duel.0150" act="lineage.pvp.duel.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ладно, тогда в реванше уточним правила заранее." />
@@ -155,14 +155,14 @@
 		<template id="v3.lineage.pvp.reply.duel.0152" act="lineage.pvp.duel.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, читать правила полезнее после поражения, но поздно." />
 		<template id="v3.lineage.pvp.reply.duel.0153" act="lineage.pvp.duel.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Первый результат засчитан." />
 		<template id="v3.lineage.pvp.reply.duel.0154" act="lineage.pvp.duel.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не выдумывай запреты после боя." />
-		<template id="v3.lineage.pvp.reply.duel.0155" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я выиграл и не хочу второго раунда." />
+		<template id="v3.lineage.pvp.reply.duel.0155" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Победитель вправе отказаться от второго раунда." />
 		<template id="v3.lineage.pvp.reply.duel.0156" act="lineage.pvp.duel.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Победитель тоже вправе отказаться от реванша." />
 		<template id="v3.lineage.pvp.reply.duel.0157" act="lineage.pvp.duel.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ну и хорошо, сохраню красивый счёт." />
 		<template id="v3.lineage.pvp.reply.duel.0158" act="lineage.pvp.duel.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я рад, что ты не обязан доказывать результат бесконечно." />
 		<template id="v3.lineage.pvp.reply.duel.0159" act="lineage.pvp.duel.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, беги, пока табло на твоей стороне." />
 		<template id="v3.lineage.pvp.reply.duel.0160" act="lineage.pvp.duel.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Дуэль окончена по решению победителя." />
 		<template id="v3.lineage.pvp.reply.duel.0161" act="lineage.pvp.duel.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Боишься потерять случайную победу." />
-		<template id="v3.lineage.pvp.reply.duel.0162" act="lineage.pvp.duel.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я проиграл и хочу понять главную ошибку." />
+		<template id="v3.lineage.pvp.reply.duel.0162" act="lineage.pvp.duel.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После поражения полезнее найти главную ошибку, чем искать оправдание." />
 		<template id="v3.lineage.pvp.reply.duel.0163" act="lineage.pvp.duel.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сначала назовите момент, который показался переломным." />
 		<template id="v3.lineage.pvp.reply.duel.0164" act="lineage.pvp.duel.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я слишком рано потратил защиту." />
 		<template id="v3.lineage.pvp.reply.duel.0165" act="lineage.pvp.duel.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Да, оставь её на вражеский вход и проверь в следующей тренировке." />
@@ -173,7 +173,7 @@
 		<template id="v3.lineage.pvp.reply.duel.0170" act="lineage.pvp.duel.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Это хороший финал независимо от счёта." />
 		<template id="v3.lineage.pvp.reply.duel.0171" act="lineage.pvp.duel.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Отличный файт, реально заставил попотеть." />
 		<template id="v3.lineage.pvp.reply.duel.0172" act="lineage.pvp.duel.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне приятно видеть уважение без фальшивой скромности." />
-		<template id="v3.lineage.pvp.reply.duel.0173" act="lineage.pvp.duel.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, сегодня ты был почти достоин реванша." />
+		<template id="v3.lineage.pvp.reply.duel.0173" act="lineage.pvp.duel.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, неужели сегодня ты был почти достоин реванша?" />
 		<template id="v3.lineage.pvp.reply.duel.0174" act="lineage.pvp.duel.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Результат принят обеими сторонами." />
 		<template id="v3.lineage.pvp.reply.duel.0175" act="lineage.pvp.duel.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Расходимся без продолжения конфликта." />
 		<template id="v3.lineage.pvp.reply.duel.0176" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Победа была чистой, поздравляю." />
@@ -266,7 +266,7 @@
 		<template id="v3.lineage.pvp.reply.tactics.0063" act="lineage.pvp.tactics.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Кто продолжит спор, останется без координации." />
 		<template id="v3.lineage.pvp.reply.tactics.0064" act="lineage.pvp.tactics.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Противник сменил цель на нашего хила." />
 		<template id="v3.lineage.pvp.reply.tactics.0065" act="lineage.pvp.tactics.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ближние игроки перекрывают вход, остальные давят преследователей." />
-		<template id="v3.lineage.pvp.reply.tactics.0066" act="lineage.pvp.tactics.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я встану между ними, только не разбегайтесь." />
+		<template id="v3.lineage.pvp.reply.tactics.0066" act="lineage.pvp.tactics.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Лучше встать между ними, только не разбегайтесь." />
 		<template id="v3.lineage.pvp.reply.tactics.0067" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Защиту дают только доступным умением и по реальной ситуации, не обещанием." />
 		<template id="v3.lineage.pvp.reply.tactics.0068" act="lineage.pvp.tactics.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, настоящий фокус видно по реакции, а не по крику." />
 		<template id="v3.lineage.pvp.reply.tactics.0069" act="lineage.pvp.tactics.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Хила прикрываем всем составом." />
@@ -274,21 +274,21 @@
 		<template id="v3.lineage.pvp.reply.tactics.0071" act="lineage.pvp.tactics.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Первый заход не нанёс результата." />
 		<template id="v3.lineage.pvp.reply.tactics.0072" act="lineage.pvp.tactics.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не повторяйте ту же траекторию без изменения." />
 		<template id="v3.lineage.pvp.reply.tactics.0073" act="lineage.pvp.tactics.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Попробуем задержать центр и войти через левый край." />
-		<template id="v3.lineage.pvp.reply.tactics.0074" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я пойду рядом, чтобы мы не превратились в две отдельные группы." />
+		<template id="v3.lineage.pvp.reply.tactics.0074" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Лучше идти рядом, чтобы мы не превратились в две отдельные группы." />
 		<template id="v3.lineage.pvp.reply.tactics.0075" act="lineage.pvp.tactics.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, второй удар должен быть умнее первого." />
 		<template id="v3.lineage.pvp.reply.tactics.0076" act="lineage.pvp.tactics.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Новый вход начинается после перегруппировки." />
 		<template id="v3.lineage.pvp.reply.tactics.0077" act="lineage.pvp.tactics.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Просто снова побежать — не тактика." />
 		<template id="v3.lineage.pvp.reply.tactics.0078" act="lineage.pvp.tactics.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="У них остались сильные массовые умения." />
 		<template id="v3.lineage.pvp.reply.tactics.0079" act="lineage.pvp.tactics.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Пусть один игрок спровоцирует их раньше общего входа." />
 		<template id="v3.lineage.pvp.reply.tactics.0080" act="lineage.pvp.tactics.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Могу показать себя и сразу уйти за угол." />
-		<template id="v3.lineage.pvp.reply.tactics.0081" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не задерживайся; я предупрежу, если погоня станет опасной." />
+		<template id="v3.lineage.pvp.reply.tactics.0081" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не задерживайся; можно предупредить, если погоня станет опасной." />
 		<template id="v3.lineage.pvp.reply.tactics.0082" act="lineage.pvp.tactics.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, впервые твоя наглость может пригодиться группе." />
 		<template id="v3.lineage.pvp.reply.tactics.0083" act="lineage.pvp.tactics.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Приманка возвращается до атаки." />
 		<template id="v3.lineage.pvp.reply.tactics.0084" act="lineage.pvp.tactics.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не путай отвлечение с самоубийством." />
 		<template id="v3.lineage.pvp.reply.tactics.0085" act="lineage.pvp.tactics.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я не вижу часть противников за стеной." />
 		<template id="v3.lineage.pvp.reply.tactics.0086" act="lineage.pvp.tactics.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Разведчик сообщает количество, не начиная бой." />
 		<template id="v3.lineage.pvp.reply.tactics.0087" act="lineage.pvp.tactics.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Подойду, посмотрю и вернусь без геройства." />
-		<template id="v3.lineage.pvp.reply.tactics.0088" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я буду следить за твоим отходом с безопасной дистанции." />
+		<template id="v3.lineage.pvp.reply.tactics.0088" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Можно следить за твоим отходом с безопасной дистанции." />
 		<template id="v3.lineage.pvp.reply.tactics.0089" act="lineage.pvp.tactics.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, разведка заканчивается до первого удара." />
 		<template id="v3.lineage.pvp.reply.tactics.0090" act="lineage.pvp.tactics.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Информация важнее случайного фрага." />
 		<template id="v3.lineage.pvp.reply.tactics.0091" act="lineage.pvp.tactics.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если зафлагаешься, сам и выбирайся." />
@@ -301,7 +301,7 @@
 		<template id="v3.lineage.pvp.reply.tactics.0098" act="lineage.pvp.tactics.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Отставших не бросаем ради погони." />
 		<template id="v3.lineage.pvp.reply.tactics.0099" act="lineage.pvp.tactics.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="У нашего бойца почти нет маны." />
 		<template id="v3.lineage.pvp.reply.tactics.0100" act="lineage.pvp.tactics.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Снизьте темп и дайте ему восстановиться за укрытием." />
-		<template id="v3.lineage.pvp.reply.tactics.0101" act="lineage.pvp.tactics.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я прикрою выход, пусть не экономит последний заряд на смерть." />
+		<template id="v3.lineage.pvp.reply.tactics.0101" act="lineage.pvp.tactics.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Стоит прикрыть выход, пусть не экономит последний заряд на смерть." />
 		<template id="v3.lineage.pvp.reply.tactics.0102" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не стесняйся сообщить ресурс; это не слабость." />
 		<template id="v3.lineage.pvp.reply.tactics.0103" act="lineage.pvp.tactics.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, пустая шкала не впечатляет врага." />
 		<template id="v3.lineage.pvp.reply.tactics.0104" act="lineage.pvp.tactics.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="До восстановления держим оборону." />
@@ -316,13 +316,13 @@
 		<template id="v3.lineage.pvp.reply.tactics.0113" act="lineage.pvp.tactics.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если метка пропала, цель нужно подтвердить заново." />
 		<template id="v3.lineage.pvp.reply.tactics.0114" act="lineage.pvp.tactics.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Новый ассист должен прозвучать сразу и однозначно." />
 		<template id="v3.lineage.pvp.reply.tactics.0115" act="lineage.pvp.tactics.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Переключаюсь на ближайшего мага, метку вижу." />
-		<template id="v3.lineage.pvp.reply.tactics.0116" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я подтвержу смену, чтобы ты не сомневался в шуме." />
+		<template id="v3.lineage.pvp.reply.tactics.0116" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Смену лучше подтвердить, чтобы шум не оставил сомнений." />
 		<template id="v3.lineage.pvp.reply.tactics.0117" act="lineage.pvp.tactics.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, цель уже сменилась, догоняй мыслью." />
 		<template id="v3.lineage.pvp.reply.tactics.0118" act="lineage.pvp.tactics.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Старая команда недействительна." />
 		<template id="v3.lineage.pvp.reply.tactics.0119" act="lineage.pvp.tactics.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Очнись и смотри на живых врагов." />
 		<template id="v3.lineage.pvp.reply.tactics.0120" act="lineage.pvp.tactics.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="В проходе слишком тесно для нашего состава." />
 		<template id="v3.lineage.pvp.reply.tactics.0121" act="lineage.pvp.tactics.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Пусть танк входит первым, остальные сохраняют интервалы." />
-		<template id="v3.lineage.pvp.reply.tactics.0122" act="lineage.pvp.tactics.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не толкаемся, я дождусь свободного угла для каста." />
+		<template id="v3.lineage.pvp.reply.tactics.0122" act="lineage.pvp.tactics.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не толкаемся, можно дождаться свободного угла для каста." />
 		<template id="v3.lineage.pvp.reply.tactics.0123" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Перед движением стоит проверить, что снаружи никто не остался один." />
 		<template id="v3.lineage.pvp.reply.tactics.0124" act="lineage.pvp.tactics.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, дверь победила больше групп, чем ты." />
 		<template id="v3.lineage.pvp.reply.tactics.0125" act="lineage.pvp.tactics.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Входим по очереди, но без разрыва." />
@@ -337,7 +337,7 @@
 		<template id="v3.lineage.pvp.reply.tactics.0134" act="lineage.pvp.tactics.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="У нас преимущество, но здоровье просело у половины состава." />
 		<template id="v3.lineage.pvp.reply.tactics.0135" act="lineage.pvp.tactics.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Закрепитесь и восстановитесь вместо беспорядочного добивания." />
 		<template id="v3.lineage.pvp.reply.tactics.0136" act="lineage.pvp.tactics.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Да, лучше пережить бой, чем умереть за последний фраг." />
-		<template id="v3.lineage.pvp.reply.tactics.0137" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я прикрою паузу и сообщу о возвращении врага." />
+		<template id="v3.lineage.pvp.reply.tactics.0137" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Стоит прикрыть паузу и сообщить о возвращении врага." />
 		<template id="v3.lineage.pvp.reply.tactics.0138" act="lineage.pvp.tactics.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, победа не любит жадных хвостов." />
 		<template id="v3.lineage.pvp.reply.tactics.0139" act="lineage.pvp.tactics.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Добивание отменено до восстановления." />
 		<template id="v3.lineage.pvp.reply.tactics.0140" act="lineage.pvp.tactics.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не превращай перевес в размен." />
@@ -358,7 +358,7 @@
 		<template id="v3.lineage.pvp.reply.tactics.0155" act="lineage.pvp.tactics.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Один участник не слышит голосовую связь." />
 		<template id="v3.lineage.pvp.reply.tactics.0156" act="lineage.pvp.tactics.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Дублируйте ключевые команды короткими сообщениями в чат." />
 		<template id="v3.lineage.pvp.reply.tactics.0157" act="lineage.pvp.tactics.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Поставлю плюс после каждой понятой метки." />
-		<template id="v3.lineage.pvp.reply.tactics.0158" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Спасибо, так ты останешься частью решения, а не случайным спутником." />
+		<template id="v3.lineage.pvp.reply.tactics.0158" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Спасибо; участие в решении лучше роли случайного спутника." />
 		<template id="v3.lineage.pvp.reply.tactics.0159" act="lineage.pvp.tactics.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, даже чтение чата может стать боевым навыком." />
 		<template id="v3.lineage.pvp.reply.tactics.0160" act="lineage.pvp.tactics.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Команды доступны всем участникам." />
 		<template id="v3.lineage.pvp.reply.tactics.0161" act="lineage.pvp.tactics.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Кто игнорирует оба канала, играет отдельно." />
@@ -393,7 +393,7 @@
 		<template id="v3.lineage.pvp.reply.tactics.0190" act="lineage.pvp.tactics.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Позиция удержана, ресурс восстановлен, состав собран." />
 		<template id="v3.lineage.pvp.reply.tactics.0191" act="lineage.pvp.tactics.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Теперь у нас есть полноценное окно для нового входа." />
 		<template id="v3.lineage.pvp.reply.tactics.0192" act="lineage.pvp.tactics.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вижу метку и готов к отсчёту." />
-		<template id="v3.lineage.pvp.reply.tactics.0193" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я проверил тыл; неожиданного обхода пока нет." />
+		<template id="v3.lineage.pvp.reply.tactics.0193" act="lineage.pvp.tactics.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Проверенный тыл не гарантирует, что обхода не будет через минуту." />
 		<template id="v3.lineage.pvp.reply.tactics.0194" act="lineage.pvp.tactics.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, на этот раз начнём одновременно." />
 		<template id="v3.lineage.pvp.reply.tactics.0195" act="lineage.pvp.tactics.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Три, два, один — работаем." />
 		<template id="v3.lineage.pvp.reply.tactics.0196" act="lineage.pvp.tactics.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Команда вступила в бой по плану." />
@@ -438,7 +438,7 @@
 		<template id="v3.lineage.pvp.reply.risk.0035" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Убежал — значит, бой окончен." />
 		<template id="v3.lineage.pvp.reply.risk.0036" act="lineage.pvp.risk.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Один участник хочет продолжить, остальные против." />
 		<template id="v3.lineage.pvp.reply.risk.0037" act="lineage.pvp.risk.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Личный азарт не должен принимать риск за всю группу." />
-		<template id="v3.lineage.pvp.reply.risk.0038" act="lineage.pvp.risk.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я вернусь на метку, один лезть не собираюсь." />
+		<template id="v3.lineage.pvp.reply.risk.0038" act="lineage.pvp.risk.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Лучше вернуться на метку без одиночного рывка." />
 		<template id="v3.lineage.pvp.reply.risk.0039" act="lineage.pvp.risk.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Спасибо, что выбрал общее решение вместо красивой одиночной сцены." />
 		<template id="v3.lineage.pvp.reply.risk.0040" act="lineage.pvp.risk.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, герой без группы быстро становится сообщением о смерти." />
 		<template id="v3.lineage.pvp.reply.risk.0041" act="lineage.pvp.risk.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Решение принимается большинством состава." />
@@ -481,13 +481,13 @@
 		<template id="v3.lineage.pvp.reply.risk.0078" act="lineage.pvp.risk.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="У врага подходит подкрепление." />
 		<template id="v3.lineage.pvp.reply.risk.0079" act="lineage.pvp.risk.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Текущее численное равенство скоро исчезнет." />
 		<template id="v3.lineage.pvp.reply.risk.0080" act="lineage.pvp.risk.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Берём уже выполненную цель и уходим, пока можем." />
-		<template id="v3.lineage.pvp.reply.risk.0081" act="lineage.pvp.risk.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я предупрежу отставших и не позволю им ввязаться по пути." />
+		<template id="v3.lineage.pvp.reply.risk.0081" act="lineage.pvp.risk.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Стоит предупредить отставших и не дать им ввязаться по пути." />
 		<template id="v3.lineage.pvp.reply.risk.0082" act="lineage.pvp.risk.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, победи собственную жадность раньше подкрепления." />
 		<template id="v3.lineage.pvp.reply.risk.0083" act="lineage.pvp.risk.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Контакт завершаем до их соединения." />
 		<template id="v3.lineage.pvp.reply.risk.0084" act="lineage.pvp.risk.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ждать толпу ради славы не стану." />
 		<template id="v3.lineage.pvp.reply.risk.0085" act="lineage.pvp.risk.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Позиция узкая и даёт нам шанс удержать большее число." />
 		<template id="v3.lineage.pvp.reply.risk.0086" act="lineage.pvp.risk.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Это снижает часть риска, но путь назад должен остаться свободным." />
-		<template id="v3.lineage.pvp.reply.risk.0087" act="lineage.pvp.risk.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я встану у входа, только не блокируйте мне отступление." />
+		<template id="v3.lineage.pvp.reply.risk.0087" act="lineage.pvp.risk.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Разумнее встать у входа, только не блокируйте мне отступление." />
 		<template id="v3.lineage.pvp.reply.risk.0088" act="lineage.pvp.risk.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я буду рядом и сообщу, если второй край откроется." />
 		<template id="v3.lineage.pvp.reply.risk.0089" act="lineage.pvp.risk.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, хорошая позиция не делает тебя бессмертным." />
 		<template id="v3.lineage.pvp.reply.risk.0090" act="lineage.pvp.risk.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Держим проход без выхода в открытую зону." />
@@ -522,14 +522,14 @@
 		<template id="v3.lineage.pvp.reply.risk.0119" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Сдохнуть за пустое место — плохая сделка." />
 		<template id="v3.lineage.pvp.reply.risk.0120" act="lineage.pvp.risk.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мы не уверены, что все участники понимают план отхода." />
 		<template id="v3.lineage.pvp.reply.risk.0121" act="lineage.pvp.risk.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Повторите маршрут и место сбора до начала движения." />
-		<template id="v3.lineage.pvp.reply.risk.0122" act="lineage.pvp.risk.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я отметил точку, вижу её на карте." />
-		<template id="v3.lineage.pvp.reply.risk.0123" act="lineage.pvp.risk.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я пойду рядом с теми, кто отстаёт." />
+		<template id="v3.lineage.pvp.reply.risk.0122" act="lineage.pvp.risk.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Отмеченная точка на карте снижает риск потерять строй." />
+		<template id="v3.lineage.pvp.reply.risk.0123" act="lineage.pvp.risk.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Разумнее идти рядом с теми, кто отстаёт." />
 		<template id="v3.lineage.pvp.reply.risk.0124" act="lineage.pvp.risk.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, хороший отход начинается до первого шага." />
 		<template id="v3.lineage.pvp.reply.risk.0125" act="lineage.pvp.risk.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Маршрут подтверждён всеми." />
 		<template id="v3.lineage.pvp.reply.risk.0126" act="lineage.pvp.risk.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Кто потеряется, сообщает сразу." />
 		<template id="v3.lineage.pvp.reply.risk.0127" act="lineage.pvp.risk.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Один игрок предлагает остаться прикрывать остальных." />
 		<template id="v3.lineage.pvp.reply.risk.0128" act="lineage.pvp.risk.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Прикрытие не должно превращаться в заранее принятую жертву." />
-		<template id="v3.lineage.pvp.reply.risk.0129" act="lineage.pvp.risk.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я задержу их коротко и уйду по второму проходу." />
+		<template id="v3.lineage.pvp.reply.risk.0129" act="lineage.pvp.risk.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Стоит коротко задержать их и уйти по второму проходу." />
 		<template id="v3.lineage.pvp.reply.risk.0130" act="lineage.pvp.risk.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Геройство без выхода не становится разумнее от обещания присмотреть." />
 		<template id="v3.lineage.pvp.reply.risk.0131" act="lineage.pvp.risk.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, прикрыть — значит вернуться последним, а не не вернуться." />
 		<template id="v3.lineage.pvp.reply.risk.0132" act="lineage.pvp.risk.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Время задержки ограничено." />
@@ -558,7 +558,7 @@
 		<template id="v3.lineage.pvp.reply.risk.0155" act="lineage.pvp.risk.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Все вышли из опасной зоны, кроме одного отставшего." />
 		<template id="v3.lineage.pvp.reply.risk.0156" act="lineage.pvp.risk.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Группа не считается спасённой, пока его положение неизвестно." />
 		<template id="v3.lineage.pvp.reply.risk.0157" act="lineage.pvp.risk.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я вижу его метку, он движется к нам без преследования." />
-		<template id="v3.lineage.pvp.reply.risk.0158" act="lineage.pvp.risk.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я дождусь у входа и сообщу, если ситуация изменится." />
+		<template id="v3.lineage.pvp.reply.risk.0158" act="lineage.pvp.risk.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Лучше дождаться у входа и сообщить, если ситуация изменится." />
 		<template id="v3.lineage.pvp.reply.risk.0159" act="lineage.pvp.risk.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, ни один участник не должен стать ценой красивого отхода." />
 		<template id="v3.lineage.pvp.reply.risk.0160" act="lineage.pvp.risk.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Состав собирается полностью." />
 		<template id="v3.lineage.pvp.reply.risk.0161" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не уходите дальше до его возвращения." />
@@ -617,7 +617,7 @@
 		<template id="v3.lineage.pvp.reply.respect.0014" act="lineage.pvp.respect.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Конфликт окончен." />
 		<template id="v3.lineage.pvp.reply.respect.0015" act="lineage.pvp.respect.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Проигравший расстроен; не стоит требовать от него немедленной улыбки." />
 		<template id="v3.lineage.pvp.reply.respect.0016" act="lineage.pvp.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Достаточно, чтобы он не переходил к оскорблениям." />
-		<template id="v3.lineage.pvp.reply.respect.0017" act="lineage.pvp.respect.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Дайте минуту, я поздравлю, когда перестану кипеть." />
+		<template id="v3.lineage.pvp.reply.respect.0017" act="lineage.pvp.respect.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Дайте минуту, можно поздравить, когда перестану кипеть." />
 		<template id="v3.lineage.pvp.reply.respect.0018" act="lineage.pvp.respect.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я рядом и не буду стыдить тебя за чувство." />
 		<template id="v3.lineage.pvp.reply.respect.0019" act="lineage.pvp.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, уважение может прийти тише первого ответа." />
 		<template id="v3.lineage.pvp.reply.respect.0020" act="lineage.pvp.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Насмешки прекращаем." />
@@ -646,7 +646,7 @@
 		<template id="v3.lineage.pvp.reply.respect.0043" act="lineage.pvp.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник предлагает реванш после спокойного поздравления." />
 		<template id="v3.lineage.pvp.reply.respect.0044" act="lineage.pvp.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можно принять или отказаться без подозрений и давления." />
 		<template id="v3.lineage.pvp.reply.respect.0045" act="lineage.pvp.respect.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Сегодня хватит, но в другой раз с удовольствием." />
-		<template id="v3.lineage.pvp.reply.respect.0046" act="lineage.pvp.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне приятно, что вы сохранили интерес без обиды." />
+		<template id="v3.lineage.pvp.reply.respect.0046" act="lineage.pvp.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Приятно, когда человек сохраняют интерес без обиды." />
 		<template id="v3.lineage.pvp.reply.respect.0047" act="lineage.pvp.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, запомни: следующий счёт может оказаться другим." />
 		<template id="v3.lineage.pvp.reply.respect.0048" act="lineage.pvp.respect.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Реванш переносим по согласию." />
 		<template id="v3.lineage.pvp.reply.respect.0049" act="lineage.pvp.respect.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Никаких требований сыграть прямо сейчас." />
@@ -667,7 +667,7 @@
 		<template id="v3.lineage.pvp.reply.respect.0064" act="lineage.pvp.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Поражение команды редко объясняется одной ошибкой." />
 		<template id="v3.lineage.pvp.reply.respect.0065" act="lineage.pvp.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Назначать одного виноватого будет и неточно, и разрушительно." />
 		<template id="v3.lineage.pvp.reply.respect.0066" act="lineage.pvp.respect.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Все ошиблись понемногу; разберём свои моменты." />
-		<template id="v3.lineage.pvp.reply.respect.0067" act="lineage.pvp.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я начну с того, что мог сделать иначе сам." />
+		<template id="v3.lineage.pvp.reply.respect.0067" act="lineage.pvp.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Разумнее начать с того, что мог сделать иначе сам." />
 		<template id="v3.lineage.pvp.reply.respect.0068" act="lineage.pvp.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, коллективное поражение не нуждается в жертве." />
 		<template id="v3.lineage.pvp.reply.respect.0069" act="lineage.pvp.respect.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Разбор идёт без поиска крайнего." />
 		<template id="v3.lineage.pvp.reply.respect.0070" act="lineage.pvp.respect.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сваливать всё на новичка — трусость." />
@@ -723,7 +723,7 @@
 		<template id="v3.lineage.pvp.reply.respect.0120" act="lineage.pvp.respect.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="У одного игрока сломалась связь, и команда проиграла." />
 		<template id="v3.lineage.pvp.reply.respect.0121" act="lineage.pvp.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Это реальное обстоятельство, но противник мог о нём не знать." />
 		<template id="v3.lineage.pvp.reply.respect.0122" act="lineage.pvp.respect.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Повторим потом полным составом, сейчас претензий нет." />
-		<template id="v3.lineage.pvp.reply.respect.0123" act="lineage.pvp.respect.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я уважаю, что ты отделяешь невезение от обвинения." />
+		<template id="v3.lineage.pvp.reply.respect.0123" act="lineage.pvp.respect.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Заслуживает уважения, когда человек отделяет невезение от обвинения." />
 		<template id="v3.lineage.pvp.reply.respect.0124" act="lineage.pvp.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, шанс на реванш остался без скандала." />
 		<template id="v3.lineage.pvp.reply.respect.0125" act="lineage.pvp.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Поражение фиксируем с оговоркой для своего разбора." />
 		<template id="v3.lineage.pvp.reply.respect.0126" act="lineage.pvp.respect.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Чужую победу из-за нашего сбоя не оскорбляем." />
@@ -751,13 +751,13 @@
 		<template id="v3.lineage.pvp.reply.respect.0148" act="lineage.pvp.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сильный сейв хила стоит отметить, когда он действительно случился." />
 		<template id="v3.lineage.pvp.reply.respect.0149" act="lineage.pvp.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Назовите его вклад конкретно, без обесценивания остальных." />
 		<template id="v3.lineage.pvp.reply.respect.0150" act="lineage.pvp.respect.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Эта защита на последней секунде решила всё, спасибо." />
-		<template id="v3.lineage.pvp.reply.respect.0151" act="lineage.pvp.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я рад, что ты заметил тихую работу, а не только финальный удар." />
+		<template id="v3.lineage.pvp.reply.respect.0151" act="lineage.pvp.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хорошо, когда человек заметил тихую работу, а не только финальный удар." />
 		<template id="v3.lineage.pvp.reply.respect.0152" act="lineage.pvp.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, победный фраг вырос на чужой поддержке." />
 		<template id="v3.lineage.pvp.reply.respect.0153" act="lineage.pvp.respect.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Команда благодарит хила." />
 		<template id="v3.lineage.pvp.reply.respect.0154" act="lineage.pvp.respect.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не забудьте остальных, пока раздаёте славу." />
 		<template id="v3.lineage.pvp.reply.respect.0155" act="lineage.pvp.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Танк принял основное давление и почти не получил внимания." />
 		<template id="v3.lineage.pvp.reply.respect.0156" act="lineage.pvp.respect.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Его роль могла не дать яркого счёта, но создала пространство группе." />
-		<template id="v3.lineage.pvp.reply.respect.0157" act="lineage.pvp.respect.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты удержал их вход, без тебя мы бы рассыпались." />
+		<template id="v3.lineage.pvp.reply.respect.0157" act="lineage.pvp.respect.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Неужели ты удержал их вход, без тебя мы бы рассыпались?" />
 		<template id="v3.lineage.pvp.reply.respect.0158" act="lineage.pvp.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нравится, когда невидимая работа становится замеченной." />
 		<template id="v3.lineage.pvp.reply.respect.0159" act="lineage.pvp.respect.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, иногда лучший игрок стоит между тобой и поражением." />
 		<template id="v3.lineage.pvp.reply.respect.0160" act="lineage.pvp.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Вклад танка признан." />
@@ -787,12 +787,12 @@
 		<template id="v3.lineage.pvp.reply.respect.0184" act="lineage.pvp.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Каждый новый бой начнётся с новых условий и чистого счёта." />
 		<template id="v3.lineage.pvp.reply.respect.0185" act="lineage.pvp.respect.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне подходит такой финал: память остаётся, злость не тащим." />
 		<template id="v3.lineage.pvp.reply.respect.0186" act="lineage.pvp.respect.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Спасибо, что не заставляешь выбирать между силой и порядочностью." />
-		<template id="v3.lineage.pvp.reply.respect.0187" act="lineage.pvp.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, счёт я запомню, обиду — нет." />
+		<template id="v3.lineage.pvp.reply.respect.0187" act="lineage.pvp.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, счёт стоит запомнить, обиду — нет." />
 		<template id="v3.lineage.pvp.reply.respect.0188" act="lineage.pvp.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Последние сообщения не содержат провокаций." />
 		<template id="v3.lineage.pvp.reply.respect.0189" act="lineage.pvp.respect.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Канал можно закрывать." />
 		<template id="v3.lineage.pvp.reply.respect.0190" act="lineage.pvp.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперники признали сильные стороны друг друга без ложной дружбы." />
 		<template id="v3.lineage.pvp.reply.respect.0191" act="lineage.pvp.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Так уважение остаётся убедительным и не стирает конкуренцию." />
-		<template id="v3.lineage.pvp.reply.respect.0192" act="lineage.pvp.respect.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Хорошо сыграно; в следующий раз я приду подготовленнее." />
+		<template id="v3.lineage.pvp.reply.respect.0192" act="lineage.pvp.respect.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Хорошо сыграно; в следующий раз можно прийти подготовленнее." />
 		<template id="v3.lineage.pvp.reply.respect.0193" act="lineage.pvp.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нравится, что обещание реванша звучит как интерес, а не угроза." />
 		<template id="v3.lineage.pvp.reply.respect.0194" act="lineage.pvp.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, готовь новый план — старый я уже видел." />
 		<template id="v3.lineage.pvp.reply.respect.0195" act="lineage.pvp.respect.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Итог боя принят обеими сторонами." />

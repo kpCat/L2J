@@ -21,7 +21,7 @@
 		<template id="v3.life.everyday.reply.errands.0015" act="life.everyday.errands.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Корм куплю по дороге, но пришли точное название и размер упаковки." />
 		<template id="v3.life.everyday.reply.errands.0016" act="life.everyday.errands.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Время курьера можно проверить в приложении, не обновляя экран каждую минуту." />
 		<template id="v3.life.everyday.reply.errands.0017" act="life.everyday.errands.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Книгу верните в срок или заранее продлите, если библиотека это позволяет." />
-		<template id="v3.life.everyday.reply.errands.0018" act="life.everyday.errands.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Заедем заправиться вместе, пока бак не заставил менять маршрут." />
+		<template id="v3.life.everyday.reply.errands.0018" act="life.everyday.errands.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Стоит заехать на заправку, пока пустой бак не заставил менять маршрут." />
 		<template id="v3.life.everyday.reply.errands.0019" act="life.everyday.errands.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты быстрее пополняешь проездной, я дольше помню о сроке." />
 		<template id="v3.life.everyday.reply.errands.0020" act="life.everyday.errands.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не бери мой транспортный счёт без разрешения." />
 		<template id="v3.life.everyday.reply.errands.0021" act="life.everyday.errands.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если машина снова останется пустой, ключи лучше доверить тому, кто не собирается ехать." />
@@ -35,7 +35,7 @@
 		<template id="v3.life.everyday.reply.errands.0029" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Покупки разберите сначала на холодное, хрупкое и то, что может подождать." />
 		<template id="v3.life.everyday.reply.errands.0030" act="life.everyday.errands.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Посылку удобнее подготовить дома: адрес, упаковка и содержимое." />
 		<template id="v3.life.everyday.reply.errands.0031" act="life.everyday.errands.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Подарок по дороге выбирайте из двух заранее придуманных вариантов." />
-		<template id="v3.life.everyday.reply.errands.0032" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="На рынок пойдём утром, а ты поможешь не набрать лишнего." />
+		<template id="v3.life.everyday.reply.errands.0032" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели на рынок пойдём утром, а ты поможешь не набрать лишнего?" />
 		<template id="v3.life.everyday.reply.errands.0033" act="life.everyday.errands.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Дорогу лучше проверить по карте, а свежие продукты — по виду и сроку." />
 		<template id="v3.life.everyday.reply.errands.0034" act="life.everyday.errands.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не покупай подарок от моего имени." />
 		<template id="v3.life.everyday.reply.errands.0035" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После поддельной подписи общих подарков больше не будет." />
@@ -56,8 +56,8 @@
 		<template id="v3.life.everyday.reply.errands.0050" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Билет на поезд лучше купить после проверки даты, имени и условий возврата." />
 		<template id="v3.life.everyday.reply.errands.0051" act="life.everyday.errands.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Коробки на склад подпишите до погрузки, чтобы не вскрывать каждую потом." />
 		<template id="v3.life.everyday.reply.errands.0052" act="life.everyday.errands.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Возврат товара требует чека или другого подтверждения покупки и сохранного вида." />
-		<template id="v3.life.everyday.reply.errands.0053" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я поеду в сервис с тобой, если нужно оставить машину и вернуться другим транспортом." />
-		<template id="v3.life.everyday.reply.errands.0054" act="life.everyday.errands.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты лучше помнишь условия возврата, я быстрее заполняю форму." />
+		<template id="v3.life.everyday.reply.errands.0053" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Стоит поехать в сервис с тобой, если нужно оставить машину и вернуться другим транспортом." />
+		<template id="v3.life.everyday.reply.errands.0054" act="life.everyday.errands.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Условия возврата лучше держать перед глазами, а форму заполнять без спешки." />
 		<template id="v3.life.everyday.reply.errands.0055" act="life.everyday.errands.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не выбрасывай упаковку до окончания проверки." />
 		<template id="v3.life.everyday.reply.errands.0056" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если снова скроешь дефект, возвращать товар будешь один." />
 		<template id="v3.life.everyday.reply.errands.0057" act="life.everyday.errands.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Растения лучше полить по состоянию земли, а не автоматически каждый день." />
@@ -70,7 +70,7 @@
 		<template id="v3.life.everyday.reply.errands.0064" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Запас лекарств обновляйте по срокам и назначениям, не покупая лишнее «на всякий случай»." />
 		<template id="v3.life.everyday.reply.errands.0065" act="life.everyday.errands.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Конверты и марки удобнее взять на почте за один визит." />
 		<template id="v3.life.everyday.reply.errands.0066" act="life.everyday.errands.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Стекло сдавайте в подходящий контейнер без пакетов и крышек по местным правилам." />
-		<template id="v3.life.everyday.reply.errands.0067" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я подтвержу доставку, пока ты проверяешь адрес и телефон." />
+		<template id="v3.life.everyday.reply.errands.0067" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Разумнее подтвердить доставку, пока ты проверяешь адрес и телефон." />
 		<template id="v3.life.everyday.reply.errands.0068" act="life.everyday.errands.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой список аптечки короче, твой содержит нужные редкие позиции." />
 		<template id="v3.life.everyday.reply.errands.0069" act="life.everyday.errands.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не выбрасывай лекарства в обычный мусор, если есть специальный сбор." />
 		<template id="v3.life.everyday.reply.errands.0070" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если снова возьмёшь мои лекарства без спроса, доступ к шкафу будет закрыт." />
@@ -84,7 +84,7 @@
 		<template id="v3.life.everyday.reply.errands.0078" act="life.everyday.errands.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Список покупок начните с блюд и заканчивающихся базовых продуктов." />
 		<template id="v3.life.everyday.reply.errands.0079" act="life.everyday.errands.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мелкие дела легче помнить в одном входящем списке, а не на случайных бумажках." />
 		<template id="v3.life.everyday.reply.errands.0080" act="life.everyday.errands.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сгруппируйте поручения по району и времени работы мест." />
-		<template id="v3.life.everyday.reply.errands.0081" act="life.everyday.errands.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Давай поделим маршрут: ты берёшь аптеку, я магазин и почту." />
+		<template id="v3.life.everyday.reply.errands.0081" act="life.everyday.errands.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Маршрут проще поделить: аптека отдельно, магазин и почта вместе." />
 		<template id="v3.life.everyday.reply.errands.0082" act="life.everyday.errands.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой список короче, твой лучше учитывает дом." />
 		<template id="v3.life.everyday.reply.errands.0083" act="life.everyday.errands.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не превращай общий список в приказы одному человеку." />
 		<template id="v3.life.everyday.reply.errands.0084" act="life.everyday.errands.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если снова оставишь всё на меня, совместное планирование закончится." />
@@ -98,17 +98,17 @@
 		<template id="v3.life.everyday.reply.errands.0092" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Курьеру нужен понятный ориентир, код входа и работающий номер." />
 		<template id="v3.life.everyday.reply.errands.0093" act="life.everyday.errands.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если подъезд сложный, встретьте его у заметного места." />
 		<template id="v3.life.everyday.reply.errands.0094" act="life.everyday.errands.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Проверяйте заказ при получении до подтверждения, если правила сервиса это позволяют." />
-		<template id="v3.life.everyday.reply.errands.0095" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я спущусь навстречу, чтобы тебе не прерывать готовку." />
+		<template id="v3.life.everyday.reply.errands.0095" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Разумнее спуститься навстречу, чтобы тебе не прерывать готовку." />
 		<template id="v3.life.everyday.reply.errands.0096" act="life.everyday.errands.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мой адрес точнее, твой ориентир понятнее человеку на улице." />
 		<template id="v3.life.everyday.reply.errands.0097" act="life.everyday.errands.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не кричи на курьера из-за карты приложения." />
 		<template id="v3.life.everyday.reply.errands.0098" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если продолжишь унижать работников, заказ заберу без тебя." />
 		<template id="v3.life.everyday.reply.errands.0099" act="life.everyday.errands.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Аптечные дела лучше объединять только после проверки, что всё действительно назначено и актуально." />
 		<template id="v3.life.everyday.reply.errands.0100" act="life.everyday.errands.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не заменяйте препарат самостоятельно без консультации подходящего специалиста." />
 		<template id="v3.life.everyday.reply.errands.0101" act="life.everyday.errands.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Храните рецепт и инструкцию рядом с записью о следующем пополнении." />
-		<template id="v3.life.everyday.reply.errands.0102" act="life.everyday.errands.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я помогу проверить список, но медицинское решение оставим врачу и фармацевту." />
+		<template id="v3.life.everyday.reply.errands.0102" act="life.everyday.errands.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Лучше помочь проверить список, но медицинское решение оставим врачу и фармацевту." />
 		<template id="v3.life.everyday.reply.errands.0103" act="life.everyday.errands.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой запас меньше, твой лучше покрывает регулярные назначения." />
 		<template id="v3.life.everyday.reply.errands.0104" act="life.everyday.errands.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не предлагай чужое лекарство человеку с похожими симптомами." />
-		<template id="v3.life.everyday.reply.errands.0105" act="life.everyday.errands.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После опасного совета я прекращу разговор и обращусь за профессиональной помощью." />
+		<template id="v3.life.everyday.reply.errands.0105" act="life.everyday.errands.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Опасный совет — повод прекратить разговор и обратиться за профессиональной помощью." />
 		<template id="v3.life.everyday.reply.errands.0106" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Перед банком проверьте, нельзя ли решить вопрос через официальный сайт или приложение." />
 		<template id="v3.life.everyday.reply.errands.0107" act="life.everyday.errands.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если визит нужен, уточните документы и возможность записи по времени." />
 		<template id="v3.life.everyday.reply.errands.0108" act="life.everyday.errands.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не передавайте коды из сообщений даже человеку, который представился сотрудником." />
@@ -127,20 +127,20 @@
 		<template id="v3.life.everyday.reply.errands.0121" act="life.everyday.errands.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сохраните билет офлайн на случай слабой связи." />
 		<template id="v3.life.everyday.reply.errands.0122" act="life.everyday.errands.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Приезжайте с запасом, соответствующим размеру станции и багажу." />
 		<template id="v3.life.everyday.reply.errands.0123" act="life.everyday.errands.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Платформу лучше проверить заранее, а документы держать под рукой." />
-		<template id="v3.life.everyday.reply.errands.0124" act="life.everyday.errands.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты собираешься быстрее, я раньше замечаю смену пути." />
+		<template id="v3.life.everyday.reply.errands.0124" act="life.everyday.errands.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Почему ты собираешься быстрее, я раньше замечаю смену пути?" />
 		<template id="v3.life.everyday.reply.errands.0125" act="life.everyday.errands.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не прячь билет ради глупой шутки." />
 		<template id="v3.life.everyday.reply.errands.0126" act="life.everyday.errands.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После такого риска в поездки вместе не едем." />
 		<template id="v3.life.everyday.reply.errands.0127" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Для возврата товара спокойно опишите дефект и желаемое решение." />
 		<template id="v3.life.everyday.reply.errands.0128" act="life.everyday.errands.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не стирайте данные с устройства до резервной копии и подтверждения правил возврата." />
 		<template id="v3.life.everyday.reply.errands.0129" act="life.everyday.errands.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если спор возник, попросите письменное объяснение и официальный порядок обращения." />
-		<template id="v3.life.everyday.reply.errands.0130" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я помогу сформулировать факты без лишней злости." />
+		<template id="v3.life.everyday.reply.errands.0130" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Лучше помочь сформулировать факты без лишней злости." />
 		<template id="v3.life.everyday.reply.errands.0131" act="life.everyday.errands.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Моя претензия короче, твоя содержит важные даты." />
 		<template id="v3.life.everyday.reply.errands.0132" act="life.everyday.errands.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не угрожай сотруднику магазина." />
-		<template id="v3.life.everyday.reply.errands.0133" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если продолжишь агрессию, я уйду и сообщу охране." />
+		<template id="v3.life.everyday.reply.errands.0133" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="При агрессии лучше уйти и сообщить охране." />
 		<template id="v3.life.everyday.reply.errands.0134" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мелкий ремонт лучше объединять по инструментам, но не откладывать опасную поломку." />
 		<template id="v3.life.everyday.reply.errands.0135" act="life.everyday.errands.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Лампочку меняйте при отключённом питании и устойчивой опоре." />
 		<template id="v3.life.everyday.reply.errands.0136" act="life.everyday.errands.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сантехническую течь сначала локализуйте безопасно и сообщите ответственному." />
-		<template id="v3.life.everyday.reply.errands.0137" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я перекрою воду, если ты вызовешь мастера и освободишь доступ." />
+		<template id="v3.life.everyday.reply.errands.0137" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Стоит перекрыть воду, если ты вызовешь мастера и освободишь доступ." />
 		<template id="v3.life.everyday.reply.errands.0138" act="life.everyday.errands.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты быстрее находишь инструмент, я внимательнее проверяю безопасность." />
 		<template id="v3.life.everyday.reply.errands.0139" act="life.everyday.errands.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не лезь к проводке без навыков." />
 		<template id="v3.life.everyday.reply.errands.0140" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После твоего опасного вмешательства вызываем специалиста." />
@@ -154,15 +154,15 @@
 		<template id="v3.life.everyday.reply.errands.0148" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Коробки для хранения подписывайте по содержимому и частоте доступа." />
 		<template id="v3.life.everyday.reply.errands.0149" act="life.everyday.errands.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Тяжёлое ставьте ниже, хрупкое не заполняйте пустотами без защиты." />
 		<template id="v3.life.everyday.reply.errands.0150" act="life.everyday.errands.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Перед поездкой на склад составьте список того, что увезли." />
-		<template id="v3.life.everyday.reply.errands.0151" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я подпишу стороны, а ты отметишь коробки в перечне." />
+		<template id="v3.life.everyday.reply.errands.0151" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Серьёзно, разумнее подписать стороны, а ты отметишь коробки в перечне?" />
 		<template id="v3.life.everyday.reply.errands.0152" act="life.everyday.errands.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Моя упаковка плотнее, твоя система поиска быстрее." />
 		<template id="v3.life.everyday.reply.errands.0153" act="life.everyday.errands.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не складывай мои вещи в неизвестную коробку." />
 		<template id="v3.life.everyday.reply.errands.0154" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После потери чужого имущества складом занимаешься отдельно." />
 		<template id="v3.life.everyday.reply.errands.0155" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Библиотечные книги держите в одном заметном месте до возврата." />
 		<template id="v3.life.everyday.reply.errands.0156" act="life.everyday.errands.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Продление не отменяет бережного хранения и нового срока." />
 		<template id="v3.life.everyday.reply.errands.0157" act="life.everyday.errands.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если книга повреждена, честно сообщите сотруднику и следуйте правилам." />
-		<template id="v3.life.everyday.reply.errands.0158" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я зайду с тобой, чтобы потом прогуляться домой вместе." />
-		<template id="v3.life.everyday.reply.errands.0159" act="life.everyday.errands.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты читаешь быстрее, я лучше помню даты возврата." />
+		<template id="v3.life.everyday.reply.errands.0158" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Лучше зайти с тобой, чтобы потом прогуляться домой вместе." />
+		<template id="v3.life.everyday.reply.errands.0159" act="life.everyday.errands.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Правда ты читаешь быстрее, я лучше помню даты возврата?" />
 		<template id="v3.life.everyday.reply.errands.0160" act="life.everyday.errands.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не делай пометки в чужой книге." />
 		<template id="v3.life.everyday.reply.errands.0161" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После такого обращения я больше не дам тебе ничего читать." />
 		<template id="v3.life.everyday.reply.errands.0162" act="life.everyday.errands.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Домашние обязанности проще делить по предпочтениям и времени, а не по молчаливому ожиданию." />
@@ -175,14 +175,14 @@
 		<template id="v3.life.everyday.reply.errands.0169" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Растениям полезнее проверка почвы и света, чем одинаковая вода по календарю." />
 		<template id="v3.life.everyday.reply.errands.0170" act="life.everyday.errands.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соберите виды с похожим режимом, чтобы реже ошибаться." />
 		<template id="v3.life.everyday.reply.errands.0171" act="life.everyday.errands.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Во время отъезда оставьте простую инструкцию и доступ к воде." />
-		<template id="v3.life.everyday.reply.errands.0172" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я полью их в четверг, а ты пришлёшь фото нужных горшков." />
+		<template id="v3.life.everyday.reply.errands.0172" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Полить растения можно в четверг; фото горшков поможет не перепутать их." />
 		<template id="v3.life.everyday.reply.errands.0173" act="life.everyday.errands.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мои растения суше, зато твои сложнее переживают перелив." />
 		<template id="v3.life.everyday.reply.errands.0174" act="life.everyday.errands.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не добавляй удобрение без согласия владельца." />
 		<template id="v3.life.everyday.reply.errands.0175" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если снова повредишь растения, ухаживать за ними не будешь." />
 		<template id="v3.life.everyday.reply.errands.0176" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Пункты переработки проверяйте по местным правилам: они принимают разные материалы." />
 		<template id="v3.life.everyday.reply.errands.0177" act="life.everyday.errands.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не оставляйте пакеты рядом с переполненным контейнером." />
 		<template id="v3.life.everyday.reply.errands.0178" act="life.everyday.errands.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Опасные отходы, батарейки и лекарства требуют отдельных маршрутов." />
-		<template id="v3.life.everyday.reply.errands.0179" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я соберу коробку для сдачи, ты найдёшь работающий пункт." />
+		<template id="v3.life.everyday.reply.errands.0179" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Серьёзно, разумнее собрать коробку для сдачи, ты найдёшь работающий пункт?" />
 		<template id="v3.life.everyday.reply.errands.0180" act="life.everyday.errands.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мой маршрут ближе, твой принимает больше фракций." />
 		<template id="v3.life.everyday.reply.errands.0181" act="life.everyday.errands.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не выбрасывай батарейки в общую корзину." />
 		<template id="v3.life.everyday.reply.errands.0182" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После повторного нарушения отходы будем хранить раздельно." />
@@ -197,7 +197,7 @@
 		<template id="v3.life.everyday.reply.errands.0191" act="life.everyday.errands.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Один вечерний обзор списка достаточно; весь день держать его в голове не нужно." />
 		<template id="v3.life.everyday.reply.errands.0192" act="life.everyday.errands.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Закройте выполненное, перенесите осознанно и удалите потерявшее смысл." />
 		<template id="v3.life.everyday.reply.errands.0193" act="life.everyday.errands.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Остаток дел легче разобрать списком, не добавляя новых поручений." />
-		<template id="v3.life.everyday.reply.errands.0194" act="life.everyday.errands.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты сделал больше поездок, я лучше объединил маршруты." />
+		<template id="v3.life.everyday.reply.errands.0194" act="life.everyday.errands.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Неужели ты сделал больше поездок, я лучше объединил маршруты?" />
 		<template id="v3.life.everyday.reply.errands.0195" act="life.everyday.errands.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не превращай бытовой список в контроль другого человека." />
 		<template id="v3.life.everyday.reply.errands.0196" act="life.everyday.errands.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="На сегодня поручения завершены; остальное имеет своё время завтра." />
 		<template id="v3.life.everyday.reply.errands.0197" act="life.everyday.errands.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Список закрыт короткой проверкой ключей, чеков и подтверждений." />
@@ -221,7 +221,7 @@
 		<template id="v3.life.everyday.reply.weather.0015" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Солнце наконец появилось, можно ненадолго выйти и увидеть город в другом свете." />
 		<template id="v3.life.everyday.reply.weather.0016" act="life.everyday.weather.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Воздух после дождя свежий, хотя на дорогах ещё много воды." />
 		<template id="v3.life.everyday.reply.weather.0017" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Погода меняется каждый час, поэтому лёгкая куртка и складной зонт не помешают." />
-		<template id="v3.life.everyday.reply.weather.0018" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я поделюсь зонтом до остановки, только держись ближе." />
+		<template id="v3.life.everyday.reply.weather.0018" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Лучше поделиться зонтом до остановки, только держись ближе." />
 		<template id="v3.life.everyday.reply.weather.0019" act="life.everyday.weather.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мой зонт меньше, зато я его не забыл." />
 		<template id="v3.life.everyday.reply.weather.0020" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не отбирай чужой зонт в ливень." />
 		<template id="v3.life.everyday.reply.weather.0021" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если снова оставишь меня под дождём назло, вместе больше не ходим." />
@@ -229,7 +229,7 @@
 		<template id="v3.life.everyday.reply.weather.0023" act="life.everyday.weather.reply" band="TENSE" register="CASUAL" profanity="NONE" text="В духоту снизьте темп и найдите место с воздухом, особенно при плохом самочувствии." />
 		<template id="v3.life.everyday.reply.weather.0024" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Запах осени появляется раньше ярких листьев — в прохладе и влажной земле." />
 		<template id="v3.life.everyday.reply.weather.0025" act="life.everyday.weather.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Пойдём по тихой улице и соберём немного этого первого осеннего вечера." />
-		<template id="v3.life.everyday.reply.weather.0026" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты ждёшь лето дольше, я уже достал лёгкую куртку." />
+		<template id="v3.life.everyday.reply.weather.0026" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Неужели ты ждёшь лето дольше, я уже достал лёгкую куртку?" />
 		<template id="v3.life.everyday.reply.weather.0027" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не закрывай окно, если людям душно, без разговора." />
 		<template id="v3.life.everyday.reply.weather.0028" act="life.everyday.weather.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Твоя попытка удержать всех в жаркой комнате прекращается." />
 		<template id="v3.life.everyday.reply.weather.0029" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Весна действительно запаздывает, но световой день уже заметно длиннее." />
@@ -238,12 +238,12 @@
 		<template id="v3.life.everyday.reply.weather.0032" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="До остановки безопаснее идти по знакомой освещённой дороге." />
 		<template id="v3.life.everyday.reply.weather.0033" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мой фонарь ярче, твой маршрут знакомее." />
 		<template id="v3.life.everyday.reply.weather.0034" act="life.everyday.weather.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не включай дальний свет в густом тумане без необходимости." />
-		<template id="v3.life.everyday.reply.weather.0035" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если продолжишь ехать опасно, я выйду в безопасном месте." />
+		<template id="v3.life.everyday.reply.weather.0035" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если человек продолжает вести машину опасно, лучше выйти в безопасном месте." />
 		<template id="v3.life.everyday.reply.weather.0036" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После ливня избегайте глубокой воды: под ней могут быть ямы и открытые люки." />
 		<template id="v3.life.everyday.reply.weather.0037" act="life.everyday.weather.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Закат будет виден, если облака разойдутся у горизонта." />
 		<template id="v3.life.everyday.reply.weather.0038" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="При ночных заморозках утром вероятны лёд и иней на стекле." />
 		<template id="v3.life.everyday.reply.weather.0039" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай уберём горшки с края балкона до похолодания." />
-		<template id="v3.life.everyday.reply.weather.0040" act="life.everyday.weather.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ты раньше услышал гром, я быстрее закрыл окна." />
+		<template id="v3.life.everyday.reply.weather.0040" act="life.everyday.weather.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Неужели ты раньше услышал гром, я быстрее закрыл окна?" />
 		<template id="v3.life.everyday.reply.weather.0041" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не выходи на балкон во время близкой грозы." />
 		<template id="v3.life.everyday.reply.weather.0042" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если будешь рисковать ради фотографии, я не пойду с тобой." />
 		<template id="v3.life.everyday.reply.weather.0043" act="life.everyday.weather.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="В жару охлаждайтесь постепенно, пейте воду и следите за необычной слабостью." />
@@ -266,25 +266,25 @@
 		<template id="v3.life.everyday.reply.weather.0060" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай пройдём одну остановку пешком и не спешить." />
 		<template id="v3.life.everyday.reply.weather.0061" act="life.everyday.weather.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мой шаг быстрее, твой темп лучше подходит погоде." />
 		<template id="v3.life.everyday.reply.weather.0062" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не обливай пешеходов, проезжая через лужи." />
-		<template id="v3.life.everyday.reply.weather.0063" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если повторишь это намеренно, я сообщу о нарушении." />
+		<template id="v3.life.everyday.reply.weather.0063" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если повторишь это намеренно, можно сообщить о нарушении." />
 		<template id="v3.life.everyday.reply.weather.0064" act="life.everyday.weather.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Метель лучше переждать в безопасном помещении, если видимость и дороги ухудшаются." />
 		<template id="v3.life.everyday.reply.weather.0065" act="life.everyday.weather.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Солнце может не греть при холодном воздухе и ветре — ориентируйтесь на температуру." />
 		<template id="v3.life.everyday.reply.weather.0066" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Окно можно открыть ненадолго для проветривания, учитывая людей в комнате." />
-		<template id="v3.life.everyday.reply.weather.0067" act="life.everyday.weather.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я открою на пять минут и предупрежу тебя заранее." />
-		<template id="v3.life.everyday.reply.weather.0068" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты мёрзнешь быстрее, я хуже переношу духоту." />
+		<template id="v3.life.everyday.reply.weather.0067" act="life.everyday.weather.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Разумнее открыть на пять минут и предупредить тебя заранее." />
+		<template id="v3.life.everyday.reply.weather.0068" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Почему ты мёрзнешь быстрее, я хуже переношу духоту?" />
 		<template id="v3.life.everyday.reply.weather.0069" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не распахивай окно над спящим человеком." />
 		<template id="v3.life.everyday.reply.weather.0070" act="life.everyday.weather.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="После повторного нарушения проветривать будем по расписанию." />
 		<template id="v3.life.everyday.reply.weather.0071" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Высокая влажность усиливает ощущение жары или холода и мешает испарению пота." />
 		<template id="v3.life.everyday.reply.weather.0072" act="life.everyday.weather.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Чистое небо особенно заметно после нескольких пасмурных дней." />
 		<template id="v3.life.everyday.reply.weather.0073" act="life.everyday.weather.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если погода испортила планы, сохраните цель вечера и смените только место." />
-		<template id="v3.life.everyday.reply.weather.0074" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Устроим пикник на полу дома и откроем окно на звук дождя." />
+		<template id="v3.life.everyday.reply.weather.0074" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Можно устроить пикник на полу дома и открыть окно на звук дождя." />
 		<template id="v3.life.everyday.reply.weather.0075" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мой запасной план проще, твой сохраняет больше атмосферы." />
 		<template id="v3.life.everyday.reply.weather.0076" act="life.everyday.weather.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не обвиняй людей в том, что они не хотят гулять под ливнем." />
 		<template id="v3.life.everyday.reply.weather.0077" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Твои попытки вытолкнуть меня наружу прекращаются." />
 		<template id="v3.life.everyday.reply.weather.0078" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После грозы отключение света требует безопасных фонарей, а не открытого огня без присмотра." />
 		<template id="v3.life.everyday.reply.weather.0079" act="life.everyday.weather.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Пока сухо, можно быстро выйти, но возьмите защиту на случай дождя." />
 		<template id="v3.life.everyday.reply.weather.0080" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Хлопающие окна закрепите или закройте, не оставляя пальцы в створке." />
-		<template id="v3.life.everyday.reply.weather.0081" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я подержу раму, пока ты проверяешь фиксатор." />
+		<template id="v3.life.everyday.reply.weather.0081" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Стоит подержать раму, пока ты проверяешь фиксатор." />
 		<template id="v3.life.everyday.reply.weather.0082" act="life.everyday.weather.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ты крепче держишь, я лучше вижу повреждённую петлю." />
 		<template id="v3.life.everyday.reply.weather.0083" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не лезь наружу из окна в сильный ветер." />
 		<template id="v3.life.everyday.reply.weather.0084" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="При реальной опасности специалиста вызывает тот, кто может связаться со службой." />
@@ -300,7 +300,7 @@
 		<template id="v3.life.everyday.reply.weather.0094" act="life.everyday.weather.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Возвращение птиц действительно делает весну слышимой раньше, чем видимой." />
 		<template id="v3.life.everyday.reply.weather.0095" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Лето похоже пришло: утро уже тёплое, а окна можно открыть раньше." />
 		<template id="v3.life.everyday.reply.weather.0096" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай встретим первый по-настоящему летний вечер на улице." />
-		<template id="v3.life.everyday.reply.weather.0097" act="life.everyday.weather.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты называл лето неделю назад, теперь я готов признать твою правоту." />
+		<template id="v3.life.everyday.reply.weather.0097" act="life.everyday.weather.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Неужели ты называл лето неделю назад, теперь я готов признать твою правоту?" />
 		<template id="v3.life.everyday.reply.weather.0098" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не включай обогрев и кондиционер одновременно." />
 		<template id="v3.life.everyday.reply.weather.0099" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если снова испортишь общую технику, оплачивать ремонт будешь сам." />
 		<template id="v3.life.everyday.reply.weather.0100" act="life.everyday.weather.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Погода не обязана быть хорошей или плохой; важнее, что она меняет в планах и безопасности." />
@@ -314,7 +314,7 @@
 		<template id="v3.life.everyday.reply.weather.0108" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="В холод одевайтесь так, чтобы сохранить сухость и возможность двигаться." />
 		<template id="v3.life.everyday.reply.weather.0109" act="life.everyday.weather.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Несколько слоёв удобнее одной слишком тяжёлой вещи." />
 		<template id="v3.life.everyday.reply.weather.0110" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ветер сильнее охлаждает открытые участки, поэтому пригодятся перчатки и шапка." />
-		<template id="v3.life.everyday.reply.weather.0111" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я взял запасной шарф, можешь использовать до дома." />
+		<template id="v3.life.everyday.reply.weather.0111" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Запасной шарф пригодится тому, кто замёрз по дороге домой." />
 		<template id="v3.life.everyday.reply.weather.0112" act="life.everyday.weather.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Моя куртка теплее, твоя лучше защищает от мокрого снега." />
 		<template id="v3.life.everyday.reply.weather.0113" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не отбирай одежду у человека ради шутки." />
 		<template id="v3.life.everyday.reply.weather.0114" act="life.everyday.weather.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После такого поведения на улицу вместе не выходим." />
@@ -322,7 +322,7 @@
 		<template id="v3.life.everyday.reply.weather.0116" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Вентилятор перемещает воздух, но при опасной жаре может быть недостаточен." />
 		<template id="v3.life.everyday.reply.weather.0117" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Следите за самочувствием детей, пожилых и людей с хроническими состояниями." />
 		<template id="v3.life.everyday.reply.weather.0118" act="life.everyday.weather.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="В жару полезны вода и прохладное место; их наличие лучше проверить заранее." />
-		<template id="v3.life.everyday.reply.weather.0119" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты переносишь жару легче, но тоже сделай паузу." />
+		<template id="v3.life.everyday.reply.weather.0119" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Правда ты переносишь жару легче, но тоже сделай паузу?" />
 		<template id="v3.life.everyday.reply.weather.0120" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не заставляй человека оставаться на солнце." />
 		<template id="v3.life.everyday.reply.weather.0121" act="life.everyday.weather.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="При признаках теплового ухудшения вызываем помощь, а не спорим." />
 		<template id="v3.life.everyday.reply.weather.0122" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Гроза далеко, если интервал большой, но безопаснее ориентироваться на официальные данные и близость грома." />
@@ -336,9 +336,9 @@
 		<template id="v3.life.everyday.reply.weather.0130" act="life.everyday.weather.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Оставьте дополнительное время и проверьте отмены до выхода." />
 		<template id="v3.life.everyday.reply.weather.0131" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Обувь с хорошим сцеплением важнее желания сохранить идеальный вид." />
 		<template id="v3.life.everyday.reply.weather.0132" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="На льду разумнее выбрать освещённый путь и не идти в одиночку." />
-		<template id="v3.life.everyday.reply.weather.0133" act="life.everyday.weather.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты дошёл быстрее, я выбрал менее скользкую сторону." />
+		<template id="v3.life.everyday.reply.weather.0133" act="life.everyday.weather.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Более скользкая сторона редко стоит пары выигранных минут." />
 		<template id="v3.life.everyday.reply.weather.0134" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не толкай людей на обледеневшей лестнице." />
-		<template id="v3.life.everyday.reply.weather.0135" act="life.everyday.weather.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После намеренного толчка я обращусь к охране." />
+		<template id="v3.life.everyday.reply.weather.0135" act="life.everyday.weather.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После намеренного толчка можно обратиться к охране." />
 		<template id="v3.life.everyday.reply.weather.0136" act="life.everyday.weather.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Туман на дороге требует меньшей скорости и большей дистанции." />
 		<template id="v3.life.everyday.reply.weather.0137" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Пешеходам полезны светлые или отражающие детали, особенно вне освещённых улиц." />
 		<template id="v3.life.everyday.reply.weather.0138" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не сокращайте путь через незнакомую зону с плохой видимостью." />
@@ -349,8 +349,8 @@
 		<template id="v3.life.everyday.reply.weather.0143" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Осенний ветер быстро меняет ощущение температуры в тени и на солнце." />
 		<template id="v3.life.everyday.reply.weather.0144" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Положите тонкие перчатки в сумку раньше первых заморозков." />
 		<template id="v3.life.everyday.reply.weather.0145" act="life.everyday.weather.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мокрые листья бывают скользкими не хуже льда." />
-		<template id="v3.life.everyday.reply.weather.0146" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Пройдём медленнее по парку и послушаем, как изменился звук." />
-		<template id="v3.life.everyday.reply.weather.0147" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты раньше почувствовал осень, я позже отказался от летней обуви." />
+		<template id="v3.life.everyday.reply.weather.0146" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Можно пройти медленнее по парку и послушать, как изменился звук." />
+		<template id="v3.life.everyday.reply.weather.0147" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты раньше почувствовал осень, я позже отказался от летней обуви?" />
 		<template id="v3.life.everyday.reply.weather.0148" act="life.everyday.weather.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не смейся над человеком за тёплую одежду." />
 		<template id="v3.life.everyday.reply.weather.0149" act="life.everyday.weather.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Твои комментарии о внешности не относятся к погоде." />
 		<template id="v3.life.everyday.reply.weather.0150" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Весной утро и день могут отличаться на много градусов." />
@@ -364,7 +364,7 @@
 		<template id="v3.life.everyday.reply.weather.0158" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Тёплая влажность требует воды не меньше сухой жары." />
 		<template id="v3.life.everyday.reply.weather.0159" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После ливня дайте улицам время освободиться от потока." />
 		<template id="v3.life.everyday.reply.weather.0160" act="life.everyday.weather.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Давай посидим под крышей и дослушаем дождь без спешки." />
-		<template id="v3.life.everyday.reply.weather.0161" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты выбежал первым, я сохранил сухие носки." />
+		<template id="v3.life.everyday.reply.weather.0161" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сухие носки полезнее победы в забеге под дождём." />
 		<template id="v3.life.everyday.reply.weather.0162" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не разбрызгивай воду на людей намеренно." />
 		<template id="v3.life.everyday.reply.weather.0163" act="life.everyday.weather.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="После такой выходки прогулка продолжится без тебя." />
 		<template id="v3.life.everyday.reply.weather.0164" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Зимой солнце низкое и может ослеплять водителей даже в холодный день." />
@@ -377,7 +377,7 @@
 		<template id="v3.life.everyday.reply.weather.0171" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После ветра проверьте деревья и конструкции до возвращения на привычный маршрут." />
 		<template id="v3.life.everyday.reply.weather.0172" act="life.everyday.weather.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Оборванные провода не трогайте и сообщите аварийной службе." />
 		<template id="v3.life.everyday.reply.weather.0173" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Повреждённые ветки могут падать уже после окончания порывов." />
-		<template id="v3.life.everyday.reply.weather.0174" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я обойду квартал и предупрежу остальных о перекрытии." />
+		<template id="v3.life.everyday.reply.weather.0174" act="life.everyday.weather.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Можно обойти квартал и предупрежу остальных о перекрытии." />
 		<template id="v3.life.everyday.reply.weather.0175" act="life.everyday.weather.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мой путь длиннее, твой оказался закрыт." />
 		<template id="v3.life.everyday.reply.weather.0176" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не приближайся к оборванному кабелю." />
 		<template id="v3.life.everyday.reply.weather.0177" act="life.everyday.weather.reply" band="TENSE" register="CASUAL" profanity="NONE" text="При настоящей угрозе звони в экстренную службу, а не надейся на обещание из чата." />
@@ -385,7 +385,7 @@
 		<template id="v3.life.everyday.reply.weather.0179" act="life.everyday.weather.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Возьмите дополнительный слой, если возвращаться будете после заката." />
 		<template id="v3.life.everyday.reply.weather.0180" act="life.everyday.weather.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Звёзды виднее вдали от яркого города и при сухом воздухе." />
 		<template id="v3.life.everyday.reply.weather.0181" act="life.everyday.weather.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Давай выйдем на балкон ненадолго и не брать телефоны." />
-		<template id="v3.life.everyday.reply.weather.0182" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты увидел первую звезду, я нашёл более тёмный угол неба." />
+		<template id="v3.life.everyday.reply.weather.0182" act="life.everyday.weather.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Более тёмный угол неба обычно важнее прогноза в телефоне." />
 		<template id="v3.life.everyday.reply.weather.0183" act="life.everyday.weather.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не выключай общий свет в опасном проходе." />
 		<template id="v3.life.everyday.reply.weather.0184" act="life.everyday.weather.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="После твоей выходки доступ к выключателю будет ограничен." />
 		<template id="v3.life.everyday.reply.weather.0185" act="life.everyday.weather.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Прогноз — вероятность, а не обещание конкретной капли над домом." />
@@ -421,7 +421,7 @@
 		<template id="v3.life.everyday.reply.routine.0016" act="life.everyday.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Стол разбирайте по категориям: оставить, убрать, выбросить, решить позже." />
 		<template id="v3.life.everyday.reply.routine.0017" act="life.everyday.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вечерний душ проще не откладывать, если приготовить одежду и полотенце заранее." />
 		<template id="v3.life.everyday.reply.routine.0018" act="life.everyday.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="На обычный ужин подойдёт крупа, овощи и один простой источник белка." />
-		<template id="v3.life.everyday.reply.routine.0019" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давай приготовим двойную порцию и завтра освободим вечер." />
+		<template id="v3.life.everyday.reply.routine.0019" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Двойная порция сегодня освобождает завтрашний вечер." />
 		<template id="v3.life.everyday.reply.routine.0020" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мой ужин быстрее, твой лучше хранится на следующий день." />
 		<template id="v3.life.everyday.reply.routine.0021" act="life.everyday.routine.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не используй моё полотенце без спроса." />
 		<template id="v3.life.everyday.reply.routine.0022" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если снова оставишь мокрые вещи на кровати, сушить будешь сам." />
@@ -452,7 +452,7 @@
 		<template id="v3.life.everyday.reply.routine.0047" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Следующий день готовлю одним коротким действием, а не полной репетицией." />
 		<template id="v3.life.everyday.reply.routine.0048" act="life.everyday.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ключам нужно постоянное место у двери, а не новая поверхность каждый вечер." />
 		<template id="v3.life.everyday.reply.routine.0049" act="life.everyday.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Зеркало можно протереть за минуту, если средство и ткань хранятся рядом." />
-		<template id="v3.life.everyday.reply.routine.0050" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я повешу крючок для ключей, ты выберешь удобную высоту." />
+		<template id="v3.life.everyday.reply.routine.0050" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Крючок для ключей стоит повесить на удобной для всех высоте." />
 		<template id="v3.life.everyday.reply.routine.0051" act="life.everyday.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Твой способ быстрее, мой снижает число утренних поисков." />
 		<template id="v3.life.everyday.reply.routine.0052" act="life.everyday.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не прячь ключи ради шутки." />
 		<template id="v3.life.everyday.reply.routine.0053" act="life.everyday.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="После такого риска запасной комплект будет недоступен тебе." />
@@ -468,14 +468,14 @@
 		<template id="v3.life.everyday.reply.routine.0063" act="life.everyday.routine.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Прогноз проверяйте утром, особенно если день включает длинную дорогу." />
 		<template id="v3.life.everyday.reply.routine.0064" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Домашние дела распределяйте по времени и предпочтениям, а не по невысказанным ожиданиям." />
 		<template id="v3.life.everyday.reply.routine.0065" act="life.everyday.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Кто первым встаёт, не обязан автоматически обслуживать остальных." />
-		<template id="v3.life.everyday.reply.routine.0066" act="life.everyday.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я приготовлю чай, если ты не будешь считать это моей постоянной обязанностью." />
-		<template id="v3.life.everyday.reply.routine.0067" act="life.everyday.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты раньше встаёшь, я позже закрываю кухню." />
+		<template id="v3.life.everyday.reply.routine.0066" act="life.everyday.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Лучше приготовить чай, если ты не будешь считать это моей постоянной обязанностью." />
+		<template id="v3.life.everyday.reply.routine.0067" act="life.everyday.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты раньше встаёшь, я позже закрываю кухню?" />
 		<template id="v3.life.everyday.reply.routine.0068" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не включай свет во всех комнатах и не оставляй его мне." />
 		<template id="v3.life.everyday.reply.routine.0069" act="life.everyday.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="После повторного игнорирования счета расходы разделим." />
 		<template id="v3.life.everyday.reply.routine.0070" act="life.everyday.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Свет проще выключать последним взглядом на комнату перед выходом." />
 		<template id="v3.life.everyday.reply.routine.0071" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Аптечку перебирайте по срокам, назначениям и безопасной утилизации." />
 		<template id="v3.life.everyday.reply.routine.0072" act="life.everyday.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не храните лекарства без упаковки и понятного названия." />
-		<template id="v3.life.everyday.reply.routine.0073" act="life.everyday.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я составлю список заканчивающегося, ты проверишь назначения." />
+		<template id="v3.life.everyday.reply.routine.0073" act="life.everyday.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Список заканчивающегося лучше сверить с назначениями." />
 		<template id="v3.life.everyday.reply.routine.0074" act="life.everyday.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Моя аптечка меньше, твоя лучше организована по частоте использования." />
 		<template id="v3.life.everyday.reply.routine.0075" act="life.everyday.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не бери чужие препараты даже при похожих симптомах." />
 		<template id="v3.life.everyday.reply.routine.0076" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После этого шкаф будет закрыт." />
@@ -491,7 +491,7 @@
 		<template id="v3.life.everyday.reply.routine.0086" act="life.everyday.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Бутылку воды положите рядом с ключами или сумкой с вечера." />
 		<template id="v3.life.everyday.reply.routine.0087" act="life.everyday.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="После возвращения домой сначала убираю обувь, мою руки и раскладываю важные вещи." />
 		<template id="v3.life.everyday.reply.routine.0088" act="life.everyday.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Уличную грязь сдерживает коврик, место для обуви и быстрое протирание следов." />
-		<template id="v3.life.everyday.reply.routine.0089" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я разберу холодные покупки, ты сложишь сухие продукты." />
+		<template id="v3.life.everyday.reply.routine.0089" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Холодные покупки стоит разобрать сразу, а сухие продукты могут подождать." />
 		<template id="v3.life.everyday.reply.routine.0090" act="life.everyday.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мой холодильник организованнее, твои пакеты быстрее исчезают." />
 		<template id="v3.life.everyday.reply.routine.0091" act="life.everyday.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не оставляй протекающий пакет на полу." />
 		<template id="v3.life.everyday.reply.routine.0092" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если снова испортишь продукты, заменишь их сам." />
@@ -500,7 +500,7 @@
 		<template id="v3.life.everyday.reply.routine.0095" act="life.everyday.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Бытовую неделю упрощают несколько повторяемых опор, а не идеальное расписание." />
 		<template id="v3.life.everyday.reply.routine.0096" act="life.everyday.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Выходной не должен целиком уходить на дела; задайте короткий предел." />
 		<template id="v3.life.everyday.reply.routine.0097" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давай выберем три необходимых пункта и оставим остальное." />
-		<template id="v3.life.everyday.reply.routine.0098" act="life.everyday.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты делаешь больше за раз, я чаще поддерживаю порядок понемногу." />
+		<template id="v3.life.everyday.reply.routine.0098" act="life.everyday.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Неужели ты делаешь больше за раз, я чаще поддерживаю порядок понемногу?" />
 		<template id="v3.life.everyday.reply.routine.0099" act="life.everyday.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не назначай мне обязанности на весь выходной." />
 		<template id="v3.life.everyday.reply.routine.0100" act="life.everyday.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если снова распорядился моим временем, планы будут раздельными." />
 		<template id="v3.life.everyday.reply.routine.0101" act="life.everyday.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Домашнюю привычку лучше менять одну за другой, наблюдая реальный эффект." />
@@ -520,35 +520,35 @@
 		<template id="v3.life.everyday.reply.routine.0115" act="life.everyday.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вечерняя кухня закрывается легче, когда остатки сразу получают контейнер и дату." />
 		<template id="v3.life.everyday.reply.routine.0116" act="life.everyday.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не оставляйте горячую еду надолго, но дайте ей безопасно подготовиться к хранению." />
 		<template id="v3.life.everyday.reply.routine.0117" act="life.everyday.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Протрите рабочую поверхность и оставьте раковину свободной на утро." />
-		<template id="v3.life.everyday.reply.routine.0118" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давай ты уберёшь остатки, а я вымою сковороду." />
+		<template id="v3.life.everyday.reply.routine.0118" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Удобное разделение: одному убрать остатки, другому вымыть сковороду." />
 		<template id="v3.life.everyday.reply.routine.0119" act="life.everyday.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Моя кухня чище, твои контейнеры подписаны понятнее." />
 		<template id="v3.life.everyday.reply.routine.0120" act="life.everyday.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не выбрасывай еду, которую планирует съесть другой человек." />
 		<template id="v3.life.everyday.reply.routine.0121" act="life.everyday.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После очередной пропажи продуктов полки будут раздельными." />
 		<template id="v3.life.everyday.reply.routine.0122" act="life.everyday.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Стирку удобнее разделять по требованиям ткани, а не только по цвету." />
 		<template id="v3.life.everyday.reply.routine.0123" act="life.everyday.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Проверяйте ярлыки новых вещей до первой загрузки." />
 		<template id="v3.life.everyday.reply.routine.0124" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не перегружайте машину: вещи хуже промоются и техника получит лишнюю нагрузку." />
-		<template id="v3.life.everyday.reply.routine.0125" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я развешу мелкое, ты разложишь тяжёлое на сушилке." />
+		<template id="v3.life.everyday.reply.routine.0125" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="На сушилке удобнее разделить мелкие и тяжёлые вещи." />
 		<template id="v3.life.everyday.reply.routine.0126" act="life.everyday.routine.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты быстрее складываешь, я аккуратнее проверяю карманы." />
 		<template id="v3.life.everyday.reply.routine.0127" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не меняй режим стирки после запуска без причины." />
 		<template id="v3.life.everyday.reply.routine.0128" act="life.everyday.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если снова испортишь чужую одежду, заменишь её." />
 		<template id="v3.life.everyday.reply.routine.0129" act="life.everyday.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ванная остаётся удобной, когда полотенца успевают высохнуть, а поверхности не заставлены." />
 		<template id="v3.life.everyday.reply.routine.0130" act="life.everyday.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Средства храните закрытыми и отдельно от детского доступа." />
 		<template id="v3.life.everyday.reply.routine.0131" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После душа проветрите помещение, если это безопасно." />
-		<template id="v3.life.everyday.reply.routine.0132" act="life.everyday.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я вытру воду, а ты повесишь полотенца свободно." />
+		<template id="v3.life.everyday.reply.routine.0132" act="life.everyday.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Сначала лучше вытереть воду, затем свободно развесить полотенца." />
 		<template id="v3.life.everyday.reply.routine.0133" act="life.everyday.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мой душ короче, твой лучше оставляет комнату сухой." />
 		<template id="v3.life.everyday.reply.routine.0134" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не используй моё средство без спроса." />
 		<template id="v3.life.everyday.reply.routine.0135" act="life.everyday.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="После нарушения личные вещи будут храниться отдельно." />
 		<template id="v3.life.everyday.reply.routine.0136" act="life.everyday.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Посуду после завтрака можно вымыть сразу или собрать в одном понятном месте." />
 		<template id="v3.life.everyday.reply.routine.0137" act="life.everyday.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Остатки напитков выливайте перед тем, как чашка отправится в раковину." />
 		<template id="v3.life.everyday.reply.routine.0138" act="life.everyday.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Разделочная доска требует мойки сразу после сырого продукта." />
-		<template id="v3.life.everyday.reply.routine.0139" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я закрою завтрак, пока ты проверяешь сумку." />
+		<template id="v3.life.everyday.reply.routine.0139" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Разумнее закрыть завтрак, пока ты проверяешь сумку." />
 		<template id="v3.life.everyday.reply.routine.0140" act="life.everyday.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты быстрее вытираешь стол, я тщательнее убираю продукты." />
 		<template id="v3.life.everyday.reply.routine.0141" act="life.everyday.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не оставляй нож под водой среди другой посуды." />
 		<template id="v3.life.everyday.reply.routine.0142" act="life.everyday.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если повторишь опасную привычку, кухонные обязанности разделим." />
 		<template id="v3.life.everyday.reply.routine.0143" act="life.everyday.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Холодильник полезно осматривать коротко раз в неделю перед покупками." />
 		<template id="v3.life.everyday.reply.routine.0144" act="life.everyday.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Поставьте продукты с близким сроком туда, где их видно." />
 		<template id="v3.life.everyday.reply.routine.0145" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Протечки убирайте сразу, чтобы запах и грязь не распространялись." />
-		<template id="v3.life.everyday.reply.routine.0146" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давай приготовим сегодня то, что нужно использовать первым." />
+		<template id="v3.life.everyday.reply.routine.0146" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сегодня лучше приготовить то, что нужно использовать первым." />
 		<template id="v3.life.everyday.reply.routine.0147" act="life.everyday.routine.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мой порядок красивее, твой лучше предотвращает отходы." />
 		<template id="v3.life.everyday.reply.routine.0148" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не переставляй подписанные лекарства рядом с едой." />
 		<template id="v3.life.everyday.reply.routine.0149" act="life.everyday.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После опасного смешения полки будут закрыты." />
@@ -576,7 +576,7 @@
 		<template id="v3.life.everyday.reply.routine.0171" act="life.everyday.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Домашняя почта и чеки требуют одного временного лотка, а не разных поверхностей." />
 		<template id="v3.life.everyday.reply.routine.0172" act="life.everyday.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Разбирайте его регулярно: оплатить, сохранить, выбросить безопасно." />
 		<template id="v3.life.everyday.reply.routine.0173" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Личные данные на ненужных бумагах уничтожайте перед утилизацией." />
-		<template id="v3.life.everyday.reply.routine.0174" act="life.everyday.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я отсортирую по действиям, ты заберёшь свои документы." />
+		<template id="v3.life.everyday.reply.routine.0174" act="life.everyday.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Документы проще сортировать по дальнейшим действиям." />
 		<template id="v3.life.everyday.reply.routine.0175" act="life.everyday.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Моя папка подробнее, твоя быстрее находится по датам." />
 		<template id="v3.life.everyday.reply.routine.0176" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не открывай чужие письма." />
 		<template id="v3.life.everyday.reply.routine.0177" act="life.everyday.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="После нарушения приватности доступ к почтовому ящику изменится." />
@@ -591,14 +591,14 @@
 		<template id="v3.life.everyday.reply.routine.0186" act="life.everyday.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Назначьте окончание бытового блока и соблюдайте его." />
 		<template id="v3.life.everyday.reply.routine.0187" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="То, что осталось, перенесите без попытки догнать ночью." />
 		<template id="v3.life.everyday.reply.routine.0188" act="life.everyday.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Таймер помогает вовремя выйти из дома, если его поставит тот, кому он нужен." />
-		<template id="v3.life.everyday.reply.routine.0189" act="life.everyday.routine.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты убираешь быстрее, я лучше останавливаюсь вовремя." />
+		<template id="v3.life.everyday.reply.routine.0189" act="life.everyday.routine.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Зачем ты убираешь быстрее, я лучше останавливаюсь вовремя?" />
 		<template id="v3.life.everyday.reply.routine.0190" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не добавляй новую комнату после сигнала." />
 		<template id="v3.life.everyday.reply.routine.0191" act="life.everyday.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если снова сорвёшь отдых, дела будем планировать отдельно." />
 		<template id="v3.life.everyday.reply.routine.0192" act="life.everyday.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Повседневная рутина хороша, когда делает дом предсказуемее и оставляет место жизни." />
 		<template id="v3.life.everyday.reply.routine.0193" act="life.everyday.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Она не должна превращать близких в обслуживающий персонал." />
 		<template id="v3.life.everyday.reply.routine.0194" act="life.everyday.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Пересматривайте распределение при болезни, нагрузке и изменении расписания." />
 		<template id="v3.life.everyday.reply.routine.0195" act="life.everyday.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Короткая вечерняя сверка полезна, если оба готовы обсуждать помощь." />
-		<template id="v3.life.everyday.reply.routine.0196" act="life.everyday.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мой вклад заметнее, твой происходит раньше, пока я сплю." />
+		<template id="v3.life.everyday.reply.routine.0196" act="life.everyday.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Один вклад заметнее, другой происходит раньше, пока все спят." />
 		<template id="v3.life.everyday.reply.routine.0197" act="life.everyday.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не обесценивай невидимую бытовую работу." />
 		<template id="v3.life.everyday.reply.routine.0198" act="life.everyday.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="После твоих оскорблений совместные обязанности будут обсуждаться с третьей стороной." />
 		<template id="v3.life.everyday.reply.routine.0199" act="life.everyday.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сегодняшний дом достаточно удобен; идеал можно оставить на другой день." />
@@ -619,7 +619,7 @@
 		<template id="v3.life.everyday.reply.annoyances.0015" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Застрявший ключ не стоит проворачивать силой: можно сломать его в замке." />
 		<template id="v3.life.everyday.reply.annoyances.0016" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Капающий кран ночью временно закройте, если это безопасно, и вызовите мастера днём." />
 		<template id="v3.life.everyday.reply.annoyances.0017" act="life.everyday.annoyances.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Порванный пакет поставьте на землю и переложите тяжёлое без спешки." />
-		<template id="v3.life.everyday.reply.annoyances.0018" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я подержу продукты, пока ты найдёшь целую сумку." />
+		<template id="v3.life.everyday.reply.annoyances.0018" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Лучше подержать продукты, пока ты найдёшь целую сумку." />
 		<template id="v3.life.everyday.reply.annoyances.0019" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мой пакет выдержал, твой зато легче нести." />
 		<template id="v3.life.everyday.reply.annoyances.0020" act="life.everyday.annoyances.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не смейся над человеком, у которого всё рассыпалось." />
 		<template id="v3.life.everyday.reply.annoyances.0021" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="За порчу чужих продуктов стоит позвать охрану тому, кто находится на месте." />
@@ -627,28 +627,28 @@
 		<template id="v3.life.everyday.reply.annoyances.0023" act="life.everyday.annoyances.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Наушники меньше путаются в чехле или свободной петле без тугих узлов." />
 		<template id="v3.life.everyday.reply.annoyances.0024" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Забытую защиту в магазине снимут по чеку, не пытайтесь ломать её дома." />
 		<template id="v3.life.everyday.reply.annoyances.0025" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Давай вернёмся вместе, раз магазин ещё открыт." />
-		<template id="v3.life.everyday.reply.annoyances.0026" act="life.everyday.annoyances.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты сохранил чек, я раньше заметил метку." />
+		<template id="v3.life.everyday.reply.annoyances.0026" act="life.everyday.annoyances.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Неужели ты сохранил чек, я раньше заметил метку?" />
 		<template id="v3.life.everyday.reply.annoyances.0027" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не обвиняй кассира в намеренной ошибке." />
 		<template id="v3.life.everyday.reply.annoyances.0028" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Твоя агрессия к сотрудникам неприемлема." />
 		<template id="v3.life.everyday.reply.annoyances.0029" act="life.everyday.annoyances.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="После брызг от машины сначала отойдите от края дороги и проверьте, всё ли в порядке." />
 		<template id="v3.life.everyday.reply.annoyances.0030" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Зависшее приложение при оплате не запускайте многократно до проверки списания." />
 		<template id="v3.life.everyday.reply.annoyances.0031" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Лающую всю ночь собаку лучше обсуждать с владельцем днём или через правила дома." />
 		<template id="v3.life.everyday.reply.annoyances.0032" act="life.everyday.annoyances.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Спокойное сообщение без угроз обычно работает лучше резкого выпада." />
-		<template id="v3.life.everyday.reply.annoyances.0033" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты слышишь лай сильнее, я лучше знаю порядок обращения." />
+		<template id="v3.life.everyday.reply.annoyances.0033" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Зачем ты слышишь лай сильнее, я лучше знаю порядок обращения?" />
 		<template id="v3.life.everyday.reply.annoyances.0034" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не кричи на животное из окна." />
-		<template id="v3.life.everyday.reply.annoyances.0035" act="life.everyday.annoyances.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если будешь угрожать соседям, я сообщу об этом управляющему." />
+		<template id="v3.life.everyday.reply.annoyances.0035" act="life.everyday.annoyances.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если будешь угрожать соседям, можно сообщить об этом управляющему." />
 		<template id="v3.life.everyday.reply.annoyances.0036" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мусор у двери сфотографируйте и сообщите ответственному, не разбрасывая дальше." />
 		<template id="v3.life.everyday.reply.annoyances.0037" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Человеку, который лезет без очереди, можно спокойно указать на конец ряда." />
 		<template id="v3.life.everyday.reply.annoyances.0038" act="life.everyday.annoyances.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Курьеру поможет точный корпус, код и заметный ориентир." />
-		<template id="v3.life.everyday.reply.annoyances.0039" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я спущусь к подъезду, пока ты остаёшься у телефона." />
+		<template id="v3.life.everyday.reply.annoyances.0039" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Разумнее спуститься к подъезду, пока ты остаёшься у телефона." />
 		<template id="v3.life.everyday.reply.annoyances.0040" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Моя инструкция короче, твоя карта точнее." />
 		<template id="v3.life.everyday.reply.annoyances.0041" act="life.everyday.annoyances.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не оскорбляй человека за ошибку навигатора." />
 		<template id="v3.life.everyday.reply.annoyances.0042" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="После твоих угроз заказ приму без тебя." />
 		<template id="v3.life.everyday.reply.annoyances.0043" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Рекламное сообщение можно отметить как спам и проверить настройки согласий." />
 		<template id="v3.life.everyday.reply.annoyances.0044" act="life.everyday.annoyances.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Заблокированный выезд сначала зафиксируйте и найдите законный способ связаться с владельцем." />
 		<template id="v3.life.everyday.reply.annoyances.0045" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Остывший чай можно подогреть или спокойно сделать новый, не обвиняя того, кто отвлёк." />
-		<template id="v3.life.everyday.reply.annoyances.0046" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я заварю свежий, а ты закончи разговор без спешки." />
-		<template id="v3.life.everyday.reply.annoyances.0047" act="life.everyday.annoyances.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты теряешь чай чаще, я — момент, когда он уже достаточно остыл." />
+		<template id="v3.life.everyday.reply.annoyances.0046" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Лучше заварить свежий, а ты закончи разговор без спешки." />
+		<template id="v3.life.everyday.reply.annoyances.0047" act="life.everyday.annoyances.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Правда ты теряешь чай чаще, я — момент, когда он уже достаточно остыл?" />
 		<template id="v3.life.everyday.reply.annoyances.0048" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не трогай мою кружку без разрешения." />
 		<template id="v3.life.everyday.reply.annoyances.0049" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если снова выльешь напиток назло, в комнату не войдёшь." />
 		<template id="v3.life.everyday.reply.annoyances.0050" act="life.everyday.annoyances.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Второй носок обычно находится в пододеяльнике, корзине или рядом с машиной." />
@@ -661,8 +661,8 @@
 		<template id="v3.life.everyday.reply.annoyances.0057" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Пульт ищите между подушками, у зарядки и там, где сидел последний зритель." />
 		<template id="v3.life.everyday.reply.annoyances.0058" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Слишком яркую лампу замените подходящей или добавьте рассеивание." />
 		<template id="v3.life.everyday.reply.annoyances.0059" act="life.everyday.annoyances.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Проехавшую мимо маршрутку можно зафиксировать по времени и номеру маршрута." />
-		<template id="v3.life.everyday.reply.annoyances.0060" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я запишу данные, а ты проверь следующий транспорт." />
-		<template id="v3.life.everyday.reply.annoyances.0061" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты заметил номер, я сохранил точное время." />
+		<template id="v3.life.everyday.reply.annoyances.0060" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можно записать данные, а ты проверь следующий транспорт." />
+		<template id="v3.life.everyday.reply.annoyances.0061" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Для заявления полезны и номер, и точное время." />
 		<template id="v3.life.everyday.reply.annoyances.0062" act="life.everyday.annoyances.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не выбегай на дорогу вслед за автобусом." />
 		<template id="v3.life.everyday.reply.annoyances.0063" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Толкать человека к проезжей части опасно; при угрозе нужно отойти и вызвать полицию самому." />
 		<template id="v3.life.everyday.reply.annoyances.0064" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Видео без наушников в общем месте можно попросить сделать тише или обратиться к сотруднику." />
@@ -671,18 +671,18 @@
 		<template id="v3.life.everyday.reply.annoyances.0067" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="При подозрении на компрометацию карту лучше сразу блокировать доступным способом." />
 		<template id="v3.life.everyday.reply.annoyances.0068" act="life.everyday.annoyances.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Моя очередь движется быстрее, твоя касса хотя бы не потеряла цену." />
 		<template id="v3.life.everyday.reply.annoyances.0069" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не нажимай кнопки на чужом банковском экране." />
-		<template id="v3.life.everyday.reply.annoyances.0070" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="После попытки узнать данные я вызываю охрану." />
+		<template id="v3.life.everyday.reply.annoyances.0070" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Попытка выведать личные данные — повод вызвать охрану." />
 		<template id="v3.life.everyday.reply.annoyances.0071" act="life.everyday.annoyances.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Застрявшую молнию освободите без рывка, убрав ткань из зубцов." />
 		<template id="v3.life.everyday.reply.annoyances.0072" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сломанный провод зарядки лучше заменить, особенно при оголении или нагреве." />
 		<template id="v3.life.everyday.reply.annoyances.0073" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Повторный вход на сайт делайте через официальный адрес, а не ссылку из письма." />
 		<template id="v3.life.everyday.reply.annoyances.0074" act="life.everyday.annoyances.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Давай проверим адрес страницы, прежде чем вводить пароль." />
-		<template id="v3.life.everyday.reply.annoyances.0075" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты быстрее нашёл запасной кабель, я заметил повреждение раньше." />
+		<template id="v3.life.everyday.reply.annoyances.0075" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Кто первым заметил повреждение, не обязан первым искать виноватого." />
 		<template id="v3.life.everyday.reply.annoyances.0076" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не используй опасный провод «ещё один раз»." />
-		<template id="v3.life.everyday.reply.annoyances.0077" act="life.everyday.annoyances.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если подключишь его снова, я отключу питание." />
+		<template id="v3.life.everyday.reply.annoyances.0077" act="life.everyday.annoyances.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если прибор снова подключают опасно, питание лучше отключить." />
 		<template id="v3.life.everyday.reply.annoyances.0078" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Посылку, отправленную не туда, отслеживайте по номеру и сразу сообщите службе доставки." />
 		<template id="v3.life.everyday.reply.annoyances.0079" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Незнакомые звонки можно не брать; важный абонент оставит сообщение или повторит официальным каналом." />
 		<template id="v3.life.everyday.reply.annoyances.0080" act="life.everyday.annoyances.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ночная сигнализация требует оценить безопасность, не выходя вслепую в опасную зону." />
-		<template id="v3.life.everyday.reply.annoyances.0081" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я посмотрю официальные уведомления, пока ты остаёшься подальше от окна." />
+		<template id="v3.life.everyday.reply.annoyances.0081" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Стоит посмотреть официальные уведомления, пока ты остаёшься подальше от окна." />
 		<template id="v3.life.everyday.reply.annoyances.0082" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты быстрее реагируешь на звук, я лучше проверяю источник." />
 		<template id="v3.life.everyday.reply.annoyances.0083" act="life.everyday.annoyances.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не отключай сигнализацию без понимания причины." />
 		<template id="v3.life.everyday.reply.annoyances.0084" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Тревогу назло не игнорируют; ответственную службу вызывает тот, кто видит угрозу." />
@@ -696,17 +696,17 @@
 		<template id="v3.life.everyday.reply.annoyances.0092" act="life.everyday.annoyances.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Неплотное окно требует временно убрать сквозняк безопасным способом и вызвать ремонт." />
 		<template id="v3.life.everyday.reply.annoyances.0093" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Утренний мусоровоз шумный, но график служб обычно связан с маршрутом и доступом." />
 		<template id="v3.life.everyday.reply.annoyances.0094" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мелкая сдача неудобна; пересчитайте сумму до отхода от кассы." />
-		<template id="v3.life.everyday.reply.annoyances.0095" act="life.everyday.annoyances.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я подержу покупки, пока ты убираешь монеты." />
-		<template id="v3.life.everyday.reply.annoyances.0096" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты быстрее считаешь, я нашёл отдельный карман." />
+		<template id="v3.life.everyday.reply.annoyances.0095" act="life.everyday.annoyances.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Разумнее подержать покупки, пока ты убираешь монеты." />
+		<template id="v3.life.everyday.reply.annoyances.0096" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Отдельный карман избавляет от вечных поисков мелочей." />
 		<template id="v3.life.everyday.reply.annoyances.0097" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не бросай мелочь в сотрудника." />
-		<template id="v3.life.everyday.reply.annoyances.0098" act="life.everyday.annoyances.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="После такой агрессии я обращусь к охране." />
+		<template id="v3.life.everyday.reply.annoyances.0098" act="life.everyday.annoyances.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="После такой агрессии можно обратиться к охране." />
 		<template id="v3.life.everyday.reply.annoyances.0099" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Оторванную кнопку положите в маленький пакет и пришейте при хорошем свете." />
 		<template id="v3.life.everyday.reply.annoyances.0100" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Бумагу в принтер добавляйте подходящего формата, не переполняя лоток." />
 		<template id="v3.life.everyday.reply.annoyances.0101" act="life.everyday.annoyances.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мелкая ерунда в начале дня раздражает сильнее, когда уже мало запаса сил." />
 		<template id="v3.life.everyday.reply.annoyances.0102" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Давай исправим только одно и не объявлять весь день испорченным." />
 		<template id="v3.life.everyday.reply.annoyances.0103" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мой день начался хуже, твоя реакция оказалась громче самой проблемы." />
 		<template id="v3.life.everyday.reply.annoyances.0104" act="life.everyday.annoyances.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не срывай раздражение на людях рядом." />
-		<template id="v3.life.everyday.reply.annoyances.0105" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если продолжишь хамить из-за мелочи, я уйду." />
+		<template id="v3.life.everyday.reply.annoyances.0105" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если продолжишь хамить из-за мелочи, можно уйти." />
 		<template id="v3.life.everyday.reply.annoyances.0106" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Одна бытовая неприятность не обязана становиться сюжетом всего дня." />
 		<template id="v3.life.everyday.reply.annoyances.0107" act="life.everyday.annoyances.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Раздражение можно признать, затем выбрать одно действие и двигаться дальше." />
 		<template id="v3.life.everyday.reply.annoyances.0108" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я выслушаю короткую жалобу, но не стану искать виноватого вместо решения." />
@@ -723,10 +723,10 @@
 		<template id="v3.life.everyday.reply.annoyances.0119" act="life.everyday.annoyances.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Опоздание транспорта лучше использовать для проверки альтернативы, а не бежать по дороге." />
 		<template id="v3.life.everyday.reply.annoyances.0120" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Следующий автобус, пеший отрезок или другой маршрут сравните по реальному времени." />
 		<template id="v3.life.everyday.reply.annoyances.0121" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сообщите, что задерживаетесь, прежде чем тревога перерастёт в конфликт." />
-		<template id="v3.life.everyday.reply.annoyances.0122" act="life.everyday.annoyances.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я предупрежу встречающих, а ты найди безопасную пересадку." />
-		<template id="v3.life.everyday.reply.annoyances.0123" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты знаешь маршрут лучше, я быстрее заметил отмену." />
+		<template id="v3.life.everyday.reply.annoyances.0122" act="life.everyday.annoyances.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Лучше предупредить встречающих, а ты найди безопасную пересадку." />
+		<template id="v3.life.everyday.reply.annoyances.0123" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Правда ты знаешь маршрут лучше, я быстрее заметил отмену?" />
 		<template id="v3.life.everyday.reply.annoyances.0124" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не толкай людей у двери автобуса." />
-		<template id="v3.life.everyday.reply.annoyances.0125" act="life.everyday.annoyances.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если продолжишь опасно вести себя в транспорте, я обращусь к водителю." />
+		<template id="v3.life.everyday.reply.annoyances.0125" act="life.everyday.annoyances.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если продолжишь опасно вести себя в транспорте, можно обратиться к водителю." />
 		<template id="v3.life.everyday.reply.annoyances.0126" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Медленная очередь иногда связана с проблемой системы, которую кассир не контролирует." />
 		<template id="v3.life.everyday.reply.annoyances.0127" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Подготовьте документы и оплату, чтобы не добавлять задержку на своей стороне." />
 		<template id="v3.life.everyday.reply.annoyances.0128" act="life.everyday.annoyances.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если времени нет, спокойно спросите о другом окне или вернитесь позже." />
@@ -737,7 +737,7 @@
 		<template id="v3.life.everyday.reply.annoyances.0133" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неработающий лифт требует сообщения диспетчеру и осторожного выбора лестницы." />
 		<template id="v3.life.everyday.reply.annoyances.0134" act="life.everyday.annoyances.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не пытайтесь открывать двери самостоятельно между этажами." />
 		<template id="v3.life.everyday.reply.annoyances.0135" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Людям с ограниченной мобильностью нужна безопасная альтернатива, а не совет потерпеть." />
-		<template id="v3.life.everyday.reply.annoyances.0136" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я донесу сумку, если тебе удобно принять помощь." />
+		<template id="v3.life.everyday.reply.annoyances.0136" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можно донести сумку, если тебе удобно принять помощь." />
 		<template id="v3.life.everyday.reply.annoyances.0137" act="life.everyday.annoyances.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если один идёт быстрее, общий темп стоит согласовать, а не обещать удерживать." />
 		<template id="v3.life.everyday.reply.annoyances.0138" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не тащи человека по лестнице без согласия." />
 		<template id="v3.life.everyday.reply.annoyances.0139" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="При опасной ситуации вызываем аварийную службу." />
@@ -752,13 +752,13 @@
 		<template id="v3.life.everyday.reply.annoyances.0148" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если место свободное по правилам, личная привычка не создаёт права владения." />
 		<template id="v3.life.everyday.reply.annoyances.0149" act="life.everyday.annoyances.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="При конфликте обратитесь к сотруднику вместо физического спора." />
 		<template id="v3.life.everyday.reply.annoyances.0150" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Пока вопрос решается спокойно, дополнительное присутствие не всегда нужно." />
-		<template id="v3.life.everyday.reply.annoyances.0151" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты выбрал удобнее, я подтвердил бронь раньше." />
+		<template id="v3.life.everyday.reply.annoyances.0151" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Удобный вариант и раннее подтверждение брони одинаково важны." />
 		<template id="v3.life.everyday.reply.annoyances.0152" act="life.everyday.annoyances.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не трогай чужие вещи, освобождая место." />
-		<template id="v3.life.everyday.reply.annoyances.0153" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После попытки выбросить багаж я вызываю охрану." />
+		<template id="v3.life.everyday.reply.annoyances.0153" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Попытка выбросить чужой багаж — повод вызвать охрану." />
 		<template id="v3.life.everyday.reply.annoyances.0154" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Опоздавшая доставка требует нового окна и ясного решения, а не бесконечного ожидания." />
 		<template id="v3.life.everyday.reply.annoyances.0155" act="life.everyday.annoyances.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Скоропортящийся заказ нужно отдельно отметить службе поддержки." />
 		<template id="v3.life.everyday.reply.annoyances.0156" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сохраняйте переписку и фотографии при повреждении или неверном содержимом." />
-		<template id="v3.life.everyday.reply.annoyances.0157" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я приму замену, если ты не можешь ждать ещё один час." />
+		<template id="v3.life.everyday.reply.annoyances.0157" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Стоит принять замену, если ты не можешь ждать ещё один час." />
 		<template id="v3.life.everyday.reply.annoyances.0158" act="life.everyday.annoyances.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мой заказ приехал вовремя, но я не стану злорадствовать." />
 		<template id="v3.life.everyday.reply.annoyances.0159" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не обвиняй курьера в решении склада." />
 		<template id="v3.life.everyday.reply.annoyances.0160" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Твои оскорбления работника будут переданы сервису." />
@@ -772,15 +772,15 @@
 		<template id="v3.life.everyday.reply.annoyances.0168" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Пролитый кофе на технике требует отключить питание, если это безопасно, и не включать до оценки." />
 		<template id="v3.life.everyday.reply.annoyances.0169" act="life.everyday.annoyances.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Жидкость промокайте, не втирая её глубже в клавиатуру или ткань." />
 		<template id="v3.life.everyday.reply.annoyances.0170" act="life.everyday.annoyances.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Важные устройства лучше отнести специалисту, чем сушить опасным нагревом." />
-		<template id="v3.life.everyday.reply.annoyances.0171" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я соберу документы, а ты отключишь питание сухими руками." />
+		<template id="v3.life.everyday.reply.annoyances.0171" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Серьёзно, разумнее собрать документы, а ты отключишь питание сухими руками?" />
 		<template id="v3.life.everyday.reply.annoyances.0172" act="life.everyday.annoyances.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Моя кружка устойчивее, твой стол дальше от техники." />
 		<template id="v3.life.everyday.reply.annoyances.0173" act="life.everyday.annoyances.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не включай мокрый прибор ради проверки." />
-		<template id="v3.life.everyday.reply.annoyances.0174" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если продолжишь рисковать током, я остановлю тебя и вызову помощь." />
+		<template id="v3.life.everyday.reply.annoyances.0174" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="При опасной работе с электричеством нужно остановиться и вызвать помощь." />
 		<template id="v3.life.everyday.reply.annoyances.0175" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Капающий кран раздражает звуком, но за ночь важнее предотвратить ущерб." />
 		<template id="v3.life.everyday.reply.annoyances.0176" act="life.everyday.annoyances.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Поставьте ёмкость, вытрите воду и сообщите тому, кто отвечает за ремонт." />
 		<template id="v3.life.everyday.reply.annoyances.0177" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не затягивайте деталь силой, если не знаете конструкцию." />
-		<template id="v3.life.everyday.reply.annoyances.0178" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я запишу видео течи для мастера, пока ты освобождаешь шкаф." />
-		<template id="v3.life.everyday.reply.annoyances.0179" act="life.everyday.annoyances.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты слышишь капли сильнее, я раньше заметил влагу." />
+		<template id="v3.life.everyday.reply.annoyances.0178" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Лучше записать видео течи для мастера, пока ты освобождаешь шкаф." />
+		<template id="v3.life.everyday.reply.annoyances.0179" act="life.everyday.annoyances.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Правда ты слышишь капли сильнее, я раньше заметил влагу?" />
 		<template id="v3.life.everyday.reply.annoyances.0180" act="life.everyday.annoyances.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не перекрывай общий стояк без согласования." />
 		<template id="v3.life.everyday.reply.annoyances.0181" act="life.everyday.annoyances.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После твоего вмешательства сантехнику вызываем немедленно." />
 		<template id="v3.life.everyday.reply.annoyances.0182" act="life.everyday.annoyances.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Рекламные звонки уменьшаются после блокировки номеров и отзыва согласий в законных каналах." />
@@ -800,6 +800,6 @@
 		<template id="v3.life.everyday.reply.annoyances.0196" act="life.everyday.annoyances.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мелкая поломка одежды решается спокойнее, если носить маленький дорожный набор." />
 		<template id="v3.life.everyday.reply.annoyances.0197" act="life.everyday.annoyances.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Кнопку временно закрепите безопасно, не оставляя острую иглу в ткани." />
 		<template id="v3.life.everyday.reply.annoyances.0198" act="life.everyday.annoyances.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Застрявшую молнию не дёргайте, пока материал остаётся между зубцами." />
-		<template id="v3.life.everyday.reply.annoyances.0199" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я подержу ткань ровно, а ты медленно освободи бегунок." />
+		<template id="v3.life.everyday.reply.annoyances.0199" act="life.everyday.annoyances.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Разумнее подержать ткань ровно, а ты медленно освободи бегунок." />
 	</templates>
 </humanizedV3ConversationSegment>

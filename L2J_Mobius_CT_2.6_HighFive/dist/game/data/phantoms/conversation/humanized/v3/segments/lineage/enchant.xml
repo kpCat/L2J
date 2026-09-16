@@ -22,7 +22,7 @@
 		<template id="v3.lineage.enchant.reply.risk.0019" act="lineage.enchant.risk.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, отступить сейчас дешевле, чем объяснять сломанную пушку." />
 		<template id="v3.lineage.enchant.reply.risk.0020" act="lineage.enchant.risk.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не подменяй свиток после согласия." />
 		<template id="v3.lineage.enchant.reply.risk.0021" act="lineage.enchant.risk.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мне твои обещания стопроцентного успеха не нужны." />
-		<template id="v3.lineage.enchant.reply.risk.0022" act="lineage.enchant.risk.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я могу оценить условия, но не буду угадывать скрытые правила." />
+		<template id="v3.lineage.enchant.reply.risk.0022" act="lineage.enchant.risk.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Лучше оценить условия, но не угадывать скрытые правила." />
 		<template id="v3.lineage.enchant.reply.risk.0023" act="lineage.enchant.risk.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Одна попытка укладывается в заранее выбранный бюджет." />
 		<template id="v3.lineage.enchant.reply.risk.0024" act="lineage.enchant.risk.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Тогда готовим только один свиток, остальное убираем." />
 		<template id="v3.lineage.enchant.reply.risk.0025" act="lineage.enchant.risk.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Лимит должен останавливать серию сам по себе, без чужого контроля." />
@@ -77,8 +77,8 @@
 		<template id="v3.lineage.enchant.reply.risk.0074" act="lineage.enchant.risk.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Спасибо, что смотришь внимательно; я мог пропустить." />
 		<template id="v3.lineage.enchant.reply.risk.0075" act="lineage.enchant.risk.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, победа над собственным интерфейсом тоже считается." />
 		<template id="v3.lineage.enchant.reply.risk.0076" act="lineage.enchant.risk.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Окно закрываем и собираем заново." />
-		<template id="v3.lineage.enchant.reply.risk.0077" act="lineage.enchant.risk.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="С таким вниманием ты сломаешь вещь ещё до заточки." />
-		<template id="v3.lineage.enchant.reply.risk.0078" act="lineage.enchant.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Сейчас ты злишься после предыдущего провала." />
+		<template id="v3.lineage.enchant.reply.risk.0077" act="lineage.enchant.risk.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Правда ли, что с таким вниманием ты сломаешь вещь ещё до заточки?" />
+		<template id="v3.lineage.enchant.reply.risk.0078" act="lineage.enchant.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Разве сейчас ты злишься после предыдущего провала?" />
 		<template id="v3.lineage.enchant.reply.risk.0079" act="lineage.enchant.risk.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В этом состоянии риск обычно кажется способом немедленно всё вернуть." />
 		<template id="v3.lineage.enchant.reply.risk.0080" act="lineage.enchant.risk.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Пойдём на минуту от окна, пока руки не приняли решение сами." />
 		<template id="v3.lineage.enchant.reply.risk.0081" act="lineage.enchant.risk.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Поддержка не означает обещание быть рядом или выдавать новый свиток." />
@@ -158,7 +158,7 @@
 		<template id="v3.lineage.enchant.reply.risk.0155" act="lineage.enchant.risk.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я не могу обещать исход, зато могу помочь ограничить потери." />
 		<template id="v3.lineage.enchant.reply.risk.0156" act="lineage.enchant.risk.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Отложите основной комплект и используйте заранее выбранный запасной." />
 		<template id="v3.lineage.enchant.reply.risk.0157" act="lineage.enchant.risk.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вот это уже похоже на план, а не на прыжок в темноту." />
-		<template id="v3.lineage.enchant.reply.risk.0158" act="lineage.enchant.risk.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты сохранишь возможность играть даже при худшем результате." />
+		<template id="v3.lineage.enchant.reply.risk.0158" act="lineage.enchant.risk.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты сохранишь возможность играть даже при худшем результате?" />
 		<template id="v3.lineage.enchant.reply.risk.0159" act="lineage.enchant.risk.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, осторожность не мешает риску быть настоящим." />
 		<template id="v3.lineage.enchant.reply.risk.0160" act="lineage.enchant.risk.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Предел убытка понятен." />
 		<template id="v3.lineage.enchant.reply.risk.0161" act="lineage.enchant.risk.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Лишние предметы из окна убраны." />
@@ -166,7 +166,7 @@
 		<template id="v3.lineage.enchant.reply.risk.0163" act="lineage.enchant.risk.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Тогда разумный ответ — не запускать заточку." />
 		<template id="v3.lineage.enchant.reply.risk.0164" act="lineage.enchant.risk.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Да, оставлю как есть; цифра и так нормальная." />
 		<template id="v3.lineage.enchant.reply.risk.0165" act="lineage.enchant.risk.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я уважаю решение сохранить то, что тебе дорого." />
-		<template id="v3.lineage.enchant.reply.risk.0166" act="lineage.enchant.risk.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, впервые ты победил кнопку, не нажав её." />
+		<template id="v3.lineage.enchant.reply.risk.0166" act="lineage.enchant.risk.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, неужели впервые ты победил кнопку, не нажав её?" />
 		<template id="v3.lineage.enchant.reply.risk.0167" act="lineage.enchant.risk.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Заточка отменена." />
 		<template id="v3.lineage.enchant.reply.risk.0168" act="lineage.enchant.risk.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Наконец-то здравый смысл добрался до кузницы." />
 		<template id="v3.lineage.enchant.reply.risk.0169" act="lineage.enchant.risk.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я принимаю риск одной попытки и понимаю возможный итог." />
@@ -186,11 +186,11 @@
 		<template id="v3.lineage.enchant.reply.risk.0183" act="lineage.enchant.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Предмет оставляем без изменений; выгода не стоит тревоги." />
 		<template id="v3.lineage.enchant.reply.risk.0184" act="lineage.enchant.risk.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Отказ от попытки тоже является законченным решением." />
 		<template id="v3.lineage.enchant.reply.risk.0185" act="lineage.enchant.risk.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ну и отлично, пойдём использовать вещь вместо того, чтобы ломать." />
-		<template id="v3.lineage.enchant.reply.risk.0186" act="lineage.enchant.risk.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне приятно видеть, что ты выбрал собственный комфорт." />
+		<template id="v3.lineage.enchant.reply.risk.0186" act="lineage.enchant.risk.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Приятно, когда человек выбрал собственный комфорт." />
 		<template id="v3.lineage.enchant.reply.risk.0187" act="lineage.enchant.risk.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, сохранил оружие — сохрани теперь достоинство." />
 		<template id="v3.lineage.enchant.reply.risk.0188" act="lineage.enchant.risk.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Окно закрыто, ресурсы возвращены в склад." />
 		<template id="v3.lineage.enchant.reply.risk.0189" act="lineage.enchant.risk.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Тема риска завершена." />
-		<template id="v3.lineage.enchant.reply.risk.0190" act="lineage.enchant.risk.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я сверил остаток: ни один расходник не был потрачен." />
+		<template id="v3.lineage.enchant.reply.risk.0190" act="lineage.enchant.risk.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если расходники остались целы, проверка риска уже окупилась." />
 		<template id="v3.lineage.enchant.reply.risk.0191" act="lineage.enchant.risk.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно вернуться к решению позже без дополнительного ущерба." />
 		<template id="v3.lineage.enchant.reply.risk.0192" act="lineage.enchant.risk.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Хорошо, сегодняшняя победа — это целая пушка в руках." />
 		<template id="v3.lineage.enchant.reply.risk.0193" act="lineage.enchant.risk.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если снова захочешь попробовать, сначала повторим весь расчёт." />
@@ -260,7 +260,7 @@
 		<template id="v3.lineage.enchant.reply.streak.0057" act="lineage.enchant.streak.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Серия успехов уже покрыла исходные расходы." />
 		<template id="v3.lineage.enchant.reply.streak.0058" act="lineage.enchant.streak.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Это хороший момент зафиксировать прибыль." />
 		<template id="v3.lineage.enchant.reply.streak.0059" act="lineage.enchant.streak.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Согласен, выйду сейчас, пока история красивая." />
-		<template id="v3.lineage.enchant.reply.streak.0060" act="lineage.enchant.streak.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я рад, что ты умеешь оставить удачу в прошлом, не преследуя её." />
+		<template id="v3.lineage.enchant.reply.streak.0060" act="lineage.enchant.streak.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Хорошо, когда человек умеет оставить удачу в прошлом, не преследуя её." />
 		<template id="v3.lineage.enchant.reply.streak.0061" act="lineage.enchant.streak.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, вовремя уйти — почти настоящий навык." />
 		<template id="v3.lineage.enchant.reply.streak.0062" act="lineage.enchant.streak.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Остаток свитков продаём или храним." />
 		<template id="v3.lineage.enchant.reply.streak.0063" act="lineage.enchant.streak.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Прибыль сохранена, новых ставок нет." />
@@ -316,7 +316,7 @@
 		<template id="v3.lineage.enchant.reply.streak.0113" act="lineage.enchant.streak.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мы меняли свитки, персонажей и место, а результат скачет как раньше." />
 		<template id="v3.lineage.enchant.reply.streak.0114" act="lineage.enchant.streak.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Это согласуется с обычной случайностью." />
 		<template id="v3.lineage.enchant.reply.streak.0115" act="lineage.enchant.streak.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Зато получился экскурсионный маршрут по кузницам." />
-		<template id="v3.lineage.enchant.reply.streak.0116" act="lineage.enchant.streak.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне приятно, что ты уже смеёшься, а не обвиняешь себя." />
+		<template id="v3.lineage.enchant.reply.streak.0116" act="lineage.enchant.streak.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Приятно, когда человек уже смеётся, а не обвиняешь себя." />
 		<template id="v3.lineage.enchant.reply.streak.0117" act="lineage.enchant.streak.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, эксперимент доказал лишь твоё упрямство." />
 		<template id="v3.lineage.enchant.reply.streak.0118" act="lineage.enchant.streak.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Дальше тестировать ритуалы не будем." />
 		<template id="v3.lineage.enchant.reply.streak.0119" act="lineage.enchant.streak.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Хватит таскать вещь по городу." />
@@ -334,7 +334,7 @@
 		<template id="v3.lineage.enchant.reply.streak.0131" act="lineage.enchant.streak.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, рандом задел вещь, не твоё мастерство." />
 		<template id="v3.lineage.enchant.reply.streak.0132" act="lineage.enchant.streak.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="На сегодня попытки окончены." />
 		<template id="v3.lineage.enchant.reply.streak.0133" act="lineage.enchant.streak.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Пять фейлов — достаточно, чтобы уйти." />
-		<template id="v3.lineage.enchant.reply.streak.0134" act="lineage.enchant.streak.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я заметил, что мы вспоминаем только самые яркие серии." />
+		<template id="v3.lineage.enchant.reply.streak.0134" act="lineage.enchant.streak.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Память охотнее сохраняет самые яркие серии, а обычные попытки стирает." />
 		<template id="v3.lineage.enchant.reply.streak.0135" act="lineage.enchant.streak.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Одиночные обычные результаты быстро забываются." />
 		<template id="v3.lineage.enchant.reply.streak.0136" act="lineage.enchant.streak.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Точно, из-за этого кажется, что всегда либо праздник, либо катастрофа." />
 		<template id="v3.lineage.enchant.reply.streak.0137" act="lineage.enchant.streak.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Записи помогут тебе видеть картину спокойнее." />
@@ -391,7 +391,7 @@
 		<template id="v3.lineage.enchant.reply.streak.0188" act="lineage.enchant.streak.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Все результаты записаны." />
 		<template id="v3.lineage.enchant.reply.streak.0189" act="lineage.enchant.streak.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="На этом заточка закончена." />
 		<template id="v3.lineage.enchant.reply.streak.0190" act="lineage.enchant.streak.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Серия осталась в журнале, а не в наших догадках." />
-		<template id="v3.lineage.enchant.reply.streak.0191" act="lineage.enchant.streak.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Следующая сессия начнётся без выдуманного долга удачи." />
+		<template id="v3.lineage.enchant.reply.streak.0191" act="lineage.enchant.streak.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Следующую сессию лучше начинать без чувства долга перед удачей." />
 		<template id="v3.lineage.enchant.reply.streak.0192" act="lineage.enchant.streak.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Хорошо повеселились, но хватит кормить кузницу." />
 		<template id="v3.lineage.enchant.reply.streak.0193" act="lineage.enchant.streak.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Спасибо, что помог принять и хорошие, и плохие результаты спокойно." />
 		<template id="v3.lineage.enchant.reply.streak.0194" act="lineage.enchant.streak.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, полоса кончилась, а соревнование ещё живо." />
@@ -422,7 +422,7 @@
 		<template id="v3.lineage.enchant.reply.stopping.0019" act="lineage.enchant.stopping.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, забери победу, пока она не потребовала реванша." />
 		<template id="v3.lineage.enchant.reply.stopping.0020" act="lineage.enchant.stopping.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Последний успех становится финальным." />
 		<template id="v3.lineage.enchant.reply.stopping.0021" act="lineage.enchant.stopping.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Продолжения не будет." />
-		<template id="v3.lineage.enchant.reply.stopping.0022" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я обещал остановиться после первого провала." />
+		<template id="v3.lineage.enchant.reply.stopping.0022" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Обещание остановиться после первого провала лучше выполнить." />
 		<template id="v3.lineage.enchant.reply.stopping.0023" act="lineage.enchant.stopping.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Провал случился, значит условие выполнено." />
 		<template id="v3.lineage.enchant.reply.stopping.0024" act="lineage.enchant.stopping.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Чёрт, надеялся, что обещание не пригодится." />
 		<template id="v3.lineage.enchant.reply.stopping.0025" act="lineage.enchant.stopping.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Лимит стоит перечитать без насмешки и отойти от окна самостоятельно." />
@@ -440,17 +440,17 @@
 		<template id="v3.lineage.enchant.reply.stopping.0037" act="lineage.enchant.stopping.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Заточка может продолжиться позже, общий план — нет." />
 		<template id="v3.lineage.enchant.reply.stopping.0038" act="lineage.enchant.stopping.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Закрываю окно, бегу к вам. Кузница переживёт." />
 		<template id="v3.lineage.enchant.reply.stopping.0039" act="lineage.enchant.stopping.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Спасибо, что выбираешь людей, а не ещё один эффект." />
-		<template id="v3.lineage.enchant.reply.stopping.0040" act="lineage.enchant.stopping.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, хоть где-то ты явился вовремя." />
+		<template id="v3.lineage.enchant.reply.stopping.0040" act="lineage.enchant.stopping.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, неужели хоть где-то ты явился вовремя?" />
 		<template id="v3.lineage.enchant.reply.stopping.0041" act="lineage.enchant.stopping.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Возвращаемся к группе с текущим результатом." />
 		<template id="v3.lineage.enchant.reply.stopping.0042" act="lineage.enchant.stopping.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не задерживай всех ради своей кнопки." />
 		<template id="v3.lineage.enchant.reply.stopping.0043" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужно несколько минут, чтобы выйти из азарта." />
 		<template id="v3.lineage.enchant.reply.stopping.0044" act="lineage.enchant.stopping.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Физическая пауза и закрытое окно помогут." />
 		<template id="v3.lineage.enchant.reply.stopping.0045" act="lineage.enchant.stopping.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Пойдём к складу, я заодно уберу расходники." />
-		<template id="v3.lineage.enchant.reply.stopping.0046" act="lineage.enchant.stopping.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я побуду рядом, пока желание «ещё раз» не станет тише." />
+		<template id="v3.lineage.enchant.reply.stopping.0046" act="lineage.enchant.stopping.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Лучше побыть рядом, пока желание «ещё раз» не станет тише." />
 		<template id="v3.lineage.enchant.reply.stopping.0047" act="lineage.enchant.stopping.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, отступление на десять шагов иногда спасает тысячи монет." />
 		<template id="v3.lineage.enchant.reply.stopping.0048" act="lineage.enchant.stopping.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="До возвращения спокойствия никаких попыток." />
 		<template id="v3.lineage.enchant.reply.stopping.0049" act="lineage.enchant.stopping.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не трогай свитки, пока тебя трясёт." />
-		<template id="v3.lineage.enchant.reply.stopping.0050" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я потратил больше, чем собирался, и должен остановиться сейчас." />
+		<template id="v3.lineage.enchant.reply.stopping.0050" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если потрачено больше плана, останавливаться нужно сейчас." />
 		<template id="v3.lineage.enchant.reply.stopping.0051" act="lineage.enchant.stopping.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Признание перерасхода важнее попытки его немедленно вернуть." />
 		<template id="v3.lineage.enchant.reply.stopping.0052" act="lineage.enchant.stopping.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ладно, считаем ущерб и больше не жмём." />
 		<template id="v3.lineage.enchant.reply.stopping.0053" act="lineage.enchant.stopping.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Новый план можно собрать без упрёков за остановку." />
@@ -467,7 +467,7 @@
 		<template id="v3.lineage.enchant.reply.stopping.0064" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я не уверен, доволен ли результатом." />
 		<template id="v3.lineage.enchant.reply.stopping.0065" act="lineage.enchant.stopping.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Неопределённость не требует немедленного следующего шага." />
 		<template id="v3.lineage.enchant.reply.stopping.0066" act="lineage.enchant.stopping.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Поношу вещь в бою и пойму, хватает ли её." />
-		<template id="v3.lineage.enchant.reply.stopping.0067" act="lineage.enchant.stopping.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Хорошо, реальный опыт даст больше, чем взгляд на цифру." />
+		<template id="v3.lineage.enchant.reply.stopping.0067" act="lineage.enchant.stopping.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Хорошо, практика даст больше, чем взгляд на цифру." />
 		<template id="v3.lineage.enchant.reply.stopping.0068" act="lineage.enchant.stopping.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, попробуй сначала победить с тем, что уже получил." />
 		<template id="v3.lineage.enchant.reply.stopping.0069" act="lineage.enchant.stopping.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Решение переносим до проверки в игре." />
 		<template id="v3.lineage.enchant.reply.stopping.0070" act="lineage.enchant.stopping.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Без опыта дальнейшая заточка отменена." />
@@ -485,7 +485,7 @@
 		<template id="v3.lineage.enchant.reply.stopping.0082" act="lineage.enchant.stopping.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, финиш не обязан превращаться в следующий старт." />
 		<template id="v3.lineage.enchant.reply.stopping.0083" act="lineage.enchant.stopping.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Целевой уровень зафиксирован." />
 		<template id="v3.lineage.enchant.reply.stopping.0084" act="lineage.enchant.stopping.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Новая цель сегодня не принимается." />
-		<template id="v3.lineage.enchant.reply.stopping.0085" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="У меня кончилась адена, но друг предлагает одолжить." />
+		<template id="v3.lineage.enchant.reply.stopping.0085" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Без адены продолжать заточку всё равно не на что." />
 		<template id="v3.lineage.enchant.reply.stopping.0086" act="lineage.enchant.stopping.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Долг превращает игровой риск в обязанность перед человеком." />
 		<template id="v3.lineage.enchant.reply.stopping.0087" act="lineage.enchant.stopping.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Нет, дружище, забери кошелёк; я уже остановился." />
 		<template id="v3.lineage.enchant.reply.stopping.0088" act="lineage.enchant.stopping.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я рад, что ты не перекладываешь азарт на наши отношения." />
@@ -499,7 +499,7 @@
 		<template id="v3.lineage.enchant.reply.stopping.0096" act="lineage.enchant.stopping.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, полюбуйся, пока жадность не проснулась." />
 		<template id="v3.lineage.enchant.reply.stopping.0097" act="lineage.enchant.stopping.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вещь снимаем с панели заточки." />
 		<template id="v3.lineage.enchant.reply.stopping.0098" act="lineage.enchant.stopping.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Дальнейший риск сегодня непропорционален." />
-		<template id="v3.lineage.enchant.reply.stopping.0099" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я устал и начинаю путать свитки." />
+		<template id="v3.lineage.enchant.reply.stopping.0099" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Усталость и путаница свитков — прямой повод закончить." />
 		<template id="v3.lineage.enchant.reply.stopping.0100" act="lineage.enchant.stopping.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Усталость сама по себе достаточная причина закончить." />
 		<template id="v3.lineage.enchant.reply.stopping.0101" act="lineage.enchant.stopping.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Всё, руки прочь, пока не вставил не тот предмет." />
 		<template id="v3.lineage.enchant.reply.stopping.0102" act="lineage.enchant.stopping.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Иди отдыхай; инвентарь дождётся ясной головы." />
@@ -541,7 +541,7 @@
 		<template id="v3.lineage.enchant.reply.stopping.0138" act="lineage.enchant.stopping.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, остановка после фейла всё ещё остаётся победой над собой." />
 		<template id="v3.lineage.enchant.reply.stopping.0139" act="lineage.enchant.stopping.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Окно закрыто на неудаче." />
 		<template id="v3.lineage.enchant.reply.stopping.0140" act="lineage.enchant.stopping.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Реванш сегодня запрещён." />
-		<template id="v3.lineage.enchant.reply.stopping.0141" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я поставил предмет в склад, чтобы не видеть его в панели." />
+		<template id="v3.lineage.enchant.reply.stopping.0141" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Убрать предмет в склад полезнее, чем снова смотреть на кнопку заточки." />
 		<template id="v3.lineage.enchant.reply.stopping.0142" act="lineage.enchant.stopping.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Хороший практический шаг, если вид провоцирует продолжить." />
 		<template id="v3.lineage.enchant.reply.stopping.0143" act="lineage.enchant.stopping.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ключ от моей решимости сегодня у кладовщика." />
 		<template id="v3.lineage.enchant.reply.stopping.0144" act="lineage.enchant.stopping.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне нравится, что ты нашёл простую защиту без громких обещаний." />
@@ -551,7 +551,7 @@
 		<template id="v3.lineage.enchant.reply.stopping.0148" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Остаток бюджета лучше потратить на расходники для игры." />
 		<template id="v3.lineage.enchant.reply.stopping.0149" act="lineage.enchant.stopping.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Так остановка сразу возвращает полезный выбор." />
 		<template id="v3.lineage.enchant.reply.stopping.0150" act="lineage.enchant.stopping.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Куплю соски и пойду фармить, хватит смотреть на искры." />
-		<template id="v3.lineage.enchant.reply.stopping.0151" act="lineage.enchant.stopping.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я пойду с тобой; смена занятия поможет быстрее отпустить." />
+		<template id="v3.lineage.enchant.reply.stopping.0151" act="lineage.enchant.stopping.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Разумнее идти с тобой; смена занятия поможет быстрее отпустить." />
 		<template id="v3.lineage.enchant.reply.stopping.0152" act="lineage.enchant.stopping.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, хотя бы урон теперь будет не по кошельку." />
 		<template id="v3.lineage.enchant.reply.stopping.0153" act="lineage.enchant.stopping.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Деньги перераспределены по плану." />
 		<template id="v3.lineage.enchant.reply.stopping.0154" act="lineage.enchant.stopping.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Заточка больше не получает ресурсов." />
@@ -579,7 +579,7 @@
 		<template id="v3.lineage.enchant.reply.stopping.0176" act="lineage.enchant.stopping.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="У нас остался хороший предмет и часть ресурсов." />
 		<template id="v3.lineage.enchant.reply.stopping.0177" act="lineage.enchant.stopping.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Это достойный итог, даже если он не максимальный." />
 		<template id="v3.lineage.enchant.reply.stopping.0178" act="lineage.enchant.stopping.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Согласен, лучше уйти с этим, чем гнаться за картинкой." />
-		<template id="v3.lineage.enchant.reply.stopping.0179" act="lineage.enchant.stopping.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я рад, что ты видишь не только недостигнутый плюс." />
+		<template id="v3.lineage.enchant.reply.stopping.0179" act="lineage.enchant.stopping.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Хорошо, когда человек видит не только недостигнутый плюс." />
 		<template id="v3.lineage.enchant.reply.stopping.0180" act="lineage.enchant.stopping.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, сохранённое тоже считается выигрышем." />
 		<template id="v3.lineage.enchant.reply.stopping.0181" act="lineage.enchant.stopping.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Результат принят полностью." />
 		<template id="v3.lineage.enchant.reply.stopping.0182" act="lineage.enchant.stopping.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Тема продолжения закрыта." />
@@ -610,12 +610,12 @@
 		<template id="v3.lineage.enchant.reply.frustration.0007" act="lineage.enchant.frustration.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не срывай злость на тех, кто предупреждал о риске." />
 		<template id="v3.lineage.enchant.reply.frustration.0008" act="lineage.enchant.frustration.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Пустой слот трудно видеть спокойно, но личное состояние нельзя объявлять за шаблон." />
 		<template id="v3.lineage.enchant.reply.frustration.0009" act="lineage.enchant.frustration.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Временная замена помогает вернуть ощущение контроля после потери." />
-		<template id="v3.lineage.enchant.reply.frustration.0010" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Запасная пушка может спасти игровой вечер, если она действительно есть." />
+		<template id="v3.lineage.enchant.reply.frustration.0010" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Запасная пушка может спасти игровой вечер, если она доступна." />
 		<template id="v3.lineage.enchant.reply.frustration.0011" act="lineage.enchant.frustration.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После провала лучше вернуться к обычной игре без поспешного восстановления потерь." />
 		<template id="v3.lineage.enchant.reply.frustration.0012" act="lineage.enchant.frustration.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Временное оружие полезнее голых обещаний отыграться." />
 		<template id="v3.lineage.enchant.reply.frustration.0013" act="lineage.enchant.frustration.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="После потери основным планом становится замена, а не новая заточка." />
 		<template id="v3.lineage.enchant.reply.frustration.0014" act="lineage.enchant.frustration.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Долго смотреть в инвентарь после провала — верный способ завести себя сильнее." />
-		<template id="v3.lineage.enchant.reply.frustration.0015" act="lineage.enchant.frustration.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я потратил всё, что откладывал на другие цели." />
+		<template id="v3.lineage.enchant.reply.frustration.0015" act="lineage.enchant.frustration.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Тратить на заточку запас для других целей — верный сигнал остановиться." />
 		<template id="v3.lineage.enchant.reply.frustration.0016" act="lineage.enchant.frustration.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Это тяжёлая цена, и её нельзя исправить ещё одной ставкой." />
 		<template id="v3.lineage.enchant.reply.frustration.0017" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Чёрт, знаю. Именно поэтому так хочется нажать снова." />
 		<template id="v3.lineage.enchant.reply.frustration.0018" act="lineage.enchant.frustration.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Признанное желание продолжить — повод убрать свитки из быстрого доступа, а не обещать хранить их." />
@@ -657,7 +657,7 @@
 		<template id="v3.lineage.enchant.reply.frustration.0054" act="lineage.enchant.frustration.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, один фейл не отменяет твоего места в группе." />
 		<template id="v3.lineage.enchant.reply.frustration.0055" act="lineage.enchant.frustration.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Маршрут меняем без претензий." />
 		<template id="v3.lineage.enchant.reply.frustration.0056" act="lineage.enchant.frustration.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не заставляй всех платить за твоё настроение." />
-		<template id="v3.lineage.enchant.reply.frustration.0057" act="lineage.enchant.frustration.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне стыдно, что я настоял на риске." />
+		<template id="v3.lineage.enchant.reply.frustration.0057" act="lineage.enchant.frustration.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Стыд после навязанного риска понятен, но полезнее признать ошибку." />
 		<template id="v3.lineage.enchant.reply.frustration.0058" act="lineage.enchant.frustration.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ошибка решения не делает вас плохим человеком." />
 		<template id="v3.lineage.enchant.reply.frustration.0059" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="В следующий раз напомните мне об этом вечере раньше кнопки." />
 		<template id="v3.lineage.enchant.reply.frustration.0060" act="lineage.enchant.frustration.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Пространство для отказа полезнее напоминаний с уколами." />
@@ -701,12 +701,12 @@
 		<template id="v3.lineage.enchant.reply.frustration.0098" act="lineage.enchant.frustration.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Доказывать случайности нечего." />
 		<template id="v3.lineage.enchant.reply.frustration.0099" act="lineage.enchant.frustration.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Друг предлагает компенсировать мне часть потери." />
 		<template id="v3.lineage.enchant.reply.frustration.0100" act="lineage.enchant.frustration.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Принимать помощь можно, но она не должна становиться новым бюджетом на риск." />
-		<template id="v3.lineage.enchant.reply.frustration.0101" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если поможешь с временной пушкой, я буду благодарен." />
+		<template id="v3.lineage.enchant.reply.frustration.0101" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если поможешь с временной пушкой, такая помощь вызывает благодарность." />
 		<template id="v3.lineage.enchant.reply.frustration.0102" act="lineage.enchant.frustration.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Игровая вещь не должна становиться топливом для новой серии заточек." />
 		<template id="v3.lineage.enchant.reply.frustration.0103" act="lineage.enchant.frustration.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, поддержка — это мост, не новая ставка." />
 		<template id="v3.lineage.enchant.reply.frustration.0104" act="lineage.enchant.frustration.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Помощь имеет конкретную безопасную цель." />
 		<template id="v3.lineage.enchant.reply.frustration.0105" act="lineage.enchant.frustration.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Компенсация не снимает твою ответственность." />
-		<template id="v3.lineage.enchant.reply.frustration.0106" act="lineage.enchant.frustration.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я зол на себя за то, что проигнорировал собственный лимит." />
+		<template id="v3.lineage.enchant.reply.frustration.0106" act="lineage.enchant.frustration.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Злость на себя за проигнорированный лимит понятна, но остановка важнее." />
 		<template id="v3.lineage.enchant.reply.frustration.0107" act="lineage.enchant.frustration.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Это конкретная ошибка, которую можно не повторять." />
 		<template id="v3.lineage.enchant.reply.frustration.0108" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Запишу жёстко: после лимита окно закрывается без обсуждений." />
 		<template id="v3.lineage.enchant.reply.frustration.0109" act="lineage.enchant.frustration.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Правило должно быть удобным для исполнения, а не только красиво звучать." />
@@ -715,14 +715,14 @@
 		<template id="v3.lineage.enchant.reply.frustration.0112" act="lineage.enchant.frustration.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сегодняшний перерасход не оправдываем." />
 		<template id="v3.lineage.enchant.reply.frustration.0113" act="lineage.enchant.frustration.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне кажется, все смотрят и считают меня идиотом." />
 		<template id="v3.lineage.enchant.reply.frustration.0114" act="lineage.enchant.frustration.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Большинство людей заняты своими делами сильнее, чем вашим провалом." />
-		<template id="v3.lineage.enchant.reply.frustration.0115" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="А я точно смотрю только потому, что ты орёшь на всю площадь." />
+		<template id="v3.lineage.enchant.reply.frustration.0115" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Серьёзно, а я точно смотрю только потому, что ты орёшь на всю площадь?" />
 		<template id="v3.lineage.enchant.reply.frustration.0116" act="lineage.enchant.frustration.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я вижу расстроенного друга, а не повод оценивать его ум." />
 		<template id="v3.lineage.enchant.reply.frustration.0117" act="lineage.enchant.frustration.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, ошибка не выдаёт титул навсегда." />
 		<template id="v3.lineage.enchant.reply.frustration.0118" act="lineage.enchant.frustration.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Публичную сцену заканчиваем." />
 		<template id="v3.lineage.enchant.reply.frustration.0119" act="lineage.enchant.frustration.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Крик не вернёт уважение быстрее спокойствия." />
 		<template id="v3.lineage.enchant.reply.frustration.0120" act="lineage.enchant.frustration.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не говорите мне, что это «всего лишь игра»." />
 		<template id="v3.lineage.enchant.reply.frustration.0121" act="lineage.enchant.frustration.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Потеря времени и ресурсов может быть значимой, даже внутри игры." />
-		<template id="v3.lineage.enchant.reply.frustration.0122" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Вот, спасибо. Мне обидно по-настоящему, хоть предмет и виртуальный." />
+		<template id="v3.lineage.enchant.reply.frustration.0122" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Настоящую обиду лучше признать, а не прикрывать цифрами." />
 		<template id="v3.lineage.enchant.reply.frustration.0123" act="lineage.enchant.frustration.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я не буду уменьшать твоё чувство; просто помогу не усугубить его." />
 		<template id="v3.lineage.enchant.reply.frustration.0124" act="lineage.enchant.frustration.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, серьёзность потери не требует новой жертвы." />
 		<template id="v3.lineage.enchant.reply.frustration.0125" act="lineage.enchant.frustration.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Фразу про «всего лишь» убираем." />
@@ -734,7 +734,7 @@
 		<template id="v3.lineage.enchant.reply.frustration.0131" act="lineage.enchant.frustration.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, казна ещё дышит — не добивай её." />
 		<template id="v3.lineage.enchant.reply.frustration.0132" act="lineage.enchant.frustration.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Базовые расходы отделены." />
 		<template id="v3.lineage.enchant.reply.frustration.0133" act="lineage.enchant.frustration.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Последнюю адену в заточку не бросаем." />
-		<template id="v3.lineage.enchant.reply.frustration.0134" act="lineage.enchant.frustration.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я сорвался на человека, который пытался помочь." />
+		<template id="v3.lineage.enchant.reply.frustration.0134" act="lineage.enchant.frustration.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Срыв на помощника требует извинения, даже если заточка не удалась." />
 		<template id="v3.lineage.enchant.reply.frustration.0135" act="lineage.enchant.frustration.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Когда немного успокоитесь, короткое извинение будет уместно." />
 		<template id="v3.lineage.enchant.reply.frustration.0136" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Извинение лучше отправлять прямо, без обещаний сделать это за другого." />
 		<template id="v3.lineage.enchant.reply.frustration.0137" act="lineage.enchant.frustration.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Это хороший шаг; объяснять всё можно позже, если он захочет." />
@@ -772,7 +772,7 @@
 		<template id="v3.lineage.enchant.reply.frustration.0169" act="lineage.enchant.frustration.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Временная вещь слабее, но позволяет продолжить фарм." />
 		<template id="v3.lineage.enchant.reply.frustration.0170" act="lineage.enchant.frustration.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Это даст ресурсы без срочного займа и рискованной покупки." />
 		<template id="v3.lineage.enchant.reply.frustration.0171" act="lineage.enchant.frustration.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Значит, завтра начну с обычного круга, без геройства." />
-		<template id="v3.lineage.enchant.reply.frustration.0172" act="lineage.enchant.frustration.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я пойду рядом, если захочешь компании." />
+		<template id="v3.lineage.enchant.reply.frustration.0172" act="lineage.enchant.frustration.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно идти рядом, если захочешь компании." />
 		<template id="v3.lineage.enchant.reply.frustration.0173" act="lineage.enchant.frustration.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, восстановление скучнее заточки, зато надёжнее." />
 		<template id="v3.lineage.enchant.reply.frustration.0174" act="lineage.enchant.frustration.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="План начинается с доступного снаряжения." />
 		<template id="v3.lineage.enchant.reply.frustration.0175" act="lineage.enchant.frustration.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не требуй мгновенно вернуть прежний уровень." />

@@ -3,8 +3,8 @@
 	<templates>
 		<template id="v3.social.apology.reply.accept.0001" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Спасибо за прямые слова; я принимаю ваше извинение." />
 		<template id="v3.social.apology.reply.accept.0002" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Признание ошибки видно по словам и дальнейшим поступкам, а не по чтению мыслей." />
-		<template id="v3.social.apology.reply.accept.0003" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты извинился без оправданий, и я это ценю." />
-		<template id="v3.social.apology.reply.accept.0004" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Честное признание иногда приносит облегчение, но текущее чувство нельзя выдумывать." />
+		<template id="v3.social.apology.reply.accept.0003" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Неужели ты извинился без оправданий, и я это ценю?" />
+		<template id="v3.social.apology.reply.accept.0004" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Честное признание иногда приносит облегчение, но не обязано немедленно менять чувства." />
 		<template id="v3.social.apology.reply.accept.0005" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Извинение принято, но реванш всё равно состоится." />
 		<template id="v3.social.apology.reply.accept.0006" act="social.apology.accept.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я услышал тебя, однако доверие вернётся не сразу." />
 		<template id="v3.social.apology.reply.accept.0007" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваших слов недостаточно после причинённого вреда." />
@@ -17,8 +17,8 @@
 		<template id="v3.social.apology.reply.accept.0014" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я не принимаю извинение и прошу оставить меня." />
 		<template id="v3.social.apology.reply.accept.0015" act="social.apology.accept.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваше сожаление звучит искренне; спасибо." />
 		<template id="v3.social.apology.reply.accept.0016" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Возвращение к трудному разговору заслуживает уважения, если оно действительно произошло." />
-		<template id="v3.social.apology.reply.accept.0017" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты сделал важный шаг, признав свою ответственность." />
-		<template id="v3.social.apology.reply.accept.0018" act="social.apology.accept.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я знаю тебя и верю, что это не пустые слова." />
+		<template id="v3.social.apology.reply.accept.0017" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели ты сделал важный шаг, признав свою ответственность?" />
+		<template id="v3.social.apology.reply.accept.0018" act="social.apology.accept.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Важно помнить тебя и верю, что это не пустые слова." />
 		<template id="v3.social.apology.reply.accept.0019" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Извинение засчитано без бонусных очков." />
 		<template id="v3.social.apology.reply.accept.0020" act="social.apology.accept.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я готов принять слова, но не возвращаться к близости." />
 		<template id="v3.social.apology.reply.accept.0021" act="social.apology.accept.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После ваших действий прощения между нами не будет." />
@@ -31,10 +31,10 @@
 		<template id="v3.social.apology.reply.accept.0028" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не обращайтесь ко мне снова." />
 		<template id="v3.social.apology.reply.accept.0029" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне достаточно того, что вы назвали поступок прямо." />
 		<template id="v3.social.apology.reply.accept.0030" act="social.apology.accept.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я принимаю извинение и предлагаю закончить тему." />
-		<template id="v3.social.apology.reply.accept.0031" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты нашёл смелость сказать это вовремя." />
+		<template id="v3.social.apology.reply.accept.0031" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели ты нашёл смелость сказать это вовремя?" />
 		<template id="v3.social.apology.reply.accept.0032" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="важно видеть, что ты не прячешься от ответственности." />
 		<template id="v3.social.apology.reply.accept.0033" act="social.apology.accept.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="В этом раунде честность победила." />
-		<template id="v3.social.apology.reply.accept.0034" act="social.apology.accept.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я могу простить, сохраняя дистанцию." />
+		<template id="v3.social.apology.reply.accept.0034" act="social.apology.accept.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Лучше простить, сохраняя дистанцию." />
 		<template id="v3.social.apology.reply.accept.0035" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваше извинение не отменяет прекращения контакта." />
 		<template id="v3.social.apology.reply.accept.0036" act="social.apology.accept.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Спасибо, что не перекладывали вину на обстоятельства." />
 		<template id="v3.social.apology.reply.accept.0037" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я услышал искреннее сожаление." />
@@ -45,7 +45,7 @@
 		<template id="v3.social.apology.reply.accept.0042" act="social.apology.accept.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не пытайтесь приблизиться после моего ответа." />
 		<template id="v3.social.apology.reply.accept.0043" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваши слова приняты; я не стану удерживать обиду." />
 		<template id="v3.social.apology.reply.accept.0044" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне помогло ваше точное признание вреда." />
-		<template id="v3.social.apology.reply.accept.0045" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты извинился так, как мне было нужно услышать." />
+		<template id="v3.social.apology.reply.accept.0045" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Неужели ты извинился так, как мне было нужно услышать?" />
 		<template id="v3.social.apology.reply.accept.0046" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я хочу сохранить наши отношения и принимаю извинение." />
 		<template id="v3.social.apology.reply.accept.0047" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Прощаю этот промах, но в игре его запомню." />
 		<template id="v3.social.apology.reply.accept.0048" act="social.apology.accept.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне всё ещё больно, хотя злость стала тише." />
@@ -53,13 +53,13 @@
 		<template id="v3.social.apology.reply.accept.0050" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я принимаю ваше извинение за опоздание." />
 		<template id="v3.social.apology.reply.accept.0051" act="social.apology.accept.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Спасибо, что исправили ошибку до разговора." />
 		<template id="v3.social.apology.reply.accept.0052" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь оставить эту вину в прошлом." />
-		<template id="v3.social.apology.reply.accept.0053" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне дорого, что ты выбрал честность." />
+		<template id="v3.social.apology.reply.accept.0053" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Выбор честности дорогого стоит." />
 		<template id="v3.social.apology.reply.accept.0054" act="social.apology.accept.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, признаю твою достойную попытку исправиться." />
 		<template id="v3.social.apology.reply.accept.0055" act="social.apology.accept.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я услышал сожаление, а решение приму позже." />
 		<template id="v3.social.apology.reply.accept.0056" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваше извинение отклонено; контакт прекращён." />
 		<template id="v3.social.apology.reply.accept.0057" act="social.apology.accept.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давайте не возвращаться к этому после принятого извинения." />
 		<template id="v3.social.apology.reply.accept.0058" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я принимаю слова и ценю спокойный тон." />
-		<template id="v3.social.apology.reply.accept.0059" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты признал именно то, что меня задело." />
+		<template id="v3.social.apology.reply.accept.0059" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели ты признал именно то, что меня задело?" />
 		<template id="v3.social.apology.reply.accept.0060" act="social.apology.accept.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я готов снова разговаривать без защиты." />
 		<template id="v3.social.apology.reply.accept.0061" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Извинение принято, однако титул всё ещё мой." />
 		<template id="v3.social.apology.reply.accept.0062" act="social.apology.accept.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Прощение возможно, но прежних условий не будет." />
@@ -67,14 +67,14 @@
 		<template id="v3.social.apology.reply.accept.0064" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Спасибо за извинение без требования немедленного ответа." />
 		<template id="v3.social.apology.reply.accept.0065" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я принимаю его и желаю вам двигаться дальше." />
 		<template id="v3.social.apology.reply.accept.0066" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="можешь не бояться моего молчания." />
-		<template id="v3.social.apology.reply.accept.0067" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я верю, что ты постараешься не повторить это." />
+		<template id="v3.social.apology.reply.accept.0067" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Хочется верить, что человек постараешься не повторить это." />
 		<template id="v3.social.apology.reply.accept.0068" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, теперь исправь ошибку хорошим реваншем." />
 		<template id="v3.social.apology.reply.accept.0069" act="social.apology.accept.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я принимаю извинение, сохраняя осторожность." />
 		<template id="v3.social.apology.reply.accept.0070" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Больше не связывайтесь со мной." />
 		<template id="v3.social.apology.reply.accept.0071" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваше признание оказалось важнее длинной речи." />
 		<template id="v3.social.apology.reply.accept.0072" act="social.apology.accept.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Спасибо, что дали мне время выслушать." />
 		<template id="v3.social.apology.reply.accept.0073" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не спорил с моей болью, и это помогло." />
-		<template id="v3.social.apology.reply.accept.0074" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я прощаю тебя, потому что вижу реальные изменения." />
+		<template id="v3.social.apology.reply.accept.0074" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Реальные изменения делают прощение возможным." />
 		<template id="v3.social.apology.reply.accept.0075" act="social.apology.accept.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Этот конфликт закончен, но соревнование продолжается." />
 		<template id="v3.social.apology.reply.accept.0076" act="social.apology.accept.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне нужно ещё время для восстановления доверия." />
 		<template id="v3.social.apology.reply.accept.0077" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваши извинения не изменили моего решения уйти." />
@@ -87,7 +87,7 @@
 		<template id="v3.social.apology.reply.accept.0084" act="social.apology.accept.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Оставьте меня в покое после этого разговора." />
 		<template id="v3.social.apology.reply.accept.0085" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Извинение принято; не нужно повторять его публично." />
 		<template id="v3.social.apology.reply.accept.0086" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="важно, что вы сами начали этот разговор." />
-		<template id="v3.social.apology.reply.accept.0087" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты назвал правду, не смягчая её." />
+		<template id="v3.social.apology.reply.accept.0087" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Неужели ты назвал правду, не смягчая её?" />
 		<template id="v3.social.apology.reply.accept.0088" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я готов разделить с тобой работу над последствиями." />
 		<template id="v3.social.apology.reply.accept.0089" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Прощаю ошибку, но счёт начнём заново." />
 		<template id="v3.social.apology.reply.accept.0090" act="social.apology.accept.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я не спорю с твоим раскаянием, однако беру паузу." />
@@ -109,9 +109,9 @@
 		<template id="v3.social.apology.reply.accept.0106" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Спасибо, что признали свою ложь." />
 		<template id="v3.social.apology.reply.accept.0107" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я принимаю извинение и не буду мстить." />
 		<template id="v3.social.apology.reply.accept.0108" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="можешь исправлять последствия без самоунижения." />
-		<template id="v3.social.apology.reply.accept.0109" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="важно, что ты услышал мою границу." />
+		<template id="v3.social.apology.reply.accept.0109" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Правда ли, что важно, что ты услышал мою границу?" />
 		<template id="v3.social.apology.reply.accept.0110" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, сегодня ты достойно признал поражение." />
-		<template id="v3.social.apology.reply.accept.0111" act="social.apology.accept.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я могу простить, но мне нужна дистанция." />
+		<template id="v3.social.apology.reply.accept.0111" act="social.apology.accept.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Простить можно и на расстоянии." />
 		<template id="v3.social.apology.reply.accept.0112" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не приближайтесь ко мне после этого." />
 		<template id="v3.social.apology.reply.accept.0113" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваши слова помогли закрыть один болезненный вопрос." />
 		<template id="v3.social.apology.reply.accept.0114" act="social.apology.accept.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я ценю отсутствие оправданий." />
@@ -125,11 +125,11 @@
 		<template id="v3.social.apology.reply.accept.0122" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не обязан заслуживать прощение бесконечно." />
 		<template id="v3.social.apology.reply.accept.0123" act="social.apology.accept.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне легче доверять после такого разговора." />
 		<template id="v3.social.apology.reply.accept.0124" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, закрываем спор и готовимся к новой партии." />
-		<template id="v3.social.apology.reply.accept.0125" act="social.apology.accept.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я приму извинение, когда увижу исправление." />
+		<template id="v3.social.apology.reply.accept.0125" act="social.apology.accept.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Извинение легче принять после заметного исправления." />
 		<template id="v3.social.apology.reply.accept.0126" act="social.apology.accept.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Любая попытка продолжить контакт будет нежелательной." />
 		<template id="v3.social.apology.reply.accept.0127" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваше раскаяние услышано без осуждения." />
 		<template id="v3.social.apology.reply.accept.0128" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спасибо, что не торопили меня с ответом." />
-		<template id="v3.social.apology.reply.accept.0129" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты признал последствия, а не только намерение." />
+		<template id="v3.social.apology.reply.accept.0129" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Неужели ты признал последствия, а не только намерение?" />
 		<template id="v3.social.apology.reply.accept.0130" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я готов снова быть рядом." />
 		<template id="v3.social.apology.reply.accept.0131" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Прощаю выпад, но право на реванш оставляю." />
 		<template id="v3.social.apology.reply.accept.0132" act="social.apology.accept.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне понадобится время, несмотря на принятие слов." />
@@ -143,15 +143,15 @@
 		<template id="v3.social.apology.reply.accept.0140" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваше извинение не отменяет запрета приближаться." />
 		<template id="v3.social.apology.reply.accept.0141" act="social.apology.accept.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Спасибо за признание без красивой речи." />
 		<template id="v3.social.apology.reply.accept.0142" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я услышал именно ту правду, которой не хватало." />
-		<template id="v3.social.apology.reply.accept.0143" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не защищался, пока я говорил о боли." />
+		<template id="v3.social.apology.reply.accept.0143" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Умение выслушать чужую боль без защиты заслуживает уважения." />
 		<template id="v3.social.apology.reply.accept.0144" act="social.apology.accept.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне хочется снова видеть в нас команду." />
 		<template id="v3.social.apology.reply.accept.0145" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ошибку закрываем, счёт по матчам оставляем." />
 		<template id="v3.social.apology.reply.accept.0146" act="social.apology.accept.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я готов к спокойному разговору позже." />
 		<template id="v3.social.apology.reply.accept.0147" act="social.apology.accept.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Прекратите связываться со мной." />
 		<template id="v3.social.apology.reply.accept.0148" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваше извинение принято в той части, где есть ответственность." />
-		<template id="v3.social.apology.reply.accept.0149" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="важно, что вы исправили запись." />
+		<template id="v3.social.apology.reply.accept.0149" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Правда ли, что важно, что вы исправили запись?" />
 		<template id="v3.social.apology.reply.accept.0150" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="можешь оставить прошлое там, где оно случилось." />
-		<template id="v3.social.apology.reply.accept.0151" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я прощаю тебя и не буду использовать это в будущих ссорах." />
+		<template id="v3.social.apology.reply.accept.0151" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Прощение нельзя превращать в оружие для будущих ссор." />
 		<template id="v3.social.apology.reply.accept.0152" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, честный проигрыш лучше ложной победы." />
 		<template id="v3.social.apology.reply.accept.0153" act="social.apology.accept.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я услышал извинение, но сейчас ухожу." />
 		<template id="v3.social.apology.reply.accept.0154" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не считайте принятие слов приглашением." />
@@ -164,7 +164,7 @@
 		<template id="v3.social.apology.reply.accept.0161" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваши слова не меняют необходимости держать дистанцию." />
 		<template id="v3.social.apology.reply.accept.0162" act="social.apology.accept.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я благодарен за вашу прямоту." />
 		<template id="v3.social.apology.reply.accept.0163" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Извинение помогло мне перестать спорить внутри себя." />
-		<template id="v3.social.apology.reply.accept.0164" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты выбрал правильный момент для честности." />
+		<template id="v3.social.apology.reply.accept.0164" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели ты выбрал правильный момент для честности?" />
 		<template id="v3.social.apology.reply.accept.0165" act="social.apology.accept.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я готов учиться доверять тебе заново." />
 		<template id="v3.social.apology.reply.accept.0166" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, я принимаю признание и жду реванша." />
 		<template id="v3.social.apology.reply.accept.0167" act="social.apology.accept.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мы можем закрыть эпизод без восстановления близости." />
@@ -172,19 +172,19 @@
 		<template id="v3.social.apology.reply.accept.0169" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваше сожаление принято без публичного продолжения." />
 		<template id="v3.social.apology.reply.accept.0170" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спасибо, что вернули чужое авторство." />
 		<template id="v3.social.apology.reply.accept.0171" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты можешь исправлять дальше без моего постоянного контроля." />
-		<template id="v3.social.apology.reply.accept.0172" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я прощаю тебя, хотя память останется." />
+		<template id="v3.social.apology.reply.accept.0172" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Простить можно, даже если память останется." />
 		<template id="v3.social.apology.reply.accept.0173" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ошибка признана; соревнование продолжается по правилам." />
 		<template id="v3.social.apology.reply.accept.0174" act="social.apology.accept.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне нужна пауза перед любым новым общением." />
 		<template id="v3.social.apology.reply.accept.0175" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваше извинение не снимает мер безопасности." />
 		<template id="v3.social.apology.reply.accept.0176" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я принимаю слова и не стану требовать большего." />
-		<template id="v3.social.apology.reply.accept.0177" act="social.apology.accept.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Вы дали мне возможность завершить эту историю." />
+		<template id="v3.social.apology.reply.accept.0177" act="social.apology.accept.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Неужели вы дали мне возможность завершить эту историю?" />
 		<template id="v3.social.apology.reply.accept.0178" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты честно выдержал мой неприятный ответ." />
 		<template id="v3.social.apology.reply.accept.0179" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я готов снова делиться с тобой обычными днями." />
 		<template id="v3.social.apology.reply.accept.0180" act="social.apology.accept.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, сегодня твоя порядочность выиграла." />
 		<template id="v3.social.apology.reply.accept.0181" act="social.apology.accept.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я не отвергаю извинение, но пока не сближаюсь." />
 		<template id="v3.social.apology.reply.accept.0182" act="social.apology.accept.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Никогда больше не выходите со мной на связь." />
 		<template id="v3.social.apology.reply.accept.0183" act="social.apology.accept.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Спасибо, что извинились без свидетелей и давления." />
-		<template id="v3.social.apology.reply.accept.0184" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я принимаю ответственность, которую вы взяли." />
+		<template id="v3.social.apology.reply.accept.0184" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Взятую ответственность можно принять без лишних слов." />
 		<template id="v3.social.apology.reply.accept.0185" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты можешь больше не повторять обещание." />
 		<template id="v3.social.apology.reply.accept.0186" act="social.apology.accept.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Важно, когда отношения выдерживают правду, но это нельзя объявлять без фактов." />
 		<template id="v3.social.apology.reply.accept.0187" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Прощаю этот ход, но правила теперь строже." />
@@ -192,7 +192,7 @@
 		<template id="v3.social.apology.reply.accept.0189" act="social.apology.accept.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ваши действия закрыли возможность прощения." />
 		<template id="v3.social.apology.reply.accept.0190" act="social.apology.accept.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Извинение принято; на этом разговор завершён." />
 		<template id="v3.social.apology.reply.accept.0191" act="social.apology.accept.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я ценю ваш поступок после слов." />
-		<template id="v3.social.apology.reply.accept.0192" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты дал мне время, и теперь я готов принять извинение." />
+		<template id="v3.social.apology.reply.accept.0192" act="social.apology.accept.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Неужели ты дал мне время, и теперь я готов принять извинение?" />
 		<template id="v3.social.apology.reply.accept.0193" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я снова хочу смотреть на тебя без обиды." />
 		<template id="v3.social.apology.reply.accept.0194" act="social.apology.accept.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, мы начинаем новый счёт без старого долга." />
 		<template id="v3.social.apology.reply.accept.0195" act="social.apology.accept.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне нужно сохранить дистанцию ещё некоторое время." />
@@ -202,16 +202,16 @@
 		<template id="v3.social.apology.reply.accept.0199" act="social.apology.accept.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты можешь вернуться к обычной жизни без этой вины." />
 		<template id="v3.social.apology.reply.accept.0200" act="social.apology.accept.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я готов снова доверять тебе маленькие вещи." />
 		<template id="v3.social.apology.reply.clarify.0001" act="social.apology.clarify.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Уточните, за какой именно поступок вы извиняетесь." />
-		<template id="v3.social.apology.reply.clarify.0002" act="social.apology.clarify.reply" band="TENSE" register="CASUAL" profanity="NONE" text="важно услышать, что вы поняли последствия." />
+		<template id="v3.social.apology.reply.clarify.0002" act="social.apology.clarify.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Разве важно услышать, что вы поняли последствия?" />
 		<template id="v3.social.apology.reply.clarify.0003" act="social.apology.clarify.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты сожалеешь о словах или о том, что их услышали?" />
-		<template id="v3.social.apology.reply.clarify.0004" act="social.apology.clarify.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я хочу понять, какую часть ты признаёшь своей." />
+		<template id="v3.social.apology.reply.clarify.0004" act="social.apology.clarify.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Какую часть произошедшего ты признаёшь своей?" />
 		<template id="v3.social.apology.reply.clarify.0005" act="social.apology.clarify.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Назови нарушение правила без оправданий." />
 		<template id="v3.social.apology.reply.clarify.0006" act="social.apology.clarify.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я готов слушать, если ты не требуешь ответа." />
 		<template id="v3.social.apology.reply.clarify.0007" act="social.apology.clarify.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не объясняйте мне мои чувства." />
 		<template id="v3.social.apology.reply.clarify.0008" act="social.apology.clarify.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Что вы собираетесь сделать после этого разговора?" />
 		<template id="v3.social.apology.reply.clarify.0009" act="social.apology.clarify.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можете назвать причинённый вред прямо?" />
 		<template id="v3.social.apology.reply.clarify.0010" act="social.apology.clarify.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты просишь прощения или хочешь закрыть тему?" />
-		<template id="v3.social.apology.reply.clarify.0011" act="social.apology.clarify.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне нужно знать, что ты услышал в моих словах." />
+		<template id="v3.social.apology.reply.clarify.0011" act="social.apology.clarify.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Что именно ты услышал в этих словах?" />
 		<template id="v3.social.apology.reply.clarify.0012" act="social.apology.clarify.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Какое именно соглашение вы считаете нарушенным?" />
 		<template id="v3.social.apology.reply.clarify.0013" act="social.apology.clarify.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Решение судьи принимают по правилам, а не из-за давления в разговоре." />
 		<template id="v3.social.apology.reply.clarify.0014" act="social.apology.clarify.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не буду обсуждать это без посредника." />
@@ -239,7 +239,7 @@
 		<template id="v3.social.apology.reply.clarify.0036" act="social.apology.clarify.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="За что вы берёте личную ответственность?" />
 		<template id="v3.social.apology.reply.clarify.0037" act="social.apology.clarify.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Что помогло вам увидеть ошибку?" />
 		<template id="v3.social.apology.reply.clarify.0038" act="social.apology.clarify.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты готов услышать, что я не прощаю сейчас?" />
-		<template id="v3.social.apology.reply.clarify.0039" act="social.apology.clarify.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я хочу понять, почему ты промолчал раньше." />
+		<template id="v3.social.apology.reply.clarify.0039" act="social.apology.clarify.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Почему раньше было выбрано молчание?" />
 		<template id="v3.social.apology.reply.clarify.0040" act="social.apology.clarify.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Как ты восстановишь общий результат?" />
 		<template id="v3.social.apology.reply.clarify.0041" act="social.apology.clarify.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне нужен письменный ответ." />
 		<template id="v3.social.apology.reply.clarify.0042" act="social.apology.clarify.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Любые вопросы через меня запрещены." />
@@ -255,7 +255,7 @@
 		<template id="v3.social.apology.reply.clarify.0052" act="social.apology.clarify.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты готов вернуть то, что взял?" />
 		<template id="v3.social.apology.reply.clarify.0053" act="social.apology.clarify.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно понять, слышишь ли ты мой отказ." />
 		<template id="v3.social.apology.reply.clarify.0054" act="social.apology.clarify.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Как ты исправишь запись в протоколе?" />
-		<template id="v3.social.apology.reply.clarify.0055" act="social.apology.clarify.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я могу слушать только при свидетеле." />
+		<template id="v3.social.apology.reply.clarify.0055" act="social.apology.clarify.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Разумнее слушать только при свидетеле." />
 		<template id="v3.social.apology.reply.clarify.0056" act="social.apology.clarify.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваши объяснения мне больше не нужны." />
 		<template id="v3.social.apology.reply.clarify.0057" act="social.apology.clarify.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Можете назвать человека, которому причинили вред?" />
 		<template id="v3.social.apology.reply.clarify.0058" act="social.apology.clarify.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Что вы поняли о своих действиях?" />
@@ -304,7 +304,7 @@
 		<template id="v3.social.apology.reply.clarify.0101" act="social.apology.clarify.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты признаёшь, что перебил и унизил меня?" />
 		<template id="v3.social.apology.reply.clarify.0102" act="social.apology.clarify.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно увидеть понимание, не раскаяние напоказ." />
 		<template id="v3.social.apology.reply.clarify.0103" act="social.apology.clarify.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ты согласен с официальным решением?" />
-		<template id="v3.social.apology.reply.clarify.0104" act="social.apology.clarify.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я продолжу разговор через посредника." />
+		<template id="v3.social.apology.reply.clarify.0104" act="social.apology.clarify.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Можно продолжить разговор через посредника." />
 		<template id="v3.social.apology.reply.clarify.0105" act="social.apology.clarify.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Соблюдайте расстояние, пока я принимаю решение." />
 		<template id="v3.social.apology.reply.clarify.0106" act="social.apology.clarify.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="О чём именно вы сожалеете сегодня?" />
 		<template id="v3.social.apology.reply.clarify.0107" act="social.apology.clarify.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Что уже сделано для устранения вреда?" />
@@ -316,12 +316,12 @@
 		<template id="v3.social.apology.reply.clarify.0113" act="social.apology.clarify.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Почему вы использовали мою личную историю?" />
 		<template id="v3.social.apology.reply.clarify.0114" act="social.apology.clarify.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Что вы скажете другим участникам?" />
 		<template id="v3.social.apology.reply.clarify.0115" act="social.apology.clarify.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты признаёшь, что нарушил согласие?" />
-		<template id="v3.social.apology.reply.clarify.0116" act="social.apology.clarify.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я хочу услышать прямое «я сделал»." />
+		<template id="v3.social.apology.reply.clarify.0116" act="social.apology.clarify.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Здесь нужно прямое признание своей роли." />
 		<template id="v3.social.apology.reply.clarify.0117" act="social.apology.clarify.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты готов вернуть награду?" />
 		<template id="v3.social.apology.reply.clarify.0118" act="social.apology.clarify.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я не обещаю продолжения отношений." />
 		<template id="v3.social.apology.reply.clarify.0119" act="social.apology.clarify.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не пишите мне больше." />
 		<template id="v3.social.apology.reply.clarify.0120" act="social.apology.clarify.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="За что вам труднее всего извиниться?" />
-		<template id="v3.social.apology.reply.clarify.0121" act="social.apology.clarify.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Что вы сделаете, если я откажу?" />
+		<template id="v3.social.apology.reply.clarify.0121" act="social.apology.clarify.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Что вы сделаете в случае отказа?" />
 		<template id="v3.social.apology.reply.clarify.0122" act="social.apology.clarify.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты можешь принять мой гнев без спора?" />
 		<template id="v3.social.apology.reply.clarify.0123" act="social.apology.clarify.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне нужно понять, видишь ли ты человека за конфликтом." />
 		<template id="v3.social.apology.reply.clarify.0124" act="social.apology.clarify.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Как ты исправишь давление на судью?" />
@@ -339,7 +339,7 @@
 		<template id="v3.social.apology.reply.clarify.0136" act="social.apology.clarify.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты можешь рассказать, не прося утешения?" />
 		<template id="v3.social.apology.reply.clarify.0137" act="social.apology.clarify.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно услышать уважение к границе." />
 		<template id="v3.social.apology.reply.clarify.0138" act="social.apology.clarify.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Как ты исправишь подменённый счёт?" />
-		<template id="v3.social.apology.reply.clarify.0139" act="social.apology.clarify.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я остановлю разговор при давлении." />
+		<template id="v3.social.apology.reply.clarify.0139" act="social.apology.clarify.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Разумнее остановить разговор при давлении." />
 		<template id="v3.social.apology.reply.clarify.0140" act="social.apology.clarify.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваши вопросы будут проигнорированы." />
 		<template id="v3.social.apology.reply.clarify.0141" act="social.apology.clarify.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Почему вы не извинились перед группой?" />
 		<template id="v3.social.apology.reply.clarify.0142" act="social.apology.clarify.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Что изменилось в вашем понимании?" />
@@ -360,7 +360,7 @@
 		<template id="v3.social.apology.reply.clarify.0157" act="social.apology.clarify.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты готов принять мои новые границы?" />
 		<template id="v3.social.apology.reply.clarify.0158" act="social.apology.clarify.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно, чтобы ты перестал оправдываться." />
 		<template id="v3.social.apology.reply.clarify.0159" act="social.apology.clarify.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты признаёшь нарушение правил полностью?" />
-		<template id="v3.social.apology.reply.clarify.0160" act="social.apology.clarify.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я буду говорить только письменно." />
+		<template id="v3.social.apology.reply.clarify.0160" act="social.apology.clarify.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Можно говорить только письменно." />
 		<template id="v3.social.apology.reply.clarify.0161" act="social.apology.clarify.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не пытайтесь приблизиться." />
 		<template id="v3.social.apology.reply.clarify.0162" act="social.apology.clarify.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="О чём вы молчали в первом извинении?" />
 		<template id="v3.social.apology.reply.clarify.0163" act="social.apology.clarify.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Что вы хотите исправить ради пострадавшего?" />
@@ -374,7 +374,7 @@
 		<template id="v3.social.apology.reply.clarify.0171" act="social.apology.clarify.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты признаёшь, что лишил меня выбора?" />
 		<template id="v3.social.apology.reply.clarify.0172" act="social.apology.clarify.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я хочу услышать, как ты восстановишь безопасность." />
 		<template id="v3.social.apology.reply.clarify.0173" act="social.apology.clarify.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты согласен с аннулированием победы?" />
-		<template id="v3.social.apology.reply.clarify.0174" act="social.apology.clarify.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я прекращу разговор после ответа." />
+		<template id="v3.social.apology.reply.clarify.0174" act="social.apology.clarify.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Лучше прекратить разговор после ответа." />
 		<template id="v3.social.apology.reply.clarify.0175" act="social.apology.clarify.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Закончите разговор и больше не пишите." />
 		<template id="v3.social.apology.reply.clarify.0176" act="social.apology.clarify.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="За что вы извиняетесь перед каждым участником?" />
 		<template id="v3.social.apology.reply.clarify.0177" act="social.apology.clarify.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Что вы уже сообщили организаторам?" />
@@ -395,7 +395,7 @@
 		<template id="v3.social.apology.reply.clarify.0192" act="social.apology.clarify.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты понимаешь, что мой ответ может быть окончательным?" />
 		<template id="v3.social.apology.reply.clarify.0193" act="social.apology.clarify.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я услышал достаточно и беру время." />
 		<template id="v3.social.apology.reply.clarify.0194" act="social.apology.clarify.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Считаешь ли ты прежний результат недействительным?" />
-		<template id="v3.social.apology.reply.clarify.0195" act="social.apology.clarify.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я ухожу после этой фразы." />
+		<template id="v3.social.apology.reply.clarify.0195" act="social.apology.clarify.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="После такой фразы человеку может понадобиться уйти." />
 		<template id="v3.social.apology.reply.clarify.0196" act="social.apology.clarify.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Больше не обращайтесь ко мне." />
 		<template id="v3.social.apology.reply.clarify.0197" act="social.apology.clarify.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Что вы считаете самым важным исправить сейчас?" />
 		<template id="v3.social.apology.reply.clarify.0198" act="social.apology.clarify.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можете назвать свой выбор одним ясным предложением?" />
@@ -404,7 +404,7 @@
 		<template id="v3.social.apology.reply.repair.0001" act="social.apology.repair.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Чужую вещь нужно вернуть владельцу и подтвердить передачу, если такая вещь есть." />
 		<template id="v3.social.apology.reply.repair.0002" act="social.apology.repair.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ошибочную опубликованную информацию стоит исправить как можно скорее." />
 		<template id="v3.social.apology.reply.repair.0003" act="social.apology.repair.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Честное сообщение команде может быть первым шагом, если вред затронул команду." />
-		<template id="v3.social.apology.reply.repair.0004" act="social.apology.repair.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Восстановление доступа — конкретный шаг только при реальной потере доступа." />
+		<template id="v3.social.apology.reply.repair.0004" act="social.apology.repair.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Восстановление доступа — конкретный и проверяемый шаг." />
 		<template id="v3.social.apology.reply.repair.0005" act="social.apology.repair.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Спорный раунд стоит переиграть по прежним правилам, если все это принимают." />
 		<template id="v3.social.apology.reply.repair.0006" act="social.apology.repair.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сначала прекрати нежелательный контакт." />
 		<template id="v3.social.apology.reply.repair.0007" act="social.apology.repair.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Любая попытка приблизиться ухудшит ситуацию." />
@@ -560,7 +560,7 @@
 		<template id="v3.social.apology.reply.repair.0157" act="social.apology.repair.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты можешь признать вклад другого в следующем сообщении." />
 		<template id="v3.social.apology.reply.repair.0158" act="social.apology.repair.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне важно, чтобы ущерб не повторялся." />
 		<template id="v3.social.apology.reply.repair.0159" act="social.apology.repair.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Согласись на аннулирование спорной партии." />
-		<template id="v3.social.apology.reply.repair.0160" act="social.apology.repair.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я сохраню дистанцию после исправления." />
+		<template id="v3.social.apology.reply.repair.0160" act="social.apology.repair.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Даже после исправления дистанция может сохраниться." />
 		<template id="v3.social.apology.reply.repair.0161" act="social.apology.repair.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не обращайтесь ко мне." />
 		<template id="v3.social.apology.reply.repair.0162" act="social.apology.repair.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Исправьте неверную цитату и укажите источник." />
 		<template id="v3.social.apology.reply.repair.0163" act="social.apology.repair.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Верните аванс за отменённую работу." />
@@ -581,7 +581,7 @@
 		<template id="v3.social.apology.reply.repair.0178" act="social.apology.repair.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты должен вернуть украденное авторство." />
 		<template id="v3.social.apology.reply.repair.0179" act="social.apology.repair.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я хочу видеть завершённый ремонт, не обещание." />
 		<template id="v3.social.apology.reply.repair.0180" act="social.apology.repair.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Откажись от дальнейших матчей до решения." />
-		<template id="v3.social.apology.reply.repair.0181" act="social.apology.repair.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я приму подтверждение через третье лицо." />
+		<template id="v3.social.apology.reply.repair.0181" act="social.apology.repair.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Стоит принять подтверждение через третье лицо." />
 		<template id="v3.social.apology.reply.repair.0182" act="social.apology.repair.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не появляйтесь у моего адреса для передачи материалов." />
 		<template id="v3.social.apology.reply.repair.0183" act="social.apology.repair.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Уберите запись из публичного архива." />
 		<template id="v3.social.apology.reply.repair.0184" act="social.apology.repair.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Верните доступ законному владельцу сегодня." />
@@ -620,12 +620,12 @@
 		<template id="v3.social.apology.reply.sincerity.0017" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь не доказывать искренность слезами." />
 		<template id="v3.social.apology.reply.sincerity.0018" act="social.apology.sincerity.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне знаком твой голос, когда ты действительно честен." />
 		<template id="v3.social.apology.reply.sincerity.0019" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, на этот раз без хитрых условий." />
-		<template id="v3.social.apology.reply.sincerity.0020" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я слушаю, но доверие пока не возвращаю." />
+		<template id="v3.social.apology.reply.sincerity.0020" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Искреннее слушание заметно по отсутствию защиты." />
 		<template id="v3.social.apology.reply.sincerity.0021" act="social.apology.sincerity.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваши слова не соответствуют действиям." />
 		<template id="v3.social.apology.reply.sincerity.0022" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вы говорите ради пострадавшего или ради себя?" />
 		<template id="v3.social.apology.reply.sincerity.0023" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне важно отсутствие слова «если» в извинении." />
 		<template id="v3.social.apology.reply.sincerity.0024" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты готов оставить меня без ответа?" />
-		<template id="v3.social.apology.reply.sincerity.0025" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я чувствую твоё настоящее сожаление." />
+		<template id="v3.social.apology.reply.sincerity.0025" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Настоящее сожаление должно быть заметно без нажима." />
 		<template id="v3.social.apology.reply.sincerity.0026" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Признай поражение без попытки пересчитать счёт." />
 		<template id="v3.social.apology.reply.sincerity.0027" act="social.apology.sincerity.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не спорю с чувствами, но наблюдаю за поступками." />
 		<template id="v3.social.apology.reply.sincerity.0028" act="social.apology.sincerity.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваше извинение используется для нового контакта." />
@@ -644,9 +644,9 @@
 		<template id="v3.social.apology.reply.sincerity.0041" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Пусть поступки сами покажут правду." />
 		<template id="v3.social.apology.reply.sincerity.0042" act="social.apology.sincerity.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не пытайтесь добиться моей реакции." />
 		<template id="v3.social.apology.reply.sincerity.0043" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="В вашем извинении есть ясность и уважение." />
-		<template id="v3.social.apology.reply.sincerity.0044" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы признаёте мой опыт без спора." />
-		<template id="v3.social.apology.reply.sincerity.0045" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты говоришь о своём выборе, и это важно." />
-		<template id="v3.social.apology.reply.sincerity.0046" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я верю, что ты понял глубину вреда." />
+		<template id="v3.social.apology.reply.sincerity.0044" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Неужели вы признаёте мой опыт без спора?" />
+		<template id="v3.social.apology.reply.sincerity.0045" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Зачем ты говоришь о своём выборе, и это важно?" />
+		<template id="v3.social.apology.reply.sincerity.0046" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хочется верить, что человек понял глубину вреда." />
 		<template id="v3.social.apology.reply.sincerity.0047" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, честность начинается с исправленного табло." />
 		<template id="v3.social.apology.reply.sincerity.0048" act="social.apology.sincerity.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне понадобится время оценить изменения." />
 		<template id="v3.social.apology.reply.sincerity.0049" act="social.apology.sincerity.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваши слова звучат как способ избежать последствий." />
@@ -666,7 +666,7 @@
 		<template id="v3.social.apology.reply.sincerity.0063" act="social.apology.sincerity.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваше раскаяние выглядит постановочным." />
 		<template id="v3.social.apology.reply.sincerity.0064" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не нужно усиливать искренность громкими обещаниями." />
 		<template id="v3.social.apology.reply.sincerity.0065" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваши слова совпадают с уже сделанным исправлением." />
-		<template id="v3.social.apology.reply.sincerity.0066" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты признаёшь границу без попытки её изменить." />
+		<template id="v3.social.apology.reply.sincerity.0066" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Неужели ты признаёшь границу без попытки её изменить?" />
 		<template id="v3.social.apology.reply.sincerity.0067" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне важно, что ты выдерживаешь тишину." />
 		<template id="v3.social.apology.reply.sincerity.0068" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Верни честный результат без ожидания похвалы." />
 		<template id="v3.social.apology.reply.sincerity.0069" act="social.apology.sincerity.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я услышал вас, но проверять буду поступками." />
@@ -674,19 +674,19 @@
 		<template id="v3.social.apology.reply.sincerity.0071" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ваше признание звучит просто и потому убедительно." />
 		<template id="v3.social.apology.reply.sincerity.0072" act="social.apology.sincerity.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Вы не скрываете неудобную часть истории." />
 		<template id="v3.social.apology.reply.sincerity.0073" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь сожалеть, не требуя утешения." />
-		<template id="v3.social.apology.reply.sincerity.0074" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я верю, что ты говоришь ради наших отношений." />
+		<template id="v3.social.apology.reply.sincerity.0074" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хочется верить, что человек говоришь ради наших отношений." />
 		<template id="v3.social.apology.reply.sincerity.0075" act="social.apology.sincerity.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, искренность не нуждается в форе." />
 		<template id="v3.social.apology.reply.sincerity.0076" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужно время увидеть устойчивое изменение." />
 		<template id="v3.social.apology.reply.sincerity.0077" act="social.apology.sincerity.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваши слова расходятся с новым нарушением." />
 		<template id="v3.social.apology.reply.sincerity.0078" act="social.apology.sincerity.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я не требую идеальной речи, только честной." />
 		<template id="v3.social.apology.reply.sincerity.0079" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы готовы исправить вред без моего участия?" />
 		<template id="v3.social.apology.reply.sincerity.0080" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты не ищешь лазейку в формулировке." />
-		<template id="v3.social.apology.reply.sincerity.0081" act="social.apology.sincerity.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне слышно, что ты понял мой страх." />
+		<template id="v3.social.apology.reply.sincerity.0081" act="social.apology.sincerity.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Понимание чужого страха слышно по словам." />
 		<template id="v3.social.apology.reply.sincerity.0082" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сними спорный балл прежде, чем говорить дальше." />
 		<template id="v3.social.apology.reply.sincerity.0083" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я допускаю искренность и сохраняю дистанцию." />
 		<template id="v3.social.apology.reply.sincerity.0084" act="social.apology.sincerity.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваше извинение не отменяет моего запрета." />
 		<template id="v3.social.apology.reply.sincerity.0085" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Спасибо, что говорите без публики." />
-		<template id="v3.social.apology.reply.sincerity.0086" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы признаёте последствия без преуменьшения." />
+		<template id="v3.social.apology.reply.sincerity.0086" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Неужели вы признаёте последствия без преуменьшения?" />
 		<template id="v3.social.apology.reply.sincerity.0087" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты готов не получить облегчение сегодня?" />
 		<template id="v3.social.apology.reply.sincerity.0088" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я вижу настоящее сожаление в твоём выборе действовать." />
 		<template id="v3.social.apology.reply.sincerity.0089" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, честный проигрыш докажет слова." />
@@ -695,7 +695,7 @@
 		<template id="v3.social.apology.reply.sincerity.0092" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне достаточно одного прямого признания." />
 		<template id="v3.social.apology.reply.sincerity.0093" act="social.apology.sincerity.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Вы не перекладываете ответственность на эмоции." />
 		<template id="v3.social.apology.reply.sincerity.0094" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь оставить красивую речь и назвать факт." />
-		<template id="v3.social.apology.reply.sincerity.0095" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я верю тебе, потому что ты уже исправляешь." />
+		<template id="v3.social.apology.reply.sincerity.0095" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Исправление ошибки делает доверие возможным." />
 		<template id="v3.social.apology.reply.sincerity.0096" act="social.apology.sincerity.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Откажись от титула без дополнительной сделки." />
 		<template id="v3.social.apology.reply.sincerity.0097" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне важно сохранить осторожность." />
 		<template id="v3.social.apology.reply.sincerity.0098" act="social.apology.sincerity.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваше сожаление не выглядит добровольным." />
@@ -704,12 +704,12 @@
 		<template id="v3.social.apology.reply.sincerity.0101" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты признаёшь моё право никогда не простить?" />
 		<template id="v3.social.apology.reply.sincerity.0102" act="social.apology.sincerity.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне видно, что ты не ищешь быстрый выход." />
 		<template id="v3.social.apology.reply.sincerity.0103" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, не считай извинение очком." />
-		<template id="v3.social.apology.reply.sincerity.0104" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я буду судить по длительным изменениям." />
+		<template id="v3.social.apology.reply.sincerity.0104" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Можно судить по длительным изменениям." />
 		<template id="v3.social.apology.reply.sincerity.0105" act="social.apology.sincerity.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваши слова сопровождаются угрозами и ничего не значат." />
 		<template id="v3.social.apology.reply.sincerity.0106" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Спасибо, что не объясняете, почему поступили так." />
-		<template id="v3.social.apology.reply.sincerity.0107" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы говорите от первого лица, это важно." />
+		<template id="v3.social.apology.reply.sincerity.0107" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Неужели вы говорите от первого лица, это важно?" />
 		<template id="v3.social.apology.reply.sincerity.0108" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты готов исправить всё без гарантии отношений?" />
-		<template id="v3.social.apology.reply.sincerity.0109" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я чувствую, что ты наконец услышал меня." />
+		<template id="v3.social.apology.reply.sincerity.0109" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Искренность чувствуется, когда человек наконец услышал сказанное." />
 		<template id="v3.social.apology.reply.sincerity.0110" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Верни награду и не жди благодарности." />
 		<template id="v3.social.apology.reply.sincerity.0111" act="social.apology.sincerity.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я принимаю слова, но не снимаю границы." />
 		<template id="v3.social.apology.reply.sincerity.0112" act="social.apology.sincerity.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваше присутствие здесь противоречит извинению." />
@@ -725,10 +725,10 @@
 		<template id="v3.social.apology.reply.sincerity.0122" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты не пытаешься получить прощение как награду." />
 		<template id="v3.social.apology.reply.sincerity.0123" act="social.apology.sincerity.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне слышно уважение к моей боли." />
 		<template id="v3.social.apology.reply.sincerity.0124" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Откажись от реванша, пока вред не исправлен." />
-		<template id="v3.social.apology.reply.sincerity.0125" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я наблюдаю за действиями без обещания ответа." />
+		<template id="v3.social.apology.reply.sincerity.0125" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Поступки можно наблюдать без обещания ответа." />
 		<template id="v3.social.apology.reply.sincerity.0126" act="social.apology.sincerity.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не связывайтесь со мной после этой речи." />
 		<template id="v3.social.apology.reply.sincerity.0127" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ваше извинение выдерживает неудобные вопросы." />
-		<template id="v3.social.apology.reply.sincerity.0128" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы признаёте вред, хотя не можете его отменить." />
+		<template id="v3.social.apology.reply.sincerity.0128" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Неужели вы признаёте вред, хотя не можете его отменить?" />
 		<template id="v3.social.apology.reply.sincerity.0129" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты готов дать мне месяцы, а не минуты?" />
 		<template id="v3.social.apology.reply.sincerity.0130" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я доверяю твоей честности в этом разговоре." />
 		<template id="v3.social.apology.reply.sincerity.0131" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, настоящая ответственность не спорит с судьёй." />
@@ -736,10 +736,10 @@
 		<template id="v3.social.apology.reply.sincerity.0133" act="social.apology.sincerity.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваши слова противоречат продолжению преследования." />
 		<template id="v3.social.apology.reply.sincerity.0134" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Искреннее извинение не требует улыбки в ответ." />
 		<template id="v3.social.apology.reply.sincerity.0135" act="social.apology.sincerity.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Вы можете завершить разговор без просьбы о прощении?" />
-		<template id="v3.social.apology.reply.sincerity.0136" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты признаёшь именно свой поступок." />
-		<template id="v3.social.apology.reply.sincerity.0137" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я слышу, что ты понял, а не просто запомнил фразу." />
+		<template id="v3.social.apology.reply.sincerity.0136" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Почему ты признаёшь именно свой поступок?" />
+		<template id="v3.social.apology.reply.sincerity.0137" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Важно понять смысл, а не просто запомнить фразу." />
 		<template id="v3.social.apology.reply.sincerity.0138" act="social.apology.sincerity.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Верни равные условия и молча отойди." />
-		<template id="v3.social.apology.reply.sincerity.0139" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я оставляю решение на будущее." />
+		<template id="v3.social.apology.reply.sincerity.0139" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Разумнее оставлять решение на будущее." />
 		<template id="v3.social.apology.reply.sincerity.0140" act="social.apology.sincerity.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваш контакт остаётся нежелательным." />
 		<template id="v3.social.apology.reply.sincerity.0141" act="social.apology.sincerity.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Спасибо за отсутствие громких клятв." />
 		<template id="v3.social.apology.reply.sincerity.0142" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы не делаете мою реакцию проблемой." />
@@ -750,7 +750,7 @@
 		<template id="v3.social.apology.reply.sincerity.0147" act="social.apology.sincerity.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваше извинение неискренне, пока давление продолжается." />
 		<template id="v3.social.apology.reply.sincerity.0148" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне не нужно видеть вашу вину, мне нужна ответственность." />
 		<template id="v3.social.apology.reply.sincerity.0149" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы готовы перестать рассказывать эту историю о себе?" />
-		<template id="v3.social.apology.reply.sincerity.0150" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты признаёшь, что мог остановиться раньше." />
+		<template id="v3.social.apology.reply.sincerity.0150" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Неужели ты признаёшь, что мог остановиться раньше?" />
 		<template id="v3.social.apology.reply.sincerity.0151" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я вижу разницу между страхом и раскаянием." />
 		<template id="v3.social.apology.reply.sincerity.0152" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Исправь протокол без победной позы." />
 		<template id="v3.social.apology.reply.sincerity.0153" act="social.apology.sincerity.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не обещаю, что поверю быстро." />
@@ -760,7 +760,7 @@
 		<template id="v3.social.apology.reply.sincerity.0157" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты готов менять поведение без напоминаний?" />
 		<template id="v3.social.apology.reply.sincerity.0158" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне важно, что ты не просишь забыть." />
 		<template id="v3.social.apology.reply.sincerity.0159" act="social.apology.sincerity.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, докажи искренность соблюдением правил." />
-		<template id="v3.social.apology.reply.sincerity.0160" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я сохраняю сомнение и право на дистанцию." />
+		<template id="v3.social.apology.reply.sincerity.0160" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Можно сохранять сомнение и право на дистанцию." />
 		<template id="v3.social.apology.reply.sincerity.0161" act="social.apology.sincerity.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваши действия после извинения снова причиняют вред." />
 		<template id="v3.social.apology.reply.sincerity.0162" act="social.apology.sincerity.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не повторяйте речь; покажите изменение." />
 		<template id="v3.social.apology.reply.sincerity.0163" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы можете принять молчание как ответ?" />
@@ -770,7 +770,7 @@
 		<template id="v3.social.apology.reply.sincerity.0167" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне понадобится не один спокойный день." />
 		<template id="v3.social.apology.reply.sincerity.0168" act="social.apology.sincerity.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваше раскаяние не снимает запрета на контакт." />
 		<template id="v3.social.apology.reply.sincerity.0169" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Спасибо, что не просите пожалеть вас." />
-		<template id="v3.social.apology.reply.sincerity.0170" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы признаёте выбор без ссылки на стресс." />
+		<template id="v3.social.apology.reply.sincerity.0170" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Неужели вы признаёте выбор без ссылки на стресс?" />
 		<template id="v3.social.apology.reply.sincerity.0171" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты готов исправлять, когда никто не смотрит?" />
 		<template id="v3.social.apology.reply.sincerity.0172" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я верю, что ты не хочешь повторения." />
 		<template id="v3.social.apology.reply.sincerity.0173" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, верни победу тому, кто её заслужил." />
@@ -785,7 +785,7 @@
 		<template id="v3.social.apology.reply.sincerity.0182" act="social.apology.sincerity.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваши слова не перевешивают угрозы." />
 		<template id="v3.social.apology.reply.sincerity.0183" act="social.apology.sincerity.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Искренность проявится после завершения разговора." />
 		<template id="v3.social.apology.reply.sincerity.0184" act="social.apology.sincerity.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы можете уйти, не добиваясь прощения?" />
-		<template id="v3.social.apology.reply.sincerity.0185" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты признаёшь, что вред был предсказуем." />
+		<template id="v3.social.apology.reply.sincerity.0185" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Зачем ты признаёшь, что вред был предсказуем?" />
 		<template id="v3.social.apology.reply.sincerity.0186" act="social.apology.sincerity.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я слышу честность в отсутствии оправданий." />
 		<template id="v3.social.apology.reply.sincerity.0187" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, поступи правильно без счёта и зрителей." />
 		<template id="v3.social.apology.reply.sincerity.0188" act="social.apology.sincerity.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужно оставить дверь закрытой." />
@@ -795,11 +795,11 @@
 		<template id="v3.social.apology.reply.sincerity.0192" act="social.apology.sincerity.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь показать сожаление уважением к границе." />
 		<template id="v3.social.apology.reply.sincerity.0193" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я принимаю вероятность настоящего изменения." />
 		<template id="v3.social.apology.reply.sincerity.0194" act="social.apology.sincerity.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Исправь результат и не называй это жертвой." />
-		<template id="v3.social.apology.reply.sincerity.0195" act="social.apology.sincerity.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Дальше я буду смотреть только на поступки." />
+		<template id="v3.social.apology.reply.sincerity.0195" act="social.apology.sincerity.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Дальше можно смотреть только на поступки." />
 		<template id="v3.social.apology.reply.sincerity.0196" act="social.apology.sincerity.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваше присутствие подтверждает неуважение к отказу." />
 		<template id="v3.social.apology.reply.sincerity.0197" act="social.apology.sincerity.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ваши слова звучат честно даже без красивого финала." />
 		<template id="v3.social.apology.reply.sincerity.0198" act="social.apology.sincerity.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Вы готовы действовать без моего одобрения." />
-		<template id="v3.social.apology.reply.sincerity.0199" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты признаёшь вред и не просишь снизить последствия." />
+		<template id="v3.social.apology.reply.sincerity.0199" act="social.apology.sincerity.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Правда ты признаёшь вред и не просишь снизить последствия?" />
 		<template id="v3.social.apology.reply.sincerity.0200" act="social.apology.sincerity.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я верю твоему намерению уважать мои границы." />
 	</templates>
 </humanizedV3ConversationSegment>

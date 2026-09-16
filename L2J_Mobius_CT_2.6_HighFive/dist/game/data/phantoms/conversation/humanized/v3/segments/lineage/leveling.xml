@@ -31,7 +31,7 @@
 		<template id="v3.lineage.leveling.reply.pace.0028" act="lineage.leveling.pace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можешь суетиться сколько угодно, мой ритм ты не задаёшь." />
 		<template id="v3.lineage.leveling.reply.pace.0029" act="lineage.leveling.pace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Похоже, сегодня разумнее взять часть уровня и спокойно остановиться." />
 		<template id="v3.lineage.leveling.reply.pace.0030" act="lineage.leveling.pace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не обязательно апаться за один вечер; прогресс и так заметный." />
-		<template id="v3.lineage.leveling.reply.pace.0031" act="lineage.leveling.pace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Да мы уже нормально качнулись, можно не выжимать из спота последние крохи." />
+		<template id="v3.lineage.leveling.reply.pace.0031" act="lineage.leveling.pace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="После хорошей прокачки незачем выжимать из спота последние крохи." />
 		<template id="v3.lineage.leveling.reply.pace.0032" act="lineage.leveling.pace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне важнее, чтобы ты не устал на финише, чем ещё пара процентов сверху." />
 		<template id="v3.lineage.leveling.reply.pace.0033" act="lineage.leveling.pace.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Сбавляй, если тяжело. Я всё равно закончу круг раньше." />
 		<template id="v3.lineage.leveling.reply.pace.0034" act="lineage.leveling.pace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Хватит обсуждать скорость. Либо качаемся, либо расходимся." />
@@ -39,9 +39,9 @@
 		<template id="v3.lineage.leveling.reply.pace.0036" act="lineage.leveling.pace.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Сначала сравним несколько заходов, иначе спорим на пустом месте." />
 		<template id="v3.lineage.leveling.reply.pace.0037" act="lineage.leveling.pace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="На длинной сессии ровный прирост обычно приятнее резкого старта." />
 		<template id="v3.lineage.leveling.reply.pace.0038" act="lineage.leveling.pace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="По мне, лучше медленно ползти к апу, чем красиво умереть от скуки." />
-		<template id="v3.lineage.leveling.reply.pace.0039" act="lineage.leveling.pace.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я подстроюсь; скажи только, когда захочешь сменить скорость." />
+		<template id="v3.lineage.leveling.reply.pace.0039" act="lineage.leveling.pace.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Разумнее подстроиться; скажи только, когда захочешь сменить скорость." />
 		<template id="v3.lineage.leveling.reply.pace.0040" act="lineage.leveling.pace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Держись рядом, чемпион: твой спринт пока от моего шага не ушёл." />
-		<template id="v3.lineage.leveling.reply.pace.0041" act="lineage.leveling.pace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Без гонки. У меня нет желания потом собирать ошибки." />
+		<template id="v3.lineage.leveling.reply.pace.0041" act="lineage.leveling.pace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Без желания потом собирать ошибки темп лучше снизить заранее." />
 		<template id="v3.lineage.leveling.reply.pace.0042" act="lineage.leveling.pace.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Слова про быстрый кач оставь тем, кто действительно умеет его держать." />
 		<template id="v3.lineage.leveling.reply.pace.0043" act="lineage.leveling.pace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если цель — один ап, можно ненадолго прибавить и потом сделать паузу." />
 		<template id="v3.lineage.leveling.reply.pace.0044" act="lineage.leveling.pace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Предлагаю добрать ближайший процент и решить по самочувствию." />
@@ -74,22 +74,22 @@
 		<template id="v3.lineage.leveling.reply.pace.0071" act="lineage.leveling.pace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Быстрый ап звучит заманчиво, но я не стал бы ради него рисковать всей сессией." />
 		<template id="v3.lineage.leveling.reply.pace.0072" act="lineage.leveling.pace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если группа согласна, можем ненадолго поднять темп." />
 		<template id="v3.lineage.leveling.reply.pace.0073" act="lineage.leveling.pace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ну всё, режим «ещё один процент» официально включён." />
-		<template id="v3.lineage.leveling.reply.pace.0074" act="lineage.leveling.pace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты хотел ап сегодня — давай попробуем, только без надрыва." />
+		<template id="v3.lineage.leveling.reply.pace.0074" act="lineage.leveling.pace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты хотел ап сегодня — давай попробуем, только без надрыва?" />
 		<template id="v3.lineage.leveling.reply.pace.0075" act="lineage.leveling.pace.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Гони сильнее, мне нужен достойный соперник, а не экскурсовод." />
-		<template id="v3.lineage.leveling.reply.pace.0076" act="lineage.leveling.pace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не командуй скоростью. Свою часть я делаю." />
+		<template id="v3.lineage.leveling.reply.pace.0076" act="lineage.leveling.pace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не командуй скоростью. Свою часть можно делать." />
 		<template id="v3.lineage.leveling.reply.pace.0077" act="lineage.leveling.pace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Рывок ради красивой цифры — слабая причина мешать остальным." />
 		<template id="v3.lineage.leveling.reply.pace.0078" act="lineage.leveling.pace.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Неясно, что для тебя важнее: сам уровень или удовольствие от игры." />
 		<template id="v3.lineage.leveling.reply.pace.0079" act="lineage.leveling.pace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нравится, когда прогресс виден, но не требует смотреть на часы." />
 		<template id="v3.lineage.leveling.reply.pace.0080" act="lineage.leveling.pace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Кач идёт так ровно, что даже пожаловаться толком не на что." />
 		<template id="v3.lineage.leveling.reply.pace.0081" act="lineage.leveling.pace.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Хочешь, останемся ещё на пару кругов и закроем остаток вместе." />
-		<template id="v3.lineage.leveling.reply.pace.0082" act="lineage.leveling.pace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Можешь считать проценты, я лучше посчитаю, сколько раз ты отстал." />
+		<template id="v3.lineage.leveling.reply.pace.0082" act="lineage.leveling.pace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Разве можешь считать проценты, я лучше посчитаю, сколько раз ты отстал?" />
 		<template id="v3.lineage.leveling.reply.pace.0083" act="lineage.leveling.pace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не отвлекайся на полоску. Продолжаем." />
 		<template id="v3.lineage.leveling.reply.pace.0084" act="lineage.leveling.pace.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мне безразличен твой отчёт по опыту. Делом займись." />
 		<template id="v3.lineage.leveling.reply.pace.0085" act="lineage.leveling.pace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я бы не менял скорость только из-за одного неудачного отрезка." />
 		<template id="v3.lineage.leveling.reply.pace.0086" act="lineage.leveling.pace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Иногда экспа проседает, зато группа не тратит время на восстановление." />
 		<template id="v3.lineage.leveling.reply.pace.0087" act="lineage.leveling.pace.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Медленно, зато торжественно — почти парад в честь будущего апа." />
 		<template id="v3.lineage.leveling.reply.pace.0088" act="lineage.leveling.pace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Спокойный ритм нам сейчас полезнее; я не хочу, чтобы ты выдохся." />
-		<template id="v3.lineage.leveling.reply.pace.0089" act="lineage.leveling.pace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Пока ты бережёшь силы, я успею забрать лидерство по процентам." />
+		<template id="v3.lineage.leveling.reply.pace.0089" act="lineage.leveling.pace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Пока ты бережёшь силы, можно успеть забрать лидерство по процентам." />
 		<template id="v3.lineage.leveling.reply.pace.0090" act="lineage.leveling.pace.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не ускоряемся. Я уже сказал." />
 		<template id="v3.lineage.leveling.reply.pace.0091" act="lineage.leveling.pace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Продолжай ныть про темп — может, полоска сжалится." />
 		<template id="v3.lineage.leveling.reply.pace.0092" act="lineage.leveling.pace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если все держат ритм без ошибок, можно считать его подходящим." />
@@ -129,8 +129,8 @@
 		<template id="v3.lineage.leveling.reply.pace.0126" act="lineage.leveling.pace.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не строй планы на мой вечер, раз со своим темпом не разобрался." />
 		<template id="v3.lineage.leveling.reply.pace.0127" act="lineage.leveling.pace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Короткое ускорение уместно, если после него не придётся долго восстанавливаться." />
 		<template id="v3.lineage.leveling.reply.pace.0128" act="lineage.leveling.pace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можем добавить темп на один круг и сравнить результат." />
-		<template id="v3.lineage.leveling.reply.pace.0129" act="lineage.leveling.pace.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Проверим турборежим, только пристегнуть соски я забыл." />
-		<template id="v3.lineage.leveling.reply.pace.0130" act="lineage.leveling.pace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я прикрою, если на ускорении что-то пойдёт не так." />
+		<template id="v3.lineage.leveling.reply.pace.0129" act="lineage.leveling.pace.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Забытый маршрут проще восстановить по ближайшей точке." />
+		<template id="v3.lineage.leveling.reply.pace.0130" act="lineage.leveling.pace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Лучше прикрыть, если на ускорении что-то пойдёт не так." />
 		<template id="v3.lineage.leveling.reply.pace.0131" act="lineage.leveling.pace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давай быстрее: хочу проверить, где у тебя заканчивается уверенность." />
 		<template id="v3.lineage.leveling.reply.pace.0132" act="lineage.leveling.pace.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Один пробный круг. Без продолжения по умолчанию." />
 		<template id="v3.lineage.leveling.reply.pace.0133" act="lineage.leveling.pace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не втягивай меня в очередной бессмысленный рывок." />
@@ -138,13 +138,13 @@
 		<template id="v3.lineage.leveling.reply.pace.0135" act="lineage.leveling.pace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я лучше потеряю немного опыта, чем начну постоянно исправлять чужую спешку." />
 		<template id="v3.lineage.leveling.reply.pace.0136" act="lineage.leveling.pace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Гоним так, будто за ап дают отпуск. Жаль, что не дают." />
 		<template id="v3.lineage.leveling.reply.pace.0137" act="lineage.leveling.pace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Береги силы; один вечер не стоит того, чтобы потом ненавидеть этот уровень." />
-		<template id="v3.lineage.leveling.reply.pace.0138" act="lineage.leveling.pace.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не переживай за меня, соперник. Я выдержу и твой темп, и твои оправдания." />
+		<template id="v3.lineage.leveling.reply.pace.0138" act="lineage.leveling.pace.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не переживай за меня, соперник. можно выдержать и твой темп, и твои оправдания." />
 		<template id="v3.lineage.leveling.reply.pace.0139" act="lineage.leveling.pace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сбавь. Ошибок стало больше." />
-		<template id="v3.lineage.leveling.reply.pace.0140" act="lineage.leveling.pace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты уже мешаешь всем своей погоней за цифрой." />
+		<template id="v3.lineage.leveling.reply.pace.0140" act="lineage.leveling.pace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Почему ты мешаешь всем своей погоней за цифрой?" />
 		<template id="v3.lineage.leveling.reply.pace.0141" act="lineage.leveling.pace.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если цель просто приятно поиграть, текущей скорости вполне достаточно." />
 		<template id="v3.lineage.leveling.reply.pace.0142" act="lineage.leveling.pace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не каждый заход обязан заканчиваться уровнем — иногда хватает хорошего прогресса." />
 		<template id="v3.lineage.leveling.reply.pace.0143" act="lineage.leveling.pace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сегодня кач без рекордов, зато и клавиатура останется целой." />
-		<template id="v3.lineage.leveling.reply.pace.0144" act="lineage.leveling.pace.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне хорошо в таком ритме, особенно когда не приходится тебя торопить." />
+		<template id="v3.lineage.leveling.reply.pace.0144" act="lineage.leveling.pace.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Комфортный темп не нужно ускорять ради чужой таблицы." />
 		<template id="v3.lineage.leveling.reply.pace.0145" act="lineage.leveling.pace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Отдыхай, я тем временем создам тебе удобную цель для погони." />
 		<template id="v3.lineage.leveling.reply.pace.0146" act="lineage.leveling.pace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Рекорды отменяются. Просто докачиваем отрезок." />
 		<template id="v3.lineage.leveling.reply.pace.0147" act="lineage.leveling.pace.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Своё представление об отдыхе оставь при себе и не тормози меня." />
@@ -175,7 +175,7 @@
 		<template id="v3.lineage.leveling.reply.pace.0172" act="lineage.leveling.pace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я с тобой до апа; осталось совсем немного." />
 		<template id="v3.lineage.leveling.reply.pace.0173" act="lineage.leveling.pace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не расслабляйся у самой черты, я всё ещё могу апнуться первым." />
 		<template id="v3.lineage.leveling.reply.pace.0174" act="lineage.leveling.pace.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Добиваем уровень и расходимся. Чётко." />
-		<template id="v3.lineage.leveling.reply.pace.0175" act="lineage.leveling.pace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не рассчитывай, что я буду праздновать твою новую цифру." />
+		<template id="v3.lineage.leveling.reply.pace.0175" act="lineage.leveling.pace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не рассчитывай, что можно праздновать твою новую цифру." />
 		<template id="v3.lineage.leveling.reply.pace.0176" act="lineage.leveling.pace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Плохой прирост бывает из-за рваного маршрута, а не только из-за слабого темпа боя." />
 		<template id="v3.lineage.leveling.reply.pace.0177" act="lineage.leveling.pace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Давайте меньше бегать туда-сюда — опыт сразу станет выглядеть веселее." />
 		<template id="v3.lineage.leveling.reply.pace.0178" act="lineage.leveling.pace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Полвечера в дороге, зато ноги прокачали без единого процента." />
@@ -226,13 +226,13 @@
 		<template id="v3.lineage.leveling.reply.route.0023" act="lineage.leveling.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не хочется терять полсессии на переход ради сомнительной прибавки." />
 		<template id="v3.lineage.leveling.reply.route.0024" act="lineage.leveling.route.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Снова бежать через полкарты? Мои проценты уже попрощались со мной." />
 		<template id="v3.lineage.leveling.reply.route.0025" act="lineage.leveling.route.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Останемся здесь, если ты устал; хороший вечер важнее идеального спота." />
-		<template id="v3.lineage.leveling.reply.route.0026" act="lineage.leveling.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можешь остаться, пока я занимаю место получше." />
+		<template id="v3.lineage.leveling.reply.route.0026" act="lineage.leveling.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Пока одно место занято, можно поискать вариант получше." />
 		<template id="v3.lineage.leveling.reply.route.0027" act="lineage.leveling.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Никуда не бегу. Предложи что-нибудь убедительное." />
 		<template id="v3.lineage.leveling.reply.route.0028" act="lineage.leveling.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Тратить время на твою очередную находку я не собираюсь." />
 		<template id="v3.lineage.leveling.reply.route.0029" act="lineage.leveling.route.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Для начала стоит проверить, не переросли ли мы местных мобов окончательно." />
 		<template id="v3.lineage.leveling.reply.route.0030" act="lineage.leveling.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="По ощущениям, опыт здесь просел достаточно, чтобы собираться дальше." />
 		<template id="v3.lineage.leveling.reply.route.0031" act="lineage.leveling.route.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мобы смотрят на нас как на начальство: страшно, но награды никакой." />
-		<template id="v3.lineage.leveling.reply.route.0032" act="lineage.leveling.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты уже сильнее этого места; найдём тебе цель поинтереснее." />
+		<template id="v3.lineage.leveling.reply.route.0032" act="lineage.leveling.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Неужели ты уже сильнее этого места; найдём тебе цель поинтереснее?" />
 		<template id="v3.lineage.leveling.reply.route.0033" act="lineage.leveling.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если уверен, что перерос спот, докажи это на следующем." />
 		<template id="v3.lineage.leveling.reply.route.0034" act="lineage.leveling.route.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Собираемся. Здесь задерживаться глупо." />
 		<template id="v3.lineage.leveling.reply.route.0035" act="lineage.leveling.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Наконец заметил очевидное. Этот спот был слабым ещё час назад." />
@@ -240,14 +240,14 @@
 		<template id="v3.lineage.leveling.reply.route.0037" act="lineage.leveling.route.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Плотный маршрут обычно даёт больше пользы, чем красивый вид вокруг." />
 		<template id="v3.lineage.leveling.reply.route.0038" act="lineage.leveling.route.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Нужен спот, где бегают мобы, а не мы. Для разнообразия." />
 		<template id="v3.lineage.leveling.reply.route.0039" act="lineage.leveling.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай выберем компактное место, чтобы не теряться друг у друга из виду." />
-		<template id="v3.lineage.leveling.reply.route.0040" act="lineage.leveling.route.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="На длинной дороге я успею обогнать тебя даже стоя на месте." />
+		<template id="v3.lineage.leveling.reply.route.0040" act="lineage.leveling.route.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="На длинной дороге можно успеть обогнать тебя даже стоя на месте." />
 		<template id="v3.lineage.leveling.reply.route.0041" act="lineage.leveling.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Без лишней беготни. Иначе остаёмся здесь." />
 		<template id="v3.lineage.leveling.reply.route.0042" act="lineage.leveling.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Твой талант находить самый длинный путь начинает утомлять." />
 		<template id="v3.lineage.leveling.reply.route.0043" act="lineage.leveling.route.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Неизвестный спот сначала лучше проверить коротким заходом, а не переносить туда весь вечер." />
 		<template id="v3.lineage.leveling.reply.route.0044" act="lineage.leveling.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можем разведать место и решить по фактическому ритму." />
 		<template id="v3.lineage.leveling.reply.route.0045" act="lineage.leveling.route.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Пять минут разведки спасут нас от часа героического сожаления." />
-		<template id="v3.lineage.leveling.reply.route.0046" act="lineage.leveling.route.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я схожу рядом; ты пока не срывайся с места без нужды." />
-		<template id="v3.lineage.leveling.reply.route.0047" act="lineage.leveling.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Проверяй первым. Мне любопытно, как быстро ты вернёшься." />
+		<template id="v3.lineage.leveling.reply.route.0046" act="lineage.leveling.route.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Лучше идти рядом; без нужды срываться с места не стоит." />
+		<template id="v3.lineage.leveling.reply.route.0047" act="lineage.leveling.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Серьёзно, проверяй первым. Мне любопытно, как быстро ты вернёшься?" />
 		<template id="v3.lineage.leveling.reply.route.0048" act="lineage.leveling.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разведка — и назад. Никаких внезапных планов." />
 		<template id="v3.lineage.leveling.reply.route.0049" act="lineage.leveling.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Сам проверяй свою идею, я за тобой по каждому капризу не бегаю." />
 		<template id="v3.lineage.leveling.reply.route.0050" act="lineage.leveling.route.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если на месте постоянно мешают другие группы, стабильного кача всё равно не получится." />
@@ -345,7 +345,7 @@
 		<template id="v3.lineage.leveling.reply.route.0142" act="lineage.leveling.route.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Если ресурсы не проседают и группа держится, место нам подходит." />
 		<template id="v3.lineage.leveling.reply.route.0143" act="lineage.leveling.route.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Пережили первый круг — уже неплохо. Теперь выясним, было ли это случайностью." />
 		<template id="v3.lineage.leveling.reply.route.0144" act="lineage.leveling.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я рядом; проверим нагрузку осторожно и не будем геройствовать." />
-		<template id="v3.lineage.leveling.reply.route.0145" act="lineage.leveling.route.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Надеюсь, ты выбрал что-то достойное, а не очередную тренировочную площадку." />
+		<template id="v3.lineage.leveling.reply.route.0145" act="lineage.leveling.route.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Хочется надеяться, что человек выбрал что-то достойное, а не очередную тренировочную площадку." />
 		<template id="v3.lineage.leveling.reply.route.0146" act="lineage.leveling.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Первый круг спокойно. Потом ускоримся." />
 		<template id="v3.lineage.leveling.reply.route.0147" act="lineage.leveling.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если опять переоценил место, разгребать последствия будешь сам." />
 		<template id="v3.lineage.leveling.reply.route.0148" act="lineage.leveling.route.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Необязательно уходить далеко: иногда соседний участок уже решает проблему с плотностью целей." />
@@ -368,7 +368,7 @@
 		<template id="v3.lineage.leveling.reply.route.0165" act="lineage.leveling.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай запомним второй вариант; вместе проще не паниковать при смене планов." />
 		<template id="v3.lineage.leveling.reply.route.0166" act="lineage.leveling.route.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Запасной путь пригодится, если лучший спот окажется занят." />
 		<template id="v3.lineage.leveling.reply.route.0167" act="lineage.leveling.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Назови резервное место сейчас. Потом обсуждать не будем." />
-		<template id="v3.lineage.leveling.reply.route.0168" act="lineage.leveling.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Без запасного плана ты снова приведёшь всех в тупик." />
+		<template id="v3.lineage.leveling.reply.route.0168" act="lineage.leveling.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели без запасного плана ты снова приведёшь всех в тупик?" />
 		<template id="v3.lineage.leveling.reply.route.0169" act="lineage.leveling.route.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если уровень группы скоро изменится, маршрут лучше выбирать с небольшим запасом вперёд." />
 		<template id="v3.lineage.leveling.reply.route.0170" act="lineage.leveling.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Новый спот должен прожить хотя бы пару апов, иначе замучаемся переезжать." />
 		<template id="v3.lineage.leveling.reply.route.0171" act="lineage.leveling.route.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Хочется место, которое не устареет быстрее, чем мы распакуемся." />
@@ -379,7 +379,7 @@
 		<template id="v3.lineage.leveling.reply.route.0176" act="lineage.leveling.route.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я бы сравнил не только опыт, но и то, насколько часто на месте приходится прерывать бой." />
 		<template id="v3.lineage.leveling.reply.route.0177" act="lineage.leveling.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Спот хорош, когда можно долго держать понятный ритм без лишних сюрпризов." />
 		<template id="v3.lineage.leveling.reply.route.0178" act="lineage.leveling.route.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если каждую минуту что-то мешает, это уже не кач, а сборник случайных событий." />
-		<template id="v3.lineage.leveling.reply.route.0179" act="lineage.leveling.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важна предсказуемость; так я могу лучше поддержать тебя в бою." />
+		<template id="v3.lineage.leveling.reply.route.0179" act="lineage.leveling.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Предсказуемость помогает лучше поддерживать союзника в бою." />
 		<template id="v3.lineage.leveling.reply.route.0180" act="lineage.leveling.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сюрпризы оставь себе. Я предпочитаю побеждать по плану." />
 		<template id="v3.lineage.leveling.reply.route.0181" act="lineage.leveling.route.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Маршрут должен быть стабильным. Остальное вторично." />
 		<template id="v3.lineage.leveling.reply.route.0182" act="lineage.leveling.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="С тобой даже ровный спот становится полосой препятствий." />
@@ -404,7 +404,7 @@
 		<template id="v3.lineage.leveling.reply.progress.0001" act="lineage.leveling.progress.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После одного захода вывод делать рано, даже если полоска сдвинулась." />
 		<template id="v3.lineage.leveling.reply.progress.0002" act="lineage.leveling.progress.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Заметный прогресс обычно означает, что время на споте потрачено не зря." />
 		<template id="v3.lineage.leveling.reply.progress.0003" act="lineage.leveling.progress.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Появившиеся проценты доказывают кач лучше любых фанфар." />
-		<template id="v3.lineage.leveling.reply.progress.0004" act="lineage.leveling.progress.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Хороший прирост заслуживает признания без выдуманного общего вечера." />
+		<template id="v3.lineage.leveling.reply.progress.0004" act="lineage.leveling.progress.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Хороший прирост заслуживает признания сам по себе." />
 		<template id="v3.lineage.leveling.reply.progress.0005" act="lineage.leveling.progress.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Сравнивать прирост стоит только по реальным цифрам." />
 		<template id="v3.lineage.leveling.reply.progress.0006" act="lineage.leveling.progress.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если прогресс есть, иногда этого уже достаточно." />
 		<template id="v3.lineage.leveling.reply.progress.0007" act="lineage.leveling.progress.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Пара процентов ещё не обязана быть достижением." />
@@ -430,7 +430,7 @@
 		<template id="v3.lineage.leveling.reply.progress.0027" act="lineage.leveling.progress.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Хороший круг. Повторяем молча." />
 		<template id="v3.lineage.leveling.reply.progress.0028" act="lineage.leveling.progress.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Один удачный отрезок не исправит весь твой вялый вечер." />
 		<template id="v3.lineage.leveling.reply.progress.0029" act="lineage.leveling.progress.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Почти полный уровень за сессию — сильный результат, если цифры посчитаны верно." />
-		<template id="v3.lineage.leveling.reply.progress.0030" act="lineage.leveling.progress.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сегодня получилось заметно лучше, чем я ожидал." />
+		<template id="v3.lineage.leveling.reply.progress.0030" act="lineage.leveling.progress.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Результат может оказаться заметно лучше ожиданий." />
 		<template id="v3.lineage.leveling.reply.progress.0031" act="lineage.leveling.progress.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мы так разогнались, что полоска сама попросит перерыв." />
 		<template id="v3.lineage.leveling.reply.progress.0032" act="lineage.leveling.progress.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я рад за тебя; ты давно хотел увидеть такой прирост." />
 		<template id="v3.lineage.leveling.reply.progress.0033" act="lineage.leveling.progress.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Почти уровень? Тогда не расслабляйся, я уже готов забрать следующий." />
@@ -498,7 +498,7 @@
 		<template id="v3.lineage.leveling.reply.progress.0095" act="lineage.leveling.progress.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="У самой цели особенно легко сорваться в бессмысленную спешку." />
 		<template id="v3.lineage.leveling.reply.progress.0096" act="lineage.leveling.progress.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Близость апа не делает тебя быстрее. Держи ритм." />
 		<template id="v3.lineage.leveling.reply.progress.0097" act="lineage.leveling.progress.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Финиш рядом. Ошибок не допускаем." />
-		<template id="v3.lineage.leveling.reply.progress.0098" act="lineage.leveling.progress.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Даже у самой черты ты умудряешься шуметь больше, чем двигаться." />
+		<template id="v3.lineage.leveling.reply.progress.0098" act="lineage.leveling.progress.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Разве даже у самой черты ты умудряешься шуметь больше, чем двигаться?" />
 		<template id="v3.lineage.leveling.reply.progress.0099" act="lineage.leveling.progress.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если новый уровень уже взят, сначала стоит проверить, не изменилось ли удобство текущего места." />
 		<template id="v3.lineage.leveling.reply.progress.0100" act="lineage.leveling.progress.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="После апа не обязательно сразу уходить; можно закончить круг и оценить спот заново." />
 		<template id="v3.lineage.leveling.reply.progress.0101" act="lineage.leveling.progress.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Новая цифра пришла, а мобы даже не заметили. Невежливо с их стороны." />
@@ -516,7 +516,7 @@
 		<template id="v3.lineage.leveling.reply.progress.0113" act="lineage.leveling.progress.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если результат сильно ниже обычного, сначала надо вспомнить реальные простои, а не винить весь спот." />
 		<template id="v3.lineage.leveling.reply.progress.0114" act="lineage.leveling.progress.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сегодня много отвлекались, поэтому слабый итог вполне объясним." />
 		<template id="v3.lineage.leveling.reply.progress.0115" act="lineage.leveling.progress.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Экспа не пропала — мы просто щедро подарили время разговорам и беготне." />
-		<template id="v3.lineage.leveling.reply.progress.0116" act="lineage.leveling.progress.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не ругай себя за этот вечер; рядом со мной ты всё равно продвинулся." />
+		<template id="v3.lineage.leveling.reply.progress.0116" act="lineage.leveling.progress.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не стоит ругать себя за один вечер; совместный темп всё равно даёт прогресс." />
 		<template id="v3.lineage.leveling.reply.progress.0117" act="lineage.leveling.progress.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ищи причины, если хочешь. Я тем временем уже исправляю свой результат." />
 		<template id="v3.lineage.leveling.reply.progress.0118" act="lineage.leveling.progress.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Провал понятен. Повторять его не будем." />
 		<template id="v3.lineage.leveling.reply.progress.0119" act="lineage.leveling.progress.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После такой игры удивляться слабой полоске может только человек без памяти." />
@@ -538,7 +538,7 @@
 		<template id="v3.lineage.leveling.reply.progress.0135" act="lineage.leveling.progress.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ещё немного обычной игры, и уровень сам окажется закрыт." />
 		<template id="v3.lineage.leveling.reply.progress.0136" act="lineage.leveling.progress.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не смотри на полоску каждую минуту — она от внимания быстрее не растёт." />
 		<template id="v3.lineage.leveling.reply.progress.0137" act="lineage.leveling.progress.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я вижу, как близко твоя цель; останусь рядом до самого апа." />
-		<template id="v3.lineage.leveling.reply.progress.0138" act="lineage.leveling.progress.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Финишируй аккуратно, иначе я использую твою ошибку и обойду у черты." />
+		<template id="v3.lineage.leveling.reply.progress.0138" act="lineage.leveling.progress.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Финишируй аккуратно, иначе можно использовать твою ошибку и обойти у черты." />
 		<template id="v3.lineage.leveling.reply.progress.0139" act="lineage.leveling.progress.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не дёргайся. Остаток небольшой." />
 		<template id="v3.lineage.leveling.reply.progress.0140" act="lineage.leveling.progress.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Твоя суета у финиша выглядит особенно нелепо." />
 		<template id="v3.lineage.leveling.reply.progress.0141" act="lineage.leveling.progress.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Прогресс группы удобнее обсуждать без соревнования, если у участников разные исходные отметки." />
@@ -568,12 +568,12 @@
 		<template id="v3.lineage.leveling.reply.progress.0165" act="lineage.leveling.progress.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давай считать целыми заходами; так мы меньше будем спорить из-за мелочей." />
 		<template id="v3.lineage.leveling.reply.progress.0166" act="lineage.leveling.progress.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сравним одинаковые отрезки — тогда твои оправдания закончатся." />
 		<template id="v3.lineage.leveling.reply.progress.0167" act="lineage.leveling.progress.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Считаем полный круг. Остальное шум." />
-		<template id="v3.lineage.leveling.reply.progress.0168" act="lineage.leveling.progress.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты выбираешь удобные минуты, потому что весь результат выглядит хуже." />
+		<template id="v3.lineage.leveling.reply.progress.0168" act="lineage.leveling.progress.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Почему ты выбираешь удобные минуты, потому что весь результат выглядит хуже?" />
 		<template id="v3.lineage.leveling.reply.progress.0169" act="lineage.leveling.progress.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После заметного прогресса иногда полезно сохранить хороший настрой, а не немедленно ставить новую тяжёлую цель." />
 		<template id="v3.lineage.leveling.reply.progress.0170" act="lineage.leveling.progress.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Сегодняшний результат уже радует; следующую планку можно оставить на потом." />
 		<template id="v3.lineage.leveling.reply.progress.0171" act="lineage.leveling.progress.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Полоска довольна, мы живы — редкий день, когда стоит не требовать продолжения." />
 		<template id="v3.lineage.leveling.reply.progress.0172" act="lineage.leveling.progress.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне хочется закончить на этой хорошей ноте и запомнить вечер именно таким." />
-		<template id="v3.lineage.leveling.reply.progress.0173" act="lineage.leveling.progress.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Останавливайся, если хочешь. Я использую твой довольный отдых для отрыва." />
+		<template id="v3.lineage.leveling.reply.progress.0173" act="lineage.leveling.progress.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Останавливайся, если хочешь. можно использовать твой довольный отдых для отрыва." />
 		<template id="v3.lineage.leveling.reply.progress.0174" act="lineage.leveling.progress.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Результат зафиксировали. Новых целей сегодня нет." />
 		<template id="v3.lineage.leveling.reply.progress.0175" act="lineage.leveling.progress.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не превращай обычный прирост в повод для самодовольства." />
 		<template id="v3.lineage.leveling.reply.progress.0176" act="lineage.leveling.progress.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если ап сорвался из-за малого остатка времени, это не делает всю прокачку неудачной." />
@@ -589,7 +589,7 @@
 		<template id="v3.lineage.leveling.reply.progress.0186" act="lineage.leveling.progress.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мы много отвлекались, но всё равно продвинулись; рядом с тобой это не ощущалось потерей." />
 		<template id="v3.lineage.leveling.reply.progress.0187" act="lineage.leveling.progress.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Убери разговоры из расчёта — и увидишь, кто действительно держал темп." />
 		<template id="v3.lineage.leveling.reply.progress.0188" act="lineage.leveling.progress.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Считай только активное время. Остальное неважно." />
-		<template id="v3.lineage.leveling.reply.progress.0189" act="lineage.leveling.progress.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты любишь включать простои в статистику, когда нужно скрыть слабую игру." />
+		<template id="v3.lineage.leveling.reply.progress.0189" act="lineage.leveling.progress.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Зачем ты любишь включать простои в статистику, когда нужно скрыть слабую игру?" />
 		<template id="v3.lineage.leveling.reply.progress.0190" act="lineage.leveling.progress.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если результат превзошёл ожидания, лучше понять, что именно сработало, и повторить это позже." />
 		<template id="v3.lineage.leveling.reply.progress.0191" act="lineage.leveling.progress.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Сегодня удачно совпали место, ритм и состав — запомним эту комбинацию." />
 		<template id="v3.lineage.leveling.reply.progress.0192" act="lineage.leveling.progress.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Редкий момент: план сработал, и никто даже не успел его испортить." />
@@ -611,7 +611,7 @@
 		<template id="v3.lineage.leveling.reply.fatigue.0008" act="lineage.leveling.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Первые признаки усталости лучше не игнорировать, особенно на длинной сессии." />
 		<template id="v3.lineage.leveling.reply.fatigue.0009" act="lineage.leveling.fatigue.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если устали оба, пауза особенно уместна; текущую усталость нельзя объявлять без факта." />
 		<template id="v3.lineage.leveling.reply.fatigue.0010" act="lineage.leveling.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сделаем вид, что это тактический перерыв, а не капитуляция перед стулом." />
-		<template id="v3.lineage.leveling.reply.fatigue.0011" act="lineage.leveling.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После передышки стоит возвращаться только при реальном желании." />
+		<template id="v3.lineage.leveling.reply.fatigue.0011" act="lineage.leveling.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После передышки стоит возвращаться, только если снова хочется играть." />
 		<template id="v3.lineage.leveling.reply.fatigue.0012" act="lineage.leveling.fatigue.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Отдых не должен становиться поводом для чужого отрыва в соревновании." />
 		<template id="v3.lineage.leveling.reply.fatigue.0013" act="lineage.leveling.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Короткая пауза помогает решить, продолжать ли вообще." />
 		<template id="v3.lineage.leveling.reply.fatigue.0014" act="lineage.leveling.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне всё равно, насколько ты устал; не мешай тем, кто продолжает." />
@@ -640,7 +640,7 @@
 		<template id="v3.lineage.leveling.reply.fatigue.0037" act="lineage.leveling.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Может, дело не в темпе, а в том, что мы засиделись." />
 		<template id="v3.lineage.leveling.reply.fatigue.0038" act="lineage.leveling.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Полоска виновата во всём, особенно в том, что мы забыли сделать перерыв." />
 		<template id="v3.lineage.leveling.reply.fatigue.0039" act="lineage.leveling.fatigue.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не злись на кач; лучше отдохни, я не хочу спорить с тобой из-за усталости." />
-		<template id="v3.lineage.leveling.reply.fatigue.0040" act="lineage.leveling.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Проценты не виноваты, что ты сдался раньше меня." />
+		<template id="v3.lineage.leveling.reply.fatigue.0040" act="lineage.leveling.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели проценты не виноваты, что ты сдался раньше меня?" />
 		<template id="v3.lineage.leveling.reply.fatigue.0041" act="lineage.leveling.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Прекрати срываться. Либо пауза, либо выход." />
 		<template id="v3.lineage.leveling.reply.fatigue.0042" act="lineage.leveling.fatigue.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Слушать твои жалобы тяжелее, чем брать этот уровень." />
 		<template id="v3.lineage.leveling.reply.fatigue.0043" act="lineage.leveling.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ночная прокачка имеет смысл только пока она не ломает следующий день." />
@@ -668,7 +668,7 @@
 		<template id="v3.lineage.leveling.reply.fatigue.0065" act="lineage.leveling.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если сделано достаточно, можно спокойно разойтись без чувства незавершённости." />
 		<template id="v3.lineage.leveling.reply.fatigue.0066" act="lineage.leveling.fatigue.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Сегодня победил здравый смысл. Запишем это как редкий дроп." />
 		<template id="v3.lineage.leveling.reply.fatigue.0067" act="lineage.leveling.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нравится закончить сейчас, пока у нас обоих осталось хорошее настроение." />
-		<template id="v3.lineage.leveling.reply.fatigue.0068" act="lineage.leveling.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сдавайся первым, я обещаю напоминать об этом только иногда." />
+		<template id="v3.lineage.leveling.reply.fatigue.0068" act="lineage.leveling.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сдавайся первым, можно обещать напоминать об этом только иногда." />
 		<template id="v3.lineage.leveling.reply.fatigue.0069" act="lineage.leveling.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="На сегодня всё. Дальше завтра." />
 		<template id="v3.lineage.leveling.reply.fatigue.0070" act="lineage.leveling.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Наконец-то понял, что хватит. Жаль, так поздно." />
 		<template id="v3.lineage.leveling.reply.fatigue.0071" act="lineage.leveling.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если устал только один участник, группе лучше честно решить, ждать его или заканчивать всем." />
@@ -731,7 +731,7 @@
 		<template id="v3.lineage.leveling.reply.fatigue.0128" act="lineage.leveling.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Даже рядом с уровнем полезно спросить себя, не держит ли уже одно упрямство." />
 		<template id="v3.lineage.leveling.reply.fatigue.0129" act="lineage.leveling.fatigue.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ап стоит у двери, а силы потеряли ключи. Неловкая ситуация." />
 		<template id="v3.lineage.leveling.reply.fatigue.0130" act="lineage.leveling.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если хочется дожать, заранее договоритесь остановиться сразу после уровня." />
-		<template id="v3.lineage.leveling.reply.fatigue.0131" act="lineage.leveling.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Финишируй, раз обещал. Я посмотрю, осталось ли у тебя что-то кроме упрямства." />
+		<template id="v3.lineage.leveling.reply.fatigue.0131" act="lineage.leveling.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Финишируй, раз обещал. можно посмотреть, осталось ли у тебя что-то кроме упрямства." />
 		<template id="v3.lineage.leveling.reply.fatigue.0132" act="lineage.leveling.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Добиваем остаток и выходим. Без продолжения." />
 		<template id="v3.lineage.leveling.reply.fatigue.0133" act="lineage.leveling.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твой ап не стоит ещё часа чужой усталости." />
 		<template id="v3.lineage.leveling.reply.fatigue.0134" act="lineage.leveling.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="При долгом гринде полезно замечать не только усталость, но и скуку от одинаковых решений." />
@@ -759,7 +759,7 @@
 		<template id="v3.lineage.leveling.reply.fatigue.0156" act="lineage.leveling.fatigue.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Похоже, все выдохлись, только никто не хочет первым это сказать." />
 		<template id="v3.lineage.leveling.reply.fatigue.0157" act="lineage.leveling.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Чат затих, кнопки нажимаются, души игроков покинули спот минут двадцать назад." />
 		<template id="v3.lineage.leveling.reply.fatigue.0158" act="lineage.leveling.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я скажу первым: давайте остановимся и не мучить друг друга." />
-		<template id="v3.lineage.leveling.reply.fatigue.0159" act="lineage.leveling.fatigue.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Молчите дальше, а я приму вашу тишину за капитуляцию." />
+		<template id="v3.lineage.leveling.reply.fatigue.0159" act="lineage.leveling.fatigue.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Дальнейшую тишину легко принять за капитуляцию." />
 		<template id="v3.lineage.leveling.reply.fatigue.0160" act="lineage.leveling.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Все устали. Заканчиваем без церемоний." />
 		<template id="v3.lineage.leveling.reply.fatigue.0161" act="lineage.leveling.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваш сонный строй уже выглядит хуже любой случайной группы." />
 		<template id="v3.lineage.leveling.reply.fatigue.0162" act="lineage.leveling.fatigue.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Если после перерыва руки снова слушаются, можно вернуться на короткий проверочный отрезок." />
@@ -777,12 +777,12 @@
 		<template id="v3.lineage.leveling.reply.fatigue.0174" act="lineage.leveling.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Прошлое время не обсуждаем. Решаем только про следующий круг." />
 		<template id="v3.lineage.leveling.reply.fatigue.0175" act="lineage.leveling.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если не умеешь остановиться, хотя бы не заставляй остальных повторять твою ошибку." />
 		<template id="v3.lineage.leveling.reply.fatigue.0176" act="lineage.leveling.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Прежде чем продолжать, можно честно назвать уровень энергии по простой шкале: тянем или уже нет." />
-		<template id="v3.lineage.leveling.reply.fatigue.0177" act="lineage.leveling.fatigue.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="У меня сил на один нормальный отрезок, не больше." />
+		<template id="v3.lineage.leveling.reply.fatigue.0177" act="lineage.leveling.fatigue.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если сил хватает на один нормальный отрезок, им и стоит ограничиться." />
 		<template id="v3.lineage.leveling.reply.fatigue.0178" act="lineage.leveling.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мой запас бодрости уверенно держится где-то между «чай» и «кровать»." />
 		<template id="v3.lineage.leveling.reply.fatigue.0179" act="lineage.leveling.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Скажи, сколько реально выдержишь; я не буду давить на тебя." />
 		<template id="v3.lineage.leveling.reply.fatigue.0180" act="lineage.leveling.fatigue.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Называй силы честно, иначе проиграешь ещё до следующего круга." />
 		<template id="v3.lineage.leveling.reply.fatigue.0181" act="lineage.leveling.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ответ нужен сейчас: продолжаешь или нет." />
-		<template id="v3.lineage.leveling.reply.fatigue.0182" act="lineage.leveling.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твоя бодрость закончилась раньше, чем ты решился это признать." />
+		<template id="v3.lineage.leveling.reply.fatigue.0182" act="lineage.leveling.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Разве твоя бодрость закончилась раньше, чем ты решился это признать?" />
 		<template id="v3.lineage.leveling.reply.fatigue.0183" act="lineage.leveling.fatigue.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Спокойное завершение сессии лучше резкого выхода после ошибки или ссоры." />
 		<template id="v3.lineage.leveling.reply.fatigue.0184" act="lineage.leveling.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Закончим круг, попрощаемся и разойдёмся без последнего бессмысленного рывка." />
 		<template id="v3.lineage.leveling.reply.fatigue.0185" act="lineage.leveling.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Редкий план на конец кача: действительно закончить кач." />
@@ -793,7 +793,7 @@
 		<template id="v3.lineage.leveling.reply.fatigue.0190" act="lineage.leveling.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если завтра есть желание продолжить, полезно закончить сегодня с понятной точкой старта." />
 		<template id="v3.lineage.leveling.reply.fatigue.0191" act="lineage.leveling.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Запомним процент и место, чтобы потом не тратить время на восстановление контекста." />
 		<template id="v3.lineage.leveling.reply.fatigue.0192" act="lineage.leveling.fatigue.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Оставим себе закладку в виде полоски опыта. Бумажная хотя бы не нужна." />
-		<template id="v3.lineage.leveling.reply.fatigue.0193" act="lineage.leveling.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я запомню, где остановились; в следующий раз продолжим без суеты." />
+		<template id="v3.lineage.leveling.reply.fatigue.0193" act="lineage.leveling.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Стоит запомнить, где остановились; в следующий раз продолжим без суеты." />
 		<template id="v3.lineage.leveling.reply.fatigue.0194" act="lineage.leveling.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Зафиксируй отставание сейчас, чтобы завтра не спорить о счёте." />
 		<template id="v3.lineage.leveling.reply.fatigue.0195" act="lineage.leveling.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Отметку назвали. На сегодня конец." />
 		<template id="v3.lineage.leveling.reply.fatigue.0196" act="lineage.leveling.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не забудь цифру, раз память у тебя устаёт раньше персонажа." />

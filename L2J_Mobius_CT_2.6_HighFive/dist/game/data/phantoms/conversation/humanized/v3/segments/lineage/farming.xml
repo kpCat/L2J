@@ -72,12 +72,12 @@
 		<template id="v3.lineage.farming.reply.spot.0069" act="lineage.farming.spot.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Нагрузку не повышаем. Работаем ровно." />
 		<template id="v3.lineage.farming.reply.spot.0070" act="lineage.farming.spot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Хватит изображать силу, когда остальные закрывают твои ошибки." />
 		<template id="v3.lineage.farming.reply.spot.0071" act="lineage.farming.spot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Запасная точка нужна на случай, если сюда придёт ещё одна группа." />
-		<template id="v3.lineage.farming.reply.spot.0072" act="lineage.farming.spot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я знаю соседний угол; держим его в уме." />
+		<template id="v3.lineage.farming.reply.spot.0072" act="lineage.farming.spot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Важно помнить соседний угол; держим его в уме." />
 		<template id="v3.lineage.farming.reply.spot.0073" act="lineage.farming.spot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="План Б находится там, где мы ещё не успели всё испортить." />
 		<template id="v3.lineage.farming.reply.spot.0074" act="lineage.farming.spot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если здесь станет тесно, уйдём вместе без спора." />
 		<template id="v3.lineage.farming.reply.spot.0075" act="lineage.farming.spot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Пока ты думаешь о запасе, я уже занял бы оба варианта." />
 		<template id="v3.lineage.farming.reply.spot.0076" act="lineage.farming.spot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Резервный спот обозначили. Этого достаточно." />
-		<template id="v3.lineage.farming.reply.spot.0077" act="lineage.farming.spot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Без второго варианта ты опять застрянешь в толпе." />
+		<template id="v3.lineage.farming.reply.spot.0077" act="lineage.farming.spot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Правда ли, что без второго варианта ты опять застрянешь в толпе?" />
 		<template id="v3.lineage.farming.reply.spot.0078" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не каждый свободный участок удобен для длинного круга." />
 		<template id="v3.lineage.farming.reply.spot.0079" act="lineage.farming.spot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне важнее короткий повторяемый маршрут, чем большая пустая поляна." />
 		<template id="v3.lineage.farming.reply.spot.0080" act="lineage.farming.spot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Размер впечатляет, а мобы потерялись где-то в интерьере." />
@@ -108,7 +108,7 @@
 		<template id="v3.lineage.farming.reply.spot.0105" act="lineage.farming.spot.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не ломай маршрут попыткой всем что-то доказать." />
 		<template id="v3.lineage.farming.reply.spot.0106" act="lineage.farming.spot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если цели слишком быстро заканчиваются, наш состав перерос этот участок по темпу." />
 		<template id="v3.lineage.farming.reply.spot.0107" act="lineage.farming.spot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мы выжигаем поляну и потом стоим без дела." />
-		<template id="v3.lineage.farming.reply.spot.0108" act="lineage.farming.spot.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мобы не успевают вернуться, а мы уже написали им жалобу на сервис." />
+		<template id="v3.lineage.farming.reply.spot.0108" act="lineage.farming.spot.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мобы не успевают вернуться, а руки уже тянутся писать жалобу на сервис." />
 		<template id="v3.lineage.farming.reply.spot.0109" act="lineage.farming.spot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Пора искать место шире; здесь тебе скоро станет совсем скучно." />
 		<template id="v3.lineage.farming.reply.spot.0110" act="lineage.farming.spot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Спот сдался раньше тебя. Неожиданный результат." />
 		<template id="v3.lineage.farming.reply.spot.0111" act="lineage.farming.spot.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Этот участок не тянет группу. Уходим." />
@@ -147,18 +147,18 @@
 		<template id="v3.lineage.farming.reply.spot.0144" act="lineage.farming.spot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Давай просто пофармим рядом и закончим без лишней дороги." />
 		<template id="v3.lineage.farming.reply.spot.0145" act="lineage.farming.spot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Короткая сессия? Тем проще успеть обойти тебя по добыче." />
 		<template id="v3.lineage.farming.reply.spot.0146" act="lineage.farming.spot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Далеко не идём. Времени мало." />
-		<template id="v3.lineage.farming.reply.spot.0147" act="lineage.farming.spot.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Даже короткий вечер ты умудряешься потратить на бессмысленный поиск." />
+		<template id="v3.lineage.farming.reply.spot.0147" act="lineage.farming.spot.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Серьёзно, даже короткий вечер ты умудряешься потратить на бессмысленный поиск?" />
 		<template id="v3.lineage.farming.reply.spot.0148" act="lineage.farming.spot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если на поляне мешает обзор, группа может терять цели и друг друга." />
 		<template id="v3.lineage.farming.reply.spot.0149" act="lineage.farming.spot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне здесь неудобно видеть весь круг, лучше сместиться к открытому краю." />
 		<template id="v3.lineage.farming.reply.spot.0150" act="lineage.farming.spot.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мобы появляются из воздуха, игроки исчезают за кустами — почти театр." />
-		<template id="v3.lineage.farming.reply.spot.0151" act="lineage.farming.spot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Перейдём туда, где я смогу сразу заметить, если ты отстанешь." />
+		<template id="v3.lineage.farming.reply.spot.0151" act="lineage.farming.spot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Перейдём туда, где можно сразу заметить, если ты отстанешь." />
 		<template id="v3.lineage.farming.reply.spot.0152" act="lineage.farming.spot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Плохой обзор — удобная отговорка для тех, кто проигрывает счёт." />
 		<template id="v3.lineage.farming.reply.spot.0153" act="lineage.farming.spot.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Смещаемся на открытый участок." />
 		<template id="v3.lineage.farming.reply.spot.0154" act="lineage.farming.spot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Тебе и на ровном месте удаётся потерять всю группу." />
 		<template id="v3.lineage.farming.reply.spot.0155" act="lineage.farming.spot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Граница чужого круга должна быть понятна, иначе конфликты начнутся случайно." />
 		<template id="v3.lineage.farming.reply.spot.0156" act="lineage.farming.spot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Держимся левее и не режем соседям маршрут." />
 		<template id="v3.lineage.farming.reply.spot.0157" act="lineage.farming.spot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Наш круг заканчивается там, где начинается их недовольный чат." />
-		<template id="v3.lineage.farming.reply.spot.0158" act="lineage.farming.spot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я буду следить, чтобы мы не пересекались без нужды." />
+		<template id="v3.lineage.farming.reply.spot.0158" act="lineage.farming.spot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Лучше следить, чтобы мы не пересекались без нужды." />
 		<template id="v3.lineage.farming.reply.spot.0159" act="lineage.farming.spot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не перепутай границу, иначе придётся признать, что тебя вытеснили." />
 		<template id="v3.lineage.farming.reply.spot.0160" act="lineage.farming.spot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Чужую сторону не трогаем." />
 		<template id="v3.lineage.farming.reply.spot.0161" act="lineage.farming.spot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твои случайности почему-то всегда происходят на чужом споте." />
@@ -173,20 +173,20 @@
 		<template id="v3.lineage.farming.reply.spot.0170" act="lineage.farming.spot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сейчас не время уходить дальше; сил на возврат уже меньше." />
 		<template id="v3.lineage.farming.reply.spot.0171" act="lineage.farming.spot.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Глубже зовёт приключение, назад зовёт здравый смысл." />
 		<template id="v3.lineage.farming.reply.spot.0172" act="lineage.farming.spot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Останемся ближе к выходу, я не хочу рисковать твоей усталостью." />
-		<template id="v3.lineage.farming.reply.spot.0173" act="lineage.farming.spot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Боишься глубины — можешь ждать, пока я вернусь с результатом." />
+		<template id="v3.lineage.farming.reply.spot.0173" act="lineage.farming.spot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Боишься глубины — можешь ждать, пока можно вернуться с результатом." />
 		<template id="v3.lineage.farming.reply.spot.0174" act="lineage.farming.spot.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Дальше не идём. Группа устала." />
 		<template id="v3.lineage.farming.reply.spot.0175" act="lineage.farming.spot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сам потом выбирайся из глубины, раз не умеешь вовремя остановиться." />
 		<template id="v3.lineage.farming.reply.spot.0176" act="lineage.farming.spot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если все довольны текущим кругом, менять место ради любопытства необязательно." />
 		<template id="v3.lineage.farming.reply.spot.0177" act="lineage.farming.spot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ритм работает, добыча идёт — я бы ничего не трогал." />
 		<template id="v3.lineage.farming.reply.spot.0178" act="lineage.farming.spot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Редкий момент: план не требует улучшений. Запомним дату." />
-		<template id="v3.lineage.farming.reply.spot.0179" act="lineage.farming.spot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне хорошо здесь с тобой; давай не будем усложнять вечер." />
+		<template id="v3.lineage.farming.reply.spot.0179" act="lineage.farming.spot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Хорошая компания делает даже обычный спот приятнее." />
 		<template id="v3.lineage.farming.reply.spot.0180" act="lineage.farming.spot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если место стало слишком удобным, вызов можно поискать без громких обещаний." />
 		<template id="v3.lineage.farming.reply.spot.0181" act="lineage.farming.spot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Место сохраняем. Поиск закончен." />
 		<template id="v3.lineage.farming.reply.spot.0182" act="lineage.farming.spot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Любопытство — слабая причина ломать хоть что-то рабочее." />
 		<template id="v3.lineage.farming.reply.spot.0183" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Перед уходом можно заметить ориентир, чтобы без поиска вернуться в следующий раз." />
 		<template id="v3.lineage.farming.reply.spot.0184" act="lineage.farming.spot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Запомним вход и порядок круга, место ещё пригодится." />
 		<template id="v3.lineage.farming.reply.spot.0185" act="lineage.farming.spot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Оставим споту мысленную закладку, раз бумажные здесь не работают." />
-		<template id="v3.lineage.farming.reply.spot.0186" act="lineage.farming.spot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я запомню путь; в следующий раз приведу тебя без лишних блужданий." />
+		<template id="v3.lineage.farming.reply.spot.0186" act="lineage.farming.spot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Стоит запомнить путь; в следующий раз привести тебя без лишних блужданий." />
 		<template id="v3.lineage.farming.reply.spot.0187" act="lineage.farming.spot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Запоминай маршрут, иначе снова будешь идти по моим следам." />
 		<template id="v3.lineage.farming.reply.spot.0188" act="lineage.farming.spot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Точку зафиксировали. Выходим." />
 		<template id="v3.lineage.farming.reply.spot.0189" act="lineage.farming.spot.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если опять потеряешь знакомое место, даже я смеяться устану." />
@@ -221,7 +221,7 @@
 		<template id="v3.lineage.farming.reply.loot.0018" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Покажи, что оставить; помогу разгрузиться без спешки." />
 		<template id="v3.lineage.farming.reply.loot.0019" act="lineage.farming.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Переполненный инвентарь превращает даже полезный дроп в чужую добычу." />
 		<template id="v3.lineage.farming.reply.loot.0020" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сортируем сейчас. Потом продолжаем." />
-		<template id="v3.lineage.farming.reply.loot.0021" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты собираешь хлам быстрее, чем добываешь что-то ценное." />
+		<template id="v3.lineage.farming.reply.loot.0021" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Зачем ты собираешь хлам быстрее, чем добываешь что-то ценное?" />
 		<template id="v3.lineage.farming.reply.loot.0022" act="lineage.farming.loot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Материалы для крафта имеют смысл, даже когда отдельный дроп кажется мелким." />
 		<template id="v3.lineage.farming.reply.loot.0023" act="lineage.farming.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ресурсы копятся медленно, но потом избавят от лишних поисков." />
 		<template id="v3.lineage.farming.reply.loot.0024" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Каждый кусочек выглядит жалко, пока рецепт не попросит именно сотню таких." />
@@ -242,7 +242,7 @@
 		<template id="v3.lineage.farming.reply.loot.0039" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай не сжигать запасы ради сомнительного результата." />
 		<template id="v3.lineage.farming.reply.loot.0040" act="lineage.farming.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Считай свои расходы честно, а потом сравним, кто фармит умнее." />
 		<template id="v3.lineage.farming.reply.loot.0041" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Убыточный круг не повторяем." />
-		<template id="v3.lineage.farming.reply.loot.0042" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты тратишь больше, потому что играешь хуже, не обвиняй место." />
+		<template id="v3.lineage.farming.reply.loot.0042" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты тратишь больше, потому что играешь хуже, не обвиняй место?" />
 		<template id="v3.lineage.farming.reply.loot.0043" act="lineage.farming.loot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мелкий лут удобнее оценивать пачкой, а не раздражаться после каждого моба." />
 		<template id="v3.lineage.farming.reply.loot.0044" act="lineage.farming.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="По отдельности ерунда, вместе уже заметная сумма." />
 		<template id="v3.lineage.farming.reply.loot.0045" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мелочь собирается в капитал, если раньше не соберётся в полный инвентарь." />
@@ -261,12 +261,12 @@
 		<template id="v3.lineage.farming.reply.loot.0058" act="lineage.farming.loot.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ещё один заход поместится, но дальше надо возвращаться." />
 		<template id="v3.lineage.farming.reply.loot.0059" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Инвентарь просит пощады громче, чем мы просим хороший дроп." />
 		<template id="v3.lineage.farming.reply.loot.0060" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Пойдём разгрузимся вместе; не хочу, чтобы ты случайно выбросил нужное." />
-		<template id="v3.lineage.farming.reply.loot.0061" act="lineage.farming.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="У меня место ещё есть, но твою коллекцию мусора я не понесу." />
+		<template id="v3.lineage.farming.reply.loot.0061" act="lineage.farming.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Пока место есть, добычу можно не сортировать посреди спота." />
 		<template id="v3.lineage.farming.reply.loot.0062" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="После круга разгружаемся." />
 		<template id="v3.lineage.farming.reply.loot.0063" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сам разбирай завалы, раз подбирал всё без разбору." />
 		<template id="v3.lineage.farming.reply.loot.0064" act="lineage.farming.loot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Общий лут удобно считать отдельно от личных находок, чтобы не спорить по памяти." />
 		<template id="v3.lineage.farming.reply.loot.0065" act="lineage.farming.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте зафиксируем итог группы и не мериться случайной удачей." />
-		<template id="v3.lineage.farming.reply.loot.0066" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Запишем добычу до того, как она магически превратится в «у меня так и было»." />
+		<template id="v3.lineage.farming.reply.loot.0066" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если всё и было именно так, спор о добыче стоит закрыть фактами." />
 		<template id="v3.lineage.farming.reply.loot.0067" act="lineage.farming.loot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Честный итог важнее попытки удержать в голове каждую мелочь." />
 		<template id="v3.lineage.farming.reply.loot.0068" act="lineage.farming.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Проверим цифры — вдруг твоя удача всё-таки существует." />
 		<template id="v3.lineage.farming.reply.loot.0069" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Счёт делаем один раз. Потом закрываем тему." />
@@ -284,14 +284,14 @@
 		<template id="v3.lineage.farming.reply.loot.0081" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сохраним нужное, остальное разберём вместе после фарма." />
 		<template id="v3.lineage.farming.reply.loot.0082" act="lineage.farming.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Оставляй материалы, если хочешь однажды не просить их у меня." />
 		<template id="v3.lineage.farming.reply.loot.0083" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ресурсы отделяем от мусора." />
-		<template id="v3.lineage.farming.reply.loot.0084" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты называешь любой хлам «на будущее», лишь бы не принимать решения." />
+		<template id="v3.lineage.farming.reply.loot.0084" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Почему ты называешь любой хлам «на будущее», лишь бы не принимать решения?" />
 		<template id="v3.lineage.farming.reply.loot.0085" act="lineage.farming.loot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Когда дроп идёт лучше обычного, не обязательно сразу продлевать сессию до изнеможения." />
 		<template id="v3.lineage.farming.reply.loot.0086" act="lineage.farming.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сегодня удачно, но хороший итог уже можно зафиксировать и закончить." />
 		<template id="v3.lineage.farming.reply.loot.0087" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Удача пришла вовремя, а уходить, как обычно, отказывается." />
 		<template id="v3.lineage.farming.reply.loot.0088" act="lineage.farming.loot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давай порадуемся добыче и не будем испытывать её терпение ещё час." />
 		<template id="v3.lineage.farming.reply.loot.0089" act="lineage.farming.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Редкий дроп не причина заранее подозревать напарника." />
 		<template id="v3.lineage.farming.reply.loot.0090" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Итог сильный. Дальше без жадности." />
-		<template id="v3.lineage.farming.reply.loot.0091" act="lineage.farming.loot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты увидел пару находок и уже готов ночевать на споте." />
+		<template id="v3.lineage.farming.reply.loot.0091" act="lineage.farming.loot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Неужели ты увидел пару находок и уже готов ночевать на споте?" />
 		<template id="v3.lineage.farming.reply.loot.0092" act="lineage.farming.loot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если весь лут оказывается у одного человека, распределение надо обсудить до следующего круга." />
 		<template id="v3.lineage.farming.reply.loot.0093" act="lineage.farming.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Похоже, подбор работает неровно; давайте поправим порядок." />
 		<template id="v3.lineage.farming.reply.loot.0094" act="lineage.farming.loot.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Один носит добычу, остальные носят подозрения — не лучший состав." />
@@ -302,7 +302,7 @@
 		<template id="v3.lineage.farming.reply.loot.0099" act="lineage.farming.loot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Пропущенную добычу лучше не искать слишком долго, если из-за неё останавливается вся группа." />
 		<template id="v3.lineage.farming.reply.loot.0100" act="lineage.farming.loot.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Проверяем быстро и двигаемся, иначе потеряем больше, чем найдём." />
 		<template id="v3.lineage.farming.reply.loot.0101" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Один кусок лута спрятался, а пятеро игроков начали археологическую экспедицию." />
-		<template id="v3.lineage.farming.reply.loot.0102" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я посмотрю рядом, ты не ломай общий ритм." />
+		<template id="v3.lineage.farming.reply.loot.0102" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Лучше посмотреть рядом, ты не ломай общий ритм." />
 		<template id="v3.lineage.farming.reply.loot.0103" act="lineage.farming.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ищи быстрее, соперник, новый моб уже приносит мне результат." />
 		<template id="v3.lineage.farming.reply.loot.0104" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не нашли — оставляем." />
 		<template id="v3.lineage.farming.reply.loot.0105" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Тратить круг на твою забывчивость никто не обязан." />
@@ -319,12 +319,12 @@
 		<template id="v3.lineage.farming.reply.loot.0116" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне нравится предсказуемость; так проще планировать вместе." />
 		<template id="v3.lineage.farming.reply.loot.0117" act="lineage.farming.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Стабильно мало — тоже стабильность, но гордиться тут нечем." />
 		<template id="v3.lineage.farming.reply.loot.0118" act="lineage.farming.loot.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ровный результат принимаю." />
-		<template id="v3.lineage.farming.reply.loot.0119" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты пытаешься назвать скудность надёжностью." />
+		<template id="v3.lineage.farming.reply.loot.0119" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Правда ты пытаешься назвать скудность надёжностью?" />
 		<template id="v3.lineage.farming.reply.loot.0120" act="lineage.farming.loot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если добыча совсем не соответствует ожиданиям, сначала стоит проверить, не были ли ожидания завышены." />
 		<template id="v3.lineage.farming.reply.loot.0121" act="lineage.farming.loot.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Может, место нормальное, а мы просто пришли за чудом." />
 		<template id="v3.lineage.farming.reply.loot.0122" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Заказали легенду, получили обычный фарм. Служба доставки ни при чём." />
 		<template id="v3.lineage.farming.reply.loot.0123" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не расстраивайся из-за фантазии, которую спот тебе не обещал." />
-		<template id="v3.lineage.farming.reply.loot.0124" act="lineage.farming.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ожидал больше? Я ожидал от тебя темпа, но тоже пережил." />
+		<template id="v3.lineage.farming.reply.loot.0124" act="lineage.farming.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ожидания от чужого темпа легко завысить; переживать из-за результа незачем." />
 		<template id="v3.lineage.farming.reply.loot.0125" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Смотрим на фактический лут, не мечты." />
 		<template id="v3.lineage.farming.reply.loot.0126" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Твои ожидания — не обязанность мобов." />
 		<template id="v3.lineage.farming.reply.loot.0127" act="lineage.farming.loot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Перед продажей мусора полезно отделить то, что может понадобиться группе позже." />
@@ -347,28 +347,28 @@
 		<template id="v3.lineage.farming.reply.loot.0144" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Побудем ещё немного, а потом вместе решим по общему результату." />
 		<template id="v3.lineage.farming.reply.loot.0145" act="lineage.farming.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Можешь уйти после пары пустых мобов, если боишься проиграть терпением." />
 		<template id="v3.lineage.farming.reply.loot.0146" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Серию отмечаем, но маршрут не меняем." />
-		<template id="v3.lineage.farming.reply.loot.0147" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты сдаёшься быстрее, чем успевает вернуться дроп." />
+		<template id="v3.lineage.farming.reply.loot.0147" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты сдаёшься быстрее, чем успевает вернуться дроп?" />
 		<template id="v3.lineage.farming.reply.loot.0148" act="lineage.farming.loot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Когда полезное уже собрано, продолжать только из жадности не обязательно." />
 		<template id="v3.lineage.farming.reply.loot.0149" act="lineage.farming.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Цель по ресурсам закрыта; всё остальное сейчас просто запас." />
 		<template id="v3.lineage.farming.reply.loot.0150" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Склад доволен, инвентарь плачет — пора найти компромисс у выхода." />
 		<template id="v3.lineage.farming.reply.loot.0151" act="lineage.farming.loot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы взяли нужное; давай закончим, пока вечер остаётся приятным." />
-		<template id="v3.lineage.farming.reply.loot.0152" act="lineage.farming.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Останавливайся, если выполнил цель. Я использую время лучше." />
+		<template id="v3.lineage.farming.reply.loot.0152" act="lineage.farming.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Останавливайся, если выполнил цель. можно использовать время лучше." />
 		<template id="v3.lineage.farming.reply.loot.0153" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="План добычи выполнен. Возвращаемся." />
-		<template id="v3.lineage.farming.reply.loot.0154" act="lineage.farming.loot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Тебе всегда мало, даже когда уже не помнишь, зачем пришёл." />
+		<template id="v3.lineage.farming.reply.loot.0154" act="lineage.farming.loot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Добычи всегда мало, если цель похода уже забыта." />
 		<template id="v3.lineage.farming.reply.loot.0155" act="lineage.farming.loot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если один вид ресурса не падает, это не делает бесполезной всю остальную добычу." />
 		<template id="v3.lineage.farming.reply.loot.0156" act="lineage.farming.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Нужного мало, зато другие материалы идут стабильно." />
 		<template id="v3.lineage.farming.reply.loot.0157" act="lineage.farming.loot.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Пришли за одним, уходим с тремя другими и лёгким чувством торговой ошибки." />
 		<template id="v3.lineage.farming.reply.loot.0158" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не расстраивайся; запас пригодится, даже если цель закрылась не сразу." />
-		<template id="v3.lineage.farming.reply.loot.0159" act="lineage.farming.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты ищешь редкость, я собираю результат. Поэтому и счёт разный." />
+		<template id="v3.lineage.farming.reply.loot.0159" act="lineage.farming.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Поиск редкости и сбор стабильного результата дают разный счёт." />
 		<template id="v3.lineage.farming.reply.loot.0160" act="lineage.farming.loot.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Целевой ресурс пока слабый. Остальное учитываем." />
 		<template id="v3.lineage.farming.reply.loot.0161" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не обесценивай весь лут только потому, что не получил желаемое." />
 		<template id="v3.lineage.farming.reply.loot.0162" act="lineage.farming.loot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если подбор замедляет бой, роли лучше разделить: кто-то собирает, остальные держат маршрут." />
 		<template id="v3.lineage.farming.reply.loot.0163" act="lineage.farming.loot.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Один человек может следить за добычей, чтобы группа не останавливалась." />
 		<template id="v3.lineage.farming.reply.loot.0164" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Назначаем главного по луту — должность звучит солиднее, чем выглядит." />
-		<template id="v3.lineage.farming.reply.loot.0165" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я могу помочь с подбором, если тебе тяжело успевать за кругом." />
+		<template id="v3.lineage.farming.reply.loot.0165" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Стоит помочь с подбором, если тебе тяжело успевать за кругом." />
 		<template id="v3.lineage.farming.reply.loot.0166" act="lineage.farming.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Быстрый подбор хорош, пока из-за него не начинают пропускать нужное." />
 		<template id="v3.lineage.farming.reply.loot.0167" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Роль по подбору определили. Дальше без хаоса." />
-		<template id="v3.lineage.farming.reply.loot.0168" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты умудряешься проигрывать даже предметам, которые лежат на земле." />
+		<template id="v3.lineage.farming.reply.loot.0168" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Почему ты умудряешься проигрывать даже предметам, которые лежат на земле?" />
 		<template id="v3.lineage.farming.reply.loot.0169" act="lineage.farming.loot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Перед итогом стоит учесть вещи, которые уже ушли в расход или были сразу использованы." />
 		<template id="v3.lineage.farming.reply.loot.0170" act="lineage.farming.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Считаем чистую добычу, а не только то, что осталось в сумках." />
 		<template id="v3.lineage.farming.reply.loot.0171" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Часть лута исчезла в хозяйстве, но это не значит, что её никогда не было." />
@@ -389,7 +389,7 @@
 		<template id="v3.lineage.farming.reply.loot.0186" act="lineage.farming.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай порадуемся, не превращая случайную удачу в обещание будущего." />
 		<template id="v3.lineage.farming.reply.loot.0187" act="lineage.farming.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Запоминай лучший результат, если хочешь потом долго его догонять." />
 		<template id="v3.lineage.farming.reply.loot.0188" act="lineage.farming.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Удачу за норму не принимаем." />
-		<template id="v3.lineage.farming.reply.loot.0189" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты уже распределил ещё не выпавшие вещи — впечатляющая жадность." />
+		<template id="v3.lineage.farming.reply.loot.0189" act="lineage.farming.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты уже распределил ещё не выпавшие вещи — впечатляющая жадность?" />
 		<template id="v3.lineage.farming.reply.loot.0190" act="lineage.farming.loot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если добыча стала однообразной, смена цели может вернуть интерес без смены всей зоны." />
 		<template id="v3.lineage.farming.reply.loot.0191" act="lineage.farming.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можно сосредоточиться на другом виде ресурса и освежить маршрут." />
 		<template id="v3.lineage.farming.reply.loot.0192" act="lineage.farming.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ищем новый повод подбирать тот же мусор — почти творческая работа." />
@@ -481,7 +481,7 @@
 		<template id="v3.lineage.farming.reply.rhythm.0078" act="lineage.farming.rhythm.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ускорение на один круг полезно только как проверка, а не как новая обязанность." />
 		<template id="v3.lineage.farming.reply.rhythm.0079" act="lineage.farming.rhythm.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Можем сделать пробный быстрый цикл и сравнить расход." />
 		<template id="v3.lineage.farming.reply.rhythm.0080" act="lineage.farming.rhythm.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Включаем турборежим ровно до первой жалобы на ману." />
-		<template id="v3.lineage.farming.reply.rhythm.0081" act="lineage.farming.rhythm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я прикрою тебя на тестовом круге; дальше решим вместе." />
+		<template id="v3.lineage.farming.reply.rhythm.0081" act="lineage.farming.rhythm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Стоит прикрыть тебя на тестовом круге; дальше решим вместе." />
 		<template id="v3.lineage.farming.reply.rhythm.0082" act="lineage.farming.rhythm.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Готов к гонке? Только не проси замедлиться на середине." />
 		<template id="v3.lineage.farming.reply.rhythm.0083" act="lineage.farming.rhythm.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Один быстрый цикл. Результат фиксируем." />
 		<template id="v3.lineage.farming.reply.rhythm.0084" act="lineage.farming.rhythm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не превращай проверку в очередной бессмысленный марафон." />
@@ -496,7 +496,7 @@
 		<template id="v3.lineage.farming.reply.rhythm.0093" act="lineage.farming.rhythm.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Это заключительный цикл; после него собираемся и выходим." />
 		<template id="v3.lineage.farming.reply.rhythm.0094" act="lineage.farming.rhythm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Последний круг назначен официально. Все следующие считаются самозванцами." />
 		<template id="v3.lineage.farming.reply.rhythm.0095" act="lineage.farming.rhythm.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Давай закончим красиво и не будем торговаться за продолжение." />
-		<template id="v3.lineage.farming.reply.rhythm.0096" act="lineage.farming.rhythm.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Финишируй достойно, чтобы я запомнил хотя бы конец твоей работы." />
+		<template id="v3.lineage.farming.reply.rhythm.0096" act="lineage.farming.rhythm.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если запомнился хотя бы конец работы, маршрут уже не потерян." />
 		<template id="v3.lineage.farming.reply.rhythm.0097" act="lineage.farming.rhythm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Последний заход. Без продления." />
 		<template id="v3.lineage.farming.reply.rhythm.0098" act="lineage.farming.rhythm.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Кто начнёт новый круг, тот заканчивает его один." />
 		<template id="v3.lineage.farming.reply.rhythm.0099" act="lineage.farming.rhythm.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если фарм постоянно прерывается разговорами, стоит перенести обсуждение на паузу." />
@@ -533,7 +533,7 @@
 		<template id="v3.lineage.farming.reply.rhythm.0130" act="lineage.farming.rhythm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Отставшего проще дождаться на безопасной точке, чем обещать вытащить в движении." />
 		<template id="v3.lineage.farming.reply.rhythm.0131" act="lineage.farming.rhythm.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Отстаёшь? Хорошо, хоть результат нашей гонки становится наглядным." />
 		<template id="v3.lineage.farming.reply.rhythm.0132" act="lineage.farming.rhythm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Собираемся всей группой. Потом движение." />
-		<template id="v3.lineage.farming.reply.rhythm.0133" act="lineage.farming.rhythm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Кричать «быстрее» ты умеешь лучше, чем помогать отставшему." />
+		<template id="v3.lineage.farming.reply.rhythm.0133" act="lineage.farming.rhythm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Правда ли, что кричать «быстрее» ты умеешь лучше, чем помогать отставшему?" />
 		<template id="v3.lineage.farming.reply.rhythm.0134" act="lineage.farming.rhythm.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если цель уходит слишком далеко от маршрута, лучше пропустить её, чем ломать весь круг." />
 		<template id="v3.lineage.farming.reply.rhythm.0135" act="lineage.farming.rhythm.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не гоняемся за одним мобом через половину поляны." />
 		<template id="v3.lineage.farming.reply.rhythm.0136" act="lineage.farming.rhythm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Пусть беглец живёт; у нас тут серийный фарм, а не личная вендетта." />
@@ -561,7 +561,7 @@
 		<template id="v3.lineage.farming.reply.rhythm.0158" act="lineage.farming.rhythm.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="У предметов лучше задержаться всем, если иначе потеряется нужный дроп." />
 		<template id="v3.lineage.farming.reply.rhythm.0159" act="lineage.farming.rhythm.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Собирай всё полезное быстрее, если хочешь спорить со мной о скорости." />
 		<template id="v3.lineage.farming.reply.rhythm.0160" act="lineage.farming.rhythm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Подбор завершаем полностью." />
-		<template id="v3.lineage.farming.reply.rhythm.0161" act="lineage.farming.rhythm.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты умудряешься быть одновременно медленным и невнимательным." />
+		<template id="v3.lineage.farming.reply.rhythm.0161" act="lineage.farming.rhythm.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Зачем ты умудряешься быть одновременно медленным и невнимательным?" />
 		<template id="v3.lineage.farming.reply.rhythm.0162" act="lineage.farming.rhythm.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Когда группа устала, ровное завершение важнее попытки поставить рекорд на последнем круге." />
 		<template id="v3.lineage.farming.reply.rhythm.0163" act="lineage.farming.rhythm.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Финиш пройдём спокойно, без резкого ускорения." />
 		<template id="v3.lineage.farming.reply.rhythm.0164" act="lineage.farming.rhythm.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Последний круг не обязан быть финалом чемпионата мира." />
@@ -572,21 +572,21 @@
 		<template id="v3.lineage.farming.reply.rhythm.0169" act="lineage.farming.rhythm.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если разговор о темпе повторяется каждый круг, правила лучше назвать один раз и больше не менять." />
 		<template id="v3.lineage.farming.reply.rhythm.0170" act="lineage.farming.rhythm.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Определим порядок сейчас и перестанем заново спорить после каждого боя." />
 		<template id="v3.lineage.farming.reply.rhythm.0171" act="lineage.farming.rhythm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Наш главный противник сегодня — не мобы, а бесконечное совещание о скорости." />
-		<template id="v3.lineage.farming.reply.rhythm.0172" act="lineage.farming.rhythm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давай договоримся и просто поиграем; я устал видеть, как тебя это нервирует." />
+		<template id="v3.lineage.farming.reply.rhythm.0172" act="lineage.farming.rhythm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Усталость от одного пейзажа лечится сменой спота." />
 		<template id="v3.lineage.farming.reply.rhythm.0173" act="lineage.farming.rhythm.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Продолжай менять правила, если боишься честного сравнения в одном режиме." />
 		<template id="v3.lineage.farming.reply.rhythm.0174" act="lineage.farming.rhythm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Темп фиксируем до конца сессии." />
-		<template id="v3.lineage.farming.reply.rhythm.0175" act="lineage.farming.rhythm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты меняешь ритм только потому, что ни в одном не выглядишь убедительно." />
+		<template id="v3.lineage.farming.reply.rhythm.0175" act="lineage.farming.rhythm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Правда ты меняешь ритм только потому, что ни в одном не выглядишь убедительно?" />
 		<template id="v3.lineage.farming.reply.rhythm.0176" act="lineage.farming.rhythm.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если текущий цикл даёт стабильную добычу, небольшие отклонения по времени не критичны." />
 		<template id="v3.lineage.farming.reply.rhythm.0177" act="lineage.farming.rhythm.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Круги отличаются на минуту, но итог остаётся ровным." />
 		<template id="v3.lineage.farming.reply.rhythm.0178" act="lineage.farming.rhythm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Маршрут слегка хромает, зато сумка идёт уверенной походкой." />
 		<template id="v3.lineage.farming.reply.rhythm.0179" act="lineage.farming.rhythm.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне подходит такой баланс; рядом с тобой он ощущается спокойно." />
 		<template id="v3.lineage.farming.reply.rhythm.0180" act="lineage.farming.rhythm.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Стабильный лут не спасёт тебя от сравнения по темпу." />
 		<template id="v3.lineage.farming.reply.rhythm.0181" act="lineage.farming.rhythm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Отклонения принимаем. Схему не трогаем." />
-		<template id="v3.lineage.farming.reply.rhythm.0182" act="lineage.farming.rhythm.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты называешь хаос допустимым, когда не можешь его исправить." />
+		<template id="v3.lineage.farming.reply.rhythm.0182" act="lineage.farming.rhythm.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Неужели ты называешь хаос допустимым, когда не можешь его исправить?" />
 		<template id="v3.lineage.farming.reply.rhythm.0183" act="lineage.farming.rhythm.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Перед уходом полезно пройти короткий чистый круг и запомнить рабочий порядок на будущее." />
 		<template id="v3.lineage.farming.reply.rhythm.0184" act="lineage.farming.rhythm.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Давайте завершим без экспериментов и сохраним удачный маршрут." />
 		<template id="v3.lineage.farming.reply.rhythm.0185" act="lineage.farming.rhythm.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Финальная репетиция перед тем, как забыть половину схемы до завтра." />
-		<template id="v3.lineage.farming.reply.rhythm.0186" act="lineage.farming.rhythm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я пройду рядом и помогу закрепить порядок без суеты." />
+		<template id="v3.lineage.farming.reply.rhythm.0186" act="lineage.farming.rhythm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Лучше пройти рядом и помочь закрепить порядок без суеты." />
 		<template id="v3.lineage.farming.reply.rhythm.0187" act="lineage.farming.rhythm.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Запоминай мой путь, если хочешь завтра не начинать с отставания." />
 		<template id="v3.lineage.farming.reply.rhythm.0188" act="lineage.farming.rhythm.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Последний чистый цикл. После него выход." />
 		<template id="v3.lineage.farming.reply.rhythm.0189" act="lineage.farming.rhythm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если завтра снова спросишь направление, я просто уйду вперёд." />
@@ -621,11 +621,11 @@
 		<template id="v3.lineage.farming.reply.competition.0018" act="lineage.farming.competition.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Обойтись без толкотни помогает понятный маршрут, а не личное сопровождение." />
 		<template id="v3.lineage.farming.reply.competition.0019" act="lineage.farming.competition.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Кто занял линию быстрее, видно по маршруту, а не по хвастовству." />
 		<template id="v3.lineage.farming.reply.competition.0020" act="lineage.farming.competition.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Направление меняем один раз." />
-		<template id="v3.lineage.farming.reply.competition.0021" act="lineage.farming.competition.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Пересечение маршрута может быть случайным; намерение не стоит выдумывать." />
+		<template id="v3.lineage.farming.reply.competition.0021" act="lineage.farming.competition.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Пересечение маршрутов может быть случайным; без ясного повода приписывать злой умысел не стоит." />
 		<template id="v3.lineage.farming.reply.competition.0022" act="lineage.farming.competition.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Когда цели постоянно забирают перед нами, место уже не даёт нормального ритма." />
 		<template id="v3.lineage.farming.reply.competition.0023" act="lineage.farming.competition.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="На этом краю слишком много конкуренции; поищем спокойнее." />
 		<template id="v3.lineage.farming.reply.competition.0024" act="lineage.farming.competition.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы фармим чужие спины и собственное раздражение." />
-		<template id="v3.lineage.farming.reply.competition.0025" act="lineage.farming.competition.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай уйдём, я не хочу видеть, как ты злишься из-за каждого респа." />
+		<template id="v3.lineage.farming.reply.competition.0025" act="lineage.farming.competition.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай уйдём: злость из-за каждого респа быстро портит фарм." />
 		<template id="v3.lineage.farming.reply.competition.0026" act="lineage.farming.competition.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Оставайся и проигрывай гонку, если тебе нравится." />
 		<template id="v3.lineage.farming.reply.competition.0027" act="lineage.farming.competition.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Спот меняем. Здесь тесно." />
 		<template id="v3.lineage.farming.reply.competition.0028" act="lineage.farming.competition.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Тебя опережают не из вредности, а потому что ты медленный." />
@@ -654,7 +654,7 @@
 		<template id="v3.lineage.farming.reply.competition.0051" act="lineage.farming.competition.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Можно переждать их последний круг и занять поляну после ухода." />
 		<template id="v3.lineage.farming.reply.competition.0052" act="lineage.farming.competition.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Пять минут ожидания против двадцати минут бега — математика неожиданно победила гордость." />
 		<template id="v3.lineage.farming.reply.competition.0053" act="lineage.farming.competition.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Посидим рядом и дождёмся освобождения, если тебе не скучно." />
-		<template id="v3.lineage.farming.reply.competition.0054" act="lineage.farming.competition.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Жди, а я посмотрю, успею ли обойти их по добыче даже с паузой." />
+		<template id="v3.lineage.farming.reply.competition.0054" act="lineage.farming.competition.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Жди, а можно посмотреть, успеть ли обойти их по добыче даже с паузой." />
 		<template id="v3.lineage.farming.reply.competition.0055" act="lineage.farming.competition.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ожидаем один круг. Потом уходим." />
 		<template id="v3.lineage.farming.reply.competition.0056" act="lineage.farming.competition.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Стоять в очереди на мобов — достойный итог твоего выбора места." />
 		<template id="v3.lineage.farming.reply.competition.0057" act="lineage.farming.competition.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Если группа явно остаётся надолго, ждать освобождения уже неразумно." />
@@ -712,7 +712,7 @@
 		<template id="v3.lineage.farming.reply.competition.0109" act="lineage.farming.competition.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Даже случайный перехват выглядит неприятно, но намерение лучше не выдумывать." />
 		<template id="v3.lineage.farming.reply.competition.0110" act="lineage.farming.competition.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Прощай им ошибку, если не боишься показаться слабее меня." />
 		<template id="v3.lineage.farming.reply.competition.0111" act="lineage.farming.competition.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Первый случай не считаем." />
-		<template id="v3.lineage.farming.reply.competition.0112" act="lineage.farming.competition.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты ищешь врагов быстрее, чем цели для фарма." />
+		<template id="v3.lineage.farming.reply.competition.0112" act="lineage.farming.competition.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Почему ты ищешь врагов быстрее, чем цели для фарма?" />
 		<template id="v3.lineage.farming.reply.competition.0113" act="lineage.farming.competition.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если спор уже начался, факты полезнее длинных взаимных обвинений." />
 		<template id="v3.lineage.farming.reply.competition.0114" act="lineage.farming.competition.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Скажем коротко, где проходит наш круг, и вернёмся к игре." />
 		<template id="v3.lineage.farming.reply.competition.0115" act="lineage.farming.competition.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Чем длиннее чат, тем свободнее мобы чувствуют себя на поляне." />
@@ -723,7 +723,7 @@
 		<template id="v3.lineage.farming.reply.competition.0120" act="lineage.farming.competition.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Иногда внешний круг даёт меньше конфликтов при почти той же плотности целей." />
 		<template id="v3.lineage.farming.reply.competition.0121" act="lineage.farming.competition.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сместимся к краю и сохраним нормальный темп." />
 		<template id="v3.lineage.farming.reply.competition.0122" act="lineage.farming.competition.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Центр оставим любителям сцены, мы поработаем без зрителей." />
-		<template id="v3.lineage.farming.reply.competition.0123" act="lineage.farming.competition.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Пойдём снаружи; там я смогу лучше следить, чтобы тебе не мешали." />
+		<template id="v3.lineage.farming.reply.competition.0123" act="lineage.farming.competition.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Пойдём снаружи; там можно лучше следить, чтобы тебе не мешали." />
 		<template id="v3.lineage.farming.reply.competition.0124" act="lineage.farming.competition.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Внешний круг? Отлично, меньше людей увидят, как я тебя обгоняю." />
 		<template id="v3.lineage.farming.reply.competition.0125" act="lineage.farming.competition.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Берём край поляны." />
 		<template id="v3.lineage.farming.reply.competition.0126" act="lineage.farming.competition.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если и там найдёшь повод для спора, проблема точно не в месте." />
@@ -737,7 +737,7 @@
 		<template id="v3.lineage.farming.reply.competition.0134" act="lineage.farming.competition.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если чужая группа ведёт мобов через наш путь, лучше увеличить дистанцию, а не вставать у неё на дороге." />
 		<template id="v3.lineage.farming.reply.competition.0135" act="lineage.farming.competition.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Отойдём на несколько шагов и вернём себе чистый круг." />
 		<template id="v3.lineage.farming.reply.competition.0136" act="lineage.farming.competition.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Разойдёмся, пока мобы не решили объединить обе наши компании." />
-		<template id="v3.lineage.farming.reply.competition.0137" act="lineage.farming.competition.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Иди рядом со мной, я уведу маршрут в сторону без конфликта." />
+		<template id="v3.lineage.farming.reply.competition.0137" act="lineage.farming.competition.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Иди рядом со мной, можно увести маршрут в сторону без конфликта." />
 		<template id="v3.lineage.farming.reply.competition.0138" act="lineage.farming.competition.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Дистанция растёт — посмотрим, кто первым потеряет темп." />
 		<template id="v3.lineage.farming.reply.competition.0139" act="lineage.farming.competition.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Смещаемся вправо. Не пересекаем их линию." />
 		<template id="v3.lineage.farming.reply.competition.0140" act="lineage.farming.competition.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Стоять поперёк чужого ведения и жаловаться — твой новый талант?" />
@@ -747,8 +747,8 @@
 		<template id="v3.lineage.farming.reply.competition.0144" act="lineage.farming.competition.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне спокойнее так фармить рядом с тобой, без ожидания очередной ссоры." />
 		<template id="v3.lineage.farming.reply.competition.0145" act="lineage.farming.competition.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Пусть соблюдают границу; я всё равно покажу лучший результат на своей половине." />
 		<template id="v3.lineage.farming.reply.competition.0146" act="lineage.farming.competition.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Договор не трогаем." />
-		<template id="v3.lineage.farming.reply.competition.0147" act="lineage.farming.competition.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты ищешь нарушение там, где просто хочется снова поругаться." />
-		<template id="v3.lineage.farming.reply.competition.0148" act="lineage.farming.competition.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Когда наш темп падает из-за наблюдения за конкурентами, мы уже проигрываем им внимание." />
+		<template id="v3.lineage.farming.reply.competition.0147" act="lineage.farming.competition.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Правда ты ищешь нарушение там, где просто хочется снова поругаться?" />
+		<template id="v3.lineage.farming.reply.competition.0148" act="lineage.farming.competition.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Контроль за конкурентами легко ломает собственный темп и крадёт внимание." />
 		<template id="v3.lineage.farming.reply.competition.0149" act="lineage.farming.competition.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Хватит следить за чужим лутом; вернёмся к своим целям." />
 		<template id="v3.lineage.farming.reply.competition.0150" act="lineage.farming.competition.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Соседняя пачка поселилась у нас в голове бесплатно." />
 		<template id="v3.lineage.farming.reply.competition.0151" act="lineage.farming.competition.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Смотри на наш круг, пожалуйста; я не хочу собирать тебя после чужих движений." />
@@ -759,13 +759,13 @@
 		<template id="v3.lineage.farming.reply.competition.0156" act="lineage.farming.competition.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я за переход: нормальный фарм важнее доказательства упрямства." />
 		<template id="v3.lineage.farming.reply.competition.0157" act="lineage.farming.competition.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Уходим с поля боя, которого вообще не должно было быть." />
 		<template id="v3.lineage.farming.reply.competition.0158" act="lineage.farming.competition.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Пойдём отсюда вместе; мне не нужна победа ценой твоего настроения." />
-		<template id="v3.lineage.farming.reply.competition.0159" act="lineage.farming.competition.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Сдаём спот, зато у меня появится новый шанс обойти тебя на дороге." />
+		<template id="v3.lineage.farming.reply.competition.0159" act="lineage.farming.competition.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Новый шанс обойти соперника на маршруте ещё появится." />
 		<template id="v3.lineage.farming.reply.competition.0160" act="lineage.farming.competition.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Меняем место. Тему закрыли." />
 		<template id="v3.lineage.farming.reply.competition.0161" act="lineage.farming.competition.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Уступи уже, твоё упрямство никому ничего не приносит." />
 		<template id="v3.lineage.farming.reply.competition.0162" act="lineage.farming.competition.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Если хочется соревнования, лучше сравнить добычу после равных кругов, а не мешать друг другу." />
 		<template id="v3.lineage.farming.reply.competition.0163" act="lineage.farming.competition.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Договоримся на одинаковое время и посмотрим результаты без провокаций." />
-		<template id="v3.lineage.farming.reply.competition.0164" act="lineage.farming.competition.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Устроим гонку, где мобы хотя бы не становятся случайными жертвами нашего самолюбия." />
-		<template id="v3.lineage.farming.reply.competition.0165" act="lineage.farming.competition.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соревнуйся со мной честно; я знаю, что тебе это действительно интересно." />
+		<template id="v3.lineage.farming.reply.competition.0164" act="lineage.farming.competition.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Стоит устроить гонку, где мобы хотя бы не становятся случайными жертвами нашего самолюбия." />
+		<template id="v3.lineage.farming.reply.competition.0165" act="lineage.farming.competition.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соревнуйся со мной честно; важно помнить, что тебе это действительно интересно." />
 		<template id="v3.lineage.farming.reply.competition.0166" act="lineage.farming.competition.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Наконец достойная идея. Готовься считать своё отставание." />
 		<template id="v3.lineage.farming.reply.competition.0167" act="lineage.farming.competition.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Один равный круг. Чужие цели не трогаем." />
 		<template id="v3.lineage.farming.reply.competition.0168" act="lineage.farming.competition.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Честная гонка тебе не поможет, но хотя бы будет тише." />
@@ -773,7 +773,7 @@
 		<template id="v3.lineage.farming.reply.competition.0170" act="lineage.farming.competition.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Закончим свой маршрут без захвата новых целей и спокойно освободим место." />
 		<template id="v3.lineage.farming.reply.competition.0171" act="lineage.farming.competition.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Финальный круг без территориальных приобретений — почти дипломатия." />
 		<template id="v3.lineage.farming.reply.competition.0172" act="lineage.farming.competition.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай уйдём без неприятного хвоста; вечер и так был длинным." />
-		<template id="v3.lineage.farming.reply.competition.0173" act="lineage.farming.competition.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Смотри, как достойно я покидаю поляну впереди тебя." />
+		<template id="v3.lineage.farming.reply.competition.0173" act="lineage.farming.competition.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Смотри, как достойно можно покидать поляну впереди тебя." />
 		<template id="v3.lineage.farming.reply.competition.0174" act="lineage.farming.competition.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Последний цикл по своей стороне." />
 		<template id="v3.lineage.farming.reply.competition.0175" act="lineage.farming.competition.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не напоследок же тебе снова лезть к ним под ноги." />
 		<template id="v3.lineage.farming.reply.competition.0176" act="lineage.farming.competition.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если другая группа ведёт себя уважительно, короткое дружелюбное сообщение лучше холодного подозрения." />
@@ -789,7 +789,7 @@
 		<template id="v3.lineage.farming.reply.competition.0186" act="lineage.farming.competition.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Давай выберем другое место и сохраним силы для самого фарма." />
 		<template id="v3.lineage.farming.reply.competition.0187" act="lineage.farming.competition.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Уходи, если не выдерживаешь тесноты; я ещё немного посмотрю на их темп." />
 		<template id="v3.lineage.farming.reply.competition.0188" act="lineage.farming.competition.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Спот перегружен. Переходим." />
-		<template id="v3.lineage.farming.reply.competition.0189" act="lineage.farming.competition.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты цепляешься за эту поляну так, будто другой в игре нет." />
+		<template id="v3.lineage.farming.reply.competition.0189" act="lineage.farming.competition.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Зачем ты цепляешься за эту поляну так, будто другой в игре нет?" />
 		<template id="v3.lineage.farming.reply.competition.0190" act="lineage.farming.competition.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если провокация переходит в явную помеху, не надо отвечать тем же способом." />
 		<template id="v3.lineage.farming.reply.competition.0191" act="lineage.farming.competition.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Зафиксируем для себя ситуацию и уйдём с маршрута пересечения." />
 		<template id="v3.lineage.farming.reply.competition.0192" act="lineage.farming.competition.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Они хотят реакции; не будем дарить бесплатное представление." />

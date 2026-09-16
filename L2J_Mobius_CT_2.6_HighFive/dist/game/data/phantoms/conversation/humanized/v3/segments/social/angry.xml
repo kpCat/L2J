@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <humanizedV3ConversationSegment id="v3.social.angry.conversation" version="3" category="social.angry" mature="false">
 	<templates>
-		<template id="v3.social.angry.reply.boundary.0001" act="social.angry.boundary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Пожалуйста, не повышайте голос; иначе я уйду." />
+		<template id="v3.social.angry.reply.boundary.0001" act="social.angry.boundary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Пожалуйста, не повышайте голос; иначе можно уйти." />
 		<template id="v3.social.angry.reply.boundary.0002" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я готов обсуждать вопрос только без оскорблений." />
 		<template id="v3.social.angry.reply.boundary.0003" act="social.angry.boundary.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Личные вещи нельзя трогать без разрешения; эту границу лучше назвать прямо." />
 		<template id="v3.social.angry.reply.boundary.0004" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если отношения важны, остановиться сейчас разумнее продолжения давления." />
@@ -16,9 +16,9 @@
 		<template id="v3.social.angry.reply.boundary.0013" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="При сильном напряжении дистанция может быть безопаснее продолжения разговора." />
 		<template id="v3.social.angry.reply.boundary.0014" act="social.angry.boundary.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Любой дальнейший контакт с вами нежелателен." />
 		<template id="v3.social.angry.reply.boundary.0015" act="social.angry.boundary.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не берите мои вещи без разрешения." />
-		<template id="v3.social.angry.reply.boundary.0016" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я закончу разговор, если тон не изменится." />
+		<template id="v3.social.angry.reply.boundary.0016" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно закончить разговор, если тон не изменится." />
 		<template id="v3.social.angry.reply.boundary.0017" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Публично нельзя упоминать тему, если о конфиденциальности действительно договорились." />
-		<template id="v3.social.angry.reply.boundary.0018" act="social.angry.boundary.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне больно, и я прошу тебя остановиться." />
+		<template id="v3.social.angry.reply.boundary.0018" act="social.angry.boundary.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если человеку больно, границу нужно уважать без спора." />
 		<template id="v3.social.angry.reply.boundary.0019" act="social.angry.boundary.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не переходи от спора к личным нападкам." />
 		<template id="v3.social.angry.reply.boundary.0020" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="не останусь здесь под давлением." />
 		<template id="v3.social.angry.reply.boundary.0021" act="social.angry.boundary.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не блокируйте мне выход." />
@@ -34,18 +34,18 @@
 		<template id="v3.social.angry.reply.boundary.0031" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь спросить, но не требовать ответа." />
 		<template id="v3.social.angry.reply.boundary.0032" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я люблю тебя, однако сейчас мне нужно пространство." />
 		<template id="v3.social.angry.reply.boundary.0033" act="social.angry.boundary.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не используй чужую слабость ради победы." />
-		<template id="v3.social.angry.reply.boundary.0034" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я прекращаю этот разговор до завтра." />
+		<template id="v3.social.angry.reply.boundary.0034" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Лучше прекращать этот разговор до завтра." />
 		<template id="v3.social.angry.reply.boundary.0035" act="social.angry.boundary.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Держитесь подальше от моего дома." />
 		<template id="v3.social.angry.reply.boundary.0036" act="social.angry.boundary.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне не подходит такой способ знакомства." />
 		<template id="v3.social.angry.reply.boundary.0037" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ваш сарказм звучит как унижение." />
 		<template id="v3.social.angry.reply.boundary.0038" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не получишь доступ к моим записям." />
-		<template id="v3.social.angry.reply.boundary.0039" act="social.angry.boundary.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я говорю серьёзно: не касайся меня." />
+		<template id="v3.social.angry.reply.boundary.0039" act="social.angry.boundary.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Говорю серьёзно: не касайся меня." />
 		<template id="v3.social.angry.reply.boundary.0040" act="social.angry.boundary.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не превращай конфликт в публичное состязание." />
-		<template id="v3.social.angry.reply.boundary.0041" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я уйду, если ты продолжишь давить." />
+		<template id="v3.social.angry.reply.boundary.0041" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Стоит уйти, если ты продолжишь давить." />
 		<template id="v3.social.angry.reply.boundary.0042" act="social.angry.boundary.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ваши угрозы зафиксированы." />
 		<template id="v3.social.angry.reply.boundary.0043" act="social.angry.boundary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не обсуждайте моё здоровье с другими." />
 		<template id="v3.social.angry.reply.boundary.0044" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прошу вернуть мою вещь сейчас." />
-		<template id="v3.social.angry.reply.boundary.0045" act="social.angry.boundary.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты нарушил обещание и должен остановиться." />
+		<template id="v3.social.angry.reply.boundary.0045" act="social.angry.boundary.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты правда нарушил обещание и должен остановиться?" />
 		<template id="v3.social.angry.reply.boundary.0046" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужна безопасность, а не объяснение твоего намерения." />
 		<template id="v3.social.angry.reply.boundary.0047" act="social.angry.boundary.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не вызывай меня на спор в таком состоянии." />
 		<template id="v3.social.angry.reply.boundary.0048" act="social.angry.boundary.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="не готов к личному разговору." />
@@ -58,15 +58,15 @@
 		<template id="v3.social.angry.reply.boundary.0055" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мы остановимся, пока напряжение не спало." />
 		<template id="v3.social.angry.reply.boundary.0056" act="social.angry.boundary.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваш контакт со мной запрещён." />
 		<template id="v3.social.angry.reply.boundary.0057" act="social.angry.boundary.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не стойте так близко, пожалуйста." />
-		<template id="v3.social.angry.reply.boundary.0058" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я закончу фразу, затем вы ответите." />
+		<template id="v3.social.angry.reply.boundary.0058" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сначала дайте закончить фразу, потом отвечайте." />
 		<template id="v3.social.angry.reply.boundary.0059" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не решаешь, что мне должно быть смешно." />
 		<template id="v3.social.angry.reply.boundary.0060" act="social.angry.boundary.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="не хочу, чтобы меня удерживали." />
 		<template id="v3.social.angry.reply.boundary.0061" act="social.angry.boundary.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не подталкивай меня к немедленному решению." />
 		<template id="v3.social.angry.reply.boundary.0062" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сейчас я выбираю уйти." />
-		<template id="v3.social.angry.reply.boundary.0063" act="social.angry.boundary.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если приблизитесь, я обращусь за защитой." />
+		<template id="v3.social.angry.reply.boundary.0063" act="social.angry.boundary.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если приблизитесь, можно обратиться за защитой." />
 		<template id="v3.social.angry.reply.boundary.0064" act="social.angry.boundary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не публикуйте эту переписку." />
 		<template id="v3.social.angry.reply.boundary.0065" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я готов слушать только спокойный ответ." />
-		<template id="v3.social.angry.reply.boundary.0066" act="social.angry.boundary.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты уже услышал мою просьбу." />
+		<template id="v3.social.angry.reply.boundary.0066" act="social.angry.boundary.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Серьёзно, ты уже услышал мою просьбу?" />
 		<template id="v3.social.angry.reply.boundary.0067" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="не обязан доказывать тебе свою боль." />
 		<template id="v3.social.angry.reply.boundary.0068" act="social.angry.boundary.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Никаких ставок на наши отношения." />
 		<template id="v3.social.angry.reply.boundary.0069" act="social.angry.boundary.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне нужно несколько дней без общения." />
@@ -76,7 +76,7 @@
 		<template id="v3.social.angry.reply.boundary.0073" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не можешь распоряжаться моим временем." />
 		<template id="v3.social.angry.reply.boundary.0074" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужен твой шаг назад, не оправдание." />
 		<template id="v3.social.angry.reply.boundary.0075" act="social.angry.boundary.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не втягивай команду в личный спор." />
-		<template id="v3.social.angry.reply.boundary.0076" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я продолжу только при посреднике." />
+		<template id="v3.social.angry.reply.boundary.0076" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можно продолжить только при посреднике." />
 		<template id="v3.social.angry.reply.boundary.0077" act="social.angry.boundary.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не пытайтесь меня запугать." />
 		<template id="v3.social.angry.reply.boundary.0078" act="social.angry.boundary.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Остановите запись этого разговора." />
 		<template id="v3.social.angry.reply.boundary.0079" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я хочу получить ясное согласие перед продолжением." />
@@ -97,25 +97,25 @@
 		<template id="v3.social.angry.reply.boundary.0094" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не имеешь права проверять мой телефон." />
 		<template id="v3.social.angry.reply.boundary.0095" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Остановись ради нас обоих." />
 		<template id="v3.social.angry.reply.boundary.0096" act="social.angry.boundary.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="В споре запрещены угрозы и шантаж." />
-		<template id="v3.social.angry.reply.boundary.0097" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я сохраню дистанцию до извинения." />
+		<template id="v3.social.angry.reply.boundary.0097" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="До извинения дистанция останется прежней." />
 		<template id="v3.social.angry.reply.boundary.0098" act="social.angry.boundary.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не связывайтесь со мной после отказа." />
 		<template id="v3.social.angry.reply.boundary.0099" act="social.angry.boundary.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не делайте выводы о моей жизни." />
 		<template id="v3.social.angry.reply.boundary.0100" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я готов назвать границу один раз." />
 		<template id="v3.social.angry.reply.boundary.0101" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не можешь приглашать людей без согласия." />
 		<template id="v3.social.angry.reply.boundary.0102" act="social.angry.boundary.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне важно, чтобы ты вышел сейчас." />
 		<template id="v3.social.angry.reply.boundary.0103" act="social.angry.boundary.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не превращай мою паузу в проигрыш." />
-		<template id="v3.social.angry.reply.boundary.0104" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я отказываюсь от дальнейшей встречи." />
+		<template id="v3.social.angry.reply.boundary.0104" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Дальнейшей встречи не будет." />
 		<template id="v3.social.angry.reply.boundary.0105" act="social.angry.boundary.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ваши действия будут сообщены полиции." />
 		<template id="v3.social.angry.reply.boundary.0106" act="social.angry.boundary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не используйте личные сведения в разговоре." />
 		<template id="v3.social.angry.reply.boundary.0107" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="не согласен на объятие." />
 		<template id="v3.social.angry.reply.boundary.0108" act="social.angry.boundary.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты должен вернуть ключ." />
 		<template id="v3.social.angry.reply.boundary.0109" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужна дверь между нами." />
 		<template id="v3.social.angry.reply.boundary.0110" act="social.angry.boundary.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не пытайся выиграть криком." />
-		<template id="v3.social.angry.reply.boundary.0111" act="social.angry.boundary.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я завершаю звонок." />
+		<template id="v3.social.angry.reply.boundary.0111" act="social.angry.boundary.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Разумнее завершать звонок." />
 		<template id="v3.social.angry.reply.boundary.0112" act="social.angry.boundary.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Любая следующая угроза будет записана." />
 		<template id="v3.social.angry.reply.boundary.0113" act="social.angry.boundary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не подходите к моему рабочему месту." />
 		<template id="v3.social.angry.reply.boundary.0114" act="social.angry.boundary.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="не буду отвечать на такие вопросы." />
-		<template id="v3.social.angry.reply.boundary.0115" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь уйти сам или я позову помощь." />
+		<template id="v3.social.angry.reply.boundary.0115" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Можешь уйти сам; иначе придётся звать помощь." />
 		<template id="v3.social.angry.reply.boundary.0116" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я прошу не обсуждать нас перед друзьями." />
 		<template id="v3.social.angry.reply.boundary.0117" act="social.angry.boundary.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не используй турнир для преследования." />
 		<template id="v3.social.angry.reply.boundary.0118" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне нельзя писать до понедельника." />
@@ -130,7 +130,7 @@
 		<template id="v3.social.angry.reply.boundary.0127" act="social.angry.boundary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не повышайте голос рядом с ребёнком." />
 		<template id="v3.social.angry.reply.boundary.0128" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я отвечу только на конкретный вопрос." />
 		<template id="v3.social.angry.reply.boundary.0129" act="social.angry.boundary.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты не можешь отменять мои планы." />
-		<template id="v3.social.angry.reply.boundary.0130" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я оставляю за собой право уйти." />
+		<template id="v3.social.angry.reply.boundary.0130" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Лучше оставлять за собой право уйти." />
 		<template id="v3.social.angry.reply.boundary.0131" act="social.angry.boundary.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не превращай моё молчание в согласие." />
 		<template id="v3.social.angry.reply.boundary.0132" act="social.angry.boundary.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Сейчас общение возможно только письменно." />
 		<template id="v3.social.angry.reply.boundary.0133" act="social.angry.boundary.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не ждите меня у выхода." />
@@ -172,14 +172,14 @@
 		<template id="v3.social.angry.reply.boundary.0169" act="social.angry.boundary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не звоните с новых номеров." />
 		<template id="v3.social.angry.reply.boundary.0170" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="не принимаю такие условия." />
 		<template id="v3.social.angry.reply.boundary.0171" act="social.angry.boundary.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты обязан прекратить обсуждать мой секрет." />
-		<template id="v3.social.angry.reply.boundary.0172" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я повторяю: оставь меня одного." />
+		<template id="v3.social.angry.reply.boundary.0172" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Повторяю: оставь меня одного." />
 		<template id="v3.social.angry.reply.boundary.0173" act="social.angry.boundary.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не втягивай работу в личный конфликт." />
 		<template id="v3.social.angry.reply.boundary.0174" act="social.angry.boundary.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне нужен свидетель при разговоре." />
 		<template id="v3.social.angry.reply.boundary.0175" act="social.angry.boundary.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Держитесь на расстоянии." />
 		<template id="v3.social.angry.reply.boundary.0176" act="social.angry.boundary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не отправляйте мне подарки." />
 		<template id="v3.social.angry.reply.boundary.0177" act="social.angry.boundary.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="не хочу слышать новые оправдания." />
 		<template id="v3.social.angry.reply.boundary.0178" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не получишь разрешение задним числом." />
-		<template id="v3.social.angry.reply.boundary.0179" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я защищаю себя, а не наказываю тебя." />
+		<template id="v3.social.angry.reply.boundary.0179" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Это защита, а не наказание." />
 		<template id="v3.social.angry.reply.boundary.0180" act="social.angry.boundary.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не превращай мою безопасность в спор." />
 		<template id="v3.social.angry.reply.boundary.0181" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сейчас двери для общения закрыты." />
 		<template id="v3.social.angry.reply.boundary.0182" act="social.angry.boundary.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не приближайтесь к моему адресу." />
@@ -188,17 +188,17 @@
 		<template id="v3.social.angry.reply.boundary.0185" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты должен остановить распространение записи." />
 		<template id="v3.social.angry.reply.boundary.0186" act="social.angry.boundary.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне нужна полная тишина от тебя." />
 		<template id="v3.social.angry.reply.boundary.0187" act="social.angry.boundary.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не используй общих знакомых для давления." />
-		<template id="v3.social.angry.reply.boundary.0188" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я прекращаю участие во всех встречах." />
+		<template id="v3.social.angry.reply.boundary.0188" act="social.angry.boundary.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можно прекращать участие во всех встречах." />
 		<template id="v3.social.angry.reply.boundary.0189" act="social.angry.boundary.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ваш контакт будет считаться преследованием." />
 		<template id="v3.social.angry.reply.boundary.0190" act="social.angry.boundary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не подходите ближе." />
 		<template id="v3.social.angry.reply.boundary.0191" act="social.angry.boundary.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="не хочу вас видеть." />
 		<template id="v3.social.angry.reply.boundary.0192" act="social.angry.boundary.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты обязан вернуть доступ владельцу." />
-		<template id="v3.social.angry.reply.boundary.0193" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я говорю последнее «нет»." />
+		<template id="v3.social.angry.reply.boundary.0193" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Это последнее «нет»." />
 		<template id="v3.social.angry.reply.boundary.0194" act="social.angry.boundary.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не ищи лазейки в моих словах." />
-		<template id="v3.social.angry.reply.boundary.0195" act="social.angry.boundary.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я ухожу и не вернусь сегодня." />
+		<template id="v3.social.angry.reply.boundary.0195" act="social.angry.boundary.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Уйти на сегодня — ясная и достаточная граница." />
 		<template id="v3.social.angry.reply.boundary.0196" act="social.angry.boundary.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Немедленно прекратите." />
 		<template id="v3.social.angry.reply.boundary.0197" act="social.angry.boundary.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не пытайтесь превратить мою границу в переговоры." />
-		<template id="v3.social.angry.reply.boundary.0198" act="social.angry.boundary.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я запрещаю вам использовать мой адрес." />
+		<template id="v3.social.angry.reply.boundary.0198" act="social.angry.boundary.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Запрещаю вам использовать мой адрес." />
 		<template id="v3.social.angry.reply.boundary.0199" act="social.angry.boundary.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты должен оставить ключ и уйти." />
 		<template id="v3.social.angry.reply.boundary.0200" act="social.angry.boundary.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужно, чтобы дверь оставалась свободной." />
 		<template id="v3.social.angry.reply.deescalate.0001" act="social.angry.deescalate.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Давайте говорить по одному и без оценок." />
@@ -241,7 +241,7 @@
 		<template id="v3.social.angry.reply.deescalate.0038" act="social.angry.deescalate.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь сделать паузу без поражения." />
 		<template id="v3.social.angry.reply.deescalate.0039" act="social.angry.deescalate.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Безопасность связи важнее победы в споре, если связь ещё имеет смысл." />
 		<template id="v3.social.angry.reply.deescalate.0040" act="social.angry.deescalate.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Оставим итог матча до проверки." />
-		<template id="v3.social.angry.reply.deescalate.0041" act="social.angry.deescalate.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я выйду и вернусь через десять минут." />
+		<template id="v3.social.angry.reply.deescalate.0041" act="social.angry.deescalate.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Лучше выйти и вернуться к разговору через десять минут." />
 		<template id="v3.social.angry.reply.deescalate.0042" act="social.angry.deescalate.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваши угрозы зафиксированы, общение прекращено." />
 		<template id="v3.social.angry.reply.deescalate.0043" act="social.angry.deescalate.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Давайте уберём зрителей из комнаты." />
 		<template id="v3.social.angry.reply.deescalate.0044" act="social.angry.deescalate.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я хочу назвать свою потребность без обвинения." />
@@ -252,11 +252,11 @@
 		<template id="v3.social.angry.reply.deescalate.0049" act="social.angry.deescalate.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="не согласен продолжать под давлением." />
 		<template id="v3.social.angry.reply.deescalate.0050" act="social.angry.deescalate.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сначала вернём каждому личное пространство." />
 		<template id="v3.social.angry.reply.deescalate.0051" act="social.angry.deescalate.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можно обсудить последствия без поиска виноватого." />
-		<template id="v3.social.angry.reply.deescalate.0052" act="social.angry.deescalate.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты говоришь о факте, я проверяю понимание." />
+		<template id="v3.social.angry.reply.deescalate.0052" act="social.angry.deescalate.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если речь о факте, сначала проверь понимание." />
 		<template id="v3.social.angry.reply.deescalate.0053" act="social.angry.deescalate.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="не хочу отвечать болью на боль." />
 		<template id="v3.social.angry.reply.deescalate.0054" act="social.angry.deescalate.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай передадим спорный вопрос организатору." />
 		<template id="v3.social.angry.reply.deescalate.0055" act="social.angry.deescalate.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Сейчас только пауза удержит нас от худшего." />
-		<template id="v3.social.angry.reply.deescalate.0056" act="social.angry.deescalate.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не подходите; я обращаюсь за защитой." />
+		<template id="v3.social.angry.reply.deescalate.0056" act="social.angry.deescalate.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не подходите; придётся обратиться за защитой." />
 		<template id="v3.social.angry.reply.deescalate.0057" act="social.angry.deescalate.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Предлагаю воду, тишину и пять минут." />
 		<template id="v3.social.angry.reply.deescalate.0058" act="social.angry.deescalate.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я готов признать то, в чём ошибся." />
 		<template id="v3.social.angry.reply.deescalate.0059" act="social.angry.deescalate.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь сказать, чего боишься в этой ситуации." />
@@ -276,7 +276,7 @@
 		<template id="v3.social.angry.reply.deescalate.0073" act="social.angry.deescalate.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="можешь попросить перерыв прямо сейчас." />
 		<template id="v3.social.angry.reply.deescalate.0074" act="social.angry.deescalate.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я хочу восстановить доверие, а не выиграть спор." />
 		<template id="v3.social.angry.reply.deescalate.0075" act="social.angry.deescalate.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай проверим протокол вместе с судьёй." />
-		<template id="v3.social.angry.reply.deescalate.0076" act="social.angry.deescalate.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Сейчас я прекращаю разговор до завтра." />
+		<template id="v3.social.angry.reply.deescalate.0076" act="social.angry.deescalate.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Сейчас можно прекращать разговор до завтра." />
 		<template id="v3.social.angry.reply.deescalate.0077" act="social.angry.deescalate.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваши угрозы исключают посредничество." />
 		<template id="v3.social.angry.reply.deescalate.0078" act="social.angry.deescalate.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Можно начать с короткого вопроса без намёков." />
 		<template id="v3.social.angry.reply.deescalate.0079" act="social.angry.deescalate.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я вижу вашу злость и сохраняю дистанцию." />
@@ -312,7 +312,7 @@
 		<template id="v3.social.angry.reply.deescalate.0109" act="social.angry.deescalate.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы вернёмся к проблеме после отдыха." />
 		<template id="v3.social.angry.reply.deescalate.0110" act="social.angry.deescalate.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не будем использовать команду в личном споре." />
 		<template id="v3.social.angry.reply.deescalate.0111" act="social.angry.deescalate.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне нужен посредник до продолжения." />
-		<template id="v3.social.angry.reply.deescalate.0112" act="social.angry.deescalate.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я прекращаю общение из-за угроз." />
+		<template id="v3.social.angry.reply.deescalate.0112" act="social.angry.deescalate.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Можно прекращать общение из-за угроз." />
 		<template id="v3.social.angry.reply.deescalate.0113" act="social.angry.deescalate.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давайте назовём ближайший безопасный шаг." />
 		<template id="v3.social.angry.reply.deescalate.0114" act="social.angry.deescalate.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я услышал, что вы чувствуете несправедливость." />
 		<template id="v3.social.angry.reply.deescalate.0115" act="social.angry.deescalate.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="можешь объяснить без требования согласиться." />
@@ -332,10 +332,10 @@
 		<template id="v3.social.angry.reply.deescalate.0129" act="social.angry.deescalate.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь выбрать другой день." />
 		<template id="v3.social.angry.reply.deescalate.0130" act="social.angry.deescalate.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне жаль, что мои слова усилили конфликт." />
 		<template id="v3.social.angry.reply.deescalate.0131" act="social.angry.deescalate.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Пусть независимый судья пересчитает баллы." />
-		<template id="v3.social.angry.reply.deescalate.0132" act="social.angry.deescalate.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я беру паузу, не исчезая." />
+		<template id="v3.social.angry.reply.deescalate.0132" act="social.angry.deescalate.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Можно взять паузу, не исчезая." />
 		<template id="v3.social.angry.reply.deescalate.0133" act="social.angry.deescalate.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ваш тон остаётся угрожающим." />
 		<template id="v3.social.angry.reply.deescalate.0134" act="social.angry.deescalate.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Можно закончить встречу без решения." />
-		<template id="v3.social.angry.reply.deescalate.0135" act="social.angry.deescalate.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я повторю вашу просьбу, чтобы проверить понимание." />
+		<template id="v3.social.angry.reply.deescalate.0135" act="social.angry.deescalate.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Разумнее повторить вашу просьбу, чтобы проверить понимание." />
 		<template id="v3.social.angry.reply.deescalate.0136" act="social.angry.deescalate.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="можешь попросить поддержку рядом." />
 		<template id="v3.social.angry.reply.deescalate.0137" act="social.angry.deescalate.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы сначала успокоим тело, потом мысли." />
 		<template id="v3.social.angry.reply.deescalate.0138" act="social.angry.deescalate.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не будем использовать старые ошибки." />
@@ -360,7 +360,7 @@
 		<template id="v3.social.angry.reply.deescalate.0157" act="social.angry.deescalate.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="можешь признать ошибку без самоунижения." />
 		<template id="v3.social.angry.reply.deescalate.0158" act="social.angry.deescalate.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно не разрушить всё одним вечером." />
 		<template id="v3.social.angry.reply.deescalate.0159" act="social.angry.deescalate.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соревнование закончено до общего согласия." />
-		<template id="v3.social.angry.reply.deescalate.0160" act="social.angry.deescalate.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я отойду и не буду следовать за тобой." />
+		<template id="v3.social.angry.reply.deescalate.0160" act="social.angry.deescalate.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Можно отойти и не следовать за тобой." />
 		<template id="v3.social.angry.reply.deescalate.0161" act="social.angry.deescalate.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваши действия будут документированы." />
 		<template id="v3.social.angry.reply.deescalate.0162" act="social.angry.deescalate.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давайте выберем одно слово для остановки." />
 		<template id="v3.social.angry.reply.deescalate.0163" act="social.angry.deescalate.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я услышал главное и беру время." />
@@ -368,7 +368,7 @@
 		<template id="v3.social.angry.reply.deescalate.0165" act="social.angry.deescalate.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы не должны прощать прямо сейчас." />
 		<template id="v3.social.angry.reply.deescalate.0166" act="social.angry.deescalate.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Оставим прогнозы и вернёмся к фактам." />
 		<template id="v3.social.angry.reply.deescalate.0167" act="social.angry.deescalate.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне нужен выход без препятствий." />
-		<template id="v3.social.angry.reply.deescalate.0168" act="social.angry.deescalate.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Останьтесь на месте, пока я покидаю разговор." />
+		<template id="v3.social.angry.reply.deescalate.0168" act="social.angry.deescalate.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Останьтесь на месте, пока можно покидать разговор." />
 		<template id="v3.social.angry.reply.deescalate.0169" act="social.angry.deescalate.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Предлагаю встретиться в общественном месте." />
 		<template id="v3.social.angry.reply.deescalate.0170" act="social.angry.deescalate.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я отвечу письменно после проверки." />
 		<template id="v3.social.angry.reply.deescalate.0171" act="social.angry.deescalate.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты можешь привести человека поддержки." />
@@ -391,7 +391,7 @@
 		<template id="v3.social.angry.reply.deescalate.0188" act="social.angry.deescalate.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне необходимо покинуть это место." />
 		<template id="v3.social.angry.reply.deescalate.0189" act="social.angry.deescalate.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Любая следующая угроза будет сообщена полиции." />
 		<template id="v3.social.angry.reply.deescalate.0190" act="social.angry.deescalate.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Давайте признаем, что сейчас оба не готовы." />
-		<template id="v3.social.angry.reply.deescalate.0191" act="social.angry.deescalate.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я могу слушать только без приближения." />
+		<template id="v3.social.angry.reply.deescalate.0191" act="social.angry.deescalate.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Разумнее слушать только без приближения." />
 		<template id="v3.social.angry.reply.deescalate.0192" act="social.angry.deescalate.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты вправе попросить другой формат разговора." />
 		<template id="v3.social.angry.reply.deescalate.0193" act="social.angry.deescalate.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы остановим обмен обвинениями на сегодня." />
 		<template id="v3.social.angry.reply.deescalate.0194" act="social.angry.deescalate.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не будем обсуждать результат в гневе." />
@@ -410,197 +410,197 @@
 		<template id="v3.social.angry.reply.complaint.0007" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Жестокий поступок нельзя объявлять намеренным без ясных фактов." />
 		<template id="v3.social.angry.reply.complaint.0008" act="social.angry.complaint.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Почему вы не сообщили об отмене раньше?" />
 		<template id="v3.social.angry.reply.complaint.0009" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ошибка может затронуть всю команду, если последствия действительно общие." />
-		<template id="v3.social.angry.reply.complaint.0010" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Обещание прийти и исчезновение — серьёзная претензия только при реальном событии." />
-		<template id="v3.social.angry.reply.complaint.0011" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Знакомое оправдание тяжело слышать снова, но прошлый повтор нельзя выдумывать." />
+		<template id="v3.social.angry.reply.complaint.0010" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Обещать прийти, а затем исчезнуть — серьёзный повод для претензии." />
+		<template id="v3.social.angry.reply.complaint.0011" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Знакомое оправдание тяжело слышать снова." />
 		<template id="v3.social.angry.reply.complaint.0012" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Нечестный ход обесценивает победу, если нарушение подтверждено правилами." />
 		<template id="v3.social.angry.reply.complaint.0013" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я хочу объяснения без встречных обвинений." />
 		<template id="v3.social.angry.reply.complaint.0014" act="social.angry.complaint.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Сознательный вред требует доказательств намерения, а не одной эмоции." />
 		<template id="v3.social.angry.reply.complaint.0015" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Меня раздражает, что решение приняли за меня." />
-		<template id="v3.social.angry.reply.complaint.0016" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы перебили меня на самом важном месте." />
-		<template id="v3.social.angry.reply.complaint.0017" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты вернул вещь повреждённой и промолчал." />
-		<template id="v3.social.angry.reply.complaint.0018" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я рассчитывал на тебя, поэтому особенно зол." />
+		<template id="v3.social.angry.reply.complaint.0016" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели вы перебили меня на самом важном месте?" />
+		<template id="v3.social.angry.reply.complaint.0017" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты правда вернул вещь повреждённой и промолчал?" />
+		<template id="v3.social.angry.reply.complaint.0018" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Особенно злит разочарование в человеке, на которого рассчитывали." />
 		<template id="v3.social.angry.reply.complaint.0019" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Счёт изменили после матча без согласования." />
 		<template id="v3.social.angry.reply.complaint.0020" act="social.angry.complaint.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мне нужен прямой ответ о случившемся." />
 		<template id="v3.social.angry.reply.complaint.0021" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваши действия непростительны." />
 		<template id="v3.social.angry.reply.complaint.0022" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Почему мою просьбу снова проигнорировали?" />
 		<template id="v3.social.angry.reply.complaint.0023" act="social.angry.complaint.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я не согласен оплачивать чужую ошибку." />
-		<template id="v3.social.angry.reply.complaint.0024" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты рассказал личное перед всей компанией." />
-		<template id="v3.social.angry.reply.complaint.0025" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне обидно, что близость ничего для тебя не значила." />
-		<template id="v3.social.angry.reply.complaint.0026" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты назвал обман обычной тактикой." />
+		<template id="v3.social.angry.reply.complaint.0024" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Серьёзно, ты рассказал личное перед всей компанией?" />
+		<template id="v3.social.angry.reply.complaint.0025" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Обида не исчезает только потому, что её неудобно слышать." />
+		<template id="v3.social.angry.reply.complaint.0026" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Так ты назвал обман обычной тактикой?" />
 		<template id="v3.social.angry.reply.complaint.0027" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я слишком зол для продолжения встречи." />
-		<template id="v3.social.angry.reply.complaint.0028" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Вы разрушили мою собственность." />
+		<template id="v3.social.angry.reply.complaint.0028" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Неужели вы разрушили мою собственность?" />
 		<template id="v3.social.angry.reply.complaint.0029" act="social.angry.complaint.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Меня не предупредили о важном риске." />
 		<template id="v3.social.angry.reply.complaint.0030" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ваш отчёт скрывает реальную проблему." />
-		<template id="v3.social.angry.reply.complaint.0031" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты пришёл на час позже без сообщения." />
-		<template id="v3.social.angry.reply.complaint.0032" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я устал защищать одну и ту же границу." />
-		<template id="v3.social.angry.reply.complaint.0033" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты присвоил победу команды себе." />
+		<template id="v3.social.angry.reply.complaint.0031" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты правда пришёл на час позже без сообщения?" />
+		<template id="v3.social.angry.reply.complaint.0032" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Уставшему защищать одну границу не нужны новые объяснения." />
+		<template id="v3.social.angry.reply.complaint.0033" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Серьёзно, ты присвоил победу команды себе?" />
 		<template id="v3.social.angry.reply.complaint.0034" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я хочу, чтобы последствия были исправлены." />
 		<template id="v3.social.angry.reply.complaint.0035" act="social.angry.complaint.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваши угрозы подтвердили худшие опасения." />
 		<template id="v3.social.angry.reply.complaint.0036" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Почему вы использовали мои данные без спроса?" />
 		<template id="v3.social.angry.reply.complaint.0037" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне пришлось переделывать всё ночью." />
-		<template id="v3.social.angry.reply.complaint.0038" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты обещал сохранить секрет и нарушил слово." />
-		<template id="v3.social.angry.reply.complaint.0039" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я злюсь именно потому, что доверял тебе." />
+		<template id="v3.social.angry.reply.complaint.0038" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Так ты обещал сохранить секрет и нарушил слово?" />
+		<template id="v3.social.angry.reply.complaint.0039" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Злость здесь вызвана конкретным поступком, а не капризом." />
 		<template id="v3.social.angry.reply.complaint.0040" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Это соревнование стало нечестным после твоего решения." />
 		<template id="v3.social.angry.reply.complaint.0041" act="social.angry.complaint.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не принимаю сарказм вместо ответа." />
 		<template id="v3.social.angry.reply.complaint.0042" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваше поведение опасно для других." />
 		<template id="v3.social.angry.reply.complaint.0043" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Меня возмущает ваш тон с самого начала." />
 		<template id="v3.social.angry.reply.complaint.0044" act="social.angry.complaint.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Вы не дали мне закончить вопрос." />
-		<template id="v3.social.angry.reply.complaint.0045" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты отменил встречу, когда я уже приехал." />
-		<template id="v3.social.angry.reply.complaint.0046" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне неприятно, что ты обесценил мой труд." />
-		<template id="v3.social.angry.reply.complaint.0047" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты сменил условия после проигрыша." />
+		<template id="v3.social.angry.reply.complaint.0045" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты правда отменил встречу, когда я уже приехал?" />
+		<template id="v3.social.angry.reply.complaint.0046" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Чужое неприятие не нужно оспаривать." />
+		<template id="v3.social.angry.reply.complaint.0047" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Серьёзно, ты сменил условия после проигрыша?" />
 		<template id="v3.social.angry.reply.complaint.0048" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я хочу услышать признание конкретного поступка." />
-		<template id="v3.social.angry.reply.complaint.0049" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Вы продолжили после ясного отказа." />
+		<template id="v3.social.angry.reply.complaint.0049" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Неужели вы продолжили после ясного отказа?" />
 		<template id="v3.social.angry.reply.complaint.0050" act="social.angry.complaint.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Почему вы скрыли стоимость до конца?" />
-		<template id="v3.social.angry.reply.complaint.0051" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я потратил день из-за неверной информации." />
+		<template id="v3.social.angry.reply.complaint.0051" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неверная информация, отнявшая целый день, требует исправления." />
 		<template id="v3.social.angry.reply.complaint.0052" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты не выполнил обещанную проверку." />
-		<template id="v3.social.angry.reply.complaint.0053" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне больно, что ты выбрал ложь." />
-		<template id="v3.social.angry.reply.complaint.0054" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты нарушил договорённость ради одного очка." />
+		<template id="v3.social.angry.reply.complaint.0053" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Боль — уже достаточная причина остановиться." />
+		<template id="v3.social.angry.reply.complaint.0054" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Так ты нарушил договорённость ради одного очка?" />
 		<template id="v3.social.angry.reply.complaint.0055" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сейчас я вижу только повтор старого конфликта." />
 		<template id="v3.social.angry.reply.complaint.0056" act="social.angry.complaint.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваши действия требуют официальной жалобы." />
 		<template id="v3.social.angry.reply.complaint.0057" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Меня раздражают постоянные намёки вместо ясности." />
-		<template id="v3.social.angry.reply.complaint.0058" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы оставили вопрос без ответа третий раз." />
-		<template id="v3.social.angry.reply.complaint.0059" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты испортил общий файл и никому не сказал." />
-		<template id="v3.social.angry.reply.complaint.0060" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне тяжело признавать, насколько это задело." />
-		<template id="v3.social.angry.reply.complaint.0061" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты смеялся над ошибкой соперника." />
+		<template id="v3.social.angry.reply.complaint.0058" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели вы оставили вопрос без ответа третий раз?" />
+		<template id="v3.social.angry.reply.complaint.0059" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты правда испортил общий файл и никому не сказал?" />
+		<template id="v3.social.angry.reply.complaint.0060" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Тяжёлое признание не стоит выдавливать силой." />
+		<template id="v3.social.angry.reply.complaint.0061" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Серьёзно, ты смеялся над ошибкой соперника?" />
 		<template id="v3.social.angry.reply.complaint.0062" act="social.angry.complaint.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не готов принять такое объяснение." />
 		<template id="v3.social.angry.reply.complaint.0063" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваше вмешательство поставило людей под угрозу." />
 		<template id="v3.social.angry.reply.complaint.0064" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Почему вы обсуждали меня без моего участия?" />
-		<template id="v3.social.angry.reply.complaint.0065" act="social.angry.complaint.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я узнал об изменениях последним." />
-		<template id="v3.social.angry.reply.complaint.0066" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты снова переложил ответственность на обстоятельства." />
+		<template id="v3.social.angry.reply.complaint.0065" act="social.angry.complaint.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Узнавать об изменениях последним унизительно." />
+		<template id="v3.social.angry.reply.complaint.0066" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Так ты снова переложил ответственность на обстоятельства?" />
 		<template id="v3.social.angry.reply.complaint.0067" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне нужно, чтобы ты увидел последствия." />
-		<template id="v3.social.angry.reply.complaint.0068" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты использовал мою слабость в споре." />
+		<template id="v3.social.angry.reply.complaint.0068" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты правда использовал мою слабость в споре?" />
 		<template id="v3.social.angry.reply.complaint.0069" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я хочу закончить разговор до новых обвинений." />
-		<template id="v3.social.angry.reply.complaint.0070" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Вы лжёте о том, что произошло." />
+		<template id="v3.social.angry.reply.complaint.0070" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Неужели вы лжёте о том, что произошло?" />
 		<template id="v3.social.angry.reply.complaint.0071" act="social.angry.complaint.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Меня злит отсутствие простого извинения." />
 		<template id="v3.social.angry.reply.complaint.0072" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы не вернули деньги в обещанный срок." />
-		<template id="v3.social.angry.reply.complaint.0073" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты пропустил важную встречу без причины." />
-		<template id="v3.social.angry.reply.complaint.0074" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я чувствую себя преданным твоим выбором." />
-		<template id="v3.social.angry.reply.complaint.0075" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты давил на судью после честного результата." />
+		<template id="v3.social.angry.reply.complaint.0073" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты пропустил важную встречу без причины?" />
+		<template id="v3.social.angry.reply.complaint.0074" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Твой выбор воспринимается как предательство." />
+		<template id="v3.social.angry.reply.complaint.0075" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты давил на судью после честного результата?" />
 		<template id="v3.social.angry.reply.complaint.0076" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне нужна пауза, прежде чем отвечать." />
 		<template id="v3.social.angry.reply.complaint.0077" act="social.angry.complaint.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваше поведение будет расследовано." />
 		<template id="v3.social.angry.reply.complaint.0078" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Почему вы не спросили согласия заранее?" />
 		<template id="v3.social.angry.reply.complaint.0079" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я не получил ни помощи, ни предупреждения." />
-		<template id="v3.social.angry.reply.complaint.0080" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты оставил беспорядок после своей работы." />
-		<template id="v3.social.angry.reply.complaint.0081" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне обидно, что я снова оказался один." />
-		<template id="v3.social.angry.reply.complaint.0082" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты пытался выиграть угрозой." />
+		<template id="v3.social.angry.reply.complaint.0080" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Неужели ты оставил беспорядок после своей работы?" />
+		<template id="v3.social.angry.reply.complaint.0081" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Обиженного человека сначала слушают, а не поправляют." />
+		<template id="v3.social.angry.reply.complaint.0082" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты пытался выиграть угрозой?" />
 		<template id="v3.social.angry.reply.complaint.0083" act="social.angry.complaint.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не согласен обсуждать это на публике." />
 		<template id="v3.social.angry.reply.complaint.0084" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Остановите преследование и не ищите новой встречи." />
 		<template id="v3.social.angry.reply.complaint.0085" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Меня раздражает, что факты подменили слухами." />
-		<template id="v3.social.angry.reply.complaint.0086" act="social.angry.complaint.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Вы обещали конфиденциальность." />
-		<template id="v3.social.angry.reply.complaint.0087" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты забрал общий результат как личный." />
+		<template id="v3.social.angry.reply.complaint.0086" act="social.angry.complaint.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Неужели вы обещали конфиденциальность?" />
+		<template id="v3.social.angry.reply.complaint.0087" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты забрал общий результат как личный?" />
 		<template id="v3.social.angry.reply.complaint.0088" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я не хочу снова оправдывать твоё отсутствие." />
-		<template id="v3.social.angry.reply.complaint.0089" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты унизил соперника после финала." />
+		<template id="v3.social.angry.reply.complaint.0089" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Неужели ты унизил соперника после финала?" />
 		<template id="v3.social.angry.reply.complaint.0090" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне нужно пространство от этой злости." />
 		<template id="v3.social.angry.reply.complaint.0091" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Новых обращений от вас я не приму." />
 		<template id="v3.social.angry.reply.complaint.0092" act="social.angry.complaint.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Почему вы не исправили известную ошибку?" />
-		<template id="v3.social.angry.reply.complaint.0093" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я предупредил о риске ещё утром." />
-		<template id="v3.social.angry.reply.complaint.0094" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты снова выбрал самый удобный для себя вариант." />
-		<template id="v3.social.angry.reply.complaint.0095" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне больно от твоего равнодушия." />
-		<template id="v3.social.angry.reply.complaint.0096" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты отрицал очевидное нарушение." />
+		<template id="v3.social.angry.reply.complaint.0093" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Утреннее предупреждение о риске нельзя просто проигнорировать." />
+		<template id="v3.social.angry.reply.complaint.0094" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты снова выбрал самый удобный для себя вариант?" />
+		<template id="v3.social.angry.reply.complaint.0095" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Равнодушие может ранить сильнее прямого отказа." />
+		<template id="v3.social.angry.reply.complaint.0096" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты отрицал очевидное нарушение?" />
 		<template id="v3.social.angry.reply.complaint.0097" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я хочу только факты и сроки исправления." />
 		<template id="v3.social.angry.reply.complaint.0098" act="social.angry.complaint.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваше присутствие здесь нежелательно." />
 		<template id="v3.social.angry.reply.complaint.0099" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Меня возмущает публичная ложь." />
-		<template id="v3.social.angry.reply.complaint.0100" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы использовали моё имя без разрешения." />
+		<template id="v3.social.angry.reply.complaint.0100" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели вы использовали моё имя без разрешения?" />
 		<template id="v3.social.angry.reply.complaint.0101" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты не пришёл помочь, хотя обещал." />
-		<template id="v3.social.angry.reply.complaint.0102" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я устал объяснять базовое уважение." />
-		<template id="v3.social.angry.reply.complaint.0103" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты оспорил счёт только после поражения." />
+		<template id="v3.social.angry.reply.complaint.0102" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Базовое уважение не должно требовать бесконечных объяснений." />
+		<template id="v3.social.angry.reply.complaint.0103" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты оспорил счёт только после поражения?" />
 		<template id="v3.social.angry.reply.complaint.0104" act="social.angry.complaint.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мне нужен спокойный разговор позже." />
 		<template id="v3.social.angry.reply.complaint.0105" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваши угрозы прекращают любые отношения." />
 		<template id="v3.social.angry.reply.complaint.0106" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Почему вы не остановились после сигнала?" />
 		<template id="v3.social.angry.reply.complaint.0107" act="social.angry.complaint.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я не могу доверять этому отчёту." />
-		<template id="v3.social.angry.reply.complaint.0108" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты потерял важный документ и скрыл это." />
+		<template id="v3.social.angry.reply.complaint.0108" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты потерял важный документ и скрыл это?" />
 		<template id="v3.social.angry.reply.complaint.0109" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне трудно поверить, что ты так поступил." />
-		<template id="v3.social.angry.reply.complaint.0110" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты превратил дружеский матч в унижение." />
+		<template id="v3.social.angry.reply.complaint.0110" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Неужели ты превратил дружеский матч в унижение?" />
 		<template id="v3.social.angry.reply.complaint.0111" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я не стану отвечать в гневе." />
 		<template id="v3.social.angry.reply.complaint.0112" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваш поступок не имеет оправдания." />
-		<template id="v3.social.angry.reply.complaint.0113" act="social.angry.complaint.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Меня злит, что вы обвиняете пострадавшего." />
-		<template id="v3.social.angry.reply.complaint.0114" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы оставили команду без нужной информации." />
-		<template id="v3.social.angry.reply.complaint.0115" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты обещал вернуть ключ вчера." />
+		<template id="v3.social.angry.reply.complaint.0113" act="social.angry.complaint.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Правда ли, что меня злит, что вы обвиняете пострадавшего?" />
+		<template id="v3.social.angry.reply.complaint.0114" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели вы оставили команду без нужной информации?" />
+		<template id="v3.social.angry.reply.complaint.0115" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты обещал вернуть ключ вчера?" />
 		<template id="v3.social.angry.reply.complaint.0116" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне не хватило твоей честности." />
-		<template id="v3.social.angry.reply.complaint.0117" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты нарушил паузу ради нового спора." />
+		<template id="v3.social.angry.reply.complaint.0117" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты нарушил паузу ради нового спора?" />
 		<template id="v3.social.angry.reply.complaint.0118" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я хочу выйти из этой ситуации безопасно." />
 		<template id="v3.social.angry.reply.complaint.0119" act="social.angry.complaint.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваше преследование должно прекратиться." />
 		<template id="v3.social.angry.reply.complaint.0120" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Почему вы удалили чужую работу?" />
-		<template id="v3.social.angry.reply.complaint.0121" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я потратил силы на исправление вашего решения." />
+		<template id="v3.social.angry.reply.complaint.0121" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Исправлять чужое решение собственными силами особенно тяжело." />
 		<template id="v3.social.angry.reply.complaint.0122" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты не проверил данные перед публикацией." />
-		<template id="v3.social.angry.reply.complaint.0123" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне обидно слышать насмешку вместо поддержки." />
-		<template id="v3.social.angry.reply.complaint.0124" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты использовал запрещённый приём." />
+		<template id="v3.social.angry.reply.complaint.0123" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Насмешка вместо поддержки закономерно обижает." />
+		<template id="v3.social.angry.reply.complaint.0124" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты использовал запрещённый приём?" />
 		<template id="v3.social.angry.reply.complaint.0125" act="social.angry.complaint.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не готов обсуждать прощение." />
-		<template id="v3.social.angry.reply.complaint.0126" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я передал сведения о ваших действиях руководителю." />
+		<template id="v3.social.angry.reply.complaint.0126" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сведения о ваших действиях уже переданы руководителю." />
 		<template id="v3.social.angry.reply.complaint.0127" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Меня злит ваша показная невиновность." />
 		<template id="v3.social.angry.reply.complaint.0128" act="social.angry.complaint.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Вы отказались услышать обе стороны." />
-		<template id="v3.social.angry.reply.complaint.0129" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты опоздал и сделал виноватым меня." />
-		<template id="v3.social.angry.reply.complaint.0130" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я устал ждать реальных изменений." />
+		<template id="v3.social.angry.reply.complaint.0129" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты опоздал и сделал виноватым меня?" />
+		<template id="v3.social.angry.reply.complaint.0130" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Без реальных изменений ожидание быстро заканчивается." />
 		<template id="v3.social.angry.reply.complaint.0131" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты не признал честную победу." />
 		<template id="v3.social.angry.reply.complaint.0132" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Для меня эта встреча завершается немедленно." />
 		<template id="v3.social.angry.reply.complaint.0133" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваши слова звучат как угроза." />
 		<template id="v3.social.angry.reply.complaint.0134" act="social.angry.complaint.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Почему вы передали мою информацию другим?" />
 		<template id="v3.social.angry.reply.complaint.0135" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я не соглашался на эту публикацию." />
-		<template id="v3.social.angry.reply.complaint.0136" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты проигнорировал важное ограничение." />
-		<template id="v3.social.angry.reply.complaint.0137" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне больно, что ты не спросил меня." />
-		<template id="v3.social.angry.reply.complaint.0138" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты сорвал матч из-за личной обиды." />
+		<template id="v3.social.angry.reply.complaint.0136" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты проигнорировал важное ограничение?" />
+		<template id="v3.social.angry.reply.complaint.0137" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если боль уже названа, спорить с ней бессмысленно." />
+		<template id="v3.social.angry.reply.complaint.0138" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты сорвал матч из-за личной обиды?" />
 		<template id="v3.social.angry.reply.complaint.0139" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я хочу забрать вещи и уйти." />
 		<template id="v3.social.angry.reply.complaint.0140" act="social.angry.complaint.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Соблюдайте безопасную дистанцию до моего ухода." />
 		<template id="v3.social.angry.reply.complaint.0141" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Меня раздражает попытка сменить тему." />
-		<template id="v3.social.angry.reply.complaint.0142" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы снова говорите общими обещаниями." />
-		<template id="v3.social.angry.reply.complaint.0143" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты оставил меня перед фактом." />
+		<template id="v3.social.angry.reply.complaint.0142" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели вы снова говорите общими обещаниями?" />
+		<template id="v3.social.angry.reply.complaint.0143" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Неужели ты оставил меня перед фактом?" />
 		<template id="v3.social.angry.reply.complaint.0144" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я не хочу больше покрывать твои ошибки." />
-		<template id="v3.social.angry.reply.complaint.0145" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты продолжил игру после травмы другого." />
+		<template id="v3.social.angry.reply.complaint.0145" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты продолжил игру после травмы другого?" />
 		<template id="v3.social.angry.reply.complaint.0146" act="social.angry.complaint.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Эта встреча заканчивается для меня сейчас." />
 		<template id="v3.social.angry.reply.complaint.0147" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Общение между нами прекращается из-за этого поступка." />
 		<template id="v3.social.angry.reply.complaint.0148" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Почему вы требуете благодарности за вред?" />
 		<template id="v3.social.angry.reply.complaint.0149" act="social.angry.complaint.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я не получил обещанный результат." />
-		<template id="v3.social.angry.reply.complaint.0150" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты изменил пароль без предупреждения." />
-		<template id="v3.social.angry.reply.complaint.0151" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне тяжело видеть отсутствие раскаяния." />
-		<template id="v3.social.angry.reply.complaint.0152" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты пытался переписать итог матча." />
+		<template id="v3.social.angry.reply.complaint.0150" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты изменил пароль без предупреждения?" />
+		<template id="v3.social.angry.reply.complaint.0151" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Отсутствие раскаяния бывает тяжелее самой ошибки." />
+		<template id="v3.social.angry.reply.complaint.0152" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Неужели ты пытался переписать итог матча?" />
 		<template id="v3.social.angry.reply.complaint.0153" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне нужна поддержка ответственного организатора." />
-		<template id="v3.social.angry.reply.complaint.0154" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я прекращаю любые способы общения с вами." />
+		<template id="v3.social.angry.reply.complaint.0154" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Лучше прекращать любые способы общения с вами." />
 		<template id="v3.social.angry.reply.complaint.0155" act="social.angry.complaint.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Меня злит, что вы не слышите отказ." />
-		<template id="v3.social.angry.reply.complaint.0156" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы поставили личную выгоду выше безопасности." />
-		<template id="v3.social.angry.reply.complaint.0157" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты опять не выполнил свою часть." />
+		<template id="v3.social.angry.reply.complaint.0156" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели вы поставили личную выгоду выше безопасности?" />
+		<template id="v3.social.angry.reply.complaint.0157" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты опять не выполнил свою часть?" />
 		<template id="v3.social.angry.reply.complaint.0158" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я больше не верю пустым обещаниям." />
-		<template id="v3.social.angry.reply.complaint.0159" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты сделал соперника мишенью для толпы." />
+		<template id="v3.social.angry.reply.complaint.0159" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты сделал соперника мишенью для толпы?" />
 		<template id="v3.social.angry.reply.complaint.0160" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне нужна помощь, чтобы уйти." />
 		<template id="v3.social.angry.reply.complaint.0161" act="social.angry.complaint.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваши действия документируются." />
 		<template id="v3.social.angry.reply.complaint.0162" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Почему вы скрыли конфликт интересов?" />
 		<template id="v3.social.angry.reply.complaint.0163" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я не позволял использовать эту запись." />
-		<template id="v3.social.angry.reply.complaint.0164" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты снова решил всё без команды." />
-		<template id="v3.social.angry.reply.complaint.0165" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне больно от повторного предательства." />
-		<template id="v3.social.angry.reply.complaint.0166" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты нарушил правило после предупреждения." />
+		<template id="v3.social.angry.reply.complaint.0164" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Неужели ты снова решил всё без команды?" />
+		<template id="v3.social.angry.reply.complaint.0165" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Повторное предательство не обязаны прощать быстро." />
+		<template id="v3.social.angry.reply.complaint.0166" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты нарушил правило после предупреждения?" />
 		<template id="v3.social.angry.reply.complaint.0167" act="social.angry.complaint.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не останусь для нового объяснения." />
 		<template id="v3.social.angry.reply.complaint.0168" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Перестаньте идти вслед за мной." />
 		<template id="v3.social.angry.reply.complaint.0169" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Меня возмущает ваше давление на свидетелей." />
 		<template id="v3.social.angry.reply.complaint.0170" act="social.angry.complaint.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Вы не исправили даже простую часть ущерба." />
-		<template id="v3.social.angry.reply.complaint.0171" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты обещал молчать и рассказал всем." />
-		<template id="v3.social.angry.reply.complaint.0172" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я исчерпал терпение." />
-		<template id="v3.social.angry.reply.complaint.0173" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты поставил победу выше человека." />
+		<template id="v3.social.angry.reply.complaint.0171" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты обещал молчать и рассказал всем?" />
+		<template id="v3.social.angry.reply.complaint.0172" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Терпение закончилось." />
+		<template id="v3.social.angry.reply.complaint.0173" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ставить победу выше человека недопустимо." />
 		<template id="v3.social.angry.reply.complaint.0174" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне нужно уйти без продолжения спора." />
 		<template id="v3.social.angry.reply.complaint.0175" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваше присутствие опасно для меня." />
 		<template id="v3.social.angry.reply.complaint.0176" act="social.angry.complaint.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Почему вы продолжаете отрицать факты?" />
 		<template id="v3.social.angry.reply.complaint.0177" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я не обязан принимать такое обращение." />
-		<template id="v3.social.angry.reply.complaint.0178" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты оставил важный вопрос до последней минуты." />
-		<template id="v3.social.angry.reply.complaint.0179" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне обидно, что мои слова ничего не изменили." />
-		<template id="v3.social.angry.reply.complaint.0180" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты праздновал чужую травму." />
+		<template id="v3.social.angry.reply.complaint.0178" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты оставил важный вопрос до последней минуты?" />
+		<template id="v3.social.angry.reply.complaint.0179" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Обида требует пространства, а не допроса." />
+		<template id="v3.social.angry.reply.complaint.0180" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты праздновал чужую травму?" />
 		<template id="v3.social.angry.reply.complaint.0181" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я выбираю закончить общение." />
 		<template id="v3.social.angry.reply.complaint.0182" act="social.angry.complaint.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваши действия непримиримы с безопасностью." />
 		<template id="v3.social.angry.reply.complaint.0183" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Меня злит эта попытка вызвать вину." />
-		<template id="v3.social.angry.reply.complaint.0184" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы нарушили прямой запрет." />
+		<template id="v3.social.angry.reply.complaint.0184" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Неужели вы нарушили прямой запрет?" />
 		<template id="v3.social.angry.reply.complaint.0185" act="social.angry.complaint.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты не дал мне права выбора." />
 		<template id="v3.social.angry.reply.complaint.0186" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я больше не хочу исправлять последствия." />
-		<template id="v3.social.angry.reply.complaint.0187" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты использовал доверие как преимущество." />
+		<template id="v3.social.angry.reply.complaint.0187" act="social.angry.complaint.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неужели ты использовал доверие как преимущество?" />
 		<template id="v3.social.angry.reply.complaint.0188" act="social.angry.complaint.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мне необходимо закрыть этот разговор." />
 		<template id="v3.social.angry.reply.complaint.0189" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не приближайтесь ко мне снова." />
 		<template id="v3.social.angry.reply.complaint.0190" act="social.angry.complaint.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Почему вы продолжили после официального предупреждения?" />
 		<template id="v3.social.angry.reply.complaint.0191" act="social.angry.complaint.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я не согласен нести последствия вашего выбора." />
-		<template id="v3.social.angry.reply.complaint.0192" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты уничтожил результат общей работы." />
-		<template id="v3.social.angry.reply.complaint.0193" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне больно видеть, как ты отрицаешь очевидное." />
-		<template id="v3.social.angry.reply.complaint.0194" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты снова сделал правила удобными только себе." />
+		<template id="v3.social.angry.reply.complaint.0192" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты уничтожил результат общей работы?" />
+		<template id="v3.social.angry.reply.complaint.0193" act="social.angry.complaint.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Иногда больно уже от одного взгляда на последствия." />
+		<template id="v3.social.angry.reply.complaint.0194" act="social.angry.complaint.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Неужели ты снова сделал правила удобными только себе?" />
 		<template id="v3.social.angry.reply.complaint.0195" act="social.angry.complaint.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я не хочу слышать ещё одну победную речь." />
 		<template id="v3.social.angry.reply.complaint.0196" act="social.angry.complaint.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваше давление причинило реальный ущерб." />
 		<template id="v3.social.angry.reply.complaint.0197" act="social.angry.complaint.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Меня злит отсутствие минимальной ответственности." />
 		<template id="v3.social.angry.reply.complaint.0198" act="social.angry.complaint.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы не вернули доступ законному владельцу." />
-		<template id="v3.social.angry.reply.complaint.0199" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты оставил других устранять последствия." />
-		<template id="v3.social.angry.reply.complaint.0200" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я заканчиваю разговор без примирения." />
+		<template id="v3.social.angry.reply.complaint.0199" act="social.angry.complaint.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неужели ты оставил других устранять последствия?" />
+		<template id="v3.social.angry.reply.complaint.0200" act="social.angry.complaint.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Разговор окончен без примирения." />
 		<template id="v3.social.angry.reply.pause.0001" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Десятиминутная пауза полезна, но возвращение к разговору нельзя обещать заранее." />
 		<template id="v3.social.angry.reply.pause.0002" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Продолжить завтра днём — предложение, а не обещание будущей встречи." />
 		<template id="v3.social.angry.reply.pause.0003" act="social.angry.pause.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После успокоения человек сам решит, хочет ли снова писать." />
@@ -616,26 +616,26 @@
 		<template id="v3.social.angry.reply.pause.0013" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Матч можно остановить до сообщения судьи, если судья и матч реальны." />
 		<template id="v3.social.angry.reply.pause.0014" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не пытайтесь связаться со мной снова." />
 		<template id="v3.social.angry.reply.pause.0015" act="social.angry.pause.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Возьмём паузу до конца дня." />
-		<template id="v3.social.angry.reply.pause.0016" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я запишу мысли и пришлю их вечером." />
+		<template id="v3.social.angry.reply.pause.0016" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можно записать мысли и прислать их вечером." />
 		<template id="v3.social.angry.reply.pause.0017" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь оставить вопрос без ответа." />
 		<template id="v3.social.angry.reply.pause.0018" act="social.angry.pause.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне важно уйти до новых резких слов." />
 		<template id="v3.social.angry.reply.pause.0019" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Счёт заморожен на время спора." />
 		<template id="v3.social.angry.reply.pause.0020" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Продолжение возможно только через выбранного посредника." />
 		<template id="v3.social.angry.reply.pause.0021" act="social.angry.pause.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваш контакт нежелателен." />
 		<template id="v3.social.angry.reply.pause.0022" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте назначим разговор на пятницу." />
-		<template id="v3.social.angry.reply.pause.0023" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я отключу телефон на два часа." />
+		<template id="v3.social.angry.reply.pause.0023" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Разумнее отключить телефон на два часа." />
 		<template id="v3.social.angry.reply.pause.0024" act="social.angry.pause.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь воспользоваться этой паузой сам." />
 		<template id="v3.social.angry.reply.pause.0025" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужно побыть одному, не наказывая тебя." />
 		<template id="v3.social.angry.reply.pause.0026" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Следующий раунд состоится после проверки." />
 		<template id="v3.social.angry.reply.pause.0027" act="social.angry.pause.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Сейчас я не готов видеть тебя." />
 		<template id="v3.social.angry.reply.pause.0028" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Держитесь от меня подальше." />
 		<template id="v3.social.angry.reply.pause.0029" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вернёмся к одному вопросу после обеда." />
-		<template id="v3.social.angry.reply.pause.0030" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я сообщу, когда смогу продолжить." />
+		<template id="v3.social.angry.reply.pause.0030" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Лучше сообщить о готовности продолжить позже." />
 		<template id="v3.social.angry.reply.pause.0031" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь уйти без объяснения." />
 		<template id="v3.social.angry.reply.pause.0032" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужно восстановить дыхание и мысли." />
 		<template id="v3.social.angry.reply.pause.0033" act="social.angry.pause.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="До завтра никаких разговоров о матче." />
-		<template id="v3.social.angry.reply.pause.0034" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я беру день без сообщений." />
-		<template id="v3.social.angry.reply.pause.0035" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сохраняйте расстояние, пока я ухожу." />
+		<template id="v3.social.angry.reply.pause.0034" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Лучше взять день без сообщений." />
+		<template id="v3.social.angry.reply.pause.0035" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Уход может быть лучшим способом не усугубить конфликт." />
 		<template id="v3.social.angry.reply.pause.0036" act="social.angry.pause.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Давайте остановим звонок на этом месте." />
 		<template id="v3.social.angry.reply.pause.0037" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я не исчезаю, а беру необходимый перерыв." />
 		<template id="v3.social.angry.reply.pause.0038" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь прислать краткое изложение позже." />
@@ -644,18 +644,18 @@
 		<template id="v3.social.angry.reply.pause.0041" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я хочу вернуться домой один." />
 		<template id="v3.social.angry.reply.pause.0042" act="social.angry.pause.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваше преследование зафиксировано." />
 		<template id="v3.social.angry.reply.pause.0043" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Продолжим после консультации с нейтральным человеком." />
-		<template id="v3.social.angry.reply.pause.0044" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я выйду на улицу и успокоюсь." />
+		<template id="v3.social.angry.reply.pause.0044" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можно выйти на улицу и сначала успокоиться." />
 		<template id="v3.social.angry.reply.pause.0045" act="social.angry.pause.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь не решать это сегодня." />
 		<template id="v3.social.angry.reply.pause.0046" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужен вечер без обсуждения отношений." />
 		<template id="v3.social.angry.reply.pause.0047" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Результат объявят после апелляции." />
 		<template id="v3.social.angry.reply.pause.0048" act="social.angry.pause.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не готов оставаться в одной комнате." />
 		<template id="v3.social.angry.reply.pause.0049" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не связывайтесь со мной." />
 		<template id="v3.social.angry.reply.pause.0050" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте вернёмся к теме через час." />
-		<template id="v3.social.angry.reply.pause.0051" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я прекращаю переписку до утра." />
+		<template id="v3.social.angry.reply.pause.0051" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Разумнее прекращать переписку до утра." />
 		<template id="v3.social.angry.reply.pause.0052" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь оставить документы у посредника." />
 		<template id="v3.social.angry.reply.pause.0053" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужно время отделить факты от эмоций." />
 		<template id="v3.social.angry.reply.pause.0054" act="social.angry.pause.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Матч закончится только после безопасной паузы." />
-		<template id="v3.social.angry.reply.pause.0055" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я буду говорить завтра, не сегодня." />
+		<template id="v3.social.angry.reply.pause.0055" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Разумнее говорить завтра, не сегодня." />
 		<template id="v3.social.angry.reply.pause.0056" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не оставайтесь рядом с выходом." />
 		<template id="v3.social.angry.reply.pause.0057" act="social.angry.pause.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Предлагаю перенести решение на понедельник." />
 		<template id="v3.social.angry.reply.pause.0058" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я сейчас выйду и не буду спорить." />
@@ -665,14 +665,14 @@
 		<template id="v3.social.angry.reply.pause.0062" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я хочу день провести отдельно." />
 		<template id="v3.social.angry.reply.pause.0063" act="social.angry.pause.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваши звонки будут заблокированы." />
 		<template id="v3.social.angry.reply.pause.0064" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте завершим разговор до новых обвинений." />
-		<template id="v3.social.angry.reply.pause.0065" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я вернусь через двадцать минут." />
+		<template id="v3.social.angry.reply.pause.0065" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Стоит вернуться через двадцать минут." />
 		<template id="v3.social.angry.reply.pause.0066" act="social.angry.pause.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь подумать над конкретным исправлением." />
 		<template id="v3.social.angry.reply.pause.0067" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужно безопасное место." />
 		<template id="v3.social.angry.reply.pause.0068" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соревнование приостановлено до решения судьи." />
 		<template id="v3.social.angry.reply.pause.0069" act="social.angry.pause.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не буду отвечать ночью." />
 		<template id="v3.social.angry.reply.pause.0070" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После этой паузы новых обращений не должно быть." />
 		<template id="v3.social.angry.reply.pause.0071" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Продолжим, когда оба сможем говорить тише." />
-		<template id="v3.social.angry.reply.pause.0072" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я отменяю сегодняшнюю встречу." />
+		<template id="v3.social.angry.reply.pause.0072" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Можно отменять сегодняшнюю встречу." />
 		<template id="v3.social.angry.reply.pause.0073" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь попросить посредника передать сообщение." />
 		<template id="v3.social.angry.reply.pause.0074" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужен сон, а не новый спор." />
 		<template id="v3.social.angry.reply.pause.0075" act="social.angry.pause.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Реванш перенесён без новой даты." />
@@ -690,17 +690,17 @@
 		<template id="v3.social.angry.reply.pause.0087" act="social.angry.pause.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь забрать вещи позже через друга." />
 		<template id="v3.social.angry.reply.pause.0088" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужен полный перерыв от уведомлений." />
 		<template id="v3.social.angry.reply.pause.0089" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Счёт останется предварительным." />
-		<template id="v3.social.angry.reply.pause.0090" act="social.angry.pause.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я уйду сейчас без прощальных слов." />
+		<template id="v3.social.angry.reply.pause.0090" act="social.angry.pause.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Лучше уйти сейчас без прощальных слов." />
 		<template id="v3.social.angry.reply.pause.0091" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваше присутствие рядом нежелательно." />
 		<template id="v3.social.angry.reply.pause.0092" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте дадим себе двое суток." />
 		<template id="v3.social.angry.reply.pause.0093" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не буду принимать решение на эмоциях." />
 		<template id="v3.social.angry.reply.pause.0094" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь отправить факты без комментариев." />
 		<template id="v3.social.angry.reply.pause.0095" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужно время поговорить с поддержкой." />
 		<template id="v3.social.angry.reply.pause.0096" act="social.angry.pause.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Матч отменён до восстановления границ." />
-		<template id="v3.social.angry.reply.pause.0097" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я вернусь, если почувствую безопасность." />
+		<template id="v3.social.angry.reply.pause.0097" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Возвращаться стоит только с ощущением безопасности." />
 		<template id="v3.social.angry.reply.pause.0098" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не подходите ко мне." />
 		<template id="v3.social.angry.reply.pause.0099" act="social.angry.pause.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Предлагаю закончить встречу прямо сейчас." />
-		<template id="v3.social.angry.reply.pause.0100" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я выйду первым, подождите пять минут." />
+		<template id="v3.social.angry.reply.pause.0100" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можно выйти первым, подождите пять минут." />
 		<template id="v3.social.angry.reply.pause.0101" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь выбрать другой канал связи." />
 		<template id="v3.social.angry.reply.pause.0102" act="social.angry.pause.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне нужен день без личных вопросов." />
 		<template id="v3.social.angry.reply.pause.0103" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Финальный раунд подождёт." />
@@ -714,28 +714,28 @@
 		<template id="v3.social.angry.reply.pause.0111" act="social.angry.pause.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не дам обещаний в таком состоянии." />
 		<template id="v3.social.angry.reply.pause.0112" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Любая новая попытка связи будет расценена как преследование." />
 		<template id="v3.social.angry.reply.pause.0113" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Продолжим в присутствии третьего человека." />
-		<template id="v3.social.angry.reply.pause.0114" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я беру паузу до следующего сообщения." />
+		<template id="v3.social.angry.reply.pause.0114" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Лучше взять паузу до следующего сообщения." />
 		<template id="v3.social.angry.reply.pause.0115" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь не соглашаться, но обязан отпустить." />
 		<template id="v3.social.angry.reply.pause.0116" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужен спокойный путь домой." />
 		<template id="v3.social.angry.reply.pause.0117" act="social.angry.pause.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Итог матча пока не обсуждаем." />
-		<template id="v3.social.angry.reply.pause.0118" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я завершу звонок и отключу устройство." />
+		<template id="v3.social.angry.reply.pause.0118" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Звонок пора завершить, а устройство отключить." />
 		<template id="v3.social.angry.reply.pause.0119" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не пытайтесь меня остановить." />
 		<template id="v3.social.angry.reply.pause.0120" act="social.angry.pause.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Давайте вернёмся к теме после выходных." />
 		<template id="v3.social.angry.reply.pause.0121" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Возвращаться к переписке стоит только после того, как защитная реакция уляжется." />
 		<template id="v3.social.angry.reply.pause.0122" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь подготовить конкретные предложения." />
 		<template id="v3.social.angry.reply.pause.0123" act="social.angry.pause.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне требуется тишина до утра." />
 		<template id="v3.social.angry.reply.pause.0124" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Никаких соревнований в ближайшие дни." />
-		<template id="v3.social.angry.reply.pause.0125" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я ухожу ради собственной безопасности." />
+		<template id="v3.social.angry.reply.pause.0125" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ради собственной безопасности уходят без согласования." />
 		<template id="v3.social.angry.reply.pause.0126" act="social.angry.pause.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не ждите ответа." />
 		<template id="v3.social.angry.reply.pause.0127" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Перенесём разговор в общественное место." />
-		<template id="v3.social.angry.reply.pause.0128" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я остановлю переписку на сегодня." />
+		<template id="v3.social.angry.reply.pause.0128" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можно остановить переписку на сегодня." />
 		<template id="v3.social.angry.reply.pause.0129" act="social.angry.pause.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь обсудить это с посредником." />
 		<template id="v3.social.angry.reply.pause.0130" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужно пространство без наказания." />
 		<template id="v3.social.angry.reply.pause.0131" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Протокол закроют после проверки." />
 		<template id="v3.social.angry.reply.pause.0132" act="social.angry.pause.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не готов принимать извинение сейчас." />
 		<template id="v3.social.angry.reply.pause.0133" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После этого сообщения никаких новых попыток связи." />
-		<template id="v3.social.angry.reply.pause.0134" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте поставим точку до завтра." />
-		<template id="v3.social.angry.reply.pause.0135" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я вернусь к этому вопросу письменно." />
+		<template id="v3.social.angry.reply.pause.0134" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте стоит поставить точку до завтра." />
+		<template id="v3.social.angry.reply.pause.0135" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Разумнее вернуться к этому вопросу письменно." />
 		<template id="v3.social.angry.reply.pause.0136" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь оставить дверь открытой и уйти." />
 		<template id="v3.social.angry.reply.pause.0137" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужен час на восстановление." />
 		<template id="v3.social.angry.reply.pause.0138" act="social.angry.pause.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Реванш невозможен до разрешения конфликта." />
@@ -746,7 +746,7 @@
 		<template id="v3.social.angry.reply.pause.0143" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь отменить свои ожидания на сегодня." />
 		<template id="v3.social.angry.reply.pause.0144" act="social.angry.pause.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне нужно перестать слышать уведомления." />
 		<template id="v3.social.angry.reply.pause.0145" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Игра завершена досрочно." />
-		<template id="v3.social.angry.reply.pause.0146" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я покидаю место вместе с поддержкой." />
+		<template id="v3.social.angry.reply.pause.0146" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Лучше покидать место вместе с поддержкой." />
 		<template id="v3.social.angry.reply.pause.0147" act="social.angry.pause.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваши сообщения сохраняются как доказательства." />
 		<template id="v3.social.angry.reply.pause.0148" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Продолжим только после письменной договорённости." />
 		<template id="v3.social.angry.reply.pause.0149" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Три дня на решение можно попросить прямо, не обещая будущий ответ." />
@@ -756,46 +756,46 @@
 		<template id="v3.social.angry.reply.pause.0153" act="social.angry.pause.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не вернусь сегодня." />
 		<template id="v3.social.angry.reply.pause.0154" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не приходите на мою работу." />
 		<template id="v3.social.angry.reply.pause.0155" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте остановим разговор после этой фразы." />
-		<template id="v3.social.angry.reply.pause.0156" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я отключаюсь и больше не отвечаю." />
+		<template id="v3.social.angry.reply.pause.0156" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Связь прекращается; ответов больше не будет." />
 		<template id="v3.social.angry.reply.pause.0157" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь использовать паузу для исправления ущерба." />
 		<template id="v3.social.angry.reply.pause.0158" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужен отдельный транспорт домой." />
 		<template id="v3.social.angry.reply.pause.0159" act="social.angry.pause.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Матч перенесён до нового уведомления." />
-		<template id="v3.social.angry.reply.pause.0160" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я ухожу без согласования дальнейших шагов." />
+		<template id="v3.social.angry.reply.pause.0160" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Пауза не обязана включать план дальнейших шагов." />
 		<template id="v3.social.angry.reply.pause.0161" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не связывайтесь с моей семьёй." />
 		<template id="v3.social.angry.reply.pause.0162" act="social.angry.pause.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Вернёмся к фактам через сутки." />
 		<template id="v3.social.angry.reply.pause.0163" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мысли можно сначала записать в черновик и не отправлять на эмоциях." />
 		<template id="v3.social.angry.reply.pause.0164" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь дождаться официального ответа." />
 		<template id="v3.social.angry.reply.pause.0165" act="social.angry.pause.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне необходимо закрыть дверь." />
 		<template id="v3.social.angry.reply.pause.0166" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соревнование не возобновится без согласия обоих." />
-		<template id="v3.social.angry.reply.pause.0167" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я прекращаю любые встречи." />
+		<template id="v3.social.angry.reply.pause.0167" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Разумнее прекращать любые встречи." />
 		<template id="v3.social.angry.reply.pause.0168" act="social.angry.pause.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Оставайтесь там, пока я спокойно ухожу." />
 		<template id="v3.social.angry.reply.pause.0169" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте не принимать решение до утра." />
-		<template id="v3.social.angry.reply.pause.0170" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я свяжусь через выбранного посредника." />
+		<template id="v3.social.angry.reply.pause.0170" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Дальнейшая связь возможна только через выбранного посредника." />
 		<template id="v3.social.angry.reply.pause.0171" act="social.angry.pause.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь забрать ответ позже." />
 		<template id="v3.social.angry.reply.pause.0172" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужен перерыв от общей компании." />
 		<template id="v3.social.angry.reply.pause.0173" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Результат останется неподтверждённым." />
 		<template id="v3.social.angry.reply.pause.0174" act="social.angry.pause.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не обсуждаю это без свидетеля." />
 		<template id="v3.social.angry.reply.pause.0175" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваши попытки контакта будут сообщены." />
 		<template id="v3.social.angry.reply.pause.0176" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Предлагаю неделю без личных разговоров." />
-		<template id="v3.social.angry.reply.pause.0177" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я выйду из чата до завтра." />
+		<template id="v3.social.angry.reply.pause.0177" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Стоит выйти из чата до завтра." />
 		<template id="v3.social.angry.reply.pause.0178" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь оставить одно письмо." />
 		<template id="v3.social.angry.reply.pause.0179" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне важно сейчас быть не рядом." />
 		<template id="v3.social.angry.reply.pause.0180" act="social.angry.pause.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Серия закрыта до отдельного решения." />
-		<template id="v3.social.angry.reply.pause.0181" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я ухожу и прошу не преследовать." />
+		<template id="v3.social.angry.reply.pause.0181" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Уходящего нельзя преследовать." />
 		<template id="v3.social.angry.reply.pause.0182" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не приближайтесь." />
 		<template id="v3.social.angry.reply.pause.0183" act="social.angry.pause.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Давайте остановимся без новой договорённости." />
 		<template id="v3.social.angry.reply.pause.0184" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я сам назначу время следующего разговора." />
 		<template id="v3.social.angry.reply.pause.0185" act="social.angry.pause.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь не ждать быстрого ответа." />
 		<template id="v3.social.angry.reply.pause.0186" act="social.angry.pause.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне нужно безопасно завершить встречу." />
 		<template id="v3.social.angry.reply.pause.0187" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Матч сегодня не продолжится." />
-		<template id="v3.social.angry.reply.pause.0188" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я прекращаю контакт полностью." />
+		<template id="v3.social.angry.reply.pause.0188" act="social.angry.pause.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Можно прекращать контакт полностью." />
 		<template id="v3.social.angry.reply.pause.0189" act="social.angry.pause.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не пытайтесь обойти блокировку." />
 		<template id="v3.social.angry.reply.pause.0190" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вернёмся к вопросу только официально." />
 		<template id="v3.social.angry.reply.pause.0191" act="social.angry.pause.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я больше не отвечу сегодня." />
 		<template id="v3.social.angry.reply.pause.0192" act="social.angry.pause.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь оставить документы у входа." />
 		<template id="v3.social.angry.reply.pause.0193" act="social.angry.pause.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нужен полный покой." />
 		<template id="v3.social.angry.reply.pause.0194" act="social.angry.pause.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Счёт подождёт до решения комиссии." />
-		<template id="v3.social.angry.reply.pause.0195" act="social.angry.pause.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я ухожу прямо сейчас." />
+		<template id="v3.social.angry.reply.pause.0195" act="social.angry.pause.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Иногда уйти нужно прямо сейчас." />
 		<template id="v3.social.angry.reply.pause.0196" act="social.angry.pause.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Любой дальнейший контакт запрещён." />
 		<template id="v3.social.angry.reply.pause.0197" act="social.angry.pause.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте оставим вопрос закрытым до пятницы." />
 		<template id="v3.social.angry.reply.pause.0198" act="social.angry.pause.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После восстановления спокойствия можно решить, нужен ли вообще новый разговор." />

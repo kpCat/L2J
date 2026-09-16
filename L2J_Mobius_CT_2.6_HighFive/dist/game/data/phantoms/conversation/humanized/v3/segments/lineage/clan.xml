@@ -24,7 +24,7 @@
 		<template id="v3.lineage.clan.reply.community.0021" act="lineage.clan.community.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не прикрывай хамство клановой атмосферой." />
 		<template id="v3.lineage.clan.reply.community.0022" act="lineage.clan.community.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Кто-нибудь собирается просто поиграть без большого плана?" />
 		<template id="v3.lineage.clan.reply.community.0023" act="lineage.clan.community.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Есть несколько человек на спокойный вечерний кач." />
-		<template id="v3.lineage.clan.reply.community.0024" act="lineage.clan.community.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я пойду, только без марафона до утра." />
+		<template id="v3.lineage.clan.reply.community.0024" act="lineage.clan.community.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Без марафона до утра такой поход звучит разумнее." />
 		<template id="v3.lineage.clan.reply.community.0025" act="lineage.clan.community.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нравится, когда ты можешь быть рядом с кланом без обязанности геройствовать." />
 		<template id="v3.lineage.clan.reply.community.0026" act="lineage.clan.community.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, попробуй провести вечер без соревнования за темп." />
 		<template id="v3.lineage.clan.reply.community.0027" act="lineage.clan.community.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Собираемся добровольно у склада." />
@@ -50,7 +50,7 @@
 		<template id="v3.lineage.clan.reply.community.0047" act="lineage.clan.community.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, твой трофей пока ярче моего, наслаждайся моментом." />
 		<template id="v3.lineage.clan.reply.community.0048" act="lineage.clan.community.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Поздравление не создаёт долга." />
 		<template id="v3.lineage.clan.reply.community.0049" act="lineage.clan.community.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не проси подарок на чужом празднике." />
-		<template id="v3.lineage.clan.reply.community.0050" act="lineage.clan.community.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я получил помощь и не уверен, должен ли немедленно отплатить." />
+		<template id="v3.lineage.clan.reply.community.0050" act="lineage.clan.community.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Помощь не всегда требует немедленной ответной услуги." />
 		<template id="v3.lineage.clan.reply.community.0051" act="lineage.clan.community.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если условия не назывались, это была добровольная поддержка." />
 		<template id="v3.lineage.clan.reply.community.0052" act="lineage.clan.community.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Спасибо скажу сейчас, а ответить делом смогу позже." />
 		<template id="v3.lineage.clan.reply.community.0053" act="lineage.clan.community.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне достаточно знать, что ты принял помощь без стыда." />
@@ -60,7 +60,7 @@
 		<template id="v3.lineage.clan.reply.community.0057" act="lineage.clan.community.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="В клане стало слишком много отдельных закрытых компаний." />
 		<template id="v3.lineage.clan.reply.community.0058" act="lineage.clan.community.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Общие небольшие активности могут вернуть пересечения без принуждения." />
 		<template id="v3.lineage.clan.reply.community.0059" act="lineage.clan.community.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Позовём всех на короткий поход и не будем обижаться на отказ." />
-		<template id="v3.lineage.clan.reply.community.0060" act="lineage.clan.community.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я пойду рядом с тобой, если среди большой толпы тяжело." />
+		<template id="v3.lineage.clan.reply.community.0060" act="lineage.clan.community.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="В большой толпе спокойнее идти рядом с кем-то знакомым." />
 		<template id="v3.lineage.clan.reply.community.0061" act="lineage.clan.community.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, покажи, что умеешь играть не только со своей свитой." />
 		<template id="v3.lineage.clan.reply.community.0062" act="lineage.clan.community.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Приглашение открыто для всех." />
 		<template id="v3.lineage.clan.reply.community.0063" act="lineage.clan.community.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Закрытые круги не должны управлять общим чатом." />
@@ -122,7 +122,7 @@
 		<template id="v3.lineage.clan.reply.community.0119" act="lineage.clan.community.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не задерживайте людей финальной речью на полчаса." />
 		<template id="v3.lineage.clan.reply.community.0120" act="lineage.clan.community.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Два человека хотят разные активности." />
 		<template id="v3.lineage.clan.reply.community.0121" act="lineage.clan.community.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно разделиться без трактовки этого как раскола." />
-		<template id="v3.lineage.clan.reply.community.0122" act="lineage.clan.community.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я пойду на квест, вы на арену; потом встретимся в чате." />
+		<template id="v3.lineage.clan.reply.community.0122" act="lineage.clan.community.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разные активности не мешают потом встретиться в чате." />
 		<template id="v3.lineage.clan.reply.community.0123" act="lineage.clan.community.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не стану просить тебя выбирать компанию вместо интереса." />
 		<template id="v3.lineage.clan.reply.community.0124" act="lineage.clan.community.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, разделение групп не отменяет общий герб." />
 		<template id="v3.lineage.clan.reply.community.0125" act="lineage.clan.community.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Составы объявлены открыто." />
@@ -158,7 +158,7 @@
 		<template id="v3.lineage.clan.reply.community.0155" act="lineage.clan.community.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Участник помог нескольким людям и выглядит уставшим." />
 		<template id="v3.lineage.clan.reply.community.0156" act="lineage.clan.community.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Поблагодарите его и дайте право не брать следующую просьбу." />
 		<template id="v3.lineage.clan.reply.community.0157" act="lineage.clan.community.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты сегодня уже всех вытащил, иди займись собой." />
-		<template id="v3.lineage.clan.reply.community.0158" act="lineage.clan.community.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я могу подхватить часть вопросов, чтобы тебя оставили в покое." />
+		<template id="v3.lineage.clan.reply.community.0158" act="lineage.clan.community.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Часть вопросов можно взять на себя, чтобы у человека осталась передышка." />
 		<template id="v3.lineage.clan.reply.community.0159" act="lineage.clan.community.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, даже главный спасатель имеет шкалу маны." />
 		<template id="v3.lineage.clan.reply.community.0160" act="lineage.clan.community.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Новые просьбы распределяем между другими." />
 		<template id="v3.lineage.clan.reply.community.0161" act="lineage.clan.community.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Перестаньте ездить на одном добром человеке." />
@@ -231,7 +231,7 @@
 		<template id="v3.lineage.clan.reply.duty.0028" act="lineage.clan.duty.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не лезьте людям в кошельки." />
 		<template id="v3.lineage.clan.reply.duty.0029" act="lineage.clan.duty.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я помог временем, но в отчёте учитывают только ресурсы." />
 		<template id="v3.lineage.clan.reply.duty.0030" act="lineage.clan.duty.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неденежный вклад тоже нужно описывать, если он нужен клану." />
-		<template id="v3.lineage.clan.reply.duty.0031" act="lineage.clan.duty.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я собрал группу и провёл людей — это была реальная работа." />
+		<template id="v3.lineage.clan.reply.duty.0031" act="lineage.clan.duty.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Собрать группу и провести людей — это полноценная работа." />
 		<template id="v3.lineage.clan.reply.duty.0032" act="lineage.clan.duty.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно, чтобы твои часы не исчезали из общего результата." />
 		<template id="v3.lineage.clan.reply.duty.0033" act="lineage.clan.duty.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, организация иногда дороже полного склада." />
 		<template id="v3.lineage.clan.reply.duty.0034" act="lineage.clan.duty.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Отчёт дополняем выполненными задачами." />
@@ -271,14 +271,14 @@
 		<template id="v3.lineage.clan.reply.duty.0068" act="lineage.clan.duty.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, календарь не подчиняется приказу офицера." />
 		<template id="v3.lineage.clan.reply.duty.0069" act="lineage.clan.duty.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Старые подтверждения аннулированы." />
 		<template id="v3.lineage.clan.reply.duty.0070" act="lineage.clan.duty.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не записывайте людей автоматически." />
-		<template id="v3.lineage.clan.reply.duty.0071" act="lineage.clan.duty.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я буду на мероприятии без голосового канала." />
+		<template id="v3.lineage.clan.reply.duty.0071" act="lineage.clan.duty.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Голосовой канал не должен быть обязательным условием участия." />
 		<template id="v3.lineage.clan.reply.duty.0072" act="lineage.clan.duty.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ключевые команды нужно продублировать текстом." />
 		<template id="v3.lineage.clan.reply.duty.0073" act="lineage.clan.duty.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Отмечусь плюсом, когда пойму каждую задачу." />
 		<template id="v3.lineage.clan.reply.duty.0074" act="lineage.clan.duty.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="При смене плана нужен ясный ориентир, а не обещание вести рядом." />
 		<template id="v3.lineage.clan.reply.duty.0075" act="lineage.clan.duty.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, чтение чата тоже может быть обязанностью." />
 		<template id="v3.lineage.clan.reply.duty.0076" act="lineage.clan.duty.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Формат участия согласован." />
 		<template id="v3.lineage.clan.reply.duty.0077" act="lineage.clan.duty.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Отсутствие микрофона не равно отсутствию внимания." />
-		<template id="v3.lineage.clan.reply.duty.0078" act="lineage.clan.duty.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне осталось только сорок минут до ухода." />
+		<template id="v3.lineage.clan.reply.duty.0078" act="lineage.clan.duty.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сорок минут до ухода — повод заранее обозначить границу." />
 		<template id="v3.lineage.clan.reply.duty.0079" act="lineage.clan.duty.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Назначьте момент передачи роли заранее." />
 		<template id="v3.lineage.clan.reply.duty.0080" act="lineage.clan.duty.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="За пять минут предупрежу замену и отдам все нужные предметы." />
 		<template id="v3.lineage.clan.reply.duty.0081" act="lineage.clan.duty.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Спасибо, что не исчезаешь в середине действия без слова." />
@@ -292,7 +292,7 @@
 		<template id="v3.lineage.clan.reply.duty.0089" act="lineage.clan.duty.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, отмена без уведомления — отдельный вид босса." />
 		<template id="v3.lineage.clan.reply.duty.0090" act="lineage.clan.duty.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Старые сообщения помечаем неактуальными." />
 		<template id="v3.lineage.clan.reply.duty.0091" act="lineage.clan.duty.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не заставляйте людей угадывать планы." />
-		<template id="v3.lineage.clan.reply.duty.0092" act="lineage.clan.duty.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я выполнил поручение, но отметка осталась открытой." />
+		<template id="v3.lineage.clan.reply.duty.0092" act="lineage.clan.duty.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Закрытая задача с открытой отметкой выглядит несправедливо." />
 		<template id="v3.lineage.clan.reply.duty.0093" act="lineage.clan.duty.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ответственный должен подтвердить результат или назвать недостающее." />
 		<template id="v3.lineage.clan.reply.duty.0094" act="lineage.clan.duty.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Вот список и остаток, проверьте сейчас." />
 		<template id="v3.lineage.clan.reply.duty.0095" act="lineage.clan.duty.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Задачу лучше закрыть в названный срок, не обещая сделать это за другого." />
@@ -301,7 +301,7 @@
 		<template id="v3.lineage.clan.reply.duty.0098" act="lineage.clan.duty.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не держите выполненное в вечном «на проверке»." />
 		<template id="v3.lineage.clan.reply.duty.0099" act="lineage.clan.duty.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Обязательный взнос неожиданно увеличили." />
 		<template id="v3.lineage.clan.reply.duty.0100" act="lineage.clan.duty.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Новая сумма не может применяться задним числом." />
-		<template id="v3.lineage.clan.reply.duty.0101" act="lineage.clan.duty.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я внесу прежний объём, а новый обсудим на следующий период." />
+		<template id="v3.lineage.clan.reply.duty.0101" act="lineage.clan.duty.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Прежний объём можно сохранить, а новый обсудить на следующий период." />
 		<template id="v3.lineage.clan.reply.duty.0102" act="lineage.clan.duty.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я поддержу прозрачный переход без стыда для тех, чей бюджет меньше." />
 		<template id="v3.lineage.clan.reply.duty.0103" act="lineage.clan.duty.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, казна растёт лучше от доверия, чем от сюрпризов." />
 		<template id="v3.lineage.clan.reply.duty.0104" act="lineage.clan.duty.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Изменение действует только после объявления." />
@@ -357,7 +357,7 @@
 		<template id="v3.lineage.clan.reply.duty.0154" act="lineage.clan.duty.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не требуйте повторения подарка." />
 		<template id="v3.lineage.clan.reply.duty.0155" act="lineage.clan.duty.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Клановая задача завершилась неудачей." />
 		<template id="v3.lineage.clan.reply.duty.0156" act="lineage.clan.duty.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Проверьте процесс и условия, прежде чем наказывать исполнителя." />
-		<template id="v3.lineage.clan.reply.duty.0157" act="lineage.clan.duty.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я сделал по инструкции, но внешнее событие всё сорвало." />
+		<template id="v3.lineage.clan.reply.duty.0157" act="lineage.clan.duty.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Даже точное следование инструкции не спасает от внешнего сбоя." />
 		<template id="v3.lineage.clan.reply.duty.0158" act="lineage.clan.duty.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Свои действия полезно отделять от того, что действительно не контролировалось." />
 		<template id="v3.lineage.clan.reply.duty.0159" act="lineage.clan.duty.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, ответственность не равна магии управления миром." />
 		<template id="v3.lineage.clan.reply.duty.0160" act="lineage.clan.duty.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Результат разобран без автоматического штрафа." />
@@ -371,7 +371,7 @@
 		<template id="v3.lineage.clan.reply.duty.0168" act="lineage.clan.duty.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Новых задач без отдельного согласия не добавляем." />
 		<template id="v3.lineage.clan.reply.duty.0169" act="lineage.clan.duty.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Участник просит снять с него задачу до следующего периода." />
 		<template id="v3.lineage.clan.reply.duty.0170" act="lineage.clan.duty.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Передача возможна без обвинения в ненадёжности." />
-		<template id="v3.lineage.clan.reply.duty.0171" act="lineage.clan.duty.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я закончу текущий этап и передам записи преемнику." />
+		<template id="v3.lineage.clan.reply.duty.0171" act="lineage.clan.duty.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Текущий этап лучше завершить, а записи передать преемнику." />
 		<template id="v3.lineage.clan.reply.duty.0172" act="lineage.clan.duty.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне важно, что ты уходишь из роли аккуратно, а не исчезаешь." />
 		<template id="v3.lineage.clan.reply.duty.0173" act="lineage.clan.duty.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, правильная передача лучше усталого геройства." />
 		<template id="v3.lineage.clan.reply.duty.0174" act="lineage.clan.duty.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Дата смены назначена." />
@@ -529,7 +529,7 @@
 		<template id="v3.lineage.clan.reply.leadership.0126" act="lineage.clan.leadership.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не говорите за человека, который доступен сам." />
 		<template id="v3.lineage.clan.reply.leadership.0127" act="lineage.clan.leadership.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После голосования меньшинство обвиняют в нелояльности." />
 		<template id="v3.lineage.clan.reply.leadership.0128" act="lineage.clan.leadership.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Согласие с процедурой не требует одинакового мнения." />
-		<template id="v3.lineage.clan.reply.leadership.0129" act="lineage.clan.leadership.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я проиграл голос, но выполню общее решение без покаяния." />
+		<template id="v3.lineage.clan.reply.leadership.0129" act="lineage.clan.leadership.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Проигранное голосование не отменяет обязанности выполнить общее решение." />
 		<template id="v3.lineage.clan.reply.leadership.0130" act="lineage.clan.leadership.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я уважаю твоё несогласие и готов работать рядом." />
 		<template id="v3.lineage.clan.reply.leadership.0131" act="lineage.clan.leadership.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, проигранный выбор не лишает тебя голоса." />
 		<template id="v3.lineage.clan.reply.leadership.0132" act="lineage.clan.leadership.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Давление на меньшинство прекращаем." />
@@ -571,7 +571,7 @@
 		<template id="v3.lineage.clan.reply.leadership.0168" act="lineage.clan.leadership.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Следующий пересмотр назначен заранее." />
 		<template id="v3.lineage.clan.reply.leadership.0169" act="lineage.clan.leadership.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Лидер проверил выполнение решения и не нашёл скрытых последствий." />
 		<template id="v3.lineage.clan.reply.leadership.0170" act="lineage.clan.leadership.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Участники получили возможность сообщить о проблемах без публичного спора." />
-		<template id="v3.lineage.clan.reply.leadership.0171" act="lineage.clan.leadership.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="У меня вопросов нет, выбранный порядок работает." />
+		<template id="v3.lineage.clan.reply.leadership.0171" act="lineage.clan.leadership.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если вопросов нет и порядок работает, менять его незачем." />
 		<template id="v3.lineage.clan.reply.leadership.0172" act="lineage.clan.leadership.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне приятно видеть, что твой голос не исчез после голосования." />
 		<template id="v3.lineage.clan.reply.leadership.0173" act="lineage.clan.leadership.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, решение доказало себя делом, а не титулом автора." />
 		<template id="v3.lineage.clan.reply.leadership.0174" act="lineage.clan.leadership.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Промежуточная проверка завершена." />
@@ -624,7 +624,7 @@
 		<template id="v3.lineage.clan.reply.recruitment.0021" act="lineage.clan.recruitment.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Самоуверенных учить тяжелее неопытных." />
 		<template id="v3.lineage.clan.reply.recruitment.0022" act="lineage.clan.recruitment.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне важно знать, какой класс сейчас нужен клану." />
 		<template id="v3.lineage.clan.reply.recruitment.0023" act="lineage.clan.recruitment.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Потребность есть, но кандидат не обязан менять любимого персонажа." />
-		<template id="v3.lineage.clan.reply.recruitment.0024" act="lineage.clan.recruitment.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я могу подстраховать роль иногда, основной класс менять не хочу." />
+		<template id="v3.lineage.clan.reply.recruitment.0024" act="lineage.clan.recruitment.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Иногда подстраховать роль можно и без смены основного класса." />
 		<template id="v3.lineage.clan.reply.recruitment.0025" act="lineage.clan.recruitment.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спасибо, что обозначил границу до вступления." />
 		<template id="v3.lineage.clan.reply.recruitment.0026" act="lineage.clan.recruitment.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, полезность класса не отменяет вкуса игрока." />
 		<template id="v3.lineage.clan.reply.recruitment.0027" act="lineage.clan.recruitment.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Роль обсуждается без требования пересоздания." />
@@ -678,9 +678,9 @@
 		<template id="v3.lineage.clan.reply.recruitment.0075" act="lineage.clan.recruitment.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, дверь видна лучше, когда знаешь, почему её закрывают." />
 		<template id="v3.lineage.clan.reply.recruitment.0076" act="lineage.clan.recruitment.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Основания исключения доступны всем." />
 		<template id="v3.lineage.clan.reply.recruitment.0077" act="lineage.clan.recruitment.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Дружба с офицером не отменяет правил." />
-		<template id="v3.lineage.clan.reply.recruitment.0078" act="lineage.clan.recruitment.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я играю в другом часовом поясе." />
+		<template id="v3.lineage.clan.reply.recruitment.0078" act="lineage.clan.recruitment.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Разница часовых поясов часто мешает постоянному прайму." />
 		<template id="v3.lineage.clan.reply.recruitment.0079" act="lineage.clan.recruitment.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Нужно сравнить ваши часы активности, а не только формальный онлайн." />
-		<template id="v3.lineage.clan.reply.recruitment.0080" act="lineage.clan.recruitment.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="У вас вечер — у меня поздняя ночь, на прайм постоянно не попаду." />
+		<template id="v3.lineage.clan.reply.recruitment.0080" act="lineage.clan.recruitment.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Когда у одних вечер, у других может быть поздняя ночь; постоянный прайм подходит не всем." />
 		<template id="v3.lineage.clan.reply.recruitment.0081" act="lineage.clan.recruitment.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я не буду обещать компанию в часы, когда клан спит." />
 		<template id="v3.lineage.clan.reply.recruitment.0082" act="lineage.clan.recruitment.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, карта мира не двигает стрелки часов." />
 		<template id="v3.lineage.clan.reply.recruitment.0083" act="lineage.clan.recruitment.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Совместимость по времени не подтверждена." />
@@ -709,7 +709,7 @@
 		<template id="v3.lineage.clan.reply.recruitment.0106" act="lineage.clan.recruitment.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Кандидат предпочитает разбираться самостоятельно." />
 		<template id="v3.lineage.clan.reply.recruitment.0107" act="lineage.clan.recruitment.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Дайте ему список ресурсов и точку для вопросов без навязчивого сопровождения." />
 		<template id="v3.lineage.clan.reply.recruitment.0108" act="lineage.clan.recruitment.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Скиньте правила и канал сборов, дальше сам освоюсь." />
-		<template id="v3.lineage.clan.reply.recruitment.0109" act="lineage.clan.recruitment.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я буду доступен, но не стану идти за тобой по пятам." />
+		<template id="v3.lineage.clan.reply.recruitment.0109" act="lineage.clan.recruitment.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Доступность не означает готовность ходить за кем-то по пятам." />
 		<template id="v3.lineage.clan.reply.recruitment.0110" act="lineage.clan.recruitment.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, самостоятельность не означает молчание при проблеме." />
 		<template id="v3.lineage.clan.reply.recruitment.0111" act="lineage.clan.recruitment.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Формат адаптации выбран кандидатом." />
 		<template id="v3.lineage.clan.reply.recruitment.0112" act="lineage.clan.recruitment.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не душите заботой." />
@@ -722,7 +722,7 @@
 		<template id="v3.lineage.clan.reply.recruitment.0119" act="lineage.clan.recruitment.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Участие во враждебных действиях обсуждается отдельно." />
 		<template id="v3.lineage.clan.reply.recruitment.0120" act="lineage.clan.recruitment.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Кандидат хочет вступить только ради конкретного события." />
 		<template id="v3.lineage.clan.reply.recruitment.0121" act="lineage.clan.recruitment.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Лучше предложить временную группу, если постоянное участие не планируется." />
-		<template id="v3.lineage.clan.reply.recruitment.0122" act="lineage.clan.recruitment.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Да, после рейда я уйду; не буду притворяться будущим ветераном." />
+		<template id="v3.lineage.clan.reply.recruitment.0122" act="lineage.clan.recruitment.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Уйти после рейда честнее, чем изображать будущего ветерана." />
 		<template id="v3.lineage.clan.reply.recruitment.0123" act="lineage.clan.recruitment.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Спасибо за прямоту, она оставляет возможность нормально сыграть вместе." />
 		<template id="v3.lineage.clan.reply.recruitment.0124" act="lineage.clan.recruitment.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, честный наёмник лучше фальшивого брата." />
 		<template id="v3.lineage.clan.reply.recruitment.0125" act="lineage.clan.recruitment.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Постоянное приглашение не выдаём автоматически." />
@@ -750,7 +750,7 @@
 		<template id="v3.lineage.clan.reply.recruitment.0147" act="lineage.clan.recruitment.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не держите кандидата в подвешенном состоянии." />
 		<template id="v3.lineage.clan.reply.recruitment.0148" act="lineage.clan.recruitment.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После испытательного срока отзывы расходятся." />
 		<template id="v3.lineage.clan.reply.recruitment.0149" act="lineage.clan.recruitment.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Соберите конкретные наблюдения и дайте кандидату ответ в срок." />
-		<template id="v3.lineage.clan.reply.recruitment.0150" act="lineage.clan.recruitment.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я посещал обещанные сборы и соблюдал чат, что ещё не так?" />
+		<template id="v3.lineage.clan.reply.recruitment.0150" act="lineage.clan.recruitment.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Посещение обещанных сборов и соблюдение правил чата — ещё не весь разговор о совместимости." />
 		<template id="v3.lineage.clan.reply.recruitment.0151" act="lineage.clan.recruitment.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Факты лучше отделять от личной симпатии до решения." />
 		<template id="v3.lineage.clan.reply.recruitment.0152" act="lineage.clan.recruitment.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, испытание проверяет правила, а не популярность." />
 		<template id="v3.lineage.clan.reply.recruitment.0153" act="lineage.clan.recruitment.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Итог принимается по объявленным критериям." />
@@ -772,7 +772,7 @@
 		<template id="v3.lineage.clan.reply.recruitment.0169" act="lineage.clan.recruitment.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Новый участник представлен клану кратко и без личных подробностей." />
 		<template id="v3.lineage.clan.reply.recruitment.0170" act="lineage.clan.recruitment.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Дайте людям познакомиться через совместную игру, а не анкету на сцене." />
 		<template id="v3.lineage.clan.reply.recruitment.0171" act="lineage.clan.recruitment.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Всем привет, я тот хил, который иногда теряется на поворотах." />
-		<template id="v3.lineage.clan.reply.recruitment.0172" act="lineage.clan.recruitment.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я пойду рядом в первом походе, чтобы поворотов стало меньше." />
+		<template id="v3.lineage.clan.reply.recruitment.0172" act="lineage.clan.recruitment.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В первом походе спокойнее идти рядом с тем, кто знает повороты." />
 		<template id="v3.lineage.clan.reply.recruitment.0173" act="lineage.clan.recruitment.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, самоирония засчитана; теперь покажи лечение." />
 		<template id="v3.lineage.clan.reply.recruitment.0174" act="lineage.clan.recruitment.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Знакомство завершено без допроса." />
 		<template id="v3.lineage.clan.reply.recruitment.0175" act="lineage.clan.recruitment.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Личные темы раскрывает сам участник." />

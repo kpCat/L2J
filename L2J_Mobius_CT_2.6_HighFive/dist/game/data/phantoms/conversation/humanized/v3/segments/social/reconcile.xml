@@ -20,7 +20,7 @@
 		<template id="v3.social.reconcile.reply.peace.0017" act="social.reconcile.peace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь не бояться мести с моей стороны." />
 		<template id="v3.social.reconcile.reply.peace.0018" act="social.reconcile.peace.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне хочется тишины после долгой ссоры." />
 		<template id="v3.social.reconcile.reply.peace.0019" act="social.reconcile.peace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, за пределами матча угроз не будет." />
-		<template id="v3.social.reconcile.reply.peace.0020" act="social.reconcile.peace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я сохраняю мир и личные границы." />
+		<template id="v3.social.reconcile.reply.peace.0020" act="social.reconcile.peace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можно сохранять мир и личные границы." />
 		<template id="v3.social.reconcile.reply.peace.0021" act="social.reconcile.peace.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не ищите со мной встреч." />
 		<template id="v3.social.reconcile.reply.peace.0022" act="social.reconcile.peace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давайте прекратим обмен публичными обвинениями." />
 		<template id="v3.social.reconcile.reply.peace.0023" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я не буду распространять слухи о вас." />
@@ -30,7 +30,7 @@
 		<template id="v3.social.reconcile.reply.peace.0027" act="social.reconcile.peace.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="готов к миру без примирения." />
 		<template id="v3.social.reconcile.reply.peace.0028" act="social.reconcile.peace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Соблюдайте расстояние, закреплённое перемирием." />
 		<template id="v3.social.reconcile.reply.peace.0029" act="social.reconcile.peace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы можем договориться не писать друг другу." />
-		<template id="v3.social.reconcile.reply.peace.0030" act="social.reconcile.peace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я прекращаю любые попытки ответного вреда." />
+		<template id="v3.social.reconcile.reply.peace.0030" act="social.reconcile.peace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Лучше прекращать любые попытки ответного вреда." />
 		<template id="v3.social.reconcile.reply.peace.0031" act="social.reconcile.peace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь оставить старую злость в прошлом." />
 		<template id="v3.social.reconcile.reply.peace.0032" act="social.reconcile.peace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне достаточно уважительной дистанции." />
 		<template id="v3.social.reconcile.reply.peace.0033" act="social.reconcile.peace.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, рукопожатие не обязательно для честного мира." />
@@ -44,7 +44,7 @@
 		<template id="v3.social.reconcile.reply.peace.0041" act="social.reconcile.peace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="согласен оставить каналы закрытыми." />
 		<template id="v3.social.reconcile.reply.peace.0042" act="social.reconcile.peace.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Между нами остаётся только безопасная тишина." />
 		<template id="v3.social.reconcile.reply.peace.0043" act="social.reconcile.peace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы можем не дружить и всё же быть корректными." />
-		<template id="v3.social.reconcile.reply.peace.0044" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прекращаю спор о прошлом." />
+		<template id="v3.social.reconcile.reply.peace.0044" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно прекращать спор о прошлом." />
 		<template id="v3.social.reconcile.reply.peace.0045" act="social.reconcile.peace.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="можешь не защищаться при каждой встрече." />
 		<template id="v3.social.reconcile.reply.peace.0046" act="social.reconcile.peace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужен спокойный мир без обязательств." />
 		<template id="v3.social.reconcile.reply.peace.0047" act="social.reconcile.peace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, победа не выйдет за границы игры." />
@@ -72,7 +72,7 @@
 		<template id="v3.social.reconcile.reply.peace.0069" act="social.reconcile.peace.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я выбираю спокойствие, не забывая границы." />
 		<template id="v3.social.reconcile.reply.peace.0070" act="social.reconcile.peace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не появляйтесь в моих личных местах после перемирия." />
 		<template id="v3.social.reconcile.reply.peace.0071" act="social.reconcile.peace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы можем обменяться одним нейтральным приветствием." />
-		<template id="v3.social.reconcile.reply.peace.0072" act="social.reconcile.peace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я прекращаю публичные ответы." />
+		<template id="v3.social.reconcile.reply.peace.0072" act="social.reconcile.peace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Можно прекращать публичные ответы." />
 		<template id="v3.social.reconcile.reply.peace.0073" act="social.reconcile.peace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь перестать готовиться к новой атаке." />
 		<template id="v3.social.reconcile.reply.peace.0074" act="social.reconcile.peace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужен мир, а не доказательство правоты." />
 		<template id="v3.social.reconcile.reply.peace.0075" act="social.reconcile.peace.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, оставим борьбу только в расписании." />
@@ -86,7 +86,7 @@
 		<template id="v3.social.reconcile.reply.peace.0083" act="social.reconcile.peace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="согласен на безопасный нейтралитет." />
 		<template id="v3.social.reconcile.reply.peace.0084" act="social.reconcile.peace.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Любые новые обращения нарушат условия мира." />
 		<template id="v3.social.reconcile.reply.peace.0085" act="social.reconcile.peace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы можем закрыть взаимные жалобы после исправления." />
-		<template id="v3.social.reconcile.reply.peace.0086" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прекращаю следить за вашими решениями." />
+		<template id="v3.social.reconcile.reply.peace.0086" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Лучше прекращать следить за вашими решениями." />
 		<template id="v3.social.reconcile.reply.peace.0087" act="social.reconcile.peace.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="можешь идти дальше без страха мести." />
 		<template id="v3.social.reconcile.reply.peace.0088" act="social.reconcile.peace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне достаточно отсутствия давления." />
 		<template id="v3.social.reconcile.reply.peace.0089" act="social.reconcile.peace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, новые правила исключают личные выпады." />
@@ -100,7 +100,7 @@
 		<template id="v3.social.reconcile.reply.peace.0097" act="social.reconcile.peace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="готов уважать закрытую дверь." />
 		<template id="v3.social.reconcile.reply.peace.0098" act="social.reconcile.peace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Перемирие исключает любые попытки преследования." />
 		<template id="v3.social.reconcile.reply.peace.0099" act="social.reconcile.peace.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы можем оставить конфликт архивным вопросом." />
-		<template id="v3.social.reconcile.reply.peace.0100" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прекращаю ответные обвинения." />
+		<template id="v3.social.reconcile.reply.peace.0100" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно прекращать ответные обвинения." />
 		<template id="v3.social.reconcile.reply.peace.0101" act="social.reconcile.peace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь не ждать от меня дружелюбия." />
 		<template id="v3.social.reconcile.reply.peace.0102" act="social.reconcile.peace.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне нужен безопасный, а не красивый мир." />
 		<template id="v3.social.reconcile.reply.peace.0103" act="social.reconcile.peace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, за пределами игры счёт не ведём." />
@@ -114,12 +114,12 @@
 		<template id="v3.social.reconcile.reply.peace.0111" act="social.reconcile.peace.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я выбираю мирную дистанцию." />
 		<template id="v3.social.reconcile.reply.peace.0112" act="social.reconcile.peace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Дайте мне покой, предусмотренный нашим перемирием." />
 		<template id="v3.social.reconcile.reply.peace.0113" act="social.reconcile.peace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы можем не пересматривать прошлый конфликт." />
-		<template id="v3.social.reconcile.reply.peace.0114" act="social.reconcile.peace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я прекращаю попытки убедить вас." />
+		<template id="v3.social.reconcile.reply.peace.0114" act="social.reconcile.peace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Лучше прекращать попытки убедить вас." />
 		<template id="v3.social.reconcile.reply.peace.0115" act="social.reconcile.peace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь оставить обиду без продолжения." />
 		<template id="v3.social.reconcile.reply.peace.0116" act="social.reconcile.peace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужен покой для восстановления." />
 		<template id="v3.social.reconcile.reply.peace.0117" act="social.reconcile.peace.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, никаких вызовов вне официальных матчей." />
 		<template id="v3.social.reconcile.reply.peace.0118" act="social.reconcile.peace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я не стану мешать вашей жизни." />
-		<template id="v3.social.reconcile.reply.peace.0119" act="social.reconcile.peace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не посещайте мой дом после мирного завершения." />
+		<template id="v3.social.reconcile.reply.peace.0119" act="social.reconcile.peace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После мирного завершения не посещайте чужой дом без приглашения." />
 		<template id="v3.social.reconcile.reply.peace.0120" act="social.reconcile.peace.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давайте договоримся не встречаться наедине." />
 		<template id="v3.social.reconcile.reply.peace.0121" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я не буду отвечать угрозой на угрозу." />
 		<template id="v3.social.reconcile.reply.peace.0122" act="social.reconcile.peace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь не объяснять своё решение другим." />
@@ -128,7 +128,7 @@
 		<template id="v3.social.reconcile.reply.peace.0125" act="social.reconcile.peace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я выбираю нейтралитет с посредником." />
 		<template id="v3.social.reconcile.reply.peace.0126" act="social.reconcile.peace.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не ищите меня." />
 		<template id="v3.social.reconcile.reply.peace.0127" act="social.reconcile.peace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы можем спокойно разделить общие пространства." />
-		<template id="v3.social.reconcile.reply.peace.0128" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прекращаю обсуждать ваши мотивы." />
+		<template id="v3.social.reconcile.reply.peace.0128" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно прекращать обсуждать ваши мотивы." />
 		<template id="v3.social.reconcile.reply.peace.0129" act="social.reconcile.peace.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="можешь жить без моего одобрения." />
 		<template id="v3.social.reconcile.reply.peace.0130" act="social.reconcile.peace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужен мир, который не требует контакта." />
 		<template id="v3.social.reconcile.reply.peace.0131" act="social.reconcile.peace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, правила безопасности выше результата." />
@@ -142,7 +142,7 @@
 		<template id="v3.social.reconcile.reply.peace.0139" act="social.reconcile.peace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я выбираю безопасную тишину." />
 		<template id="v3.social.reconcile.reply.peace.0140" act="social.reconcile.peace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не связывайтесь через третьих лиц." />
 		<template id="v3.social.reconcile.reply.peace.0141" act="social.reconcile.peace.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы можем оставить только официальный канал." />
-		<template id="v3.social.reconcile.reply.peace.0142" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прекращаю попытки получить извинение." />
+		<template id="v3.social.reconcile.reply.peace.0142" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Лучше прекращать попытки получить извинение." />
 		<template id="v3.social.reconcile.reply.peace.0143" act="social.reconcile.peace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь не доказывать мне свою правоту." />
 		<template id="v3.social.reconcile.reply.peace.0144" act="social.reconcile.peace.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне достаточно прекращения вреда." />
 		<template id="v3.social.reconcile.reply.peace.0145" act="social.reconcile.peace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, личный реванш отменён." />
@@ -156,7 +156,7 @@
 		<template id="v3.social.reconcile.reply.peace.0153" act="social.reconcile.peace.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я выбираю спокойную жизнь отдельно." />
 		<template id="v3.social.reconcile.reply.peace.0154" act="social.reconcile.peace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Оставайтесь вне моего личного пространства." />
 		<template id="v3.social.reconcile.reply.peace.0155" act="social.reconcile.peace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы можем отменить все личные встречи." />
-		<template id="v3.social.reconcile.reply.peace.0156" act="social.reconcile.peace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я прекращаю конфликт со своей стороны." />
+		<template id="v3.social.reconcile.reply.peace.0156" act="social.reconcile.peace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Можно прекращать конфликт со своей стороны." />
 		<template id="v3.social.reconcile.reply.peace.0157" act="social.reconcile.peace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь не ждать примирительного жеста." />
 		<template id="v3.social.reconcile.reply.peace.0158" act="social.reconcile.peace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужен конец угроз, не дружба." />
 		<template id="v3.social.reconcile.reply.peace.0159" act="social.reconcile.peace.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, мы уважаем итог и расходимся." />
@@ -170,7 +170,7 @@
 		<template id="v3.social.reconcile.reply.peace.0167" act="social.reconcile.peace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я выбираю мир и закрытый канал." />
 		<template id="v3.social.reconcile.reply.peace.0168" act="social.reconcile.peace.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не приближайтесь после установления мирной дистанции." />
 		<template id="v3.social.reconcile.reply.peace.0169" act="social.reconcile.peace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы можем сообщить группе, что спор завершён." />
-		<template id="v3.social.reconcile.reply.peace.0170" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прекращаю доказывать свою версию." />
+		<template id="v3.social.reconcile.reply.peace.0170" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Лучше прекращать доказывать свою версию." />
 		<template id="v3.social.reconcile.reply.peace.0171" act="social.reconcile.peace.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="можешь не ждать от меня ответа." />
 		<template id="v3.social.reconcile.reply.peace.0172" act="social.reconcile.peace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне достаточно взаимного невмешательства." />
 		<template id="v3.social.reconcile.reply.peace.0173" act="social.reconcile.peace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, личные счёты закрыты." />
@@ -184,7 +184,7 @@
 		<template id="v3.social.reconcile.reply.peace.0181" act="social.reconcile.peace.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я выбираю полную дистанцию." />
 		<template id="v3.social.reconcile.reply.peace.0182" act="social.reconcile.peace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Перемирие исключает телефонные звонки мне." />
 		<template id="v3.social.reconcile.reply.peace.0183" act="social.reconcile.peace.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы можем закончить конфликт одним заявлением." />
-		<template id="v3.social.reconcile.reply.peace.0184" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прекращаю все ответные действия." />
+		<template id="v3.social.reconcile.reply.peace.0184" act="social.reconcile.peace.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно прекращать все ответные действия." />
 		<template id="v3.social.reconcile.reply.peace.0185" act="social.reconcile.peace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь идти своей дорогой." />
 		<template id="v3.social.reconcile.reply.peace.0186" act="social.reconcile.peace.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="важно не бояться новой встречи." />
 		<template id="v3.social.reconcile.reply.peace.0187" act="social.reconcile.peace.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, перемирие действует без срока." />
@@ -198,14 +198,14 @@
 		<template id="v3.social.reconcile.reply.peace.0195" act="social.reconcile.peace.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я выбираю окончательный мир." />
 		<template id="v3.social.reconcile.reply.peace.0196" act="social.reconcile.peace.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После мирного решения связь между нами прекращается." />
 		<template id="v3.social.reconcile.reply.peace.0197" act="social.reconcile.peace.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы можем поддерживать тишину без взаимной вражды." />
-		<template id="v3.social.reconcile.reply.peace.0198" act="social.reconcile.peace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я прекращаю любой ответный вред." />
+		<template id="v3.social.reconcile.reply.peace.0198" act="social.reconcile.peace.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Лучше прекращать любой ответный вред." />
 		<template id="v3.social.reconcile.reply.peace.0199" act="social.reconcile.peace.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="можешь жить спокойно вне моей истории." />
 		<template id="v3.social.reconcile.reply.peace.0200" act="social.reconcile.peace.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне достаточно устойчивой дистанции." />
 		<template id="v3.social.reconcile.reply.restart.0001" act="social.reconcile.restart.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Давайте начнём с короткого и честного разговора." />
 		<template id="v3.social.reconcile.reply.restart.0002" act="social.reconcile.restart.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Новый формат общения можно попробовать, если обе стороны готовы." />
 		<template id="v3.social.reconcile.reply.restart.0003" act="social.reconcile.restart.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Предложить написать завтра можно без обещания, что общение возобновится." />
 		<template id="v3.social.reconcile.reply.restart.0004" act="social.reconcile.restart.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Доверие лучше возвращать с малого и без обещаний результата." />
-		<template id="v3.social.reconcile.reply.restart.0005" act="social.reconcile.restart.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Новую серию начинают с нуля только при реальном согласии на игру." />
+		<template id="v3.social.reconcile.reply.restart.0005" act="social.reconcile.restart.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Новую серию лучше начинать с нуля и по взаимному согласию." />
 		<template id="v3.social.reconcile.reply.restart.0006" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="согласен на осторожный старт с границами." />
 		<template id="v3.social.reconcile.reply.restart.0007" act="social.reconcile.restart.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Возвращения к общению между нами не будет." />
 		<template id="v3.social.reconcile.reply.restart.0008" act="social.reconcile.restart.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Нейтральное место днём безопаснее для встречи, если она нужна обеим сторонам." />
@@ -227,7 +227,7 @@
 		<template id="v3.social.reconcile.reply.restart.0024" act="social.reconcile.restart.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь показать изменения без большой речи." />
 		<template id="v3.social.reconcile.reply.restart.0025" act="social.reconcile.restart.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="важно не торопить близость." />
 		<template id="v3.social.reconcile.reply.restart.0026" act="social.reconcile.restart.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Первый раунд будет тренировочным." />
-		<template id="v3.social.reconcile.reply.restart.0027" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я попробую поддерживать только письменную связь." />
+		<template id="v3.social.reconcile.reply.restart.0027" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разумнее попробовать поддерживать только письменную связь." />
 		<template id="v3.social.reconcile.reply.restart.0028" act="social.reconcile.restart.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Первые шаги делаем без личных встреч." />
 		<template id="v3.social.reconcile.reply.restart.0029" act="social.reconcile.restart.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давайте выберем один день для первой встречи." />
 		<template id="v3.social.reconcile.reply.restart.0030" act="social.reconcile.restart.reply" band="TENSE" register="CASUAL" profanity="NONE" text="готов снова сотрудничать над небольшой задачей." />
@@ -241,7 +241,7 @@
 		<template id="v3.social.reconcile.reply.restart.0038" act="social.reconcile.restart.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь не обещать навсегда." />
 		<template id="v3.social.reconcile.reply.restart.0039" act="social.reconcile.restart.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно видеть последовательность, а не идеальность." />
 		<template id="v3.social.reconcile.reply.restart.0040" act="social.reconcile.restart.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Новый матч проведём по пересмотренным правилам." />
-		<template id="v3.social.reconcile.reply.restart.0041" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я попробую, но сохраню право остановиться." />
+		<template id="v3.social.reconcile.reply.restart.0041" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Попробовать можно, сохранив право остановиться." />
 		<template id="v3.social.reconcile.reply.restart.0042" act="social.reconcile.restart.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Для нового шага ваше присутствие рядом не требуется." />
 		<template id="v3.social.reconcile.reply.restart.0043" act="social.reconcile.restart.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Давайте начнём с возврата взаимного уважения." />
 		<template id="v3.social.reconcile.reply.restart.0044" act="social.reconcile.restart.reply" band="TENSE" register="CASUAL" profanity="NONE" text="готов снова здороваться при встрече." />
@@ -255,7 +255,7 @@
 		<template id="v3.social.reconcile.reply.restart.0052" act="social.reconcile.restart.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="можешь написать короткое сообщение без давления." />
 		<template id="v3.social.reconcile.reply.restart.0053" act="social.reconcile.restart.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Новый путь должен заметно отличаться от прежнего." />
 		<template id="v3.social.reconcile.reply.restart.0054" act="social.reconcile.restart.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Первую игру проведём без личных уколов." />
-		<template id="v3.social.reconcile.reply.restart.0055" act="social.reconcile.restart.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я попробую вернуться только после паузы." />
+		<template id="v3.social.reconcile.reply.restart.0055" act="social.reconcile.restart.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Разумнее попробовать вернуться только после паузы." />
 		<template id="v3.social.reconcile.reply.restart.0056" act="social.reconcile.restart.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Давление делает новый старт невозможным." />
 		<template id="v3.social.reconcile.reply.restart.0057" act="social.reconcile.restart.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давайте создадим договорённости с нуля." />
 		<template id="v3.social.reconcile.reply.restart.0058" act="social.reconcile.restart.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="готов встретиться на полчаса." />
@@ -269,7 +269,7 @@
 		<template id="v3.social.reconcile.reply.restart.0066" act="social.reconcile.restart.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь честно сказать, чего хочешь теперь." />
 		<template id="v3.social.reconcile.reply.restart.0067" act="social.reconcile.restart.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне важно оставить право передумать." />
 		<template id="v3.social.reconcile.reply.restart.0068" act="social.reconcile.restart.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Первый реванш состоится после восстановления правил." />
-		<template id="v3.social.reconcile.reply.restart.0069" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я попробую доверить тебе небольшую часть." />
+		<template id="v3.social.reconcile.reply.restart.0069" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Стоит попробовать доверить тебе небольшую часть." />
 		<template id="v3.social.reconcile.reply.restart.0070" act="social.reconcile.restart.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не пишите мне." />
 		<template id="v3.social.reconcile.reply.restart.0071" act="social.reconcile.restart.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давайте назначим пробный разговор через неделю." />
 		<template id="v3.social.reconcile.reply.restart.0072" act="social.reconcile.restart.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я готов учиться слушать иначе." />
@@ -283,7 +283,7 @@
 		<template id="v3.social.reconcile.reply.restart.0080" act="social.reconcile.restart.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь показать изменения без саморекламы." />
 		<template id="v3.social.reconcile.reply.restart.0081" act="social.reconcile.restart.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно не путать прощение с прежней близостью." />
 		<template id="v3.social.reconcile.reply.restart.0082" act="social.reconcile.restart.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Новый матч начнём после совместной разминки." />
-		<template id="v3.social.reconcile.reply.restart.0083" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я попробую встретиться при поддержке." />
+		<template id="v3.social.reconcile.reply.restart.0083" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разумнее попробовать встретиться при поддержке." />
 		<template id="v3.social.reconcile.reply.restart.0084" act="social.reconcile.restart.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваш контакт будет нежелательным." />
 		<template id="v3.social.reconcile.reply.restart.0085" act="social.reconcile.restart.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Давайте начнём с одного выполненного обещания." />
 		<template id="v3.social.reconcile.reply.restart.0086" act="social.reconcile.restart.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я готов рассказать, что мне теперь нужно." />
@@ -297,7 +297,7 @@
 		<template id="v3.social.reconcile.reply.restart.0094" act="social.reconcile.restart.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="можешь оставить мне время между шагами." />
 		<template id="v3.social.reconcile.reply.restart.0095" act="social.reconcile.restart.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно, чтобы сближение было взаимным." />
 		<template id="v3.social.reconcile.reply.restart.0096" act="social.reconcile.restart.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Первую партию сыграем без общего зачёта." />
-		<template id="v3.social.reconcile.reply.restart.0097" act="social.reconcile.restart.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я попробую снова после письменной договорённости." />
+		<template id="v3.social.reconcile.reply.restart.0097" act="social.reconcile.restart.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Стоит попробовать снова после письменной договорённости." />
 		<template id="v3.social.reconcile.reply.restart.0098" act="social.reconcile.restart.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Предложения передавайте только по согласованному каналу." />
 		<template id="v3.social.reconcile.reply.restart.0099" act="social.reconcile.restart.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давайте начнём с нейтрального приветствия." />
 		<template id="v3.social.reconcile.reply.restart.0100" act="social.reconcile.restart.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я готов принять ваш новый способ действовать." />
@@ -311,7 +311,7 @@
 		<template id="v3.social.reconcile.reply.restart.0108" act="social.reconcile.restart.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь не добиваться быстрого результата." />
 		<template id="v3.social.reconcile.reply.restart.0109" act="social.reconcile.restart.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне важно видеть уважение к паузам." />
 		<template id="v3.social.reconcile.reply.restart.0110" act="social.reconcile.restart.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Первый раунд остановим при любом нарушении границ." />
-		<template id="v3.social.reconcile.reply.restart.0111" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я попробую работать вместе без личных тем." />
+		<template id="v3.social.reconcile.reply.restart.0111" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разумнее попробовать работать вместе без личных тем." />
 		<template id="v3.social.reconcile.reply.restart.0112" act="social.reconcile.restart.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Новый этап возможен без прямых личных обращений." />
 		<template id="v3.social.reconcile.reply.restart.0113" act="social.reconcile.restart.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давайте начнём с короткой общей встречи." />
 		<template id="v3.social.reconcile.reply.restart.0114" act="social.reconcile.restart.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я готов проверить, что между нами изменилось." />
@@ -325,7 +325,7 @@
 		<template id="v3.social.reconcile.reply.restart.0122" act="social.reconcile.restart.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь показать стабильность в мелочах." />
 		<template id="v3.social.reconcile.reply.restart.0123" act="social.reconcile.restart.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно не обещать больше, чем могу." />
 		<template id="v3.social.reconcile.reply.restart.0124" act="social.reconcile.restart.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Новый турнир проведём с независимым судьёй." />
-		<template id="v3.social.reconcile.reply.restart.0125" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я попробую общаться только днём." />
+		<template id="v3.social.reconcile.reply.restart.0125" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Стоит попробовать общаться только днём." />
 		<template id="v3.social.reconcile.reply.restart.0126" act="social.reconcile.restart.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Дайте мне пространство перед любым новым началом." />
 		<template id="v3.social.reconcile.reply.restart.0127" act="social.reconcile.restart.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Давайте начнём с признания новых условий." />
 		<template id="v3.social.reconcile.reply.restart.0128" act="social.reconcile.restart.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я готов встретить вас без старой защиты." />
@@ -339,7 +339,7 @@
 		<template id="v3.social.reconcile.reply.restart.0136" act="social.reconcile.restart.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="можешь оставить прошлые прозвища в прошлом." />
 		<template id="v3.social.reconcile.reply.restart.0137" act="social.reconcile.restart.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно, чтобы новый старт не был спектаклем." />
 		<template id="v3.social.reconcile.reply.restart.0138" act="social.reconcile.restart.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Первый матч пройдёт без публики." />
-		<template id="v3.social.reconcile.reply.restart.0139" act="social.reconcile.restart.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я попробую после консультации с посредником." />
+		<template id="v3.social.reconcile.reply.restart.0139" act="social.reconcile.restart.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Разумнее попробовать после консультации с посредником." />
 		<template id="v3.social.reconcile.reply.restart.0140" act="social.reconcile.restart.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не пытайтесь приблизиться ко мне." />
 		<template id="v3.social.reconcile.reply.restart.0141" act="social.reconcile.restart.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давайте начнём с ясного права на отказ." />
 		<template id="v3.social.reconcile.reply.restart.0142" act="social.reconcile.restart.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я готов поделиться небольшим планом." />
@@ -353,7 +353,7 @@
 		<template id="v3.social.reconcile.reply.restart.0150" act="social.reconcile.restart.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь не возвращать всё за один день." />
 		<template id="v3.social.reconcile.reply.restart.0151" act="social.reconcile.restart.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне важно идти в темпе более осторожного." />
 		<template id="v3.social.reconcile.reply.restart.0152" act="social.reconcile.restart.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Первый раунд посвятим проверке новых правил." />
-		<template id="v3.social.reconcile.reply.restart.0153" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я попробую снова без обещания дружбы." />
+		<template id="v3.social.reconcile.reply.restart.0153" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Стоит попробовать снова без обещания дружбы." />
 		<template id="v3.social.reconcile.reply.restart.0154" act="social.reconcile.restart.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Новый этап требует безопасного расстояния." />
 		<template id="v3.social.reconcile.reply.restart.0155" act="social.reconcile.restart.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давайте начнём с одного безопасного «да»." />
 		<template id="v3.social.reconcile.reply.restart.0156" act="social.reconcile.restart.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я готов обсуждать только настоящее." />
@@ -367,7 +367,7 @@
 		<template id="v3.social.reconcile.reply.restart.0164" act="social.reconcile.restart.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь показать уважение к моему молчанию." />
 		<template id="v3.social.reconcile.reply.restart.0165" act="social.reconcile.restart.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно, чтобы новое не копировало старое." />
 		<template id="v3.social.reconcile.reply.restart.0166" act="social.reconcile.restart.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Первую игру проведём без награды." />
-		<template id="v3.social.reconcile.reply.restart.0167" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я попробую, сохраняя отдельную жизнь." />
+		<template id="v3.social.reconcile.reply.restart.0167" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разумнее попробовать, сохраняя отдельную жизнь." />
 		<template id="v3.social.reconcile.reply.restart.0168" act="social.reconcile.restart.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Вопросы о новом начале передавайте через посредника." />
 		<template id="v3.social.reconcile.reply.restart.0169" act="social.reconcile.restart.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Давайте начнём с точного списка границ." />
 		<template id="v3.social.reconcile.reply.restart.0170" act="social.reconcile.restart.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я готов дать отношениям немного времени." />
@@ -381,7 +381,7 @@
 		<template id="v3.social.reconcile.reply.restart.0178" act="social.reconcile.restart.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="можешь сказать, чего боишься в новом начале." />
 		<template id="v3.social.reconcile.reply.restart.0179" act="social.reconcile.restart.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно оставить прошлый счёт закрытым." />
 		<template id="v3.social.reconcile.reply.restart.0180" act="social.reconcile.restart.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Первый раунд будет проверкой безопасности." />
-		<template id="v3.social.reconcile.reply.restart.0181" act="social.reconcile.restart.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я попробую вернуться к общему делу." />
+		<template id="v3.social.reconcile.reply.restart.0181" act="social.reconcile.restart.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Стоит попробовать вернуться к общему делу." />
 		<template id="v3.social.reconcile.reply.restart.0182" act="social.reconcile.restart.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Попытки обойти согласованный канал будут записаны." />
 		<template id="v3.social.reconcile.reply.restart.0183" act="social.reconcile.restart.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давайте начнём без обещаний навсегда." />
 		<template id="v3.social.reconcile.reply.restart.0184" act="social.reconcile.restart.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я готов сделать один встречный шаг." />
@@ -395,7 +395,7 @@
 		<template id="v3.social.reconcile.reply.restart.0192" act="social.reconcile.restart.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="можешь быть рядом без требования результата." />
 		<template id="v3.social.reconcile.reply.restart.0193" act="social.reconcile.restart.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне важно, чтобы этот старт был настоящим." />
 		<template id="v3.social.reconcile.reply.restart.0194" act="social.reconcile.restart.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Первый матч назначим после общего решения." />
-		<template id="v3.social.reconcile.reply.restart.0195" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я попробую снова, не забывая уроки." />
+		<template id="v3.social.reconcile.reply.restart.0195" act="social.reconcile.restart.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разумнее попробовать снова, не забывая уроки." />
 		<template id="v3.social.reconcile.reply.restart.0196" act="social.reconcile.restart.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ваше присутствие остаётся нежелательным." />
 		<template id="v3.social.reconcile.reply.restart.0197" act="social.reconcile.restart.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давайте начнём с одного спокойного дня." />
 		<template id="v3.social.reconcile.reply.restart.0198" act="social.reconcile.restart.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я готов снова доверить вам небольшой выбор." />
@@ -403,13 +403,13 @@
 		<template id="v3.social.reconcile.reply.restart.0200" act="social.reconcile.restart.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне хочется строить связь медленно и честно." />
 		<template id="v3.social.reconcile.reply.compromise.0001" act="social.reconcile.compromise.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Предлагаю начать с одного пункта, удобного обоим." />
 		<template id="v3.social.reconcile.reply.compromise.0002" act="social.reconcile.compromise.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Время можно уступить, если место действительно останется нейтральным." />
-		<template id="v3.social.reconcile.reply.compromise.0003" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Первый и следующий день можно распределить только при реальном календаре." />
+		<template id="v3.social.reconcile.reply.compromise.0003" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Первый и следующий день стоит распределить заранее." />
 		<template id="v3.social.reconcile.reply.compromise.0004" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Хорошее решение учитывает обе стороны, не выдумывая уже существующее «нас»." />
 		<template id="v3.social.reconcile.reply.compromise.0005" act="social.reconcile.compromise.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Преимущества стоит делить поровну, если они вообще определены." />
 		<template id="v3.social.reconcile.reply.compromise.0006" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Пробный месяц с ясными границами возможен только по реальному согласию." />
 		<template id="v3.social.reconcile.reply.compromise.0007" act="social.reconcile.compromise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="До письменного соглашения никаких личных встреч." />
 		<template id="v3.social.reconcile.reply.compromise.0008" act="social.reconcile.compromise.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Давайте запишем обязательные и гибкие условия." />
-		<template id="v3.social.reconcile.reply.compromise.0009" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я могу сократить свою часть требований." />
+		<template id="v3.social.reconcile.reply.compromise.0009" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Стоит сократить свою часть требований." />
 		<template id="v3.social.reconcile.reply.compromise.0010" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Утро и вечер можно разделить только по реальной договорённости." />
 		<template id="v3.social.reconcile.reply.compromise.0011" act="social.reconcile.compromise.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Стоит искать вариант без ощущения проигрыша, не обещая, что он точно найдётся." />
 		<template id="v3.social.reconcile.reply.compromise.0012" act="social.reconcile.compromise.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Раунды по разным правилам возможны только при согласии на такой формат." />
@@ -423,7 +423,7 @@
 		<template id="v3.social.reconcile.reply.compromise.0020" act="social.reconcile.compromise.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я готов обсудить только практическую часть." />
 		<template id="v3.social.reconcile.reply.compromise.0021" act="social.reconcile.compromise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваши угрозы исключают компромисс." />
 		<template id="v3.social.reconcile.reply.compromise.0022" act="social.reconcile.compromise.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давайте сначала согласуем то, что не вызывает спора." />
-		<template id="v3.social.reconcile.reply.compromise.0023" act="social.reconcile.compromise.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я могу взять на себя организацию." />
+		<template id="v3.social.reconcile.reply.compromise.0023" act="social.reconcile.compromise.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Разумнее взять на себя организацию." />
 		<template id="v3.social.reconcile.reply.compromise.0024" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты уступишь в месте, если я уступлю во времени?" />
 		<template id="v3.social.reconcile.reply.compromise.0025" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне важно оставить право остановиться." />
 		<template id="v3.social.reconcile.reply.compromise.0026" act="social.reconcile.compromise.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Разделим подготовку, а результат оценит судья." />
@@ -444,11 +444,11 @@
 		<template id="v3.social.reconcile.reply.compromise.0041" act="social.reconcile.compromise.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я согласен на один безопасный шаг." />
 		<template id="v3.social.reconcile.reply.compromise.0042" act="social.reconcile.compromise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Переговоры идут через представителя, не через меня." />
 		<template id="v3.social.reconcile.reply.compromise.0043" act="social.reconcile.compromise.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Вместо двух спорных вариантов иногда помогает нейтральное третье место." />
-		<template id="v3.social.reconcile.reply.compromise.0044" act="social.reconcile.compromise.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я могу перенести дату на неделю." />
+		<template id="v3.social.reconcile.reply.compromise.0044" act="social.reconcile.compromise.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Можно перенести дату на неделю." />
 		<template id="v3.social.reconcile.reply.compromise.0045" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты готов записать новую границу в договорённости?" />
 		<template id="v3.social.reconcile.reply.compromise.0046" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне важно, чтобы последствия делились честно." />
 		<template id="v3.social.reconcile.reply.compromise.0047" act="social.reconcile.compromise.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, в этом раунде обойдёмся без победителя." />
-		<template id="v3.social.reconcile.reply.compromise.0048" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я обсужу компромисс только при свидетеле." />
+		<template id="v3.social.reconcile.reply.compromise.0048" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Компромисс здесь можно обсуждать только при свидетеле." />
 		<template id="v3.social.reconcile.reply.compromise.0049" act="social.reconcile.compromise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не пытайтесь встретиться со мной лично." />
 		<template id="v3.social.reconcile.reply.compromise.0050" act="social.reconcile.compromise.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Давайте оставим два варианта и проверим каждый." />
 		<template id="v3.social.reconcile.reply.compromise.0051" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я согласен оплатить свою часть ущерба." />
@@ -458,7 +458,7 @@
 		<template id="v3.social.reconcile.reply.compromise.0055" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне нужно время до окончательного согласия." />
 		<template id="v3.social.reconcile.reply.compromise.0056" act="social.reconcile.compromise.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Личной встречи для соглашения не будет." />
 		<template id="v3.social.reconcile.reply.compromise.0057" act="social.reconcile.compromise.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Предлагаю временно общаться только письменно." />
-		<template id="v3.social.reconcile.reply.compromise.0058" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я могу взять раннюю смену." />
+		<template id="v3.social.reconcile.reply.compromise.0058" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Лучше взять раннюю смену." />
 		<template id="v3.social.reconcile.reply.compromise.0059" act="social.reconcile.compromise.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты согласен отказаться от требования немедленного ответа?" />
 		<template id="v3.social.reconcile.reply.compromise.0060" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне важно сохранить возможность уйти." />
 		<template id="v3.social.reconcile.reply.compromise.0061" act="social.reconcile.compromise.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, сравним стратегии без личной ставки." />
@@ -472,11 +472,11 @@
 		<template id="v3.social.reconcile.reply.compromise.0069" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне нужен официальный канал для изменений." />
 		<template id="v3.social.reconcile.reply.compromise.0070" act="social.reconcile.compromise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Документы передавайте без визита по моему адресу." />
 		<template id="v3.social.reconcile.reply.compromise.0071" act="social.reconcile.compromise.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Предлагаю начать с возврата вещей." />
-		<template id="v3.social.reconcile.reply.compromise.0072" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я могу отменить одно требование." />
+		<template id="v3.social.reconcile.reply.compromise.0072" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Можно отменить одно требование." />
 		<template id="v3.social.reconcile.reply.compromise.0073" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты готов сообщать об изменениях за день?" />
 		<template id="v3.social.reconcile.reply.compromise.0074" act="social.reconcile.compromise.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне подходит решение без публичного признания победителя." />
 		<template id="v3.social.reconcile.reply.compromise.0075" act="social.reconcile.compromise.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Разделим очки за спорный раунд." />
-		<template id="v3.social.reconcile.reply.compromise.0076" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я приму договорённость после проверки юристом." />
+		<template id="v3.social.reconcile.reply.compromise.0076" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можно принять договорённость после проверки юристом." />
 		<template id="v3.social.reconcile.reply.compromise.0077" act="social.reconcile.compromise.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Соблюдайте расстояние, указанное в соглашении." />
 		<template id="v3.social.reconcile.reply.compromise.0078" act="social.reconcile.compromise.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давайте выберем срок, который реально выполнить." />
 		<template id="v3.social.reconcile.reply.compromise.0079" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я согласен на поэтапную компенсацию." />
@@ -490,7 +490,7 @@
 		<template id="v3.social.reconcile.reply.compromise.0087" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты согласен убрать личные темы из обсуждения?" />
 		<template id="v3.social.reconcile.reply.compromise.0088" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне важно, чтобы отказ не считался нарушением." />
 		<template id="v3.social.reconcile.reply.compromise.0089" act="social.reconcile.compromise.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Пусть общий результат останется ничьей." />
-		<template id="v3.social.reconcile.reply.compromise.0090" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я могу подтвердить соглашение письменно." />
+		<template id="v3.social.reconcile.reply.compromise.0090" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Лучше подтвердить соглашение письменно." />
 		<template id="v3.social.reconcile.reply.compromise.0091" act="social.reconcile.compromise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Личные обращения исключены условиями нашего соглашения." />
 		<template id="v3.social.reconcile.reply.compromise.0092" act="social.reconcile.compromise.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Давайте согласуем минимальный рабочий набор." />
 		<template id="v3.social.reconcile.reply.compromise.0093" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Половину задач и сроки стоит распределять по возможностям, а не обещаниям." />
@@ -504,10 +504,10 @@
 		<template id="v3.social.reconcile.reply.compromise.0101" act="social.reconcile.compromise.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="можешь выбрать канал, но не частоту сообщений." />
 		<template id="v3.social.reconcile.reply.compromise.0102" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне важно, чтобы решение можно было пересмотреть." />
 		<template id="v3.social.reconcile.reply.compromise.0103" act="social.reconcile.compromise.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Снимем спорный матч с общего зачёта." />
-		<template id="v3.social.reconcile.reply.compromise.0104" act="social.reconcile.compromise.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я обсужу детали после письменного предложения." />
+		<template id="v3.social.reconcile.reply.compromise.0104" act="social.reconcile.compromise.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Детали стоит обсуждать после письменного предложения." />
 		<template id="v3.social.reconcile.reply.compromise.0105" act="social.reconcile.compromise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Переговоры продолжаются только на установленном расстоянии." />
 		<template id="v3.social.reconcile.reply.compromise.0106" act="social.reconcile.compromise.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давайте оставим прошлое вне новых условий." />
-		<template id="v3.social.reconcile.reply.compromise.0107" act="social.reconcile.compromise.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я могу начать первым с небольшого шага." />
+		<template id="v3.social.reconcile.reply.compromise.0107" act="social.reconcile.compromise.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Разумнее начать первым с небольшого шага." />
 		<template id="v3.social.reconcile.reply.compromise.0108" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты согласен проверять понимание до действия?" />
 		<template id="v3.social.reconcile.reply.compromise.0109" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мы разделим имущество по заранее составленному списку." />
 		<template id="v3.social.reconcile.reply.compromise.0110" act="social.reconcile.compromise.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, пусть каждый отвечает за свою половину поля." />
@@ -521,7 +521,7 @@
 		<template id="v3.social.reconcile.reply.compromise.0118" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я готов поставить подпись после уточнений." />
 		<template id="v3.social.reconcile.reply.compromise.0119" act="social.reconcile.compromise.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не связывайтесь со мной вне официального канала." />
 		<template id="v3.social.reconcile.reply.compromise.0120" act="social.reconcile.compromise.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давайте обменяемся списками обязательных условий." />
-		<template id="v3.social.reconcile.reply.compromise.0121" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я могу отказаться от старой претензии." />
+		<template id="v3.social.reconcile.reply.compromise.0121" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Стоит отказаться от старой претензии." />
 		<template id="v3.social.reconcile.reply.compromise.0122" act="social.reconcile.compromise.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты готов соблюдать паузу между сообщениями?" />
 		<template id="v3.social.reconcile.reply.compromise.0123" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мы выберем место, где оба чувствуем безопасность." />
 		<template id="v3.social.reconcile.reply.compromise.0124" act="social.reconcile.compromise.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, каждый получит право на одну замену." />
@@ -535,7 +535,7 @@
 		<template id="v3.social.reconcile.reply.compromise.0132" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я готов обсуждать только через представителя." />
 		<template id="v3.social.reconcile.reply.compromise.0133" act="social.reconcile.compromise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Переговоры проходят без вашего личного присутствия." />
 		<template id="v3.social.reconcile.reply.compromise.0134" act="social.reconcile.compromise.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Давайте выберем решение, которое не требует победителя." />
-		<template id="v3.social.reconcile.reply.compromise.0135" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я могу взять ответственность за свою ошибку." />
+		<template id="v3.social.reconcile.reply.compromise.0135" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разумнее взять ответственность за свою ошибку." />
 		<template id="v3.social.reconcile.reply.compromise.0136" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты готов признать право другого на отказ?" />
 		<template id="v3.social.reconcile.reply.compromise.0137" act="social.reconcile.compromise.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мы ограничим разговор одной темой." />
 		<template id="v3.social.reconcile.reply.compromise.0138" act="social.reconcile.compromise.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, оставим счёт прежним до реванша." />
@@ -546,10 +546,10 @@
 		<template id="v3.social.reconcile.reply.compromise.0143" act="social.reconcile.compromise.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты можешь выбрать специалиста из общего списка." />
 		<template id="v3.social.reconcile.reply.compromise.0144" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне важно, чтобы расходы были прозрачными." />
 		<template id="v3.social.reconcile.reply.compromise.0145" act="social.reconcile.compromise.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Разделим награду между всей командой." />
-		<template id="v3.social.reconcile.reply.compromise.0146" act="social.reconcile.compromise.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я рассмотрю предложение после паузы." />
+		<template id="v3.social.reconcile.reply.compromise.0146" act="social.reconcile.compromise.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Предложение лучше рассмотреть после паузы." />
 		<template id="v3.social.reconcile.reply.compromise.0147" act="social.reconcile.compromise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не привлекайте друзей к нашим переговорам." />
 		<template id="v3.social.reconcile.reply.compromise.0148" act="social.reconcile.compromise.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давайте оставим каждому право на отдельную жизнь." />
-		<template id="v3.social.reconcile.reply.compromise.0149" act="social.reconcile.compromise.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я могу передать свою часть документов завтра." />
+		<template id="v3.social.reconcile.reply.compromise.0149" act="social.reconcile.compromise.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Стоит передать свою часть документов завтра." />
 		<template id="v3.social.reconcile.reply.compromise.0150" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты согласен не обсуждать договорённость публично?" />
 		<template id="v3.social.reconcile.reply.compromise.0151" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мы создадим новый график без старых долгов." />
 		<template id="v3.social.reconcile.reply.compromise.0152" act="social.reconcile.compromise.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, финал проведём на нейтральной площадке." />
@@ -563,7 +563,7 @@
 		<template id="v3.social.reconcile.reply.compromise.0160" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я готов согласовать практический итог." />
 		<template id="v3.social.reconcile.reply.compromise.0161" act="social.reconcile.compromise.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Личное приближение нарушит согласованный формат." />
 		<template id="v3.social.reconcile.reply.compromise.0162" act="social.reconcile.compromise.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давайте разделим вещи по принадлежности, не по ценности." />
-		<template id="v3.social.reconcile.reply.compromise.0163" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я могу принять более долгий срок." />
+		<template id="v3.social.reconcile.reply.compromise.0163" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разумнее принять более долгий срок." />
 		<template id="v3.social.reconcile.reply.compromise.0164" act="social.reconcile.compromise.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты готов отвечать только на конкретные вопросы?" />
 		<template id="v3.social.reconcile.reply.compromise.0165" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мы оставим каждому возможность передумать." />
 		<template id="v3.social.reconcile.reply.compromise.0166" act="social.reconcile.compromise.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, выигрыш не должен решать личный спор." />
@@ -574,10 +574,10 @@
 		<template id="v3.social.reconcile.reply.compromise.0171" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты можешь выбрать порядок выполнения." />
 		<template id="v3.social.reconcile.reply.compromise.0172" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне важно, чтобы соглашение не требовало прощения." />
 		<template id="v3.social.reconcile.reply.compromise.0173" act="social.reconcile.compromise.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Снимем штраф и повторим проверку." />
-		<template id="v3.social.reconcile.reply.compromise.0174" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я рассмотрю финальный текст завтра." />
+		<template id="v3.social.reconcile.reply.compromise.0174" act="social.reconcile.compromise.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Финальный текст разумнее перечитать завтра." />
 		<template id="v3.social.reconcile.reply.compromise.0175" act="social.reconcile.compromise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Во время согласования оставайтесь в нейтральной зоне." />
 		<template id="v3.social.reconcile.reply.compromise.0176" act="social.reconcile.compromise.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Давайте каждому оставим один неизменный пункт." />
-		<template id="v3.social.reconcile.reply.compromise.0177" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я могу уступить право первого выбора." />
+		<template id="v3.social.reconcile.reply.compromise.0177" act="social.reconcile.compromise.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Стоит уступить право первого выбора." />
 		<template id="v3.social.reconcile.reply.compromise.0178" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты согласен прекратить сарказм на переговорах?" />
 		<template id="v3.social.reconcile.reply.compromise.0179" act="social.reconcile.compromise.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мы разделим время с точностью до часа." />
 		<template id="v3.social.reconcile.reply.compromise.0180" act="social.reconcile.compromise.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, два равных раунда решат спор." />
@@ -591,7 +591,7 @@
 		<template id="v3.social.reconcile.reply.compromise.0188" act="social.reconcile.compromise.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я готов принять нейтральный исход." />
 		<template id="v3.social.reconcile.reply.compromise.0189" act="social.reconcile.compromise.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Дальнейшие уточнения передавайте представителю." />
 		<template id="v3.social.reconcile.reply.compromise.0190" act="social.reconcile.compromise.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давайте закончим соглашение ясным сроком." />
-		<template id="v3.social.reconcile.reply.compromise.0191" act="social.reconcile.compromise.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я могу сделать первый практический шаг." />
+		<template id="v3.social.reconcile.reply.compromise.0191" act="social.reconcile.compromise.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Разумнее сделать первый практический шаг." />
 		<template id="v3.social.reconcile.reply.compromise.0192" act="social.reconcile.compromise.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты готов дать мне время на проверку?" />
 		<template id="v3.social.reconcile.reply.compromise.0193" act="social.reconcile.compromise.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мы оставим прошлое вне нового договора." />
 		<template id="v3.social.reconcile.reply.compromise.0194" act="social.reconcile.compromise.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, каждый получает честный старт." />
@@ -604,7 +604,7 @@
 		<template id="v3.social.reconcile.reply.closure.0001" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте закончим этот разговор без взаимных обвинений." />
 		<template id="v3.social.reconcile.reply.closure.0002" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я согласен оставить спор в прошлом." />
 		<template id="v3.social.reconcile.reply.closure.0003" act="social.reconcile.closure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь идти дальше без моего разрешения." />
-		<template id="v3.social.reconcile.reply.closure.0004" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хорошие воспоминания стоит сохранять, но общими их делает только реальная история." />
+		<template id="v3.social.reconcile.reply.closure.0004" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хорошие воспоминания можно сохранить, не возвращаясь к отношениям." />
 		<template id="v3.social.reconcile.reply.closure.0005" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Старый счёт можно закрыть только если обе стороны признают, что он был." />
 		<template id="v3.social.reconcile.reply.closure.0006" act="social.reconcile.closure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я выбираю спокойное завершение с дистанцией." />
 		<template id="v3.social.reconcile.reply.closure.0007" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Прекращение контакта лучше назвать границей, а не готовым будущим фактом." />
@@ -612,7 +612,7 @@
 		<template id="v3.social.reconcile.reply.closure.0009" act="social.reconcile.closure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Вопрос можно закрыть после подтверждённого выполнения договорённостей." />
 		<template id="v3.social.reconcile.reply.closure.0010" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Когда всё важное сказано, полезно уточнить, правильно ли услышан смысл." />
 		<template id="v3.social.reconcile.reply.closure.0011" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ожидание другого финала можно отпустить без утверждения общей истории." />
-		<template id="v3.social.reconcile.reply.closure.0012" act="social.reconcile.closure.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Последний матч и архив таблицы существуют только при реальной серии." />
+		<template id="v3.social.reconcile.reply.closure.0012" act="social.reconcile.closure.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Последний матч лучше закрыть вместе с таблицей." />
 		<template id="v3.social.reconcile.reply.closure.0013" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Отношения можно закончить без новой встречи, если они реально существуют." />
 		<template id="v3.social.reconcile.reply.closure.0014" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Завершение общения стоит назвать прямой границей, а не предсказанием будущего." />
 		<template id="v3.social.reconcile.reply.closure.0015" act="social.reconcile.closure.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Спасибо за честный финальный разговор." />
@@ -620,7 +620,7 @@
 		<template id="v3.social.reconcile.reply.closure.0017" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь оставить свои вещи у посредника." />
 		<template id="v3.social.reconcile.reply.closure.0018" act="social.reconcile.closure.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Прощание может быть правильным шагом, даже если оно вызывает сожаление." />
 		<template id="v3.social.reconcile.reply.closure.0019" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, победителя здесь не будет." />
-		<template id="v3.social.reconcile.reply.closure.0020" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я завершаю конфликт и сохраняю границы." />
+		<template id="v3.social.reconcile.reply.closure.0020" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Конфликт можно завершить, не отдавая личных границ." />
 		<template id="v3.social.reconcile.reply.closure.0021" act="social.reconcile.closure.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="После завершения ваши обращения мне не нужны." />
 		<template id="v3.social.reconcile.reply.closure.0022" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте не искать последнее убедительное слово." />
 		<template id="v3.social.reconcile.reply.closure.0023" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Обязательства можно считать выполненными только после сверки фактов." />
@@ -632,13 +632,13 @@
 		<template id="v3.social.reconcile.reply.closure.0029" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я благодарен за возможность поставить точку." />
 		<template id="v3.social.reconcile.reply.closure.0030" act="social.reconcile.closure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Этот разговор больше не требует продолжения." />
 		<template id="v3.social.reconcile.reply.closure.0031" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь перестать ждать моего ответа." />
-		<template id="v3.social.reconcile.reply.closure.0032" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я отпускаю тебя без обиды." />
+		<template id="v3.social.reconcile.reply.closure.0032" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно отпускать тебя без обиды." />
 		<template id="v3.social.reconcile.reply.closure.0033" act="social.reconcile.closure.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Иногда соревнование заканчивается вместе с отношениями, но это не готовый факт." />
 		<template id="v3.social.reconcile.reply.closure.0034" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужен окончательный перерыв контакта." />
 		<template id="v3.social.reconcile.reply.closure.0035" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не стоит втягивать знакомых в завершённый разговор, если он действительно завершён." />
 		<template id="v3.social.reconcile.reply.closure.0036" act="social.reconcile.closure.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мы можем признать, что сделали всё возможное." />
-		<template id="v3.social.reconcile.reply.closure.0037" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я закрываю переписку после этого сообщения." />
-		<template id="v3.social.reconcile.reply.closure.0038" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты имеешь право помнить события иначе." />
+		<template id="v3.social.reconcile.reply.closure.0037" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Стоит закрывать переписку после этого сообщения." />
+		<template id="v3.social.reconcile.reply.closure.0038" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Неужели ты имеешь право помнить события иначе?" />
 		<template id="v3.social.reconcile.reply.closure.0039" act="social.reconcile.closure.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне спокойно от ясного завершения." />
 		<template id="v3.social.reconcile.reply.closure.0040" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, оставим награды и уйдём каждый своей дорогой." />
 		<template id="v3.social.reconcile.reply.closure.0041" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не хочу обсуждать этот итог снова." />
@@ -651,7 +651,7 @@
 		<template id="v3.social.reconcile.reply.closure.0048" act="social.reconcile.closure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Наша дистанция теперь постоянна." />
 		<template id="v3.social.reconcile.reply.closure.0049" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После прощания не возобновляйте общение." />
 		<template id="v3.social.reconcile.reply.closure.0050" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мы закончили этот этап уважительно." />
-		<template id="v3.social.reconcile.reply.closure.0051" act="social.reconcile.closure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я подтверждаю, что взаимных долгов не осталось." />
+		<template id="v3.social.reconcile.reply.closure.0051" act="social.reconcile.closure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если взаимных долгов не осталось, конфликт можно закрыть." />
 		<template id="v3.social.reconcile.reply.closure.0052" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Старую переписку каждый удаляет сам, если она действительно существует." />
 		<template id="v3.social.reconcile.reply.closure.0053" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне важно завершить всё без мести." />
 		<template id="v3.social.reconcile.reply.closure.0054" act="social.reconcile.closure.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Серию можно закончить этой точкой, если оба признают финал." />
@@ -669,7 +669,7 @@
 		<template id="v3.social.reconcile.reply.closure.0066" act="social.reconcile.closure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь передать прощание одним сообщением." />
 		<template id="v3.social.reconcile.reply.closure.0067" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне не нужно дополнительное объяснение." />
 		<template id="v3.social.reconcile.reply.closure.0068" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, мы оба выходим из игры." />
-		<template id="v3.social.reconcile.reply.closure.0069" act="social.reconcile.closure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я завершаю общение без дальнейших условий." />
+		<template id="v3.social.reconcile.reply.closure.0069" act="social.reconcile.closure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Стоит завершать общение без дальнейших условий." />
 		<template id="v3.social.reconcile.reply.closure.0070" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваши попытки приблизиться будут нарушением." />
 		<template id="v3.social.reconcile.reply.closure.0071" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте не возвращать разговор к старым деталям." />
 		<template id="v3.social.reconcile.reply.closure.0072" act="social.reconcile.closure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я принимаю итог и желаю вам спокойствия." />
@@ -683,15 +683,15 @@
 		<template id="v3.social.reconcile.reply.closure.0080" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь перестать защищать свой выбор." />
 		<template id="v3.social.reconcile.reply.closure.0081" act="social.reconcile.closure.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне важно не превращать финал в наказание." />
 		<template id="v3.social.reconcile.reply.closure.0082" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, последняя ничья нас устраивает." />
-		<template id="v3.social.reconcile.reply.closure.0083" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я отпускаю конфликт, но не восстанавливаю отношения." />
+		<template id="v3.social.reconcile.reply.closure.0083" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Конфликт можно отпустить без восстановления отношений." />
 		<template id="v3.social.reconcile.reply.closure.0084" act="social.reconcile.closure.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="После закрытия вопроса любые обращения прекратятся." />
 		<template id="v3.social.reconcile.reply.closure.0085" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте закроем общий проект и разойдёмся." />
-		<template id="v3.social.reconcile.reply.closure.0086" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я подтверждаю получение всех вещей." />
+		<template id="v3.social.reconcile.reply.closure.0086" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Получение всех вещей ставит практическую точку." />
 		<template id="v3.social.reconcile.reply.closure.0087" act="social.reconcile.closure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь не ждать прощального звонка." />
 		<template id="v3.social.reconcile.reply.closure.0088" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="К прошлому можно сохранить уважение, не утверждая общую историю." />
 		<template id="v3.social.reconcile.reply.closure.0089" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Последний спор не изменит финальный счёт." />
 		<template id="v3.social.reconcile.reply.closure.0090" act="social.reconcile.closure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мы можем здороваться, не возвращаясь к близости." />
-		<template id="v3.social.reconcile.reply.closure.0091" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не появляйтесь у меня после окончательного разговора." />
+		<template id="v3.social.reconcile.reply.closure.0091" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После окончательного разговора лучше оставить тишину." />
 		<template id="v3.social.reconcile.reply.closure.0092" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я готов поставить точку без победителя." />
 		<template id="v3.social.reconcile.reply.closure.0093" act="social.reconcile.closure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Этот вопрос больше не входит в наши разговоры." />
 		<template id="v3.social.reconcile.reply.closure.0094" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь идти своим путём спокойно." />
@@ -707,7 +707,7 @@
 		<template id="v3.social.reconcile.reply.closure.0104" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я выбираю нейтральную дистанцию." />
 		<template id="v3.social.reconcile.reply.closure.0105" act="social.reconcile.closure.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соблюдайте границу после окончательного решения." />
 		<template id="v3.social.reconcile.reply.closure.0106" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мы не обязаны соглашаться о прошлом." />
-		<template id="v3.social.reconcile.reply.closure.0107" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я закрываю тему после этого ответа." />
+		<template id="v3.social.reconcile.reply.closure.0107" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Разумнее закрывать тему после этого ответа." />
 		<template id="v3.social.reconcile.reply.closure.0108" act="social.reconcile.closure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь не объяснять свой уход." />
 		<template id="v3.social.reconcile.reply.closure.0109" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне жаль, что получилось именно так." />
 		<template id="v3.social.reconcile.reply.closure.0110" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Противостояние заканчивается только тогда, когда обе стороны перестают его продолжать." />
@@ -719,13 +719,13 @@
 		<template id="v3.social.reconcile.reply.closure.0116" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне хочется помнить хорошие дни." />
 		<template id="v3.social.reconcile.reply.closure.0117" act="social.reconcile.closure.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Общий счёт остаётся незавершённым навсегда." />
 		<template id="v3.social.reconcile.reply.closure.0118" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не готов к случайным встречам." />
-		<template id="v3.social.reconcile.reply.closure.0119" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После расставания не посещайте мой дом." />
+		<template id="v3.social.reconcile.reply.closure.0119" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После расставания не посещайте чужой дом без приглашения." />
 		<template id="v3.social.reconcile.reply.closure.0120" act="social.reconcile.closure.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мы можем завершить общение одним спокойным сообщением." />
-		<template id="v3.social.reconcile.reply.closure.0121" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я подтверждаю закрытие всех обязательств." />
+		<template id="v3.social.reconcile.reply.closure.0121" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Закрытые обязательства не нужно оживлять новым спором." />
 		<template id="v3.social.reconcile.reply.closure.0122" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь оставить последнее слово себе." />
 		<template id="v3.social.reconcile.reply.closure.0123" act="social.reconcile.closure.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне не нужна победа в этом расставании." />
 		<template id="v3.social.reconcile.reply.closure.0124" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, финальный свисток уже прозвучал." />
-		<template id="v3.social.reconcile.reply.closure.0125" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я сохраню уважение на безопасном расстоянии." />
+		<template id="v3.social.reconcile.reply.closure.0125" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Уважение можно сохранить на безопасном расстоянии." />
 		<template id="v3.social.reconcile.reply.closure.0126" act="social.reconcile.closure.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="После завершения предоставьте мне полный покой." />
 		<template id="v3.social.reconcile.reply.closure.0127" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте больше не обсуждать, кто начал." />
 		<template id="v3.social.reconcile.reply.closure.0128" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Разный взгляд на события можно принять без заявления об общем прошлом." />
@@ -737,12 +737,12 @@
 		<template id="v3.social.reconcile.reply.closure.0134" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я считаю этот разговор последним." />
 		<template id="v3.social.reconcile.reply.closure.0135" act="social.reconcile.closure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Все вопросы решены через посредника." />
 		<template id="v3.social.reconcile.reply.closure.0136" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь не отвечать на прощальное сообщение." />
-		<template id="v3.social.reconcile.reply.closure.0137" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я отпускаю надежду на другой исход." />
+		<template id="v3.social.reconcile.reply.closure.0137" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Стоит отпускать надежду на другой исход." />
 		<template id="v3.social.reconcile.reply.closure.0138" act="social.reconcile.closure.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, последняя партия остаётся в памяти." />
 		<template id="v3.social.reconcile.reply.closure.0139" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не буду возвращаться к общим планам." />
 		<template id="v3.social.reconcile.reply.closure.0140" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Контакт между нами прекращён." />
 		<template id="v3.social.reconcile.reply.closure.0141" act="social.reconcile.closure.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Давайте закончим историю там, где она остановилась." />
-		<template id="v3.social.reconcile.reply.closure.0142" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я благодарю вас за ясное решение." />
+		<template id="v3.social.reconcile.reply.closure.0142" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Спасибо за ясное решение." />
 		<template id="v3.social.reconcile.reply.closure.0143" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь оставить фотографии себе." />
 		<template id="v3.social.reconcile.reply.closure.0144" act="social.reconcile.closure.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне нужно закрыть дверь и восстановиться." />
 		<template id="v3.social.reconcile.reply.closure.0145" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сезон завершён без нового матча." />
@@ -753,7 +753,7 @@
 		<template id="v3.social.reconcile.reply.closure.0150" act="social.reconcile.closure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь перестать чувствовать себя должником." />
 		<template id="v3.social.reconcile.reply.closure.0151" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне важно уйти без дополнительных обещаний." />
 		<template id="v3.social.reconcile.reply.closure.0152" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, больше нечего доказывать." />
-		<template id="v3.social.reconcile.reply.closure.0153" act="social.reconcile.closure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я прекращаю личное общение." />
+		<template id="v3.social.reconcile.reply.closure.0153" act="social.reconcile.closure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Стоит прекращать личное общение." />
 		<template id="v3.social.reconcile.reply.closure.0154" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сохраняйте расстояние после завершения разговора." />
 		<template id="v3.social.reconcile.reply.closure.0155" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте не открывать закрытый вопрос снова." />
 		<template id="v3.social.reconcile.reply.closure.0156" act="social.reconcile.closure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я принимаю конец нашего общего дела." />
@@ -763,7 +763,7 @@
 		<template id="v3.social.reconcile.reply.closure.0160" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нужна тишина после завершения." />
 		<template id="v3.social.reconcile.reply.closure.0161" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После завершения ваши сообщения останутся без ответа." />
 		<template id="v3.social.reconcile.reply.closure.0162" act="social.reconcile.closure.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мы закончили разговор достойно." />
-		<template id="v3.social.reconcile.reply.closure.0163" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я отпускаю необходимость быть понятым полностью." />
+		<template id="v3.social.reconcile.reply.closure.0163" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Разумнее отпускать необходимость быть понятым полностью." />
 		<template id="v3.social.reconcile.reply.closure.0164" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь проститься без длинной речи." />
 		<template id="v3.social.reconcile.reply.closure.0165" act="social.reconcile.closure.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне достаточно, что мы не причинили нового вреда." />
 		<template id="v3.social.reconcile.reply.closure.0166" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, история матча закрыта." />
@@ -774,12 +774,12 @@
 		<template id="v3.social.reconcile.reply.closure.0171" act="social.reconcile.closure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь оставить общий подарок у себя." />
 		<template id="v3.social.reconcile.reply.closure.0172" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне важно сохранить собственные границы." />
 		<template id="v3.social.reconcile.reply.closure.0173" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Никаких дополнительных раундов не будет." />
-		<template id="v3.social.reconcile.reply.closure.0174" act="social.reconcile.closure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я выбрал завершение, а не паузу." />
+		<template id="v3.social.reconcile.reply.closure.0174" act="social.reconcile.closure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Завершение отличается от паузы именно окончательностью." />
 		<template id="v3.social.reconcile.reply.closure.0175" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После завершения не появляйтесь возле моего дома." />
 		<template id="v3.social.reconcile.reply.closure.0176" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мы можем спокойно пройти мимо при встрече." />
-		<template id="v3.social.reconcile.reply.closure.0177" act="social.reconcile.closure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я закрываю вопрос без ожидания согласия." />
+		<template id="v3.social.reconcile.reply.closure.0177" act="social.reconcile.closure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Стоит закрывать вопрос без ожидания согласия." />
 		<template id="v3.social.reconcile.reply.closure.0178" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь перестать исправлять прошлое." />
-		<template id="v3.social.reconcile.reply.closure.0179" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="При расставании бывает жаль хорошего, но общую историю нельзя выдумывать." />
+		<template id="v3.social.reconcile.reply.closure.0179" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="При расставании бывает жаль хорошего, но это не повод возвращаться." />
 		<template id="v3.social.reconcile.reply.closure.0180" act="social.reconcile.closure.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, оба покидают площадку без титула." />
 		<template id="v3.social.reconcile.reply.closure.0181" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не готов к дальнейшей переписке." />
 		<template id="v3.social.reconcile.reply.closure.0182" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Любая новая попытка контакта будет нежелательной." />
@@ -788,14 +788,14 @@
 		<template id="v3.social.reconcile.reply.closure.0185" act="social.reconcile.closure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь жить дальше без последнего объяснения." />
 		<template id="v3.social.reconcile.reply.closure.0186" act="social.reconcile.closure.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне нужно закончить этот этап сегодня." />
 		<template id="v3.social.reconcile.reply.closure.0187" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Итог не требует победной речи." />
-		<template id="v3.social.reconcile.reply.closure.0188" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я ухожу окончательно." />
+		<template id="v3.social.reconcile.reply.closure.0188" act="social.reconcile.closure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Окончательный уход нужно принять без погони." />
 		<template id="v3.social.reconcile.reply.closure.0189" act="social.reconcile.closure.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Прощальное сообщение завершает связь окончательно." />
 		<template id="v3.social.reconcile.reply.closure.0190" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мы можем поставить точку без взаимной правоты." />
 		<template id="v3.social.reconcile.reply.closure.0191" act="social.reconcile.closure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я принимаю окончание и не ищу нового объяснения." />
 		<template id="v3.social.reconcile.reply.closure.0192" act="social.reconcile.closure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты можешь оставить прошлое без последнего ответа." />
 		<template id="v3.social.reconcile.reply.closure.0193" act="social.reconcile.closure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне важно завершить всё с человеческим уважением." />
 		<template id="v3.social.reconcile.reply.closure.0194" act="social.reconcile.closure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, больше не ведём ни личный, ни игровой долг." />
-		<template id="v3.social.reconcile.reply.closure.0195" act="social.reconcile.closure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я закрываю отношения, сохраняя спокойную дистанцию." />
+		<template id="v3.social.reconcile.reply.closure.0195" act="social.reconcile.closure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Разумнее закрывать отношения, сохраняя спокойную дистанцию." />
 		<template id="v3.social.reconcile.reply.closure.0196" act="social.reconcile.closure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не пытайтесь возобновить контакт." />
 		<template id="v3.social.reconcile.reply.closure.0197" act="social.reconcile.closure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давайте считать все практические вопросы решёнными." />
 		<template id="v3.social.reconcile.reply.closure.0198" act="social.reconcile.closure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не стану возвращаться к этой истории позже." />
