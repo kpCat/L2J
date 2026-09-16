@@ -110,6 +110,11 @@ public interface PhantomConversationExecutionPort
 
 	ResultStatus respondToPending(long profileId, PendingInvitation invitation, boolean accept, String planId);
 
+	default ResultStatus executeSupport(long profileId, ExecutionEntry entry)
+	{
+		return ResultStatus.REJECTED;
+	}
+
 	default ResultStatus reconcileInvitation(long profileId, ExecutionEntry entry)
 	{
 		return ResultStatus.UNCERTAIN;

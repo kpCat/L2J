@@ -55,18 +55,23 @@ import org.l2jmobius.gameserver.managers.ScriptManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.Summon;
+import org.l2jmobius.gameserver.model.chat.ChatObservationService;
 import org.l2jmobius.gameserver.model.actor.instance.GrandBoss;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.actor.instance.RaidBoss;
 import org.l2jmobius.gameserver.model.actor.instance.Servitor;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
+import org.l2jmobius.gameserver.model.groups.Party;
+import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.enums.ShotType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.script.QuestState;
 import org.l2jmobius.gameserver.model.script.State;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.skill.EffectScope;
+import org.l2jmobius.gameserver.model.skill.enums.SkillFinishType;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
@@ -118,6 +123,8 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSki
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomPartySupportAction;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomPvpCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatResult;
@@ -130,6 +137,13 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalAct
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSessionSnapshot;
+import org.l2jmobius.gameserver.phantoms.conversation.L2jPhantomConversationExecutionPort;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ActionState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.Argument;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.OutboundState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
@@ -150,6 +164,13 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartySupportPolicy;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
@@ -160,7 +181,14 @@ import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalogBuilder;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ActorKind;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CapabilityRule;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
+import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftConversationFacts;
+import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConversationFacts;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialStore;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
@@ -179,6 +207,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		MANOR,
 		QUEST,
 		PVP,
+		POST002_SUPPORT,
 		QOL009_SERVITOR
 	}
 
@@ -186,6 +215,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private static final long CHECKPOINT_2_SEED = 21002102L;
 	private static final long PVP_SEED = 25002501L;
 	private static final long QOL009_SEED = 1009001L;
+	private static final long POST002_SEED = 2002002L;
 	private static final String PVP_AUTHORITY_HASH = "A".repeat(64);
 	private static final int MELEE_CLASS_ID = 88;
 	private static final int MAGIC_CLASS_ID = 94;
@@ -257,6 +287,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	{
 		return switch (_mode)
 		{
+			case POST002_SUPPORT -> "post002-native-support";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -272,6 +303,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		if (_mode == Mode.QOL009_SERVITOR)
 		{
 			PhantomAssertions.assertEquals(QOL009_SEED, context.seed(), "L2-QOL-009 used the wrong deterministic seed.");
+		}
+		else if (_mode == Mode.POST002_SUPPORT)
+		{
+			PhantomAssertions.assertEquals(POST002_SEED, context.seed(), "POST-002 native support used the wrong deterministic seed.");
 		}
 		else if (_mode == Mode.ACQUISITION)
 		{
@@ -406,6 +441,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.POST002_SUPPORT)
+		{
+			registry.add("01-human-party-native-buff-effect-and-guards", _ -> testPost002NativeSupport());
+			return;
+		}
 		if (_mode == Mode.QOL009_SERVITOR)
 		{
 			registry.add("01-stock-human-servitor-path-and-canonical-census", this::testQol009SourceCensus);
@@ -467,6 +507,128 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		registry.add("18-production-combat-has-no-packet-route", _ -> testNoPacketRoute());
 		registry.add("19-canonical-player-cp-snapshot", _ -> testCanonicalCpSnapshot());
 		registry.add("20-dematerialization-waits-for-combat-lease", _ -> testDematerializationDrain());
+	}
+
+	private void testPost002NativeSupport() throws Exception
+	{
+		resetActor(true);
+		final Player human = ensureObserver();
+		human.setCurrentHp(human.getMaxHp());
+		human.setCurrentMp(human.getMaxMp());
+		final CapabilityRule rule = _progression.capabilityRules("combat.buff").stream()
+			.filter(candidate -> candidate.requiredEquipmentFamilies().isEmpty() && candidate.requiredItems().isEmpty())
+			.filter(candidate -> candidate.classIds().size() == 1)
+			.filter(candidate -> SkillData.getInstance().getSkill(candidate.actionSkill().skillId(), candidate.actionSkill().skillLevel()) != null)
+			.findFirst()
+			.orElseThrow(() -> new AssertionError("Canonical High Five progression exposes no usable combat.buff rule."));
+		final int classId = rule.classIds().getFirst();
+		final Skill skill = SkillData.getInstance().getSkill(rule.actionSkill().skillId(), rule.actionSkill().skillLevel());
+		_player.setPlayerClass(classId);
+		_player.getStat().setLevel((byte) 85);
+		_player.addSkill(skill, false);
+		_player.enableSkill(skill);
+		_player.setCurrentMp(_player.getMaxMp());
+		final int supportItemId = skill.getItemConsumeId();
+		final long supportItemBaseline = supportItemId > 0 ? _player.getInventory().getInventoryItemCount(supportItemId, -1) : 0;
+		if (supportItemId > 0)
+		{
+			PhantomAssertions.assertTrue(_player.getInventory().addItem(ItemProcessType.REWARD, supportItemId, Math.max(1, skill.getItemConsumeCount()) * 4L, _player, this) != null, "Could not create canonical support reagents.");
+		}
+		final Party party = new Party(_player, PartyDistributionType.FINDERS_KEEPERS);
+		_player.setParty(party);
+		party.addPartyMember(human);
+		human.setParty(party);
+		human.getEffectList().stopSkillEffects(SkillFinishType.REMOVED, skill.getId());
+		final PhantomPartySupportAction action = new PhantomPartySupportAction("combat.buff", rule.variantKey(), rule.targetScope().name(), human.getObjectId(), new SelectedSkill(skill.getId(), skill.getLevel()), PhantomPartySupportAction.Audience.PARTY, 45);
+		try
+		{
+			PhantomAssertions.assertEquals(PhantomConversationExecutionPort.ResultStatus.COMPLETED, executePost002ConversationSupport(human, rule), "Same-party conversation support did not issue a native cast.");
+			await(() -> human.getEffectList().getBuffInfoBySkillId(skill.getId()) != null, "Same-party conversation support did not produce a native effect on the human requester.");
+			PhantomAssertions.assertEquals(PhantomSupportEffectAuthority.Status.HEALTHY, PhantomSupportEffectAuthority.status(human, skill, 45), "Fresh native buff was not observed as healthy.");
+			PhantomAssertions.assertEquals(ActionOutcome.ALREADY_OWNED, castPost002Support(action, "healthy"), "Healthy native effect did not suppress rebuff spam.");
+
+			final BuffInfo effect = human.getEffectList().getBuffInfoBySkillId(skill.getId());
+			effect.setAbnormalTime(1);
+			_player.abortCast();
+			_player.getAI().setIntention(Intention.IDLE);
+			_player.enableSkill(skill);
+			PhantomAssertions.assertEquals(PhantomSupportEffectAuthority.Status.NEAR_EXPIRY, PhantomSupportEffectAuthority.status(human, skill, 45), "Native remaining-time threshold did not expose near-expiry.");
+			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, castPost002Support(action, "near-expiry"), "Near-expiry native buff was not admitted for rebuff.");
+
+			_player.abortCast();
+			_player.getAI().setIntention(Intention.IDLE);
+			human.getEffectList().stopSkillEffects(SkillFinishType.REMOVED, skill.getId());
+			_player.enableSkill(skill);
+			_player.setCurrentMp(0);
+			PhantomAssertions.assertEquals(ActionOutcome.UNAVAILABLE, castPost002Support(action, "no-mp"), "Native zero-MP guard was bypassed.");
+
+			_player.setCurrentMp(_player.getMaxMp());
+			final int targetX = human.getX();
+			final int targetY = human.getY();
+			final int targetZ = human.getZ();
+			human.setXYZInvisible(_player.getX() + 5000, _player.getY(), _player.getZ());
+			PhantomAssertions.assertEquals(ActionOutcome.UNAVAILABLE, castPost002Support(action, "out-of-range"), "Native support range guard was bypassed.");
+			human.setXYZInvisible(targetX, targetY, targetZ);
+
+			_player.disableSkill(skill, 60_000);
+			PhantomAssertions.assertEquals(ActionOutcome.UNAVAILABLE, castPost002Support(action, "reuse"), "Native support reuse guard was bypassed.");
+		}
+		finally
+		{
+			_player.enableSkill(skill);
+			_player.setCurrentMp(_player.getMaxMp());
+			human.getEffectList().stopSkillEffects(SkillFinishType.REMOVED, skill.getId());
+			if (supportItemId > 0)
+			{
+				destroyInventoryCount(_player, supportItemId, _player.getInventory().getInventoryItemCount(supportItemId, -1) - supportItemBaseline);
+			}
+			_player.setParty(null);
+			human.setParty(null);
+		}
+	}
+
+	private PhantomConversationExecutionPort.ResultStatus executePost002ConversationSupport(Player human, CapabilityRule rule)
+	{
+		final PhantomProgressionService progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults());
+		final PhantomSocialCatalog socialCatalog = PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml"));
+		final PhantomSocialService social = new PhantomSocialService(socialCatalog, new PhantomSocialStore(_repository, socialCatalog), POST002_SEED, 16);
+		progression.start();
+		PhantomAssertions.assertTrue(social.start(), "POST-002 conversation social authority did not start.");
+		try
+		{
+			final PhantomPartySupportPolicy policy = PhantomPartySupportPolicy.load(Path.of("data/phantoms/party/high-five-party-support-v1.xml"));
+			final L2jPhantomPartyBackend backend = new L2jPhantomPartyBackend(_repository, _materialization, progression);
+			final PhantomPartyCoordinator party = new PhantomPartyCoordinator(new PhantomPartyStore(_repository), new PhantomGoalStateStore(_repository), backend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(null, _combat), new PhantomPartyTactics(_combat, backend, policy), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 16);
+			final PhantomConversationExecutionCatalog catalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v2.xml"));
+			final L2jPhantomConversationExecutionPort port = new L2jPhantomConversationExecutionPort(catalog, _knowledge, _topology, party, _materialization, ChatObservationService.getInstance(), PhantomRiftConversationFacts.NONE, PhantomFarmingConversationFacts.NONE, _combat, social, policy);
+			final PhantomDomainRef requester = new PhantomDomainRef("character.object", Integer.toString(human.getObjectId()));
+			final ExecutionEntry entry = new ExecutionEntry("C".repeat(64), "D".repeat(64), org.l2jmobius.gameserver.network.enums.ChatType.PARTY, requester, "ack.action_proposed", "neutral", "Проверяю доступное усиление.", "party.support", requester, List.of(new Argument("capability", "capability:combat.buff")), 1, 5, OutboundState.SUPPRESSED, ActionState.PREPARED, 0, 0, "execution.prepared", 0, 0, -1);
+			PhantomAssertions.assertEquals(rule.actionSkill().skillId(), party.supportCapabilities(_profile.profileId(), human.getObjectId()).stream().filter(capability -> capability.capabilityKey().equals("combat.buff") && capability.readyNow()).findFirst().orElseThrow().actionSkillId(), "Conversation support did not resolve the canonical learned buff.");
+			return port.executeSupport(_profile.profileId(), entry);
+		}
+		finally
+		{
+			progression.beginStop();
+			PhantomAssertions.assertTrue(progression.finishStop(), "POST-002 conversation progression authority did not stop.");
+			social.beginStop();
+			PhantomAssertions.assertTrue(social.finishStop(), "POST-002 conversation social authority did not stop.");
+		}
+	}
+
+	private ActionOutcome castPost002Support(PhantomPartySupportAction action, String suffix)
+	{
+		final ExternalActionLease lease = _combat.acquireExternalAction(new ExternalActionRequest(_profile.profileId(), ExternalActionKind.PARTY_SUPPORT, "post002.support." + suffix, System.nanoTime() + TimeUnit.SECONDS.toNanos(30), () -> false)).lease();
+		PhantomAssertions.assertTrue(lease != null, "POST-002 support lease was unavailable: " + suffix);
+		final ActionOutcome outcome = lease.castSupport(action);
+		if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
+		{
+			lease.complete();
+		}
+		else
+		{
+			lease.close();
+		}
+		return outcome;
 	}
 
 	private Source selectAcquisitionSource(PhantomTopologyQuery topology, PhantomTestContext context)

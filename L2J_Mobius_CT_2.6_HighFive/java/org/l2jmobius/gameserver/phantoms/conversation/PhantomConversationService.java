@@ -49,6 +49,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore.S
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService.Decision;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService.Request;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService.SupportRequest;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.RuntimeIdentity;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
@@ -688,9 +689,10 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 	{
 		Integer value = null;
 		boolean failed = false;
+		SubjectRef subject = null;
 		try
 		{
-			final SubjectRef subject = work._snapshot.speaker().namespace().equals("profile") ? SubjectRef.phantom(Long.parseLong(work._snapshot.speaker().key())) : SubjectRef.character(Integer.parseInt(work._snapshot.speaker().key()));
+			subject = work._snapshot.speaker().namespace().equals("profile") ? SubjectRef.phantom(Long.parseLong(work._snapshot.speaker().key())) : SubjectRef.character(Integer.parseInt(work._snapshot.speaker().key()));
 			final String key = switch (socialCursor)
 			{
 				case 0 -> "conversation.warmth";
@@ -724,8 +726,9 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 			final String style = neutral ? "neutral" : _catalog.style(values[0], values[1], values[2]);
 			socialStyle = new SocialStyle(style, !neutral && _catalog.suppresses(style));
 			final boolean rejected = work._understanding.status() == UnderstandingStatus.REJECTED;
-			humanize = rejected && (_humanized != null) && _humanized.enabled();
-			planned = humanize ? null : work._descriptor.origin() == Origin.PHANTOM_SOCIAL ? silent(work._electedProfile, work, work._snapshot, work._previousSession, work._nowMinute, "no_response.generated_functional") : plan(work._electedProfile, work, work._snapshot, work._previousSession, work._understanding, socialStyle, work._nowMinute);
+			final Optional<SupportRequest> support = rejected && (subject != null) && (_humanized != null) ? _humanized.requestedSupport(new Request(work._electedProfile, work._snapshot.observerName(), subject, work._descriptor.origin(), work._descriptor.channel(), work._election.text(), work._observationHash, work._nowMinute, work._snapshot.identity())) : Optional.empty();
+			humanize = rejected && support.isEmpty() && (_humanized != null) && _humanized.enabled();
+			planned = support.isPresent() ? supportPlan(work._electedProfile, work, work._snapshot, work._previousSession, support.get(), socialStyle, work._nowMinute) : humanize ? null : work._descriptor.origin() == Origin.PHANTOM_SOCIAL ? silent(work._electedProfile, work, work._snapshot, work._previousSession, work._nowMinute, "no_response.generated_functional") : plan(work._electedProfile, work, work._snapshot, work._previousSession, work._understanding, socialStyle, work._nowMinute);
 		}
 		else
 		{
@@ -1276,6 +1279,20 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		final List<ConversationEvidence> evidence = decision.evidence().stream().limit(_catalog.limits().evidence()).map(item -> new ConversationEvidence(item.key(), item.value())).toList();
 		final ConversationResponsePlan response = new ConversationResponsePlan(profileId, batch._dispatchId, batch._observationHash, batch._descriptor.channel(), new ConversationSubject(context.speaker()), semanticHash, "social.reply", style, decision.text(), null, DeliveryPolicy.SEND, cooldown, evidence);
 		final ConversationSession session = new ConversationSession(batch._descriptor.channel(), context.counterpart(), nowMinute, cooldown, previous == null ? null : previous.previousIntent(), previous == null ? List.of() : previous.previousSlots(), null, PhantomConversationModel.sha256(decision.act()), PhantomConversationModel.sha256(style), "");
+		return new Planned(profileId, session, response, batch._observationHash, nowMinute);
+	}
+
+	private Planned supportPlan(long profileId, BatchWork batch, ContextSnapshot context, ConversationSession previous, SupportRequest request, SocialStyle social, long nowMinute)
+	{
+		final String semanticHash = PhantomConversationModel.sha256("support-v3|" + _humanized.authorityHash() + '|' + request.semanticHash() + '|' + request.act());
+		final List<SlotValue> slots = List.of(SlotValue.domain(SlotType.CAPABILITY, new PhantomDomainRef("capability", request.capabilityKey()), -1, -1));
+		final ConversationActionProposal proposal = new ConversationActionProposal("party.support", new PhantomDomainRef("profile", Long.toString(profileId)), context.speaker(), slots, semanticHash, batch._observationHash, 10000, nowMinute, nowMinute + 5, Authorization.CHECKPOINT_2_REQUIRED);
+		final String style = social.style();
+		final long cooldown = nowMinute + _catalog.channel(batch._descriptor.channel()).cooldownMinutes();
+		final String text = _catalog.template("ack.action_proposed", style, selector(profileId, batch._observationHash, "ack.action_proposed", style));
+		final List<ConversationEvidence> evidence = List.of(new ConversationEvidence("support.catalog", _humanized.authorityHash()), new ConversationEvidence("support.pattern", request.patternId()), new ConversationEvidence("support.capability", request.capabilityKey()));
+		final ConversationResponsePlan response = new ConversationResponsePlan(profileId, batch._dispatchId, batch._observationHash, batch._descriptor.channel(), new ConversationSubject(context.speaker()), semanticHash, "ack.action_proposed", style, text, proposal, DeliveryPolicy.SEND, cooldown, evidence);
+		final ConversationSession session = new ConversationSession(batch._descriptor.channel(), context.counterpart(), nowMinute, cooldown, "party.support.request", slots, null, PhantomConversationModel.sha256(request.act()), PhantomConversationModel.sha256(style), PhantomConversationModel.sha256(proposal.proposalKey() + '|' + semanticHash));
 		return new Planned(profileId, session, response, batch._observationHash, nowMinute);
 	}
 

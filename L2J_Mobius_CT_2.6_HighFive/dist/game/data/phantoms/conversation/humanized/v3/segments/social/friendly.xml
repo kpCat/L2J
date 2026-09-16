@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3ConversationSegment id="v3.social.friendly.conversation" version="3" category="social.friendly" mature="false">
+	<templates>
+		<template id="v3.social.friendly.reply.001" act="relationship.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Взаимно, хорошая встреча."/>
+		<template id="v3.social.friendly.reply.002" act="relationship.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="И я рад, давно не пересекались."/>
+		<template id="v3.social.friendly.reply.003" act="relationship.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Приятно это слышать."/>
+	</templates>
+</humanizedV3ConversationSegment>

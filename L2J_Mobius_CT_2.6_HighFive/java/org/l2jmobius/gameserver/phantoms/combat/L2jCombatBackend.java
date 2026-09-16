@@ -1152,13 +1152,15 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.REJECTED;
 			}
 			final boolean self = target == _player;
+			final boolean sameParty = self || ((_player.getParty() != null) && (_player.getParty() == target.getParty()));
 			final boolean targetScopeAllowed = switch (rule.targetScope())
 			{
 				case SELF -> self;
-				case SINGLE_TARGET, PARTY, ALLY -> self || ((_player.getParty() != null) && (_player.getParty() == target.getParty()));
+				case SINGLE_TARGET, ALLY -> action.audience() == PhantomPartySupportAction.Audience.EXACT_REQUESTER || sameParty;
+				case PARTY -> sameParty;
 				default -> false;
 			};
-			if (!targetScopeAllowed || (!self && ((_player.getParty() == null) || (_player.getParty() != target.getParty()))))
+			if (!targetScopeAllowed || ((action.audience() == PhantomPartySupportAction.Audience.PARTY) && !sameParty))
 			{
 				return ActionOutcome.REJECTED;
 			}
@@ -1175,6 +1177,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			if (!resurrection && target.isAlikeDead())
 			{
 				return ActionOutcome.REJECTED;
+			}
+			if (Set.of("combat.buff", "combat.song", "combat.dance").contains(action.capabilityKey()) && (PhantomSupportEffectAuthority.status(target, skill, action.rebuffRemainingSeconds()) == PhantomSupportEffectAuthority.Status.HEALTHY))
+			{
+				return ActionOutcome.ALREADY_OWNED;
 			}
 			final int castRange = Math.max(0, skill.getCastRange());
 			if ((target != _player) && (distance(_player, target) > Math.max(200, castRange + 100)))

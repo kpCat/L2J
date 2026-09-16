@@ -38,6 +38,7 @@ public final class PhantomConversationExecutionCatalog
 		QUERY,
 		GOAL,
 		PARTY_RESPONSE,
+		SUPPORT,
 		DEFERRED
 	}
 
@@ -90,7 +91,11 @@ public final class PhantomConversationExecutionCatalog
 
 	private static final int MAX_BYTES = 256 * 1024;
 	private static final Set<ChatType> EXECUTION_CHANNELS = Set.of(ChatType.GENERAL, ChatType.WHISPER, ChatType.PARTY, ChatType.TRADE);
-	private static final Map<String, ExpectedProposal> REQUIRED_PROPOSALS = Map.ofEntries( //
+	private static final Map<String, ExpectedProposal> REQUIRED_PROPOSALS_V1 = requiredProposals(Kind.DEFERRED, Set.of(), Set.of());
+	private static final Map<String, ExpectedProposal> REQUIRED_PROPOSALS_V2 = requiredProposals(Kind.SUPPORT, Set.of("capability"), Set.of("character.object", "profile"));
+	private static Map<String, ExpectedProposal> requiredProposals(Kind supportKind, Set<String> supportSlots, Set<String> supportTargets)
+	{
+		return Map.ofEntries( //
 		Map.entry("party.role.query", new ExpectedProposal(Kind.QUERY, null, Set.of(), Set.of())), //
 		Map.entry("entity.locate", new ExpectedProposal(Kind.QUERY, null, Set.of("npc", "topology.node", "content"), Set.of())), //
 		Map.entry("item.acquire", new ExpectedProposal(Kind.QUERY, null, Set.of("item"), Set.of())), //
@@ -102,12 +107,14 @@ public final class PhantomConversationExecutionCatalog
 		Map.entry("party.travel", new ExpectedProposal(Kind.GOAL, "party.travel", Set.of("location", "topology.node"), Set.of())), //
 		Map.entry("party.accept", new ExpectedProposal(Kind.PARTY_RESPONSE, "party.join", Set.of(), Set.of())), //
 		Map.entry("party.refuse", new ExpectedProposal(Kind.PARTY_RESPONSE, null, Set.of(), Set.of())), //
-		Map.entry("party.support", new ExpectedProposal(Kind.DEFERRED, null, Set.of(), Set.of())), //
+		Map.entry("party.support", new ExpectedProposal(supportKind, null, supportSlots, supportTargets)), //
 		Map.entry("party.assist", new ExpectedProposal(Kind.DEFERRED, null, Set.of(), Set.of())), //
 		Map.entry("party.regroup", new ExpectedProposal(Kind.DEFERRED, null, Set.of(), Set.of())));
+	}
 	private static final Set<String> REQUIRED_RESPONSE_ACTS = Set.of("ack.accepted", "ack.action_proposed", "ack.query_proposed", "ack.refused", "clarify.complexity", "clarify.entity", "clarify.intent", "clarify.location", "clarify.party_role", "clarify.quantity", "clarify.target_player", "no_response.cooldown", "no_response.not_addressed", "no_response.unsupported", "social.reply");
 	private static final Set<String> REQUIRED_STYLES = Set.of("neutral", "warm", "cold", "cautious", "terse");
 	private static final Set<String> REQUIRED_REASONS = Set.of("action.deferred", "execution.expired", "execution.failed", "execution.prepared", "goal.busy", "goal.invalid", "goal.submitted", "outbound.invalid", "party.accepted", "party.refused", "party.stale", "query.ambiguous", "query.not_found", "query.ok");
+	private static final Set<String> V2_SUPPORT_REASONS = Set.of("support.healthy", "support.issued", "support.refused", "support.unavailable");
 	private static final Set<String> REQUIRED_FACT_LABELS = Set.of("content.capability", "content.party_max", "content.party_min", "content.reference", "entity.reference", "farming.agreement", "farming.alternative", "farming.claim_status", "farming.counterpart", "farming.counterpart_remaining", "farming.escalation", "farming.negotiation_act", "farming.remaining", "farming.resource", "item.reference", "item.source", "party.group_generation", "party.role", "party.vacancy", "topology.instance", "topology.reference", "topology.x", "topology.y", "topology.z");
 	private final String _hash;
 	private final Limits _limits;
@@ -150,7 +157,8 @@ public final class PhantomConversationExecutionCatalog
 			factory.setExpandEntityReferences(false);
 			final Element root = factory.newDocumentBuilder().parse(new ByteArrayInputStream(bytes)).getDocumentElement();
 			require(root, "conversationExecutionPolicy", Set.of("id", "version"));
-			if (!root.getAttribute("id").equals("high-five-ru-conversation-execution-v1") || !root.getAttribute("version").equals("1"))
+			final int version = root.getAttribute("version").equals("1") ? 1 : root.getAttribute("version").equals("2") ? 2 : 0;
+			if ((version == 0) || !root.getAttribute("id").equals("high-five-ru-conversation-execution-v" + version))
 			{
 				throw new IllegalArgumentException("Conversation execution policy identity is invalid.");
 			}
@@ -160,7 +168,7 @@ public final class PhantomConversationExecutionCatalog
 				throw new IllegalArgumentException("Conversation execution policy sections are not exact.");
 			}
 			final Limits limits = limits(sections.get(0));
-			final Map<String, ProposalPolicy> proposals = proposals(sections.get(1));
+			final Map<String, ProposalPolicy> proposals = proposals(sections.get(1), version == 1 ? REQUIRED_PROPOSALS_V1 : REQUIRED_PROPOSALS_V2);
 			final List<String> acts = symbols(sections.get(2), "responseActs", "act");
 			if (!Set.copyOf(acts).equals(REQUIRED_RESPONSE_ACTS))
 			{
@@ -173,7 +181,8 @@ public final class PhantomConversationExecutionCatalog
 			}
 			final Map<String, String> factLabels = factLabels(sections.get(4));
 			final Map<String, Map<String, String>> results = results(sections.get(5), styles);
-			if (!results.keySet().equals(REQUIRED_REASONS))
+			final Set<String> requiredReasons = version == 1 ? REQUIRED_REASONS : java.util.stream.Stream.concat(REQUIRED_REASONS.stream(), V2_SUPPORT_REASONS.stream()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+			if (!results.keySet().equals(requiredReasons))
 			{
 				throw new IllegalArgumentException("Conversation execution result policy is incomplete.");
 			}
@@ -299,7 +308,7 @@ public final class PhantomConversationExecutionCatalog
 		return new Limits(integer(element, "executionQueue"), integer(element, "operationsPerPulse"), integer(element, "recoveryPage"), integer(element, "entries"), integer(element, "receipts"), integer(element, "textUtf8Bytes"), integer(element, "executionTtlMinutes"), integer(element, "outboundRetries"), integer(element, "replayHorizonMinutes"));
 	}
 
-	private static Map<String, ProposalPolicy> proposals(Element parent)
+	private static Map<String, ProposalPolicy> proposals(Element parent, Map<String, ExpectedProposal> required)
 	{
 		require(parent, "proposals", Set.of());
 		final Map<String, ProposalPolicy> result = new LinkedHashMap<>();
@@ -312,11 +321,11 @@ public final class PhantomConversationExecutionCatalog
 				throw new IllegalArgumentException("Duplicate execution proposal.");
 			}
 		}
-		if (!result.keySet().equals(REQUIRED_PROPOSALS.keySet()))
+		if (!result.keySet().equals(required.keySet()))
 		{
 			throw new IllegalArgumentException("Conversation execution proposals are incomplete.");
 		}
-		for (var expected : REQUIRED_PROPOSALS.entrySet())
+		for (var expected : required.entrySet())
 		{
 			final ProposalPolicy policy = result.get(expected.getKey());
 			final ExpectedProposal contract = expected.getValue();

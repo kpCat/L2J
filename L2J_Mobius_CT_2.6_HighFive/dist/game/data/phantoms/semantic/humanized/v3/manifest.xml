@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3Manifest id="high-five-ru-humanized-v3" version="3" maxFiles="64" maxFileBytes="1048576" maxTotalBytes="33554432" maxPatterns="8192" maxTemplates="32768" maxAliases="2048" maxProfanity="1024">
+	<topics>
+		<topic key="achievement"/>
+		<topic key="acquaintance"/>
+		<topic key="apology"/>
+		<topic key="disagreement"/>
+		<topic key="failure"/>
+		<topic key="farewell"/>
+		<topic key="food"/>
+		<topic key="games"/>
+		<topic key="greeting"/>
+		<topic key="hobbies"/>
+		<topic key="humor"/>
+		<topic key="irritation"/>
+		<topic key="likes"/>
+		<topic key="mood"/>
+		<topic key="movies"/>
+		<topic key="music"/>
+		<topic key="pivot"/>
+		<topic key="plans"/>
+		<topic key="reconcile"/>
+		<topic key="relationship"/>
+		<topic key="rest"/>
+		<topic key="sarcasm"/>
+		<topic key="smalltalk"/>
+		<topic key="support"/>
+		<topic key="surprise"/>
+		<topic key="teasing"/>
+	</topics>
+	<acts>
+		<act key="achievement.congratulate"/>
+		<act key="acquaintance.reply"/>
+		<act key="apology.accept"/>
+		<act key="disagreement.reply"/>
+		<act key="failure.empathy"/>
+		<act key="farewell.reply"/>
+		<act key="flirt.light"/>
+		<act key="greet.reply"/>
+		<act key="humor.reply"/>
+		<act key="identity.class.confirm"/>
+		<act key="identity.class.deny"/>
+		<act key="identity.class.reply"/>
+		<act key="identity.gender.confirm"/>
+		<act key="identity.gender.deny"/>
+		<act key="identity.gender.reply"/>
+		<act key="identity.name.reply"/>
+		<act key="identity.role.confirm"/>
+		<act key="identity.role.deny"/>
+		<act key="identity.summary.reply"/>
+		<act key="irritation.reply"/>
+		<act key="memory.recall"/>
+		<act key="mood.empathy"/>
+		<act key="mood.share"/>
+		<act key="pivot.reply"/>
+		<act key="preference.ack"/>
+		<act key="reconcile.reply"/>
+		<act key="relationship.reply"/>
+		<act key="rest.reply"/>
+		<act key="sarcasm.reply"/>
+		<act key="smalltalk.reply"/>
+		<act key="support.buff.request"/>
+		<act key="support.dance.request"/>
+		<act key="support.song.request"/>
+		<act key="surprise.reply"/>
+		<act key="teasing.reply"/>
+	</acts>
+	<segments>
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/buffs.xml"/>
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/buffs.xml"/>
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/life/everyday.xml"/>
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/life/everyday.xml"/>
+		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/social/friendly.xml"/>
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/social/friendly.xml"/>
+	</segments>
+</humanizedV3Manifest>

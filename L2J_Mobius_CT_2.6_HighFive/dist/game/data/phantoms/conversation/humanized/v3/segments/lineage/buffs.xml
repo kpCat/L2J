@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3ConversationSegment id="v3.lineage.buffs.conversation" version="3" category="lineage.buffs" mature="false">
+	<templates>
+		<template id="v3.lineage.buffs.reply.001" act="support.buff.request" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Проверю, могу ли сейчас дать подходящее усиление."/>
+		<template id="v3.lineage.buffs.reply.002" act="support.buff.request" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Секунду, проверю доступный баф."/>
+		<template id="v3.lineage.buffs.reply.003" act="support.buff.request" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сейчас посмотрю, какой баф могу дать."/>
+		<template id="v3.lineage.song.reply.001" act="support.song.request" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Проверю доступную песню."/>
+		<template id="v3.lineage.song.reply.002" act="support.song.request" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сейчас посмотрю, могу ли спеть."/>
+		<template id="v3.lineage.song.reply.003" act="support.song.request" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Проверю песню для тебя."/>
+		<template id="v3.lineage.dance.reply.001" act="support.dance.request" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Проверю доступный танец."/>
+		<template id="v3.lineage.dance.reply.002" act="support.dance.request" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сейчас посмотрю, могу ли станцевать."/>
+		<template id="v3.lineage.dance.reply.003" act="support.dance.request" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Проверю танец для тебя."/>
+	</templates>
+</humanizedV3ConversationSegment>

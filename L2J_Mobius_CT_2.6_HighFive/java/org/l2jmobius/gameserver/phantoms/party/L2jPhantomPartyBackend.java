@@ -37,6 +37,8 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCap
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
@@ -405,6 +407,30 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		try (AcquiredPlayer acquired = acquire(actor))
 		{
 			return acquired == null ? List.of() : realCapabilities(acquired.player(), exactTargetObjectId);
+		}
+	}
+
+	@Override
+	public Status supportEffectStatus(MemberRef actor, int exactTargetObjectId, MemberCapability capability, int rebuffRemainingSeconds)
+	{
+		if ((exactTargetObjectId <= 0) || (capability == null) || !Set.of("combat.buff", "combat.song", "combat.dance").contains(capability.capabilityKey()))
+		{
+			return Status.MISSING;
+		}
+		try (AcquiredPlayer acquired = acquire(actor))
+		{
+			final Player target = World.getInstance().getPlayer(exactTargetObjectId);
+			if ((acquired == null) || (target == null))
+			{
+				return Status.MISSING;
+			}
+			final Player player = acquired.player();
+			final Skill skill = player.getKnownSkill(capability.actionSkillId());
+			if ((skill == null) || (skill.getLevel() != capability.actionSkillLevel()) || (player.getInstanceId() != target.getInstanceId()) || ((player != target) && ((player.getParty() == null) || (player.getParty() != target.getParty()))))
+			{
+				return Status.MISSING;
+			}
+			return PhantomSupportEffectAuthority.status(target, skill, rebuffRemainingSeconds);
 		}
 	}
 

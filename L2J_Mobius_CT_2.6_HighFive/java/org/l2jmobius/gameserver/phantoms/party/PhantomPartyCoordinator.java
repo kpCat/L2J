@@ -1718,6 +1718,16 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return examined;
 	}
 
+	/** Exact learned native support candidates for a bounded external request. */
+	public List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability> supportCapabilities(long profileId, int exactTargetObjectId)
+	{
+		if ((profileId <= 0) || (exactTargetObjectId <= 0))
+		{
+			return List.of();
+		}
+		return _backend.currentMember(profileId).map(member -> _backend.capabilities(member, exactTargetObjectId)).orElse(List.of());
+	}
+
 	private void releaseTacticalAction(long profileId)
 	{
 		final ExternalActionLease lease = _tacticalActions.get(profileId);

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3ConversationSegment id="v3.life.everyday.conversation" version="3" category="life.everyday" mature="false">
+	<templates>
+		<template id="v3.life.everyday.reply.001" act="smalltalk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="День идёт спокойно, дел хватает."/>
+		<template id="v3.life.everyday.reply.002" act="smalltalk.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сегодня всё своим чередом."/>
+		<template id="v3.life.everyday.reply.003" act="smalltalk.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Пока день неплохой, не жалуюсь."/>
+	</templates>
+</humanizedV3ConversationSegment>

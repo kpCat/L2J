@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.social.friendly.semantic" version="3" category="social.friendly">
+	<patterns>
+		<pattern id="v3.social.friendly.001" topic="relationship" act="relationship.reply" phrase="рад тебя видеть" salience="500" ttlMinutes="0" priority="600"/>
+		<pattern id="v3.social.friendly.002" topic="relationship" act="relationship.reply" phrase="приятно снова встретиться" salience="500" ttlMinutes="0" priority="595"/>
+	</patterns>
+</humanizedV3SemanticSegment>

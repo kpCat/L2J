@@ -44,6 +44,7 @@
 	<property name="qol.party.support.seed" value="1006001" />
 	<property name="qol.economy.progression.seed" value="1008001" />
 	<property name="qol.summoner.servitor.seed" value="1009001" />
+	<property name="phantom.post002.seed" value="2002002" />
 	<property name="phantom.goal013b.seed" value="13001302" />
 	<property name="phantom.goal014.seed" value="140014" />
 	<property name="phantom.goal014a.seed" value="14001401" />
@@ -273,6 +274,72 @@
 			<arg value="1006" />
 		</java>
 	</target>
+
+	<target name="phantom-post002-support-test" depends="compile-tests" description="Run POST-002 canonical party support, native ownership and effect-aware priority contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="post002-support" />
+			<arg value="${phantom.post002.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-post002-native-support-test" depends="compile-tests" description="Run POST-002 real human party native buff, effect, range, MP and reuse integration on the existing isolated test DB.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing isolated Phantom test DB config; POST-002 does not provision it." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing isolated Phantom test DB schema manifest; POST-002 does not provision it." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="post002-native-support" />
+			<arg value="${phantom.post002.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-post002-conversation-test" depends="compile-tests" description="Run POST-002 bounded support request, relationship and truthful receipt contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="post002-conversation" />
+			<arg value="${phantom.post002.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-humanized-v3-content-validate" depends="compile-tests" description="Fast POST-002 segmented v3 content, custom-last, hash and atomic validation gate.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="post002-semantic-v3-content" />
+			<arg value="${phantom.post002.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-post002-semantic-v3-scale-test" depends="compile-tests" description="Run POST-002 synthetic 20k-template and 5k-pattern indexed scale gate.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000">
+			<jvmarg value="-Xmx2048m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="post002-semantic-v3-scale" />
+			<arg value="${phantom.post002.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-post002-population-test" depends="compile-tests" description="Run POST-002 exact 55/8/8/12/7/10 population freeze and documentation gate.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="post002-population" />
+			<arg value="${phantom.post002.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-post002-freeze-test" depends="qol-semantic-v2-test,phantom-humanized-goal038-catalog-test" description="Run POST-002 functional v1 and Humanized v1/v2 compatibility freeze gates." />
+	<target name="phantom-post002-targeted-test" depends="phantom-post002-support-test,phantom-post002-native-support-test,phantom-post002-conversation-test,phantom-humanized-v3-content-validate,phantom-post002-semantic-v3-scale-test,phantom-post002-population-test,phantom-post002-freeze-test" description="Run all POST-002 targeted gates without production DB or provisioning." />
+	<target name="phantom-post002-affected-test" depends="phantom-party-tactics-test,phantom-raid-attempt-runtime-goal026d-test,phantom-conversation-checkpoint1-test,phantom-conversation-checkpoint2-test,phantom-social-personality-test,phantom-social-modifiers-test,phantom-progression-catalog-test,phantom-capability-runtime-test,phantom-production-materialization-test" description="Run exact POST-002 affected party, raid, conversation, social, progression and materialization gates." />
+	<target name="phantom-post002-release-freeze-test" depends="qol-009-freeze-test" description="Run relevant QOL-009 and Goal039 retained freeze gates once for POST-002." />
 
 	<target name="phantom-operator-observability-goal028cp1-test" depends="compile-tests" description="Run Goal 028 CP1 operator status and selected decision trace tests.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">

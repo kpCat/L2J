@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.life.everyday.semantic" version="3" category="life.everyday">
+	<patterns>
+		<pattern id="v3.life.everyday.001" topic="smalltalk" act="smalltalk.reply" phrase="как проходит день" salience="350" ttlMinutes="0" priority="500"/>
+		<pattern id="v3.life.everyday.002" topic="smalltalk" act="smalltalk.reply" phrase="чем занят сегодня" salience="350" ttlMinutes="0" priority="495"/>
+		<pattern id="v3.life.everyday.003" topic="smalltalk" act="smalltalk.reply" phrase="как дела сегодня" salience="350" ttlMinutes="0" priority="490"/>
+	</patterns>
+</humanizedV3SemanticSegment>

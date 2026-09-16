@@ -54,7 +54,8 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 {
 	private static final int MAXIMUM_MECHANIC_ATTACKERS = 8;
 	private static final long COMBAT_TIMEOUT_MILLIS = 60_000;
-	private static final Set<String> SUPPORT_CAPABILITIES = Set.of("combat.heal", "combat.resurrection", "combat.recharge");
+	private static final Set<String> SUPPORT_CAPABILITIES = Set.of("combat.heal", "combat.resurrection", "combat.recharge", "combat.buff", "combat.song", "combat.dance");
+	private static final Set<String> MAINTENANCE_CAPABILITIES = Set.of("combat.buff", "combat.song", "combat.dance");
 
 	private final PhantomCombatService _combat;
 	private final PhantomPartyTactics _tactics;
@@ -360,6 +361,14 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		{
 			final List<MemberSnapshot> candidates = force.members().stream().filter(member -> (member.ref().kind() == MemberKind.PHANTOM) && !member.dead()).filter(member -> usableCapability(member, requirement.capabilityKey(), requirement.minimumRank()).isPresent()).sorted(Comparator.comparing(member -> member.ref().stableKey())).toList();
 			selected.put(requirement.capabilityKey(), candidates.stream().limit(requirement.minimumCount()).map(member -> member.ref().profileId()).collect(Collectors.toCollection(LinkedHashSet::new)));
+		}
+		for (String capabilityKey : MAINTENANCE_CAPABILITIES.stream().sorted().toList())
+		{
+			final List<MemberSnapshot> candidates = force.members().stream().filter(member -> (member.ref().kind() == MemberKind.PHANTOM) && !member.dead()).filter(member -> usableCapability(member, capabilityKey, 1).isPresent()).sorted(Comparator.comparing(member -> member.ref().stableKey())).toList();
+			if (!candidates.isEmpty())
+			{
+				selected.putIfAbsent(capabilityKey, Set.of(candidates.getFirst().ref().profileId()));
+			}
 		}
 		state._providers.clear();
 		state._providers.putAll(selected);

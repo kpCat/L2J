@@ -172,7 +172,7 @@ public final class PhantomHumanizedSemanticV2Qol007Suite implements PhantomTestS
 			PhantomAssertions.assertTrue(contextPort.contains("observer.getAppearance().getVisibleName()") && contextPort.contains("observer.getAppearance().isFemale()") && contextPort.contains("observer.getPlayerClass()"), "Runtime identity is not copied from canonical live Player state.");
 			PhantomAssertions.assertFalse(contextPort.contains("setClass") || contextPort.contains("setSex") || contextPort.contains("setName"), "Read-only identity glue introduced a Player mutation.");
 			final String system = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java"), StandardCharsets.UTF_8);
-			PhantomAssertions.assertTrue(system.contains("PhantomHumanizedCatalog.loadV2") && system.contains("humanizedEnabled()"), "Production v2 selection bypassed the shipped feature gate.");
+			PhantomAssertions.assertTrue(system.contains("PhantomHumanizedCatalog.loadV3") && system.contains("_settings.conversation().humanizedEnabled()"), "Production v3 selection bypassed the shipped social-reply feature gate.");
 			context.record("qol007.functionalSemanticV1Sha256", sha256(semantic));
 			context.record("qol007.functionalCorpusV1Sha256", sha256(corpus));
 		});

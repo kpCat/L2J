@@ -89,6 +89,15 @@ public final class PhantomHumanizedConversationService
 		}
 	}
 
+	/**
+	 * Small functional bridge owned by the v3 understanding index. It is usable
+	 * even when optional humanized social replies are disabled; relationship and
+	 * native-cast authority remain in the execution port.
+	 */
+	public record SupportRequest(String capabilityKey, String topic, String act, String semanticHash, String patternId)
+	{
+	}
+
 	private static final int MAX_ATTEMPTS = 3;
 	private final PhantomHumanizedCatalog _catalog;
 	private final PhantomPersonalConversationStore _personal;
@@ -111,6 +120,33 @@ public final class PhantomHumanizedConversationService
 	public String authorityHash()
 	{
 		return _catalog.combinedHash();
+	}
+
+	public Optional<SupportRequest> requestedSupport(Request request)
+	{
+		Objects.requireNonNull(request);
+		if ((request.origin() != Origin.CLIENT_CHAT) || ((request.speaker().kind() == SubjectKind.PHANTOM_PROFILE) && (request.speaker().id() == request.ownerProfileId())))
+		{
+			return Optional.empty();
+		}
+		Optional<Match> matched = _catalog.understandIdentity(request.text(), request.identity());
+		if (matched.isEmpty())
+		{
+			matched = _catalog.understand(request.text());
+		}
+		if (matched.isEmpty())
+		{
+			return Optional.empty();
+		}
+		final Match match = matched.get();
+		final String capabilityKey = switch (match.act())
+		{
+			case "support.buff.request" -> "combat.buff";
+			case "support.song.request" -> "combat.song";
+			case "support.dance.request" -> "combat.dance";
+			default -> null;
+		};
+		return capabilityKey == null ? Optional.empty() : Optional.of(new SupportRequest(capabilityKey, match.topic(), match.act(), match.normalizedHash(), match.patternId()));
 	}
 
 	public Decision plan(Request request)

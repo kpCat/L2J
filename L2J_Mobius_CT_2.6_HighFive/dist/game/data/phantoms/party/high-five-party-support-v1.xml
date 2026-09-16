@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<partySupportPolicy id="high-five-party-support-v1" version="1" rebuffRemainingSeconds="45" maximumMaintenanceDirectives="2" maximumCombatMaintenanceDirectives="1" idlePriority="5000" combatPriority="4500" neutralEmpathyMinimum="6500" neutralSociabilityMinimum="7000" rivalHelpAllowed="false"/>

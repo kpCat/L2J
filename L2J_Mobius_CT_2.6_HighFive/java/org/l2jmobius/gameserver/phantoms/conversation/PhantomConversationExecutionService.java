@@ -524,6 +524,25 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 				save(stored, next);
 				yield 1;
 			}
+			case SUPPORT ->
+			{
+				if (!spend(Phase.PARTY_RESPONSE, stored.profileId()))
+				{
+					yield 1;
+				}
+				final ResultStatus result = _port.executeSupport(stored.profileId(), entry);
+				final String reason = switch (result)
+				{
+					case COMPLETED -> "support.issued";
+					case IDEMPOTENT -> "support.healthy";
+					case REJECTED -> "support.refused";
+					default -> "support.unavailable";
+				};
+				final boolean completed = (result == ResultStatus.COMPLETED) || (result == ResultStatus.IDEMPOTENT);
+				final ExecutionEntry next = entry.withResult(_catalog.render(reason, entry.style(), null), reason).withAction(completed ? ActionState.COMPLETED : ActionState.REJECTED, 0, 0, reason, now());
+				save(stored, next);
+				yield 1;
+			}
 			case GOAL ->
 			{
 				if (!spend(Phase.GOAL_SUBMIT, stored.profileId()))

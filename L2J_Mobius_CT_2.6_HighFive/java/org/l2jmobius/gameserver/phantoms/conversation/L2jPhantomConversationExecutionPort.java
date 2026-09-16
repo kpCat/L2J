@@ -24,6 +24,13 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationBinding;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationResponse;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionKind;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionRequest;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomPartySupportAction;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
@@ -32,6 +39,8 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Pag
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartySupportPolicy;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.PendingResponse;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.PendingResponseOutcome;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStatus;
@@ -39,6 +48,8 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftConversationFacts;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftModel.SemanticFactType;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 
@@ -54,6 +65,9 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 	private final ChatObservationService _observation;
 	private final PhantomRiftConversationFacts _riftFacts;
 	private final PhantomFarmingConversationFacts _farmingFacts;
+	private final PhantomCombatService _combat;
+	private final PhantomSocialService _social;
+	private final PhantomPartySupportPolicy _supportPolicy;
 
 	public L2jPhantomConversationExecutionPort(PhantomConversationExecutionCatalog catalog, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomPartyCoordinator party, PhantomMaterializationService materialization, ChatObservationService observation)
 	{
@@ -67,6 +81,11 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 
 	public L2jPhantomConversationExecutionPort(PhantomConversationExecutionCatalog catalog, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomPartyCoordinator party, PhantomMaterializationService materialization, ChatObservationService observation, PhantomRiftConversationFacts riftFacts, PhantomFarmingConversationFacts farmingFacts)
 	{
+		this(catalog, knowledge, topology, party, materialization, observation, riftFacts, farmingFacts, null, null, PhantomPartySupportPolicy.defaults());
+	}
+
+	public L2jPhantomConversationExecutionPort(PhantomConversationExecutionCatalog catalog, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomPartyCoordinator party, PhantomMaterializationService materialization, ChatObservationService observation, PhantomRiftConversationFacts riftFacts, PhantomFarmingConversationFacts farmingFacts, PhantomCombatService combat, PhantomSocialService social, PhantomPartySupportPolicy supportPolicy)
+	{
 		_catalog = Objects.requireNonNull(catalog);
 		_knowledge = Objects.requireNonNull(knowledge);
 		_topology = Objects.requireNonNull(topology);
@@ -75,6 +94,9 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		_observation = Objects.requireNonNull(observation);
 		_riftFacts = Objects.requireNonNull(riftFacts);
 		_farmingFacts = Objects.requireNonNull(farmingFacts);
+		_combat = combat;
+		_social = social;
+		_supportPolicy = Objects.requireNonNull(supportPolicy);
 	}
 
 	@Override
@@ -203,6 +225,95 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 			case IDEMPOTENT -> ResultStatus.IDEMPOTENT;
 			case STALE -> ResultStatus.STALE;
 			default -> ResultStatus.REJECTED;
+		};
+	}
+
+	@Override
+	public ResultStatus executeSupport(long profileId, ExecutionEntry entry)
+	{
+		if ((_combat == null) || (_social == null) || (entry.target() == null) || !entry.target().equals(entry.counterpart()))
+		{
+			return ResultStatus.REJECTED;
+		}
+		final Player target = resolve(entry.target());
+		final var materialized = _materialization.find(profileId).orElse(null);
+		final Player actor = materialized == null ? null : World.getInstance().getPlayer(materialized.characterObjectId());
+		if ((actor == null) || (target == null) || target.isDead() || target.isAlikeDead() || (actor.getInstanceId() != target.getInstanceId()))
+		{
+			return ResultStatus.STALE;
+		}
+		final boolean sameParty = (actor == target) || ((actor.getParty() != null) && (actor.getParty() == target.getParty()));
+		if (!sameParty && !friendlyExternal(profileId, entry.counterpart()))
+		{
+			return ResultStatus.REJECTED;
+		}
+		final String capabilityKey = entry.arguments().stream().filter(argument -> argument.key().equals("capability")).map(Argument::value).filter(value -> value.startsWith("capability:")).map(value -> value.substring("capability:".length())).findFirst().orElse("");
+		if (!Set.of("combat.buff", "combat.song", "combat.dance").contains(capabilityKey))
+		{
+			return ResultStatus.REJECTED;
+		}
+		final List<MemberCapability> matching = _party.supportCapabilities(profileId, target.getObjectId()).stream().filter(capability -> capability.capabilityKey().equals(capabilityKey) && capability.learned() && capability.intrinsic() && (capability.actionSkillId() > 0) && (capability.actionSkillLevel() > 0)).sorted(java.util.Comparator.comparingInt(MemberCapability::contextualScore).reversed().thenComparing(MemberCapability::identity)).toList();
+		final MemberCapability capability = matching.stream().filter(MemberCapability::readyNow).findFirst().orElse(null);
+		if (capability == null)
+		{
+			return ResultStatus.NOT_FOUND;
+		}
+		final long deadline = Math.addExact(Math.max(1, System.nanoTime()), java.util.concurrent.TimeUnit.SECONDS.toNanos(30));
+		final var acquired = _combat.acquireExternalAction(new ExternalActionRequest(profileId, ExternalActionKind.PARTY_SUPPORT, "conversation.support." + entry.planId().substring(0, 32), deadline, () -> false));
+		if (acquired.lease() == null)
+		{
+			return ResultStatus.STALE;
+		}
+		final var lease = acquired.lease();
+		final ActionOutcome outcome = lease.castSupport(new PhantomPartySupportAction(capability.capabilityKey(), capability.variantKey(), capability.targetScope(), target.getObjectId(), new SelectedSkill(capability.actionSkillId(), capability.actionSkillLevel()), sameParty ? PhantomPartySupportAction.Audience.PARTY : PhantomPartySupportAction.Audience.EXACT_REQUESTER, _supportPolicy.rebuffRemainingSeconds()));
+		if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
+		{
+			lease.complete();
+			return outcome == ActionOutcome.ISSUED ? ResultStatus.COMPLETED : ResultStatus.IDEMPOTENT;
+		}
+		lease.close();
+		return outcome == ActionOutcome.UNAVAILABLE ? ResultStatus.STALE : ResultStatus.NOT_FOUND;
+	}
+
+	private boolean friendlyExternal(long profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef counterpart)
+	{
+		final SubjectRef subject;
+		try
+		{
+			subject = counterpart.namespace().equals("profile") ? SubjectRef.phantom(Long.parseLong(counterpart.key())) : counterpart.namespace().equals("character.object") ? SubjectRef.character(Integer.parseInt(counterpart.key())) : null;
+		}
+		catch (NumberFormatException exception)
+		{
+			return false;
+		}
+		if (subject == null)
+		{
+			return false;
+		}
+		final var result = _social.snapshot(profileId, subject, 1, Math.max(0, System.currentTimeMillis() / 60000L));
+		if ((result.value() == null) || ((result.status() != org.l2jmobius.gameserver.phantoms.social.PhantomSocialEventSink.Status.READY) && (result.status() != org.l2jmobius.gameserver.phantoms.social.PhantomSocialEventSink.Status.INITIALIZED)))
+		{
+			return false;
+		}
+		final var snapshot = result.value();
+		return allowsRequestedSupport(false, PhantomHumanizedConversationService.relationshipBand(snapshot.relationship().relationship()), snapshot.personality().traits(), _supportPolicy);
+	}
+
+	public static boolean allowsRequestedSupport(boolean sameParty, org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.RelationshipBand band, Map<String, Integer> personality, PhantomPartySupportPolicy policy)
+	{
+		if (sameParty)
+		{
+			return true;
+		}
+		Objects.requireNonNull(band);
+		Objects.requireNonNull(personality);
+		Objects.requireNonNull(policy);
+		return switch (band)
+		{
+			case TRUSTED, FAMILIAR -> true;
+			case NEUTRAL -> (personality.getOrDefault("empathy", 0) >= policy.neutralEmpathyMinimum()) || (personality.getOrDefault("sociability", 0) >= policy.neutralSociabilityMinimum());
+			case RIVAL -> policy.rivalHelpAllowed();
+			case UNKNOWN, TENSE, HOSTILE -> false;
 		};
 	}
 

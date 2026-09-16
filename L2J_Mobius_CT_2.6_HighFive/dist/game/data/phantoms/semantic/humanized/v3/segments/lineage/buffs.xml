@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3SemanticSegment id="v3.lineage.buffs.semantic" version="3" category="lineage.buffs">
+	<patterns>
+		<pattern id="v3.lineage.buffs.request.001" topic="support" act="support.buff.request" phrase="бафни меня" salience="850" ttlMinutes="0" priority="1000"/>
+		<pattern id="v3.lineage.buffs.request.002" topic="support" act="support.buff.request" phrase="баф пожалуйста" salience="850" ttlMinutes="0" priority="995"/>
+		<pattern id="v3.lineage.buffs.request.003" topic="support" act="support.buff.request" phrase="можешь бафнуть" salience="850" ttlMinutes="0" priority="990"/>
+		<pattern id="v3.lineage.buffs.request.004" topic="support" act="support.buff.request" phrase="дай баф" salience="850" ttlMinutes="0" priority="985"/>
+		<pattern id="v3.lineage.buffs.request.005" topic="support" act="support.buff.request" phrase="забафай" salience="850" ttlMinutes="0" priority="980"/>
+		<pattern id="v3.lineage.song.request.001" topic="support" act="support.song.request" phrase="спой песню" salience="850" ttlMinutes="0" priority="975"/>
+		<pattern id="v3.lineage.song.request.002" topic="support" act="support.song.request" phrase="дай сонг" salience="850" ttlMinutes="0" priority="970"/>
+		<pattern id="v3.lineage.dance.request.001" topic="support" act="support.dance.request" phrase="станцуй танец" salience="850" ttlMinutes="0" priority="965"/>
+		<pattern id="v3.lineage.dance.request.002" topic="support" act="support.dance.request" phrase="дай денс" salience="850" ttlMinutes="0" priority="960"/>
+	</patterns>
+</humanizedV3SemanticSegment>

@@ -21,6 +21,7 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService.RespondResul
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.Response;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status;
 
 /**
  * Copies exact live Party/Player state without exposing either mutable object.
@@ -84,6 +85,11 @@ public interface PhantomPartyBackend
 	}
 
 	List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId);
+
+	default Status supportEffectStatus(MemberRef actor, int exactTargetObjectId, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability capability, int rebuffRemainingSeconds)
+	{
+		return Status.MISSING;
+	}
 
 	default List<PvpProtection> pvpProtection(MemberRef helper, int limit)
 	{

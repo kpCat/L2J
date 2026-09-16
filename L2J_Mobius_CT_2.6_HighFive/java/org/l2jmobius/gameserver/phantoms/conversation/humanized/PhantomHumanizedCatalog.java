@@ -262,6 +262,7 @@ public final class PhantomHumanizedCatalog
 
 	private static final Pattern KEY = Pattern.compile("^[a-z][a-z0-9_.-]{0,63}$");
 	private static final Set<String> REQUIRED_TOPICS = Set.of("greeting", "farewell", "acquaintance", "mood", "smalltalk", "rest", "food", "music", "movies", "games", "hobbies", "plans", "likes", "achievement", "failure", "humor", "teasing", "sarcasm", "surprise", "disagreement", "irritation", "apology", "reconcile", "relationship", "pivot");
+	private static final Set<String> V3_FUNCTIONAL_SUPPORT_ACTS = Set.of("support.buff.request", "support.song.request", "support.dance.request");
 	private static final int MAX_CORE_BYTES = 262144;
 	private static final int MAX_CUSTOM_BYTES = 65536;
 	private static final int MAX_CORPUS_BYTES = 262144;
@@ -273,6 +274,15 @@ public final class PhantomHumanizedCatalog
 	private static final int V2_MAX_IDENTITY_PATTERNS = 32;
 	private static final int V2_MAX_ADDITIONAL_PATTERNS = 128;
 	private static final int V2_MAX_ADDITIONAL_TEMPLATES = 256;
+	private static final int V3_MAX_FILES = 64;
+	private static final int V3_MAX_FILE_BYTES = 1024 * 1024;
+	private static final long V3_MAX_TOTAL_BYTES = 32L * 1024 * 1024;
+	private static final int V3_MAX_PATTERNS = 8192;
+	private static final int V3_MAX_TEMPLATES = 32768;
+	private static final int V3_MAX_ALIASES = 2048;
+	private static final int V3_MAX_PROFANITY = 1024;
+	private static final int V3_MAX_PATTERN_BUCKET = 256;
+	private static final int V3_MAX_TEMPLATE_BUCKET = 4096;
 	private final Limits _limits;
 	private final Map<String, String> _aliases;
 	private final List<TopicPattern> _patterns;
@@ -291,6 +301,10 @@ public final class PhantomHumanizedCatalog
 	private final Map<String, ClassAliasResolution> _classAliases;
 	private final Map<String, Gender> _genderAliases;
 	private final List<IdentityPattern> _identityPatterns;
+	private final Map<String, List<TopicPattern>> _exactPatternIndex;
+	private final Map<String, List<TopicPattern>> _prefixPatternIndex;
+	private final Map<String, List<TopicPattern>> _suffixPatternIndex;
+	private final Map<TemplateBucket, List<Template>> _templateIndex;
 
 	private PhantomHumanizedCatalog(Limits limits, Map<String, String> aliases, List<TopicPattern> patterns, List<Template> templates, List<Profanity> profanity, List<PersonaInterest> interests, Set<String> blocked, String coreHash, String customHash, String combinedHash, int corpusCases, String familyId, int familyVersion, Map<Gender, GenderDefinition> genders, Map<Integer, ClassDefinition> classes, Map<String, ClassAliasResolution> classAliases, Map<String, Gender> genderAliases, List<IdentityPattern> identityPatterns)
 	{
@@ -312,19 +326,29 @@ public final class PhantomHumanizedCatalog
 		_classAliases = Map.copyOf(classAliases);
 		_genderAliases = Map.copyOf(genderAliases);
 		_identityPatterns = identityPatterns.stream().sorted(Comparator.comparingInt(IdentityPattern::priority).reversed().thenComparing(Comparator.comparingInt((IdentityPattern value) -> value.phrase().length()).reversed()).thenComparing(IdentityPattern::id)).toList();
+		final PatternIndexes patternIndexes = patternIndexes(_patterns, familyVersion >= 3);
+		_exactPatternIndex = patternIndexes.exact();
+		_prefixPatternIndex = patternIndexes.prefix();
+		_suffixPatternIndex = patternIndexes.suffix();
+		_templateIndex = templateIndex(_templates, familyVersion >= 3);
 	}
 
 	public static PhantomHumanizedCatalog load(Path phantomDataRoot, boolean customEnabled)
 	{
-		return load(phantomDataRoot, customEnabled, false);
+		return load(phantomDataRoot, customEnabled, 1);
 	}
 
 	public static PhantomHumanizedCatalog loadV2(Path phantomDataRoot, boolean customEnabled)
 	{
-		return load(phantomDataRoot, customEnabled, true);
+		return load(phantomDataRoot, customEnabled, 2);
 	}
 
-	private static PhantomHumanizedCatalog load(Path phantomDataRoot, boolean customEnabled, boolean version2)
+	public static PhantomHumanizedCatalog loadV3(Path phantomDataRoot, boolean customEnabled)
+	{
+		return load(phantomDataRoot, customEnabled, 3);
+	}
+
+	private static PhantomHumanizedCatalog load(Path phantomDataRoot, boolean customEnabled, int familyVersion)
 	{
 		Objects.requireNonNull(phantomDataRoot);
 		final Path root = phantomDataRoot.toAbsolutePath().normalize();
@@ -334,6 +358,7 @@ public final class PhantomHumanizedCatalog
 		final Path corpus = root.resolve("semantic/humanized/high-five-ru-humanized-corpus-v1.tsv");
 		final Path semanticV2 = root.resolve("semantic/humanized/high-five-ru-humanized-semantic-v2.xml");
 		final Path conversationV2 = root.resolve("conversation/humanized/high-five-ru-humanized-conversation-v2.xml");
+		final boolean version2 = familyVersion >= 2;
 		final List<Path> coreFiles = version2 ? List.of(semantic, conversation, persona, corpus, semanticV2, conversationV2) : List.of(semantic, conversation, persona, corpus);
 		final List<Path> customFiles = List.of(
 			root.resolve("semantic/custom/my-ru-aliases.xml"),
@@ -351,6 +376,15 @@ public final class PhantomHumanizedCatalog
 			loader.readSemanticV2(semanticV2);
 			loader.readConversationV2(conversationV2);
 		}
+		final List<Path> v3Files;
+		if (familyVersion >= 3)
+		{
+			v3Files = loader.readV3Manifest(root, root.resolve("semantic/humanized/v3/manifest.xml"));
+		}
+		else
+		{
+			v3Files = List.of();
+		}
 		if (customEnabled)
 		{
 			loader.readAliases(customFiles.get(0), "aliases", true);
@@ -360,14 +394,14 @@ public final class PhantomHumanizedCatalog
 			loader.readProfanity(customFiles.get(4), "profanity", true);
 			loader.readTemplates(customFiles.get(5), "matureDialogue", true, true);
 		}
-		loader.validateCoverage();
+		loader.validateCoverage(familyVersion);
 		if (version2)
 		{
 			loader.validateV2Coverage();
 		}
-		final String coreHash = contentHash(coreFiles, MAX_CORE_BYTES, MAX_CORPUS_BYTES);
+		final String baseCoreHash = contentHash(coreFiles, MAX_CORE_BYTES, MAX_CORPUS_BYTES);
+		final String coreHash = familyVersion >= 3 ? sha256(baseCoreHash + '|' + v3ContentHash(root, v3Files)) : baseCoreHash;
 		final String customHash = customEnabled ? contentHash(customFiles, MAX_CUSTOM_BYTES, MAX_CUSTOM_BYTES) : sha256("custom.disabled");
-		final int familyVersion = version2 ? 2 : 1;
 		final String familyId = "high-five-ru-humanized-v" + familyVersion;
 		final String combinedHash = sha256(coreHash + '|' + customHash + "|v" + familyVersion);
 		final PhantomHumanizedCatalog provisional = new PhantomHumanizedCatalog(loader._limits, loader._aliases, new ArrayList<>(loader._patterns.values()), new ArrayList<>(loader._templates.values()), new ArrayList<>(loader._profanity.values()), new ArrayList<>(loader._interests.values()), loader._blocked, coreHash, customHash, combinedHash, 0, familyId, familyVersion, loader._genders, loader._classes, loader._classAliases, loader._genderAliases, new ArrayList<>(loader._identityPatterns.values()));
@@ -384,11 +418,18 @@ public final class PhantomHumanizedCatalog
 		}
 		normalized = applyAliases(normalized);
 		final String padded = ' ' + normalized + ' ';
-		if (_blocked.stream().anyMatch(value -> padded.contains(' ' + value + ' ')))
+		final boolean blocked = _blocked.stream().anyMatch(value -> padded.contains(' ' + value + ' '));
+		final String[] words = normalized.split(" ");
+		final Set<TopicPattern> indexed = new HashSet<>();
+		indexed.addAll(_exactPatternIndex.getOrDefault(normalized, List.of()));
+		indexed.addAll(_prefixPatternIndex.getOrDefault(words[0], List.of()));
+		indexed.addAll(_suffixPatternIndex.getOrDefault(words[words.length - 1], List.of()));
+		final List<TopicPattern> candidates = indexed.stream().sorted(Comparator.comparingInt(TopicPattern::priority).reversed().thenComparing(Comparator.comparingInt((TopicPattern value) -> value.phrase().length()).reversed()).thenComparing(TopicPattern::id)).toList();
+		if (blocked && ((_familyVersion < 3) || candidates.stream().noneMatch(pattern -> V3_FUNCTIONAL_SUPPORT_ACTS.contains(pattern.act()))))
 		{
 			return Optional.empty();
 		}
-		for (TopicPattern pattern : _patterns)
+		for (TopicPattern pattern : candidates)
 		{
 			final String value = match(pattern.phrase(), normalized);
 			if (value != null)
@@ -504,13 +545,22 @@ public final class PhantomHumanizedCatalog
 		Objects.requireNonNull(register);
 		Objects.requireNonNull(profanityMode);
 		Objects.requireNonNull(variation);
-		final List<Template> eligible = _templates.stream()
-			.filter(template -> template.act().equals(act))
-			.filter(template -> (template.band() == RelationshipBand.UNKNOWN) || (template.band() == band))
-			.filter(template -> template.register().ordinal() <= register.ordinal())
-			.filter(template -> template.profanity() == ProfanityMode.NONE)
-			.filter(template -> !template.mature() || (matureEnabled && privateChannel && (band == RelationshipBand.TRUSTED)))
-			.toList();
+		final List<Template> indexed = new ArrayList<>();
+		for (RelationshipBand indexedBand : band == RelationshipBand.UNKNOWN ? List.of(RelationshipBand.UNKNOWN) : List.of(RelationshipBand.UNKNOWN, band))
+		{
+			for (Register indexedRegister : Register.values())
+			{
+				if (indexedRegister.ordinal() <= register.ordinal())
+				{
+					indexed.addAll(_templateIndex.getOrDefault(new TemplateBucket(act, indexedBand, indexedRegister, false), List.of()));
+					if (matureEnabled && privateChannel && (band == RelationshipBand.TRUSTED))
+					{
+						indexed.addAll(_templateIndex.getOrDefault(new TemplateBucket(act, indexedBand, indexedRegister, true), List.of()));
+					}
+				}
+			}
+		}
+		final List<Template> eligible = indexed.stream().sorted(Comparator.comparing(Template::id)).toList();
 		if (eligible.isEmpty())
 		{
 			throw new IllegalArgumentException("No humanized template is eligible for act " + act + '.');
@@ -629,6 +679,16 @@ public final class PhantomHumanizedCatalog
 		return (int) _templates.stream().filter(Template::mature).count();
 	}
 
+	public int maximumPatternIndexBucketSize()
+	{
+		return java.util.stream.Stream.of(_exactPatternIndex, _prefixPatternIndex, _suffixPatternIndex).flatMap(index -> index.values().stream()).mapToInt(List::size).max().orElse(0);
+	}
+
+	public int maximumTemplateIndexBucketSize()
+	{
+		return _templateIndex.values().stream().mapToInt(List::size).max().orElse(0);
+	}
+
 	private String applyAliases(String normalized)
 	{
 		final String[] words = normalized.split(" ");
@@ -728,7 +788,11 @@ public final class PhantomHumanizedCatalog
 			final Optional<Match> result = catalog.understand(fields[2]);
 			if (fields[1].equals("REJECTED"))
 			{
-				if (result.isPresent())
+				// The frozen v1 corpus intentionally rejected functional commands.
+				// V3 promotes only its three bounded support acts; every other v1
+				// negative row remains authoritative.
+				final boolean promotedV3Support = (catalog._familyVersion >= 3) && result.map(Match::act).filter(V3_FUNCTIONAL_SUPPORT_ACTS::contains).isPresent();
+				if (result.isPresent() && !promotedV3Support)
 				{
 					throw new IllegalArgumentException("Humanized negative corpus row was accepted: " + fields[0]);
 				}
@@ -744,6 +808,73 @@ public final class PhantomHumanizedCatalog
 			throw new IllegalArgumentException("Humanized corpus must contain at least 80 cases.");
 		}
 		return cases;
+	}
+
+	private record PatternIndexes(Map<String, List<TopicPattern>> exact, Map<String, List<TopicPattern>> prefix, Map<String, List<TopicPattern>> suffix)
+	{
+	}
+
+	private record TemplateBucket(String act, RelationshipBand band, Register register, boolean mature)
+	{
+	}
+
+	private static PatternIndexes patternIndexes(List<TopicPattern> patterns, boolean v3)
+	{
+		final Map<String, List<TopicPattern>> exact = new HashMap<>();
+		final Map<String, List<TopicPattern>> prefix = new HashMap<>();
+		final Map<String, List<TopicPattern>> suffix = new HashMap<>();
+		for (TopicPattern pattern : patterns)
+		{
+			final int marker = pattern.phrase().indexOf("{value}");
+			final Map<String, List<TopicPattern>> target;
+			final String bucket;
+			if (marker < 0)
+			{
+				target = exact;
+				bucket = pattern.phrase();
+			}
+			else if (marker == 0)
+			{
+				target = suffix;
+				final String literal = pattern.phrase().substring("{value}".length()).strip();
+				final String[] words = literal.split(" ");
+				bucket = words[words.length - 1];
+			}
+			else
+			{
+				target = prefix;
+				bucket = pattern.phrase().substring(0, marker).strip().split(" ")[0];
+			}
+			target.computeIfAbsent(bucket, _ -> new ArrayList<>()).add(pattern);
+		}
+		return new PatternIndexes(immutableIndex(exact, v3 ? V3_MAX_PATTERN_BUCKET : Integer.MAX_VALUE, "pattern"), immutableIndex(prefix, v3 ? V3_MAX_PATTERN_BUCKET : Integer.MAX_VALUE, "pattern"), immutableIndex(suffix, v3 ? V3_MAX_PATTERN_BUCKET : Integer.MAX_VALUE, "pattern"));
+	}
+
+	private static Map<TemplateBucket, List<Template>> templateIndex(List<Template> templates, boolean v3)
+	{
+		final Map<TemplateBucket, List<Template>> result = new HashMap<>();
+		for (Template template : templates)
+		{
+			if (template.profanity() == ProfanityMode.NONE)
+			{
+				result.computeIfAbsent(new TemplateBucket(template.act(), template.band(), template.register(), template.mature()), _ -> new ArrayList<>()).add(template);
+			}
+		}
+		return immutableIndex(result, v3 ? V3_MAX_TEMPLATE_BUCKET : Integer.MAX_VALUE, "template");
+	}
+
+	private static <K, V> Map<K, List<V>> immutableIndex(Map<K, List<V>> source, int maximumBucket, String label)
+	{
+		final Map<K, List<V>> result = new HashMap<>();
+		for (var entry : source.entrySet())
+		{
+			if (entry.getValue().size() > maximumBucket)
+			{
+				throw new IllegalArgumentException("Humanized v3 " + label + " index bucket exceeds its hard bound.");
+			}
+			result.put(entry.getKey(), List.copyOf(entry.getValue()));
+		}
+		return Map.copyOf(result);
 	}
 
 	private static final class Loader
@@ -862,6 +993,152 @@ public final class PhantomHumanizedCatalog
 			{
 				throw new IllegalArgumentException("Humanized v2 additional template bound was exceeded.");
 			}
+		}
+
+		private List<Path> readV3Manifest(Path phantomRoot, Path manifest)
+		{
+			final Element root = root(manifest, "humanizedV3Manifest", MAX_CORE_BYTES);
+			requireAttributes(root, Set.of("id", "version", "maxFiles", "maxFileBytes", "maxTotalBytes", "maxPatterns", "maxTemplates", "maxAliases", "maxProfanity"));
+			if (!attribute(root, "id").equals("high-five-ru-humanized-v3") || !attribute(root, "version").equals("3") || (integer(root, "maxFiles") != V3_MAX_FILES) || (integer(root, "maxFileBytes") != V3_MAX_FILE_BYTES) || (integer(root, "maxTotalBytes") != V3_MAX_TOTAL_BYTES) || (integer(root, "maxPatterns") != V3_MAX_PATTERNS) || (integer(root, "maxTemplates") != V3_MAX_TEMPLATES) || (integer(root, "maxAliases") != V3_MAX_ALIASES) || (integer(root, "maxProfanity") != V3_MAX_PROFANITY))
+			{
+				throw new IllegalArgumentException("Humanized v3 manifest bounds or identity do not match runtime hard bounds.");
+			}
+			final List<Element> sections = children(root);
+			if (!sections.stream().map(Element::getTagName).toList().equals(List.of("topics", "acts", "segments")))
+			{
+				throw new IllegalArgumentException("Humanized v3 manifest sections are not exact.");
+			}
+			final Set<String> topics = symbols(sections.get(0), "topics", "topic");
+			final Set<String> acts = symbols(sections.get(1), "acts", "act");
+			requireAttributes(sections.get(2), Set.of());
+			final List<Element> segments = children(sections.get(2));
+			if (segments.isEmpty() || (segments.size() > V3_MAX_FILES))
+			{
+				throw new IllegalArgumentException("Humanized v3 segment count is outside hard bounds.");
+			}
+			final List<Path> loaded = new ArrayList<>();
+			loaded.add(manifest);
+			long totalBytes = fileSize(manifest);
+			final Set<String> paths = new HashSet<>();
+			for (Element segment : segments)
+			{
+				requireTag(segment, "segment");
+				requireAttributes(segment, Set.of("kind", "path"));
+				final String kind = attribute(segment, "kind");
+				final String relative = attribute(segment, "path");
+				if (!paths.add(relative) || relative.contains("\\") || relative.startsWith("/") || relative.contains("..") || !relative.endsWith(".xml") || (!relative.startsWith("semantic/humanized/v3/segments/") && !relative.startsWith("conversation/humanized/v3/segments/")))
+				{
+					throw new IllegalArgumentException("Humanized v3 manifest contains an unsafe or duplicate segment path.");
+				}
+				final Path path = phantomRoot.resolve(relative).normalize();
+				if (!path.startsWith(phantomRoot) || !Files.isRegularFile(path) || Files.isSymbolicLink(path))
+				{
+					throw new IllegalArgumentException("Humanized v3 segment is not a safe regular file: " + relative);
+				}
+				final long bytes = fileSize(path);
+				if ((bytes < 1) || (bytes > V3_MAX_FILE_BYTES) || ((totalBytes += bytes) > V3_MAX_TOTAL_BYTES))
+				{
+					throw new IllegalArgumentException("Humanized v3 segment bytes exceed hard bounds.");
+				}
+				if (kind.equals("SEMANTIC") && relative.startsWith("semantic/"))
+				{
+					readV3Semantic(path, topics, acts);
+				}
+				else if (kind.equals("CONVERSATION") && relative.startsWith("conversation/"))
+				{
+					readV3Conversation(path, acts);
+				}
+				else
+				{
+					throw new IllegalArgumentException("Humanized v3 segment kind and path disagree.");
+				}
+				loaded.add(path);
+			}
+			return List.copyOf(loaded);
+		}
+
+		private void readV3Semantic(Path path, Set<String> topics, Set<String> acts)
+		{
+			final int patternsBefore = _patterns.size();
+			final Element root = root(path, "humanizedV3SemanticSegment", V3_MAX_FILE_BYTES);
+			requireAttributes(root, Set.of("id", "version", "category"));
+			key(attribute(root, "id"), "Humanized v3 semantic segment ID");
+			key(attribute(root, "category"), "Humanized v3 semantic category");
+			requireVersion(root, 3);
+			for (Element child : children(root))
+			{
+				switch (child.getTagName())
+				{
+					case "aliases" -> readAliasElements(child, false);
+					case "patterns" -> readPatternElements(child, false);
+					default -> throw new IllegalArgumentException("Unknown humanized v3 semantic element: " + child.getTagName());
+				}
+			}
+			final List<TopicPattern> added = new ArrayList<>(_patterns.values()).subList(patternsBefore, _patterns.size());
+			for (TopicPattern pattern : added)
+			{
+				if (!topics.contains(pattern.topic()) || !acts.contains(pattern.act()))
+				{
+					throw new IllegalArgumentException("Humanized v3 pattern references an undeclared topic or act: " + pattern.id());
+				}
+			}
+		}
+
+		private void readV3Conversation(Path path, Set<String> acts)
+		{
+			final int templatesBefore = _templates.size();
+			final int profanityBefore = _profanity.size();
+			final Element root = root(path, "humanizedV3ConversationSegment", V3_MAX_FILE_BYTES);
+			requireAttributes(root, Set.of("id", "version", "category", "mature"));
+			key(attribute(root, "id"), "Humanized v3 conversation segment ID");
+			key(attribute(root, "category"), "Humanized v3 conversation category");
+			requireVersion(root, 3);
+			final boolean mature = bool(root, "mature");
+			for (Element child : children(root))
+			{
+				switch (child.getTagName())
+				{
+					case "templates" -> readTemplateElements(child, false, mature);
+					case "profanity" -> readProfanityElements(child, false);
+					default -> throw new IllegalArgumentException("Unknown humanized v3 conversation element: " + child.getTagName());
+				}
+			}
+			final List<Template> added = new ArrayList<>(_templates.values()).subList(templatesBefore, _templates.size());
+			for (Template template : added)
+			{
+				if (!acts.contains(template.act()) || (template.mature() != mature) || !validTemplatePlaceholders(template.text()))
+				{
+					throw new IllegalArgumentException("Humanized v3 template violates act, mature or placeholder policy: " + template.id());
+				}
+			}
+			for (Profanity profanity : new ArrayList<>(_profanity.values()).subList(profanityBefore, _profanity.size()))
+			{
+				if (!acts.containsAll(profanity.acts()))
+				{
+					throw new IllegalArgumentException("Humanized v3 profanity references an undeclared act: " + profanity.id());
+				}
+			}
+		}
+
+		private static Set<String> symbols(Element parent, String parentName, String childName)
+		{
+			requireTag(parent, parentName);
+			requireAttributes(parent, Set.of());
+			final Set<String> values = new java.util.LinkedHashSet<>();
+			for (Element child : children(parent))
+			{
+				requireTag(child, childName);
+				requireAttributes(child, Set.of("key"));
+				if (!values.add(key(attribute(child, "key"), "Humanized v3 manifest symbol")))
+				{
+					throw new IllegalArgumentException("Humanized v3 manifest symbol is duplicated.");
+				}
+			}
+			if (values.isEmpty())
+			{
+				throw new IllegalArgumentException("Humanized v3 manifest symbol set is empty.");
+			}
+			return Set.copyOf(values);
 		}
 
 		private void readV2Bounds(Element element)
@@ -1134,7 +1411,7 @@ public final class PhantomHumanizedCatalog
 			}
 		}
 
-		private void validateCoverage()
+		private void validateCoverage(int familyVersion)
 		{
 			if (_limits == null)
 			{
@@ -1157,7 +1434,11 @@ public final class PhantomHumanizedCatalog
 					throw new IllegalArgumentException("Humanized act has fewer than required clean templates: " + act);
 				}
 			}
-			if (_aliases.size() > 256 || _patterns.size() > 512 || _templates.size() > 512 || _profanity.size() > 64)
+			final int aliasLimit = familyVersion >= 3 ? V3_MAX_ALIASES : 256;
+			final int patternLimit = familyVersion >= 3 ? V3_MAX_PATTERNS : 512;
+			final int templateLimit = familyVersion >= 3 ? V3_MAX_TEMPLATES : 512;
+			final int profanityLimit = familyVersion >= 3 ? V3_MAX_PROFANITY : 64;
+			if ((_aliases.size() > aliasLimit) || (_patterns.size() > patternLimit) || (_templates.size() > templateLimit) || (_profanity.size() > profanityLimit))
 			{
 				throw new IllegalArgumentException("Humanized catalog exceeds hard entry bounds.");
 			}
@@ -1286,6 +1567,18 @@ public final class PhantomHumanizedCatalog
 		catch (java.io.IOException exception)
 		{
 			throw new IllegalArgumentException("Could not read humanized file " + path + ": " + exception.getMessage(), exception);
+		}
+	}
+
+	private static long fileSize(Path path)
+	{
+		try
+		{
+			return Files.size(path);
+		}
+		catch (java.io.IOException exception)
+		{
+			throw new IllegalArgumentException("Could not inspect humanized file size: " + path, exception);
 		}
 	}
 
@@ -1455,6 +1748,26 @@ public final class PhantomHumanizedCatalog
 			canonical.append(path.getFileName()).append(':').append(sha256(read(path, limit))).append('\n');
 		}
 		return sha256(canonical.toString());
+	}
+
+	private static String v3ContentHash(Path root, List<Path> paths)
+	{
+		final StringBuilder canonical = new StringBuilder();
+		for (Path path : paths)
+		{
+			canonical.append(root.relativize(path).toString().replace('\\', '/')).append(':').append(sha256(read(path, path.endsWith("manifest.xml") ? MAX_CORE_BYTES : V3_MAX_FILE_BYTES))).append('\n');
+		}
+		return sha256(canonical.toString());
+	}
+
+	private static boolean validTemplatePlaceholders(String text)
+	{
+		String remaining = text;
+		for (String placeholder : List.of("{name}", "{value}", "{memory}", "{interest}"))
+		{
+			remaining = remaining.replace(placeholder, "");
+		}
+		return (remaining.indexOf('{') < 0) && (remaining.indexOf('}') < 0);
 	}
 
 	public static String normalize(String value)

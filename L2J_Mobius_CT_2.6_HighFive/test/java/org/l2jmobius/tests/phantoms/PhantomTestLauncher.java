@@ -288,6 +288,11 @@ public final class PhantomTestLauncher
 			case "qol-seven-signs-access" -> new QoLSevenSignsAccessSuite();
 			case "qol-party-support" -> new QoLPartySupportSuite();
 			case "qol-semantic-v2" -> new PhantomHumanizedSemanticV2Qol007Suite();
+			case "post002-support" -> new PhantomPost002LivingSupportSuite(PhantomPost002LivingSupportSuite.Mode.SUPPORT);
+			case "post002-conversation" -> new PhantomPost002LivingSupportSuite(PhantomPost002LivingSupportSuite.Mode.CONVERSATION);
+			case "post002-population" -> new PhantomPost002LivingSupportSuite(PhantomPost002LivingSupportSuite.Mode.POPULATION);
+			case "post002-semantic-v3-content" -> new PhantomPost002SemanticV3Suite(PhantomPost002SemanticV3Suite.Mode.CONTENT);
+			case "post002-semantic-v3-scale" -> new PhantomPost002SemanticV3Suite(PhantomPost002SemanticV3Suite.Mode.SCALE);
 			case "qol-economy-progression-closure" -> new QoLEconomyProgressionClosureSuite();
 			case "topology-performance" -> new PhantomTopologyPerformanceSuite();
 			case "knowledge-core" -> new PhantomGameKnowledgeCoreSuite();
@@ -299,6 +304,7 @@ public final class PhantomTestLauncher
 			case "combat-ownership" -> new PhantomCombatOwnershipSuite();
 			case "combat-action-ownership" -> new PhantomCombatActionOwnershipSuite();
 			case "combat-server-integration" -> new PhantomCombatServerIntegrationSuite();
+			case "post002-native-support" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.POST002_SUPPORT);
 			case "pvp-combat-server-integration" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.PVP);
 			case "qol-summoner-servitor-combat" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.QOL009_SERVITOR);
 			case "combat-performance" -> new PhantomCombatPerformanceSuite();

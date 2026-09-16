@@ -122,6 +122,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleMatcher;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartySupportPolicy;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyParticipationPort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -454,6 +455,7 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom semantic understanding service could not enter the running state.");
 				}
 				final L2jPhantomPartyBackend partyBackend = new L2jPhantomPartyBackend(productionProfiles, _materializationService, _progressionService);
+				final PhantomPartySupportPolicy partySupportPolicy = PhantomPartySupportPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-party-support-v1.xml").toPath());
 				final L2jPhantomRaidAuthority raidAuthority = new L2jPhantomRaidAuthority();
 				final PhantomRaidEncounterCatalog raidCatalog = new PhantomRaidEncounterCatalog();
 				final PhantomRaidScriptRegistry raidScripts = PhantomRaidScriptRegistry.getInstance();
@@ -461,7 +463,7 @@ public final class PhantomSystem
 				_raidRecruitmentService = new PhantomRaidRecruitmentService(_raidReadinessService, partyBackend);
 				final PhantomPartyRouteCoordinator raidRoutes = new PhantomPartyRouteCoordinator(_navigationService, _combatService);
 				_raidAssemblyService = new PhantomRaidAssemblyService(productionGoals, _raidReadinessService, _raidRecruitmentService, partyBackend, raidAuthority, _topologyService::query, raidRoutes, System::currentTimeMillis, System::nanoTime);
-				final PhantomPartyTactics raidTactics = new PhantomPartyTactics(_combatService, partyBackend);
+				final PhantomPartyTactics raidTactics = new PhantomPartyTactics(_combatService, partyBackend, partySupportPolicy);
 				final L2jPhantomRaidAttemptRuntime raidRuntime = new L2jPhantomRaidAttemptRuntime(_combatService, raidTactics, raidRoutes, () -> _topologyService.query().snapshot().canonicalHash(), System::nanoTime);
 				_raidAttemptService = new PhantomRaidAttemptService(productionGoals, _raidAssemblyService, _raidReadinessService, partyBackend, raidAuthority, raidCatalog, raidScripts, raidRuntime, System::currentTimeMillis, System::nanoTime, () -> NpcConfig.RAID_DISABLE_CURSE);
 				final PhantomRaidDecision raidDecision = new PhantomRaidDecision(_raidAssemblyService, _raidAttemptService);
@@ -472,7 +474,7 @@ public final class PhantomSystem
 					partyBackend,
 					partyRoleCatalog,
 					new PhantomPartyRouteCoordinator(_navigationService, _combatService),
-					new PhantomPartyTactics(_combatService, partyBackend),
+					new PhantomPartyTactics(_combatService, partyBackend, partySupportPolicy),
 					() -> _topologyService.query().snapshot().canonicalHash(),
 					System::nanoTime,
 					_settings.partyOperationsPerPulse(),
@@ -546,27 +548,19 @@ public final class PhantomSystem
 				final File conversationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-v1.xml");
 				final File conversationCorpusFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv");
 				final PhantomConversationCatalog conversationCatalog = PhantomConversationCatalog.load(conversationCatalogFile.toPath(), conversationCorpusFile.toPath());
-				final File conversationExecutionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-execution-v1.xml");
+				final File conversationExecutionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-execution-v2.xml");
 				final PhantomConversationExecutionCatalog conversationExecutionCatalog = PhantomConversationExecutionCatalog.load(conversationExecutionCatalogFile.toPath());
 				final PhantomConversationExecutionStore conversationExecutionStore = new PhantomConversationExecutionStore(productionProfiles, conversationExecutionCatalog);
 				final PhantomConversationPlanSink.Bridge conversationExecutionSignal = PhantomConversationPlanSink.bridge();
 				final PhantomConversationGoalRuntimePort.Bridge conversationGoalRuntime = PhantomConversationGoalRuntimePort.bridge();
-				final PhantomHumanizedConversationService humanizedConversation;
-				if (_settings.conversation().humanizedEnabled())
-				{
-					final PhantomHumanizedCatalog humanizedCatalog = PhantomHumanizedCatalog.loadV2(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms").toPath(), _settings.conversation().customPackEnabled());
-					final PhantomHumanizedConversationService.Settings humanizedSettings = new PhantomHumanizedConversationService.Settings(
-						true,
-						PhantomHumanizedCatalog.Register.valueOf(_settings.conversation().register().name()),
-						PhantomHumanizedCatalog.ProfanityMode.valueOf(_settings.conversation().profanity().name()),
-						PhantomHumanizedCatalog.Variation.valueOf(_settings.conversation().variation().name()),
-						_settings.conversation().matureEnabled());
-					humanizedConversation = new PhantomHumanizedConversationService(humanizedCatalog, PhantomPersonalConversationStore.production(productionProfiles), _socialService, humanizedSettings);
-				}
-				else
-				{
-					humanizedConversation = null;
-				}
+				final PhantomHumanizedCatalog humanizedCatalog = PhantomHumanizedCatalog.loadV3(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms").toPath(), _settings.conversation().customPackEnabled());
+				final PhantomHumanizedConversationService.Settings humanizedSettings = new PhantomHumanizedConversationService.Settings(
+					_settings.conversation().humanizedEnabled(),
+					PhantomHumanizedCatalog.Register.valueOf(_settings.conversation().register().name()),
+					PhantomHumanizedCatalog.ProfanityMode.valueOf(_settings.conversation().profanity().name()),
+					PhantomHumanizedCatalog.Variation.valueOf(_settings.conversation().variation().name()),
+					_settings.conversation().matureEnabled());
+				final PhantomHumanizedConversationService humanizedConversation = new PhantomHumanizedConversationService(humanizedCatalog, PhantomPersonalConversationStore.production(productionProfiles), _socialService, humanizedSettings);
 				final File clanDirectiveCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/clan/high-five-clan-directives-v1.xml");
 				final PhantomClanDirectiveCatalog clanDirectiveCatalog = PhantomClanDirectiveCatalog.load(clanDirectiveCatalogFile.toPath());
 				_clanDirectiveService = new PhantomClanDirectiveService(clanDirectiveCatalog, _materializationService, _socialService, new PhantomSchedulerRelevanceSignalPort(_scheduler));
@@ -575,7 +569,7 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom clan directive service could not enter the running state.");
 				}
 				_conversationService = new PhantomConversationService(conversationCatalog, new PhantomConversationStore(productionProfiles, conversationExecutionStore), new L2jPhantomConversationContextPort(_materializationService, _topologyService.query()), _semanticUnderstandingService, _socialService, conversationExecutionSignal, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance(), _clanDirectiveService, humanizedConversation);
-				_conversationExecutionService = new PhantomConversationExecutionService(conversationExecutionCatalog, conversationExecutionStore, productionGoals, new L2jPhantomConversationExecutionPort(conversationExecutionCatalog, _gameKnowledgeService, _topologyService.query(), _partyCoordinator, _materializationService, ChatObservationService.getInstance(), riftService, _farmingService), conversationGoalRuntime);
+				_conversationExecutionService = new PhantomConversationExecutionService(conversationExecutionCatalog, conversationExecutionStore, productionGoals, new L2jPhantomConversationExecutionPort(conversationExecutionCatalog, _gameKnowledgeService, _topologyService.query(), _partyCoordinator, _materializationService, ChatObservationService.getInstance(), riftService, _farmingService, _combatService, _socialService, partySupportPolicy), conversationGoalRuntime);
 				conversationExecutionSignal.install(_conversationExecutionService);
 				if (!_conversationExecutionService.start())
 				{
